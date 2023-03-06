@@ -22,7 +22,8 @@ class BreakDownEnderChests(
 ) : RepeatingActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
         val freeSlots = player.inventorySlots.filter { slot ->
-            BuildTools.ejectList.contains(slot.stack.item.registryName.toString()) || slot.stack.isEmpty
+            BuildTools.ejectList.contains(slot.stack.item.registryName.toString())
+                || slot.stack.isEmpty
         }
 
         if (freeSlots.isEmpty()) {

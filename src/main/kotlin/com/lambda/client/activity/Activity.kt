@@ -163,22 +163,24 @@ abstract class Activity(val isRoot: Boolean = false) {
     fun SafeClientEvent.cancel() {
         val activity = this@Activity
 
+        onCancel()
+
+        BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
+
         LambdaEventBus.unsubscribe(activity)
         ListenerManager.unregister(activity)
 
-        subActivities.forEach {
+        subActivities.toList().forEach {
             with(it) {
                 cancel()
             }
         }
 
-        with(owner) {
-            subActivities.remove(activity)
+        if (!owner.isRoot) {
+            with(owner) {
+                subActivities.remove(activity)
+            }
         }
-
-        onCancel()
-
-        BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
     }
 
     private fun SafeClientEvent.childFailure(childActivities: ArrayDeque<Activity>, childException: Exception): Boolean {

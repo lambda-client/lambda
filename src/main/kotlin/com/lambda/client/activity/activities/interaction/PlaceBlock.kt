@@ -1,11 +1,9 @@
 package com.lambda.client.activity.activities.interaction
 
-import com.lambda.client.LambdaMod
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.travel.PlaceGoal
 import com.lambda.client.activity.activities.types.*
-import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
@@ -47,7 +45,7 @@ class PlaceBlock(
     private val ignoreFacing: Boolean = false,
     override var rotation: Vec2f? = null,
     override var distance: Double = 1337.0,
-    override val timeout: Long = 200L, // ToDo: Reset timeouted placements
+    override val timeout: Long = 1000L, // ToDo: Reset timeouted placements blockstates
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
@@ -116,9 +114,7 @@ class PlaceBlock(
 
             defaultScope.launch {
                 onMainThreadSafe {
-                    if (it.packet.blockState == targetState
-                        || (ignoreProperties && it.packet.blockState.block == targetState.block)
-                    ) {
+                    if (isInDesiredState(it.packet.blockState)) {
                         ActivityManagerHud.totalBlocksPlaced++
 
                         success()
@@ -156,6 +152,10 @@ class PlaceBlock(
 //        var allowedRotations = targetState.block.getValidRotations(world, blockPos)?.toMutableSet()
 
         val currentState = world.getBlockState(blockPos)
+
+        if (context != BuildActivity.BuildContext.PENDING
+            && isInDesiredState(currentState)
+        ) success()
 
         if (!currentState.isReplaceable
             && currentState != targetState
@@ -214,7 +214,6 @@ class PlaceBlock(
             }
         }
 
-//        /* check if block is replaceable */
 //        allowedSides.removeIf {
 //            !targetState.block.canPlaceBlockOnSide(world, blockPos, it.opposite)
 //        }
@@ -226,10 +225,19 @@ class PlaceBlock(
             range = BuildTools.maxReach,
             sides = allowedSides.toTypedArray()
         )?.let {
-            action = BuildActivity.BuildAction.PLACE
-            it.hitVec = it.hitVec.add(placementOffset.offset)
-            distance = player.distanceTo(it.hitVec)
-            placeInfo = it
+            if (it.placedPos == blockPos) {
+                action = BuildActivity.BuildAction.PLACE
+                it.hitVec = it.hitVec.add(placementOffset.offset)
+                distance = player.distanceTo(it.hitVec)
+                placeInfo = it
+            } else {
+                action = BuildActivity.BuildAction.NEEDS_SUPPORT
+
+                PlaceBlock(it.placedPos, targetState).apply {
+                    context = BuildActivity.BuildContext.SUPPORT
+                    addSubActivities(this)
+                }
+            }
         } ?: run {
             getNeighbour(
                 blockPos,
@@ -356,6 +364,12 @@ class PlaceBlock(
         context = BuildActivity.BuildContext.PENDING
     }
 
+    private fun isInDesiredState(currentState: IBlockState) =
+        currentState == targetState
+            || (ignoreProperties && currentState.block == targetState.block)
+//            || (ignoreFacing && currentState.block == targetState.block && currentState.properties == targetState.properties)
+
+
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
         when (childActivity) {
             is Rotate -> {
@@ -368,6 +382,13 @@ class PlaceBlock(
             }
         }
     }
+
+//    override fun SafeClientEvent.onFailure(exception: Exception): Boolean {
+//        if (context != BuildActivity.BuildContext.PENDING) return false
+//
+//        world.setBlockState(blockPos, initState)
+//        return false
+//    }
 
     class NoNeighbourException(blockPos: BlockPos) : Exception("No neighbour for (${blockPos.asString()}) found")
     class BlockNotPlaceableException(targetState: IBlockState) : Exception("Block $targetState is not placeable")

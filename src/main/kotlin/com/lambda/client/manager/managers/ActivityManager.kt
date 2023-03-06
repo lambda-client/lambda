@@ -36,14 +36,14 @@ object ActivityManager : Manager, Activity(true) {
 
             var lastActivity: Activity? = null
 
+//            BaritoneUtils.settings?.allowPlace?.value = false
+//            BaritoneUtils.settings?.allowBreak?.value = false
+            BaritoneUtils.settings?.allowInventory?.value = false
+
             repeat(executionCountPerTick) {
                 val current = getCurrentActivity()
 
                 with(current) {
-                    BaritoneUtils.settings?.allowPlace?.value = false
-                    BaritoneUtils.settings?.allowBreak?.value = false
-                    BaritoneUtils.settings?.allowInventory?.value = false
-
                     // ToDo: Find a working way to guarantee specific age of activity
                     (lastActivity as? TimedActivity)?.let {
                         if (age < it.earliestFinish) return@repeat

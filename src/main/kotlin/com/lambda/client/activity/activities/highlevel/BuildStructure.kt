@@ -44,6 +44,7 @@ class BuildStructure(
                 }
                 /* only option left is breaking the block */
                 else -> {
+//                    activities.add(BreakBlock(blockPos, collectDrops = true, minCollectAmount = 64))
                     activities.add(BreakBlock(blockPos))
                 }
             }

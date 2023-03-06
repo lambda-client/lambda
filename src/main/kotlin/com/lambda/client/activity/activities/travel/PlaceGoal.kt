@@ -3,9 +3,11 @@ package com.lambda.client.activity.activities.travel
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import baritone.api.pathing.goals.GoalNear
+import baritone.process.BuilderProcess
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.threads.safeListener
@@ -33,23 +35,37 @@ class PlaceGoal(
                 return@safeListener
             }
 
-            getNeighbour(blockPos, attempts = 1, visibleSideCheck = true, range = 4.5f)?.let {
+            // ToDo: Use original data from PlaceBlock
+            getNeighbour(
+                blockPos,
+                attempts = BuildTools.placementSearch,
+                visibleSideCheck = BuildTools.placeStrictness != BuildTools.PlacementStrictness.ANY,
+                range = BuildTools.maxReach
+            )?.let {
                 success()
             } ?: run {
-                getNeighbour(blockPos, attempts = 1, range = 256f)?.let {
-                    val goalNear = GoalNear(blockPos, 3)
+                val goalAdjacent = BuilderProcess.GoalAdjacent(blockPos, blockPos, true)
 
-                    if (!goalNear.isInGoal(player.flooredPosition)) {
-                        BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(goalNear)
-                        return@safeListener
-                    }
-
-                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalNear(blockPos.offset(it.side), 1))
-                } ?: run {
-                    // ToDo: Scaffolding!
-
-                    failedWith(NoPathToPlaceFound())
+                if (!goalAdjacent.isInGoal(player.flooredPosition)) {
+                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(goalAdjacent)
+                    return@safeListener
                 }
+
+                failedWith(NoPathToPlaceFound())
+//                getNeighbour(blockPos, attempts = 1, range = 256f)?.let {
+//                    val goalNear = GoalNear(blockPos, 3)
+//
+//                    if (!goalNear.isInGoal(player.flooredPosition)) {
+//                        BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(goalNear)
+//                        return@safeListener
+//                    }
+//
+//                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalNear(blockPos.offset(it.side), 1))
+//                } ?: run {
+//                    // ToDo: Scaffolding!
+//
+//                    failedWith(NoPathToPlaceFound())
+//                }
             }
         }
     }
