@@ -134,20 +134,14 @@ object BuildTools : Module(
             food.value = value.registryName.toString()
         }
 
-    private val defaultIgnoreBlocks = linkedSetOf(
+    val defaultIgnoreBlocks = linkedSetOf(
         "minecraft:standing_sign",
         "minecraft:wall_sign",
         "minecraft:standing_banner",
-        "minecraft:wall_banner",
-        "minecraft:bedrock",
-        "minecraft:end_portal",
-        "minecraft:end_portal_frame",
-        "minecraft:portal",
-        "minecraft:piston_extension",
-        "minecraft:barrier"
+        "minecraft:wall_banner"
     ).also { defaultIgnoreBlocks -> defaultIgnoreBlocks.addAll(shulkerList.map { it.localizedName }) }
 
-    private val defaultEjectList = linkedSetOf(
+    val defaultEjectList = linkedSetOf(
         "minecraft:grass",
         "minecraft:dirt",
         "minecraft:netherrack",

@@ -15,7 +15,7 @@ interface RepeatingActivity {
                 if (repeated++ >= maximumRepeats && maximumRepeats != 0) return
 
                 status = Activity.Status.UNINITIALIZED
-                owner.subActivities.add(activity)
+                owner?.subActivities?.add(activity)
 //                LambdaMod.LOG.info("Looping $name [$currentLoops/${if (maxLoops == 0) "∞" else maxLoops}] ")
             }
         }

@@ -233,9 +233,9 @@ class PlaceBlock(
             } else {
                 action = BuildActivity.BuildAction.NEEDS_SUPPORT
 
-                PlaceBlock(it.placedPos, targetState).apply {
-                    context = BuildActivity.BuildContext.SUPPORT
-                    addSubActivities(this)
+                PlaceBlock(it.placedPos, targetState).also { placeBlock ->
+                    placeBlock.context = BuildActivity.BuildContext.SUPPORT
+                    addSubActivities(placeBlock)
                 }
             }
         } ?: run {

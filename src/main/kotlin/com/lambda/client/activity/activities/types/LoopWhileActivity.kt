@@ -16,7 +16,7 @@ interface LoopWhileActivity {
 
                 currentLoops++
                 status = Activity.Status.UNINITIALIZED
-                owner.subActivities.add(activity)
+                owner?.subActivities?.add(activity)
 //                LambdaMod.LOG.info("Looping $name ($currentLoops)")
             }
         }
