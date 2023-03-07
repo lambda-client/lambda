@@ -16,7 +16,7 @@ import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-object ActivityManager : Manager, Activity(true) {
+object ActivityManager : Manager, Activity() {
     private val renderer = ESPRenderer()
     const val MAX_DEPTH = 25
 
@@ -74,14 +74,16 @@ object ActivityManager : Manager, Activity(true) {
 
     fun reset() {
         ListenerManager.listenerMap.keys.filterIsInstance<Activity>().forEach {
-            if (it.isRoot) return@forEach
-            LambdaEventBus.unsubscribe(it)
-            ListenerManager.unregister(it)
+            it.owner?.let { _ ->
+                LambdaEventBus.unsubscribe(it)
+                ListenerManager.unregister(it)
+            }
         }
         ListenerManager.asyncListenerMap.keys.filterIsInstance<Activity>().forEach {
-            if (it.isRoot) return@forEach
-            LambdaEventBus.unsubscribe(it)
-            ListenerManager.unregister(it)
+            it.owner?.let { _ ->
+                LambdaEventBus.unsubscribe(it)
+                ListenerManager.unregister(it)
+            }
         }
         BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
         subActivities.clear()

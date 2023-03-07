@@ -29,11 +29,11 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.apache.commons.lang3.time.DurationFormatUtils
 
-abstract class Activity(val isRoot: Boolean = false) {
+abstract class Activity {
     val subActivities = ArrayDeque<Activity>()
     var status = Status.UNINITIALIZED
     private var creationTime = 0L
-    var owner: Activity = ActivityManager
+    var owner: Activity? = null
     var depth = 0
 
     open fun SafeClientEvent.onInitialize() {}
@@ -73,7 +73,9 @@ abstract class Activity(val isRoot: Boolean = false) {
         get() = run {
             val activities = mutableListOf<Activity>()
 
-            if (!isRoot) activities.add(this)
+            owner?.let {
+                activities.add(this)
+            }
 
             activities.addAll(subActivities.flatMap { it.allSubActivities })
 
@@ -130,9 +132,11 @@ abstract class Activity(val isRoot: Boolean = false) {
         LambdaEventBus.unsubscribe(activity)
         ListenerManager.unregister(activity)
 
-        with(owner) {
-            onChildSuccess(activity)
-            subActivities.remove(activity)
+        owner?.let {
+            with(it) {
+                onChildSuccess(activity)
+                subActivities.remove(activity)
+            }
         }
 
         onSuccess()
@@ -148,16 +152,23 @@ abstract class Activity(val isRoot: Boolean = false) {
     fun SafeClientEvent.failedWith(exception: Exception) {
         val activity = this@Activity
 
-        with(owner) {
-            if (childFailure(ArrayDeque(listOf(activity)), exception)) return
+        MessageSendHelper.sendErrorMessage("Exception in $activityName: ${exception.message}")
+
+        if (onFailure(exception)) return
+
+        owner?.let {
+            with(it) {
+                if (childFailure(ArrayDeque(listOf(activity)), exception)) return
+            }
         }
 
         if (checkAttempt(activity, exception)) return
-        if (onFailure(exception)) return
 
-        MessageSendHelper.sendErrorMessage("Exception in $activityName: ${exception.message}")
+        MessageSendHelper.sendErrorMessage("Fatal Exception in $activityName: ${exception.message}")
 
-        ActivityManager.reset()
+        with(ActivityManager) {
+            cancel()
+        }
     }
 
     fun SafeClientEvent.cancel() {
@@ -167,17 +178,16 @@ abstract class Activity(val isRoot: Boolean = false) {
 
         BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
 
-        LambdaEventBus.unsubscribe(activity)
-        ListenerManager.unregister(activity)
-
         subActivities.toList().forEach {
             with(it) {
                 cancel()
             }
         }
 
-        if (!owner.isRoot) {
-            with(owner) {
+        owner?.let {
+            with(it) {
+                LambdaEventBus.unsubscribe(activity)
+                ListenerManager.unregister(activity)
                 subActivities.remove(activity)
             }
         }
@@ -194,9 +204,12 @@ abstract class Activity(val isRoot: Boolean = false) {
         }
 
         childActivities.add(this@Activity)
-        with(owner) {
-            childFailure(childActivities, childException)
+        owner?.let {
+            with(it) {
+                childFailure(childActivities, childException)
+            }
         }
+
         return false
     }
 

@@ -90,7 +90,6 @@ class BreakBlock(
 
             val currentState = world.getBlockState(blockPos)
 
-            // ToDo: doesn't work for some reason
             if (currentState.block in BuildTools.ignoredBlocks) {
                 success()
                 return@runSafe
@@ -134,6 +133,15 @@ class BreakBlock(
     }
 
     override fun SafeClientEvent.onInitialize() {
+        val currentState = world.getBlockState(blockPos)
+
+        if (currentState.block in BuildTools.ignoredBlocks
+            || currentState.getBlockHardness(world, blockPos) < 0
+        ) {
+            success()
+            return
+        }
+
         updateState()
 
         when (action) {
@@ -282,14 +290,14 @@ class BreakBlock(
         var foundLiquid = false
 
         EnumFacing.values()
-            .filter { it != EnumFacing.UP }
+            .filter { it != EnumFacing.DOWN }
             .map { blockPos.offset(it) }
             .filter { world.getBlockState(it).isLiquid }
-            .forEach {
+            .forEach { pos ->
                 // ToDo: Don't add if exists
-                PlaceBlock(it, BuildTools.defaultFillerMat.defaultState).apply {
-                    context = BuildActivity.BuildContext.LIQUID
-                    addSubActivities(this)
+                PlaceBlock(pos, BuildTools.defaultFillerMat.defaultState).also { breakBlock ->
+                    breakBlock.context = BuildActivity.BuildContext.LIQUID
+                    addSubActivities(breakBlock)
                 }
 
                 foundLiquid = true
@@ -323,6 +331,10 @@ class BreakBlock(
 
     override fun SafeClientEvent.onFailure(exception: Exception): Boolean {
         playerController.resetBlockRemoving()
+        context = BuildActivity.BuildContext.NONE
+        action = BuildActivity.BuildAction.NONE
+        side = null
+        rotation = null
         return false
     }
 

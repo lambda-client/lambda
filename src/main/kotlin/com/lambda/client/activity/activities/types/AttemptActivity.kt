@@ -19,11 +19,11 @@ interface AttemptActivity {
                 } else {
                     usedAttempts++
                     LambdaMod.LOG.warn("$activityName caused ${causeException::class.simpleName}: ${causeException.message}. Attempt $usedAttempts of $maxAttempts restarting...")
-                    subActivities.clear()
                     initialize()
+                    return true
                 }
             }
-            return true
+            return false
         }
 
         class MaxAttemptsExceededException(usedAttempts: Int, causeException: Exception) : Exception("Exceeded $usedAttempts attempts caused by ${causeException::class.simpleName}: ${causeException.message}")

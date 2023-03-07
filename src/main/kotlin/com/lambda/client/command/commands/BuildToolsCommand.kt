@@ -3,6 +3,7 @@ package com.lambda.client.command.commands
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.text.MessageSendHelper
+import net.minecraft.init.Items
 
 object BuildToolsCommand : ClientCommand(
     name = "buildtools",
@@ -37,7 +38,26 @@ object BuildToolsCommand : ClientCommand(
                 }
             }
 
+            literal("reset", "clear") {
+                execute("Resets the ignore list") {
+                    BuildTools.ignoreBlocks.clear()
+                    MessageSendHelper.sendChatMessage("Reset ignore list.")
+                }
+            }
+
+            literal("default") {
+                execute("Adds all default blocks to ignore list") {
+                    BuildTools.ignoreBlocks.addAll(BuildTools.defaultIgnoreBlocks)
+                    MessageSendHelper.sendChatMessage("Added all default blocks to ignore list.")
+                }
+            }
+
             execute("Lists all ignored blocks") {
+                if (BuildTools.ignoreBlocks.isEmpty()) {
+                    MessageSendHelper.sendChatMessage("No blocks are ignored.")
+                    return@execute
+                }
+
                 MessageSendHelper.sendChatMessage("Ignored blocks: ${BuildTools.ignoreBlocks.joinToString(", ")}")
             }
         }
@@ -69,7 +89,25 @@ object BuildToolsCommand : ClientCommand(
                 }
             }
 
+            literal("reset", "clear") {
+                execute("Resets the eject list") {
+                    BuildTools.ejectList.clear()
+                    MessageSendHelper.sendChatMessage("Reset eject list.")
+                }
+            }
+
+            literal("default") {
+                execute("Adds all default blocks to eject list") {
+                    BuildTools.ejectList.addAll(BuildTools.defaultEjectList)
+                    MessageSendHelper.sendChatMessage("Added all default blocks to eject list.")
+                }
+            }
+
             execute("Lists all blocks in eject list") {
+                if (BuildTools.ejectList.isEmpty()) {
+                    MessageSendHelper.sendChatMessage("No blocks are in the eject list.")
+                    return@execute
+                }
                 MessageSendHelper.sendChatMessage("Eject list: ${BuildTools.ejectList.joinToString(", ")}")
             }
         }
@@ -79,6 +117,13 @@ object BuildToolsCommand : ClientCommand(
                 execute("Sets the food item") {
                     BuildTools.defaultFood = itemArg.value
                     MessageSendHelper.sendChatMessage("Set food item to &7${itemArg.value.registryName}&r.")
+                }
+            }
+
+            literal("default") {
+                execute("Sets the food item to default") {
+                    BuildTools.defaultFood = Items.GOLDEN_APPLE
+                    MessageSendHelper.sendChatMessage("Set food item to default.")
                 }
             }
 
