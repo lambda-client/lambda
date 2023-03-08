@@ -100,7 +100,10 @@ object AutoDisconnect : Module(
     }
 
     private fun SafeClientEvent.log(reason: Reasons, additionalInfo: String = "", num: Float = 0.0f) {
-        val reasonText = getReason(reason, additionalInfo, num)
+        val position = player.position
+        var reasonText = getReason(reason, additionalInfo, num)
+        reasonText += "Logged out at (${position.x}, ${position.y}, ${position.z})"
+
         val screen = getScreen() // do this before disconnecting
 
         mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
