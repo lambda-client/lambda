@@ -7,15 +7,25 @@ import com.lambda.client.setting.settings.ImmutableSetting
 class CollectionSetting<E : Any, T : MutableCollection<E>>(
     name: String,
     override val value: T,
-    entryType: Class<E>,
     visibility: () -> Boolean = { true },
     description: String = "",
     unit: String = ""
 ) : ImmutableSetting<T>(name, value, visibility, { _, input -> input }, description, unit), MutableCollection<E> by value {
 
+    constructor(
+        name: String,
+        value: T,
+        visibility: () -> Boolean = { true },
+        description: String = "",
+        unit: String = "",
+        entryType: Class<E>, // type must be set if the default collection is empty
+    ) : this(name, value, visibility, description, unit) {
+        this.entryType = entryType
+    }
+
+    private var entryType: Class<E>? = null
     override val defaultValue: T = valueClass.newInstance()
     private val lockObject = Any()
-    private val type = TypeToken.getArray(entryType).type
     val editListeners = ArrayList<() -> Unit>()
 
     init {
@@ -41,7 +51,7 @@ class CollectionSetting<E : Any, T : MutableCollection<E>>(
 
     override fun read(jsonElement: JsonElement?) {
         jsonElement?.asJsonArray?.let {
-            val cacheArray = gson.fromJson<Array<E>>(it, type)
+            val cacheArray = gson.fromJson<Array<E>>(it, TypeToken.getArray(entryType ?: value.first().javaClass).type)
             synchronized(lockObject) {
                 value.clear()
                 value.addAll(cacheArray)
