@@ -22,7 +22,6 @@ class PickUpEntityItem(
             if (event.phase != TickEvent.Phase.START) return@safeListener
 
             if (!world.loadedEntityList.contains(entityItem)) {
-                BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(null)
                 success()
                 return@safeListener
             }
@@ -38,15 +37,11 @@ class PickUpEntityItem(
                 BuildTools.ejectList.contains(slot.stack.item.registryName.toString())
             }?.let { slot ->
                 addSubActivities(DumpSlot(slot))
+                return@safeListener
             }
+
+            onFailure(InventoryFullException())
         }
-    }
-
-    override fun SafeClientEvent.onFailure(exception: Exception): Boolean {
-        if (exception !is TimeoutActivity.Companion.TimeoutException) return false
-
-        onFailure(InventoryFullException())
-        return true
     }
 
     class InventoryFullException : Exception("No empty slots or items to dump!")

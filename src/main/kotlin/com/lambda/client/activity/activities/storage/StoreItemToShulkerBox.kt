@@ -4,11 +4,9 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.CloseContainer
 import com.lambda.client.activity.activities.interaction.OpenContainer
-import com.lambda.client.activity.activities.inventory.SwapOrSwitchToSlot
 import com.lambda.client.activity.activities.utils.getShulkerInventory
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
-import com.lambda.client.util.items.block
 import com.lambda.client.util.items.countItem
 import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
@@ -44,8 +42,7 @@ class StoreItemToShulkerBox( // TODO: Add support for multiple shulker boxes
 
         candidates.maxBy { it.value }.key.let { slot ->
             addSubActivities(
-                SwapOrSwitchToSlot(slot),
-                PlaceContainer(slot.stack.item.block.defaultState)
+                PlaceContainer(slot.stack.copy(), open = true)
             )
         }
     }
@@ -54,7 +51,6 @@ class StoreItemToShulkerBox( // TODO: Add support for multiple shulker boxes
         if (childActivity !is PlaceContainer) return
 
         addSubActivities(
-            OpenContainer(childActivity.containerPos),
             PushItemsToContainer(item, amount, predicateItem),
             CloseContainer(),
             BreakBlock(childActivity.containerPos, collectDrops = true)

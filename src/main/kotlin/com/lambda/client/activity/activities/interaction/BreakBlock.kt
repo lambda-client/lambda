@@ -12,7 +12,9 @@ import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
 import com.lambda.client.mixin.extension.blockHitDelay
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.autoPathing
-import com.lambda.client.util.color.ColorHolder
+import com.lambda.client.util.EntityUtils.flooredPosition
+import com.lambda.client.util.items.block
+import com.lambda.client.util.items.filterByStack
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.RotationUtils.getRotationTo
@@ -40,7 +42,7 @@ import kotlin.math.ceil
 import kotlin.properties.Delegates
 
 class BreakBlock(
-    private val blockPos: BlockPos,
+    val blockPos: BlockPos,
     private val collectDrops: Boolean = false,
     private val minCollectAmount: Int = 1,
     private val forceSilk: Boolean = false,
@@ -95,6 +97,8 @@ class BreakBlock(
                 return@runSafe
             }
 
+            if (currentState.isLiquid) addLiquidFill(blockPos)
+
             updateDrops(currentState)
             updateState()
         }
@@ -102,11 +106,12 @@ class BreakBlock(
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.START) return@safeListener
 
-            updateState()
-
             if (context != BuildActivity.BuildContext.PENDING
-                && world.getBlockState(blockPos) == Blocks.AIR.defaultState
-            ) success()
+                && action != BuildActivity.BuildAction.BREAKING
+                && world.isAirBlock(blockPos)
+            ) finish()
+
+            updateState()
 
             if (action != BuildActivity.BuildAction.BREAKING
                 || subActivities.isNotEmpty()
@@ -171,8 +176,9 @@ class BreakBlock(
             return
         }
 
-        renderAction.color = ColorHolder(252, 3, 207)
-        context = BuildActivity.BuildContext.NONE
+        if (context == BuildActivity.BuildContext.PICKUP) return
+
+        context = BuildActivity.BuildContext.PICKUP
 
         addSubActivities(
             PickUpDrops(drops, minAmount = minCollectAmount)
@@ -181,6 +187,15 @@ class BreakBlock(
 
     private fun SafeClientEvent.updateState() {
         getMiningSide(blockPos, BuildTools.maxReach)?.let {
+            /* prevent breaking the block the player is standing on */
+            if (player.flooredPosition.down() == blockPos
+                && !world.getBlockState(blockPos.down()).isSideSolid(world, blockPos.down(), EnumFacing.UP)
+            ) {
+                action = BuildActivity.BuildAction.WRONG_POS_BREAK
+                distance = player.distanceTo(getHitVec(blockPos, it))
+                return
+            }
+
             if (action != BuildActivity.BuildAction.BREAKING) {
                 action = BuildActivity.BuildAction.BREAK
             }
@@ -232,6 +247,9 @@ class BreakBlock(
         if (player.capabilities.isCreativeMode) return true
 
         val currentState = world.getBlockState(blockPos)
+
+        if (world.isAirBlock(blockPos)) return false
+
         val currentDestroySpeed = player.heldItemMainhand.getDestroySpeed(currentState)
 
         player.inventorySlots.maxByOrNull { it.stack.getDestroySpeed(currentState) }?.let {
@@ -294,11 +312,7 @@ class BreakBlock(
             .map { blockPos.offset(it) }
             .filter { world.getBlockState(it).isLiquid }
             .forEach { pos ->
-                // ToDo: Don't add if exists
-                PlaceBlock(pos, BuildTools.defaultFillerMat.defaultState).also { breakBlock ->
-                    breakBlock.context = BuildActivity.BuildContext.LIQUID
-                    addSubActivities(breakBlock)
-                }
+                addLiquidFill(pos)
 
                 foundLiquid = true
             }
@@ -312,6 +326,21 @@ class BreakBlock(
             Random(),
             EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, player.heldItemMainhand)
         ) ?: Items.AIR
+    }
+
+    private fun SafeClientEvent.addLiquidFill(liquidPos: BlockPos) {
+        context = BuildActivity.BuildContext.LIQUID
+
+        val available = player.inventorySlots
+            .filterByStack { BuildTools.ejectList.value.contains(it.item.block.registryName.toString()) }
+            .maxByOrNull { it.stack.count }?.stack?.item?.block ?: Blocks.AIR
+
+        if (available == Blocks.AIR) {
+            failedWith(NoFillerMaterialFoundException())
+            return
+        }
+
+        addSubActivities(PlaceBlock(liquidPos, available.defaultState))
     }
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
@@ -341,4 +370,5 @@ class BreakBlock(
     class NoExposedSideFound : Exception("No exposed side found")
     class BlockBreakingException : Exception("Block breaking failed")
     class BlockOutsideOfBoundsException(blockPos: BlockPos) : Exception("Block at (${blockPos.asString()}) is outside of world")
+    class NoFillerMaterialFoundException: Exception("No filler material in inventory found")
 }

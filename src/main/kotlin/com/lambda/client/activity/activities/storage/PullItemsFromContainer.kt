@@ -3,23 +3,22 @@ package com.lambda.client.activity.activities.storage
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.QuickMoveSlot
 import com.lambda.client.activity.activities.inventory.SwapWithSlot
+import com.lambda.client.activity.activities.utils.slotFilterFunction
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.getSlots
 import net.minecraft.inventory.Container
-import net.minecraft.inventory.ContainerChest
 import net.minecraft.inventory.ContainerShulkerBox
 import net.minecraft.inventory.Slot
-import net.minecraft.inventory.SlotShulkerBox
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 
 class PullItemsFromContainer( // ToDo: fix take for full inv
     private val item: Item,
+    private val predicateStack: (ItemStack) -> Boolean = { true },
     private val metadata: Int? = null,
     private val amount: Int, // 0 = all
-    private val predicateItem: (ItemStack) -> Boolean = { true }
 ) : Activity() {
     override fun SafeClientEvent.onInitialize() {
         val containerInventory: List<Slot>
@@ -36,18 +35,19 @@ class PullItemsFromContainer( // ToDo: fix take for full inv
             }
         }
 
-        val toMoveSlots = containerInventory.filter { slot ->
-                slot.stack.item == item
-                    && predicateItem(slot.stack)
-                    && (metadata == null || metadata == slot.stack.metadata)
-            }
+        val toMoveSlots = containerInventory.filter(slotFilterFunction(item, metadata, predicateStack))
 
         if (toMoveSlots.isEmpty()) {
-            success()
+            failedWith(NoItemFoundException())
             return
         }
 
         val remainingSlots = if (amount == 0) toMoveSlots else toMoveSlots.take(amount)
+
+        if (remainingSlots.isEmpty()) {
+            failedWith(NoSpaceLeftInInventoryException())
+            return
+        }
 
         remainingSlots.forEach { fromSlot ->
             if (playerInventory.countEmpty() > 0) {
@@ -55,21 +55,28 @@ class PullItemsFromContainer( // ToDo: fix take for full inv
                 return@forEach
             }
 
-            playerInventory.firstOrNull { slot ->
+            val ejectableSlots = playerInventory.filter { slot ->
                 BuildTools.ejectList.contains(slot.stack.item.registryName.toString())
-            }?.let {
+            }
+
+            if (ejectableSlots.isEmpty()) {
+                failedWith(NoSpaceLeftInInventoryException())
+                return@forEach
+            }
+
+            ejectableSlots.firstOrNull()?.let {
+                // ToDo: Use proper slot reference
                 val firstHotbarSlot = player.openContainer.inventorySlots[54].slotNumber
 
                 addSubActivities(
                     SwapWithSlot(it, firstHotbarSlot),
                     SwapWithSlot(fromSlot, firstHotbarSlot)
                 )
-            } ?: run {
-                failedWith(NoSpaceLeftInInventoryException())
             }
         }
     }
 
     class NoSpaceLeftInInventoryException : Exception("No space left in inventory")
+    class NoItemFoundException : Exception("No item found")
     class ContainerNotKnownException(val container: Container) : Exception("Container ${container::class.simpleName} not known")
 }

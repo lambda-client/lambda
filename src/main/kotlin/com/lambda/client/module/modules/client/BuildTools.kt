@@ -1,5 +1,7 @@
 package com.lambda.client.module.modules.client
 
+import com.lambda.client.activity.Activity
+import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.setting.settings.impl.collection.CollectionSetting
@@ -29,6 +31,7 @@ object BuildTools : Module(
 //        if (it) BuildToolsManager.resetAll()
 //        false
 //    })
+    val tickDelay by setting("Tick Delay", 0, 0..200, 1, { page == Page.BUILDING })
 
     /* mining */
     val breakDelay by setting("Break Delay", 1, 0..20, 1, { page == Page.BUILDING }, description = "Sets the delay ticks between break tasks", unit = " ticks")
@@ -45,7 +48,7 @@ object BuildTools : Module(
     val placeStrictness by setting("Placement Strictness", PlacementStrictness.DIRECTION, { page == Page.BUILDING }, description = "ANY: Allow all exposed surfaces. DIRECTION: Only allow surfaces in the direction of the player. VISIBLE: Only allow surfaces that are visible to the player.")
 //    val illegalPlacements by setting("Illegal Placements", false, { page == Page.BUILDING }, description = "Do not use on 2b2t. Tries to interact with invisible surfaces")
 //    val doPending by setting("Do Pending", true, { page == Page.BUILDING }, description = "Do not wait for server to confirm action")
-    val executionCountPerTick by setting("Executions Per Tick", 20, 0..100, 1, { page == Page.BUILDING }, description = "How many tasks to execute per tick")
+    val executionCountPerTick by setting("Executions Per Tick", ActivityManager.MAX_DEPTH, 0..ActivityManager.MAX_DEPTH * 2, 1, { page == Page.BUILDING }, description = "How many tasks to execute per tick")
 //    val scaffold by setting("Scaffold", true, { page == Page.PLACING }, description = "Tries to bridge / scaffold when stuck placing")
     val placementSearch by setting("Place Deep Search", 1, 1..4, 1, { page == Page.BUILDING }, description = "EXPERIMENTAL: Attempts to find a support block for placing against", unit = " blocks")
     val directionForce by setting("Block Direction Exploit", true, { page == Page.BUILDING }, description = "EXPLOIT: Forces the direction of the block to be placed")

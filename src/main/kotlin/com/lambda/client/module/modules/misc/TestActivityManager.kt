@@ -4,6 +4,7 @@ import com.lambda.client.activity.activities.example.SayAnnoyingly
 import com.lambda.client.activity.activities.highlevel.*
 import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.PlaceBlock
+import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.activity.activities.travel.PickUpDrops
@@ -22,6 +23,7 @@ import net.minecraft.block.BlockDirectional
 import net.minecraft.block.BlockHorizontal
 import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
+import net.minecraft.item.ItemStack
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.BlockPos
 
@@ -44,9 +46,9 @@ object TestActivityManager : Module(
         false
     })
 
-    private val etit by setting("Extract Obby", false, consumer = { _, _->
+    private val etit by setting("Acquire Obby", false, consumer = { _, _->
         ActivityManager.addSubActivities(
-            ExtractItemFromShulkerBox(Blocks.OBSIDIAN.item)
+            AcquireItemInActiveHand(Blocks.OBSIDIAN.item)
         )
         false
     })
@@ -136,6 +138,16 @@ object TestActivityManager : Module(
 
     private val po by setting("Pickup Obby", false, consumer = { _, _->
         ActivityManager.addSubActivities(PickUpDrops(Blocks.OBSIDIAN.item))
+        false
+    })
+
+    private val ctiectiectiectieciec by setting("Pickup Dropped", false, consumer = { _, _->
+        runSafe {
+            val stack = player.heldItemMainhand.copy()
+
+            ActivityManager.addSubActivities(PickUpDrops(stack.item, stack))
+        }
+
         false
     })
 

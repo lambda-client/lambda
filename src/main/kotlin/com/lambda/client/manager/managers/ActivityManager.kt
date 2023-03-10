@@ -11,7 +11,10 @@ import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.manager.Manager
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.executionCountPerTick
+import com.lambda.client.module.modules.client.BuildTools.tickDelay
 import com.lambda.client.util.BaritoneUtils
+import com.lambda.client.util.TickTimer
+import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -19,14 +22,15 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 object ActivityManager : Manager, Activity() {
     private val renderer = ESPRenderer()
     const val MAX_DEPTH = 25
+    private val tickTimer = TickTimer(TimeUnit.TICKS)
 
     init {
         safeListener<TickEvent.ClientTickEvent> { event ->
-            if (hasNoSubActivities || event.phase != TickEvent.Phase.START) return@safeListener
+            if (hasNoSubActivities
+                || event.phase != TickEvent.Phase.START
+            ) return@safeListener
 
-            val allActivities = allSubActivities
-
-            allActivities
+            allSubActivities
                 .filter { it.status == Status.RUNNING && it.subActivities.isEmpty() }
                 .forEach {
                     with(it) {
@@ -34,10 +38,10 @@ object ActivityManager : Manager, Activity() {
                     }
                 }
 
+            if (!tickTimer.tick(tickDelay * 1L)) return@safeListener
+
             var lastActivity: Activity? = null
 
-//            BaritoneUtils.settings?.allowPlace?.value = false
-//            BaritoneUtils.settings?.allowBreak?.value = false
             BaritoneUtils.settings?.allowInventory?.value = false
 
             repeat(executionCountPerTick) {

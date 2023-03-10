@@ -3,8 +3,11 @@ package com.lambda.client.module.modules.misc
 import com.lambda.client.activity.activities.highlevel.ClearArea
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
+import com.lambda.client.manager.managers.ActivityManager.owner
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.util.EntityUtils.flooredPosition
+import com.lambda.client.util.math.VectorUtils.multiply
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.util.EnumFacing
@@ -34,22 +37,17 @@ object WorldEater : Module(
     private var secondPos: BlockPos? = null
 
     init {
-//        onEnable {
-//            runSafe {
-//                val currentDirection = player.horizontalFacing
-//                val pos1 = player.flooredPosition.add(currentDirection.directionVec.multiply(2))
-//                val pos2 = player.flooredPosition.add(
-//                    currentDirection.directionVec.multiply(size)
-//                ).add(
-//                    currentDirection.rotateY().directionVec.multiply(size)
-//                ).down(depth)
-//
-//                BreakArea(pos1, pos2, layerSize).let {
-//                    ownedBuildStructure = it
-//                    ActivityManager.addSubActivities(it)
-//                }
-//            }
-//        }
+        onEnable {
+            runSafe {
+                val currentDirection = player.horizontalFacing
+                firstPos = player.flooredPosition.add(currentDirection.directionVec.multiply(2))
+                secondPos = player.flooredPosition.add(
+                    currentDirection.directionVec.multiply(size)
+                ).add(
+                    currentDirection.rotateY().directionVec.multiply(size)
+                ).down(depth)
+            }
+        }
 
         onDisable {
             runSafe {
@@ -58,6 +56,7 @@ object WorldEater : Module(
                         cancel()
                     }
                 }
+                ownedBuildStructure = null
             }
         }
 
@@ -68,7 +67,7 @@ object WorldEater : Module(
                 when (Mouse.getEventButton()) {
                     0 -> firstPos = result.blockPos
                     1 -> secondPos = result.blockPos
-                    2 -> clearArea()
+//                    2 -> if (ownedBuildStructure == null) clearArea()
                 }
             }
         }
@@ -83,7 +82,7 @@ object WorldEater : Module(
             second,
             layerSize,
             sliceSize,
-        ).let {
+        ).also {
             ownedBuildStructure = it
             ActivityManager.addSubActivities(it)
         }
