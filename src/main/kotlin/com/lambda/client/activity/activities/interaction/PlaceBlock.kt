@@ -39,7 +39,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.properties.Delegates
 
 class PlaceBlock(
-    private val blockPos: BlockPos,
+    val blockPos: BlockPos,
     private val targetState: IBlockState,
     private val ignoreProperties: Boolean = false,
     private val ignoreFacing: Boolean = false,
@@ -52,7 +52,6 @@ class PlaceBlock(
 ) : RotatingActivity, TimeoutActivity, AttemptActivity, RenderAABBActivity, BuildActivity, TimedActivity, Activity() {
     private var placeInfo: PlaceInfo? = null
     private var spoofedDirection = false
-    private var breakFirst = false
 
     override var context: BuildActivity.BuildContext by Delegates.observable(BuildActivity.BuildContext.NONE) { _, old, new ->
         if (old == new) return@observable
@@ -118,7 +117,7 @@ class PlaceBlock(
                         ActivityManagerHud.totalBlocksPlaced++
 
                         success()
-                    } else if (!breakFirst) {
+                    } else {
 //                        failedWith(UnexpectedBlockStateException(blockPos, targetState, it.packet.blockState))
                     }
                 }
@@ -135,12 +134,8 @@ class PlaceBlock(
                     checkPlace(placeInfo)
                 }
             }
-            BuildActivity.BuildAction.WRONG_POS_PLACE -> {
-                if (autoPathing) addSubActivities(PlaceGoal(blockPos))
-            }
             else -> {
-                // ToDo: place neighbours
-//                failedWith(NoNeighbourException(blockPos))
+                if (autoPathing) addSubActivities(PlaceGoal(blockPos))
             }
         }
     }
@@ -158,11 +153,10 @@ class PlaceBlock(
         ) success()
 
         if (!currentState.isReplaceable
-            && currentState != targetState
+            && !isInDesiredState(currentState)
             && context != BuildActivity.BuildContext.PENDING
-            && !breakFirst
+            && subActivities.filterIsInstance<BreakBlock>().isEmpty()
         ) {
-            breakFirst = true
             addSubActivities(
                 BreakBlock(blockPos),
                 subscribe = true
@@ -274,7 +268,7 @@ class PlaceBlock(
 
             addSubActivities(AcquireItemInActiveHand(
                 optimalStack.item,
-                metadata = optimalStack.metadata
+                predicateStack = { optimalStack.metadata == it.metadata }
             ))
             return
         }
@@ -282,7 +276,7 @@ class PlaceBlock(
         /* check if no entity collides */
         if (!world.checkNoEntityCollision(targetState.getSelectedBoundingBox(world, blockPos), player)) {
             // ToDo: this only handles the case where the player is inside the block
-            addSubActivities(PlaceGoal(blockPos))
+            if (autoPathing) addSubActivities(PlaceGoal(blockPos))
             return
         }
 
@@ -327,8 +321,6 @@ class PlaceBlock(
 //                return
 //            }
 
-        breakFirst = false
-
         doPlace(placeInfo)
     }
 
@@ -371,16 +363,8 @@ class PlaceBlock(
 
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
-        when (childActivity) {
-            is Rotate -> {
-                spoofedDirection = true
-                status = Status.UNINITIALIZED
-            }
-            else -> {
-                spoofedDirection = false
-                status = Status.UNINITIALIZED
-            }
-        }
+        spoofedDirection = childActivity is Rotate
+        status = Status.UNINITIALIZED
     }
 
 //    override fun SafeClientEvent.onFailure(exception: Exception): Boolean {

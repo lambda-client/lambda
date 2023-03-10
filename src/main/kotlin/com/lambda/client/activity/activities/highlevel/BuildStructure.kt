@@ -5,7 +5,6 @@ import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.PlaceBlock
 import com.lambda.client.activity.activities.types.BuildActivity
 import com.lambda.client.activity.activities.types.RepeatingActivity
-import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.math.Direction
@@ -19,6 +18,7 @@ class BuildStructure(
     private val direction: Direction = Direction.NORTH,
     private val offsetMove: BlockPos = BlockPos.ORIGIN,
     private val doPadding: Boolean = false,
+    private val collectAll: Boolean = false,
     override val maximumRepeats: Int = 1,
     override var repeated: Int = 0,
 ) : RepeatingActivity, Activity() {
@@ -28,33 +28,65 @@ class BuildStructure(
         val activities = mutableListOf<Activity>()
 
         structure.forEach { (pos, targetState) ->
-            val blockPos = pos.add(currentOffset)
-            val currentState = world.getBlockState(blockPos)
-
-            when {
-                /* is in padding */
-                doPadding && isInPadding(blockPos) -> return@forEach
-                /* is in desired state */
-                currentState == targetState -> return@forEach
-                /* block needs to be placed */
-                targetState != Blocks.AIR.defaultState -> {
-                    activities.add(PlaceBlock(
-                        blockPos, targetState
-                    ))
-                }
-                /* only option left is breaking the block */
-                else -> {
-//                    activities.add(BreakBlock(blockPos, collectDrops = true, minCollectAmount = 64))
-                    activities.add(BreakBlock(blockPos))
-                }
-            }
+            getBuildActivity(pos.add(currentOffset), targetState)?.let { activities.add(it) }
         }
 
         addSubActivities(activities, subscribe = true)
+
+        currentOffset = currentOffset.add(offsetMove)
     }
 
-    override fun SafeClientEvent.onSuccess() {
-        currentOffset = currentOffset.add(offsetMove)
+    init {
+//        safeListener<TickEvent.ClientTickEvent> {
+//            if (subActivities.isEmpty() || status == Status.UNINITIALIZED) return@safeListener
+//            success()
+//        }
+
+//        /* Listen for any block changes like falling sand */
+//        safeListener<PacketEvent.PostReceive> { event ->
+//            if (event.packet !is SPacketBlockChange) return@safeListener
+//
+//            val blockPos = event.packet.blockPosition
+//
+//            structure[blockPos]?.let { targetState ->
+//                val isContained = allSubActivities.none {
+//                    when (it) {
+//                        is BreakBlock -> it.blockPos == blockPos
+//                        is PlaceBlock -> it.blockPos == blockPos
+//                        else -> false
+//                    }
+//                }
+//
+//                if (isContained) return@safeListener
+//
+//                getBuildActivity(blockPos, targetState)?.let {
+//                    addSubActivities(listOf(it), subscribe = true)
+//                }
+//            }
+//        }
+    }
+
+    private fun SafeClientEvent.getBuildActivity(blockPos: BlockPos, targetState: IBlockState): Activity? {
+        val currentState = world.getBlockState(blockPos)
+
+        when {
+            /* is in padding */
+            doPadding && isInPadding(blockPos) -> return null
+            /* is in desired state */
+            currentState == targetState -> return null
+            /* block needs to be placed */
+            targetState != Blocks.AIR.defaultState -> {
+                return PlaceBlock(
+                    blockPos, targetState
+                )
+            }
+            /* only option left is breaking the block */
+            else -> {
+                return BreakBlock(
+                    blockPos, collectDrops = collectAll, minCollectAmount = 64
+                )
+            }
+        }
     }
 
     override fun getCurrentActivity(): Activity {

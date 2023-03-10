@@ -15,6 +15,7 @@ import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
 import net.minecraft.init.Items
+import net.minecraft.item.ItemStack
 
 class BreakDownEnderChests(
     override val maximumRepeats: Int = 0,
@@ -38,8 +39,9 @@ class BreakDownEnderChests(
             return
         }
 
+        // ToDo: Better way to find ender chest
         addSubActivities(
-            PlaceContainer(Blocks.ENDER_CHEST.defaultState)
+            PlaceContainer(ItemStack(Blocks.ENDER_CHEST, 1, 0), onlyItem = true)
         )
     }
 
@@ -49,7 +51,7 @@ class BreakDownEnderChests(
         addSubActivities(
             AcquireItemInActiveHand(
                 Items.DIAMOND_PICKAXE,
-                predicateItem = {
+                predicateStack = {
                     EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
                 }
             ),

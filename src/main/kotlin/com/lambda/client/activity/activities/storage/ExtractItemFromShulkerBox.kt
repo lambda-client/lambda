@@ -5,58 +5,36 @@ import com.lambda.client.activity.activities.interaction.BreakBlock
 import com.lambda.client.activity.activities.interaction.CloseContainer
 import com.lambda.client.activity.activities.interaction.OpenContainer
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
-import com.lambda.client.activity.activities.inventory.SwapOrSwitchToSlot
-import com.lambda.client.activity.activities.utils.getShulkerInventory
+import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.util.items.allSlots
-import com.lambda.client.util.items.block
-import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 
 class ExtractItemFromShulkerBox(
+    private val shulkerBoxStack: ItemStack,
     private val item: Item,
+    private val predicateStack: (ItemStack) -> Boolean = { true },
+    private val predicateSlot: (ItemStack) -> Boolean = { true },
     private var metadata: Int? = null,
-    private val amount: Int = 0, // 0 = all
-    private val predicateItem: (ItemStack) -> Boolean = { true },
-    private val predicateSlot: (ItemStack) -> Boolean = { true }
+    private val amount: Int = 0 // 0 = all
 ) : Activity() {
+    private val stack = shulkerBoxStack.copy()
+
     override fun SafeClientEvent.onInitialize() {
-        val candidates = mutableMapOf<Slot, Int>()
-
-        // ToDo: move to acquire item in active hand
-        player.allSlots.forEach { slot ->
-            getShulkerInventory(slot.stack)?.let { inventory ->
-                val count = inventory.count { it.item == item && predicateItem(it) && (metadata == null || metadata == it.metadata) }
-
-                if (count > 0) candidates[slot] = count
-            }
-        }
-
-        if (candidates.isEmpty()) {
-            failedWith(NoShulkerBoxFoundExtractException(item))
-            return
-        }
-
-        candidates.minBy { it.value }.key.let { slot ->
-            addSubActivities(
-                SwapOrSwitchToSlot(slot),
-                PlaceContainer(slot.stack.item.block.defaultState)
-            )
-        }
+        addSubActivities(
+            PlaceContainer(stack, open = true)
+        )
     }
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
         if (childActivity !is PlaceContainer) return
 
         addSubActivities(
-            OpenContainer(childActivity.containerPos),
-            PullItemsFromContainer(item, metadata, amount, predicateItem),
+            PullItemsFromContainer(item, predicateStack, metadata, amount),
             CloseContainer(),
-            BreakBlock(childActivity.containerPos, collectDrops = true),
-            AcquireItemInActiveHand(item, predicateItem, predicateSlot)
+            BreakBlock(childActivity.containerPos),
+            PickUpDrops(stack.item), // BreakBlock doesn't collect drops
+            AcquireItemInActiveHand(item, predicateStack, predicateSlot)
         )
     }
-
-    class NoShulkerBoxFoundExtractException(val item: Item) : Exception("No shulker box was found containing ${item.registryName}")
 }

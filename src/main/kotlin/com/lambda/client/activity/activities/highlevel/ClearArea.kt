@@ -49,7 +49,7 @@ class ClearArea(
 
             if (y.mod(layerSize) == 0 || y == layers.last) {
                 addSubActivities(
-                    BuildStructure(structure.toMap())
+                    BuildStructure(structure.toMap(), collectAll = true)
                 )
                 structure.clear()
             }

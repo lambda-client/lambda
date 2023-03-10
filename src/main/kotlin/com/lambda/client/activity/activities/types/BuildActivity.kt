@@ -11,6 +11,7 @@ interface BuildActivity {
         RESTOCK(ColorHolder()),
         LIQUID(ColorHolder()),
         SUPPORT(ColorHolder()),
+        PICKUP(ColorHolder(252, 3, 207)),
         NONE(ColorHolder(0, 0, 0, 0)),
         PENDING(ColorHolder(11, 11, 175))
     }
@@ -20,10 +21,8 @@ interface BuildActivity {
         BREAK(ColorHolder(222, 0, 0)),
         PLACE(ColorHolder(35, 188, 254)),
         NEEDS_SUPPORT(ColorHolder(35, 15, 254)),
-        WRONG_POS_BREAK(ColorHolder(112, 0, 0)),
-        WRONG_POS_PLACE(ColorHolder(20, 108, 145)),
-//        INVALID_BREAK(ColorHolder(46, 0, 0)),
-//        INVALID_PLACE(ColorHolder(11, 55, 74)),
+        WRONG_POS_BREAK(ColorHolder(112, 0, 0, 0)),
+        WRONG_POS_PLACE(ColorHolder(20, 108, 145, 0)),
         INVALID_BREAK(ColorHolder(46, 0, 0, 0)),
         INVALID_PLACE(ColorHolder(11, 55, 74, 0)),
         NONE(ColorHolder(11, 11, 11))

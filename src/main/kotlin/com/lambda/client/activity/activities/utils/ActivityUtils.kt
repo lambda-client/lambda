@@ -7,8 +7,9 @@ import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.world.getVisibleSides
 import com.lambda.client.util.world.isPlaceable
 import com.lambda.client.util.world.isReplaceable
-import net.minecraft.block.state.IBlockState
 import net.minecraft.inventory.ItemStackHelper
+import net.minecraft.inventory.Slot
+import net.minecraft.item.Item
 import net.minecraft.item.ItemShulkerBox
 import net.minecraft.item.ItemStack
 import net.minecraft.util.EnumFacing
@@ -31,7 +32,7 @@ fun getShulkerInventory(stack: ItemStack): NonNullList<ItemStack>? {
     return shulkerInventory
 }
 
-fun SafeClientEvent.getContainerPos(targetState: IBlockState): BlockPos? {
+fun SafeClientEvent.getContainerPos(): BlockPos? {
     return VectorUtils.getBlockPosInSphere(player.positionVector, 4.25f).asSequence()
         .filter { pos ->
 //            world.isPlaceable(pos, targetState.getSelectedBoundingBox(world, pos)) // TODO: Calculate correct resulting state of placed block to enable rotation checks
@@ -56,4 +57,8 @@ fun SafeClientEvent.secureScore(pos: BlockPos): Int {
     if (!world.getBlockState(pos.down().south()).isReplaceable) safe++
     if (!world.getBlockState(pos.down().west()).isReplaceable) safe++
     return safe
+}
+
+val slotFilterFunction = { item: Item, metadata: Int?, predicateStack: (ItemStack) -> Boolean ->
+    { slot: Slot -> slot.stack.item == item && predicateStack(slot.stack) && (metadata == null || metadata == slot.stack.metadata) }
 }

@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.player
 
 import com.lambda.client.activity.activities.interaction.BreakBlock
-import com.lambda.client.activity.activities.storage.OpenShulkerFromSlot
+import com.lambda.client.activity.activities.storage.PlaceContainer
 import com.lambda.client.event.events.GuiEvent
 import com.lambda.client.event.events.WindowClickEvent
 import com.lambda.client.manager.managers.ActivityManager
@@ -25,8 +25,8 @@ object InventoryManagerTwo : Module(
     description = "Manages your inventory automatically",
     category = Category.PLAYER
 ) {
-    private val placedShulkerBoxes = ArrayDeque<OpenShulkerFromSlot>(mutableListOf())
-    private val currentlyOpen: OpenShulkerFromSlot? = null
+    private val placedContainer = ArrayDeque<PlaceContainer>(mutableListOf())
+    private val currentlyOpen: PlaceContainer? = null
 
     init {
         safeListener<WindowClickEvent> {
@@ -35,11 +35,7 @@ object InventoryManagerTwo : Module(
             player.openContainer.inventorySlots.getOrNull(it.slotId)?.let { slot ->
                 if (!(slot.stack.item is ItemShulkerBox || slot.stack.item == Blocks.ENDER_CHEST.item)) return@safeListener
 
-                val openShulkerFromSlot = OpenShulkerFromSlot(slot)
-
-                placedShulkerBoxes.add(openShulkerFromSlot)
-
-                ActivityManager.addSubActivities(openShulkerFromSlot)
+                ActivityManager.addSubActivities(PlaceContainer(slot.stack.copy(), open = true))
 
                 it.cancel()
 
@@ -73,20 +69,20 @@ object InventoryManagerTwo : Module(
         }
 
         safeListener<TickEvent.ClientTickEvent> {
-            if (placedShulkerBoxes.isEmpty() || it.phase != TickEvent.Phase.START) return@safeListener
+            if (placedContainer.isEmpty() || it.phase != TickEvent.Phase.START) return@safeListener
 
-            val cloned = ArrayDeque(placedShulkerBoxes)
+            val cloned = ArrayDeque(placedContainer)
 
-            cloned.forEachIndexed { index, openShulker ->
-                if (index == 0 || openShulker.containerPos == BlockPos.ORIGIN) return@forEachIndexed
-                placedShulkerBoxes.remove(openShulker)
+            cloned.forEachIndexed { index, placeContainer ->
+                if (index == 0 || placeContainer.containerPos == BlockPos.ORIGIN) return@forEachIndexed
+                placedContainer.remove(placeContainer)
 
-                val currentBlock = world.getBlockState(openShulker.containerPos).block
+                val currentBlock = world.getBlockState(placeContainer.containerPos).block
 
                 if (!(currentBlock is BlockShulkerBox || currentBlock is BlockEnderChest)) return@forEachIndexed
 
                 ActivityManager.addSubActivities(
-                    BreakBlock(openShulker.containerPos, collectDrops = true)
+                    BreakBlock(placeContainer.containerPos, collectDrops = true)
                 )
             }
         }
@@ -94,15 +90,15 @@ object InventoryManagerTwo : Module(
         safeListener<GuiEvent.Closed> {
             if (!(it.screen is GuiShulkerBox || it.screen is GuiChest)) return@safeListener
 
-            placedShulkerBoxes.firstOrNull()?.let { openShulkerFromSlot ->
-                placedShulkerBoxes.remove(openShulkerFromSlot)
+            placedContainer.firstOrNull()?.let { placeContainer ->
+                placedContainer.remove(placeContainer)
 
-                val currentBlock = world.getBlockState(openShulkerFromSlot.containerPos).block
+                val currentBlock = world.getBlockState(placeContainer.containerPos).block
 
                 if (!(currentBlock is BlockShulkerBox || currentBlock is BlockEnderChest)) return@safeListener
 
                 ActivityManager.addSubActivities(
-                    BreakBlock(openShulkerFromSlot.containerPos, collectDrops = true)
+                    BreakBlock(placeContainer.containerPos, collectDrops = true)
                 )
             }
         }
