@@ -1,6 +1,7 @@
 package com.lambda.client.activity.activities.inventory
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.inventory.core.QuickMoveSlot
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.armorSlots
 import com.lambda.client.util.items.offhandSlot

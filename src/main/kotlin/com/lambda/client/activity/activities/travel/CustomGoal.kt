@@ -2,7 +2,7 @@ package com.lambda.client.activity.activities.travel
 
 import baritone.api.pathing.goals.Goal
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.types.TimeoutActivity
+import com.lambda.client.activity.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.flooredPosition

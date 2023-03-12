@@ -1,10 +1,10 @@
 package com.lambda.client.manager.managers
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.types.BuildActivity
-import com.lambda.client.activity.activities.types.RenderAABBActivity
-import com.lambda.client.activity.activities.types.RenderAABBActivity.Companion.checkRender
-import com.lambda.client.activity.activities.types.TimedActivity
+import com.lambda.client.activity.types.BuildActivity
+import com.lambda.client.activity.types.RenderAABBActivity
+import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkRender
+import com.lambda.client.activity.types.TimedActivity
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.events.RenderWorldEvent

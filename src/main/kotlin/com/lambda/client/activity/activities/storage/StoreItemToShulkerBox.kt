@@ -1,10 +1,9 @@
 package com.lambda.client.activity.activities.storage
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.interaction.BreakBlock
-import com.lambda.client.activity.activities.interaction.CloseContainer
-import com.lambda.client.activity.activities.interaction.OpenContainer
-import com.lambda.client.activity.activities.utils.getShulkerInventory
+import com.lambda.client.activity.activities.construction.core.BreakBlock
+import com.lambda.client.activity.activities.storage.core.CloseContainer
+import com.lambda.client.activity.getShulkerInventory
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.countItem

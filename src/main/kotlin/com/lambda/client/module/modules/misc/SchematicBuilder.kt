@@ -1,9 +1,8 @@
 package com.lambda.client.module.modules.misc
 
-import com.lambda.client.activity.activities.highlevel.BuildSchematic
+import com.lambda.client.activity.activities.construction.BuildSchematic
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
-import com.lambda.client.manager.managers.ActivityManager.cancel
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.math.Direction

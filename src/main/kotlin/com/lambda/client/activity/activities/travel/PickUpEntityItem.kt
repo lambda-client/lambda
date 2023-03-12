@@ -3,8 +3,7 @@ package com.lambda.client.activity.activities.travel
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.DumpSlot
-import com.lambda.client.activity.activities.types.TimeoutActivity
-import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.activity.types.TimeoutActivity
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.items.countEmpty

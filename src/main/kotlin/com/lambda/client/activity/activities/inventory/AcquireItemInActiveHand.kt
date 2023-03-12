@@ -1,11 +1,14 @@
 package com.lambda.client.activity.activities.inventory
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.highlevel.BreakDownEnderChests
+import com.lambda.client.activity.activities.inventory.core.CreativeInventoryAction
+import com.lambda.client.activity.activities.inventory.core.SwapOrSwitchToSlot
+import com.lambda.client.activity.activities.inventory.core.SwitchToHotbarSlot
+import com.lambda.client.activity.activities.storage.BreakDownEnderChests
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
-import com.lambda.client.activity.activities.types.AttemptActivity
-import com.lambda.client.activity.activities.utils.getShulkerInventory
-import com.lambda.client.activity.activities.utils.slotFilterFunction
+import com.lambda.client.activity.types.AttemptActivity
+import com.lambda.client.activity.getShulkerInventory
+import com.lambda.client.activity.slotFilterFunction
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.pickBlock

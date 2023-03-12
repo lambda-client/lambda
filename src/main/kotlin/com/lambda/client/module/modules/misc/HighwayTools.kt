@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.misc
 
-import com.lambda.client.activity.activities.highlevel.BuildStructure
+import com.lambda.client.activity.activities.construction.core.BuildStructure
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
 import com.lambda.client.manager.managers.ActivityManager

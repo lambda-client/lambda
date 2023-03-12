@@ -5,7 +5,7 @@ import baritone.api.pathing.goals.GoalInverted
 import baritone.api.pathing.goals.GoalNear
 import baritone.process.BuilderProcess
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.types.TimeoutActivity
+import com.lambda.client.activity.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.BaritoneUtils

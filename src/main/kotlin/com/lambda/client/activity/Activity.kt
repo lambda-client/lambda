@@ -1,16 +1,15 @@
 package com.lambda.client.activity
 
-import com.lambda.client.activity.activities.highlevel.BuildStructure
-import com.lambda.client.activity.activities.types.AttemptActivity.Companion.checkAttempt
-import com.lambda.client.activity.activities.types.BuildActivity
-import com.lambda.client.activity.activities.types.DelayedActivity
-import com.lambda.client.activity.activities.types.DelayedActivity.Companion.checkDelayed
-import com.lambda.client.activity.activities.types.EndlessActivity
-import com.lambda.client.activity.activities.types.LoopWhileActivity.Companion.checkLoopingUntil
-import com.lambda.client.activity.activities.types.RenderAABBActivity.Companion.checkRender
-import com.lambda.client.activity.activities.types.RepeatingActivity.Companion.checkRepeat
-import com.lambda.client.activity.activities.types.RotatingActivity.Companion.checkRotating
-import com.lambda.client.activity.activities.types.TimeoutActivity.Companion.checkTimeout
+import com.lambda.client.activity.activities.construction.core.BuildStructure
+import com.lambda.client.activity.types.AttemptActivity.Companion.checkAttempt
+import com.lambda.client.activity.types.BuildActivity
+import com.lambda.client.activity.types.DelayedActivity
+import com.lambda.client.activity.types.DelayedActivity.Companion.checkDelayed
+import com.lambda.client.activity.types.LoopWhileActivity.Companion.checkLoopingUntil
+import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkRender
+import com.lambda.client.activity.types.RepeatingActivity.Companion.checkRepeat
+import com.lambda.client.activity.types.RotatingActivity.Companion.checkRotating
+import com.lambda.client.activity.types.TimeoutActivity.Companion.checkTimeout
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.SafeClientEvent
@@ -92,7 +91,6 @@ abstract class Activity {
             Status.RUNNING -> {
                 if (!ListenerManager.listenerMap.containsKey(this@Activity)
                     && hasNoSubActivities
-                    && this@Activity !is EndlessActivity
                     && this@Activity !is DelayedActivity
                 ) success()
             }

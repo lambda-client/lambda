@@ -4,7 +4,7 @@ import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import baritone.process.BuilderProcess.GoalBreak
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.types.TimeoutActivity
+import com.lambda.client.activity.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.BaritoneUtils
