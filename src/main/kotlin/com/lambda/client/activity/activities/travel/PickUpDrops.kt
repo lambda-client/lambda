@@ -1,7 +1,7 @@
 package com.lambda.client.activity.activities.travel
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.types.LoopWhileActivity
+import com.lambda.client.activity.types.LoopWhileActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import net.minecraft.entity.item.EntityItem

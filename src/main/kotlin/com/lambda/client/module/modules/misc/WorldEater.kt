@@ -1,9 +1,8 @@
 package com.lambda.client.module.modules.misc
 
-import com.lambda.client.activity.activities.highlevel.ClearArea
+import com.lambda.client.activity.activities.construction.ClearArea
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
-import com.lambda.client.manager.managers.ActivityManager.owner
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.EntityUtils.flooredPosition

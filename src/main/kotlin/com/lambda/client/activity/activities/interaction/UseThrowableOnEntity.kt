@@ -1,7 +1,7 @@
 package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.types.RotatingActivity
+import com.lambda.client.activity.types.RotatingActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.math.RotationUtils.getRotationToEntity
 import com.lambda.client.util.math.Vec2f
@@ -13,7 +13,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 class UseThrowableOnEntity(
     private val targetEntity: Entity,
-    private val amount: Int = 1,
+    private val uses: Int = 1,
     private val useHand: EnumHand = EnumHand.MAIN_HAND,
     override var rotation: Vec2f? = null,
 ) : RotatingActivity, Activity() {
@@ -33,7 +33,7 @@ class UseThrowableOnEntity(
 
             used++
 
-            if (used == amount) success()
+            if (used == uses) success()
         }
     }
 

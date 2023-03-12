@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.player
 
-import com.lambda.client.activity.activities.interaction.BreakBlock
+import com.lambda.client.activity.activities.construction.core.BreakBlock
 import com.lambda.client.activity.activities.storage.PlaceContainer
 import com.lambda.client.event.events.GuiEvent
 import com.lambda.client.event.events.WindowClickEvent
