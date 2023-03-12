@@ -152,8 +152,8 @@ object BuildTools : Module(
         "minecraft:cobblestone"
     )
 
-    val ignoreBlocks = setting(CollectionSetting("IgnoreList", defaultIgnoreBlocks, String::class.java, { false }))
-    val ejectList = setting(CollectionSetting("Eject List", defaultEjectList, String::class.java, { false }))
+    val ignoreBlocks = setting(CollectionSetting("IgnoreList", defaultIgnoreBlocks, { false }))
+    val ejectList = setting(CollectionSetting("Eject List", defaultEjectList, { false }))
     private val fillerMatSaved = setting("FillerMat", "minecraft:netherrack", { false })
     private val food = setting("FoodItem", "minecraft:golden_apple", { false })
     private val tool = setting("ToolItem", "minecraft:diamond_pickaxe", { false })
