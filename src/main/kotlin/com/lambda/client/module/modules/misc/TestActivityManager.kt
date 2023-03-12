@@ -28,21 +28,21 @@ object TestActivityManager : Module(
     category = Category.MISC
 ) {
     private val ctiectie by setting("Auto Obby", false, consumer = { _, _->
-        ActivityManager.addSubActivities(
+        addSubActivities(
             BreakDownEnderChests()
         )
         false
     })
 
     private val tie by setting("Store Obby", false, consumer = { _, _->
-        ActivityManager.addSubActivities(
+        addSubActivities(
             StoreItemToShulkerBox(Blocks.OBSIDIAN.item)
         )
         false
     })
 
     private val etit by setting("Acquire Obby", false, consumer = { _, _->
-        ActivityManager.addSubActivities(
+        addSubActivities(
             AcquireItemInActiveHand(Blocks.OBSIDIAN.item)
         )
         false
@@ -56,7 +56,7 @@ object TestActivityManager : Module(
             repeat(4) {
                 val targetState = Blocks.MAGENTA_GLAZED_TERRACOTTA.defaultState.withProperty(BlockHorizontal.FACING, currentDirection)
 
-                ActivityManager.addSubActivities(
+                addSubActivities(
                     PlaceBlock(position, targetState)
                 )
 
@@ -78,7 +78,7 @@ object TestActivityManager : Module(
             val targetState = Blocks.WOODEN_BUTTON.defaultState
                 .withProperty(BlockDirectional.FACING, EnumFacing.NORTH)
 
-            ActivityManager.addSubActivities(PlaceBlock(
+            addSubActivities(PlaceBlock(
                 player.flooredPosition.add(currentDirection.directionVec.multiply(2)),
                 targetState
             ))
@@ -88,7 +88,7 @@ object TestActivityManager : Module(
     })
 
     private val po by setting("Pickup Obby", false, consumer = { _, _->
-        ActivityManager.addSubActivities(PickUpDrops(Blocks.OBSIDIAN.item))
+        addSubActivities(PickUpDrops(Blocks.OBSIDIAN.item))
         false
     })
 
@@ -96,7 +96,7 @@ object TestActivityManager : Module(
         runSafe {
             val stack = player.heldItemMainhand.copy()
 
-            ActivityManager.addSubActivities(PickUpDrops(stack.item, stack))
+            addSubActivities(PickUpDrops(stack.item, stack))
         }
 
         false
@@ -105,7 +105,7 @@ object TestActivityManager : Module(
     private val tiectie by setting("Surround", false, consumer = { _, _->
         runSafe {
             player.centerPlayer()
-            ActivityManager.addSubActivities(
+            addSubActivities(
                 SurroundWithObsidian(player.flooredPosition)
             )
         }
@@ -113,7 +113,7 @@ object TestActivityManager : Module(
     })
 
     val raiseXPLevel by setting("Reach level 30", false, consumer = { _, _->
-        ActivityManager.addSubActivities(ReachXPLevel(30))
+        addSubActivities(ReachXPLevel(30))
         false
     })
 

@@ -1,7 +1,6 @@
 package com.lambda.client.manager.managers
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.types.BuildActivity
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkRender
 import com.lambda.client.activity.types.TimedActivity
@@ -76,15 +75,19 @@ object ActivityManager : Manager, Activity() {
         }
     }
 
+    override fun getCurrentActivity(): Activity {
+        return subActivities.maxByOrNull { it.owner?.modulePriority ?: 0 }?.getCurrentActivity() ?: this
+    }
+
     fun reset() {
         ListenerManager.listenerMap.keys.filterIsInstance<Activity>().forEach {
-            it.owner?.let { _ ->
+            it.parent?.let { _ ->
                 LambdaEventBus.unsubscribe(it)
                 ListenerManager.unregister(it)
             }
         }
         ListenerManager.asyncListenerMap.keys.filterIsInstance<Activity>().forEach {
-            it.owner?.let { _ ->
+            it.parent?.let { _ ->
                 LambdaEventBus.unsubscribe(it)
                 ListenerManager.unregister(it)
             }

@@ -5,7 +5,6 @@ import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.inventory.core.SwapOrSwitchToSlot
 import com.lambda.client.activity.activities.travel.BreakGoal
 import com.lambda.client.activity.activities.travel.PickUpDrops
-import com.lambda.client.activity.activities.types.*
 import com.lambda.client.activity.types.*
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent

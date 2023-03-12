@@ -17,6 +17,7 @@ class ClearArea(
     private val layerSize: Int = 1,
     private val sliceSize: Int = 1,
     private val sliceDirection: EnumFacing = EnumFacing.NORTH,
+    private val collectAll: Boolean = false,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
 ) : RenderAABBActivity, Activity() {
     private val minX = minOf(pos1.x, pos2.x)
@@ -50,7 +51,7 @@ class ClearArea(
 
             if (y.mod(layerSize) == 0 || y == layers.last) {
                 addSubActivities(
-                    BuildStructure(structure.toMap(), collectAll = true)
+                    BuildStructure(structure.toMap(), collectAll = collectAll)
                 )
                 structure.clear()
             }
