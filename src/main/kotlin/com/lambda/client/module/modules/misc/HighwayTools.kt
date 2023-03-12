@@ -3,7 +3,6 @@ package com.lambda.client.module.modules.misc
 import com.lambda.client.activity.activities.construction.core.BuildStructure
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
-import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -81,7 +80,7 @@ object HighwayTools : Module(
                     doPadding = true
                 ).let {
                     ownedBuildStructure = it
-                    ActivityManager.addSubActivities(it)
+                    addSubActivities(it)
                 }
             }
         }

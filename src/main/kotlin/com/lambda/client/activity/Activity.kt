@@ -16,6 +16,7 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.MAX_DEPTH
+import com.lambda.client.module.AbstractModule
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.font.TextComponent
@@ -32,7 +33,8 @@ abstract class Activity {
     val subActivities = ArrayDeque<Activity>()
     var status = Status.UNINITIALIZED
     private var creationTime = 0L
-    var owner: Activity? = null
+    var parent: Activity? = null
+    var owner: AbstractModule? = null
     var depth = 0
 
     open fun SafeClientEvent.onInitialize() {}
@@ -72,7 +74,7 @@ abstract class Activity {
         get() = run {
             val activities = mutableListOf<Activity>()
 
-            owner?.let {
+            parent?.let {
                 activities.add(this)
             }
 
@@ -130,7 +132,7 @@ abstract class Activity {
         LambdaEventBus.unsubscribe(activity)
         ListenerManager.unregister(activity)
 
-        owner?.let {
+        parent?.let {
             with(it) {
                 onChildSuccess(activity)
                 subActivities.remove(activity)
@@ -154,7 +156,7 @@ abstract class Activity {
 
         if (onFailure(exception)) return
 
-        owner?.let {
+        parent?.let {
             with(it) {
                 if (childFailure(ArrayDeque(listOf(activity)), exception)) return
             }
@@ -182,7 +184,7 @@ abstract class Activity {
             }
         }
 
-        owner?.let {
+        parent?.let {
             with(it) {
                 LambdaEventBus.unsubscribe(activity)
                 ListenerManager.unregister(activity)
@@ -202,7 +204,7 @@ abstract class Activity {
         }
 
         childActivities.add(this@Activity)
-        owner?.let {
+        parent?.let {
             with(it) {
                 childFailure(childActivities, childException)
             }
@@ -211,7 +213,7 @@ abstract class Activity {
         return false
     }
 
-    fun Activity.addSubActivities(activities: List<Activity>, subscribe: Boolean = false) {
+    fun Activity.addSubActivities(activities: List<Activity>, subscribe: Boolean = false, module: AbstractModule? = null) {
         if (activities.isEmpty()) return
 
         if (depth > MAX_DEPTH) {
@@ -221,7 +223,8 @@ abstract class Activity {
         }
 
         activities.forEach { activity ->
-            activity.owner = this
+            activity.parent = this
+            activity.owner = module
             activity.depth = depth + 1
             if (subscribe) LambdaEventBus.subscribe(activity)
         }
@@ -233,6 +236,10 @@ abstract class Activity {
 
     fun Activity.addSubActivities(vararg activities: Activity, subscribe: Boolean = false) {
         addSubActivities(activities.toList(), subscribe)
+    }
+
+    fun AbstractModule.addSubActivities(vararg activities: Activity, subscribe: Boolean = false) {
+        addSubActivities(activities.toList(), subscribe, this)
     }
 
     enum class Status {
@@ -247,6 +254,11 @@ abstract class Activity {
             }
             ListenerManager.asyncListenerMap[this@Activity]?.let {
                 textComponent.add("ASYNC", primaryColor)
+            }
+
+            owner?.let {
+                textComponent.add("Module", secondaryColor)
+                textComponent.add(it.name, primaryColor)
             }
 
             textComponent.add("Name", secondaryColor)

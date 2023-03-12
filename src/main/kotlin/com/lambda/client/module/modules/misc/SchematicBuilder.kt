@@ -43,7 +43,7 @@ object SchematicBuilder : Module(
                         BlockPos(direction.directionVec.multiply(offset))
                     ).let {
                         ownedBuildStructure = it
-                        ActivityManager.addSubActivities(it)
+                        addSubActivities(it)
                     }
                 }
             }

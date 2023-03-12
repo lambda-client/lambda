@@ -26,6 +26,7 @@ object WorldEater : Module(
     private val layerSize by setting("Layers size", 1, 1..6, 1)
     private val sliceSize by setting("Slice size", 1, 1..6, 1)
     private val sliceDirection by setting("Slice direction", EnumFacing.NORTH)
+    private val collectAll by setting("Collect all", false)
     private val start by setting("Start", false, consumer = { _, _ ->
         clearArea()
         false
@@ -81,9 +82,10 @@ object WorldEater : Module(
             second,
             layerSize,
             sliceSize,
+            collectAll = collectAll
         ).also {
             ownedBuildStructure = it
-            ActivityManager.addSubActivities(it)
+            addSubActivities(it)
         }
     }
 }

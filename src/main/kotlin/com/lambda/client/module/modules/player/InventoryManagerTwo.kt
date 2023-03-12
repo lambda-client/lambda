@@ -1,7 +1,7 @@
 package com.lambda.client.module.modules.player
 
 import com.lambda.client.activity.activities.construction.core.BreakBlock
-import com.lambda.client.activity.activities.storage.PlaceContainer
+import com.lambda.client.activity.activities.storage.core.PlaceContainer
 import com.lambda.client.event.events.GuiEvent
 import com.lambda.client.event.events.WindowClickEvent
 import com.lambda.client.manager.managers.ActivityManager
@@ -35,7 +35,7 @@ object InventoryManagerTwo : Module(
             player.openContainer.inventorySlots.getOrNull(it.slotId)?.let { slot ->
                 if (!(slot.stack.item is ItemShulkerBox || slot.stack.item == Blocks.ENDER_CHEST.item)) return@safeListener
 
-                ActivityManager.addSubActivities(PlaceContainer(slot.stack.copy(), open = true))
+                addSubActivities(PlaceContainer(slot.stack.copy(), open = true))
 
                 it.cancel()
 
@@ -81,7 +81,7 @@ object InventoryManagerTwo : Module(
 
                 if (!(currentBlock is BlockShulkerBox || currentBlock is BlockEnderChest)) return@forEachIndexed
 
-                ActivityManager.addSubActivities(
+                addSubActivities(
                     BreakBlock(placeContainer.containerPos, collectDrops = true)
                 )
             }
@@ -97,7 +97,7 @@ object InventoryManagerTwo : Module(
 
                 if (!(currentBlock is BlockShulkerBox || currentBlock is BlockEnderChest)) return@safeListener
 
-                ActivityManager.addSubActivities(
+                addSubActivities(
                     BreakBlock(placeContainer.containerPos, collectDrops = true)
                 )
             }

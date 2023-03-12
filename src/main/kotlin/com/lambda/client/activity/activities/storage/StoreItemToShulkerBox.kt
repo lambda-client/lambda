@@ -3,6 +3,8 @@ package com.lambda.client.activity.activities.storage
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.construction.core.BreakBlock
 import com.lambda.client.activity.activities.storage.core.CloseContainer
+import com.lambda.client.activity.activities.storage.core.PlaceContainer
+import com.lambda.client.activity.activities.storage.core.PushItemsToContainer
 import com.lambda.client.activity.getShulkerInventory
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots

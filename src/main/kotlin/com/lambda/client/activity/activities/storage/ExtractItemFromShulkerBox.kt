@@ -4,6 +4,8 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.construction.core.BreakBlock
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.storage.core.CloseContainer
+import com.lambda.client.activity.activities.storage.core.PlaceContainer
+import com.lambda.client.activity.activities.storage.core.PullItemsFromContainer
 import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.event.SafeClientEvent
 import net.minecraft.item.Item

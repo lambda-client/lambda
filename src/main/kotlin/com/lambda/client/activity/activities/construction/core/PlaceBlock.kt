@@ -4,7 +4,6 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.interaction.Rotate
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.travel.PlaceGoal
-import com.lambda.client.activity.activities.types.*
 import com.lambda.client.activity.types.*
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
