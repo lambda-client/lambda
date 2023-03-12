@@ -70,10 +70,10 @@ object Search : Module(
     private val hideF1 by setting("Hide on F1", true)
 
     var overrideWarning by setting("Override Warning", false, { false })
-    val blockSearchList = setting(CollectionSetting("Search List", defaultSearchList, String::class.java, { false }))
-    val entitySearchList = setting(CollectionSetting("Entity Search List", linkedSetOf(EntityList.getKey((EntityItemFrame::class.java))!!.path), String::class.java, { false }))
-    val blockSearchDimensionFilter = setting(CollectionSetting("Block Dimension Filter", linkedSetOf(), DimensionFilter::class.java, { false }))
-    val entitySearchDimensionFilter = setting(CollectionSetting("Entity Dimension Filter", linkedSetOf(), DimensionFilter::class.java, { false }))
+    val blockSearchList = setting(CollectionSetting("Search List", defaultSearchList, { false }))
+    val entitySearchList = setting(CollectionSetting("Entity Search List", linkedSetOf(EntityList.getKey((EntityItemFrame::class.java))!!.path), { false }))
+    val blockSearchDimensionFilter = setting(CollectionSetting("Block Dimension Filter", linkedSetOf(), entryType = DimensionFilter::class.java, visibility = { false }))
+    val entitySearchDimensionFilter = setting(CollectionSetting("Entity Dimension Filter", linkedSetOf(), entryType = DimensionFilter::class.java, visibility = { false }))
 
     private val blockRenderer = ESPRenderer()
     private val entityRenderer = ESPRenderer()

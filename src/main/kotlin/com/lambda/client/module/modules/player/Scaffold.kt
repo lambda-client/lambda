@@ -67,8 +67,8 @@ object Scaffold : Module(
     private val thickness by setting("Outline Thickness", 2f, .25f..4f, .25f, { outline && page == Page.RENDER }, description = "Changes thickness of the outline")
     private val pendingBlockColor by setting("Pending Color", ColorHolder(0, 0, 255), visibility = { page == Page.RENDER })
 
-    val blockSelectionWhitelist = setting(CollectionSetting("BlockWhitelist", linkedSetOf("minecraft:obsidian"), String::class.java, { false }))
-    val blockSelectionBlacklist = setting(CollectionSetting("BlockBlacklist", blockBlacklist.map { it.registryName.toString() }.toMutableSet(), String::class.java, { false }))
+    val blockSelectionWhitelist = setting(CollectionSetting("BlockWhitelist", linkedSetOf("minecraft:obsidian"), { false }))
+    val blockSelectionBlacklist = setting(CollectionSetting("BlockBlacklist", blockBlacklist.map { it.registryName.toString() }.toMutableSet(), { false }))
 
     private enum class Page {
         GENERAL, RENDER
