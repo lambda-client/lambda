@@ -46,7 +46,7 @@ class PlaceBlock(
     private val ignoreFacing: Boolean = false,
     override var rotation: Vec2f? = null,
     override var distance: Double = 1337.0,
-    override val timeout: Long = 1000L, // ToDo: Reset timeouted placements blockstates
+    override val timeout: Long = if (autoPathing) Long.MAX_VALUE else 1000L, // ToDo: Reset timeouted placements blockstates
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()

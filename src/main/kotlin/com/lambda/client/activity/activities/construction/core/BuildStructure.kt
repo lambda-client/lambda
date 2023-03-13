@@ -132,4 +132,25 @@ class BuildStructure(
 
         return ((b.x - a.x) * (check.z - a.z) - (b.z - a.z) * (check.x - a.x)) > 0
     }
+
+    override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
+        when (childActivity) {
+            is PlaceBlock -> {
+                val blockPos = childActivity.blockPos
+                val targetState = structure[blockPos] ?: return
+
+                getBuildActivity(blockPos, targetState)?.let {
+                    addSubActivities(it, subscribe = true)
+                }
+            }
+            is BreakBlock -> {
+                val blockPos = childActivity.blockPos
+                val targetState = structure[blockPos] ?: return
+
+                getBuildActivity(blockPos, targetState)?.let {
+                    addSubActivities(it, subscribe = true)
+                }
+            }
+        }
+    }
 }

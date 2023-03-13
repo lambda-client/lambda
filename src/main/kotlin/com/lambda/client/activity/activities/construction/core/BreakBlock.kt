@@ -49,7 +49,7 @@ class BreakBlock(
     private val forceNoSilk: Boolean = false,
     private val forceFortune: Boolean = false,
     private val forceNoFortune: Boolean = false,
-    override var timeout: Long = 200L, // ToDo: Reset timeouted breaks blockstates
+    override var timeout: Long = if (autoPathing) Long.MAX_VALUE else 200L, // ToDo: Reset timeouted breaks blockstates
     override val maxAttempts: Int = 5,
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(),
