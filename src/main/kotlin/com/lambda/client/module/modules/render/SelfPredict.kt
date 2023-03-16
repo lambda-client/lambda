@@ -1,6 +1,6 @@
 package com.lambda.client.module.modules.render
 
-import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.events.WorldEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.PredictionEntity
@@ -52,7 +52,7 @@ object SelfPredict : Module(
 
         }
         
-        safeListener<RenderWorldEvent> {
+        safeListener<WorldEvent.RenderTickEvent> {
 
             var newBB = AxisAlignedBB(bb.minX, bb.minY, bb.minZ, bb.maxX, bb.maxY, bb.maxZ)
             newBB = newBB.offset(bb.center.subtract(prevBB.center).scale(mc.renderPartialTicks.toDouble()))
