@@ -48,10 +48,4 @@ public abstract class MixinEntity {
         if (Freecam.handleTurn(casted, yaw, pitch, ci)) return;
         ViewLock.handleTurn(casted, yaw, pitch, ci);
     }
-
-    @Inject(method = "onUpdate", at = @At("HEAD"))
-    public void onUpdate(CallbackInfo ci) {
-        /*WorldEvent.EntityUpdate event = new WorldEvent.EntityUpdate((Entity) (Object) this);
-        LambdaEventBus.INSTANCE.post(event);*/
-    }
 }
