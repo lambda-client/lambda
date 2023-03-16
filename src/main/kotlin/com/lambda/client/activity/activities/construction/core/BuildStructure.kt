@@ -1,15 +1,26 @@
 package com.lambda.client.activity.activities.construction.core
 
+import baritone.api.pathing.goals.Goal
+import baritone.api.pathing.goals.GoalBlock
+import baritone.api.pathing.goals.GoalInverted
+import baritone.process.BuilderProcess
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.types.BuildActivity
 import com.lambda.client.activity.types.RepeatingActivity
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.module.modules.client.BuildTools.autoPathing
+import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.math.Direction
 import com.lambda.client.util.math.VectorUtils.multiply
+import com.lambda.client.util.threads.safeListener
 import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
+import net.minecraft.network.play.server.SPacketBlockChange
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
+import net.minecraftforge.fml.common.gameevent.TickEvent
 
 class BuildStructure(
     private val structure: Map<BlockPos, IBlockState>,
@@ -21,6 +32,7 @@ class BuildStructure(
     override var repeated: Int = 0,
 ) : RepeatingActivity, Activity() {
     private var currentOffset = BlockPos.ORIGIN
+    private var lastGoal: Goal? = null
 
     override fun SafeClientEvent.onInitialize() {
         val activities = mutableListOf<Activity>()
@@ -35,33 +47,59 @@ class BuildStructure(
     }
 
     init {
-//        safeListener<TickEvent.ClientTickEvent> {
-//            if (subActivities.isEmpty() || status == Status.UNINITIALIZED) return@safeListener
-//            success()
-//        }
+        safeListener<TickEvent.ClientTickEvent> {
+            if (it.phase != TickEvent.Phase.END) return@safeListener
 
-//        /* Listen for any block changes like falling sand */
-//        safeListener<PacketEvent.PostReceive> { event ->
-//            if (event.packet !is SPacketBlockChange) return@safeListener
-//
-//            val blockPos = event.packet.blockPosition
-//
-//            structure[blockPos]?.let { targetState ->
-//                val isContained = allSubActivities.none {
-//                    when (it) {
-//                        is BreakBlock -> it.blockPos == blockPos
-//                        is PlaceBlock -> it.blockPos == blockPos
-//                        else -> false
-//                    }
-//                }
-//
-//                if (isContained) return@safeListener
-//
-//                getBuildActivity(blockPos, targetState)?.let {
-//                    addSubActivities(listOf(it), subscribe = true)
-//                }
-//            }
-//        }
+            if (subActivities.isEmpty()) success()
+
+            if (!autoPathing) return@safeListener
+
+            when (val activity = getCurrentActivity()) {
+                is PlaceBlock -> {
+                    val blockPos = activity.blockPos
+
+                    lastGoal = if (isInBlockAABB(blockPos)) {
+                        GoalInverted(GoalBlock(blockPos))
+                    } else {
+                        BuilderProcess.GoalAdjacent(blockPos, blockPos, true)
+                    }
+                }
+                is BreakBlock -> {
+                    val blockPos = activity.blockPos
+
+                    lastGoal = if (isInBlockAABB(blockPos.up())) {
+                        GoalInverted(GoalBlock(blockPos.up()))
+                    } else {
+                        BuilderProcess.GoalBreak(blockPos)
+                    }
+                }
+            }
+
+            lastGoal?.let { goal ->
+                BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(goal)
+            }
+        }
+
+        /* Listen for any block changes like falling sand */
+        safeListener<PacketEvent.PostReceive> { event ->
+            if (event.packet !is SPacketBlockChange) return@safeListener
+
+            val blockPos = event.packet.blockPosition
+
+            structure[blockPos]?.let { targetState ->
+                if (allSubActivities.any {
+                    when (it) {
+                        is BreakBlock -> it.blockPos == blockPos
+                        is PlaceBlock -> it.blockPos == blockPos
+                        else -> false
+                    }
+                }) return@safeListener
+
+                getBuildActivity(blockPos, targetState)?.let {
+                    addSubActivities(listOf(it), subscribe = true)
+                }
+            }
+        }
     }
 
     private fun SafeClientEvent.getBuildActivity(blockPos: BlockPos, targetState: IBlockState): Activity? {
@@ -78,6 +116,8 @@ class BuildStructure(
                     blockPos, targetState
                 )
             }
+            /* block is not breakable */
+            currentState.getBlockHardness(world, blockPos) < 0 -> return null
             /* only option left is breaking the block */
             else -> {
                 return BreakBlock(
@@ -153,4 +193,7 @@ class BuildStructure(
             }
         }
     }
+
+    private fun SafeClientEvent.isInBlockAABB(blockPos: BlockPos) =
+        !world.checkNoEntityCollision(AxisAlignedBB(blockPos), null)
 }

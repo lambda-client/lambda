@@ -3,7 +3,6 @@ package com.lambda.client.activity.activities.construction.core
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.inventory.core.SwapOrSwitchToSlot
-import com.lambda.client.activity.activities.travel.BreakGoal
 import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.activity.types.*
 import com.lambda.client.event.SafeClientEvent
@@ -11,7 +10,6 @@ import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
 import com.lambda.client.mixin.extension.blockHitDelay
 import com.lambda.client.module.modules.client.BuildTools
-import com.lambda.client.module.modules.client.BuildTools.autoPathing
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.items.block
 import com.lambda.client.util.items.filterByStack
@@ -49,7 +47,7 @@ class BreakBlock(
     private val forceNoSilk: Boolean = false,
     private val forceFortune: Boolean = false,
     private val forceNoFortune: Boolean = false,
-    override var timeout: Long = if (autoPathing) Long.MAX_VALUE else 200L, // ToDo: Reset timeouted breaks blockstates
+    override var timeout: Long = Long.MAX_VALUE, // ToDo: Reset timeouted breaks blockstates
     override val maxAttempts: Int = 5,
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(),
@@ -113,7 +111,7 @@ class BreakBlock(
 
             updateState()
 
-            if (action != BuildActivity.BuildAction.BREAKING
+            if (!(action == BuildActivity.BuildAction.BREAKING || action == BuildActivity.BuildAction.BREAK)
                 || subActivities.isNotEmpty()
                 || status == Status.UNINITIALIZED
             ) return@safeListener
@@ -155,9 +153,6 @@ class BreakBlock(
                     tryBreak(side)
                 }
             }
-            BuildActivity.BuildAction.WRONG_POS_BREAK -> {
-                if (autoPathing) addSubActivities(BreakGoal(blockPos))
-            }
             else -> {
                 // ToDo: break nearby blocks
 //                    failedWith(NoExposedSideFound())
@@ -170,7 +165,8 @@ class BreakBlock(
     }
 
     private fun SafeClientEvent.finish() {
-        if (!collectDrops || !autoPathing || drops == Items.AIR) {
+//        if (!collectDrops || !autoPathing || drops == Items.AIR) {
+        if (!collectDrops || drops == Items.AIR) {
             ActivityManagerHud.totalBlocksBroken++
             success()
             return
