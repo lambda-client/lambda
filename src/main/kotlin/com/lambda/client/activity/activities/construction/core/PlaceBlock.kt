@@ -3,7 +3,6 @@ package com.lambda.client.activity.activities.construction.core
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.interaction.Rotate
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
-import com.lambda.client.activity.activities.travel.PlaceGoal
 import com.lambda.client.activity.types.*
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
@@ -46,7 +45,7 @@ class PlaceBlock(
     private val ignoreFacing: Boolean = false,
     override var rotation: Vec2f? = null,
     override var distance: Double = 1337.0,
-    override val timeout: Long = if (autoPathing) Long.MAX_VALUE else 1000L, // ToDo: Reset timeouted placements blockstates
+    override var timeout: Long = Long.MAX_VALUE, // ToDo: Reset timeouted placements blockstates
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
     override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
@@ -135,9 +134,7 @@ class PlaceBlock(
                     checkPlace(placeInfo)
                 }
             }
-            else -> {
-                if (autoPathing) addSubActivities(PlaceGoal(blockPos))
-            }
+            else -> {}
         }
     }
 
@@ -274,13 +271,6 @@ class PlaceBlock(
             return
         }
 
-        /* check if no entity collides */
-        if (!world.checkNoEntityCollision(targetState.getSelectedBoundingBox(world, blockPos), null)) {
-            // ToDo: this only handles the case where the player is inside the block
-            if (autoPathing) addSubActivities(PlaceGoal(blockPos))
-            return
-        }
-
         targetState.properties.entries.firstOrNull { it.key.name == "facing" }?.let { entry ->
             if (ignoreProperties || ignoreFacing) return@let
 
@@ -326,6 +316,8 @@ class PlaceBlock(
     }
 
     private fun SafeClientEvent.doPlace(placeInfo: PlaceInfo) {
+        timeout = 1000L
+
         val isBlacklisted = world.getBlockState(placeInfo.pos).block in blockBlacklist
 
         if (isBlacklisted) {

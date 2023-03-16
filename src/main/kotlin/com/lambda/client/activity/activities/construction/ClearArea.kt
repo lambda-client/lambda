@@ -43,6 +43,8 @@ class ClearArea(
         val structure = mutableMapOf<BlockPos, IBlockState>()
 
         layers.forEach { y ->
+            if (y !in 0..world.actualHeight) return@forEach
+
             (minX..maxX).forEach { x ->
                 (minZ..maxZ).forEach { z ->
                     structure[BlockPos(x, y, z)] = Blocks.AIR.defaultState
