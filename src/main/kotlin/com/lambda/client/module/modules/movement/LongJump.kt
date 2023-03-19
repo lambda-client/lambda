@@ -29,8 +29,8 @@ object LongJump : Module(
 
     private val mode by setting("Mode", Mode.STANDARD, description = "How to boost your motion")
     private var speed by setting("Speed", 3.8, 0.0..10.0, 0.001, description = "How much to boost your initial motion")
-
-    private val virtue by setting("Glide", false, description = "Glide along the ground after jumping") // reasonably major 2014 exploit, works on UpdatedNCP in 2023
+    private val virtue by setting("Glide", false, description = "Glide along the ground after jumping") // extends the boost from LJ. reasonably major 2014 exploit, works on UpdatedNCP in 2023
+    private val applyPots by setting("Apply Speed Pots", true, description = "Whether to apply Speed potion effect") // sometimes we don't want to due to some arbitrary top speed
 
     enum class Mode(override val displayName: String) : DisplayEnum {
         STANDARD("Standard"),
@@ -69,8 +69,8 @@ object LongJump : Module(
 
         safeListener<PlayerMoveEvent> {
 
-            val base = applySpeedPotionEffects(.2873)
-            val adjSpeed = speed * base // this seems to be what future uses so its what people are expecting
+            val base = if (applyPots) applySpeedPotionEffects(.2873) else .2873
+            val adjSpeed = speed * base // this seems to be what future does so its what people are expecting
             val yaw = calcMoveYaw()
 
             if (player.capabilities.isFlying
