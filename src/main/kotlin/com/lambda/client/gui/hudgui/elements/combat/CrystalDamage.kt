@@ -14,7 +14,7 @@ internal object CrystalDamage : LabelHud(
 ) {
 
     override fun SafeClientEvent.updateText() {
-        val potentialSelf = calcCrystalDamage(getBestPlace(player)!!.position, player)
+        val potentialSelf = calcCrystalDamage(getBestPlace(player, 10f)?.position, player)
         val potentialTarget = calcCrystalDamage(getPlaceInfo(CombatManager.target)?.position, CombatManager.target)
 
         displayText.add("Potential", secondaryColor)
