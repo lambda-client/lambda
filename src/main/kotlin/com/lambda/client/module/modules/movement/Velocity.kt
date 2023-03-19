@@ -5,6 +5,7 @@ import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.mixin.extension.*
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.util.combat.CombatUtils.getExplosionVelocity
 import com.lambda.client.util.threads.safeListener
 import com.lambda.mixin.entity.MixinEntity
 import com.lambda.mixin.world.MixinBlockLiquid
@@ -12,6 +13,7 @@ import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.entity.Entity
 import net.minecraft.network.play.server.SPacketEntityVelocity
 import net.minecraft.network.play.server.SPacketExplosion
+import net.minecraftforge.event.world.ExplosionEvent
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo
 import kotlin.math.absoluteValue
 import kotlin.math.max
@@ -35,20 +37,27 @@ object Velocity : Module(
     private val block by setting("Block", false, { noPush })
 
     init {
-        safeListener<PacketEvent.Receive> {
-            if (isDisabled) return@safeListener
+        safeListener<PacketEvent.Receive>(-8374589) {
             if (it.packet is SPacketEntityVelocity) {
                 with(it.packet) {
                     if (entityID != player.entityId) return@safeListener
-                    entityVelocityMotionX = (entityVelocityMotionX * horizontal).toInt()
-                    entityVelocityMotionY = (entityVelocityMotionY * vertical).toInt()
-                    entityVelocityMotionZ = (entityVelocityMotionZ * horizontal).toInt()
+                    if (isZero) {
+                        it.cancel()
+                    } else {
+                        entityVelocityMotionX = (entityVelocityMotionX * horizontal).toInt()
+                        entityVelocityMotionY = (entityVelocityMotionY * vertical).toInt()
+                        entityVelocityMotionZ = (entityVelocityMotionZ * horizontal).toInt()
+                    }
                 }
             } else if (it.packet is SPacketExplosion) {
                 with(it.packet) {
-                    explosionMotionX *= horizontal
-                    explosionMotionY *= vertical
-                    explosionMotionZ *= horizontal
+                    if (isZero) {
+                        it.cancel()
+                    } else {
+                        explosionMotionX *= horizontal
+                        explosionMotionY *= vertical
+                        explosionMotionZ *= horizontal
+                    }
                 }
             }
         }
