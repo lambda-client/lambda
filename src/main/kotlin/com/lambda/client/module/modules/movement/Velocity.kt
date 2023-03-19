@@ -36,26 +36,19 @@ object Velocity : Module(
 
     init {
         safeListener<PacketEvent.Receive> {
+            if (isDisabled) return@safeListener
             if (it.packet is SPacketEntityVelocity) {
                 with(it.packet) {
                     if (entityID != player.entityId) return@safeListener
-                    if (isZero) {
-                        it.cancel()
-                    } else {
-                        entityVelocityMotionX = (entityVelocityMotionX * horizontal).toInt()
-                        entityVelocityMotionY = (entityVelocityMotionY * vertical).toInt()
-                        entityVelocityMotionZ = (entityVelocityMotionZ * horizontal).toInt()
-                    }
+                    entityVelocityMotionX = (entityVelocityMotionX * horizontal).toInt()
+                    entityVelocityMotionY = (entityVelocityMotionY * vertical).toInt()
+                    entityVelocityMotionZ = (entityVelocityMotionZ * horizontal).toInt()
                 }
             } else if (it.packet is SPacketExplosion) {
                 with(it.packet) {
-                    if (isZero) {
-                        it.cancel()
-                    } else {
-                        explosionMotionX *= horizontal
-                        explosionMotionY *= vertical
-                        explosionMotionZ *= horizontal
-                    }
+                    explosionMotionX *= horizontal
+                    explosionMotionY *= vertical
+                    explosionMotionZ *= horizontal
                 }
             }
         }

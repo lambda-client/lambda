@@ -1,9 +1,9 @@
 {
-  "required" : true,
-  "compatibilityLevel" : "JAVA_8",
-  "package" : "com.lambda.mixin",
-  "refmap" : "mixins.lambda.refmap.json",
-  "client" : [
+  "required": true,
+  "compatibilityLevel": "JAVA_8",
+  "package": "com.lambda.mixin",
+  "refmap": "mixins.lambda.refmap.json",
+  "client": [
     "MixinElytraSound",
     "MixinMinecraft",
     "MixinStateImplementation",
@@ -53,6 +53,7 @@
     "gui.MixinGuiNewChat",
     "gui.MixinGuiPlayerTabOverlay",
     "gui.MixinGuiScreen",
+    "network.MixinNetHandlerPlayClient",
     "network.MixinNetworkManager",
     "optifine.MixinConfig",
     "player.MixinEntityPlayer",
