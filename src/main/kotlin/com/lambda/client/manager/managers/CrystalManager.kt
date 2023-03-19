@@ -1,104 +1,62 @@
 package com.lambda.client.manager.managers
 
-import com.lambda.client.event.LambdaEventBus
-import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.ConnectionEvent
-import com.lambda.client.event.events.CrystalEvent
-import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.WorldEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.Manager
 import com.lambda.client.module.modules.combat.CrystalAura
-import com.lambda.client.module.modules.combat.CrystalAura.explode
-import com.lambda.client.module.modules.combat.CrystalAura.place
-import com.lambda.client.util.combat.CombatUtils.scaledHealth
+import com.lambda.client.util.combat.CombatUtils
+import com.lambda.client.util.combat.CombatUtils.getExplosionAffectedEntities
 import com.lambda.client.util.combat.CrystalUtils.calcCrystalDamage
-import com.lambda.client.util.combat.CrystalUtils.canExplodeCrystal
-import com.lambda.client.util.combat.CrystalUtils.canPlaceCrystal
 import com.lambda.client.util.combat.CrystalUtils.getBestPlace
-import com.lambda.client.util.threads.safeAsyncListener
+import com.lambda.client.util.math.VectorUtils.distanceTo
+import com.lambda.client.util.threads.onMainThreadSafe
 import com.lambda.client.util.threads.safeListener
 import io.netty.util.internal.ConcurrentSet
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.item.EntityEnderCrystal
-import net.minecraft.init.SoundEvents
-import net.minecraft.network.play.server.SPacketDestroyEntities
-import net.minecraft.network.play.server.SPacketSoundEffect
-import net.minecraft.network.play.server.SPacketSpawnObject
-import net.minecraft.server.management.PlayerInteractionManager
-import net.minecraft.util.SoundCategory
-import net.minecraft.util.math.AxisAlignedBB
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
-import net.minecraftforge.fml.common.eventhandler.EventPriority
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+import net.minecraftforge.event.world.ExplosionEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import java.util.concurrent.ConcurrentHashMap
 
 object CrystalManager : Manager {
     val placedCrystals = ConcurrentSet<Crystal>()
-    val toPlaceList = mutableMapOf<EntityLivingBase, CrystalPlaceInfo>()
-
-    fun SafeClientEvent.updateCrystals() {
-        synchronized(placedCrystals) {
-            for (placedCrystal in placedCrystals) {
-                placedCrystal.info.damage = calcCrystalDamage(placedCrystal.entity.positionVector, CombatManager.target)
-            }
-        }
-    }
-
-    fun SafeClientEvent.updatePlaceList() {
-        synchronized(toPlaceList) {
-            for (placeInfo in toPlaceList.values) {
-                placeInfo.damage = calcCrystalDamage(placeInfo.position, CombatManager.target)
-            }
-        }
-    }
+    val toPlaceList = ConcurrentHashMap<EntityLivingBase, CrystalPlaceInfo>()
 
     init {
-        safeListener<TickEvent.ClientTickEvent>(999999999) {
-            CombatManager.target?.let { target ->
-                val placeInfo = getBestPlace(target) ?: return@safeListener
-                toPlaceList[target] = placeInfo
-                canPlaceCrystal(placeInfo) {
-                        it.targetDamage >= CrystalAura.placeMinDamage
-                        && it.selfDamage <= CrystalAura.placeMaxSelfDamage
-                        && player.scaledHealth >= CrystalAura.noSuicide
-                        && it.targetDistance >= CrystalAura.placeMinDistance
-                        && it.selfDistance >= CrystalAura.placeMinSelfDistance
-                        && (
-                        if (CrystalAura.placeThroughWalls && it.throughWalls && it.selfDistance <= CrystalAura.placeThroughWallsRange) true
-                        else !it.throughWalls
-                        )
-                }?.let {
-                    LambdaEventBus.post(CrystalEvent.PlaceEvent(it))
+        safeListener<net.minecraftforge.event.world.WorldEvent.Load> {
+            world.loadedEntityList.filterIsInstance<EntityEnderCrystal>().forEach { crystal ->
+                CombatManager.target
+            }
+        }
+
+        safeListener<WorldEvent.EntityCreate> { update ->
+            if (update.entity !is EntityEnderCrystal) return@safeListener
+            val crystal = Crystal(update.entity, CrystalPlaceInfo(update.entity.positionVector, calcCrystalDamage(update.entity, CombatManager.target)))
+            placedCrystals.add(crystal)
+        }
+
+        safeListener<TickEvent.ClientTickEvent> {
+            CombatManager.target?.let { entity ->
+                toPlaceList[entity] = getBestPlace(entity, CrystalAura.placeDistance) ?: return@safeListener
+                placedCrystals.forEach { it.info.damage = calcCrystalDamage(entity.positionVector, CombatManager.target) }
+                toPlaceList.forEach { (entity, crystal) ->
+                    if (
+                        !world.loadedEntityList.contains(entity)
+                        || entity.distanceTo(player.positionVector) > 10
+                        || placedCrystals.any { placed -> placed.info == crystal }
+                    ) toPlaceList.remove(entity)
+                    else crystal.damage = calcCrystalDamage(crystal.position, entity)
                 }
             }
         }
 
-        safeListener<WorldEvent.EntityUpdate> { update ->
-            CombatManager.target?.let { target ->
-                if (update.entity !is EntityEnderCrystal) return@safeListener
-                val crystal = Crystal(update.entity, CrystalPlaceInfo(update.entity.positionVector, calcCrystalDamage(update.entity, target)))
-                placedCrystals.add(crystal)
-                canExplodeCrystal(crystal) {
-                    it.targetDamage >= CrystalAura.explodeMinDamage
-                        && it.selfDamage <= CrystalAura.explodeMaxSelfDamage
-                        && player.scaledHealth >= CrystalAura.noSuicide
-                        && it.targetDistance >= CrystalAura.explodeMinDistance
-                        && it.selfDistance >= CrystalAura.explodeMinSelfDistance
-                }?.let { info ->
-                    LambdaEventBus.post(CrystalEvent.BreakEvent(info))
-                }
-            }
-        }
-
-        safeListener<PacketEvent.Receive>(999999999) { receive ->
-            if (receive.packet is SPacketDestroyEntities) {
-                synchronized(placedCrystals) {
-                    for (id in receive.packet.entityIDs) {
-                        placedCrystals.removeIf { it.entity.entityId == id }
-                    }
-                }
-            }
+        safeListener<ExplosionEvent.Detonate> {
+            // For some reason, even if one of the condition is true, it will NOT be removed from the list
+            /*val affectedEntities = getExplosionAffectedEntities(EntityEnderCrystal::class.java, it.explosion.position, CombatUtils.ExplosionStrength.EndCrystal)
+            placedCrystals.removeIf { crystal -> affectedEntities.contains(crystal.entity) || crystal.entity.isDead }*/
+            placedCrystals.clear()
         }
 
         safeListener<ConnectionEvent.Disconnect> {
@@ -107,9 +65,7 @@ object CrystalManager : Manager {
         }
     }
 
-    class Crystal(val entity: EntityEnderCrystal, var info: CrystalPlaceInfo)
-
-    class CrystalPlaceInfo(val position: Vec3d, var damage: CrystalDamage)
-
-    class CrystalDamage(val targetDamage: Float, val selfDamage: Float, val targetDistance: Double, val selfDistance: Double, val throughWalls: Boolean)
+    data class Crystal(val entity: EntityEnderCrystal, var info: CrystalPlaceInfo)
+    data class CrystalPlaceInfo(val position: Vec3d, var damage: CrystalDamage)
+    data class CrystalDamage(val targetDamage: Float, val selfDamage: Float, val targetDistance: Double, val selfDistance: Double, val throughWalls: Boolean)
 }

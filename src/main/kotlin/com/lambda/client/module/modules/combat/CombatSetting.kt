@@ -7,8 +7,6 @@ import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.event.events.TargetEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.CombatManager
-import com.lambda.client.manager.managers.CrystalManager.updateCrystals
-import com.lambda.client.manager.managers.CrystalManager.updatePlaceList
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.player.AutoEat
@@ -96,8 +94,6 @@ object CombatSetting : Module(
     private val resumeTimer = TickTimer(TimeUnit.SECONDS)
     private val jobMap = hashMapOf<(SafeClientEvent) -> Unit, Job?>(
         { it: SafeClientEvent -> it.updateTarget() } to null,
-        { it: SafeClientEvent -> it.updateCrystals() } to null,
-        { it: SafeClientEvent -> it.updatePlaceList() } to null,
     )
 
     val pause
