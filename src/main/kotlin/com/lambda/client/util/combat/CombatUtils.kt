@@ -11,22 +11,25 @@ import com.lambda.client.util.items.swapToSlot
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.enchantment.EnchantmentProtection
+import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.SharedMonsterAttributes
 import net.minecraft.entity.monster.EntityMob
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.MobEffects
-import net.minecraft.item.ItemArmor
 import net.minecraft.item.ItemAxe
 import net.minecraft.item.ItemSword
 import net.minecraft.item.ItemTool
 import net.minecraft.util.CombatRules
 import net.minecraft.util.DamageSource
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.Explosion
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
+import kotlin.math.floor
 import kotlin.math.round
+import kotlin.math.sqrt
 
 
 object CombatUtils {
@@ -56,7 +59,7 @@ object CombatUtils {
      * @param type The type of explosion
      * @return The radius of the explosion of a given strength
      */
-    private fun getExplosionRadius(type: ExplosionStrength): Double {
+    fun getExplosionRadius(type: ExplosionStrength): Double {
         return 1.3 * (type.value/0.225) * 0.3
     }
 
@@ -97,15 +100,52 @@ object CombatUtils {
      */
     fun SafeClientEvent.calculateExplosion(pos: Vec3d, entity: EntityLivingBase?, explosionType: ExplosionStrength): Float {
         if (entity is EntityPlayer && entity.isCreative || entity == null) return 0.0f // Return 0 directly if entity is a player and in creative mode or null
-        val radius = getExplosionRadius(explosionType)
-        val distance = entity.positionVector.distanceTo(pos) / radius
+        val size = explosionType.value * 2.0
 
+        val distance = entity.positionVector.distanceTo(pos) / size
         val blockDensity = entity.world.getBlockDensity(pos, entity.entityBoundingBox)
-        val v = (1.0 - distance) * blockDensity
-        val damage = (v * v + v) * 8 * explosionType.value + 1
+        val impact = (1.0 - distance) * blockDensity
+        val damage = (impact * impact + impact) / 2.0 * 7.0 * size + 1
 
         val explosion = Explosion(player.world, entity, pos.x, pos.y, pos.z, explosionType.value, false, true)
         return getBlastReduction(entity, explosion, damage.toFloat() * getDifficultyFactor())
+    }
+
+    fun SafeClientEvent.getExplosionVelocity(pos: Vec3d, entity: EntityLivingBase, explosionType: ExplosionStrength): Vec3d {
+        val size = explosionType.value * 2.0
+
+        val distance = entity.positionVector.distanceTo(pos) / size
+        val blockDensity = entity.world.getBlockDensity(pos, entity.entityBoundingBox)
+        val impact = (1.0 - distance) * blockDensity
+
+        val x = entity.posX - pos.x
+        val y = entity.posY + entity.eyeHeight - pos.y
+        val z = entity.posZ - pos.z
+        val result = sqrt(x * x + y * y + z * z)
+        if (result == 0.0) return Vec3d.ZERO
+
+        val delta = Vec3d(x / result, y / result, z / result)
+        val reduction = EnchantmentProtection.getBlastDamageReduction(entity, impact)
+        return delta.scale(reduction)
+    }
+
+    /**
+     * @param typeClass The class of the entity
+     * @param pos The position of the explosion
+     * @param explosionType The strength of the explosion
+     * @return a list of affected entities
+     */
+    fun <T: Entity> SafeClientEvent.getExplosionAffectedEntities(typeClass: Class<T>, pos: Vec3d, explosionType: ExplosionStrength): List<T> {
+        val size = explosionType.value * 2.0
+
+        return world.getEntitiesWithinAABB(typeClass, AxisAlignedBB(
+            floor(pos.x - size - 1.0),
+            floor(pos.y - size - 1.0),
+            floor(pos.z - size - 1.0),
+            floor(pos.x + size + 1.0),
+            floor(pos.y + size + 1.0),
+            floor(pos.z + size + 1.0))
+        )
     }
 
 
@@ -132,7 +172,7 @@ object CombatUtils {
      */
     private fun getResistanceReduction(entity: EntityLivingBase): Float {
         val amplifier = entity.getActivePotionEffect(MobEffects.RESISTANCE)?.amplifier ?: return 1.0f
-        return 1.0f - (8 * (amplifier + 1)) / 100.0f // See https://minecraft.fandom.com/wiki/Blast_Protection#Usage
+        return 1.0f - (8 * amplifier) / 100.0f // See https://minecraft.fandom.com/wiki/Blast_Protection#Usage
     }
 
     private fun getProtectionModifier(entity: EntityLivingBase, damageSource: DamageSource): Float {
