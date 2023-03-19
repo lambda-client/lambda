@@ -4,6 +4,7 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.WorldEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.CombatManager
+import com.lambda.client.manager.managers.CrystalManager
 import com.lambda.client.manager.managers.HotbarManager.resetHotbar
 import com.lambda.client.manager.managers.HotbarManager.serverSideItem
 import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
@@ -19,9 +20,13 @@ import com.lambda.client.util.items.block
 import com.lambda.client.util.items.firstBlock
 import com.lambda.client.util.items.hotbarSlots
 import com.lambda.client.util.math.RotationUtils.getRotationTo
+import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.PlaceInfo
+import com.lambda.client.util.world.getNeighbour
+import com.lambda.client.util.world.hasNeighbour
+import com.lambda.client.util.world.isPlaceable
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.init.Blocks
 import net.minecraft.item.ItemStack
@@ -32,6 +37,7 @@ import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Keyboard
+import java.util.*
 
 @CombatManager.CombatModule
 object CrystalBasePlace : Module(
@@ -134,34 +140,17 @@ object CrystalBasePlace : Module(
     }
 
     private fun SafeClientEvent.getPlaceInfo(entity: EntityLivingBase): PlaceInfo? {
-        /*val cacheMap = TreeMap<Float, BlockPos>(compareByDescending { it })
-        val prediction = CombatSetting.getPrediction(entity)
-        val eyePos = player.getPositionEyes(1.0f)
-        val posList = VectorUtils.getBlockPosInSphere(eyePos, range)
-        val maxCurrentDamage = CombatManager.placeMap.entries
-            .filter { eyePos.distanceTo(it.key) < range }.maxOfOrNull { it.value.targetDamage } ?: 0.0f
-
-        for (pos in posList) {
-            // Placeable check
-            if (!world.isPlaceable(pos)) continue
-
-            // Neighbour blocks check
-            if (!hasNeighbour(pos)) continue
-
-            // Damage check
-            val damage = calcPlaceDamage(pos, entity)
-            if (!checkDamage(damage.first, damage.second, maxCurrentDamage)) continue
-
-            cacheMap[damage.first] = pos
-        }
-
-        for (pos in cacheMap.values) {
-            return getNeighbour(pos, 1) ?: continue
-        }*/
-        return null
+        return VectorUtils.getBlockPosInSphere(player.getPositionEyes(1.0f), range)
+            .filter { world.isPlaceable(it) && hasNeighbour(it) && it.y <= entity.posY }
+            .maxByOrNull {
+                val damage = calcPlaceDamage(it, entity)
+                damage.targetDamage - damage.selfDamage
+            }?.let {
+                getNeighbour(it, 1)
+            }
     }
 
-    private fun SafeClientEvent.calcPlaceDamage(pos: BlockPos, entity: EntityLivingBase): Pair<Float, Float> {
+    private fun SafeClientEvent.calcPlaceDamage(pos: BlockPos, entity: EntityLivingBase): CrystalManager.CrystalDamage {
         // Set up a fake obsidian here for proper damage calculation
         val prevState = world.getBlockState(pos)
         world.setBlockState(pos, Blocks.OBSIDIAN.defaultState)
@@ -172,6 +161,6 @@ object CrystalBasePlace : Module(
         // Revert the block state before return
         world.setBlockState(pos, prevState)
 
-        return damage.targetDamage to damage.selfDamage
+        return damage
     }
 }
