@@ -110,7 +110,7 @@ object CrystalESP : Module(
             pendingPlacing.entries.removeIf { System.currentTimeMillis() - it.value > 1000L }
 
             if (!onlyOwn) {
-                cacheMap.putAll(crystalSet.filter { it.info.damage.selfDamage <= crystalRange }.associateBy({it.entity.position.down()},{ Quad(it.info.damage.targetDamage, it.info.damage.selfDamage, 0.0f, 0.0f)}))
+                cacheMap.putAll(crystalSet.filter { it.info.damage.selfDistance <= crystalRange }.associateBy({it.entity.position.down()},{ Quad(it.info.damage.targetDamage, it.info.damage.selfDamage, 0.0f, 0.0f)}))
             }
 
             val scale = 1.0f / animationScale
