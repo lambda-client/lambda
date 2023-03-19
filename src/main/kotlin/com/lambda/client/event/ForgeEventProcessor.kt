@@ -11,7 +11,6 @@ import com.lambda.client.util.graphics.ProjectionUtils
 import com.lambda.client.util.text.MessageDetection
 import net.minecraft.item.ItemFood
 import net.minecraftforge.client.event.*
-import net.minecraftforge.event.ForgeEventFactory
 import net.minecraftforge.event.entity.EntityJoinWorldEvent
 import net.minecraftforge.event.entity.living.LivingDeathEvent
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent
@@ -151,10 +150,7 @@ internal object ForgeEventProcessor {
     @SubscribeEvent
     fun onPlayerInteractEvent(event: PlayerInteractEvent) {
         event.itemStack.let {
-            if (it.item is ItemFood) {
-                val result = PlayerEvent.OnEatStart(mc.player, it.item as ItemFood)
-                LambdaEventBus.post(result)
-            }
+            if (it.item is ItemFood) LambdaEventBus.post(PlayerEvent.OnEatStart(mc.player, it.item as ItemFood))
         }
         LambdaEventBus.post(event)
     }
@@ -194,40 +190,27 @@ internal object ForgeEventProcessor {
 
     @SubscribeEvent
     fun onEntityJoinWorld(event: EntityJoinWorldEvent) {
-        com.lambda.client.event.events.WorldEvent.EntityCreate(event.entity).let {
-            LambdaEventBus.post(it)
-        }
+        LambdaEventBus.post(com.lambda.client.event.events.WorldEvent.EntityCreate(event.entity))
     }
 
     @SubscribeEvent
     fun onPlayerJoin(event: net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent) {
-        val result = com.lambda.client.event.events.WorldEvent.Join(event.player)
-        LambdaEventBus.post(result)
+        LambdaEventBus.post(com.lambda.client.event.events.WorldEvent.Join(event.player))
     }
 
     @SubscribeEvent
     fun onPlayerLeave(event: net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent) {
-        val result = com.lambda.client.event.events.WorldEvent.Leave(event.player)
-        LambdaEventBus.post(result)
+        LambdaEventBus.post(com.lambda.client.event.events.WorldEvent.Leave(event.player))
     }
 
     @SubscribeEvent
     fun onEntityDeath(event: LivingDeathEvent) {
-        if (event.entity == CombatManager.target) {
-            val result = TargetEvent.Death(event.entity)
-            LambdaEventBus.post(result)
-        }
-        val result = com.lambda.client.event.events.WorldEvent.EntityDestroy(event.entity)
-        LambdaEventBus.post(result)
+        if (event.entity == CombatManager.target) LambdaEventBus.post(TargetEvent.Death(event.entity))
+        LambdaEventBus.post(com.lambda.client.event.events.WorldEvent.EntityDestroy(event.entity))
     }
 
     @SubscribeEvent
-    fun onWorldLoad(event: WorldEvent.Load) {
-        LambdaEventBus.post(com.lambda.client.event.events.WorldEvent.Load(event.world))
-    }
-
-    @SubscribeEvent
-    fun onWorldUnload(event: WorldEvent.Unload) {
-        LambdaEventBus.post(com.lambda.client.event.events.WorldEvent.Unload(event.world))
+    fun onExplosion(event: ExplosionEvent) {
+        LambdaEventBus.post(event)
     }
 }

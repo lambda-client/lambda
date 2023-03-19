@@ -38,6 +38,7 @@
     "accessor.world.AccessorExplosion",
     "baritone.MixinBaritoneSettings",
     "entity.MixinEntity",
+    "entity.MixinEntityEnderCrystal",
     "entity.MixinEntityLivingBase",
     "entity.MixinEntityLlama",
     "entity.MixinEntityPig",
@@ -56,7 +57,6 @@
     "optifine.MixinConfig",
     "player.MixinEntityPlayer",
     "player.MixinEntityPlayerSP",
-    "entity.MixinEntityEnderCrystal",
     "player.MixinPlayerControllerMP",
     "render.MixinDebugRendererChunkBorder",
     "render.MixinEntityRenderer",
@@ -88,7 +88,6 @@
     "world.MixinBlockWeb",
     "world.MixinGetCollisionBB",
     "world.MixinItemBlock",
-    "world.MixinWorld",
-    "world.MixinExplosion"
-  ],
+    "world.MixinWorld"
+  ]
 }

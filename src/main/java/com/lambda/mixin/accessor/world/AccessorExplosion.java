@@ -27,6 +27,6 @@ public interface AccessorExplosion {
     @Accessor("playerKnockbackMap")
     Map<EntityPlayer, Vec3d> getPlayerKnockbackMap();
 
-    @Accessor("position")
+    @Accessor(value = "position", remap = false)
     Vec3d getPosition();
 }
