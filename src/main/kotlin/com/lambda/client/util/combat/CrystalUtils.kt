@@ -120,7 +120,7 @@ object CrystalUtils {
      * @return The damage the crystal will deal to the entity
      */
     fun SafeClientEvent.calcCrystalDamage(pos: Vec3d?, entity: EntityLivingBase?): CrystalManager.CrystalDamage {
-        val position = pos ?: entity?.positionVector ?: Vec3d.ZERO
+        val position = pos ?: Vec3d.ZERO
 
         // Calculate raw damage (based on blocks and distance)
         val targetDamage = calculateExplosion(position, entity, CombatUtils.ExplosionStrength.EndCrystal)
