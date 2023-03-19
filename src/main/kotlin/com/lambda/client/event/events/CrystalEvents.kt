@@ -1,9 +1,10 @@
 package com.lambda.client.event.events
 
 import com.lambda.client.event.Event
-import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.manager.managers.CrystalManager
 import com.lambda.client.module.modules.combat.BedAura
+import net.minecraft.entity.Entity
+import net.minecraft.entity.item.EntityEnderCrystal
 
 class CrystalEvent {
     /**

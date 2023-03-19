@@ -9,8 +9,13 @@ import com.lambda.client.util.Wrapper
 import com.lambda.client.util.graphics.LambdaTessellator
 import net.minecraft.entity.Entity
 import net.minecraft.world.Explosion
+import net.minecraft.world.World
 
 open class WorldEvent {
+    class Load(val world: World) : Event
+
+    class Unload(val world: World) : Event
+
     class Join(val entity: Entity) : Event
 
     class Leave(val entity: Entity) : Event

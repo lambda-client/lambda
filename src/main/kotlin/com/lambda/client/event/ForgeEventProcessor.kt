@@ -11,6 +11,7 @@ import com.lambda.client.util.graphics.ProjectionUtils
 import com.lambda.client.util.text.MessageDetection
 import net.minecraft.item.ItemFood
 import net.minecraftforge.client.event.*
+import net.minecraftforge.event.ForgeEventFactory
 import net.minecraftforge.event.entity.EntityJoinWorldEvent
 import net.minecraftforge.event.entity.living.LivingDeathEvent
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent
@@ -221,14 +222,12 @@ internal object ForgeEventProcessor {
     }
 
     @SubscribeEvent
-    fun onPreExplode(event: ExplosionEvent.Start) {
-        val result = com.lambda.client.event.events.WorldEvent.PreExplosion(event.explosion)
-        LambdaEventBus.post(result)
+    fun onWorldLoad(event: WorldEvent.Load) {
+        LambdaEventBus.post(com.lambda.client.event.events.WorldEvent.Load(event.world))
     }
 
     @SubscribeEvent
-    fun onPostExplode(event: ExplosionEvent.Detonate) {
-        val result = com.lambda.client.event.events.WorldEvent.PostExplosion(event.explosion)
-        LambdaEventBus.post(result)
+    fun onWorldUnload(event: WorldEvent.Unload) {
+        LambdaEventBus.post(com.lambda.client.event.events.WorldEvent.Unload(event.world))
     }
 }
