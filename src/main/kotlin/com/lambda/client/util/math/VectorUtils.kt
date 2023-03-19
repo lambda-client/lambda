@@ -93,6 +93,10 @@ object VectorUtils {
         return Vec3d(x + xOffset, y + yOffset, z + zOffset)
     }
 
+    fun Vec3d.toCenter(): Vec3d {
+        return this.toBlockPos().toVec3d()
+    }
+
     fun Vec3i.toVec3dCenter(): Vec3d {
         return toVec3dCenter(0.0, 0.0, 0.0)
     }
