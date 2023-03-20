@@ -67,7 +67,7 @@ object CrystalAura : Module(
     val placeMinDamage by setting("Place Min Damage", 4.25f, 0.0f..20f, 0.1f, { page == Page.PLACE_TWO }, description = "Minimum damage to place")
     val placeMaxSelfDamage by setting("Place Max Self Damage", 4.25f, 0.0f..20f, 0.1f, { page == Page.PLACE_TWO }, description = "Maximum self damage to place")
     val placeDelay by setting("Place Delay", 1, 0..10, 1, { page == Page.PLACE_TWO }, description = "Delay between each place in ticks")
-    val placeDistanceBetween by setting("Place Distance Between Crystals", 6.0f, 2.0f..12.0f, 1.0f, { page == Page.PLACE_TWO })
+    val placeDistanceBetween by setting("Place Distance Between Crystals", 2.0f, 0.0f..6.0f, 1.0f, { page == Page.PLACE_TWO })
 
     /* Explode page 1 */
     val doExplode by setting("Explode", true, { page == Page.EXPLODE_ONE }, description = "Whether or not it should explode")
