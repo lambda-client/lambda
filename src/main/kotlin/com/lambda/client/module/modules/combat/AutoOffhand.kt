@@ -3,6 +3,7 @@ package com.lambda.client.module.modules.combat
 import com.lambda.client.commons.extension.next
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.CombatManager
+import com.lambda.client.manager.managers.NotificationManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.Bind
@@ -10,7 +11,6 @@ import com.lambda.client.util.combat.CombatUtils.calcDamageFromMob
 import com.lambda.client.util.combat.CombatUtils.calcDamageFromPlayer
 import com.lambda.client.util.combat.CombatUtils.scaledHealth
 import com.lambda.client.util.items.*
-import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.entity.monster.EntityMob
@@ -145,7 +145,7 @@ object AutoOffhand : Module(
 
             moveToSlot(this@AutoOffhand, slot, player.offhandSlot)
 
-            if (switchMessage) MessageSendHelper.sendChatMessage("$chatName Offhand now has a ${typeAlt.toString().lowercase()}")
+            if (switchMessage) NotificationManager.registerNotification("$chatName Offhand now has a ${typeAlt.toString().lowercase()}")
         }
     }
 

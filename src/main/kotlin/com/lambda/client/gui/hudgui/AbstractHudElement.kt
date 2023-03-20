@@ -5,6 +5,7 @@ import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.commons.interfaces.Nameable
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.gui.rgui.windows.BasicWindow
+import com.lambda.client.manager.managers.NotificationManager
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.module.modules.client.Hud
 import com.lambda.client.setting.GuiConfig
@@ -16,7 +17,6 @@ import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.Vec2f
-import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.GL11.glScalef
@@ -97,7 +97,7 @@ abstract class AbstractHudElement(
             if (it) {
                 settingList.filter { it != visibleSetting && it != default }.forEach { it.resetValue() }
                 default.value = false
-                MessageSendHelper.sendChatMessage("$name Set to defaults!")
+                NotificationManager.registerNotification("$name Set to defaults!")
             }
         }
 

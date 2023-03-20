@@ -1,9 +1,11 @@
 package com.lambda.client.module.modules.chat
 
 import com.lambda.client.event.listener.listener
+import com.lambda.client.manager.managers.NotificationManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.FolderUtils
+import com.lambda.client.util.notifications.NotificationType
 import com.lambda.client.util.text.MessageDetection
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.formatValue
@@ -26,7 +28,7 @@ object ChatFilter : Module(
     init {
         onEnable {
             try {
-                MessageSendHelper.sendChatMessage("$chatName Trying to find '&7chat_filter.txt&f'")
+                NotificationManager.registerNotification("$chatName Trying to find '&7chat_filter.txt&f'")
                 chatFilter.clear()
 
                 file.bufferedReader().forEachLine {
@@ -41,9 +43,9 @@ object ChatFilter : Module(
                     }
                 }
 
-                MessageSendHelper.sendChatMessage("$chatName Loaded '&7chat_filter.txt&f'!")
+                NotificationManager.registerNotification("$chatName Loaded '&7chat_filter.txt&f'!")
             } catch (exception: FileNotFoundException) {
-                MessageSendHelper.sendErrorMessage("$chatName Couldn't find a file called '&7chat_filter.txt&f' inside your '&7.minecraft/lambda&f' folder, disabling")
+                NotificationManager.registerNotification("$chatName Couldn't find a file called '&7chat_filter.txt&f' inside your '&7.minecraft/lambda&f' folder, disabling", NotificationType.ERROR)
                 disable()
             } catch (exception: Exception) {
                 MessageSendHelper.sendErrorMessage(exception.toString())

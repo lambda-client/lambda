@@ -4,6 +4,7 @@ import com.lambda.client.LambdaMod
 import com.lambda.client.commons.extension.synchronized
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.manager.managers.NotificationManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.FolderUtils
@@ -115,7 +116,7 @@ object AutoExcuse : Module(
 
                         try {
                             file.forEachLine { if (it.isNotBlank()) loadedExcuses.add(it.trim()) }
-                            MessageSendHelper.sendChatMessage("$chatName Loaded excuse messages!")
+                            NotificationManager.registerNotification("$chatName Loaded excuse messages!")
                         } catch (e: Exception) {
                             MessageSendHelper.sendErrorMessage("$chatName Failed loading excuses, $e")
                             disable()

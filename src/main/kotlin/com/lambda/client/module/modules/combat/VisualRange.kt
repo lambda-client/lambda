@@ -1,6 +1,7 @@
 package com.lambda.client.module.modules.combat
 
 import com.lambda.client.manager.managers.FriendManager
+import com.lambda.client.manager.managers.NotificationManager
 import com.lambda.client.manager.managers.WaypointManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -8,7 +9,7 @@ import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.EntityUtils.isFakeOrSelf
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
-import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.notifications.NotificationType
 import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 import com.lambda.client.util.text.format
 import com.lambda.client.util.threads.safeListener
@@ -91,6 +92,6 @@ object VisualRange : Module(
 
     private fun sendNotification(message: String) {
         if (playSound) mc.soundHandler.playSound(PositionedSoundRecord.getRecord(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f))
-        MessageSendHelper.sendChatMessage(message)
+        NotificationManager.registerNotification(message, NotificationType.WARNING)
     }
 }

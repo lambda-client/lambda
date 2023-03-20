@@ -15,7 +15,6 @@ import com.lambda.client.setting.settings.impl.other.BindSetting
 import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
 import com.lambda.client.util.Bind
 import com.lambda.client.util.notifications.NotificationType
-import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.client.Minecraft
 
 @Suppress("UNCHECKED_CAST")
@@ -63,7 +62,7 @@ abstract class AbstractModule(
         if (enabled.value) clicks.value++
 
         if (this.category != Category.CLIENT) {
-            NotificationManager.registerNotification("$chatName ${if (enabled.value) "Enabled" else "Disabled"}", NotificationType.INFO)
+            NotificationManager.registerNotification("$name ${if (enabled.value) "Enabled" else "Disabled"}", NotificationType.INFO)
         }
     }
 
@@ -137,7 +136,7 @@ abstract class AbstractModule(
             if (it) {
                 settingList.forEach { it.resetValue() }
                 default.value = false
-                MessageSendHelper.sendChatMessage("$chatName Set to defaults!")
+                NotificationManager.registerNotification("$chatName Set to defaults!")
             }
         }
 
