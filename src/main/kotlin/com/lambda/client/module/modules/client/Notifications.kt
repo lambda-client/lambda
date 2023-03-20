@@ -4,6 +4,7 @@ import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.color.ColorHolder
+import com.lambda.client.util.graphics.AnimationUtils
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.RenderUtils2D
 import com.lambda.client.util.graphics.VertexHelper
@@ -23,6 +24,7 @@ object Notifications : Module(
     category = Category.CLIENT,
     description = "Shows notifications",
     alwaysListening = true,
+    showOnArray = false,
     enabledByDefault = true
 ) {
     private val page by setting("Page", Page.GENERAL)
@@ -39,8 +41,8 @@ object Notifications : Module(
     private val warningTimeout by setting("Warning Timeout", 4000, 1000..10000, 100, { page == Page.TIMEOUT })
     private val errorTimeout by setting("Error Timeout", 7000, 1000..10000, 100, { page == Page.TIMEOUT })
 
-    enum class RenderLocation(val renderDirection: Int) {
-        BOTTOM_RIGHT(-1), BOTTOM_LEFT(-1), TOP_RIGHT(1), TOP_LEFT(1)
+    enum class RenderLocation(val xValue:Int, val yValue: Int) {
+        BOTTOM_RIGHT(1,-1), BOTTOM_LEFT(-1,-1), TOP_RIGHT(1,1), TOP_LEFT(-1,1)
     }
 
     enum class NotificationMode {
@@ -75,7 +77,7 @@ object Notifications : Module(
                     RenderLocation.TOP_RIGHT -> GL11.glTranslatef((scaledResolution.scaledWidth_double - horizontalPadding - 90).toFloat(), verticalPadding, 0f)
                     RenderLocation.TOP_LEFT -> GL11.glTranslatef(horizontalPadding, verticalPadding, 0f)
                 }
-                GlStateManager.translate(0.0, index * (notificationHeight + 3.0) * renderLocation.renderDirection, 0.0)
+                GlStateManager.translate(0.0, index * renderLocation.yValue * ((notificationHeight + 3.0) * notification.animate()), 0.0)
                 drawNotification(vertexHelper, notification)
                 GlStateManager.popMatrix()
             }
@@ -131,6 +133,12 @@ object Notifications : Module(
             else -> GuiColors.backGround
         }
 
+        GlStateManager.pushMatrix()
+        val animatedPercent = notification.animate()
+        val animationXOffset = textWidth * renderLocation.xValue *(1.0f - animatedPercent)
+        GlStateManager.translate(animationXOffset,0.0f,0.0f)
+
+
         // Draw background
         RenderUtils2D.drawRectFilled(vertexHelper, Vec2d.ZERO, Vec2d(width, notificationHeight), backgroundColor)
 
@@ -143,6 +151,8 @@ object Notifications : Module(
         // Draw text
         FontRenderAdapter.drawString(notification.text, 4.0f, textPosY, true,
             ColorHolder(255, 255, 255, alpha), textScale, CustomFont.isEnabled)
+
+        GlStateManager.popMatrix()
     }
 
     fun addNotification(notification: Notification) {
@@ -164,5 +174,12 @@ object Notifications : Module(
         NotificationType.INFO -> ColorHolder(3, 169, 244, alpha)
         NotificationType.WARNING -> ColorHolder(255, 255, 0, alpha)
         NotificationType.ERROR -> ColorHolder(255, 0, 0, alpha)
+    }
+    private fun Notification.animate() : Float{
+        return if ((System.currentTimeMillis() - startTime) < (duration.toLong() / 2)){
+            AnimationUtils.exponentInc(AnimationUtils.toDeltaTimeFloat(startTime), 200.0f)
+        }else{
+            AnimationUtils.exponentDec(AnimationUtils.toDeltaTimeFloat(startTime + duration - 200), 200.0f)
+        }
     }
 }
