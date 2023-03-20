@@ -12,10 +12,6 @@ import net.minecraft.world.Explosion
 import net.minecraft.world.World
 
 open class WorldEvent {
-    class Load(val world: World) : Event
-
-    class Unload(val world: World) : Event
-
     class Join(val entity: Entity) : Event
 
     class Leave(val entity: Entity) : Event
@@ -23,12 +19,6 @@ open class WorldEvent {
     class EntityCreate(val entity: Entity) : Event
 
     class EntityDestroy(val entity: Entity) : Event
-
-    class EntityUpdate(val entity: Entity) : Event
-
-    class PreExplosion(val explosion: Explosion) : Event
-
-    class PostExplosion(val explosion: Explosion) : Event
 
     class RenderTickEvent : Event, ProfilerEvent {
         override val profilerName: String = "kbRender3D"
