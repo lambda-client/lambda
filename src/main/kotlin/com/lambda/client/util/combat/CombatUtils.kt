@@ -4,6 +4,7 @@ import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.listener.listener
+import com.lambda.client.mixin.extension.size
 import com.lambda.client.util.items.attackDamage
 import com.lambda.client.util.items.filterByStack
 import com.lambda.client.util.items.hotbarSlots
@@ -101,9 +102,8 @@ object CombatUtils {
     fun SafeClientEvent.calculateExplosion(pos: Vec3d, entity: EntityLivingBase?, explosionType: ExplosionStrength): Float {
         if (entity is EntityPlayer && entity.isCreative || entity == null) return 0.0f // Return 0 directly if entity is a player and in creative mode or null
         val size = explosionType.value * 2.0
-
         val distance = entity.positionVector.distanceTo(pos) / size
-        val blockDensity = entity.world.getBlockDensity(pos, entity.entityBoundingBox)
+        val blockDensity = world.getBlockDensity(pos, entity.entityBoundingBox)
         val impact = (1.0 - distance) * blockDensity
         val damage = (impact * impact + impact) / 2.0 * 7.0 * size + 1
 
@@ -111,16 +111,16 @@ object CombatUtils {
         return getBlastReduction(entity, explosion, damage.toFloat() * getDifficultyFactor())
     }
 
-    fun SafeClientEvent.getExplosionVelocity(pos: Vec3d, entity: EntityLivingBase, explosionType: ExplosionStrength): Vec3d {
-        val size = explosionType.value * 2.0
+    fun SafeClientEvent.getExplosionVelocity(entity: EntityLivingBase, explosion: Explosion): Vec3d {
+        val size = explosion.size * 2.0
 
-        val distance = entity.positionVector.distanceTo(pos) / size
-        val blockDensity = entity.world.getBlockDensity(pos, entity.entityBoundingBox)
+        val distance = entity.positionVector.distanceTo(explosion.position) / size
+        val blockDensity = entity.world.getBlockDensity(explosion.position, entity.entityBoundingBox)
         val impact = (1.0 - distance) * blockDensity
 
-        val x = entity.posX - pos.x
-        val y = entity.posY + entity.eyeHeight - pos.y
-        val z = entity.posZ - pos.z
+        val x = entity.posX - explosion.position.x
+        val y = entity.posY + entity.eyeHeight - explosion.position.y
+        val z = entity.posZ - explosion.position.z
         val result = sqrt(x * x + y * y + z * z)
         if (result == 0.0) return Vec3d.ZERO
 
