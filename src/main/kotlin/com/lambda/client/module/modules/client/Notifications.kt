@@ -69,7 +69,8 @@ object Notifications : Module(
             val scaledResolution = ScaledResolution(mc)
             val vertexHelper = VertexHelper(GlStateUtils.useVbo())
 
-            notifications.forEachIndexed { index, notification ->
+            var y = 0.0
+            notifications.forEach { notification ->
                 GlStateManager.pushMatrix()
                 when (renderLocation) {
                     RenderLocation.BOTTOM_RIGHT -> GL11.glTranslatef((scaledResolution.scaledWidth_double - horizontalPadding - 90).toFloat(), (scaledResolution.scaledHeight_double - verticalPadding - notificationHeight).toFloat(), 0f)
@@ -77,7 +78,8 @@ object Notifications : Module(
                     RenderLocation.TOP_RIGHT -> GL11.glTranslatef((scaledResolution.scaledWidth_double - horizontalPadding - 90).toFloat(), verticalPadding, 0f)
                     RenderLocation.TOP_LEFT -> GL11.glTranslatef(horizontalPadding, verticalPadding, 0f)
                 }
-                GlStateManager.translate(0.0, index * renderLocation.yValue * ((notificationHeight + 3.0) * notification.animate()), 0.0)
+                y += renderLocation.yValue * ((notificationHeight + 3.0) * notification.animate())
+                GlStateManager.translate(0.0, y, 0.0)
                 drawNotification(vertexHelper, notification)
                 GlStateManager.popMatrix()
             }
