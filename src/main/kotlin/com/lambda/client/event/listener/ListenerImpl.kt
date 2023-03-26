@@ -22,7 +22,7 @@ inline fun <reified T : Any> Any.asyncListener(noinline function: suspend (T) ->
 
 /**
  * Create and register a new async listener for this object
- * Must be used with Kotlinx Coroutine and a implementation of [IAsyncEventBus]
+ * Must be used with Kotlinx Coroutine and an implementation of [IAsyncEventBus]
  *
  * @param T type of the target event
  * @param clazz class of the target event
@@ -57,7 +57,7 @@ fun <T : Any> Any.listener(priority: Int = DEFAULT_PRIORITY, clazz: Class<T>, fu
 
 /**
  * Implementation of [AbstractListener] with suspend block
- * Must be used with Kotlinx Coroutine and a implementation of [IAsyncEventBus]
+ * Must be used with Kotlinx Coroutine and an implementation of [IAsyncEventBus]
  */
 class AsyncListener<T : Any>(
     owner: Any,

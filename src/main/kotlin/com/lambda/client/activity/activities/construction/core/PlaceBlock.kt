@@ -8,7 +8,6 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
 import com.lambda.client.module.modules.client.BuildTools
-import com.lambda.client.module.modules.client.BuildTools.autoPathing
 import com.lambda.client.module.modules.client.BuildTools.directionForce
 import com.lambda.client.module.modules.client.BuildTools.placeStrictness
 import com.lambda.client.util.items.blockBlacklist
@@ -53,27 +52,36 @@ class PlaceBlock(
     private var placeInfo: PlaceInfo? = null
     private var spoofedDirection = false
 
-    override var context: BuildActivity.BuildContext by Delegates.observable(BuildActivity.BuildContext.NONE) { _, old, new ->
+    override var context: BuildActivity.Context by Delegates.observable(BuildActivity.Context.NONE) { _, old, new ->
         if (old == new) return@observable
         renderContext.color = new.color
     }
 
-    override var action: BuildActivity.BuildAction by Delegates.observable(BuildActivity.BuildAction.NONE) { _, old, new ->
+    override var availability: BuildActivity.Availability by Delegates.observable(BuildActivity.Availability.NONE) { _, old, new ->
         if (old == new) return@observable
-        renderAction.color = new.color
+        renderAvailability.color = new.color
     }
 
-    override var earliestFinish: Long
-        get() = BuildTools.placeDelay.toLong()
-        set(_) {}
+    override var type: BuildActivity.Type by Delegates.observable(BuildActivity.Type.PLACE_BLOCK) { _, old, new ->
+        if (old == new) return@observable
+        renderType.color = new.color
+    }
 
     private val renderContext = RenderAABBActivity.Companion.RenderBlockPos(
         blockPos, context.color
     ).also { toRender.add(it) }
 
-    private val renderAction = RenderAABBActivity.Companion.RenderBlockPos(
-        blockPos, action.color
+    private val renderAvailability = RenderAABBActivity.Companion.RenderBlockPos(
+        blockPos, availability.color
     ).also { toRender.add(it) }
+
+    private val renderType = RenderAABBActivity.Companion.RenderBlockPos(
+        blockPos, type.color
+    ).also { toRender.add(it) }
+
+    override var earliestFinish: Long
+        get() = BuildTools.placeDelay.toLong()
+        set(_) {}
 
     private enum class PlacementOffset(val offset: Vec3d) {
         UPPER(Vec3d(0.0, 0.1, 0.0)),
@@ -128,13 +136,13 @@ class PlaceBlock(
     override fun SafeClientEvent.onInitialize() {
         updateState()
 
-        when (action) {
-            BuildActivity.BuildAction.PLACE -> {
-                placeInfo?.let { placeInfo ->
-                    checkPlace(placeInfo)
-                }
-            }
-            else -> {}
+        if (availability != BuildActivity.Availability.VALID) {
+            status = Status.UNINITIALIZED
+            return
+        }
+
+        placeInfo?.let { placeInfo ->
+            checkPlace(placeInfo)
         }
     }
 
@@ -146,19 +154,23 @@ class PlaceBlock(
 
         val currentState = world.getBlockState(blockPos)
 
-        if (context != BuildActivity.BuildContext.PENDING
+        if (context != BuildActivity.Context.PENDING
             && isInDesiredState(currentState)
         ) success()
 
         if (!currentState.isReplaceable
             && !isInDesiredState(currentState)
-            && context != BuildActivity.BuildContext.PENDING
+            && context != BuildActivity.Context.PENDING
             && subActivities.filterIsInstance<BreakBlock>().isEmpty()
         ) {
-            addSubActivities(
-                BreakBlock(blockPos),
-                subscribe = true
-            )
+            (parent as? BuildStructure)?.let {
+                with (it) {
+                    addSubActivities(
+                        BreakBlock(blockPos),
+                        subscribe = true
+                    )
+                }
+            }
             return
         }
 
@@ -218,17 +230,17 @@ class PlaceBlock(
             sides = allowedSides.toTypedArray()
         )?.let {
             if (it.placedPos == blockPos) {
-                action = BuildActivity.BuildAction.PLACE
+                availability = BuildActivity.Availability.VALID
                 it.hitVec = it.hitVec.add(placementOffset.offset)
                 distance = player.distanceTo(it.hitVec)
                 placeInfo = it
             } else {
-                action = BuildActivity.BuildAction.NEEDS_SUPPORT
-
-                PlaceBlock(it.placedPos, targetState).also { placeBlock ->
-                    placeBlock.context = BuildActivity.BuildContext.SUPPORT
-                    addSubActivities(placeBlock)
-                }
+//                action = BuildActivity.BuildAction.NEEDS_SUPPORT
+//
+//                PlaceBlock(it.placedPos, targetState).also { placeBlock ->
+//                    placeBlock.context = BuildActivity.BuildContext.SUPPORT
+//                    addSubActivities(placeBlock)
+//                }
             }
         } ?: run {
             getNeighbour(
@@ -238,10 +250,10 @@ class PlaceBlock(
                 range = 256f,
                 sides = allowedSides.toTypedArray()
             )?.let {
-                action = BuildActivity.BuildAction.WRONG_POS_PLACE
+                availability = BuildActivity.Availability.NOT_IN_RANGE
                 distance = player.distanceTo(it.hitVec.add(placementOffset.offset))
             } ?: run {
-                action = BuildActivity.BuildAction.INVALID_PLACE
+                availability = BuildActivity.Availability.NOT_VISIBLE
                 distance = 1337.0
             }
             placeInfo = null
@@ -262,7 +274,7 @@ class PlaceBlock(
         if (heldItemStack.item != optimalStack.item
             || (!ignoreProperties && optimalStack.metadata != heldItemStack.metadata)
         ) {
-            context = BuildActivity.BuildContext.RESTOCK
+            context = BuildActivity.Context.RESTOCK
 
             addSubActivities(AcquireItemInActiveHand(
                 optimalStack.item,
@@ -346,7 +358,7 @@ class PlaceBlock(
             connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.STOP_SNEAKING))
         }
 
-        context = BuildActivity.BuildContext.PENDING
+        context = BuildActivity.Context.PENDING
     }
 
     private fun isInDesiredState(currentState: IBlockState) =

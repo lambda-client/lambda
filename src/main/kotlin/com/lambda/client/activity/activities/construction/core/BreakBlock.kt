@@ -11,8 +11,6 @@ import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
 import com.lambda.client.mixin.extension.blockHitDelay
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.EntityUtils.flooredPosition
-import com.lambda.client.util.items.block
-import com.lambda.client.util.items.filterByStack
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.RotationUtils.getRotationTo
@@ -23,7 +21,6 @@ import com.lambda.client.util.world.getHitVec
 import com.lambda.client.util.world.getMiningSide
 import com.lambda.client.util.world.isLiquid
 import kotlinx.coroutines.launch
-import net.minecraft.block.state.IBlockState
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.init.Blocks
 import net.minecraft.init.Enchantments
@@ -58,27 +55,36 @@ class BreakBlock(
     private var ticksNeeded = 0
     private var drops: Item = Items.AIR
 
-    override var context: BuildActivity.BuildContext by Delegates.observable(BuildActivity.BuildContext.NONE) { _, old, new ->
+    override var context: BuildActivity.Context by Delegates.observable(BuildActivity.Context.NONE) { _, old, new ->
         if (old == new) return@observable
         renderContext.color = new.color
     }
 
-    override var action: BuildActivity.BuildAction by Delegates.observable(BuildActivity.BuildAction.NONE) { _, old, new ->
+    override var availability: BuildActivity.Availability by Delegates.observable(BuildActivity.Availability.NONE) { _, old, new ->
         if (old == new) return@observable
-        renderAction.color = new.color
+        renderAvailability.color = new.color
     }
 
-    override var earliestFinish: Long
-        get() = BuildTools.breakDelay.toLong()
-        set(_) {}
+    override var type: BuildActivity.Type by Delegates.observable(BuildActivity.Type.BREAK_BLOCK) { _, old, new ->
+        if (old == new) return@observable
+        renderType.color = new.color
+    }
 
     private val renderContext = RenderAABBActivity.Companion.RenderBlockPos(
         blockPos, context.color
     ).also { toRender.add(it) }
 
-    private val renderAction = RenderAABBActivity.Companion.RenderBlockPos(
-        blockPos, action.color
+    private val renderAvailability = RenderAABBActivity.Companion.RenderBlockPos(
+        blockPos, availability.color
     ).also { toRender.add(it) }
+
+    private val renderType = RenderAABBActivity.Companion.RenderBlockPos(
+        blockPos, type.color
+    ).also { toRender.add(it) }
+
+    override var earliestFinish: Long
+        get() = BuildTools.breakDelay.toLong()
+        set(_) {}
 
     init {
         runSafe {
@@ -88,37 +94,24 @@ class BreakBlock(
                 return@runSafe
             }
 
-            val currentState = world.getBlockState(blockPos)
-
-            if (currentState.block in BuildTools.ignoredBlocks) {
-                success()
-                return@runSafe
-            }
-
-            if (currentState.isLiquid) addLiquidFill(blockPos)
-
-            updateDrops(currentState)
-            updateState()
+            updateState() // ToDo: check if needed
         }
 
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.START) return@safeListener
 
-            if (context != BuildActivity.BuildContext.PENDING
-                && action != BuildActivity.BuildAction.BREAKING
-                && world.isAirBlock(blockPos)
-            ) finish()
-
             updateState()
 
-            if (!(action == BuildActivity.BuildAction.BREAKING || action == BuildActivity.BuildAction.BREAK)
-                || subActivities.isNotEmpty()
+            if (world.isAirBlock(blockPos)) {
+                finish()
+                return@safeListener
+            }
+
+            if (subActivities.isNotEmpty()
                 || status == Status.UNINITIALIZED
             ) return@safeListener
 
-            side?.let { side ->
-                tryBreak(side)
-            }
+            resolveAvailability()
         }
 
         safeListener<PacketEvent.PostReceive> {
@@ -146,22 +139,11 @@ class BreakBlock(
         }
 
         updateState()
-
-        when (action) {
-            BuildActivity.BuildAction.BREAKING, BuildActivity.BuildAction.BREAK -> {
-                side?.let { side ->
-                    tryBreak(side)
-                }
-            }
-            else -> {
-                // ToDo: break nearby blocks
-//                    failedWith(NoExposedSideFound())
-            }
-        }
+        resolveAvailability()
     }
 
     override fun SafeClientEvent.onCancel() {
-        playerController.resetBlockRemoving()
+        if (context == BuildActivity.Context.IN_PROGRESS) playerController.resetBlockRemoving()
     }
 
     private fun SafeClientEvent.finish() {
@@ -172,9 +154,9 @@ class BreakBlock(
             return
         }
 
-        if (context == BuildActivity.BuildContext.PICKUP) return
+        if (context == BuildActivity.Context.PICKUP) return
 
-        context = BuildActivity.BuildContext.PICKUP
+        context = BuildActivity.Context.PICKUP
 
         addSubActivities(
             PickUpDrops(drops, minAmount = minCollectAmount)
@@ -182,59 +164,81 @@ class BreakBlock(
     }
 
     private fun SafeClientEvent.updateState() {
+        if (checkLiquids()) return
+
+        updateProperties()
+
         getMiningSide(blockPos, BuildTools.maxReach)?.let {
+            val hitVec = getHitVec(blockPos, it)
+
             /* prevent breaking the block the player is standing on */
             if (player.flooredPosition.down() == blockPos
                 && !world.getBlockState(blockPos.down()).isSideSolid(world, blockPos.down(), EnumFacing.UP)
             ) {
-                action = BuildActivity.BuildAction.WRONG_POS_BREAK
-                distance = player.distanceTo(getHitVec(blockPos, it))
+                availability = BuildActivity.Availability.BLOCKED_BY_PLAYER
+                distance = player.distanceTo(hitVec)
                 return
             }
-
-            if (action != BuildActivity.BuildAction.BREAKING) {
-                action = BuildActivity.BuildAction.BREAK
-            }
-            distance = player.distanceTo(getHitVec(blockPos, it))
+            availability = BuildActivity.Availability.VALID
+            distance = player.distanceTo(hitVec)
             side = it
-            rotation = getRotationTo(getHitVec(blockPos, it))
+            rotation = getRotationTo(hitVec)
+            return
+        }
+
+        getMiningSide(blockPos)?.let {
+            availability = BuildActivity.Availability.NOT_IN_RANGE
+            distance = player.distanceTo(getHitVec(blockPos, it))
         } ?: run {
-            getMiningSide(blockPos)?.let {
-                action = BuildActivity.BuildAction.WRONG_POS_BREAK
-                distance = player.distanceTo(getHitVec(blockPos, it))
-            } ?: run {
-                action = BuildActivity.BuildAction.INVALID_BREAK
-                distance = 1337.0
+            availability = BuildActivity.Availability.NOT_EXPOSED
+            distance = 1337.0
+        }
+
+        playerController.resetBlockRemoving()
+        side = null
+        rotation = null
+    }
+
+    private fun SafeClientEvent.resolveAvailability() {
+        when (availability) {
+            BuildActivity.Availability.VALID -> {
+                tryBreak()
             }
-            playerController.resetBlockRemoving()
-            side = null
-            rotation = null
+            BuildActivity.Availability.BLOCKED_BY_PLAYER,
+            BuildActivity.Availability.NOT_IN_RANGE -> {
+                // Wait for player move
+            }
+            BuildActivity.Availability.WRONG_ITEM_SELECTED -> {
+//                acquireOptimalTool()
+            }
+            BuildActivity.Availability.NOT_EXPOSED,
+            BuildActivity.Availability.NEEDS_LIQUID_HANDLING -> {
+                // Wait for other tasks to finish
+            }
+            else -> {
+                // Other cases should not happen
+            }
         }
     }
 
-    private fun SafeClientEvent.tryBreak(side: EnumFacing) {
-        if (checkLiquids() || !hasOptimalTool()) return
+    private fun SafeClientEvent.tryBreak() {
+        if (!hasOptimalTool()) return
 
-        val currentState = world.getBlockState(blockPos)
+        side?.let {
+            if (!world.isAirBlock(blockPos) && playerController.onPlayerDamageBlock(blockPos, it)) {
+                if ((ticksNeeded == 1 && player.onGround) || player.capabilities.isCreativeMode) {
+                    playerController.blockHitDelay = 0
+                    context = BuildActivity.Context.PENDING
+                } else {
+                    context = BuildActivity.Context.IN_PROGRESS
+                }
 
-        // ToDo: add silk touch support
-        updateDrops(currentState)
-
-        ticksNeeded = ceil((1 / currentState
-            .getPlayerRelativeBlockHardness(player, world, blockPos)) * BuildTools.miningSpeedFactor).toInt()
-        timeout = ticksNeeded * 50L + 2000L
-
-        if (!world.isAirBlock(blockPos) && playerController.onPlayerDamageBlock(blockPos, side)) {
-            if (ticksNeeded == 1 || player.capabilities.isCreativeMode) {
-                playerController.blockHitDelay = 0
-                context = BuildActivity.BuildContext.PENDING
-            } else {
-                action = BuildActivity.BuildAction.BREAKING
+                mc.effectRenderer.addBlockHitEffects(blockPos, it)
+                player.swingArm(EnumHand.MAIN_HAND)
             }
-
-            mc.effectRenderer.addBlockHitEffects(blockPos, side)
-            player.swingArm(EnumHand.MAIN_HAND)
         }
+
+
     }
 
     // ToDo: 1. currentState.material.isToolNotRequired (if drop is needed it should check if tool has sufficient harvest level)
@@ -253,7 +257,7 @@ class BreakBlock(
 //                && it.stack != player.heldItemMainhand
 //                && (!getSilkDrop || EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it.stack) > 0)
             ) {
-                context = BuildActivity.BuildContext.RESTOCK
+                context = BuildActivity.Context.RESTOCK
 
                 addSubActivities(SwapOrSwitchToSlot(it))
                 return false
@@ -274,7 +278,7 @@ class BreakBlock(
             val selectedSpeed = tool.getDestroySpeed(ItemStack(tool), currentState)
 
             if (selectedSpeed > currentDestroySpeed) {
-                context = BuildActivity.BuildContext.RESTOCK
+                context = BuildActivity.Context.RESTOCK
 
                 addSubActivities(AcquireItemInActiveHand(
                     tool,
@@ -289,7 +293,7 @@ class BreakBlock(
                 && player.heldItemMainhand.isItemStackDamageable
             ) {
                 player.inventorySlots.firstOrNull { !it.stack.isItemStackDamageable }?.let {
-                    context = BuildActivity.BuildContext.RESTOCK
+                    context = BuildActivity.Context.RESTOCK
 
                     addSubActivities(SwapOrSwitchToSlot(it))
                     return false
@@ -303,40 +307,57 @@ class BreakBlock(
     private fun SafeClientEvent.checkLiquids(): Boolean {
         var foundLiquid = false
 
+        if (world.getBlockState(blockPos).isLiquid) {
+            (parent as? BuildStructure)?.let {
+                with(it) {
+                    addLiquidFill(blockPos)
+                }
+            }
+            availability = BuildActivity.Availability.NEEDS_LIQUID_HANDLING
+
+            return true
+        }
+
         EnumFacing.values()
             .filter { it != EnumFacing.DOWN }
             .map { blockPos.offset(it) }
             .filter { world.getBlockState(it).isLiquid }
             .forEach { pos ->
-                addLiquidFill(pos)
+                (parent as? BuildStructure)?.let {
+                    with(it) {
+                        addLiquidFill(pos)
+                    }
+                }
 
                 foundLiquid = true
             }
 
+        if (foundLiquid) {
+            availability = BuildActivity.Availability.NEEDS_LIQUID_HANDLING
+        }
+
         return foundLiquid
     }
 
-    private fun SafeClientEvent.updateDrops(currentState: IBlockState) {
+    private fun SafeClientEvent.updateProperties() {
+        val currentState = world.getBlockState(blockPos)
+
+        if (currentState.block in BuildTools.ignoredBlocks) {
+            success()
+            return
+        }
+
+        ticksNeeded = ceil((1 / currentState
+            .getPlayerRelativeBlockHardness(player, world, blockPos)) * BuildTools.miningSpeedFactor).toInt()
+
+        timeout = ticksNeeded * 50L + 2000L
+
+        // ToDo: add silk touch support
         drops = currentState.block.getItemDropped(
             currentState,
             Random(),
             EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, player.heldItemMainhand)
         ) ?: Items.AIR
-    }
-
-    private fun SafeClientEvent.addLiquidFill(liquidPos: BlockPos) {
-        context = BuildActivity.BuildContext.LIQUID
-
-        val available = player.inventorySlots
-            .filterByStack { BuildTools.ejectList.value.contains(it.item.block.registryName.toString()) }
-            .maxByOrNull { it.stack.count }?.stack?.item?.block ?: Blocks.AIR
-
-        if (available == Blocks.AIR) {
-            failedWith(NoFillerMaterialFoundException())
-            return
-        }
-
-        addSubActivities(PlaceBlock(liquidPos, available.defaultState))
     }
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
@@ -347,8 +368,6 @@ class BreakBlock(
             }
             else -> {
                 status = Status.UNINITIALIZED
-                context = BuildActivity.BuildContext.NONE
-                action = BuildActivity.BuildAction.NONE
                 updateState()
             }
         }
@@ -356,8 +375,6 @@ class BreakBlock(
 
     override fun SafeClientEvent.onFailure(exception: Exception): Boolean {
         playerController.resetBlockRemoving()
-        context = BuildActivity.BuildContext.NONE
-        action = BuildActivity.BuildAction.NONE
         side = null
         rotation = null
         return false

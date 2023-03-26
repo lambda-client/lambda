@@ -6,6 +6,7 @@ import com.lambda.client.activity.types.BuildActivity
 import com.lambda.client.activity.types.DelayedActivity
 import com.lambda.client.activity.types.DelayedActivity.Companion.checkDelayed
 import com.lambda.client.activity.types.LoopWhileActivity.Companion.checkLoopingUntil
+import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkRender
 import com.lambda.client.activity.types.RepeatingActivity.Companion.checkRepeat
 import com.lambda.client.activity.types.RotatingActivity.Companion.checkRotating
@@ -131,6 +132,10 @@ abstract class Activity {
 
         LambdaEventBus.unsubscribe(activity)
         ListenerManager.unregister(activity)
+
+        if (activity is RenderAABBActivity) {
+            activity.toRender.clear()
+        }
 
         parent?.let {
             with(it) {
@@ -263,19 +268,22 @@ abstract class Activity {
 
             textComponent.add("Name", secondaryColor)
             textComponent.add("${javaClass.simpleName} ", primaryColor)
+
+            if (this is BuildActivity) {
+                textComponent.add("Context", secondaryColor)
+                textComponent.add(context.name, primaryColor)
+                textComponent.add("Availability", secondaryColor)
+                textComponent.add(availability.name, primaryColor)
+                textComponent.add("Type", secondaryColor)
+                textComponent.add(type.name, primaryColor)
+            }
+
             textComponent.add("State", secondaryColor)
             textComponent.add(status.name, primaryColor)
 
             if (status == Status.RUNNING) {
                 textComponent.add("Runtime", secondaryColor)
                 textComponent.add(DurationFormatUtils.formatDuration(age, "HH:mm:ss,SSS"), primaryColor)
-            }
-
-            if (this is BuildActivity) {
-                textComponent.add("Context", secondaryColor)
-                textComponent.add(context.name, primaryColor)
-                textComponent.add("Action", secondaryColor)
-                textComponent.add(action.name, primaryColor)
             }
 
             textComponent.add("Hash", secondaryColor)
@@ -317,7 +325,10 @@ abstract class Activity {
         textComponent.addLine("")
 
         val acti = if (this is BuildStructure) {
-            subActivities.sortedWith(buildComparator())
+            subActivities
+                .filterIsInstance<BuildActivity>()
+                .sortedWith(buildComparator())
+                .filterIsInstance<Activity>()
         } else {
             subActivities
         }
