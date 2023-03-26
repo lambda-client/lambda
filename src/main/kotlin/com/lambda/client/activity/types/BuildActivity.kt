@@ -3,28 +3,35 @@ package com.lambda.client.activity.types
 import com.lambda.client.util.color.ColorHolder
 
 interface BuildActivity {
-    var context: BuildContext
-    var action: BuildAction
+    var context: Context
+    var availability: Availability
+    var type: Type
     var distance: Double
 
-    enum class BuildContext(val color: ColorHolder) {
+    enum class Context(val color: ColorHolder) {
+        IN_PROGRESS(ColorHolder(240, 222, 60)),
         RESTOCK(ColorHolder(3, 252, 169)),
-        LIQUID(ColorHolder(114, 27, 255)),
-        SUPPORT(ColorHolder(16, 74, 94)),
         PICKUP(ColorHolder(252, 3, 207)),
         NONE(ColorHolder(0, 0, 0, 0)),
         PENDING(ColorHolder(11, 11, 175))
     }
 
-    enum class BuildAction(val color: ColorHolder) {
-        BREAKING(ColorHolder(240, 222, 60)),
-        BREAK(ColorHolder(222, 0, 0)),
-        PLACE(ColorHolder(35, 188, 254)),
+    enum class Availability(val color: ColorHolder) {
+        VALID(ColorHolder(222, 0, 0)),
+        WRONG_ITEM_SELECTED(ColorHolder(3, 252, 169)),
+        BLOCKED_BY_PLAYER(ColorHolder(252, 3, 207)),
+        NOT_IN_RANGE(ColorHolder(252, 3, 207)),
+        NOT_REPLACEABLE(ColorHolder(46, 0, 0, 0)),
+        NOT_EXPOSED(ColorHolder(46, 0, 0, 0)),
         NEEDS_SUPPORT(ColorHolder(35, 15, 254)),
-        WRONG_POS_BREAK(ColorHolder(112, 0, 0, 0)),
-        WRONG_POS_PLACE(ColorHolder(20, 108, 145, 0)),
-        INVALID_BREAK(ColorHolder(46, 0, 0, 0)),
-        INVALID_PLACE(ColorHolder(11, 55, 74, 0)),
+        NOT_VISIBLE(ColorHolder(46, 0, 0, 0)),
+        NEEDS_LIQUID_HANDLING(ColorHolder(114, 27, 255)),
         NONE(ColorHolder(11, 11, 11))
+    }
+
+    enum class Type(val color: ColorHolder) {
+        LIQUID_FILL(ColorHolder(114, 27, 255)),
+        BREAK_BLOCK(ColorHolder(255, 0, 0, 0)),
+        PLACE_BLOCK(ColorHolder(0, 255, 0, 0)),
     }
 }

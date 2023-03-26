@@ -6,20 +6,25 @@ import baritone.api.pathing.goals.GoalInverted
 import baritone.process.BuilderProcess
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.types.BuildActivity
+import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.activity.types.RepeatingActivity
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.autoPathing
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.flooredPosition
+import com.lambda.client.util.color.ColorHolder
+import com.lambda.client.util.items.block
+import com.lambda.client.util.items.filterByStack
+import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.math.Direction
 import com.lambda.client.util.math.VectorUtils.multiply
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
-import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
+import net.minecraftforge.event.world.BlockEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 class BuildStructure(
@@ -30,18 +35,19 @@ class BuildStructure(
     private val collectAll: Boolean = false,
     override val maximumRepeats: Int = 1,
     override var repeated: Int = 0,
-) : RepeatingActivity, Activity() {
+    override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
+) : RepeatingActivity, RenderAABBActivity, Activity() {
     private var currentOffset = BlockPos.ORIGIN
     private var lastGoal: Goal? = null
 
+    private val renderCurrent = RenderAABBActivity.Companion.RenderAABB(
+        AxisAlignedBB(BlockPos.ORIGIN), ColorHolder(255, 255, 255)
+    ).also { toRender.add(it) }
+
     override fun SafeClientEvent.onInitialize() {
-        val activities = mutableListOf<Activity>()
-
         structure.forEach { (pos, targetState) ->
-            getBuildActivity(pos.add(currentOffset), targetState)?.let { activities.add(it) }
+            createBuildActivity(pos.add(currentOffset), targetState)
         }
-
-        addSubActivities(activities, subscribe = true)
 
         currentOffset = currentOffset.add(offsetMove)
     }
@@ -52,11 +58,13 @@ class BuildStructure(
 
             if (subActivities.isEmpty()) success()
 
-            if (!autoPathing) return@safeListener
-
             when (val activity = getCurrentActivity()) {
                 is PlaceBlock -> {
                     val blockPos = activity.blockPos
+
+                    renderCurrent.renderAABB = AxisAlignedBB(blockPos).grow(0.1)
+
+                    if (!autoPathing) return@safeListener
 
                     lastGoal = if (isInBlockAABB(blockPos)) {
                         GoalInverted(GoalBlock(blockPos))
@@ -66,6 +74,10 @@ class BuildStructure(
                 }
                 is BreakBlock -> {
                     val blockPos = activity.blockPos
+
+                    renderCurrent.renderAABB = AxisAlignedBB(blockPos).grow(0.1)
+
+                    if (!autoPathing) return@safeListener
 
                     lastGoal = if (isInBlockAABB(blockPos.up())) {
                         GoalInverted(GoalBlock(blockPos.up()))
@@ -80,11 +92,11 @@ class BuildStructure(
             }
         }
 
-        /* Listen for any block changes like falling sand */
-        safeListener<PacketEvent.PostReceive> { event ->
-            if (event.packet !is SPacketBlockChange) return@safeListener
+//        safeListener<BlockEvent.EntityPlaceEvent> {  }
 
-            val blockPos = event.packet.blockPosition
+        /* Listen for any block changes like falling sand */
+        safeListener<BlockEvent.NeighborNotifyEvent> { event ->
+            val blockPos = event.pos
 
             structure[blockPos]?.let { targetState ->
                 if (allSubActivities.any {
@@ -95,73 +107,58 @@ class BuildStructure(
                     }
                 }) return@safeListener
 
-                getBuildActivity(blockPos, targetState)?.let {
-                    addSubActivities(listOf(it), subscribe = true)
-                }
+                createBuildActivity(blockPos, targetState)
             }
         }
     }
 
-    private fun SafeClientEvent.getBuildActivity(blockPos: BlockPos, targetState: IBlockState): Activity? {
+    private fun SafeClientEvent.createBuildActivity(blockPos: BlockPos, targetState: IBlockState) {
         val currentState = world.getBlockState(blockPos)
 
-        when {
-            /* is in padding */
-            doPadding && isInPadding(blockPos) -> return null
-            /* is in desired state */
-            currentState == targetState -> return null
-            /* block needs to be placed */
-            targetState != Blocks.AIR.defaultState -> {
-                return PlaceBlock(
-                    blockPos, targetState
-                )
-            }
-            /* block is not breakable */
-            currentState.getBlockHardness(world, blockPos) < 0 -> return null
-            /* only option left is breaking the block */
-            else -> {
-                return BreakBlock(
-                    blockPos, collectDrops = collectAll, minCollectAmount = 64
-                )
-            }
+        /* is in padding */
+        if (doPadding && isInPadding(blockPos)) return
+
+        /* is in desired state */
+        if (currentState == targetState) return
+
+        /* block needs to be placed */
+        if (targetState != Blocks.AIR.defaultState) {
+            addSubActivities(PlaceBlock(
+                blockPos, targetState
+            ), subscribe = true)
+            return
         }
+
+        /* block is not breakable */
+        if (currentState.getBlockHardness(world, blockPos) < 0) return
+
+        /* only option left is breaking the block */
+        addSubActivities(BreakBlock(
+            blockPos, collectDrops = collectAll, minCollectAmount = 64
+        ), subscribe = true)
     }
 
     override fun getCurrentActivity(): Activity {
-        subActivities.sortedWith(buildComparator()).firstOrNull()?.let {
-            with(it) {
-                return getCurrentActivity()
-            }
+        subActivities
+            .filterIsInstance<BuildActivity>()
+            .sortedWith(buildComparator())
+            .firstOrNull()?.let { buildActivity ->
+                (buildActivity as? Activity)?.let {
+                    with (it) {
+                        return getCurrentActivity()
+                    }
+                }
         } ?: return this
     }
 
-    fun buildComparator() = compareBy<Activity> {
-        val current = deepestBuildActivity(it)
-
-        if (current is BuildActivity) {
-            current.context
-        } else 0
+    fun buildComparator() = compareBy<BuildActivity> {
+        it.context
     }.thenBy {
-        val current = deepestBuildActivity(it)
-
-        if (current is BuildActivity) {
-            current.action
-        } else 0
+        it.availability
     }.thenBy {
-        val current = deepestBuildActivity(it)
-
-        if (current is BuildActivity) {
-            current.distance
-        } else 1337.0
-    }
-
-    /* BreakBlocks that are boxed in a PlaceBlock are considered in the sequence */
-    private fun deepestBuildActivity(activity: Activity): Activity {
-        activity.subActivities
-            .filterIsInstance<BuildActivity>()
-            .firstOrNull()?.let {
-                return deepestBuildActivity(it as Activity)
-        } ?: return activity
+        it.type
+    }.thenBy {
+        it.distance
     }
 
     private fun SafeClientEvent.isInPadding(blockPos: BlockPos) = isBehindPos(player.flooredPosition, blockPos)
@@ -173,23 +170,47 @@ class BuildStructure(
         return ((b.x - a.x) * (check.z - a.z) - (b.z - a.z) * (check.x - a.x)) > 0
     }
 
+    fun SafeClientEvent.addLiquidFill(liquidPos: BlockPos) {
+        var exists = false
+
+        subActivities
+            .filterIsInstance<PlaceBlock>()
+            .filter { it.blockPos == liquidPos }.forEach {
+                it.type = BuildActivity.Type.LIQUID_FILL
+                exists = true
+            }
+
+        if (exists) return
+
+        val available = player.inventorySlots
+            .filterByStack { BuildTools.ejectList.value.contains(it.item.block.registryName.toString()) }
+            .maxByOrNull { it.stack.count }?.stack?.item?.block ?: Blocks.AIR
+
+        if (available == Blocks.AIR) {
+            failedWith(BreakBlock.NoFillerMaterialFoundException())
+            return
+        }
+
+        val activity = PlaceBlock(liquidPos, available.defaultState)
+
+        activity.type = BuildActivity.Type.LIQUID_FILL
+
+        addSubActivities(activity)
+    }
+
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
         when (childActivity) {
             is PlaceBlock -> {
                 val blockPos = childActivity.blockPos
                 val targetState = structure[blockPos] ?: return
 
-                getBuildActivity(blockPos, targetState)?.let {
-                    addSubActivities(it, subscribe = true)
-                }
+                createBuildActivity(blockPos, targetState)
             }
             is BreakBlock -> {
                 val blockPos = childActivity.blockPos
                 val targetState = structure[blockPos] ?: return
 
-                getBuildActivity(blockPos, targetState)?.let {
-                    addSubActivities(it, subscribe = true)
-                }
+                createBuildActivity(blockPos, targetState)
             }
         }
     }
