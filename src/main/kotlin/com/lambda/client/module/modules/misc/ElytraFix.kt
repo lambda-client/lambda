@@ -35,6 +35,6 @@ object ElytraFix : Module(
         && entity.world.loadedEntityList
         .filterIsInstance<AccessorEntityFireworkRocket>()
         .any {
-            it.boostedEntity.equals(entity)
+            it.boostedEntity?.equals(entity) == true
         }
 }

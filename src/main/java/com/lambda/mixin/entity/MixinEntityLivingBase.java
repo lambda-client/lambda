@@ -1,9 +1,14 @@
 package com.lambda.mixin.entity;
 
+import com.lambda.client.event.LambdaEventBus;
+import com.lambda.client.event.Phase;
+import com.lambda.client.event.events.ElytraTravelEvent;
 import com.lambda.client.module.modules.misc.ElytraFix;
 import com.lambda.client.module.modules.movement.ElytraFlight;
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -104,4 +109,21 @@ public abstract class MixinEntityLivingBase extends Entity {
         return it.motionZ;
     }
 
+    @Inject(method = "travel", at = @At("HEAD"))
+    private void onTravelPre(float strafe, float vertical, float forward, CallbackInfo ci) {
+        EntityPlayer player = Minecraft.getMinecraft().player;
+        if (!this.getClass().isInstance(player) || !player.isElytraFlying()) return;
+
+        ElytraTravelEvent event = new ElytraTravelEvent(Phase.PRE);
+        LambdaEventBus.INSTANCE.post(event);
+    }
+
+    @Inject(method = "travel", at = @At("RETURN"))
+    private void onTravelPost(float strafe, float vertical, float forward, CallbackInfo ci) {
+        EntityPlayer player = Minecraft.getMinecraft().player;
+        if (!this.getClass().isInstance(player) || !player.isElytraFlying()) return;
+
+        ElytraTravelEvent event = new ElytraTravelEvent(Phase.POST);
+        LambdaEventBus.INSTANCE.post(event);
+    }
 }

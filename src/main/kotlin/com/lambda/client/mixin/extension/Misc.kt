@@ -4,6 +4,7 @@ import com.lambda.mixin.accessor.*
 import net.minecraft.client.Minecraft
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
+import net.minecraft.entity.item.EntityFireworkRocket
 import net.minecraft.item.ItemTool
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.util.Timer
@@ -12,7 +13,7 @@ import net.minecraft.world.chunk.Chunk
 import net.minecraft.world.chunk.storage.AnvilChunkLoader
 
 val Entity.isInWeb: Boolean get() = (this as AccessorEntity).isInWeb
-val Entity.boostedEntity: EntityLivingBase? get() = (this as AccessorEntityFireworkRocket).boostedEntity
+val EntityFireworkRocket.boostedEntity: EntityLivingBase? get() = (this as AccessorEntityFireworkRocket).boostedEntity
 
 val ItemTool.attackDamage get() = (this as AccessorItemTool).attackDamage
 
