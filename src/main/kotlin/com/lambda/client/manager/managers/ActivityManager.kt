@@ -2,21 +2,31 @@ package com.lambda.client.manager.managers
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.types.RenderAABBActivity
-import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkRender
+import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkAABBRender
+import com.lambda.client.activity.types.RenderOverlayTextActivity
+import com.lambda.client.activity.types.RenderOverlayTextActivity.Companion.checkOverlayRender
 import com.lambda.client.activity.types.TimedActivity
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
+import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.event.events.RenderWorldEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.Manager
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.executionCountPerTick
+import com.lambda.client.module.modules.client.BuildTools.textScale
 import com.lambda.client.module.modules.client.BuildTools.tickDelay
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.graphics.ESPRenderer
+import com.lambda.client.util.graphics.GlStateUtils
+import com.lambda.client.util.graphics.ProjectionUtils
+import com.lambda.client.util.graphics.font.FontRenderAdapter
+import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import org.lwjgl.opengl.GL11
 
 object ActivityManager : Manager, Activity() {
     private val renderer = ESPRenderer()
@@ -53,15 +63,16 @@ object ActivityManager : Manager, Activity() {
                     }
 
                     updateActivity()
-                    checkRender()
+                    checkOverlayRender()
+                    checkAABBRender()
                 }
 
                 lastActivity = current
             }
         }
 
-        safeListener<RenderWorldEvent> {
-            if (hasNoSubActivities) return@safeListener
+        listener<RenderWorldEvent> {
+            if (hasNoSubActivities) return@listener
 
             renderer.aFilled = BuildTools.aFilled
             renderer.aOutline = BuildTools.aOutline
@@ -72,6 +83,27 @@ object ActivityManager : Manager, Activity() {
             }
 
             renderer.render(true)
+        }
+
+        listener<RenderOverlayEvent> {
+            if (hasNoSubActivities) return@listener
+
+            GlStateUtils.rescaleActual()
+
+            RenderOverlayTextActivity.normalizedRender.forEach { renderText ->
+                GL11.glPushMatrix()
+                val screenPos = ProjectionUtils.toScreenPos(renderText.origin)
+                GL11.glTranslated(screenPos.x, screenPos.y, 0.0)
+                GL11.glScalef(textScale * 2.0f, textScale * 2.0f, 1.0f)
+
+                val halfWidth = FontRenderAdapter.getStringWidth(renderText.text) / -2.0f
+                val lineHeight = FontRenderAdapter.getFontHeight() + 2.0f
+                val yLift = lineHeight * 3 / 2
+
+                FontRenderAdapter.drawString(renderText.text, halfWidth, lineHeight * renderText.index - yLift, color = renderText.color)
+
+                GL11.glPopMatrix()
+            }
         }
     }
 

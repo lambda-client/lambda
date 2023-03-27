@@ -7,7 +7,7 @@ import com.lambda.client.activity.types.DelayedActivity
 import com.lambda.client.activity.types.DelayedActivity.Companion.checkDelayed
 import com.lambda.client.activity.types.LoopWhileActivity.Companion.checkLoopingUntil
 import com.lambda.client.activity.types.RenderAABBActivity
-import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkRender
+import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkAABBRender
 import com.lambda.client.activity.types.RepeatingActivity.Companion.checkRepeat
 import com.lambda.client.activity.types.RotatingActivity.Companion.checkRotating
 import com.lambda.client.activity.types.TimeoutActivity.Companion.checkTimeout
@@ -104,7 +104,7 @@ abstract class Activity {
         checkTimeout(activity)
         checkDelayed(activity)
         checkRotating(activity)
-        checkRender()
+        checkAABBRender()
     }
 
     fun SafeClientEvent.initialize() {
@@ -134,7 +134,7 @@ abstract class Activity {
         ListenerManager.unregister(activity)
 
         if (activity is RenderAABBActivity) {
-            activity.toRender.clear()
+            activity.aabbCompounds.clear()
         }
 
         parent?.let {

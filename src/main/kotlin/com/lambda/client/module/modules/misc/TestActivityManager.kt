@@ -7,7 +7,7 @@ import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.storage.BreakDownEnderChests
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.activity.activities.travel.PickUpDrops
-import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkRender
+import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkAABBRender
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.module.Category
@@ -127,7 +127,7 @@ object TestActivityManager : Module(
             runSafe {
                 with(ActivityManager.getCurrentActivity()) {
                     updateActivity()
-                    checkRender()
+                    checkAABBRender()
                 }
             }
         }

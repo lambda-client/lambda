@@ -18,7 +18,7 @@ class ClearArea(
     private val sliceSize: Int = 1,
     private val sliceDirection: EnumFacing = EnumFacing.NORTH,
     private val collectAll: Boolean = false,
-    override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
+    override val aabbCompounds: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
 ) : RenderAABBActivity, Activity() {
     private val minX = minOf(pos1.x, pos2.x)
     private val minY = minOf(pos1.y, pos2.y)
@@ -34,7 +34,7 @@ class ClearArea(
                 (maxX + 1).toDouble(), (maxY + 1).toDouble(), (maxZ + 1).toDouble()
             ),
             ColorHolder(245, 66, 66)
-        ).also { toRender.add(it) }
+        ).also { aabbCompounds.add(it) }
     }
 
     override fun SafeClientEvent.onInitialize() {
