@@ -7,6 +7,7 @@ import baritone.process.BuilderProcess
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.types.BuildActivity
 import com.lambda.client.activity.types.RenderAABBActivity
+import com.lambda.client.activity.types.RenderOverlayTextActivity
 import com.lambda.client.activity.types.RepeatingActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
@@ -20,6 +21,7 @@ import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.math.Direction
 import com.lambda.client.util.math.VectorUtils.multiply
 import com.lambda.client.util.threads.safeListener
+import net.minecraft.block.BlockBush
 import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
 import net.minecraft.util.math.AxisAlignedBB
@@ -33,16 +35,17 @@ class BuildStructure(
     private val offsetMove: BlockPos = BlockPos.ORIGIN,
     private val doPadding: Boolean = false,
     private val collectAll: Boolean = false,
+    private val breakBushes: Boolean = false,
     override val maximumRepeats: Int = 1,
     override var repeated: Int = 0,
-    override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
+    override val aabbCompounds: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
 ) : RepeatingActivity, RenderAABBActivity, Activity() {
     private var currentOffset = BlockPos.ORIGIN
     private var lastGoal: Goal? = null
 
-    private val renderCurrent = RenderAABBActivity.Companion.RenderAABB(
+    private val renderAABB = RenderAABBActivity.Companion.RenderAABB(
         AxisAlignedBB(BlockPos.ORIGIN), ColorHolder(255, 255, 255)
-    ).also { toRender.add(it) }
+    ).also { aabbCompounds.add(it) }
 
     override fun SafeClientEvent.onInitialize() {
         structure.forEach { (pos, targetState) ->
@@ -62,7 +65,7 @@ class BuildStructure(
                 is PlaceBlock -> {
                     val blockPos = activity.blockPos
 
-                    renderCurrent.renderAABB = AxisAlignedBB(blockPos).grow(0.1)
+                    renderAABB.renderAABB = AxisAlignedBB(blockPos).grow(0.1)
 
                     if (!autoPathing) return@safeListener
 
@@ -75,7 +78,7 @@ class BuildStructure(
                 is BreakBlock -> {
                     val blockPos = activity.blockPos
 
-                    renderCurrent.renderAABB = AxisAlignedBB(blockPos).grow(0.1)
+                    renderAABB.renderAABB = AxisAlignedBB(blockPos).grow(0.1)
 
                     if (!autoPathing) return@safeListener
 
@@ -131,6 +134,12 @@ class BuildStructure(
 
         /* block is not breakable */
         if (currentState.getBlockHardness(world, blockPos) < 0) return
+
+        /* block is auto breakable like lilypad or tall grass */
+        if (!breakBushes && currentState.block is BlockBush) return
+
+        /* block should be ignored */
+        if (currentState.block in BuildTools.ignoredBlocks) return
 
         /* only option left is breaking the block */
         addSubActivities(BreakBlock(

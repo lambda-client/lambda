@@ -10,19 +10,19 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 
 interface RenderAABBActivity {
-    val toRender: MutableSet<RenderAABBCompound>
+    val aabbCompounds: MutableSet<RenderAABBCompound>
 
     companion object {
         val normalizedRender: MutableSet<RenderAABB> = mutableSetOf()
 
-        fun SafeClientEvent.checkRender() {
+        fun SafeClientEvent.checkAABBRender() {
             normalizedRender.clear()
 
             ActivityManager
                 .allSubActivities
                 .filterIsInstance<RenderAABBActivity>()
                 .forEach { activity ->
-                    activity.toRender.forEach { compound ->
+                    activity.aabbCompounds.forEach { compound ->
                         when (compound) {
                             is RenderAABB -> normalizedRender.add(compound)
                             is RenderBlockPos -> {

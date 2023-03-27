@@ -17,21 +17,22 @@ interface BuildActivity {
     }
 
     enum class Availability(val color: ColorHolder) {
-        VALID(ColorHolder(222, 0, 0)),
+        VALID(ColorHolder(0, 255, 0, 0)),
         WRONG_ITEM_SELECTED(ColorHolder(3, 252, 169)),
         BLOCKED_BY_PLAYER(ColorHolder(252, 3, 207)),
         NOT_IN_RANGE(ColorHolder(252, 3, 207)),
-        NOT_REPLACEABLE(ColorHolder(46, 0, 0, 0)),
-        NOT_EXPOSED(ColorHolder(46, 0, 0, 0)),
-        NEEDS_SUPPORT(ColorHolder(35, 15, 254)),
-        NOT_VISIBLE(ColorHolder(46, 0, 0, 0)),
-        NEEDS_LIQUID_HANDLING(ColorHolder(114, 27, 255)),
+        NOT_REPLACEABLE(ColorHolder(46, 0, 0, 30)),
+        NOT_EXPOSED(ColorHolder(46, 0, 0, 30)),
+        NEEDS_SUPPORT(ColorHolder(46, 0, 0, 30)),
+        NOT_VISIBLE(ColorHolder(46, 0, 0, 30)),
+        NEEDS_LIQUID_HANDLING(ColorHolder(50, 12, 112)),
         NONE(ColorHolder(11, 11, 11))
     }
 
     enum class Type(val color: ColorHolder) {
         LIQUID_FILL(ColorHolder(114, 27, 255)),
-        BREAK_BLOCK(ColorHolder(255, 0, 0, 0)),
-        PLACE_BLOCK(ColorHolder(0, 255, 0, 0)),
+        BREAK_BLOCK(ColorHolder(222, 0, 0)),
+        IS_SUPPORT(ColorHolder(0, 166, 0)),
+        PLACE_BLOCK(ColorHolder(35, 188, 254)),
     }
 }

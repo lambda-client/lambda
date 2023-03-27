@@ -16,6 +16,7 @@ import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.math.VectorUtils.distanceTo
+import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.threads.*
 import com.lambda.client.util.world.getHitVec
 import com.lambda.client.util.world.getMiningSide
@@ -47,40 +48,62 @@ class BreakBlock(
     override var timeout: Long = Long.MAX_VALUE, // ToDo: Reset timeouted breaks blockstates
     override val maxAttempts: Int = 5,
     override var usedAttempts: Int = 0,
-    override val toRender: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(),
+    override val aabbCompounds: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(),
+    override val overlayTexts: MutableSet<RenderOverlayTextActivity.Companion.RenderOverlayText> = mutableSetOf(),
     override var rotation: Vec2f? = null,
     override var distance: Double = 1337.0,
-) : TimeoutActivity, AttemptActivity, RotatingActivity, RenderAABBActivity, BuildActivity, TimedActivity, Activity() {
+) : BuildActivity, TimeoutActivity, AttemptActivity, RotatingActivity, TimedActivity, RenderAABBActivity, RenderOverlayTextActivity, Activity() {
     private var side: EnumFacing? = null
     private var ticksNeeded = 0
     private var drops: Item = Items.AIR
 
     override var context: BuildActivity.Context by Delegates.observable(BuildActivity.Context.NONE) { _, old, new ->
         if (old == new) return@observable
-        renderContext.color = new.color
+        renderContextAABB.color = new.color
+
+        renderContextOverlay.text = new.name
+        renderContextOverlay.color = new.color
     }
 
     override var availability: BuildActivity.Availability by Delegates.observable(BuildActivity.Availability.NONE) { _, old, new ->
         if (old == new) return@observable
-        renderAvailability.color = new.color
+        renderAvailabilityAABB.color = new.color
+
+        renderAvailabilityOverlay.text = new.name
+        renderAvailabilityOverlay.color = new.color
     }
 
     override var type: BuildActivity.Type by Delegates.observable(BuildActivity.Type.BREAK_BLOCK) { _, old, new ->
         if (old == new) return@observable
-        renderType.color = new.color
+        renderTypeAABB.color = new.color
+
+        renderTypeOverlay.text = new.name
+        renderTypeOverlay.color = new.color
     }
 
-    private val renderContext = RenderAABBActivity.Companion.RenderBlockPos(
+    private val renderContextAABB = RenderAABBActivity.Companion.RenderBlockPos(
         blockPos, context.color
-    ).also { toRender.add(it) }
+    ).also { aabbCompounds.add(it) }
 
-    private val renderAvailability = RenderAABBActivity.Companion.RenderBlockPos(
+    private val renderContextOverlay = RenderOverlayTextActivity.Companion.RenderOverlayText(
+        context.name, context.color, blockPos.toVec3dCenter(), 0
+    ).also { overlayTexts.add(it) }
+
+    private val renderAvailabilityAABB = RenderAABBActivity.Companion.RenderBlockPos(
         blockPos, availability.color
-    ).also { toRender.add(it) }
+    ).also { aabbCompounds.add(it) }
 
-    private val renderType = RenderAABBActivity.Companion.RenderBlockPos(
+    private val renderAvailabilityOverlay = RenderOverlayTextActivity.Companion.RenderOverlayText(
+        availability.name, availability.color, blockPos.toVec3dCenter(), 1
+    ).also { overlayTexts.add(it) }
+
+    private val renderTypeAABB = RenderAABBActivity.Companion.RenderBlockPos(
         blockPos, type.color
-    ).also { toRender.add(it) }
+    ).also { aabbCompounds.add(it) }
+
+    private val renderTypeOverlay = RenderOverlayTextActivity.Companion.RenderOverlayText(
+        type.name, type.color, blockPos.toVec3dCenter(), 2
+    ).also { overlayTexts.add(it) }
 
     override var earliestFinish: Long
         get() = BuildTools.breakDelay.toLong()
