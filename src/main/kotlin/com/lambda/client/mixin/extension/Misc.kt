@@ -13,7 +13,8 @@ import net.minecraft.world.chunk.Chunk
 import net.minecraft.world.chunk.storage.AnvilChunkLoader
 
 val Entity.isInWeb: Boolean get() = (this as AccessorEntity).isInWeb
-val EntityFireworkRocket.boostedEntity: EntityLivingBase? get() = (this as AccessorEntityFireworkRocket).boostedEntity
+val EntityFireworkRocket.boostedEntity: EntityLivingBase? get() =
+    (this as AccessorEntityFireworkRocket).boostedEntity
 
 val ItemTool.attackDamage get() = (this as AccessorItemTool).attackDamage
 

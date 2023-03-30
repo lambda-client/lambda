@@ -24,7 +24,8 @@ open class ClientEvent : AbstractClientEvent() {
     final override val connection: NetHandlerPlayClient? = mc.connection
 }
 
-open class SafeClientEvent internal constructor(
+open class
+SafeClientEvent internal constructor(
     override val world: WorldClient,
     override val player: EntityPlayerSP,
     override val playerController: PlayerControllerMP,
