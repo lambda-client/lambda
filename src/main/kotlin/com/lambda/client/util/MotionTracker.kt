@@ -2,12 +2,21 @@ package com.lambda.client.util
 
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.util.graphics.LambdaTessellator
+import com.lambda.client.util.math.VectorUtils.toBlockPos
 import com.lambda.client.util.threads.safeListener
+import com.mojang.authlib.GameProfile
+import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.entity.Entity
+import net.minecraft.entity.EntityLivingBase
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
+import net.minecraftforge.common.util.FakePlayer
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import java.io.*
+import java.util.*
+import kotlin.collections.ArrayDeque
+
 
 /**
  * Tracking the motion of an Entity tick by tick
@@ -84,6 +93,18 @@ class MotionTracker(targetIn: Entity?, private val trackLength: Int = 20) {
                 it to AxisAlignedBB(it.x - halfWidth, it.y, it.z - halfWidth, it.x + halfWidth, it.y + height, it.z + halfWidth)
             }
         }
+    }
+
+    fun <T: Entity> getFutureEntity(ticksAhead: Int, interpolation: Boolean = false): T? {
+        target?.let {
+            val future = getPositionAndBBAhead(ticksAhead, interpolation) ?: return null
+            return EntityOtherPlayerMP(it.world, GameProfile(UUID.randomUUID(), it.name)).apply {
+                setPosition(future.first.x, future.first.y, future.first.z)
+                entityBoundingBox = future.second
+                // Make sure we can index the entity :3
+                entityId = it.entityId
+            } as T
+        } ?: return null
     }
 
     /**

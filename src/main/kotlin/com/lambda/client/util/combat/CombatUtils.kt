@@ -1,10 +1,14 @@
 package com.lambda.client.util.combat
 
+import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.listener.listener
+import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.mixin.extension.size
+import com.lambda.client.module.modules.combat.CombatSetting
+import com.lambda.client.util.InfoCalculator
 import com.lambda.client.util.items.attackDamage
 import com.lambda.client.util.items.filterByStack
 import com.lambda.client.util.items.hotbarSlots
@@ -94,20 +98,20 @@ object CombatUtils {
     }
 
     /**
-     * @param pos The position of the explosion
+     * @param position The position of the explosion
      * @param entity The entity to calculate the damage for
      * @param explosionType The strength of the explosion
      * @return The damage dealt by the explosion
      */
-    fun SafeClientEvent.calculateExplosion(pos: Vec3d, entity: EntityLivingBase?, explosionType: ExplosionStrength): Float {
-        if (entity is EntityPlayer && entity.isCreative || entity == null) return 0.0f // Return 0 directly if entity is a player and in creative mode or null
+    fun SafeClientEvent.calculateExplosion(position: Vec3d, entity: EntityLivingBase?, explosionType: ExplosionStrength): Float {
+        if ((entity is EntityPlayer && entity.isCreative) || entity == null) return 0.0f // Return 0 directly if entity is a player and in creative mode or null
         val size = explosionType.value * 2.0
-        val distance = entity.positionVector.distanceTo(pos) / size
-        val blockDensity = world.getBlockDensity(pos, entity.entityBoundingBox)
+        val distance = entity.positionVector.distanceTo(position) / size
+        val blockDensity = world.getBlockDensity(position, entity.entityBoundingBox)
         val impact = (1.0 - distance) * blockDensity
         val damage = (impact * impact + impact) / 2.0 * 7.0 * size + 1
 
-        val explosion = Explosion(player.world, entity, pos.x, pos.y, pos.z, explosionType.value, false, true)
+        val explosion = Explosion(player.world, null, position.x, position.y, position.z, explosionType.value, false, true)
         return getBlastReduction(entity, explosion, damage.toFloat() * getDifficultyFactor())
     }
 
@@ -173,6 +177,10 @@ object CombatUtils {
     private fun getResistanceReduction(entity: EntityLivingBase): Float {
         val amplifier = entity.getActivePotionEffect(MobEffects.RESISTANCE)?.amplifier ?: return 1.0f
         return 1.0f - (8 * amplifier) / 100.0f // See https://minecraft.fandom.com/wiki/Blast_Protection#Usage
+    }
+
+    fun getPrediction(entity: EntityLivingBase, ticks: Int = 0): Pair<Vec3d, AxisAlignedBB> {
+        return CombatManager.motionTracker.getPositionAndBBAhead(if (ticks < 1) (InfoCalculator.ping() / 25f).ceilToInt() else ticks) ?: (entity.positionVector to entity.entityBoundingBox)
     }
 
     private fun getProtectionModifier(entity: EntityLivingBase, damageSource: DamageSource): Float {

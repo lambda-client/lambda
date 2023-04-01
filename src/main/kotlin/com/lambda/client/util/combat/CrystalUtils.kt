@@ -3,53 +3,56 @@ package com.lambda.client.util.combat
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.manager.managers.CrystalManager
-import com.lambda.client.module.modules.combat.CrystalAura
 import com.lambda.client.util.combat.CombatUtils.calculateExplosion
-import com.lambda.client.util.items.allSlots
-import com.lambda.client.util.items.countItem
 import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.math.VectorUtils.toBlockPos
-import com.lambda.client.util.math.VectorUtils.toCenter
 import com.lambda.client.util.math.VectorUtils.toVec3d
-import com.lambda.client.util.math.VectorUtils.toVec3dCenter
 import com.lambda.client.util.world.getClosestVisibleSide
 import net.minecraft.block.material.Material
-import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.item.EntityEnderCrystal
 import net.minecraft.init.Blocks
-import net.minecraft.init.Items
-import net.minecraft.util.EntitySelectors
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
-import kotlin.math.min
 
 object CrystalUtils {
-    /* Position Finding */
+    fun SafeClientEvent.getBestPlace(target: EntityLivingBase): CrystalManager.CrystalPlaceInfo? {
+        return CrystalManager.toPlaceList[target]?.maxByOrNull { it.damage.targetDamage - it.damage.selfDamage - (it.damage.targetDistance - it.damage.selfDistance) }
+    }
+
     fun SafeClientEvent.getBestPlace(target: EntityLivingBase, placeRange: Float): CrystalManager.CrystalPlaceInfo? {
+        return getPlaces(target, placeRange).values.flatten().maxByOrNull { it.damage.targetDamage - it.damage.selfDamage - (it.damage.targetDistance - it.damage.selfDistance) }
+    }
+
+    fun SafeClientEvent.getPlaces(target: EntityLivingBase, placeRange: Float): Map<EntityLivingBase, List<CrystalManager.CrystalPlaceInfo>> {
         return VectorUtils.getBlockPosInSphere(target.positionVector, placeRange)
             .filter { canPlace(it, target) }
-            .maxByOrNull {
-                val place = calcCrystalDamage(it.toVec3d(), target)
-                place.targetDamage - place.selfDamage
-            }?.let {
-                CrystalManager.CrystalPlaceInfo(it.toVec3d(), calcCrystalDamage(it.toVec3d(), target))
+            .map { CrystalManager.CrystalPlaceInfo(it.toVec3d(), calcCrystalDamage(it.toVec3d(0.5, 1.0, 0.5), target)) }
+            .groupBy { target }
+    }
+
+
+    fun SafeClientEvent.getBestCrystal(): CrystalManager.Crystal? {
+        return CrystalManager.placedCrystals.maxByOrNull { it.info.damage.targetDamage - it.info.damage.selfDamage }
+    }
+
+    fun SafeClientEvent.getBestCrystal(placer: EntityLivingBase, range: Float): CrystalManager.Crystal? {
+        return CombatManager.target?.let { target ->
+            getCrystals(placer, target, range)
+                .maxByOrNull { it.info.damage.targetDamage - it.info.damage.selfDamage }
+        }
+    }
+
+    fun SafeClientEvent.getCrystals(source: EntityLivingBase, target: EntityLivingBase, range: Float): List<CrystalManager.Crystal> {
+        return world.loadedEntityList
+            .filter {
+                    it is EntityEnderCrystal
+                    && it.distanceTo(target.positionVector) <= range
+            }.map {
+                CrystalManager.Crystal(it as EntityEnderCrystal, CrystalManager.CrystalPlaceInfo(it.positionVector, calcCrystalDamage(it.positionVector, target)))
             }
-    }
-
-    private fun getOptimalOffset(position: Vec3d): Vec3d {
-        return Vec3d(
-            min(position.x + 0.5, position.x - 0.5),
-            position.y,
-            min(position.z + 0.5, position.z - 0.5)
-        )
-    }
-
-
-    fun getPlaceInfo(target: EntityLivingBase?): CrystalManager.CrystalPlaceInfo? {
-        return CrystalManager.toPlaceList[target]
     }
 
     /**
@@ -115,19 +118,19 @@ object CrystalUtils {
         calcCrystalDamage(crystal?.positionVector, entity)
 
     /**
-     * @param pos The position to check, use the center of the crystal
+     * @param src The position to check, use the center of the crystal
      * @param entity The entity to check for
      * @return The damage the crystal will deal to the entity
      */
-    fun SafeClientEvent.calcCrystalDamage(pos: Vec3d?, entity: EntityLivingBase?): CrystalManager.CrystalDamage {
-        val position = pos ?: Vec3d.ZERO
+    fun SafeClientEvent.calcCrystalDamage(src: Vec3d?, entity: EntityLivingBase?): CrystalManager.CrystalDamage {
+        val position = src ?: Vec3d.ZERO
 
         // Calculate raw damage (based on blocks and distance)
         val targetDamage = calculateExplosion(position, entity, CombatUtils.ExplosionStrength.EndCrystal)
         val selfDamage = calculateExplosion(position, player, CombatUtils.ExplosionStrength.EndCrystal)
-        val targetDistance = entity?.let { target -> position.distanceTo(target.position) } ?: Double.MAX_VALUE
 
-        val selfDistance = position.distanceTo(player.positionVector)
+        val targetDistance = entity?.let { target -> position.distanceTo(target.position) } ?: Double.MAX_VALUE
+        val selfDistance = position.distanceTo(player.getPositionEyes(1.0f))
 
         /**
          * We use the [getClosestVisibleSide] function instead of raytracing because it's faster

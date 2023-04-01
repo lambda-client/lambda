@@ -7,6 +7,7 @@ import com.lambda.client.manager.managers.CombatManager
 import com.lambda.client.manager.managers.CrystalManager
 import com.lambda.client.manager.managers.HotbarManager
 import com.lambda.client.manager.managers.HotbarManager.resetHotbar
+import com.lambda.client.manager.managers.HotbarManager.serverSideItem
 import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
 import com.lambda.client.manager.managers.PlayerPacketManager
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
@@ -14,6 +15,8 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.combat.CombatUtils.equipBestWeapon
 import com.lambda.client.util.combat.CombatUtils.scaledHealth
+import com.lambda.client.util.combat.CrystalUtils.getBestCrystal
+import com.lambda.client.util.combat.CrystalUtils.getBestPlace
 import com.lambda.client.util.items.*
 import com.lambda.client.util.math.RotationUtils
 import com.lambda.client.util.math.RotationUtils.getRotationTo
@@ -59,15 +62,14 @@ object CrystalAura : Module(
     val placeRotate by setting("Place Rotate", false, { page == Page.PLACE_ONE }, description = "Whether or not the player should rotate to place")
     val autoSwap by setting("Auto Swap", true, { page == Page.PLACE_ONE }, description = "Automatically swap to crystals")
     val spoofHotbar by setting("Spoof Hotbar", false, { page == Page.PLACE_ONE }, description = "Spoofs your hotbar server side")
-    val placeDistance by setting("Place Distance", 1.5f, 0.5f..6.0f, 0.1f, { page == Page.PLACE_ONE }, description = "The distance at which it should place")
     val placeThroughWalls by setting("Place Through Walls", true, { page == Page.PLACE_ONE }, description = "Whether or not it should place through walls")
     val placeThroughWallsRange by setting("Place Through Walls Range", 4.0f, 0.0f..6.0f, 0.1f, { placeThroughWalls && page == Page.PLACE_ONE }, description = "The range at which it should place through walls")
 
     /* Place page 2 */
     val placeMinDamage by setting("Place Min Damage", 4.25f, 0.0f..20f, 0.1f, { page == Page.PLACE_TWO }, description = "Minimum damage to place")
     val placeMaxSelfDamage by setting("Place Max Self Damage", 4.25f, 0.0f..20f, 0.1f, { page == Page.PLACE_TWO }, description = "Maximum self damage to place")
+    val placeMaxDistance by setting("Place Max Distance", 2.0f, 1.0f..6.0f, 0.1f, { page == Page.PLACE_TWO }, description = "Maximum distance from the target to place")
     val placeDelay by setting("Place Delay", 1, 0..10, 1, { page == Page.PLACE_TWO }, description = "Delay between each place in ticks")
-    val placeDistanceBetween by setting("Place Distance Between Crystals", 2.0f, 0.0f..6.0f, 1.0f, { page == Page.PLACE_TWO })
 
     /* Explode page 1 */
     val doExplode by setting("Explode", true, { page == Page.EXPLODE_ONE }, description = "Whether or not it should explode")
@@ -80,8 +82,8 @@ object CrystalAura : Module(
     val explodeRange by setting("Explode Range", 5.0f, 1.0f..6.0f, 0.1f, { page == Page.EXPLODE_TWO }, description = "The range at which it should explode")
     val swapDelay by setting("Swap Delay", 10, 0..50, 1, { page == Page.EXPLODE_TWO }, description = "The delay before swapping")
     val explodeDelay by setting("Explode Delay", 1, 0..10, 1, { page == Page.EXPLODE_TWO }, description = "The delay before exploding")
-    val explodeThroughWalls by setting("Place Through Walls", true, { page == Page.PLACE_TWO }, description = "Whether or not it should explode through walls")
-    val explodeThroughWallsRange by setting("Place Through Walls Range", 4.0f, 0.0f..6.0f, 0.1f, { placeThroughWalls && page == Page.PLACE_TWO }, description = "The range at which it should explode through walls")
+    val explodeThroughWalls by setting("Explode Through Walls", true, { page == Page.EXPLODE_TWO }, description = "Whether or not it should explode through walls")
+    val explodeThroughWallsRange by setting("Explode Through Walls Range", 4.0f, 0.0f..6.0f, 0.1f, { explodeThroughWalls && page == Page.EXPLODE_TWO }, description = "The range at which it should explode through walls")
 
     var lastLookAt: Vec3d? = null; private set
     val yawDiffList = FloatArray(20)
@@ -136,28 +138,26 @@ object CrystalAura : Module(
     }
 
     private fun SafeClientEvent.getPlacingCrystal(entity: EntityLivingBase): CrystalManager.CrystalPlaceInfo? {
-        return CrystalManager.toPlaceList[entity]?.let { crystal ->
+        return getBestPlace(entity)?.let {
             return if (player.allSlots.countItem(Items.END_CRYSTAL) >= 0
-                && crystal.damage.targetDamage >= placeMinDamage
-                && crystal.damage.selfDamage <= placeMaxSelfDamage
-                && player.scaledHealth >= noSuicide
-                && checkYawSpeed(getRotationTo(crystal.position).x)
-                && CrystalManager.placedCrystals.all { placed -> placed.entity.distanceTo(crystal.position) >= placeDistanceBetween }
-                && if (placeThroughWalls && crystal.damage.throughWalls && crystal.damage.selfDistance <= placeThroughWallsRange) true
-                else !crystal.damage.throughWalls
-            ) crystal
+                && it.damage.targetDamage >= placeMinDamage
+                && it.damage.selfDamage <= placeMaxSelfDamage
+                && player.scaledHealth - it.damage.selfDamage >= noSuicide
+                && checkYawSpeed(getRotationTo(it.position).x)
+                && it.position.distanceTo(player.positionVector) <= placeMaxDistance
+                && if (placeThroughWalls && it.damage.throughWalls && it.damage.selfDistance <= placeThroughWallsRange) true
+                else !it.damage.throughWalls
+            ) it
             else null
         }
     }
 
     private fun SafeClientEvent.getExplodingCrystal(): CrystalManager.Crystal? {
-        return CrystalManager.placedCrystals
-            .maxByOrNull { it.info.damage.targetDamage - it.info.damage.selfDamage }
-            ?.let { crystal ->
+        return getBestCrystal()?.let { crystal ->
                 return if (crystal.entity.distanceTo(player.positionVector) <= explodeRange
                     && crystal.info.damage.targetDamage >= explodeMinDamage
                     && crystal.info.damage.selfDamage <= explodeMaxSelfDamage
-                    && player.scaledHealth >= noSuicide
+                    && player.scaledHealth - crystal.info.damage.selfDamage >= noSuicide
                     && checkYawSpeed(getRotationTo(crystal.info.position).x)
                     && if (explodeThroughWalls && crystal.info.damage.throughWalls && crystal.info.damage.selfDistance <= explodeThroughWallsRange) true
                     else !crystal.info.damage.throughWalls
@@ -265,10 +265,19 @@ object CrystalAura : Module(
     }
 
     private fun SafeClientEvent.swapToCrystal() {
-        if (autoSwap) {
-            val slot = player.getCrystalSlot()?.hotbarSlot ?: return
-            if (spoofHotbar) spoofHotbar(slot)
-            else swapToSlot(slot)
+        if (autoSwap && player.heldItemOffhand.item != Items.END_CRYSTAL) {
+            if (spoofHotbar) {
+                val slot = if (player.serverSideItem.item == Items.END_CRYSTAL) HotbarManager.serverSideHotbar
+                else player.getCrystalSlot()?.hotbarSlot
+
+                if (slot != null) spoofHotbar(slot, 1000L)
+            } else {
+                if (player.serverSideItem.item != Items.END_CRYSTAL) {
+                    player.getCrystalSlot()?.let {
+                        swapToSlot(it)
+                    }
+                }
+            }
         }
     }
 
