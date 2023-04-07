@@ -13,6 +13,7 @@ buildscript {
 
 plugins {
     id 'org.jetbrains.kotlin.jvm' version "$kotlinVersion"
+    id 'maven-publish'
 }
 
 apply plugin: 'net.minecraftforge.gradle'
@@ -61,8 +62,9 @@ minecraft {
 
 configurations {
     jarLibs
+    onlyJarLibs
     // Force choosing the correct nightly build because Mac OS chooses an invalid one
-    all {
+    configureEach {
         resolutionStrategy {
             force 'org.lwjgl.lwjgl:lwjgl-platform:2.9.4-nightly-20150209'
         }
@@ -112,7 +114,7 @@ dependencies {
     implementation('cabaletta:baritone-deobf-unoptimized-mcp-dev:1.2').setChanging(true)
 
     // This Baritone WILL be included in the jar
-    jarLibs('cabaletta:baritone-api:1.2').setChanging(true)
+    onlyJarLibs('cabaletta:baritone-api:1.2').setChanging(true)
 
     // Add everything in jarLibs to implementation (compile)
     implementation configurations.jarLibs
@@ -147,7 +149,7 @@ processResources {
     }
 }
 
-task buildApiSource(type: Jar) { // Generate sources
+tasks.register('buildApiSource', Jar) { // Generate sources
     group 'build'
     description 'Assemble API library source archive'
 
@@ -155,7 +157,7 @@ task buildApiSource(type: Jar) { // Generate sources
     from sourceSets.main.allSource
 }
 
-task buildApi(type: Jar) {
+tasks.register('buildApi', Jar) {
     group 'build'
     description 'Assemble API library archive'
 
@@ -163,7 +165,7 @@ task buildApi(type: Jar) {
     from sourceSets.main.output
 }
 
-task buildAll {
+tasks.register('buildAll') {
     group 'build'
     description 'Assemble all jars'
 
@@ -194,7 +196,7 @@ shadowJar {
             'kotlin/**/*.kotlin_metadata',
             'kotlin/**/*.kotlin_builtins',
             'META-INF/*.version'
-    configurations = [project.configurations.jarLibs]
+    configurations = [project.configurations.jarLibs, project.configurations.onlyJarLibs]
     relocate 'kotlin', 'com.lambda.shadow.kotlin'
     relocate 'kotlinx', 'com.lambda.shadow.kotlinx'
     finalizedBy 'configureReobfTaskForReobfShadowJar', 'reobfShadowJar'
@@ -208,7 +210,11 @@ reobf {
     }
 }
 
-artifacts {
-    shadowJar
+publishing {
+    publications {
+        api(MavenPublication) {
+            artifact source: buildApi, classifier: null
+            artifact source: buildApiSource, classifier: 'sources'
+        }
+    }
 }
-
