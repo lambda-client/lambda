@@ -13,6 +13,7 @@ buildscript {
 
 plugins {
     id 'org.jetbrains.kotlin.jvm' version "$kotlinVersion"
+    id 'maven-publish'
 }
 
 apply plugin: 'net.minecraftforge.gradle'
@@ -198,7 +199,11 @@ reobf {
     }
 }
 
-artifacts {
-    shadowJar
+publishing {
+    publications {
+        api(MavenPublication) {
+            artifact source: buildApi, classifier: null
+            artifact source: buildApiSource, classifier: 'sources'
+        }
+    }
 }
-
