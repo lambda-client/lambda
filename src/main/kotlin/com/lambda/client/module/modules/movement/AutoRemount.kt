@@ -15,7 +15,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 
 object AutoRemount : Module(
     name = "AutoRemount",
-    description = "Automatically remounts your ridable entity",
+    description = "Automatically remounts your rideable entity",
     category = Category.MOVEMENT
 ) {
     private val boat by setting("Boats", true)
@@ -28,7 +28,7 @@ object AutoRemount : Module(
     private val llama by setting("Llama", true)
     private val range by setting("Range", 2.0f, 1.0f..5.0f, 0.5f)
     private val remountDelay by setting("Remount Delay", 5, 0..10, 1)
-	
+
     private val remountTimer = TickTimer(TimeUnit.TICKS)
 
     init {
@@ -54,19 +54,17 @@ object AutoRemount : Module(
 
     private fun isValidEntity(entity: Entity): Boolean {
         //check if entity is an animal and not a child
-        var matureAnimalCheck: Boolean = entity is EntityAnimal && !entity.isChild; //FBI moment
-        when(entity){
-            is EntityBoat ->            return boat;
-            is EntityMinecartEmpty ->   return minecart;
-
-            is EntityHorse -> 			return horse && matureAnimalCheck;
-            is EntitySkeletonHorse -> 	return skeletonHorse && matureAnimalCheck;
-            is EntityDonkey -> 			return donkey && matureAnimalCheck;
-            is EntityMule ->            return mule && matureAnimalCheck;
-            is EntityPig ->             return pig && entity.saddled && matureAnimalCheck;
-            is EntityLlama ->           return llama && matureAnimalCheck;
-            else -> return false;
-
+        val matureAnimalCheck: Boolean = entity is EntityAnimal && !entity.isChild //FBI moment
+        return when (entity) {
+            is EntityBoat -> boat
+            is EntityMinecartEmpty -> minecart
+            is EntityHorse -> horse && matureAnimalCheck
+            is EntitySkeletonHorse -> skeletonHorse && matureAnimalCheck
+            is EntityDonkey -> donkey && matureAnimalCheck
+            is EntityMule -> mule && matureAnimalCheck
+            is EntityPig -> pig && entity.saddled && matureAnimalCheck
+            is EntityLlama -> llama && matureAnimalCheck
+            else -> false
         }
     }
 }
