@@ -63,27 +63,29 @@ class StringButton(val setting: StringSetting) : BooleanSlider(setting.name, 1.0
     override fun onKeyInput(keyCode: Int, keyState: Boolean) {
         super.onKeyInput(keyCode, keyState)
         val typedChar = Keyboard.getEventCharacter()
-        if (keyState) {
-            when (keyCode) {
-                Keyboard.KEY_V, Keyboard.KEY_INSERT -> {
-                    if (!GuiScreen.isCtrlKeyDown() && keyCode == Keyboard.KEY_V) componentName += typedChar
-                    else {
-                        componentName = GuiScreen.getClipboardString()
-                        onStopListening(true)
-                    }
+        if (!keyState) return
+
+        when (keyCode) {
+            Keyboard.KEY_V, Keyboard.KEY_INSERT -> {
+                if (!GuiScreen.isCtrlKeyDown() && keyCode == Keyboard.KEY_V) componentName += typedChar
+                else {
+                    componentName = GuiScreen.getClipboardString()
+                    onStopListening(true)
                 }
-                Keyboard.KEY_C -> {
-                    if (!GuiScreen.isCtrlKeyDown()) componentName += typedChar
-                    else {
-                        GuiScreen.setClipboardString(componentName)
-                        onStopListening(true)
-                    }
-                }
-                Keyboard.KEY_RETURN -> onStopListening(true)
-                Keyboard.KEY_BACK -> componentName = componentName.dropLast(1)
-                Keyboard.KEY_DELETE -> componentName = ""
-                else -> if (typedChar >= ' ') componentName += typedChar
             }
+
+            Keyboard.KEY_C -> {
+                if (!GuiScreen.isCtrlKeyDown()) componentName += typedChar
+                else {
+                    GuiScreen.setClipboardString(componentName)
+                    onStopListening(true)
+                }
+            }
+
+            Keyboard.KEY_RETURN -> onStopListening(true)
+            Keyboard.KEY_BACK -> componentName = componentName.dropLast(1)
+            Keyboard.KEY_DELETE -> componentName = ""
+            else -> if (typedChar >= ' ') componentName += typedChar
         }
     }
 
