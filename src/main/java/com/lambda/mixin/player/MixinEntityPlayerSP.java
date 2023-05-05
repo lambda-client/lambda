@@ -24,6 +24,8 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.network.play.client.CPacketEntityAction;
 import net.minecraft.network.play.client.CPacketPlayer;
+import net.minecraft.util.MovementInput;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IInteractionObject;
 import net.minecraft.world.World;
@@ -37,9 +39,16 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.Objects;
+
 @Mixin(value = EntityPlayerSP.class, priority = Integer.MAX_VALUE)
 public abstract class MixinEntityPlayerSP extends EntityPlayer {
     @Shadow @Final public NetHandlerPlayClient connection;
+    @Shadow public MovementInput movementInput;
+    @Shadow public float renderArmYaw;
+    @Shadow public float renderArmPitch;
+    @Shadow public float prevRenderArmYaw;
+    @Shadow public float prevRenderArmPitch;
     @Shadow protected Minecraft mc;
     @Shadow private double lastReportedPosX;
     @Shadow private double lastReportedPosY;
@@ -55,9 +64,6 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     public MixinEntityPlayerSP(World worldIn, GameProfile gameProfileIn) {
         super(worldIn, gameProfileIn);
     }
-
-    @Shadow
-    protected abstract boolean isCurrentViewEntity();
 
     @Shadow
     protected abstract void updateAutoJump(float p_189810_1_, float p_189810_2_);
@@ -89,7 +95,7 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     public void onDisplayGUIChest(IInventory chestInventory, CallbackInfo ci) {
         if (BeaconSelector.INSTANCE.isEnabled()) {
             if (chestInventory instanceof IInteractionObject && "minecraft:beacon".equals(((IInteractionObject) chestInventory).getGuiID())) {
-                Minecraft.getMinecraft().displayGuiScreen(new LambdaGuiBeacon(this.inventory, chestInventory));
+                Minecraft.getMinecraft().displayGuiScreen(new LambdaGuiBeacon(inventory, chestInventory));
                 ci.cancel();
             }
         }
@@ -104,11 +110,11 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         LambdaEventBus.INSTANCE.post(event);
 
         if (event.isModified()) {
-            double prevX = this.posX;
-            double prevZ = this.posZ;
+            double prevX = posX;
+            double prevZ = posZ;
 
             super.move(type, event.getX(), event.getY(), event.getZ());
-            this.updateAutoJump((float) (this.posX - prevX), (float) (this.posZ - prevZ));
+            updateAutoJump((float) (posX - prevX), (float) (posZ - prevZ));
 
             ci.cancel();
         }
@@ -123,11 +129,50 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         }
     }
 
-    // We have to return true here so it would still update movement inputs from Baritone and send packets
-    @Inject(method = "isCurrentViewEntity", at = @At("RETURN"), cancellable = true)
-    protected void mixinIsCurrentViewEntity(CallbackInfoReturnable<Boolean> cir) {
-        if (Freecam.INSTANCE.isEnabled() && Freecam.INSTANCE.getCameraGuy() != null) {
-            cir.setReturnValue(mc.getRenderViewEntity() == Freecam.INSTANCE.getCameraGuy());
+    // Cannot use an inject in isCurrentViewEntity due to rusherhack redirecting it here
+    @Inject(method = "onUpdateWalkingPlayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;isCurrentViewEntity()Z"), cancellable = true)
+    protected void mixinUpdateWalkingPlayerCompat(CallbackInfo ci) {
+        if (Freecam.INSTANCE.isEnabled() && Freecam.INSTANCE.getCameraGuy() != null && Objects.equals(this, mc.player)) {
+            ci.cancel();
+            // we need to perform the same actions as what is in the mc method
+            ++positionUpdateTicks;
+            final AxisAlignedBB boundingBox = getEntityBoundingBox();
+            final Vec3d pos = new Vec3d(posX, boundingBox.minY, posZ);
+            final Vec2f rot = new Vec2f(rotationYaw, rotationPitch);
+            final boolean isMoving = isMoving(pos);
+            final boolean isRotating = isRotating(rot);
+            sendPlayerPacket(isMoving, isRotating, pos, rot);
+            if (isMoving) {
+                lastReportedPosX = pos.x;
+                lastReportedPosY = pos.y;
+                lastReportedPosZ = pos.z;
+                positionUpdateTicks = 0;
+            }
+
+            if (isRotating) {
+                lastReportedYaw = rot.getX();
+                lastReportedPitch = rot.getY();
+            }
+
+            prevOnGround = onGround;
+            autoJumpEnabled = mc.gameSettings.autoJump;
+        }
+    }
+
+    // Cannot use an inject in isCurrentViewEntity due to rusherhack redirecting it here
+    @Inject(method = "updateEntityActionState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;isCurrentViewEntity()Z"), cancellable = true)
+    protected void mixinEntityActionState(CallbackInfo ci) {
+        if (Freecam.INSTANCE.isEnabled() && Freecam.INSTANCE.getCameraGuy() != null && Objects.equals(this, mc.player)) {
+            ci.cancel();
+
+            // we need to perform the same actions as what is in the mc method
+            moveStrafing = movementInput.moveStrafe;
+            moveForward = movementInput.moveForward;
+            isJumping = movementInput.jump;
+            prevRenderArmYaw = renderArmYaw;
+            prevRenderArmPitch = renderArmPitch;
+            renderArmPitch = renderArmPitch + (rotationPitch - renderArmPitch) * 0.5f;
+            renderArmYaw = renderArmYaw + (rotationYaw - renderArmYaw) * 0.5f;
         }
     }
 
@@ -141,23 +186,25 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
         Vec3d serverSidePos = PlayerPacketManager.INSTANCE.getServerSidePosition();
         Vec2f serverSideRotation = PlayerPacketManager.INSTANCE.getPrevServerSideRotation();
 
-        this.lastReportedPosX = serverSidePos.x;
-        this.lastReportedPosY = serverSidePos.y;
-        this.lastReportedPosZ = serverSidePos.z;
+        lastReportedPosX = serverSidePos.x;
+        lastReportedPosY = serverSidePos.y;
+        lastReportedPosZ = serverSidePos.z;
 
-        this.lastReportedYaw = serverSideRotation.getX();
-        this.lastReportedPitch = serverSideRotation.getY();
+        lastReportedYaw = serverSideRotation.getX();
+        lastReportedPitch = serverSideRotation.getY();
     }
 
     @Inject(method = "onUpdateWalkingPlayer", at = @At("HEAD"), cancellable = true)
     private void onUpdateWalkingPlayerHead(CallbackInfo ci) {
+        if (Freecam.INSTANCE.isEnabled() && Freecam.INSTANCE.getCameraGuy() != null
+            && Objects.equals(this, Freecam.INSTANCE.getCameraGuy())) return;
 
         CriticalsUpdateWalkingEvent criticalsEditEvent = new CriticalsUpdateWalkingEvent();
         LambdaEventBus.INSTANCE.post(criticalsEditEvent);
 
         // Setup flags
-        Vec3d position = new Vec3d(this.posX, this.getEntityBoundingBox().minY, this.posZ);
-        Vec2f rotation = new Vec2f(this.rotationYaw, this.rotationPitch);
+        Vec3d position = new Vec3d(posX, getEntityBoundingBox().minY, posZ);
+        Vec2f rotation = new Vec2f(rotationYaw, rotationPitch);
         boolean moving = isMoving(position);
         boolean rotating = isRotating(rotation);
 
@@ -181,11 +228,11 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
                 sendSneakPacket();
                 sendPlayerPacket(moving, rotating, position, rotation);
 
-                this.prevOnGround = onGround;
+                prevOnGround = onGround;
             }
 
-            ++this.positionUpdateTicks;
-            this.autoJumpEnabled = this.mc.gameSettings.autoJump;
+            ++positionUpdateTicks;
+            autoJumpEnabled = mc.gameSettings.autoJump;
         }
 
         event = event.nextPhase();
@@ -193,64 +240,59 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
     }
 
     private void sendSprintPacket() {
-        boolean sprinting = this.isSprinting();
+        boolean sprinting = isSprinting();
 
-        if (sprinting != this.serverSprintState) {
+        if (sprinting != serverSprintState) {
             if (sprinting) {
-                this.connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.START_SPRINTING));
+                connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.START_SPRINTING));
             } else {
-                this.connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.STOP_SPRINTING));
+                connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.STOP_SPRINTING));
             }
-            this.serverSprintState = sprinting;
+            serverSprintState = sprinting;
         }
     }
 
     private void sendSneakPacket() {
-        boolean sneaking = this.isSneaking();
+        boolean sneaking = isSneaking();
 
-        if (sneaking != this.serverSneakState) {
+        if (sneaking != serverSneakState) {
             if (sneaking) {
-                this.connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.START_SNEAKING));
+                connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.START_SNEAKING));
             } else {
-                this.connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.STOP_SNEAKING));
+                connection.sendPacket(new CPacketEntityAction(this, CPacketEntityAction.Action.STOP_SNEAKING));
             }
-            this.serverSneakState = sneaking;
+            serverSneakState = sneaking;
         }
     }
 
     private void sendPlayerPacket(boolean moving, boolean rotating, Vec3d position, Vec2f rotation) {
-        if (!this.isCurrentViewEntity()) return;
-
-        if (this.isRiding()) {
-            this.connection.sendPacket(new CPacketPlayer.PositionRotation(this.motionX, -999.0D, this.motionZ, rotation.getX(), rotation.getY(), onGround));
+        if (isRiding()) {
+            connection.sendPacket(new CPacketPlayer.PositionRotation(motionX, -999.0D, motionZ, rotation.getX(), rotation.getY(), onGround));
             moving = false;
         } else if (moving && rotating) {
-            this.connection.sendPacket(new CPacketPlayer.PositionRotation(position.x, position.y, position.z, rotation.getX(), rotation.getY(), onGround));
+            connection.sendPacket(new CPacketPlayer.PositionRotation(position.x, position.y, position.z, rotation.getX(), rotation.getY(), onGround));
         } else if (moving) {
-            this.connection.sendPacket(new CPacketPlayer.Position(position.x, position.y, position.z, onGround));
+            connection.sendPacket(new CPacketPlayer.Position(position.x, position.y, position.z, onGround));
         } else if (rotating) {
-            this.connection.sendPacket(new CPacketPlayer.Rotation(rotation.getX(), rotation.getY(), onGround));
-        } else if (this.prevOnGround != onGround) {
-            this.connection.sendPacket(new CPacketPlayer(onGround));
+            connection.sendPacket(new CPacketPlayer.Rotation(rotation.getX(), rotation.getY(), onGround));
+        } else if (prevOnGround != onGround) {
+            connection.sendPacket(new CPacketPlayer(onGround));
         }
 
-        if (moving) {
-            this.positionUpdateTicks = 0;
-        }
+        if (moving) positionUpdateTicks = 0;
     }
 
     private boolean isMoving(Vec3d position) {
-        double xDiff = position.x - this.lastReportedPosX;
-        double yDiff = position.y - this.lastReportedPosY;
-        double zDiff = position.z - this.lastReportedPosZ;
+        double xDiff = position.x - lastReportedPosX;
+        double yDiff = position.y - lastReportedPosY;
+        double zDiff = position.z - lastReportedPosZ;
 
-        return this.positionUpdateTicks >= 20 || xDiff * xDiff + yDiff * yDiff + zDiff * zDiff > 9.0E-4D;
+        return positionUpdateTicks >= 20 || xDiff * xDiff + yDiff * yDiff + zDiff * zDiff > 9.0E-4D;
     }
 
     private boolean isRotating(Vec2f rotation) {
-        double yawDiff = rotation.getX() - this.lastReportedYaw;
-        double pitchDiff = rotation.getY() - this.lastReportedPitch;
-
+        double yawDiff = rotation.getX() - lastReportedYaw;
+        double pitchDiff = rotation.getY() - lastReportedPitch;
         return yawDiff != 0.0D || pitchDiff != 0.0D;
     }
 }

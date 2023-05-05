@@ -1,7 +1,6 @@
 package com.lambda.client.command
 
 import com.lambda.client.capeapi.PlayerProfile
-import com.lambda.client.command.CommandBuilder
 import com.lambda.client.command.args.AbstractArg
 import com.lambda.client.command.utils.BuilderBlock
 import com.lambda.client.command.utils.ExecuteBlock
@@ -49,6 +48,14 @@ abstract class ClientCommand(
         block: BuilderBlock<Block>
     ) {
         arg(BlockArg(name), block)
+    }
+
+    @CommandBuilder
+    protected inline fun AbstractArg<*>.entity(
+        name: String,
+        entity: BuilderBlock<String>
+    ) {
+        arg(EntityArg(name), entity)
     }
 
     @CommandBuilder

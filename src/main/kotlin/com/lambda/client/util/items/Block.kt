@@ -23,6 +23,11 @@ val shulkerList: Set<Block> = hashSetOf(
     Blocks.BLACK_SHULKER_BOX
 )
 
+val signsList: Set<Block> = hashSetOf(
+    Blocks.WALL_SIGN,
+    Blocks.STANDING_SIGN
+)
+
 val blockBlacklist: Set<Block> = hashSetOf(
     Blocks.ANVIL,
     Blocks.BEACON,

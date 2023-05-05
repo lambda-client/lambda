@@ -1,6 +1,7 @@
 package com.lambda.mixin.world;
 
 import com.lambda.client.module.modules.misc.AntiWeather;
+import com.lambda.client.module.modules.render.TimeWarp;
 import com.lambda.client.module.modules.render.NoRender;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.EnumSkyBlock;
@@ -31,5 +32,11 @@ public class MixinWorld {
         if (AntiWeather.INSTANCE.isEnabled()) {
             cir.setReturnValue(0.0f);
         }
+    }
+
+    @Inject(method = "getWorldTime", at = @At("HEAD"), cancellable = true)
+    public void onGetWorldTime(CallbackInfoReturnable<Long> cir) {
+        if (TimeWarp.INSTANCE.isEnabled())
+            cir.setReturnValue(TimeWarp.INSTANCE.getUpdatedTime());
     }
 }
