@@ -1,5 +1,6 @@
 package com.lambda.client.module.modules.misc
 
+import com.lambda.client.activity.activities.construction.Graffiti
 import com.lambda.client.activity.activities.construction.SurroundWithObsidian
 import com.lambda.client.activity.activities.construction.core.PlaceBlock
 import com.lambda.client.activity.activities.interaction.crafting.ReachXPLevel
@@ -44,6 +45,13 @@ object TestActivityManager : Module(
     private val etit by setting("Acquire Obby", false, consumer = { _, _->
         addSubActivities(
             AcquireItemInActiveHand(Blocks.OBSIDIAN.item)
+        )
+        false
+    })
+
+    private val ectiectietit by setting("Graffiti", false, consumer = { _, _->
+        addSubActivities(
+            Graffiti()
         )
         false
     })

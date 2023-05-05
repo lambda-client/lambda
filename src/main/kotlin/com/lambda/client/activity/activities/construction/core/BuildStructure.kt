@@ -7,7 +7,6 @@ import baritone.process.BuilderProcess
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.types.BuildActivity
 import com.lambda.client.activity.types.RenderAABBActivity
-import com.lambda.client.activity.types.RenderOverlayTextActivity
 import com.lambda.client.activity.types.RepeatingActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools

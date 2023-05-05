@@ -16,6 +16,7 @@ import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.executionCountPerTick
 import com.lambda.client.module.modules.client.BuildTools.textScale
 import com.lambda.client.module.modules.client.BuildTools.tickDelay
+import com.lambda.client.module.modules.player.AutoEat
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
@@ -38,6 +39,9 @@ object ActivityManager : Manager, Activity() {
             if (hasNoSubActivities
                 || event.phase != TickEvent.Phase.START
             ) return@safeListener
+
+            /* life support systems */
+            if (AutoEat.eating) return@safeListener
 
             allSubActivities
                 .filter { it.status == Status.RUNNING && it.subActivities.isEmpty() }

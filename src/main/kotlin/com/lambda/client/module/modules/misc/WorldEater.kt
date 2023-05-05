@@ -39,9 +39,10 @@ object WorldEater : Module(
     init {
         onEnable {
             runSafe {
+                val origin = player.flooredPosition
                 val currentDirection = player.horizontalFacing
-                firstPos = player.flooredPosition.add(currentDirection.directionVec.multiply(2))
-                secondPos = player.flooredPosition.add(
+                firstPos = origin.add(currentDirection.directionVec)
+                secondPos = origin.add(
                     currentDirection.directionVec.multiply(size)
                 ).add(
                     currentDirection.rotateY().directionVec.multiply(size)
@@ -57,18 +58,6 @@ object WorldEater : Module(
                     }
                 }
                 ownedBuildStructure = null
-            }
-        }
-
-        safeListener<InputEvent.MouseInputEvent> {
-            mc.objectMouseOver?.let { result ->
-                if (result.typeOfHit != RayTraceResult.Type.BLOCK) return@safeListener
-
-                when (Mouse.getEventButton()) {
-                    0 -> firstPos = result.blockPos
-                    1 -> secondPos = result.blockPos
-//                    2 -> if (ownedBuildStructure == null) clearArea()
-                }
             }
         }
     }
