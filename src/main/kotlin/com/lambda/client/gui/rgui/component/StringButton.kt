@@ -67,21 +67,19 @@ class StringButton(val setting: StringSetting) : BooleanSlider(setting.name, 1.0
 
         when (keyCode) {
             Keyboard.KEY_V, Keyboard.KEY_INSERT -> {
-                if (!GuiScreen.isCtrlKeyDown() && keyCode == Keyboard.KEY_V) componentName += typedChar
-                else {
-                    componentName = GuiScreen.getClipboardString()
-                    onStopListening(true)
+                if (!GuiScreen.isCtrlKeyDown() && keyCode == Keyboard.KEY_V) {
+                    componentName += typedChar
+                } else {
+                    componentName += GuiScreen.getClipboardString().trim()
                 }
             }
-
             Keyboard.KEY_C -> {
-                if (!GuiScreen.isCtrlKeyDown()) componentName += typedChar
-                else {
+                if (GuiScreen.isCtrlKeyDown()) {
                     GuiScreen.setClipboardString(componentName)
-                    onStopListening(true)
+                } else {
+                    componentName += typedChar
                 }
             }
-
             Keyboard.KEY_RETURN -> onStopListening(true)
             Keyboard.KEY_BACK -> componentName = componentName.dropLast(1)
             Keyboard.KEY_DELETE -> componentName = ""
