@@ -251,14 +251,21 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
 
     override fun keyTyped(typedChar: Char, keyCode: Int) {
         if (settingWindow?.listeningChild != null) return
-        when {
-            keyCode == Keyboard.KEY_BACK || keyCode == Keyboard.KEY_DELETE -> {
+        when (keyCode) {
+            Keyboard.KEY_BACK -> {
+                typedString.dropLast(1)
+                lastTypedTime = System.currentTimeMillis()
+                prevStringWidth = FontRenderAdapter.getStringWidth(typedString, 2.0f)
+            }
+
+            Keyboard.KEY_DELETE -> {
                 typedString = ""
                 lastTypedTime = 0L
                 stringWidth = 0.0f
                 prevStringWidth = 0.0f
             }
-            typedChar.isLetter() || typedChar == ' ' -> {
+
+            else -> if (typedChar >= ' ') {
                 typedString += typedChar
                 stringWidth = FontRenderAdapter.getStringWidth(typedString, 2.0f)
                 lastTypedTime = System.currentTimeMillis()
