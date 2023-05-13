@@ -3,6 +3,7 @@ package com.lambda.client.command.commands
 import com.google.gson.JsonParser
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.commons.utils.ConnectionUtils
+import com.lambda.client.commons.utils.grammar
 import com.lambda.client.manager.managers.UUIDManager
 import com.lambda.client.util.text.MessageSendHelper
 
@@ -45,11 +46,9 @@ object PlaytimeCommand: ClientCommand(
         val days = (durationInSeconds % secondsInMonth) / secondsInDay
         val hours = (durationInSeconds % secondsInDay) / secondsInHour
         return buildString {
-            append(if(months > 0) "$months month${if(months != 1L) "s" else ""}, " else "")
-            append(if(days > 0) "$days day${if(days != 1L) "s" else ""}, " else "")
-            append(hours)
-            append(" hour")
-            append(if(hours != 1L) "s" else "")
+            append(if(months > 0) "${grammar(months.toInt(), "month", "months")}, " else "")
+            append(if(days > 0) "${grammar(days.toInt(), "day", "days")}, " else "")
+            append(grammar(hours.toInt(), "hour", "hours"))
         }
     }
 }
