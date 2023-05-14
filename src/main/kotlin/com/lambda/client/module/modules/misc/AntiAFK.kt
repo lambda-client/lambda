@@ -41,10 +41,10 @@ object AntiAFK : Module(
     private val turn = setting("Turn", true)
     private val walk = setting("Walk", true)
     private val walkPositioningType by setting("Positioning Type",PositionType.AUTO,{ walk.value })
-    private val radius by setting("Radius Of Walking", 64, 8..128, 8, {walk.value },fineStep = 1)
-    private val allowBreak by setting("Allow Breaking Blocks", false, { walk.value && walkPositioningType == PositionType.AUTO})
     private val PositionX by setting("X","",{ walk.value && walkPositioningType == PositionType.COUSTOM})
     private val PositionZ by setting("Z","",{ walk.value && walkPositioningType == PositionType.COUSTOM})
+    private val radius by setting("Radius Of Walking", 64, 8..128, 8, {walk.value },fineStep = 1)
+    private val allowBreak by setting("Allow Breaking Blocks", false, { walk.value })
     private val inputTimeout by setting("Idle Timeout", 0, 0..15, 1, description = "Starts AntiAFK after being idle longer than the selected time in minutes, 0 to disable", unit = "m")
 
     enum class PositionType {
