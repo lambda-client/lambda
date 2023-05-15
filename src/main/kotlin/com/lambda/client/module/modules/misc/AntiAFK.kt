@@ -172,7 +172,7 @@ object AntiAFK : Module(
             val x = PositionX.toDoubleOrNull()
             val z = PositionZ.toDoubleOrNull()
             if(x==null || z == null){
-                MessageSendHelper.sendChatMessage("Wrong position argument!")
+                MessageSendHelper.sendErrorMessage("[AntiAFK] Wrong position argument!")
                 disable()
             }else{
                 startPos = BlockPos(x,0.0,z)
