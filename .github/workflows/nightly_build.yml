@@ -45,7 +45,7 @@ jobs:
         run: mv build/libs/lambda-*.jar lambda-${{ github.run_number }}.jar
 
       - name: Generate forge mod checksum
-        uses: ToxicAven/generate-checksum-file@v1
+        uses: ToxicAven/generate-checksum-file@v2
         with:
           filePath: lambda-${{ github.run_number }}.jar
           saveFile: lambda-${{ github.run_number }}-SHA256.txt
@@ -70,7 +70,7 @@ jobs:
         run: mv build/libs/lambda-*-api.jar lambda-${{ github.run_number }}-api.jar
 
       - name: Generate API mod checksum
-        uses: ToxicAven/generate-checksum-file@v1
+        uses: ToxicAven/generate-checksum-file@v2
         with:
           filePath: lambda-${{ github.run_number }}-api.jar
           saveFile: lambda-${{ github.run_number }}-api-SHA256.txt
