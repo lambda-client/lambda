@@ -134,6 +134,7 @@ object NewChunks : Module(
         }
 
         safeListener<RenderRadarEvent> {
+            if (renderMode == RenderMode.WORLD) return@safeListener
             val playerOffset = Vec2d((player.posX - (player.chunkCoordX shl 4)), (player.posZ - (player.chunkCoordZ shl 4)))
             val chunkDist = (it.radius * it.scale).toInt() shr 4
             val newChunkRects: MutableList<Pair<Vec2d, Vec2d>> = mutableListOf()
@@ -186,10 +187,11 @@ object NewChunks : Module(
         }
 
         safeListener<ChunkEvent.Unload> {
-            if (removeMode == RemoveMode.UNLOAD)
+            if (removeMode == RemoveMode.UNLOAD) {
                 newChunks.remove(it.chunk.pos)
                 oldChunks.remove(it.chunk.pos)
                 savedChunks.remove(it.chunk.pos)
+            }
             if (saveChunks && !savedChunks.containsKey(it.chunk.pos)) {
                 if (saveMode == SaveMode.OLD && oldChunks.containsKey(it.chunk.pos)) {
                     saveChunk(it.chunk.pos)
