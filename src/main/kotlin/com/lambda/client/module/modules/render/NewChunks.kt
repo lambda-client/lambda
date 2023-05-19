@@ -44,38 +44,43 @@ object NewChunks : Module(
     private val relative by setting("Relative", false, description = "Renders the chunks at relative Y level to player")
     private val renderMode by setting("Render Mode", RenderMode.BOTH)
     private val chunkGridColor by setting("Grid Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
-    private val distantChunkColor by setting("Distant Chunk Color", ColorHolder(100, 100, 100, 100), true, { renderMode != RenderMode.WORLD }, "Chunks that are not in render distance and not in baritone cache")
+    private val oldChunkColor by setting("Old Chunk Color", ColorHolder(100, 100, 100, 100), true, { renderMode != RenderMode.WORLD }, "Chunks that are not in render distance and not in baritone cache")
     private val newChunkColor by setting("New Chunk Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
-    private val saveNewChunks by setting("Save New Chunks", false)
-    private val renderOld by setting("Inverse Render Mode.", false, description = "Inverse the old chunk rendering logic. Do not draw grid lines. (Performance Mode)")
-    private val saveOption by setting("Save Option", SaveOption.EXTRA_FOLDER, { saveNewChunks })
-    private val saveInRegionFolder by setting("In Region", false, { saveNewChunks })
-    private val alsoSaveNormalCoords by setting("Save Normal Coords", false, { saveNewChunks })
-    private val closeFile by setting("Close file", false, { saveNewChunks }, consumer = { _, _ ->
+    private val saveChunks by setting("Save Chunks", false)
+    private val saveOption by setting("Save Option", SaveOption.EXTRA_FOLDER, { saveChunks })
+    private val alsoSaveNormalCoords by setting("Save Normal Coords", false, { saveChunks })
+    private val saveMode by setting("Save Mode", SaveMode.OLD, { saveChunks }, description = "Save old / new chunks")
+
+    private val closeFile by setting("Close file", false, { saveChunks }, consumer = { _, _ ->
         logWriterClose()
         MessageSendHelper.sendChatMessage("$chatName Saved file to $path!")
         false
     })
-    private val openNewChunksFolder by setting("Open NewChunks Folder...", false, { saveNewChunks }, consumer = { _, _ ->
+    private val openNewChunksFolder by setting("Open NewChunks Folder...", false, { saveChunks }, consumer = { _, _ ->
         FolderUtils.openFolder(FolderUtils.newChunksFolder)
         false
     })
     private val yOffset by setting("Y Offset", 0, -256..256, 4, fineStep = 1, description = "Render offset in Y axis")
-    private val color by setting("Color", ColorHolder(255, 64, 64, 200), description = "Highlighting color")
+    private val color by setting("Color", ColorHolder(255, 64, 64, 200), description = "World highlighting color.")
     private val thickness by setting("Thickness", 1.5f, 0.1f..4.0f, 0.1f, description = "Thickness of the highlighting square")
-    private val range by setting("Render Range", 512, 64..2048, 32, description = "Maximum range for chunks to be highlighted")
-    private val removeMode by setting("Remove Mode", RemoveMode.AGE, description = "Mode to use for removing chunks")
+    private val range by setting("Render Range", 512, 64..2048, 32,{ renderMode != RenderMode.RADAR }, description = "Maximum range for chunks to be highlighted in the world.")
+    private val removeMode by setting("Remove Mode", RemoveMode.AGE, description = "Mode to use for removing chunks. Unload might generate bad data on saving feature and never will cause performance issues eventually.")
     private val maxAge by setting("Max age", 10, 1..600, 1, { removeMode == RemoveMode.AGE }, description = "Maximum age of chunks since recording", unit = "m")
+    private val maxDist by setting("Max Distance", 10000, 1000..100000, 1000, { removeMode == RemoveMode.DIST }, description = "Maximum distance to chunks until unload.", unit = "Meter / Blocks")
 
     private var lastSetting = LastSetting()
     private var logWriter: PrintWriter? = null
-    private val chunks = ConcurrentHashMap<ChunkPos, Long>()
+    private val newChunks = ConcurrentHashMap<ChunkPos, Long>()
+    private val oldChunks = ConcurrentHashMap<ChunkPos, Long>()
+    private val savedChunks = ConcurrentHashMap<ChunkPos, Long>()
     private val timer = TickTimer(TimeUnit.SECONDS)
 
     init {
         onDisable {
             logWriterClose()
-            chunks.clear()
+            oldChunks.clear()
+            newChunks.clear()
+            savedChunks.clear()
             MessageSendHelper.sendChatMessage("$chatName Saved and cleared chunks!")
         }
 
@@ -91,7 +96,17 @@ object NewChunks : Module(
                 && timer.tick(5)
             ) {
                 val currentTime = System.currentTimeMillis()
-                chunks.values.removeIf { chunkAge -> currentTime - chunkAge > maxAge * 60 * 1000 }
+                newChunks.values.removeIf { chunkAge -> currentTime - chunkAge > maxAge * 60 * 1000 }
+                oldChunks.values.removeIf { chunkAge -> currentTime - chunkAge > maxAge * 60 * 1000 }
+                savedChunks.values.removeIf { chunkAge -> currentTime - chunkAge > maxAge * 60 * 1000 }
+            }
+            else if (it.phase == TickEvent.Phase.END
+                    && removeMode == RemoveMode.DIST
+                    && timer.tick(5)
+                    ){
+                newChunks.keys.removeIf { chunkKey -> player.distanceTo(chunkKey) > maxDist }
+                oldChunks.keys.removeIf { chunkKey -> player.distanceTo(chunkKey) > maxDist }
+                savedChunks.keys.removeIf { chunkKey -> player.distanceTo(chunkKey) > maxDist }
             }
         }
 
@@ -105,7 +120,7 @@ object NewChunks : Module(
 
             val buffer = LambdaTessellator.buffer
 
-            chunks.filter { player.distanceTo(it.key) < range }.keys.forEach { chunkPos ->
+            newChunks.filter { player.distanceTo(it.key) < range }.keys.forEach { chunkPos ->
                 buffer.begin(GL_LINE_LOOP, DefaultVertexFormats.POSITION_COLOR)
                 buffer.pos(chunkPos.xStart.toDouble(), y, chunkPos.zStart.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
                 buffer.pos(chunkPos.xEnd + 1.toDouble(), y, chunkPos.zStart.toDouble()).color(color.r, color.g, color.b, color.a).endVertex()
@@ -121,66 +136,76 @@ object NewChunks : Module(
         safeListener<RenderRadarEvent> {
             val playerOffset = Vec2d((player.posX - (player.chunkCoordX shl 4)), (player.posZ - (player.chunkCoordZ shl 4)))
             val chunkDist = (it.radius * it.scale).toInt() shr 4
+            val newChunkRects: MutableList<Pair<Vec2d, Vec2d>> = mutableListOf()
             // at high zooms (further zoomed out) there will be thousands of rects being rendered
             // buffering rects here to reduce GL calls and improve FPS
-            val distantChunkRects: MutableList<Pair<Vec2d, Vec2d>> = mutableListOf()
+            val oldChunkRects: MutableList<Pair<Vec2d, Vec2d>> = mutableListOf()
             val chunkGridRects: MutableList<Pair<Vec2d, Vec2d>> = mutableListOf()
             for (chunkX in -chunkDist..chunkDist) {
                 for (chunkZ in -chunkDist..chunkDist) {
                     val pos0 = getChunkPos(chunkX, chunkZ, playerOffset, it.scale)
                     val pos1 = getChunkPos(chunkX + 1, chunkZ + 1, playerOffset, it.scale)
-
                     if (isSquareInRadius(pos0, pos1, it.radius)) {
                         val chunk = world.getChunk(player.chunkCoordX + chunkX, player.chunkCoordZ + chunkZ)
+                        val chunkPos = ChunkPos((player.chunkCoordX + chunkX), (player.chunkCoordZ + chunkZ))
                         val isCachedChunk =
                             BaritoneUtils.primary?.worldProvider?.currentWorld?.cachedWorld?.isCached(
                                 (player.chunkCoordX + chunkX) shl 4, (player.chunkCoordZ + chunkZ) shl 4
                             ) ?: false
 
-                        if (!renderOld && !chunk.isLoaded && !isCachedChunk) {
-                            distantChunkRects.add(Pair(pos0, pos1))
+                        if (!chunk.isLoaded && isCachedChunk){
+                            oldChunkRects.add(Pair(pos0, pos1))
                         }
-                        else if (renderOld && (chunk.isLoaded || isCachedChunk)){
-                            distantChunkRects.add(Pair(pos0, pos1))
+                        else if (newChunks.containsKey(chunkPos)){
+                            newChunkRects.add(Pair(pos0, pos1))
                         }
-                        chunkGridRects.add(Pair(pos0, pos1))
+                        else if (chunk.isLoaded) {
+                            oldChunkRects.add(Pair(pos0, pos1))
+                        }
+                        if (it.chunkLines) chunkGridRects.add(Pair(pos0, pos1))
                     }
                 }
             }
-            if (distantChunkRects.isNotEmpty()) RenderUtils2D.drawRectFilledList(it.vertexHelper, distantChunkRects, distantChunkColor)
-            if (!renderOld && it.chunkLines && chunkGridRects.isNotEmpty()) RenderUtils2D.drawRectOutlineList(it.vertexHelper, chunkGridRects, 0.3f, chunkGridColor)
-
-            val newChunkRects: MutableList<Pair<Vec2d, Vec2d>> = mutableListOf()
-            chunks.keys.forEach { chunk ->
-                val pos0 = getChunkPos(chunk.x - player.chunkCoordX, chunk.z - player.chunkCoordZ, playerOffset, it.scale)
-                val pos1 = getChunkPos(chunk.x - player.chunkCoordX + 1, chunk.z - player.chunkCoordZ + 1, playerOffset, it.scale)
-
-                if (isSquareInRadius(pos0, pos1, it.radius)) {
-                    newChunkRects.add(Pair(pos0, pos1))
-                }
-            }
+            if (oldChunkRects.isNotEmpty()) RenderUtils2D.drawRectFilledList(it.vertexHelper, oldChunkRects, oldChunkColor)
+            if (it.chunkLines && chunkGridRects.isNotEmpty()) RenderUtils2D.drawRectOutlineList(it.vertexHelper, chunkGridRects, 0.3f, chunkGridColor)
             if (newChunkRects.isNotEmpty()) RenderUtils2D.drawRectFilledList(it.vertexHelper, newChunkRects, newChunkColor)
         }
 
         safeListener<PacketEvent.PostReceive> { event ->
             if (event.packet is SPacketChunkData
-                && !event.packet.isFullChunk
             ) {
                 val chunkPos = ChunkPos(event.packet.chunkX, event.packet.chunkZ)
-                chunks[chunkPos] = System.currentTimeMillis()
-                if (saveNewChunks) saveNewChunk(chunkPos)
+                if (!event.packet.isFullChunk) {
+                    oldChunks.remove(chunkPos)
+                    newChunks.putIfAbsent(chunkPos, System.currentTimeMillis())
+                }
+                else if (!newChunks.containsKey(chunkPos)){
+                    oldChunks.putIfAbsent(chunkPos, System.currentTimeMillis())
+                }
             }
         }
 
         safeListener<ChunkEvent.Unload> {
             if (removeMode == RemoveMode.UNLOAD)
-                chunks.remove(it.chunk.pos)
+                newChunks.remove(it.chunk.pos)
+                oldChunks.remove(it.chunk.pos)
+                savedChunks.remove(it.chunk.pos)
+            if (saveChunks && !savedChunks.containsKey(it.chunk.pos)) {
+                if (saveMode == SaveMode.OLD && oldChunks.containsKey(it.chunk.pos)) {
+                    saveChunk(it.chunk.pos)
+                    savedChunks[it.chunk.pos] = System.currentTimeMillis()
+                }
+                else if (saveMode == SaveMode.NEW && newChunks.containsKey(it.chunk.pos)) {
+                    saveChunk(it.chunk.pos)
+                    savedChunks[it.chunk.pos] = System.currentTimeMillis()
+                }
+            }
         }
     }
 
     // needs to be synchronized so no data gets lost
-    private fun SafeClientEvent.saveNewChunk(chunk: ChunkPos) {
-        saveNewChunk(testAndGetLogWriter(), getNewChunkInfo(chunk))
+    private fun SafeClientEvent.saveChunk(chunk: ChunkPos) {
+        saveChunk(testAndGetLogWriter(), getNewChunkInfo(chunk))
     }
 
     private fun getNewChunkInfo(chunk: ChunkPos): String {
@@ -262,11 +287,6 @@ object NewChunks : Module(
                 file = File(file, "DIM$dimension")
             }
 
-            // maybe we want to save it in region folder
-            if (saveInRegionFolder) {
-                file = File(file, "region")
-            }
-
             file = File(file, "logs")
             val date = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Date())
             file = File(file, mc.session.username + "_" + date + ".csv") // maybe don't safe the name, actually. But I also don't want to make another option...
@@ -317,7 +337,7 @@ object NewChunks : Module(
         return Vec2d((x shl 4).toDouble(), (z shl 4).toDouble()).minus(playerOffset).div(scale.toDouble())
     }
 
-    private fun saveNewChunk(log: PrintWriter?, data: String) {
+    private fun saveChunk(log: PrintWriter?, data: String) {
         log!!.println(data)
     }
 
@@ -327,16 +347,19 @@ object NewChunks : Module(
 
     @Suppress("unused")
     private enum class RemoveMode {
-        UNLOAD, AGE, NEVER
+        UNLOAD, AGE, DIST, NEVER
     }
 
     enum class RenderMode {
         WORLD, RADAR, BOTH
     }
 
+    enum class SaveMode {
+        NEW, OLD
+    }
+
     private class LastSetting {
         var lastSaveOption: SaveOption? = null
-        var lastInRegion = false
         var lastSaveNormal = false
         var dimension = 0
         var ip: String? = null
@@ -352,15 +375,13 @@ object NewChunks : Module(
         fun testChange(event: SafeClientEvent): Boolean {
             // these somehow include the test whether its null
             return saveOption != lastSaveOption
-                || saveInRegionFolder != lastInRegion
-                || alsoSaveNormalCoords != lastSaveNormal
+                || (alsoSaveNormalCoords && alsoSaveNormalCoords != lastSaveNormal)
                 || dimension != event.player.dimension
                 || mc.currentServerData?.serverIP != ip
         }
 
         private fun update(event: SafeClientEvent) {
             lastSaveOption = saveOption
-            lastInRegion = saveInRegionFolder
             lastSaveNormal = alsoSaveNormalCoords
             dimension = event.player.dimension
             ip = mc.currentServerData?.serverIP
