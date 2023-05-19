@@ -47,6 +47,7 @@ object NewChunks : Module(
     private val distantChunkColor by setting("Distant Chunk Color", ColorHolder(100, 100, 100, 100), true, { renderMode != RenderMode.WORLD }, "Chunks that are not in render distance and not in baritone cache")
     private val newChunkColor by setting("New Chunk Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
     private val saveNewChunks by setting("Save New Chunks", false)
+    private val renderOld by setting("Inverse Render Mode.", false, description = "Inverse the old chunk rendering logic. Do not draw grid lines. (Performance Mode)")
     private val saveOption by setting("Save Option", SaveOption.EXTRA_FOLDER, { saveNewChunks })
     private val saveInRegionFolder by setting("In Region", false, { saveNewChunks })
     private val alsoSaveNormalCoords by setting("Save Normal Coords", false, { saveNewChunks })
@@ -136,7 +137,10 @@ object NewChunks : Module(
                                 (player.chunkCoordX + chunkX) shl 4, (player.chunkCoordZ + chunkZ) shl 4
                             ) ?: false
 
-                        if (!chunk.isLoaded && !isCachedChunk) {
+                        if (!renderOld && !chunk.isLoaded && !isCachedChunk) {
+                            distantChunkRects.add(Pair(pos0, pos1))
+                        }
+                        else if (renderOld && (chunk.isLoaded || isCachedChunk)){
                             distantChunkRects.add(Pair(pos0, pos1))
                         }
                         chunkGridRects.add(Pair(pos0, pos1))
@@ -144,7 +148,7 @@ object NewChunks : Module(
                 }
             }
             if (distantChunkRects.isNotEmpty()) RenderUtils2D.drawRectFilledList(it.vertexHelper, distantChunkRects, distantChunkColor)
-            if (it.chunkLines && chunkGridRects.isNotEmpty()) RenderUtils2D.drawRectOutlineList(it.vertexHelper, chunkGridRects, 0.3f, chunkGridColor)
+            if (!renderOld && it.chunkLines && chunkGridRects.isNotEmpty()) RenderUtils2D.drawRectOutlineList(it.vertexHelper, chunkGridRects, 0.3f, chunkGridColor)
 
             val newChunkRects: MutableList<Pair<Vec2d, Vec2d>> = mutableListOf()
             chunks.keys.forEach { chunk ->
