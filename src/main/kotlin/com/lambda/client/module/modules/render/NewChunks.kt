@@ -43,8 +43,8 @@ object NewChunks : Module(
 ) {
     private val relative by setting("Relative", false, description = "Renders the chunks at relative Y level to player")
     private val renderMode by setting("Render Mode", RenderMode.BOTH)
-    private val chunkGridColor by setting("Grid Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
-    private val oldChunkColor by setting("Old Chunk Color", ColorHolder(100, 100, 100, 100), true, { renderMode != RenderMode.WORLD }, "Chunks that are not in render distance and not in baritone cache")
+    private val chunkGridColor by setting("Grid Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD }, description = "Might cause performance issues on high zoom. Disable @ Client>HudEditor>Radar>Chunk Lines")
+    private val oldChunkColor by setting("Old Chunk Color", ColorHolder(100, 100, 100, 100), true, { renderMode != RenderMode.WORLD }, description = "Old chunks. (Baritone cache + Fullchunk() = True). Some distant Chunks might be false positives.")
     private val newChunkColor by setting("New Chunk Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
     private val saveChunks by setting("Save Chunks", false)
     private val saveOption by setting("Save Option", SaveOption.EXTRA_FOLDER, { saveChunks })
