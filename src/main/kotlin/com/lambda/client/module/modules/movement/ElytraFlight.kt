@@ -128,9 +128,8 @@ object ElytraFlight : Module(
     private var boostingTick = 0
 
     /* Vanilla mode state */
-    private var lastY = 0.0
-    private var shouldDescend = false
-    private var lastHighY = 0.0
+    private var firstY = 0.0
+    private var secondY = 0.0
 
     /* Event Listeners */
     init {
@@ -483,26 +482,14 @@ object ElytraFlight : Module(
         event.cancel()
     }
 
-    private fun SafeClientEvent.vanillaMode() {
-        val playerY = player.posY
-        val lastShouldDescend = shouldDescend
-        val isBoosted = world.getLoadedEntityList().any { it is EntityFireworkRocket && it.boostedEntity == player }
-
-        shouldDescend = lastY > playerY && lastHighY - 60 < playerY
-
-        packetPitch = if (isBoosted) {
-            -rocketPitch
-        } else if (shouldDescend) {
-            if (!lastShouldDescend) {
-                lastHighY = playerY
-            }
-            downPitch
-        } else {
-            -upPitch
-        }
-
-        lastY = playerY
-    }
+private fun SafeClientEvent.vanillaMode() {
+    secondY = player.posY
+    packetPitch = when {
+        world.loadedEntityList.any { it is EntityFireworkRocket && it.boostedEntity == player } -> -rocketPitch
+        firstY - secondY > 0 -> downPitch
+        else -> -upPitch}
+    firstY = player.posY
+}
 
     fun shouldSwing(): Boolean {
         return isEnabled && isFlying && !autoLanding && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET)
