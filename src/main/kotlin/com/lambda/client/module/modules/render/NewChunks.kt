@@ -112,7 +112,6 @@ object NewChunks : Module(
 
         safeListener<RenderWorldEvent> {
             if (renderMode == RenderMode.RADAR) return@safeListener
-
             val y = yOffset.toDouble() + if (relative) getInterpolatedPos(player, LambdaTessellator.pTicks()).y else 0.0
 
             glLineWidth(thickness)
@@ -154,11 +153,11 @@ object NewChunks : Module(
                                 (player.chunkCoordX + chunkX) shl 4, (player.chunkCoordZ + chunkZ) shl 4
                             ) ?: false
 
-                        if (!chunk.isLoaded && isCachedChunk){
-                            oldChunkRects.add(Pair(pos0, pos1))
-                        }
-                        else if (newChunks.containsKey(chunkPos)){
+                        if (newChunks.containsKey(chunkPos)){
                             newChunkRects.add(Pair(pos0, pos1))
+                        }
+                        else if (!chunk.isLoaded && isCachedChunk){
+                            oldChunkRects.add(Pair(pos0, pos1))
                         }
                         else if (chunk.isLoaded) {
                             oldChunkRects.add(Pair(pos0, pos1))
