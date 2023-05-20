@@ -26,11 +26,9 @@ object ChestStealer : Module(
 ) {
 
     private val defaultWhiteList = linkedSetOf(
-        "minecraft:netherrack",
         "minecraft:cobblestone"
     )
     private val defaultBlackList = linkedSetOf(
-        "minecraft:netherrack",
         "minecraft:cobblestone"
     )
 
@@ -40,10 +38,6 @@ object ChestStealer : Module(
     private val selectionMode by setting("Item Selection Mode", SelectionMode.ANY, description = "Items to move.")
     val whiteList = setting(CollectionSetting("WhiteList", defaultWhiteList))
     val blackList = setting(CollectionSetting("BlackList", defaultBlackList))
-
-    //private val onlyShulkers by setting("Only Shulkers", false, description = "Only move shulker boxes")
-    //private val ignoreEjectItem by setting("Ignores Eject Item", false, description = "Ignore AutoEject items in InventoryManager")
-
 
     enum class Mode {
         ALWAYS, TOGGLE, MANUAL
