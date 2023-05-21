@@ -482,14 +482,15 @@ object ElytraFlight : Module(
         event.cancel()
     }
 
-private fun SafeClientEvent.vanillaMode() {
-    secondY = player.posY
-    packetPitch = when {
-        world.loadedEntityList.any { it is EntityFireworkRocket && it.boostedEntity == player } -> -rocketPitch
-        firstY - secondY > 0 -> downPitch
-        else -> -upPitch}
-    firstY = player.posY
-}
+    private fun SafeClientEvent.vanillaMode() {
+        secondY = player.posY
+        packetPitch = when {
+            world.loadedEntityList.any { it is EntityFireworkRocket && it.boostedEntity == player } -> -rocketPitch
+            firstY - secondY > 0 -> downPitch
+            else -> -upPitch
+        }
+        firstY = player.posY
+    }
 
     fun shouldSwing(): Boolean {
         return isEnabled && isFlying && !autoLanding && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET)
