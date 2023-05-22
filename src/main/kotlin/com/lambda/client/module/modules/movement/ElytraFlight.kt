@@ -12,6 +12,7 @@ import com.lambda.client.mixin.extension.timer
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.player.LagNotifier
+import com.lambda.client.gui.hudgui.elements.player.PlayerSpeed.speedList
 import com.lambda.client.util.MovementUtils.calcMoveYaw
 import com.lambda.client.util.MovementUtils.speed
 import com.lambda.client.util.math.Vec2f
@@ -95,9 +96,11 @@ object ElytraFlight : Module(
 
 
     /* Vanilla */
-    private val upPitch by setting("Up Pitch", 30f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
-    private val downPitch by setting("Down Pitch", 0f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
-    private val rocketPitch by setting("Rocket Pitch", 50f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
+    private val rocketPitch by setting("Rocket Pitch", 50f, 20f..80f, 2.5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "If you are boosted by a rocket, this pitch will be used")
+    private val upPitch by setting("Up Pitch", 30f, 0f..60f, 2.5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "If you are moving up or you are pressing space, this pitch will be used")
+    private val downPitch by setting("Down Pitch", 0f, -30f..50f, 2.5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "Pitch used when you are moving down")
+    private val controlSpeed by setting("Control Speed", true, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "Enable to set a speed threshold value")
+    private val speedThreshold by setting("Speed Threshold", 26, 5..100, 1, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS && controlSpeed }, description = "If you are going faster then the speed threshold, use up pitch")
 
     /* End of Mode Settings */
 
@@ -128,8 +131,7 @@ object ElytraFlight : Module(
     private var boostingTick = 0
 
     /* Vanilla mode state */
-    private var firstY = 0.0
-    private var secondY = 0.0
+    private var upPitchTimer: Long = 0
 
     /* Event Listeners */
     init {
@@ -483,13 +485,13 @@ object ElytraFlight : Module(
     }
 
     private fun SafeClientEvent.vanillaMode() {
-        secondY = player.posY
         packetPitch = when {
-            world.loadedEntityList.any { it is EntityFireworkRocket && it.boostedEntity == player } -> -rocketPitch
-            firstY - secondY > 0 -> downPitch
-            else -> -upPitch
-        }
-        firstY = player.posY
+            world.loadedEntityList.any { it is EntityFireworkRocket && it.boostedEntity == player } -> -rocketPitch //If the player is boosted with a firework, use -rocketPitch
+            player.motionY > 0 || player.movementInput.jump || System.currentTimeMillis() < upPitchTimer -> -upPitch //If the player is moving up, the player is pressing space, or upPitchTimer is still going, use -upPitch
+            controlSpeed && (if (speedList.isEmpty()) 0.0 else speedList.sum() / speedList.size) > speedThreshold -> { //(This is the only way I was able to get the player speed) If controlSpeed is enabled and the speed is over the speedThreshold, then....
+                upPitchTimer = System.currentTimeMillis() + 1000 //Set upPitchTimer for 1 second
+                -upPitch} //Use -upPitch
+            else -> downPitch} // If none of the other conditions are met, use downPitch
     }
 
     fun shouldSwing(): Boolean {
