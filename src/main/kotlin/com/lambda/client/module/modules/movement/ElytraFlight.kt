@@ -97,10 +97,12 @@ object ElytraFlight : Module(
 
     /* Vanilla */
     private val rocketPitch by setting("Rocket Pitch", 50f, 20f..80f, 2.5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "If you are boosted by a rocket, this pitch will be used")
-    private val upPitch by setting("Up Pitch", 30f, 0f..60f, 2.5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "If you are moving up or you are pressing space, this pitch will be used")
-    private val downPitch by setting("Down Pitch", 0f, -30f..50f, 2.5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "Pitch used when you are moving down")
+    private val upPitch by setting("Up Pitch", 37.5f, 0f..60f, 2.5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "If you are moving up or you are pressing space, this pitch will be used")
+    private val downPitch by setting("Down Pitch", 35f, -30f..50f, 2.5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "Pitch used when you are moving down")
     private val controlSpeed by setting("Control Speed", true, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "Enable to set a speed threshold value")
-    private val speedThreshold by setting("Speed Threshold", 26, 5..100, 1, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS && controlSpeed }, description = "If you are going faster then the speed threshold, use up pitch")
+    private val speedThreshold by setting("Speed Threshold", 43, 5..100, 1, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS && controlSpeed }, description = "If you are going faster then the speed threshold, use up pitch")
+    private val descendSpeedFactor by setting("Descend Speed Factor", 2.75f, 1f..5f, 0.25f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS && controlSpeed })
+    private val descendPitchFactor by setting("Descend Pitch Factor", 4f, 1f..5f, 0.25f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS && controlSpeed })
 
     /* End of Mode Settings */
 
@@ -485,12 +487,14 @@ object ElytraFlight : Module(
     }
 
     private fun SafeClientEvent.vanillaMode() {
+        var playerSpeedCal = if (speedList.isEmpty()) 0.0 else speedList.sum() / speedList.size
         packetPitch = when {
             world.loadedEntityList.any { it is EntityFireworkRocket && it.boostedEntity == player } -> -rocketPitch //If the player is boosted with a firework, use -rocketPitch
             player.motionY > 0 || player.movementInput.jump || System.currentTimeMillis() < upPitchTimer -> -upPitch //If the player is moving up, the player is pressing space, or upPitchTimer is still going, use -upPitch
-            controlSpeed && (if (speedList.isEmpty()) 0.0 else speedList.sum() / speedList.size) > speedThreshold -> { //(This is the only way I was able to get the player speed) If controlSpeed is enabled and the speed is over the speedThreshold, then....
+            controlSpeed && playerSpeedCal > speedThreshold -> { //(This is the only way I was able to get the player speed) If controlSpeed is enabled and the speed is over the speedThreshold, then....
                 upPitchTimer = System.currentTimeMillis() + 1000 //Set upPitchTimer for 1 second
                 -upPitch} //Use -upPitch
+            controlSpeed && playerSpeedCal < speedThreshold/descendSpeedFactor -> downPitch/descendPitchFactor //When the player is moving slower, this code can make the pitch less extreme
             else -> downPitch} // If none of the other conditions are met, use downPitch
     }
 
