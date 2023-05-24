@@ -53,13 +53,13 @@ jobs:
           algorithm: SHA256
 
       - name: Archive forge mod
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: lambda-${{ github.run_number }}
           path: lambda-${{ github.run_number }}.jar
 
       - name: Archive forge mod checksum
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: lambda-${{ github.run_number }}-SHA256.txt
           path: lambda-${{ github.run_number }}-SHA256.txt
@@ -78,13 +78,13 @@ jobs:
           algorithm: SHA256
 
       - name: Archive plugin API
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: lambda-${{ github.run_number }}-api
           path: lambda-${{ github.run_number }}-api.jar
 
       - name: Upload API checksum
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: lambda-${{ github.run_number }}-api-SHA256.txt
           path: lambda-${{ github.run_number }}-api-SHA256.txt
