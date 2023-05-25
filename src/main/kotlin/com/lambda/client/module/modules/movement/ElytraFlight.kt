@@ -99,10 +99,9 @@ object ElytraFlight : Module(
     private val rocketPitch by setting("Rocket Pitch", 50f, 20f..80f, 2.5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "If you are boosted by a rocket, this pitch will be used")
     private val upPitch by setting("Up Pitch", 37.5f, 0f..60f, 2.5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "If you are moving up or you are pressing space, this pitch will be used")
     private val downPitch by setting("Down Pitch", 35f, -30f..50f, 2.5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "Pitch used when you are moving down")
-    private val controlSpeed by setting("Control Speed", true, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "Enable to set a speed threshold value")
-    private val speedThreshold by setting("Speed Threshold", 43, 5..100, 1, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS && controlSpeed }, description = "If you are going faster then the speed threshold, use up pitch")
-    private val descendSpeedFactor by setting("Descend Speed Factor", 2.75f, 1f..5f, 0.25f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS && controlSpeed })
-    private val descendPitchFactor by setting("Descend Pitch Factor", 4f, 1f..5f, 0.25f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS && controlSpeed })
+    private val controlSpeed by setting("Control Speed", true, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "Enable to set pitch controls based on your speed")
+    private val speedThreshold by setting("Speed Threshold", 43, 5..100, 1, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS && controlSpeed }, description = "If you are going faster then the speed threshold, use the Up Pitch value")
+    private val slowPercentage by setting("Slow Percentage", 45, 1..100, 1, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS && controlSpeed }, description = "Rotates the pitch into the Down Pitch value. Low percents rotate fast, high percents rotate slow")
 
     /* End of Mode Settings */
 
@@ -487,14 +486,15 @@ object ElytraFlight : Module(
     }
 
     private fun SafeClientEvent.vanillaMode() {
-        var playerSpeedCal = if (speedList.isEmpty()) 0.0 else speedList.sum() / speedList.size
+        var playerSpeedCal = if (speedList.isEmpty()) 0.0 else speedList.sum() / speedList.size //This is the only way I found to get the player speed
+        var speedPercentOfMax = (playerSpeedCal/speedThreshold*100).toFloat() //This is used to calulate the percent of the max speed. 50 means 50%
         packetPitch = when {
             world.loadedEntityList.any { it is EntityFireworkRocket && it.boostedEntity == player } -> -rocketPitch //If the player is boosted with a firework, use -rocketPitch
-            player.motionY > 0 || player.movementInput.jump || System.currentTimeMillis() < upPitchTimer -> -upPitch //If the player is moving up, the player is pressing space, or upPitchTimer is still going, use -upPitch
-            controlSpeed && playerSpeedCal > speedThreshold -> { //(This is the only way I was able to get the player speed) If controlSpeed is enabled and the speed is over the speedThreshold, then....
+            player.motionY > 0 || System.currentTimeMillis() < upPitchTimer || player.movementInput.jump -> -upPitch //If the player is moving up, the player is pressing space, or upPitchTimer is still going, use -upPitch
+            controlSpeed && playerSpeedCal > speedThreshold -> { //If controlSpeed is enabled and the speed is over the speedThreshold, then....
                 upPitchTimer = System.currentTimeMillis() + 1000 //Set upPitchTimer for 1 second
                 -upPitch} //Use -upPitch
-            controlSpeed && playerSpeedCal < speedThreshold/descendSpeedFactor -> downPitch/descendPitchFactor //When the player is moving slower, this code can make the pitch less extreme
+            controlSpeed && speedPercentOfMax < slowPercentage -> speedPercentOfMax/slowPercentage*downPitch //Simple expression that slowly curves the pitch into downPitch
             else -> downPitch} // If none of the other conditions are met, use downPitch
     }
 
