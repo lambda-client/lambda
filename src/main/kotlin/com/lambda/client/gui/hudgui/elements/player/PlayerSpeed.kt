@@ -23,7 +23,7 @@ internal object PlayerSpeed : LabelHud(
         MPH("mph", 2.237) // Monkey Americans
     }
 
-    val speedList = ArrayDeque<Double>()
+    private val speedList = ArrayDeque<Double>()
 
     override fun SafeClientEvent.updateText() {
         updateSpeedList()

@@ -117,7 +117,7 @@ object AutoOffhand : Module(
         else -> null
     }
 
-    private fun SafeClientEvent.checkTotem() = player.scaledHealth < hpThreshold
+    private fun SafeClientEvent.checkTotem() = player.scaledHealth < hpThreshold 
         || (checkDamage && player.scaledHealth - maxDamage < hpThreshold)
 
     private fun SafeClientEvent.checkGapple() = offhandGapple
@@ -189,12 +189,8 @@ object AutoOffhand : Module(
             if (player.getDistance(entity) > 10.0f) continue
 
             when {
-                mob && entity is EntityMob -> {
-                    maxDamage = max(calcDamageFromMob(entity), maxDamage)
-                }
-                this@AutoOffhand.player && entity is EntityPlayer -> {
-                    maxDamage = max(calcDamageFromPlayer(entity, true), maxDamage)
-                }
+                mob && entity is EntityMob -> maxDamage = max(calcDamageFromMob(entity), maxDamage)
+                this@AutoOffhand.player && entity is EntityPlayer -> maxDamage = max(calcDamageFromPlayer(entity, true), maxDamage)
                 crystal && entity is EntityEnderCrystal -> {
                     val damage = CombatManager.crystalMap[entity] ?: continue
                     maxDamage = max(damage.selfDamage, maxDamage)
