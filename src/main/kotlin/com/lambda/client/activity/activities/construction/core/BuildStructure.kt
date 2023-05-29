@@ -19,6 +19,7 @@ import com.lambda.client.util.items.filterByStack
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.math.Direction
 import com.lambda.client.util.math.VectorUtils.multiply
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.block.BlockBush
 import net.minecraft.block.state.IBlockState
@@ -109,6 +110,7 @@ class BuildStructure(
                     }
                 }) return@safeListener
 
+                MessageSendHelper.sendWarningMessage("Block changed at $blockPos")
                 createBuildActivity(blockPos, targetState)
             }
         }

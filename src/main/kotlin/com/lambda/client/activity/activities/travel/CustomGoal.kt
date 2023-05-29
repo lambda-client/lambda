@@ -10,7 +10,7 @@ import com.lambda.client.util.threads.safeListener
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 class CustomGoal(
-    private val goal: Goal,
+    val goal: Goal,
     override val timeout: Long = 100000L
 ) : TimeoutActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {

@@ -4,12 +4,14 @@ import com.lambda.client.setting.settings.impl.number.DoubleSetting
 import com.lambda.client.setting.settings.impl.number.FloatSetting
 import com.lambda.client.setting.settings.impl.number.IntegerSetting
 import com.lambda.client.setting.settings.impl.other.BindSetting
+import com.lambda.client.setting.settings.impl.other.BlockPosSetting
 import com.lambda.client.setting.settings.impl.other.ColorSetting
 import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
 import com.lambda.client.setting.settings.impl.primitive.EnumSetting
 import com.lambda.client.setting.settings.impl.primitive.StringSetting
 import com.lambda.client.util.Bind
 import com.lambda.client.util.color.ColorHolder
+import net.minecraft.util.math.BlockPos
 import java.util.function.BooleanSupplier
 
 /**
@@ -74,6 +76,14 @@ interface SettingRegister<T : Any> {
         visibility: () -> Boolean = { true },
         description: String = ""
     ) = setting(ColorSetting(name, value, hasAlpha, visibility, description))
+
+    /** BlockPos Setting */
+    fun T.setting(
+        name: String,
+        value: BlockPos,
+        visibility: () -> Boolean = { true },
+        description: String = ""
+    ) = setting(BlockPosSetting(name, value, visibility, description))
 
     /** Boolean Setting */
     fun T.setting(

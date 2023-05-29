@@ -131,5 +131,28 @@ object BuildToolsCommand : ClientCommand(
                 MessageSendHelper.sendChatMessage("Food item: &7${BuildTools.defaultFood.registryName}&r")
             }
         }
+
+        literal("storage") {
+            literal("add", "new", "+") {
+                blockPos("pos1") { pos1 ->
+                    blockPos("pos2") { pos2 ->
+                        execute("Sets storage area") {
+                            BuildTools.storagePos1.value = pos1.value
+                            BuildTools.storagePos2.value = pos2.value
+                            MessageSendHelper.sendChatMessage("Added storage area (${pos1.value}x${pos2.value}). Use &7${prefix}buildtools storage remove&r to remove it.")
+//                            BuildTools.storageAreas.add(it.args[0].value to it.args[1].value)
+//                            MessageSendHelper.sendChatMessage("Added storage area with id ${BuildTools.storageAreas.size - 1}.")
+                        }
+                    }
+                }
+            }
+            literal("remove", "rem", "-") {
+                int("id") {
+                    execute("Not yet implemented") {
+                        MessageSendHelper.sendChatMessage("Not yet implemented.")
+                    }
+                }
+            }
+        }
     }
 }

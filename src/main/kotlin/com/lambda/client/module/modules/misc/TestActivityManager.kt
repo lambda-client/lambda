@@ -51,7 +51,7 @@ object TestActivityManager : Module(
 
     private val ectiectietit by setting("Graffiti", false, consumer = { _, _->
         addSubActivities(
-            Graffiti()
+            Graffiti(100)
         )
         false
     })
