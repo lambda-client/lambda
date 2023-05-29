@@ -1,6 +1,8 @@
 package com.lambda.client.manager.managers
 
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.inventory.DumpSlot
+import com.lambda.client.activity.activities.storage.StoreItemsToStash
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkAABBRender
 import com.lambda.client.activity.types.RenderOverlayTextActivity
@@ -24,8 +26,14 @@ import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.ProjectionUtils
 import com.lambda.client.util.graphics.font.FontRenderAdapter
+import com.lambda.client.util.items.countEmpty
+import com.lambda.client.util.items.inventorySlots
+import com.lambda.client.util.items.item
+import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
+import net.minecraft.init.Blocks
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.GL11
 
@@ -42,6 +50,14 @@ object ActivityManager : Manager, Activity() {
 
             /* life support systems */
             if (AutoEat.eating) return@safeListener
+
+            if (BuildTools.storageManagement
+                && subActivities.filterIsInstance<StoreItemsToStash>().isEmpty()
+                && player.inventorySlots.countEmpty() <= BuildTools.keepFreeSlots
+            ) {
+                MessageSendHelper.sendChatMessage("Inventory full, storing items to stash at ${BuildTools.storagePos1.value.asString()}")
+                addSubActivities(StoreItemsToStash(listOf(Blocks.STONE.item, Blocks.DIRT.item)))
+            }
 
             allSubActivities
                 .filter { it.status == Status.RUNNING && it.subActivities.isEmpty() }

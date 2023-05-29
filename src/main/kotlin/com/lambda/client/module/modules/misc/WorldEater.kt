@@ -1,19 +1,16 @@
 package com.lambda.client.module.modules.misc
 
 import com.lambda.client.activity.activities.construction.ClearArea
-import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.setting.settings.impl.collection.CollectionSetting
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.math.VectorUtils.multiply
 import com.lambda.client.util.threads.runSafe
-import com.lambda.client.util.threads.safeListener
+import net.minecraft.item.Item
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.RayTraceResult
-import net.minecraftforge.fml.common.gameevent.InputEvent
-import org.lwjgl.input.Mouse
 
 object WorldEater : Module(
     name = "WorldEater",
@@ -28,25 +25,36 @@ object WorldEater : Module(
     private val sliceDirection by setting("Slice direction", EnumFacing.NORTH)
     private val collectAll by setting("Collect all", false)
     private val start by setting("Start", false, consumer = { _, _ ->
-        clearArea()
+        runSafe {
+            val origin = player.flooredPosition
+            val currentDirection = player.horizontalFacing
+            val firstPos = origin.add(currentDirection.directionVec)
+            val secondPos = origin.add(
+                currentDirection.directionVec.multiply(size)
+            ).add(
+                currentDirection.rotateY().directionVec.multiply(size)
+            ).down(depth)
+
+            startClearingArea(firstPos, secondPos)
+        }
         false
     })
+    val collectables = setting(CollectionSetting("Pick up items", linkedSetOf("minecraft:dirt", "minecraft:cobblestone")))
+    val pos1 = setting("Pos1", BlockPos.ORIGIN)
+    val pos2 = setting("Pos2", BlockPos.ORIGIN)
+
+    val stashes = setting(CollectionSetting("Stashes", linkedSetOf<BlockPos>()))
+    val dropOff = setting(CollectionSetting("Drop off", linkedSetOf<BlockPos>()))
+
+    val pickUp: List<Item>
+        get() = collectables.value.mapNotNull { Item.getByNameOrId(it) }
 
     private var ownedBuildStructure: ClearArea? = null
-    private var firstPos: BlockPos? = null
-    private var secondPos: BlockPos? = null
 
     init {
         onEnable {
             runSafe {
-                val origin = player.flooredPosition
-                val currentDirection = player.horizontalFacing
-                firstPos = origin.add(currentDirection.directionVec)
-                secondPos = origin.add(
-                    currentDirection.directionVec.multiply(size)
-                ).add(
-                    currentDirection.rotateY().directionVec.multiply(size)
-                ).down(depth)
+                startClearingArea()
             }
         }
 
@@ -62,13 +70,13 @@ object WorldEater : Module(
         }
     }
 
-    private fun clearArea() {
-        val first = firstPos ?: return
-        val second = secondPos ?: return
-
+    fun startClearingArea(
+        pos1: BlockPos = this.pos1.value,
+        pos2: BlockPos = this.pos2.value
+    ) {
         ClearArea(
-            first,
-            second,
+            pos1,
+            pos2,
             layerSize,
             sliceSize,
             collectAll = collectAll

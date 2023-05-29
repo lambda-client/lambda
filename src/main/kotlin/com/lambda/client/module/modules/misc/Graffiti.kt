@@ -11,18 +11,23 @@ object Graffiti : Module(
     description = "Spams item frames and maps",
     category = Category.MISC
 ) {
-    private val mapID by setting("Map ID", 0, 0..65535, 1)
-    private val ownedActivity = Graffiti()
+    private val mapID = setting("Map ID", 0, 0..65535, 1)
+    private var ownedActivity: Graffiti? = null
 
     init {
         onEnable {
-            addSubActivities(ownedActivity)
+            Graffiti(mapID.value).let {
+                ownedActivity = it
+                addSubActivities(it)
+            }
         }
 
         onDisable {
             runSafe {
-                with(ownedActivity) {
-                    cancel()
+                ownedActivity?.let {
+                    with(it) {
+                        cancel()
+                    }
                 }
             }
         }

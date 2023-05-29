@@ -10,6 +10,7 @@ import net.minecraft.block.Block
 import net.minecraft.init.Blocks
 import net.minecraft.init.Items
 import net.minecraft.item.Item
+import net.minecraft.util.math.BlockPos
 
 object BuildTools : Module(
     name = "BuildTools",
@@ -54,13 +55,15 @@ object BuildTools : Module(
     val directionForce by setting("Block Direction Exploit", true, { page == Page.BUILDING }, description = "EXPLOIT: Forces the direction of the block to be placed")
 
     /* storage management */
-//    val storageManagement by setting("Manage Storage", true, { page == Page.STORAGE_MANAGEMENT }, description = "Choose to interact with container using only packets")
+    val storageManagement by setting("Manage Storage", true, { page == Page.STORAGE_MANAGEMENT }, description = "Choose to interact with container using only packets")
+    val storagePos1 = setting("Storage Pos 1", BlockPos.ORIGIN)
+    val storagePos2 = setting("Storage Pos 2", BlockPos.ORIGIN)
 //    val searchEChest by setting("Search Ender Chest", false, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Allow access to your ender chest")
 //    val leaveEmptyShulkers by setting("Leave Empty Shulkers", true, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Does not break empty shulkers")
 //    val grindObsidian by setting("Grind Obsidian", true, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Destroy Ender Chests to obtain Obsidian")
 //    val pickupRadius by setting("Pickup radius", 8, 1..50, 1, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Sets the radius for pickup", unit = " blocks")
 //    val fastFill by setting("Fast Fill", true, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Moves as many item stacks to inventory as possible")
-//    val keepFreeSlots by setting("Free Slots", 1, 0..30, 1, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "How many inventory slots are untouched on refill", unit = " slots")
+    val keepFreeSlots by setting("Free Slots", 1, 0..30, 1, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "How many inventory slots are untouched on refill", unit = " slots")
 //    val lockSlotHotkey by setting("Lock Slot Hotkey", Bind(), { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Sets the hotkey for locking a slot")
 //    val manageFood by setting("Manage Food", true, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Choose to manage food")
 //    val manageTools by setting("Manage Tools", true, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Choose to manage food")
@@ -69,6 +72,7 @@ object BuildTools : Module(
 //    val leastFood by setting("Least Food", 1, 0..64, 1, { page == Page.STORAGE_MANAGEMENT && manageFood && storageManagement }, description = "How many food items are saved")
 //    val preferEnderChests by setting("Prefer Ender Chests", false, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Prevent using raw material shulkers")
 
+    /* tools */
     val usePickaxe by setting("Force Pickaxe", true, { page == Page.TOOLS }, description = "Use pickaxe to mine blocks")
     val useAxe by setting("Force Axe", true, { page == Page.TOOLS }, description = "Use axe to mine blocks")
     val useShovel by setting("Force Shovel", true, { page == Page.TOOLS }, description = "Use shovel to mine blocks")
@@ -103,7 +107,7 @@ object BuildTools : Module(
 //    val proxyCommand by setting("Proxy Command", "/dc", { page == Page.MISC && disableMode == DisableMode.LOGOUT && usingProxy }, description = "Command to be sent to log out")
 
     private enum class Page {
-        BUILDING, TOOLS, RENDER
+        BUILDING, STORAGE_MANAGEMENT, TOOLS, RENDER
     }
 
     enum class DebugLevel {

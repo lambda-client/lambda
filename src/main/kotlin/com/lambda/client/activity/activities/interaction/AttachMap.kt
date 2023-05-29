@@ -50,7 +50,7 @@ class AttachMap(
     }
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
-        if (childActivity !is SwapOrSwitchToSlot) return
+        if (childActivity !is AcquireItemInActiveHand) return
 
         connection.sendPacket(CPacketUseEntity(itemFrame, EnumHand.MAIN_HAND))
     }
