@@ -4,6 +4,7 @@ import com.lambda.client.commons.interfaces.Alias
 import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.commons.interfaces.Nameable
 import com.lambda.client.event.LambdaEventBus
+import com.lambda.client.gui.GuiManager
 import com.lambda.client.gui.rgui.windows.BasicWindow
 import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.module.modules.client.Hud
@@ -18,6 +19,7 @@ import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
+import net.minecraft.client.gui.GuiChat
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.GL11.glScalef
 
@@ -34,7 +36,13 @@ abstract class AbstractHudElement(
     val bind by setting("Bind", Bind())
     val scale by setting("Scale", 1.0f, 0.1f..4.0f, 0.05f)
     val default = setting("Default", false)
+    private val overridePrimaryColor by setting("Override Primary Color", false)
+    private val overridePrimaryColorValue by setting("Override Primary Color Value", Hud.primaryColor, visibility = { overridePrimaryColor })
+    private val overrideSecondaryColor by setting("Override Secondary Color", false)
+    private val overrideSecondaryColorValue by setting("Override Secondary Color Value", Hud.secondaryColor, visibility = { overrideSecondaryColor })
 
+    val primaryColor get() = if (overridePrimaryColor) overridePrimaryColorValue else Hud.primaryColor
+    val secondaryColor get() = if (overrideSecondaryColor) overrideSecondaryColorValue else Hud.secondaryColor
     override val resizable = false
 
     final override val minWidth: Float get() = FontRenderAdapter.getFontHeight() * scale * 2.0f
@@ -47,12 +55,64 @@ abstract class AbstractHudElement(
     open val hudHeight: Float get() = 10f
 
     val settingList get() = GuiConfig.getSettings(this)
+    private var chatSnapping = false
+    private val snappedElements = mutableListOf<AbstractHudElement>()
+    private val chatSnapY = 15f
 
     init {
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.END || !visible) return@safeListener
             width = maxWidth
             height = maxHeight
+            if (Hud.chatSnap) {
+                if (mc.currentScreen is GuiChat && !chatSnapping) {
+                    val screenH = (mc.currentScreen as GuiChat).height
+                    if (posY >= screenH - height - 3 && posX <= 3 && yShift == 0.0f) {
+                        val prevPosYSnap = posY
+                        yShift = -chatSnapY
+                        snappedElements.clear()
+                        GuiManager.getHudElementOrNull(componentName)?.let { snappedElements.add(it) }
+                        chatSnapCheck(componentName, prevPosYSnap)
+                        chatSnapping = true
+                    }
+                } else if (mc.currentScreen !is GuiChat && chatSnapping) {
+                    yShift = 0.0f
+                    for (element in snappedElements) {
+                        element.yShift = 0.0f
+                    }
+                    snappedElements.clear()
+                    chatSnapping = false
+                }
+            }
+        }
+    }
+
+    private fun chatSnapCheck(thisElement: String, prevSnapY: Float) {
+        for (element in GuiManager.hudElements) {
+            if (!snappedElements.contains(element)
+                && element.componentName != thisElement
+                && element.visible
+                && element.posY + element.height >= prevSnapY - 3
+                && element.posX <= 3) {
+                snappedElements.add(element)
+                chatSnapCheck(element.componentName, element.posY)
+                element.yShift = -chatSnapY
+            }
+        }
+    }
+
+    override fun onReposition() {
+        super.onReposition()
+        if (Hud.collisionSnapping) {
+            for (element in GuiManager.hudElements) {
+                if (element.componentName != componentName && element.visible && element.posY + element.height >= posY && element.posY <= posY + height && element.posX + element.width >= posX && element.posX <= posX + width) {
+                    if (posY + height / 2 <= element.posY + element.height / 2) {
+                        posY = element.posY - height
+                    } else {
+                        posY = element.posY + element.height
+                    }
+                }
+            }
         }
     }
 
@@ -110,11 +170,6 @@ abstract class AbstractHudElement(
         PLAYER("Player"),
         WORLD("World"),
         MISC("Misc")
-    }
-
-    protected companion object {
-        val primaryColor get() = Hud.primaryColor
-        val secondaryColor get() = Hud.secondaryColor
     }
 
 }

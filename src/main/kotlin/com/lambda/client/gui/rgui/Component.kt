@@ -45,6 +45,7 @@ open class Component(
     var relativePosY by relativePosYSetting
     var dockingH by dockingHSetting
     var dockingV by dockingVSetting
+    var yShift = 0.0f
 
     var posX: Float
         get() {
@@ -57,7 +58,7 @@ open class Component(
 
     var posY: Float
         get() {
-            return relativeToAbsY(relativePosY)
+            return relativeToAbsY(relativePosY) + yShift
         }
         set(value) {
             if (!LambdaMod.ready) return
