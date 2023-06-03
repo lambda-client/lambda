@@ -273,6 +273,7 @@ object LambdaClickGui : AbstractLambdaGui<ModuleSettingWindow, AbstractModule>()
         val allButtons = ModuleManager.modules
             .groupBy { it.category.displayName }
             .mapValues { (_, modules) -> modules.map { ModuleButton(it) } }
+        allButtons.forEach { it.value.forEach { it.onGuiInit() }}
 
         windows.filter { window ->
             window != pluginWindow

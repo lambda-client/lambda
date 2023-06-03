@@ -99,7 +99,7 @@ object LambdaHudGui : AbstractLambdaGui<HudSettingWindow, AbstractHudElement>() 
 
     init {
         safeListener<RenderOverlayEvent>(0) {
-            if (Hud.isDisabled) return@safeListener
+            if (Hud.isDisabled || mc.currentScreen is LambdaHudGui) return@safeListener
 
             val vertexHelper = VertexHelper(GlStateUtils.useVbo())
             GlStateUtils.rescaleLambda()
@@ -117,6 +117,8 @@ object LambdaHudGui : AbstractLambdaGui<HudSettingWindow, AbstractHudElement>() 
     }
 
     private fun renderHudElement(vertexHelper: VertexHelper, window: AbstractHudElement) {
+        window.updatePrevPos()
+        window.updatePrevSize()
         glPushMatrix()
         glTranslatef(window.renderPosX, window.renderPosY, 0.0f)
 
