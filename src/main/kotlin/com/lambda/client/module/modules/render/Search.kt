@@ -87,8 +87,6 @@ object Search : Module(
     private val blockRenderer = ESPRenderer()
     private val entityRenderer = ESPRenderer()
     private val foundBlockMap: ConcurrentMap<BlockPos, IBlockState> = ConcurrentHashMap()
-    private val foundEntityUpdateLock = Any()
-    private val foundBlocksUpdateLock = Any()
     private var blockRenderUpdateJob: Job? = null
     private var entityRenderUpdateJob: Job? = null
     private var blockSearchJob: Job? = null
@@ -130,16 +128,12 @@ object Search : Module(
             }
             if (blockSearch) {
                 if (!(hideF1 && mc.gameSettings.hideGUI)) {
-                    synchronized(foundBlocksUpdateLock) {
-                        blockRenderer.render(false)
-                    }
+                    blockRenderer.render(false)
                 }
             }
             if (entitySearch) {
                 if (!(hideF1 && mc.gameSettings.hideGUI)) {
-                    synchronized(foundEntityUpdateLock) {
-                        entityRenderer.render(false)
-                    }
+                    entityRenderer.render(false)
                 }
             }
         }
@@ -212,9 +206,7 @@ object Search : Module(
             .filter { it.distanceTo(player.getPositionEyes(1f)) < range }
             .map { Triple(it.renderBoundingBox.offset(EntityUtils.getInterpolatedAmount(it, LambdaTessellator.pTicks())), entitySearchColor, GeometryMasks.Quad.ALL) }
             .toMutableList()
-        synchronized(foundEntityUpdateLock) {
-            entityRenderer.replaceAll(renderList)
-        }
+        entityRenderer.replaceAll(renderList)
     }
 
     private fun SafeClientEvent.searchAllLoadedChunks() {
@@ -284,9 +276,7 @@ object Search : Module(
                 }
             }
             .toMutableList()
-        synchronized(foundBlocksUpdateLock) {
-            blockRenderer.replaceAll(renderList)
-        }
+        blockRenderer.replaceAll(renderList)
     }
 
     private fun updateAlpha() {
