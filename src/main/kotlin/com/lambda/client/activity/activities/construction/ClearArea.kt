@@ -1,10 +1,15 @@
 package com.lambda.client.activity.activities.construction
 
+import baritone.api.pathing.goals.GoalXZ
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.construction.core.BuildStructure
+import com.lambda.client.activity.activities.travel.CustomGoal
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.module.modules.misc.WorldEater
 import com.lambda.client.util.color.ColorHolder
+import com.lambda.client.util.math.VectorUtils.distanceTo
+import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
 import net.minecraft.util.EnumFacing
@@ -12,41 +17,42 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 
 class ClearArea(
-    pos1: BlockPos,
-    pos2: BlockPos,
+    private val area: WorldEater.Area,
     private val layerSize: Int = 1,
     private val sliceSize: Int = 1,
     private val sliceDirection: EnumFacing = EnumFacing.NORTH,
     private val collectAll: Boolean = false,
     override val aabbCompounds: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
 ) : RenderAABBActivity, Activity() {
-    private val minX = minOf(pos1.x, pos2.x)
-    private val minY = minOf(pos1.y, pos2.y)
-    private val minZ = minOf(pos1.z, pos2.z)
-    private val maxX = maxOf(pos1.x, pos2.x)
-    private val maxY = maxOf(pos1.y, pos2.y)
-    private val maxZ = maxOf(pos1.z, pos2.z)
 
     init {
         RenderAABBActivity.Companion.RenderAABB(
             AxisAlignedBB(
-                minX.toDouble(), minY.toDouble(), minZ.toDouble(),
-                (maxX + 1).toDouble(), (maxY + 1).toDouble(), (maxZ + 1).toDouble()
+                area.minX.toDouble(), area.minY.toDouble(), area.minZ.toDouble(),
+                (area.maxX + 1).toDouble(), (area.maxY + 1).toDouble(), (area.maxZ + 1).toDouble()
             ),
             ColorHolder(245, 66, 66)
         ).also { aabbCompounds.add(it) }
     }
 
     override fun SafeClientEvent.onInitialize() {
-        val layers = (minY..maxY).reversed()
+        with(area) {
+            if (!playerInArea) {
+                MessageSendHelper.sendWarningMessage("You are not in the area!")
+                addSubActivities(CustomGoal(GoalXZ(center.x, center.z)))
+                return@onInitialize
+            }
+        }
+
+        val layers = (area.minY..area.maxY).reversed()
 
         val structure = mutableMapOf<BlockPos, IBlockState>()
 
         layers.forEach { y ->
             if (y !in 0..world.actualHeight) return@forEach
 
-            (minX..maxX).forEach { x ->
-                (minZ..maxZ).forEach { z ->
+            (area.minX..area.maxX).forEach { x ->
+                (area.minZ..area.maxZ).forEach { z ->
                     structure[BlockPos(x, y, z)] = Blocks.AIR.defaultState
                 }
             }

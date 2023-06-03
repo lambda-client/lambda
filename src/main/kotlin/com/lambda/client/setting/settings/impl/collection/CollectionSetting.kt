@@ -2,6 +2,7 @@ package com.lambda.client.setting.settings.impl.collection
 
 import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
+import com.lambda.client.LambdaMod
 import com.lambda.client.setting.settings.ImmutableSetting
 
 class CollectionSetting<E : Any, T : MutableCollection<E>>(
@@ -51,7 +52,10 @@ class CollectionSetting<E : Any, T : MutableCollection<E>>(
 
     override fun read(jsonElement: JsonElement?) {
         jsonElement?.asJsonArray?.let {
-            val cacheArray = gson.fromJson<Array<E>>(it, TypeToken.getArray(entryType ?: value.first().javaClass).type)
+            LambdaMod.LOG.info("Reading collection setting $name $it")
+            val cacheArray = gson.fromJson<Array<E>>(
+                it, TypeToken.getArray(entryType ?: value.first().javaClass).type
+            )
             synchronized(lockObject) {
                 value.clear()
                 value.addAll(cacheArray)

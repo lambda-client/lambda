@@ -5,6 +5,12 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import com.lambda.client.commons.interfaces.Nameable
+import com.lambda.client.setting.serializables.BlockPosSerializer
+import com.lambda.client.setting.serializables.BlockSerializer
+import com.lambda.client.setting.serializables.ItemSerializer
+import net.minecraft.block.Block
+import net.minecraft.item.Item
+import net.minecraft.util.math.BlockPos
 import kotlin.reflect.KProperty
 
 abstract class AbstractSetting<T : Any> : Nameable {
@@ -47,7 +53,12 @@ abstract class AbstractSetting<T : Any> : Nameable {
         value.hashCode()
 
     protected companion object {
-        val gson: Gson = GsonBuilder().setPrettyPrinting().create()
+        val gson: Gson = GsonBuilder()
+            .registerTypeAdapter(BlockPos::class.java, BlockPosSerializer)
+            .registerTypeAdapter(Block::class.java, BlockSerializer)
+            .registerTypeAdapter(Item::class.java, ItemSerializer)
+            .setPrettyPrinting()
+            .create()
         val parser = JsonParser()
     }
 }
