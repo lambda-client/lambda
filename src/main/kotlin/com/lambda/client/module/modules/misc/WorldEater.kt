@@ -1,88 +1,130 @@
 package com.lambda.client.module.modules.misc
 
 import com.lambda.client.activity.activities.construction.ClearArea
+import com.lambda.client.command.CommandManager.prefix
+import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.setting.settings.impl.collection.CollectionSetting
 import com.lambda.client.util.EntityUtils.flooredPosition
-import com.lambda.client.util.math.VectorUtils.multiply
+import com.lambda.client.util.items.item
+import com.lambda.client.util.math.CoordinateConverter.asString
+import com.lambda.client.util.math.VectorUtils.distanceTo
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
+import net.minecraft.init.Blocks
 import net.minecraft.item.Item
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.BlockPos
 
 object WorldEater : Module(
     name = "WorldEater",
-    description = "Easy perimeter building",
+    description = "Full auto excavation",
     category = Category.MISC,
     alias = arrayOf("we")
 ) {
-    private val size by setting("Size", 10, 1..100, 1)
-    private val depth by setting("Depth", 3, 1..100, 1)
     private val layerSize by setting("Layers size", 1, 1..6, 1)
     private val sliceSize by setting("Slice size", 1, 1..6, 1)
     private val sliceDirection by setting("Slice direction", EnumFacing.NORTH)
     private val collectAll by setting("Collect all", false)
-    private val start by setting("Start", false, consumer = { _, _ ->
-        runSafe {
-            val origin = player.flooredPosition
-            val currentDirection = player.horizontalFacing
-            val firstPos = origin.add(currentDirection.directionVec)
-            val secondPos = origin.add(
-                currentDirection.directionVec.multiply(size)
-            ).add(
-                currentDirection.rotateY().directionVec.multiply(size)
-            ).down(depth)
 
-            startClearingArea(firstPos, secondPos)
-        }
-        false
-    })
-    val collectables = setting(CollectionSetting("Pick up items", linkedSetOf("minecraft:dirt", "minecraft:cobblestone")))
-    val pos1 = setting("Pos1", BlockPos.ORIGIN)
-    val pos2 = setting("Pos2", BlockPos.ORIGIN)
+    private val defaultPickupItems = linkedSetOf(
+        Blocks.DIRT.item,
+        Blocks.GRASS.item,
+        Blocks.STONE.item,
+        Blocks.COBBLESTONE.item,
+        Blocks.GRAVEL.item,
+        Blocks.SAND.item,
+        Blocks.SANDSTONE.item,
+        Blocks.RED_SANDSTONE.item,
+        Blocks.CLAY.item
+    )
 
-    val stashes = setting(CollectionSetting("Stashes", linkedSetOf<BlockPos>()))
-    val dropOff = setting(CollectionSetting("Drop off", linkedSetOf<BlockPos>()))
+    val collectables = setting(CollectionSetting("Pick up items", defaultPickupItems, entryType = Item::class.java))
+    val quarries = setting(CollectionSetting("Quarries", mutableListOf(), entryType = Area::class.java))
+    val stashes = setting(CollectionSetting("Stashes", mutableListOf(), entryType = Stash::class.java))
+    val dropOff = setting(CollectionSetting("Drop offs", mutableListOf(), entryType = DropOff::class.java))
 
-    val pickUp: List<Item>
-        get() = collectables.value.mapNotNull { Item.getByNameOrId(it) }
-
-    private var ownedBuildStructure: ClearArea? = null
+    private var ownedActivity: ClearArea? = null
 
     init {
         onEnable {
+            if (quarries.value.isEmpty()) {
+                MessageSendHelper.sendChatMessage("No quarries set yet. Use &7${prefix}we quarry add&r to add one.")
+                disable()
+                return@onEnable
+            }
+
             runSafe {
-                startClearingArea()
+                clearAllAreas()
             }
         }
 
         onDisable {
             runSafe {
-                ownedBuildStructure?.let {
+                ownedActivity?.let {
                     with(it) {
                         cancel()
                     }
                 }
-                ownedBuildStructure = null
+                ownedActivity = null
             }
         }
     }
 
-    fun startClearingArea(
-        pos1: BlockPos = this.pos1.value,
-        pos2: BlockPos = this.pos2.value
-    ) {
-        ClearArea(
-            pos1,
-            pos2,
-            layerSize,
-            sliceSize,
-            collectAll = collectAll
-        ).also {
-            ownedBuildStructure = it
-            addSubActivities(it)
+    fun SafeClientEvent.clearAllAreas() {
+        quarries.value.minByOrNull { player.distanceTo(it.pos1) }?.let { area ->
+            MessageSendHelper.sendChatMessage("Start excavating closest area: $area")
+            ClearArea(
+                area,
+                layerSize,
+                sliceSize,
+                sliceDirection,
+                collectAll = collectAll
+            ).also {
+                ownedActivity = it
+                addSubActivities(it)
+            }
         }
+    }
+
+    data class DropOff(val area: Area, val items: List<Item>) {
+        override fun toString() = "($area)\n${items.joinToString {
+            "  &7${it.registryName.toString()}\n"
+        }}"
+    }
+    data class Stash(val area: Area, val items: List<Item>) {
+        override fun toString() = "($area)\n${items.joinToString {
+            "  &7${it.registryName.toString()}\n"
+        }}"
+    }
+
+    data class Area(val pos1: BlockPos, val pos2: BlockPos) {
+        val center: BlockPos
+            get() = BlockPos(
+                (pos1.x + pos2.x) / 2,
+                (pos1.y + pos2.y) / 2,
+                (pos1.z + pos2.z) / 2
+            )
+
+        val SafeClientEvent.playerInArea: Boolean
+            get() = player.flooredPosition.x in minX..maxX
+                && player.flooredPosition.z in minZ..maxZ
+
+        val minX: Int
+            get() = minOf(pos1.x, pos2.x)
+        val minY: Int
+            get() = minOf(pos1.y, pos2.y)
+        val minZ: Int
+            get() = minOf(pos1.z, pos2.z)
+        val maxX: Int
+            get() = maxOf(pos1.x, pos2.x)
+        val maxY: Int
+            get() = maxOf(pos1.y, pos2.y)
+        val maxZ: Int
+            get() = maxOf(pos1.z, pos2.z)
+
+        override fun toString() = "(${pos1.asString()})x(${pos2.asString()})"
     }
 }
