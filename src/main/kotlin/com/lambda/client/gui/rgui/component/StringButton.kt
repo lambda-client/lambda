@@ -10,8 +10,6 @@ import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.Vec2f
 import net.minecraft.client.gui.GuiScreen
 import org.lwjgl.input.Keyboard
-import kotlin.math.max
-import kotlin.math.min
 
 class StringButton(val setting: StringSetting) : BooleanSlider(setting.name, 1.0, setting.description, setting.visibility) {
 

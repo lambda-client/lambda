@@ -133,6 +133,7 @@ abstract class AbstractHudElement(
     }
 
     final override fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
+        super.onRender(vertexHelper, absolutePos)
         renderFrame(vertexHelper)
         glScalef(scale, scale, scale)
         renderHud(vertexHelper)

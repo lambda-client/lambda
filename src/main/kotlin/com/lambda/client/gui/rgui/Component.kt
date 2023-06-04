@@ -111,22 +111,22 @@ open class Component(
         updatePrevSize()
     }
 
-    open fun onTick() {
-        updatePrevPos()
-        updatePrevSize()
-    }
+    open fun onTick() {}
 
-    private fun updatePrevPos() {
+    fun updatePrevPos() {
         prevPosX = posX
         prevPosY = posY
     }
 
-    private fun updatePrevSize() {
+    fun updatePrevSize() {
         prevWidth = width
         prevHeight = height
     }
 
-    open fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {}
+    open fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
+        updatePrevPos()
+        updatePrevSize()
+    }
 
     open fun onPostRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {}
 

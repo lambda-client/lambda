@@ -1,6 +1,8 @@
 package com.lambda.client.gui
 
+import com.lambda.client.event.events.RealWorldTickEvent
 import com.lambda.client.event.events.RenderOverlayEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.gui.rgui.WindowComponent
 import com.lambda.client.gui.rgui.windows.ColorPicker
 import com.lambda.client.gui.rgui.windows.SettingWindow
@@ -14,13 +16,11 @@ import com.lambda.client.util.graphics.*
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.Vec2f
-import com.lambda.client.util.threads.safeListener
 import com.lambda.mixin.accessor.gui.AccessorGuiScreen
 import net.minecraft.client.gui.GuiScreen
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.util.ResourceLocation
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.input.Keyboard
 import org.lwjgl.input.Mouse
 import org.lwjgl.opengl.GL11.*
@@ -86,9 +86,7 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
         mc = Wrapper.minecraft
         windowList.add(ColorPicker)
 
-        safeListener<TickEvent.ClientTickEvent> { event ->
-            if (event.phase != TickEvent.Phase.START) return@safeListener
-
+        listener<RealWorldTickEvent> {
             blurShader.shader?.let { shaderGroup ->
                 val multiplier = ClickGUI.blur * fadeMultiplier
                 shaderGroup.listShaders.forEach { shader ->
@@ -101,7 +99,7 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
             }
         }
 
-        safeListener<RenderOverlayEvent>(-69420) {
+        listener<RenderOverlayEvent>(-69420) {
             if (!displayed.value && fadeMultiplier > 0.0f) {
                 drawScreen(0, 0, mc.renderPartialTicks)
             }
@@ -269,6 +267,7 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
 
     // Rendering
     final override fun drawScreen(mouseX: Int, mouseY: Int, partialTicks: Float) {
+        handleInput()
         val scale = ClickGUI.getScaleFactorFloat()
         val scaledResolution = ScaledResolution(mc)
         val multiplier = fadeMultiplier

@@ -93,11 +93,17 @@ open class Slider(
 
     override fun onTick() {
         super.onTick()
+        visibility?.let { visible = it.invoke() }
+    }
+
+    override fun onGuiInit() {
+        super.onGuiInit()
         height = maxHeight
         visibility?.let { visible = it.invoke() }
     }
 
     override fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
+        super.onRender(vertexHelper, absolutePos)
         // Slider bar
         if (renderProgress > 0.0) RenderUtils2D.drawRectFilled(vertexHelper, Vec2d(0.0, 0.0), Vec2d(renderWidth * renderProgress, renderHeight.toDouble()), GuiColors.primary)
 
@@ -135,6 +141,7 @@ open class Slider(
     }
 
     override fun onPostRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
+        super.onPostRender(vertexHelper, absolutePos)
         if (Tooltips.isDisabled || description.isBlank()) return
 
         var deltaTime = AnimationUtils.toDeltaTimeFloat(lastStateUpdateTime)

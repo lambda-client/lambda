@@ -194,7 +194,10 @@ open class ListWindow(
         )
         glEnable(GL_SCISSOR_TEST)
         glTranslatef(0.0f, -renderScrollProgress, 0.0f)
-
+        children.forEach {
+            it.updatePrevSize()
+            it.updatePrevPos()
+        }
         children.filter {
             it.visible
                 && it.renderPosY + it.renderHeight - renderScrollProgress > draggableHeight
@@ -212,13 +215,10 @@ open class ListWindow(
     override fun onMouseInput(mousePos: Vec2f) {
         super.onMouseInput(mousePos)
         val relativeMousePos = mousePos.minus(posX, posY - renderScrollProgress)
+        updateHovered(relativeMousePos)
         if (Mouse.getEventDWheel() != 0) {
             scrollTimer.reset()
             scrollSpeed -= Mouse.getEventDWheel() * 0.1f
-            updateHovered(relativeMousePos)
-        }
-        if (mouseState != MouseState.DRAG) {
-            updateHovered(relativeMousePos)
         }
         if (!minimized) (hoveredChild as? InteractiveComponent)?.let {
             it.onMouseInput(getRelativeMousePos(mousePos, it))
