@@ -60,29 +60,31 @@ abstract class AbstractHudElement(
     private val chatSnapY = 15f
 
     init {
-        safeListener<TickEvent.ClientTickEvent> {
-            if (it.phase != TickEvent.Phase.END || !visible) return@safeListener
+        safeListener<TickEvent.ClientTickEvent> { event ->
+            if (event.phase != TickEvent.Phase.END || !visible) return@safeListener
             width = maxWidth
             height = maxHeight
-            if (Hud.chatSnap) {
-                if (mc.currentScreen is GuiChat && !chatSnapping) {
-                    val screenH = (mc.currentScreen as GuiChat).height
-                    if (posY >= screenH - height - 3 && posX <= 3 && yShift == 0.0f) {
-                        val prevPosYSnap = posY
-                        yShift = -chatSnapY
-                        snappedElements.clear()
-                        GuiManager.getHudElementOrNull(componentName)?.let { snappedElements.add(it) }
-                        chatSnapCheck(componentName, prevPosYSnap)
-                        chatSnapping = true
-                    }
-                } else if (mc.currentScreen !is GuiChat && chatSnapping) {
-                    yShift = 0.0f
-                    for (element in snappedElements) {
-                        element.yShift = 0.0f
-                    }
+
+            if (!Hud.chatSnap) return@safeListener
+
+            val currentScreen = mc.currentScreen
+            if (currentScreen is GuiChat && !chatSnapping) {
+                val screenH = currentScreen.height
+                if (posY >= screenH - height - 3 && posX <= 3 && yShift == 0.0f) {
+                    val prevPosYSnap = posY
+                    yShift = -chatSnapY
                     snappedElements.clear()
-                    chatSnapping = false
+                    GuiManager.getHudElementOrNull(componentName)?.let { snappedElements.add(it) }
+                    chatSnapCheck(componentName, prevPosYSnap)
+                    chatSnapping = true
                 }
+            } else if (currentScreen !is GuiChat && chatSnapping) {
+                yShift = 0.0f
+                snappedElements.forEach {
+                    it.yShift = 0.0f
+                }
+                snappedElements.clear()
+                chatSnapping = false
             }
         }
     }
