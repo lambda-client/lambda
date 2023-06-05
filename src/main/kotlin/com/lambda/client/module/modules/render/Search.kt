@@ -10,9 +10,11 @@ import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.client.Hud
 import com.lambda.client.setting.settings.impl.collection.CollectionSetting
+import com.lambda.client.util.EntityUtils
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GeometryMasks
+import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.graphics.ShaderHelper
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.text.MessageSendHelper
@@ -26,14 +28,19 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import net.minecraft.block.BlockEnderChest
 import net.minecraft.block.BlockShulkerBox
+import net.minecraft.block.BlockStandingSign
+import net.minecraft.block.BlockWallSign
+import net.minecraft.block.state.BlockStateContainer.StateImplementation
 import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.EntityList
 import net.minecraft.entity.item.EntityItemFrame
 import net.minecraft.init.Blocks
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.network.play.server.SPacketMultiBlockChange
+import net.minecraft.tileentity.TileEntitySign
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
+import net.minecraft.util.text.TextComponentString
 import net.minecraft.world.chunk.Chunk
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.concurrent.ConcurrentHashMap
@@ -52,6 +59,8 @@ object Search : Module(
     private val blockSearch by setting("Block Search", true)
     private val illegalBedrock = setting("Illegal Bedrock", false)
     private val illegalNetherWater = setting("Illegal Nether Water", false)
+    private val oldSigns = setting("Old Signs", true)
+    private val oldSignsColor by setting("Old Signs Color", ColorHolder(220, 0, 0, 110), visibility = { oldSigns.value })
     private val range by setting("Search Range", 512, 0..4096, 8)
     private val yRangeBottom by setting("Top Y", 256, 0..256, 1)
     private val yRangeTop by setting("Bottom Y", 0, 0..256, 1)
@@ -91,6 +100,7 @@ object Search : Module(
         blockSearchList.editListeners.add { blockSearchListUpdateListener(isEnabled) }
         illegalBedrock.listeners.add { blockSearchListUpdateListener(illegalBedrock.value) }
         illegalNetherWater.listeners.add { blockSearchListUpdateListener(illegalNetherWater.value) }
+        oldSigns.listeners.add { blockSearchListUpdateListener(oldSigns.value) }
 
         onEnable {
             if (!overrideWarning && ShaderHelper.isIntegratedGraphics) {
@@ -142,7 +152,7 @@ object Search : Module(
         }
 
         safeListener<ChunkDataEvent> {
-            // We avoid listening to SPacketChunkData directly here as even on PostReceive the chunk is not always
+            // We avoid listening to SPacketChunkData directly here, as even on PostReceive the chunk is not always
             // fully loaded into the world. Chunk load is handled on a separate thread in mc code.
             // i.e. world.getChunk(x, z) can and will return an empty chunk in the packet event
             defaultScope.launch {
@@ -191,16 +201,18 @@ object Search : Module(
                     entitySearchDimensionFilter.value.find { dimFilter -> dimFilter.searchKey == entityName }?.dim
                 }?.contains(player.dimension) ?: true
             }
-            .sortedBy {
-                it.distanceTo(player.getPositionEyes(1f))
-            }
+            .sortedBy { it.distanceTo(player.getPositionEyes(1f)) }
             .take(maximumEntities)
-            .filter {
-                it.distanceTo(player.getPositionEyes(1f)) < range
+            .filter { it.distanceTo(player.getPositionEyes(1f)) < range }
+            .map {
+                Triple(
+                    it.renderBoundingBox.offset(EntityUtils.getInterpolatedAmount(it, LambdaTessellator.pTicks())),
+                    entitySearchColor,
+                    GeometryMasks.Quad.ALL
+                )
             }
             .toMutableList()
-        entityRenderer.clear()
-        renderList.forEach { entityRenderer.add(it, entitySearchColor) }
+        entityRenderer.replaceAll(renderList)
     }
 
     private fun SafeClientEvent.searchAllLoadedChunks() {
@@ -270,7 +282,6 @@ object Search : Module(
                 }
             }
             .toMutableList()
-
         blockRenderer.replaceAll(renderList)
     }
 
@@ -294,6 +305,15 @@ object Search : Module(
         for (y in yRange) for (x in xRange) for (z in zRange) {
             val pos = BlockPos(x, y, z)
             val blockState = chunk.getBlockState(pos)
+            if (isOldSign(blockState, pos)) {
+                val signState = if (blockState.block == Blocks.STANDING_SIGN) {
+                    OldStandingSign(blockState)
+                } else {
+                    OldWallSign(blockState)
+                }
+                blocks.add(pos to signState)
+                continue // skip searching for regular sign at this pos
+            }
             if (searchQuery(blockState, pos)) blocks.add(pos to blockState)
         }
         return blocks
@@ -304,8 +324,8 @@ object Search : Module(
         if (block == Blocks.AIR) return false
         return (blockSearchList.contains(block.registryName.toString())
             && blockSearchDimensionFilter.value.find { dimFilter ->
-                dimFilter.searchKey == block.registryName.toString()
-            }?.dim?.contains(player.dimension) ?: true)
+            dimFilter.searchKey == block.registryName.toString()
+        }?.dim?.contains(player.dimension) ?: true)
             || isIllegalBedrock(state, pos)
             || isIllegalWater(state)
     }
@@ -314,21 +334,34 @@ object Search : Module(
         if (!illegalBedrock.value) return false
         if (state.block != Blocks.BEDROCK) return false
         return when (player.dimension) {
-            0 -> {
-                pos.y >= 5
-            }
-            -1 -> {
-                pos.y in 5..122
-            }
-            else -> {
-                false
-            }
+            0 -> pos.y >= 5
+            -1 -> pos.y in 5..122
+            else -> false
         }
     }
 
     private fun SafeClientEvent.isIllegalWater(state: IBlockState): Boolean {
         if (!illegalNetherWater.value) return false
         return player.dimension == -1 && state.isWater
+    }
+
+    private fun SafeClientEvent.isOldSign(state: IBlockState, pos: BlockPos): Boolean {
+        if (!oldSigns.value) return false
+        return (state.block == Blocks.STANDING_SIGN || state.block == Blocks.WALL_SIGN) && isOldSignText(pos)
+    }
+
+    private fun SafeClientEvent.isOldSignText(pos: BlockPos): Boolean {
+        // Explanation: Old signs on 2b2t (pre-2015 <1.9 ?) have older style NBT text tags.
+        // We can tell them apart by checking if there are siblings in the tag.
+        // Old signs won't have siblings.
+        val signTextComponents = listOf(world.getTileEntity(pos))
+            .filterIsInstance<TileEntitySign>()
+            .flatMap { it.signText.toList() }
+            .filterIsInstance<TextComponentString>()
+            .toList()
+        return signTextComponents.isNotEmpty()
+            && signTextComponents.all { it.siblings.size == 0 }
+            && !signTextComponents.all { it.text.isEmpty() }
     }
 
     private fun SafeClientEvent.getBlockColor(pos: BlockPos, blockState: IBlockState): ColorHolder {
@@ -344,6 +377,12 @@ object Search : Module(
                 }
                 is BlockEnderChest -> {
                     ColorHolder(64, 49, 114)
+                }
+                is BlockOldStandingSign -> {
+                    oldSignsColor
+                }
+                is BlockOldWallSign -> {
+                    oldSignsColor
                 }
                 else -> {
                     val colorInt = blockState.getMapColor(world, pos).colorValue
@@ -361,4 +400,8 @@ object Search : Module(
         }
     }
 
+    class OldWallSign(blockStateIn: IBlockState): StateImplementation(BlockOldWallSign, blockStateIn.properties)
+    class OldStandingSign(blockStateIn: IBlockState): StateImplementation(BlockOldStandingSign, blockStateIn.properties)
+    object BlockOldWallSign: BlockWallSign()
+    object BlockOldStandingSign: BlockStandingSign()
 }
