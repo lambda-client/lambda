@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.5.2
 
       - name: Set up JDK
         uses: actions/setup-java@v3.11.0
@@ -27,7 +27,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Loading gradle cache
-        uses: actions/cache@v2.1.8
+        uses: actions/cache@v3.3.1
         with:
           path: |
             ~/.gradle/caches
@@ -90,10 +90,11 @@ jobs:
           path: lambda-${{ github.run_number }}-api-SHA256.txt
 
       - name: Get branch name
-        uses: nelonoel/branch-name@v1.0.1
+        id: branch-name
+        uses: tj-actions/branch-names@v7
 
       - name: Send Discord build message
-        if: github.ref == 'refs/heads/master'
+        if: steps.branch-name.outputs.is_default == 'true'
         run: |
           COMMITMESSAGE=`git log --pretty=format:'- \`%h\` %s' -5 --reverse` &&
           (curl "$WEBHOOK" -sS -H "Content-Type:application/json" -X POST -d "{\"content\":null,\"embeds\":[{\"title\":\"Build $BUILD\",\"description\":\"**Branch:** $BRANCH_NAME\\n**Changes:**\\n$COMMITMESSAGE\",\"url\":\"https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\",\"color\":1487872,\"fields\":[{\"name\":\"Artifacts:\",\"value\":\"- [lambda-$BUILD.zip](https://nightly.link/$GITHUB_REPOSITORY/workflows/nightly_build.yml/$BRANCH_NAME/lambda-$BUILD.zip)\"}],\"footer\":{\"text\":\"$GITHUB_REPOSITORY\"},\"thumbnail\":{\"url\":\"https://raw.githubusercontent.com/lambda-client/lambda/master/src/main/resources/assets/minecraft/lambda/lambda_map.png\"}}],\"username\":\"Github Actions\",\"avatar_url\":\"https://www.2b2t.com.au/assets/github.jpeg\"}")
