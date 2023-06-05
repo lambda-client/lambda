@@ -8,8 +8,8 @@ import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2d
 import com.lambda.client.util.math.Vec2f
+import net.minecraft.client.gui.GuiScreen
 import org.lwjgl.input.Keyboard
-import kotlin.math.max
 
 class StringButton(val setting: StringSetting) : BooleanSlider(setting.name, 1.0, setting.description, setting.visibility) {
 
@@ -61,18 +61,27 @@ class StringButton(val setting: StringSetting) : BooleanSlider(setting.name, 1.0
     override fun onKeyInput(keyCode: Int, keyState: Boolean) {
         super.onKeyInput(keyCode, keyState)
         val typedChar = Keyboard.getEventCharacter()
-        if (keyState) {
-            when (keyCode) {
-                Keyboard.KEY_RETURN -> {
-                    onStopListening(true)
+        if (!keyState) return
+
+        when (keyCode) {
+            Keyboard.KEY_V, Keyboard.KEY_INSERT -> {
+                if (!GuiScreen.isCtrlKeyDown() && keyCode == Keyboard.KEY_V) {
+                    componentName += typedChar
+                } else {
+                    componentName += GuiScreen.getClipboardString().trim()
                 }
-                Keyboard.KEY_BACK, Keyboard.KEY_DELETE -> {
-                    componentName = componentName.substring(0, max(componentName.length - 1, 0))
-                }
-                else -> if (typedChar >= ' ') {
+            }
+            Keyboard.KEY_C -> {
+                if (GuiScreen.isCtrlKeyDown()) {
+                    GuiScreen.setClipboardString(componentName)
+                } else {
                     componentName += typedChar
                 }
             }
+            Keyboard.KEY_RETURN -> onStopListening(true)
+            Keyboard.KEY_BACK -> componentName = componentName.dropLast(1)
+            Keyboard.KEY_DELETE -> componentName = ""
+            else -> if (typedChar >= ' ') componentName += typedChar
         }
     }
 
