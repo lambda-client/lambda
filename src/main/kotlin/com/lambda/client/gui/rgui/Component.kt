@@ -45,6 +45,7 @@ open class Component(
     var relativePosY by relativePosYSetting
     var dockingH by dockingHSetting
     var dockingV by dockingVSetting
+    var yShift = 0.0f
 
     var posX: Float
         get() {
@@ -57,7 +58,7 @@ open class Component(
 
     var posY: Float
         get() {
-            return relativeToAbsY(relativePosY)
+            return relativeToAbsY(relativePosY) + yShift
         }
         set(value) {
             if (!LambdaMod.ready) return
@@ -110,22 +111,22 @@ open class Component(
         updatePrevSize()
     }
 
-    open fun onTick() {
-        updatePrevPos()
-        updatePrevSize()
-    }
+    open fun onTick() {}
 
-    private fun updatePrevPos() {
+    fun updatePrevPos() {
         prevPosX = posX
         prevPosY = posY
     }
 
-    private fun updatePrevSize() {
+    fun updatePrevSize() {
         prevWidth = width
         prevHeight = height
     }
 
-    open fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {}
+    open fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
+        updatePrevPos()
+        updatePrevSize()
+    }
 
     open fun onPostRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {}
 

@@ -1,7 +1,6 @@
 package com.lambda.client.gui.rgui.windows
 
 import com.lambda.client.commons.extension.sumByFloat
-import com.lambda.client.gui.rgui.InteractiveComponent
 import com.lambda.client.gui.rgui.component.*
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.setting.settings.AbstractSetting
@@ -11,10 +10,8 @@ import com.lambda.client.setting.settings.impl.other.ColorSetting
 import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
 import com.lambda.client.setting.settings.impl.primitive.EnumSetting
 import com.lambda.client.setting.settings.impl.primitive.StringSetting
-import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2f
 import org.lwjgl.input.Keyboard
-import org.lwjgl.input.Mouse
 
 abstract class SettingWindow<T : Any>(
     name: String,
@@ -50,6 +47,7 @@ abstract class SettingWindow<T : Any>(
                     else -> null
                 }?.also {
                     children.add(it)
+                    it.onGuiInit()
                 }
             }
             initialized = true
