@@ -7,6 +7,7 @@ import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.client.BuildTools.defaultFillerMat
+import com.lambda.client.module.modules.misc.HighwayTools.printEnable
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.math.Direction
 import com.lambda.client.util.math.VectorUtils.multiply
@@ -63,25 +64,7 @@ object HighwayTools : Module(
     init {
         onEnable {
             runSafe {
-                originPosition = player.flooredPosition.down()
-                originDirection = Direction.fromEntity(player)
-                originOrthogonalDirection = originDirection.clockwise(if (originDirection.isDiagonal) 1 else 2)
-
-                printEnable()
-
-                ActivityManagerHud.totalBlocksBroken = 0
-                ActivityManagerHud.totalBlocksPlaced = 0
-
-                BuildStructure(
-                    generateHighway(),
-                    direction = originDirection,
-                    offsetMove = BlockPos(originDirection.directionVec.multiply(offset)),
-                    maximumRepeats = distance,
-                    doPadding = true
-                ).let {
-                    ownedBuildStructure = it
-                    addSubActivities(it)
-                }
+                start()
             }
         }
 
@@ -93,6 +76,28 @@ object HighwayTools : Module(
                     }
                 }
             }
+        }
+    }
+
+    fun SafeClientEvent.start() {
+        originPosition = player.flooredPosition.down()
+        originDirection = Direction.fromEntity(player)
+        originOrthogonalDirection = originDirection.clockwise(if (originDirection.isDiagonal) 1 else 2)
+
+        printEnable()
+
+        ActivityManagerHud.totalBlocksBroken = 0
+        ActivityManagerHud.totalBlocksPlaced = 0
+
+        BuildStructure(
+            generateHighway(),
+            direction = originDirection,
+            offsetMove = BlockPos(originDirection.directionVec.multiply(offset)),
+            maximumRepeats = distance,
+            doPadding = true
+        ).let {
+            ownedBuildStructure = it
+            addSubActivities(it)
         }
     }
 

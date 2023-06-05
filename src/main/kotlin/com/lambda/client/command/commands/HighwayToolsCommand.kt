@@ -27,5 +27,13 @@ object HighwayToolsCommand : ClientCommand(
                 }
             }
         }
+        
+        literal("start") {
+            executeSafe("Starts the highway") {
+                with(HighwayTools) {
+                    start()
+                }
+            }
+        }
     }
 }
