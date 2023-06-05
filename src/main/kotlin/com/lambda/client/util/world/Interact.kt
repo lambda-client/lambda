@@ -92,10 +92,7 @@ private fun SafeClientEvent.getNeighbour(
         }
     }
 
-    if (attempts > 1) {
-        for (side in sides) {
-            val newPos = pos.offset(side)
-            if (!world.isPlaceable(newPos, AxisAlignedBB(newPos))) continue
+    if (attempts < 2) return null
 
     sides.forEach { posSide ->
         val newPos = pos.offset(posSide)
