@@ -152,7 +152,7 @@ object Search : Module(
         }
 
         safeListener<ChunkDataEvent> {
-            // We avoid listening to SPacketChunkData directly here as even on PostReceive the chunk is not always
+            // We avoid listening to SPacketChunkData directly here, as even on PostReceive the chunk is not always
             // fully loaded into the world. Chunk load is handled on a separate thread in mc code.
             // i.e. world.getChunk(x, z) can and will return an empty chunk in the packet event
             defaultScope.launch {
@@ -204,7 +204,13 @@ object Search : Module(
             .sortedBy { it.distanceTo(player.getPositionEyes(1f)) }
             .take(maximumEntities)
             .filter { it.distanceTo(player.getPositionEyes(1f)) < range }
-            .map { Triple(it.renderBoundingBox.offset(EntityUtils.getInterpolatedAmount(it, LambdaTessellator.pTicks())), entitySearchColor, GeometryMasks.Quad.ALL) }
+            .map {
+                Triple(
+                    it.renderBoundingBox.offset(EntityUtils.getInterpolatedAmount(it, LambdaTessellator.pTicks())),
+                    entitySearchColor,
+                    GeometryMasks.Quad.ALL
+                )
+            }
             .toMutableList()
         entityRenderer.replaceAll(renderList)
     }
@@ -300,8 +306,12 @@ object Search : Module(
             val pos = BlockPos(x, y, z)
             val blockState = chunk.getBlockState(pos)
             if (isOldSign(blockState, pos)) {
-                val signState = if (blockState.block == Blocks.STANDING_SIGN) OldStandingSign(blockState) else OldWallSign(blockState)
-                blocks.add((pos to signState))
+                val signState = if (blockState.block == Blocks.STANDING_SIGN) {
+                    OldStandingSign(blockState)
+                } else {
+                    OldWallSign(blockState)
+                }
+                blocks.add(pos to signState)
                 continue // skip searching for regular sign at this pos
             }
             if (searchQuery(blockState, pos)) blocks.add(pos to blockState)
@@ -324,15 +334,9 @@ object Search : Module(
         if (!illegalBedrock.value) return false
         if (state.block != Blocks.BEDROCK) return false
         return when (player.dimension) {
-            0 -> {
-                pos.y >= 5
-            }
-            -1 -> {
-                pos.y in 5..122
-            }
-            else -> {
-                false
-            }
+            0 -> pos.y >= 5
+            -1 -> pos.y in 5..122
+            else -> false
         }
     }
 
@@ -348,7 +352,8 @@ object Search : Module(
 
     private fun SafeClientEvent.isOldSignText(pos: BlockPos): Boolean {
         // Explanation: Old signs on 2b2t (pre-2015 <1.9 ?) have older style NBT text tags.
-        // we can tell them apart by checking if there are siblings in the tag. Old signs won't have siblings.
+        // We can tell them apart by checking if there are siblings in the tag.
+        // Old signs won't have siblings.
         val signTextComponents = listOf(world.getTileEntity(pos))
             .filterIsInstance<TileEntitySign>()
             .flatMap { it.signText.toList() }
