@@ -124,6 +124,7 @@ object ActivityManager : Manager, Activity() {
 
                 GL11.glPopMatrix()
             }
+            GlStateUtils.rescaleMc()
         }
     }
 
