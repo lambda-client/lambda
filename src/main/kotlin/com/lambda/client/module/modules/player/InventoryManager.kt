@@ -1,8 +1,10 @@
 package com.lambda.client.module.modules.player
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PlayerTravelEvent
+import com.lambda.client.event.listener.listener
 import com.lambda.client.mixin.extension.syncCurrentPlayItem
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -102,7 +104,6 @@ object InventoryManager : Module(
             ejectCheck() -> State.EJECTING
             else -> State.IDLE
         }
-
         isBaritonePaused = if (currentState != State.IDLE && pauseMovement) {
             pauseBaritone()
             true
@@ -119,8 +120,8 @@ object InventoryManager : Module(
 
     private fun SafeClientEvent.helpMendCheck() : Boolean {
         return helpMend
-            && (player.heldItemOffhand.itemDamage == 0
-                || EnchantmentHelper.getEnchantmentLevel(Enchantments.MENDING, player.heldItemOffhand) == 0)
+            && (player.heldItemOffhand.itemDamage != 0
+                && EnchantmentHelper.getEnchantmentLevel(Enchantments.MENDING, player.heldItemOffhand) == 1)
     }
 
     private fun SafeClientEvent.refillBuildingCheck(): Boolean {
