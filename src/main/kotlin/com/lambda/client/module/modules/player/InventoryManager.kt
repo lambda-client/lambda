@@ -1,10 +1,8 @@
 package com.lambda.client.module.modules.player
 
-import com.lambda.client.LambdaMod
 import com.lambda.client.commons.extension.ceilToInt
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PlayerTravelEvent
-import com.lambda.client.event.listener.listener
 import com.lambda.client.mixin.extension.syncCurrentPlayItem
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
