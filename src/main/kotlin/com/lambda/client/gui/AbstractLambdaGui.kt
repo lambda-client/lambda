@@ -232,7 +232,7 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
         }
     }
 
-    private fun updateWindowOrder() {
+    open fun updateWindowOrder() {
         val cacheList = windowList.sortedBy { it.lastActiveTime }
         windowList.clear()
         windowList.addAll(cacheList)
