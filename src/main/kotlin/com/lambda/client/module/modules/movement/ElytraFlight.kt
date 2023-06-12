@@ -5,7 +5,6 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
-import com.lambda.client.manager.managers.TimerManager
 import com.lambda.client.mixin.extension.boostedEntity
 import com.lambda.client.mixin.extension.playerPosLookPitch
 import com.lambda.client.mixin.extension.tickLength
@@ -484,7 +483,7 @@ object ElytraFlight : Module(
     }
 
     private fun SafeClientEvent.vanillaMode() {
-        var playerSpeed = (sqrt(player.motionX * player.motionX + player.motionZ * player.motionZ)).toFloat()*(1000 / TimerManager.tickLength) //This is the player's speed
+        var playerSpeed = (sqrt(player.motionX * player.motionX + player.motionZ * player.motionZ)).toFloat()*20 //This is the player's speed
         var speedPercentOfMax = playerSpeed/speedThreshold*100 //This is used to calulate the percent of the max speed. 50 means 50%
         packetPitch = when {
             world.loadedEntityList.any { it is EntityFireworkRocket && it.boostedEntity == player } -> -rocketPitch //If the player is boosted with a firework, use -rocketPitch

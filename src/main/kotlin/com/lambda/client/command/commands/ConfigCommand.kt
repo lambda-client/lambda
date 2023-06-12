@@ -57,7 +57,7 @@ object ConfigCommand : ClientCommand(
                 }
             }
 
-            literal("set") {
+            literal("set", "load") {
                 string("name") { nameArg ->
                     execute("Change preset") {
                         configTypeArg.value.setPreset(nameArg.value)
@@ -137,9 +137,7 @@ object ConfigCommand : ClientCommand(
         return if (ip == null || mc.isIntegratedServerRunning) {
             MessageSendHelper.sendWarningMessage("You are not in a server!")
             null
-        } else {
-            ip
-        }
+        } else ip
     }
 
     private fun IExecuteEvent.confirm(): Boolean {
