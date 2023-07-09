@@ -53,8 +53,6 @@ object Burrow : Module(
     private val strength by setting("Strength", 20, 1..50, 1,
         description = "Strength of the rubberband, higher meaning more likely to work but flags more afterwards",
         visibility = { packetMode == PacketMode.ALTERNATIVE || packetMode == PacketMode.SPIN })
-    private val bladeFunny by setting("Dip Bypass", false,
-        description = "Bypasses with a dip", visibility = { packetMode != PacketMode.NONE })
 
     // QOL
     private val smooth by setting("Smooth", true,
@@ -264,8 +262,7 @@ object Burrow : Module(
             world.setBlockState(BlockPos(player.posX, player.posY, player.posZ),
                 (player.hotbarSlots[slot].stack.item as ItemBlock).block.defaultState)
             player.setPosition(player.posX, player.posY + 1, player.posZ)
-        } else if (bladeFunny)
-            sendPos(0.99)
+        }
 
         // account for timer, alternative needs us to flag timer so we don't care about it
         if (noTimerFlag && packetMode != PacketMode.ALTERNATIVE) {
