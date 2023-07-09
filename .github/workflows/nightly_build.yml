@@ -15,18 +15,19 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3.5.2
 
       - name: Set up JDK
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v3.11.0
         with:
-          java-version: 1.8
+          distribution: 'temurin'
+          java-version: 8
 
       - name: Elevate wrapper permissions
         run: chmod +x ./gradlew
 
       - name: Loading gradle cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3.3.1
         with:
           path: |
             ~/.gradle/caches
@@ -45,20 +46,20 @@ jobs:
         run: mv build/libs/lambda-*.jar lambda-${{ github.run_number }}.jar
 
       - name: Generate forge mod checksum
-        uses: ToxicAven/generate-checksum-file@v1
+        uses: ToxicAven/generate-checksum-file@v2
         with:
           filePath: lambda-${{ github.run_number }}.jar
           saveFile: lambda-${{ github.run_number }}-SHA256.txt
           algorithm: SHA256
 
       - name: Archive forge mod
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: lambda-${{ github.run_number }}
           path: lambda-${{ github.run_number }}.jar
 
       - name: Archive forge mod checksum
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: lambda-${{ github.run_number }}-SHA256.txt
           path: lambda-${{ github.run_number }}-SHA256.txt
@@ -70,29 +71,30 @@ jobs:
         run: mv build/libs/lambda-*-api.jar lambda-${{ github.run_number }}-api.jar
 
       - name: Generate API mod checksum
-        uses: ToxicAven/generate-checksum-file@v1
+        uses: ToxicAven/generate-checksum-file@v2
         with:
           filePath: lambda-${{ github.run_number }}-api.jar
           saveFile: lambda-${{ github.run_number }}-api-SHA256.txt
           algorithm: SHA256
 
       - name: Archive plugin API
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: lambda-${{ github.run_number }}-api
           path: lambda-${{ github.run_number }}-api.jar
 
       - name: Upload API checksum
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: lambda-${{ github.run_number }}-api-SHA256.txt
           path: lambda-${{ github.run_number }}-api-SHA256.txt
 
       - name: Get branch name
-        uses: nelonoel/branch-name@v1.0.1
+        id: branch-name
+        uses: tj-actions/branch-names@v7
 
       - name: Send Discord build message
-        if: github.ref == 'refs/heads/master'
+        if: steps.branch-name.outputs.is_default == 'true'
         run: |
           COMMITMESSAGE=`git log --pretty=format:'- \`%h\` %s' -5 --reverse` &&
-          (curl "$WEBHOOK" -sS -H "Content-Type:application/json" -X POST -d "{\"content\":null,\"embeds\":[{\"title\":\"Build $BUILD\",\"description\":\"**Branch:** $BRANCH_NAME\\n**Changes:**\\n$COMMITMESSAGE\",\"url\":\"https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\",\"color\":1487872,\"fields\":[{\"name\":\"Artifacts:\",\"value\":\"- [lambda-$BUILD.zip](https://nightly.link/$GITHUB_REPOSITORY/workflows/nightly_build.yml/$BRANCH_NAME/lambda-$BUILD.zip)\"}],\"footer\":{\"text\":\"$GITHUB_REPOSITORY\"},\"thumbnail\":{\"url\":\"https://raw.githubusercontent.com/lambda-client/lambda/master/src/main/resources/assets/minecraft/lambda/lambda_map.png\"}}],\"username\":\"Github Actions\",\"avatar_url\":\"https://www.2b2t.com.au/assets/github.jpeg\"}")
+          (curl "$WEBHOOK" -sS -H "Content-Type:application/json" -X POST -d "{\"content\":null,\"embeds\":[{\"title\":\"Build $BUILD\",\"description\":\"**Branch:** ${{steps.branch-name.outputs.current_branch}}\\n**Changes:**\\n$COMMITMESSAGE\",\"url\":\"https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\",\"color\":1487872,\"fields\":[{\"name\":\"Artifacts:\",\"value\":\"- [lambda-$BUILD.zip](https://nightly.link/$GITHUB_REPOSITORY/workflows/nightly_build.yml/$BRANCH_NAME/lambda-$BUILD.zip)\"}],\"footer\":{\"text\":\"$GITHUB_REPOSITORY\"},\"thumbnail\":{\"url\":\"https://raw.githubusercontent.com/lambda-client/lambda/master/src/main/resources/assets/minecraft/lambda/lambda_map.png\"}}],\"username\":\"Github Actions\",\"avatar_url\":\"https://www.2b2t.com.au/assets/github.jpeg\"}")

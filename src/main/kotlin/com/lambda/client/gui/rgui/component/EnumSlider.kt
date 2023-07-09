@@ -16,16 +16,6 @@ class EnumSlider(val setting: EnumSetting<*>) : Slider(setting.name, 0.0, settin
     override val isBold
         get() = setting.isModified && ClickGUI.showModifiedInBold
 
-    override fun onTick() {
-        super.onTick()
-        if (mouseState != MouseState.DRAG) {
-            val settingValue = setting.value.ordinal
-            if (roundInput(value) != settingValue) {
-                value = (settingValue + settingValue / (enumValues.size - 1.0)) / enumValues.size.toDouble()
-            }
-        }
-    }
-
     override fun onRelease(mousePos: Vec2f, buttonId: Int) {
         super.onRelease(mousePos, buttonId)
         if (prevState != MouseState.DRAG) setting.nextValue()
@@ -44,6 +34,12 @@ class EnumSlider(val setting: EnumSetting<*>) : Slider(setting.name, 0.0, settin
     private fun roundInput(valueIn: Double) = floor(valueIn * enumValues.size).toInt().coerceIn(0, enumValues.size - 1)
 
     override fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
+        if (mouseState != MouseState.DRAG) {
+            val settingValue = setting.value.ordinal
+            if (roundInput(value) != settingValue) {
+                value = (settingValue + settingValue / (enumValues.size - 1.0)) / enumValues.size.toDouble()
+            }
+        }
         val valueText = setting.value.readableName()
         protectedWidth = FontRenderAdapter.getStringWidth(valueText, 0.75f).toDouble()
 
