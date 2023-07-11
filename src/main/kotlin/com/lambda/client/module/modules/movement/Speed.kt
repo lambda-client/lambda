@@ -261,10 +261,7 @@ object Speed : Module(
     }
 
     private fun SafeClientEvent.handleStrafe(event: PlayerMoveEvent) {
-
-        if (
-            !shouldStrafe()
-        ) {
+        if (!shouldStrafe()) {
             resetTimer()
             event.x = .0
             event.z = .0
@@ -272,8 +269,8 @@ object Speed : Module(
             return
         }
 
-        if (!(!strafeOnlyOverhead || world.collidesWithAnyBlock(player.entityBoundingBox.offset(.0,.42,.0)))
-            || !(!strafeOnHoldingSprint || mc.gameSettings.keyBindSprint.isKeyDown))
+        if (strafeOnlyOverhead && !world.collidesWithAnyBlock(player.entityBoundingBox.offset(.0,.42,.0))
+            || strafeOnHoldingSprint && !mc.gameSettings.keyBindSprint.isKeyDown)
             return
 
         modifyTimer(TIMER_SPEED)
@@ -284,44 +281,27 @@ object Speed : Module(
             strafePhase = StrafePhase.ACCELERATING
 
         when (strafePhase) {
-
             StrafePhase.ACCELERATING -> {
-
                 if (player.onGround)
                     event.y = .42
-                else
-                    strafePhase = StrafePhase.FALLING
-
                 currentSpeed = base
-                currentSpeed *= if (strafeAirSpeedBoost == StrafeMode.Strict) (1.87) else (1.93)
-
+                currentSpeed *= if (strafeAirSpeedBoost == StrafeMode.Strict) 1.87 else 1.93
                 strafePhase = StrafePhase.SLOWDOWN
-
             }
 
             StrafePhase.SLOWDOWN -> {
-
                 currentSpeed -= .66 * base
-
                 strafePhase = StrafePhase.FALLING
-
             }
 
             StrafePhase.FALLING -> {
-
                 currentSpeed = lastDistance - lastDistance / 159
-
             }
-
         }
 
         val yaw = calcMoveYaw()
-
         currentSpeed = currentSpeed.coerceAtLeast(.2873)
-
         event.x = -sin(yaw) * currentSpeed
         event.z = cos(yaw) * currentSpeed
-
     }
-
 }
