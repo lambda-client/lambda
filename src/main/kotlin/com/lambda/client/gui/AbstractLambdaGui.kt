@@ -1,6 +1,5 @@
 package com.lambda.client.gui
 
-import com.lambda.client.event.events.RealWorldTickEvent
 import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.gui.rgui.WindowComponent
@@ -21,6 +20,8 @@ import net.minecraft.client.gui.GuiScreen
 import net.minecraft.client.gui.ScaledResolution
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.util.ResourceLocation
+import net.minecraftforge.fml.common.gameevent.TickEvent
+import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent
 import org.lwjgl.input.Keyboard
 import org.lwjgl.input.Mouse
 import org.lwjgl.opengl.GL11.*
@@ -86,7 +87,8 @@ abstract class AbstractLambdaGui<S : SettingWindow<*>, E : Any> : GuiScreen() {
         mc = Wrapper.minecraft
         windowList.add(ColorPicker)
 
-        listener<RealWorldTickEvent> {
+        listener<ClientTickEvent> {
+            if (it.phase != TickEvent.Phase.END) return@listener
             blurShader.shader?.let { shaderGroup ->
                 val multiplier = ClickGUI.blur * fadeMultiplier
                 shaderGroup.listShaders.forEach { shader ->
