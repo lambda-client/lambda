@@ -8,7 +8,6 @@ import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.misc.WorldEater
 import com.lambda.client.util.color.ColorHolder
-import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
@@ -38,8 +37,9 @@ class ClearArea(
     override fun SafeClientEvent.onInitialize() {
         with(area) {
             if (!playerInArea) {
-                MessageSendHelper.sendWarningMessage("You are not in the area!")
+                MessageSendHelper.sendWarningMessage("Pathing to area")
                 addSubActivities(CustomGoal(GoalXZ(center.x, center.z)))
+                status = Status.UNINITIALIZED
                 return@onInitialize
             }
         }
@@ -59,7 +59,7 @@ class ClearArea(
 
             if (y.mod(layerSize) == 0 || y == layers.last) {
                 addSubActivities(
-                    BuildStructure(structure.toMap(), collectAll = collectAll)
+                    BuildStructure(structure.toMap(), collectAll = collectAll, allowBreakDescend = true)
                 )
                 structure.clear()
             }

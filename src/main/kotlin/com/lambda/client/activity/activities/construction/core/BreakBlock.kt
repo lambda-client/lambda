@@ -1,5 +1,6 @@
 package com.lambda.client.activity.activities.construction.core
 
+import baritone.api.BaritoneAPI
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.inventory.core.SwapOrSwitchToSlot
@@ -8,6 +9,7 @@ import com.lambda.client.activity.types.*
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
+import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.mixin.extension.blockHitDelay
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.EntityUtils.flooredPosition
@@ -17,7 +19,10 @@ import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
-import com.lambda.client.util.threads.*
+import com.lambda.client.util.threads.defaultScope
+import com.lambda.client.util.threads.onMainThreadSafe
+import com.lambda.client.util.threads.runSafe
+import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getHitVec
 import com.lambda.client.util.world.getMiningSide
 import com.lambda.client.util.world.isLiquid
@@ -223,7 +228,7 @@ class BreakBlock(
     }
 
     private fun SafeClientEvent.resolveAvailability() {
-        when (availability) {
+        when (availability)     {
             BuildActivity.Availability.VALID -> {
                 tryBreak()
             }
@@ -245,9 +250,14 @@ class BreakBlock(
     }
 
     private fun SafeClientEvent.tryBreak() {
+        if (ActivityManager.getCurrentActivity() != this@BreakBlock) return
         if (!hasOptimalTool()) return
 
         side?.let {
+            // if baritone break/place is on while we're breaking it ourselves, we'll get stuck in a loop
+            // todo: option to use baritone break/place instead of ours
+            BaritoneAPI.getSettings().allowBreak.value = false
+            BaritoneAPI.getSettings().allowPlace.value = false
             if (!world.isAirBlock(blockPos) && playerController.onPlayerDamageBlock(blockPos, it)) {
                 if ((ticksNeeded == 1 && player.onGround) || player.capabilities.isCreativeMode) {
                     playerController.blockHitDelay = 0
@@ -260,8 +270,6 @@ class BreakBlock(
                 player.swingArm(EnumHand.MAIN_HAND)
             }
         }
-
-
     }
 
     // ToDo: 1. currentState.material.isToolNotRequired (if drop is needed it should check if tool has sufficient harvest level)

@@ -8,6 +8,7 @@ import com.lambda.client.activity.types.DelayedActivity.Companion.checkDelayed
 import com.lambda.client.activity.types.LoopWhileActivity.Companion.checkLoopingUntil
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkAABBRender
+import com.lambda.client.activity.types.RepeatingActivity
 import com.lambda.client.activity.types.RepeatingActivity.Companion.checkRepeat
 import com.lambda.client.activity.types.RotatingActivity.Companion.checkRotating
 import com.lambda.client.activity.types.TimeoutActivity.Companion.checkTimeout
@@ -131,7 +132,7 @@ abstract class Activity {
         val activity = this@Activity
 
         LambdaEventBus.unsubscribe(activity)
-        ListenerManager.unregister(activity)
+        if (activity !is RepeatingActivity) ListenerManager.unregister(activity)
 
         if (activity is RenderAABBActivity) {
             activity.aabbCompounds.clear()

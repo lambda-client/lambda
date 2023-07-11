@@ -3,12 +3,16 @@ package com.lambda.client.activity.activities.construction.core
 import baritone.api.pathing.goals.Goal
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
-import baritone.process.BuilderProcess
+import baritone.api.pathing.goals.GoalXZ
+import baritone.process.BuilderProcess.GoalAdjacent
+import com.lambda.client.LambdaMod
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.types.BuildActivity
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.activity.types.RepeatingActivity
+import com.lambda.client.commons.extension.floorToInt
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.autoPathing
 import com.lambda.client.util.BaritoneUtils
@@ -18,12 +22,15 @@ import com.lambda.client.util.items.block
 import com.lambda.client.util.items.filterByStack
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.math.Direction
+import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.math.VectorUtils.multiply
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.block.BlockBush
 import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
+import net.minecraft.network.play.server.SPacketBlockChange
+import net.minecraft.network.play.server.SPacketMultiBlockChange
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.event.world.BlockEvent
@@ -36,6 +43,7 @@ class BuildStructure(
     private val doPadding: Boolean = false,
     private val collectAll: Boolean = false,
     private val breakBushes: Boolean = false,
+    private val allowBreakDescend: Boolean = false,
     override val maximumRepeats: Int = 1,
     override var repeated: Int = 0,
     override val aabbCompounds: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
@@ -55,11 +63,29 @@ class BuildStructure(
         currentOffset = currentOffset.add(offsetMove)
     }
 
+    private fun SafeClientEvent.withinRangeOfStructure(): Boolean {
+        return nearestStructureBlock()?.let { it.add(currentOffset).distanceTo(player.position) <= 5 } ?: true
+    }
+
+    private fun SafeClientEvent.nearestStructureBlock(): BlockPos? {
+        return structure.keys.minBy { it.add(currentOffset).distanceTo(player.position) }
+    }
+
     init {
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.END) return@safeListener
 
-            if (subActivities.isEmpty()) success()
+            if (subActivities.isEmpty() && !BaritoneUtils.isPathing) {
+                // todo: offset pathing like this might not make sense for all structures. we aren't guaranteed to be at a specific position relative to the structure
+                //  we could path to the middle of the structure regardless of shape, but that will be inefficient. also structures are not guaranteed to be small/within render distance
+                if (autoPathing && !withinRangeOfStructure()) {
+                    LambdaMod.LOG.info("Structure out of range, pathing by offset")
+                    // todo: improve stop/start stutter pathing
+                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalXZ(player.posX.floorToInt() + (offsetMove.x * 5), player.posZ.floorToInt() + (offsetMove.z * 5)))
+                    return@safeListener
+                }
+                success()
+            }
 
             when (val activity = getCurrentActivity()) {
                 is PlaceBlock -> {
@@ -72,7 +98,7 @@ class BuildStructure(
                     lastGoal = if (isInBlockAABB(blockPos)) {
                         GoalInverted(GoalBlock(blockPos))
                     } else {
-                        BuilderProcess.GoalAdjacent(blockPos, blockPos, true)
+                        GoalAdjacent(blockPos, blockPos, true)
                     }
                 }
                 is BreakBlock -> {
@@ -82,10 +108,10 @@ class BuildStructure(
 
                     if (!autoPathing) return@safeListener
 
-                    lastGoal = if (isInBlockAABB(blockPos.up())) {
+                    lastGoal = if (!allowBreakDescend && isInBlockAABB(blockPos.up())) {
                         GoalInverted(GoalBlock(blockPos.up()))
                     } else {
-                        BuilderProcess.GoalBreak(blockPos)
+                        GoalAdjacent(blockPos, blockPos, true)
                     }
                 }
             }
@@ -113,6 +139,31 @@ class BuildStructure(
                 MessageSendHelper.sendWarningMessage("Block changed at $blockPos")
                 createBuildActivity(blockPos, targetState)
             }
+        }
+
+        safeListener<PacketEvent.PostReceive> {
+            if (it.packet is SPacketBlockChange) {
+                handleBlockUpdate(it.packet.blockPosition, it.packet.blockState)
+            } else if (it.packet is SPacketMultiBlockChange) {
+                it.packet.changedBlocks.forEach { blockData ->
+                    handleBlockUpdate(blockData.pos, blockData.blockState)
+                }
+            }
+        }
+    }
+
+    private fun SafeClientEvent.handleBlockUpdate(blockPos: BlockPos, blockState: IBlockState) {
+        // todo: capture baritone placing support blocks and update structure
+        structure[blockPos]?.let { targetState ->
+            if (allSubActivities.any {
+                when (it) {
+                    is BreakBlock -> it.blockPos == blockPos && targetState == blockState
+                    is PlaceBlock -> it.blockPos == blockPos && targetState == blockState
+                    else -> false
+                }
+            }) return
+            MessageSendHelper.sendWarningMessage("Block changed at $blockPos")
+            createBuildActivity(blockPos, targetState)
         }
     }
 
@@ -169,6 +220,8 @@ class BuildStructure(
         it.type
     }.thenBy {
         it.distance
+    }.thenBy {
+        it.hashCode()
     }
 
     private fun SafeClientEvent.isInPadding(blockPos: BlockPos) = isBehindPos(player.flooredPosition, blockPos)
