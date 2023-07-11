@@ -112,11 +112,25 @@ object VectorUtils {
         return sqrt((xDiff * xDiff + yDiff * yDiff + zDiff * zDiff).toDouble())
     }
 
+    fun Vec3i.manhattanDistanceTo(vec3i: Vec3i): Int {
+        val xDiff = abs(vec3i.x - x)
+        val yDiff = abs(vec3i.y - y)
+        val zDiff = abs(vec3i.z - z)
+        return xDiff + yDiff + zDiff
+    }
+
     fun Vec3d.distanceTo(vec3i: Vec3i): Double {
         val xDiff = vec3i.x + 0.5 - x
         val yDiff = vec3i.y + 0.5 - y
         val zDiff = vec3i.z + 0.5 - z
         return sqrt(xDiff * xDiff + yDiff * yDiff + zDiff * zDiff)
+    }
+
+    fun Vec3d.manhattanDistanceTo(vec3i: Vec3i): Double {
+        val xDiff = abs(vec3i.x + 0.5 - x)
+        val yDiff = abs(vec3i.y + 0.5 - y)
+        val zDiff = abs(vec3i.z + 0.5 - z)
+        return xDiff + yDiff + zDiff
     }
 
     fun Entity.distanceTo(vec3i: Vec3i): Double {
@@ -126,6 +140,13 @@ object VectorUtils {
         return sqrt(xDiff * xDiff + yDiff * yDiff + zDiff * zDiff)
     }
 
+    fun Entity.manhattanDistanceTo(vec3i: Vec3i): Double {
+        val xDiff = abs(vec3i.x + 0.5 - posX)
+        val yDiff = abs(vec3i.y + 0.5 - posY)
+        val zDiff = abs(vec3i.z + 0.5 - posZ)
+        return xDiff + yDiff + zDiff
+    }
+
     fun Entity.distanceTo(vec3d: Vec3d): Double {
         val xDiff = vec3d.x - posX
         val yDiff = vec3d.y - posY
@@ -133,8 +154,19 @@ object VectorUtils {
         return sqrt(xDiff * xDiff + yDiff * yDiff + zDiff * zDiff)
     }
 
+    fun Entity.manhattanDistanceTo(vec3d: Vec3d): Double {
+        val xDiff = abs(vec3d.x - posX)
+        val yDiff = abs(vec3d.y - posY)
+        val zDiff = abs(vec3d.z - posZ)
+        return xDiff + yDiff + zDiff
+    }
+
     fun Entity.distanceTo(chunkPos: ChunkPos): Double {
         return hypot(chunkPos.x * 16 + 8 - posX, chunkPos.z * 16 + 8 - posZ)
+    }
+
+    fun Entity.manhattanDistanceTo(chunkPos: ChunkPos): Double {
+        return abs(chunkPos.x * 16 + 8 - posX) + abs(chunkPos.z * 16 + 8 - posZ)
     }
 
     fun Vec3i.multiply(multiplier: Int): Vec3i {
