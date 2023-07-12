@@ -213,7 +213,7 @@ open class ListWindow(
     override fun onMouseInput(mousePos: Vec2f) {
         super.onMouseInput(mousePos)
         val relativeMousePos = mousePos.minus(posX, posY - renderScrollProgress)
-        updateHovered(relativeMousePos)
+        if (mouseState != MouseState.DRAG) updateHovered(relativeMousePos)
         if (Mouse.getEventDWheel() != 0) {
             scrollTimer.reset()
             scrollSpeed -= Mouse.getEventDWheel() * 0.1f
