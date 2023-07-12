@@ -68,27 +68,28 @@ internal object Queue2B2T : LabelHud(
         if (NetworkManager.isOffline) {
             displayText.addLine("Cannot connect to api.2b2t.vc", primaryColor)
             displayText.add("Make sure your internet is working!", primaryColor)
-        } else {
-            if (showPriority) {
-                displayText.add("Priority: ", primaryColor)
-                displayText.add("${queueData.prio}", secondaryColor)
-            }
+            return
+        }
 
-            if (showRegular) {
-                displayText.add("Regular: ", primaryColor)
-                displayText.add("${queueData.regular}", secondaryColor)
-            }
-            if (showUpdatedTime) {
-                displayText.addLine("", primaryColor)
-                displayText.add("Last updated $lastUpdate ago", primaryColor)
-            }
+        if (showPriority) {
+            displayText.add("Priority: ", primaryColor)
+            displayText.add("${queueData.prio}", secondaryColor)
+        }
+
+        if (showRegular) {
+            displayText.add("Regular: ", primaryColor)
+            displayText.add("${queueData.regular}", secondaryColor)
+        }
+        if (showUpdatedTime) {
+            displayText.addLine("", primaryColor)
+            displayText.add("Last updated $lastUpdate ago", primaryColor)
         }
     }
 
     private fun sendWarning() {
         MessageSendHelper.sendWarningMessage(
             "This module uses an external API, api.2b2t.vc, which is operated by rfresh#2222." +
-                "If you do not trust this external API / have not verified the safety yourself, disable this HUD component."
+                " If you do not trust this external API / have not verified the safety yourself, disable this HUD component."
         )
         hasShownWarning.value = true
     }
@@ -101,9 +102,10 @@ internal object Queue2B2T : LabelHud(
                 }?.let {
                     gson.fromJson(it, QueueData::class.java)?.let { data ->
                         queueData = data
-                    } ?: run {
-                        LambdaMod.LOG.error("No queue data received. Is 2b2t down?")
+                        return@runCatching
                     }
+
+                    LambdaMod.LOG.error("No queue data received. Is 2b2t down?")
                 }
             }
         }

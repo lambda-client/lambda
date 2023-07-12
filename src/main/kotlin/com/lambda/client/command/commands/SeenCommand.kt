@@ -20,13 +20,13 @@ object SeenCommand : ClientCommand(
     init {
         string("playerName") { playerName ->
             executeAsync("Check when a player was last seen") {
-                UUIDManager.getByName(playerName.value)?.let { profile ->
+                UUIDManager.getByName(playerName.value)?.let outer@ { profile ->
                     ConnectionUtils.requestRawJsonFrom("https://api.2b2t.vc/seen?uuid=${profile.uuid}") {
                         MessageSendHelper.sendChatMessage("Failed querying seen data for player: ${it.message}")
                     }?.let {
                         if (it.isEmpty()) {
                             MessageSendHelper.sendChatMessage("No data found for player: ${profile.name}")
-                            return@let
+                            return@outer
                         }
                         val jsonElement = parser.parse(it)
                         val dateRaw = jsonElement.asJsonObject["time"].asString
@@ -34,9 +34,11 @@ object SeenCommand : ClientCommand(
                         val dateFormatter = DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.LONG)
                         MessageSendHelper.sendChatMessage("${profile.name} was last seen on ${parsedDate.format(dateFormatter)}")
                     }
-                } ?: run {
-                    MessageSendHelper.sendChatMessage("Failed to find player with name ${playerName.value}")
+
+                    return@executeAsync
                 }
+
+                MessageSendHelper.sendChatMessage("Failed to find player with name ${playerName.value}")
             }
         }
     }
