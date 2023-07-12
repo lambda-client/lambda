@@ -1,11 +1,13 @@
 package com.lambda.client.module.modules.chat
 
 import com.lambda.client.commons.extension.synchronized
+import com.lambda.client.manager.managers.NotificationManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
+import com.lambda.client.util.notifications.NotificationType
 import com.lambda.client.util.text.MessageDetection
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
@@ -59,9 +61,10 @@ object Spammer : Module(
                         val text = URL(url).readText()
                         spammer.addAll(text.split("\n"))
 
-                        MessageSendHelper.sendChatMessage("$chatName Loaded remote spammer messages!")
+                        NotificationManager.registerNotification("$chatName Loaded remote spammer messages!")
                     } catch (e: Exception) {
-                        MessageSendHelper.sendErrorMessage("$chatName Failed loading remote spammer, $e")
+                        NotificationManager.registerNotification("$chatName Failed loading remote spammer, $e",
+                            NotificationType.ERROR)
                         disable()
                     }
                 }
@@ -71,9 +74,10 @@ object Spammer : Module(
                     if (file.exists()) {
                         try {
                             file.forEachLine { if (it.isNotBlank()) spammer.add(it.trim()) }
-                            MessageSendHelper.sendChatMessage("$chatName Loaded spammer messages!")
+                            NotificationManager.registerNotification("$chatName Loaded spammer messages!")
                         } catch (e: Exception) {
-                            MessageSendHelper.sendErrorMessage("$chatName Failed loading spammer, $e")
+                            NotificationManager.registerNotification("$chatName Failed loading remote spammer, $e",
+                                NotificationType.ERROR)
                             disable()
                         }
                     } else {

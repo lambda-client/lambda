@@ -2,10 +2,12 @@ package com.lambda.client.module.modules.chat
 
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.listener.listener
+import com.lambda.client.manager.managers.NotificationManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.FolderUtils
 import com.lambda.client.util.MovementUtils.isMoving
+import com.lambda.client.util.notifications.NotificationType
 import com.lambda.client.util.text.MessageDetection
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
@@ -39,9 +41,10 @@ object LoginMessage : Module(
                         file.forEachLine {
                             if (it.isNotBlank()) loginMessages.add(it.trim())
                         }
-                        MessageSendHelper.sendChatMessage("$chatName Loaded ${loginMessages.size} login messages!")
+                        NotificationManager.registerNotification("$chatName Loaded ${loginMessages.size} login messages!")
                     } catch (e: Exception) {
-                        MessageSendHelper.sendErrorMessage("$chatName Failed loading login messages, $e")
+                        NotificationManager.registerNotification("$chatName Failed loading login messages, $e",
+                            NotificationType.ERROR)
                         disable()
                     }
                 }

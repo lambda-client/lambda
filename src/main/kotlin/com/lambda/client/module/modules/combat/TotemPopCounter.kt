@@ -6,10 +6,10 @@ import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.managers.FriendManager
+import com.lambda.client.manager.managers.NotificationManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.color.EnumTextColor
-import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 import com.lambda.client.util.text.format
 import com.lambda.client.util.threads.safeListener
@@ -117,7 +117,7 @@ object TotemPopCounter : Module(
         if (public) {
             sendServerMessage(TextFormatting.getTextWithoutFormattingCodes(message))
         } else {
-            MessageSendHelper.sendChatMessage("$chatName $message")
+            NotificationManager.registerNotification(message)
         }
     }
 }

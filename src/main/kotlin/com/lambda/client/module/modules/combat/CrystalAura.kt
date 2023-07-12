@@ -13,6 +13,7 @@ import com.lambda.client.manager.managers.HotbarManager
 import com.lambda.client.manager.managers.HotbarManager.resetHotbar
 import com.lambda.client.manager.managers.HotbarManager.serverSideItem
 import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
+import com.lambda.client.manager.managers.NotificationManager
 import com.lambda.client.manager.managers.PlayerPacketManager
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
 import com.lambda.client.mixin.extension.useEntityAction
@@ -36,7 +37,6 @@ import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.math.VectorUtils.toBlockPos
 import com.lambda.client.util.math.VectorUtils.toVec3d
 import com.lambda.client.util.math.VectorUtils.toVec3dCenter
-import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafeR
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.getClosestVisibleSide
@@ -192,7 +192,7 @@ object CrystalAura : Module(
         listener<InputEvent.KeyInputEvent> {
             if (bindForcePlace.isDown(Keyboard.getEventKey())) {
                 forcePlacing = !forcePlacing
-                MessageSendHelper.sendChatMessage("$chatName Force placing" + if (forcePlacing) " &aenabled" else " &cdisabled")
+                NotificationManager.registerNotification("$chatName Force placing" + if (forcePlacing) " &aenabled" else " &cdisabled")
             }
         }
 

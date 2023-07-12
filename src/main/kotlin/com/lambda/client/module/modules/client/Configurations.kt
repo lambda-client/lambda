@@ -5,6 +5,7 @@ import com.lambda.client.commons.interfaces.DisplayEnum
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.gui.AbstractLambdaGui
+import com.lambda.client.manager.managers.NotificationManager
 import com.lambda.client.module.AbstractModule
 import com.lambda.client.module.Category
 import com.lambda.client.setting.ConfigManager
@@ -17,6 +18,7 @@ import com.lambda.client.setting.settings.impl.primitive.StringSetting
 import com.lambda.client.util.ConfigUtils
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
+import com.lambda.client.util.notifications.NotificationType
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.formatValue
 import com.lambda.client.util.threads.BackgroundScope
@@ -55,7 +57,7 @@ internal object Configurations : AbstractModule(
     init {
         BackgroundScope.launchLooping("Config Auto Saving", 60000L) {
             if (autoSaving && mc.currentScreen !is AbstractLambdaGui<*, *> && timer.tick(savingInterval.toLong())) {
-                if (savingFeedBack) MessageSendHelper.sendChatMessage("Auto saving settings...")
+                if (savingFeedBack) NotificationManager.registerNotification("Auto saving settings...")
                 else LambdaMod.LOG.info("Auto saving settings...")
                 ConfigUtils.saveAll()
             }
@@ -85,7 +87,8 @@ internal object Configurations : AbstractModule(
         val nameWithExtension = "$nameWithoutExtension.json"
 
         return if (!ConfigUtils.isPathValid(nameWithExtension)) {
-            MessageSendHelper.sendChatMessage("${formatValue(nameWithoutExtension)} is not a valid preset name")
+            NotificationManager.registerNotification("${formatValue(nameWithoutExtension)} is not a valid preset name",
+                NotificationType.ERROR)
             false
         } else {
             true
@@ -174,7 +177,7 @@ internal object Configurations : AbstractModule(
                 var loaded = ConfigManager.load(GenericConfig)
                 loaded = ConfigManager.load(config) || loaded
 
-                if (loaded) MessageSendHelper.sendChatMessage("${formatValue(config.name)} config reloaded!")
+                if (loaded) NotificationManager.registerNotification("${formatValue(config.name)} config reloaded!")
                 else MessageSendHelper.sendErrorMessage("Failed to load ${formatValue(config.name)} config!")
             }
         }
@@ -184,7 +187,7 @@ internal object Configurations : AbstractModule(
                 var saved = ConfigManager.save(GenericConfig)
                 saved = ConfigManager.save(config) || saved
 
-                if (saved) MessageSendHelper.sendChatMessage("${formatValue(config.name)} config saved!")
+                if (saved) NotificationManager.registerNotification("${formatValue(config.name)} config saved!")
                 else MessageSendHelper.sendErrorMessage("Failed to load ${formatValue(config.name)} config!")
             }
         }

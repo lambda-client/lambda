@@ -5,6 +5,7 @@ import com.lambda.client.commons.interfaces.Nameable
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.events.ModuleToggleEvent
 import com.lambda.client.gui.clickgui.LambdaClickGui
+import com.lambda.client.manager.managers.NotificationManager
 import com.lambda.client.module.modules.client.ClickGUI
 import com.lambda.client.setting.configs.NameableConfig
 import com.lambda.client.setting.settings.AbstractSetting
@@ -13,7 +14,7 @@ import com.lambda.client.setting.settings.impl.number.IntegerSetting
 import com.lambda.client.setting.settings.impl.other.BindSetting
 import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
 import com.lambda.client.util.Bind
-import com.lambda.client.util.text.MessageSendHelper
+import com.lambda.client.util.notifications.NotificationType
 import net.minecraft.client.Minecraft
 
 @Suppress("UNCHECKED_CAST")
@@ -59,6 +60,10 @@ abstract class AbstractModule(
         enabled.value = !enabled.value
         isPaused = false
         if (enabled.value) clicks.value++
+
+        if (this.category != Category.CLIENT) {
+            NotificationManager.registerNotification("$name ${if (enabled.value) "Enabled" else "Disabled"}", NotificationType.INFO)
+        }
     }
 
     fun enable() {
@@ -131,7 +136,7 @@ abstract class AbstractModule(
             if (it) {
                 settingList.forEach { it.resetValue() }
                 default.value = false
-                MessageSendHelper.sendChatMessage("$chatName Set to defaults!")
+                NotificationManager.registerNotification("$chatName Set to defaults!")
             }
         }
 
