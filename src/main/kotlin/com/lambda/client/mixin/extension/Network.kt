@@ -1,10 +1,7 @@
 package com.lambda.client.mixin.extension
 
 import com.lambda.mixin.accessor.network.*
-import net.minecraft.network.play.client.CPacketChatMessage
-import net.minecraft.network.play.client.CPacketCloseWindow
-import net.minecraft.network.play.client.CPacketPlayer
-import net.minecraft.network.play.client.CPacketUseEntity
+import net.minecraft.network.play.client.*
 import net.minecraft.network.play.server.*
 import net.minecraft.util.text.ITextComponent
 
@@ -77,6 +74,15 @@ var CPacketUseEntity.useEntityAction: CPacketUseEntity.Action
     set(value) {
         (this as AccessorCPacketUseEntity).setAction(value)
     }
+
+ fun CPacketVehicleMove.setValues(x: Double, y: Double, z: Double, yaw: Float, pitch: Float): CPacketVehicleMove {
+    (this as AccessorCPacketVehicleMove).setX(x)
+    (this as AccessorCPacketVehicleMove).setY(y)
+    (this as AccessorCPacketVehicleMove).setZ(z)
+    (this as AccessorCPacketVehicleMove).setYaw(yaw)
+    (this as AccessorCPacketVehicleMove).setPitch(pitch)
+    return this
+}
 
 var SPacketChat.textComponent: ITextComponent
     get() = this.chatComponent
