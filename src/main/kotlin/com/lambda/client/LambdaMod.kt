@@ -1,8 +1,6 @@
 package com.lambda.client
 
 import com.lambda.client.event.ForgeEventProcessor
-import com.lambda.client.event.LambdaEventBus
-import com.lambda.client.event.events.RealWorldTickEvent
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.util.ConfigUtils
 import com.lambda.client.util.KamiCheck
@@ -83,9 +81,6 @@ class LambdaMod {
     @Mod.EventHandler
     fun postInit(event: FMLPostInitializationEvent) {
         ready = true
-        BackgroundScope.launchLooping("RealWorldTick", 50L) {
-            LambdaEventBus.post(RealWorldTickEvent())
-        }
         BackgroundScope.start()
     }
 }

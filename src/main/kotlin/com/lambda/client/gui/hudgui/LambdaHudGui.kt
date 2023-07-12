@@ -47,6 +47,12 @@ object LambdaHudGui : AbstractLambdaGui<HudSettingWindow, AbstractHudElement>() 
         }
     }
 
+    override fun updateWindowOrder() {
+        val cacheList = windowList.sortedBy { it.lastActiveTime + if (it is AbstractHudElement) 1000000 else 0 }
+        windowList.clear()
+        windowList.addAll(cacheList)
+    }
+
     internal fun register(hudElement: AbstractHudElement) {
         val button = HudButton(hudElement)
         hudWindows[hudElement.category]?.add(button)

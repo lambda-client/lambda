@@ -5,7 +5,7 @@ import kotlinx.coroutines.*
 /**
  * Single thread scope to use in Lambda
  */
-@OptIn(DelicateCoroutinesApi::class)
+@OptIn(DelicateCoroutinesApi::class, ExperimentalCoroutinesApi::class)
 val mainScope = CoroutineScope(newSingleThreadContext("Lambda Main"))
 
 /**
