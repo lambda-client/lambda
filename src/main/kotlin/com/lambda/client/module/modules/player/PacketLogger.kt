@@ -402,7 +402,7 @@ object PacketLogger : Module(
             if (showClientTicks) {
                 synchronized(this@PacketLogger) {
                     val current = System.currentTimeMillis()
-                    val line = "Tick Pulse: Start Delta: ${current - start}, Last Tick Delta: ${current - lastTick}\n"
+                    val line = "Tick Pulse,,${current - start},${current - lastTick}\n"
                     if (logMode == LogMode.CHAT_AND_FILE || logMode == LogMode.FILE || logMode == LogMode.ALL) {
                         lines.add(line)
                     }
