@@ -35,6 +35,7 @@ internal object Radar : HudElement(
     private val neutral = setting("Neutral Mobs", true)
     private val hostile = setting("Hostile Mobs", true)
     private val invisible = setting("Invisible Entities", true)
+    private val rotation by setting("Rotation", true)
 
     override val hudWidth: Float = 130.0f
     override val hudHeight: Float = 130.0f
@@ -56,7 +57,7 @@ internal object Radar : HudElement(
         glTranslated(radius.toDouble(), radius.toDouble(), 0.0)
         drawCircleFilled(vertexHelper, radius = radius.toDouble(), color = GuiColors.backGround)
         drawCircleOutline(vertexHelper, radius = radius.toDouble(), lineWidth = 1.8f, color = primaryColor)
-        glRotatef(player.rotationYaw + 180, 0f, 0f, -1f)
+        if (rotation) glRotatef(player.rotationYaw + 180, 0f, 0f, -1f)
     }
 
     private fun SafeClientEvent.drawEntities(vertexHelper: VertexHelper) {
