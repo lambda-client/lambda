@@ -15,7 +15,10 @@ internal object Coordinates : LabelHud(
     private val showX by setting("Show X", true)
     private val showY by setting("Show Y", true)
     private val showZ by setting("Show Z", true)
+    private val showXYZText by setting("Show XYZ Text", true)
     private val showNetherOverworld by setting("Show Nether/Overworld", true)
+    private val printDimensionName by setting("Print Dimension Name", false)
+    private val showNetherOverworldMultiline by setting("Show Nether/Overworld Multiline", false, { showNetherOverworld })
     private val decimalPlaces by setting("Decimal Places", 1, 0..4, 1)
     private val thousandsSeparator by setting("Thousands Separator", false)
 
@@ -24,42 +27,48 @@ internal object Coordinates : LabelHud(
 
     override fun SafeClientEvent.updateText() {
         val entity = mc.renderViewEntity ?: player
-
-        displayText.add("XYZ", secondaryColor)
-        displayText.addLine(getFormattedCoords(entity.positionVector))
-
+        if (showXYZText) {
+            displayText.add("XYZ", secondaryColor)
+        }
+        if (showNetherOverworldMultiline)
+            displayText.addLine(getFormattedCoords(entity.positionVector))
+        else
+            displayText.add(getFormattedCoords(entity.positionVector))
         if (showNetherOverworld) {
             when (entity.dimension) {
                 -1 -> { // Nether
-                    displayText.add("Overworld", secondaryColor)
-                    displayText.addLine(getFormattedCoords(entity.positionVector * netherToOverworld))
+                    if (printDimensionName) displayText.add("Nether", secondaryColor)
+                    displayText.add(getFormattedCoords(entity.positionVector * netherToOverworld, true))
                 }
                 0 -> { // Overworld
-                    displayText.add("Nether", secondaryColor)
-                    displayText.addLine(getFormattedCoords(entity.positionVector * overworldToNether))
+                    if (printDimensionName)
+                        displayText.add("Overworld", secondaryColor)
+                    displayText.add(getFormattedCoords(entity.positionVector * overworldToNether, true))
                 }
             }
         }
     }
 
-    private fun getFormattedCoords(pos: Vec3d): TextComponent.TextElement {
+    private fun getFormattedCoords(pos: Vec3d, brackets: Boolean = false): TextComponent.TextElement {
+        if (!showX && !showY && !showZ) return TextComponent.TextElement("", primaryColor)
         val x = roundOrInt(pos.x)
         val y = roundOrInt(pos.y)
         val z = roundOrInt(pos.z)
         return StringBuilder().run {
+            if (brackets) append("[")
             if (showX) append(x)
             if (showY) appendWithComma(y)
             if (showZ) appendWithComma(z)
+            if (brackets) append("]")
             TextComponent.TextElement(toString(), primaryColor)
         }
     }
 
     private fun roundOrInt(input: Double): String {
         val separatorFormat = if (thousandsSeparator) "," else ""
-
         return "%$separatorFormat.${decimalPlaces}f".format(input)
     }
 
-    private fun StringBuilder.appendWithComma(string: String) = append(if (length > 0) ", $string" else string)
+    private fun StringBuilder.appendWithComma(string: String) = append(if (isNotEmpty()) ", $string" else string)
 
 }
