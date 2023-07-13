@@ -1,6 +1,5 @@
 package com.lambda.mixin.gui;
 
-import com.lambda.client.module.modules.render.ContainerPreview;
 import com.lambda.client.module.modules.render.MapPreview;
 import com.lambda.client.module.modules.render.NoRender;
 import com.lambda.client.util.Wrapper;
@@ -25,8 +24,6 @@ public class MixinGuiScreen {
                 ci.cancel();
                 MapPreview.drawMap(stack, mapData, x, y);
             }
-        } else if (ContainerPreview.INSTANCE.isEnabled()) {
-            ContainerPreview.INSTANCE.renderTooltips(stack, x, y, ci);
         }
     }
 
