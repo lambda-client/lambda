@@ -4,16 +4,19 @@ import com.lambda.client.commons.extension.toRadian
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerTravelEvent
+import com.lambda.client.manager.managers.HotbarManager.resetHotbar
+import com.lambda.client.manager.managers.HotbarManager.serverSideItem
+import com.lambda.client.manager.managers.HotbarManager.spoofHotbar
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
-import com.lambda.client.mixin.extension.boostedEntity
-import com.lambda.client.mixin.extension.playerPosLookPitch
-import com.lambda.client.mixin.extension.tickLength
-import com.lambda.client.mixin.extension.timer
+import com.lambda.client.mixin.extension.*
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.player.LagNotifier
 import com.lambda.client.util.MovementUtils.calcMoveYaw
 import com.lambda.client.util.MovementUtils.speed
+import com.lambda.client.util.TickTimer
+import com.lambda.client.util.TimeUnit
+import com.lambda.client.util.items.*
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.text.MessageSendHelper.sendChatMessage
 import com.lambda.client.util.threads.runSafe
@@ -24,9 +27,14 @@ import net.minecraft.client.audio.PositionedSoundRecord
 import net.minecraft.entity.item.EntityFireworkRocket
 import net.minecraft.init.Items
 import net.minecraft.init.SoundEvents
+import net.minecraft.item.ItemFirework
+import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketEntityAction
+import net.minecraft.network.play.client.CPacketPlayerTryUseItem
 import net.minecraft.network.play.server.SPacketEntityMetadata
 import net.minecraft.network.play.server.SPacketPlayerPosLook
+import net.minecraft.util.EnumHand
+import net.minecraft.util.math.RayTraceResult
 import kotlin.math.*
 
 
@@ -99,10 +107,25 @@ object ElytraFlight : Module(
     private val downPitch by setting("Down Pitch", 0f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
     private val rocketPitch by setting("Rocket Pitch", 50f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
 
+    /* Fireworks */
+    private val fireworkUseMode by setting("Firework Use Mode", FireworkUseMode.SPEED, { mode.value == ElytraFlightMode.FIREWORKS && page == Page.MODE_SETTINGS })
+    private val delay by setting("Fireworks Delay Ticks", 30, 0..100, 1, { mode.value == ElytraFlightMode.FIREWORKS && fireworkUseMode == FireworkUseMode.DELAY && page == Page.MODE_SETTINGS })
+    private val fireworkUseStartSpeed by setting ("Fireworks Use Min Speed", 1.0, 0.01..3.0, 0.01, { mode.value == ElytraFlightMode.FIREWORKS && fireworkUseMode == FireworkUseMode.SPEED && page == Page.MODE_SETTINGS })
+    private val fireworkBlockAvoid by setting("Avoid Blocks", false, { mode.value == ElytraFlightMode.FIREWORKS && page == Page.MODE_SETTINGS },
+        description = "Don't use fireworks if player is facing into a block")
+    private val fireworkBlockAvoidDist by setting("Avoid Blocks Raytrace Distance", 2.0, 1.0..10.0, 0.1, { mode.value == ElytraFlightMode.FIREWORKS && page == Page.MODE_SETTINGS && fireworkBlockAvoid })
+    private val fireworksVControl by setting("Boosted V Control", true, { mode.value == ElytraFlightMode.FIREWORKS && page == Page.MODE_SETTINGS })
+    private val fireworksVSpeed by setting("Boosted V Control Speed", 1.0, 0.0..3.0, 0.1, { mode.value == ElytraFlightMode.FIREWORKS && fireworksVControl && page == Page.MODE_SETTINGS })
+    private const val minFireworkUseDelayTicks = 20
+
+    enum class FireworkUseMode {
+        DELAY, SPEED
+    }
+
     /* End of Mode Settings */
 
     enum class ElytraFlightMode {
-        BOOST, CONTROL, CREATIVE, PACKET, VANILLA
+        BOOST, CONTROL, CREATIVE, PACKET, VANILLA, FIREWORKS
     }
 
     private enum class Page {
@@ -131,11 +154,14 @@ object ElytraFlight : Module(
     private var firstY = 0.0
     private var secondY = 0.0
 
+    /* Fireworks mode state */
+    private var fireworkTickTimer: TickTimer = TickTimer(TimeUnit.TICKS)
+
     /* Event Listeners */
     init {
         safeListener<PacketEvent.Receive> {
             if (player.isSpectator || !elytraIsEquipped || elytraDurability <= 1 || !isFlying || mode.value == ElytraFlightMode.BOOST) return@safeListener
-            if (it.packet is SPacketPlayerPosLook && mode.value != ElytraFlightMode.PACKET) {
+            if (it.packet is SPacketPlayerPosLook && mode.value != ElytraFlightMode.PACKET && mode.value != ElytraFlightMode.FIREWORKS) {
                 val packet = it.packet
                 packet.playerPosLookPitch = player.rotationPitch
             }
@@ -166,6 +192,7 @@ object ElytraFlight : Module(
                         ElytraFlightMode.CREATIVE -> creativeMode()
                         ElytraFlightMode.PACKET -> packetMode(it)
                         ElytraFlightMode.VANILLA -> vanillaMode()
+                        ElytraFlightMode.FIREWORKS -> fireworksMode()
                     }
                 }
                 spoofRotation()
@@ -359,6 +386,7 @@ object ElytraFlight : Module(
             ElytraFlightMode.CREATIVE -> speedCreative
             ElytraFlightMode.PACKET -> speedPacket
             ElytraFlightMode.VANILLA -> 1f
+            ElytraFlightMode.FIREWORKS -> 1f
         }
     }
 
@@ -492,6 +520,44 @@ object ElytraFlight : Module(
         firstY = player.posY
     }
 
+    private fun SafeClientEvent.fireworksMode() {
+        val isBoosted = world.getLoadedEntityList().any { it is EntityFireworkRocket && it.boostedEntity == player }
+        val currentSpeed = sqrt(player.motionX * player.motionX + player.motionZ * player.motionZ)
+
+        if (isBoosted) {
+            if (fireworksVControl)
+                if (player.movementInput.jump) player.motionY = fireworksVSpeed else if (player.movementInput.sneak) player.motionY = -fireworksVSpeed
+            fireworkTickTimer.reset()
+        } else when (fireworkUseMode) {
+            FireworkUseMode.DELAY -> if (fireworkTickTimer.tick(delay, true)) useFirework()
+            FireworkUseMode.SPEED -> if (currentSpeed < fireworkUseStartSpeed && fireworkTickTimer.tick(minFireworkUseDelayTicks, true))
+                useFirework()
+        }
+    }
+
+    private fun SafeClientEvent.useFirework() {
+        if (fireworkBlockAvoid)
+            player.rayTrace(fireworkBlockAvoidDist, 1f)?.let { if (it.typeOfHit == RayTraceResult.Type.BLOCK) return }
+        playerController.syncCurrentPlayItem()
+        val holdingFireworksMainhand = isBoostingFirework(player.serverSideItem)
+        val holdingFireworksOffhand = isBoostingFirework(player.offhandSlot.stack)
+        if (holdingFireworksMainhand)
+            connection.sendPacket(CPacketPlayerTryUseItem(EnumHand.MAIN_HAND))
+        else if (holdingFireworksOffhand) connection.sendPacket(CPacketPlayerTryUseItem(EnumHand.OFF_HAND))
+        else player.hotbarSlots.firstItem<ItemFirework, HotbarSlot> { isBoostingFirework(it) }?.let {
+            spoofHotbar(it.hotbarSlot)
+            connection.sendPacket(CPacketPlayerTryUseItem(EnumHand.MAIN_HAND))
+            resetHotbar()
+        } ?: run {
+            swapToItemOrMove<ItemFirework>(this@ElytraFlight, { isBoostingFirework(it) })
+            fireworkTickTimer.reset(minFireworkUseDelayTicks * 40L)
+        }
+    }
+
+    private fun isBoostingFirework(it: ItemStack): Boolean {
+        return it.item is ItemFirework && it.getSubCompound("Fireworks")?.hasKey("Flight") == true
+    }
+
     fun shouldSwing(): Boolean {
         return isEnabled && isFlying && !autoLanding && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET)
     }
@@ -504,7 +570,7 @@ object ElytraFlight : Module(
 
         if (autoLanding) {
             rotation = Vec2f(rotation.x, -20f)
-        } else if (mode.value != ElytraFlightMode.BOOST && mode.value != ElytraFlightMode.VANILLA) {
+        } else if (mode.value != ElytraFlightMode.BOOST && mode.value != ElytraFlightMode.VANILLA && mode.value != ElytraFlightMode.FIREWORKS) {
             if (!isStandingStill && mode.value != ElytraFlightMode.CREATIVE) rotation = Vec2f(packetYaw, rotation.y)
             if (spoofPitch) {
                 if (!isStandingStill) rotation = Vec2f(rotation.x, packetPitch)
