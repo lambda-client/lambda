@@ -63,6 +63,11 @@ class LambdaMod {
     fun init(event: FMLInitializationEvent) {
         LOG.info("Initializing $NAME $VERSION")
 
+        // load this class so that baritone doesn't crash
+        // see https://github.com/cabaletta/baritone/issues/3859
+        @Suppress("UNUSED_VARIABLE")
+        val baritoneTroll = baritone.api.utils.BetterBlockPos::class.java
+
         LoaderWrapper.loadAll()
 
         MinecraftForge.EVENT_BUS.register(ForgeEventProcessor)
