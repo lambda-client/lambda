@@ -15,6 +15,7 @@ internal object Time : LabelHud(
     private val showTime = setting("Show Time", true)
     private val dateFormat = setting("Date Format", TimeUtils.DateFormat.DDMMYY, { showDate.value })
     private val timeFormat = setting("Time Format", TimeUtils.TimeFormat.HHMM, { showTime.value })
+    private val cutoffTimeLeadingZero = setting("Cutoff Time Leading Zero", true, { showTime.value })
     private val timeUnit = setting("Time Unit", TimeUtils.TimeUnit.H12, { showTime.value })
 
     override fun SafeClientEvent.updateText() {
@@ -24,7 +25,8 @@ internal object Time : LabelHud(
             displayText.addLine("")
         }
         if (showTime.value) {
-            val time = TimeUtils.getTime(timeFormat.value, timeUnit.value)
+            var time = TimeUtils.getTime(timeFormat.value, timeUnit.value)
+            if (cutoffTimeLeadingZero.value && time.isNotEmpty() && time[0] == '0') time = time.removeRange(0, 1)
             time.forEach { displayText.add(it.toString(), if (it.isDigit()) primaryColor else secondaryColor) }
         }
     }

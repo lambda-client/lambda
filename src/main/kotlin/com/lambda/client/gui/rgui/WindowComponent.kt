@@ -89,7 +89,7 @@ open class WindowComponent(
         if (mouseState != MouseState.DRAG) updatePreDrag(mousePos.minus(posX, posY))
     }
 
-    private fun updatePreDrag(mousePos: Vec2f?) {
+    protected fun updatePreDrag(mousePos: Vec2f?) {
         mousePos?.let { preDragMousePos = it }
         preDragPos = Vec2f(posX, posY)
         preDragSize = Vec2f(width, height)

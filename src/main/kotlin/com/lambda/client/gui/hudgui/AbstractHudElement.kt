@@ -159,7 +159,10 @@ abstract class AbstractHudElement(
 
         default.valueListeners.add { _, it ->
             if (it) {
-                settingList.filter { it != visibleSetting && it != default }.forEach { it.resetValue() }
+                settingList.filter { it != visibleSetting && it != default }.forEach {
+                    it.resetValue()
+                    updatePreDrag(null)
+                }
                 default.value = false
                 MessageSendHelper.sendChatMessage("$name Set to defaults!")
             }
