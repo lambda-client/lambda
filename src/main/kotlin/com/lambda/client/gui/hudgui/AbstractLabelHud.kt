@@ -2,6 +2,7 @@ package com.lambda.client.gui.hudgui
 
 import com.lambda.client.commons.interfaces.Nameable
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.module.modules.client.Hud
 import com.lambda.client.module.modules.client.HudEditor
 import com.lambda.client.setting.configs.AbstractConfig
 import com.lambda.client.util.graphics.VertexHelper
@@ -23,7 +24,6 @@ abstract class AbstractLabelHud(
 
     override val hudWidth: Float get() = displayText.getWidth() + 2.0f
     override val hudHeight: Float get() = displayText.getHeight(2)
-
     protected val displayText = TextComponent(separator)
 
     init {
@@ -47,7 +47,8 @@ abstract class AbstractLabelHud(
         displayText.draw(
             Vec2d(textPosX.toDouble(), textPosY.toDouble()),
             horizontalAlign = dockingH,
-            verticalAlign = dockingV
+            verticalAlign = dockingV,
+            drawShadow = Hud.textShadow
         )
     }
 
