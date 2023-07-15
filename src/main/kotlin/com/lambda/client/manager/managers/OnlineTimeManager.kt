@@ -3,20 +3,20 @@ package com.lambda.client.manager.managers
 import com.lambda.client.event.events.ConnectionEvent
 import com.lambda.client.event.listener.listener
 import com.lambda.client.manager.Manager
-import java.time.Duration
-import java.time.Instant
+import kotlin.time.Duration
+import kotlin.time.TimeSource
 
 object OnlineTimeManager: Manager {
 
-    private var connectTime: Instant = Instant.EPOCH
+    private var connectTime = TimeSource.Monotonic.markNow()
 
     init {
         listener<ConnectionEvent.Connect> {
-            connectTime = Instant.now()
+            connectTime = TimeSource.Monotonic.markNow()
         }
     }
 
     fun getOnlineTime(): Duration {
-        return Duration.between(connectTime, Instant.now())
+        return connectTime.elapsedNow()
     }
 }
