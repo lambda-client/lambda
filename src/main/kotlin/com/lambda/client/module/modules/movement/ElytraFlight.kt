@@ -232,7 +232,7 @@ object ElytraFlight : Module(
         /* Holds player in the air if run out of durability */
         if (!player.onGround && elytraDurability <= 1 && outOfDurability) {
             holdPlayer(event)
-        } else if (outOfDurability) outOfDurability = false /* Reset if players is on ground or replace with a new elytra */
+        } else if (outOfDurability) outOfDurability = false /* Reset if player is on the ground or replace with a new elytra */
 
         /* wasInLiquid check */
         if (player.isInWater || player.isInLava) {
@@ -400,7 +400,11 @@ object ElytraFlight : Module(
     private fun SafeClientEvent.boostMode() {
         val yaw = player.rotationYaw.toDouble().toRadian()
         player.motionX -= player.movementInput.moveForward * sin(yaw) * speedBoost / 20
-        if (player.movementInput.jump) player.motionY += upSpeedBoost / 15 else if (player.movementInput.sneak) player.motionY -= downSpeedBoost / 15
+        if (player.movementInput.jump) {
+            player.motionY += upSpeedBoost / 15
+        } else if (player.movementInput.sneak) {
+            player.motionY -= downSpeedBoost / 15
+        }
         player.motionZ += player.movementInput.moveForward * cos(yaw) * speedBoost / 20
     }
 
@@ -408,8 +412,17 @@ object ElytraFlight : Module(
     private fun SafeClientEvent.controlMode(event: PlayerTravelEvent) {
         /* States and movement input */
         val currentSpeed = sqrt(player.motionX * player.motionX + player.motionZ * player.motionZ)
-        val moveUp = if (!legacyLookBoost) player.movementInput.jump else player.rotationPitch < -10.0f && !isStandingStillH
-        val moveDown = if (InventoryMove.isEnabled && !InventoryMove.sneak && mc.currentScreen != null || moveUp) false else player.movementInput.sneak
+        val moveUp = if (!legacyLookBoost) {
+            player.movementInput.jump
+        } else {
+            player.rotationPitch < -10.0f && !isStandingStillH
+        }
+
+        val moveDown = if (InventoryMove.isEnabled && !InventoryMove.sneak && mc.currentScreen != null || moveUp) {
+            false
+        } else {
+            player.movementInput.sneak
+        }
 
         /* Dynamic down speed */
         val calcDownSpeed = if (dynamicDownSpeed) {
@@ -421,8 +434,13 @@ object ElytraFlight : Module(
         } else downSpeedControl.toDouble()
 
         /* Hover */
-        if (hoverTarget < 0.0 || moveUp) hoverTarget = player.posY else if (moveDown) hoverTarget = player.posY - calcDownSpeed
-        hoverState = (if (hoverState) player.posY < hoverTarget else player.posY < hoverTarget - 0.1) && altitudeHoldControl
+        if (hoverTarget < 0.0 || moveUp) {
+            hoverTarget = player.posY
+        } else if (moveDown) {
+            hoverTarget = player.posY - calcDownSpeed
+        }
+        hoverState = (if (hoverState) player.posY < hoverTarget else player.posY < hoverTarget - 0.1)
+            && altitudeHoldControl
 
         /* Set velocity */
         if (!isStandingStillH || moveUp) {
@@ -525,41 +543,64 @@ object ElytraFlight : Module(
         val currentSpeed = sqrt(player.motionX * player.motionX + player.motionZ * player.motionZ)
 
         if (isBoosted) {
-            if (fireworksVControl)
-                if (player.movementInput.jump) player.motionY = fireworksVSpeed else if (player.movementInput.sneak) player.motionY = -fireworksVSpeed
+            if (fireworksVControl) {
+                if (player.movementInput.jump) {
+                    player.motionY = fireworksVSpeed
+                } else if (player.movementInput.sneak) {
+                    player.motionY = -fireworksVSpeed
+                }
+            }
             fireworkTickTimer.reset()
         } else when (fireworkUseMode) {
-            FireworkUseMode.DELAY -> if (fireworkTickTimer.tick(delay, true)) useFirework()
-            FireworkUseMode.SPEED -> if (currentSpeed < fireworkUseStartSpeed && fireworkTickTimer.tick(minFireworkUseDelayTicks, true))
-                useFirework()
+            FireworkUseMode.DELAY -> {
+                if (fireworkTickTimer.tick(delay, true)) useFirework()
+            }
+            FireworkUseMode.SPEED -> {
+                if (currentSpeed < fireworkUseStartSpeed
+                    && fireworkTickTimer.tick(minFireworkUseDelayTicks, true)
+                ) useFirework()
+            }
         }
     }
 
     private fun SafeClientEvent.useFirework() {
-        if (fireworkBlockAvoid)
-            player.rayTrace(fireworkBlockAvoidDist, 1f)?.let { if (it.typeOfHit == RayTraceResult.Type.BLOCK) return }
+        if (fireworkBlockAvoid) {
+            player.rayTrace(fireworkBlockAvoidDist, 1f)?.let {
+                if (it.typeOfHit == RayTraceResult.Type.BLOCK) return
+            }
+        }
         playerController.syncCurrentPlayItem()
+
         val holdingFireworksMainhand = isBoostingFirework(player.serverSideItem)
         val holdingFireworksOffhand = isBoostingFirework(player.offhandSlot.stack)
-        if (holdingFireworksMainhand)
+
+        if (holdingFireworksMainhand) {
             connection.sendPacket(CPacketPlayerTryUseItem(EnumHand.MAIN_HAND))
-        else if (holdingFireworksOffhand) connection.sendPacket(CPacketPlayerTryUseItem(EnumHand.OFF_HAND))
-        else player.hotbarSlots.firstItem<ItemFirework, HotbarSlot> { isBoostingFirework(it) }?.let {
-            spoofHotbar(it.hotbarSlot)
-            connection.sendPacket(CPacketPlayerTryUseItem(EnumHand.MAIN_HAND))
-            resetHotbar()
-        } ?: run {
+        } else if (holdingFireworksOffhand) {
+            connection.sendPacket(CPacketPlayerTryUseItem(EnumHand.OFF_HAND))
+        } else {
+            player.hotbarSlots.firstItem<ItemFirework, HotbarSlot> { isBoostingFirework(it) }?.let {
+                spoofHotbar(it.hotbarSlot)
+                connection.sendPacket(CPacketPlayerTryUseItem(EnumHand.MAIN_HAND))
+                resetHotbar()
+                return
+            }
+
             swapToItemOrMove<ItemFirework>(this@ElytraFlight, { isBoostingFirework(it) })
             fireworkTickTimer.reset(minFireworkUseDelayTicks * 40L)
         }
     }
 
     private fun isBoostingFirework(it: ItemStack): Boolean {
-        return it.item is ItemFirework && it.getSubCompound("Fireworks")?.hasKey("Flight") == true
+        return it.item is ItemFirework
+            && it.getSubCompound("Fireworks")?.hasKey("Flight") == true
     }
 
     fun shouldSwing(): Boolean {
-        return isEnabled && isFlying && !autoLanding && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET)
+        return isEnabled
+            && isFlying
+            && !autoLanding
+            && (mode.value == ElytraFlightMode.CONTROL || mode.value == ElytraFlightMode.PACKET)
     }
 
     private fun SafeClientEvent.spoofRotation() {
@@ -570,8 +611,13 @@ object ElytraFlight : Module(
 
         if (autoLanding) {
             rotation = Vec2f(rotation.x, -20f)
-        } else if (mode.value != ElytraFlightMode.BOOST && mode.value != ElytraFlightMode.VANILLA && mode.value != ElytraFlightMode.FIREWORKS) {
-            if (!isStandingStill && mode.value != ElytraFlightMode.CREATIVE) rotation = Vec2f(packetYaw, rotation.y)
+        } else if (mode.value != ElytraFlightMode.BOOST
+            && mode.value != ElytraFlightMode.VANILLA
+            && mode.value != ElytraFlightMode.FIREWORKS
+        ) {
+            if (!isStandingStill && mode.value != ElytraFlightMode.CREATIVE) {
+                rotation = Vec2f(packetYaw, rotation.y)
+            }
             if (spoofPitch) {
                 if (!isStandingStill) rotation = Vec2f(rotation.x, packetPitch)
 
