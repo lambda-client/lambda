@@ -82,7 +82,7 @@ object ContainerPreview : Module(
                         sc.posX = previewDrawX
                         sc.posY = previewDrawY
                     }
-                }
+                } ?: run { stackContainer = null }
             }
             stackContainer?.drawScreen(it.mouseX, it.mouseY, it.renderPartialTicks)
         }
