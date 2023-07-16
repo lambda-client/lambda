@@ -50,7 +50,7 @@ object ContainerPreview : Module(
     private val backgroundColor by setting("Background Color", ColorHolder(16, 0, 16, 255))
     private val borderTopColor by setting("Top Border Color", ColorHolder(144, 101, 237, 54))
     private val borderBottomColor by setting("Bottom Border Color", ColorHolder(40, 0, 127, 80))
-    private val previewLock by setting("Preview Lock Bind", Bind(Keyboard.KEY_LCONTROL))
+    private val previewLock by setting("Preview Lock Bind", Bind(Keyboard.KEY_LSHIFT))
     private val itemFrames by setting("Item Frames", true)
 
     private const val previewWidth = 176
