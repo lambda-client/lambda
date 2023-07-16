@@ -44,13 +44,16 @@ object CachedContainerManager : Manager {
 
             val folder = File(directory, serverDirectory)
             echestFile = folder.toPath().resolve(mc.session.profile.id.toString()).resolve("echest.nbt").toFile()
-            try {
-                if (!echestFile!!.exists()) {
-                    if (!echestFile!!.parentFile.exists()) echestFile!!.parentFile.mkdirs()
-                    echestFile!!.createNewFile()
+
+            echestFile?.let { file ->
+                try {
+                    if (!file.exists()) {
+                        if (!file.parentFile.exists()) file.parentFile.mkdirs()
+                        file.createNewFile()
+                    }
+                } catch (e: IOException) {
+                    LambdaMod.LOG.error("Failed to create ender chest file", e)
                 }
-            } catch (e: IOException) {
-                LambdaMod.LOG.error("Failed to create ender chest file", e)
             }
         }
 

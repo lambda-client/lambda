@@ -61,24 +61,34 @@ object ContainerPreview : Module(
     private var stackContainer: GuiPreview? = null
 
     init {
-
         safeListener<GuiScreenEvent.DrawScreenEvent.Post> {
             if (mc.currentScreen !is GuiContainer) return@safeListener
             val gui = it.gui as GuiContainer
+
             if (!Keyboard.isKeyDown(previewLock.key)) {
-                gui.slotUnderMouse?.let {slotUnder ->
-                    if (slotUnder.hasStack && !slotUnder.stack.isEmpty && (slotUnder.stack.item is ItemShulkerBox || slotUnder.stack.item.block == Blocks.ENDER_CHEST)) {
+                gui.slotUnderMouse?.let { slotUnder ->
+                    if (slotUnder.hasStack
+                        && !slotUnder.stack.isEmpty
+                        && (slotUnder.stack.item is ItemShulkerBox || slotUnder.stack.item.block == Blocks.ENDER_CHEST)
+                    ) {
                         if (stackContainer == null || stackContainer?.parentContainer != slotUnder.stack) {
                             stackContainer = createPreviewGui(slotUnder.stack, getContainerContents(slotUnder.stack))
                         }
-                    } else stackContainer = null
+                    } else {
+                        stackContainer = null
+                    }
+
                     stackContainer?.let { sc ->
                         val res = ScaledResolution(mc)
                         // ensure the preview gui is on screen
                         val dX = it.mouseX + 8
-                        val previewDrawX = if (dX + previewWidth > res.scaledWidth) res.scaledWidth - previewWidth else dX
+                        val previewDrawX = if (dX + previewWidth > res.scaledWidth) {
+                            res.scaledWidth - previewWidth
+                        } else dX
                         val dY = it.mouseY
-                        val previewDrawY = if (dY + previewHeight > res.scaledHeight) res.scaledHeight - previewHeight else dY
+                        val previewDrawY = if (dY + previewHeight > res.scaledHeight) {
+                            res.scaledHeight - previewHeight
+                        } else dY
                         sc.posX = previewDrawX
                         sc.posY = previewDrawY
                     }
@@ -100,7 +110,8 @@ object ContainerPreview : Module(
             if (!itemFrames) return@safeListener
             mc.renderManager.pointedEntity?.let { pe ->
                 if (pe !is EntityItemFrame) return@safeListener
-                if (!(pe.displayedItem.item.block is BlockShulkerBox || pe.displayedItem.item.block is BlockEnderChest)) return@safeListener
+                if (!(pe.displayedItem.item.block is BlockShulkerBox
+                        || pe.displayedItem.item.block is BlockEnderChest)) return@safeListener
                 val posX = pe.posX + (pe.facingDirection?.xOffset ?: 0) * 0.1
                 val posY = pe.posY + (pe.facingDirection?.yOffset ?: 0) * 0.1
                 val posZ = pe.posZ + (pe.facingDirection?.zOffset ?: 0) * 0.1
@@ -187,6 +198,7 @@ object ContainerPreview : Module(
     class GuiPreview(inventorySlotsIn: Container, val parentContainer: ItemStack) : GuiContainer(inventorySlotsIn) {
         var posX: Int = 0
         var posY: Int = 0
+
         init {
             this.mc = Minecraft.getMinecraft()
             this.fontRenderer = this.mc.fontRenderer
