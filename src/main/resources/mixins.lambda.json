@@ -42,7 +42,6 @@
     "entity.MixinEntityLlama",
     "entity.MixinEntityPig",
     "gui.MixinGuiChat",
-    "gui.MixinGuiChest",
     "gui.MixinGuiContainer",
     "gui.MixinGuiIngameForge",
     "gui.MixinGuiIngameMenu",

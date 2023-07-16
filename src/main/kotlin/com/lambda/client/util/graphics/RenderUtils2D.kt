@@ -16,12 +16,12 @@ import kotlin.math.*
 object RenderUtils2D {
     val mc = Wrapper.minecraft
 
-    fun drawItem(itemStack: ItemStack, x: Int, y: Int, text: String? = null, drawOverlay: Boolean = true) {
+    fun drawItem(itemStack: ItemStack, x: Int, y: Int, text: String? = null, drawOverlay: Boolean = true, z: Float = 0.0f) {
         GlStateUtils.blend(true)
         GlStateUtils.depth(true)
         RenderHelper.enableGUIStandardItemLighting()
 
-        mc.renderItem.zLevel = 0.0f
+        mc.renderItem.zLevel = z
         mc.renderItem.renderItemAndEffectIntoGUI(itemStack, x, y)
         if (drawOverlay) mc.renderItem.renderItemOverlayIntoGUI(mc.fontRenderer, itemStack, x, y, text)
         mc.renderItem.zLevel = 0.0f

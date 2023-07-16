@@ -102,6 +102,16 @@ internal object ForgeEventProcessor {
         }
     }
 
+    @SubscribeEvent
+    fun onDrawScreenEvent(event: GuiScreenEvent.DrawScreenEvent) {
+        LambdaEventBus.post(event)
+    }
+
+    @SubscribeEvent
+    fun onRenderTooltipEvent(event: RenderTooltipEvent.Pre) {
+        LambdaEventBus.post(event)
+    }
+
     /**
      * Includes events of subclasses like ChunkEvent and GetCollisionBoxesEvent
      */
