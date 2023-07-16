@@ -1,16 +1,17 @@
 package com.lambda.client.module.modules.client
 
-import com.lambda.client.activity.Activity
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.setting.settings.impl.collection.CollectionSetting
 import com.lambda.client.util.items.shulkerList
+import com.lambda.client.util.threads.safeListener
 import net.minecraft.block.Block
 import net.minecraft.init.Blocks
 import net.minecraft.init.Items
 import net.minecraft.item.Item
-import net.minecraft.util.math.BlockPos
+import net.minecraftforge.fml.common.gameevent.TickEvent
+import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent
 
 object BuildTools : Module(
     name = "BuildTools",
@@ -122,9 +123,6 @@ object BuildTools : Module(
         ANY, DIRECTION, VISIBLE
     }
 
-    val ignoredBlocks: List<Block>
-        get() = ignoreBlocks.mapNotNull { Block.getBlockFromName(it) }
-
     var defaultFillerMat: Block
         get() = Block.getBlockFromName(fillerMatSaved.value) ?: Blocks.NETHERRACK
         set(value) {
@@ -148,7 +146,7 @@ object BuildTools : Module(
         "minecraft:wall_sign",
         "minecraft:standing_banner",
         "minecraft:wall_banner"
-    ).also { defaultIgnoreBlocks -> defaultIgnoreBlocks.addAll(shulkerList.map { it.localizedName }) }
+    ).also { defaultIgnoreBlocks -> defaultIgnoreBlocks.addAll(shulkerList.map { it.registryName.toString() }) }
 
     val defaultEjectList = linkedSetOf(
         "minecraft:grass",
@@ -159,6 +157,19 @@ object BuildTools : Module(
     )
 
     val ignoreBlocks = setting(CollectionSetting("IgnoreList", defaultIgnoreBlocks, { false }))
+    var ignoredBlocks: List<Block> = ignoreBlocks.mapNotNull { Block.getBlockFromName(it) }
+    init {
+        ignoreBlocks.editListeners.add { ignoredBlocks = ignoreBlocks.mapNotNull { Block.getBlockFromName(it) } }
+
+        safeListener<ClientTickEvent> {
+            if (it.phase != TickEvent.Phase.START) return@safeListener
+            if (ignoreBlocks.size != ignoredBlocks.size) {
+                ignoreBlocks.filter { Block.getBlockFromName(it) == null }.forEach { ignoreBlocks.remove(it) }
+                ignoredBlocks = ignoreBlocks.mapNotNull { Block.getBlockFromName(it) }
+            }
+        }
+    }
+
     val ejectList = setting(CollectionSetting("Eject List", defaultEjectList, { false }))
     private val fillerMatSaved = setting("FillerMat", "minecraft:netherrack", { false })
     private val food = setting("FoodItem", "minecraft:golden_apple", { false })

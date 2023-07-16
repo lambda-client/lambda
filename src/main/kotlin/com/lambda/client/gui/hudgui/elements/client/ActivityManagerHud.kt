@@ -52,8 +52,8 @@ internal object ActivityManagerHud: LabelHud(
         if (sync.isNotEmpty() || async.isNotEmpty()) {
             displayText.addLine("")
             displayText.addLine("Subscribers:")
-            if (sync.isNotEmpty()) displayText.addLine("SYNC ${sync.map { it::class.simpleName }}")
-            if (async.isNotEmpty()) displayText.addLine("ASYNC ${async.map { it::class.simpleName }}")
+            if (sync.isNotEmpty()) displayText.addLine("SYNC ${sync.take(100).map { it::class.simpleName }}${if (sync.size > 100) "..." else ""}")
+            if (async.isNotEmpty()) displayText.addLine("ASYNC ${async.take(100).map { it::class.simpleName }}${if (async.size > 100) "..." else ""}")
         }
     }
 

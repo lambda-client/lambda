@@ -1,8 +1,8 @@
 package com.lambda.client.manager.managers
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.activity.activities.storage.StashTransaction
+import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
 import com.lambda.client.activity.activities.storage.core.ContainerTransaction
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkAABBRender
@@ -41,7 +41,7 @@ import net.minecraft.init.Items
 import net.minecraft.item.Item
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.GL11
-import java.util.Optional
+import java.util.*
 
 object ActivityManager : Manager, Activity() {
     private val renderer = ESPRenderer()
@@ -216,8 +216,8 @@ object ActivityManager : Manager, Activity() {
 
         val optimalStash = WorldEater.stashes
             .filter { it.items.contains(item) }
-            .minBy { player.distanceTo(it.area.center) }
-
+            .minByOrNull { player.distanceTo(it.area.center) }
+        optimalStash ?: return Optional.empty()
         MessageSendHelper.sendChatMessage("Missing ${
             item.registryName
         }. Fetching from stash at ${optimalStash.area.center.asString()}.")

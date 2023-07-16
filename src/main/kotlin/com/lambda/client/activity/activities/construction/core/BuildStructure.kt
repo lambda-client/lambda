@@ -24,7 +24,6 @@ import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.math.Direction
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.math.VectorUtils.multiply
-import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.block.BlockBush
 import net.minecraft.block.state.IBlockState
@@ -78,7 +77,7 @@ class BuildStructure(
             if (subActivities.isEmpty() && !BaritoneUtils.isPathing) {
                 // todo: offset pathing like this might not make sense for all structures. we aren't guaranteed to be at a specific position relative to the structure
                 //  we could path to the middle of the structure regardless of shape, but that will be inefficient. also structures are not guaranteed to be small/within render distance
-                if (autoPathing && !withinRangeOfStructure()) {
+                if (autoPathing && !withinRangeOfStructure() && offsetMove != BlockPos.ORIGIN) {
                     LambdaMod.LOG.info("Structure out of range, pathing by offset")
                     // todo: improve stop/start stutter pathing
                     BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalXZ(player.posX.floorToInt() + (offsetMove.x * 5), player.posZ.floorToInt() + (offsetMove.z * 5)))

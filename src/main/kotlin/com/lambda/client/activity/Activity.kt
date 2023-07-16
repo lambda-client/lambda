@@ -334,11 +334,14 @@ abstract class Activity {
             subActivities
         }
 
-        acti.forEach {
+        acti.take(25).forEach {
             repeat(depth) {
                 textComponent.add("   ")
             }
             it.appendInfo(textComponent, primaryColor, secondaryColor, details)
+        }
+        if (acti.size > 25) {
+            textComponent.addLine("And ${acti.size - 25} more...", primaryColor)
         }
     }
 
