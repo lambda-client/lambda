@@ -6,6 +6,7 @@ import com.lambda.client.activity.activities.inventory.core.SwapOrSwitchToSlot
 import com.lambda.client.activity.activities.inventory.core.SwitchToHotbarSlot
 import com.lambda.client.activity.activities.storage.BreakDownEnderChests
 import com.lambda.client.activity.activities.storage.ExtractItemFromShulkerBox
+import com.lambda.client.activity.activities.storage.core.ContainerTransaction
 import com.lambda.client.activity.types.AttemptActivity
 import com.lambda.client.activity.getShulkerInventory
 import com.lambda.client.activity.slotFilterFunction
@@ -33,7 +34,16 @@ class AcquireItemInActiveHand(
     override var usedAttempts: Int = 0
 ) : AttemptActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
-        player.hotbarSlots.firstOrNull(slotFilterFunction(item, metadata, predicateStack))?.let {
+        val order = ContainerTransaction.Order(
+            ContainerTransaction.Action.PUSH,
+            item,
+            amount,
+            predicateStack,
+            metadata,
+            predicateSlot
+        )
+
+        player.hotbarSlots.firstOrNull(slotFilterFunction(order))?.let {
             addSubActivities(SwitchToHotbarSlot(it))
             return
         }
@@ -45,20 +55,20 @@ class AcquireItemInActiveHand(
             return
         }
 
-        player.allSlots.firstOrNull(slotFilterFunction(item, metadata, predicateStack))?.let { slotFrom ->
-            addSubActivities(SwapOrSwitchToSlot(slotFrom, predicateSlot))
+        player.allSlots.firstOrNull(slotFilterFunction(order))?.let { slotFrom ->
+            addSubActivities(SwapOrSwitchToSlot(slotFrom, order.predicateSlot))
             return
         }
 
-        if (useShulkerBoxes && item !is ItemShulkerBox) {
+        if (useShulkerBoxes && order.item !is ItemShulkerBox) {
             val candidates = mutableMapOf<Slot, Int>()
 
             player.allSlots.forEach { slot ->
                 getShulkerInventory(slot.stack)?.let { inventory ->
                     val count = inventory.count {
-                        item == it.item
-                            && predicateStack(it)
-                            && (metadata == null || metadata == it.metadata)
+                        order.item == it.item
+                            && order.predicateStack(it)
+                            && (order.metadata == null || order.metadata == it.metadata)
                     }
 
                     if (count > 0) candidates[slot] = count
@@ -67,13 +77,13 @@ class AcquireItemInActiveHand(
 
             candidates.minByOrNull { it.value }?.key?.let { slot ->
                 addSubActivities(ExtractItemFromShulkerBox(
-                    slot.stack, item, predicateStack, predicateSlot, metadata, 1
+                    slot.stack, order
                 ))
                 return
             }
         }
 
-        if (item == Blocks.OBSIDIAN.item) {
+        if (order.item == Blocks.OBSIDIAN.item) {
             addSubActivities(BreakDownEnderChests(maximumRepeats = BuildTools.breakDownCycles))
             return
         }

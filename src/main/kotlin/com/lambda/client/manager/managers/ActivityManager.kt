@@ -1,8 +1,9 @@
 package com.lambda.client.manager.managers
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.inventory.DumpSlot
-import com.lambda.client.activity.activities.storage.StoreItemsToStash
+import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
+import com.lambda.client.activity.activities.storage.StashTransaction
+import com.lambda.client.activity.activities.storage.core.ContainerTransaction
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkAABBRender
 import com.lambda.client.activity.types.RenderOverlayTextActivity
@@ -10,6 +11,7 @@ import com.lambda.client.activity.types.RenderOverlayTextActivity.Companion.chec
 import com.lambda.client.activity.types.TimedActivity
 import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
+import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.RenderOverlayEvent
 import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.event.listener.listener
@@ -18,6 +20,7 @@ import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.executionCountPerTick
 import com.lambda.client.module.modules.client.BuildTools.textScale
 import com.lambda.client.module.modules.client.BuildTools.tickDelay
+import com.lambda.client.module.modules.misc.WorldEater
 import com.lambda.client.module.modules.player.AutoEat
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.TickTimer
@@ -26,16 +29,19 @@ import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.ProjectionUtils
 import com.lambda.client.util.graphics.font.FontRenderAdapter
+import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.countEmpty
+import com.lambda.client.util.items.countItem
 import com.lambda.client.util.items.inventorySlots
-import com.lambda.client.util.items.item
 import com.lambda.client.util.math.CoordinateConverter.asString
-import com.lambda.client.util.math.VectorUtils.toVec3dCenter
+import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
-import net.minecraft.init.Blocks
+import net.minecraft.init.Items
+import net.minecraft.item.Item
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.GL11
+import java.util.Optional
 
 object ActivityManager : Manager, Activity() {
     private val renderer = ESPRenderer()
@@ -51,13 +57,7 @@ object ActivityManager : Manager, Activity() {
             /* life support systems */
             if (AutoEat.eating) return@safeListener
 
-            if (BuildTools.storageManagement
-                && subActivities.filterIsInstance<StoreItemsToStash>().isEmpty()
-                && player.inventorySlots.countEmpty() <= BuildTools.keepFreeSlots
-            ) {
-                MessageSendHelper.sendChatMessage("Inventory full, storing items to stash at ${BuildTools.storagePos1.value.asString()}")
-                addSubActivities(StoreItemsToStash(listOf(Blocks.STONE.item, Blocks.DIRT.item)))
-            }
+            if (BuildTools.storageManagement) maintainInventory()
 
             allSubActivities
                 .filter { it.status == Status.RUNNING && it.subActivities.isEmpty() }
@@ -98,9 +98,10 @@ object ActivityManager : Manager, Activity() {
             renderer.aOutline = BuildTools.aOutline
             renderer.thickness = BuildTools.thickness
 
-            RenderAABBActivity.normalizedRender.forEach { renderAABB ->
-                renderer.add(renderAABB.renderAABB, renderAABB.color)
-            }
+            RenderAABBActivity.normalizedRender
+                .forEach { renderAABB ->
+                    renderer.add(renderAABB.renderAABB, renderAABB.color)
+                }
 
             renderer.render(true)
         }
@@ -120,7 +121,12 @@ object ActivityManager : Manager, Activity() {
                 val lineHeight = FontRenderAdapter.getFontHeight() + 2.0f
                 val yLift = lineHeight * 3 / 2
 
-                FontRenderAdapter.drawString(renderText.text, halfWidth, lineHeight * renderText.index - yLift, color = renderText.color)
+                FontRenderAdapter.drawString(
+                    renderText.text,
+                    halfWidth,
+                    lineHeight * renderText.index - yLift,
+                    color = renderText.color
+                )
 
                 GL11.glPopMatrix()
             }
@@ -128,9 +134,8 @@ object ActivityManager : Manager, Activity() {
         }
     }
 
-    override fun getCurrentActivity(): Activity {
-        return subActivities.maxByOrNull { it.owner?.modulePriority ?: 0 }?.getCurrentActivity() ?: this
-    }
+    override fun getCurrentActivity() =
+        subActivities.maxByOrNull { it.owner?.modulePriority ?: 0 }?.getCurrentActivity() ?: this
 
     fun reset() {
         ListenerManager.listenerMap.keys.filterIsInstance<Activity>().forEach {
@@ -147,5 +152,81 @@ object ActivityManager : Manager, Activity() {
         }
         BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
         subActivities.clear()
+    }
+
+    private fun SafeClientEvent.maintainInventory() {
+        val stashOrders = mutableListOf<Pair<WorldEater.Stash, ContainerTransaction.Order>>()
+
+        if (subActivities.filterIsInstance<StoreItemToShulkerBox>().isEmpty()
+            && player.inventorySlots.countEmpty() <= BuildTools.keepFreeSlots
+        ) {
+            val itemsToStore = WorldEater.collectables.filter {
+                player.inventorySlots.countItem(it) > 0
+            }
+
+            if (itemsToStore.isNotEmpty()) {
+                val storeActivities = itemsToStore.map {
+                    StoreItemToShulkerBox(it, 0)
+                }
+
+                MessageSendHelper.sendChatMessage("Compressing ${
+                    storeActivities.joinToString { "${it.item.registryName}" }
+                } to shulker boxes.")
+
+                addSubActivities(storeActivities)
+            } else if (subActivities.filterIsInstance<StashTransaction>().isEmpty()) {
+                stashOrders.addAll(itemsToStore.map { itemToStore ->
+                    val optimalStash = WorldEater.dropOff
+                        .filter { it.items.contains(itemToStore) }
+                        .minBy { player.distanceTo(it.area.center) }
+
+                    MessageSendHelper.sendChatMessage("Inventory full. Storing ${
+                        itemToStore.registryName
+                    } to stash at ${optimalStash.area.center}.")
+
+                    optimalStash to ContainerTransaction.Order(
+                        ContainerTransaction.Action.PUSH,
+                        itemToStore
+                    )
+                })
+            }
+        }
+
+        if (subActivities.filterIsInstance<StashTransaction>().isNotEmpty()) return
+
+        if (BuildTools.usePickaxe) checkItem(Items.DIAMOND_PICKAXE).ifPresent { stashOrders.add(it) }
+        if (BuildTools.useShovel) checkItem(Items.DIAMOND_SHOVEL).ifPresent { stashOrders.add(it) }
+        if (BuildTools.useAxe) checkItem(Items.DIAMOND_AXE).ifPresent { stashOrders.add(it) }
+        if (BuildTools.useSword) checkItem(Items.DIAMOND_SWORD).ifPresent { stashOrders.add(it) }
+        if (BuildTools.useShears) checkItem(Items.SHEARS).ifPresent { stashOrders.add(it) }
+
+        checkItem(Items.GOLDEN_APPLE).ifPresent { stashOrders.add(it) }
+
+        if (stashOrders.isNotEmpty()) {
+            stashOrders.groupBy { it.first }.map { group ->
+                StashTransaction(group.key, group.value.map { it.second })
+            }.forEach {
+                addSubActivities(it)
+            }
+        }
+    }
+
+    private fun SafeClientEvent.checkItem(item: Item): Optional<Pair<WorldEater.Stash, ContainerTransaction.Order>> {
+        if (player.allSlots.countItem(item) >= BuildTools.minToolAmount) return Optional.empty()
+
+        val optimalStash = WorldEater.stashes
+            .filter { it.items.contains(item) }
+            .minBy { player.distanceTo(it.area.center) }
+
+        MessageSendHelper.sendChatMessage("Missing ${
+            item.registryName
+        }. Fetching from stash at ${optimalStash.area.center.asString()}.")
+
+        return Optional.of(
+            optimalStash to ContainerTransaction.Order(
+                ContainerTransaction.Action.PULL,
+                item
+            )
+        )
     }
 }

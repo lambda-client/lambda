@@ -3,7 +3,6 @@ package com.lambda.client.command.commands
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.command.CommandManager
 import com.lambda.client.module.modules.misc.WorldEater
-import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.item.Item
 
@@ -21,12 +20,21 @@ object WorldEaterCommand : ClientCommand(
             }
         }
 
+        literal("stop") {
+            executeSafe("Stop world eater") {
+                WorldEater.ownedActivity?.let {
+                    with(it) {
+                        cancel()
+                    }
+                }
+            }
+        }
+
         literal("pickup") {
             literal("add", "new", "+") {
                 item("item") { itemArg ->
                     execute("Add item to pickup list") {
-                        val added = WorldEater.collectables.add(itemArg.value)
-                        if (added) {
+                        if (WorldEater.collectables.add(itemArg.value)) {
                             MessageSendHelper.sendChatMessage("Added &7${itemArg.value.registryName}&r to pickup list.")
                         } else {
                             MessageSendHelper.sendChatMessage("&7${itemArg.value.registryName}&r is already on the pickup list.")
@@ -38,8 +46,7 @@ object WorldEaterCommand : ClientCommand(
             literal("remove") {
                 item("item") { itemArg ->
                     execute("Remove item from pickup list") {
-                        val removed = WorldEater.collectables.remove(itemArg.value)
-                        if (removed) {
+                        if (WorldEater.collectables.remove(itemArg.value)) {
                             MessageSendHelper.sendChatMessage("Removed &7${itemArg.value.registryName}&r from pickup list.")
                         } else {
                             MessageSendHelper.sendChatMessage("&7${itemArg.value.registryName}&r is not on the pickup list.")
@@ -98,9 +105,9 @@ object WorldEaterCommand : ClientCommand(
             }
             literal("remove", "rem", "-") {
                 int("id") { id ->
-                    execute("Removes excavating area") {
-                        val removed = WorldEater.quarries.value.removeAt(id.value)
-                        MessageSendHelper.sendChatMessage("Removed excavating area $removed")
+                    execute("Removes stash area") {
+                        val removed = WorldEater.stashes.value.removeAt(id.value)
+                        MessageSendHelper.sendChatMessage("Removed stash area $removed")
                     }
                 }
             }
@@ -121,7 +128,7 @@ object WorldEaterCommand : ClientCommand(
                                 val safeArgs = CommandManager.tryParseArgument(args.joinToString(" ")) ?: return@execute
 
                                 val items = safeArgs.mapNotNull { Item.getByNameOrId(it) }
-                                val dropOff = WorldEater.DropOff(WorldEater.Area(pos1.value, pos2.value), items)
+                                val dropOff = WorldEater.Stash(WorldEater.Area(pos1.value, pos2.value), items)
 
                                 WorldEater.dropOff.value.add(dropOff)
                                 MessageSendHelper.sendChatMessage("Added drop-off area $dropOff")
@@ -147,11 +154,23 @@ object WorldEaterCommand : ClientCommand(
         }
 
         execute("General setting info") {
-            MessageSendHelper.sendChatMessage("World eater settings:")
-            MessageSendHelper.sendChatMessage("  &7Pickup&r: ${WorldEater.collectables.value.joinToString { it.registryName.toString() }}")
-            MessageSendHelper.sendChatMessage("  &7Quarries&r: ${WorldEater.quarries.value.joinToString()}")
-            MessageSendHelper.sendChatMessage("  &7Stashes&r: ${WorldEater.stashes.value.joinToString()}")
-            MessageSendHelper.sendChatMessage("  &7Drop-off&r: ${WorldEater.dropOff.value.joinToString()}")
+            val string = "WorldEater settings:\n" +
+                    "&7Pickup&r:\n" +
+                    "${WorldEater.collectables.value.joinToString("\n") {
+                        "  &7+&r ${it.registryName.toString()}"
+                    }}\n" +
+                    "&7Quarries&r: ${
+                        if (WorldEater.quarries.value.isEmpty()) "None"
+                        else WorldEater.quarries.value.joinToString()
+                    }\n&7Stashes&r: ${
+                        if (WorldEater.stashes.value.isEmpty()) "None"
+                        else WorldEater.stashes.value.joinToString()
+                    }\n&7Drop-off&r: ${
+                        if (WorldEater.dropOff.value.isEmpty()) "None"
+                        else WorldEater.dropOff.value.joinToString()
+                    }"
+
+            MessageSendHelper.sendChatMessage(string)
         }
     }
 }

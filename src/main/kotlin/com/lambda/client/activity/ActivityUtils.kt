@@ -1,8 +1,8 @@
 package com.lambda.client.activity
 
-import net.minecraft.inventory.ItemStackHelper
-import net.minecraft.inventory.Slot
-import net.minecraft.item.Item
+import com.lambda.client.activity.activities.storage.core.ContainerTransaction
+import com.lambda.client.util.items.getSlots
+import net.minecraft.inventory.*
 import net.minecraft.item.ItemShulkerBox
 import net.minecraft.item.ItemStack
 import net.minecraft.util.NonNullList
@@ -22,6 +22,38 @@ fun getShulkerInventory(stack: ItemStack): NonNullList<ItemStack>? {
     return shulkerInventory
 }
 
-val slotFilterFunction = { item: Item, metadata: Int?, predicateStack: (ItemStack) -> Boolean ->
-    { slot: Slot -> item == slot.stack.item && predicateStack(slot.stack) && (metadata == null || metadata == slot.stack.metadata) }
+val slotFilterFunction = {
+    order: ContainerTransaction.Order -> {
+        slot: Slot -> if (order.containedInShulker) {
+                slot.stack.item is ItemShulkerBox
+                    && getShulkerInventory(slot.stack)?.any {
+                        it.item == order.item
+                            && order.predicateStack(it)
+                            && (order.metadata == null || order.metadata == it.metadata)
+                    } == true
+            } else order.item == slot.stack.item
+            && order.predicateStack(slot.stack)
+            && (order.metadata == null || order.metadata == slot.stack.metadata)
+    }
 }
+
+/**
+ * Get the slots of a container.
+ * The first list contains the container slots, the second list contains the player slots.
+ */
+val Container.seperatedSlots: Pair<List<Slot>, List<Slot>>
+    get() = when(this) {
+        is ContainerShulkerBox -> {
+            getSlots(0..26) to getSlots(27..62)
+        }
+        is ContainerChest -> {
+            if (inventory.size == 62) {
+                getSlots(0..26) to getSlots(27..62)
+            } else {
+                getSlots(0..53) to getSlots(54..89)
+            }
+        }
+        else -> {
+            throw ContainerTransaction.ContainerNotKnownException(this)
+        }
+    }

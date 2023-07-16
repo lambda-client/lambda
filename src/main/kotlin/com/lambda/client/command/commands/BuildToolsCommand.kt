@@ -15,8 +15,7 @@ object BuildToolsCommand : ClientCommand(
             literal("add", "new", "+") {
                 block("block") { blockArg ->
                     execute("Adds a block to ignore list") {
-                        val added = BuildTools.ignoreBlocks.add(blockArg.value.registryName.toString())
-                        if (added) {
+                        if (BuildTools.ignoreBlocks.add(blockArg.value.registryName.toString())) {
                             MessageSendHelper.sendChatMessage("Added &7${blockArg.value.localizedName}&r to ignore list.")
                         } else {
                             MessageSendHelper.sendChatMessage("&7${blockArg.value.localizedName}&r is already ignored.")
@@ -28,8 +27,7 @@ object BuildToolsCommand : ClientCommand(
             literal("remove", "rem", "-", "del") {
                 block("block") { blockArg ->
                     execute("Removes a block from ignore list") {
-                        val removed = BuildTools.ignoreBlocks.remove(blockArg.value.registryName.toString())
-                        if (removed) {
+                        if (BuildTools.ignoreBlocks.remove(blockArg.value.registryName.toString())) {
                             MessageSendHelper.sendChatMessage("Removed &7${blockArg.value.localizedName}&r from ignore list.")
                         } else {
                             MessageSendHelper.sendChatMessage("&7${blockArg.value.localizedName}&r is not yet ignored.")
@@ -129,29 +127,6 @@ object BuildToolsCommand : ClientCommand(
 
             execute("Shows the food item") {
                 MessageSendHelper.sendChatMessage("Food item: &7${BuildTools.defaultFood.registryName}&r")
-            }
-        }
-
-        literal("storage") {
-            literal("add", "new", "+") {
-                blockPos("pos1") { pos1 ->
-                    blockPos("pos2") { pos2 ->
-                        execute("Sets storage area") {
-                            BuildTools.storagePos1.value = pos1.value
-                            BuildTools.storagePos2.value = pos2.value
-                            MessageSendHelper.sendChatMessage("Added storage area (${pos1.value}x${pos2.value}). Use &7${prefix}buildtools storage remove&r to remove it.")
-//                            BuildTools.storageAreas.add(it.args[0].value to it.args[1].value)
-//                            MessageSendHelper.sendChatMessage("Added storage area with id ${BuildTools.storageAreas.size - 1}.")
-                        }
-                    }
-                }
-            }
-            literal("remove", "rem", "-") {
-                int("id") {
-                    execute("Not yet implemented") {
-                        MessageSendHelper.sendChatMessage("Not yet implemented.")
-                    }
-                }
             }
         }
     }

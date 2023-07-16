@@ -349,7 +349,7 @@ class BreakBlock(
             return true
         }
 
-        EnumFacing.values()
+        EnumFacing.entries
             .filter { it != EnumFacing.DOWN }
             .map { blockPos.offset(it) }
             .filter { world.getBlockState(it).isLiquid }

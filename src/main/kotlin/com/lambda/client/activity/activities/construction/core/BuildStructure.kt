@@ -68,7 +68,7 @@ class BuildStructure(
     }
 
     private fun SafeClientEvent.nearestStructureBlock(): BlockPos? {
-        return structure.keys.minBy { it.add(currentOffset).distanceTo(player.position) }
+        return structure.keys.minByOrNull { it.add(currentOffset).distanceTo(player.position) }
     }
 
     init {
@@ -136,7 +136,7 @@ class BuildStructure(
                     }
                 }) return@safeListener
 
-                MessageSendHelper.sendWarningMessage("Block changed at $blockPos")
+//                MessageSendHelper.sendWarningMessage("Block changed at $blockPos")
                 createBuildActivity(blockPos, targetState)
             }
         }
@@ -162,7 +162,7 @@ class BuildStructure(
                     else -> false
                 }
             }) return
-            MessageSendHelper.sendWarningMessage("Block changed at $blockPos")
+//            MessageSendHelper.sendWarningMessage("Block changed at $blockPos")
             createBuildActivity(blockPos, targetState)
         }
     }

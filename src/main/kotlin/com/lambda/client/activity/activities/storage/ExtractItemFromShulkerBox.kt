@@ -5,19 +5,14 @@ import com.lambda.client.activity.activities.construction.core.BreakBlock
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.storage.core.CloseContainer
 import com.lambda.client.activity.activities.storage.core.PlaceContainer
-import com.lambda.client.activity.activities.storage.core.PullItemsFromContainer
+import com.lambda.client.activity.activities.storage.core.ContainerTransaction
 import com.lambda.client.activity.activities.travel.PickUpDrops
 import com.lambda.client.event.SafeClientEvent
-import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 
 class ExtractItemFromShulkerBox(
-    private val shulkerBoxStack: ItemStack,
-    private val item: Item,
-    private val predicateStack: (ItemStack) -> Boolean = { true },
-    private val predicateSlot: (ItemStack) -> Boolean = { true },
-    private var metadata: Int? = null,
-    private val amount: Int = 0 // 0 = all
+    shulkerBoxStack: ItemStack,
+    private val order: ContainerTransaction.Order
 ) : Activity() {
     private val stack = shulkerBoxStack.copy()
 
@@ -31,11 +26,11 @@ class ExtractItemFromShulkerBox(
         if (childActivity !is PlaceContainer) return
 
         addSubActivities(
-            PullItemsFromContainer(item, predicateStack, metadata, amount),
+            ContainerTransaction(order),
             CloseContainer(),
             BreakBlock(childActivity.containerPos),
             PickUpDrops(stack.item), // BreakBlock doesn't collect drops
-            AcquireItemInActiveHand(item, predicateStack, predicateSlot)
+            AcquireItemInActiveHand(order.item, order.predicateStack, order.predicateSlot)
         )
     }
 }

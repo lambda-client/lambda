@@ -56,8 +56,6 @@ object BuildTools : Module(
 
     /* storage management */
     val storageManagement by setting("Manage Storage", true, { page == Page.STORAGE_MANAGEMENT }, description = "Choose to interact with container using only packets")
-    val storagePos1 = setting("Storage Pos 1", BlockPos.ORIGIN)
-    val storagePos2 = setting("Storage Pos 2", BlockPos.ORIGIN)
 //    val searchEChest by setting("Search Ender Chest", false, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Allow access to your ender chest")
 //    val leaveEmptyShulkers by setting("Leave Empty Shulkers", true, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Does not break empty shulkers")
 //    val grindObsidian by setting("Grind Obsidian", true, { page == Page.STORAGE_MANAGEMENT && storageManagement }, description = "Destroy Ender Chests to obtain Obsidian")
@@ -78,6 +76,7 @@ object BuildTools : Module(
     val useShovel by setting("Force Shovel", true, { page == Page.TOOLS }, description = "Use shovel to mine blocks")
     val useSword by setting("Force Sword", true, { page == Page.TOOLS }, description = "Use sword to mine blocks")
     val useShears by setting("Force Shears", true, { page == Page.TOOLS }, description = "Use shears to mine blocks")
+    val minToolAmount by setting("Min Tool Amount", 1, 0..10, 1, { page == Page.TOOLS }, description = "How many tools are saved")
 
     /* render */
 //    val info by setting("Show Info", true, { page == Page.RENDER }, description = "Prints session stats in chat")
@@ -85,6 +84,7 @@ object BuildTools : Module(
 //    val showCurrentPos by setting("Current Pos", false, { page == Page.RENDER }, description = "Renders the current position")
     val filled by setting("Filled", true, { page == Page.RENDER }, description = "Renders colored task surfaces")
     val outline by setting("Outline", true, { page == Page.RENDER }, description = "Renders colored task outlines")
+    val maxDistance by setting("Max Distance", 24, 0..256, 1, { page == Page.RENDER }, description = "Max distance to render tasks", unit = " blocks")
 //    val popUp by setting("Pop up", true, { page == Page.RENDER }, description = "Funny render effect")
 //    val popUpSpeed by setting("Pop up speed", 150, 0..500, 1, { page == Page.RENDER && popUp }, description = "Sets speed of the pop up effect", unit = "ms")
     val showDebugRender by setting("Debug Render", false, { page == Page.RENDER }, description = "Render debug info on tasks")

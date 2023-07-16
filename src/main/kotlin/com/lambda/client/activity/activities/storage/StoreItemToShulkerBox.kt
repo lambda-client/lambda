@@ -3,8 +3,8 @@ package com.lambda.client.activity.activities.storage
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.construction.core.BreakBlock
 import com.lambda.client.activity.activities.storage.core.CloseContainer
+import com.lambda.client.activity.activities.storage.core.ContainerTransaction
 import com.lambda.client.activity.activities.storage.core.PlaceContainer
-import com.lambda.client.activity.activities.storage.core.PushItemsToContainer
 import com.lambda.client.activity.getShulkerInventory
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
@@ -14,9 +14,9 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 
 class StoreItemToShulkerBox( // TODO: Add support for multiple shulker boxes
-    private val item: Item,
+    val item: Item,
     private val amount: Int = 0, // 0 = all
-    private val predicateItem: (ItemStack) -> Boolean = { true }
+    private val predicateStack: (ItemStack) -> Boolean = { true }
 ) : Activity() {
     override fun SafeClientEvent.onInitialize() {
         val candidates = mutableMapOf<Slot, Int>()
@@ -28,8 +28,8 @@ class StoreItemToShulkerBox( // TODO: Add support for multiple shulker boxes
 
         player.allSlots.forEach { slot ->
             getShulkerInventory(slot.stack)?.let { inventory ->
-                if (inventory.all { (it.item == item && predicateItem(it)) || it.isEmpty }) {
-                    val count = inventory.count { it.item == item && predicateItem(it) }
+                if (inventory.all { (it.item == item && predicateStack(it)) || it.isEmpty }) {
+                    val count = inventory.count { it.item == item && predicateStack(it) }
 
                     if (count < 27) candidates[slot] = count
                 }
@@ -52,7 +52,14 @@ class StoreItemToShulkerBox( // TODO: Add support for multiple shulker boxes
         if (childActivity !is PlaceContainer) return
 
         addSubActivities(
-            PushItemsToContainer(item, amount, predicateItem),
+            ContainerTransaction(
+                ContainerTransaction.Order(
+                    ContainerTransaction.Action.PUSH,
+                    item,
+                    amount,
+                    predicateStack
+                )
+            ),
             CloseContainer(),
             BreakBlock(childActivity.containerPos, collectDrops = true)
         )

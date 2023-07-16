@@ -1,5 +1,6 @@
 package com.lambda.client.activity.activities.construction
 
+import baritone.api.pathing.goals.GoalTwoBlocks
 import baritone.api.pathing.goals.GoalXZ
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.construction.core.BuildStructure
@@ -37,7 +38,7 @@ class ClearArea(
     override fun SafeClientEvent.onInitialize() {
         with(area) {
             if (!playerInArea) {
-                MessageSendHelper.sendWarningMessage("Pathing to area")
+                MessageSendHelper.sendWarningMessage("You are not in the area $area! Moving now...")
                 addSubActivities(CustomGoal(GoalXZ(center.x, center.z)))
                 status = Status.UNINITIALIZED
                 return@onInitialize
@@ -45,7 +46,6 @@ class ClearArea(
         }
 
         val layers = (area.minY..area.maxY).reversed()
-
         val structure = mutableMapOf<BlockPos, IBlockState>()
 
         layers.forEach { y ->
@@ -64,5 +64,11 @@ class ClearArea(
                 structure.clear()
             }
         }
+    }
+
+    override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
+        if (childActivity !is CustomGoal) return
+
+        status = Status.UNINITIALIZED
     }
 }

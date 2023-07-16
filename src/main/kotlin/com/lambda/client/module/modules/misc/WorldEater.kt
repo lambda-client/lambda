@@ -41,12 +41,14 @@ object WorldEater : Module(
         Blocks.CLAY.item
     )
 
+    val tools = setting(CollectionSetting("Tools", mutableListOf(), entryType = Item::class.java))
+
     val collectables = setting(CollectionSetting("Pick up items", defaultPickupItems, entryType = Item::class.java))
     val quarries = setting(CollectionSetting("Quarries", mutableListOf(), entryType = Area::class.java))
     val stashes = setting(CollectionSetting("Stashes", mutableListOf(), entryType = Stash::class.java))
-    val dropOff = setting(CollectionSetting("Drop offs", mutableListOf(), entryType = DropOff::class.java))
+    val dropOff = setting(CollectionSetting("Drop offs", mutableListOf(), entryType = Stash::class.java))
 
-    private var ownedActivity: ClearArea? = null
+    var ownedActivity: ClearArea? = null
 
     init {
         onEnable {
@@ -89,14 +91,9 @@ object WorldEater : Module(
         }
     }
 
-    data class DropOff(val area: Area, val items: List<Item>) {
-        override fun toString() = "($area)\n${items.joinToString {
-            "  &7${it.registryName.toString()}\n"
-        }}"
-    }
     data class Stash(val area: Area, val items: List<Item>) {
-        override fun toString() = "($area)\n${items.joinToString {
-            "  &7${it.registryName.toString()}\n"
+        override fun toString() = "$area\n  ${items.joinToString("\n  ") {
+            "&7+&r ${it.registryName.toString()}"
         }}"
     }
 
@@ -112,6 +109,12 @@ object WorldEater : Module(
             get() = player.flooredPosition.x in minX..maxX
                 && player.flooredPosition.z in minZ..maxZ
 
+        val containedBlockPositions: Set<BlockPos>
+            get() = BlockPos.getAllInBox(pos1, pos2).toSet()
+
+        val maxWidth: Int
+            get() = maxOf(maxX - minX + 1, maxZ - minZ + 1)
+
         val minX: Int
             get() = minOf(pos1.x, pos2.x)
         val minY: Int
@@ -125,6 +128,6 @@ object WorldEater : Module(
         val maxZ: Int
             get() = maxOf(pos1.z, pos2.z)
 
-        override fun toString() = "(${pos1.asString()})x(${pos2.asString()})"
+        override fun toString() = "(${pos1.asString()}x${pos2.asString()})"
     }
 }
