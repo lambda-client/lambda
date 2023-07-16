@@ -186,13 +186,13 @@ class BuildStructure(
         /* block is not breakable */
         if (currentState.getBlockHardness(world, blockPos) < 0) return
 
-        /* block is auto breakable like lilypad or tall grass */
+        /* block is auto breakable like lily-pad or tall grass */
         if (!breakBushes && currentState.block is BlockBush) return
 
         /* block should be ignored */
         if (currentState.block in BuildTools.ignoredBlocks) return
 
-        /* only option left is breaking the block */
+        /* the only option left is breaking the block */
         addSubActivities(BreakBlock(
             blockPos, collectDrops = collectAll, minCollectAmount = 64
         ), subscribe = true)

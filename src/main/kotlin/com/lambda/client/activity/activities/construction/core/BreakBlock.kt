@@ -157,6 +157,9 @@ class BreakBlock(
     }
 
     override fun SafeClientEvent.onInitialize() {
+        context = BuildActivity.Context.NONE
+        availability = BuildActivity.Availability.NONE
+
         val currentState = world.getBlockState(blockPos)
 
         if (currentState.block in BuildTools.ignoredBlocks
