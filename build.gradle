@@ -186,6 +186,10 @@ shadowJar {
             'kotlin/**/*.kotlin_metadata',
             'kotlin/**/*.kotlin_builtins',
             'META-INF/*.version'
+    minimize {
+        exclude(dependency('cabaletta:baritone-api:.*'))
+        exclude(dependency('org.spongepowered:mixin:.*'))
+    }
     configurations = [project.configurations.jarLibs, project.configurations.onlyJarLibs]
     relocate 'kotlin', 'com.lambda.shadow.kotlin'
     relocate 'kotlinx', 'com.lambda.shadow.kotlinx'
