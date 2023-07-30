@@ -12,9 +12,7 @@ import com.lambda.client.module.Module
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.isInOrAboveLiquid
 import com.lambda.client.util.MovementUtils
-import com.lambda.client.util.MovementUtils.applySpeedPotionEffects
 import com.lambda.client.util.MovementUtils.calcMoveYaw
-import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.network.play.server.SPacketPlayerPosLook
@@ -32,29 +30,40 @@ object Speed : Module(
     category = Category.MOVEMENT,
     modulePriority = 100
 ) {
+    private const val NCP_BASE_SPEED = 0.2873
+
     // General settings
-    val mode = setting("Mode", SpeedMode.STRAFE)
+    private val mode by setting("Mode", Mode.STRAFE).apply {
+        listeners.add {
+            resetTimer()
+        }
+    }
 
     // Strafe settings
-    private val strafeAirSpeedBoost by setting("Strafe Speed", StrafeMode.Normal)
-    private val strafeOnlyOverhead by setting("Require Roof", false, { mode.value == SpeedMode.STRAFE })
-    private val strafeOnHoldingSprint by setting("On Holding Sprint", false, { mode.value == SpeedMode.STRAFE })
+    private val strafeBaseSpeed by setting("Base Speed", NCP_BASE_SPEED, 0.1..0.3, 0.0001, { mode == Mode.STRAFE })
+    private val strafeMaxSpeed by setting("Max Speed", 1.0, 0.3..1.0, 0.0001, { mode == Mode.STRAFE })
+    private val strafeDecay by setting("Strafe Decay", 0.9934, 0.9..1.0, 0.0001, { mode == Mode.STRAFE })
+    private val strafeJumpSpeed by setting("Jump Speed", 0.3, 0.0..1.0, 0.0001, { mode == Mode.STRAFE })
+    private val strafeJumpHeight by setting("Jump Height", 0.42, 0.1..0.5, 0.0001, { mode == Mode.STRAFE })
+    private val strafeJumpDecay by setting("Jump Decay", 0.588, 0.1..1.0, 0.0001, { mode == Mode.STRAFE })
+    private val strafeResetOnJump by setting("Reset On Jump", true, { mode == Mode.STRAFE })
+    private val strafeTimer by setting("Strafe Timer", 1.07f, 1.0f..1.1f, 0.01f, { mode == Mode.STRAFE })
+    private val strafeAutoJump by setting("Auto Jump", false, { mode == Mode.STRAFE })
 
     // YPort settings
-    private val yPortAccelerate by setting("Accelerate", true, { mode.value == SpeedMode.YPORT })
-    private val yPortStrict by setting("Head Strict", false, { mode.value == SpeedMode.YPORT }, description = "Only allow YPort when you are under a block")
-    private val yPortAirStrict by setting("Air Strict", false, { mode.value == SpeedMode.YPORT }, description = "Force YPort to handle Y movement differently, slows this down A LOT")
-    private val yPortMaxSpeed by setting("Maximum Speed", 0.0, 0.0..2.0, 0.001, { mode.value == SpeedMode.YPORT })
-    private val yPortAcceleration by setting("Acceleration Speed", 2.149, 1.0..5.0, 0.001, { mode.value == SpeedMode.YPORT })
-    private val yPortDecay by setting("Decay Amount", 0.66, 0.0..1.0, 0.001, { mode.value == SpeedMode.YPORT })
-
-    private const val TIMER_SPEED = 45.922115f
+    private val yPortAccelerate by setting("Accelerate", true, { mode == Mode.YPORT })
+    private val yPortStrict by setting("Head Strict", false, { mode == Mode.YPORT }, description = "Only allow YPort when you are under a block")
+    private val yPortAirStrict by setting("Air Strict", false, { mode == Mode.YPORT }, description = "Force YPort to handle Y movement differently, slows this down A LOT")
+    private val yPortMaxSpeed by setting("Maximum Speed", 0.0, 0.0..2.0, 0.001, { mode == Mode.YPORT })
+    private val yPortAcceleration by setting("Acceleration Speed", 2.149, 1.0..5.0, 0.001, { mode == Mode.YPORT })
+    private val yPortDecay by setting("YPort Decay", 0.66, 0.0..1.0, 0.001, { mode == Mode.YPORT })
+    private val yPortTimer by setting("YPort Timer", 1.09f, 1.0f..1.1f, 0.01f, { mode == Mode.YPORT })
 
     // yport stuff
-    private var currentSpeed = .2873
+    private var currentSpeed = NCP_BASE_SPEED
     private var currentY = 0.0
 
-    private var strafePhase = StrafePhase.ACCELERATING
+    private var strafePhase = StrafePhase.FALLING
 
     private var yPortPhase = YPortPhase.WALKING
     private var prevYPortPhase = YPortPhase.WALKING
@@ -76,27 +85,23 @@ object Speed : Module(
     }
 
     private enum class StrafePhase {
-        // to jump and accelerate
-        ACCELERATING,
+        // to jump
+        JUMP,
+        // to slowdown on the next tick after jump
+        JUMP_SLOWDOWN,
         // to fall to the ground
-        SLOWDOWN,
-        // to slowly fall to the ground
         FALLING
     }
 
-    enum class SpeedMode(override val displayName: String) : DisplayEnum {
-        STRAFE("Strafe"),
-        YPORT("YPort")
-    }
-
-    enum class StrafeMode {
-        Normal, Strict
+    private enum class Mode(override val displayName: String, val move: SafeClientEvent.(e: PlayerMoveEvent) -> Unit) : DisplayEnum {
+        STRAFE("Strafe", { handleStrafe(it) }),
+        YPORT("YPort", { handleBoost(it) }),
     }
 
     init {
         onEnable {
-            currentSpeed = .2873
-            strafePhase = StrafePhase.ACCELERATING
+            currentSpeed = if (mode == Mode.YPORT) NCP_BASE_SPEED else strafeBaseSpeed
+            strafePhase = StrafePhase.FALLING
             yPortPhase = YPortPhase.WALKING
             prevYPortPhase = YPortPhase.WALKING
             goUp = false
@@ -104,29 +109,19 @@ object Speed : Module(
         }
 
         onDisable {
-            runSafe {
-                reset()
-            }
+            resetTimer()
         }
 
         safeListener<TickEvent.ClientTickEvent> {
             lastDistance = hypot(player.posX - player.prevPosX, player.posZ - player.prevPosZ)
         }
 
-        safeListener<PlayerMoveEvent> {
-            when (mode.value) {
-                SpeedMode.STRAFE -> {
-                    handleStrafe(it)
-                }
-
-                SpeedMode.YPORT -> {
-                    handleBoost(it)
-                }
-            }
+        safeListener<PlayerMoveEvent> { event ->
+            mode.move(this, event)
         }
 
         safeListener<PacketEvent.Send> {
-            if (mode.value != SpeedMode.YPORT
+            if (mode != Mode.YPORT
                 || it.packet !is CPacketPlayer
                 || !goUp
             ) return@safeListener
@@ -162,7 +157,7 @@ object Speed : Module(
         }
 
         safeListener<PacketEvent.Receive> {
-            if (mode.value != SpeedMode.YPORT || it.packet !is SPacketPlayerPosLook) return@safeListener
+            if (mode != Mode.YPORT || it.packet !is SPacketPlayerPosLook) return@safeListener
 
             currentSpeed = 0.0
             currentY = 0.0
@@ -170,36 +165,21 @@ object Speed : Module(
             // 3 extra ticks at base speed
             yPortPhase = YPortPhase.WAITING
         }
-
-        mode.listeners.add {
-            runSafe { reset() }
-        }
-    }
-
-    private fun SafeClientEvent.shouldStrafe(): Boolean =
-        !player.capabilities.isFlying
-            && !player.isElytraFlying
-            && !BaritoneUtils.isPathing
-            && MovementUtils.isInputting
-
-    private fun SafeClientEvent.reset() {
-        player.jumpMovementFactor = 0.02f
-        resetTimer()
     }
 
     private fun SafeClientEvent.handleBoost(event: PlayerMoveEvent) {
-        if (player.movementInput.moveForward == 0f && player.movementInput.moveStrafe == 0f
+        if (!MovementUtils.isInputting
             || player.isInOrAboveLiquid
             || mc.gameSettings.keyBindJump.isKeyDown
             || !player.onGround
             || !world.collidesWithAnyBlock(player.entityBoundingBox.offset(0.0, 0.42, 0.0)) && yPortStrict
         ) {
             resetTimer()
-            currentSpeed = .2873
+            currentSpeed = NCP_BASE_SPEED
             return
         }
 
-        modifyTimer(TIMER_SPEED)
+        modifyTimer(50f / yPortTimer)
 
         prevYPortPhase = yPortPhase
 
@@ -215,9 +195,9 @@ object Speed : Module(
             YPortPhase.SLOWDOWN -> {
                 // NCP says hDistDiff >= 0.66 * (lastMove.hDistance - hDistanceBaseRef)
                 currentSpeed = if (yPortAccelerate) {
-                    lastDistance - yPortDecay * (lastDistance - .2873)
+                    lastDistance - yPortDecay * (lastDistance - NCP_BASE_SPEED)
                 } else {
-                    .2873
+                    NCP_BASE_SPEED
                 }
                 yPortPhase = YPortPhase.ACCELERATING
                 goUp = false
@@ -226,9 +206,9 @@ object Speed : Module(
             YPortPhase.FALLING -> {
                 if (prevYPortPhase == YPortPhase.WALKING) {
                     currentSpeed = if (yPortAccelerate) {
-                        lastDistance - yPortDecay * (lastDistance - .2873)
+                        lastDistance - yPortDecay * (lastDistance - NCP_BASE_SPEED)
                     } else {
-                        .2873
+                        NCP_BASE_SPEED
                     }
                 }
 
@@ -241,7 +221,7 @@ object Speed : Module(
             }
 
             else -> {
-                currentSpeed = max(currentSpeed, .2873)
+                currentSpeed = max(currentSpeed, NCP_BASE_SPEED)
                 yPortPhase = YPortPhase.values()[yPortPhase.ordinal + 1 % YPortPhase.values().size]
                 goUp = false
             }
@@ -261,47 +241,59 @@ object Speed : Module(
     }
 
     private fun SafeClientEvent.handleStrafe(event: PlayerMoveEvent) {
-        if (!shouldStrafe()) {
+        val inputting = MovementUtils.isInputting
+
+        if (player.capabilities.isFlying
+            || player.isElytraFlying
+            || BaritoneUtils.isPathing
+        ) {
+            currentSpeed = strafeBaseSpeed
             resetTimer()
-            event.x = .0
-            event.z = .0
-            currentSpeed = .2873
             return
         }
 
-        if (strafeOnlyOverhead && !world.collidesWithAnyBlock(player.entityBoundingBox.offset(.0,.42,.0))
-            || strafeOnHoldingSprint && !mc.gameSettings.keyBindSprint.isKeyDown)
-            return
+        modifyTimer(50f / strafeTimer)
 
-        modifyTimer(TIMER_SPEED)
+        val shouldJump = player.movementInput.jump || (inputting && strafeAutoJump)
+        if (player.onGround && shouldJump) strafePhase = StrafePhase.JUMP
 
-        val base = applySpeedPotionEffects(.2873)
+        strafePhase = when (strafePhase) {
+            StrafePhase.JUMP -> {
+                if (player.onGround) {
+                    event.y = strafeJumpHeight
 
-        if (player.onGround)
-            strafePhase = StrafePhase.ACCELERATING
+                    if (strafeResetOnJump) currentSpeed = strafeBaseSpeed
+                    currentSpeed += strafeJumpSpeed
 
-        when (strafePhase) {
-            StrafePhase.ACCELERATING -> {
-                if (player.onGround)
-                    event.y = .42
-                currentSpeed = base
-                currentSpeed *= if (strafeAirSpeedBoost == StrafeMode.Strict) 1.87 else 1.93
-                strafePhase = StrafePhase.SLOWDOWN
+                    StrafePhase.JUMP_SLOWDOWN
+                } else StrafePhase.FALLING
             }
 
-            StrafePhase.SLOWDOWN -> {
-                currentSpeed -= .66 * base
-                strafePhase = StrafePhase.FALLING
+            StrafePhase.JUMP_SLOWDOWN -> {
+                currentSpeed *= strafeJumpDecay
+                StrafePhase.FALLING
             }
 
             StrafePhase.FALLING -> {
-                currentSpeed = lastDistance - lastDistance / 159
+                currentSpeed = lastDistance * strafeDecay
+                StrafePhase.FALLING
             }
         }
 
-        val yaw = calcMoveYaw()
-        currentSpeed = currentSpeed.coerceAtLeast(.2873)
-        event.x = -sin(yaw) * currentSpeed
-        event.z = cos(yaw) * currentSpeed
+        currentSpeed = currentSpeed.coerceAtLeast(strafeBaseSpeed).coerceAtMost(strafeMaxSpeed)
+
+        val moveSpeed = if (!inputting) {
+            currentSpeed = strafeBaseSpeed
+            resetTimer()
+
+            0.0
+        } else currentSpeed
+
+        val dir = calcMoveYaw()
+        event.x = -sin(dir) * moveSpeed
+        event.z = cos(dir) * moveSpeed
     }
+
+    // For HoleSnap & Surround
+    fun isStrafing() = mode == Mode.STRAFE
 }
