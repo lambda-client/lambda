@@ -30,8 +30,6 @@ object Speed : Module(
     category = Category.MOVEMENT,
     modulePriority = 100
 ) {
-    private const val NCP_BASE_SPEED = 0.2873
-
     // General settings
     private val mode by setting("Mode", Mode.STRAFE).apply {
         listeners.add {
@@ -40,7 +38,7 @@ object Speed : Module(
     }
 
     // Strafe settings
-    private val strafeBaseSpeed by setting("Base Speed", NCP_BASE_SPEED, 0.1..0.3, 0.0001, { mode == Mode.STRAFE })
+    private val strafeBaseSpeed by setting("Base Speed", 0.2873, 0.1..0.3, 0.0001, { mode == Mode.STRAFE })
     private val strafeMaxSpeed by setting("Max Speed", 1.0, 0.3..1.0, 0.0001, { mode == Mode.STRAFE })
     private val strafeDecay by setting("Strafe Decay", 0.9934, 0.9..1.0, 0.0001, { mode == Mode.STRAFE })
     private val strafeJumpSpeed by setting("Jump Speed", 0.3, 0.0..1.0, 0.0001, { mode == Mode.STRAFE })
@@ -58,6 +56,8 @@ object Speed : Module(
     private val yPortAcceleration by setting("Acceleration Speed", 2.149, 1.0..5.0, 0.001, { mode == Mode.YPORT })
     private val yPortDecay by setting("YPort Decay", 0.66, 0.0..1.0, 0.001, { mode == Mode.YPORT })
     private val yPortTimer by setting("YPort Timer", 1.09f, 1.0f..1.1f, 0.01f, { mode == Mode.YPORT })
+
+    private const val NCP_BASE_SPEED = 0.2873
 
     // yport stuff
     private var currentSpeed = NCP_BASE_SPEED
