@@ -40,10 +40,10 @@ object Speed : Module(
     // Strafe settings
     private val strafeBaseSpeed by setting("Base Speed", 0.2873, 0.1..0.3, 0.0001, { mode == Mode.STRAFE })
     private val strafeMaxSpeed by setting("Max Speed", 1.0, 0.3..1.0, 0.0001, { mode == Mode.STRAFE })
-    private val strafeDecay by setting("Strafe Decay", 0.9934, 0.9..1.0, 0.0001, { mode == Mode.STRAFE })
+    private val strafeDecay by setting("Strafe Decay", 0.9937, 0.9..1.0, 0.0001, { mode == Mode.STRAFE })
     private val strafeJumpSpeed by setting("Jump Speed", 0.3, 0.0..1.0, 0.0001, { mode == Mode.STRAFE })
     private val strafeJumpHeight by setting("Jump Height", 0.42, 0.1..0.5, 0.0001, { mode == Mode.STRAFE })
-    private val strafeJumpDecay by setting("Jump Decay", 0.588, 0.1..1.0, 0.0001, { mode == Mode.STRAFE })
+    private val strafeJumpDecay by setting("Jump Decay", 0.589, 0.1..1.0, 0.0001, { mode == Mode.STRAFE })
     private val strafeResetOnJump by setting("Reset On Jump", true, { mode == Mode.STRAFE })
     private val strafeTimer by setting("Strafe Timer", 1.07f, 1.0f..1.1f, 0.01f, { mode == Mode.STRAFE })
     private val strafeAutoJump by setting("Auto Jump", false, { mode == Mode.STRAFE })
@@ -254,8 +254,12 @@ object Speed : Module(
 
         modifyTimer(50f / strafeTimer)
 
-        val shouldJump = player.movementInput.jump || (inputting && strafeAutoJump)
-        if (player.onGround && shouldJump) strafePhase = StrafePhase.JUMP
+        if (player.onGround) {
+            val shouldJump = player.movementInput.jump || (inputting && strafeAutoJump)
+
+            if (shouldJump) strafePhase = StrafePhase.JUMP
+            else currentSpeed = strafeBaseSpeed
+        }
 
         strafePhase = when (strafePhase) {
             StrafePhase.JUMP -> {
