@@ -46,6 +46,7 @@ internal object MapDownloader : Module(
     private var pendingTasks = mutableSetOf<MapInfo>()
     private val secTimer = TickTimer(TimeUnit.SECONDS)
     private val milliSecTimer = TickTimer(TimeUnit.MILLISECONDS)
+    private val illegalFilenameCharsRegex = "[^a-zA-Z0-9\\.\\-]".toRegex() // https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file
 
     init {
         existingHashes = getExistingHashes()
@@ -159,7 +160,11 @@ internal object MapDownloader : Module(
         try {
             val resized = BufferedImage(finalSize, finalSize, img.type)
             val g = resized.createGraphics()
-            val loc = "${FolderUtils.mapImagesFolder}${mapInfo.hash}_name_${mapInfo.name.replace(File.separator, "")}_id_${mapInfo.id}_${if (mc.isIntegratedServerRunning) "local" else "server_${player.connection.networkManager.remoteAddress.toString().replace("/", "_").replace(":", "_")}"}.png"
+            val loc = "${FolderUtils.mapImagesFolder}${mapInfo.hash}" +
+                "_name_${mapInfo.name.replace(illegalFilenameCharsRegex, "_")}" +
+                "_id_${mapInfo.id}" +
+                "_${if (mc.isIntegratedServerRunning) "local" 
+                    else "server_${player.connection.networkManager.remoteAddress.toString().replace("/", "_").replace(":", "_")}"}.png"
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
                 RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
             g.drawImage(img, 0, 0, finalSize, finalSize, 0, 0, img.width,
