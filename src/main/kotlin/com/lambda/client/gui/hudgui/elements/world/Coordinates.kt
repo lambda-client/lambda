@@ -37,12 +37,12 @@ internal object Coordinates : LabelHud(
         if (showNetherOverworld) {
             when (world.provider.dimension) {
                 -1 -> { // Nether
-                    if (printDimensionName) displayText.add("Nether", secondaryColor)
+                    if (printDimensionName) displayText.add("Overworld", secondaryColor)
                     displayText.add(getFormattedCoords(entity.positionVector * netherToOverworld, true))
                 }
                 0 -> { // Overworld
                     if (printDimensionName)
-                        displayText.add("Overworld", secondaryColor)
+                        displayText.add("Nether", secondaryColor)
                     displayText.add(getFormattedCoords(entity.positionVector * overworldToNether, true))
                 }
             }
