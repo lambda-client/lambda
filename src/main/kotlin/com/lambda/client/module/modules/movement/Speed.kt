@@ -43,9 +43,9 @@ object Speed : Module(
     private val strafeDecay by setting("Strafe Decay", 0.9937, 0.9..1.0, 0.0001, { mode == Mode.STRAFE })
     private val strafeJumpSpeed by setting("Jump Speed", 0.3, 0.0..1.0, 0.0001, { mode == Mode.STRAFE })
     private val strafeJumpHeight by setting("Jump Height", 0.42, 0.1..0.5, 0.0001, { mode == Mode.STRAFE })
-    private val strafeJumpDecay by setting("Jump Decay", 0.589, 0.1..1.0, 0.0001, { mode == Mode.STRAFE })
+    private val strafeJumpDecay by setting("Jump Decay", 0.59, 0.1..1.0, 0.0001, { mode == Mode.STRAFE })
     private val strafeResetOnJump by setting("Reset On Jump", true, { mode == Mode.STRAFE })
-    private val strafeTimer by setting("Strafe Timer", 1.07f, 1.0f..1.1f, 0.01f, { mode == Mode.STRAFE })
+    private val strafeTimer by setting("Strafe Timer", 1.09f, 1.0f..1.1f, 0.01f, { mode == Mode.STRAFE })
     private val strafeAutoJump by setting("Auto Jump", false, { mode == Mode.STRAFE })
 
     // YPort settings
@@ -254,12 +254,10 @@ object Speed : Module(
 
         modifyTimer(50f / strafeTimer)
 
-        if (player.onGround) {
-            val shouldJump = player.movementInput.jump || (inputting && strafeAutoJump)
+        val shouldJump = player.movementInput.jump || (inputting && strafeAutoJump)
 
-            if (shouldJump) strafePhase = StrafePhase.JUMP
-            else currentSpeed = strafeBaseSpeed
-        }
+        if (player.onGround && shouldJump)
+            strafePhase = StrafePhase.JUMP
 
         strafePhase = when (strafePhase) {
             StrafePhase.JUMP -> {
@@ -284,6 +282,9 @@ object Speed : Module(
             }
         }
 
+        if (player.onGround && !shouldJump)
+            currentSpeed = strafeBaseSpeed
+
         currentSpeed = currentSpeed.coerceAtLeast(strafeBaseSpeed).coerceAtMost(strafeMaxSpeed)
 
         val moveSpeed = if (!inputting) {
@@ -299,5 +300,6 @@ object Speed : Module(
     }
 
     // For HoleSnap & Surround
-    fun isStrafing() = mode == Mode.STRAFE
+    fun isStrafing() =
+        mode == Mode.STRAFE
 }
