@@ -4,6 +4,7 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.interaction.UseThrowableOnEntity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.inventory.TakeOffArmor
+import com.lambda.client.activity.activities.storage.ItemInfo
 import com.lambda.client.activity.types.LoopWhileActivity
 import com.lambda.client.event.SafeClientEvent
 import net.minecraft.init.Items
@@ -18,7 +19,7 @@ class ReachXPLevel(
     override fun SafeClientEvent.onInitialize() {
         addSubActivities(
             TakeOffArmor(),
-            AcquireItemInActiveHand(Items.EXPERIENCE_BOTTLE),
+            AcquireItemInActiveHand(ItemInfo(Items.EXPERIENCE_BOTTLE)),
             UseThrowableOnEntity(player)
         )
     }

@@ -6,19 +6,20 @@ import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.storage.core.CloseContainer
 import com.lambda.client.activity.activities.storage.core.PlaceContainer
 import com.lambda.client.activity.activities.storage.core.ContainerTransaction
-import com.lambda.client.activity.activities.travel.PickUpDrops
+import com.lambda.client.activity.activities.travel.CollectDrops
 import com.lambda.client.event.SafeClientEvent
+import net.minecraft.init.Blocks
 import net.minecraft.item.ItemStack
 
-class ExtractItemFromShulkerBox(
-    shulkerBoxStack: ItemStack,
-    private val order: ContainerTransaction.Order
+class ExtractItemFromContainerStack(
+    containerStack: ItemStack,
+    private val itemInfo: ItemInfo
 ) : Activity() {
-    private val stack = shulkerBoxStack.copy()
+    private val containerStack = containerStack.copy()
 
     override fun SafeClientEvent.onInitialize() {
         addSubActivities(
-            PlaceContainer(stack, open = true)
+            PlaceContainer(containerStack, open = true)
         )
     }
 
@@ -26,11 +27,15 @@ class ExtractItemFromShulkerBox(
         if (childActivity !is PlaceContainer) return
 
         addSubActivities(
-            ContainerTransaction(order),
+            ContainerTransaction(Order(Action.PULL, itemInfo)),
             CloseContainer(),
-            BreakBlock(childActivity.containerPos),
-            PickUpDrops(stack.item), // BreakBlock doesn't collect drops
-            AcquireItemInActiveHand(order.item, order.predicateStack, order.predicateSlot)
+            BreakBlock(
+                childActivity.containerPos,
+                forceSilk = containerStack.item == Blocks.ENDER_CHEST,
+                ignoreIgnored = true
+            ),
+            CollectDrops(containerStack.item),
+            AcquireItemInActiveHand(itemInfo)
         )
     }
 }

@@ -6,8 +6,9 @@ import com.lambda.client.activity.activities.construction.core.PlaceBlock
 import com.lambda.client.activity.activities.interaction.crafting.ReachXPLevel
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.storage.BreakDownEnderChests
+import com.lambda.client.activity.activities.storage.ItemInfo
 import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
-import com.lambda.client.activity.activities.travel.PickUpDrops
+import com.lambda.client.activity.activities.travel.CollectDrops
 import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkAABBRender
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
@@ -37,14 +38,14 @@ object TestActivityManager : Module(
 
     private val tie by setting("Store Obby", false, consumer = { _, _->
         addSubActivities(
-            StoreItemToShulkerBox(Blocks.OBSIDIAN.item)
+            StoreItemToShulkerBox(ItemInfo(Blocks.OBSIDIAN.item, 0))
         )
         false
     })
 
     private val etit by setting("Acquire Obby", false, consumer = { _, _->
         addSubActivities(
-            AcquireItemInActiveHand(Blocks.OBSIDIAN.item)
+            AcquireItemInActiveHand(ItemInfo(Blocks.OBSIDIAN.item))
         )
         false
     })
@@ -96,7 +97,7 @@ object TestActivityManager : Module(
     })
 
     private val po by setting("Pickup Obby", false, consumer = { _, _->
-        addSubActivities(PickUpDrops(Blocks.OBSIDIAN.item))
+        addSubActivities(CollectDrops(Blocks.OBSIDIAN.item))
         false
     })
 
@@ -104,7 +105,7 @@ object TestActivityManager : Module(
         runSafe {
             val stack = player.heldItemMainhand.copy()
 
-            addSubActivities(PickUpDrops(stack.item, stack))
+            addSubActivities(CollectDrops(stack.item, stack))
         }
 
         false

@@ -8,7 +8,7 @@ import net.minecraft.entity.item.EntityItem
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 
-class PickUpDrops(
+class CollectDrops(
     private val item: Item,
     private val itemStack: ItemStack = ItemStack.EMPTY,
     private val predicate: (ItemStack) -> Boolean = { true },
@@ -31,10 +31,11 @@ class PickUpDrops(
     override fun SafeClientEvent.onInitialize() {
         if (drops.isEmpty() || drops.sumOf { it.item.count } < minAmount) {
             success()
+            return
         }
 
         drops.minByOrNull { drop -> player.distanceTo(drop.positionVector) }?.let { drop ->
-            addSubActivities(PickUpEntityItem(drop))
+            addSubActivities(CollectEntityItem(drop))
         }
     }
 }

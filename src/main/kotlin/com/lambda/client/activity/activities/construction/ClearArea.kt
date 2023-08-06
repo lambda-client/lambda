@@ -4,10 +4,12 @@ import baritone.api.pathing.goals.GoalTwoBlocks
 import baritone.api.pathing.goals.GoalXZ
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.construction.core.BuildStructure
+import com.lambda.client.activity.activities.storage.Area
 import com.lambda.client.activity.activities.travel.CustomGoal
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.misc.WorldEater
+import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.block.state.IBlockState
@@ -17,7 +19,7 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 
 class ClearArea(
-    private val area: WorldEater.Area,
+    private val area: Area,
     private val layerSize: Int = 1,
     private val sliceSize: Int = 1,
     private val sliceDirection: EnumFacing = EnumFacing.NORTH,
@@ -37,8 +39,8 @@ class ClearArea(
 
     override fun SafeClientEvent.onInitialize() {
         with(area) {
-            if (!playerInArea) {
-                MessageSendHelper.sendWarningMessage("You are not in the area $area! Moving now...")
+            if (player.flooredPosition !in area.containedBlocks) {
+                MessageSendHelper.sendWarningMessage("Player is not in the area $area! Moving now...")
                 addSubActivities(CustomGoal(GoalXZ(center.x, center.z)))
                 status = Status.UNINITIALIZED
                 return@onInitialize

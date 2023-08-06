@@ -22,21 +22,6 @@ fun getShulkerInventory(stack: ItemStack): NonNullList<ItemStack>? {
     return shulkerInventory
 }
 
-val slotFilterFunction = {
-    order: ContainerTransaction.Order -> {
-        slot: Slot -> if (order.containedInShulker) {
-                slot.stack.item is ItemShulkerBox
-                    && getShulkerInventory(slot.stack)?.any {
-                        it.item == order.item
-                            && order.predicateStack(it)
-                            && (order.metadata == null || order.metadata == it.metadata)
-                    } == true
-            } else order.item == slot.stack.item
-            && order.predicateStack(slot.stack)
-            && (order.metadata == null || order.metadata == slot.stack.metadata)
-    }
-}
-
 /**
  * Get the slots of a container.
  * The first list contains the container slots, the second list contains the player slots.

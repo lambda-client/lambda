@@ -1,7 +1,10 @@
 package com.lambda.client.command.commands
 
+import com.lambda.client.activity.activities.storage.Area
+import com.lambda.client.activity.activities.storage.Stash
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.command.CommandManager
+import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.misc.WorldEater
 import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.item.Item
@@ -61,9 +64,9 @@ object WorldEaterCommand : ClientCommand(
                 blockPos("pos1") { pos1 ->
                     blockPos("pos2") { pos2 ->
                         execute("Adds excavating area") {
-                            val area = WorldEater.Area(pos1.value, pos2.value)
+                            val area = Area(pos1.value, pos2.value)
 
-                            WorldEater.quarries.value.add(area)
+                            WorldEater.quarries.add(area)
                             MessageSendHelper.sendChatMessage("Added excavating area $area")
                         }
                     }
@@ -94,7 +97,7 @@ object WorldEaterCommand : ClientCommand(
                                 val safeArgs = CommandManager.tryParseArgument(args.joinToString(" ")) ?: return@execute
 
                                 val items = safeArgs.mapNotNull { Item.getByNameOrId(it) }
-                                val stash = WorldEater.Stash(WorldEater.Area(pos1.value, pos2.value), items)
+                                val stash = Stash(Area(pos1.value, pos2.value), items)
 
                                 WorldEater.stashes.value.add(stash)
                                 MessageSendHelper.sendChatMessage("Added stash $stash")
@@ -128,7 +131,7 @@ object WorldEaterCommand : ClientCommand(
                                 val safeArgs = CommandManager.tryParseArgument(args.joinToString(" ")) ?: return@execute
 
                                 val items = safeArgs.mapNotNull { Item.getByNameOrId(it) }
-                                val dropOff = WorldEater.Stash(WorldEater.Area(pos1.value, pos2.value), items)
+                                val dropOff = Stash(Area(pos1.value, pos2.value), items)
 
                                 WorldEater.dropOff.value.add(dropOff)
                                 MessageSendHelper.sendChatMessage("Added drop-off area $dropOff")

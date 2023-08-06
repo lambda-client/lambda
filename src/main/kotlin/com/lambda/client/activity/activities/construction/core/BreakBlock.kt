@@ -4,7 +4,8 @@ import baritone.api.BaritoneAPI
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.inventory.core.SwapOrSwitchToSlot
-import com.lambda.client.activity.activities.travel.PickUpDrops
+import com.lambda.client.activity.activities.storage.ItemInfo
+import com.lambda.client.activity.activities.travel.CollectDrops
 import com.lambda.client.activity.types.*
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
@@ -50,6 +51,7 @@ class BreakBlock(
     private val forceNoSilk: Boolean = false,
     private val forceFortune: Boolean = false,
     private val forceNoFortune: Boolean = false,
+    private val ignoreIgnored: Boolean = false,
     override var timeout: Long = Long.MAX_VALUE, // ToDo: Reset timeouted breaks blockstates
     override val maxAttempts: Int = 5,
     override var usedAttempts: Int = 0,
@@ -162,12 +164,19 @@ class BreakBlock(
 
         val currentState = world.getBlockState(blockPos)
 
-        if (currentState.block in BuildTools.ignoredBlocks
+        if (!ignoreIgnored && currentState.block in BuildTools.ignoredBlocks
             || currentState.getBlockHardness(world, blockPos) < 0
         ) {
             success()
             return
         }
+
+        // ToDo: add silk touch support
+        drops = currentState.block.getItemDropped(
+            currentState,
+            Random(),
+            EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, player.heldItemMainhand)
+        ) ?: Items.AIR
 
         updateState()
         resolveAvailability()
@@ -190,7 +199,7 @@ class BreakBlock(
         context = BuildActivity.Context.PICKUP
 
         addSubActivities(
-            PickUpDrops(drops, minAmount = minCollectAmount)
+            CollectDrops(drops, minAmount = minCollectAmount)
         )
     }
 
@@ -315,10 +324,15 @@ class BreakBlock(
                 context = BuildActivity.Context.RESTOCK
 
                 addSubActivities(AcquireItemInActiveHand(
-                    tool,
-//                    predicateItem = {
-//                        EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
-//                    }
+                    ItemInfo(tool, predicate = {
+                        when {
+                            forceSilk -> EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 1
+                            forceNoSilk -> EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
+                            forceFortune -> EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, it) > 0
+                            forceNoFortune -> EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, it) == 0
+                            else -> true
+                        }
+                    }),
                 ))
                 return false
             }
@@ -376,7 +390,7 @@ class BreakBlock(
     private fun SafeClientEvent.updateProperties() {
         val currentState = world.getBlockState(blockPos)
 
-        if (currentState.block in BuildTools.ignoredBlocks) {
+        if (!ignoreIgnored && currentState.block in BuildTools.ignoredBlocks) {
             success()
             return
         }
@@ -385,18 +399,11 @@ class BreakBlock(
             .getPlayerRelativeBlockHardness(player, world, blockPos)) * BuildTools.miningSpeedFactor).toInt()
 
         timeout = ticksNeeded * 50L + 2000L
-
-        // ToDo: add silk touch support
-        drops = currentState.block.getItemDropped(
-            currentState,
-            Random(),
-            EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, player.heldItemMainhand)
-        ) ?: Items.AIR
     }
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
         when (childActivity) {
-            is PickUpDrops -> {
+            is CollectDrops -> {
                 ActivityManagerHud.totalBlocksBroken++
                 success()
             }

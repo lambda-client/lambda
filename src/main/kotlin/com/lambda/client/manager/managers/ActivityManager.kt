@@ -1,9 +1,7 @@
 package com.lambda.client.manager.managers
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.storage.StashTransaction
-import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
-import com.lambda.client.activity.activities.storage.core.ContainerTransaction
+import com.lambda.client.activity.activities.storage.*
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkAABBRender
 import com.lambda.client.activity.types.RenderOverlayTextActivity
@@ -155,7 +153,7 @@ object ActivityManager : Manager, Activity() {
     }
 
     private fun SafeClientEvent.maintainInventory() {
-        val stashOrders = mutableListOf<Pair<WorldEater.Stash, ContainerTransaction.Order>>()
+        val stashOrders = mutableListOf<Pair<Stash, Order>>()
 
         if (subActivities.filterIsInstance<StoreItemToShulkerBox>().isEmpty()
             && player.inventorySlots.countEmpty() <= BuildTools.keepFreeSlots
@@ -165,29 +163,20 @@ object ActivityManager : Manager, Activity() {
             }
 
             if (itemsToStore.isNotEmpty()) {
-                val storeActivities = itemsToStore.map {
-                    StoreItemToShulkerBox(it, 0)
-                }
-
                 MessageSendHelper.sendChatMessage("Compressing ${
-                    storeActivities.joinToString { "${it.item.registryName}" }
+                    itemsToStore.joinToString { "${it.registryName}" }
                 } to shulker boxes.")
 
-                addSubActivities(storeActivities)
+                addSubActivities(itemsToStore.map {
+                    StoreItemToShulkerBox(ItemInfo(it, 0))
+                })
             } else if (subActivities.filterIsInstance<StashTransaction>().isEmpty()) {
-                stashOrders.addAll(itemsToStore.map { itemToStore ->
-                    val optimalStash = WorldEater.dropOff
+                stashOrders.addAll(itemsToStore.mapNotNull { itemToStore ->
+                    WorldEater.dropOff
                         .filter { it.items.contains(itemToStore) }
-                        .minBy { player.distanceTo(it.area.center) }
-
-                    MessageSendHelper.sendChatMessage("Inventory full. Storing ${
-                        itemToStore.registryName
-                    } to stash at ${optimalStash.area.center}.")
-
-                    optimalStash to ContainerTransaction.Order(
-                        ContainerTransaction.Action.PUSH,
-                        itemToStore
-                    )
+                        .minByOrNull { player.distanceTo(it.area.center) }?.let { stash ->
+                            stash to Order(Action.PUSH, ItemInfo(itemToStore, number = 0))
+                        }
                 })
             }
         }
@@ -203,30 +192,28 @@ object ActivityManager : Manager, Activity() {
         checkItem(Items.GOLDEN_APPLE).ifPresent { stashOrders.add(it) }
 
         if (stashOrders.isNotEmpty()) {
-            stashOrders.groupBy { it.first }.map { group ->
-                StashTransaction(group.key, group.value.map { it.second })
-            }.forEach {
-                addSubActivities(it)
-            }
+            addSubActivities(stashOrders.groupBy { it.first }.map { group ->
+                StashTransaction(group.value.map { it.second }, group.key)
+            })
+            MessageSendHelper.sendChatMessage("Inventory full. Storing ${
+                stashOrders.joinToString(" ") { "${it.second.itemInfo.item.registryName} -> ${it.first.area.center}" }
+            }")
         }
     }
 
-    private fun SafeClientEvent.checkItem(item: Item): Optional<Pair<WorldEater.Stash, ContainerTransaction.Order>> {
+    private fun SafeClientEvent.checkItem(item: Item): Optional<Pair<Stash, Order>> {
         if (player.allSlots.countItem(item) >= BuildTools.minToolAmount) return Optional.empty()
 
         val optimalStash = WorldEater.stashes
             .filter { it.items.contains(item) }
-            .minByOrNull { player.distanceTo(it.area.center) }
-        optimalStash ?: return Optional.empty()
+            .minByOrNull { player.distanceTo(it.area.center) } ?: return Optional.empty()
+
         MessageSendHelper.sendChatMessage("Missing ${
             item.registryName
         }. Fetching from stash at ${optimalStash.area.center.asString()}.")
 
         return Optional.of(
-            optimalStash to ContainerTransaction.Order(
-                ContainerTransaction.Action.PULL,
-                item
-            )
+            optimalStash to Order(Action.PULL, ItemInfo(item))
         )
     }
 }

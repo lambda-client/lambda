@@ -3,35 +3,20 @@ package com.lambda.client.activity.activities.storage.core
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.core.QuickMoveSlot
 import com.lambda.client.activity.activities.inventory.core.SwapWithSlot
+import com.lambda.client.activity.activities.storage.Action
+import com.lambda.client.activity.activities.storage.ItemInfo
+import com.lambda.client.activity.activities.storage.Order
 import com.lambda.client.activity.seperatedSlots
-import com.lambda.client.activity.slotFilterFunction
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.items.countEmpty
 import com.lambda.client.util.items.hotbarSlots
+import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.inventory.Container
-import net.minecraft.inventory.Slot
-import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
 
 class ContainerTransaction(
     private val order: Order
 ) : Activity() {
-
-    enum class Action {
-        PULL, PUSH
-    }
-
-    data class Order(
-        val action: Action,
-        val item: Item,
-        val slotAmount: Int = 0, // 0 = all
-        val predicateStack: (ItemStack) -> Boolean = { true },
-        val metadata: Int? = null,
-        val predicateSlot: (ItemStack) -> Boolean = { true },
-        val containedInShulker: Boolean = false
-    )
-
     override fun SafeClientEvent.onInitialize() {
         val seperatedSlots = player.openContainer.seperatedSlots
 
@@ -41,19 +26,19 @@ class ContainerTransaction(
             seperatedSlots.let { (first, second) -> Pair(second, first) }
         }
 
-        val toMoveSlots = fromSlots.filter(slotFilterFunction(order))
+        val toMoveSlots = fromSlots.filter(order.itemInfo.slotFilter)
 
         if (toMoveSlots.isEmpty()) {
             failedWith(NoItemFoundException())
             return
         }
 
-        if (toMoveSlots.size < order.slotAmount) {
+        if (toMoveSlots.size < order.itemInfo.number) {
             failedWith(NotEnoughSlotsException())
             return
         }
 
-        val remainingSlots = if (order.slotAmount == 0) toMoveSlots else toMoveSlots.take(order.slotAmount)
+        val remainingSlots = if (order.itemInfo.number == 0) toMoveSlots else toMoveSlots.take(order.itemInfo.number)
 
         remainingSlots.forEach { fromSlot ->
             if (toSlots.countEmpty() > 0) {
@@ -79,6 +64,14 @@ class ContainerTransaction(
                 )
             }
         }
+    }
+
+    override fun SafeClientEvent.onChildFailure(childActivities: ArrayDeque<Activity>, childException: Exception): Boolean {
+        if (childException !is QuickMoveSlot.ExceptionSlotNotEmpty) return false
+
+        MessageSendHelper.sendWarningMessage("Quick move failed, container full")
+        success()
+        return true
     }
 
     class NoSpaceLeftInInventoryException : Exception("No space left in inventory")

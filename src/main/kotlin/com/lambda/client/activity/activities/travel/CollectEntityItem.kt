@@ -12,7 +12,7 @@ import com.lambda.client.util.threads.safeListener
 import net.minecraft.entity.item.EntityItem
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
-class PickUpEntityItem(
+class CollectEntityItem(
     private val entityItem: EntityItem,
     override val timeout: Long = 20000L
 ) : TimeoutActivity, Activity() {

@@ -29,7 +29,7 @@ class BreakDownEnderChests(
         if (freeSlots.isEmpty()) {
             if (player.inventorySlots.countItem(Blocks.OBSIDIAN.item) > 0) {
                 addSubActivities(
-                    StoreItemToShulkerBox(Blocks.OBSIDIAN.item)
+                    StoreItemToShulkerBox(ItemInfo(Blocks.OBSIDIAN.item, 0))
                 )
                 return
             }
@@ -48,12 +48,12 @@ class BreakDownEnderChests(
         if (childActivity !is PlaceContainer) return
 
         addSubActivities(
-            AcquireItemInActiveHand(
+            AcquireItemInActiveHand(ItemInfo(
                 Items.DIAMOND_PICKAXE,
-                predicateStack = {
+                predicate = {
                     EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
                 }
-            ),
+            )),
             BreakBlock(
                 childActivity.containerPos,
                 collectDrops = true,

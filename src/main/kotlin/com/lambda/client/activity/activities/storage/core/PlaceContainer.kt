@@ -3,6 +3,7 @@ package com.lambda.client.activity.activities.storage.core
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.construction.core.PlaceBlock
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
+import com.lambda.client.activity.activities.storage.ItemInfo
 import com.lambda.client.activity.types.AttemptActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.EntityUtils.flooredPosition
@@ -33,7 +34,9 @@ class PlaceContainer(
         }
 
         addSubActivities(
-            AcquireItemInActiveHand(targetStack.item, { onlyItem || ItemStack.areItemStacksEqual(it, targetStack) }),
+            AcquireItemInActiveHand(ItemInfo(
+                targetStack.item, predicate = { onlyItem || ItemStack.areItemStacksEqual(it, targetStack) }
+            )),
             PlaceBlock(containerPos, targetStack.item.block.defaultState, ignoreProperties = true)
         )
 

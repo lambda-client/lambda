@@ -14,54 +14,43 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 
 class StoreItemToShulkerBox( // TODO: Add support for multiple shulker boxes
-    val item: Item,
-    private val amount: Int = 0, // 0 = all
-    private val predicateStack: (ItemStack) -> Boolean = { true }
+    private val itemInfo: ItemInfo
 ) : Activity() {
     override fun SafeClientEvent.onInitialize() {
-        val candidates = mutableMapOf<Slot, Int>()
-
-        if (player.allSlots.countItem(item) == 0) {
+        if (player.allSlots.countItem(itemInfo.item) == 0) {
             success()
             return
         }
 
-        player.allSlots.forEach { slot ->
+        player.allSlots.mapNotNull { slot ->
             getShulkerInventory(slot.stack)?.let { inventory ->
-                if (inventory.all { (it.item == item && predicateStack(it)) || it.isEmpty }) {
-                    val count = inventory.count { it.item == item && predicateStack(it) }
+                if (inventory.all { itemInfo.stackFilter(it) || it.isEmpty }) {
+                    val count = inventory.count { itemInfo.stackFilter(it) }
 
-                    if (count < 27) candidates[slot] = count
-                }
+                    if (count < 27) slot to count else null
+                } else null
             }
-        }
-
-        if (candidates.isEmpty()) {
-            failedWith(NoShulkerBoxFoundStoreException(item))
-            return
-        }
-
-        candidates.maxBy { it.value }.key.let { slot ->
+        }.maxByOrNull { it.second }?.first?.let { slot ->
             addSubActivities(
                 PlaceContainer(slot.stack.copy(), open = true)
             )
+            return
         }
+
+        failedWith(NoShulkerBoxFoundStoreException(itemInfo.item))
     }
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
         if (childActivity !is PlaceContainer) return
 
         addSubActivities(
-            ContainerTransaction(
-                ContainerTransaction.Order(
-                    ContainerTransaction.Action.PUSH,
-                    item,
-                    amount,
-                    predicateStack
-                )
-            ),
+            ContainerTransaction(Order(Action.PUSH, itemInfo)),
             CloseContainer(),
-            BreakBlock(childActivity.containerPos, collectDrops = true)
+            BreakBlock(
+                childActivity.containerPos,
+                collectDrops = true,
+                ignoreIgnored = true
+            )
         )
     }
 

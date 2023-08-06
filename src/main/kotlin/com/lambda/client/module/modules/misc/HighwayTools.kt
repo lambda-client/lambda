@@ -6,8 +6,7 @@ import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
-import com.lambda.client.module.modules.client.BuildTools.defaultFillerMat
-import com.lambda.client.module.modules.misc.HighwayTools.printEnable
+import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.math.Direction
 import com.lambda.client.util.math.VectorUtils.multiply
@@ -236,7 +235,7 @@ object HighwayTools : Module(
         )
     }
 
-    private fun fillerState() = defaultFillerMat.defaultState
+    private fun fillerState() = Blocks.NETHERRACK.defaultState
 
     private val materialSaved = setting("Material", "minecraft:obsidian", { false })
 }

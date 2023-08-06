@@ -3,6 +3,7 @@ package com.lambda.client.activity.activities.interaction
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.inventory.core.SwapOrSwitchToSlot
+import com.lambda.client.activity.activities.storage.ItemInfo
 import com.lambda.client.activity.types.RotatingActivity
 import com.lambda.client.activity.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
@@ -32,7 +33,7 @@ class AttachMap(
         rotation = getRotationToEntity(itemFrame)
 
         addSubActivities(
-            AcquireItemInActiveHand(Items.MAP, predicateStack = { it.itemDamage == mapID }),
+            AcquireItemInActiveHand(ItemInfo(Items.MAP, predicate = { it.itemDamage == mapID })),
         )
     }
 

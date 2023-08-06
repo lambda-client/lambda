@@ -4,13 +4,14 @@ import com.lambda.client.setting.settings.impl.number.DoubleSetting
 import com.lambda.client.setting.settings.impl.number.FloatSetting
 import com.lambda.client.setting.settings.impl.number.IntegerSetting
 import com.lambda.client.setting.settings.impl.other.BindSetting
-import com.lambda.client.setting.settings.impl.other.BlockPosSetting
 import com.lambda.client.setting.settings.impl.other.ColorSetting
 import com.lambda.client.setting.settings.impl.primitive.BooleanSetting
 import com.lambda.client.setting.settings.impl.primitive.EnumSetting
 import com.lambda.client.setting.settings.impl.primitive.StringSetting
 import com.lambda.client.util.Bind
 import com.lambda.client.util.color.ColorHolder
+import net.minecraft.block.Block
+import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
 import java.util.function.BooleanSupplier
 
@@ -83,7 +84,23 @@ interface SettingRegister<T : Any> {
         value: BlockPos,
         visibility: () -> Boolean = { true },
         description: String = ""
-    ) = setting(BlockPosSetting(name, value, visibility, description))
+    ) = setting(MutableSetting(name, value, visibility, { _, input -> input }, description, unit = ""))
+
+    /** Item Setting */
+    fun T.setting(
+        name: String,
+        value : Item,
+        visibility: () -> Boolean = { true },
+        description: String = ""
+    ) = setting(MutableSetting(name, value, visibility, { _, input -> input }, description, unit = ""))
+
+    /** Block Setting */
+    fun T.setting(
+        name: String,
+        value : Block,
+        visibility: () -> Boolean = { true },
+        description: String = ""
+    ) = setting(MutableSetting(name, value, visibility, { _, input -> input }, description, unit = ""))
 
     /** Boolean Setting */
     fun T.setting(

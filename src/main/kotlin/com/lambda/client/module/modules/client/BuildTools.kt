@@ -4,6 +4,7 @@ import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.setting.settings.impl.collection.CollectionSetting
+import com.lambda.client.util.items.item
 import com.lambda.client.util.items.shulkerList
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.block.Block
@@ -11,7 +12,6 @@ import net.minecraft.init.Blocks
 import net.minecraft.init.Items
 import net.minecraft.item.Item
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import net.minecraftforge.fml.common.gameevent.TickEvent.ClientTickEvent
 
 object BuildTools : Module(
     name = "BuildTools",
@@ -161,7 +161,7 @@ object BuildTools : Module(
     init {
         ignoreBlocks.editListeners.add { ignoredBlocks = ignoreBlocks.mapNotNull { Block.getBlockFromName(it) } }
 
-        safeListener<ClientTickEvent> {
+        safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.START) return@safeListener
             if (ignoreBlocks.size != ignoredBlocks.size) {
                 ignoreBlocks.filter { Block.getBlockFromName(it) == null }.forEach { ignoreBlocks.remove(it) }

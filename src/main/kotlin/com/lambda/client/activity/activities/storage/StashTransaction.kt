@@ -8,18 +8,17 @@ import com.lambda.client.activity.activities.storage.core.OpenContainer
 import com.lambda.client.activity.activities.storage.core.ContainerTransaction
 import com.lambda.client.activity.activities.travel.CustomGoal
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.module.modules.misc.WorldEater
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import net.minecraft.tileentity.TileEntity
 
 /**
- * [StashTransaction] is an [Activity] that allows you to pull or push items from a [WorldEater.Stash].
- * @param stash The [WorldEater.Stash] to pull or push items from.
+ * [StashTransaction] is an [Activity] that allows you to pull or push items from a [Stash].
+ * @param stash The [Stash] to pull or push items from.
  * @param orders The orders to pull or push items.
  */
 class StashTransaction(
-    private val stash: WorldEater.Stash,
-    private val orders: List<ContainerTransaction.Order>
+    private val orders: List<Order>,
+    private val stash: Stash
 ) : Activity() {
     private val orderQueue = ArrayDeque(orders)
     private val containerQueue = ArrayDeque<TileEntity>()
@@ -43,7 +42,7 @@ class StashTransaction(
                 if (childActivity.goal !is GoalNear) return
 
                 val stashContainer = world.loadedTileEntityList.filter {
-                    stash.area.containedBlockPositions.contains(it.pos)
+                    stash.area.containedBlocks.contains(it.pos)
                 }
 
                 if (stashContainer.isEmpty()) {

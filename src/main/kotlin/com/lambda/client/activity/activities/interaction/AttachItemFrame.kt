@@ -3,6 +3,7 @@ package com.lambda.client.activity.activities.interaction
 import com.lambda.client.LambdaMod
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
+import com.lambda.client.activity.activities.storage.ItemInfo
 import com.lambda.client.activity.types.RotatingActivity
 import com.lambda.client.activity.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
@@ -30,7 +31,7 @@ class AttachItemFrame(
         rotation = getRotationTo(getHitVec(placePos, facing))
 
         addSubActivities(
-            AcquireItemInActiveHand(Items.ITEM_FRAME)
+            AcquireItemInActiveHand(ItemInfo(Items.ITEM_FRAME))
         )
     }
 

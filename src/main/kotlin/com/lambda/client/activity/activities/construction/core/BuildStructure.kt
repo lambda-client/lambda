@@ -211,6 +211,9 @@ class BuildStructure(
         } ?: return this
     }
 
+    /**
+     * Find out more about task sorting [here](https://docs.google.com/spreadsheets/d/1oZWV4qNu3Gao-7w3X_v5pjzRcXWjDhURMCKU25IIKEE/edit?usp=sharing)
+     */
     fun buildComparator() = compareBy<BuildActivity> {
         it.context
     }.thenBy {
@@ -219,8 +222,6 @@ class BuildStructure(
         it.type
     }.thenBy {
         it.distance
-    }.thenBy {
-        it.hashCode()
     }
 
     private fun SafeClientEvent.isInPadding(blockPos: BlockPos) = isBehindPos(player.flooredPosition, blockPos)

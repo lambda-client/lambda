@@ -10,9 +10,11 @@ import net.minecraft.item.Item
 
 object ItemTypeAdapterFactory : TypeAdapterFactory {
     override fun <T : Any?> create(gson: Gson, type: TypeToken<T>): TypeAdapter<T>? {
+        @Suppress("UNNECESSARY_SAFE_CALL")
         if (!Item::class.java.isAssignableFrom(type?.rawType)) return null
         val jsonObjectAdapter = gson.getAdapter(JsonObject::class.java)
 
+        @Suppress("UNCHECKED_CAST")
         return object : TypeAdapter<Item>() {
             override fun write(out: com.google.gson.stream.JsonWriter, value: Item?) {
                 if (value == null) {
