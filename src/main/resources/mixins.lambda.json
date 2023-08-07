@@ -24,6 +24,7 @@
     "accessor.network.AccessorCPacketPlayer",
     "accessor.network.AccessorCPacketUseEntity",
     "accessor.network.AccessorCPacketVehicleMove",
+    "accessor.network.AccessorNetHandlerPlayClient",
     "accessor.network.AccessorSPacketChat",
     "accessor.network.AccessorSPacketEntity",
     "accessor.network.AccessorSPacketEntityHeadLook",
