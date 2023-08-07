@@ -7,8 +7,8 @@ import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.event.events.PlayerMoveEvent
 import com.lambda.client.event.events.PlayerTravelEvent
 import com.lambda.client.manager.managers.PlayerPacketManager.sendPlayerPacket
-import com.lambda.client.mixin.extension.tickLength
-import com.lambda.client.mixin.extension.timer
+import com.lambda.client.manager.managers.TimerManager.modifyTimer
+import com.lambda.client.manager.managers.TimerManager.resetTimer
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.player.ViewLock
@@ -41,29 +41,29 @@ object ElytraFlight2b2t : Module(
     category = Category.MOVEMENT,
     modulePriority = 1000
 ) {
-    private val takeoffTimerSpeed by setting("Takeoff Timer Tick Length", 395.0f, 100.0f..1000.0f, 1.0f,
+    private val takeoffTimerSpeed by setting("Takeoff Timer Tick Length", 395.0f, 100.0f..1000.0f, 5.0f,
         description = "How long each timer tick is during redeploy (ms). Lower length = faster timer. " +
-            "Try increasing this if experiencing elytra timeout or rubberbands. This value is multiplied by 2 when setting timer")
+            "Try increasing this if experiencing elytra timeout or rubberbands. This value is multiplied by 2 when setting timer", unit = "ms")
     private val baritoneBlockagePathing by setting("Baritone Blockage Pathing", true,
         description = "Use baritone to path around blockages on the highway.")
     private val baritonePathForwardBlocks by setting("Baritone Path Distance", 20, 1..50, 1,
         visibility = { baritoneBlockagePathing })
-    private val baritoneEndDelayMs by setting("Baritone End Pathing Delay Ms", 500, 0..2000, 50,
-        visibility = { baritoneBlockagePathing })
-    private val baritoneStartDelayMs by setting("Baritone Start Delay Ms", 500, 0..2000, 50,
-        visibility = { baritoneBlockagePathing })
+    private val baritoneEndDelayMs by setting("Baritone End Pathing Delay", 500, 0..2000, 50,
+        visibility = { baritoneBlockagePathing }, unit = "ms")
+    private val baritoneStartDelayMs by setting("Baritone Start Delay", 500, 0..2000, 50,
+        visibility = { baritoneBlockagePathing }, unit = "ms")
     private val midairFallFly by setting("Mid-flight Packet Deploy", true,
         description = "Uses packets to redeploy when mid-flight.")
     private val autoFlyForward by setting("Auto Fly Forward", true,
         description = "Automatically move forward when flying.")
     private val rubberBandDetectionTime by setting("Rubberband Detection Time", 1110, 0..2000, 10,
-        description = "Time period (ms) between which to detect rubberband teleports. Lower period = more sensitive.")
-    private val enableBoost by setting("Enable boost", true,
+        description = "Time period (ms) between which to detect rubberband teleports. Lower period = more sensitive.", unit = "ms")
+    private val enableBoost by setting("Enable Boost", true,
         description = "Enable boost during mid-air flight.")
-    private val boostDelayTicks by setting("Boost delay ticks", 11, 1..200, 1,
-        visibility = { enableBoost },
+    private val boostDelayTicks by setting("Boost Delay", 11, 1..200, 1,
+        visibility = { enableBoost }, unit = "ticks",
         description = "Number of ticks to wait before beginning boost")
-    private val boostSpeedIncrease by setting("Boost speed increase", 0.65, 0.0..2.0, 0.01,
+    private val boostSpeedIncrease by setting("Boost Speed Increase", 0.65, 0.0..2.0, 0.01,
         visibility = { enableBoost },
         description = "Boost speed increase per tick (blocks per second / 2)")
     private val initialFlightSpeed by setting("Initial Flight Speed", 39.5, 35.0..80.0, 0.01,
@@ -77,50 +77,52 @@ object ElytraFlight2b2t : Module(
     private val autoViewLockManage by setting("Auto ViewLock Manage", true,
         description = "Automatically configures and toggles viewlock for straight flight on highways.")
 
-    private const val takeOffYVelocity: Double = -0.16976 // magic number - do not question
-    private const val magicPitch = -2.52f
+    private const val TAKE_OFF_Y_VELOCITY = -0.16976 // magic number - do not question
+    private const val MAGIC_PITCH = -2.52f
+    private const val JUMP_DELAY = 10
+
     private var currentState = State.PAUSED
+    private var isFlying = false
+    private var isBaritoning = false
+
     private var timer = TickTimer(TimeUnit.TICKS)
-    private var currentFlightSpeed: Double = 40.2
-    private var shouldStartBoosting: Boolean = false;
+    private var lastSPacketPlayerPosLook = Long.MIN_VALUE
+    private var lastRubberband = Long.MIN_VALUE
+    private var baritoneStartTime = 0L
+    private var baritoneEndPathingTime = 0L
+
+    private var shouldStartBoosting = false
     private var elytraIsEquipped = false
-    private var elytraDurability = 0
-    private var wasInLiquid: Boolean = false
-    private var isFlying: Boolean = false
+    private var wasInLiquid = false
     private var isStandingStill = false
-    private var lastSPacketPlayerPosLook: Long = Long.MIN_VALUE
-    private var lastRubberband: Long = Long.MIN_VALUE
-    private var startedFlying: Boolean = false
-    private var stoppedFlying: Boolean = false
-    private var nextBlockMoveLoaded: Boolean = true
+    private var startedFlying = false
+    private var stoppedFlying = false
+    private var nextBlockMoveLoaded = true
+
+    private var elytraDurability = 0
     private var flyTickCount = 0
-    private var flyPlayerLastPos: Vec3d = Vec3d.ZERO
     private var flyBlockedTickCount = 0
-    private var isBaritoning: Boolean = false
-    private var baritoneStartTime: Long = 0L
-    private var baritoneEndPathingTime: Long = 0L
-    private var beforePathingPlayerPitchYaw= Vec2f.ZERO
+    private var currentFlightSpeed = 40.2
+
+    private var flyPlayerLastPos = Vec3d.ZERO
+    private var beforePathingPlayerPitchYaw = Vec2f.ZERO
+    private var motionPrev = Vec2f(0.0f, 0.0f)
+
     private var scheduleBaritoneJob: Job? = null
-    private var motionPrev: Vec2f = Vec2f(0.0f, 0.0f)
-    private const val jumpDelay: Int = 10
 
     enum class State {
         FLYING, TAKEOFF, PAUSED, WALKING
     }
 
-    override fun getHudInfo(): String {
-        return currentState.name
-    }
+    override fun getHudInfo() = currentState.name
 
     init {
-
         onEnable {
             currentState = State.PAUSED
             timer.reset()
             shouldStartBoosting = false
             lastRubberband = Long.MIN_VALUE
-            if (autoViewLockManage)
-                configureViewLock()
+            if (autoViewLockManage) configureViewLock()
         }
 
         onDisable {
@@ -128,11 +130,10 @@ object ElytraFlight2b2t : Module(
             resetFlightSpeed()
             BaritoneUtils.cancelEverything()
             shouldStartBoosting = false
-            mc.timer.tickLength = 50.0f
+            resetTimer()
             wasInLiquid = false
             isFlying = false
-            if (autoViewLockManage)
-                ViewLock.disable()
+            if (autoViewLockManage) ViewLock.disable()
         }
 
         safeListener<ConnectionEvent.Disconnect> {
@@ -167,8 +168,8 @@ object ElytraFlight2b2t : Module(
                     // delay takeoff if we were pathing
                     if (isBaritoning) {
                         baritoneEndPathingTime = System.currentTimeMillis()
-                        mc.player.rotationPitch = beforePathingPlayerPitchYaw.x
-                        mc.player.rotationYaw = beforePathingPlayerPitchYaw.y
+                        player.rotationPitch = beforePathingPlayerPitchYaw.x
+                        player.rotationYaw = beforePathingPlayerPitchYaw.y
                         isBaritoning = false
                         return@safeListener
                     }
@@ -177,24 +178,24 @@ object ElytraFlight2b2t : Module(
                 }
                 State.TAKEOFF -> {
                     if (autoViewLockManage && ViewLock.isDisabled) ViewLock.enable()
-                    mc.timer.tickLength = 50.0f
+                    resetTimer()
                     shouldStartBoosting = false
                     resetFlightSpeed()
-                    if (baritoneBlockagePathing && player.onGround && timer.tick(jumpDelay.toLong())) player.jump()
-                    if ((withinRange(mc.player.motionY, takeOffYVelocity, 0.05)) && !mc.player.isElytraFlying) {
+                    if (baritoneBlockagePathing && player.onGround && timer.tick(JUMP_DELAY.toLong())) player.jump()
+                    if ((withinRange(player.motionY)) && !player.isElytraFlying) {
                         timer.reset()
                         currentState = State.FLYING
-                    } else if (midairFallFly && mc.player.isElytraFlying) {
+                    } else if (midairFallFly && player.isElytraFlying) {
                         connection.sendPacket(CPacketPlayer(true))
                     }
                 }
                 State.FLYING -> {
                     if (autoViewLockManage && ViewLock.isDisabled) ViewLock.enable()
-                    if (!mc.player.isElytraFlying && flyTickCount++ > 30) {
+                    if (!player.isElytraFlying && flyTickCount++ > 30) {
                         pathForward()
                         currentState = State.WALKING
                     } else flyTickCount = 0
-                    val playerCurrentPos = mc.player.positionVector
+                    val playerCurrentPos = player.positionVector
                     if (!avoidUnloaded || (avoidUnloaded && nextBlockMoveLoaded)) {
                         if (playerCurrentPos.distanceTo(flyPlayerLastPos) < 2.0) {
                             if (flyBlockedTickCount++ > 20) {
@@ -207,7 +208,9 @@ object ElytraFlight2b2t : Module(
                     if (!enableBoost) return@safeListener
                     if (shouldStartBoosting) {
                         if (avoidUnloaded) {
-                            if (nextBlockMoveLoaded && isFlying) setFlightSpeed(currentFlightSpeed + boostSpeedIncrease)
+                            if (nextBlockMoveLoaded && isFlying) {
+                                setFlightSpeed(currentFlightSpeed + boostSpeedIncrease)
+                            }
                         } else setFlightSpeed(currentFlightSpeed + boostSpeedIncrease)
                     } else if (timer.tick(boostDelayTicks, true)) shouldStartBoosting = true
                 }
@@ -220,7 +223,7 @@ object ElytraFlight2b2t : Module(
             if (System.currentTimeMillis() - lastSPacketPlayerPosLook < rubberBandDetectionTime.toLong()) {
                 resetFlightSpeed()
                 shouldStartBoosting = false
-                mc.timer.tickLength = 50.0f
+                resetTimer()
                 wasInLiquid = false
                 isFlying = false
                 currentState = if (baritoneBlockagePathing) {
@@ -233,8 +236,7 @@ object ElytraFlight2b2t : Module(
         }
 
         safeListener<PacketEvent.Send> {
-            if (avoidUnloaded && !nextBlockMoveLoaded && it.packet is CPacketPlayer)
-                it.cancel()
+            if (avoidUnloaded && !nextBlockMoveLoaded && it.packet is CPacketPlayer) it.cancel()
         }
 
         safeListener<PlayerTravelEvent> {
@@ -242,7 +244,7 @@ object ElytraFlight2b2t : Module(
             if (currentState == State.FLYING && elytraIsEquipped && elytraDurability > 1) {
                 if (stoppedFlying) setFlightSpeed(currentFlightSpeed / redeploySpeedDecreaseFactor)
                 if (isFlying) {
-                    mc.timer.tickLength = 50.0f
+                    resetTimer()
                     player.isSprinting = false
                 } else takeoff(it)
             }
@@ -253,14 +255,14 @@ object ElytraFlight2b2t : Module(
         safeListener<PlayerMoveEvent> {
             if (currentState == State.FLYING) {
                 if (avoidUnloaded) {
-                    if (nextBlockMoveLoaded && !mc.world.isBlockLoaded(BlockPos(mc.player.posX + it.x, mc.player.posY, mc.player.posZ + it.z), false)) {
+                    if (nextBlockMoveLoaded && !world.isBlockLoaded(BlockPos(player.posX + it.x, player.posY, player.posZ + it.z), false)) {
                         nextBlockMoveLoaded = false
                         motionPrev = Vec2f(it.x.toFloat(), it.z.toFloat())
                         setSpeed(0.0)
                         player.motionY = 0.0
                         return@safeListener
                     } else if (!nextBlockMoveLoaded) {
-                        if (!mc.world.isBlockLoaded(BlockPos(mc.player.posX + motionPrev.x, 1.0, mc.player.posZ + motionPrev.y), false)) {
+                        if (!world.isBlockLoaded(BlockPos(player.posX + motionPrev.x, 1.0, player.posZ + motionPrev.y), false)) {
                             setSpeed(0.0)
                             player.motionY = 0.0
                             return@safeListener
@@ -274,19 +276,17 @@ object ElytraFlight2b2t : Module(
         }
 
         safeListener<InputUpdateEvent> {
-            if (autoFlyForward && (currentState == State.FLYING || currentState == State.TAKEOFF) && !mc.player.onGround) {
+            if (autoFlyForward && (currentState == State.FLYING || currentState == State.TAKEOFF) && !player.onGround) {
                 it.movementInput.moveStrafe = 0.0f
                 it.movementInput.moveForward = 1.0f
             }
         }
     }
 
-    private fun withinRange(num: Double, target: Double, range: Double): Boolean {
-        return (num >= target - range && num <= target + range)
-    }
+    private fun withinRange(motion: Double) = motion >= TAKE_OFF_Y_VELOCITY - 0.05 && motion <= TAKE_OFF_Y_VELOCITY + 0.05
 
     private fun resetFlightSpeed() {
-        setFlightSpeed(this.initialFlightSpeed)
+        setFlightSpeed(initialFlightSpeed)
     }
 
     private fun setFlightSpeed(speed: Double) {
@@ -299,9 +299,9 @@ object ElytraFlight2b2t : Module(
         elytraIsEquipped = armorSlot.item == Items.ELYTRA
 
         /* Elytra Durability Check */
-        if (elytraIsEquipped) {
-            elytraDurability = armorSlot.maxDamage - armorSlot.itemDamage
-        } else elytraDurability = 0
+        elytraDurability = if (elytraIsEquipped) {
+            armorSlot.maxDamage - armorSlot.itemDamage
+        } else 0
 
         /* wasInLiquid check */
         if (player.isInWater || player.isInLava) {
@@ -324,25 +324,27 @@ object ElytraFlight2b2t : Module(
         val timerSpeed = takeoffTimerSpeed
         val height = 0.1
         val closeToGround = player.posY <= world.getGroundPos(player).y + height && !wasInLiquid && !mc.isSingleplayer
+
         if (player.motionY >= -0.02) return
         if (closeToGround) {
-            mc.timer.tickLength = 50.0f
+            resetTimer()
             return
         }
         if (!wasInLiquid && !mc.isSingleplayer) {
             event.cancel()
             player.setVelocity(0.0, -0.02, 0.0)
         }
-        if (!mc.isSingleplayer) mc.timer.tickLength = timerSpeed * 2.0f
+
+        if (!mc.isSingleplayer) modifyTimer(timerSpeed * 2.0f)
         connection.sendPacket(CPacketEntityAction(player, CPacketEntityAction.Action.START_FALL_FLYING))
     }
 
     private fun SafeClientEvent.spoofRotation() {
         if (player.isSpectator || !elytraIsEquipped || elytraDurability <= 1 || !isFlying) return
         var rotation = com.lambda.client.util.math.Vec2f(player)
-        if (!isStandingStill) rotation = com.lambda.client.util.math.Vec2f(rotation.x, magicPitch)
+        if (!isStandingStill) rotation = com.lambda.client.util.math.Vec2f(rotation.x, MAGIC_PITCH)
         /* Cancels rotation packets if player is not moving and not clicking */
-        var cancelRotation = isStandingStill
+        val cancelRotation = isStandingStill
             && ((!mc.gameSettings.keyBindUseItem.isKeyDown && !mc.gameSettings.keyBindAttack.isKeyDown))
         sendPlayerPacket {
             if (cancelRotation) {
@@ -354,17 +356,18 @@ object ElytraFlight2b2t : Module(
     }
 
     private fun SafeClientEvent.pathForward() {
-        beforePathingPlayerPitchYaw = mc.player.pitchYaw
+        beforePathingPlayerPitchYaw = player.pitchYaw
         if (scheduleBaritoneJob?.isActive == true) return
         baritoneStartTime = System.currentTimeMillis()
         scheduleBaritoneJob = defaultScope.launch {
             delay(baritoneStartDelayMs.toLong())
-            val playerContext = BaritoneUtils.primary?.playerContext!!
-            BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalXZ.fromDirection(
-                playerContext.playerFeetAsVec(),
-                playerContext.player().rotationYawHead,
-                baritonePathForwardBlocks.toDouble()
-            ))
+            BaritoneUtils.primary?.playerContext?.let {
+                BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalXZ.fromDirection(
+                    it.playerFeetAsVec(),
+                    it.player().rotationYawHead,
+                    baritonePathForwardBlocks.toDouble()
+                ))
+            }
         }
     }
 

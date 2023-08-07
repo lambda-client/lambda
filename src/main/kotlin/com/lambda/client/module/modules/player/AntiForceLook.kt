@@ -26,7 +26,7 @@ object AntiForceLook : Module(
     }
 
     private fun SafeClientEvent.handlePosLook(packet: SPacketPlayerPosLook) {
-        /** {@See NetHandlerPlayClient#handlePlayerPosLook} **/
+        /** {@see NetHandlerPlayClient#handlePlayerPosLook} **/
         var x = packet.x
         var y = packet.y
         var z = packet.z
@@ -42,22 +42,28 @@ object AntiForceLook : Module(
         player.setPositionAndRotation(x, y, z,
             // retain current yaw and pitch client-side
             player.rotationYaw,
-            player.rotationPitch)
+            player.rotationPitch
+        )
+
         // spoof to server that we are using its rotation
         connection.sendPacket(CPacketConfirmTeleport(packet.teleportId))
+
         connection.sendPacket(CPacketPlayer.PositionRotation(
             player.posX,
             player.entityBoundingBox.minY,
             player.posZ,
             yaw,
             pitch,
-            false))
-        if (!(player.connection as AccessorNetHandlerPlayClient)
-                .isDoneLoadingTerrain) {
+            false)
+        )
+
+        val connection = (player.connection as? AccessorNetHandlerPlayClient) ?: return
+
+        if (!connection.isDoneLoadingTerrain) {
             player.prevPosX = player.posX
             player.prevPosY = player.posY
             player.prevPosZ = player.posZ
-            (player.connection as AccessorNetHandlerPlayClient).isDoneLoadingTerrain = true
+            connection.isDoneLoadingTerrain = true
             mc.displayGuiScreen(null)
         }
     }
