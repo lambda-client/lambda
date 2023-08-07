@@ -6,6 +6,7 @@ interface BuildActivity {
     var context: Context
     var availability: Availability
     var type: Type
+    var exposedSides: Int
     var distance: Double
 
     enum class Context(val color: ColorHolder) {

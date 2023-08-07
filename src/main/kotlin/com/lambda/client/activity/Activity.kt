@@ -149,7 +149,7 @@ abstract class Activity {
         checkRepeat(activity)
         checkLoopingUntil(activity)
 
-        BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
+//        BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
 
 //                LambdaMod.LOG.info("${System.currentTimeMillis()} Finalized $name after ${System.currentTimeMillis() - creationTime}ms")
 //        MessageSendHelper.sendRawChatMessage("$name took ${age}ms")

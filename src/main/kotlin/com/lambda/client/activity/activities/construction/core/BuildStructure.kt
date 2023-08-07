@@ -7,6 +7,7 @@ import baritone.api.pathing.goals.GoalXZ
 import baritone.process.BuilderProcess.GoalAdjacent
 import com.lambda.client.LambdaMod
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.travel.CollectEntityItem
 import com.lambda.client.activity.types.BuildActivity
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.activity.types.RepeatingActivity
@@ -15,6 +16,7 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.autoPathing
+import com.lambda.client.module.modules.misc.WorldEater
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.color.ColorHolder
@@ -23,10 +25,12 @@ import com.lambda.client.util.items.filterByStack
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.math.Direction
 import com.lambda.client.util.math.VectorUtils.distanceTo
+import com.lambda.client.util.math.VectorUtils.manhattanDistanceTo
 import com.lambda.client.util.math.VectorUtils.multiply
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.block.BlockBush
 import net.minecraft.block.state.IBlockState
+import net.minecraft.entity.item.EntityItem
 import net.minecraft.init.Blocks
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.network.play.server.SPacketMultiBlockChange
@@ -34,6 +38,8 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.event.world.BlockEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import kotlin.properties.Delegates
+import kotlin.reflect.KProperty
 
 class BuildStructure(
     private val structure: Map<BlockPos, IBlockState>,
@@ -48,7 +54,10 @@ class BuildStructure(
     override val aabbCompounds: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
 ) : RepeatingActivity, RenderAABBActivity, Activity() {
     private var currentOffset = BlockPos.ORIGIN
-    private var lastGoal: Goal? = null
+    private var lastGoal: Goal? by Delegates.observable(null) { _, old, new ->
+        if (old != new) lastGoalSet = System.currentTimeMillis()
+    }
+    private var lastGoalSet: Long = 0L
 
     private val renderAABB = RenderAABBActivity.Companion.RenderAABB(
         AxisAlignedBB(BlockPos.ORIGIN), ColorHolder(255, 255, 255)
@@ -71,8 +80,8 @@ class BuildStructure(
     }
 
     init {
-        safeListener<TickEvent.ClientTickEvent> {
-            if (it.phase != TickEvent.Phase.END) return@safeListener
+        safeListener<TickEvent.ClientTickEvent> { event ->
+            if (event.phase != TickEvent.Phase.END) return@safeListener
 
             if (subActivities.isEmpty() && !BaritoneUtils.isPathing) {
                 // todo: offset pathing like this might not make sense for all structures. we aren't guaranteed to be at a specific position relative to the structure
@@ -86,7 +95,33 @@ class BuildStructure(
                 success()
             }
 
-            when (val activity = getCurrentActivity()) {
+            val activity = getCurrentActivity()
+
+            // no forced moving on other activities
+            if (!activity.hasNoSubActivities) return@safeListener
+
+            // pathing cool-down
+            if (System.currentTimeMillis() - lastGoalSet < BuildTools.pathingRecomputeTimeout) {
+                BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(lastGoal)
+                return@safeListener
+            }
+
+            val itemsInRange = world.loadedEntityList
+                .filterIsInstance<EntityItem>()
+                .filter { player.manhattanDistanceTo(it.position) <= 5 && it.item.item in WorldEater.collectables }
+
+            // collect drops
+            if (collectAll && itemsInRange.sumOf { it.item.count } > BuildTools.pickupMinimumItemAmount) {
+                itemsInRange.groupBy { it.item.item }.maxByOrNull { it.value.size }?.let { largestGroup ->
+                    largestGroup.value.minByOrNull { player.manhattanDistanceTo(it.position) }?.let {
+                        lastGoal = GoalBlock(it.position)
+                        return@safeListener
+                    }
+                }
+            }
+
+            // move to next activity
+            when (activity) {
                 is PlaceBlock -> {
                     val blockPos = activity.blockPos
 
@@ -194,7 +229,8 @@ class BuildStructure(
 
         /* the only option left is breaking the block */
         addSubActivities(BreakBlock(
-            blockPos, collectDrops = collectAll, minCollectAmount = 64
+//            blockPos, collectDrops = collectAll, minCollectAmount = 64
+            blockPos
         ), subscribe = true)
     }
 
@@ -220,6 +256,8 @@ class BuildStructure(
         it.availability
     }.thenBy {
         it.type
+    }.thenByDescending {
+        it.exposedSides
     }.thenBy {
         it.distance
     }
@@ -246,7 +284,7 @@ class BuildStructure(
         if (exists) return
 
         val available = player.inventorySlots
-            .filterByStack { BuildTools.ejectList.value.contains(it.item.block.registryName.toString()) }
+            .filterByStack { BuildTools.ejectList.contains(it.item.block.registryName.toString()) }
             .maxByOrNull { it.stack.count }?.stack?.item?.block ?: Blocks.AIR
 
         if (available == Blocks.AIR) {

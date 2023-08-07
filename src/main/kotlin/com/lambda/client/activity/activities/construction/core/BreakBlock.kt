@@ -53,12 +53,13 @@ class BreakBlock(
     private val forceNoFortune: Boolean = false,
     private val ignoreIgnored: Boolean = false,
     override var timeout: Long = Long.MAX_VALUE, // ToDo: Reset timeouted breaks blockstates
-    override val maxAttempts: Int = 5,
+    override val maxAttempts: Int = 20,
     override var usedAttempts: Int = 0,
     override val aabbCompounds: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(),
     override val overlayTexts: MutableSet<RenderOverlayTextActivity.Companion.RenderOverlayText> = mutableSetOf(),
     override var rotation: Vec2f? = null,
     override var distance: Double = 1337.0,
+    override var exposedSides: Int = 0,
 ) : BuildActivity, TimeoutActivity, AttemptActivity, RotatingActivity, TimedActivity, RenderAABBActivity, RenderOverlayTextActivity, Activity() {
     private var side: EnumFacing? = null
     private var ticksNeeded = 0
@@ -208,8 +209,8 @@ class BreakBlock(
 
         updateProperties()
 
-        getMiningSide(blockPos, BuildTools.maxReach)?.let {
-            val hitVec = getHitVec(blockPos, it)
+        getMiningSide(blockPos, BuildTools.maxReach)?.let { miningSide ->
+            val hitVec = getHitVec(blockPos, miningSide)
 
             /* prevent breaking the block the player is standing on */
             if (player.flooredPosition.down() == blockPos
@@ -217,11 +218,13 @@ class BreakBlock(
             ) {
                 availability = BuildActivity.Availability.BLOCKED_BY_PLAYER
                 distance = player.distanceTo(hitVec)
+                exposedSides = EnumFacing.HORIZONTALS.count { world.isAirBlock(blockPos.offset(it)) }
                 return
             }
             availability = BuildActivity.Availability.VALID
             distance = player.distanceTo(hitVec)
-            side = it
+            exposedSides = EnumFacing.HORIZONTALS.count { world.isAirBlock(blockPos.offset(it)) }
+            side = miningSide
             rotation = getRotationTo(hitVec)
             return
         }
@@ -229,9 +232,11 @@ class BreakBlock(
         getMiningSide(blockPos)?.let {
             availability = BuildActivity.Availability.NOT_IN_RANGE
             distance = player.distanceTo(getHitVec(blockPos, it))
+            exposedSides = EnumFacing.HORIZONTALS.count { world.isAirBlock(blockPos.offset(it)) }
         } ?: run {
             availability = BuildActivity.Availability.NOT_EXPOSED
             distance = 1337.0
+            exposedSides = EnumFacing.HORIZONTALS.count { world.isAirBlock(blockPos.offset(it)) }
         }
 
         playerController.resetBlockRemoving()
@@ -247,6 +252,7 @@ class BreakBlock(
             BuildActivity.Availability.BLOCKED_BY_PLAYER,
             BuildActivity.Availability.NOT_IN_RANGE -> {
                 // Wait for player move
+                timeout = Long.MAX_VALUE // ToDo: find a better way to do this
             }
             BuildActivity.Availability.WRONG_ITEM_SELECTED -> {
 //                acquireOptimalTool()
@@ -398,7 +404,7 @@ class BreakBlock(
         ticksNeeded = ceil((1 / currentState
             .getPlayerRelativeBlockHardness(player, world, blockPos)) * BuildTools.miningSpeedFactor).toInt()
 
-        timeout = ticksNeeded * 50L + 2000L
+        timeout = ticksNeeded * 50L + 100L
     }
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {

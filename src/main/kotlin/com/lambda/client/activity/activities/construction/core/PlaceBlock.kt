@@ -46,6 +46,7 @@ class PlaceBlock(
     private val ignoreFacing: Boolean = false,
     override var rotation: Vec2f? = null,
     override var distance: Double = 1337.0,
+    override var exposedSides: Int = 0,
     override var timeout: Long = Long.MAX_VALUE, // ToDo: Reset timeouted placements blockstates
     override val maxAttempts: Int = 8,
     override var usedAttempts: Int = 0,
@@ -257,6 +258,7 @@ class PlaceBlock(
                 availability = BuildActivity.Availability.VALID
                 it.hitVec = it.hitVec.add(placementOffset.offset)
                 distance = player.distanceTo(it.hitVec)
+                exposedSides = EnumFacing.HORIZONTALS.count { world.isAirBlock(blockPos.offset(it)) }
                 placeInfo = it
             } else {
 //                action = BuildActivity.BuildAction.NEEDS_SUPPORT
@@ -276,9 +278,11 @@ class PlaceBlock(
             )?.let {
                 availability = BuildActivity.Availability.NOT_IN_RANGE
                 distance = player.distanceTo(it.hitVec.add(placementOffset.offset))
+                exposedSides = EnumFacing.HORIZONTALS.count { world.isAirBlock(blockPos.offset(it)) }
             } ?: run {
                 availability = BuildActivity.Availability.NOT_VISIBLE
                 distance = 1337.0
+                exposedSides = EnumFacing.HORIZONTALS.count { world.isAirBlock(blockPos.offset(it)) }
             }
             placeInfo = null
             rotation = null

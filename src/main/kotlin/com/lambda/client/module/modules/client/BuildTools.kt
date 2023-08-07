@@ -4,7 +4,6 @@ import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.setting.settings.impl.collection.CollectionSetting
-import com.lambda.client.util.items.item
 import com.lambda.client.util.items.shulkerList
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.block.Block
@@ -25,7 +24,9 @@ object BuildTools : Module(
     /* behavior */
     val maxReach by setting("Max Reach", 4.9f, 1.0f..7.0f, 0.1f, { page == Page.BUILDING }, description = "Sets the range of the blueprint. Decrease when tasks fail!", unit = " blocks")
     val autoPathing by setting("Auto Pathing", true, { page == Page.BUILDING }, description = "Automatically pathfind to the next block")
-//    val moveSpeed by setting("Packet Move Speed", 0.2, 0.0..1.0, 0.01, { page == Page.BEHAVIOR }, description = "Maximum player velocity per tick", unit = "m/t")
+    val pathingRecomputeTimeout by setting("Pathing Recompute Timeout", 200, 0..1000, 20, { page == Page.BUILDING }, description = "Timeout for recomputing the path", unit = " ms")
+    val pickupMinimumItemAmount by setting("Pickup Minimum Item Amount", 32, 1..64, 1, { page == Page.BUILDING }, description = "Minimum amount of items to pick up", unit = " items")
+    //    val moveSpeed by setting("Packet Move Speed", 0.2, 0.0..1.0, 0.01, { page == Page.BEHAVIOR }, description = "Maximum player velocity per tick", unit = "m/t")
 //    val taskTimeout by setting("Task Timeout", 8, 0..20, 1, { page == Page.BEHAVIOR }, description = "Timeout for waiting for the server to try again", unit = " ticks")
 //    val maxRetries by setting("Max Task Retries", 3, 0..10, 1, { page == Page.BEHAVIOR }, description = "Maximum amount of timeouts for a task")
 //    val rubberbandTimeout by setting("Rubberband Timeout", 50, 5..100, 5, { page == Page.BEHAVIOR }, description = "Timeout for pausing after a lag", unit = " ticks")

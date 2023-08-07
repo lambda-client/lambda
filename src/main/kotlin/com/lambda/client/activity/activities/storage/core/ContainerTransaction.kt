@@ -4,7 +4,6 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.core.QuickMoveSlot
 import com.lambda.client.activity.activities.inventory.core.SwapWithSlot
 import com.lambda.client.activity.activities.storage.Action
-import com.lambda.client.activity.activities.storage.ItemInfo
 import com.lambda.client.activity.activities.storage.Order
 import com.lambda.client.activity.seperatedSlots
 import com.lambda.client.event.SafeClientEvent
