@@ -5,6 +5,7 @@ import com.lambda.client.activity.activities.storage.Area
 import com.lambda.client.activity.activities.storage.Stash
 import com.lambda.client.command.CommandManager.prefix
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.addSubActivities
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
@@ -14,6 +15,7 @@ import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.runSafe
 import net.minecraft.init.Blocks
+import net.minecraft.init.Items
 import net.minecraft.item.Item
 import net.minecraft.util.EnumFacing
 
@@ -37,7 +39,8 @@ object WorldEater : Module(
         Blocks.SAND.item,
         Blocks.SANDSTONE.item,
         Blocks.RED_SANDSTONE.item,
-        Blocks.CLAY.item
+        Blocks.CLAY.item,
+        Items.COAL,
     )
 
     val tools = setting(CollectionSetting("Tools", mutableListOf(), entryType = Item::class.java))
@@ -64,6 +67,7 @@ object WorldEater : Module(
 
         onDisable {
             runSafe {
+                ActivityManager.reset() // ToDo: Should also cancel the maintain inventory activity
                 ownedActivity?.let {
                     with(it) {
                         cancel()

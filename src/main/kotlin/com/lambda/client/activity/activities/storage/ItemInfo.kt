@@ -11,7 +11,7 @@ data class ItemInfo(
     val number: Int = 1, // 0 = all
     val predicate: (ItemStack) -> Boolean = { true },
     val metadata: Int? = null,
-    val containedInShulker: Boolean = false
+    var containedInShulker: Boolean = false
 ) {
     val optimalStack: ItemStack
         get() = ItemStack(item, number, metadata ?: 0)

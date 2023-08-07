@@ -74,7 +74,7 @@ class ContainerTransaction(
     }
 
     class NoSpaceLeftInInventoryException : Exception("No space left in inventory")
-    class NoItemFoundException : Exception("No item found")
+    class NoItemFoundException : Exception("No item to move found")
     class NotEnoughSlotsException : Exception("Not enough slots")
     class ContainerNotKnownException(val container: Container) : Exception("Container ${container::class.simpleName} not known")
 }

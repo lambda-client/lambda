@@ -7,13 +7,13 @@ import baritone.api.pathing.goals.GoalXZ
 import baritone.process.BuilderProcess.GoalAdjacent
 import com.lambda.client.LambdaMod
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.travel.CollectEntityItem
 import com.lambda.client.activity.types.BuildActivity
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.activity.types.RepeatingActivity
 import com.lambda.client.commons.extension.floorToInt
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
+import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.autoPathing
 import com.lambda.client.module.modules.misc.WorldEater
@@ -25,7 +25,6 @@ import com.lambda.client.util.items.filterByStack
 import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.math.Direction
 import com.lambda.client.util.math.VectorUtils.distanceTo
-import com.lambda.client.util.math.VectorUtils.manhattanDistanceTo
 import com.lambda.client.util.math.VectorUtils.multiply
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.block.BlockBush
@@ -39,7 +38,6 @@ import net.minecraft.util.math.BlockPos
 import net.minecraftforge.event.world.BlockEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import kotlin.properties.Delegates
-import kotlin.reflect.KProperty
 
 class BuildStructure(
     private val structure: Map<BlockPos, IBlockState>,
@@ -54,7 +52,7 @@ class BuildStructure(
     override val aabbCompounds: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
 ) : RepeatingActivity, RenderAABBActivity, Activity() {
     private var currentOffset = BlockPos.ORIGIN
-    private var lastGoal: Goal? by Delegates.observable(null) { _, old, new ->
+    private var currentGoal: Goal? by Delegates.observable(null) { _, old, new ->
         if (old != new) lastGoalSet = System.currentTimeMillis()
     }
     private var lastGoalSet: Long = 0L
@@ -95,28 +93,34 @@ class BuildStructure(
                 success()
             }
 
-            val activity = getCurrentActivity()
+            val activity = ActivityManager.getCurrentActivity()
 
             // no forced moving on other activities
-            if (!activity.hasNoSubActivities) return@safeListener
+            if (activity is PlaceBlock && activity.context != BuildActivity.Context.NONE) return@safeListener
+            if (activity is BreakBlock && activity.context != BuildActivity.Context.NONE) return@safeListener
+            if (!activity.hasNoSubActivities || activity !in subActivities) return@safeListener
 
             // pathing cool-down
             if (System.currentTimeMillis() - lastGoalSet < BuildTools.pathingRecomputeTimeout) {
-                BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(lastGoal)
+                BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(currentGoal)
                 return@safeListener
             }
 
             val itemsInRange = world.loadedEntityList
                 .filterIsInstance<EntityItem>()
-                .filter { player.manhattanDistanceTo(it.position) <= 5 && it.item.item in WorldEater.collectables }
+                .filter {
+                    player.distanceTo(it.position) <= BuildTools.collectRange
+                        && it.item.item in WorldEater.collectables
+                }
 
             // collect drops
-            if (collectAll && itemsInRange.sumOf { it.item.count } > BuildTools.pickupMinimumItemAmount) {
-                itemsInRange.groupBy { it.item.item }.maxByOrNull { it.value.size }?.let { largestGroup ->
-                    largestGroup.value.minByOrNull { player.manhattanDistanceTo(it.position) }?.let {
-                        lastGoal = GoalBlock(it.position)
-                        return@safeListener
-                    }
+            if (collectAll
+                && autoPathing
+                && (itemsInRange.maxOfOrNull { it.item.count } ?: 0) > BuildTools.minimumStackSize
+            ) {
+                itemsInRange.maxByOrNull { it.item.count / player.distanceTo(it.position) }?.let { largestStack ->
+                    currentGoal = GoalBlock(largestStack.position)
+                    return@safeListener
                 }
             }
 
@@ -129,7 +133,7 @@ class BuildStructure(
 
                     if (!autoPathing) return@safeListener
 
-                    lastGoal = if (isInBlockAABB(blockPos)) {
+                    currentGoal = if (isInBlockAABB(blockPos)) {
                         GoalInverted(GoalBlock(blockPos))
                     } else {
                         GoalAdjacent(blockPos, blockPos, true)
@@ -142,7 +146,7 @@ class BuildStructure(
 
                     if (!autoPathing) return@safeListener
 
-                    lastGoal = if (!allowBreakDescend && isInBlockAABB(blockPos.up())) {
+                    currentGoal = if (!allowBreakDescend && isInBlockAABB(blockPos.up())) {
                         GoalInverted(GoalBlock(blockPos.up()))
                     } else {
                         GoalAdjacent(blockPos, blockPos, true)
@@ -150,7 +154,7 @@ class BuildStructure(
                 }
             }
 
-            lastGoal?.let { goal ->
+            currentGoal?.let { goal ->
                 BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(goal)
             }
         }

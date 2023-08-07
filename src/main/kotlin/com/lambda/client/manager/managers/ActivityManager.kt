@@ -2,6 +2,7 @@ package com.lambda.client.manager.managers
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.storage.*
+import com.lambda.client.activity.getShulkerInventory
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkAABBRender
 import com.lambda.client.activity.types.RenderOverlayTextActivity
@@ -37,6 +38,7 @@ import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.init.Items
 import net.minecraft.item.Item
+import net.minecraft.item.ItemShulkerBox
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.GL11
 import java.util.*
@@ -153,35 +155,44 @@ object ActivityManager : Manager, Activity() {
     }
 
     private fun SafeClientEvent.maintainInventory() {
+        if (subActivities.filterIsInstance<StashTransaction>().isNotEmpty()
+            || allSubActivities.filterIsInstance<ExtractItemFromContainerStack>().isNotEmpty()
+            || subActivities.filterIsInstance<StoreItemToShulkerBox>().isNotEmpty()
+        ) return
+
         val stashOrders = mutableListOf<Pair<Stash, Order>>()
 
-        if (subActivities.filterIsInstance<StoreItemToShulkerBox>().isEmpty()
-            && player.inventorySlots.countEmpty() <= BuildTools.keepFreeSlots
-        ) {
+        if (player.allSlots.none { slot -> getShulkerInventory(slot.stack)?.all { it.isEmpty } == true }) {
+            MessageSendHelper.sendChatMessage("No empty shulker boxes found, requesting new ones.")
+
+            val fullShulkerItem = player.allSlots
+                .filter { slot -> getShulkerInventory(slot.stack)?.none { it.isEmpty } == true }
+                .mapNotNull { slot -> getShulkerInventory(slot.stack)?.firstOrNull()?.item }
+
+            stashOrders.addAll(fullShulkerItem.mapNotNull { itemShulkerToStore ->
+                WorldEater.dropOff
+                    .filter { it.items.contains(itemShulkerToStore) }
+                    .minByOrNull { player.distanceTo(it.area.center) }?.let { stash ->
+                        stash to Order(Action.PUSH, ItemInfo(itemShulkerToStore, number = 0, containedInShulker = true))
+                    }
+            })
+        }
+
+        if (player.inventorySlots.countEmpty() <= BuildTools.keepFreeSlots) {
             val itemsToStore = WorldEater.collectables.filter {
                 player.inventorySlots.countItem(it) > 0
             }
 
             if (itemsToStore.isNotEmpty()) {
                 MessageSendHelper.sendChatMessage("Compressing ${
-                    itemsToStore.joinToString { "${it.registryName}" }
+                    itemsToStore.joinToString { "${it.registryName?.path}" }
                 } to shulker boxes.")
 
                 addSubActivities(itemsToStore.map {
                     StoreItemToShulkerBox(ItemInfo(it, 0))
                 })
-            } else if (subActivities.filterIsInstance<StashTransaction>().isEmpty()) {
-                stashOrders.addAll(itemsToStore.mapNotNull { itemToStore ->
-                    WorldEater.dropOff
-                        .filter { it.items.contains(itemToStore) }
-                        .minByOrNull { player.distanceTo(it.area.center) }?.let { stash ->
-                            stash to Order(Action.PUSH, ItemInfo(itemToStore, number = 0))
-                        }
-                })
             }
         }
-
-        if (subActivities.filterIsInstance<StashTransaction>().isNotEmpty()) return
 
         if (BuildTools.usePickaxe) checkItem(Items.DIAMOND_PICKAXE).ifPresent { stashOrders.add(it) }
         if (BuildTools.useShovel) checkItem(Items.DIAMOND_SHOVEL).ifPresent { stashOrders.add(it) }
@@ -193,16 +204,28 @@ object ActivityManager : Manager, Activity() {
 
         if (stashOrders.isNotEmpty()) {
             addSubActivities(stashOrders.groupBy { it.first }.map { group ->
+                MessageSendHelper.sendChatMessage("Orders for stash at (${
+                    group.key.area.center.asString()
+                }): ${
+                    stashOrders.joinToString {
+                        "${
+                            it.second.action.name
+                        }:${
+                            it.second.itemInfo.item.registryName.toString().split(":")[1]
+                        }"
+                    }
+                }")
+
                 StashTransaction(group.value.map { it.second }, group.key)
             })
-            MessageSendHelper.sendChatMessage("Inventory full. Storing ${
-                stashOrders.joinToString(" ") { "${it.second.itemInfo.item.registryName} -> ${it.first.area.center}" }
-            }")
         }
     }
 
     private fun SafeClientEvent.checkItem(item: Item): Optional<Pair<Stash, Order>> {
-        if (player.allSlots.countItem(item) >= BuildTools.minToolAmount) return Optional.empty()
+        if (player.allSlots.countItem(item) + player.allSlots.sumOf { slot ->
+            getShulkerInventory(slot.stack)?.filter { it.item == item }?.sumOf { it.count } ?: 0
+                // ToDo: Add ender chest support
+        } >= BuildTools.minToolAmount) return Optional.empty()
 
         val optimalStash = WorldEater.stashes
             .filter { it.items.contains(item) }
