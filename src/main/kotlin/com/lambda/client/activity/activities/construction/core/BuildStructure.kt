@@ -7,7 +7,6 @@ import baritone.api.pathing.goals.GoalXZ
 import baritone.process.BuilderProcess.GoalAdjacent
 import com.lambda.client.LambdaMod
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.travel.CustomGoal
 import com.lambda.client.activity.types.BuildActivity
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.activity.types.RepeatingActivity
@@ -88,7 +87,9 @@ class BuildStructure(
                 if (autoPathing && !withinRangeOfStructure() && offsetMove != BlockPos.ORIGIN) {
                     LambdaMod.LOG.info("Structure out of range, pathing by offset")
                     // todo: improve stop/start stutter pathing
-                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(GoalXZ(player.posX.floorToInt() + (offsetMove.x * 5), player.posZ.floorToInt() + (offsetMove.z * 5)))
+                    BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(
+                        GoalXZ(player.posX.floorToInt() + (offsetMove.x * 5), player.posZ.floorToInt() + (offsetMove.z * 5))
+                    )
                     return@safeListener
                 }
                 success()
@@ -96,11 +97,8 @@ class BuildStructure(
 
             val activity = ActivityManager.getCurrentActivity()
 
-            // no forced moving on other activities
-            if (activity is PlaceBlock && activity.context != BuildActivity.Context.NONE) return@safeListener
-            if (activity is BreakBlock && activity.context != BuildActivity.Context.NONE) return@safeListener
-            if (ActivityManager.allSubActivities.filterIsInstance<CustomGoal>().isNotEmpty()) return@safeListener
-            if (!activity.hasNoSubActivities || activity !in subActivities) return@safeListener
+            // no forced moving on other activities than native build activity
+            if (activity !is BuildActivity || !activity.hasNoSubActivities) return@safeListener
 
             // pathing cool-down
             if (System.currentTimeMillis() - lastGoalSet < BuildTools.pathingRecomputeTimeout) {
@@ -141,6 +139,7 @@ class BuildStructure(
                         GoalAdjacent(blockPos, blockPos, true)
                     }
                 }
+
                 is BreakBlock -> {
                     val blockPos = activity.blockPos
 
@@ -183,12 +182,12 @@ class BuildStructure(
         // todo: capture baritone placing support blocks and update structure
         structure[blockPos]?.let { targetState ->
             if (allSubActivities.any {
-                when (it) {
-                    is BreakBlock -> it.blockPos == blockPos && targetState == blockState
-                    is PlaceBlock -> it.blockPos == blockPos && targetState == blockState
-                    else -> false
-                }
-            }) return
+                    when (it) {
+                        is BreakBlock -> it.blockPos == blockPos && targetState == blockState
+                        is PlaceBlock -> it.blockPos == blockPos && targetState == blockState
+                        else -> false
+                    }
+                }) return
 //            MessageSendHelper.sendWarningMessage("Block changed at $blockPos")
             createBuildActivity(blockPos, targetState)
         }
@@ -233,11 +232,11 @@ class BuildStructure(
             .sortedWith(buildComparator())
             .firstOrNull()?.let { buildActivity ->
                 (buildActivity as? Activity)?.let {
-                    with (it) {
+                    with(it) {
                         return getCurrentActivity()
                     }
                 }
-        } ?: return this
+            } ?: return this
     }
 
     /**
@@ -300,6 +299,7 @@ class BuildStructure(
 
                 createBuildActivity(blockPos, targetState)
             }
+
             is BreakBlock -> {
                 val blockPos = childActivity.blockPos
                 val targetState = structure[blockPos] ?: return

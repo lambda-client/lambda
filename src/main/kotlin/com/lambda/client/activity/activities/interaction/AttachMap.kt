@@ -2,14 +2,11 @@ package com.lambda.client.activity.activities.interaction
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
-import com.lambda.client.activity.activities.inventory.core.SwapOrSwitchToSlot
 import com.lambda.client.activity.activities.storage.ItemInfo
 import com.lambda.client.activity.types.RotatingActivity
 import com.lambda.client.activity.types.TimeoutActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
-import com.lambda.client.util.items.HotbarSlot
-import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.math.RotationUtils.getRotationToEntity
 import com.lambda.client.util.math.Vec2f
 import com.lambda.client.util.threads.defaultScope
@@ -18,7 +15,6 @@ import com.lambda.client.util.threads.safeListener
 import kotlinx.coroutines.launch
 import net.minecraft.entity.item.EntityItemFrame
 import net.minecraft.init.Items
-import net.minecraft.item.ItemStack
 import net.minecraft.network.play.client.CPacketUseEntity
 import net.minecraft.network.play.server.SPacketSpawnObject
 import net.minecraft.util.EnumHand

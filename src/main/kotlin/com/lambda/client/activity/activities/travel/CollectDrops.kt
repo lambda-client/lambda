@@ -16,13 +16,14 @@ class CollectDrops(
     private val minAmount: Int = 1,
     override var currentLoops: Int = 0,
 ) : LoopWhileActivity, Activity() {
-    private val SafeClientEvent.drops get() =
-        world.loadedEntityList.filterIsInstance<EntityItem>().filter {
-            player.distanceTo(it.positionVector) < maxRange
-                && it.item.item == item
-                && predicate(it.item)
-                && if (itemStack != ItemStack.EMPTY) ItemStack.areItemStacksEqual(it.item, itemStack) else true
-        }
+    private val SafeClientEvent.drops
+        get() =
+            world.loadedEntityList.filterIsInstance<EntityItem>().filter {
+                player.distanceTo(it.positionVector) < maxRange
+                    && it.item.item == item
+                    && predicate(it.item)
+                    && if (itemStack != ItemStack.EMPTY) ItemStack.areItemStacksEqual(it.item, itemStack) else true
+            }
 
     override val loopWhile: SafeClientEvent.() -> Boolean = {
         drops.isNotEmpty()

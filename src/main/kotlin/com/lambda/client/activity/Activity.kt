@@ -59,7 +59,8 @@ abstract class Activity {
         textComponent: TextComponent,
         primaryColor: ColorHolder,
         secondaryColor: ColorHolder
-    ) {}
+    ) {
+    }
 
     open fun getCurrentActivity(): Activity {
         subActivities.firstOrNull()?.let {
@@ -93,6 +94,7 @@ abstract class Activity {
             Status.UNINITIALIZED -> {
                 initialize()
             }
+
             Status.RUNNING -> {
                 if (!ListenerManager.listenerMap.containsKey(this@Activity)
                     && hasNoSubActivities
@@ -313,6 +315,7 @@ abstract class Activity {
                                 is ItemBlock -> {
                                     textComponent.add(value.block.localizedName, secondaryColor)
                                 }
+
                                 else -> {
                                     textComponent.add(value.toString(), secondaryColor)
                                 }

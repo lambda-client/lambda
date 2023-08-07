@@ -245,22 +245,26 @@ class BreakBlock(
     }
 
     private fun SafeClientEvent.resolveAvailability() {
-        when (availability)     {
+        when (availability) {
             BuildActivity.Availability.VALID -> {
                 tryBreak()
             }
+
             BuildActivity.Availability.BLOCKED_BY_PLAYER,
             BuildActivity.Availability.NOT_IN_RANGE -> {
                 // Wait for player move
                 timeout = Long.MAX_VALUE // ToDo: find a better way to do this
             }
+
             BuildActivity.Availability.WRONG_ITEM_SELECTED -> {
 //                acquireOptimalTool()
             }
+
             BuildActivity.Availability.NOT_EXPOSED,
             BuildActivity.Availability.NEEDS_LIQUID_HANDLING -> {
                 // Wait for other tasks to finish
             }
+
             else -> {
                 // Other cases should not happen
             }
@@ -413,6 +417,7 @@ class BreakBlock(
                 ActivityManagerHud.totalBlocksBroken++
                 success()
             }
+
             else -> {
                 status = Status.UNINITIALIZED
                 updateState()
@@ -430,5 +435,5 @@ class BreakBlock(
     class NoExposedSideFound : Exception("No exposed side found")
     class BlockBreakingException : Exception("Block breaking failed")
     class BlockOutsideOfBoundsException(blockPos: BlockPos) : Exception("Block at (${blockPos.asString()}) is outside of world")
-    class NoFillerMaterialFoundException: Exception("No filler material in inventory found")
+    class NoFillerMaterialFoundException : Exception("No filler material in inventory found")
 }

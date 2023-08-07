@@ -6,5 +6,4 @@ import net.minecraft.item.ItemStack
 class StoreItemToEnderChest(
     containerStack: ItemStack,
     private val itemInfo: ItemInfo
-) : Activity() {
-}
+) : Activity()

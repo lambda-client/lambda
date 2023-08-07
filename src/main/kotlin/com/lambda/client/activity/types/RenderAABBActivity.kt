@@ -30,6 +30,7 @@ interface RenderAABBActivity {
                                     normalizedRender.add(toRenderAABB())
                                 }
                             }
+
                             is RenderEntity -> {
                                 with(compound) {
                                     normalizedRender.add(toRenderAABB())

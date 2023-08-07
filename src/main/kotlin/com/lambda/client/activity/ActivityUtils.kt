@@ -27,10 +27,11 @@ fun getShulkerInventory(stack: ItemStack): NonNullList<ItemStack>? {
  * The first list contains the container slots, the second list contains the player slots.
  */
 val Container.seperatedSlots: Pair<List<Slot>, List<Slot>>
-    get() = when(this) {
+    get() = when (this) {
         is ContainerShulkerBox -> {
             getSlots(0..26) to getSlots(27..62)
         }
+
         is ContainerChest -> {
             if (inventory.size == 62) {
                 getSlots(0..26) to getSlots(27..62)
@@ -38,6 +39,7 @@ val Container.seperatedSlots: Pair<List<Slot>, List<Slot>>
                 getSlots(0..53) to getSlots(54..89)
             }
         }
+
         else -> {
             throw ContainerTransaction.ContainerNotKnownException(this)
         }

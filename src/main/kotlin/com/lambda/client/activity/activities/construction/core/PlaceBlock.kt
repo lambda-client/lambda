@@ -189,7 +189,7 @@ class PlaceBlock(
             && subActivities.filterIsInstance<BreakBlock>().isEmpty()
         ) {
             (parent as? BuildStructure)?.let {
-                with (it) {
+                with(it) {
                     addSubActivities(
                         BreakBlock(blockPos),
                         subscribe = true
@@ -215,6 +215,7 @@ class PlaceBlock(
                     allowedSides.remove(EnumFacing.DOWN)
                     PlacementOffset.UPPER
                 }
+
                 else -> {
                     allowedSides.remove(EnumFacing.UP)
                     PlacementOffset.LOWER

@@ -9,7 +9,9 @@ import net.minecraft.item.Item
  * @param items The items that are in the stash.
  */
 data class Stash(val area: Area, val items: List<Item>) {
-    override fun toString() = "Stash(${items.joinToString {
-        it.registryName.toString().split(":").last()
-    }})@(${area.center.asString()})"
+    override fun toString() = "Stash(${
+        items.joinToString {
+            it.registryName.toString().split(":").last()
+        }
+    })@(${area.center.asString()})"
 }

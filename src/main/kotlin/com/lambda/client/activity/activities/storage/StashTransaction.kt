@@ -4,8 +4,8 @@ import baritone.api.pathing.goals.GoalGetToBlock
 import baritone.api.pathing.goals.GoalNear
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.storage.core.CloseContainer
-import com.lambda.client.activity.activities.storage.core.OpenContainer
 import com.lambda.client.activity.activities.storage.core.ContainerTransaction
+import com.lambda.client.activity.activities.storage.core.OpenContainer
 import com.lambda.client.activity.activities.travel.CustomGoal
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.math.VectorUtils.distanceTo
@@ -56,6 +56,7 @@ class StashTransaction(
 
                 executeOrdersOnContainer(containerQueue.removeFirst())
             }
+
             is CloseContainer -> {
                 if (orderQueue.isEmpty()) {
                     success()

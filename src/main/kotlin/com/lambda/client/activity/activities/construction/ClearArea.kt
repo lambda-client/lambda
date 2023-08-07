@@ -1,6 +1,5 @@
 package com.lambda.client.activity.activities.construction
 
-import baritone.api.pathing.goals.GoalTwoBlocks
 import baritone.api.pathing.goals.GoalXZ
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.construction.core.BuildStructure
@@ -8,7 +7,6 @@ import com.lambda.client.activity.activities.storage.Area
 import com.lambda.client.activity.activities.travel.CustomGoal
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.event.SafeClientEvent
-import com.lambda.client.module.modules.misc.WorldEater
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.color.ColorHolder
 import com.lambda.client.util.text.MessageSendHelper

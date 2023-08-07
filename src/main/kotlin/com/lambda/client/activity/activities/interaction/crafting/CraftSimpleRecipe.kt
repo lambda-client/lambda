@@ -7,7 +7,7 @@ import net.minecraft.item.ItemShulkerBox
 
 class CraftSimpleRecipe(val item: Item) : Activity() {
     override fun SafeClientEvent.onInitialize() {
-        when(item) {
+        when (item) {
             is ItemShulkerBox -> {
                 addSubActivities(
 

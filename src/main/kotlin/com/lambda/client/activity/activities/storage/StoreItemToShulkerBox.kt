@@ -9,9 +9,7 @@ import com.lambda.client.activity.getShulkerInventory
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
 import com.lambda.client.util.items.countItem
-import net.minecraft.inventory.Slot
 import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
 
 class StoreItemToShulkerBox( // TODO: Add support for multiple shulker boxes
     private val itemInfo: ItemInfo

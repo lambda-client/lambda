@@ -2,7 +2,6 @@ package com.lambda.client.activity.activities.interaction.crafting
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
-import com.lambda.client.activity.activities.inventory.core.InventoryTransaction
 import com.lambda.client.activity.activities.storage.ItemInfo
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.item

@@ -4,14 +4,11 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.interaction.AttachItemFrame
 import com.lambda.client.activity.activities.interaction.AttachMap
 import com.lambda.client.activity.types.LoopWhileActivity
-import com.lambda.client.activity.types.RepeatingActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.misc.Graffiti
-import com.lambda.client.util.math.RotationUtils.getRotationTo
 import com.lambda.client.util.math.VectorUtils
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.world.getNeighbour
-import com.lambda.client.util.world.isReplaceable
 import net.minecraft.entity.item.EntityItemFrame
 import net.minecraft.util.EnumFacing
 

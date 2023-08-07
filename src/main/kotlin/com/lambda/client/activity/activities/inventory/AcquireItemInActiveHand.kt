@@ -4,9 +4,11 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.core.CreativeInventoryAction
 import com.lambda.client.activity.activities.inventory.core.SwapOrSwitchToSlot
 import com.lambda.client.activity.activities.inventory.core.SwitchToHotbarSlot
-import com.lambda.client.activity.activities.storage.*
-import com.lambda.client.activity.types.AttemptActivity
+import com.lambda.client.activity.activities.storage.BreakDownEnderChests
+import com.lambda.client.activity.activities.storage.ExtractItemFromContainerStack
+import com.lambda.client.activity.activities.storage.ItemInfo
 import com.lambda.client.activity.getShulkerInventory
+import com.lambda.client.activity.types.AttemptActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.pickBlock
