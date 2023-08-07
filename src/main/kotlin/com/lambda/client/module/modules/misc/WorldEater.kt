@@ -1,6 +1,7 @@
 package com.lambda.client.module.modules.misc
 
 import com.lambda.client.activity.activities.construction.ClearArea
+import com.lambda.client.activity.activities.construction.core.BuildStructure
 import com.lambda.client.activity.activities.storage.Area
 import com.lambda.client.activity.activities.storage.Stash
 import com.lambda.client.command.CommandManager.prefix
@@ -40,6 +41,8 @@ object WorldEater : Module(
         Blocks.SANDSTONE.item,
         Blocks.RED_SANDSTONE.item,
         Blocks.CLAY.item,
+        Blocks.IRON_ORE.item,
+        Blocks.GOLD_ORE.item,
         Items.COAL,
     )
 
@@ -93,4 +96,21 @@ object WorldEater : Module(
             }
         }
     }
+
+    fun SafeClientEvent.info() = "WorldEater:\n&7Progress&r:${
+            "%.3f".format(quarries.value.sumOf { it.containedBlocks.count { pos -> world.isAirBlock(pos) } }.toFloat() / quarries.value.sumOf { it.containedBlocks.size } * 100)
+        }% with ${
+            ownedActivity?.subActivities?.filterIsInstance<BuildStructure>()?.size
+        } layers left.\n&7Pickup&r:${collectables.value.joinToString {
+            "${it.registryName?.path}"
+        }}\n&7Quarries&r: ${
+            if (quarries.value.isEmpty()) "None"
+            else quarries.value.joinToString { "${quarries.indexOf(it) + 1}: $it" }
+        }\n&7Stashes&r: ${
+            if (stashes.value.isEmpty()) "None"
+            else stashes.value.joinToString { "${stashes.indexOf(it) + 1}: $it" }
+        }\n&7Drop-off&r: ${
+            if (dropOff.value.isEmpty()) "None"
+            else dropOff.value.joinToString { "${dropOff.indexOf(it) + 1}: $it" }
+        }"
 }

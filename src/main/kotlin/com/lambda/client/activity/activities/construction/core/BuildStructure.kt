@@ -7,6 +7,7 @@ import baritone.api.pathing.goals.GoalXZ
 import baritone.process.BuilderProcess.GoalAdjacent
 import com.lambda.client.LambdaMod
 import com.lambda.client.activity.Activity
+import com.lambda.client.activity.activities.travel.CustomGoal
 import com.lambda.client.activity.types.BuildActivity
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.activity.types.RepeatingActivity
@@ -98,6 +99,7 @@ class BuildStructure(
             // no forced moving on other activities
             if (activity is PlaceBlock && activity.context != BuildActivity.Context.NONE) return@safeListener
             if (activity is BreakBlock && activity.context != BuildActivity.Context.NONE) return@safeListener
+            if (ActivityManager.allSubActivities.filterIsInstance<CustomGoal>().isNotEmpty()) return@safeListener
             if (!activity.hasNoSubActivities || activity !in subActivities) return@safeListener
 
             // pathing cool-down
@@ -163,20 +165,7 @@ class BuildStructure(
 
         /* Listen for any block changes like falling sand */
         safeListener<BlockEvent.NeighborNotifyEvent> { event ->
-            val blockPos = event.pos
-
-            structure[blockPos]?.let { targetState ->
-                if (allSubActivities.any {
-                    when (it) {
-                        is BreakBlock -> it.blockPos == blockPos
-                        is PlaceBlock -> it.blockPos == blockPos
-                        else -> false
-                    }
-                }) return@safeListener
-
-//                MessageSendHelper.sendWarningMessage("Block changed at $blockPos")
-                createBuildActivity(blockPos, targetState)
-            }
+            handleBlockUpdate(event.pos, event.state)
         }
 
         safeListener<PacketEvent.PostReceive> {

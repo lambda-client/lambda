@@ -1,5 +1,6 @@
 package com.lambda.client.activity
 
+import com.lambda.client.LambdaMod
 import com.lambda.client.activity.activities.construction.core.BuildStructure
 import com.lambda.client.activity.types.AttemptActivity.Companion.checkAttempt
 import com.lambda.client.activity.types.BuildActivity
@@ -158,7 +159,7 @@ abstract class Activity {
     fun SafeClientEvent.failedWith(exception: Exception) {
         val activity = this@Activity
 
-        MessageSendHelper.sendErrorMessage("Exception in $activityName: ${exception.message}")
+        LambdaMod.LOG.warn("Exception in $activityName: ${exception.message}")
 
         if (onFailure(exception)) return
 
@@ -205,7 +206,7 @@ abstract class Activity {
         if (onFailure(childException)) return true
 
         if (this@Activity is ActivityManager) {
-            MessageSendHelper.sendErrorMessage("Traceback: ${childException.javaClass.simpleName}: ${childException.message}\n    ${childActivities.joinToString(separator = "\n    ") { it.toString() }}")
+            LambdaMod.LOG.warn("Traceback: ${childException.javaClass.simpleName}: ${childException.message}\n    ${childActivities.joinToString(separator = "\n    ") { it.toString() }}")
             return false
         }
 

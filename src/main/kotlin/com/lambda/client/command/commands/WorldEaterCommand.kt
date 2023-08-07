@@ -6,6 +6,7 @@ import com.lambda.client.command.ClientCommand
 import com.lambda.client.command.CommandManager
 import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.misc.WorldEater
+import com.lambda.client.module.modules.misc.WorldEater.info
 import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.item.Item
 
@@ -156,24 +157,8 @@ object WorldEaterCommand : ClientCommand(
             }
         }
 
-        execute("General setting info") {
-            val string = "WorldEater settings:\n" +
-                    "&7Pickup&r:\n" +
-                    "${WorldEater.collectables.value.joinToString("\n") {
-                        "  &7+&r ${it.registryName.toString()}"
-                    }}\n" +
-                    "&7Quarries&r: ${
-                        if (WorldEater.quarries.value.isEmpty()) "None"
-                        else WorldEater.quarries.value.joinToString()
-                    }\n&7Stashes&r: ${
-                        if (WorldEater.stashes.value.isEmpty()) "None"
-                        else WorldEater.stashes.value.joinToString()
-                    }\n&7Drop-off&r: ${
-                        if (WorldEater.dropOff.value.isEmpty()) "None"
-                        else WorldEater.dropOff.value.joinToString()
-                    }"
-
-            MessageSendHelper.sendChatMessage(string)
+        executeSafe("General setting info") {
+            MessageSendHelper.sendChatMessage(info())
         }
     }
 }

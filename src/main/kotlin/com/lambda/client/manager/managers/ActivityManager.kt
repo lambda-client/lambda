@@ -19,6 +19,7 @@ import com.lambda.client.module.modules.client.BuildTools
 import com.lambda.client.module.modules.client.BuildTools.executionCountPerTick
 import com.lambda.client.module.modules.client.BuildTools.textScale
 import com.lambda.client.module.modules.client.BuildTools.tickDelay
+import com.lambda.client.module.modules.combat.KillAura
 import com.lambda.client.module.modules.misc.WorldEater
 import com.lambda.client.module.modules.player.AutoEat
 import com.lambda.client.util.BaritoneUtils
@@ -56,6 +57,8 @@ object ActivityManager : Manager, Activity() {
 
             /* life support systems */
             if (AutoEat.eating) return@safeListener
+            if (KillAura.isActive()) return@safeListener
+            if (!player.onGround) return@safeListener
 
             if (BuildTools.storageManagement) maintainInventory()
 
