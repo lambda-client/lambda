@@ -13,8 +13,16 @@ internal object ChestCounter : LabelHud(
     private val shulkers by setting("Count Shulkers", true, description = "Counts shulkers in the world")
 
     override fun SafeClientEvent.updateText() {
-        displayText.add(if (dubs) "Dubs:" else "Chests:", primaryColor)
-        displayText.add(if (dubs) "${ChestCountManager.dubsCount}" else "${ChestCountManager.chestCount}", secondaryColor)
+        if (dubs) {
+            displayText.add("Dubs:", primaryColor)
+            displayText.add("${ChestCountManager.dubsCount}", secondaryColor)
+            displayText.add("Chests:", primaryColor)
+            displayText.add("${ChestCountManager.chestCount - (ChestCountManager.dubsCount * 2)}", secondaryColor)
+        } else {
+            displayText.add("Chests:", primaryColor)
+            displayText.add("${ChestCountManager.chestCount}", secondaryColor)
+        }
+
         if (!shulkers) return
         displayText.add("Shulkers:", primaryColor)
         displayText.add("${ChestCountManager.shulkerCount}", secondaryColor)
