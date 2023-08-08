@@ -16,13 +16,15 @@ import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GeometryMasks
 import com.lambda.client.util.graphics.LambdaTessellator
 import com.lambda.client.util.graphics.ShaderHelper
-import com.lambda.client.util.math.VectorUtils.distanceTo
+import com.lambda.client.util.items.id
+import com.lambda.client.util.math.VectorUtils.manhattanDistanceTo
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.formatValue
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.runSafe
 import com.lambda.client.util.threads.safeListener
 import com.lambda.client.util.world.isWater
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -38,11 +40,13 @@ import net.minecraft.init.Blocks
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.network.play.server.SPacketMultiBlockChange
 import net.minecraft.tileentity.TileEntitySign
+import net.minecraft.util.ResourceLocation
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.text.TextComponentString
 import net.minecraft.world.chunk.Chunk
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import net.minecraftforge.fml.common.registry.ForgeRegistries
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import kotlin.collections.set
@@ -80,6 +84,7 @@ object Search : Module(
 
     var overrideWarning by setting("Override Warning", false, { false })
     val blockSearchList = setting(CollectionSetting("Search List", defaultSearchList, { false }))
+    private var blockSearchIdHashSet: IntOpenHashSet = IntOpenHashSet()
     val entitySearchList = setting(CollectionSetting("Entity Search List", linkedSetOf(EntityList.getKey((EntityItemFrame::class.java))!!.path), { false }))
     val blockSearchDimensionFilter = setting(CollectionSetting("Block Dimension Filter", linkedSetOf(), entryType = DimensionFilter::class.java, visibility = { false }))
     val entitySearchDimensionFilter = setting(CollectionSetting("Entity Dimension Filter", linkedSetOf(), entryType = DimensionFilter::class.java, visibility = { false }))
@@ -139,6 +144,10 @@ object Search : Module(
         }
 
         safeListener<TickEvent.ClientTickEvent> {
+            if (blockSearchIdHashSet.size != blockSearchList.size) {
+                updateBlockSearchIdSet()
+                defaultScope.launch { searchAllLoadedChunks() }
+            }
             if (blockRenderUpdateJob == null || blockRenderUpdateJob?.isCompleted == true) {
                 blockRenderUpdateJob = defaultScope.launch {
                     blockRenderUpdate()
@@ -175,17 +184,28 @@ object Search : Module(
         }
 
         safeListener<ConnectionEvent.Disconnect> {
-            blockRenderer.clear()
-            entityRenderer.clear()
+            blockRenderer.replaceAll(mutableListOf()) // safe replace during possible iterator to prevent crashes
+            entityRenderer.replaceAll(mutableListOf())
             foundBlockMap.clear()
         }
     }
 
     private fun blockSearchListUpdateListener(newBool: Boolean) {
         foundBlockMap.entries
-            .filterNot { blockSearchList.contains(it.value.block.registryName.toString()) }
+            .filterNot { blockSearchIdHashSet.contains(it.value.block.id) }
             .forEach { foundBlockMap.remove(it.key) }
-        if (newBool) runSafe { searchAllLoadedChunks() }
+        if (newBool) runSafe {
+            updateBlockSearchIdSet()
+            searchAllLoadedChunks()
+        }
+    }
+
+    private fun updateBlockSearchIdSet() {
+        val idSet = IntOpenHashSet()
+        blockSearchList.forEach {
+            idSet.add(ForgeRegistries.BLOCKS.getValue(ResourceLocation(it))?.id)
+        }
+        blockSearchIdHashSet = idSet
     }
 
     private fun SafeClientEvent.searchLoadedEntities() {
@@ -201,9 +221,9 @@ object Search : Module(
                     entitySearchDimensionFilter.value.find { dimFilter -> dimFilter.searchKey == entityName }?.dim
                 }?.contains(player.dimension) ?: true
             }
-            .sortedBy { it.distanceTo(player.getPositionEyes(1f)) }
+            .sortedBy { it.manhattanDistanceTo(player.position) }
             .take(maximumEntities)
-            .filter { it.distanceTo(player.getPositionEyes(1f)) < range }
+            .filter { it.manhattanDistanceTo(player.position) < range }
             .map {
                 Triple(
                     it.renderBoundingBox.offset(EntityUtils.getInterpolatedAmount(it, LambdaTessellator.pTicks())),
@@ -252,7 +272,7 @@ object Search : Module(
         // unload rendering on block pos > range
         foundBlockMap
             .filter {
-                playerPos.distanceTo(it.key) > max(mc.gameSettings.renderDistanceChunks * 16, range)
+                playerPos.manhattanDistanceTo(it.key) > max(mc.gameSettings.renderDistanceChunks * 16, range)
             }
             .map { it.key }
             .forEach { foundBlockMap.remove(it) }
@@ -261,11 +281,11 @@ object Search : Module(
             .filter {
                 blockSearchDimensionFilter.value
                     .find {
-                        dimFilter -> dimFilter.searchKey == it.value.block.registryName.toString()
+                        dimFilter -> dimFilter.getId() == it.value.block.id
                     }?.dim?.contains(player.dimension) ?: true
             }
             .map {
-                player.getPositionEyes(1f).distanceTo(it.key) to it.key
+                player.position.manhattanDistanceTo(it.key) to it.key
             }
             .filter { it.first < range }
             .take(maximumBlocks)
@@ -322,9 +342,9 @@ object Search : Module(
     private fun SafeClientEvent.searchQuery(state: IBlockState, pos: BlockPos): Boolean {
         val block = state.block
         if (block == Blocks.AIR) return false
-        return (blockSearchList.contains(block.registryName.toString())
+        return (blockSearchIdHashSet.contains(block.id)
             && blockSearchDimensionFilter.value.find { dimFilter ->
-            dimFilter.searchKey == block.registryName.toString()
+            dimFilter.getId() == block.id
         }?.dim?.contains(player.dimension) ?: true)
             || isIllegalBedrock(state, pos)
             || isIllegalWater(state)
@@ -395,6 +415,17 @@ object Search : Module(
     }
 
     data class DimensionFilter(val searchKey: String, val dim: LinkedHashSet<Int>) {
+        private var id: Int? = null
+        private var idInitTried = false // need to do this whole thing because gson doesn't init this field
+
+        fun getId(): Int? {
+            if (id == null && !idInitTried) {
+                idInitTried = true
+                id = ForgeRegistries.BLOCKS.getValue(ResourceLocation(searchKey))?.id
+            }
+            return id
+        }
+
         override fun toString(): String {
             return "$searchKey -> $dim"
         }

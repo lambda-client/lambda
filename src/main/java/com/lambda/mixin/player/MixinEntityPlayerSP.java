@@ -6,6 +6,7 @@ import com.lambda.client.event.events.OnUpdateWalkingPlayerEvent;
 import com.lambda.client.event.events.PlayerMoveEvent;
 import com.lambda.client.event.events.PushOutOfBlocksEvent;
 import com.lambda.client.gui.mc.LambdaGuiBeacon;
+import com.lambda.client.manager.managers.CachedContainerManager;
 import com.lambda.client.manager.managers.MessageManager;
 import com.lambda.client.manager.managers.PlayerPacketManager;
 import com.lambda.client.module.modules.chat.PortalChat;
@@ -18,6 +19,7 @@ import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.inventory.GuiChest;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.entity.MoverType;
 import net.minecraft.entity.player.EntityPlayer;
@@ -67,6 +69,13 @@ public abstract class MixinEntityPlayerSP extends EntityPlayer {
 
     @Shadow
     protected abstract void updateAutoJump(float p_189810_1_, float p_189810_2_);
+
+    @Inject(method = "closeScreen", at = @At("HEAD"))
+    public void onCloseScreen(CallbackInfo ci) {
+        if (mc.currentScreen instanceof GuiChest) {
+            CachedContainerManager.onGuiChestClosed();
+        }
+    }
 
     @Redirect(method = "onLivingUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/entity/EntityPlayerSP;closeScreen()V"))
     public void closeScreen(EntityPlayerSP player) {

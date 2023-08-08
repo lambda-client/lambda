@@ -85,14 +85,7 @@ object ColorPicker : TitledWindow("Color Picker", 0.0f, 0.0f, 200.0f, 200.0f, Se
 
     override fun onTick() {
         super.onTick()
-        if (visible) {
-            prevHue = hue
-            prevSaturation = saturation
-            prevBrightness = brightness
-            for (component in components) component.onTick()
-            if (hoveredChild != null) updateHSBFromRGB()
-            if (listeningChild?.listening == false) listeningChild = null
-        }
+        for (component in components) component.onTick()
     }
 
     override fun onMouseInput(mousePos: Vec2f) {
@@ -170,6 +163,14 @@ object ColorPicker : TitledWindow("Color Picker", 0.0f, 0.0f, 200.0f, 200.0f, Se
     override fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
         super.onRender(vertexHelper, absolutePos)
 
+        if (visible) {
+            prevHue = hue
+            prevSaturation = saturation
+            prevBrightness = brightness
+            if (hoveredChild != null) updateHSBFromRGB()
+            if (listeningChild?.listening == false) listeningChild = null
+        }
+
         drawColorField(vertexHelper)
         drawHueSlider(vertexHelper)
         drawColorPreview(vertexHelper)
@@ -200,8 +201,7 @@ object ColorPicker : TitledWindow("Color Picker", 0.0f, 0.0f, 200.0f, 200.0f, Se
         GlStateManager.tryBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE)
 
         // Saturation
-        val interpolatedHue = prevHue + (hue - prevHue) * mc.renderPartialTicks
-        val rightColor = ColorHolder(Color.getHSBColor(interpolatedHue, 1.0f, 1.0f))
+        val rightColor = ColorHolder(Color.getHSBColor(hue, 1.0f, 1.0f))
         val leftColor = ColorHolder(255, 255, 255)
         vertexHelper.begin(GL_TRIANGLE_STRIP)
         vertexHelper.put(fieldPos.first.toVec2d(), leftColor) // Top left
@@ -227,11 +227,9 @@ object ColorPicker : TitledWindow("Color Picker", 0.0f, 0.0f, 200.0f, 200.0f, Se
         if (ClickGUI.windowOutline) RenderUtils2D.drawRectOutline(vertexHelper, fieldPos.first.toVec2d(), fieldPos.second.toVec2d(), ClickGUI.outlineWidth, GuiColors.outline)
 
         // Circle pointer
-        val interpolatedSaturation = prevSaturation + (saturation - prevSaturation) * mc.renderPartialTicks
-        val interpolatedBrightness = prevBrightness + (brightness - prevBrightness) * mc.renderPartialTicks
-        val relativeBrightness = ((1.0f - (1.0f - interpolatedSaturation) * interpolatedBrightness) * 255.0f).toInt()
+        val relativeBrightness = ((1.0f - (1.0f - saturation) * brightness) * 255.0f).toInt()
         val circleColor = ColorHolder(relativeBrightness, relativeBrightness, relativeBrightness)
-        val circlePos = Vec2d((fieldPos.first.x + fieldHeight * interpolatedSaturation).toDouble(), fieldPos.first.y + fieldHeight * (1.0 - interpolatedBrightness))
+        val circlePos = Vec2d((fieldPos.first.x + fieldHeight * saturation).toDouble(), fieldPos.first.y + fieldHeight * (1.0 - brightness))
         RenderUtils2D.drawCircleOutline(vertexHelper, circlePos, 4.0, 32, 1.5f, circleColor)
     }
 

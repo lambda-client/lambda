@@ -13,6 +13,7 @@ import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.VertexHelper
 import com.lambda.client.util.graphics.font.FontRenderAdapter
 import com.lambda.client.util.math.Vec2f
+import net.minecraft.client.Minecraft
 import org.lwjgl.input.Mouse
 import org.lwjgl.opengl.GL11.*
 import kotlin.math.max
@@ -54,7 +55,7 @@ open class ListWindow(
         }
     var prevScrollProgress = 0.0f
     private val renderScrollProgress
-        get() = prevScrollProgress + (scrollProgress - prevScrollProgress) * mc.renderPartialTicks
+        get() = prevScrollProgress + (scrollProgress - prevScrollProgress)
 
     private var doubleClickTime = -1L
 
@@ -125,8 +126,11 @@ open class ListWindow(
 
     override fun onTick() {
         super.onTick()
-        if (children.isEmpty()) return
+        children.forEach { it.onTick() }
+    }
 
+    override fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
+        super.onRender(vertexHelper, absolutePos)
         val lastVisible = children.lastOrNull { it.visible }
         val maxScrollProgress = lastVisible?.let { max(it.posY + it.height + ClickGUI.verticalMargin + ClickGUI.resizeBar - height, 0.01f) }
             ?: draggableHeight
@@ -142,18 +146,12 @@ open class ListWindow(
 
         if (scrollTimer.tick(100L, false)) {
             if (scrollProgress < 0) {
-                scrollSpeed = scrollProgress * -ClickGUI.scrollRubberbandSpeed
+                scrollSpeed = scrollProgress * -(ClickGUI.scrollRubberbandSpeed / (max(Minecraft.getDebugFPS(), 30) / 60f))
             } else if (scrollProgress > maxScrollProgress) {
-                scrollSpeed = (scrollProgress - maxScrollProgress) * -ClickGUI.scrollRubberbandSpeed
+                scrollSpeed = (scrollProgress - maxScrollProgress) * -(ClickGUI.scrollRubberbandSpeed / (max(Minecraft.getDebugFPS(), 30) / 60f))
             }
         }
-
         updateChild()
-        children.forEach { it.onTick() }
-    }
-
-    override fun onRender(vertexHelper: VertexHelper, absolutePos: Vec2f) {
-        super.onRender(vertexHelper, absolutePos)
 
         if (drawHandle) {
             val handleText = "....."
@@ -215,7 +213,7 @@ open class ListWindow(
     override fun onMouseInput(mousePos: Vec2f) {
         super.onMouseInput(mousePos)
         val relativeMousePos = mousePos.minus(posX, posY - renderScrollProgress)
-        updateHovered(relativeMousePos)
+        if (mouseState != MouseState.DRAG) updateHovered(relativeMousePos)
         if (Mouse.getEventDWheel() != 0) {
             scrollTimer.reset()
             scrollSpeed -= Mouse.getEventDWheel() * 0.1f

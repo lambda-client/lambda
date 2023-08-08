@@ -2,14 +2,19 @@ package com.lambda.client.command.commands
 
 import com.lambda.client.command.ClientCommand
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.mixin.extension.setValues
+import com.lambda.client.mixin.extension.useEntityAction
 import com.lambda.client.mixin.extension.useEntityId
 import com.lambda.client.util.items.clickSlotUnsynced
 import com.lambda.client.util.text.MessageSendHelper
+import io.netty.buffer.Unpooled
 import net.minecraft.entity.passive.EntityDonkey
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.inventory.ClickType
 import net.minecraft.item.ItemStack
+import net.minecraft.item.crafting.CraftingManager
 import net.minecraft.network.Packet
+import net.minecraft.network.PacketBuffer
 import net.minecraft.network.play.client.*
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
@@ -20,7 +25,7 @@ import net.minecraft.util.text.TextFormatting
 
 object PacketCommand : ClientCommand(
     name = "packet",
-    description = "Send any packet you want"
+    description = "Send (almost) any packet you want"
 ) {
     init {
         literal("Animation") {
@@ -89,8 +94,13 @@ object PacketCommand : ClientCommand(
         }
 
         literal("ClientStatus") {
-            executeSafe {
-                MessageSendHelper.sendChatMessage("Not yet implemented. Consider to make a pull request.")
+            enum<CPacketClientStatus.State>("state") { state ->
+                executeSafe {
+                    deployPacket(
+                        CPacketClientStatus(state.value),
+                        "${state.value}"
+                    )
+                }
             }
         }
 
@@ -144,8 +154,20 @@ object PacketCommand : ClientCommand(
         }
 
         literal("CustomPayload") {
-            executeSafe {
-                MessageSendHelper.sendChatMessage("Not yet implemented. Consider to make a pull request.")
+            string("channel") { channel ->
+                // todo: technically we need to be able to send more data types to fully utilize this packet, but I'm too lazy to implement it and it doesn't fit in well with commands
+                string("stringData") { data ->
+                    executeSafe {
+                        PacketBuffer(Unpooled.buffer())
+                            .apply { writeString(data.value) }
+                            .also {
+                                deployPacket(
+                                    CPacketCustomPayload(channel.value, it),
+                                    "${channel.value} ${data.value}"
+                                )
+                            }
+                    }
+                }
             }
         }
 
@@ -215,8 +237,22 @@ object PacketCommand : ClientCommand(
         }
 
         literal("PlaceRecipe") {
-            executeSafe {
-                MessageSendHelper.sendChatMessage("Not yet implemented. Consider to make a pull request.")
+            int("windowId") { windowId ->
+                string("recipe") { recipe ->
+                    boolean("makeAll") { makeAll ->
+                        executeSafe {
+                            CraftingManager.REGISTRY.keys
+                                .find { it.toString() == recipe.value }?.let {
+                                    CraftingManager.REGISTRY.getObject(it)?.let { iRecipe ->
+                                    deployPacket(
+                                        CPacketPlaceRecipe(windowId.value, iRecipe, makeAll.value),
+                                        "${windowId.value} ${recipe.value} ${makeAll.value}"
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -412,6 +448,7 @@ object PacketCommand : ClientCommand(
                 executeSafe {
                     val packet = CPacketUseEntity()
                     packet.useEntityId = id.value
+                    packet.useEntityAction = CPacketUseEntity.Action.ATTACK
 
                     deployPacket(
                         packet,
@@ -459,16 +496,29 @@ object PacketCommand : ClientCommand(
                 }
             }
         }
-
         literal("VehicleMove") {
-            executeSafe {
-                MessageSendHelper.sendChatMessage("Not yet implemented. Consider to make a pull request.")
+            double("x") { x ->
+                double("y") { y ->
+                    double("z") { z ->
+                        float("yaw") { yaw ->
+                            float("pitch") { pitch ->
+                                executeSafe {
+                                    deployPacket(
+                                        CPacketVehicleMove().setValues(x.value, y.value, z.value, yaw.value, pitch.value),
+                                        "${x.value} ${y.value} ${z.value} ${yaw.value} ${pitch.value}"
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 
     private fun SafeClientEvent.deployPacket(packet: Packet<*>, info: String) {
-        connection.sendPacket(packet)
+        // bypasses packet cancel :trollepic:
+        connection.networkManager.sendPacket(packet, null)
         MessageSendHelper.sendChatMessage("Sent ${TextFormatting.GRAY}${packet.javaClass.name.split(".").lastOrNull()}${TextFormatting.DARK_RED} > ${TextFormatting.GRAY}$info")
     }
 }

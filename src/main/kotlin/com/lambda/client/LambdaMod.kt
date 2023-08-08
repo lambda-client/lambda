@@ -1,8 +1,6 @@
 package com.lambda.client
 
 import com.lambda.client.event.ForgeEventProcessor
-import com.lambda.client.event.LambdaEventBus
-import com.lambda.client.event.events.RealWorldTickEvent
 import com.lambda.client.gui.clickgui.LambdaClickGui
 import com.lambda.client.util.ConfigUtils
 import com.lambda.client.util.KamiCheck
@@ -65,6 +63,11 @@ class LambdaMod {
     fun init(event: FMLInitializationEvent) {
         LOG.info("Initializing $NAME $VERSION")
 
+        // load this class so that baritone doesn't crash
+        // see https://github.com/cabaletta/baritone/issues/3859
+        @Suppress("UNUSED_VARIABLE")
+        val baritoneTroll = baritone.api.utils.BetterBlockPos::class.java
+
         LoaderWrapper.loadAll()
 
         MinecraftForge.EVENT_BUS.register(ForgeEventProcessor)
@@ -83,9 +86,6 @@ class LambdaMod {
     @Mod.EventHandler
     fun postInit(event: FMLPostInitializationEvent) {
         ready = true
-        BackgroundScope.launchLooping("RealWorldTick", 50L) {
-            LambdaEventBus.post(RealWorldTickEvent())
-        }
         BackgroundScope.start()
     }
 }

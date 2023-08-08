@@ -10,15 +10,20 @@ internal object Rotation : LabelHud(
     category = Category.PLAYER,
     description = "Player rotation"
 ) {
+    private val yaw by setting("Yaw", true)
+    private val pitch by setting("Pitch", true)
 
     override fun SafeClientEvent.updateText() {
-        val yaw = MathUtils.round(RotationUtils.normalizeAngle(mc.player?.rotationYaw ?: 0.0f), 1)
-        val pitch = MathUtils.round(mc.player?.rotationPitch ?: 0.0f, 1)
-
-        displayText.add("Yaw", secondaryColor)
-        displayText.add(yaw.toString(), primaryColor)
-        displayText.add("Pitch", secondaryColor)
-        displayText.add(pitch.toString(), primaryColor)
+        if (yaw) {
+            val yawVal = MathUtils.round(RotationUtils.normalizeAngle(mc.player?.rotationYaw ?: 0.0f), 1)
+            displayText.add("Yaw", secondaryColor)
+            displayText.add(yawVal.toString(), primaryColor)
+        }
+        if (pitch) {
+            val pitchVal = MathUtils.round(mc.player?.rotationPitch ?: 0.0f, 1)
+            displayText.add("Pitch", secondaryColor)
+            displayText.add(pitchVal.toString(), primaryColor)
+        }
     }
 
 }
