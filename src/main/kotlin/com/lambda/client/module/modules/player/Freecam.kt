@@ -333,6 +333,7 @@ object Freecam : Module(
         override fun isInvisibleToPlayer(player: EntityPlayer) = true
     }
 
+    @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
     private class NoOpNetHandlerPlayerClient(realNetHandler: NetHandlerPlayClient) : NetHandlerPlayClient(mc, null, realNetHandler.networkManager, realNetHandler.gameProfile) {
         override fun sendPacket(packetIn: Packet<*>) {
             // no packets from freecam player, thanks

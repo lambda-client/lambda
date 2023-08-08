@@ -441,6 +441,7 @@ object Nametags : Module(
         }
         ContentType.PING -> {
             if (entity is EntityOtherPlayerMP) {
+                @Suppress("UNNECESSARY_SAFE_CALL")
                 connection.getPlayerInfo(entity.uniqueID)?.responseTime?.let {
                     TextComponent.TextElement("${it}ms", pingColorGradient.get(it.toFloat()).apply { a = GuiColors.text.a })
                 }
