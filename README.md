@@ -23,7 +23,7 @@ Find our plugins [here](https://github.com/lambda-plugins).
   <a href="https://discord.gg/QjfBxJzE5x"><img src="https://invidget.switchblade.xyz/QjfBxJzE5x" alt="Link to the lambda discord server https://discord.gg/QjfBxJzE5x"></a>
 </div>
 
-Or our matrix space at `#lambda-client:matrix.org`.
+Find our matrix space at [#lambda-client:matrix.org](https://app.element.io/#/room/#lambda-client:matrix.org).
 
 ## Installation
 1. Install Minecraft 1.12.2
