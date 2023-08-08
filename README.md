@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="https://raw.githubusercontent.com/lambda-client/assets/main/lambda%20logo%20text.svg" style="width: 69%">
+    <img src="https://raw.githubusercontent.com/lambda-client/assets/main/lambda%20logo%20text.svg" style="width: 69%" alt="logo">
 </p>
 
 ![GitHub all releases](https://img.shields.io/github/downloads/lambda-client/lambda/total?color=seagreen)
@@ -16,7 +16,7 @@ Customize your experience, and improve your efficiency!
 Find our plugins [here](https://github.com/lambda-plugins).
 
 <p align="center">
-    <a href="https://github.com/lambda-client/lambda/releases/download/3.3.0/lambda-3.3.0.jar"><img alt="lambda-3.3.0.jar" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button_3.3.0.png" width="70%" height="70%"></a>
+    <a href="https://github.com/lambda-client/lambda/releases/download/3.4.0/lambda-3.4.0.jar"><img alt="lambda-3.4.0.jar" src="https://raw.githubusercontent.com/lambda-client/assets/main/download_button_3.4.0.png" width="70%" height="70%"></a>
 </p>
 
 <div align="center">
@@ -28,7 +28,7 @@ Find our matrix space at [#lambda-client:matrix.org](https://app.element.io/#/ro
 ## Installation
 1. Install Minecraft 1.12.2
 2. Install the latest Forge for 1.12.2 [(download)](https://files.minecraftforge.net/net/minecraftforge/forge/index_1.12.2.html)
-3. Get the latest Lambda version here [(download)](https://github.com/lambda-client/lambda/releases/download/3.3.0/lambda-3.3.0.jar)
+3. Get the latest Lambda version here [(download)](https://github.com/lambda-client/lambda/releases/download/3.4.0/lambda-3.4.0.jar)
 4. Put the file in your `.minecraft/mods` folder
 
 ## FAQ
