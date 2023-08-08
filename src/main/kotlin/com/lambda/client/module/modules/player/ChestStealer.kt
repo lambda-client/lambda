@@ -3,6 +3,7 @@ package com.lambda.client.module.modules.player
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
+import com.lambda.client.setting.settings.impl.collection.CollectionSetting
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.items.*
@@ -23,11 +24,20 @@ object ChestStealer : Module(
     description = "Automatically steal or store items from containers",
     category = Category.PLAYER
 ) {
+
+    private val defaultWhiteList = linkedSetOf(
+        "minecraft:cobblestone"
+    )
+    private val defaultBlackList = linkedSetOf(
+        "minecraft:cobblestone"
+    )
+
     val mode by setting("Mode", Mode.TOGGLE)
     private val movingMode by setting("Moving Mode", MovingMode.QUICK_MOVE)
-    private val ignoreEjectItem by setting("Ignores Eject Item", false, description = "Ignore AutoEject items in InventoryManager")
     private val delay by setting("Delay", 5, 0..20, 1, description = "Move stack delay", unit = " ticks")
-    private val onlyShulkers by setting("Only Shulkers", false, description = "Only move shulker boxes")
+    private val selectionMode by setting("Item Selection Mode", SelectionMode.ANY, description = "Items to move.")
+    val whiteList = setting(CollectionSetting("WhiteList", defaultWhiteList))
+    val blackList = setting(CollectionSetting("BlackList", defaultBlackList))
 
     enum class Mode {
         ALWAYS, TOGGLE, MANUAL
@@ -35,6 +45,10 @@ object ChestStealer : Module(
 
     private enum class MovingMode {
         QUICK_MOVE, PICKUP, THROW
+    }
+
+    private enum class SelectionMode {
+        ANY, SHULKERS, WHITELIST, BLACKLIST, EJECT_IGNORE
     }
 
     private enum class ContainerMode(val offset: Int) {
@@ -137,12 +151,14 @@ object ChestStealer : Module(
         for (slot in 0 until getContainerSlotSize()) {
             val item = container[slot].item
             if (item == Items.AIR) continue
-            if (ignoreEjectItem && InventoryManager.ejectList.contains(item.registryName.toString())) continue
-            if (!onlyShulkers || item is ItemShulkerBox) {
-                return slot
+            when (selectionMode){
+                SelectionMode.ANY -> return slot
+                SelectionMode.SHULKERS -> if (item is ItemShulkerBox) return slot
+                SelectionMode.WHITELIST -> if (whiteList.contains(item.registryName.toString())) return slot
+                SelectionMode.BLACKLIST -> if (blackList.contains(item.registryName.toString())) return slot
+                SelectionMode.EJECT_IGNORE -> if (!InventoryManager.ejectList.contains(item.registryName.toString())) return slot
             }
         }
-
         return null
     }
 
@@ -154,11 +170,14 @@ object ChestStealer : Module(
             val item = container[slot].item
             if (item == Items.AIR) continue
             if (player.openContainer is ContainerShulkerBox && item is ItemShulkerBox) continue
-            if (!onlyShulkers || item is ItemShulkerBox) {
-                return slot
+            when (selectionMode){
+                SelectionMode.ANY -> return slot
+                SelectionMode.SHULKERS -> if (item is ItemShulkerBox) return slot
+                SelectionMode.WHITELIST -> if (whiteList.contains(item.registryName.toString())) return slot
+                SelectionMode.BLACKLIST -> if (blackList.contains(item.registryName.toString())) return slot
+                SelectionMode.EJECT_IGNORE -> if (!InventoryManager.ejectList.contains(item.registryName.toString())) return slot
             }
         }
-
         return null
     }
 

@@ -5,7 +5,6 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.RenderRadarEvent
 import com.lambda.client.gui.hudgui.HudElement
 import com.lambda.client.manager.managers.FriendManager
-import com.lambda.client.module.modules.client.GuiColors
 import com.lambda.client.util.EntityUtils
 import com.lambda.client.util.EntityUtils.isNeutral
 import com.lambda.client.util.EntityUtils.isPassive
@@ -28,7 +27,8 @@ internal object Radar : HudElement(
     description = "Shows entities and new chunks"
 ) {
     private val zoom by setting("Zoom", 3f, 1f..10f, 0.1f)
-    private val chunkLines by setting("Chunk Lines", true)
+    private val chunkLines by setting("Chunk Lines", true, description = "Causes performance loss on high zoom.")
+    private val radarBackground by setting("Radar Background Color", ColorHolder(31, 10, 18, 235))
 
     private val players = setting("Players", true)
     private val passive = setting("Passive Mobs", false)
@@ -55,7 +55,7 @@ internal object Radar : HudElement(
 
     private fun SafeClientEvent.drawBorder(vertexHelper: VertexHelper) {
         glTranslated(radius.toDouble(), radius.toDouble(), 0.0)
-        drawCircleFilled(vertexHelper, radius = radius.toDouble(), color = GuiColors.backGround)
+        drawCircleFilled(vertexHelper, radius = radius.toDouble(), color = radarBackground)
         drawCircleOutline(vertexHelper, radius = radius.toDouble(), lineWidth = 1.8f, color = primaryColor)
         if (rotation) glRotatef(player.rotationYaw + 180, 0f, 0f, -1f)
     }
