@@ -70,5 +70,4 @@ internal object Coordinates : LabelHud(
     }
 
     private fun StringBuilder.appendWithComma(string: String) = append(if (isNotEmpty()) ", $string" else string)
-
 }

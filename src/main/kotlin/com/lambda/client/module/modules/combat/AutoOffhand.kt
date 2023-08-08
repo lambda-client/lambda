@@ -34,38 +34,39 @@ object AutoOffhand : Module(
     description = "Manages item in your offhand",
     category = Category.COMBAT
 ) {
+    // General
+    private val switchMessage by setting("Switch Message", true)
+    private val priority by setting("Priority", Priority.HOTBAR)
+    private val conditional by setting("Conditional", false)
     private val type by setting("Type", Type.TOTEM)
 
     // Totem
-    private val hpThreshold by setting("Hp Threshold", 5f, 1f..36f, 0.5f, { type == Type.TOTEM })
+    private val offhandTotem by setting("Offhand Totem", true, { type == Type.TOTEM })
     private val bindTotem by setting("Bind Totem", Bind(), { type == Type.TOTEM })
-    private val checkDamage by setting("Check Damage", true, { type == Type.TOTEM })
-    private val mob by setting("Mob", true, { type == Type.TOTEM && checkDamage })
-    private val player by setting("Player", true, { type == Type.TOTEM && checkDamage })
-    private val crystal by setting("Crystal", true, { type == Type.TOTEM && checkDamage })
-    private val falling by setting("Falling", true, { type == Type.TOTEM && checkDamage })
+    private val hpThreshold by setting("Hp Threshold", 5f, 1f..36f, 0.5f, { type == Type.TOTEM && offhandTotem && conditional })
+    private val checkDamage by setting("Check Damage", true, { type == Type.TOTEM && offhandTotem && conditional })
+    private val mob by setting("Mob", true, { type == Type.TOTEM && offhandTotem && checkDamage && conditional })
+    private val player by setting("Player", true, { type == Type.TOTEM && offhandTotem && checkDamage && conditional })
+    private val crystal by setting("Crystal", true, { type == Type.TOTEM && offhandTotem && checkDamage && conditional })
+    private val falling by setting("Falling", true, { type == Type.TOTEM && offhandTotem && checkDamage && conditional })
 
     // Gapple
     private val offhandGapple by setting("Offhand Gapple", false, { type == Type.GAPPLE })
-    private val bindGapple by setting("Bind Gapple", Bind(), { type == Type.GAPPLE && offhandGapple })
-    private val checkAuraG by setting("Check Aura G", true, { type == Type.GAPPLE && offhandGapple })
-    private val checkWeaponG by setting("Check Weapon G", false, { type == Type.GAPPLE && offhandGapple })
-    private val checkCAGapple by setting("Check CrystalAura G", true, { type == Type.GAPPLE && offhandGapple && !offhandCrystal })
+    private val bindGapple by setting("Bind Gapple", Bind(), { type == Type.GAPPLE })
+    private val checkAuraG by setting("Check Aura G", true, { type == Type.GAPPLE && offhandGapple && conditional })
+    private val checkWeaponG by setting("Check Weapon G", false, { type == Type.GAPPLE && offhandGapple && conditional })
+    private val checkCAGapple by setting("Check CrystalAura G", true, { type == Type.GAPPLE && offhandGapple && !offhandCrystal && conditional })
 
     // Strength
     private val offhandStrength by setting("Offhand Strength", false, { type == Type.STRENGTH })
-    private val bindStrength by setting("Bind Strength", Bind(), { type == Type.STRENGTH && offhandStrength })
-    private val checkAuraS by setting("Check Aura S", true, { type == Type.STRENGTH && offhandStrength })
-    private val checkWeaponS by setting("Check Weapon S", false, { type == Type.STRENGTH && offhandStrength })
+    private val bindStrength by setting("Bind Strength", Bind(), { type == Type.STRENGTH })
+    private val checkAuraS by setting("Check Aura S", true, { type == Type.STRENGTH && offhandStrength && conditional })
+    private val checkWeaponS by setting("Check Weapon S", false, { type == Type.STRENGTH && offhandStrength && conditional })
 
     // Crystal
     private val offhandCrystal by setting("Offhand Crystal", false, { type == Type.CRYSTAL })
-    private val bindCrystal by setting("Bind Crystal", Bind(), { type == Type.CRYSTAL && offhandCrystal })
-    private val checkCACrystal by setting("Check Crystal Aura C", false, { type == Type.CRYSTAL && offhandCrystal })
-
-    // General
-    private val priority by setting("Priority", Priority.HOTBAR)
-    private val switchMessage by setting("Switch Message", true)
+    private val bindCrystal by setting("Bind Crystal", Bind(), { type == Type.CRYSTAL })
+    private val checkCACrystal by setting("Check Crystal Aura C", false, { type == Type.CRYSTAL && offhandCrystal && conditional })
 
     // Represents the remaining number of items of type AutoOffhandType in the inventory
     private var hudInfo = ""
@@ -100,7 +101,7 @@ object AutoOffhand : Module(
 
             updateDamage()
 
-            switchToType(getType(), true)
+            if (player.heldItemOffhand.isEmpty) switchToType(getType())
 
             hudInfo = player.allSlots.countByStack { type.filter(it) }.toString()
         }
@@ -113,26 +114,27 @@ object AutoOffhand : Module(
         checkStrength() -> Type.STRENGTH
         checkGapple() -> Type.GAPPLE
         checkCrystal() -> Type.CRYSTAL
-        player.heldItemOffhand.isEmpty -> Type.TOTEM
         else -> null
     }
 
-    private fun SafeClientEvent.checkTotem() = player.scaledHealth < hpThreshold
-        || (checkDamage && player.scaledHealth - maxDamage < hpThreshold)
+    private fun SafeClientEvent.checkTotem() = offhandTotem
+        && (!conditional || (player.scaledHealth < hpThreshold
+        || (checkDamage && player.scaledHealth - maxDamage < hpThreshold)))
 
     private fun SafeClientEvent.checkGapple() = offhandGapple
-        && (checkAuraG && CombatManager.isActiveAndTopPriority(KillAura)
+        && (!conditional || ((checkAuraG && CombatManager.isActiveAndTopPriority(KillAura)
         || checkWeaponG && player.heldItemMainhand.item.isWeapon
-        || (checkCAGapple && !offhandCrystal) && CombatManager.isOnTopPriority(CrystalAura))
+        || (checkCAGapple && !offhandCrystal) && CombatManager.isOnTopPriority(CrystalAura))))
 
     private fun checkCrystal() = offhandCrystal
-        && checkCACrystal && CrystalAura.isEnabled && CombatManager.isOnTopPriority(CrystalAura)
+        && (!conditional || (checkCACrystal && CrystalAura.isEnabled
+        && CombatManager.isOnTopPriority(CrystalAura)))
 
     private fun SafeClientEvent.checkStrength() = offhandStrength
-        && !player.isPotionActive(MobEffects.STRENGTH)
+        && (!conditional || (!player.isPotionActive(MobEffects.STRENGTH)
         && player.inventoryContainer.inventory.any(Type.STRENGTH.filter)
         && (checkAuraS && CombatManager.isActiveAndTopPriority(KillAura)
-        || checkWeaponS && player.heldItemMainhand.item.isWeapon)
+        || checkWeaponS && player.heldItemMainhand.item.isWeapon)))
 
     private fun SafeClientEvent.switchToType(typeOriginal: Type?, alternativeType: Boolean = false) {
         // First check for whether player is holding the right item already or not
@@ -155,9 +157,7 @@ object AutoOffhand : Module(
         getSlot(type)?.to(type)
             ?: if (attempts > 1) {
                 getItemSlot(type.next(), attempts - 1)
-            } else {
-                null
-            }
+            } else null
 
     private fun SafeClientEvent.getSlot(type: Type): Slot? {
         return player.offhandSlot.takeIf(filter(type))
@@ -175,9 +175,7 @@ object AutoOffhand : Module(
     private fun List<Slot>.findItemByType(type: Type) =
         find(filter(type))
 
-    private fun filter(type: Type) = { it: Slot ->
-        type.filter(it.stack)
-    }
+    private fun filter(type: Type) = { it: Slot -> type.filter(it.stack) }
 
     private fun SafeClientEvent.updateDamage() {
         maxDamage = 0f
@@ -189,12 +187,8 @@ object AutoOffhand : Module(
             if (player.getDistance(entity) > 10.0f) continue
 
             when {
-                mob && entity is EntityMob -> {
-                    maxDamage = max(calcDamageFromMob(entity), maxDamage)
-                }
-                this@AutoOffhand.player && entity is EntityPlayer -> {
-                    maxDamage = max(calcDamageFromPlayer(entity, true), maxDamage)
-                }
+                mob && entity is EntityMob -> maxDamage = max(calcDamageFromMob(entity), maxDamage)
+                this@AutoOffhand.player && entity is EntityPlayer -> maxDamage = max(calcDamageFromPlayer(entity, true), maxDamage)
                 crystal && entity is EntityEnderCrystal -> {
                     val damage = CombatManager.crystalMap[entity] ?: continue
                     maxDamage = max(damage.selfDamage, maxDamage)

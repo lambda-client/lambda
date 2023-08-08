@@ -103,9 +103,12 @@ object ElytraFlight : Module(
 
 
     /* Vanilla */
-    private val upPitch by setting("Up Pitch", 30f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
-    private val downPitch by setting("Down Pitch", 0f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
-    private val rocketPitch by setting("Rocket Pitch", 50f, 0f..90f, 5f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS })
+    private val rocketPitch by setting("Rocket Pitch", 50f, 20f..80f, 2f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "If you are boosted by a rocket, this pitch will be used. Note: on 2B2T, if you are moving too slowly when boosted, you will rubberband", unit = "°")
+    private val upPitch by setting("Up Pitch", 36f, 0f..60f, 2f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "If you are moving up or you are pressing space, this pitch will be used", unit = "°")
+    private val downPitch by setting("Down Pitch", 35f, 0f..40f, 1f, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "Pitch used when you are moving down", unit = "°")
+    private val controlSpeed by setting("Control Speed", true, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS }, description = "Enable to set pitch controls based on your speed")
+    private val speedThreshold by setting("Speed Threshold", 43, 5..100, 1, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS && controlSpeed }, description = "If you are going faster then the speed threshold, the Up Pitch value will be used", unit = " MPS")
+    private val pitchPercentPath by setting("Pitch Percent Path", 60, 1..100, 1, { mode.value == ElytraFlightMode.VANILLA && page == Page.MODE_SETTINGS && controlSpeed }, description = "Rotates the pitch into the Down Pitch value. Low percents rotate faster, high percents rotate slower", unit = "%")
 
     /* Fireworks */
     private val fireworkUseMode by setting("Firework Use Mode", FireworkUseMode.SPEED, { mode.value == ElytraFlightMode.FIREWORKS && page == Page.MODE_SETTINGS })
@@ -151,8 +154,7 @@ object ElytraFlight : Module(
     private var boostingTick = 0
 
     /* Vanilla mode state */
-    private var firstY = 0.0
-    private var secondY = 0.0
+    private var upPitchTimer: Long = 0
 
     /* Fireworks mode state */
     private var fireworkTickTimer: TickTimer = TickTimer(TimeUnit.TICKS)
@@ -306,9 +308,7 @@ object ElytraFlight : Module(
                         if (!mc.isSingleplayer) mc.timer.tickLength = 200.0f /* Use timer to pause longer */
                         player.motionY = 0.0
                     }
-                    else -> {
-                        player.motionY = -0.2
-                    }
+                    else -> player.motionY = -0.2
                 }
             }
         }
@@ -529,13 +529,22 @@ object ElytraFlight : Module(
     }
 
     private fun SafeClientEvent.vanillaMode() {
-        secondY = player.posY
+        val playerSpeed = (sqrt(player.motionX * player.motionX + player.motionZ * player.motionZ)).toFloat()*20 // This is the player's speed
+        val speedPercentOfMax = playerSpeed/speedThreshold*100 // This is used to calculate the percent of the max speed. 50 means 50%
         packetPitch = when {
+            // If the player is boosted with a firework, use -rocketPitch
             world.loadedEntityList.any { it is EntityFireworkRocket && it.boostedEntity == player } -> -rocketPitch
-            firstY - secondY > 0 -> downPitch
-            else -> -upPitch
+            // If the player is moving up, the player is pressing space, or upPitchTimer is still going, use -upPitch
+            player.motionY > 0 || System.currentTimeMillis() < upPitchTimer || player.movementInput.jump -> -upPitch
+            // If controlSpeed is enabled and the speed is over the speedThreshold, then....
+            controlSpeed && playerSpeed > speedThreshold -> {
+                upPitchTimer = System.currentTimeMillis() + 1000 // Set upPitchTimer for 1 second
+                -upPitch} // Use -upPitch
+            // Simple expression that slowly curves the pitch into downPitch
+            controlSpeed && speedPercentOfMax < pitchPercentPath -> speedPercentOfMax/pitchPercentPath*downPitch
+            // If none of the other conditions are met, use downPitch
+            else -> downPitch
         }
-        firstY = player.posY
     }
 
     private fun SafeClientEvent.fireworksMode() {
