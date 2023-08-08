@@ -34,7 +34,10 @@ internal object PacketLogViewer: LabelHud(
             displayText.addLine("PacketLog Viewer", secondaryColor)
             synchronized(logs) {
                 logs.forEach { log ->
-                    displayText.addLine(log, primaryColor)
+                    log.split(",").forEachIndexed { i, s ->
+                        displayText.add(s, if (i % 2 == 0) secondaryColor else primaryColor)
+                    }
+                    displayText.addLine("")
                 }
             }
         }

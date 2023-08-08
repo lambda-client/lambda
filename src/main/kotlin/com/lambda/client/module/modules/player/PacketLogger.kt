@@ -28,8 +28,12 @@ import net.minecraft.util.text.TextFormatting
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.io.File
 import java.io.FileWriter
+import java.text.SimpleDateFormat
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 object PacketLogger : Module(
     name = "PacketLogger",
@@ -39,7 +43,7 @@ object PacketLogger : Module(
     private val page by setting("Page", Page.GENERAL)
     private val categorySetting by setting("Category", CategorySlider.PLAYER, { page == Page.CLIENT || page == Page.SERVER })
     private val packetSide by setting("Packet Side", PacketSide.BOTH, description = "Log packets from the server, from the client, or both.", visibility = { page == Page.GENERAL })
-    private val absoluteTime by setting("Absolute Time", true, description = "Show absolute time.", visibility = { page == Page.GENERAL })
+    private val timestamp by setting("Timestamp", true, description = "Show absolute time.", visibility = { page == Page.GENERAL })
     private val startDelta by setting("Start Time Delta", false, visibility = { page == Page.GENERAL })
     private val lastDelta by setting("Last Time Delta", false, visibility = { page == Page.GENERAL })
     private val showClientTicks by setting("Show Client Ticks", false, description = "Show timestamps of client ticks.", visibility = { page == Page.GENERAL })
@@ -344,7 +348,7 @@ object PacketLogger : Module(
     private var sPacketSpawnPainting by setting("SPacketSpawnPainting", true, visibility = { page == Page.SERVER && categorySetting == CategorySlider.ENTITY })
     private var sPacketSpawnPlayer by setting("SPacketSpawnPlayer", true, visibility = { page == Page.SERVER && categorySetting == CategorySlider.ENTITY })
 
-    private val fileTimeFormatter = DateTimeFormatter.ofPattern("HH-mm-ss_SSS")
+    private val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmss")
 
     private var start = 0L
     private var last = 0L
@@ -382,10 +386,16 @@ object PacketLogger : Module(
         onEnable {
             PacketLogViewer.clear()
             start = System.currentTimeMillis()
-            filename = "${fileTimeFormatter.format(LocalTime.now())}.csv"
+            filename = "${dateFormat.format(Date())}.csv"
 
             synchronized(this) {
-                lines.add("From,Packet Name,Time Since Start (ms),Time Since Last (ms),Data\n")
+                lines.add(buildString {
+                    append("Source,Packet")
+                    if (timestamp) append(",Timestamp")
+                    if (startDelta) append(",Time Since Start")
+                    if (lastDelta) append(",Time Since Last")
+                    append(",Data\n")
+                })
             }
         }
 
@@ -399,7 +409,21 @@ object PacketLogger : Module(
             if (showClientTicks) {
                 synchronized(this@PacketLogger) {
                     val current = System.currentTimeMillis()
-                    val line = "Tick Pulse,,${current - start},${current - lastTick}\n"
+
+                    val line = buildString {
+                        append("Tick Pulse,")
+                        if (timestamp) {
+                            append(",${LocalTime.now()}")
+                        }
+                        if (startDelta) {
+                            append(",${(System.currentTimeMillis() - start).toDuration(DurationUnit.MILLISECONDS)}")
+                        }
+                        if (lastDelta) {
+                            append(",${(System.currentTimeMillis() - last).toDuration(DurationUnit.MILLISECONDS)}")
+                        }
+                        append(",Client Tick\n")
+                    }
+
                     if (logMode == LogMode.CHAT_AND_FILE || logMode == LogMode.FILE || logMode == LogMode.ALL) {
                         lines.add(line)
                     }
@@ -416,9 +440,7 @@ object PacketLogger : Module(
             }
 
             /* Don't let lines get too big, write periodically to the file */
-            if (lines.size >= 500) {
-                write()
-            }
+            if (lines.size >= 500) write()
         }
 
         listener<ConnectionEvent.Disconnect> {
@@ -451,6 +473,124 @@ object PacketLogger : Module(
             if (mc.isIntegratedServerRunning && it.packet.javaClass.name.startsWith("net.minecraft.network.play.server")) return@listener
 
             sendPacket(it.packet)
+        }
+    }
+
+    private fun write() {
+        if (logMode != LogMode.FILE && logMode != LogMode.CHAT_AND_FILE && logMode != LogMode.ALL) {
+            lines.clear()
+            return
+        }
+
+        val lines = synchronized(this) {
+            val cache = lines
+            lines = ArrayList()
+            cache
+        }
+
+        defaultScope.launch(Dispatchers.IO) {
+            try {
+                with(File(FolderUtils.packetLogFolder)) {
+                    if (!exists()) mkdir()
+                }
+
+                FileWriter("${FolderUtils.packetLogFolder}${filename}", true).buffered().use {
+                    for (line in lines) it.write(line)
+                }
+                runSafe {
+                    MessageSendHelper.sendChatMessage("$chatName Log saved at ${TextFormatting.GREEN}${FolderUtils.packetLogFolder}${filename}")
+                }
+            } catch (e: Exception) {
+                LambdaMod.LOG.warn("$chatName Failed saving packet log!", e)
+            }
+        }
+    }
+
+    private inline fun logClient(packet: Packet<*>, block: PacketLogBuilder.() -> Unit) {
+        PacketLogBuilder(PacketSide.CLIENT, packet).apply(block).build()
+    }
+
+    private inline fun logServer(packet: Packet<*>, block: PacketLogBuilder.() -> Unit) {
+        PacketLogBuilder(PacketSide.SERVER, packet).apply(block).build()
+    }
+
+    private class PacketLogBuilder(val side: PacketSide, val packet: Packet<*>) {
+        private val stringBuilder = StringBuilder()
+
+        init {
+            stringBuilder.apply {
+                append(side.displayName)
+                append(',')
+
+                append(packet.javaClass.simpleName)
+                if (timestamp) {
+                    append(",${LocalTime.now()}")
+                }
+                if (startDelta) {
+                    append(",${(System.currentTimeMillis() - start).toDuration(DurationUnit.MILLISECONDS)}")
+                }
+                if (lastDelta) {
+                    append(",${(System.currentTimeMillis() - last).toDuration(DurationUnit.MILLISECONDS)}")
+                }
+                append(',')
+            }
+        }
+
+        operator fun String.unaryPlus() {
+            stringBuilder.append(this)
+        }
+
+        infix fun String.to(value: Any?) {
+            if (value != null) {
+                add(this, value.toString())
+            }
+        }
+
+        infix fun String.to(value: String?) {
+            if (value != null) {
+                add(this, value)
+            }
+        }
+
+        infix fun String.to(value: BlockPos?) {
+            if (value != null) {
+                add("x", value.x.toString())
+                add("y", value.y.toString())
+                add("z", value.z.toString())
+            }
+        }
+
+        fun add(key: String, value: String) {
+            stringBuilder.apply {
+                append(key)
+                append(": ")
+                append(value)
+                append(' ')
+            }
+        }
+
+        fun build() {
+            val string = stringBuilder.run {
+                append('\n')
+                toString()
+            }
+
+            if (logMode == LogMode.CHAT_AND_FILE || logMode == LogMode.FILE || logMode == LogMode.ALL) {
+                synchronized(PacketLogger) {
+                    lines.add(string)
+                    last = System.currentTimeMillis()
+                }
+            }
+
+            if (logMode == LogMode.CHAT_AND_FILE || logMode == LogMode.CHAT || logMode == LogMode.ALL) {
+                MessageSendHelper.sendChatMessage(string)
+            }
+
+            if (logMode == LogMode.ONLY_HUD || logMode == LogMode.ALL) {
+                if (PacketLogViewer.visible) {
+                    PacketLogViewer.addPacketLog(string.replace("\n", ""))
+                }
+            }
         }
     }
 
@@ -1622,128 +1762,6 @@ object PacketLogger : Module(
                     logServer(packet) {
                         +"Not Registered in PacketLogger"
                     }
-                }
-            }
-        }
-    }
-
-
-    private fun write() {
-        if (logMode != LogMode.FILE && logMode != LogMode.CHAT_AND_FILE && logMode != LogMode.ALL) {
-            lines.clear()
-            return
-        }
-
-        val lines = synchronized(this) {
-            val cache = lines
-            lines = ArrayList()
-            cache
-        }
-
-        defaultScope.launch(Dispatchers.IO) {
-            try {
-                with(File(FolderUtils.packetLogFolder)) {
-                    if (!exists()) mkdir()
-                }
-
-                FileWriter("${FolderUtils.packetLogFolder}${filename}", true).buffered().use {
-                    for (line in lines) it.write(line)
-                }
-                runSafe {
-                    MessageSendHelper.sendChatMessage("$chatName Log saved at ${TextFormatting.GREEN}${FolderUtils.packetLogFolder}${filename}")
-                }
-            } catch (e: Exception) {
-                LambdaMod.LOG.warn("$chatName Failed saving packet log!", e)
-            }
-        }
-    }
-
-    private inline fun logClient(packet: Packet<*>, block: PacketLogBuilder.() -> Unit) {
-        PacketLogBuilder(PacketSide.CLIENT, packet).apply(block).build()
-    }
-
-    private inline fun logServer(packet: Packet<*>, block: PacketLogBuilder.() -> Unit) {
-        PacketLogBuilder(PacketSide.SERVER, packet).apply(block).build()
-    }
-
-    private class PacketLogBuilder(val side: PacketSide, val packet: Packet<*>) {
-        private val stringBuilder = StringBuilder()
-
-        init {
-            stringBuilder.apply {
-                append(side.displayName)
-                append(',')
-
-                append(packet.javaClass.simpleName)
-                if (absoluteTime) {
-                    append(',')
-                    append(System.currentTimeMillis())
-                }
-                if (startDelta) {
-                    append(',')
-                    append(System.currentTimeMillis() - start)
-                }
-                if (lastDelta) {
-                    append(',')
-                    append(System.currentTimeMillis() - last)
-                }
-                append(": ")
-            }
-        }
-
-        operator fun String.unaryPlus() {
-            stringBuilder.append(this)
-        }
-
-        infix fun String.to(value: Any?) {
-            if (value != null) {
-                add(this, value.toString())
-            }
-        }
-
-        infix fun String.to(value: String?) {
-            if (value != null) {
-                add(this, value)
-            }
-        }
-
-        infix fun String.to(value: BlockPos?) {
-            if (value != null) {
-                add("x", value.x.toString())
-                add("y", value.y.toString())
-                add("z", value.z.toString())
-            }
-        }
-
-        fun add(key: String, value: String) {
-            stringBuilder.apply {
-                append(key)
-                append(": ")
-                append(value)
-                append(' ')
-            }
-        }
-
-        fun build() {
-            val string = stringBuilder.run {
-                append('\n')
-                toString()
-            }
-
-            if (logMode == LogMode.CHAT_AND_FILE || logMode == LogMode.FILE || logMode == LogMode.ALL) {
-                synchronized(PacketLogger) {
-                    lines.add(string)
-                    last = System.currentTimeMillis()
-                }
-            }
-
-            if (logMode == LogMode.CHAT_AND_FILE || logMode == LogMode.CHAT || logMode == LogMode.ALL) {
-                MessageSendHelper.sendChatMessage(string)
-            }
-
-            if (logMode == LogMode.ONLY_HUD || logMode == LogMode.ALL) {
-                if (PacketLogViewer.visible) {
-                    PacketLogViewer.addPacketLog(string.replace("\n", ""))
                 }
             }
         }
