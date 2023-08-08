@@ -49,13 +49,13 @@ object Speed : Module(
     private val strafeAutoJump by setting("Auto Jump", false, { mode == Mode.STRAFE })
 
     // YPort settings
-    private val yPortAccelerate by setting("Accelerate", true, { mode == Mode.YPORT })
-    private val yPortStrict by setting("Head Strict", false, { mode == Mode.YPORT }, description = "Only allow YPort when you are under a block")
-    private val yPortAirStrict by setting("Air Strict", false, { mode == Mode.YPORT }, description = "Force YPort to handle Y movement differently, slows this down A LOT")
-    private val yPortMaxSpeed by setting("Maximum Speed", 0.0, 0.0..2.0, 0.001, { mode == Mode.YPORT })
-    private val yPortAcceleration by setting("Acceleration Speed", 2.149, 1.0..5.0, 0.001, { mode == Mode.YPORT })
-    private val yPortDecay by setting("YPort Decay", 0.66, 0.0..1.0, 0.001, { mode == Mode.YPORT })
-    private val yPortTimer by setting("YPort Timer", 1.09f, 1.0f..1.1f, 0.01f, { mode == Mode.YPORT })
+    private val yPortAccelerate by setting("Accelerate", true, { mode == Mode.Y_PORT })
+    private val yPortStrict by setting("Head Strict", false, { mode == Mode.Y_PORT }, description = "Only allow YPort when you are under a block")
+    private val yPortAirStrict by setting("Air Strict", false, { mode == Mode.Y_PORT }, description = "Force YPort to handle Y movement differently, slows this down A LOT")
+    private val yPortMaxSpeed by setting("Maximum Speed", 0.0, 0.0..2.0, 0.001, { mode == Mode.Y_PORT })
+    private val yPortAcceleration by setting("Acceleration Speed", 2.149, 1.0..5.0, 0.001, { mode == Mode.Y_PORT })
+    private val yPortDecay by setting("YPort Decay", 0.66, 0.0..1.0, 0.001, { mode == Mode.Y_PORT })
+    private val yPortTimer by setting("YPort Timer", 1.09f, 1.0f..1.1f, 0.01f, { mode == Mode.Y_PORT })
 
     private const val NCP_BASE_SPEED = 0.2873
 
@@ -95,12 +95,12 @@ object Speed : Module(
 
     private enum class Mode(override val displayName: String, val move: SafeClientEvent.(e: PlayerMoveEvent) -> Unit) : DisplayEnum {
         STRAFE("Strafe", { handleStrafe(it) }),
-        YPORT("YPort", { handleBoost(it) }),
+        Y_PORT("YPort", { handleBoost(it) }),
     }
 
     init {
         onEnable {
-            currentSpeed = if (mode == Mode.YPORT) NCP_BASE_SPEED else strafeBaseSpeed
+            currentSpeed = if (mode == Mode.Y_PORT) NCP_BASE_SPEED else strafeBaseSpeed
             strafePhase = StrafePhase.FALLING
             yPortPhase = YPortPhase.WALKING
             prevYPortPhase = YPortPhase.WALKING
@@ -121,7 +121,7 @@ object Speed : Module(
         }
 
         safeListener<PacketEvent.Send> {
-            if (mode != Mode.YPORT
+            if (mode != Mode.Y_PORT
                 || it.packet !is CPacketPlayer
                 || !goUp
             ) return@safeListener
@@ -138,10 +138,9 @@ object Speed : Module(
 
             val unModOffset = offset
 
-            if (currentY + unModOffset > 0)
+            if (currentY + unModOffset > 0) {
                 offset += currentY
-            else if (yPortAirStrict && yPortPhase == YPortPhase.FALLING && prevYPortPhase == YPortPhase.FALLING) {
-
+            } else if (yPortAirStrict && yPortPhase == YPortPhase.FALLING && prevYPortPhase == YPortPhase.FALLING) {
                 var predictedY = currentY
                 predictedY -= 0.08
                 predictedY *= 0.9800000190734863 // 0.333200006 vs 0.341599999
@@ -157,7 +156,7 @@ object Speed : Module(
         }
 
         safeListener<PacketEvent.Receive> {
-            if (mode != Mode.YPORT || it.packet !is SPacketPlayerPosLook) return@safeListener
+            if (mode != Mode.Y_PORT || it.packet !is SPacketPlayerPosLook) return@safeListener
 
             currentSpeed = 0.0
             currentY = 0.0
@@ -222,7 +221,7 @@ object Speed : Module(
 
             else -> {
                 currentSpeed = max(currentSpeed, NCP_BASE_SPEED)
-                yPortPhase = YPortPhase.values()[yPortPhase.ordinal + 1 % YPortPhase.values().size]
+                yPortPhase = YPortPhase.entries.toTypedArray()[yPortPhase.ordinal + 1 % YPortPhase.entries.size]
                 goUp = false
             }
         }
@@ -256,8 +255,9 @@ object Speed : Module(
 
         val shouldJump = player.movementInput.jump || (inputting && strafeAutoJump)
 
-        if (player.onGround && shouldJump)
+        if (player.onGround && shouldJump) {
             strafePhase = StrafePhase.JUMP
+        }
 
         strafePhase = when (strafePhase) {
             StrafePhase.JUMP -> {
@@ -282,8 +282,9 @@ object Speed : Module(
             }
         }
 
-        if (player.onGround && !shouldJump)
+        if (player.onGround && !shouldJump) {
             currentSpeed = strafeBaseSpeed
+        }
 
         currentSpeed = currentSpeed.coerceAtLeast(strafeBaseSpeed).coerceAtMost(strafeMaxSpeed)
 
@@ -300,6 +301,5 @@ object Speed : Module(
     }
 
     // For HoleSnap & Surround
-    fun isStrafing() =
-        mode == Mode.STRAFE
+    fun isStrafing() = mode == Mode.STRAFE
 }
