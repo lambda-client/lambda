@@ -16,9 +16,8 @@ internal object Coordinates : LabelHud(
     private val showY by setting("Show Y", true)
     private val showZ by setting("Show Z", true)
     private val showNetherOverworld by setting("Show Nether/Overworld", true)
-    private val decimalPlaces by setting("Decimal Places", 0, 0..4, 1)
+    private val decimalPlaces by setting("Decimal Places", 1, 0..4, 1)
     private val thousandsSeparator by setting("Thousands Separator", false)
-    private val alignCoords by setting("Align Coords", true, description = "Align your coords to the center of the block")
 
     private val netherToOverworld = Vec3d(8.0, 1.0, 8.0)
     private val overworldToNether = Vec3d(0.125, 1.0, 0.125)
@@ -44,13 +43,9 @@ internal object Coordinates : LabelHud(
     }
 
     private fun getFormattedCoords(pos: Vec3d): TextComponent.TextElement {
-        val alignValue = when {
-            alignCoords -> 0.5f
-            else -> 0.0f
-        }
-        val x = roundOrInt(pos.x-alignValue)
+        val x = roundOrInt(pos.x)
         val y = roundOrInt(pos.y)
-        val z = roundOrInt(pos.z-alignValue)
+        val z = roundOrInt(pos.z)
         return StringBuilder().run {
             if (showX) append(x)
             if (showY) appendWithComma(y)

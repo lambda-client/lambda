@@ -483,16 +483,21 @@ object ElytraFlight : Module(
     }
 
     private fun SafeClientEvent.vanillaMode() {
-        var playerSpeed = (sqrt(player.motionX * player.motionX + player.motionZ * player.motionZ)).toFloat()*20 //This is the player's speed
-        var speedPercentOfMax = playerSpeed/speedThreshold*100 //This is used to calulate the percent of the max speed. 50 means 50%
+        val playerSpeed = (sqrt(player.motionX * player.motionX + player.motionZ * player.motionZ)).toFloat()*20 // This is the player's speed
+        val speedPercentOfMax = playerSpeed/speedThreshold*100 // This is used to calculate the percent of the max speed. 50 means 50%
         packetPitch = when {
-            world.loadedEntityList.any { it is EntityFireworkRocket && it.boostedEntity == player } -> -rocketPitch //If the player is boosted with a firework, use -rocketPitch
-            player.motionY > 0 || System.currentTimeMillis() < upPitchTimer || player.movementInput.jump -> -upPitch //If the player is moving up, the player is pressing space, or upPitchTimer is still going, use -upPitch
-            controlSpeed && playerSpeed > speedThreshold -> { //If controlSpeed is enabled and the speed is over the speedThreshold, then....
-                upPitchTimer = System.currentTimeMillis() + 1000 //Set upPitchTimer for 1 second
-                -upPitch} //Use -upPitch
-            controlSpeed && speedPercentOfMax < pitchPercentPath -> speedPercentOfMax/pitchPercentPath*downPitch //Simple expression that slowly curves the pitch into downPitch
-            else -> downPitch // If none of the other conditions are met, use downPitch
+            // If the player is boosted with a firework, use -rocketPitch
+            world.loadedEntityList.any { it is EntityFireworkRocket && it.boostedEntity == player } -> -rocketPitch
+            // If the player is moving up, the player is pressing space, or upPitchTimer is still going, use -upPitch
+            player.motionY > 0 || System.currentTimeMillis() < upPitchTimer || player.movementInput.jump -> -upPitch
+            // If controlSpeed is enabled and the speed is over the speedThreshold, then....
+            controlSpeed && playerSpeed > speedThreshold -> {
+                upPitchTimer = System.currentTimeMillis() + 1000 // Set upPitchTimer for 1 second
+                -upPitch} // Use -upPitch
+            // Simple expression that slowly curves the pitch into downPitch
+            controlSpeed && speedPercentOfMax < pitchPercentPath -> speedPercentOfMax/pitchPercentPath*downPitch
+            // If none of the other conditions are met, use downPitch
+            else -> downPitch
         }
     }
 

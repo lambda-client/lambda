@@ -117,24 +117,24 @@ object AutoOffhand : Module(
         else -> null
     }
 
-    //The conditional code is difficult to read
-    private fun SafeClientEvent.checkTotem() = offhandTotem && (!conditional || (
-        player.scaledHealth < hpThreshold ||
-        (checkDamage && player.scaledHealth - maxDamage < hpThreshold)))
+    private fun SafeClientEvent.checkTotem() = offhandTotem
+        && (!conditional || (player.scaledHealth < hpThreshold
+        || (checkDamage && player.scaledHealth - maxDamage < hpThreshold)))
 
-    private fun SafeClientEvent.checkGapple() = offhandGapple && (!conditional || (
-        (checkAuraG && CombatManager.isActiveAndTopPriority(KillAura) ||
-        checkWeaponG && player.heldItemMainhand.item.isWeapon ||
-        (checkCAGapple && !offhandCrystal) && CombatManager.isOnTopPriority(CrystalAura))))
+    private fun SafeClientEvent.checkGapple() = offhandGapple
+        && (!conditional || ((checkAuraG && CombatManager.isActiveAndTopPriority(KillAura)
+        || checkWeaponG && player.heldItemMainhand.item.isWeapon
+        || (checkCAGapple && !offhandCrystal) && CombatManager.isOnTopPriority(CrystalAura))))
 
-    private fun checkCrystal() = offhandCrystal && (!conditional || (
-        checkCACrystal && CrystalAura.isEnabled && CombatManager.isOnTopPriority(CrystalAura)))
+    private fun checkCrystal() = offhandCrystal
+        && (!conditional || (checkCACrystal && CrystalAura.isEnabled
+        && CombatManager.isOnTopPriority(CrystalAura)))
 
-    private fun SafeClientEvent.checkStrength() = offhandStrength && (!conditional || (
-        !player.isPotionActive(MobEffects.STRENGTH) &&
-        player.inventoryContainer.inventory.any(Type.STRENGTH.filter) &&
-        (checkAuraS && CombatManager.isActiveAndTopPriority(KillAura) ||
-        checkWeaponS && player.heldItemMainhand.item.isWeapon)))
+    private fun SafeClientEvent.checkStrength() = offhandStrength
+        && (!conditional || (!player.isPotionActive(MobEffects.STRENGTH)
+        && player.inventoryContainer.inventory.any(Type.STRENGTH.filter)
+        && (checkAuraS && CombatManager.isActiveAndTopPriority(KillAura)
+        || checkWeaponS && player.heldItemMainhand.item.isWeapon)))
 
     private fun SafeClientEvent.switchToType(typeOriginal: Type?, alternativeType: Boolean = false) {
         // First check for whether player is holding the right item already or not
@@ -155,8 +155,9 @@ object AutoOffhand : Module(
 
     private fun SafeClientEvent.getItemSlot(type: Type, attempts: Int): Pair<Slot, Type>? =
         getSlot(type)?.to(type)
-            ?: if (attempts > 1) {getItemSlot(type.next(), attempts - 1)}
-            else null
+            ?: if (attempts > 1) {
+                getItemSlot(type.next(), attempts - 1)
+            } else null
 
     private fun SafeClientEvent.getSlot(type: Type): Slot? {
         return player.offhandSlot.takeIf(filter(type))
@@ -174,7 +175,7 @@ object AutoOffhand : Module(
     private fun List<Slot>.findItemByType(type: Type) =
         find(filter(type))
 
-    private fun filter(type: Type) = { it: Slot -> type.filter(it.stack)}
+    private fun filter(type: Type) = { it: Slot -> type.filter(it.stack) }
 
     private fun SafeClientEvent.updateDamage() {
         maxDamage = 0f
