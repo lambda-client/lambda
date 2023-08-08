@@ -517,7 +517,7 @@ object PacketCommand : ClientCommand(
     }
 
     private fun SafeClientEvent.deployPacket(packet: Packet<*>, info: String) {
-        // bypasses packet cancel :trollepic:
+        @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
         connection.networkManager.sendPacket(packet, null)
         MessageSendHelper.sendChatMessage("Sent ${TextFormatting.GRAY}${packet.javaClass.name.split(".").lastOrNull()}${TextFormatting.DARK_RED} > ${TextFormatting.GRAY}$info")
     }

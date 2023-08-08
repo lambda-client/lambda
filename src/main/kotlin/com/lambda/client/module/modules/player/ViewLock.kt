@@ -21,30 +21,34 @@ object ViewLock : Module(
     category = Category.PLAYER,
     alias = arrayOf("YawLock", "PitchLock")
 ) {
-    private val mode by setting("Mode", Mode.TRADITIONAL)
-    private val page by setting("Page", Page.YAW, { mode == Mode.TRADITIONAL })
+    val mode = setting("Mode", Mode.TRADITIONAL)
+    private val page by setting("Page", Page.YAW, { mode.value == Mode.TRADITIONAL })
 
-    private val yaw by setting("Yaw", true, { mode == Mode.TRADITIONAL && page == Page.YAW })
-    private val autoYaw = setting("Auto Yaw", true, { mode == Mode.TRADITIONAL && page == Page.YAW && yaw })
-    private val disableMouseYaw by setting("Disable Mouse Yaw", false, { mode == Mode.TRADITIONAL && page == Page.YAW && yaw && yaw })
-    private val specificYaw by setting("Specific Yaw", 180.0f, -180.0f..180.0f, 1.0f, { mode == Mode.TRADITIONAL && page == Page.YAW && !autoYaw.value && yaw })
-    private val yawSlice = setting("Yaw Slice", 8, 2..32, 1, { mode == Mode.TRADITIONAL && page == Page.YAW && autoYaw.value && yaw })
+    val yaw = setting("Yaw", true, { page == Page.YAW && mode.value == Mode.TRADITIONAL })
+    val autoYaw = setting("Auto Yaw", true, { page == Page.YAW && yaw.value && mode.value == Mode.TRADITIONAL })
+    val hardAutoYaw = setting("Hard Auto Yaw", true, { page == Page.YAW && yaw.value && autoYaw.value && mode.value == Mode.TRADITIONAL },
+        description = "Disables mouse movement snapping")
+    val disableMouseYaw = setting("Disable Mouse Yaw", true, { page == Page.YAW && yaw.value && mode.value == Mode.TRADITIONAL })
+    private val specificYaw by setting("Specific Yaw", 180.0f, -180.0f..180.0f, 1.0f, { page == Page.YAW && !autoYaw.value && yaw.value && mode.value == Mode.TRADITIONAL })
+    val yawSlice = setting("Yaw Slice", 8, 2..32, 1, { page == Page.YAW && autoYaw.value && yaw.value && mode.value == Mode.TRADITIONAL })
 
-    private val pitch by setting("Pitch", true, { mode == Mode.TRADITIONAL && page == Page.PITCH })
-    private val autoPitch = setting("Auto Pitch", true, { mode == Mode.TRADITIONAL && page == Page.PITCH && pitch })
-    private val disableMousePitch by setting("Disable Mouse Pitch", false, { mode == Mode.TRADITIONAL && page == Page.PITCH && pitch && pitch })
-    private val specificPitch by setting("Specific Pitch", 0.0f, -90.0f..90.0f, 1.0f, { mode == Mode.TRADITIONAL && page == Page.PITCH && !autoPitch.value && pitch })
-    private val pitchSlice = setting("Pitch Slice", 5, 2..32, 1, { mode == Mode.TRADITIONAL && page == Page.PITCH && autoPitch.value && pitch })
-    
-    private val xCoord by setting("X coordinate", "", { mode == Mode.COORDS })
-    private val yCoord by setting("Y coordinate", "", { mode == Mode.COORDS })
-    private val zCoord by setting("Z coordinate", "", { mode == Mode.COORDS })
+    val pitch = setting("Pitch", true, { page == Page.PITCH && mode.value == Mode.TRADITIONAL })
+    private val autoPitch = setting("Auto Pitch", true, { page == Page.PITCH && pitch.value && mode.value == Mode.TRADITIONAL })
+    private val hardAutoPitch by setting("Hard Auto Pitch", true, { page == Page.PITCH && pitch.value && autoPitch.value && mode.value == Mode.TRADITIONAL },
+        description = "Disables mouse movement snapping")
+    private val disableMousePitch by setting("Disable Mouse Pitch", true, { page == Page.PITCH && pitch.value && mode.value == Mode.TRADITIONAL })
+    private val specificPitch by setting("Specific Pitch", 0.0f, -90.0f..90.0f, 1.0f, { page == Page.PITCH && !autoPitch.value && pitch.value && mode.value == Mode.TRADITIONAL })
+    private val pitchSlice = setting("Pitch Slice", 5, 2..32, 1, { page == Page.PITCH && autoPitch.value && pitch.value && mode.value == Mode.TRADITIONAL })
+
+    private val xCoord by setting("X coordinate", "", { mode.value == Mode.COORDS })
+    private val yCoord by setting("Y coordinate", "", { mode.value == Mode.COORDS })
+    private val zCoord by setting("Z coordinate", "", { mode.value == Mode.COORDS })
 
     private enum class Page {
         YAW, PITCH
     }
-    
-    private enum class Mode {
+
+    enum class Mode {
         TRADITIONAL, COORDS
     }
 
@@ -64,8 +68,8 @@ object ViewLock : Module(
 
         safeListener<TickEvent.ClientTickEvent> {
             if (it.phase != TickEvent.Phase.END) return@safeListener
-            
-            if (mode == Mode.COORDS) {
+
+            if (mode.value == Mode.COORDS) {
                 val x = xCoord.toDoubleOrNull()
                 val y = yCoord.toDoubleOrNull()
                 val z = zCoord.toDoubleOrNull()
@@ -74,7 +78,7 @@ object ViewLock : Module(
                     disable()
                     return@safeListener
                 }
-                
+
                 val rotation = getRotationTo(Vec3d(x, y, z))
                 player.rotationYaw = rotation.x
                 player.rotationPitch = rotation.y
@@ -85,11 +89,11 @@ object ViewLock : Module(
                 snapToSlice()
             }
 
-            if (yaw && !autoYaw.value) {
+            if (yaw.value && !autoYaw.value) {
                 player.rotationYaw = specificYaw
             }
 
-            if (pitch && !autoPitch.value) {
+            if (pitch.value && !autoPitch.value) {
                 player.rotationPitch = specificPitch
             }
         }
@@ -97,15 +101,15 @@ object ViewLock : Module(
 
     @JvmStatic
     fun handleTurn(entity: Entity, deltaX: Float, deltaY: Float, ci: CallbackInfo) {
-        if (isDisabled || mode == Mode.COORDS) return
+        if (isDisabled || mode.value == Mode.COORDS) return
         val player = mc.player ?: return
         if (entity != player) return
 
         val multipliedX = deltaX * 0.15f
         val multipliedY = deltaY * -0.15f
 
-        val yawChange = if (yaw && autoYaw.value) handleDelta(multipliedX, deltaXQueue, yawSliceAngle) else 0
-        val pitchChange = if (pitch && autoPitch.value) handleDelta(multipliedY, deltaYQueue, pitchSliceAngle) else 0
+        val yawChange = if (yaw.value && autoYaw.value && !hardAutoYaw.value) handleDelta(multipliedX, deltaXQueue, yawSliceAngle) else 0
+        val pitchChange = if (pitch.value && autoPitch.value && !hardAutoPitch) handleDelta(multipliedY, deltaYQueue, pitchSliceAngle) else 0
 
         turn(player, multipliedX, multipliedY)
         changeDirection(yawChange, pitchChange)
@@ -115,12 +119,12 @@ object ViewLock : Module(
     }
 
     private fun turn(player: EntityPlayerSP, deltaX: Float, deltaY: Float) {
-        if (!yaw || !disableMouseYaw) {
+        if (!yaw.value || !disableMouseYaw.value) {
             player.prevRotationYaw += deltaX
             player.rotationYaw += deltaX
         }
 
-        if (!pitch || !disableMousePitch) {
+        if (!pitch.value || !disableMousePitch) {
             player.prevRotationPitch += deltaY
             player.rotationPitch += deltaY
             player.rotationPitch = player.rotationPitch.coerceIn(-90.0f, 90.0f)
@@ -159,11 +163,11 @@ object ViewLock : Module(
 
     private fun snapToSlice() {
         mc.player?.let { player ->
-            if (yaw && autoYaw.value) {
+            if (yaw.value && autoYaw.value) {
                 player.rotationYaw = (yawSnap * yawSliceAngle).coerceIn(0f, 360f)
                 player.ridingEntity?.let { it.rotationYaw = player.rotationYaw }
             }
-            if (pitch && autoPitch.value) {
+            if (pitch.value && autoPitch.value) {
                 player.rotationPitch = (pitchSnap * pitchSliceAngle - 90).coerceIn(-90f, 90f)
             }
         }
