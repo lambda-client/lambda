@@ -33,80 +33,80 @@ object PacketCancel : Module(
 
     private val categorySetting by setting("Category", CategorySlider.PLAYER)
     private val disableAllClient by setting("Disable All Client", false, { side == Side.CLIENT }, { _, _ ->
-        CPacketAnimationSetting = false
-        CPacketUseEntitySetting = false
-        CPacketChatMessageSetting = false
-        CPacketClickWindowSetting = false
-        CPacketClientSettingsSetting = false
-        CPacketClientStatusSetting = false
-        CPacketCloseWindowSetting = false
-        CPacketConfirmTeleportSetting = false
-        CPacketConfirmTransactionSetting = false
-        CPacketCreativeInventoryActionSetting = false
-        CPacketCustomPayloadSetting = false
-        CPacketEnchantItemSetting = false
-        CPacketEntityActionSetting = false
-        CPacketPlayerPositionSetting = false
-        CPacketPlayerPositionRotationSetting = false
-        CPacketHeldItemChangeSetting = false
-        CPacketInputSetting = false
-        CPacketPlaceRecipeSetting = false
-        CPacketPlayerAbilitiesSetting = false
-        CPacketPlayerTryUseItemSetting = false
-        CPacketPlayerTryUseItemOnBlockSetting = false
-        CPacketServerQuerySetting = false
-        CPacketLoginStartSetting = false
-        CPacketPingSetting = false
-        CPacketEncryptionResponseSetting = false
-        CPacketVehicleMoveSetting = false
-        CPacketUpdateSignSetting = false
-        CPacketTabCompleteSetting = false
-        CPacketSteerBoatSetting = false
-        CPacketSpectateSetting = false
-        CPacketSeenAdvancementsSetting = false
-        CPacketResourcePackStatusSetting = false
-        CPacketRecipeInfoSetting = false
-        CPacketPlayerDiggingSetting = false
-        CPacketKeepAliveSetting = false
+        cPacketAnimationSetting = false
+        cPacketUseEntitySetting = false
+        cPacketChatMessageSetting = false
+        cPacketClickWindowSetting = false
+        cPacketClientSettingsSetting = false
+        cPacketClientStatusSetting = false
+        cPacketCloseWindowSetting = false
+        cPacketConfirmTeleportSetting = false
+        cPacketConfirmTransactionSetting = false
+        cPacketCreativeInventoryActionSetting = false
+        cPacketCustomPayloadSetting = false
+        cPacketEnchantItemSetting = false
+        cPacketEntityActionSetting = false
+        cPacketPlayerPositionSetting = false
+        cPacketPlayerPositionRotationSetting = false
+        cPacketHeldItemChangeSetting = false
+        cPacketInputSetting = false
+        cPacketPlaceRecipeSetting = false
+        cPacketPlayerAbilitiesSetting = false
+        cPacketPlayerTryUseItemSetting = false
+        cPacketPlayerTryUseItemOnBlockSetting = false
+        cPacketServerQuerySetting = false
+        cPacketLoginStartSetting = false
+        cPacketPingSetting = false
+        cPacketEncryptionResponseSetting = false
+        cPacketVehicleMoveSetting = false
+        cPacketUpdateSignSetting = false
+        cPacketTabCompleteSetting = false
+        cPacketSteerBoatSetting = false
+        cPacketSpectateSetting = false
+        cPacketSeenAdvancementsSetting = false
+        cPacketResourcePackStatusSetting = false
+        cPacketRecipeInfoSetting = false
+        cPacketPlayerDiggingSetting = false
+        cPacketKeepAliveSetting = false
         false
     })
 
-    private var CPacketAnimationSetting by setting("CPacketAnimation", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
-    private var CPacketUseEntitySetting by setting("CPacketUseEntity", false, { side == Side.CLIENT && categorySetting == CategorySlider.ENTITY })
-    private var CPacketChatMessageSetting by setting("CPacketChatMessage", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
-    private var CPacketClickWindowSetting by setting("CPacketClickWindow", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
-    private var CPacketClientSettingsSetting by setting("CPacketClient", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
-    private var CPacketClientStatusSetting by setting("CPacketClientStatus", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
-    private var CPacketCloseWindowSetting by setting("CPacketCloseWindow", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
-    private var CPacketConfirmTeleportSetting by setting("CPacketConfirmTeleport", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
-    private var CPacketConfirmTransactionSetting by setting("CPacketConfirmTransaction", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
-    private var CPacketCreativeInventoryActionSetting by setting("CPacketCreativeInventoryAction", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
-    private var CPacketCustomPayloadSetting by setting("CPacketCustomPayload", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
-    private var CPacketEnchantItemSetting by setting("CPacketEnchantItem", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
-    private var CPacketEntityActionSetting by setting("CPacketEntityAction", false, { side == Side.CLIENT && categorySetting == CategorySlider.ENTITY })
-    private var CPacketPlayerPositionSetting by setting("CPacketPlayerPosition", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
-    private var CPacketPlayerRotationSetting by setting("CPacketPlayerRotation", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
-    private var CPacketPlayerPositionRotationSetting by setting("CPacketPlayerPositionRotation", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
-    private var CPacketHeldItemChangeSetting by setting("CPacketHeldItemChange", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
-    private var CPacketInputSetting by setting("CPacketInput", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
-    private var CPacketPlaceRecipeSetting by setting("CPacketPlaceRecipe", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
-    private var CPacketPlayerAbilitiesSetting by setting("CPacketPlayerAbilities", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
-    private var CPacketPlayerTryUseItemSetting by setting("CPacketPlayerTryUseItem", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
-    private var CPacketPlayerTryUseItemOnBlockSetting by setting("CPacketPlayerTryUseItemOnBlock", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
-    private var CPacketServerQuerySetting by setting("CPacketServerQuery", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
-    private var CPacketLoginStartSetting by setting("CPacketLoginStart", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
-    private var CPacketPingSetting by setting("CPacketPing", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
-    private var CPacketEncryptionResponseSetting by setting("CPacketEncryptionResponse", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
-    private var CPacketVehicleMoveSetting by setting("CPacketVehicleMove", false, { side == Side.CLIENT && categorySetting == CategorySlider.ENTITY })
-    private var CPacketUpdateSignSetting by setting("CPacketUpdateSign", false, { side == Side.CLIENT && categorySetting == CategorySlider.WORLD })
-    private var CPacketTabCompleteSetting by setting("CPacketTabComplete", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
-    private var CPacketSteerBoatSetting by setting("CPacketSteerBoat", false, { side == Side.CLIENT && categorySetting == CategorySlider.ENTITY })
-    private var CPacketSpectateSetting by setting("CPacketSpectate", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
-    private var CPacketSeenAdvancementsSetting by setting("CPacketSeenAdvancements", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
-    private var CPacketResourcePackStatusSetting by setting("CPacketResourcePackStatus", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
-    private var CPacketRecipeInfoSetting by setting("CPacketRecipeInfo", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
-    private var CPacketPlayerDiggingSetting by setting("CPacketPlayerDigging", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
-    private var CPacketKeepAliveSetting by setting("CPacketKeepAlive", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
+    private var cPacketAnimationSetting by setting("CPacketAnimation", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
+    private var cPacketUseEntitySetting by setting("CPacketUseEntity", false, { side == Side.CLIENT && categorySetting == CategorySlider.ENTITY })
+    private var cPacketChatMessageSetting by setting("CPacketChatMessage", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
+    private var cPacketClickWindowSetting by setting("CPacketClickWindow", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
+    private var cPacketClientSettingsSetting by setting("CPacketClient", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
+    private var cPacketClientStatusSetting by setting("CPacketClientStatus", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
+    private var cPacketCloseWindowSetting by setting("CPacketCloseWindow", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
+    private var cPacketConfirmTeleportSetting by setting("CPacketConfirmTeleport", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
+    private var cPacketConfirmTransactionSetting by setting("CPacketConfirmTransaction", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
+    private var cPacketCreativeInventoryActionSetting by setting("CPacketCreativeInventoryAction", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
+    private var cPacketCustomPayloadSetting by setting("CPacketCustomPayload", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
+    private var cPacketEnchantItemSetting by setting("CPacketEnchantItem", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
+    private var cPacketEntityActionSetting by setting("CPacketEntityAction", false, { side == Side.CLIENT && categorySetting == CategorySlider.ENTITY })
+    private var cPacketPlayerPositionSetting by setting("CPacketPlayerPosition", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
+    private var cPacketPlayerRotationSetting by setting("CPacketPlayerRotation", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
+    private var cPacketPlayerPositionRotationSetting by setting("CPacketPlayerPositionRotation", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
+    private var cPacketHeldItemChangeSetting by setting("CPacketHeldItemChange", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
+    private var cPacketInputSetting by setting("CPacketInput", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
+    private var cPacketPlaceRecipeSetting by setting("CPacketPlaceRecipe", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
+    private var cPacketPlayerAbilitiesSetting by setting("CPacketPlayerAbilities", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
+    private var cPacketPlayerTryUseItemSetting by setting("CPacketPlayerTryUseItem", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
+    private var cPacketPlayerTryUseItemOnBlockSetting by setting("CPacketPlayerTryUseItemOnBlock", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
+    private var cPacketServerQuerySetting by setting("CPacketServerQuery", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
+    private var cPacketLoginStartSetting by setting("CPacketLoginStart", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
+    private var cPacketPingSetting by setting("CPacketPing", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
+    private var cPacketEncryptionResponseSetting by setting("CPacketEncryptionResponse", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
+    private var cPacketVehicleMoveSetting by setting("CPacketVehicleMove", false, { side == Side.CLIENT && categorySetting == CategorySlider.ENTITY })
+    private var cPacketUpdateSignSetting by setting("CPacketUpdateSign", false, { side == Side.CLIENT && categorySetting == CategorySlider.WORLD })
+    private var cPacketTabCompleteSetting by setting("CPacketTabComplete", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
+    private var cPacketSteerBoatSetting by setting("CPacketSteerBoat", false, { side == Side.CLIENT && categorySetting == CategorySlider.ENTITY })
+    private var cPacketSpectateSetting by setting("CPacketSpectate", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
+    private var cPacketSeenAdvancementsSetting by setting("CPacketSeenAdvancements", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
+    private var cPacketResourcePackStatusSetting by setting("CPacketResourcePackStatus", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
+    private var cPacketRecipeInfoSetting by setting("CPacketRecipeInfo", false, { side == Side.CLIENT && categorySetting == CategorySlider.INVENTORY })
+    private var cPacketPlayerDiggingSetting by setting("CPacketPlayerDigging", false, { side == Side.CLIENT && categorySetting == CategorySlider.PLAYER })
+    private var cPacketKeepAliveSetting by setting("CPacketKeepAlive", false, { side == Side.CLIENT && categorySetting == CategorySlider.SYSTEM })
 
     private val disableAllServer by setting("Disable All Server", false, { side == Side.SERVER }, { _, _ ->
         SPacketEntityS17PacketEntityLookMoveSetting = false
@@ -290,42 +290,42 @@ object PacketCancel : Module(
 
         listener<PacketEvent.Send> {
             when (it.packet) {
-                is CPacketAnimation -> if (CPacketAnimationSetting) it.cancel().also { numPackets++ }
-                is CPacketUseEntity -> if (CPacketUseEntitySetting) it.cancel().also { numPackets++ }
-                is CPacketChatMessage -> if (CPacketChatMessageSetting) it.cancel().also { numPackets++ }
-                is CPacketClickWindow -> if (CPacketClickWindowSetting) it.cancel().also { numPackets++ }
-                is CPacketClientSettings -> if (CPacketClientSettingsSetting) it.cancel().also { numPackets++ }
-                is CPacketClientStatus -> if (CPacketClientStatusSetting) it.cancel().also { numPackets++ }
-                is CPacketCloseWindow -> if (CPacketCloseWindowSetting) it.cancel().also { numPackets++ }
-                is CPacketConfirmTeleport -> if (CPacketConfirmTeleportSetting) it.cancel().also { numPackets++ }
-                is CPacketConfirmTransaction -> if (CPacketConfirmTransactionSetting) it.cancel().also { numPackets++ }
-                is CPacketCreativeInventoryAction -> if (CPacketCreativeInventoryActionSetting) it.cancel().also { numPackets++ }
-                is CPacketCustomPayload -> if (CPacketCustomPayloadSetting) it.cancel().also { numPackets++ }
-                is CPacketEnchantItem -> if (CPacketEnchantItemSetting) it.cancel().also { numPackets++ }
-                is CPacketEntityAction -> if (CPacketEntityActionSetting) it.cancel().also { numPackets++ }
-                is CPacketPlayer.Position -> if (CPacketPlayerPositionSetting) it.cancel().also { numPackets++ }
-                is CPacketPlayer.Rotation -> if (CPacketPlayerRotationSetting) it.cancel().also { numPackets++ }
-                is CPacketPlayer.PositionRotation -> if (CPacketPlayerPositionRotationSetting) it.cancel().also { numPackets++ }
-                is CPacketHeldItemChange -> if (CPacketHeldItemChangeSetting) it.cancel().also { numPackets++ }
-                is CPacketInput -> if (CPacketInputSetting) it.cancel().also { numPackets++ }
-                is CPacketPlaceRecipe -> if (CPacketPlaceRecipeSetting) it.cancel().also { numPackets++ }
-                is CPacketPlayerAbilities -> if (CPacketPlayerAbilitiesSetting) it.cancel().also { numPackets++ }
-                is CPacketPlayerTryUseItem -> if (CPacketPlayerTryUseItemSetting) it.cancel().also { numPackets++ }
-                is CPacketPlayerTryUseItemOnBlock -> if (CPacketPlayerTryUseItemOnBlockSetting) it.cancel().also { numPackets++ }
-                is CPacketServerQuery -> if (CPacketServerQuerySetting) it.cancel().also { numPackets++ }
-                is CPacketLoginStart -> if (CPacketLoginStartSetting) it.cancel().also { numPackets++ }
-                is CPacketPing -> if (CPacketPingSetting) it.cancel().also { numPackets++ }
-                is CPacketEncryptionResponse -> if (CPacketEncryptionResponseSetting) it.cancel().also { numPackets++ }
-                is CPacketVehicleMove -> if (CPacketVehicleMoveSetting) it.cancel().also { numPackets++ }
-                is CPacketUpdateSign -> if (CPacketUpdateSignSetting) it.cancel().also { numPackets++ }
-                is CPacketTabComplete -> if (CPacketTabCompleteSetting) it.cancel().also { numPackets++ }
-                is CPacketSteerBoat -> if (CPacketSteerBoatSetting) it.cancel().also { numPackets++ }
-                is CPacketSpectate -> if (CPacketSpectateSetting) it.cancel().also { numPackets++ }
-                is CPacketSeenAdvancements -> if (CPacketSeenAdvancementsSetting) it.cancel().also { numPackets++ }
-                is CPacketResourcePackStatus -> if (CPacketResourcePackStatusSetting) it.cancel().also { numPackets++ }
-                is CPacketRecipeInfo -> if (CPacketRecipeInfoSetting) it.cancel().also { numPackets++ }
-                is CPacketPlayerDigging -> if (CPacketPlayerDiggingSetting) it.cancel().also { numPackets++ }
-                is CPacketKeepAlive -> if (CPacketKeepAliveSetting) it.cancel().also { numPackets++ }
+                is CPacketAnimation -> if (cPacketAnimationSetting) it.cancel().also { numPackets++ }
+                is CPacketUseEntity -> if (cPacketUseEntitySetting) it.cancel().also { numPackets++ }
+                is CPacketChatMessage -> if (cPacketChatMessageSetting) it.cancel().also { numPackets++ }
+                is CPacketClickWindow -> if (cPacketClickWindowSetting) it.cancel().also { numPackets++ }
+                is CPacketClientSettings -> if (cPacketClientSettingsSetting) it.cancel().also { numPackets++ }
+                is CPacketClientStatus -> if (cPacketClientStatusSetting) it.cancel().also { numPackets++ }
+                is CPacketCloseWindow -> if (cPacketCloseWindowSetting) it.cancel().also { numPackets++ }
+                is CPacketConfirmTeleport -> if (cPacketConfirmTeleportSetting) it.cancel().also { numPackets++ }
+                is CPacketConfirmTransaction -> if (cPacketConfirmTransactionSetting) it.cancel().also { numPackets++ }
+                is CPacketCreativeInventoryAction -> if (cPacketCreativeInventoryActionSetting) it.cancel().also { numPackets++ }
+                is CPacketCustomPayload -> if (cPacketCustomPayloadSetting) it.cancel().also { numPackets++ }
+                is CPacketEnchantItem -> if (cPacketEnchantItemSetting) it.cancel().also { numPackets++ }
+                is CPacketEntityAction -> if (cPacketEntityActionSetting) it.cancel().also { numPackets++ }
+                is CPacketPlayer.Position -> if (cPacketPlayerPositionSetting) it.cancel().also { numPackets++ }
+                is CPacketPlayer.Rotation -> if (cPacketPlayerRotationSetting) it.cancel().also { numPackets++ }
+                is CPacketPlayer.PositionRotation -> if (cPacketPlayerPositionRotationSetting) it.cancel().also { numPackets++ }
+                is CPacketHeldItemChange -> if (cPacketHeldItemChangeSetting) it.cancel().also { numPackets++ }
+                is CPacketInput -> if (cPacketInputSetting) it.cancel().also { numPackets++ }
+                is CPacketPlaceRecipe -> if (cPacketPlaceRecipeSetting) it.cancel().also { numPackets++ }
+                is CPacketPlayerAbilities -> if (cPacketPlayerAbilitiesSetting) it.cancel().also { numPackets++ }
+                is CPacketPlayerTryUseItem -> if (cPacketPlayerTryUseItemSetting) it.cancel().also { numPackets++ }
+                is CPacketPlayerTryUseItemOnBlock -> if (cPacketPlayerTryUseItemOnBlockSetting) it.cancel().also { numPackets++ }
+                is CPacketServerQuery -> if (cPacketServerQuerySetting) it.cancel().also { numPackets++ }
+                is CPacketLoginStart -> if (cPacketLoginStartSetting) it.cancel().also { numPackets++ }
+                is CPacketPing -> if (cPacketPingSetting) it.cancel().also { numPackets++ }
+                is CPacketEncryptionResponse -> if (cPacketEncryptionResponseSetting) it.cancel().also { numPackets++ }
+                is CPacketVehicleMove -> if (cPacketVehicleMoveSetting) it.cancel().also { numPackets++ }
+                is CPacketUpdateSign -> if (cPacketUpdateSignSetting) it.cancel().also { numPackets++ }
+                is CPacketTabComplete -> if (cPacketTabCompleteSetting) it.cancel().also { numPackets++ }
+                is CPacketSteerBoat -> if (cPacketSteerBoatSetting) it.cancel().also { numPackets++ }
+                is CPacketSpectate -> if (cPacketSpectateSetting) it.cancel().also { numPackets++ }
+                is CPacketSeenAdvancements -> if (cPacketSeenAdvancementsSetting) it.cancel().also { numPackets++ }
+                is CPacketResourcePackStatus -> if (cPacketResourcePackStatusSetting) it.cancel().also { numPackets++ }
+                is CPacketRecipeInfo -> if (cPacketRecipeInfoSetting) it.cancel().also { numPackets++ }
+                is CPacketPlayerDigging -> if (cPacketPlayerDiggingSetting) it.cancel().also { numPackets++ }
+                is CPacketKeepAlive -> if (cPacketKeepAliveSetting) it.cancel().also { numPackets++ }
             }
         }
         listener<PacketEvent.Receive> {

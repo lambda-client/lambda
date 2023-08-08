@@ -10,8 +10,6 @@ import com.lambda.client.mixin.extension.*
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.FolderUtils
-import com.lambda.client.util.TickTimer
-import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.defaultScope
 import com.lambda.client.util.threads.runSafe
@@ -351,7 +349,6 @@ object PacketLogger : Module(
     private var start = 0L
     private var last = 0L
     private var lastTick = 0L
-    private val timer = TickTimer(TimeUnit.SECONDS)
 
     private var filename = ""
     private var lines = ArrayList<String>()

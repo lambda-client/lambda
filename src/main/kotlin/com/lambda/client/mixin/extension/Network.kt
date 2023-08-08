@@ -8,7 +8,7 @@ import net.minecraft.world.storage.MapDecoration
 import java.util.*
 
 var CPacketChatMessage.chatMessage: String
-    get() = this.message
+    get() = message
     set(value) {
         (this as AccessorCPacketChatMessage).setMessage(value)
     }
@@ -21,37 +21,37 @@ val CPacketConfirmTransaction.accepted: Boolean
     get() = (this as AccessorCPacketConfirmTransaction).accepted
 
 var CPacketPlayer.playerX: Double
-    get() = this.getX(0.0)
+    get() = getX(0.0)
     set(value) {
         (this as AccessorCPacketPlayer).setX(value)
     }
 
 var CPacketPlayer.playerY: Double
-    get() = this.getY(0.0)
+    get() = getY(0.0)
     set(value) {
         (this as AccessorCPacketPlayer).setY(value)
     }
 
 var CPacketPlayer.playerZ: Double
-    get() = this.getZ(0.0)
+    get() = getZ(0.0)
     set(value) {
         (this as AccessorCPacketPlayer).setZ(value)
     }
 
 var CPacketPlayer.playerYaw: Float
-    get() = this.getYaw(0.0f)
+    get() = getYaw(0.0f)
     set(value) {
         (this as AccessorCPacketPlayer).setYaw(value)
     }
 
 var CPacketPlayer.playerPitch: Float
-    get() = this.getPitch(0.0f)
+    get() = getPitch(0.0f)
     set(value) {
         (this as AccessorCPacketPlayer).setPitch(value)
     }
 
 var CPacketPlayer.playerIsOnGround: Boolean
-    get() = this.isOnGround
+    get() = isOnGround
     set(value) {
         (this as AccessorCPacketPlayer).setOnGround(value)
     }
@@ -84,13 +84,13 @@ var CPacketUseEntity.useEntityId: Int
     }
 
 var CPacketUseEntity.useEntityAction: CPacketUseEntity.Action
-    get() = this.action
+    get() = action
     set(value) {
         (this as AccessorCPacketUseEntity).setAction(value)
     }
 
 var SPacketChat.textComponent: ITextComponent
-    get() = this.chatComponent
+    get() = chatComponent
     set(value) {
         (this as AccessorSPacketChat).setChatComponent(value)
     }
@@ -99,37 +99,37 @@ val SPacketCloseWindow.windowId: Int
     get() = (this as AccessorSPacketCloseWindow).windowId
 
 var SPacketEntityVelocity.entityVelocityMotionX: Int
-    get() = this.motionX
+    get() = motionX
     set(value) {
         (this as AccessorSPacketEntityVelocity).setMotionX(value)
     }
 
 var SPacketEntityVelocity.entityVelocityMotionY: Int
-    get() = this.motionY
+    get() = motionY
     set(value) {
         (this as AccessorSPacketEntityVelocity).setMotionY(value)
     }
 
 var SPacketEntityVelocity.entityVelocityMotionZ: Int
-    get() = this.motionZ
+    get() = motionZ
     set(value) {
         (this as AccessorSPacketEntityVelocity).setMotionZ(value)
     }
 
 var SPacketExplosion.explosionMotionX: Float
-    get() = this.motionX
+    get() = motionX
     set(value) {
         (this as AccessorSPacketExplosion).setMotionX(value)
     }
 
 var SPacketExplosion.explosionMotionY: Float
-    get() = this.motionY
+    get() = motionY
     set(value) {
         (this as AccessorSPacketExplosion).setMotionY(value)
     }
 
 var SPacketExplosion.explosionMotionZ: Float
-    get() = this.motionZ
+    get() = motionZ
     set(value) {
         (this as AccessorSPacketExplosion).setMotionZ(value)
     }
@@ -152,13 +152,13 @@ val SPacketMaps.mapDataBytes: ByteArray
     get() = (this as AccessorSPacketMaps).mapDataBytes
 
 var SPacketPlayerPosLook.playerPosLookYaw: Float
-    get() = this.yaw
+    get() = yaw
     set(value) {
         (this as AccessorSPacketPosLook).setYaw(value)
     }
 
 var SPacketPlayerPosLook.playerPosLookPitch: Float
-    get() = this.pitch
+    get() = pitch
     set(value) {
         (this as AccessorSPacketPosLook).setPitch(value)
     }
