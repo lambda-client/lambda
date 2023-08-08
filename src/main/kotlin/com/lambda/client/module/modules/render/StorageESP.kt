@@ -3,6 +3,7 @@ package com.lambda.client.module.modules.render
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.RenderWorldEvent
 import com.lambda.client.event.listener.listener
+import com.lambda.client.manager.managers.ChestCountManager
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.util.color.ColorHolder
@@ -39,7 +40,7 @@ object StorageESP : Module(
     private val dispenser by setting("Dispenser", false, { page == Page.TYPE })
     private val hopper by setting("Hopper", false, { page == Page.TYPE })
     private val cart by setting("Minecart", false, { page == Page.TYPE })
-    private val infinite by setting("Infinite Range", true) // To avoid a hard to control range slider
+    private val infinite by setting("Infinite Range", true, { page == Page.TYPE }) // To avoid a hard to control range slider
     private val range by setting("Range", 64, 8..512, 1, { page == Page.TYPE && !infinite }, unit = " blocks")
 
     /* Color settings */
@@ -61,12 +62,18 @@ object StorageESP : Module(
     private val aTracer by setting("Tracer Alpha", 200, 0..255, 1, { page == Page.RENDER && tracer })
     private val thickness by setting("Line Thickness", 2.0f, 0.25f..5.0f, 0.25f, { page == Page.RENDER })
 
+    /* Count settings */
+    val chestCountSetting by setting("Count", true, { page == Page.COUNT })
+    private val dubs by setting("Dubs", true, visibility = { chestCountSetting && page == Page.COUNT})
+
     private enum class Page {
-        TYPE, COLOR, RENDER
+        TYPE, COLOR, RENDER, COUNT
     }
 
     override fun getHudInfo(): String {
-        return renderer.size.toString()
+        return if (chestCountSetting)
+            (if(dubs) "${ChestCountManager.dubsCount}" else "${ChestCountManager.chestCount}")
+        else ""
     }
 
     private var cycler = HueCycler(600)
