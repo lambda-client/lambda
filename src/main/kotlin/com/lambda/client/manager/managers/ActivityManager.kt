@@ -1,7 +1,8 @@
 package com.lambda.client.manager.managers
 
 import com.lambda.client.activity.Activity
-import com.lambda.client.activity.activities.storage.*
+import com.lambda.client.activity.activities.storage.ShulkerTransaction
+import com.lambda.client.activity.activities.storage.StashTransaction
 import com.lambda.client.activity.activities.storage.types.*
 import com.lambda.client.activity.getShulkerInventory
 import com.lambda.client.activity.types.RenderAABBActivity
@@ -30,18 +31,18 @@ import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.ProjectionUtils
 import com.lambda.client.util.graphics.font.FontRenderAdapter
-import com.lambda.client.util.items.*
+import com.lambda.client.util.items.allSlots
+import com.lambda.client.util.items.countEmpty
+import com.lambda.client.util.items.countItem
+import com.lambda.client.util.items.inventorySlots
 import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
-import net.minecraft.init.Blocks
 import net.minecraft.init.Items
 import net.minecraft.item.Item
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.GL11
-import scala.tools.nsc.backend.icode.analysis.TypeFlowAnalysis.MethodTFA.Gen
-import java.util.*
 
 object ActivityManager : Manager, Activity() {
     private val renderer = ESPRenderer()
@@ -111,26 +112,28 @@ object ActivityManager : Manager, Activity() {
         listener<RenderOverlayEvent> {
             if (hasNoSubActivities) return@listener
 
-            GlStateUtils.rescaleActual()
+            if (BuildTools.showDebugText) {
+                GlStateUtils.rescaleActual()
 
-            RenderOverlayTextActivity.normalizedRender.forEach { renderText ->
-                GL11.glPushMatrix()
-                val screenPos = ProjectionUtils.toScreenPos(renderText.origin)
-                GL11.glTranslated(screenPos.x, screenPos.y, 0.0)
-                GL11.glScalef(textScale * 2.0f, textScale * 2.0f, 1.0f)
+                RenderOverlayTextActivity.normalizedRender.forEach { renderText ->
+                    GL11.glPushMatrix()
+                    val screenPos = ProjectionUtils.toScreenPos(renderText.origin)
+                    GL11.glTranslated(screenPos.x, screenPos.y, 0.0)
+                    GL11.glScalef(textScale * 2.0f, textScale * 2.0f, 1.0f)
 
-                val halfWidth = FontRenderAdapter.getStringWidth(renderText.text) / -2.0f
-                val lineHeight = FontRenderAdapter.getFontHeight() + 2.0f
-                val yLift = lineHeight * 3 / 2
+                    val halfWidth = FontRenderAdapter.getStringWidth(renderText.text) / -2.0f
+                    val lineHeight = FontRenderAdapter.getFontHeight() + 2.0f
+                    val yLift = lineHeight * 3 / 2
 
-                FontRenderAdapter.drawString(
-                    renderText.text,
-                    halfWidth,
-                    lineHeight * renderText.index - yLift,
-                    color = renderText.color
-                )
+                    FontRenderAdapter.drawString(
+                        renderText.text,
+                        halfWidth,
+                        lineHeight * renderText.index - yLift,
+                        color = renderText.color
+                    )
 
-                GL11.glPopMatrix()
+                    GL11.glPopMatrix()
+                }
             }
             GlStateUtils.rescaleMc()
         }
