@@ -50,7 +50,9 @@ class BuildStructure(
     private val allowBreakDescend: Boolean = false,
     override val maximumRepeats: Int = 1,
     override var repeated: Int = 0,
-    override val aabbCompounds: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf()
+    override val aabbCompounds: MutableSet<RenderAABBActivity.Companion.RenderAABBCompound> = mutableSetOf(),
+    private var handleLiquids: Boolean = true,
+    private var allowBreakBeneathPlayer: Boolean = false,
 ) : RepeatingActivity, RenderAABBActivity, Activity() {
     private var currentOffset = BlockPos.ORIGIN
     private var currentGoal: Goal? by Delegates.observable(null) { _, old, new ->
@@ -232,7 +234,9 @@ class BuildStructure(
         /* the only option left is breaking the block */
         addSubActivities(BreakBlock(
 //            blockPos, collectDrops = collectAll, minCollectAmount = 64
-            blockPos
+            blockPos,
+            handleLiquids = handleLiquids,
+            allowBreakBeneathPlayer = allowBreakBeneathPlayer,
         ), subscribe = true)
     }
 

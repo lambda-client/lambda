@@ -47,7 +47,8 @@ object BuildTools : Module(
 
     /* placing */
     val placeDelay by setting("Place Delay", 1, 0..20, 1, { page == Page.BUILDING }, description = "Sets the delay ticks between placement tasks", unit = " ticks")
-    val breakDownCycles by setting("Break Down", 64, 1..200, 1, { page == Page.BUILDING }, description = "", unit = " ender chests")
+    val breakDownEnderChests by setting("BreakDownEChests", false, {page == Page.BUILDING})
+    val breakDownCycles by setting("Break Down", 64, 1..200, 1, { page == Page.BUILDING && breakDownEnderChests }, description = "", unit = " ender chests")
     val pickBlock by setting("Pick Block Creative", true, { page == Page.BUILDING }, description = "Use pick block to place blocks when in creative mode")
     val placeStrictness by setting("Placement Strictness", PlacementStrictness.DIRECTION, { page == Page.BUILDING }, description = "ANY: Allow all exposed surfaces. DIRECTION: Only allow surfaces in the direction of the player. VISIBLE: Only allow surfaces that are visible to the player.")
 //    val illegalPlacements by setting("Illegal Placements", false, { page == Page.BUILDING }, description = "Do not use on 2b2t. Tries to interact with invisible surfaces")

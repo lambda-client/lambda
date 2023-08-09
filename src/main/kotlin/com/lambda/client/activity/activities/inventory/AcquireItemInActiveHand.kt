@@ -68,7 +68,7 @@ class AcquireItemInActiveHand(
         }
 
         // If the item is obsidian, break down ender chests
-        if (itemInfo.item == Blocks.OBSIDIAN.item) {
+        if (BuildTools.breakDownEnderChests && itemInfo.item == Blocks.OBSIDIAN.item) {
             addSubActivities(BreakDownEnderChests(maximumRepeats = BuildTools.breakDownCycles))
             return
         }
