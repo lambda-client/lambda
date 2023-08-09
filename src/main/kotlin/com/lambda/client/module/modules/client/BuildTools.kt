@@ -47,7 +47,8 @@ object BuildTools : Module(
 
     /* placing */
     val placeDelay by setting("Place Delay", 1, 0..20, 1, { page == Page.BUILDING }, description = "Sets the delay ticks between placement tasks", unit = " ticks")
-    val breakDownCycles by setting("Break Down", 64, 1..200, 1, { page == Page.BUILDING }, description = "", unit = " ender chests")
+    val breakDownEnderChests by setting("BreakDownEChests", false, {page == Page.BUILDING})
+    val breakDownCycles by setting("Break Down", 64, 1..200, 1, { page == Page.BUILDING && breakDownEnderChests }, description = "", unit = " ender chests")
     val pickBlock by setting("Pick Block Creative", true, { page == Page.BUILDING }, description = "Use pick block to place blocks when in creative mode")
     val placeStrictness by setting("Placement Strictness", PlacementStrictness.DIRECTION, { page == Page.BUILDING }, description = "ANY: Allow all exposed surfaces. DIRECTION: Only allow surfaces in the direction of the player. VISIBLE: Only allow surfaces that are visible to the player.")
 //    val illegalPlacements by setting("Illegal Placements", false, { page == Page.BUILDING }, description = "Do not use on 2b2t. Tries to interact with invisible surfaces")
@@ -93,7 +94,8 @@ object BuildTools : Module(
     val showDebugRender by setting("Debug Render", false, { page == Page.RENDER }, description = "Render debug info on tasks")
     val maxDebugRange by setting("Max Debug Range", 8, 0..256, 1, { page == Page.RENDER && showDebugRender }, description = "Max distance to render debug info", unit = " blocks")
     val maxDebugAmount by setting("Max Debug Amount", 20, 0..256, 1, { page == Page.RENDER && showDebugRender }, description = "Max amount of debug info to render")
-    val textScale by setting("Text Scale", 1.0f, 0.0f..4.0f, 0.25f, { page == Page.RENDER && showDebugRender }, description = "Scale of debug text")
+    val showDebugText by setting ("Show Text", true, { page == Page.RENDER && showDebugRender }, description = "Render debug text")
+    val textScale by setting("Text Scale", 1.0f, 0.0f..4.0f, 0.25f, { page == Page.RENDER && showDebugText && showDebugRender }, description = "Scale of debug text")
 //    val distScaleFactor by setting("Distance Scale Factor", 0.05f, 0.0f..1.0f, 0.05f, { page == Page.RENDER && showDebugRender })
 //    val minDistScale by setting("Min Distance Scale", 0.35f, 0.0f..1.0f, 0.05f, { page == Page.RENDER && showDebugRender })
     val aFilled by setting("Filled Alpha", 26, 0..255, 1, { filled && page == Page.RENDER }, description = "Sets the opacity")

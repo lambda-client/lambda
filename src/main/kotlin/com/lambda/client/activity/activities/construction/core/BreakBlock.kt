@@ -60,6 +60,8 @@ class BreakBlock(
     override var rotation: Vec2f? = null,
     override var distance: Double = 1337.0,
     override var exposedSides: Int = 0,
+    private var handleLiquids: Boolean = true,
+    private var allowBreakBeneathPlayer: Boolean = false,
 ) : BuildActivity, TimeoutActivity, AttemptActivity, RotatingActivity, TimedActivity, RenderAABBActivity, RenderOverlayTextActivity, Activity() {
     private var side: EnumFacing? = null
     private var ticksNeeded = 0
@@ -213,7 +215,8 @@ class BreakBlock(
             val hitVec = getHitVec(blockPos, miningSide)
 
             /* prevent breaking the block the player is standing on */
-            if (player.flooredPosition.down() == blockPos
+            if (allowBreakBeneathPlayer
+                && player.flooredPosition.down() == blockPos
                 && !world.getBlockState(blockPos.down()).isSideSolid(world, blockPos.down(), EnumFacing.UP)
             ) {
                 availability = BuildActivity.Availability.BLOCKED_BY_PLAYER
@@ -363,6 +366,7 @@ class BreakBlock(
     }
 
     private fun SafeClientEvent.checkLiquids(): Boolean {
+        if (!handleLiquids) return false
         var foundLiquid = false
 
         if (world.getBlockState(blockPos).isLiquid) {
@@ -376,7 +380,7 @@ class BreakBlock(
             return true
         }
 
-        EnumFacing.entries
+        EnumFacing.values()
             .filter { it != EnumFacing.DOWN }
             .map { blockPos.offset(it) }
             .filter { world.getBlockState(it).isLiquid }
