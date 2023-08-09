@@ -13,6 +13,7 @@ import com.lambda.client.util.MovementUtils.realSpeed
 import com.lambda.client.util.TickTimer
 import com.lambda.client.util.TimeUnit
 import com.lambda.client.util.text.MessageDetection
+import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.text.MessageSendHelper.sendServerMessage
 import com.lambda.client.util.threads.safeListener
 import net.minecraft.network.play.server.SPacketChat
@@ -39,10 +40,16 @@ object AntiAFK : Module(
     private val jump = setting("Jump", true)
     private val turn = setting("Turn", true)
     private val walk = setting("Walk", true)
-    private val radius by setting("Radius", 64, 8..128, 8, fineStep = 1)
-    private val inputTimeout by setting("Idle Timeout", 0, 0..15, 1, description = "Starts AntiAFK after being idle longer than the selected time in minutes, 0 to disable", unit = "m")
+    private val walkPositioningType by setting("Positioning Type",PositionType.AUTO,{ walk.value })
+    private val PositionX by setting("X","",{ walk.value && walkPositioningType == PositionType.COUSTOM})
+    private val PositionZ by setting("Z","",{ walk.value && walkPositioningType == PositionType.COUSTOM})
+    private val radius by setting("Radius Of Walking", 64, 8..128, 8, {walk.value },fineStep = 1)
     private val allowBreak by setting("Allow Breaking Blocks", false, { walk.value })
+    private val inputTimeout by setting("Idle Timeout", 0, 0..15, 1, description = "Starts AntiAFK after being idle longer than the selected time in minutes, 0 to disable", unit = "m")
 
+    enum class PositionType {
+        AUTO,COUSTOM
+    }
     private var startPos: BlockPos? = null
     private var squareStep = 0
     private var baritoneAllowBreak = false
@@ -159,7 +166,18 @@ object AntiAFK : Module(
     }
 
     private fun SafeClientEvent.squareWalk() {
-        if (startPos == null) startPos = player.position
+        if(walkPositioningType == PositionType.AUTO){
+            if (startPos == null) startPos = player.position
+        } else {
+            val x = PositionX.toDoubleOrNull()
+            val z = PositionZ.toDoubleOrNull()
+            if(x==null || z == null){
+                MessageSendHelper.sendErrorMessage("[AntiAFK] Wrong position argument!")
+                disable()
+            }else{
+                startPos = BlockPos(x,0.0,z)
+            }
+        }
 
         startPos?.let {
             when (squareStep) {
