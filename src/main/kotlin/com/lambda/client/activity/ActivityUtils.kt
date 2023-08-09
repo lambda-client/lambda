@@ -1,6 +1,6 @@
 package com.lambda.client.activity
 
-import com.lambda.client.activity.activities.storage.core.ContainerTransaction
+import com.lambda.client.activity.activities.storage.core.ContainerWindowTransaction
 import com.lambda.client.util.items.getSlots
 import net.minecraft.inventory.*
 import net.minecraft.item.ItemShulkerBox
@@ -41,6 +41,6 @@ val Container.seperatedSlots: Pair<List<Slot>, List<Slot>>
         }
 
         else -> {
-            throw ContainerTransaction.ContainerNotKnownException(this)
+            throw ContainerWindowTransaction.ContainerNotKnownException(this)
         }
     }

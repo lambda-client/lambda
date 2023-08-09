@@ -1,4 +1,4 @@
-package com.lambda.client.activity.activities.storage
+package com.lambda.client.activity.activities.storage.types
 
 import com.lambda.client.activity.getShulkerInventory
 import net.minecraft.inventory.Slot
@@ -9,6 +9,7 @@ import net.minecraft.item.ItemStack
 data class ItemInfo(
     val item: Item,
     val number: Int = 1, // 0 = all
+    val itemStack: ItemStack? = null,
     val predicate: (ItemStack) -> Boolean = { true },
     val metadata: Int? = null,
     var containedInShulker: Boolean = false
@@ -25,10 +26,12 @@ data class ItemInfo(
     }
 
     val stackFilter = { stack: ItemStack ->
-        item == stack.item
+        itemStack == null
+            && item == stack.item
             && predicate(stack)
             && (metadata == null || metadata == stack.metadata)
+            || (itemStack != null && ItemStack.areItemStacksEqual(itemStack, stack))
     }
 
-    override fun toString() = "ItemInfo(item=$item, number=$number, metadata=$metadata, containedInShulker=$containedInShulker)"
+    override fun toString() = "ItemInfo(item=$item, number=$number, itemStack=$itemStack, metadata=$metadata, containedInShulker=$containedInShulker)"
 }

@@ -7,14 +7,16 @@ import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.BaritoneUtils
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.threads.safeListener
+import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 class CustomGoal(
     val goal: Goal,
+    val inGoal: (BlockPos) -> Boolean = { goal.isInGoal(it) },
     override val timeout: Long = 100000L
 ) : TimeoutActivity, Activity() {
     override fun SafeClientEvent.onInitialize() {
-        if (!goal.isInGoal(player.flooredPosition)) return
+        if (!inGoal(player.flooredPosition)) return
 
         success()
     }
@@ -25,7 +27,7 @@ class CustomGoal(
 
             BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(goal)
 
-            if (goal.isInGoal(player.flooredPosition)) success()
+            if (inGoal(player.flooredPosition)) success()
         }
     }
 }

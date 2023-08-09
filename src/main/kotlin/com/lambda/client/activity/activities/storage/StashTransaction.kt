@@ -1,26 +1,34 @@
 package com.lambda.client.activity.activities.storage
 
+import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalGetToBlock
-import baritone.api.pathing.goals.GoalNear
+import baritone.api.pathing.goals.GoalXZ
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.storage.core.CloseContainer
-import com.lambda.client.activity.activities.storage.core.ContainerTransaction
+import com.lambda.client.activity.activities.storage.core.ContainerWindowTransaction
 import com.lambda.client.activity.activities.storage.core.OpenContainer
+import com.lambda.client.activity.activities.storage.types.Stash
+import com.lambda.client.activity.activities.storage.types.ContainerOrder
 import com.lambda.client.activity.activities.travel.CustomGoal
+import com.lambda.client.activity.types.LoopWhileActivity
 import com.lambda.client.event.SafeClientEvent
+import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.VectorUtils.distanceTo
+import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.tileentity.TileEntity
 
 /**
  * [StashTransaction] is an [Activity] that allows you to pull or push items from a [Stash].
- * @param stash The [Stash] to pull or push items from.
  * @param orders The orders to pull or push items.
  */
 class StashTransaction(
-    private val orders: List<Order>,
-    private val stash: Stash
-) : Activity() {
-    private val orderQueue = ArrayDeque(orders)
+    private val orders: Set<Pair<Stash, ContainerOrder>>
+) : LoopWhileActivity, Activity() {
+    override val loopWhile: SafeClientEvent.() -> Boolean = { orderQueue.isNotEmpty() }
+    override var currentLoops = 0
+
+    private val orderQueue = ArrayDeque(orders.sortedBy { it.second.action })
+    // try different containers in case one is not matching the search
     private val containerQueue = ArrayDeque<TileEntity>()
 
     override fun SafeClientEvent.onInitialize() {
@@ -29,58 +37,44 @@ class StashTransaction(
             return
         }
 
-        //TODO: Use cached chests to instantly find the closest needed container (maybe even shared cache?)
+        // TODO: Use cached chests to instantly find the closest needed container (maybe even shared cache?)
 
-        addSubActivities(
-            CustomGoal(GoalNear(stash.area.center, stash.area.maxWidth), timeout = 999999L)
-        )
+        orderQueue.firstOrNull()?.first?.let {
+            val highestNonAirBlock = world.getTopSolidOrLiquidBlock(it.area.center)
+
+            MessageSendHelper.sendWarningMessage("Player is not in the area ${it.area}! Moving to closest position (${highestNonAirBlock.asString()})...")
+            addSubActivities(CustomGoal(GoalBlock(highestNonAirBlock),
+                inGoal = { blockPos -> it.area.containedBlocks.contains(blockPos) }, timeout = 999999L)
+            )
+        }
     }
 
     override fun SafeClientEvent.onChildSuccess(childActivity: Activity) {
         when (childActivity) {
             is CustomGoal -> {
-                if (childActivity.goal !is GoalNear) return
+                if (childActivity.goal !is GoalBlock) return
 
-                val stashContainer = world.loadedTileEntityList.filter {
-                    stash.area.containedBlocks.contains(it.pos)
+                orderQueue.removeFirstOrNull()?.let { order ->
+                    val stashContainer = world.loadedTileEntityList.filter {
+                        order.first.area.containedBlocks.contains(it.pos)
+                    }
+
+                    if (stashContainer.isEmpty()) {
+                        failedWith(NoContainerFoundInStashException())
+                        return
+                    }
+
+                    stashContainer.minByOrNull { player.distanceTo(it.pos) }?.let { container ->
+                        addSubActivities(
+                            CustomGoal(GoalGetToBlock(container.pos)),
+                            OpenContainer(container.pos),
+                            ContainerWindowTransaction(order.second),
+                            CloseContainer()
+                        )
+                    }
                 }
-
-                if (stashContainer.isEmpty()) {
-                    failedWith(NoContainerFoundInStashException())
-                    return
-                }
-
-                containerQueue.addAll(
-                    stashContainer.sortedBy { player.distanceTo(it.pos) }
-                )
-
-                executeOrdersOnContainer(containerQueue.removeFirst())
-            }
-
-            is CloseContainer -> {
-                if (orderQueue.isEmpty()) {
-                    success()
-                    return
-                }
-
-                executeOrdersOnContainer(containerQueue.removeFirst())
             }
         }
-    }
-
-    private fun executeOrdersOnContainer(container: TileEntity) {
-        addSubActivities(
-            CustomGoal(GoalGetToBlock(container.pos)),
-            OpenContainer(container.pos)
-        )
-
-        addSubActivities(orders.sortedBy { it.action }.map {
-            ContainerTransaction(it)
-        })
-
-        orderQueue.clear() // TODO: Remove this when order feedback is implemented
-
-        addSubActivities(CloseContainer())
     }
 
     class NoContainerFoundInStashException : Exception("No chest found in area!")

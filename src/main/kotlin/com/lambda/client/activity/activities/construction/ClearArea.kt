@@ -1,14 +1,16 @@
 package com.lambda.client.activity.activities.construction
 
+import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalXZ
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.construction.core.BuildStructure
-import com.lambda.client.activity.activities.storage.Area
+import com.lambda.client.activity.activities.storage.types.Area
 import com.lambda.client.activity.activities.travel.CustomGoal
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.EntityUtils.flooredPosition
 import com.lambda.client.util.color.ColorHolder
+import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.block.state.IBlockState
 import net.minecraft.init.Blocks
@@ -36,13 +38,14 @@ class ClearArea(
     }
 
     override fun SafeClientEvent.onInitialize() {
-        with(area) {
-            if (player.flooredPosition !in area.containedBlocks) {
-                MessageSendHelper.sendWarningMessage("Player is not in the area $area! Moving now...")
-                addSubActivities(CustomGoal(GoalXZ(center.x, center.z)))
-                status = Status.UNINITIALIZED
-                return@onInitialize
-            }
+        if (player.flooredPosition !in area.containedBlocks) {
+            val highestNonAirBlock = world.getTopSolidOrLiquidBlock(area.center)
+
+            MessageSendHelper.sendWarningMessage("Player is not in the area $area! Moving to closest position (${highestNonAirBlock.asString()})...")
+            addSubActivities(CustomGoal(GoalBlock(highestNonAirBlock),
+                inGoal = { blockPos -> area.containedBlocks.contains(blockPos) }, timeout = 999999L))
+            status = Status.UNINITIALIZED
+            return
         }
 
         val layers = (area.minY..area.maxY).reversed()

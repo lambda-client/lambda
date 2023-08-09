@@ -1,7 +1,8 @@
-package com.lambda.client.activity.activities.storage
+package com.lambda.client.activity.activities.storage.types
 
 import com.lambda.client.util.math.CoordinateConverter.asString
 import net.minecraft.item.Item
+import net.minecraft.util.math.BlockPos
 
 /**
  * [Stash] is a data class that represents a stash of [Item]s.
@@ -14,4 +15,8 @@ data class Stash(val area: Area, val items: List<Item>) {
             it.registryName.toString().split(":").last()
         }
     })@(${area.center.asString()})"
+
+    companion object {
+        val EMPTY = Stash(Area(BlockPos.ORIGIN, BlockPos.ORIGIN), emptyList())
+    }
 }

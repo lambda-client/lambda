@@ -3,8 +3,7 @@ package com.lambda.client.activity.activities.storage.core
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.core.QuickMoveSlot
 import com.lambda.client.activity.activities.inventory.core.SwapWithSlot
-import com.lambda.client.activity.activities.storage.Action
-import com.lambda.client.activity.activities.storage.Order
+import com.lambda.client.activity.activities.storage.types.*
 import com.lambda.client.activity.seperatedSlots
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
@@ -13,31 +12,40 @@ import com.lambda.client.util.items.hotbarSlots
 import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.inventory.Container
 
-class ContainerTransaction(
-    private val order: Order
+class ContainerWindowTransaction(
+    private val order: ContainerOrder
 ) : Activity() {
     override fun SafeClientEvent.onInitialize() {
         val seperatedSlots = player.openContainer.seperatedSlots
 
-        val (fromSlots, toSlots) = if (order.action == Action.PULL) {
+        val (fromSlots, toSlots) = if (order.action == ContainerAction.PULL) {
             seperatedSlots.let { (first, second) -> Pair(first, second) }
         } else {
             seperatedSlots.let { (first, second) -> Pair(second, first) }
         }
 
-        val toMoveSlots = fromSlots.filter(order.itemInfo.slotFilter)
+        val toMoveSlots = fromSlots.filter(order.filter)
 
         if (toMoveSlots.isEmpty()) {
+            if (order is GeneralOrder && order.amount == 0) {
+                success()
+                return
+            }
+
             failedWith(NoItemFoundException())
             return
         }
 
-        if (toMoveSlots.size < order.itemInfo.number) {
+        if (toMoveSlots.size < order.amount) {
             failedWith(NotEnoughSlotsException())
             return
         }
 
-        val remainingSlots = if (order.itemInfo.number == 0) toMoveSlots else toMoveSlots.take(order.itemInfo.number)
+        val remainingSlots = if (order.amount == 0) {
+            toMoveSlots
+        } else {
+            toMoveSlots.take(order.amount)
+        }
 
         remainingSlots.forEach { fromSlot ->
             if (toSlots.countEmpty() > 0) {

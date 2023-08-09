@@ -5,8 +5,10 @@ import com.lambda.client.activity.activities.inventory.core.CreativeInventoryAct
 import com.lambda.client.activity.activities.inventory.core.SwapOrSwitchToSlot
 import com.lambda.client.activity.activities.inventory.core.SwitchToHotbarSlot
 import com.lambda.client.activity.activities.storage.BreakDownEnderChests
-import com.lambda.client.activity.activities.storage.ExtractItemFromContainerStack
-import com.lambda.client.activity.activities.storage.ItemInfo
+import com.lambda.client.activity.activities.storage.ShulkerTransaction
+import com.lambda.client.activity.activities.storage.types.ContainerAction
+import com.lambda.client.activity.activities.storage.types.ItemInfo
+import com.lambda.client.activity.activities.storage.types.ShulkerOrder
 import com.lambda.client.activity.getShulkerInventory
 import com.lambda.client.activity.types.AttemptActivity
 import com.lambda.client.event.SafeClientEvent
@@ -61,10 +63,8 @@ class AcquireItemInActiveHand(
 
         // If the item is in a shulker box, extract it
         if (searchShulkerBoxes && itemInfo.item !is ItemShulkerBox) {
-            selectOptimalShulker()?.let { slot ->
-                addSubActivities(ExtractItemFromContainerStack(slot.stack, itemInfo))
-                return
-            }
+            addSubActivities(ShulkerTransaction(ShulkerOrder(ContainerAction.PULL, itemInfo.item, itemInfo.number)))
+            return
         }
 
         // If the item is obsidian, break down ender chests

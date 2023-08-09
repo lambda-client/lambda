@@ -4,7 +4,7 @@ import baritone.api.BaritoneAPI
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.inventory.core.SwapOrSwitchToSlot
-import com.lambda.client.activity.activities.storage.ItemInfo
+import com.lambda.client.activity.activities.storage.types.ItemInfo
 import com.lambda.client.activity.activities.travel.CollectDrops
 import com.lambda.client.activity.types.*
 import com.lambda.client.event.SafeClientEvent

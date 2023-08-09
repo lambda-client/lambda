@@ -4,6 +4,10 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.construction.core.BreakBlock
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.storage.core.PlaceContainer
+import com.lambda.client.activity.activities.storage.types.ContainerAction
+import com.lambda.client.activity.activities.storage.types.ItemInfo
+import com.lambda.client.activity.activities.storage.types.ItemOrder
+import com.lambda.client.activity.activities.storage.types.ShulkerOrder
 import com.lambda.client.activity.types.RepeatingActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
@@ -29,7 +33,7 @@ class BreakDownEnderChests(
         if (freeSlots.isEmpty()) {
             if (player.inventorySlots.countItem(Blocks.OBSIDIAN.item) > 0) {
                 addSubActivities(
-                    StoreItemToShulkerBox(ItemInfo(Blocks.OBSIDIAN.item, 0))
+                    ShulkerTransaction(ShulkerOrder(ContainerAction.PUSH, Blocks.OBSIDIAN.item, 0))
                 )
                 return
             }

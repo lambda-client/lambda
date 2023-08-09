@@ -31,6 +31,7 @@ import net.minecraft.block.BlockBush
 import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.item.EntityItem
 import net.minecraft.init.Blocks
+import net.minecraft.item.ItemShulkerBox
 import net.minecraft.network.play.server.SPacketBlockChange
 import net.minecraft.network.play.server.SPacketMultiBlockChange
 import net.minecraft.util.math.AxisAlignedBB
@@ -67,6 +68,8 @@ class BuildStructure(
         }
 
         currentOffset = currentOffset.add(offsetMove)
+
+        if (subActivities.isEmpty()) success()
     }
 
     private fun SafeClientEvent.withinRangeOfStructure(): Boolean {
@@ -98,11 +101,19 @@ class BuildStructure(
             val activity = ActivityManager.getCurrentActivity()
 
             // no forced moving on other activities than native build activity
-            if (activity !is BuildActivity || !activity.hasNoSubActivities) return@safeListener
+            if (activity !is BuildActivity || !activity.hasNoSubActivities || activity.context != BuildActivity.Context.NONE) return@safeListener
 
             // pathing cool-down
             if (System.currentTimeMillis() - lastGoalSet < BuildTools.pathingRecomputeTimeout) {
                 BaritoneUtils.primary?.customGoalProcess?.setGoalAndPath(currentGoal)
+                return@safeListener
+            }
+
+            // collect all shulker boxes just to be sure
+            world.loadedEntityList.filterIsInstance<EntityItem>().firstOrNull {
+                it.item.item is ItemShulkerBox
+            }?.let {
+                currentGoal = GoalBlock(it.position)
                 return@safeListener
             }
 
@@ -114,8 +125,7 @@ class BuildStructure(
                 }
 
             // collect drops
-            if (collectAll
-                && autoPathing
+            if (collectAll && autoPathing
                 && (itemsInRange.maxOfOrNull { it.item.count } ?: 0) > BuildTools.minimumStackSize
             ) {
                 itemsInRange.maxByOrNull { it.item.count / player.distanceTo(it.position) }?.let { largestStack ->

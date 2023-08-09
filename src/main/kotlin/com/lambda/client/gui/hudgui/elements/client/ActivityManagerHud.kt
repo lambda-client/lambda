@@ -12,6 +12,7 @@ internal object ActivityManagerHud: LabelHud(
     category = Category.MISC,
     description = "Display current activities."
 ) {
+    val maxEntries by setting("Max Entries", 15, 1..100, 1)
     val anonymize by setting("Anonymize", false)
     private val details by setting("Details", false)
     private var startTime = 0L
@@ -52,8 +53,8 @@ internal object ActivityManagerHud: LabelHud(
         if (sync.isNotEmpty() || async.isNotEmpty()) {
             displayText.addLine("")
             displayText.addLine("Subscribers:")
-            if (sync.isNotEmpty()) displayText.addLine("SYNC ${sync.take(100).map { it::class.simpleName }}${if (sync.size > 100) "..." else ""}")
-            if (async.isNotEmpty()) displayText.addLine("ASYNC ${async.take(100).map { it::class.simpleName }}${if (async.size > 100) "..." else ""}")
+            if (sync.isNotEmpty()) displayText.addLine("SYNC ${sync.take(maxEntries).map { it::class.simpleName }}${if (sync.size > maxEntries) "..." else ""}")
+            if (async.isNotEmpty()) displayText.addLine("ASYNC ${async.take(maxEntries).map { it::class.simpleName }}${if (async.size > maxEntries) "..." else ""}")
         }
     }
 

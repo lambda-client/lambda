@@ -1,6 +1,7 @@
-package com.lambda.client.activity.activities.storage
+package com.lambda.client.activity.activities.storage.types
 
 import com.lambda.client.util.math.CoordinateConverter.asString
+import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.util.math.BlockPos
 
 /**
@@ -19,8 +20,17 @@ data class Area(val pos1: BlockPos, val pos2: BlockPos) {
     val containedBlocks: Set<BlockPos>
         get() = BlockPos.getAllInBox(pos1, pos2).toSet()
 
-    val maxWidth: Int
-        get() = maxOf(maxX - minX + 1, maxZ - minZ + 1)
+    val minWidth: Int
+        get() = minOf(maxX - minX + 1, maxZ - minZ + 1)
+
+    fun closestBlockPos(player: EntityPlayerSP) = containedBlocks.minBy {
+        it.distanceSq(player.posX, player.posY, player.posZ)
+    }
+
+    fun grow(amount: Int) = Area(
+        BlockPos(pos1.x - amount, pos1.y - amount, pos1.z - amount),
+        BlockPos(pos2.x + amount, pos2.y + amount, pos2.z + amount)
+    )
 
     val minX: Int
         get() = minOf(pos1.x, pos2.x)

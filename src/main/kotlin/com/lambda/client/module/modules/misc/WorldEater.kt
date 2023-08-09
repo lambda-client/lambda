@@ -2,8 +2,8 @@ package com.lambda.client.module.modules.misc
 
 import com.lambda.client.activity.activities.construction.ClearArea
 import com.lambda.client.activity.activities.construction.core.BuildStructure
-import com.lambda.client.activity.activities.storage.Area
-import com.lambda.client.activity.activities.storage.Stash
+import com.lambda.client.activity.activities.storage.types.Area
+import com.lambda.client.activity.activities.storage.types.Stash
 import com.lambda.client.command.CommandManager.prefix
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.manager.managers.ActivityManager

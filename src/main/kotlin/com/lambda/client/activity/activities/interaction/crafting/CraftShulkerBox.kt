@@ -2,7 +2,7 @@ package com.lambda.client.activity.activities.interaction.crafting
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
-import com.lambda.client.activity.activities.storage.ItemInfo
+import com.lambda.client.activity.activities.storage.types.ItemInfo
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.item
 import net.minecraft.init.Blocks

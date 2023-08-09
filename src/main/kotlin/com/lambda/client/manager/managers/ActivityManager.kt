@@ -2,6 +2,7 @@ package com.lambda.client.manager.managers
 
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.storage.*
+import com.lambda.client.activity.activities.storage.types.*
 import com.lambda.client.activity.getShulkerInventory
 import com.lambda.client.activity.types.RenderAABBActivity
 import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkAABBRender
@@ -29,19 +30,17 @@ import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GlStateUtils
 import com.lambda.client.util.graphics.ProjectionUtils
 import com.lambda.client.util.graphics.font.FontRenderAdapter
-import com.lambda.client.util.items.allSlots
-import com.lambda.client.util.items.countEmpty
-import com.lambda.client.util.items.countItem
-import com.lambda.client.util.items.inventorySlots
+import com.lambda.client.util.items.*
 import com.lambda.client.util.math.CoordinateConverter.asString
 import com.lambda.client.util.math.VectorUtils.distanceTo
 import com.lambda.client.util.text.MessageSendHelper
 import com.lambda.client.util.threads.safeListener
+import net.minecraft.init.Blocks
 import net.minecraft.init.Items
 import net.minecraft.item.Item
-import net.minecraft.item.ItemShulkerBox
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import org.lwjgl.opengl.GL11
+import scala.tools.nsc.backend.icode.analysis.TypeFlowAnalysis.MethodTFA.Gen
 import java.util.*
 
 object ActivityManager : Manager, Activity() {
@@ -158,27 +157,33 @@ object ActivityManager : Manager, Activity() {
     }
 
     private fun SafeClientEvent.maintainInventory() {
-        if (subActivities.filterIsInstance<StashTransaction>().isNotEmpty()
-            || allSubActivities.filterIsInstance<ExtractItemFromContainerStack>().isNotEmpty()
-            || subActivities.filterIsInstance<StoreItemToShulkerBox>().isNotEmpty()
+        if (allSubActivities.filterIsInstance<StashTransaction>().isNotEmpty()
+            || allSubActivities.filterIsInstance<ShulkerTransaction>().isNotEmpty()
         ) return
 
-        val stashOrders = mutableListOf<Pair<Stash, Order>>()
+        val stashOrders = mutableSetOf<Pair<Stash, ContainerOrder>>()
 
         if (player.allSlots.none { slot -> getShulkerInventory(slot.stack)?.all { it.isEmpty } == true }) {
-            MessageSendHelper.sendChatMessage("No empty shulker boxes found, requesting new ones.")
+            // ToDo: Request correct amount of shulkers
+            WorldEater.stashes.minByOrNull {
+                player.distanceTo(it.area.center)
+            }?.let { stash ->
+                stashOrders.add(stash to GeneralOrder(ContainerAction.PULL, GeneralOrder.Selection.EMPTY_SHULKERS, 5))
+            }
 
-            val fullShulkerItem = player.allSlots
-                .filter { slot -> getShulkerInventory(slot.stack)?.none { it.isEmpty } == true }
-                .mapNotNull { slot -> getShulkerInventory(slot.stack)?.firstOrNull()?.item }
+            if (player.allSlots.any(GeneralOrder.Selection.FULL_SHULKERS.slotFilter)) {
+                WorldEater.dropOff.minByOrNull {
+                    player.distanceTo(it.area.center)
+                }?.let { stash ->
+                    stashOrders.add(stash to GeneralOrder(ContainerAction.PUSH, GeneralOrder.Selection.FULL_SHULKERS, 0))
+                }
+            }
 
-            stashOrders.addAll(fullShulkerItem.mapNotNull { itemShulkerToStore ->
-                WorldEater.dropOff
-                    .filter { it.items.contains(itemShulkerToStore) }
-                    .minByOrNull { player.distanceTo(it.area.center) }?.let { stash ->
-                        stash to Order(Action.PUSH, ItemInfo(itemShulkerToStore, number = 0, containedInShulker = true))
-                    }
-            })
+            if (stashOrders.isNotEmpty()) {
+                MessageSendHelper.sendChatMessage("No empty shulker boxes found, getting new ones and dump full ones.")
+                addSubActivities(StashTransaction(stashOrders))
+                return
+            }
         }
 
         if (player.inventorySlots.countEmpty() <= BuildTools.keepFreeSlots) {
@@ -192,54 +197,37 @@ object ActivityManager : Manager, Activity() {
                 } to shulker boxes.")
 
                 addSubActivities(itemsToStore.map {
-                    StoreItemToShulkerBox(ItemInfo(it, 0))
+                    ShulkerTransaction(ShulkerOrder(ContainerAction.PUSH, it, 0))
                 })
+                return
             }
         }
 
-        if (BuildTools.usePickaxe) checkItem(Items.DIAMOND_PICKAXE).ifPresent { stashOrders.add(it) }
-        if (BuildTools.useShovel) checkItem(Items.DIAMOND_SHOVEL).ifPresent { stashOrders.add(it) }
-        if (BuildTools.useAxe) checkItem(Items.DIAMOND_AXE).ifPresent { stashOrders.add(it) }
-        if (BuildTools.useSword) checkItem(Items.DIAMOND_SWORD).ifPresent { stashOrders.add(it) }
-        if (BuildTools.useShears) checkItem(Items.SHEARS).ifPresent { stashOrders.add(it) }
+        if (BuildTools.usePickaxe) checkItem(Items.DIAMOND_PICKAXE, stashOrders)
+        if (BuildTools.useShovel) checkItem(Items.DIAMOND_SHOVEL, stashOrders)
+        if (BuildTools.useAxe) checkItem(Items.DIAMOND_AXE, stashOrders)
+        if (BuildTools.useSword) checkItem(Items.DIAMOND_SWORD, stashOrders)
+        if (BuildTools.useShears) checkItem(Items.SHEARS, stashOrders)
 
-        checkItem(Items.GOLDEN_APPLE).ifPresent { stashOrders.add(it) }
+        checkItem(Items.GOLDEN_APPLE, stashOrders)
 
-        if (stashOrders.isNotEmpty()) {
-            addSubActivities(stashOrders.groupBy { it.first }.map { group ->
-                MessageSendHelper.sendChatMessage("Orders for stash at (${
-                    group.key.area.center.asString()
-                }): ${
-                    stashOrders.joinToString {
-                        "${
-                            it.second.action.name
-                        }:${
-                            it.second.itemInfo.item.registryName.toString().split(":")[1]
-                        }"
-                    }
-                }")
-
-                StashTransaction(group.value.map { it.second }, group.key)
-            })
-        }
+        if (stashOrders.isNotEmpty()) addSubActivities(StashTransaction(stashOrders))
     }
 
-    private fun SafeClientEvent.checkItem(item: Item): Optional<Pair<Stash, Order>> {
+    private fun SafeClientEvent.checkItem(item: Item, orders: MutableSet<Pair<Stash, ContainerOrder>>) {
         if (player.allSlots.countItem(item) + player.allSlots.sumOf { slot ->
             getShulkerInventory(slot.stack)?.filter { it.item == item }?.sumOf { it.count } ?: 0
-                // ToDo: Add ender chest support
-        } >= BuildTools.minToolAmount) return Optional.empty()
+                // ToDo: Add ender chest support also make this use some kind of utils for storage management
+        } >= BuildTools.minToolAmount) return
 
         val optimalStash = WorldEater.stashes
             .filter { it.items.contains(item) }
-            .minByOrNull { player.distanceTo(it.area.center) } ?: return Optional.empty()
+            .minByOrNull { player.distanceTo(it.area.center) } ?: return
 
         MessageSendHelper.sendChatMessage("Missing ${
             item.registryName
-        }. Fetching from stash at ${optimalStash.area.center.asString()}.")
+        }. Fetching shulker from stash (${optimalStash.area.center.asString()}).")
 
-        return Optional.of(
-            optimalStash to Order(Action.PULL, ItemInfo(item))
-        )
+        orders.add(optimalStash to ShulkerOrder(ContainerAction.PULL, item, 1))
     }
 }

@@ -17,6 +17,7 @@ import com.lambda.client.event.LambdaEventBus
 import com.lambda.client.event.ListenerManager
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud
+import com.lambda.client.gui.hudgui.elements.client.ActivityManagerHud.maxEntries
 import com.lambda.client.manager.managers.ActivityManager
 import com.lambda.client.manager.managers.ActivityManager.MAX_DEPTH
 import com.lambda.client.module.AbstractModule
@@ -152,7 +153,7 @@ abstract class Activity {
         checkRepeat(activity)
         checkLoopingUntil(activity)
 
-//        BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
+        if (this@Activity !is BuildActivity) BaritoneUtils.primary?.pathingBehavior?.cancelEverything()
 
 //                LambdaMod.LOG.info("${System.currentTimeMillis()} Finalized $name after ${System.currentTimeMillis() - creationTime}ms")
 //        MessageSendHelper.sendRawChatMessage("$name took ${age}ms")
@@ -294,32 +295,22 @@ abstract class Activity {
             textComponent.add(hashCode().toString(), primaryColor)
 
             if (details) {
-                this::class.java.declaredFields.forEachIndexed { index, field ->
+                this::class.java.declaredFields.forEach { field ->
                     field.isAccessible = true
                     val name = field.name
-                    val value = field.get(this)
+                    val value = field.get(this) ?: return@forEach
 
-//                    if (index.mod(6) == 0) {
-//                        textComponent.addLine("", primaryColor)
-//                        repeat(depth) {
-//                            textComponent.add("   ")
-//                        }
-//                    }
+                    if (ActivityManagerHud.anonymize && (value is BlockPos || value is Vec3d || value is Entity || value is AxisAlignedBB)) return@forEach
 
-                    value?.let {
-                        if (!ActivityManagerHud.anonymize
-                            || !(value is BlockPos || value is Vec3d || value is Entity || value is AxisAlignedBB)
-                        ) {
-                            textComponent.add(name.capitalize(), primaryColor)
-                            when (value) {
-                                is ItemBlock -> {
-                                    textComponent.add(value.block.localizedName, secondaryColor)
-                                }
+                    textComponent.add(name.capitalize(), primaryColor)
 
-                                else -> {
-                                    textComponent.add(value.toString(), secondaryColor)
-                                }
-                            }
+                    when (value) {
+                        is ItemBlock -> {
+                            textComponent.add(value.block.localizedName, secondaryColor)
+                        }
+
+                        else -> {
+                            textComponent.add(value.toString(), secondaryColor)
                         }
                     }
                 }
@@ -329,7 +320,7 @@ abstract class Activity {
         addExtraInfo(textComponent, primaryColor, secondaryColor)
         textComponent.addLine("")
 
-        val acti = if (this is BuildStructure) {
+        val activities = if (this is BuildStructure) {
             subActivities
                 .filterIsInstance<BuildActivity>()
                 .sortedWith(buildComparator())
@@ -338,24 +329,27 @@ abstract class Activity {
             subActivities
         }
 
-        acti.take(25).forEach {
+        activities.take(maxEntries).forEach {
             repeat(depth) {
                 textComponent.add("   ")
             }
             it.appendInfo(textComponent, primaryColor, secondaryColor, details)
         }
-        if (acti.size > 25) {
-            textComponent.addLine("And ${acti.size - 25} more...", primaryColor)
+        if (activities.size > maxEntries) {
+            repeat(depth) {
+                textComponent.add("   ")
+            }
+            textComponent.addLine("And ${activities.size - maxEntries} more...", primaryColor)
         }
     }
 
     override fun toString(): String {
-        val properties = this::class.java.declaredFields.joinToString(separator = ", ", prefix = ", ") {
-            it.isAccessible = true
-            val name = it.name
-            val value = it.get(this)
-            "$name=$value"
-        }
+//        val properties = this::class.java.declaredFields.joinToString(separator = ", ", prefix = ", ") {
+//            it.isAccessible = true
+//            val name = it.name
+//            val value = it.get(this)
+//            "$name=$value"
+//        }
 
 //        return "$activityName: [State=$activityStatus, Runtime=${DurationFormatUtils.formatDuration(age, "HH:mm:ss,SSS")}, SubActivities=${subActivities.size}$properties]"
         return "$activityName: [State=$status, Runtime=${DurationFormatUtils.formatDuration(age, "HH:mm:ss,SSS")}, SubActivities=${subActivities.size}]"

@@ -5,9 +5,8 @@ import com.lambda.client.activity.activities.construction.SurroundWithObsidian
 import com.lambda.client.activity.activities.construction.core.PlaceBlock
 import com.lambda.client.activity.activities.interaction.crafting.ReachXPLevel
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
-import com.lambda.client.activity.activities.storage.BreakDownEnderChests
-import com.lambda.client.activity.activities.storage.ItemInfo
-import com.lambda.client.activity.activities.storage.StoreItemToShulkerBox
+import com.lambda.client.activity.activities.storage.*
+import com.lambda.client.activity.activities.storage.types.*
 import com.lambda.client.activity.activities.travel.CollectDrops
 import com.lambda.client.activity.types.RenderAABBActivity.Companion.checkAABBRender
 import com.lambda.client.manager.managers.ActivityManager
@@ -22,6 +21,8 @@ import com.lambda.client.util.threads.runSafe
 import net.minecraft.block.BlockDirectional
 import net.minecraft.block.BlockHorizontal
 import net.minecraft.init.Blocks
+import net.minecraft.init.Items
+import net.minecraft.item.Item
 import net.minecraft.util.EnumFacing
 
 object TestActivityManager : Module(
@@ -36,10 +37,38 @@ object TestActivityManager : Module(
         false
     })
 
-    private val tie by setting("Store Obby", false, consumer = { _, _->
+    private val tie by setting("Store one Obby", false, consumer = { _, _->
         addSubActivities(
-            StoreItemToShulkerBox(ItemInfo(Blocks.OBSIDIAN.item, 0))
+            ShulkerTransaction(ShulkerOrder(ContainerAction.PUSH, Blocks.OBSIDIAN.item, 1))
         )
+        false
+    })
+
+    private val eictie by setting("Stash request", false, consumer = { _, _->
+        WorldEater.stashes.firstOrNull()?.let {
+            addSubActivities(
+                StashTransaction(setOf(it to ShulkerOrder(ContainerAction.PULL, Blocks.OBSIDIAN.item, 1)))
+            )
+        }
+        false
+    })
+
+    private val ectitie by setting("Stash request multi", false, consumer = { _, _->
+        WorldEater.stashes.firstOrNull()?.let {
+            addSubActivities(
+                StashTransaction(setOf(it to ShulkerOrder(ContainerAction.PULL, Blocks.OBSIDIAN.item, 0)))
+            )
+        }
+        false
+    })
+
+    private val ectiectictietie by setting("Stash request multi more", false, consumer = { _, _->
+        WorldEater.stashes.firstOrNull()?.let {
+            addSubActivities(
+                StashTransaction(setOf(it to ShulkerOrder(ContainerAction.PULL, Items.DIAMOND_SHOVEL, 1))),
+                StashTransaction(setOf(it to ShulkerOrder(ContainerAction.PUSH, Items.DIAMOND_SHOVEL, 1)))
+            )
+        }
         false
     })
 
