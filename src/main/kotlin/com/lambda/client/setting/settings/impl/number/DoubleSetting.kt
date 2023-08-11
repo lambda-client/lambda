@@ -11,8 +11,9 @@ class DoubleSetting(
     consumer: (prev: Double, input: Double) -> Double = { _, input -> input },
     description: String = "",
     unit: String = "",
-    fineStep: Double = step
-) : NumberSetting<Double>(name, value, range, step, visibility, consumer, description, unit, fineStep) {
+    fineStep: Double = step,
+    formatter: (Double) -> String = { d -> "$d"},
+    ) : NumberSetting<Double>(name, value, range, step, visibility, consumer, description, formatter, unit, fineStep) {
 
     init {
         consumers.add(0) { _, it ->

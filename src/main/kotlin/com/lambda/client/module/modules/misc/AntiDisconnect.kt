@@ -8,5 +8,5 @@ object AntiDisconnect : Module(
     description = "Prevents you from accidently disconnecting",
     category = Category.MISC
 ) {
-    val presses by setting("Button Presses", 3, 1..20, 1)
+    val presses by setting("Button Presses", 3, 1..20, 1, formatter = {i -> "$i presses"})
 }

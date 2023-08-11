@@ -11,8 +11,9 @@ class BindSetting(
     name: String,
     value: Bind,
     visibility: () -> Boolean = { true },
-    description: String = ""
-) : ImmutableSetting<Bind>(name, value, visibility, { _, input -> input }, description, unit = "") {
+    description: String = "",
+    formatter: (Bind) -> String = { b -> "$b"},
+    ) : ImmutableSetting<Bind>(name, value, visibility, { _, input -> input }, description, formatter, unit = "") {
 
     override val defaultValue: Bind = Bind(TreeSet(value.modifierKeys), value.key, null)
 

@@ -9,8 +9,9 @@ open class BooleanSetting(
     value: Boolean,
     visibility: () -> Boolean = { true },
     consumer: (prev: Boolean, input: Boolean) -> Boolean = { _, input -> input },
-    description: String = ""
-) : MutableSetting<Boolean>(name, value, visibility, consumer, description, unit = "") {
+    description: String = "",
+    formatter: (Boolean) -> String = { b -> "$b"},
+    ) : MutableSetting<Boolean>(name, value, visibility, consumer, description, formatter, unit = "") {
 
     override fun write(): JsonElement = JsonPrimitive(value)
 

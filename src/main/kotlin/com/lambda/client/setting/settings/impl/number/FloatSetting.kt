@@ -11,8 +11,9 @@ class FloatSetting(
     consumer: (prev: Float, input: Float) -> Float = { _, input -> input },
     description: String = "",
     unit: String = "",
-    fineStep: Float = step
-) : NumberSetting<Float>(name, value, range, step, visibility, consumer, description, unit, fineStep) {
+    fineStep: Float = step,
+    formatter: (Float) -> String = { f -> "$f"},
+    ) : NumberSetting<Float>(name, value, range, step, visibility, consumer, description, formatter, unit, fineStep) {
 
     init {
         consumers.add(0) { _, it ->
