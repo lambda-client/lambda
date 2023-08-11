@@ -1,5 +1,7 @@
 package com.lambda.client.module.modules.render
 
+import com.google.common.cache.Cache
+import com.google.common.cache.CacheBuilder
 import com.lambda.client.LambdaMod
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
@@ -35,6 +37,7 @@ import java.nio.file.Path
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.hypot
 
 object NewChunks : Module(
     name = "NewChunks",
@@ -46,6 +49,14 @@ object NewChunks : Module(
     private val chunkGridColor by setting("Grid Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
     private val distantChunkColor by setting("Distant Chunk Color", ColorHolder(100, 100, 100, 100), true, { renderMode != RenderMode.WORLD }, "Chunks that are not in render distance and not in baritone cache")
     private val newChunkColor by setting("New Chunk Color", ColorHolder(255, 0, 0, 100), true, { renderMode != RenderMode.WORLD })
+    private val radarUpdateFrequency by setting("Radar Update Frequency", 50, 1..250, 10,
+        description = "How often to update the rendered chunks (ms)", visibility = { renderMode != RenderMode.WORLD },
+        consumer = { _, new ->
+            radarRenderCache = CacheBuilder.newBuilder()
+                .expireAfterWrite(new.toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
+                .build()
+            new
+        })
     private val saveNewChunks by setting("Save New Chunks", false)
     private val saveOption by setting("Save Option", SaveOption.EXTRA_FOLDER, { saveNewChunks })
     private val saveInRegionFolder by setting("In Region", false, { saveNewChunks })
@@ -70,6 +81,10 @@ object NewChunks : Module(
     private var logWriter: PrintWriter? = null
     private val chunks = ConcurrentHashMap<ChunkPos, Long>()
     private val timer = TickTimer(TimeUnit.SECONDS)
+
+    private var radarRenderCache: Cache<Int, List<Pair<Vec2d, Vec2d>>> = CacheBuilder.newBuilder()
+        .expireAfterWrite(radarUpdateFrequency.toLong(), java.util.concurrent.TimeUnit.MILLISECONDS)
+        .build()
 
     init {
         onDisable {
@@ -122,40 +137,62 @@ object NewChunks : Module(
             val chunkDist = (it.radius * it.scale).toInt() shr 4
             // at high zooms (further zoomed out) there will be thousands of rects being rendered
             // buffering rects here to reduce GL calls and improve FPS
-            val distantChunkRects: MutableList<Pair<Vec2d, Vec2d>> = mutableListOf()
-            val chunkGridRects: MutableList<Pair<Vec2d, Vec2d>> = mutableListOf()
-            for (chunkX in -chunkDist..chunkDist) {
-                for (chunkZ in -chunkDist..chunkDist) {
-                    val pos0 = getChunkPos(chunkX, chunkZ, playerOffset, it.scale)
-                    val pos1 = getChunkPos(chunkX + 1, chunkZ + 1, playerOffset, it.scale)
 
-                    if (isSquareInRadius(pos0, pos1, it.radius)) {
-                        val chunk = world.getChunk(player.chunkCoordX + chunkX, player.chunkCoordZ + chunkZ)
-                        val isCachedChunk =
-                            BaritoneUtils.primary?.worldProvider?.currentWorld?.cachedWorld?.isCached(
-                                (player.chunkCoordX + chunkX) shl 4, (player.chunkCoordZ + chunkZ) shl 4
-                            ) ?: false
+            var distantChunkRectsCached = radarRenderCache.getIfPresent(0)
+            var chunkGridRectsCached = radarRenderCache.getIfPresent(1)
 
-                        if (!chunk.isLoaded && !isCachedChunk) {
-                            distantChunkRects.add(Pair(pos0, pos1))
+            if (distantChunkRectsCached == null || chunkGridRectsCached == null) {
+                val distantChunkRects: MutableList<Pair<Vec2d, Vec2d>> = mutableListOf()
+                val chunkGridRects: MutableList<Pair<Vec2d, Vec2d>> = mutableListOf()
+                for (chunkX in -chunkDist..chunkDist) {
+                    for (chunkZ in -chunkDist..chunkDist) {
+                        val x1 = ((chunkX shl 4) - playerOffset.x) / it.scale
+                        val z1 = ((chunkZ shl 4) - playerOffset.y) / it.scale
+                        val x2 = (((chunkX + 1) shl 4) - playerOffset.x) / it.scale
+                        val z2 = (((chunkZ + 1) shl 4) - playerOffset.y) / it.scale
+
+                        if (isSquareInRadius(x1, x2, z1, z2, it.radius)) {
+                            val chunk = world.getChunk(player.chunkCoordX + chunkX, player.chunkCoordZ + chunkZ)
+                            val isCachedChunk =
+                                BaritoneUtils.primary?.worldProvider?.currentWorld?.cachedWorld?.isCached(
+                                    (player.chunkCoordX + chunkX) shl 4, (player.chunkCoordZ + chunkZ) shl 4
+                                ) ?: false
+                            val chunkPair = Pair(Vec2d(x1, z1), Vec2d(x2, z2))
+                            if (!chunk.isLoaded && !isCachedChunk) {
+                                distantChunkRects.add(chunkPair)
+                            }
+                            if (it.chunkLines) chunkGridRects.add(chunkPair)
                         }
-                        chunkGridRects.add(Pair(pos0, pos1))
                     }
                 }
+                radarRenderCache.put(0, distantChunkRects)
+                radarRenderCache.put(1, chunkGridRects)
+                distantChunkRectsCached = distantChunkRects
+                chunkGridRectsCached = chunkGridRects
             }
-            if (distantChunkRects.isNotEmpty()) RenderUtils2D.drawRectFilledList(it.vertexHelper, distantChunkRects, distantChunkColor)
-            if (it.chunkLines && chunkGridRects.isNotEmpty()) RenderUtils2D.drawRectOutlineList(it.vertexHelper, chunkGridRects, 0.3f, chunkGridColor)
 
-            val newChunkRects: MutableList<Pair<Vec2d, Vec2d>> = mutableListOf()
-            chunks.keys.forEach { chunk ->
-                val pos0 = getChunkPos(chunk.x - player.chunkCoordX, chunk.z - player.chunkCoordZ, playerOffset, it.scale)
-                val pos1 = getChunkPos(chunk.x - player.chunkCoordX + 1, chunk.z - player.chunkCoordZ + 1, playerOffset, it.scale)
+            if (distantChunkRectsCached.isNotEmpty()) RenderUtils2D.drawRectFilledList(it.vertexHelper, distantChunkRectsCached, distantChunkColor)
+            if (it.chunkLines && chunkGridRectsCached.isNotEmpty()) RenderUtils2D.drawRectOutlineList(it.vertexHelper, chunkGridRectsCached, 0.3f, chunkGridColor)
 
-                if (isSquareInRadius(pos0, pos1, it.radius)) {
-                    newChunkRects.add(Pair(pos0, pos1))
+            var newChunkRectsCached = radarRenderCache.getIfPresent(2)
+
+            if (newChunkRectsCached == null) {
+                val newChunkRects: MutableList<Pair<Vec2d, Vec2d>> = mutableListOf()
+                chunks.keys.forEach { chunk ->
+                    val x1 = (((chunk.x - player.chunkCoordX) shl 4) - playerOffset.x) / it.scale
+                    val z1 = (((chunk.z - player.chunkCoordZ) shl 4) - playerOffset.y) / it.scale
+                    val x2 = (((chunk.x - player.chunkCoordX + 1) shl 4) - playerOffset.x) / it.scale
+                    val z2 = (((chunk.z - player.chunkCoordZ + 1) shl 4) - playerOffset.y) / it.scale
+
+                    if (isSquareInRadius(x1, x2, z1, z2, it.radius)) {
+                        newChunkRects.add(Pair(Vec2d(x1, z1), Vec2d(x2, z2)))
+                    }
                 }
+                radarRenderCache.put(2, newChunkRects)
+                newChunkRectsCached = newChunkRects
             }
-            if (newChunkRects.isNotEmpty()) RenderUtils2D.drawRectFilledList(it.vertexHelper, newChunkRects, newChunkColor)
+
+            if (newChunkRectsCached.isNotEmpty()) RenderUtils2D.drawRectFilledList(it.vertexHelper, newChunkRectsCached, newChunkColor)
         }
 
         safeListener<PacketEvent.PostReceive> { event ->
@@ -303,14 +340,10 @@ object NewChunks : Module(
     }
 
     // p2.x > p1.x and p2.y > p1.y is assumed
-    private fun isSquareInRadius(p1: Vec2d, p2: Vec2d, radius: Float): Boolean {
-        val x = if (p1.x + p2.x > 0) p2.x else p1.x
-        val y = if (p1.y + p2.y > 0) p2.y else p1.y
-        return Vec2d(x, y).length() < radius
-    }
-
-    private fun getChunkPos(x: Int, z: Int, playerOffset: Vec2d, scale: Float): Vec2d {
-        return Vec2d((x shl 4).toDouble(), (z shl 4).toDouble()).minus(playerOffset).div(scale.toDouble())
+    private fun isSquareInRadius(x1: Double, x2: Double, z1: Double, z2: Double, radius: Float): Boolean {
+        val x = if (x1 + x2 > 0) x2 else x1
+        val z = if (z1 + z2 > 0) z2 else z1
+        return hypot(x, z) < radius
     }
 
     private fun saveNewChunk(log: PrintWriter?, data: String) {

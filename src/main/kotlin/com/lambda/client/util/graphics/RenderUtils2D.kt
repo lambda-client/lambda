@@ -95,18 +95,14 @@ object RenderUtils2D {
         glLineWidth(lineWidth)
         vertexHelper.begin(GL_LINES)
         rects.forEach {
-            val pos1 = it.first // Top left
-            val pos2 = Vec2d(it.second.x, it.first.y) // Top right
-            val pos3 = it.second // Bottom right
-            val pos4 = Vec2d(it.first.x, it.second.y) // Bottom left
-            vertexHelper.put(pos1, color)
-            vertexHelper.put(pos2, color)
-            vertexHelper.put(pos2, color)
-            vertexHelper.put(pos3, color)
-            vertexHelper.put(pos3, color)
-            vertexHelper.put(pos4, color)
-            vertexHelper.put(pos4, color)
-            vertexHelper.put(pos1, color)
+            vertexHelper.put(it.first.x, it.first.y, color) // Top left
+            vertexHelper.put(it.second.x, it.first.y, color) // Top right
+            vertexHelper.put(it.second.x, it.first.y, color) // Top right
+            vertexHelper.put(it.second.x, it.second.y, color) // Bottom right
+            vertexHelper.put(it.second.x, it.second.y, color) // Bottom right
+            vertexHelper.put(it.first.x, it.second.y, color) // Bottom left
+            vertexHelper.put(it.first.x, it.second.y, color) // Bottom left
+            vertexHelper.put(it.first.x, it.first.y, color) // Top left
         }
         vertexHelper.end()
         releaseGl()
@@ -125,16 +121,12 @@ object RenderUtils2D {
         prepareGl()
         vertexHelper.begin(GL_TRIANGLES)
         rects.forEach {
-            val pos1 = it.first // Top left
-            val pos2 = Vec2d(it.second.x, it.first.y) // Top right
-            val pos3 = it.second // Bottom right
-            val pos4 = Vec2d(it.first.x, it.second.y) // Bottom left
-            vertexHelper.put(pos1, color)
-            vertexHelper.put(pos2, color)
-            vertexHelper.put(pos4, color)
-            vertexHelper.put(pos4, color)
-            vertexHelper.put(pos3, color)
-            vertexHelper.put(pos2, color)
+            vertexHelper.put(it.first.x, it.first.y, color) // Top left
+            vertexHelper.put(it.second.x, it.first.y, color) // Top right
+            vertexHelper.put(it.first.x, it.second.y, color) // Bottom left
+            vertexHelper.put(it.first.x, it.second.y, color) // Bottom left
+            vertexHelper.put(it.second.x, it.second.y, color) // Bottom right
+            vertexHelper.put(it.second.x, it.first.y, color) // Top right
         }
         vertexHelper.end()
         releaseGl()
