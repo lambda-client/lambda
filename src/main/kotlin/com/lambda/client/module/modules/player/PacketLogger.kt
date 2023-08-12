@@ -948,7 +948,7 @@ object PacketLogger : Module(
                     if (!sPacketBlockChange) return
                     logServer(packet) {
                         "blockPosition" to packet.blockPosition
-                        "block" to packet.blockState.block.localizedName
+                        "blockState" to packet.blockState
                     }
                 }
                 is SPacketCamera -> {

@@ -5,7 +5,6 @@ import com.lambda.client.event.listener.listener
 import com.lambda.client.module.Category
 import com.lambda.client.module.Module
 import com.lambda.client.module.modules.client.GuiColors
-import com.lambda.client.module.modules.render.Search.setting
 import com.lambda.client.util.Wrapper
 import com.lambda.client.util.graphics.ESPRenderer
 import com.lambda.client.util.graphics.GeometryMasks

@@ -13,6 +13,7 @@ import net.minecraft.network.play.client.CPacketPlayerTryUseItemOnBlock
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.EnumHand
 import net.minecraft.util.SoundCategory
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.util.*
@@ -83,7 +84,7 @@ private fun SafeClientEvent.getNeighbour(
     sides: Array<EnumFacing>,
     toIgnore: HashSet<Pair<BlockPos, EnumFacing>>
 ): PlaceInfo? {
-    if (!world.isPlaceable(pos)) return null
+    if (!world.isPlaceable(pos, AxisAlignedBB(pos))) return null
 
     sides.forEach { side ->
         checkNeighbour(eyePos, pos, side, range, visibleSideCheck, true, toIgnore)?.let {
@@ -95,7 +96,7 @@ private fun SafeClientEvent.getNeighbour(
 
     sides.forEach { posSide ->
         val newPos = pos.offset(posSide)
-        if (!world.isPlaceable(newPos)) return@forEach
+        if (!world.isPlaceable(newPos, AxisAlignedBB(newPos))) return@forEach
         if (eyePos.distanceTo(newPos.toVec3dCenter()) > range + 1) return@forEach
 
         getNeighbour(eyePos, newPos, attempts - 1, range, visibleSideCheck, sides, toIgnore)?.let {
@@ -126,7 +127,7 @@ private fun SafeClientEvent.checkNeighbour(
     if (dist > range) return null
     if (visibleSideCheck && !getVisibleSides(offsetPos, true).contains(oppositeSide)) return null
     if (checkReplaceable && world.getBlockState(offsetPos).isReplaceable) return null
-    if (!world.isPlaceable(pos)) return null
+    if (!world.isPlaceable(pos, AxisAlignedBB(pos))) return null
 
     val hitVecOffset = getHitVecOffset(oppositeSide)
     return PlaceInfo(offsetPos, oppositeSide, dist, hitVecOffset, hitVec, pos)
@@ -137,6 +138,15 @@ fun SafeClientEvent.getMiningSide(pos: BlockPos): EnumFacing? {
 
     return getVisibleSides(pos)
         .filter { !world.getBlockState(pos.offset(it)).isFullBox }
+        .minByOrNull { eyePos.squareDistanceTo(getHitVec(pos, it)) }
+}
+
+fun SafeClientEvent.getMiningSide(pos: BlockPos, range: Float): EnumFacing? {
+    val eyePos = player.getPositionEyes(1.0f)
+
+    return getVisibleSides(pos)
+        .filter { !world.getBlockState(pos.offset(it)).isFullBox }
+        .filter { eyePos.distanceTo(getHitVec(pos, it)) < range }
         .minByOrNull { eyePos.squareDistanceTo(getHitVec(pos, it)) }
 }
 
@@ -241,7 +251,7 @@ private fun SafeClientEvent.getStructurePlaceInfo(
     for (offset in structureOffset) {
         val pos = center.add(offset)
         if (toIgnore.contains(pos)) continue
-        if (!world.isPlaceable(pos)) continue
+        if (!world.isPlaceable(pos, AxisAlignedBB(pos))) continue
 
         return getNeighbour(pos, attempts, range, visibleSideCheck) ?: continue
     }
@@ -277,7 +287,7 @@ fun SafeClientEvent.placeBlock(
     placeInfo: PlaceInfo,
     hand: EnumHand = EnumHand.MAIN_HAND
 ) {
-    if (!world.isPlaceable(placeInfo.placedPos)) return
+    if (!world.isPlaceable(placeInfo.placedPos, AxisAlignedBB(placeInfo.placedPos))) return
 
     connection.sendPacket(placeInfo.toPlacePacket(hand))
     player.swingArm(hand)

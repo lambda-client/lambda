@@ -24,6 +24,7 @@ import com.lambda.client.util.world.isPlaceable
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import net.minecraft.init.Blocks
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraftforge.fml.common.gameevent.InputEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -79,7 +80,9 @@ object AutoTrap : Module(
     private fun SafeClientEvent.canRun(): Boolean {
         (if (selfTrap.value) player else CombatManager.target)?.positionVector?.toBlockPos()?.let {
             for (offset in trapMode.offset) {
-                if (!world.isPlaceable(it.add(offset))) continue
+                val targetPos = it.add(offset)
+
+                if (!world.isPlaceable(targetPos, AxisAlignedBB(targetPos))) continue
                 return true
             }
         }

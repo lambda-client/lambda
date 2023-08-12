@@ -10,6 +10,9 @@ import com.lambda.client.setting.settings.impl.primitive.EnumSetting
 import com.lambda.client.setting.settings.impl.primitive.StringSetting
 import com.lambda.client.util.Bind
 import com.lambda.client.util.color.ColorHolder
+import net.minecraft.block.Block
+import net.minecraft.item.Item
+import net.minecraft.util.math.BlockPos
 import java.util.function.BooleanSupplier
 
 /**
@@ -74,6 +77,30 @@ interface SettingRegister<T : Any> {
         visibility: () -> Boolean = { true },
         description: String = ""
     ) = setting(ColorSetting(name, value, hasAlpha, visibility, description))
+
+    /** BlockPos Setting */
+    fun T.setting(
+        name: String,
+        value: BlockPos,
+        visibility: () -> Boolean = { true },
+        description: String = ""
+    ) = setting(MutableSetting(name, value, visibility, { _, input -> input }, description, unit = ""))
+
+    /** Item Setting */
+    fun T.setting(
+        name: String,
+        value : Item,
+        visibility: () -> Boolean = { true },
+        description: String = ""
+    ) = setting(MutableSetting(name, value, visibility, { _, input -> input }, description, unit = ""))
+
+    /** Block Setting */
+    fun T.setting(
+        name: String,
+        value : Block,
+        visibility: () -> Boolean = { true },
+        description: String = ""
+    ) = setting(MutableSetting(name, value, visibility, { _, input -> input }, description, unit = ""))
 
     /** Boolean Setting */
     fun T.setting(

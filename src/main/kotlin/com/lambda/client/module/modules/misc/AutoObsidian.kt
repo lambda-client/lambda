@@ -272,7 +272,7 @@ object AutoObsidian : Module(
     private fun SafeClientEvent.isPositionValid(pos: BlockPos, blockState: IBlockState, eyePos: Vec3d) =
         !world.getBlockState(pos.down()).isReplaceable
             && (blockState.block.let { it == Blocks.ENDER_CHEST || it is BlockShulkerBox }
-            || world.isPlaceable(pos))
+            || world.isPlaceable(pos, blockState.getSelectedBoundingBox(world, pos)))
             && world.isAirBlock(pos.up())
             && world.rayTraceBlocks(eyePos, pos.toVec3dCenter())?.let { it.typeOfHit == RayTraceResult.Type.MISS } ?: true
 

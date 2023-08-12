@@ -1,5 +1,6 @@
 package com.lambda.client.module
 
+import com.lambda.client.activity.Activity
 import com.lambda.client.commons.interfaces.Alias
 import com.lambda.client.commons.interfaces.Nameable
 import com.lambda.client.event.LambdaEventBus

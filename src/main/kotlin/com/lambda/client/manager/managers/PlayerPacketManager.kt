@@ -15,11 +15,12 @@ import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
+import java.util.concurrent.ConcurrentLinkedDeque
 
 object PlayerPacketManager : Manager {
 
     /** TreeMap for all packets to be sent, sorted by their callers' priority */
-    private val packetMap = TreeMap<AbstractModule, Packet>(compareByDescending { it.modulePriority })
+    private val packetMap = ConcurrentLinkedDeque<Packet>()
 
     var serverSidePosition: Vec3d = Vec3d.ZERO; private set
     var prevServerSidePosition: Vec3d = Vec3d.ZERO; private set
@@ -33,7 +34,7 @@ object PlayerPacketManager : Manager {
         listener<OnUpdateWalkingPlayerEvent>(Int.MIN_VALUE) {
             if (it.phase != Phase.PERI || packetMap.isEmpty()) return@listener
 
-            it.apply(packetMap.values.first())
+            it.apply(packetMap.first())
             packetMap.clear()
         }
 
@@ -80,14 +81,14 @@ object PlayerPacketManager : Manager {
         }
     }
 
-    inline fun AbstractModule.sendPlayerPacket(block: Packet.Builder.() -> Unit) {
+    inline fun sendPlayerPacket(block: Packet.Builder.() -> Unit) {
         Packet.Builder().apply(block).build()?.let {
             sendPlayerPacket(it)
         }
     }
 
-    fun AbstractModule.sendPlayerPacket(packet: Packet) {
-        packetMap[this] = packet
+    fun sendPlayerPacket(packet: Packet) {
+        packetMap.push(packet)
     }
 
     class Packet private constructor(

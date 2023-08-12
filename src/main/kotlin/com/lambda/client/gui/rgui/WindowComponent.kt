@@ -132,8 +132,8 @@ open class WindowComponent(
 
             onResize()
         } else if (draggableHeight == height || relativeClickPos.y <= draggableHeight) {
-            posX = roundOnGrid(preDragPos.x + draggedDist.x).coerceIn(.0f, mc.displayWidth - width)
-            posY = roundOnGrid(preDragPos.y + draggedDist.y).coerceIn(.0f, mc.displayHeight - height)
+            posX = roundOnGrid(preDragPos.x + draggedDist.x).coerceIn(.0f, max(mc.displayWidth - width, 0.01f))
+            posY = roundOnGrid(preDragPos.y + draggedDist.y).coerceIn(.0f, max(mc.displayHeight - height, 0.01f))
 
             onReposition()
         }
