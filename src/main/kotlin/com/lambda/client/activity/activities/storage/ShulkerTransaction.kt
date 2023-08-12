@@ -6,8 +6,7 @@ import com.lambda.client.activity.activities.storage.core.CloseContainer
 import com.lambda.client.activity.activities.storage.core.ContainerWindowTransaction
 import com.lambda.client.activity.activities.storage.core.PlaceContainer
 import com.lambda.client.activity.activities.storage.types.ContainerAction
-import com.lambda.client.activity.activities.storage.types.ItemOrder
-import com.lambda.client.activity.activities.storage.types.ShulkerOrder
+import com.lambda.client.activity.activities.storage.types.StackSelection
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.items.allSlots
 
@@ -15,15 +14,18 @@ import com.lambda.client.util.items.allSlots
  * Push or pull item from a fitting shulker from inventory
  */
 class ShulkerTransaction(
-    val order: ShulkerOrder
+    val action: ContainerAction,
+    val order: StackSelection
 ) : Activity() {
     override fun SafeClientEvent.onInitialize() {
-        if (order.action == ContainerAction.PULL) {
+        if (action == ContainerAction.PULL) {
             player.allSlots.mapNotNull {
                 order.findShulkerToPull(it)
             }.minByOrNull { it.second }?.first?.let { slot ->
                 addSubActivities(
-                    PlaceContainer(slot.stack.copy(), open = true)
+                    PlaceContainer(StackSelection().apply {
+                        selection = isItemStack(slot.stack)
+                    }, open = true)
                 )
                 return
             }
@@ -32,7 +34,9 @@ class ShulkerTransaction(
                 order.findShulkerToPush(it)
             }.minByOrNull { it.second }?.first?.let { slot ->
                 addSubActivities(
-                    PlaceContainer(slot.stack.copy(), open = true)
+                    PlaceContainer(StackSelection().apply {
+                        selection = isItemStack(slot.stack)
+                    }, open = true)
                 )
                 return
             }
@@ -43,7 +47,7 @@ class ShulkerTransaction(
         if (childActivity !is PlaceContainer) return
 
         addSubActivities(
-            ContainerWindowTransaction(ItemOrder(order.action, order.item, order.amount)),
+            ContainerWindowTransaction(action, order),
             CloseContainer(),
             BreakBlock(
                 childActivity.containerPos,

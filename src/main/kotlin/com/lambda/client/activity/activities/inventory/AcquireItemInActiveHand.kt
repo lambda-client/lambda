@@ -6,10 +6,7 @@ import com.lambda.client.activity.activities.inventory.core.SwapOrSwitchToSlot
 import com.lambda.client.activity.activities.inventory.core.SwitchToHotbarSlot
 import com.lambda.client.activity.activities.storage.BreakDownEnderChests
 import com.lambda.client.activity.activities.storage.ShulkerTransaction
-import com.lambda.client.activity.activities.storage.types.ContainerAction
-import com.lambda.client.activity.activities.storage.types.ItemInfo
-import com.lambda.client.activity.activities.storage.types.ShulkerOrder
-import com.lambda.client.activity.getShulkerInventory
+import com.lambda.client.activity.activities.storage.types.*
 import com.lambda.client.activity.types.AttemptActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
@@ -24,12 +21,9 @@ import net.minecraft.item.ItemStack
 
 /**
  * [AcquireItemInActiveHand] is an [Activity] that attempts to acquire an [Item] in the player's active hand.
- * It will attempt to acquire the item in the following order:
- * 1. Switch to the hotbar slot that contains the item
- * 2. Swap the item with an item in the hotbar
  */
 class AcquireItemInActiveHand(
-    private val itemInfo: ItemInfo,
+    private val order: StackSelection,
     private val searchShulkerBoxes: Boolean = true,
     private val searchEnderChest: Boolean = true,
 ) : AttemptActivity, Activity() {
@@ -38,37 +32,39 @@ class AcquireItemInActiveHand(
 
     override fun SafeClientEvent.onInitialize() {
         // If the item is already in the player's hand, we're done
-        if (itemInfo.stackFilter(player.heldItemMainhand)) {
+        if (order.selection(player.heldItemMainhand)) {
             success()
             return
         }
 
         // If the item is in the hotbar, switch to it
-        player.hotbarSlots.firstOrNull(itemInfo.slotFilter)?.let {
+        player.hotbarSlots.firstOrNull(order.filter)?.let {
             addSubActivities(SwitchToHotbarSlot(it))
             return
         }
 
         // If we are in game mode creative, we can just use the creative inventory (if item not yet in hotbar)
         if (pickBlock && player.capabilities.isCreativeMode) {
-            addSubActivities(CreativeInventoryAction(itemInfo.optimalStack))
-            return
+            order.optimalStack?.let {
+                addSubActivities(CreativeInventoryAction(it))
+                return
+            }
         }
 
-        // If the item is in the inventory, swap it with next best slot in hotbar
-        player.allSlots.firstOrNull(itemInfo.slotFilter)?.let { slotFrom ->
+        // If the item is in the inventory, swap it with the next best slot in hotbar
+        player.allSlots.firstOrNull(order.filter)?.let { slotFrom ->
             addSubActivities(SwapOrSwitchToSlot(slotFrom))
             return
         }
 
         // If the item is in a shulker box, extract it
-        if (searchShulkerBoxes && itemInfo.item !is ItemShulkerBox) {
-            addSubActivities(ShulkerTransaction(ShulkerOrder(ContainerAction.PULL, itemInfo.item, itemInfo.number)))
+        if (searchShulkerBoxes && order.item !is ItemShulkerBox) {
+            addSubActivities(ShulkerTransaction(ContainerAction.PULL, order))
             return
         }
 
         // If the item is obsidian, break down ender chests
-        if (itemInfo.item == Blocks.OBSIDIAN.item) {
+        if (order.item == Blocks.OBSIDIAN.item) {
             addSubActivities(BreakDownEnderChests(maximumRepeats = BuildTools.breakDownCycles))
             return
         }
@@ -77,22 +73,22 @@ class AcquireItemInActiveHand(
 //        if (searchEnderChest) {
 //            // TODO: Check cached ender chest inventory if item is in there directly or in a shulker box
 //            player.allSlots.firstOrNull { it.stack.item == Blocks.ENDER_CHEST.item }?.let { slot ->
-//                addSubActivities(ExtractItemFromContainerStack(slot.stack, itemInfo))
+//                addSubActivities(EnderChestTransaction(ShulkerOrder(ContainerAction.PULL, order.item, order.amount), slot))
 //                return
 //            }
 //
-//            addSubActivities(AcquireItemInActiveHand(ItemInfo(Blocks.ENDER_CHEST.item), searchEnderChest = false))
+//            addSubActivities(AcquireItemInActiveHand(order, searchEnderChest = false))
 //            return
 //        }
 
-        failedWith(NoItemFoundException(itemInfo))
+        failedWith(NoItemFoundException(order))
     }
 
     override fun SafeClientEvent.onSuccess() {
         val currentItemStack = player.heldItemMainhand
 
-        if (!itemInfo.stackFilter(currentItemStack)) {
-            failedWith(FailedToMoveItemException(itemInfo, currentItemStack))
+        if (!order.selection(currentItemStack)) {
+            failedWith(FailedToMoveItemException(order, currentItemStack))
         }
     }
 
@@ -102,14 +98,6 @@ class AcquireItemInActiveHand(
         status = Status.UNINITIALIZED
     }
 
-    private fun SafeClientEvent.selectOptimalShulker() = player.allSlots.mapNotNull { slot ->
-        getShulkerInventory(slot.stack)?.let { inventory ->
-            val count = inventory.count(itemInfo.stackFilter)
-
-            if (count > 0) slot to count else null
-        }
-    }.minByOrNull { it.second }?.first
-
-    class NoItemFoundException(itemInfo: ItemInfo) : Exception("No $itemInfo found in inventory")
-    class FailedToMoveItemException(itemInfo: ItemInfo, currentStack: ItemStack) : Exception("Failed to move $itemInfo} to hotbar  (current item: ${currentStack.item.registryName})")
+    class NoItemFoundException(order: StackSelection) : Exception("No $order found in inventory")
+    class FailedToMoveItemException(order: StackSelection, currentStack: ItemStack) : Exception("Failed to move ${order.item?.registryName?.path} to hotbar  (current item: ${currentStack.item.registryName?.path})")
 }

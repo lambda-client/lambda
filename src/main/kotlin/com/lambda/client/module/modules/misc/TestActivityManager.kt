@@ -39,7 +39,9 @@ object TestActivityManager : Module(
 
     private val tie by setting("Store one Obby", false, consumer = { _, _->
         addSubActivities(
-            ShulkerTransaction(ShulkerOrder(ContainerAction.PUSH, Blocks.OBSIDIAN.item, 1))
+            ShulkerTransaction(ContainerAction.PUSH, StackSelection().apply {
+                selection = isBlock(Blocks.OBSIDIAN)
+            })
         )
         false
     })
@@ -47,7 +49,9 @@ object TestActivityManager : Module(
     private val eictie by setting("Stash request", false, consumer = { _, _->
         WorldEater.stashes.firstOrNull()?.let {
             addSubActivities(
-                StashTransaction(setOf(it to ShulkerOrder(ContainerAction.PULL, Blocks.OBSIDIAN.item, 1)))
+                StashTransaction(setOf(Triple(it, ContainerAction.PULL, StackSelection().apply {
+                    selection = isBlock(Blocks.OBSIDIAN)
+                })))
             )
         }
         false
@@ -56,7 +60,9 @@ object TestActivityManager : Module(
     private val ectitie by setting("Stash request multi", false, consumer = { _, _->
         WorldEater.stashes.firstOrNull()?.let {
             addSubActivities(
-                StashTransaction(setOf(it to ShulkerOrder(ContainerAction.PULL, Blocks.OBSIDIAN.item, 0)))
+                StashTransaction(setOf(Triple(it, ContainerAction.PULL, StackSelection(0).apply {
+                    selection = isBlock(Blocks.OBSIDIAN)
+                })))
             )
         }
         false
@@ -65,8 +71,12 @@ object TestActivityManager : Module(
     private val ectiectictietie by setting("Stash request multi more", false, consumer = { _, _->
         WorldEater.stashes.firstOrNull()?.let {
             addSubActivities(
-                StashTransaction(setOf(it to ShulkerOrder(ContainerAction.PULL, Items.DIAMOND_SHOVEL, 1))),
-                StashTransaction(setOf(it to ShulkerOrder(ContainerAction.PUSH, Items.DIAMOND_SHOVEL, 1)))
+                StashTransaction(setOf(Triple(it, ContainerAction.PULL, StackSelection().apply {
+                    selection = isBlock(Blocks.OBSIDIAN)
+                }))),
+                StashTransaction(setOf(Triple(it, ContainerAction.PUSH, StackSelection().apply {
+                    selection = isBlock(Blocks.OBSIDIAN)
+                })))
             )
         }
         false
@@ -74,7 +84,9 @@ object TestActivityManager : Module(
 
     private val etit by setting("Acquire Obby", false, consumer = { _, _->
         addSubActivities(
-            AcquireItemInActiveHand(ItemInfo(Blocks.OBSIDIAN.item))
+            AcquireItemInActiveHand(StackSelection().apply {
+                selection = isBlock(Blocks.OBSIDIAN)
+            })
         )
         false
     })

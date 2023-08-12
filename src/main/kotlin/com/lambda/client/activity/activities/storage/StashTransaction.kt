@@ -2,13 +2,13 @@ package com.lambda.client.activity.activities.storage
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalGetToBlock
-import baritone.api.pathing.goals.GoalXZ
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.storage.core.CloseContainer
 import com.lambda.client.activity.activities.storage.core.ContainerWindowTransaction
 import com.lambda.client.activity.activities.storage.core.OpenContainer
+import com.lambda.client.activity.activities.storage.types.ContainerAction
 import com.lambda.client.activity.activities.storage.types.Stash
-import com.lambda.client.activity.activities.storage.types.ContainerOrder
+import com.lambda.client.activity.activities.storage.types.StackSelection
 import com.lambda.client.activity.activities.travel.CustomGoal
 import com.lambda.client.activity.types.LoopWhileActivity
 import com.lambda.client.event.SafeClientEvent
@@ -22,12 +22,12 @@ import net.minecraft.tileentity.TileEntity
  * @param orders The orders to pull or push items.
  */
 class StashTransaction(
-    private val orders: Set<Pair<Stash, ContainerOrder>>
+    private val orders: Set<Triple<Stash, ContainerAction, StackSelection>>
 ) : LoopWhileActivity, Activity() {
     override val loopWhile: SafeClientEvent.() -> Boolean = { orderQueue.isNotEmpty() }
     override var currentLoops = 0
 
-    private val orderQueue = ArrayDeque(orders.sortedBy { it.second.action })
+    private val orderQueue = ArrayDeque(orders.sortedBy { it.second })
     // try different containers in case one is not matching the search
     private val containerQueue = ArrayDeque<TileEntity>()
 
@@ -68,7 +68,7 @@ class StashTransaction(
                         addSubActivities(
                             CustomGoal(GoalGetToBlock(container.pos)),
                             OpenContainer(container.pos),
-                            ContainerWindowTransaction(order.second),
+                            ContainerWindowTransaction(order.second, order.third),
                             CloseContainer()
                         )
                     }

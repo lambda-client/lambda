@@ -13,12 +13,13 @@ import com.lambda.client.util.text.MessageSendHelper
 import net.minecraft.inventory.Container
 
 class ContainerWindowTransaction(
-    private val order: ContainerOrder
+    private val action: ContainerAction,
+    private val order: StackSelection
 ) : Activity() {
     override fun SafeClientEvent.onInitialize() {
         val seperatedSlots = player.openContainer.seperatedSlots
 
-        val (fromSlots, toSlots) = if (order.action == ContainerAction.PULL) {
+        val (fromSlots, toSlots) = if (action == ContainerAction.PULL) {
             seperatedSlots.let { (first, second) -> Pair(first, second) }
         } else {
             seperatedSlots.let { (first, second) -> Pair(second, first) }
@@ -27,7 +28,7 @@ class ContainerWindowTransaction(
         val toMoveSlots = fromSlots.filter(order.filter)
 
         if (toMoveSlots.isEmpty()) {
-            if (order is GeneralOrder && order.amount == 0) {
+            if (order.count == 0) {
                 success()
                 return
             }
@@ -36,15 +37,15 @@ class ContainerWindowTransaction(
             return
         }
 
-        if (toMoveSlots.size < order.amount) {
+        if (toMoveSlots.size < order.count) {
             failedWith(NotEnoughSlotsException())
             return
         }
 
-        val remainingSlots = if (order.amount == 0) {
+        val remainingSlots = if (order.count == 0) {
             toMoveSlots
         } else {
-            toMoveSlots.take(order.amount)
+            toMoveSlots.take(order.count)
         }
 
         remainingSlots.forEach { fromSlot ->

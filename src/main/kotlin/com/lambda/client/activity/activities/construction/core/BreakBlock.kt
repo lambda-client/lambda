@@ -4,7 +4,7 @@ import baritone.api.BaritoneAPI
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.inventory.core.SwapOrSwitchToSlot
-import com.lambda.client.activity.activities.storage.types.ItemInfo
+import com.lambda.client.activity.activities.storage.types.StackSelection
 import com.lambda.client.activity.activities.travel.CollectDrops
 import com.lambda.client.activity.types.*
 import com.lambda.client.event.SafeClientEvent
@@ -334,15 +334,15 @@ class BreakBlock(
                 context = BuildActivity.Context.RESTOCK
 
                 addSubActivities(AcquireItemInActiveHand(
-                    ItemInfo(tool, predicate = {
-                        when {
-                            forceSilk -> EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 1
-                            forceNoSilk -> EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
-                            forceFortune -> EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, it) > 0
-                            forceNoFortune -> EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, it) == 0
-                            else -> true
+                    StackSelection().apply {
+                        selection = isItem(tool) and when {
+                            forceSilk -> hasEnchantment(Enchantments.SILK_TOUCH)
+                            forceNoSilk -> hasEnchantment(Enchantments.SILK_TOUCH).not()
+                            forceFortune -> hasEnchantment(Enchantments.FORTUNE)
+                            forceNoFortune -> hasEnchantment(Enchantments.FORTUNE).not()
+                            else -> isItem<Item>()
                         }
-                    }),
+                    }
                 ))
                 return false
             }

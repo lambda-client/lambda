@@ -3,7 +3,7 @@ package com.lambda.client.activity.activities.construction.core
 import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.interaction.Rotate
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
-import com.lambda.client.activity.activities.storage.types.ItemInfo
+import com.lambda.client.activity.activities.storage.types.StackSelection
 import com.lambda.client.activity.types.*
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.event.events.PacketEvent
@@ -305,9 +305,9 @@ class PlaceBlock(
         ) {
             context = BuildActivity.Context.RESTOCK
 
-            addSubActivities(AcquireItemInActiveHand(
-                ItemInfo(optimalStack.item, metadata = optimalStack.metadata)
-            ))
+            addSubActivities(AcquireItemInActiveHand(StackSelection().apply {
+                selection = isItem(optimalStack.item) and hasMetadata(optimalStack.metadata)
+            }))
             return
         }
 

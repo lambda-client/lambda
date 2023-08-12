@@ -4,10 +4,7 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.construction.core.BreakBlock
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.storage.core.PlaceContainer
-import com.lambda.client.activity.activities.storage.types.ContainerAction
-import com.lambda.client.activity.activities.storage.types.ItemInfo
-import com.lambda.client.activity.activities.storage.types.ItemOrder
-import com.lambda.client.activity.activities.storage.types.ShulkerOrder
+import com.lambda.client.activity.activities.storage.types.*
 import com.lambda.client.activity.types.RepeatingActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.module.modules.client.BuildTools
@@ -33,7 +30,9 @@ class BreakDownEnderChests(
         if (freeSlots.isEmpty()) {
             if (player.inventorySlots.countItem(Blocks.OBSIDIAN.item) > 0) {
                 addSubActivities(
-                    ShulkerTransaction(ShulkerOrder(ContainerAction.PUSH, Blocks.OBSIDIAN.item, 0))
+                    ShulkerTransaction(ContainerAction.PUSH, StackSelection().apply {
+                        selection = isBlock(Blocks.OBSIDIAN)
+                    })
                 )
                 return
             }
@@ -42,9 +41,10 @@ class BreakDownEnderChests(
             return
         }
 
-        // ToDo: Better way to find ender chest
         addSubActivities(
-            PlaceContainer(ItemStack(Blocks.ENDER_CHEST, 1, 0), onlyItem = true)
+            PlaceContainer(StackSelection().apply {
+                selection = isBlock(Blocks.ENDER_CHEST)
+            })
         )
     }
 
@@ -52,12 +52,9 @@ class BreakDownEnderChests(
         if (childActivity !is PlaceContainer) return
 
         addSubActivities(
-            AcquireItemInActiveHand(ItemInfo(
-                Items.DIAMOND_PICKAXE,
-                predicate = {
-                    EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, it) == 0
-                }
-            )),
+            AcquireItemInActiveHand(StackSelection().apply {
+                selection = isItem(Items.DIAMOND_PICKAXE) and hasEnchantment(Enchantments.SILK_TOUCH).not()
+            }),
             BreakBlock(
                 childActivity.containerPos,
                 collectDrops = true,

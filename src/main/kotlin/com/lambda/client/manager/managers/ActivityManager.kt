@@ -161,21 +161,25 @@ object ActivityManager : Manager, Activity() {
             || allSubActivities.filterIsInstance<ShulkerTransaction>().isNotEmpty()
         ) return
 
-        val stashOrders = mutableSetOf<Pair<Stash, ContainerOrder>>()
+        val stashOrders = mutableSetOf<Triple<Stash, ContainerAction, StackSelection>>()
 
-        if (player.allSlots.none { slot -> getShulkerInventory(slot.stack)?.all { it.isEmpty } == true }) {
+        if (player.allSlots.none { StackSelection.EMPTY_SHULKERS(it.stack) }) {
             // ToDo: Request correct amount of shulkers
             WorldEater.stashes.minByOrNull {
                 player.distanceTo(it.area.center)
             }?.let { stash ->
-                stashOrders.add(stash to GeneralOrder(ContainerAction.PULL, GeneralOrder.Selection.EMPTY_SHULKERS, 5))
+                stashOrders.add(Triple(stash, ContainerAction.PULL, StackSelection(5).apply {
+                    selection = StackSelection.EMPTY_SHULKERS
+                }))
             }
 
-            if (player.allSlots.any(GeneralOrder.Selection.FULL_SHULKERS.slotFilter)) {
+            if (player.allSlots.any { StackSelection.FULL_SHULKERS(it.stack) }) {
                 WorldEater.dropOff.minByOrNull {
                     player.distanceTo(it.area.center)
                 }?.let { stash ->
-                    stashOrders.add(stash to GeneralOrder(ContainerAction.PUSH, GeneralOrder.Selection.FULL_SHULKERS, 0))
+                    stashOrders.add(Triple(stash, ContainerAction.PUSH, StackSelection(0).apply {
+                        selection = StackSelection.FULL_SHULKERS
+                    }))
                 }
             }
 
@@ -196,8 +200,11 @@ object ActivityManager : Manager, Activity() {
                     itemsToStore.joinToString { "${it.registryName?.path}" }
                 } to shulker boxes.")
 
-                addSubActivities(itemsToStore.map {
-                    ShulkerTransaction(ShulkerOrder(ContainerAction.PUSH, it, 0))
+                addSubActivities(itemsToStore.map { item ->
+                    ShulkerTransaction(ContainerAction.PUSH, StackSelection().apply {
+                        selection = isItem(item)
+                        count = 0
+                    })
                 })
                 return
             }
@@ -214,7 +221,7 @@ object ActivityManager : Manager, Activity() {
         if (stashOrders.isNotEmpty()) addSubActivities(StashTransaction(stashOrders))
     }
 
-    private fun SafeClientEvent.checkItem(item: Item, orders: MutableSet<Pair<Stash, ContainerOrder>>) {
+    private fun SafeClientEvent.checkItem(item: Item, orders: MutableSet<Triple<Stash, ContainerAction, StackSelection>>) {
         if (player.allSlots.countItem(item) + player.allSlots.sumOf { slot ->
             getShulkerInventory(slot.stack)?.filter { it.item == item }?.sumOf { it.count } ?: 0
                 // ToDo: Add ender chest support also make this use some kind of utils for storage management
@@ -228,6 +235,8 @@ object ActivityManager : Manager, Activity() {
             item.registryName
         }. Fetching shulker from stash (${optimalStash.area.center.asString()}).")
 
-        orders.add(optimalStash to ShulkerOrder(ContainerAction.PULL, item, 1))
+        orders.add(Triple(optimalStash, ContainerAction.PULL, StackSelection(inShulkerBox = true).apply {
+            selection = isItem(item)
+        }))
     }
 }

@@ -4,6 +4,7 @@ import com.lambda.client.activity.Activity
 import com.lambda.client.activity.activities.construction.core.PlaceBlock
 import com.lambda.client.activity.activities.inventory.AcquireItemInActiveHand
 import com.lambda.client.activity.activities.storage.types.ItemInfo
+import com.lambda.client.activity.activities.storage.types.StackSelection
 import com.lambda.client.activity.types.AttemptActivity
 import com.lambda.client.event.SafeClientEvent
 import com.lambda.client.util.EntityUtils.flooredPosition
@@ -19,8 +20,7 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 
 class PlaceContainer(
-    private val useStack: ItemStack,
-    private val onlyItem: Boolean = false,
+    private val selection: StackSelection,
     private val open: Boolean = false,
     override val maxAttempts: Int = 5,
     override var usedAttempts: Int = 0
@@ -34,10 +34,8 @@ class PlaceContainer(
         }
 
         addSubActivities(
-            AcquireItemInActiveHand(ItemInfo(
-                useStack.item, predicate = { onlyItem || ItemStack.areItemStacksEqual(it, useStack) }
-            )),
-            PlaceBlock(containerPos, useStack.item.block.defaultState, ignoreProperties = true)
+            AcquireItemInActiveHand(selection),
+            PlaceBlock(containerPos, selection.placementResult, ignoreProperties = true)
         )
 
         if (open) addSubActivities(OpenContainer(containerPos))

@@ -2,6 +2,7 @@ package com.lambda.client.module.modules.player
 
 import com.lambda.client.activity.activities.construction.core.BreakBlock
 import com.lambda.client.activity.activities.storage.core.PlaceContainer
+import com.lambda.client.activity.activities.storage.types.StackSelection
 import com.lambda.client.event.events.GuiEvent
 import com.lambda.client.event.events.WindowClickEvent
 import com.lambda.client.manager.managers.ActivityManager
@@ -35,7 +36,9 @@ object InventoryManagerTwo : Module(
             player.openContainer.inventorySlots.getOrNull(it.slotId)?.let { slot ->
                 if (!(slot.stack.item is ItemShulkerBox || slot.stack.item == Blocks.ENDER_CHEST.item)) return@safeListener
 
-                addSubActivities(PlaceContainer(slot.stack.copy(), open = true))
+                addSubActivities(PlaceContainer(StackSelection().apply {
+                    selection = isItemStack(slot.stack)
+                }, open = true))
 
                 it.cancel()
 
