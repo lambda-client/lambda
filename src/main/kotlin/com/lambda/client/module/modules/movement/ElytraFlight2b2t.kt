@@ -76,6 +76,8 @@ object ElytraFlight2b2t : Module(
         description = "Preserves speed while flying into unloaded chunks")
     private val autoViewLockManage by setting("Auto ViewLock Manage", true,
         description = "Automatically configures and toggles viewlock for straight flight on highways.")
+    private val takeoffTimeLimet by setting("takeoff Time Limet", 1000, 0..1000, 1,
+        description = "If you get attempt to takeoff too quickly the server may kick you. If set to 0 this will be disabled")
 
     private const val TAKE_OFF_Y_VELOCITY = -0.16976 // magic number - do not question
     private const val MAGIC_PITCH = -2.52f
@@ -99,10 +101,11 @@ object ElytraFlight2b2t : Module(
     private var stoppedFlying = false
     private var nextBlockMoveLoaded = true
 
-    private var elytraDurability = 0
+    private var elytraDurability = 2
     private var flyTickCount = 0
     private var flyBlockedTickCount = 0
     private var currentFlightSpeed = 40.2
+    private var takeoffcheck: Long = 0
 
     private var flyPlayerLastPos = Vec3d.ZERO
     private var beforePathingPlayerPitchYaw = Vec2f.ZERO
@@ -151,7 +154,7 @@ object ElytraFlight2b2t : Module(
                         disable()
                         return@safeListener
                     }
-                    if (armorSlot.maxDamage <= 1) {
+                    if (elytraDurability <= 1) {
                         MessageSendHelper.sendChatMessage("Equipped Elytra broken or almost broken")
                         disable()
                         return@safeListener
@@ -177,6 +180,11 @@ object ElytraFlight2b2t : Module(
                     currentState = State.TAKEOFF
                 }
                 State.TAKEOFF -> {
+                    if (System.currentTimeMillis() < takeoffcheck && takeoffTimeLimet !== 0) {
+                        MessageSendHelper.sendChatMessage("2B2T has disabled your elytra")
+                        disable()
+                        return@safeListener
+                    }
                     if (autoViewLockManage && ViewLock.isDisabled) ViewLock.enable()
                     resetTimer()
                     shouldStartBoosting = false
@@ -185,6 +193,7 @@ object ElytraFlight2b2t : Module(
                     if ((withinRange(player.motionY)) && !player.isElytraFlying) {
                         timer.reset()
                         currentState = State.FLYING
+                        takeoffcheck = System.currentTimeMillis() + takeoffTimeLimet
                     } else if (midairFallFly && player.isElytraFlying) {
                         connection.sendPacket(CPacketPlayer(true))
                     }
