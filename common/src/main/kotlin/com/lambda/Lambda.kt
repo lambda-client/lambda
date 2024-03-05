@@ -25,39 +25,10 @@ object Lambda {
     init {
         listener<PacketEvent.Send.Pre> {
             if (it.packet is LookAndOnGround) {
-//                it.cancel()
+                it.cancel()
                 LOG.info("SAFE: Canceled: ${it.packet::class.simpleName}")
             }
         }
-
-        listener<PacketEvent.Send.Pre> {
-            if (it.packet is LookAndOnGround) {
-//                it.cancel()
-                LOG.info("2 SAFE: Canceled: ${it.packet::class.simpleName}")
-            }
-        }
-
-        unsafeListener<PacketEvent.Send.Pre> {
-            if (it.packet is LookAndOnGround) {
-//                it.cancel()
-                LOG.info("UNSAFE: Canceled: ${it.packet::class.simpleName}")
-            }
-        }
-
-        concurrentListener<PacketEvent.Send.Pre> {
-            if (it.packet is LookAndOnGround) {
-                LOG.info("CONCURRENT: ${it.packet::class.simpleName}")
-            }
-        }
-
-        unsafeConcurrentListener<PacketEvent.Send.Pre> {
-            if (it.packet is LookAndOnGround) {
-                LOG.info("UNSAFE CONCURRENT: ${it.packet::class.simpleName}")
-            }
-        }
-
-        LOG.info("Registered sync listeners: ${EventFlow.syncListeners}")
-        LOG.info("Registered concurrent listeners: ${EventFlow.concurrentListeners}")
 
         runConcurrent {
             sleep(60000)

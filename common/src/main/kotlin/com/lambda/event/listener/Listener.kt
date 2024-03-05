@@ -9,7 +9,7 @@ abstract class Listener : Comparable<Listener> {
     abstract fun execute(event: Event)
 
     override fun compareTo(other: Listener): Int {
-        return priority.compareTo(other.priority)
+        return compareBy<Listener> { it.priority }.thenBy { it.hashCode() }.compare(this, other)
     }
 
     companion object {
