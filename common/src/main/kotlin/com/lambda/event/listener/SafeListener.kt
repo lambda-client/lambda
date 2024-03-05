@@ -6,7 +6,7 @@ import com.lambda.event.EventFlow
 import com.lambda.runSafe
 import java.util.concurrent.ConcurrentSkipListSet
 
-data class SafeListener(
+class SafeListener(
     override val priority: Int = 0,
     val function: SafeContext.(Event) -> Unit
 ) : Listener() {

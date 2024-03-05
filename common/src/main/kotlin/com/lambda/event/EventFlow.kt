@@ -1,13 +1,12 @@
 package com.lambda.event
 
-import com.lambda.Lambda.LOG
-import com.lambda.Lambda.mc
 import com.lambda.event.listener.Listener
 import com.lambda.runConcurrent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNot
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentSkipListSet
 import kotlin.reflect.KClass
@@ -38,6 +37,7 @@ object EventFlow {
             concurrentFlow
                 // early filter to avoid an unnecessary collection
                 .filter { concurrentListeners.containsKey(it::class) }
+                .filterNot { it is ICancellable && it.isCanceled() }
                 .collect { event ->
                     event.executeListenerConcurrently()
                 }
@@ -51,7 +51,8 @@ object EventFlow {
      * Each asynchronous listener will execute its listener function on a new thread.
      *
      * After notifying asynchronous listeners, it executes the listener functions of all synchronous listeners.
-     * An instant callback can only be achieved by synchronous listening objects as the concurrently listener will be executed "later".
+     * An instant callback can only be achieved by synchronous listening objects
+     * as the concurrent listener will be executed "later".
      *
      * @param event The event to be posted to the event flow.
      */
@@ -63,12 +64,14 @@ object EventFlow {
 
     private fun Event.executeListenerSynchronous() {
         syncListeners[this::class]?.forEach { listener ->
+            if (this is ICancellable && this.isCanceled()) return
             listener.execute(this@executeListenerSynchronous)
         }
     }
 
     private fun Event.executeListenerConcurrently() {
         concurrentListeners[this::class]?.forEach { listener ->
+            if (this is ICancellable && this.isCanceled()) return
             runConcurrent {
                 listener.execute(this@executeListenerConcurrently)
             }

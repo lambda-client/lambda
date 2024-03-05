@@ -2,7 +2,7 @@ package com.lambda.event
 
 import java.util.concurrent.atomic.AtomicBoolean
 
-interface ICancellable : MutableEvent {
+interface ICancellable : CallbackEvent {
     val cancelSignal: AtomicBoolean
 
     fun cancel() {

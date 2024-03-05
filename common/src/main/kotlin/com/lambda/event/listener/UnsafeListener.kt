@@ -4,7 +4,7 @@ import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import java.util.concurrent.ConcurrentSkipListSet
 
-data class UnsafeListener(
+class UnsafeListener(
     override val priority: Int,
     val function: (Event) -> Unit
 ) : Listener() {
@@ -25,7 +25,7 @@ data class UnsafeListener(
          * The [function] is executed on the same thread where the [Event] was dispatched.
          * The execution of the [function] is independent of the safety conditions of the context.
          * Use this function when you need to listen to an [Event] in a context that is not in-game.
-         * For only in-game related contexts, use the [listener] function instead.
+         * For only in-game related contexts, use the [SafeListener.listener] function instead.
          *
          * Usage:
          * ```kotlin
@@ -55,6 +55,7 @@ data class UnsafeListener(
          * Registers a new [UnsafeListener] for a generic [Event] type [T].
          * The [function] is executed on a new thread running asynchronously to the game thread.
          * This function should only be used when the [function] performs read actions on the game data.
+         * For only in-game related contexts, use the [SafeListener.concurrentListener] function instead.
          *
          * Caution: Using this function to write to the game data can lead to race conditions. Therefore, it is recommended
          * to use this function only for read operations to avoid potential concurrency issues.
