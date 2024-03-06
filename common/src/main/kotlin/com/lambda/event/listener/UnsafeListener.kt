@@ -3,9 +3,11 @@ package com.lambda.event.listener
 import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import java.util.concurrent.ConcurrentSkipListSet
+import kotlin.reflect.KClass
 
 class UnsafeListener(
     override val priority: Int,
+    override val owner: Any,
     val function: (Event) -> Unit
 ) : Listener() {
     override fun execute(event: Event) {
@@ -42,13 +44,16 @@ class UnsafeListener(
          * @param T The type of the event to listen for. This should be a subclass of Event.
          * @param priority The priority of the listener. Listeners with higher priority will be executed first. Default value is 0.
          * @param function The function to be executed when the event is posted. This function should take an event of type T as a parameter.
+         * @return The newly created and registered [UnsafeListener].
          */
-        inline fun <reified T : Event> unsafeListener(priority: Int = 0, noinline function: (T) -> Unit) {
-            EventFlow.syncListeners.getOrPut(T::class) {
-                ConcurrentSkipListSet(Comparator.reverseOrder())
-            }.add(UnsafeListener(priority) { event ->
+        inline fun <reified T : Event> Any.unsafeListener(priority: Int = 0, noinline function: (T) -> Unit): UnsafeListener {
+            val listener = UnsafeListener(priority, this) { event ->
                 function(event as T)
-            })
+            }
+
+            EventFlow.syncListeners.subscribe<T>(listener)
+
+            return listener
         }
 
         /**
@@ -74,13 +79,16 @@ class UnsafeListener(
          * @param T The type of the event to listen for. This should be a subclass of Event.
          * @param priority The priority of the listener. Listeners with higher priority will be executed first. Default value is 0.
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
+         * @return The newly created and registered [UnsafeListener].
          */
-        inline fun <reified T : Event> unsafeConcurrentListener(priority: Int = 0, noinline function: (T) -> Unit) {
-            EventFlow.concurrentListeners.getOrPut(T::class) {
-                ConcurrentSkipListSet(Comparator.reverseOrder())
-            }.add(UnsafeListener(priority) { event ->
+        inline fun <reified T : Event> Any.unsafeConcurrentListener(priority: Int = 0, noinline function: (T) -> Unit): UnsafeListener {
+            val listener = UnsafeListener(priority, this) { event ->
                 function(event as T)
-            })
+            }
+
+            EventFlow.concurrentListeners.subscribe<T>(listener)
+
+            return listener
         }
     }
 }

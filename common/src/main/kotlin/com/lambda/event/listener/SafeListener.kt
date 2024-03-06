@@ -3,11 +3,13 @@ package com.lambda.event.listener
 import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.EventFlow
-import com.lambda.runSafe
+import com.lambda.task.Task
+import com.lambda.threading.runSafe
 import java.util.concurrent.ConcurrentSkipListSet
 
 class SafeListener(
     override val priority: Int = 0,
+    override val owner: Any,
     val function: SafeContext.(Event) -> Unit
 ) : Listener() {
     override fun execute(event: Event) {
@@ -50,13 +52,26 @@ class SafeListener(
          * @param T The type of the event to listen for. This should be a subclass of Event.
          * @param priority The priority of the listener. Listeners with higher priority will be executed first. Default value is 0.
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
+         * @return The newly created and registered [SafeListener].
          */
-        inline fun <reified T : Event> listener(priority: Int = 0, noinline function: SafeContext.(T) -> Unit) {
-            EventFlow.syncListeners.getOrPut(T::class) {
-                ConcurrentSkipListSet(Comparator.reverseOrder())
-            }.add(SafeListener(priority) { event ->
+        inline fun <reified T : Event> Any.listener(priority: Int = 0, noinline function: SafeContext.(T) -> Unit): SafeListener {
+            val listener = SafeListener(priority, this) { event ->
                 function(event as T)
-            })
+            }
+
+            EventFlow.syncListeners.subscribe<T>(listener)
+
+            return listener
+        }
+
+        inline fun <reified T : Event> Task<*>.listener(priority: Int = 0, noinline function: SafeContext.(T) -> Unit): SafeListener {
+            val listener = SafeListener(priority, this) { event ->
+                function(event as T)
+            }
+
+            syncListeners.subscribe<T>(listener)
+
+            return listener
         }
 
         /**
@@ -81,13 +96,16 @@ class SafeListener(
          * @param T The type of the event to listen for. This should be a subclass of Event.
          * @param priority The priority of the listener. Listeners with higher priority will be executed first. Default value is 0.
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
+         * @return The newly created and registered [SafeListener].
          */
-        inline fun <reified T : Event> concurrentListener(priority: Int = 0, noinline function: SafeContext.(T) -> Unit) {
-            EventFlow.concurrentListeners.getOrPut(T::class) {
-                ConcurrentSkipListSet(Comparator.reverseOrder())
-            }.add(SafeListener(priority) { event ->
+        inline fun <reified T : Event> Any.concurrentListener(priority: Int = 0, noinline function: SafeContext.(T) -> Unit): SafeListener {
+            val listener = SafeListener(priority, this) { event ->
                 function(event as T)
-            })
+            }
+
+            EventFlow.concurrentListeners.subscribe<T>(listener)
+
+            return listener
         }
     }
 }

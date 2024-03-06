@@ -1,39 +1,47 @@
 package com.lambda
 
-import com.lambda.event.EventFlow
+import com.lambda.event.events.KeyPressEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.event.events.PacketEvent
-import com.lambda.event.listener.Listener.Companion.unsubscribe
-import com.lambda.event.listener.SafeListener.Companion.concurrentListener
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeConcurrentListener
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.task.tasks.HelloWorldTask
+import com.lambda.threading.taskContext
 import net.minecraft.client.MinecraftClient
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.LookAndOnGround
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import java.lang.Thread.sleep
+import org.lwjgl.glfw.GLFW
 
 object Lambda {
     private const val MOD_NAME = "Lambda"
     const val MOD_ID = "lambda"
-    const val SYMBOL = "λ"
+    private const val SYMBOL = "λ"
     private val VERSION: String = LoaderInfo.getVersion()
 
-    val LOG: Logger = LogManager.getLogger()
+    val LOG: Logger = LogManager.getLogger(SYMBOL)
     val mc: MinecraftClient = MinecraftClient.getInstance()
 
     init {
-        listener<PacketEvent.Send.Pre> {
-            if (it.packet is LookAndOnGround) {
-                it.cancel()
-                LOG.info("SAFE: Canceled: ${it.packet::class.simpleName}")
+        listener<KeyPressEvent> {
+            if (it.key != GLFW.GLFW_KEY_Z) {
+                return@listener
             }
-        }
 
-        runConcurrent {
-            sleep(60000)
-            LOG.info("Unsubscribing")
-            unsubscribe<PacketEvent.Send.Pre>()
+            taskContext {
+                HelloWorldTask()
+                    .withDelay(500L)
+                    .withTimeout(5000L)
+                    .withRepeats(2)
+                    .onSuccess {
+                        LOG.info("Hello, World! Task completed")
+                    }.onRepeat { repeats ->
+                        LOG.info("Hello, World! Task $name repeated $repeats times")
+                    }.onTimeout {
+                        LOG.warn("Hello, World! Task $name timed out")
+                        HelloWorldTask().execute()
+                    }.onRetry {
+                        LOG.warn("Hello, World! Task $name retrying")
+                    }.onFailure { error ->
+                        LOG.error("Hello, World! Task failed", error)
+                    }.execute()
+            }
         }
     }
 

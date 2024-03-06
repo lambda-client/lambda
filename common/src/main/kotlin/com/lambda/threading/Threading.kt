@@ -1,8 +1,12 @@
-package com.lambda
+package com.lambda.threading
 
+import com.lambda.Lambda
 import com.lambda.context.ClientContext
 import com.lambda.event.EventFlow
 import com.lambda.context.SafeContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 /**
@@ -34,6 +38,12 @@ inline fun runConcurrent(crossinline block: suspend () -> Unit) =
     EventFlow.lambdaScope.launch {
         block()
     }
+
+inline fun taskContext(crossinline block: suspend () -> Unit) {
+    EventFlow.lambdaScope.launch {
+        block()
+    }
+}
 
 /**
  * This function is used to execute a block of code within a safe context on a new thread running asynchronously to the game thread.

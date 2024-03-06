@@ -1,7 +1,8 @@
 package com.lambda.event
 
 import com.lambda.event.listener.Listener
-import com.lambda.runConcurrent
+import com.lambda.event.listener.SafeListener
+import com.lambda.threading.runConcurrent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -20,7 +21,7 @@ object EventFlow {
      *
      * The [SupervisorJob] is used so that failure or cancellation of one child does not
      * lead to the failure or cancellation of the parent or its other children, which is
-     * useful when you have multiple independent jobs running in parallel.
+     * useful when you have multiple independent [Job]s running in parallel.
      */
     val lambdaScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val concurrentFlow = MutableSharedFlow<Event>(
@@ -28,8 +29,8 @@ object EventFlow {
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
-    val syncListeners = ConcurrentHashMap<KClass<*>, ConcurrentSkipListSet<Listener>>()
-    val concurrentListeners = ConcurrentHashMap<KClass<*>, ConcurrentSkipListSet<Listener>>()
+    val syncListeners = Subscriber()
+    val concurrentListeners = Subscriber()
 
     init {
         // parallel event execution on dedicated threads
@@ -45,21 +46,34 @@ object EventFlow {
     }
 
     /**
-     * Posts an event to the event flow.
+     * Posts an [Event] to the event flow [concurrentFlow] and the synchronous [Listener]s.
      *
-     * This function first notifies all asynchronous listeners by emitting the event to the concurrent flow.
-     * Each asynchronous listener will execute its listener function on a new thread.
+     * This function first notifies all asynchronous [Listener]s by emitting the event to the [concurrentFlow].
+     * Each asynchronous [Listener] will execute its [Listener] function on a new coroutine.
      *
-     * After notifying asynchronous listeners, it executes the listener functions of all synchronous listeners.
-     * An instant callback can only be achieved by synchronous listening objects
+     * After notifying asynchronous [Listener]s, it executes the [Listener] functions of all synchronous [Listener]s.
+     * An instant callback ([CallbackEvent]) can only be achieved by synchronous listening objects
      * as the concurrent listener will be executed "later".
      *
-     * @param event The event to be posted to the event flow.
+     * @param event The [Event] to be posted to the event flow.
      */
     @JvmStatic
     fun post(event: Event) {
         concurrentFlow.tryEmit(event)
         event.executeListenerSynchronous()
+    }
+
+    /**
+     * Unsubscribes from both synchronous and concurrent event flows for a specific [Event] type [T].
+     *
+     * This function removes the listeners associated with the specified event type from both synchronous and concurrent event flows.
+     * After this function is called, the listeners of the specified event type will no longer be triggered when the event is dispatched.
+     *
+     * @param T The type of the event to unsubscribe from. This should be a subclass of Event.
+     */
+    inline fun <reified T : Event> unsubscribe() {
+        syncListeners.remove(T::class)
+        concurrentListeners.remove(T::class)
     }
 
     private fun Event.executeListenerSynchronous() {
