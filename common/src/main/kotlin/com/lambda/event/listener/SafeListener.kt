@@ -64,6 +64,39 @@ class SafeListener(
             return listener
         }
 
+        /**
+         * Registers a new [SafeListener] for a generic [Event] type [T] within the context of a [Task].
+         * The [function] is executed on the same thread where the [Event] was dispatched.
+         * The [function] will only be executed when the context satisfies certain safety conditions.
+         * These conditions are met when none of the following [SafeContext] properties are null:
+         * - [SafeContext.world]
+         * - [SafeContext.player]
+         * - [SafeContext.interaction]
+         * - [SafeContext.connection]
+         *
+         * This listener is special for tasks, as its behavior is
+         * to only listen while the [Task.onAction] function is active / while the task is running.
+         *
+         * Usage:
+         * ```kotlin
+         * myTask.listener<MyEvent> { event ->
+         *     player.sendMessage("Event received: $event")
+         * }
+         *
+         * myTask.listener<MyEvent>(priority = 1) { event ->
+         *     player.sendMessage("Event received before the previous listener: $event")
+         * }
+         * ```
+         *
+         * @param T The type of the event to listen for.
+         * This should be a subclass of Event.
+         * @param priority The priority of the listener.
+         * Listeners with higher priority will be executed first.
+         * Default value is 0.
+         * @param function The function to be executed when the event is posted.
+         * This function should take a SafeContext and an event of type T as parameters.
+         * @return The newly created and registered [SafeListener].
+         */
         inline fun <reified T : Event> Task<*>.listener(priority: Int = 0, noinline function: SafeContext.(T) -> Unit): SafeListener {
             val listener = SafeListener(priority, this) { event ->
                 function(event as T)

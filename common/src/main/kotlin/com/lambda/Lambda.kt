@@ -27,8 +27,9 @@ object Lambda {
             taskContext {
                 HelloWorldTask()
                     .withDelay(500L)
-                    .withTimeout(5000L)
-                    .withRepeats(2)
+                    .withTimeout(200L)
+                    .withRepeats(10)
+                    .withMaxAttempts(5)
                     .onSuccess {
                         LOG.info("Hello, World! Task completed")
                     }.onRepeat { repeats ->
