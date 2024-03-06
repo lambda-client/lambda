@@ -9,6 +9,7 @@ val yarnMappings = project.properties["yarn_mappings"].toString()
 
 plugins {
     kotlin("jvm") version ("1.9.22")
+    id("org.jetbrains.dokka") version "1.9.20"
     id("architectury-plugin") version "3.4-SNAPSHOT"
     id("dev.architectury.loom") version "1.5-SNAPSHOT" apply false
     id("com.github.johnrengelman.shadow") version "8.1.1" apply false
@@ -20,6 +21,7 @@ architectury {
 
 subprojects {
     apply(plugin = "dev.architectury.loom")
+    apply(plugin = "org.jetbrains.dokka")
     dependencies {
         "minecraft"("com.mojang:minecraft:$minecraftVersion")
         "mappings"("net.fabricmc:yarn:$yarnMappings:v2")

@@ -66,7 +66,7 @@ abstract class Task<Result>(
     abstract suspend fun SafeContext.onAction(): Result
 
     /**
-     * This function is called when the task is cancelled.
+     * This function is called when the task is canceled.
      * It should be overridden for tasks that need to perform cleanup operations,
      * such as cancelling a block breaking progress, releasing resources,
      * or stopping any ongoing operations that were started by the task.
@@ -107,33 +107,30 @@ abstract class Task<Result>(
 
                     if (iteration == repeats) {
                         onSuccess(result)
-                        stopListening()
+                        tidyUp()
                         return TaskResult.Success(result)
                     }
 
                     onRepeat(iteration)
                 }
-            } catch (e: CancellationException) {
-                stopListening()
-                LOG.warn("Coroutine for task $name cancelled")
-                runSafe {
-                    onCancel()
-                }
-                return TaskResult.Cancelled
             } catch (e: TimeoutCancellationException) {
                 attempt++
                 LOG.warn("Task $name timed out after $age ms and $attempt attempts")
                 onRetry()
-                stopListening()
+                tidyUp()
+            } catch (e: CancellationException) {
+                tidyUp()
+                LOG.warn("Coroutine for task $name cancelled")
+                return TaskResult.Cancelled
             } catch (e: Throwable) {
                 attempt++
                 LOG.error("Task $name failed after $age ms and $attempt attempts", e)
                 onException(e)
-                stopListening()
+                tidyUp()
                 return TaskResult.Failure(e)
             }
 
-            stopListening()
+            tidyUp()
         } while (attempt < maxAttempts || iteration <= repeats)
 
         LOG.error("Task $name fully timed out after $age ms and $attempt attempts")
@@ -141,7 +138,11 @@ abstract class Task<Result>(
         return TaskResult.Timeout(timeout, attempt)
     }
 
-    private fun stopListening() {
+    private fun tidyUp() {
+        runSafe {
+            onCancel()
+        }
+
         EventFlow.syncListeners.unsubscribe(syncListeners)
         EventFlow.concurrentListeners.unsubscribe(concurrentListeners)
 

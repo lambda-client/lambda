@@ -17,7 +17,7 @@ class SafeListener(
 //            if (!mc.isOnThread) {
 //                LOG.warn("""
 //                    Event ${this::class.simpleName} executed outside the game thread.
-//                    This can lead to race conditions when manipulating game data.
+//                    This can lead to race conditions when manipulating shared data.
 //                    Consider moving the execution to the game thread using runSafeOnGameThread { ... } or runOnGameThread { ... }.
 //                """.trimIndent())
 //            }
