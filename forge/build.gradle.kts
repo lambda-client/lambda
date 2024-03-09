@@ -1,6 +1,6 @@
-val forgeVersion = project.properties["forge_version"].toString()
-val kotlinForgeVersion = project.properties["kotlin_forge_version"].toString()
-val mixinExtrasVersion = project.properties["mixinextras_version"].toString()
+val forgeVersion = property("forge_version").toString()
+val kotlinForgeVersion = property("kotlin_forge_version").toString()
+val mixinExtrasVersion = property("mixinextras_version").toString()
 
 architectury {
     platformSetupLoomIde()
@@ -33,17 +33,39 @@ val common: Configuration by configurations.creating {
     configurations["developmentForge"].extendsFrom(this)
 }
 
+val includeLib: Configuration by configurations.creating
+val includeMod: Configuration by configurations.creating
+
+fun DependencyHandlerScope.setupConfigurations() {
+    includeLib.dependencies.forEach {
+        implementation(it)
+        include(it)
+    }
+
+    includeMod.dependencies.forEach {
+        modImplementation(it)
+        include(it)
+    }
+}
+
 dependencies {
+    // Forge API
     forge("net.minecraftforge:forge:$forgeVersion")
-    implementation("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
-    common(project(":common", configuration = "namedElements")) {
-        isTransitive = false
-    }
-    shadowCommon(project(path = ":common", configuration = "transformProductionForge")) {
-        isTransitive = false
-    }
-    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
-    implementation(include("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")!!)
+
+    // Add dependencies on the required Kotlin modules.
+    includeLib("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
+    includeLib(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
+    includeLib("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
+
+    // Add mods to the mod jar
+    // includeMod(...)
+
+    // Common (Do not touch)
+    common(project(":common", configuration = "namedElements")) { isTransitive = false }
+    shadowCommon(project(path = ":common", configuration = "transformProductionForge")) { isTransitive = false }
+
+    // Finish the configuration
+    setupConfigurations()
 }
 
 tasks {

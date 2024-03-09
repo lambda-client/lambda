@@ -1,6 +1,6 @@
-val fabricLoaderVersion = project.properties["fabric_loader_version"].toString()
-val fabricApiVersion = project.properties["fabric_api_version"].toString()
-val fabricKotlinVersion = project.properties["fabric_kotlin_version"].toString()
+val fabricLoaderVersion = property("fabric_loader_version").toString()
+val fabricApiVersion = property("fabric_api_version").toString()
+val fabricKotlinVersion = property("fabric_kotlin_version").toString()
 
 architectury {
     platformSetupLoomIde()
@@ -20,16 +20,39 @@ val common: Configuration by configurations.creating {
     configurations["developmentFabric"].extendsFrom(this)
 }
 
+val includeLib: Configuration by configurations.creating
+val includeMod: Configuration by configurations.creating
+
+fun DependencyHandlerScope.setupConfigurations() {
+    includeLib.dependencies.forEach {
+        implementation(it)
+        include(it)
+    }
+
+    includeMod.dependencies.forEach {
+        modImplementation(it)
+        include(it)
+    }
+}
+
 dependencies {
-    common(project(":common", configuration = "namedElements")) {
-        isTransitive = false
-    }
-    shadowCommon(project(path = ":common", configuration = "transformProductionFabric")) {
-        isTransitive = false
-    }
-    modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
-    modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
-    modImplementation("net.fabricmc:fabric-language-kotlin:$fabricKotlinVersion")
+    // Fabric API
+    includeMod("net.fabricmc:fabric-loader:$fabricLoaderVersion")
+    includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
+    includeMod("net.fabricmc:fabric-language-kotlin:$fabricKotlinVersion")
+
+    // Add dependencies on the required Kotlin modules.
+    // includeLib(...)
+
+    // Add mods to the mod jar
+    // includeMod(...)
+
+    // Common (Do not touch)
+    common(project(":common", configuration = "namedElements")) { isTransitive = false }
+    shadowCommon(project(path = ":common", configuration = "transformProductionFabric")) { isTransitive = false }
+
+    // Finish the configuration
+    setupConfigurations()
 }
 
 tasks {
