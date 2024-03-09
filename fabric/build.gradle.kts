@@ -36,10 +36,10 @@ fun DependencyHandlerScope.setupConfigurations() {
 }
 
 dependencies {
-    // Fabric API
-    includeMod("net.fabricmc:fabric-loader:$fabricLoaderVersion")
-    includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
-    includeMod("net.fabricmc:fabric-language-kotlin:$fabricKotlinVersion")
+    // Fabric API (Do not touch)
+    modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
+    modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
+    modImplementation("net.fabricmc:fabric-language-kotlin:$fabricKotlinVersion")
 
     // Add dependencies on the required Kotlin modules.
     // includeLib(...)
