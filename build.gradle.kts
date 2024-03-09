@@ -72,7 +72,7 @@ allprojects {
         maven("https://maven.terraformersmc.com/releases/")
 
         flatDir {
-            dirs("libs") // TODO: Absolute path
+            dirs(rootProject.file("libs"))
         }
     }
 
