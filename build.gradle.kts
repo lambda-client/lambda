@@ -7,6 +7,8 @@ val mavenGroup = property("maven_group").toString()
 val minecraftVersion = property("minecraft_version").toString()
 val yarnMappings = property("yarn_mappings").toString()
 
+val libs = file("libs")
+
 plugins {
     kotlin("jvm") version ("1.9.22")
     id("org.jetbrains.dokka") version "1.9.20"
@@ -72,7 +74,7 @@ allprojects {
         maven("https://maven.terraformersmc.com/releases/")
 
         flatDir {
-            dirs(rootProject.file("libs"))
+            dirs(libs)
         }
     }
 
