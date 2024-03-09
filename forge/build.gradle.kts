@@ -54,8 +54,8 @@ dependencies {
 
     // Add dependencies on the required Kotlin modules.
     includeLib("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
-    includeLib(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
     includeLib("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
+    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!) // Avoids the mods from conflicting with each other
 
     // Add mods to the mod jar
     // includeMod(...)
