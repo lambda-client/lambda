@@ -30,21 +30,20 @@ repositories {
     maven("https://cursemaven.com")
 }
 
-val common: Configuration by configurations.creating {
-    configurations.compileClasspath.get().extendsFrom(this)
-    configurations.runtimeClasspath.get().extendsFrom(this)
-    configurations["developmentForge"].extendsFrom(this)
-}
-
 val includeLib: Configuration by configurations.creating
+val includeMod: Configuration by configurations.creating
 
 fun DependencyHandlerScope.setupConfigurations() {
-    // Please look at this before yelling at me
-    // https://docs.architectury.dev/loom/using_libraries/
     includeLib.dependencies.forEach {
         implementation(it)
-        forgeRuntimeLibrary(it) // Avoid mods not being found in dev environment
         include(it)
+    }
+
+    // Please look at this before yelling at me
+    // https://docs.architectury.dev/loom/using_libraries/
+    includeMod.dependencies.forEach {
+        implementation(it)
+        forgeRuntimeLibrary(it) // Avoid mods not being found in dev environment
     }
 }
 
@@ -53,10 +52,13 @@ dependencies {
     forge("net.minecraftforge:forge:$forgeVersion")
 
     // Add dependencies on the required Kotlin modules.
-    includeLib("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
-    includeLib("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.27.0-GA")
+
+    // Add mods to the mod jar
+    includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
+    includeMod("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
+    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
 
     // Bugfixes
     compileOnly(kotlin("stdlib")) // Hack https://github.com/thedarkcolour/KotlinForForge/issues/93
