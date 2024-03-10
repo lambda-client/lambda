@@ -23,6 +23,7 @@ dependencies {
     modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
     // Add dependencies on the required Kotlin modules.
     modImplementation("net.fabricmc:fabric-language-kotlin:$fabricKotlinVersion")
+    implementation("org.reflections:reflections:0.10.2")
     implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
 }
 

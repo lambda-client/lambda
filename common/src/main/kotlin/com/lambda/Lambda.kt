@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.lambda.config.serializer.BlockPosSerializer
 import com.lambda.config.serializer.BlockSerializer
+import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.BoringModule
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
@@ -26,7 +27,9 @@ object Lambda {
         .create()
 
     init {
+        // ToDo: Why do i have to call these?
         BoringModule
+        ModuleRegistry
 
 //        listener<KeyPressEvent> {
 //            if (it.key != GLFW.GLFW_KEY_Z) {

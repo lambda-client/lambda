@@ -25,12 +25,6 @@ abstract class Module(
     private val keybind by keybindSetting
 
     init {
-//        unsafeListener<ClientEvent.ConfigLoaded>(alwaysListen = true) { event ->
-//            if (event.configuration != ModuleConfig) return@unsafeListener
-//
-//            isEnabled = isEnabledSetting.value
-//        }
-
         listener<KeyPressEvent>(alwaysListen = true) { event ->
             if (event.key == keybind.key) {
                 toggle()

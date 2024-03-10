@@ -44,6 +44,7 @@ dependencies {
     }
     implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
     implementation(include("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")!!)
+    implementation("org.reflections:reflections:0.10.2")
 }
 
 tasks {
