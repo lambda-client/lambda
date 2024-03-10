@@ -1,7 +1,7 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "com.lambda.common.mixin",
+  "package": "com.lambda.mixin",
   "compatibilityLevel": "JAVA_17",
   "client": [
     "KeyboardMixin",
