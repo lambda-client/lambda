@@ -11,10 +11,17 @@ base.archivesName.set("${base.archivesName.get()}-forge")
 
 loom {
     accessWidenerPath.set(project(":common").loom.accessWidenerPath)
+
     forge {
         convertAccessWideners = true
         extraAccessWideners.add(loom.accessWidenerPath.get().asFile.name)
         mixinConfig("lambda.mixins.common.json")
+    }
+
+    mods {
+        register("forge") {
+            sourceSet("main", project(":forge"))
+        }
     }
 }
 
@@ -49,18 +56,17 @@ dependencies {
     forge("net.minecraftforge:forge:$forgeVersion")
 
     // Add dependencies on the required Kotlin modules.
-    includeLib("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
-    includeLib("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
+    includeLib("thedarkcolour:kotlinforforge:$kotlinForgeVersion") { isTransitive = false }
+    includeLib("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion") { isTransitive = false }
 
     // Add mods to the mod jar
-    // includeMod(...)
+    includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion") // Both a library and a mod
+
+    compileOnly(kotlin("stdlib")) // Hacky fix https://github.com/thedarkcolour/KotlinForForge/issues/93
 
     // Common (Do not touch)
-    common(project(":common", configuration = "namedElements")) { isTransitive = false }
+    implementation(project(":common", configuration = "namedElements")) { isTransitive = false } // We cannot common here because it is treated as a different mod and forge will panic
     shadowCommon(project(path = ":common", configuration = "transformProductionForge")) { isTransitive = false }
-
-    // KFF Fix
-    compileOnly(kotlin("stdlib")) // Hacky fix https://github.com/thedarkcolour/KotlinForForge/issues/93
 
     // Finish the configuration
     setupConfigurations()

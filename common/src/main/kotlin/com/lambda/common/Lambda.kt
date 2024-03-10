@@ -16,7 +16,7 @@ object Lambda {
     private val VERSION: String = LoaderInfo.getVersion()
 
     val LOG: Logger = LogManager.getLogger(SYMBOL)
-    val mc: MinecraftClient = MinecraftClient.getInstance()
+    val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
 
     init {
         listener<KeyPressEvent> {
