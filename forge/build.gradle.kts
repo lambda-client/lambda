@@ -49,6 +49,10 @@ fun DependencyHandlerScope.setupConfigurations() {
 }
 
 dependencies {
+    // TODO: Fix forge dev env saying there are missings mods but not in prod, maybe it needs deobfuscated mods?
+
+    compileOnly(kotlin("stdlib")) // Hacky fix https://github.com/thedarkcolour/KotlinForForge/issues/93
+
     // Forge API
     forge("net.minecraftforge:forge:$forgeVersion")
 
