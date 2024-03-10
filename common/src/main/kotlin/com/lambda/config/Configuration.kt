@@ -3,6 +3,7 @@ package com.lambda.config
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
 import com.lambda.event.EventFlow.lambdaScope
@@ -37,7 +38,7 @@ abstract class Configuration : Jsonable {
         serialized.asJsonObject.entrySet().forEach { (name, value) ->
             configurables.find {
                 it.name == name
-            }?.loadFromJson(value) ?: println("No saved setting found for $name")
+            }?.loadFromJson(value) ?: LOG.warn("No matching setting found for saved setting $name with $value in $configName config")
         }
     }
 

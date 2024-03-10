@@ -8,6 +8,7 @@ import com.lambda.config.settings.collections.ListSetting
 import com.lambda.config.settings.collections.MapSetting
 import com.lambda.config.settings.collections.SetSetting
 import com.lambda.config.settings.comparable.BooleanSetting
+import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.config.settings.numeric.*
 import com.lambda.util.Nameable
 
@@ -15,7 +16,7 @@ import com.lambda.util.Nameable
  * Holds a set of [AbstractSetting]s that are associated with the [name] of the [Configurable].
  */
 abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
-    private val settings = mutableSetOf<AbstractSetting<*>>()
+    val settings = mutableSetOf<AbstractSetting<*>>()
 
     init {
         configuration.configurables.add(this) // ToDo: Find non-leaking solution
@@ -30,7 +31,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
 
     override fun loadFromJson(serialized: JsonElement) {
         serialized.asJsonObject.entrySet().forEach { (name, value) ->
-            settings.find { it.name == name }?.loadFromJson(value) ?: LOG.info("No saved setting found for $name")
+            settings.find {
+                it.name == name
+            }?.loadFromJson(value) ?: LOG.warn("No saved setting found for $name with $value in ${this::class.simpleName}")
         }
     }
 
@@ -43,6 +46,15 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         settings.add(it)
     }
 
+    inline fun <reified T : Enum<T>> setting(
+        name: String,
+        defaultValue: T,
+        noinline visibility: () -> Boolean = { true },
+        description: String = ""
+    ) = EnumSetting(name, defaultValue, visibility, description).also {
+        settings.add(it)
+    }
+
     fun setting(
         name: String,
         defaultValue: String,
@@ -52,7 +64,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         settings.add(it)
     }
 
-    private inline fun <reified T : Any> setting(
+    inline fun <reified T : Any> setting(
         name: String,
         defaultValue: List<T>,
         noinline visibility: () -> Boolean = { true },
@@ -61,7 +73,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         settings.add(it)
     }
 
-    private inline fun <reified K : Any, V : Any> setting(
+    inline fun <reified K : Any, V : Any> setting(
         name: String,
         defaultValue: Map<K, V>,
         noinline visibility: () -> Boolean = { true },
@@ -70,7 +82,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         settings.add(it)
     }
 
-    private inline fun <reified T : Any> setting(
+    inline fun <reified T : Any> setting(
         name: String,
         defaultValue: Set<T>,
         noinline visibility: () -> Boolean = { true },

@@ -1,5 +1,8 @@
 package com.lambda.config.settings.collections
 
+import com.google.common.reflect.TypeToken
+import com.google.gson.JsonElement
+import com.lambda.Lambda.gson
 import com.lambda.config.AbstractSetting
 
 class MapSetting<K, V>(
@@ -11,4 +14,9 @@ class MapSetting<K, V>(
     defaultValue,
     visibility,
     description
-)
+) {
+    override fun loadFromJson(serialized: JsonElement) {
+        val mapType = object : TypeToken<Map<K, V>>() {}.type
+        value = gson.fromJson(serialized, mapType)
+    }
+}
