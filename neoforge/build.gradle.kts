@@ -34,8 +34,7 @@ fun DependencyHandlerScope.setupConfigurations() {
     }
 
     includeMod.dependencies.forEach {
-        modImplementation(it)
-        include(it)
+        implementation(it)
     }
 }
 
@@ -44,10 +43,10 @@ dependencies {
     neoForge("net.neoforged:neoforge:$neoVersion")
 
     // Add dependencies on the required Kotlin modules.
-    includeLib("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
+    // includeLib(...)
 
     // Add mods to the mod jar
-    // includeMod(...)
+    includeMod("thedarkcolour:kotlinforforge-neoforge:$kotlinForgeVersion")
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
