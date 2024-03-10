@@ -3,6 +3,8 @@ package com.lambda.task
 /**
  * Represents the result of a task.
  *
+ * A task result can be successful, failed, timed out, or canceled.
+ *
  * @param Result The type of the result value for successful tasks. Covariant type parameter.
  */
 sealed class TaskResult<out Result> {

@@ -5,7 +5,6 @@ import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.task.Task
 import com.lambda.threading.runSafe
-import java.util.concurrent.ConcurrentSkipListSet
 
 class SafeListener(
     override val priority: Int = 0,
@@ -30,7 +29,7 @@ class SafeListener(
          * This function registers a new [SafeListener] for a generic [Event] type [T].
          * The [function] is executed on the same thread where the [Event] was dispatched.
          * The [function] will only be executed when the context satisfies certain safety conditions.
-         * These conditions are met when none of the following [ClientContext] properties are null:
+         * These conditions are met when none of the following [SafeContext] properties are null:
          * - [SafeContext.world]
          * - [SafeContext.player]
          * - [SafeContext.interaction]
@@ -50,7 +49,7 @@ class SafeListener(
          * ```
          *
          * @param T The type of the event to listen for. This should be a subclass of Event.
-         * @param priority The priority of the listener. Listeners with higher priority will be executed first. Default value is 0.
+         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is 0.
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [SafeListener].
          */
@@ -92,7 +91,7 @@ class SafeListener(
          * This should be a subclass of Event.
          * @param priority The priority of the listener.
          * Listeners with higher priority will be executed first.
-         * Default value is 0.
+         * The Default value is 0.
          * @param function The function to be executed when the event is posted.
          * This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [SafeListener].
@@ -127,7 +126,7 @@ class SafeListener(
          * }
          * ```
          * @param T The type of the event to listen for. This should be a subclass of Event.
-         * @param priority The priority of the listener. Listeners with higher priority will be executed first. Default value is 0.
+         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is 0.
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [SafeListener].
          */

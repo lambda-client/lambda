@@ -8,7 +8,7 @@ import kotlin.reflect.KClass
 class Subscriber : ConcurrentHashMap<KClass<*>, ConcurrentSkipListSet<Listener>>() {
     inline fun <reified T : Event> subscribe(listener: Listener) =
         getOrPut(T::class) {
-            ConcurrentSkipListSet(Comparator.reverseOrder())
+            defaultListenerSet()
         }.add(listener)
 
     fun unsubscribe(eventType: KClass<*>) = remove(eventType)
@@ -22,7 +22,7 @@ class Subscriber : ConcurrentHashMap<KClass<*>, ConcurrentSkipListSet<Listener>>
     infix fun subscribe(subscriber: Subscriber) {
         subscriber.forEach { (eventType, listeners) ->
             getOrPut(eventType) {
-                ConcurrentSkipListSet(Comparator.reverseOrder())
+                defaultListenerSet()
             }.addAll(listeners)
         }
     }
@@ -33,4 +33,7 @@ class Subscriber : ConcurrentHashMap<KClass<*>, ConcurrentSkipListSet<Listener>>
             listeners.isEmpty()
         }
     }
+
+    fun defaultListenerSet(): ConcurrentSkipListSet<Listener> =
+        ConcurrentSkipListSet(Comparator.reverseOrder())
 }

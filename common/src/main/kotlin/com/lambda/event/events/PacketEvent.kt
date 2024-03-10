@@ -1,8 +1,8 @@
 package com.lambda.event.events
 
-import com.lambda.event.Cancellable
-import com.lambda.event.ICancellable
+import com.lambda.event.cancellable.ICancellable
 import com.lambda.event.Event
+import com.lambda.event.cancellable.Cancellable
 import net.minecraft.network.packet.Packet
 
 abstract class PacketEvent : Event {

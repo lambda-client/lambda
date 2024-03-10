@@ -2,12 +2,10 @@ package com.lambda.threading
 
 import com.lambda.Lambda
 import com.lambda.context.ClientContext
-import com.lambda.event.EventFlow
 import com.lambda.context.SafeContext
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.async
+import com.lambda.event.EventFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /**
  * Executes a block of code only if the context is safe. A context is considered safe when all the following properties are not null:

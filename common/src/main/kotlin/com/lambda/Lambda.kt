@@ -1,7 +1,11 @@
 package com.lambda
 
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.lambda.event.events.KeyPressEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.module.modules.BoringModule
+import com.lambda.module.modules.BoringModule2
 import com.lambda.task.tasks.HelloWorldTask
 import com.lambda.threading.taskContext
 import net.minecraft.client.MinecraftClient
@@ -17,8 +21,12 @@ object Lambda {
 
     val LOG: Logger = LogManager.getLogger(SYMBOL)
     val mc: MinecraftClient = MinecraftClient.getInstance()
+    val gson: Gson = GsonBuilder().setPrettyPrinting().create()
 
     init {
+        BoringModule
+        BoringModule2
+
         listener<KeyPressEvent> {
             if (it.key != GLFW.GLFW_KEY_Z) {
                 return@listener
