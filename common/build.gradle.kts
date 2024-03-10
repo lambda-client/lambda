@@ -25,8 +25,6 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     modImplementation("net.fabricmc:fabric-language-kotlin:$fabricKotlinVersion")
     implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
-
-    // Baritone
 }
 
 // Avoid nested jars
