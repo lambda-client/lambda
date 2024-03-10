@@ -11,9 +11,12 @@ import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.config.settings.complex.BlockPosSetting
 import com.lambda.config.settings.complex.BlockSetting
+import com.lambda.config.settings.complex.KeyBindSetting
 import com.lambda.config.settings.numeric.*
+import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 import net.minecraft.block.Block
+import net.minecraft.client.option.KeyBinding
 import net.minecraft.util.math.BlockPos
 
 /**
@@ -158,6 +161,15 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         visibility: () -> Boolean = { true },
         description: String = ""
     ) = ShortSetting(name, defaultValue, range, step, visibility, description).also {
+        settings.add(it)
+    }
+
+    fun setting(
+        name: String,
+        defaultValue: KeyCode,
+        visibility: () -> Boolean = { true },
+        description: String = ""
+    ) = KeyBindSetting(name, defaultValue, visibility, description).also {
         settings.add(it)
     }
 

@@ -3,11 +3,11 @@ package com.lambda.config
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
+import com.lambda.event.EventFlow
 import com.lambda.event.EventFlow.lambdaScope
-import com.lambda.event.events.GameEvent
+import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -22,9 +22,9 @@ abstract class Configuration : Jsonable {
         get() = File("${primary.parent}/${primary.nameWithoutExtension}-backup.${primary.extension}")
 
     init {
-        unsafeListener<GameEvent.Startup> { tryLoad() }
+        unsafeListener<ClientEvent.Startup> { tryLoad() }
 
-        unsafeListener<GameEvent.Shutdown> { trySave() }
+        unsafeListener<ClientEvent.Shutdown> { trySave() }
     }
 
     override fun toJson() =
@@ -63,24 +63,27 @@ abstract class Configuration : Jsonable {
     private fun tryLoad() {
         lambdaScope.launch(Dispatchers.IO) {
             runCatching { load(primary) }
-                .onSuccess { LOG.info("$configName config loaded") }
+                .onSuccess {
+                    LOG.info("$configName config loaded")
+                    EventFlow.post(ClientEvent.ConfigLoaded(this@Configuration))
+                }
                 .onFailure { LOG.error("Failed to load $configName config, loading backup", it) }
                 .recoverCatching {
                     runCatching { load(backup) }
                         .onSuccess { LOG.info("$configName config loaded from backup") }
                         .onFailure { LOG.error("Failed to load $configName config from backup, unrecoverable error", it) }
-                        .isSuccess
                 }
-                .isSuccess
         }
     }
 
     private fun trySave() {
         lambdaScope.launch(Dispatchers.IO) {
             runCatching { save() }
-                .onSuccess { LOG.info("$configName config saved") }
+                .onSuccess {
+                    LOG.info("$configName config saved")
+                    EventFlow.post(ClientEvent.ConfigSaved(this@Configuration))
+                }
                 .onFailure { LOG.error("Failed to save $configName config", it) }
-                .isSuccess
         }
     }
 

@@ -75,6 +75,9 @@ object EventFlow {
 
     private fun Event.executeListenerSynchronous() {
         syncListeners[this::class]?.forEach { listener ->
+            if (listener.owner is Muteable
+                && (listener.owner as Muteable).isMuted
+                && !listener.alwaysListen) return
             if (this is ICancellable && this.isCanceled()) return
             listener.execute(this@executeListenerSynchronous)
         }
@@ -82,6 +85,9 @@ object EventFlow {
 
     private fun Event.executeListenerConcurrently() {
         concurrentListeners[this::class]?.forEach { listener ->
+            if (listener.owner is Muteable
+                && (listener.owner as Muteable).isMuted
+                && !listener.alwaysListen) return
             if (this is ICancellable && this.isCanceled()) return
             runConcurrent {
                 listener.execute(this@executeListenerConcurrently)

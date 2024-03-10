@@ -1,9 +1,11 @@
 package com.lambda.module.modules
 
+import com.lambda.Lambda.LOG
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.KeyCode
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
 
@@ -11,6 +13,7 @@ object BoringModule : Module(
     name = "BoringModule",
     description = "This is a boring module",
     tags = setOf(ModuleTag.MISC, ModuleTag.COMBAT),
+    defaultKeybind = KeyCode.Z
 ) {
     private val superBoring by setting("Super Boring", false)
     private val boringValue by setting("Boring Value", 0.0, 0.1..5.0, 0.1)
@@ -27,8 +30,20 @@ object BoringModule : Module(
     }
 
     init {
+        onEnable {
+            LOG.info("I'm was enabled!")
+        }
+
+        onDisable {
+            LOG.info("I'm was disabled!")
+        }
+
+        onToggle {
+            LOG.info("I'm now ${if (it) "enabled" else "disabled"}!")
+        }
+
         listener<TickEvent.Pre> {
-            if (isEnabled) println("I'm ${if (superBoring) "super boring ($boringValue)" else "boring"}!")
+            LOG.info("I'm ${if (superBoring) "super boring ($boringValue)" else "boring"}! $isEnabled")
         }
     }
 }

@@ -5,6 +5,7 @@ import com.lambda.event.Event
 abstract class Listener : Comparable<Listener> {
     abstract val priority: Int
     abstract val owner: Any // ToDo: Evaluate if this is even needed
+    abstract val alwaysListen: Boolean
 
     abstract fun execute(event: Event)
 
