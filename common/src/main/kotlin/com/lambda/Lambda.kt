@@ -20,6 +20,7 @@ object Lambda {
 
     val LOG: Logger = LogManager.getLogger(SYMBOL)
     val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
+
     val gson: Gson = GsonBuilder()
         .setPrettyPrinting()
         .registerTypeAdapter(BlockPos::class.java, BlockPosSerializer)
