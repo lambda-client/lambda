@@ -21,6 +21,12 @@ loom {
     mods {
         register("forge") {
             sourceSet("main", project(":forge"))
+
+            sourceSets.forEach {
+                val dir = layout.buildDirectory.dir("sourcesSets/${it.name}")
+                it.output.setResourcesDir(dir)
+                it.java.destinationDirectory.set(dir)
+            }
         }
     }
 }
