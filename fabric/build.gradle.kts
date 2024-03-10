@@ -38,8 +38,8 @@ fun DependencyHandlerScope.setupConfigurations() {
 dependencies {
     // Fabric API (Do not touch)
     modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
-    includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
-    includeMod("net.fabricmc:fabric-language-kotlin:$fabricKotlinVersion")
+    modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
+    modImplementation("net.fabricmc:fabric-language-kotlin:$fabricKotlinVersion")
 
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
