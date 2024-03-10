@@ -9,8 +9,12 @@ import com.lambda.config.settings.collections.MapSetting
 import com.lambda.config.settings.collections.SetSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
+import com.lambda.config.settings.complex.BlockPosSetting
+import com.lambda.config.settings.complex.BlockSetting
 import com.lambda.config.settings.numeric.*
 import com.lambda.util.Nameable
+import net.minecraft.block.Block
+import net.minecraft.util.math.BlockPos
 
 /**
  * Holds a set of [AbstractSetting]s that are associated with the [name] of the [Configurable].
@@ -154,6 +158,24 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         visibility: () -> Boolean = { true },
         description: String = ""
     ) = ShortSetting(name, defaultValue, range, step, visibility, description).also {
+        settings.add(it)
+    }
+
+    fun setting(
+        name: String,
+        defaultValue: BlockPos,
+        visibility: () -> Boolean = { true },
+        description: String = ""
+    ) = BlockPosSetting(name, defaultValue, visibility, description).also {
+        settings.add(it)
+    }
+
+    fun setting(
+        name: String,
+        defaultValue: Block,
+        visibility: () -> Boolean = { true },
+        description: String = ""
+    ) = BlockSetting(name, defaultValue, visibility, description).also {
         settings.add(it)
     }
 }

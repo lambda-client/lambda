@@ -2,13 +2,17 @@ package com.lambda
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.lambda.config.serializer.BlockPosSerializer
+import com.lambda.config.serializer.BlockSerializer
 import com.lambda.event.events.KeyPressEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.modules.BoringModule
 import com.lambda.module.modules.BoringModule2
 import com.lambda.task.tasks.HelloWorldTask
 import com.lambda.threading.taskContext
+import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
+import net.minecraft.util.math.BlockPos
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.lwjgl.glfw.GLFW
@@ -21,7 +25,11 @@ object Lambda {
 
     val LOG: Logger = LogManager.getLogger(SYMBOL)
     val mc: MinecraftClient = MinecraftClient.getInstance()
-    val gson: Gson = GsonBuilder().setPrettyPrinting().create()
+    val gson: Gson = GsonBuilder()
+        .setPrettyPrinting()
+        .registerTypeAdapter(BlockPos::class.java, BlockPosSerializer)
+        .registerTypeAdapter(Block::class.java, BlockSerializer)
+        .create()
 
     init {
         BoringModule
