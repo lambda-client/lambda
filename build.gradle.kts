@@ -67,7 +67,6 @@ allprojects {
     version = modVersion
 
     repositories {
-        maven("https://impactdevelopment.github.io/maven/")
         maven("https://api.modrinth.com/maven")
         maven("https://jitpack.io")
         maven("https://maven.shedaniel.me/") { name = "Architectury" }

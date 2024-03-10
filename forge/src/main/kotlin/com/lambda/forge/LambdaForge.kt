@@ -8,7 +8,6 @@ import com.lambda.Lambda.LOG
 object LambdaForge {
     init {
         Lambda.initialize()
-
         LOG.info("Lambda Forge initialized")
     }
 }

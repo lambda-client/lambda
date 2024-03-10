@@ -7,7 +7,6 @@ import com.lambda.Lambda.LOG
 object LambdaFabric : ClientModInitializer {
     override fun onInitializeClient() {
         Lambda.initialize()
-
         LOG.info("Lambda Fabric initialized")
     }
 }

@@ -1,32 +1,27 @@
-val forgeVersion = property("forge_version").toString()
+val neoVersion = property("neo_version").toString()
 val kotlinForgeVersion = property("kotlin_forge_version").toString()
 val mixinExtrasVersion = property("mixinextras_version").toString()
 
 architectury {
     platformSetupLoomIde()
-    forge()
+    neoForge()
 }
 
-base.archivesName.set("${base.archivesName.get()}-forge")
+base.archivesName.set("${base.archivesName.get()}-neoforge")
 
 loom {
     accessWidenerPath.set(project(":common").loom.accessWidenerPath)
-    forge {
-        convertAccessWideners = true
-        extraAccessWideners.add(loom.accessWidenerPath.get().asFile.name)
-        mixinConfig("lambda.mixins.common.json")
-    }
 }
 
 repositories {
+    maven("https://maven.neoforged.net/releases/")
     maven("https://thedarkcolour.github.io/KotlinForForge/")
-    maven("https://cursemaven.com")
 }
 
 val common: Configuration by configurations.creating {
     configurations.compileClasspath.get().extendsFrom(this)
     configurations.runtimeClasspath.get().extendsFrom(this)
-    configurations["developmentForge"].extendsFrom(this)
+    configurations["developmentNeoForge"].extendsFrom(this)
 }
 
 val includeLib: Configuration by configurations.creating
@@ -45,11 +40,10 @@ fun DependencyHandlerScope.setupConfigurations() {
 }
 
 dependencies {
-    // Forge API
-    forge("net.minecraftforge:forge:$forgeVersion")
+    // NeoForge API
+    neoForge("net.neoforged:neoforge:$neoVersion")
 
     // Add dependencies on the required Kotlin modules.
-    includeLib("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
     includeLib("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
 
     // Add mods to the mod jar
@@ -57,10 +51,7 @@ dependencies {
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
-    shadowCommon(project(path = ":common", configuration = "transformProductionForge")) { isTransitive = false }
-
-    // KFF Fix
-    compileOnly(kotlin("stdlib")) // Hacky fix https://github.com/thedarkcolour/KotlinForForge/issues/93
+    shadowCommon(project(path = ":common", configuration = "transformProductionNeoForge")) { isTransitive = false }
 
     // Finish the configuration
     setupConfigurations()

@@ -7,28 +7,27 @@ modId = "lambda"
 version = "${version}"
 displayName = "Lambda"
 authors = "${authors}"
-description = '''
-'''
+description = "${description}"
 logoFile = "assets/lambda/lambda.png"
 displayTest = "IGNORE_ALL_VERSION"
 
 [[dependencies.lambda]]
-modId = "forge"
-mandatory = true
-versionRange = "[44,)"
+modId = "neoforge"
+type = "required"
+versionRange = "[20.2,)"
 ordering = "NONE"
 side = "CLIENT"
 
 [[dependencies.lambda]]
 modId = "minecraft"
-mandatory = true
-versionRange = "[1.19.3,1.21)"
+type = "required"
+versionRange = "[1.20.2,1.21)"
 ordering = "NONE"
 side = "CLIENT"
 
 [[dependencies.lambda]]
 modId = "kotlinforforge"
-mandatory = true
+type = "required"
 versionRange = "[4,)"
 ordering = "AFTER"
 side = "CLIENT"

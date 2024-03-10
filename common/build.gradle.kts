@@ -3,7 +3,7 @@ val fabricKotlinVersion = property("fabric_kotlin_version").toString()
 val mixinExtrasVersion = property("mixinextras_version").toString()
 val kotlinXCoroutineVersion = property("kotlinx_coroutines_version").toString()
 
-architectury { common("fabric", "forge") }
+architectury { common("fabric", "forge", "neoforge") }
 
 loom {
     accessWidenerPath.set(File("src/main/resources/lambda.accesswidener"))
