@@ -1,5 +1,6 @@
-package com.lambda.event
+package com.lambda.event.cancellable
 
+import com.lambda.event.CallbackEvent
 import java.util.concurrent.atomic.AtomicBoolean
 
 interface ICancellable : CallbackEvent {
@@ -10,8 +11,4 @@ interface ICancellable : CallbackEvent {
     }
 
     fun isCanceled() = cancelSignal.get()
-}
-
-open class Cancellable : ICancellable {
-    override val cancelSignal = AtomicBoolean(false)
 }

@@ -42,7 +42,7 @@ dependencies {
     modImplementation("net.fabricmc:fabric-language-kotlin:$fabricKotlinVersion")
 
     // Add dependencies on the required Kotlin modules.
-    // includeLib(...)
+    includeLib("org.reflections:reflections:0.10.2")
 
     // Add mods to the mod jar
     // includeMod(...)

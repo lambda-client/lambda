@@ -1,11 +1,11 @@
 package com.lambda.event.listener
 
 import com.lambda.event.Event
-import com.lambda.event.EventFlow
 
 abstract class Listener : Comparable<Listener> {
     abstract val priority: Int
     abstract val owner: Any // ToDo: Evaluate if this is even needed
+    abstract val alwaysListen: Boolean
 
     abstract fun execute(event: Event)
 

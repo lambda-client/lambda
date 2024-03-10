@@ -1,16 +1,16 @@
 package com.lambda.event
 
+import com.lambda.event.cancellable.ICancellable
 import com.lambda.event.listener.Listener
-import com.lambda.event.listener.SafeListener
 import com.lambda.threading.runConcurrent
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNot
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentSkipListSet
-import kotlin.reflect.KClass
 
 object EventFlow {
     /**
@@ -78,6 +78,10 @@ object EventFlow {
 
     private fun Event.executeListenerSynchronous() {
         syncListeners[this::class]?.forEach { listener ->
+            if (listener.owner is Muteable
+                && (listener.owner as Muteable).isMuted
+                && !listener.alwaysListen
+            ) return
             if (this is ICancellable && this.isCanceled()) return
             listener.execute(this@executeListenerSynchronous)
         }
@@ -85,6 +89,10 @@ object EventFlow {
 
     private fun Event.executeListenerConcurrently() {
         concurrentListeners[this::class]?.forEach { listener ->
+            if (listener.owner is Muteable
+                && (listener.owner as Muteable).isMuted
+                && !listener.alwaysListen
+            ) return
             if (this is ICancellable && this.isCanceled()) return
             runConcurrent {
                 listener.execute(this@executeListenerConcurrently)

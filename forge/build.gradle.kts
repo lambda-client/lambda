@@ -58,6 +58,7 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("thedarkcolour:kotlinforforge:$kotlinForgeVersion") { isTransitive = false }
     includeLib("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion") { isTransitive = false }
+    includeLib("org.reflections:reflections:0.10.2")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion") // Both a library and a mod

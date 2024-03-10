@@ -5,6 +5,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
 import com.lambda.event.Subscriber
 import com.lambda.threading.runSafe
+import com.lambda.util.Nameable
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
@@ -15,6 +16,9 @@ import kotlinx.coroutines.withTimeout
  * It is designed to automate in-game activities without the need for strict event-based programming,
  * thanks to the use of suspending functions which allow for linear coding.
  *
+ * [Result] is the type of the result that the task will return when it completes successfully.
+ * In case the task should not return any result, [Unit] can be used as the type.
+ *
  * A [Task] can have event listeners, but they are only active while the action function is running.
  *
  * It supports a builder pattern, allowing you to chain configuration methods like [withDelay],
@@ -22,7 +26,7 @@ import kotlinx.coroutines.withTimeout
  * to construct a [Task] instance.
  * This makes it easy to build complex flows of nested tasks.
  *
- * CAUTION: When implementing the `onAction` function,
+ * CAUTION: When implementing the [onAction] function,
  * ensure that the function adheres to thread safety measures.
  * This includes avoiding write operations on non-synchronized in-game data
  * unless explicitly running on the game thread using `runSafeOnGameThread { ... }`.
@@ -47,10 +51,10 @@ abstract class Task<Result>(
     private var onTimeout: (suspend Task<Result>.() -> Unit) = {},
     private var onRepeat: (suspend Task<Result>.(Int) -> Unit) = {},
     private var onException: (suspend Task<Result>.(Throwable) -> Unit) = {},
-) {
+) : Nameable {
     private val creationTimestamp = System.currentTimeMillis()
     private val age: Long get() = System.currentTimeMillis() - creationTimestamp
-    open val name: String get() = this::class.simpleName ?: "Task"
+    override val name: String get() = this::class.simpleName ?: "Task"
 
     val syncListeners = Subscriber()
     private val concurrentListeners = Subscriber()
