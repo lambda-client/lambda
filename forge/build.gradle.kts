@@ -37,16 +37,13 @@ val common: Configuration by configurations.creating {
 }
 
 val includeLib: Configuration by configurations.creating
-val includeMod: Configuration by configurations.creating
 
 fun DependencyHandlerScope.setupConfigurations() {
+    // Please look at this before yelling at me
+    // https://docs.architectury.dev/loom/using_libraries/
     includeLib.dependencies.forEach {
         implementation(it)
-        include(it)
-    }
-
-    includeMod.dependencies.forEach {
-        modImplementation(it)
+        forgeRuntimeLibrary(it) // Avoid mods not being found in dev environment
         include(it)
     }
 }
@@ -56,14 +53,13 @@ dependencies {
     forge("net.minecraftforge:forge:$forgeVersion")
 
     // Add dependencies on the required Kotlin modules.
-    includeLib("thedarkcolour:kotlinforforge:$kotlinForgeVersion") { isTransitive = false }
-    includeLib("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion") { isTransitive = false }
+    includeLib("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
+    includeLib("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
     includeLib("org.reflections:reflections:0.10.2")
+    includeLib("org.javassist:javassist:3.27.0-GA")
 
-    // Add mods to the mod jar
-    includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion") // Both a library and a mod
-
-    compileOnly(kotlin("stdlib")) // Hacky fix https://github.com/thedarkcolour/KotlinForForge/issues/93
+    // Bugfixes
+    compileOnly(kotlin("stdlib")) // Hack https://github.com/thedarkcolour/KotlinForForge/issues/93
 
     // Common (Do not touch)
     implementation(project(":common", configuration = "namedElements")) { isTransitive = false } // We cannot common here because it is treated as a different mod and forge will panic
