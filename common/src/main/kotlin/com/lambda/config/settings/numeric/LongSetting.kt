@@ -8,7 +8,7 @@ class LongSetting(
     override val range: ClosedRange<Long>,
     override val step: Long = 1,
     visibility: () -> Boolean,
-    description: String
+    description: String,
 ) : NumericSetting<Long>(
     defaultValue,
     range,

@@ -16,7 +16,6 @@ import com.lambda.config.settings.numeric.*
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 import net.minecraft.block.Block
-import net.minecraft.client.option.KeyBinding
 import net.minecraft.util.math.BlockPos
 
 /**
@@ -40,7 +39,8 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         serialized.asJsonObject.entrySet().forEach { (name, value) ->
             settings.find {
                 it.name == name
-            }?.loadFromJson(value) ?: LOG.warn("No saved setting found for $name with $value in ${this::class.simpleName}")
+            }?.loadFromJson(value)
+                ?: LOG.warn("No saved setting found for $name with $value in ${this::class.simpleName}")
         }
     }
 
@@ -48,7 +48,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         name: String,
         defaultValue: Boolean,
         visibility: () -> Boolean = { true },
-        description: String = ""
+        description: String = "",
     ) = BooleanSetting(name, defaultValue, visibility, description).also {
         settings.add(it)
     }
@@ -57,7 +57,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         name: String,
         defaultValue: T,
         noinline visibility: () -> Boolean = { true },
-        description: String = ""
+        description: String = "",
     ) = EnumSetting(name, defaultValue, visibility, description).also {
         settings.add(it)
     }
@@ -66,7 +66,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         name: String,
         defaultValue: String,
         visibility: () -> Boolean = { true },
-        description: String = ""
+        description: String = "",
     ) = StringSetting(name, defaultValue, visibility, description).also {
         settings.add(it)
     }
@@ -75,7 +75,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         name: String,
         defaultValue: List<T>,
         noinline visibility: () -> Boolean = { true },
-        description: String = ""
+        description: String = "",
     ) = ListSetting(name, defaultValue, visibility, description).also {
         settings.add(it)
     }
@@ -84,7 +84,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         name: String,
         defaultValue: Map<K, V>,
         noinline visibility: () -> Boolean = { true },
-        description: String = ""
+        description: String = "",
     ) = MapSetting(name, defaultValue, visibility, description).also {
         settings.add(it)
     }
@@ -93,7 +93,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         name: String,
         defaultValue: Set<T>,
         noinline visibility: () -> Boolean = { true },
-        description: String = ""
+        description: String = "",
     ) = SetSetting(name, defaultValue, visibility, description).also {
         settings.add(it)
     }
@@ -104,7 +104,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         range: ClosedRange<Byte>,
         step: Byte = 1,
         visibility: () -> Boolean = { true },
-        description: String = ""
+        description: String = "",
     ) = ByteSetting(name, defaultValue, range, step, visibility, description).also {
         settings.add(it)
     }
@@ -115,7 +115,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         range: ClosedRange<Double>,
         step: Double = 1.0,
         visibility: () -> Boolean = { true },
-        description: String = ""
+        description: String = "",
     ) = DoubleSetting(name, defaultValue, range, step, visibility, description).also {
         settings.add(it)
     }
@@ -126,7 +126,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         range: ClosedRange<Float>,
         step: Float = 1f,
         visibility: () -> Boolean = { true },
-        description: String = ""
+        description: String = "",
     ) = FloatSetting(name, defaultValue, range, step, visibility, description).also {
         settings.add(it)
     }
@@ -137,7 +137,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         range: ClosedRange<Int>,
         step: Int = 1,
         visibility: () -> Boolean = { true },
-        description: String = ""
+        description: String = "",
     ) = IntegerSetting(name, defaultValue, range, step, visibility, description).also {
         settings.add(it)
     }
@@ -148,7 +148,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         range: ClosedRange<Long>,
         step: Long = 1,
         visibility: () -> Boolean = { true },
-        description: String = ""
+        description: String = "",
     ) = LongSetting(name, defaultValue, range, step, visibility, description).also {
         settings.add(it)
     }
@@ -159,7 +159,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         range: ClosedRange<Short>,
         step: Short = 1,
         visibility: () -> Boolean = { true },
-        description: String = ""
+        description: String = "",
     ) = ShortSetting(name, defaultValue, range, step, visibility, description).also {
         settings.add(it)
     }
@@ -168,7 +168,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         name: String,
         defaultValue: KeyCode,
         visibility: () -> Boolean = { true },
-        description: String = ""
+        description: String = "",
     ) = KeyBindSetting(name, defaultValue, visibility, description).also {
         settings.add(it)
     }
@@ -177,7 +177,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         name: String,
         defaultValue: BlockPos,
         visibility: () -> Boolean = { true },
-        description: String = ""
+        description: String = "",
     ) = BlockPosSetting(name, defaultValue, visibility, description).also {
         settings.add(it)
     }
@@ -186,7 +186,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         name: String,
         defaultValue: Block,
         visibility: () -> Boolean = { true },
-        description: String = ""
+        description: String = "",
     ) = BlockSetting(name, defaultValue, visibility, description).also {
         settings.add(it)
     }

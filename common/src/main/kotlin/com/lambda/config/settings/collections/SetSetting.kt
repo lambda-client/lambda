@@ -9,7 +9,7 @@ class SetSetting<T : Any>(
     override val name: String,
     defaultValue: Set<T>,
     visibility: () -> Boolean,
-    description: String
+    description: String,
 ) : AbstractSetting<Set<T>>(
     defaultValue,
     visibility,

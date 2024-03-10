@@ -9,7 +9,7 @@ class UnsafeListener(
     override val priority: Int,
     override val owner: Any,
     override val alwaysListen: Boolean = false,
-    val function: (Event) -> Unit
+    val function: (Event) -> Unit,
 ) : Listener() {
     override fun execute(event: Event) {
 //        if (!mc.isOnThread) {
@@ -51,7 +51,7 @@ class UnsafeListener(
         inline fun <reified T : Event> Any.unsafeListener(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: (T) -> Unit
+            noinline function: (T) -> Unit,
         ): UnsafeListener {
             val listener = UnsafeListener(priority, this, alwaysListen) { event ->
                 function(event as T)
@@ -88,7 +88,11 @@ class UnsafeListener(
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [UnsafeListener].
          */
-        inline fun <reified T : Event> Any.unsafeConcurrentListener(priority: Int = 0, alwaysListen: Boolean = false, noinline function: (T) -> Unit): UnsafeListener {
+        inline fun <reified T : Event> Any.unsafeConcurrentListener(
+            priority: Int = 0,
+            alwaysListen: Boolean = false,
+            noinline function: (T) -> Unit,
+        ): UnsafeListener {
             val listener = UnsafeListener(priority, this, alwaysListen) { event ->
                 function(event as T)
             }

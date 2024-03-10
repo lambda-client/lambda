@@ -7,7 +7,7 @@ class BlockPosSetting(
     override val name: String,
     defaultValue: BlockPos,
     visibility: () -> Boolean,
-    description: String
+    description: String,
 ) : AbstractSetting<BlockPos>(
     defaultValue,
     visibility,

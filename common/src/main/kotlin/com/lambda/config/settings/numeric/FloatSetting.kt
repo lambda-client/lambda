@@ -8,7 +8,7 @@ class FloatSetting(
     override val range: ClosedRange<Float>,
     override val step: Float = 1f,
     visibility: () -> Boolean,
-    description: String
+    description: String,
 ) : NumericSetting<Float>(
     defaultValue,
     range,

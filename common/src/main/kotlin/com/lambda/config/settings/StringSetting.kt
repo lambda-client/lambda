@@ -6,7 +6,7 @@ class StringSetting(
     override val name: String,
     defaultValue: String,
     visibility: () -> Boolean,
-    description: String
+    description: String,
 ) : AbstractSetting<String>(
     defaultValue,
     visibility,

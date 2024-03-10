@@ -8,7 +8,7 @@ object BlockPosSerializer : JsonSerializer<BlockPos>, JsonDeserializer<BlockPos>
     override fun serialize(
         src: BlockPos?,
         typeOfSrc: Type?,
-        context: JsonSerializationContext?
+        context: JsonSerializationContext?,
     ): JsonElement =
         src?.let {
             JsonObject().apply {
@@ -21,7 +21,7 @@ object BlockPosSerializer : JsonSerializer<BlockPos>, JsonDeserializer<BlockPos>
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type?,
-        context: JsonDeserializationContext?
+        context: JsonDeserializationContext?,
     ): BlockPos =
         json?.asJsonObject?.let {
             BlockPos(it["x"].asInt, it["y"].asInt, it["z"].asInt)

@@ -6,7 +6,7 @@ class EnumSetting<T : Enum<T>>(
     override val name: String,
     defaultValue: T,
     visibility: () -> Boolean,
-    description: String
+    description: String,
 ) : AbstractSetting<T>(
     defaultValue,
     visibility,

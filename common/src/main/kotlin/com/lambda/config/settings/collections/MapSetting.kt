@@ -9,7 +9,7 @@ class MapSetting<K, V>(
     override val name: String,
     defaultValue: Map<K, V>,
     visibility: () -> Boolean,
-    description: String
+    description: String,
 ) : AbstractSetting<Map<K, V>>(
     defaultValue,
     visibility,

@@ -8,7 +8,7 @@ class ByteSetting(
     override val range: ClosedRange<Byte>,
     override val step: Byte = 1,
     visibility: () -> Boolean,
-    description: String
+    description: String,
 ) : NumericSetting<Byte>(
     defaultValue,
     range,

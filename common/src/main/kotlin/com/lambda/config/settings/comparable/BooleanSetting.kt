@@ -6,7 +6,7 @@ class BooleanSetting(
     override val name: String,
     defaultValue: Boolean,
     visibility: () -> Boolean,
-    description: String
+    description: String,
 ) : AbstractSetting<Boolean>(
     defaultValue,
     visibility,

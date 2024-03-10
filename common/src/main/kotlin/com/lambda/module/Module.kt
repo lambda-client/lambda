@@ -1,16 +1,12 @@
 package com.lambda.module
 
 import com.lambda.config.Configurable
-import com.lambda.event.EventFlow
 import com.lambda.event.Muteable
-import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.KeyPressEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
-import kotlin.properties.Delegates
 
 abstract class Module(
     override val name: String,
@@ -18,7 +14,7 @@ abstract class Module(
     val tags: Set<ModuleTag> = setOf(),
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
-    defaultKeybind: KeyCode = KeyCode.Unbound
+    defaultKeybind: KeyCode = KeyCode.Unbound,
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
     private val isEnabledSetting = setting("Enabled", enabledByDefault, { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)

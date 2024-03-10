@@ -9,7 +9,7 @@ class DoubleSetting(
     override val range: ClosedRange<Double>,
     override val step: Double = 1.0,
     visibility: () -> Boolean,
-    description: String
+    description: String,
 ) : NumericSetting<Double>(
     defaultValue,
     range,

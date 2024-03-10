@@ -38,7 +38,8 @@ abstract class Configuration : Jsonable {
         serialized.asJsonObject.entrySet().forEach { (name, value) ->
             configurables.find {
                 it.name == name
-            }?.loadFromJson(value) ?: LOG.warn("No matching setting found for saved setting $name with $value in $configName config")
+            }?.loadFromJson(value)
+                ?: LOG.warn("No matching setting found for saved setting $name with $value in $configName config")
         }
     }
 
@@ -71,7 +72,12 @@ abstract class Configuration : Jsonable {
                 .recoverCatching {
                     runCatching { load(backup) }
                         .onSuccess { LOG.info("$configName config loaded from backup") }
-                        .onFailure { LOG.error("Failed to load $configName config from backup, unrecoverable error", it) }
+                        .onFailure {
+                            LOG.error(
+                                "Failed to load $configName config from backup, unrecoverable error",
+                                it
+                            )
+                        }
                 }
         }
     }

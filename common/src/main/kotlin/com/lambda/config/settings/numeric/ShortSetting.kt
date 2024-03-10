@@ -8,7 +8,7 @@ class ShortSetting(
     override val range: ClosedRange<Short>,
     override val step: Short = 1,
     visibility: () -> Boolean,
-    description: String
+    description: String,
 ) : NumericSetting<Short>(
     defaultValue,
     range,

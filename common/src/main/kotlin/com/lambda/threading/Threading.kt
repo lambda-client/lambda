@@ -5,7 +5,6 @@ import com.lambda.context.ClientContext
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 /**
  * Executes a block of code only if the context is safe. A context is considered safe when all the following properties are not null:

@@ -9,7 +9,7 @@ abstract class NumericSetting<T>(
     open val range: ClosedRange<T>,
     open val step: T,
     visibility: () -> Boolean,
-    description: String
+    description: String,
 ) : AbstractSetting<T>(
     value,
     visibility,

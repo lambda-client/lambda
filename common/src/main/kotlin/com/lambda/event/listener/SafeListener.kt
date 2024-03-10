@@ -10,7 +10,7 @@ class SafeListener(
     override val priority: Int = 0,
     override val owner: Any,
     override val alwaysListen: Boolean = false,
-    val function: SafeContext.(Event) -> Unit
+    val function: SafeContext.(Event) -> Unit,
 ) : Listener() {
     override fun execute(event: Event) {
         runSafe {
@@ -58,7 +58,7 @@ class SafeListener(
         inline fun <reified T : Event> Any.listener(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: SafeContext.(T) -> Unit
+            noinline function: SafeContext.(T) -> Unit,
         ): SafeListener {
             val listener = SafeListener(priority, this, alwaysListen) { event ->
                 function(event as T)
@@ -106,7 +106,7 @@ class SafeListener(
         inline fun <reified T : Event> Task<*>.listener(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: SafeContext.(T) -> Unit
+            noinline function: SafeContext.(T) -> Unit,
         ): SafeListener {
             val listener = SafeListener(priority, this, alwaysListen) { event ->
                 function(event as T)
@@ -145,7 +145,7 @@ class SafeListener(
         inline fun <reified T : Event> Any.concurrentListener(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: SafeContext.(T) -> Unit
+            noinline function: SafeContext.(T) -> Unit,
         ): SafeListener {
             val listener = SafeListener(priority, this, alwaysListen) { event ->
                 function(event as T)

@@ -9,7 +9,7 @@ class IntegerSetting(
     override val range: ClosedRange<Int>,
     override val step: Int = 1,
     visibility: () -> Boolean,
-    description: String
+    description: String,
 ) : NumericSetting<Int>(
     defaultValue,
     range,

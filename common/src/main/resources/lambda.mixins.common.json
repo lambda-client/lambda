@@ -4,9 +4,9 @@
   "package": "com.lambda.mixin",
   "compatibilityLevel": "JAVA_17",
   "client": [
+    "ClientConnectionMixin",
     "KeyboardMixin",
-    "MinecraftClientMixin",
-    "ClientConnectionMixin"
+    "MinecraftClientMixin"
   ],
   "injectors": {
     "defaultRequire": 1

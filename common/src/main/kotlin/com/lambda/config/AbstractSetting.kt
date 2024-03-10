@@ -11,7 +11,7 @@ import kotlin.reflect.KProperty
 abstract class AbstractSetting<T : Any>(
     private val defaultValue: T,
     val visibility: () -> Boolean,
-    val description: String
+    val description: String,
 ) : Jsonable, Nameable {
     private val listeners = mutableListOf<(from: T, to: T) -> Unit>()
 

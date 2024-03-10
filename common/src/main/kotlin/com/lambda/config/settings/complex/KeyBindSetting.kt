@@ -7,7 +7,7 @@ class KeyBindSetting(
     override val name: String,
     defaultValue: KeyCode,
     visibility: () -> Boolean,
-    description: String
+    description: String,
 ) : AbstractSetting<KeyCode>(
     defaultValue,
     visibility,
