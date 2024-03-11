@@ -1,24 +1,35 @@
-val fabricLoaderVersion = property("fabric_loader_version").toString()
-val fabricApiVersion = property("fabric_api_version").toString()
-val fabricKotlinVersion = property("fabric_kotlin_version").toString()
-val architecturyVersion = property("architectury_version").toString()
+val quiltVersion = property("quilt_version").toString()
+val quiltedFabricVersion = property("quilted_fabric_version").toString()
+val kotlinQuiltVersion = property("kotlin_quilt_version").toString()
+val architecturyVersion = /*property("architectury_version").toString()*/ "10.1.19"
+val kotlinxCoroutineVersion = property("kotlinx_coroutines_version").toString()
 
 architectury {
     platformSetupLoomIde()
-    fabric()
+    loader("quilt")
 }
 
-base.archivesName.set("${base.archivesName.get()}-fabric")
+base.archivesName.set("${base.archivesName.get()}-quilt")
 
 loom {
     accessWidenerPath.set(project(":common").loom.accessWidenerPath)
     enableTransitiveAccessWideners.set(true)
+
+    mods {
+        register("quilt") {
+            sourceSet("main", project(":quilt"))
+        }
+    }
+}
+
+repositories {
+    maven("https://maven.quiltmc.org/repository/release/")
 }
 
 val common: Configuration by configurations.creating {
     configurations.compileClasspath.get().extendsFrom(this)
     configurations.runtimeClasspath.get().extendsFrom(this)
-    configurations["developmentFabric"].extendsFrom(this)
+    configurations["developmentQuilt"].extendsFrom(this)
 }
 
 val includeLib: Configuration by configurations.creating
@@ -32,19 +43,25 @@ fun DependencyHandlerScope.setupConfigurations() {
 
     includeMod.dependencies.forEach {
         modImplementation(it)
+        include(it)
     }
 }
 
 dependencies {
-    // Fabric API (Do not touch)
-    modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
-    modApi("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
+    // Quilt Loader
+    modImplementation("org.quiltmc:quilt-loader:$quiltVersion")
+
+    // Quilted Fabric API
+    modApi("org.quiltmc.quilted-fabric-api:quilted-fabric-api:$quiltedFabricVersion")
 
     // Remove the following line if you don't want to depend on the API
-    modApi("dev.architectury:architectury-fabric:$architecturyVersion")
+    modApi("dev.architectury:architectury-fabric:$architecturyVersion") {
+        exclude("net.fabricmc")
+        exclude("net.fabricmc.fabric-api")
+    }
 
-    // Kotlin for Fabric
-    modImplementation("net.fabricmc:fabric-language-kotlin:$fabricKotlinVersion")
+    // Kotlin for Quilt
+    modImplementation("org.quiltmc.quilt-kotlin-libraries:quilt-kotlin-libraries:$kotlinQuiltVersion")
 
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
@@ -53,9 +70,10 @@ dependencies {
     // Add mods to the mod jar
     // includeMod(...)
 
+
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
-    shadowCommon(project(":common", configuration = "transformProductionFabric")) { isTransitive = false }
+    shadowCommon(project(":common", configuration = "transformProductionQuilt")) { isTransitive = false }
 
     // Finish the configuration
     setupConfigurations()
@@ -66,7 +84,7 @@ tasks {
         inputs.property("group", project.group)
         inputs.property("version", project.version)
 
-        filesMatching("fabric.mod.json") {
+        filesMatching("quilt.mod.json") {
             expand(getProperties())
             expand(mutableMapOf(
                 "group" to project.group,

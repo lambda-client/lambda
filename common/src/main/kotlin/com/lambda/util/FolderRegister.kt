@@ -1,10 +1,10 @@
 package com.lambda.util
 
-import com.lambda.Lambda.mc
+import dev.architectury.platform.Platform
 import java.io.File
 
 object FolderRegister {
-    val minecraft: File = mc.runDirectory
+    val minecraft: File = Platform.getGameFolder().toFile()
     val lambda: File = File(minecraft, "lambda")
     val config: File = File(lambda, "config")
 }

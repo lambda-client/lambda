@@ -43,7 +43,7 @@ dependencies {
     // NeoForge API
     neoForge("net.neoforged:neoforge:$neoVersion")
 
-    // Architectury API
+    // Remove the following line if you don't want to depend on the API
     modApi("dev.architectury:architectury-neoforge:$architecturyVersion")
 
     // Add dependencies on the required Kotlin modules.
