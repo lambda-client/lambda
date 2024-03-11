@@ -1,5 +1,6 @@
 val neoVersion = property("neo_version").toString()
 val kotlinForgeVersion = property("kotlin_forge_version").toString()
+val architecturyVersion = property("architectury_version").toString()
 val mixinExtrasVersion = property("mixinextras_version").toString()
 
 architectury {
@@ -41,6 +42,9 @@ fun DependencyHandlerScope.setupConfigurations() {
 dependencies {
     // NeoForge API
     neoForge("net.neoforged:neoforge:$neoVersion")
+
+    // Architectury API
+    modApi("dev.architectury:architectury-neoforge:$architecturyVersion")
 
     // Add dependencies on the required Kotlin modules.
     // includeLib(...)
