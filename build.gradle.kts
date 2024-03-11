@@ -1,11 +1,13 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import net.fabricmc.loom.task.RemapJarTask
 
-val modId = project.properties["mod_id"].toString()
-val modVersion = project.properties["mod_version"].toString()
-val mavenGroup = project.properties["maven_group"].toString()
-val minecraftVersion = project.properties["minecraft_version"].toString()
-val yarnMappings = project.properties["yarn_mappings"].toString()
+val modId = property("mod_id").toString()
+val modVersion = property("mod_version").toString()
+val mavenGroup = property("maven_group").toString()
+val minecraftVersion = property("minecraft_version").toString()
+val yarnMappings = property("yarn_mappings").toString()
+
+val libs = file("libs")
 
 plugins {
     kotlin("jvm") version "1.9.22"
@@ -22,6 +24,7 @@ architectury {
 subprojects {
     apply(plugin = "dev.architectury.loom")
     apply(plugin = "org.jetbrains.dokka")
+
     dependencies {
         "minecraft"("com.mojang:minecraft:$minecraftVersion")
         "mappings"("net.fabricmc:yarn:$yarnMappings:v2")
@@ -66,19 +69,18 @@ allprojects {
     repositories {
         maven("https://api.modrinth.com/maven")
         maven("https://jitpack.io")
-        maven("https://maven.shedaniel.me/") {
-            name = "Architectury"
-        }
+        maven("https://maven.shedaniel.me/") { name = "Architectury" }
         maven("https://maven.terraformersmc.com/releases/")
+
+        flatDir {
+            dirs(libs)
+        }
     }
 
-    tasks {
-        withType<JavaCompile> {
-            options.encoding = "UTF-8"
-            options.release = 17
-        }
-        compileKotlin {
-            kotlinOptions.jvmTarget = "17"
-        }
+    java {
+        // withSourcesJar() // Uncomment this line when the plugin system is ready
+
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 }

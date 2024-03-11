@@ -1,23 +1,27 @@
-val fabricLoaderVersion = property("fabric_loader_version").toString()
-val fabricApiVersion = property("fabric_api_version").toString()
-val fabricKotlinVersion = property("fabric_kotlin_version").toString()
+val neoVersion = property("neo_version").toString()
+val kotlinForgeVersion = property("kotlin_forge_version").toString()
+val mixinExtrasVersion = property("mixinextras_version").toString()
 
 architectury {
     platformSetupLoomIde()
-    fabric()
+    neoForge()
 }
 
-base.archivesName.set("${base.archivesName.get()}-fabric")
+base.archivesName.set("${base.archivesName.get()}-neoforge")
 
 loom {
     accessWidenerPath.set(project(":common").loom.accessWidenerPath)
-    enableTransitiveAccessWideners.set(true)
+}
+
+repositories {
+    maven("https://maven.neoforged.net/releases/")
+    maven("https://thedarkcolour.github.io/KotlinForForge/")
 }
 
 val common: Configuration by configurations.creating {
     configurations.compileClasspath.get().extendsFrom(this)
     configurations.runtimeClasspath.get().extendsFrom(this)
-    configurations["developmentFabric"].extendsFrom(this)
+    configurations["developmentNeoForge"].extendsFrom(this)
 }
 
 val includeLib: Configuration by configurations.creating
@@ -30,26 +34,23 @@ fun DependencyHandlerScope.setupConfigurations() {
     }
 
     includeMod.dependencies.forEach {
-        modImplementation(it)
+        implementation(it)
     }
 }
 
 dependencies {
-    // Fabric API (Do not touch)
-    modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
-    modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
-    modImplementation("net.fabricmc:fabric-language-kotlin:$fabricKotlinVersion")
+    // NeoForge API
+    neoForge("net.neoforged:neoforge:$neoVersion")
 
     // Add dependencies on the required Kotlin modules.
-    includeLib("org.reflections:reflections:0.10.2")
-    includeLib("org.javassist:javassist:3.27.0-GA")
+    // includeLib(...)
 
     // Add mods to the mod jar
-    // includeMod(...)
+    includeMod("thedarkcolour:kotlinforforge-neoforge:$kotlinForgeVersion")
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
-    shadowCommon(project(path = ":common", configuration = "transformProductionFabric")) { isTransitive = false }
+    shadowCommon(project(path = ":common", configuration = "transformProductionNeoForge")) { isTransitive = false }
 
     // Finish the configuration
     setupConfigurations()
@@ -58,13 +59,10 @@ dependencies {
 tasks {
     processResources {
         inputs.property("version", project.version)
-        filesMatching("fabric.mod.json") {
+
+        filesMatching("META-INF/mods.toml") {
             expand(getProperties())
             expand(mutableMapOf("version" to project.version))
         }
-    }
-
-    remapJar {
-        injectAccessWidener.set(true)
     }
 }

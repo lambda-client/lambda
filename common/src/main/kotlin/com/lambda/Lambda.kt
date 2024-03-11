@@ -13,13 +13,14 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 
 object Lambda {
-    private const val MOD_NAME = "Lambda"
+    const val MOD_NAME = "Lambda"
     const val MOD_ID = "lambda"
     private const val SYMBOL = "λ"
-    private val VERSION: String = LoaderInfo.getVersion()
+    val VERSION: String = LoaderInfo.getVersion()
 
     val LOG: Logger = LogManager.getLogger(SYMBOL)
-    val mc: MinecraftClient = MinecraftClient.getInstance()
+    val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
+
     val gson: Gson = GsonBuilder()
         .setPrettyPrinting()
         .registerTypeAdapter(BlockPos::class.java, BlockPosSerializer)
