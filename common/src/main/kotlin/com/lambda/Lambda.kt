@@ -4,13 +4,13 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.lambda.config.serializer.BlockPosSerializer
 import com.lambda.config.serializer.BlockSerializer
-import com.lambda.module.ModuleRegistry
-import com.lambda.module.modules.BoringModule
+import com.lambda.util.Eager
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
 import net.minecraft.util.math.BlockPos
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import org.reflections.Reflections
 
 object Lambda {
     const val MOD_NAME = "Lambda"
@@ -27,39 +27,29 @@ object Lambda {
         .registerTypeAdapter(Block::class.java, BlockSerializer)
         .create()
 
-    init {
-        // ToDo: Why do i have to call these?
-        BoringModule
-        ModuleRegistry
-
-//        listener<KeyPressEvent> {
-//            if (it.key != GLFW.GLFW_KEY_Z) {
-//                return@listener
-//            }
-//
-//            taskContext {
-//                HelloWorldTask()
-//                    .withDelay(500L)
-//                    .withTimeout(200L)
-//                    .withRepeats(10)
-//                    .withMaxAttempts(5)
-//                    .onSuccess {
-//                        LOG.info("Hello, World! Task completed")
-//                    }.onRepeat { repeats ->
-//                        LOG.info("Hello, World! Task $name repeated $repeats times")
-//                    }.onTimeout {
-//                        LOG.warn("Hello, World! Task $name timed out")
-//                        HelloWorldTask().execute()
-//                    }.onRetry {
-//                        LOG.warn("Hello, World! Task $name retrying")
-//                    }.onFailure { error ->
-//                        LOG.error("Hello, World! Task failed", error)
-//                    }.execute()
-//            }
-//        }
-    }
-
     fun initialize() {
         LOG.info("Initializing $MOD_NAME $VERSION")
+
+        initializeEagerObjects()
+    }
+
+    /**
+     * Initializes all objects annotated with @[Eager].
+     */
+    private fun initializeEagerObjects() {
+        val reflections = Reflections("com.lambda")
+
+        val eagerTypes = reflections.getTypesAnnotatedWith(Eager::class.java)
+        val eagerSubTypes = eagerTypes.flatMap { reflections.getSubTypesOf(it) }
+        (eagerTypes + eagerSubTypes).forEach { eagerType ->
+            try {
+                val instanceField = eagerType.getDeclaredField("INSTANCE")
+                instanceField.isAccessible = true
+                val instance = instanceField.get(null)
+                println("Initialized ${instance::class.simpleName}")
+            } catch (e: Exception) {
+                println("Failed to initialize ${eagerType.simpleName}")
+            }
+        }
     }
 }

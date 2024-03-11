@@ -2,9 +2,9 @@ package com.lambda.module
 
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.util.Eager
 import org.reflections.Reflections
 import org.reflections.scanners.Scanners
-import org.reflections.scanners.SubTypesScanner
 import org.reflections.util.ClasspathHelper
 import org.reflections.util.ConfigurationBuilder
 
@@ -13,6 +13,7 @@ import org.reflections.util.ConfigurationBuilder
  *
  * @property modules A set of all [Module] instances in the system.
  */
+@Eager
 object ModuleRegistry {
     private val modules = mutableSetOf<Module>()
 
