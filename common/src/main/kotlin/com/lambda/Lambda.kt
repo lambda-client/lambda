@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.lambda.config.serializer.BlockPosSerializer
 import com.lambda.config.serializer.BlockSerializer
+import com.lambda.config.serializer.ColorSerializer
 import com.lambda.util.Eager
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
@@ -11,6 +12,7 @@ import net.minecraft.util.math.BlockPos
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.reflections.Reflections
+import java.awt.Color
 
 object Lambda {
     const val MOD_NAME = "Lambda"
@@ -23,6 +25,7 @@ object Lambda {
 
     val gson: Gson = GsonBuilder()
         .setPrettyPrinting()
+        .registerTypeAdapter(Color::class.java, ColorSerializer)
         .registerTypeAdapter(BlockPos::class.java, BlockPosSerializer)
         .registerTypeAdapter(Block::class.java, BlockSerializer)
         .create()

@@ -7,6 +7,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
 import net.minecraft.util.math.BlockPos
+import java.awt.Color
 
 object BoringModule : Module(
     name = "BoringModule",
@@ -15,6 +16,7 @@ object BoringModule : Module(
     defaultKeybind = KeyCode.Z
 ) {
     private val superBoring by setting("Super Boring", false)
+    private val boringColor by setting("Boring Color", Color.RED)
     private val boringValue by setting("Boring Value", 0.0, 0.1..5.0, 0.1)
     private val boringFriends by setting("Boring Friends List", listOf("Peter", "Paul", "Mary", "John", "Ringo"))
     private val boringEnemies by setting("Boring Enemies Set", setOf("Sauron", "Voldemort", "Darth Vader", "The Joker"))

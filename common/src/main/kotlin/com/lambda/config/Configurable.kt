@@ -18,6 +18,8 @@ import com.lambda.util.Nameable
 import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
 import com.lambda.Lambda
+import com.lambda.config.settings.complex.ColorSetting
+import java.awt.Color
 
 /**
  * Represents a set of [AbstractSetting]s that are associated with the [name] of the [Configurable].
@@ -353,6 +355,25 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         visibility: () -> Boolean = { true },
         description: String = "",
     ) = KeyBindSetting(name, defaultValue, visibility, description).also {
+        settings.add(it)
+    }
+
+    /**
+     * Creates a [ColorSetting] with the provided parameters and adds it to the [settings].
+     *
+     * @param name The unique identifier for the setting.
+     * @param defaultValue The default [Color] value of the setting.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
+     * @param description A brief explanation of the setting's purpose and behavior.
+     *
+     * @return The created [ColorSetting].
+     */
+    fun setting(
+        name: String,
+        defaultValue: Color,
+        visibility: () -> Boolean = { true },
+        description: String = "",
+    ) = ColorSetting(name, defaultValue, visibility, description).also {
         settings.add(it)
     }
 
