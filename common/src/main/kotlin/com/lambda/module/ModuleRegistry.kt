@@ -3,10 +3,16 @@ package com.lambda.module
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import org.reflections.Reflections
+import org.reflections.scanners.Scanners
 import org.reflections.scanners.SubTypesScanner
 import org.reflections.util.ClasspathHelper
 import org.reflections.util.ConfigurationBuilder
 
+/**
+ * The [ModuleRegistry] object is responsible for managing all [Module] instances in the system.
+ *
+ * @property modules A set of all [Module] instances in the system.
+ */
 object ModuleRegistry {
     private val modules = mutableSetOf<Module>()
 
@@ -15,7 +21,7 @@ object ModuleRegistry {
             Reflections(
                 ConfigurationBuilder()
                     .setUrls(ClasspathHelper.forPackage("com.lambda.module.modules"))
-                    .setScanners(SubTypesScanner()) // ToDo: Deprecated, use Scanners.SubTypes instead
+                    .setScanners(Scanners.SubTypes)
             ).getSubTypesOf(Module::class.java).forEach { moduleClass ->
                 moduleClass.declaredFields.find {
                     it.name == "INSTANCE"

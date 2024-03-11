@@ -6,7 +6,6 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
-import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
 
 object BoringModule : Module(
