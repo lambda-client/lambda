@@ -12,7 +12,22 @@ import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
+import com.lambda.module.ModuleConfig
 
+/**
+ * Represents a compound of [Configurable] objects whose [AbstractSetting]s
+ * are saved into a single [Configuration] file ([Configuration.primary]).
+ *
+ * This class also handles the concurrent loading and saving of persisted data on the `Dispatchers.IO` thread.
+ * Each configuration will be loaded concurrently,
+ * while the underlying configurables are populated with the settings in sequence.
+ *
+ * See also [ModuleConfig].
+ *
+ * @property configName The name of the configuration.
+ * @property primary The primary file where the configuration is saved.
+ * @property configurables A set of [Configurable] objects that this configuration manages.
+ */
 abstract class Configuration : Jsonable {
     abstract val configName: String
     abstract val primary: File

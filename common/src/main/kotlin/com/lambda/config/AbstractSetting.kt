@@ -8,6 +8,49 @@ import com.lambda.util.Nameable
 import kotlin.properties.Delegates
 import kotlin.reflect.KProperty
 
+/**
+ * Represents a setting with a [defaultValue], [visibility] condition, and [description].
+ * This setting is serializable ([Jsonable]) and has a [name].
+ *
+ * When the [value] is modified, all registered [listeners] are notified.
+ * The [visibility] of the setting can be checked with the [isVisible] property.
+ * The setting can be [reset] to its [defaultValue].
+ *
+ * Simple Usage:
+ * ```kotlin
+ * // this uses the delegate (by) association to access the setting value in the code directly.
+ * val mode by setting("Mode", Modes.FREEZE, { page == Page.CUSTOM }, "The mode of the module.")
+ *
+ * init {
+ *     listener<TickEvent.Pre> {
+ *         LOG.info("Mode: $mode") // direct access of the value
+ *     }
+ * }
+ * ```
+ *
+ * Advanced usage with listeners:
+ * ```kotlin
+ * // notice how this does not use the delegate (by) association, to access the setting object to register listeners.
+ * val mode = setting("Mode", Modes.FREEZE, { page == Page.CUSTOM }, "The mode of the module.")
+ *
+ * init {
+ *     mode.listener { from, to ->
+ *        // Do something when the mode changes in a safe context
+ *     }
+ *     mode.unsafeListener { from, to ->
+ *        // Do something when the mode changes in an unsafe context
+ *     }
+ *
+ *     listener<TickEvent.Pre> {
+ *         LOG.info("Mode: ${mode.value}") // indirect access of the value
+ *     }
+ * }
+ * ```
+ *
+ * @property defaultValue The default value of the setting.
+ * @property visibility A function that determines whether the setting is visible.
+ * @property description A description of the setting.
+ */
 abstract class AbstractSetting<T : Any>(
     private val defaultValue: T,
     val visibility: () -> Boolean,
@@ -20,7 +63,7 @@ abstract class AbstractSetting<T : Any>(
         listeners.forEach { it(from, to) }
     }
 
-    val isVisible get() = visibility()
+    private val isVisible get() = visibility()
     val isModified get() = value != defaultValue
 
     operator fun getValue(thisRef: Any?, property: KProperty<*>) = value
@@ -47,7 +90,7 @@ abstract class AbstractSetting<T : Any>(
         listeners.add(block)
     }
 
-    fun reset() {
+    private fun reset() {
         value = defaultValue
     }
 }
