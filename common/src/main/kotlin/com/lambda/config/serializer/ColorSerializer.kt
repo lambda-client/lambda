@@ -11,7 +11,6 @@ object ColorSerializer : JsonSerializer<Color>, JsonDeserializer<Color> {
         context: JsonSerializationContext?,
     ): JsonElement =
         src?.let {
-            it.rgb
             JsonPrimitive("${it.red},${it.green},${it.blue},${it.alpha}")
         } ?: JsonNull.INSTANCE
 
