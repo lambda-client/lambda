@@ -38,3 +38,5 @@ abstract class PacketEvent : Event {
     abstract class Receive : PacketEvent() {
         class Pre(val packet: Packet<*>) : Receive(), ICancellable by Cancellable()
         class Post(val packet: Packet<*>) : Receive()
+    }
+}
