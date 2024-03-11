@@ -6,11 +6,12 @@ val kotlinXCoroutineVersion = property("kotlinx_coroutines_version").toString()
 architectury { common("fabric", "forge", "neoforge") }
 
 loom {
+    silentMojangMappingsLicense()
     accessWidenerPath.set(File("src/main/resources/lambda.accesswidener"))
 }
 
 repositories {
-    maven("https://maven.fabricmc.net/") { name = "Fabric" }
+    maven("https://maven.fabricmc.net/")
     maven("https://jitpack.io")
 
     mavenCentral()
