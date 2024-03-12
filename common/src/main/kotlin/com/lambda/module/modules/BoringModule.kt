@@ -25,6 +25,7 @@ object BoringModule : Module(
         mapOf("One" to 1, "Two" to 2, "Three" to 3, "Four" to 4, "Five" to 5)
     )
     private val boringEnum by setting("Boring Enum", BoringEnum.ONE)
+
     //private val blockSetting by setting("Boring Block", Blocks.STONE) // Registries are not initialized yet
     private val blockPosSetting by setting("Boring BlockPos", BlockPos(420, 69, 1337))
 //    private val blockListSetting by setting("Boring Block List", listOf(Blocks.STONE, Blocks.DIRT, Blocks.GRASS_BLOCK))

@@ -2,6 +2,8 @@ package com.lambda.event.events
 
 import com.lambda.event.Event
 import com.lambda.event.EventFlow
+import com.lambda.event.events.TickEvent.Post
+import com.lambda.event.events.TickEvent.Pre
 
 /**
  * An abstract class representing a [TickEvent] in the [EventFlow].

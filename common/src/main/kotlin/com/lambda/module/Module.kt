@@ -1,19 +1,19 @@
 package com.lambda.module
 
+import com.lambda.config.AbstractSetting
 import com.lambda.config.Configurable
+import com.lambda.config.Configuration
+import com.lambda.config.settings.comparable.BooleanSetting
+import com.lambda.config.settings.numeric.DoubleSetting
 import com.lambda.event.Muteable
 import com.lambda.event.events.KeyPressEvent
+import com.lambda.event.listener.Listener
+import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.UnsafeListener
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
-import com.lambda.config.AbstractSetting
-import com.lambda.config.Configuration
-import com.lambda.event.listener.Listener
-import com.lambda.event.listener.SafeListener
-import com.lambda.event.listener.UnsafeListener
-import com.lambda.config.settings.comparable.BooleanSetting
-import com.lambda.config.settings.numeric.DoubleSetting
 
 /**
  * A [Module] is a feature or tool for the utility mod.

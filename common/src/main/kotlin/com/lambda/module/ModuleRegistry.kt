@@ -2,6 +2,7 @@ package com.lambda.module
 
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.module.ModuleRegistry.modules
 import com.lambda.util.Eager
 import org.reflections.Reflections
 import org.reflections.scanners.Scanners

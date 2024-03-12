@@ -2,6 +2,7 @@ package com.lambda.config
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.config.settings.StringSetting
 import com.lambda.config.settings.collections.ListSetting
@@ -11,14 +12,13 @@ import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.config.settings.complex.BlockPosSetting
 import com.lambda.config.settings.complex.BlockSetting
+import com.lambda.config.settings.complex.ColorSetting
 import com.lambda.config.settings.complex.KeyBindSetting
 import com.lambda.config.settings.numeric.*
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
-import com.lambda.Lambda
-import com.lambda.config.settings.complex.ColorSetting
 import java.awt.Color
 
 /**

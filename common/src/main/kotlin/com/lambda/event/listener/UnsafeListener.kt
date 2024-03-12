@@ -2,9 +2,9 @@ package com.lambda.event.listener
 
 import com.lambda.event.Event
 import com.lambda.event.EventFlow
+import com.lambda.event.Muteable
 import com.lambda.event.listener.SafeListener.Companion.concurrentListener
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.event.Muteable
 
 /**
  * An [UnsafeListener] is a specialized type of [Listener] that operates without a [SafeContext].

@@ -1,10 +1,10 @@
 package com.lambda.context
 
+import net.minecraft.client.MinecraftClient
 import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.ClientPlayerInteractionManager
 import net.minecraft.client.world.ClientWorld
-import net.minecraft.client.MinecraftClient
 
 /**
  * A class extending the [AbstractContext] in the [MinecraftClient].

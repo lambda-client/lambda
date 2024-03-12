@@ -1,5 +1,8 @@
 package com.lambda.util
 
+import com.lambda.util.FolderRegister.config
+import com.lambda.util.FolderRegister.lambda
+import com.lambda.util.FolderRegister.minecraft
 import dev.architectury.platform.Platform
 import java.io.File
 

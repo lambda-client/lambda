@@ -5,14 +5,13 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
-import com.lambda.event.EventFlow
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.module.ModuleConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
-import com.lambda.module.ModuleConfig
 
 /**
  * Represents a compound of [Configurable] objects whose [AbstractSetting]s
@@ -81,7 +80,6 @@ abstract class Configuration : Jsonable {
             runCatching { load(primary) }
                 .onSuccess {
                     LOG.info("$configName config loaded")
-                    EventFlow.post(ClientEvent.ConfigLoaded(this@Configuration))
                 }
                 .onFailure { LOG.error("Failed to load $configName config, loading backup", it) }
                 .recoverCatching {
@@ -102,7 +100,6 @@ abstract class Configuration : Jsonable {
             runCatching { save() }
                 .onSuccess {
                     LOG.info("$configName config saved")
-                    EventFlow.post(ClientEvent.ConfigSaved(this@Configuration))
                 }
                 .onFailure { LOG.error("Failed to save $configName config", it) }
         }

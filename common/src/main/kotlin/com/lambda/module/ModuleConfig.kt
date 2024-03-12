@@ -1,6 +1,8 @@
 package com.lambda.module
 
 import com.lambda.config.Configuration
+import com.lambda.module.ModuleConfig.configName
+import com.lambda.module.ModuleConfig.primary
 import com.lambda.util.FolderRegister
 import java.io.File
 
