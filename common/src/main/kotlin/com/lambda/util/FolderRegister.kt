@@ -1,6 +1,6 @@
 package com.lambda.util
 
-import com.lambda.Lambda.mc
+import dev.architectury.platform.Platform
 import java.io.File
 
 /**
@@ -11,7 +11,7 @@ import java.io.File
  * @property config The directory for storing configuration files, located within the Lambda directory.
  */
 object FolderRegister {
-    val minecraft: File = mc.runDirectory
+    val minecraft: File = Platform.getGameFolder().toFile()
     val lambda: File = File(minecraft, "lambda")
     val config: File = File(lambda, "config")
 }

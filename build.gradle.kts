@@ -26,8 +26,14 @@ subprojects {
     apply(plugin = "org.jetbrains.dokka")
 
     dependencies {
-        "minecraft"("com.mojang:minecraft:$minecraftVersion")
-        "mappings"("net.fabricmc:yarn:$yarnMappings:v2")
+        if (path == ":quilt") {
+            "minecraft"("com.mojang:minecraft:1.20.2")
+            "mappings"("net.fabricmc:yarn:1.20.2+build.3:v2")
+        }
+        else {
+            "minecraft"("com.mojang:minecraft:$minecraftVersion")
+            "mappings"("net.fabricmc:yarn:$yarnMappings:v2")
+        }
     }
 
     if (path == ":common") return@subprojects
@@ -62,6 +68,7 @@ allprojects {
     apply(plugin = "architectury-plugin")
     apply(plugin = "maven-publish")
     apply(plugin = "org.jetbrains.kotlin.jvm")
+
     base.archivesName.set(modId)
     group = mavenGroup
     version = modVersion
@@ -78,7 +85,9 @@ allprojects {
     }
 
     java {
-        // withSourcesJar() // Uncomment this line when the plugin system is ready
+        // Uncomment these lines when the plugin system is ready
+        // withSourcesJar()
+        // withJavadocJar()
 
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

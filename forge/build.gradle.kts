@@ -64,7 +64,7 @@ dependencies {
     // Forge API
     forge("net.minecraftforge:forge:$forgeVersion")
 
-    // Architectury API
+    // Remove the following line if you don't want to depend on the API
     modApi("dev.architectury:architectury-forge:$architecturyVersion")
 
     // Add dependencies on the required Kotlin modules.

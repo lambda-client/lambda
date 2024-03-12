@@ -34,3 +34,11 @@ type = "required"
 versionRange = "[4,)"
 ordering = "AFTER"
 side = "CLIENT"
+
+[[dependencies.lambda]]
+modId = "architectury"
+mandatory = true
+type = "required"
+versionRange = "[10.1.19,)"
+ordering = "AFTER"
+side = "CLIENT"

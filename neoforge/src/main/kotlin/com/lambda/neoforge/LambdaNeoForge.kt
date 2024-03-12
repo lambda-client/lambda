@@ -10,6 +10,6 @@ import com.lambda.Lambda.VERSION
 object LambdaNeoForge {
     init {
         Lambda.initialize()
-        LOG.info("$MOD_NAME Fabric $VERSION initialized.")
+        LOG.info("$MOD_NAME NeoForge $VERSION initialized.")
     }
 }

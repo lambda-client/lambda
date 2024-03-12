@@ -32,3 +32,10 @@ mandatory = true
 versionRange = "[4,)"
 ordering = "AFTER"
 side = "CLIENT"
+
+[[dependencies.lambda]]
+modId = "architectury"
+mandatory = true
+versionRange = "[7.1.86,)"
+ordering = "AFTER"
+side = "CLIENT"
