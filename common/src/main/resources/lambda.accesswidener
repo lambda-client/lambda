@@ -1,1 +1,13 @@
 accessWidener   v2      named
+
+accessible field net/minecraft/text/Style color Lnet/minecraft/text/TextColor;
+accessible field net/minecraft/text/Style bold Ljava/lang/Boolean;
+accessible field net/minecraft/text/Style italic Ljava/lang/Boolean;
+accessible field net/minecraft/text/Style underlined Ljava/lang/Boolean;
+accessible field net/minecraft/text/Style strikethrough Ljava/lang/Boolean;
+accessible field net/minecraft/text/Style obfuscated Ljava/lang/Boolean;
+accessible field net/minecraft/text/Style clickEvent Lnet/minecraft/text/ClickEvent;
+accessible field net/minecraft/text/Style hoverEvent Lnet/minecraft/text/HoverEvent;
+accessible field net/minecraft/text/Style insertion Ljava/lang/String;
+accessible field net/minecraft/text/Style font Lnet/minecraft/util/Identifier;
+accessible method net/minecraft/text/Style <init> (Lnet/minecraft/text/TextColor;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Lnet/minecraft/text/ClickEvent;Lnet/minecraft/text/HoverEvent;Ljava/lang/String;Lnet/minecraft/util/Identifier;)V

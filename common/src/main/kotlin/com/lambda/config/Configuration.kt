@@ -79,7 +79,7 @@ abstract class Configuration : Jsonable {
         lambdaScope.launch(Dispatchers.IO) {
             runCatching { load(primary) }
                 .onSuccess {
-                    LOG.info("$configName config loaded")
+                    LOG.info("[IO] Config Manager: ${configName.capitalize()} config loaded.")
                 }
                 .onFailure { LOG.error("Failed to load $configName config, loading backup", it) }
                 .recoverCatching {

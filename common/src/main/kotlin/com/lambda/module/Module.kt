@@ -108,7 +108,15 @@ abstract class Module(
         }
     }
 
-    private fun toggle() {
+    fun enable() {
+        isEnabled = true
+    }
+
+    fun disable() {
+        isEnabled = false
+    }
+
+    fun toggle() {
         isEnabled = !isEnabled
     }
 

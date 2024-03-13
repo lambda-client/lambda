@@ -17,7 +17,7 @@ import java.awt.Color
 object Lambda {
     const val MOD_NAME = "Lambda"
     const val MOD_ID = "lambda"
-    private const val SYMBOL = "λ"
+    const val SYMBOL = "λ"
     val VERSION: String = LoaderInfo.getVersion()
 
     val LOG: Logger = LogManager.getLogger(SYMBOL)
@@ -31,9 +31,7 @@ object Lambda {
         .create()
 
     fun initialize() {
-        LOG.info("Initializing $MOD_NAME $VERSION")
-
-        initializeEagerObjects()
+        Loader.initialize()
     }
 
     /**

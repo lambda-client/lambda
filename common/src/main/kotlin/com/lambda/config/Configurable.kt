@@ -4,6 +4,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
+import com.lambda.config.settings.CharSetting
 import com.lambda.config.settings.StringSetting
 import com.lambda.config.settings.collections.ListSetting
 import com.lambda.config.settings.collections.MapSetting
@@ -97,6 +98,25 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         noinline visibility: () -> Boolean = { true },
         description: String = "",
     ) = EnumSetting(name, defaultValue, visibility, description).also {
+        settings.add(it)
+    }
+
+    /**
+     * Creates a [CharSetting] with the provided parameters and adds it to the [settings].
+     *
+     * @param name The unique identifier for the setting.
+     * @param defaultValue The default [Char] value of the setting.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
+     * @param description A brief explanation of the setting's purpose and behavior.
+     *
+     * @return The created [CharSetting].
+     */
+    fun setting(
+        name: String,
+        defaultValue: Char,
+        visibility: () -> Boolean = { true },
+        description: String = "",
+    ) = CharSetting(name, defaultValue, visibility, description).also {
         settings.add(it)
     }
 
