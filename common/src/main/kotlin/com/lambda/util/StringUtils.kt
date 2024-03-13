@@ -11,7 +11,7 @@ object StringUtils {
     fun findSimilarStrings(
         target: String,
         words: Set<String>,
-        threshold: Int
+        threshold: Int,
     ) = words.filter { it.levenshteinDistance(target) <= threshold }.toSet()
 
     /**

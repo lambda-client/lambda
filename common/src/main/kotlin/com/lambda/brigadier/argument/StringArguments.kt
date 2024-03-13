@@ -44,7 +44,7 @@ fun DefaultArgumentReader<StringArgumentType>.value(): String {
  */
 @BrigadierDsl
 fun <S> string(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, StringArgumentType> {
     return com.lambda.brigadier.argument(name, StringArgumentType.string())
 }
@@ -58,7 +58,7 @@ fun <S> string(
  */
 @BrigadierDsl
 fun <S> greedyString(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, StringArgumentType> {
     return com.lambda.brigadier.argument(name, StringArgumentType.greedyString())
 }
@@ -68,7 +68,7 @@ fun <S> greedyString(
  */
 @BrigadierDsl
 fun <S> word(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, StringArgumentType> {
     return com.lambda.brigadier.argument(name, StringArgumentType.word())
 }

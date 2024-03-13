@@ -24,7 +24,6 @@ package com.lambda.brigadier.argument
 
 
 import com.lambda.brigadier.*
-import com.lambda.brigadier.assumeSourceNotUsed
 import net.minecraft.command.argument.NbtCompoundArgumentType
 import net.minecraft.command.argument.NbtElementArgumentType
 import net.minecraft.command.argument.NbtPathArgumentType
@@ -73,9 +72,9 @@ fun DefaultArgumentReader<NbtPathArgumentType>.value(): NbtPath {
  */
 @BrigadierDsl
 fun <S> nbtCompound(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, NbtCompoundArgumentType> {
-    return com.lambda.brigadier.argument(name, NbtCompoundArgumentType.nbtCompound())
+    return argument(name, NbtCompoundArgumentType.nbtCompound())
 }
 
 /**
@@ -83,7 +82,7 @@ fun <S> nbtCompound(
  */
 @BrigadierDsl
 fun <S> nbtElement(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, NbtElementArgumentType> {
     return argument(name, NbtElementArgumentType.nbtElement())
 }
@@ -93,7 +92,7 @@ fun <S> nbtElement(
  */
 @BrigadierDsl
 fun <S> nbtPath(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, NbtPathArgumentType> {
     return argument(name, NbtPathArgumentType.nbtPath())
 }

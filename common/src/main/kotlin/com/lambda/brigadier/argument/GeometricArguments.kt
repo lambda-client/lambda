@@ -24,11 +24,6 @@ package com.lambda.brigadier.argument
 
 
 import com.lambda.brigadier.*
-import com.lambda.brigadier.ArgumentReader
-import com.lambda.brigadier.BrigadierDsl
-import com.lambda.brigadier.DefaultArgumentConstructor
-import com.lambda.brigadier.DefaultArgumentDescriptor
-import com.lambda.brigadier.DefaultArgumentReader
 import net.minecraft.command.argument.*
 import net.minecraft.server.command.ServerCommandSource
 import net.minecraft.util.math.*
@@ -199,7 +194,7 @@ fun DefaultArgumentReader<Vec3ArgumentType>.posArgument(): PosArgument {
  */
 @BrigadierDsl
 fun <S> angle(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, AngleArgumentType> {
     return argument(name, AngleArgumentType.angle())
 }
@@ -209,7 +204,7 @@ fun <S> angle(
  */
 @BrigadierDsl
 fun <S> rotation(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, RotationArgumentType> {
     return argument(name, RotationArgumentType.rotation())
 }
@@ -219,7 +214,7 @@ fun <S> rotation(
  */
 @BrigadierDsl
 fun <S> swizzle(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, SwizzleArgumentType> {
     return argument(name, SwizzleArgumentType.swizzle())
 }
@@ -229,7 +224,7 @@ fun <S> swizzle(
  */
 @BrigadierDsl
 fun <S> blockPos(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, BlockPosArgumentType> {
     return argument(name, BlockPosArgumentType.blockPos())
 }
@@ -239,7 +234,7 @@ fun <S> blockPos(
  */
 @BrigadierDsl
 fun <S> columnPos(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, ColumnPosArgumentType> {
     return argument(name, ColumnPosArgumentType.columnPos())
 }
@@ -252,7 +247,7 @@ fun <S> columnPos(
 @BrigadierDsl
 fun <S> vec2(
     name: String,
-    centerIntegers: Boolean = false
+    centerIntegers: Boolean = false,
 ): DefaultArgumentConstructor<S, Vec2ArgumentType> {
     return argument(name, Vec2ArgumentType.vec2(centerIntegers))
 }
@@ -265,7 +260,7 @@ fun <S> vec2(
 @BrigadierDsl
 fun <S> vec3(
     name: String,
-    centerIntegers: Boolean = false
+    centerIntegers: Boolean = false,
 ): DefaultArgumentConstructor<S, Vec3ArgumentType> {
     return argument(name, Vec3ArgumentType.vec3(centerIntegers))
 }

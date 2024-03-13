@@ -37,7 +37,7 @@ typealias DefaultArgumentReader<T> = ArgumentReader<*, DefaultArgumentDescriptor
 class ArgumentReader<S, out D : ArgumentDescriptor<*>>(
     val context: CommandContext<S>,
     val name: String,
-    private val argumentDescriptor: D
+    private val argumentDescriptor: D,
 )
 
 /**

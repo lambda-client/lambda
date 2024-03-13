@@ -69,8 +69,8 @@ value class Color(val value: Int) {
     @Suppress("MagicNumber")
     constructor(red: Int, green: Int, blue: Int) : this(
         (red.coerceIn(0, 255) shl 16) +
-        (green.coerceIn(0, 255) shl 8) +
-        blue.coerceIn(0, 255)
+                (green.coerceIn(0, 255) shl 8) +
+                blue.coerceIn(0, 255)
     )
 
     /** A color of red influenced by [value]. */
@@ -178,7 +178,7 @@ value class Color(val value: Int) {
      *
      * @return A [TextColor] created from the [value] value
      */
-    public fun toTextColor(): TextColor {
+    fun toTextColor(): TextColor {
         return TextColor.fromRgb(value)
     }
 }

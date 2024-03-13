@@ -93,7 +93,7 @@ fun DefaultArgumentReader<LongArgumentType>.value(): Long {
  */
 @BrigadierDsl
 fun <S> boolean(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, BoolArgumentType> {
     return argument(name, BoolArgumentType.bool())
 }
@@ -108,7 +108,7 @@ fun <S> boolean(
 fun <S> double(
     name: String,
     min: Double = -Double.MAX_VALUE,
-    max: Double = Double.MAX_VALUE
+    max: Double = Double.MAX_VALUE,
 ): DefaultArgumentConstructor<S, DoubleArgumentType> {
     return argument(name, DoubleArgumentType.doubleArg(min, max))
 }
@@ -123,7 +123,7 @@ fun <S> double(
 fun <S> float(
     name: String,
     min: Float = -Float.MAX_VALUE,
-    max: Float = Float.MAX_VALUE
+    max: Float = Float.MAX_VALUE,
 ): DefaultArgumentConstructor<S, FloatArgumentType> {
     return argument(name, FloatArgumentType.floatArg(min, max))
 }
@@ -138,7 +138,7 @@ fun <S> float(
 fun <S> integer(
     name: String,
     min: Int = -Int.MAX_VALUE,
-    max: Int = Int.MAX_VALUE
+    max: Int = Int.MAX_VALUE,
 ): DefaultArgumentConstructor<S, IntegerArgumentType> {
     return argument(name, IntegerArgumentType.integer(min, max))
 }
@@ -153,7 +153,7 @@ fun <S> integer(
 fun <S> long(
     name: String,
     min: Long = -Long.MAX_VALUE,
-    max: Long = Long.MAX_VALUE
+    max: Long = Long.MAX_VALUE,
 ): DefaultArgumentConstructor<S, LongArgumentType> {
     return argument(name, LongArgumentType.longArg(min, max))
 }

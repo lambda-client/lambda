@@ -1,9 +1,9 @@
 package com.lambda.command
 
-import com.lambda.Lambda.LOG
 import com.lambda.LambdaConfig
 import com.lambda.Loadable
-import com.lambda.brigadier.*
+import com.lambda.brigadier.CommandException
+import com.lambda.brigadier.register
 import com.lambda.config.Configurable
 import com.lambda.context.SafeContext
 import com.lambda.threading.runSafe
@@ -32,9 +32,35 @@ object CommandManager : Configurable(LambdaConfig), Loadable {
     private const val ERROR_PADDING = 10
     private val errorColor = Color.RED
 
-    fun register(command: String, vararg alias: String, action: LiteralArgumentBuilder<CommandSource>.() -> Unit) {
+    fun register(
+        command: String,
+        vararg alias: String,
+        action: LiteralArgumentBuilder<CommandSource>.() -> Unit,
+    ) {
         (listOf(command) + alias).forEach {
             dispatcher.register(it, action)
+        }
+    }
+
+    fun executeCommand(command: String) {
+        runSafe {
+            val isolatedCommand = command.drop(1)
+
+            if (isolatedCommand.isBlank()) return@runSafe
+            mc.inGameHud.chatHud.addToMessageHistory(command)
+            val reader = StringReader(isolatedCommand)
+
+            try {
+                dispatcher.execute(reader, player.commandSource)
+            } catch (syntax: CommandSyntaxException) {
+                createFeedback(syntax, reader)
+            } catch (e: CommandException) {
+                player.sendMessage(buildText {
+                    color(errorColor) {
+                        text(e.info)
+                    }
+                })
+            }
         }
     }
 
@@ -55,28 +81,6 @@ object CommandManager : Configurable(LambdaConfig), Loadable {
             runSafe {
                 connection.commandDispatcher
             } ?: throw IllegalStateException("Command dispatcher is not initialized")
-        }
-    }
-
-    fun executeCommand(command: String) {
-        runSafe {
-            val isolatedCommand = command.drop(1)
-
-            if (isolatedCommand.isBlank()) return@runSafe
-            val reader = StringReader(isolatedCommand)
-            mc.inGameHud.chatHud.addToMessageHistory(command)
-
-            try {
-                dispatcher.execute(reader, player.commandSource)
-            } catch (syntax: CommandSyntaxException) {
-                createFeedback(syntax, reader)
-            } catch (e: CommandException) {
-                player.sendMessage(buildText {
-                    color(errorColor) {
-                        text(e.info)
-                    }
-                })
-            }
         }
     }
 

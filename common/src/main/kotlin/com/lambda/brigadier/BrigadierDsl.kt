@@ -13,7 +13,7 @@ annotation class BrigadierDsl
 @BrigadierDsl
 fun <S> CommandDispatcher<S>.register(
     command: String,
-    action: LiteralArgumentBuilder<S>.() -> Unit
+    action: LiteralArgumentBuilder<S>.() -> Unit,
 ) {
     val argument = LiteralArgumentBuilder.literal<S>(command)
     argument.apply(action)
@@ -22,7 +22,7 @@ fun <S> CommandDispatcher<S>.register(
 
 @JvmName("getRequired")
 operator fun <S, D : ArgumentDescriptor<*>> CommandContext<S>.get(
-    accessor: ArgumentAccessor<S, D>
+    accessor: ArgumentAccessor<S, D>,
 ): ArgumentReader<S, D> {
     return accessor()
 }
@@ -36,7 +36,7 @@ operator fun <S, D : ArgumentDescriptor<*>> CommandContext<S>.get(
  */
 @JvmName("getOptional")
 operator fun <S, D : ArgumentDescriptor<*>> CommandContext<S>.get(
-    accessor: ArgumentAccessor<S, D>?
+    accessor: ArgumentAccessor<S, D>?,
 ): ArgumentReader<S, D>? {
     return accessor?.invoke(this)
 }

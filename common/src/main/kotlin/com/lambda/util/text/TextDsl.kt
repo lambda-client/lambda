@@ -53,7 +53,7 @@ class TextBuilder {
         newValue: T,
         getProp: StyleBuilder.() -> T,
         setProp: StyleBuilder.(T) -> Unit,
-        action: TextBuilder.() -> Unit
+        action: TextBuilder.() -> Unit,
     ) {
         val oldValue = getProp(style)
         setProp(style, newValue)
@@ -129,7 +129,7 @@ fun TextBuilder.nbt(
     pathPattern: String,
     interpreting: Boolean,
     separator: Optional<Text>,
-    nbt: NbtDataSource
+    nbt: NbtDataSource,
 ) {
     styleAndAppend(
         Text.nbt(
@@ -199,7 +199,7 @@ inline fun TextBuilder.color(color: Color?, action: TextBuilder.() -> Unit) {
  * to the provided value (or enabled if no value given).
  */
 @TextDsl
-public inline fun TextBuilder.bold(bold: Boolean? = true, action: TextBuilder.() -> Unit) {
+inline fun TextBuilder.bold(bold: Boolean? = true, action: TextBuilder.() -> Unit) {
     withProp(bold, { this.bold }, { this.bold = it }, action)
 }
 
@@ -217,7 +217,7 @@ inline fun TextBuilder.italic(italic: Boolean? = true, action: TextBuilder.() ->
  * to the provided value (or enabled if no value given).
  */
 @TextDsl
-public inline fun TextBuilder.underlined(underlined: Boolean? = true, action: TextBuilder.() -> Unit) {
+inline fun TextBuilder.underlined(underlined: Boolean? = true, action: TextBuilder.() -> Unit) {
     withProp(underlined, { this.underlined }, { this.underlined = it }, action)
 }
 
@@ -286,7 +286,7 @@ fun TextBuilder.styled(
     hoverEvent: HoverEvent? = style.hoverEvent,
     insertion: String? = style.insertion,
     font: Identifier? = style.font,
-    action: TextBuilder.() -> Unit
+    action: TextBuilder.() -> Unit,
 ) {
     color(color) {
         bold(bold) {

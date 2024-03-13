@@ -23,7 +23,6 @@
 package com.lambda.brigadier.argument
 
 import com.lambda.brigadier.*
-import com.lambda.brigadier.assumeSourceNotUsed
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.command.argument.BlockPredicateArgumentType
@@ -63,7 +62,7 @@ fun DefaultArgumentReader<BlockStateArgumentType>.value(): BlockStateArgument {
 @BrigadierDsl
 fun <S> blockPredicate(
     name: String,
-    registryAccess: CommandRegistryAccess
+    registryAccess: CommandRegistryAccess,
 ): DefaultArgumentConstructor<S, BlockPredicateArgumentType> {
     return argument(name, BlockPredicateArgumentType.blockPredicate(registryAccess))
 }
@@ -76,7 +75,7 @@ fun <S> blockPredicate(
 @BrigadierDsl
 fun <S> blockState(
     name: String,
-    registryAccess: CommandRegistryAccess
+    registryAccess: CommandRegistryAccess,
 ): DefaultArgumentConstructor<S, BlockStateArgumentType> {
     return argument(name, BlockStateArgumentType.blockState(registryAccess))
 }

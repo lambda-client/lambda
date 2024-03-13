@@ -5,6 +5,8 @@ import com.lambda.event.EventFlow
 import com.lambda.event.cancellable.Cancellable
 import com.lambda.event.cancellable.ICancellable
 import com.lambda.event.events.PacketEvent.Receive
+import com.lambda.event.events.PacketEvent.Receive.Post
+import com.lambda.event.events.PacketEvent.Receive.Pre
 import com.lambda.event.events.PacketEvent.Send
 import com.lambda.event.events.PacketEvent.Send.Post
 import com.lambda.event.events.PacketEvent.Send.Pre

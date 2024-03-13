@@ -138,7 +138,7 @@ fun ArgumentReader<
  */
 @BrigadierDsl
 fun <S> gameProfile(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, GameProfileArgumentType> {
     return argument(name, GameProfileArgumentType.gameProfile())
 }
@@ -148,7 +148,7 @@ fun <S> gameProfile(
  */
 @BrigadierDsl
 fun <S> team(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, TeamArgumentType> {
     return argument(name, TeamArgumentType.team())
 }
@@ -158,7 +158,7 @@ fun <S> team(
  */
 @BrigadierDsl
 fun <S> player(
-    name: String
+    name: String,
 ): RequiredArgumentConstructor<
         S,
         SinglePlayerArgumentDescriptor
@@ -171,7 +171,7 @@ fun <S> player(
  */
 @BrigadierDsl
 fun <S> players(
-    name: String
+    name: String,
 ): RequiredArgumentConstructor<
         S,
         ListPlayerArgumentDescriptor

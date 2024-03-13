@@ -34,7 +34,7 @@ typealias DefaultArgumentConstructor<S, T> =
 class ArgumentConstructor<S, B : ArgumentBuilder<S, *>, D : ArgumentDescriptor<*>>(
     private val builder: B,
     val name: String,
-    private val descriptor: D
+    private val descriptor: D,
 ) {
     /**
      * Converts this constructor into a required argument.
@@ -66,7 +66,7 @@ class ArgumentConstructor<S, B : ArgumentBuilder<S, *>, D : ArgumentDescriptor<*
 sealed class CommandArgument<S, out B : ArgumentBuilder<S, *>, out D : ArgumentDescriptor<*>, out A>(
     val builder: B,
     val name: String,
-    val descriptor: D
+    val descriptor: D,
 ) {
     /**
      * Registers the argument on the [parentBuilder].
@@ -87,7 +87,7 @@ sealed class CommandArgument<S, out B : ArgumentBuilder<S, *>, out D : ArgumentD
     class Required<S, B : ArgumentBuilder<S, *>, D : ArgumentDescriptor<*>>(
         builder: B,
         name: String,
-        descriptor: D
+        descriptor: D,
     ) : CommandArgument<S, B, D, ArgumentAccessor<S, D>>(builder, name, descriptor) {
         /**
          * Registers the argument on the [parentBuilder]
@@ -102,7 +102,7 @@ sealed class CommandArgument<S, out B : ArgumentBuilder<S, *>, out D : ArgumentD
         @Suppress("OVERRIDE_BY_INLINE")
         override inline fun register(
             parentBuilder: ArgumentBuilder<S, *>,
-            action: B.(ArgumentAccessor<S, D>) -> Unit
+            action: B.(ArgumentAccessor<S, D>) -> Unit,
         ) {
             builder.action {
                 ArgumentReader(this, name, descriptor)
@@ -120,7 +120,7 @@ sealed class CommandArgument<S, out B : ArgumentBuilder<S, *>, out D : ArgumentD
     class Optional<S, D : ArgumentDescriptor<*>>(
         builder: ArgumentBuilder<S, *>,
         name: String,
-        descriptor: D
+        descriptor: D,
     ) : CommandArgument<S, ArgumentBuilder<S, *>, D, ArgumentAccessor<S, D>?>(builder, name, descriptor) {
         /**
          * Registers the argument on the [parentBuilder]
@@ -142,7 +142,7 @@ sealed class CommandArgument<S, out B : ArgumentBuilder<S, *>, out D : ArgumentD
         @Suppress("OVERRIDE_BY_INLINE")
         override inline fun register(
             parentBuilder: ArgumentBuilder<S, *>,
-            action: (ArgumentBuilder<S, *>.(ArgumentAccessor<S, D>?) -> Unit)
+            action: (ArgumentBuilder<S, *>.(ArgumentAccessor<S, D>?) -> Unit),
         ) {
             builder.action {
                 ArgumentReader(this, name, descriptor)
@@ -163,7 +163,7 @@ sealed class CommandArgument<S, out B : ArgumentBuilder<S, *>, out D : ArgumentD
 fun <S, D : ArgumentDescriptor<A>, AT, A : ArgumentType<AT>> argument(
     name: String,
     argumentType: A,
-    argumentDescriptor: D
+    argumentDescriptor: D,
 ): RequiredArgumentConstructor<S, D> {
     val builder = RequiredArgumentBuilder.argument<S, AT>(
         name,
@@ -181,7 +181,7 @@ fun <S, D : ArgumentDescriptor<A>, AT, A : ArgumentType<AT>> argument(
 @BrigadierDsl
 fun <S, AT, A : ArgumentType<AT>> argument(
     name: String,
-    argumentType: A
+    argumentType: A,
 ): RequiredArgumentConstructor<S, DefaultArgumentDescriptor<A>> {
     return argument(name, argumentType, DefaultArgumentDescriptor())
 }
@@ -201,7 +201,7 @@ fun <S, AT, A : ArgumentType<AT>> argument(
 @BrigadierDsl
 inline fun <S, B : ArgumentBuilder<S, *>, D : ArgumentDescriptor<*>> ArgumentBuilder<S, *>.required(
     constructor: ArgumentConstructor<S, B, D>,
-    action: B.(ArgumentAccessor<S, D>) -> Unit
+    action: B.(ArgumentAccessor<S, D>) -> Unit,
 ) {
     constructor.required().register(this, action)
 }
@@ -226,7 +226,7 @@ inline fun <S, B : ArgumentBuilder<S, *>, D : ArgumentDescriptor<*>> ArgumentBui
 @BrigadierDsl
 inline fun <S, D : ArgumentDescriptor<*>> ArgumentBuilder<S, *>.optional(
     constructor: ArgumentConstructor<S, *, D>,
-    action: ArgumentBuilder<S, *>.(ArgumentAccessor<S, D>?) -> Unit
+    action: ArgumentBuilder<S, *>.(ArgumentAccessor<S, D>?) -> Unit,
 ) {
     constructor.optional().register(this, action)
 }

@@ -23,12 +23,6 @@
 package com.lambda.brigadier.argument
 
 import com.lambda.brigadier.*
-import com.lambda.brigadier.ArgumentDescriptor
-import com.lambda.brigadier.ArgumentReader
-import com.lambda.brigadier.BrigadierDsl
-import com.lambda.brigadier.DefaultArgumentConstructor
-import com.lambda.brigadier.DefaultArgumentReader
-import com.lambda.brigadier.RequiredArgumentConstructor
 import net.minecraft.command.argument.EntityAnchorArgumentType
 import net.minecraft.command.argument.EntityArgumentType
 import net.minecraft.entity.Entity
@@ -121,7 +115,7 @@ fun ArgumentReader<
  */
 @BrigadierDsl
 fun <S> entityAnchor(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, EntityAnchorArgumentType> {
     return argument(name, EntityAnchorArgumentType.entityAnchor())
 }
@@ -131,7 +125,7 @@ fun <S> entityAnchor(
  */
 @BrigadierDsl
 fun <S> entities(
-    name: String
+    name: String,
 ): RequiredArgumentConstructor<
         S,
         ListEntityArgumentDescriptor
@@ -144,7 +138,7 @@ fun <S> entities(
  */
 @BrigadierDsl
 fun <S> entity(
-    name: String
+    name: String,
 ): RequiredArgumentConstructor<
         S,
         SingleEntityArgumentDescriptor

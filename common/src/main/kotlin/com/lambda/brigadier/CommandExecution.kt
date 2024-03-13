@@ -32,14 +32,14 @@ sealed class CommandResult {
      * Representation of successful completion with the return value of [result].
      */
     class Success(
-        val result: Int = Command.SINGLE_SUCCESS
+        val result: Int = Command.SINGLE_SUCCESS,
     ) : CommandResult()
 
     /**
      * Representation of the command failing with the specified error [message].
      */
     class Failure(
-        val message: Text
+        val message: Text,
     ) : CommandResult()
 
     companion object {
