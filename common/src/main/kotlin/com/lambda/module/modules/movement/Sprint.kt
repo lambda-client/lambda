@@ -1,4 +1,4 @@
-package com.lambda.module.modules
+package com.lambda.module.modules.movement
 
 import com.lambda.module.tag.ModuleTag
 import com.lambda.module.Module

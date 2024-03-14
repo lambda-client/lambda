@@ -1,6 +1,6 @@
 package com.lambda.mixin;
 
-import com.lambda.module.modules.Sprint;
+import com.lambda.module.modules.movement.Sprint;
 import net.minecraft.client.option.KeyBinding;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

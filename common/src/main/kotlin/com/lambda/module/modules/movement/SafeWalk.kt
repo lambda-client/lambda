@@ -1,4 +1,4 @@
-package com.lambda.module.modules
+package com.lambda.module.modules.movement
 
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
