@@ -9,6 +9,7 @@
     "ClientConnectionMixin",
     "KeyboardMixin",
     "MinecraftClientMixin",
+    "MixinKeyBinding",
     "PlayerEntityMixin"
   ],
   "injectors": {
