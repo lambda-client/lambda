@@ -79,19 +79,12 @@ abstract class Configuration : Jsonable {
     private fun tryLoad() {
         lambdaScope.launch(Dispatchers.IO) {
             runCatching { load(primary) }
-                .onSuccess {
-                    LOG.info("[IO] Config Manager: ${configName.replaceFirstChar(Char::titlecase) }} config loaded.")
-                }
-                .onFailure { LOG.error("Failed to load $configName config, loading backup", it) }
-                .recoverCatching {
+                .onSuccess { LOG.info("[IO] Config Manager: ${configName.replaceFirstChar(Char::titlecase) }} config loaded.") }
+                .onFailure {
+                    LOG.error("Failed to load $configName config, loading backup")
                     runCatching { load(backup) }
                         .onSuccess { LOG.info("$configName config loaded from backup") }
-                        .onFailure {
-                            LOG.error(
-                                "Failed to load $configName config from backup, unrecoverable error",
-                                it
-                            )
-                        }
+                        .onFailure { LOG.error("Failed to load $configName config from backup, unrecoverable error", it) }
                 }
         }
     }
@@ -99,9 +92,7 @@ abstract class Configuration : Jsonable {
     private fun trySave() {
         lambdaScope.launch(Dispatchers.IO) {
             runCatching { save() }
-                .onSuccess {
-                    LOG.info("$configName config saved")
-                }
+                .onSuccess { LOG.info("$configName config saved") }
                 .onFailure { LOG.error("Failed to save $configName config", it) }
         }
     }
