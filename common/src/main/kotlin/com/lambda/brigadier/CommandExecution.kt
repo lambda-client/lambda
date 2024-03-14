@@ -16,6 +16,7 @@
 
 package com.lambda.brigadier
 
+import com.lambda.util.Communication
 import com.mojang.brigadier.Command
 import com.mojang.brigadier.builder.ArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
@@ -48,6 +49,10 @@ sealed class CommandResult {
          */
         fun success(result: Int = Command.SINGLE_SUCCESS): Success {
             return Success(result)
+        }
+
+        fun failure(message: String): Failure {
+            return Failure(Communication.LogLevel.ERROR.text(message))
         }
 
         /**

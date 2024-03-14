@@ -14,7 +14,6 @@ import com.lambda.command.CommandManager.register
 import com.lambda.command.LambdaCommand
 import com.lambda.module.ModuleRegistry
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.StringUtils
@@ -98,9 +97,7 @@ object ModuleCommand : LambdaCommand() {
                                 }
                             })
                             success()
-                        } ?: failure(Communication.LogLevel.ERROR.text(
-                            "Failed to ${if (module.isEnabled) "enable" else "disable"} module $name")
-                        )
+                        } ?: failure("Failed to ${if (module.isEnabled) "enable" else "disable"} module $name")
                     }
                 }
             }

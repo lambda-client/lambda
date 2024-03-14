@@ -1,4 +1,4 @@
-package com.lambda
+package com.lambda.config.configurations
 
 import com.lambda.config.Configuration
 import com.lambda.util.FolderRegister

@@ -1,6 +1,6 @@
 package com.lambda.command
 
-import com.lambda.LambdaConfig
+import com.lambda.config.configurations.LambdaConfig
 import com.lambda.Loadable
 import com.lambda.brigadier.CommandException
 import com.lambda.brigadier.register

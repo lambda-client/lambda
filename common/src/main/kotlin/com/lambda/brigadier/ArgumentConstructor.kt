@@ -195,8 +195,6 @@ fun <S, AT, A : ArgumentType<AT>> argument(
  * within an [execute] block to obtain an [ArgumentReader] for this argument.
  *
  * @see CommandArgument.Required
- *
- * @author Cypher121
  */
 @BrigadierDsl
 inline fun <S, B : ArgumentBuilder<S, *>, D : ArgumentDescriptor<*>> ArgumentBuilder<S, *>.required(

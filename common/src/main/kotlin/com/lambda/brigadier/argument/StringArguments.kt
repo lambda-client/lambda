@@ -25,6 +25,7 @@ package com.lambda.brigadier.argument
 import com.lambda.brigadier.BrigadierDsl
 import com.lambda.brigadier.DefaultArgumentConstructor
 import com.lambda.brigadier.DefaultArgumentReader
+import com.lambda.brigadier.argument
 import com.mojang.brigadier.arguments.StringArgumentType
 
 /**
@@ -46,7 +47,7 @@ fun DefaultArgumentReader<StringArgumentType>.value(): String {
 fun <S> string(
     name: String,
 ): DefaultArgumentConstructor<S, StringArgumentType> {
-    return com.lambda.brigadier.argument(name, StringArgumentType.string())
+    return argument(name, StringArgumentType.string())
 }
 
 /**
@@ -60,7 +61,7 @@ fun <S> string(
 fun <S> greedyString(
     name: String,
 ): DefaultArgumentConstructor<S, StringArgumentType> {
-    return com.lambda.brigadier.argument(name, StringArgumentType.greedyString())
+    return argument(name, StringArgumentType.greedyString())
 }
 
 /**
@@ -70,5 +71,5 @@ fun <S> greedyString(
 fun <S> word(
     name: String,
 ): DefaultArgumentConstructor<S, StringArgumentType> {
-    return com.lambda.brigadier.argument(name, StringArgumentType.word())
+    return argument(name, StringArgumentType.word())
 }

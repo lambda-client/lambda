@@ -3,6 +3,7 @@ package com.lambda.module
 import com.lambda.config.AbstractSetting
 import com.lambda.config.Configurable
 import com.lambda.config.Configuration
+import com.lambda.config.configurations.ModuleConfig
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.numeric.DoubleSetting
 import com.lambda.event.Muteable
@@ -104,7 +105,7 @@ abstract class Module(
 
     init {
         listener<KeyPressEvent>(alwaysListen = true) { event ->
-            if (event.key == keybind.key) {
+            if (event.key == keybind.key && mc.currentScreen == null) {
                 toggle()
             }
         }

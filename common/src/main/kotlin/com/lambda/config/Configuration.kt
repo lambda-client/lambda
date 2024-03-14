@@ -8,7 +8,8 @@ import com.lambda.Lambda.gson
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
-import com.lambda.module.ModuleConfig
+import com.lambda.util.Communication.info
+import com.lambda.util.Communication.logError
 import com.lambda.util.StringUtils.capitalize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -41,6 +42,8 @@ abstract class Configuration : Jsonable {
         unsafeListener<ClientEvent.Startup> { tryLoad() }
 
         unsafeListener<ClientEvent.Shutdown> { trySave() }
+
+        configurations.add(this)
     }
 
     override fun toJson() =
@@ -77,25 +80,50 @@ abstract class Configuration : Jsonable {
         loadFromJson(JsonParser.parseReader(file.reader()).asJsonObject)
     }
 
-    private fun tryLoad() {
+    fun tryLoad() {
         lambdaScope.launch(Dispatchers.IO) {
             runCatching { load(primary) }
-                .onSuccess { LOG.info("[IO] Config Manager: ${configName.capitalize()} config loaded.") }
+                .onSuccess {
+                    val message = "${configName.capitalize()} config loaded."
+                    LOG.info(message)
+                    this@Configuration.info(message)
+                }
                 .onFailure {
-                    LOG.error("Failed to load ${configName.capitalize()} config, loading backup")
+                    val message = "Failed to load ${configName.capitalize()} config, loading backup"
+                    LOG.error(message)
+                    this@Configuration.logError(message)
                     runCatching { load(backup) }
-                        .onSuccess { LOG.info("${configName.capitalize()} config loaded from backup") }
-                        .onFailure { LOG.error("Failed to load ${configName.capitalize()} config from backup, unrecoverable error", it) }
+                        .onSuccess {
+                            val message = "${configName.capitalize()} config loaded from backup"
+                            LOG.info(message)
+                            this@Configuration.info(message)
+                        }
+                        .onFailure {
+                            val message = "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
+                            LOG.error(message, it)
+                            this@Configuration.logError(message)
+                        }
                 }
         }
     }
 
-    private fun trySave() {
+    fun trySave() {
         lambdaScope.launch(Dispatchers.IO) {
             runCatching { save() }
-                .onSuccess { LOG.info("[IO] ${configName.capitalize()} config saved") }
-                .onFailure { LOG.error("Failed to save ${configName.capitalize()} config", it) }
+                .onSuccess {
+                    val message = "Saved ${configName.capitalize()} config."
+                    LOG.info(message)
+                    this@Configuration.info(message)
+                }
+                .onFailure {
+                    val message = "Failed to save ${configName.capitalize()} config"
+                    LOG.error(message, it)
+                    this@Configuration.logError(message)
+                }
         }
     }
 
+    companion object {
+        val configurations = mutableSetOf<Configuration>()
+    }
 }
