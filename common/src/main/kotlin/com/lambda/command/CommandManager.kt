@@ -49,6 +49,7 @@ object CommandManager : Configurable(LambdaConfig), Loadable {
 
             if (isolatedCommand.isBlank()) return@runSafe
             mc.inGameHud.chatHud.addToMessageHistory(command)
+            mc.commandHistoryManager.add(command)
             val reader = StringReader(isolatedCommand)
 
             try {

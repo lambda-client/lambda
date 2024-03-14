@@ -1,6 +1,5 @@
 package com.lambda.command.commands
 
-import com.lambda.brigadier.CommandResult
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.string
@@ -17,7 +16,7 @@ object ConfigCommand : LambdaCommand() {
     override val name = "config"
 
     init {
-        register(name) {
+        register(name, "cfg") {
             required(word("action")) { action ->
                 val actions = listOf("save", "load")
 
