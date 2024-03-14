@@ -9,6 +9,7 @@ import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.module.ModuleConfig
+import com.lambda.util.StringUtils.capitalize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
@@ -79,7 +80,7 @@ abstract class Configuration : Jsonable {
     private fun tryLoad() {
         lambdaScope.launch(Dispatchers.IO) {
             runCatching { load(primary) }
-                .onSuccess { LOG.info("[IO] Config Manager: ${configName.replaceFirstChar(Char::titlecase) }} config loaded.") }
+                .onSuccess { LOG.info("[IO] Config Manager: ${configName.capitalize()} config loaded.") }
                 .onFailure {
                     LOG.error("Failed to load $configName config, loading backup")
                     runCatching { load(backup) }

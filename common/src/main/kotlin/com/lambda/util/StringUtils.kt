@@ -1,6 +1,8 @@
 package com.lambda.util
 
 object StringUtils {
+    fun String.capitalize() = replaceFirstChar { it.titlecase() }
+
     /**
      * Find similar strings in a set of words.
      *

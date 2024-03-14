@@ -5,6 +5,7 @@ import com.lambda.Lambda.mc
 import com.lambda.command.LambdaCommand
 import com.lambda.module.Module
 import com.lambda.threading.runSafe
+import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.text.*
 import net.minecraft.client.toast.SystemToast
 import net.minecraft.text.Text
@@ -53,48 +54,50 @@ object Communication {
         }
     }
 
-    private fun Any.source(logLevel: LogLevel, color: Color = Color.GREY) = buildText {
+    private fun Any.source(
+        logLevel: LogLevel,
+        color: Color = Color.GREY
+    ) = buildText {
         text(logLevel.prefix())
 
-        if (this@source is LambdaCommand) {
-            styled(color, italic = true) {
-                literal("Command ")
-            }
-        }
-
-        if (this@source is Module) {
-            styled(color, italic = true) {
-                literal("Module ")
-            }
-        }
-
-        // ToDo: HUD elements
-
+//        if (this@source is LambdaCommand) {
+//            styled(color, italic = true) {
+//                literal("Command ")
+//            }
+//        }
+//
+//        if (this@source is Module) {
+//            styled(color, italic = true) {
+//                literal("Module ")
+//            }
+//        }
+//
+//        // ToDo: HUD elements
+//
         if (this@source is Nameable) {
-            styled(color, italic = true, underlined = true) {
-                literal(name.replaceFirstChar(Char::titlecase))
+            styled(color, italic = true) {
+                literal("${name.capitalize()} ")
             }
-        }
-
-        styled(color, italic = true) {
-            literal(" \$ ")
         }
     }
 
     private fun LogLevel.prefix() =
         buildText {
-            literal(" ")
             styled(logoColor) {
                 literal(Lambda.SYMBOL)
             }
             literal(" ")
         }
 
-    enum class LogLevel(val logoColor: Color, val messageColor: Color, val type: SystemToast.Type) {
+    enum class LogLevel(
+        val logoColor: Color,
+        private val messageColor: Color,
+        val type: SystemToast.Type
+    ) {
         DEBUG(Color.WHITE, Color.WHITE, SystemToast.Type.WORLD_BACKUP),
         INFO(Color.GREEN, Color.WHITE, SystemToast.Type.NARRATOR_TOGGLE),
         WARN(Color.YELLOW, Color.YELLOW, SystemToast.Type.WORLD_ACCESS_FAILURE),
-        ERROR(Color.RED, Color.YELLOW, SystemToast.Type.WORLD_ACCESS_FAILURE);
+        ERROR(Color.RED, Color.RED, SystemToast.Type.WORLD_ACCESS_FAILURE);
 
         fun toast(title: Text, message: Text): SystemToast =
             SystemToast.create(mc, type, title, message)
