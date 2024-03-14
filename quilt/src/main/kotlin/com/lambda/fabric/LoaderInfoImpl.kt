@@ -1,3 +1,5 @@
+@file:Suppress("deprecation")
+
 package com.lambda.fabric
 
 import net.fabricmc.loader.api.FabricLoader

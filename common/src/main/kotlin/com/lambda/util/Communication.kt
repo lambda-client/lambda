@@ -72,7 +72,7 @@ object Communication {
 
         if (this@source is Nameable) {
             styled(color, italic = true, underlined = true) {
-                literal(name.capitalize())
+                literal(name.replaceFirstChar(Char::titlecase))
             }
         }
 
@@ -80,7 +80,7 @@ object Communication {
             literal(" \$ ")
         }
     }
-    
+
     private fun LogLevel.prefix() =
         buildText {
             literal(" ")
