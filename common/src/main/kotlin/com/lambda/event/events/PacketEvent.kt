@@ -5,11 +5,7 @@ import com.lambda.event.EventFlow
 import com.lambda.event.cancellable.Cancellable
 import com.lambda.event.cancellable.ICancellable
 import com.lambda.event.events.PacketEvent.Receive
-import com.lambda.event.events.PacketEvent.Receive.Post
-import com.lambda.event.events.PacketEvent.Receive.Pre
 import com.lambda.event.events.PacketEvent.Send
-import com.lambda.event.events.PacketEvent.Send.Post
-import com.lambda.event.events.PacketEvent.Send.Pre
 import net.minecraft.network.packet.Packet
 
 /**
@@ -19,7 +15,7 @@ import net.minecraft.network.packet.Packet
  * It has two subclasses: [Send] and [Receive],
  * which are triggered when a packet is sent and received, respectively.
  *
- * Each subclass has two further subclasses: [Pre] and [Post],
+ * Each subclass has two further subclasses: `Pre` and `Post`,
  * which are triggered before and after the packet is sent or received.
  *
  * The [PacketEvent] class is designed to be extended by any class that needs to react to packet events.

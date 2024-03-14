@@ -7,6 +7,8 @@ import com.lambda.brigadier.register
 import com.lambda.config.Configurable
 import com.lambda.context.SafeContext
 import com.lambda.threading.runSafe
+import com.lambda.util.Communication
+import com.lambda.util.Communication.logError
 import com.lambda.util.text.*
 import com.lambda.util.text.ClickEvents.suggestCommand
 import com.mojang.brigadier.CommandDispatcher
@@ -30,7 +32,6 @@ object CommandManager : Configurable(LambdaConfig), Loadable {
     private val commands = mutableSetOf<LambdaCommand>()
     private val dispatcher by lazy { CommandDispatcher<CommandSource>() }
     private const val ERROR_PADDING = 10
-    private val errorColor = Color.RED
 
     fun register(
         command: String,
@@ -55,11 +56,7 @@ object CommandManager : Configurable(LambdaConfig), Loadable {
             } catch (syntax: CommandSyntaxException) {
                 createFeedback(syntax, reader)
             } catch (e: CommandException) {
-                player.sendMessage(buildText {
-                    color(errorColor) {
-                        text(e.info)
-                    }
-                })
+                this@CommandManager.logError(e.info)
             }
         }
     }
@@ -90,11 +87,7 @@ object CommandManager : Configurable(LambdaConfig), Loadable {
     ) {
         val debugMessage = syntax.message ?: return
 
-        player.sendMessage(buildText {
-            color(errorColor) {
-                literal(debugMessage)
-            }
-        })
+        this@CommandManager.logError(debugMessage)
         if (syntax.input == null || syntax.cursor < 0) {
             return
         }
@@ -108,11 +101,11 @@ object CommandManager : Configurable(LambdaConfig), Loadable {
                     literal(syntax.input.substring(max(0, (position - ERROR_PADDING)), position))
                 }
                 if (position < syntax.input.length) {
-                    styled(color = errorColor, underlined = true) {
+                    styled(color = Communication.LogLevel.ERROR.logoColor, underlined = true) {
                         literal(syntax.input.substring(position))
                     }
                 }
-                styled(color = errorColor, italic = true) {
+                styled(color = Communication.LogLevel.ERROR.logoColor, italic = true) {
                     translatable("command.context.here")
                 }
             }

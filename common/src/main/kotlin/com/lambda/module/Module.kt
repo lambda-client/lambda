@@ -76,7 +76,7 @@ import com.lambda.util.Nameable
  * @property name The name of the module, displayed in-game.
  * @property description The description of the module,
  * shown on hover over the module button in the GUI and in commands.
- * @property tags The set of [ModuleTag]s associated with the module.
+ * @property defaultTags The set of [ModuleTag]s associated with the module.
  * @property alwaysListening If true, the module's listeners will be triggered even if the module is not enabled.
  * @property isEnabledSetting The setting that determines if the module is enabled.
  * @property keybindSetting The setting that determines the keybind for the module.
@@ -87,13 +87,14 @@ import com.lambda.util.Nameable
 abstract class Module(
     override val name: String,
     val description: String = "",
-    val tags: Set<ModuleTag> = setOf(),
+    val defaultTags: Set<ModuleTag> = setOf(),
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.Unbound,
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
     private val isEnabledSetting = setting("Enabled", enabledByDefault, { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)
+    private val customTags = setting("Tags", defaultTags)
 
     var isEnabled by isEnabledSetting
     override val isMuted: Boolean

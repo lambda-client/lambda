@@ -14,6 +14,9 @@ import com.lambda.command.CommandManager.register
 import com.lambda.command.LambdaCommand
 import com.lambda.module.ModuleRegistry
 import com.lambda.threading.runSafe
+import com.lambda.util.Communication
+import com.lambda.util.Communication.info
+import com.lambda.util.Communication.warn
 import com.lambda.util.StringUtils
 import com.lambda.util.text.*
 import com.lambda.util.text.ClickEvents.suggestCommand
@@ -70,14 +73,23 @@ object ModuleCommand : LambdaCommand() {
                             if (enable == null) {
                                 module.toggle()
                             } else {
+                                if (enable().value() == module.isEnabled) {
+                                    this@ModuleCommand.warn(buildText {
+                                        styled(Color.GREY) {
+                                            literal("$name already ")
+                                            literal(if (module.isEnabled) "enabled" else "disabled")
+                                        }
+                                    })
+                                    return@runSafe success()
+                                }
+
                                 if (enable().value()) {
                                     module.enable()
                                 } else {
                                     module.disable()
                                 }
                             }
-                            sendSuccess(buildText {
-                                literal("Module ")
+                            this@ModuleCommand.info(buildText {
                                 styled(Color.GREY) {
                                     literal("$name ")
                                 }
@@ -86,11 +98,9 @@ object ModuleCommand : LambdaCommand() {
                                 }
                             })
                             success()
-                        } ?: failure(buildText {
-                            styled(Color.RED) {
-                                literal("Failed to ${if (module.isEnabled) "enable" else "disable"} module $name")
-                            }
-                        })
+                        } ?: failure(Communication.LogLevel.ERROR.text(
+                            "Failed to ${if (module.isEnabled) "enable" else "disable"} module $name")
+                        )
                     }
                 }
             }

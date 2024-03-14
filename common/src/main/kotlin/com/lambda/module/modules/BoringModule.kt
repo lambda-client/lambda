@@ -5,6 +5,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.Communication.info
+import com.lambda.util.Communication.toast
 import com.lambda.util.KeyCode
 import net.minecraft.util.math.BlockPos
 import java.awt.Color
@@ -12,7 +14,7 @@ import java.awt.Color
 object BoringModule : Module(
     name = "BoringModule",
     description = "This is a boring module",
-    tags = setOf(ModuleTag.MISC, ModuleTag.COMBAT),
+    defaultTags = setOf(ModuleTag.MISC, ModuleTag.COMBAT),
     defaultKeybind = KeyCode.Z
 ) {
     private val superBoring by setting("Super Boring", false)
@@ -37,6 +39,7 @@ object BoringModule : Module(
     init {
         onEnable {
             LOG.info("I'm was enabled!")
+            toast("I'm enabled!")
         }
 
         onDisable {
@@ -48,7 +51,7 @@ object BoringModule : Module(
         }
 
         listener<TickEvent.Pre> {
-            LOG.info("I'm ${if (superBoring) "super boring ($boringValue)" else "boring"}! $isEnabled")
+            this@BoringModule.info("I'm ${if (superBoring) "super boring ($boringValue)" else "boring"}!")
         }
     }
 }
