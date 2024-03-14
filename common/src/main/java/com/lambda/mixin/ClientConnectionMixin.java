@@ -21,9 +21,9 @@ public class ClientConnectionMixin {
 
     @Inject(method = "send(Lnet/minecraft/network/packet/Packet;)V", at = @At("HEAD"), cancellable = true)
     private void sendingPacket(Packet<?> packet, final CallbackInfo callbackInfo) {
-        PacketEvent.Send.Pre event = new PacketEvent.Send.Pre(packet);
-        EventFlow.post(event);
-        if (event.isCanceled()) callbackInfo.cancel();
+        if (EventFlow.post(new PacketEvent.Send.Pre(packet)).isCanceled()) {
+            callbackInfo.cancel();
+        }
     }
 
     @Inject(method = "send(Lnet/minecraft/network/packet/Packet;)V", at = @At("RETURN"))
@@ -38,10 +38,9 @@ public class ClientConnectionMixin {
             CallbackInfo callbackInfo
     ) {
         if (side != NetworkSide.CLIENTBOUND) return;
-
-        PacketEvent.Receive.Pre event = new PacketEvent.Receive.Pre(packet);
-        EventFlow.post(event);
-        if (event.isCanceled()) callbackInfo.cancel();
+        if (EventFlow.post(new PacketEvent.Receive.Pre(packet)).isCanceled()) {
+            callbackInfo.cancel();
+        }
     }
 
     @Inject(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/packet/Packet;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/ClientConnection;handlePacket(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;)V", shift = At.Shift.AFTER))

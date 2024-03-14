@@ -55,7 +55,7 @@ abstract class Configuration : Jsonable {
             configurables.find {
                 it.name == name
             }?.loadFromJson(value)
-                ?: LOG.warn("No matching setting found for saved setting $name with $value in $configName config")
+                ?: LOG.warn("No matching setting found for saved setting $name with $value in ${configName.capitalize()} config")
         }
     }
 
@@ -71,7 +71,7 @@ abstract class Configuration : Jsonable {
 
     private fun load(file: File) {
         check(file.exists()) {
-            "No configuration file found for $configName"
+            "No configuration file found for ${configName.capitalize()}"
         }
 
         loadFromJson(JsonParser.parseReader(file.reader()).asJsonObject)
@@ -82,10 +82,10 @@ abstract class Configuration : Jsonable {
             runCatching { load(primary) }
                 .onSuccess { LOG.info("[IO] Config Manager: ${configName.capitalize()} config loaded.") }
                 .onFailure {
-                    LOG.error("Failed to load $configName config, loading backup")
+                    LOG.error("Failed to load ${configName.capitalize()} config, loading backup")
                     runCatching { load(backup) }
-                        .onSuccess { LOG.info("$configName config loaded from backup") }
-                        .onFailure { LOG.error("Failed to load $configName config from backup, unrecoverable error", it) }
+                        .onSuccess { LOG.info("${configName.capitalize()} config loaded from backup") }
+                        .onFailure { LOG.error("Failed to load ${configName.capitalize()} config from backup, unrecoverable error", it) }
                 }
         }
     }
@@ -93,8 +93,8 @@ abstract class Configuration : Jsonable {
     private fun trySave() {
         lambdaScope.launch(Dispatchers.IO) {
             runCatching { save() }
-                .onSuccess { LOG.info("$configName config saved") }
-                .onFailure { LOG.error("Failed to save $configName config", it) }
+                .onSuccess { LOG.info("[IO] ${configName.capitalize()} config saved") }
+                .onFailure { LOG.error("Failed to save ${configName.capitalize()} config", it) }
         }
     }
 

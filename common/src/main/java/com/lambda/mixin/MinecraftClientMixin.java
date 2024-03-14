@@ -23,7 +23,7 @@ public class MinecraftClientMixin {
 
     @Inject(at = @At(value = "INVOKE", target = "Lorg/slf4j/Logger;info(Ljava/lang/String;)V", shift = At.Shift.AFTER, remap = false), method = "stop")
     private void onShutdown(CallbackInfo ci) {
-        EventFlow.post(ClientEvent.Shutdown.INSTANCE);
+        EventFlow.post(new ClientEvent.Shutdown());
     }
 
     /**
@@ -31,6 +31,6 @@ public class MinecraftClientMixin {
      */
     @Inject(at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;thread:Ljava/lang/Thread;", shift = At.Shift.AFTER, ordinal = 0), method = "run")
     private void onStartup(CallbackInfo ci) {
-        EventFlow.post(ClientEvent.Startup.INSTANCE);
+        EventFlow.post(new ClientEvent.Startup());
     }
 }

@@ -8,7 +8,8 @@
     "ChatScreenMixin",
     "ClientConnectionMixin",
     "KeyboardMixin",
-    "MinecraftClientMixin"
+    "MinecraftClientMixin",
+    "PlayerEntityMixin"
   ],
   "injectors": {
     "defaultRequire": 1

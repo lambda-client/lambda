@@ -94,6 +94,7 @@ abstract class Module(
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
     private val isEnabledSetting = setting("Enabled", enabledByDefault, { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)
+    private val isVisible = setting("Visible", true)
     private val customTags = setting("Tags", defaultTags)
 
     var isEnabled by isEnabledSetting

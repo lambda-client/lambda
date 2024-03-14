@@ -4,6 +4,6 @@ import com.lambda.event.Event
 
 
 abstract class ClientEvent : Event {
-    data object Shutdown : ClientEvent()
-    data object Startup : ClientEvent()
+    class Shutdown : ClientEvent()
+    class Startup : ClientEvent()
 }
