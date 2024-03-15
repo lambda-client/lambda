@@ -6,6 +6,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
+import net.minecraft.entity.Entity
 import net.minecraft.entity.projectile.FireworkRocketEntity
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
 import net.minecraft.network.packet.s2c.play.EntitiesDestroyS2CPacket
@@ -16,54 +17,35 @@ object RocketExtend : Module(
     description = "Extends rocket length on grim",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
-    var extendedRockets: MutableList<FireworkRocketEntity> = mutableListOf();
-    var pingPacket: CommonPongC2SPacket? = null;
+    private var extendedRockets = mutableListOf<FireworkRocketEntity>()
+    private var pingPacket: CommonPongC2SPacket? = null
+
     init {
-        onDisable {
-            if (extendedRockets.isNotEmpty()) reset()
-        }
         listener<PacketEvent.Receive.Pre> { event ->
-            when (event.packet) {
-                is EntitiesDestroyS2CPacket -> {
-                    val rockets = event.packet.entityIds.map { id ->
-                        world.getEntityById(id)
-                    }.filter { entity ->
-                        entity is FireworkRocketEntity && entity.shooter?.equals(this.player) == true
-                    }.filterNotNull().map {it as FireworkRocketEntity}
+            if (event.packet is PlayerPositionLookS2CPacket) reset()
 
-                    if (rockets.isEmpty()) return@listener
-                    extendedRockets.addAll(rockets)
-                    event.packet.entityIds.removeAll(rockets.map { it.id }.toSet())
-
-                    this@RocketExtend.info("RocketExtend triggered")
-                }
-                is PlayerPositionLookS2CPacket -> {
-                    if(extendedRockets.isNotEmpty()) reset()
-                }
+            if (event.packet is EntitiesDestroyS2CPacket) {
+                val rockets = event.packet.entityIds.map(world::getEntityById)
+                    .filter { it is FireworkRocketEntity && it.shooter == player }
+                    .mapNotNull { it as? FireworkRocketEntity }
+                    .also { event.packet.entityIds.removeAll(it.map(FireworkRocketEntity::getId)) }
+                extendedRockets.addAll(rockets)
             }
         }
+
         listener<PacketEvent.Send.Pre> { event ->
-            when (event.packet) {
-                is CommonPongC2SPacket -> {
-                    if (extendedRockets.isNotEmpty()) {
-                        pingPacket = event.packet
-
-                        event.cancel()
-                    }
-                }
-            }
+            if (event.packet !is CommonPongC2SPacket) return@listener
+            pingPacket = event.packet
+            event.cancel()
         }
+
+        onDisable(::reset)
     }
 
-    fun reset() {
-        this@RocketExtend.info("Reset RocketExtend")
-
-        runSafe {
-            extendedRockets.forEach { it.discard() }
-            if (pingPacket != null) connection.sendPacket(pingPacket)
-        }
-
+    private fun reset() = runSafe {
+        extendedRockets.forEach(FireworkRocketEntity::discard)
         extendedRockets.clear()
+        pingPacket?.let(connection::sendPacket)
         pingPacket = null
     }
 }
