@@ -3,6 +3,8 @@ accessWidener   v2      named
 accessible field net/minecraft/client/MinecraftClient itemUseCooldown I
 accessible field net/minecraft/client/MinecraftClient attackCooldown I
 
+accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Lnet/minecraft/entity/LivingEntity;
+
 # Text
 accessible field net/minecraft/text/Style color Lnet/minecraft/text/TextColor;
 accessible field net/minecraft/text/Style bold Ljava/lang/Boolean;
