@@ -35,6 +35,7 @@ loom {
 repositories {
     maven("https://thedarkcolour.github.io/KotlinForForge/")
     maven("https://cursemaven.com")
+    maven("https://impactdevelopment.github.io/maven/")
 }
 
 val common: Configuration by configurations.creating {
@@ -70,19 +71,20 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.27.0-GA")
-
-    implementation("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
-    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
+    includeLib("nether-pathfinder:nether-pathfinder:1.4.1")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
-
-    // Bugfixes
-    compileOnly(kotlin("stdlib")) // Hack https://github.com/thedarkcolour/KotlinForForge/issues/93
+    includeMod("baritone:baritone-unoptimized-forge:1.10.2")
 
     // Common (Do not touch)
-    common(project(":common", configuration = "namedElements")) { isTransitive = false } // We cannot common here because it is treated as a different mod and forge will panic
+    common(project(":common", configuration = "namedElements")) { isTransitive = false }
     shadowCommon(project(path = ":common", configuration = "transformProductionForge")) { isTransitive = false }
+
+    // Others
+    implementation("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
+    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
+    compileOnly(kotlin("stdlib")) // Hack https://github.com/thedarkcolour/KotlinForForge/issues/93
 
     // Finish the configuration
     setupConfigurations()

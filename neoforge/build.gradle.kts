@@ -17,6 +17,7 @@ loom {
 repositories {
     maven("https://maven.neoforged.net/releases/")
     maven("https://thedarkcolour.github.io/KotlinForForge/")
+    maven("https://impactdevelopment.github.io/maven/")
 }
 
 val common: Configuration by configurations.creating {
@@ -35,7 +36,7 @@ fun DependencyHandlerScope.setupConfigurations() {
     }
 
     includeMod.dependencies.forEach {
-        implementation(it)
+        modImplementation(it)
     }
 }
 
@@ -47,10 +48,11 @@ dependencies {
     modApi("dev.architectury:architectury-neoforge:$architecturyVersion")
 
     // Add dependencies on the required Kotlin modules.
-    // includeLib(...)
+    includeLib("nether-pathfinder:nether-pathfinder:1.4.1")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge-neoforge:$kotlinForgeVersion")
+    includeMod("baritone-api:baritone-unoptimized-neoforge:1.10.2")
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }

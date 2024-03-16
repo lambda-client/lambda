@@ -46,17 +46,20 @@ subprojects {
             isCanBeConsumed = false
             isCanBeResolved = true
         }
+
         val shadow = named<ShadowJar>("shadowJar") {
             archiveVersion = versionWithMCVersion
             archiveClassifier.set("shadow")
             configurations = listOf(shadowCommon)
         }
+
         named<RemapJarTask>("remapJar") {
             dependsOn(shadow)
             inputFile = shadow.flatMap { it.archiveFile }
             archiveVersion = versionWithMCVersion
             archiveClassifier = ""
         }
+
         jar {
             enabled = false
         }

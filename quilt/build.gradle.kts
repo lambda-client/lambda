@@ -24,6 +24,7 @@ loom {
 
 repositories {
     maven("https://maven.quiltmc.org/repository/release/")
+    maven("https://impactdevelopment.github.io/maven/")
 }
 
 val common: Configuration by configurations.creating {
@@ -43,7 +44,6 @@ fun DependencyHandlerScope.setupConfigurations() {
 
     includeMod.dependencies.forEach {
         modImplementation(it)
-        include(it)
     }
 }
 
@@ -66,10 +66,10 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.27.0-GA")
+    includeLib("nether-pathfinder:nether-pathfinder:1.4.1")
 
     // Add mods to the mod jar
-    // includeMod(...)
-
+    includeMod("baritone-api:baritone-unoptimized-fabric:1.10.2")
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
