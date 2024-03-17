@@ -3,9 +3,26 @@ package com.lambda.event.listener
 import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.EventFlow
+import com.lambda.event.Muteable
 import com.lambda.task.Task
 import com.lambda.threading.runSafe
 
+
+/**
+ * A [SafeListener] is a specialized type of [Listener] that operates within a [SafeContext].
+ *
+ * A [SafeListener] reacts to specific [Event]s happening within the system.
+ * It has a [priority], an [owner], and a flag indicating whether it should [alwaysListen] to [Event]s,
+ * even when the Object listening is [Muteable.isMuted].
+ *
+ * The [SafeListener] class is used to create [Listener]s that execute a given [function] within a [SafeContext].
+ * This ensures that the [function] is executed in a context where certain safety conditions are met.
+ *
+ * @property priority The priority of the listener. Listeners with higher priority are executed first.
+ * @property owner The owner of the listener. This is typically the object that created the listener.
+ * @property alwaysListen If true, the listener will always be triggered, even if the owner is not enabled.
+ * @property function The function to be executed when the event occurs. This function operates within a [SafeContext].
+ */
 class SafeListener(
     override val priority: Int = 0,
     override val owner: Any,

@@ -2,9 +2,25 @@ package com.lambda.event.listener
 
 import com.lambda.event.Event
 import com.lambda.event.EventFlow
+import com.lambda.event.Muteable
 import com.lambda.event.listener.SafeListener.Companion.concurrentListener
 import com.lambda.event.listener.SafeListener.Companion.listener
 
+/**
+ * An [UnsafeListener] is a specialized type of [Listener] that operates without a [SafeContext].
+ *
+ * An [UnsafeListener] reacts to specific [Event]s happening within the system.
+ * It has a [priority], an [owner], and a flag indicating whether it should [alwaysListen] to [Event]s,
+ * even when the Object listening is [Muteable.isMuted].
+ *
+ * The [UnsafeListener] class is used to create [Listener]s that execute a given [function] without a [SafeContext].
+ * This means that the [function] is executed in a context where certain safety conditions may not be met.
+ *
+ * @property priority The priority of the listener. Listeners with higher priority are executed first.
+ * @property owner The owner of the listener. This is typically the object that created the listener.
+ * @property alwaysListen If true, the listener will always be triggered, even if the owner is not enabled.
+ * @property function The function to be executed when the event occurs. This function operates without a [SafeContext].
+ */
 class UnsafeListener(
     override val priority: Int,
     override val owner: Any,

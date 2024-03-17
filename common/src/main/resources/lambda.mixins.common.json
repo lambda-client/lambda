@@ -4,9 +4,13 @@
   "package": "com.lambda.mixin",
   "compatibilityLevel": "JAVA_17",
   "client": [
+    "ChatInputSuggestorMixin",
+    "ChatScreenMixin",
     "ClientConnectionMixin",
     "KeyboardMixin",
-    "MinecraftClientMixin"
+    "MinecraftClientMixin",
+    "MixinKeyBinding",
+    "PlayerEntityMixin"
   ],
   "injectors": {
     "defaultRequire": 1

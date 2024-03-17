@@ -63,6 +63,12 @@ object EventFlow {
         event.executeListenerSynchronous()
     }
 
+    @JvmStatic
+    fun post(cancellable: ICancellable): ICancellable {
+        post(cancellable as Event)
+        return cancellable
+    }
+
     /**
      * Unsubscribes from both synchronous and concurrent event flows for a specific [Event] type [T].
      *

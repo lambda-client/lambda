@@ -5,14 +5,31 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
-import com.lambda.event.EventFlow
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.util.Communication.info
+import com.lambda.util.Communication.logError
+import com.lambda.util.StringUtils.capitalize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
+import java.util.*
 
+/**
+ * Represents a compound of [Configurable] objects whose [AbstractSetting]s
+ * are saved into a single [Configuration] file ([Configuration.primary]).
+ *
+ * This class also handles the concurrent loading and saving of persisted data on the `Dispatchers.IO` thread.
+ * Each configuration will be loaded concurrently,
+ * while the underlying configurables are populated with the settings in sequence.
+ *
+ * See also [ModuleConfig].
+ *
+ * @property configName The name of the configuration.
+ * @property primary The primary file where the configuration is saved.
+ * @property configurables A set of [Configurable] objects that this configuration manages.
+ */
 abstract class Configuration : Jsonable {
     abstract val configName: String
     abstract val primary: File
@@ -25,6 +42,8 @@ abstract class Configuration : Jsonable {
         unsafeListener<ClientEvent.Startup> { tryLoad() }
 
         unsafeListener<ClientEvent.Shutdown> { trySave() }
+
+        configurations.add(this)
     }
 
     override fun toJson() =
@@ -39,7 +58,7 @@ abstract class Configuration : Jsonable {
             configurables.find {
                 it.name == name
             }?.loadFromJson(value)
-                ?: LOG.warn("No matching setting found for saved setting $name with $value in $configName config")
+                ?: LOG.warn("No matching setting found for saved setting $name with $value in ${configName.capitalize()} config")
         }
     }
 
@@ -55,42 +74,56 @@ abstract class Configuration : Jsonable {
 
     private fun load(file: File) {
         check(file.exists()) {
-            "No configuration file found for $configName"
+            "No configuration file found for ${configName.capitalize()}"
         }
 
         loadFromJson(JsonParser.parseReader(file.reader()).asJsonObject)
     }
 
-    private fun tryLoad() {
+    fun tryLoad() {
         lambdaScope.launch(Dispatchers.IO) {
             runCatching { load(primary) }
                 .onSuccess {
-                    LOG.info("$configName config loaded")
-                    EventFlow.post(ClientEvent.ConfigLoaded(this@Configuration))
+                    val message = "${configName.capitalize()} config loaded."
+                    LOG.info(message)
+                    this@Configuration.info(message)
                 }
-                .onFailure { LOG.error("Failed to load $configName config, loading backup", it) }
-                .recoverCatching {
+                .onFailure {
+                    val message = "Failed to load ${configName.capitalize()} config, loading backup"
+                    LOG.error(message)
+                    this@Configuration.logError(message)
                     runCatching { load(backup) }
-                        .onSuccess { LOG.info("$configName config loaded from backup") }
+                        .onSuccess {
+                            val message = "${configName.capitalize()} config loaded from backup"
+                            LOG.info(message)
+                            this@Configuration.info(message)
+                        }
                         .onFailure {
-                            LOG.error(
-                                "Failed to load $configName config from backup, unrecoverable error",
-                                it
-                            )
+                            val message = "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
+                            LOG.error(message, it)
+                            this@Configuration.logError(message)
                         }
                 }
         }
     }
 
-    private fun trySave() {
+    fun trySave() {
         lambdaScope.launch(Dispatchers.IO) {
             runCatching { save() }
                 .onSuccess {
-                    LOG.info("$configName config saved")
-                    EventFlow.post(ClientEvent.ConfigSaved(this@Configuration))
+                    val message = "Saved ${configName.capitalize()} config."
+                    LOG.info(message)
+                    this@Configuration.info(message)
                 }
-                .onFailure { LOG.error("Failed to save $configName config", it) }
+                .onFailure {
+                    val message = "Failed to save ${configName.capitalize()} config"
+                    LOG.error(message, it)
+                    this@Configuration.logError(message)
+                }
         }
     }
 
+    companion object {
+        val configurations = mutableSetOf<Configuration>()
+    }
 }
