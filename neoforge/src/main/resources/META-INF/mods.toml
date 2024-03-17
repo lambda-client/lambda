@@ -1,44 +1,42 @@
-modLoader = "kotlinforforge"
-loaderVersion = "[4,)"
+modLoader = "javafml"
+loaderVersion = "[2,)"
 license = "GNU General Public License v3.0"
+issueTrackerURL = "https://github.com/lambda-client/lambda/issues
+#updateJSONURL = "https://raw.githubusercontent.com/lambda-client/lambda/main/update.json"
 
 [[mods]]
-modId = "lambda"
-version = "${version}"
-displayName = "Lambda"
-authors = "${authors}"
-description = "${description}"
-logoFile = "assets/lambda/lambda.png"
-displayTest = "IGNORE_ALL_VERSION"
+    modId = "lambda"
+    version = "${mod_version}"
+    displayName = "Lambda"
+    authors = "${authors}"
+    description = "${mod_description}"
+    logoFile = "assets/lambda/lambda.png"
+    displayTest = "IGNORE_ALL_VERSION"
 
 [[dependencies.lambda]]
-modId = "neoforge"
-mandatory = true
-type = "required"
-versionRange = "[20.2,)"
-ordering = "NONE"
-side = "CLIENT"
+    modId = "neoforge"
+    mandatory = true
+    type = "required"
+    versionRange = "[20.4.0,)"
+    ordering = "NONE"
+    side = "CLIENT"
 
 [[dependencies.lambda]]
-modId = "minecraft"
-mandatory = true
-type = "required"
-versionRange = "[1.20.2,1.21)"
-ordering = "NONE"
-side = "CLIENT"
+    modId = "minecraft"
+    mandatory = true
+    type = "required"
+    versionRange = "[1.20.4,)"
+    ordering = "NONE"
+    side = "CLIENT"
 
 [[dependencies.lambda]]
-modId = "kotlinforforge"
-mandatory = true
-type = "required"
-versionRange = "[4,)"
-ordering = "AFTER"
-side = "CLIENT"
+    modId = "architectury"
+    mandatory = true
+    type = "required"
+    versionRange = "[11.0.7,)"
+    ordering = "NONE"
+    side = "CLIENT"
 
-[[dependencies.lambda]]
-modId = "architectury"
-mandatory = true
-type = "required"
-versionRange = "[10.1.19,)"
-ordering = "AFTER"
-side = "CLIENT"
+[[mixins]]
+    config = "lambda.mixins.common.json"
+    environment = "client"

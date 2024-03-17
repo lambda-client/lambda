@@ -1,5 +1,6 @@
 val forgeVersion = property("forge_version").toString()
-val kotlinForgeVersion = property("kotlin_forge_version").toString()
+val kotlinVersion = property("kotlin_version").toString()
+val kotlinxCoroutinesVersion = property("kotlinx_coroutines_version").toString()
 val architecturyVersion = property("architectury_version").toString()
 val mixinExtrasVersion = property("mixinextras_version").toString()
 
@@ -33,9 +34,7 @@ loom {
 }
 
 repositories {
-    maven("https://thedarkcolour.github.io/KotlinForForge/")
     maven("https://cursemaven.com")
-    maven("https://impactdevelopment.github.io/maven/")
 }
 
 val common: Configuration by configurations.creating {
@@ -46,6 +45,7 @@ val common: Configuration by configurations.creating {
 
 val includeLib: Configuration by configurations.creating
 val includeMod: Configuration by configurations.creating
+val shadowInclude: Configuration by configurations.creating
 
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
@@ -59,6 +59,11 @@ fun DependencyHandlerScope.setupConfigurations() {
         implementation(it)
         forgeRuntimeLibrary(it)
     }
+
+    shadowInclude.dependencies.forEach {
+        implementation(it)
+        shadowCommon(it)
+    }
 }
 
 dependencies {
@@ -70,21 +75,22 @@ dependencies {
 
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
-    includeLib("org.javassist:javassist:3.27.0-GA")
-    includeLib("nether-pathfinder:nether-pathfinder:1.4.1")
+    includeLib("org.javassist:javassist:3.30.0-GA")
 
     // Add mods to the mod jar
-    includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
-    includeMod("baritone:baritone-unoptimized-forge:1.10.2")
+    // includeMod(...)
+
+    // Add Kotlin
+    shadowInclude("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
+    shadowInclude("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
+
+    // MixinExtras
+    implementation("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
+    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
     shadowCommon(project(path = ":common", configuration = "transformProductionForge")) { isTransitive = false }
-
-    // Others
-    implementation("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
-    compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
-    compileOnly(kotlin("stdlib")) // Hack https://github.com/thedarkcolour/KotlinForForge/issues/93
 
     // Finish the configuration
     setupConfigurations()
@@ -92,11 +98,15 @@ dependencies {
 
 tasks {
     processResources {
+        inputs.property("group", project.group)
         inputs.property("version", project.version)
 
         filesMatching("META-INF/mods.toml") {
             expand(getProperties())
-            expand(mutableMapOf("version" to project.version))
+            expand(mutableMapOf(
+                "group" to project.group,
+                "version" to project.version,
+            ))
         }
     }
 }

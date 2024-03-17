@@ -1,5 +1,5 @@
 val neoVersion = property("neo_version").toString()
-val kotlinForgeVersion = property("kotlin_forge_version").toString()
+val kotlinxCoroutinesVersion = property("kotlinx_coroutines_version").toString()
 val architecturyVersion = property("architectury_version").toString()
 val mixinExtrasVersion = property("mixinextras_version").toString()
 
@@ -16,8 +16,6 @@ loom {
 
 repositories {
     maven("https://maven.neoforged.net/releases/")
-    maven("https://thedarkcolour.github.io/KotlinForForge/")
-    maven("https://impactdevelopment.github.io/maven/")
 }
 
 val common: Configuration by configurations.creating {
@@ -28,6 +26,7 @@ val common: Configuration by configurations.creating {
 
 val includeLib: Configuration by configurations.creating
 val includeMod: Configuration by configurations.creating
+val shadowInclude: Configuration by configurations.creating
 
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
@@ -37,6 +36,12 @@ fun DependencyHandlerScope.setupConfigurations() {
 
     includeMod.dependencies.forEach {
         modImplementation(it)
+        include(it)
+    }
+
+    shadowInclude.dependencies.forEach {
+        implementation(it)
+        shadowCommon(it)
     }
 }
 
@@ -48,11 +53,14 @@ dependencies {
     modApi("dev.architectury:architectury-neoforge:$architecturyVersion")
 
     // Add dependencies on the required Kotlin modules.
-    includeLib("nether-pathfinder:nether-pathfinder:1.4.1")
+    includeLib("org.reflections:reflections:0.10.2")
+    includeLib("org.javassist:javassist:3.30.0-GA")
 
     // Add mods to the mod jar
-    includeMod("thedarkcolour:kotlinforforge-neoforge:$kotlinForgeVersion")
-    includeMod("baritone-api:baritone-unoptimized-neoforge:1.10.2")
+    // includeMod(...)
+
+    // Add Kotlin
+    shadowInclude("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
@@ -64,11 +72,19 @@ dependencies {
 
 tasks {
     processResources {
+        inputs.property("group", project.group)
         inputs.property("version", project.version)
 
         filesMatching("META-INF/mods.toml") {
             expand(getProperties())
-            expand(mutableMapOf("version" to project.version))
+            expand(mutableMapOf(
+                "group" to project.group,
+                "version" to project.version,
+            ))
         }
+    }
+
+    remapJar {
+        atAccessWideners.add("lambda.accesswidener")
     }
 }
