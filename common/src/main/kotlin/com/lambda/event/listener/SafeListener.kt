@@ -173,4 +173,6 @@ class SafeListener(
             return listener
         }
     }
+
+    override fun toString() = "SafeListener(priority=$priority, owner=${owner::class.simpleName}, alwaysListen=$alwaysListen)"
 }

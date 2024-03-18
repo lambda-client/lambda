@@ -1,8 +1,10 @@
 package com.lambda.event
 
+import com.lambda.Lambda.LOG
 import com.lambda.event.cancellable.ICancellable
 import com.lambda.event.listener.Listener
 import com.lambda.threading.runConcurrent
+import com.lambda.util.Communication.info
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -84,25 +86,23 @@ object EventFlow {
 
     private fun Event.executeListenerSynchronous() {
         syncListeners[this::class]?.forEach { listener ->
-            if (listener.owner is Muteable
-                && (listener.owner as Muteable).isMuted
-                && !listener.alwaysListen
-            ) return
-            if (this is ICancellable && this.isCanceled()) return
-            listener.execute(this@executeListenerSynchronous)
+            if (shouldNotNotify(listener, this)) return@forEach
+            listener.execute(this)
         }
     }
 
     private fun Event.executeListenerConcurrently() {
         concurrentListeners[this::class]?.forEach { listener ->
-            if (listener.owner is Muteable
-                && (listener.owner as Muteable).isMuted
-                && !listener.alwaysListen
-            ) return
-            if (this is ICancellable && this.isCanceled()) return
+            if (shouldNotNotify(listener, this)) return@forEach
             runConcurrent {
-                listener.execute(this@executeListenerConcurrently)
+                listener.execute(this)
             }
         }
     }
+
+    private fun shouldNotNotify(listener: Listener, event: Event) =
+        listener.owner is Muteable
+            && (listener.owner as Muteable).isMuted
+            && !listener.alwaysListen
+            || event is ICancellable && event.isCanceled()
 }
