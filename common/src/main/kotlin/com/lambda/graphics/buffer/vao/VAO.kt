@@ -1,0 +1,202 @@
+package com.lambda.graphics.buffer.vao
+
+import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
+import com.lambda.graphics.buffer.vao.vertex.VertexMode
+import com.lambda.graphics.gl.MemoryUtils.address
+import com.lambda.graphics.gl.MemoryUtils.byteBuffer
+import com.lambda.graphics.gl.MemoryUtils.capacity
+import com.lambda.graphics.gl.MemoryUtils.color
+import com.lambda.graphics.gl.MemoryUtils.copy
+import com.lambda.graphics.gl.MemoryUtils.int
+import com.lambda.graphics.gl.MemoryUtils.vec2
+import com.lambda.graphics.gl.MemoryUtils.vec3
+import com.lambda.graphics.gl.VaoUtils
+import com.lambda.graphics.gl.VaoUtils.bindIndexBuffer
+import com.lambda.graphics.gl.VaoUtils.bindVertexArray
+import com.lambda.graphics.gl.VaoUtils.bindVertexBuffer
+import com.lambda.graphics.gl.VaoUtils.bufferData
+import com.lambda.graphics.gl.VaoUtils.unbindIndexBuffer
+import com.lambda.graphics.gl.VaoUtils.unbindVertexArray
+import com.lambda.graphics.gl.VaoUtils.unbindVertexBuffer
+import com.lambda.threading.runOnGameThread
+import com.mojang.blaze3d.systems.RenderSystem.drawElements
+import org.lwjgl.opengl.GL30C.*
+import java.awt.Color
+import java.nio.ByteBuffer
+
+class VAO(
+    private val drawMode: VertexMode,
+    attribGroup: VertexAttrib.Group
+) : IRenderContext {
+    private var vao = 0
+    private var vbo = 0
+    private var ibo = 0
+
+    private val objectSize: Int
+    private var verticesPointerStart = 0L
+
+    private lateinit var vertices: ByteBuffer
+    private var verticesPointer = 0L
+
+    private lateinit var indices: ByteBuffer
+    private var indicesPointer = 0L
+
+    private var vertexI = 0
+    private var indicesCount = 0
+
+    // region Initializing
+    init {
+        val stride = attribGroup.stride
+        objectSize = stride * drawMode.indicesCount
+
+        runOnGameThread {
+            vertices = byteBuffer(objectSize * 256 * 4)
+            verticesPointerStart = address(vertices)
+            verticesPointer = verticesPointerStart
+
+            indices = byteBuffer(drawMode.indicesCount * 512 * 4)
+            indicesPointer = address(indices)
+
+            vao = glGenVertexArrays()
+            bindVertexArray(vao)
+
+            vbo = glGenBuffers()
+            bindVertexBuffer(vbo)
+
+            ibo = glGenBuffers()
+            bindIndexBuffer(ibo)
+
+            var pointer = 0L
+            attribGroup.attributes.forEachIndexed { index, attrib ->
+                VaoUtils.enableVertexAttribute(index)
+                VaoUtils.vertexAttribute(index, attrib.componentCount, attrib.gl, attrib.normalized, stride, pointer)
+                pointer += attrib.size
+            }
+
+            unbindVertexArray()
+            unbindVertexBuffer()
+            unbindIndexBuffer()
+        }
+    }
+    // endregion
+
+    // region Vertex Attributes
+    override fun vec3(x: Double, y: Double, z: Double): VAO {
+        verticesPointer += vec3(verticesPointer, x, y, z)
+        return this
+    }
+
+    override fun vec2(x: Double, y: Double): VAO {
+        verticesPointer += vec2(verticesPointer, x, y)
+        return this
+    }
+
+    override fun color(color: Color): VAO {
+        verticesPointer += color(verticesPointer, color)
+        return this
+    }
+
+    override fun end(): Int {
+        return vertexI++
+    }
+    // endregion
+
+    // region Vertex Objects
+    override fun putLine(vertex1: Int, vertex2: Int) {
+        growIndices(2)
+        val p = indicesPointer + indicesCount * 4L
+
+        int(p + 0, vertex1)
+        int(p + 4, vertex2)
+        indicesCount += 2
+    }
+
+    override fun putTriangle(vertex1: Int, vertex2: Int, vertex3: Int) {
+        growIndices(3)
+        val p = indicesPointer + indicesCount * 4L
+
+        int(p + 0, vertex1)
+        int(p + 4, vertex2)
+        int(p + 8, vertex3)
+        indicesCount += 3
+    }
+
+    override fun putQuad(vertex1: Int, vertex2: Int, vertex3: Int, vertex4: Int) {
+        growIndices(6)
+        val p = indicesPointer + indicesCount * 4L
+
+        int(p + 0, vertex1)
+        int(p + 4, vertex2)
+        int(p + 8, vertex3)
+        int(p + 12, vertex3)
+        int(p + 16, vertex4)
+        int(p + 20, vertex1)
+        indicesCount += 6
+    }
+    // endregion
+
+    // region Memory
+    override fun grow(amount: Int) {
+        val cap = vertices.capacity
+        if ((vertexI + amount + 1) * objectSize < cap) return
+
+        val offset = verticesPointer - verticesPointerStart
+        var newSize = cap * 2
+        if (newSize % objectSize != 0) newSize += newSize % objectSize
+        val newVertices = byteBuffer(newSize)
+
+        val from = address(vertices)
+        val to = address(newVertices)
+        copy(from, to, offset)
+
+        vertices = newVertices
+        verticesPointerStart = address(vertices)
+        verticesPointer = verticesPointerStart + offset
+    }
+
+    private fun growIndices(amount: Int) {
+        val cap = indices.capacity
+        if ((indicesCount + amount) * 4 < cap) return
+
+        var newSize = cap * 2
+        if (newSize % drawMode.indicesCount != 0) newSize += newSize % (drawMode.indicesCount * 4)
+        val newIndices = byteBuffer(newSize)
+
+        val from = address(indices)
+        val to = address(newIndices)
+        copy(from, to, indicesCount * 4L)
+
+        indices = newIndices
+        indicesPointer = address(indices)
+    }
+    // endregion
+    override fun render() {
+        if (indicesCount <= 0) return
+        bindVertexArray(vao)
+        drawElements(drawMode.gl, indicesCount, GL_UNSIGNED_INT)
+        unbindVertexArray()
+    }
+
+    override fun upload() {
+        // Buffer is empty
+        if (indicesCount <= 0) return
+
+        // Uploading
+        val vboData = vertices.limit((verticesPointer - verticesPointerStart).toInt())
+        val iboData = indices.limit(indicesCount * 4)
+
+        bindVertexBuffer(vbo)
+        bufferData(GL_ARRAY_BUFFER, vboData, GL_DYNAMIC_DRAW)
+        unbindVertexBuffer()
+
+        bindIndexBuffer(ibo)
+        bufferData(GL_ELEMENT_ARRAY_BUFFER, iboData, GL_DYNAMIC_DRAW)
+        unbindIndexBuffer()
+    }
+
+    override fun clear() {
+        verticesPointer = verticesPointerStart
+        vertexI = 0
+        indicesCount = 0
+    }
+}

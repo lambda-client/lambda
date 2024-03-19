@@ -16,8 +16,12 @@
 
 package com.lambda.util.text
 
+import com.lambda.module.modules.client.HUD
+import com.lambda.util.math.hsb
+import com.lambda.util.math.readHSB
 import net.minecraft.text.*
 import net.minecraft.util.Identifier
+import java.awt.Color
 import java.util.*
 
 /**
@@ -191,7 +195,11 @@ fun TextBuilder.empty() {
  */
 @TextDsl
 inline fun TextBuilder.color(color: Color?, action: TextBuilder.() -> Unit) {
-    withProp(color, { this.color }, { this.color = it }, action)
+    val processedColor = color?.hsb?.apply {
+        this[1] *= HUD.chatSaturation
+    }?.readHSB()
+
+    withProp(processedColor, { this.color }, { this.color = it }, action)
 }
 
 /**
@@ -320,7 +328,7 @@ fun TextBuilder.styled(
 @TextDsl
 fun TextBuilder.styled(style: Style, action: TextBuilder.() -> Unit) {
     styled(
-        style.color?.let(Color::from) ?: this.style.color,
+        style.color?.let { Color(it.rgb) } ?: this.style.color,
         style.isBold,
         style.isItalic,
         style.isUnderlined,

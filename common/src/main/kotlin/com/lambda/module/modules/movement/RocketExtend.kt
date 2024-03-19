@@ -28,7 +28,7 @@ object RocketExtend : Module(
                 val rockets = event.packet.entityIds.map(world::getEntityById)
                     .filter { it is FireworkRocketEntity && it.shooter == player }
                     .mapNotNull { it as? FireworkRocketEntity }
-                    .also { event.packet.entityIds.removeAll(it.map(FireworkRocketEntity::getId)) }
+                    .also { event.packet.entityIds.removeAll(it.map(FireworkRocketEntity::getId).toSet()) }
                 extendedRockets.addAll(rockets)
             }
         }

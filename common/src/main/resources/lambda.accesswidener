@@ -9,6 +9,10 @@ accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minec
 # Entity
 accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Lnet/minecraft/entity/LivingEntity;
 
+# Renderer
+accessible field com/mojang/blaze3d/systems/RenderSystem$ShapeIndexBuffer id I
+accessible field net/minecraft/client/render/BufferRenderer currentVertexBuffer Lnet/minecraft/client/gl/VertexBuffer;
+
 # Text
 accessible field net/minecraft/text/Style color Lnet/minecraft/text/TextColor;
 accessible field net/minecraft/text/Style bold Ljava/lang/Boolean;

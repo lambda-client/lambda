@@ -9,6 +9,7 @@ import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.text.*
 import net.minecraft.client.toast.SystemToast
 import net.minecraft.text.Text
+import java.awt.Color
 
 object Communication {
     fun Any.debug(message: String) = log(LogLevel.DEBUG.text(message), LogLevel.DEBUG)
@@ -56,7 +57,7 @@ object Communication {
 
     private fun Any.source(
         logLevel: LogLevel,
-        color: Color = Color.GREY
+        color: Color = Color.GRAY
     ) = buildText {
         text(logLevel.prefix())
 

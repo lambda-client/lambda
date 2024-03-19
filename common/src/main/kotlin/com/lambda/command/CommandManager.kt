@@ -20,6 +20,7 @@ import org.reflections.Reflections
 import org.reflections.scanners.Scanners
 import org.reflections.util.ClasspathHelper
 import org.reflections.util.ConfigurationBuilder
+import java.awt.Color
 import kotlin.math.max
 import kotlin.math.min
 
@@ -95,7 +96,7 @@ object CommandManager : Configurable(LambdaConfig), Loadable {
         val position = min(syntax.input.length, syntax.cursor)
         player.sendMessage(buildText {
             clickEvent(suggestCommand("$prefix${reader.string}")) {
-                color(Color.GREY) {
+                color(Color.GRAY) {
                     if (position > ERROR_PADDING) {
                         literal("...")
                     }
