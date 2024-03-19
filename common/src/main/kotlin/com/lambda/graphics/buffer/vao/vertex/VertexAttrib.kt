@@ -11,7 +11,9 @@ enum class VertexAttrib(val componentCount: Int, componentSize: Int, val normali
     val size = componentCount * componentSize
 
     enum class Group(vararg val attributes: VertexAttrib) {
-        POS2_COLOR(Vec2, Color);
+        POS2_COLOR(Vec2, Color),
+
+        RECT(Vec2, Vec2, Vec3, Color);
 
         val stride = attributes.sumOf { attribute -> attribute.size }
     }

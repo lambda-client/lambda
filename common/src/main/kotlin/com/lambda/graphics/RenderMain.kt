@@ -18,6 +18,7 @@ object RenderMain {
     @JvmStatic
     fun render2D() {
         stack = MatrixStack()
+        translate(0.0, 0.0, -3000.0)
 
         setupGL {
             rescale(HUD.scale)
@@ -34,6 +35,6 @@ object RenderMain {
         val scaledWidth = width / factor
         val scaledHeight = height / factor
 
-        projectionMatrix.setOrtho(0f, scaledWidth.toFloat(), scaledHeight.toFloat(), 0f, -1000f, 1000f)
+        projectionMatrix.setOrtho(0f, scaledWidth.toFloat(), scaledHeight.toFloat(), 0f, 1000f, 21000f)
     }
 }
