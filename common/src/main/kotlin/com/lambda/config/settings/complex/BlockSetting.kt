@@ -6,10 +6,10 @@ import net.minecraft.block.Block
 class BlockSetting(
     override val name: String,
     defaultValue: Block,
-    visibility: () -> Boolean,
     description: String,
+    visibility: () -> Boolean,
 ) : AbstractSetting<Block>(
     defaultValue,
-    visibility,
-    description
+    description,
+    visibility
 )

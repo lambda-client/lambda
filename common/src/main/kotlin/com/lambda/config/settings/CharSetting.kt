@@ -13,10 +13,10 @@ import com.lambda.config.AbstractSetting
 class CharSetting(
     override val name: String,
     defaultValue: Char,
-    visibility: () -> Boolean,
     description: String,
+    visibility: () -> Boolean,
 ) : AbstractSetting<Char>(
     defaultValue,
-    visibility,
-    description
+    description,
+    visibility
 )

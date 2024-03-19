@@ -5,10 +5,10 @@ import com.lambda.config.AbstractSetting
 class BooleanSetting(
     override val name: String,
     defaultValue: Boolean,
-    visibility: () -> Boolean,
     description: String,
+    visibility: () -> Boolean,
 ) : AbstractSetting<Boolean>(
     defaultValue,
-    visibility,
-    description
+    description,
+    visibility
 )

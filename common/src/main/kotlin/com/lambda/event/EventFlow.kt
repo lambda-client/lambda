@@ -65,8 +65,22 @@ object EventFlow {
         event.executeListenerSynchronous()
     }
 
+    /**
+     * Posts a [cancellable] [Event] to the event flow and returns the [Event].
+     *
+     * This function is a variant of the [post] function specifically for [ICancellable] [Event]s.
+     * It posts the [Event] to the event flow,
+     * runs it through the synchronous set of listeners ([syncListeners]), and then returns the [Event].
+     * This is useful as [ICancellable] [Event]s are often checked after being processed by the [Listener]s.
+     *
+     * The returned event is guaranteed to be of the same type as the input,
+     * thanks to the type parameter [T] which is a subtype of both [Event] and [ICancellable].
+     *
+     * @param cancellable The cancellable [Event] to be posted to the event flow.
+     * @return The same [ICancellable] [Event] after being processed by the [Listener]s.
+     */
     @JvmStatic
-    fun post(cancellable: ICancellable): ICancellable {
+    fun <T> post(cancellable: T) : T where T : Event, T : ICancellable {
         post(cancellable as Event)
         return cancellable
     }

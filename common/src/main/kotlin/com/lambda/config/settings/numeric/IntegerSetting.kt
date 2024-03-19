@@ -8,12 +8,14 @@ class IntegerSetting(
     defaultValue: Int,
     override val range: ClosedRange<Int>,
     override val step: Int = 1,
-    visibility: () -> Boolean,
     description: String,
+    visibility: () -> Boolean,
+    unit: String,
 ) : NumericSetting<Int>(
     defaultValue,
     range,
     step,
+    description,
     visibility,
-    description
+    unit
 )
