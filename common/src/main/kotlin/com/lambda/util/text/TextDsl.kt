@@ -195,13 +195,7 @@ fun TextBuilder.empty() {
  */
 @TextDsl
 inline fun TextBuilder.color(color: Color?, action: TextBuilder.() -> Unit) {
-    val transform: (Color?) -> Color? = {
-        it?.hsb?.apply {
-            this[1] *= HUD.chatSaturation
-        }?.readHSB()
-    }
-
-    withProp(color, { transform(this.color) }, { this.color = it }, action)
+    withProp(color, { this.color }, { this.color = it }, action)
 }
 
 /**

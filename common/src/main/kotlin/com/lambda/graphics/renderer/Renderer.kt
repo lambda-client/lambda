@@ -1,7 +1,6 @@
 package com.lambda.graphics.renderer
 
 import com.lambda.graphics.buffer.vao.VAO
-import com.lambda.graphics.renderer.entry.IRenderEntry
 import kotlinx.coroutines.*
 import kotlin.properties.Delegates
 

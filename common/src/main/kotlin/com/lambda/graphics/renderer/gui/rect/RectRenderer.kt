@@ -1,9 +1,7 @@
-package com.lambda.graphics.renderer.impl.gui
+package com.lambda.graphics.renderer.gui.rect
 
 import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
-import com.lambda.graphics.renderer.entry.gui.IRectEntry
-import com.lambda.graphics.renderer.entry.gui.RectEntry
-import com.lambda.graphics.renderer.impl.AbstractGuiRenderer
+import com.lambda.graphics.renderer.gui.AbstractGuiRenderer
 import com.lambda.graphics.shader.Shader
 
 class RectRenderer : AbstractGuiRenderer<IRectEntry>(

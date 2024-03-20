@@ -1,7 +1,6 @@
-package com.lambda.graphics.renderer.entry
+package com.lambda.graphics.renderer
 
 import com.lambda.graphics.buffer.vao.IRenderContext
-import com.lambda.graphics.renderer.IRenderer
 
 interface IRenderEntry <T : IRenderEntry<T>> {
     val owner: IRenderer<T>

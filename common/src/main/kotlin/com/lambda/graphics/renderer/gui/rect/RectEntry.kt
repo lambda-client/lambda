@@ -1,8 +1,7 @@
-package com.lambda.graphics.renderer.entry.gui
+package com.lambda.graphics.renderer.gui.rect
 
 import com.lambda.graphics.buffer.vao.IRenderContext
-import com.lambda.graphics.renderer.entry.IRenderEntry
-import com.lambda.graphics.renderer.impl.gui.RectRenderer
+import com.lambda.graphics.renderer.IRenderEntry
 import com.lambda.util.math.Vec2d
 import java.awt.Color
 import kotlin.math.min

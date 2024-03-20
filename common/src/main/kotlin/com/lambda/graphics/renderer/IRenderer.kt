@@ -1,7 +1,5 @@
 package com.lambda.graphics.renderer
 
-import com.lambda.graphics.renderer.entry.IRenderEntry
-
 interface IRenderer <T: IRenderEntry<T>> {
     val asRenderer get() = this // Downcast
 
