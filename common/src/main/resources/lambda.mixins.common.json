@@ -7,6 +7,7 @@
     "ChatInputSuggestorMixin",
     "ChatScreenMixin",
     "ClientConnectionMixin",
+    "DebugHudMixin",
     "KeyBindingMixin",
     "KeyboardMixin",
     "MinecraftClientMixin",

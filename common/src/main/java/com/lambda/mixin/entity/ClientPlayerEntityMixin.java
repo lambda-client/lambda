@@ -3,6 +3,8 @@ package com.lambda.mixin.entity;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
+import com.lambda.manager.PlayerPacketManager;
+import com.lambda.manager.RotationManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.MovementType;
@@ -13,6 +15,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.util.Objects;
 
 @Mixin(value = ClientPlayerEntity.class, priority = Integer.MAX_VALUE)
 public abstract class ClientPlayerEntityMixin extends EntityMixin {
@@ -49,10 +53,25 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         return this.isUsingItem();
     }
 
+    @Inject(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick(ZF)V", shift = At.Shift.AFTER))
+    void processMovement(CallbackInfo ci) {
+        RotationManager.BaritoneProcessor.processPlayerMovement();
+    }
+
     @Inject(method = "sendMovementPackets", at = @At(value = "HEAD"), cancellable = true)
     void sendBegin(CallbackInfo ci) {
         ci.cancel();
-//        PlayerPacketManager.sendPlayerPackets();
-        autoJumpEnabled = MinecraftClient.getInstance().options.getAutoJump().getValue();
+        PlayerPacketManager.sendPlayerPackets();
+        autoJumpEnabled = Lambda.getMc().options.getAutoJump().getValue();
+    }
+
+    @Redirect(method = "tickNewAi", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))
+    float fixHeldItemYaw(ClientPlayerEntity instance) {
+        return Objects.requireNonNullElse(RotationManager.getHandYaw(), instance.getYaw());
+    }
+
+    @Redirect(method = "tickNewAi", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getPitch()F"))
+    float fixHeldItemPitch(ClientPlayerEntity instance) {
+        return Objects.requireNonNullElse(RotationManager.getHandPitch(), instance.getPitch());
     }
 }

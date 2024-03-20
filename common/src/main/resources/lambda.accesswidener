@@ -2,6 +2,8 @@ accessWidener   v2      named
 # MC
 accessible field net/minecraft/client/MinecraftClient itemUseCooldown I
 accessible field net/minecraft/client/MinecraftClient attackCooldown I
+accessible field net/minecraft/client/MinecraftClient paused Z
+accessible field net/minecraft/client/MinecraftClient pausedTickDelta F
 
 # World
 accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minecraft/client/world/ClientEntityManager;
