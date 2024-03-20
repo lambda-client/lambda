@@ -86,11 +86,13 @@ object EventFlow {
         return cancellable
     }
 
+    @JvmStatic
     fun <T> post(cancellable: T, process: T.() -> Unit) where T : Event, T : ICancellable {
         val event = post(cancellable)
         process(event)
     }
 
+    @JvmStatic
     fun <T> postChecked(cancellable: T, process: T.() -> Unit) where T : Event, T : ICancellable {
         val event = post(cancellable)
         if (!event.isCanceled()) process(event)

@@ -17,7 +17,6 @@ import java.util.List;
 public class DebugHudMixin {
     @Inject(method = "getRightText", at = @At(value = "TAIL"))
     private void onGetRightText(CallbackInfoReturnable<List<String>> cir) {
-
         if (Lambda.getMc().crosshairTarget == null) return;
         HitResult hitResult = Lambda.getMc().crosshairTarget;
         List<String> list = cir.getReturnValue();
