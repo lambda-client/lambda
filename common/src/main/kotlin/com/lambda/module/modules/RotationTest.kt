@@ -7,6 +7,9 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.util.world.EntityUtils.getClosestEntity
 import net.minecraft.entity.passive.VillagerEntity
+import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 
 object RotationTest : Module(
     name = "RotationTest",
@@ -16,13 +19,22 @@ object RotationTest : Module(
     private val rotationConfig = RotationSettings(this)
     private val interactionConfig = InteractionSettings(this)
 
-    init {
-        listener<RotationEvent.Pre> {
-            val target = getClosestEntity<VillagerEntity>(
-                player.eyePos, interaction.reachDistance.toDouble()
-            ) ?: return@listener
+    private var pos: BlockPos = BlockPos.ORIGIN
+    private var side = Direction.UP
 
-            it.lookAt(rotationConfig, interactionConfig, target)
+    init {
+        onEnable {
+            val hit = mc.crosshairTarget as? BlockHitResult ?: return@onEnable
+            pos = hit.blockPos
+            side = hit.side
+        }
+
+        listener<RotationEvent.Pre> {
+//            val target = getClosestEntity<VillagerEntity>(
+//                player.eyePos, interaction.reachDistance.toDouble()
+//            ) ?: return@listener
+
+            it.lookAt(rotationConfig, interactionConfig, pos, side)
         }
     }
 }

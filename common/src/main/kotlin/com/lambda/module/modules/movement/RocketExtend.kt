@@ -39,7 +39,9 @@ object RocketExtend : Module(
             event.cancel()
         }
 
-        onDisable(::reset)
+        onDisable {
+            reset()
+        }
     }
 
     private fun reset() = runSafe {

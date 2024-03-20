@@ -1,6 +1,7 @@
 package com.lambda.event.events
 
 import com.lambda.config.RotationSettings
+import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.cancellable.Cancellable
 import com.lambda.event.cancellable.ICancellable
@@ -13,10 +14,13 @@ import com.lambda.manager.rotation.Rotation.Companion.rotationTo
 import com.lambda.manager.interaction.VisibilityChecker.scanVisibleSurfaces
 import com.lambda.threading.runSafe
 import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.hit.HitResult
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
+import net.minecraft.util.math.Direction
 import java.util.*
 
 abstract class RotationEvent : Event {
@@ -31,46 +35,38 @@ abstract class RotationEvent : Event {
             }
         }
 
-        fun rotateTo(
-            config: IRotationConfig,
-            rotation: Rotation,
-            priority: Int = 0,
-        ) {
-            requests.add(RotationRequest(priority, config, rotation))
-        }
-
-        fun lookAt(
+        fun SafeContext.lookAt(
             rotationConfig: IRotationConfig,
             interact: InteractionConfig,
-            box: Box,
+            boxes: List<Box>,
             priority: Int = 0,
             hitCheck: HitResult.() -> Boolean,
         ) {
-            runSafe {
-                if (box.contains(player.eyePos)) {
-                    stay(priority, rotationConfig)
-                    return@runSafe
-                }
+            if (boxes.any { it.contains(player.eyePos) }) {
+                stay(priority, rotationConfig)
+                return
+            }
 
-                val currentRotation = RotationManager.currentRotation
-                val currentCast = currentRotation.rayCast(
-                    interact.reach,
-                    interact.rayCastMask,
-                    player.eyePos
-                )
-                val check = currentCast?.let { it.hitCheck() } ?: false
+            val currentRotation = RotationManager.currentRotation
+            val currentCast = currentRotation.rayCast(
+                interact.reach,
+                interact.rayCastMask,
+                player.eyePos
+            )
+            val check = currentCast?.let { it.hitCheck() } ?: false
 
-//                 Slowdown or freeze if looking correct
-                (rotationConfig as? RotationSettings)?.slowdownIf(check) ?: run {
-                    if (check) stay(priority, rotationConfig)
-                    return@runSafe
-                }
+            // Slowdown or freeze if looking correct
+            (rotationConfig as? RotationSettings)?.slowdownIf(check) ?: run {
+                if (check) stay(priority, rotationConfig)
+                return
+            }
 
-                val reachSq = interact.reach * interact.reach
+            val reachSq = interact.reach * interact.reach
 
-                var closestRotation: Rotation? = null
-                var rotationDist = 0.0
+            var closestRotation: Rotation? = null
+            var rotationDist = 0.0
 
+            boxes.forEach { box ->
                 scanVisibleSurfaces(box, interact.resolution) { vec ->
                     if (player.eyePos distSq vec > reachSq) return@scanVisibleSurfaces
 
@@ -89,13 +85,12 @@ abstract class RotationEvent : Event {
                     rotationDist = dist
                     closestRotation = newRotation
                 }
-
-                // Rotate to selected point
-                closestRotation?.let { rotation ->
-                    requests.add(RotationRequest(priority, rotationConfig, rotation))
-                }
             }
 
+            // Rotate to selected point
+            closestRotation?.let { rotation ->
+                requests.add(RotationRequest(priority, rotationConfig, rotation))
+            }
         }
 
         fun lookAt(
@@ -104,8 +99,27 @@ abstract class RotationEvent : Event {
             entity: LivingEntity,
             priority: Int = 0,
         ) {
-            lookAt(rotationConfig, interactionConfig, entity.boundingBox, priority) {
-                entityResult?.entity == entity
+            runSafe {
+                lookAt(rotationConfig, interactionConfig, listOf(entity.boundingBox), priority) {
+                    entityResult?.entity == entity
+                }
+            }
+        }
+
+        fun lookAt(
+            rotationConfig: IRotationConfig,
+            interactionConfig: InteractionConfig,
+            blockPos: BlockPos,
+            side: Direction,
+            priority: Int = 0,
+        ) {
+            runSafe {
+                val state = world.getBlockState(blockPos)
+                val voxelShape = state.getOutlineShape(world, blockPos)
+                val boundingBoxes = voxelShape.boundingBoxes.map { it.offset(blockPos) }
+                lookAt(rotationConfig, interactionConfig, boundingBoxes, priority) {
+                    blockResult?.blockPos == blockPos && blockResult?.side == side
+                }
             }
         }
 

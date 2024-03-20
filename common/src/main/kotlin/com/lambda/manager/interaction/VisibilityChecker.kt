@@ -1,14 +1,13 @@
 package com.lambda.manager.interaction
 
 import com.lambda.context.SafeContext
+import com.lambda.util.primitives.extension.component6
 import net.minecraft.util.math.*
 import java.util.*
 
 object VisibilityChecker {
-    operator fun DoubleArray.component6() = this[5]
-
     inline fun SafeContext.scanVisibleSurfaces(box: Box, resolution: Int, check: (Vec3d) -> Unit) {
-        val shrunk = box.expand(-0.025)
+        val shrunk = box.expand(-0.05)
         getVisibleSides(box).forEach { side ->
             val (minX, minY, minZ, maxX, maxY, maxZ) = shrunk.bounds(side)
             val stepX = (maxX - minX) / resolution
