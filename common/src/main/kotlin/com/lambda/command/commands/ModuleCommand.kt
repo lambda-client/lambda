@@ -34,7 +34,7 @@ object ModuleCommand : LambdaCommand() {
                 }
 
                 this@ModuleCommand.info(buildText {
-                    styled(Color.GREY) {
+                    styled(Color.GRAY) {
                         literal("Enabled Modules: ")
                     }
                     enabled.forEachIndexed { index, module ->

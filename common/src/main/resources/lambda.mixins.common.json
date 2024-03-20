@@ -7,10 +7,13 @@
     "ChatInputSuggestorMixin",
     "ChatScreenMixin",
     "ClientConnectionMixin",
+    "KeyBindingMixin",
     "KeyboardMixin",
     "MinecraftClientMixin",
-    "KeyBindingMixin",
-    "PlayerEntityMixin"
+    "PlayerEntityMixin",
+    "render.GlStateManagerMixin",
+    "render.InGameHudMixin",
+    "render.VertexBufferMixin"
   ],
   "injectors": {
     "defaultRequire": 1
