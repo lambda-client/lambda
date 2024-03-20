@@ -6,10 +6,10 @@ import net.minecraft.util.math.BlockPos
 class BlockPosSetting(
     override val name: String,
     defaultValue: BlockPos,
-    visibility: () -> Boolean,
     description: String,
+    visibility: () -> Boolean,
 ) : AbstractSetting<BlockPos>(
     defaultValue,
-    visibility,
-    description
+    description,
+    visibility
 )

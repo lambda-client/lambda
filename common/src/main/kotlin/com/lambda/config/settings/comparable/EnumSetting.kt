@@ -5,12 +5,12 @@ import com.lambda.config.AbstractSetting
 class EnumSetting<T : Enum<T>>(
     override val name: String,
     defaultValue: T,
-    visibility: () -> Boolean,
     description: String,
+    visibility: () -> Boolean,
 ) : AbstractSetting<T>(
     defaultValue,
-    visibility,
     description,
+    visibility,
 ) {
     private val enumValues: Array<T> = defaultValue.declaringJavaClass.enumConstants
 

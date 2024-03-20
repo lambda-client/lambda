@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.Objects;
 
 @Mixin(KeyBinding.class)
-public class MixinKeyBinding {
+public class KeyBindingMixin {
     @Inject(method = "isPressed", at = @At("HEAD"), cancellable = true)
     void autoSprint(CallbackInfoReturnable<Boolean> cir) {
         KeyBinding instance = (KeyBinding) (Object) this;

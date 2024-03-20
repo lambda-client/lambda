@@ -14,18 +14,22 @@ import kotlin.reflect.KProperty
  * @property step The [step] to which the setting's [value] is rounded.
  * @property visibility A function that determines whether the setting [isVisible].
  * @property description A [description] of the setting.
+ * @property unit The unit of the setting's [value].
  */
 abstract class NumericSetting<T>(
     value: T,
     open val range: ClosedRange<T>,
     open val step: T,
-    visibility: () -> Boolean,
     description: String,
+    visibility: () -> Boolean,
+    val unit: String,
 ) : AbstractSetting<T>(
     value,
-    visibility,
-    description
+    description,
+    visibility
 ) where T : Number, T : Comparable<T> {
+    override fun toString() = "$value$unit"
+
     override operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: T) {
         value = valueIn.coerceIn(range).roundToStep(step)
     }

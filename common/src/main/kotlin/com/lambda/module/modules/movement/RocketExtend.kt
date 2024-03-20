@@ -5,8 +5,7 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication.info
-import net.minecraft.entity.Entity
+import com.lambda.util.KeyCode
 import net.minecraft.entity.projectile.FireworkRocketEntity
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
 import net.minecraft.network.packet.s2c.play.EntitiesDestroyS2CPacket
@@ -15,10 +14,13 @@ import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 object RocketExtend : Module(
     name = "RocketExtend",
     description = "Extends rocket length on grim",
-    defaultTags = setOf(ModuleTag.MOVEMENT)
+    defaultTags = setOf(ModuleTag.MOVEMENT),
+    defaultKeybind = KeyCode.GraveAccent
 ) {
     private var extendedRockets = mutableListOf<FireworkRocketEntity>()
     private var pingPacket: CommonPongC2SPacket? = null
+    private var lastPingTime = -1L
+    private val keepAliveTime by setting("Keepalive timeout seconds", 45, 0..60, 1)
 
     init {
         listener<PacketEvent.Receive.Pre> { event ->
@@ -35,6 +37,14 @@ object RocketExtend : Module(
 
         listener<PacketEvent.Send.Pre> { event ->
             if (event.packet !is CommonPongC2SPacket) return@listener
+            if (extendedRockets.isEmpty()) {
+                lastPingTime = System.currentTimeMillis()
+                return@listener
+            }
+            if(System.currentTimeMillis() - lastPingTime > keepAliveTime * 1000) {
+                reset()
+                return@listener
+            }
             pingPacket = event.packet
             event.cancel()
         }
@@ -47,5 +57,6 @@ object RocketExtend : Module(
         extendedRockets.clear()
         pingPacket?.let(connection::sendPacket)
         pingPacket = null
+        lastPingTime = System.currentTimeMillis()
     }
 }

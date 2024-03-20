@@ -13,18 +13,21 @@ import com.lambda.config.settings.NumericSetting
  * @property step The [step] to which the setting's [value] is rounded.
  * @property visibility A function that determines whether the setting [isVisible].
  * @property description A [description] of the setting.
+ * @property unit The unit of the setting's [value].
  */
 class ByteSetting(
     override val name: String,
     defaultValue: Byte,
     override val range: ClosedRange<Byte>,
-    override val step: Byte = 1,
-    visibility: () -> Boolean,
+    override val step: Byte,
     description: String,
+    visibility: () -> Boolean,
+    unit: String,
 ) : NumericSetting<Byte>(
     defaultValue,
     range,
     step,
+    description,
     visibility,
-    description
+    unit
 )

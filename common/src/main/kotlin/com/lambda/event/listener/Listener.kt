@@ -25,7 +25,7 @@ import com.lambda.module.Module
  *
  * @property priority The priority of the [Listener]. [Listener]s with higher [priority] are executed first.
  * @property owner The owner of the [Listener]. This is typically the object that created the [Listener].
- * @property alwaysListen If true, the [Listener] will always be triggered, even if the [owner] is not enabled.
+ * @property alwaysListen If true, the [Listener] will always be triggered, even if the [owner] is [Muteable.isMuted].
  */
 abstract class Listener : Comparable<Listener> {
     abstract val priority: Int

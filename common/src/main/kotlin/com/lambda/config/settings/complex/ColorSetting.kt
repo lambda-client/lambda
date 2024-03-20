@@ -6,10 +6,10 @@ import java.awt.Color
 class ColorSetting(
     override val name: String,
     defaultValue: Color,
-    visibility: () -> Boolean,
     description: String,
+    visibility: () -> Boolean,
 ) : AbstractSetting<Color>(
     defaultValue,
-    visibility,
-    description
+    description,
+    visibility
 )

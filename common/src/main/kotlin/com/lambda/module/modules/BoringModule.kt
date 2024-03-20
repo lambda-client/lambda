@@ -39,7 +39,6 @@ object BoringModule : Module(
     init {
         onEnable {
             LOG.info("I'm was enabled!")
-            toast("I'm enabled!")
         }
 
         onDisable {
@@ -51,7 +50,7 @@ object BoringModule : Module(
         }
 
         listener<TickEvent.Pre> {
-            this@BoringModule.info("I'm ${if (superBoring) "super boring ($boringValue)" else "boring"}!")
+            LOG.info("I'm ${if (superBoring) "super boring ($boringValue)" else "boring"}!")
         }
     }
 }

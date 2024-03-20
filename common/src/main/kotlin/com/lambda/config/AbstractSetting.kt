@@ -48,13 +48,13 @@ import kotlin.reflect.KProperty
  * ```
  *
  * @property defaultValue The default value of the setting.
- * @property visibility A function that determines whether the setting is visible.
  * @property description A description of the setting.
+ * @property visibility A function that determines whether the setting is visible.
  */
 abstract class AbstractSetting<T : Any>(
     private val defaultValue: T,
-    val visibility: () -> Boolean,
     val description: String,
+    val visibility: () -> Boolean,
 ) : Jsonable, Nameable {
     private val listeners = mutableListOf<(from: T, to: T) -> Unit>()
 

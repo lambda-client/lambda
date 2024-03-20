@@ -1,14 +1,11 @@
 package com.lambda.command.commands
 
+import com.lambda.brigadier.*
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.boolean
 import com.lambda.brigadier.argument.string
 import com.lambda.brigadier.argument.value
-import com.lambda.brigadier.executeWithResult
-import com.lambda.brigadier.get
-import com.lambda.brigadier.optional
-import com.lambda.brigadier.required
 import com.lambda.command.CommandManager.prefix
 import com.lambda.command.CommandManager.register
 import com.lambda.command.LambdaCommand
@@ -26,6 +23,34 @@ object ModuleCommand : LambdaCommand() {
 
     init {
         register(name, "mod") {
+            executeWithResult {
+                val enabled = ModuleRegistry.modules.filter {
+                    it.isEnabled
+                }
+
+                if (enabled.isEmpty()) {
+                    info("No modules are enabled")
+                    return@executeWithResult success()
+                }
+
+                this@ModuleCommand.info(buildText {
+                    styled(Color.GREY) {
+                        literal("Enabled Modules: ")
+                    }
+                    enabled.forEachIndexed { index, module ->
+                        if (index != 0) {
+                            literal(", ")
+                        }
+                        clickEvent(suggestCommand("$prefix${input} ${module.name}")) {
+                            styled(if (module.isEnabled) Color.GREEN else Color.RED) {
+                                literal(module.name)
+                            }
+                        }
+                    }
+                })
+                return@executeWithResult success()
+            }
+
             required(string("module name")) { moduleName ->
                 suggests { _, builder ->
                     ModuleRegistry.modules.map {

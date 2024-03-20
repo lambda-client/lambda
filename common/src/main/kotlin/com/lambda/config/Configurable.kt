@@ -58,8 +58,8 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Boolean] value of the setting.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
      * private val foo by setting("Foo", true)
@@ -70,9 +70,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
     fun setting(
         name: String,
         defaultValue: Boolean,
-        visibility: () -> Boolean = { true },
         description: String = "",
-    ) = BooleanSetting(name, defaultValue, visibility, description).also {
+        visibility: () -> Boolean = { true },
+    ) = BooleanSetting(name, defaultValue, description, visibility).also {
         settings.add(it)
     }
 
@@ -81,8 +81,8 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Enum] value of the setting.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
      * enum class Foo { A, B, C }
@@ -95,9 +95,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
     inline fun <reified T : Enum<T>> setting(
         name: String,
         defaultValue: T,
-        noinline visibility: () -> Boolean = { true },
         description: String = "",
-    ) = EnumSetting(name, defaultValue, visibility, description).also {
+        noinline visibility: () -> Boolean = { true },
+    ) = EnumSetting(name, defaultValue, description, visibility).also {
         settings.add(it)
     }
 
@@ -106,17 +106,17 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Char] value of the setting.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * @return The created [CharSetting].
      */
     fun setting(
         name: String,
         defaultValue: Char,
-        visibility: () -> Boolean = { true },
         description: String = "",
-    ) = CharSetting(name, defaultValue, visibility, description).also {
+        visibility: () -> Boolean = { true },
+    ) = CharSetting(name, defaultValue, description, visibility).also {
         settings.add(it)
     }
 
@@ -125,8 +125,8 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [String] value of the setting.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
      * private val foo by setting("Foo", "bar")
@@ -137,9 +137,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
     fun setting(
         name: String,
         defaultValue: String,
-        visibility: () -> Boolean = { true },
         description: String = "",
-    ) = StringSetting(name, defaultValue, visibility, description).also {
+        visibility: () -> Boolean = { true },
+    ) = StringSetting(name, defaultValue, description, visibility).also {
         settings.add(it)
     }
 
@@ -150,8 +150,8 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [List] value of type [T] for the setting.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
      * // the parameter type is inferred from the defaultValue
@@ -163,9 +163,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
     inline fun <reified T : Any> setting(
         name: String,
         defaultValue: List<T>,
-        noinline visibility: () -> Boolean = { true },
         description: String = "",
-    ) = ListSetting(name, defaultValue, visibility, description).also {
+        noinline visibility: () -> Boolean = { true },
+    ) = ListSetting(name, defaultValue, description, visibility).also {
         settings.add(it)
     }
 
@@ -176,8 +176,8 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Map] value of type [K] and [V] for the setting.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
      * // the parameter types are inferred from the defaultValue
@@ -189,9 +189,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
     inline fun <reified K : Any, V : Any> setting(
         name: String,
         defaultValue: Map<K, V>,
-        noinline visibility: () -> Boolean = { true },
         description: String = "",
-    ) = MapSetting(name, defaultValue, visibility, description).also {
+        noinline visibility: () -> Boolean = { true },
+    ) = MapSetting(name, defaultValue, description, visibility).also {
         settings.add(it)
     }
 
@@ -202,8 +202,8 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Set] value of type [T] for the setting.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
      * // the parameter type is inferred from the defaultValue
@@ -215,9 +215,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
     inline fun <reified T : Any> setting(
         name: String,
         defaultValue: Set<T>,
-        noinline visibility: () -> Boolean = { true },
         description: String = "",
-    ) = SetSetting(name, defaultValue, visibility, description).also {
+        noinline visibility: () -> Boolean = { true },
+    ) = SetSetting(name, defaultValue, description, visibility).also {
         settings.add(it)
     }
 
@@ -228,8 +228,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      * @param defaultValue The default [Byte] value of the setting.
      * @param range The range within which the setting's value must fall.
      * @param step The step to which the setting's value is rounded.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
+     * @param unit The unit of the setting. E.g. "°C", "m/s", "ms", "ticks", etc.
      *
      * @return The created [ByteSetting].
      */
@@ -238,9 +239,10 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         defaultValue: Byte,
         range: ClosedRange<Byte>,
         step: Byte = 1,
-        visibility: () -> Boolean = { true },
         description: String = "",
-    ) = ByteSetting(name, defaultValue, range, step, visibility, description).also {
+        visibility: () -> Boolean = { true },
+        unit: String = "",
+    ) = ByteSetting(name, defaultValue, range, step, description, visibility, unit).also {
         settings.add(it)
     }
 
@@ -251,8 +253,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      * @param defaultValue The default [Double] value of the setting.
      * @param range The range within which the setting's value must fall.
      * @param step The step to which the setting's value is rounded.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
+     * @param unit The unit of the setting. E.g. "°C", "m/s", "ms", "ticks", etc.
      *
      * @return The created [DoubleSetting].
      */
@@ -261,9 +264,10 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         defaultValue: Double,
         range: ClosedRange<Double>,
         step: Double = 1.0,
-        visibility: () -> Boolean = { true },
         description: String = "",
-    ) = DoubleSetting(name, defaultValue, range, step, visibility, description).also {
+        visibility: () -> Boolean = { true },
+        unit: String = "",
+    ) = DoubleSetting(name, defaultValue, range, step, description, visibility, unit).also {
         settings.add(it)
     }
 
@@ -274,8 +278,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      * @param defaultValue The default [Float] value of the setting.
      * @param range The range within which the setting's value must fall.
      * @param step The step to which the setting's value is rounded.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
+     * @param unit The unit of the setting. E.g. "°C", "m/s", "ms", "ticks", etc.
      *
      * @return The created [FloatSetting].
      */
@@ -284,9 +289,10 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         defaultValue: Float,
         range: ClosedRange<Float>,
         step: Float = 1f,
-        visibility: () -> Boolean = { true },
         description: String = "",
-    ) = FloatSetting(name, defaultValue, range, step, visibility, description).also {
+        visibility: () -> Boolean = { true },
+        unit: String = "",
+    ) = FloatSetting(name, defaultValue, range, step, description, visibility, unit).also {
         settings.add(it)
     }
 
@@ -297,8 +303,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      * @param defaultValue The default [Int] value of the setting.
      * @param range The range within which the setting's value must fall.
      * @param step The step to which the setting's value is rounded.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
+     * @param unit The unit of the setting. E.g. "°C", "m/s", "ms", "ticks", etc.
      *
      * @return The created [IntegerSetting].
      */
@@ -307,9 +314,10 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         defaultValue: Int,
         range: ClosedRange<Int>,
         step: Int = 1,
-        visibility: () -> Boolean = { true },
         description: String = "",
-    ) = IntegerSetting(name, defaultValue, range, step, visibility, description).also {
+        visibility: () -> Boolean = { true },
+        unit: String = "",
+    ) = IntegerSetting(name, defaultValue, range, step, description, visibility, unit).also {
         settings.add(it)
     }
 
@@ -320,8 +328,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      * @param defaultValue The default [Long] value of the setting.
      * @param range The range within which the setting's value must fall.
      * @param step The step to which the setting's value is rounded.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
+     * @param unit The unit of the setting. E.g. "°C", "m/s", "ms", "ticks", etc.
      *
      * @return The created [LongSetting].
      */
@@ -330,9 +339,10 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         defaultValue: Long,
         range: ClosedRange<Long>,
         step: Long = 1,
-        visibility: () -> Boolean = { true },
         description: String = "",
-    ) = LongSetting(name, defaultValue, range, step, visibility, description).also {
+        visibility: () -> Boolean = { true },
+        unit: String = "",
+    ) = LongSetting(name, defaultValue, range, step, description, visibility, unit).also {
         settings.add(it)
     }
 
@@ -343,8 +353,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      * @param defaultValue The default [Short] value of the setting.
      * @param range The range within which the setting's value must fall.
      * @param step The step to which the setting's value is rounded.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
+     * @param unit The unit of the setting. E.g. "°C", "m/s", "ms", "ticks", etc.
      *
      * @return The created [ShortSetting].
      */
@@ -353,9 +364,10 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         defaultValue: Short,
         range: ClosedRange<Short>,
         step: Short = 1,
-        visibility: () -> Boolean = { true },
         description: String = "",
-    ) = ShortSetting(name, defaultValue, range, step, visibility, description).also {
+        visibility: () -> Boolean = { true },
+        unit: String = "",
+    ) = ShortSetting(name, defaultValue, range, step, description, visibility, unit).also {
         settings.add(it)
     }
 
@@ -364,17 +376,17 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [KeyCode] value of the setting.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * @return The created [KeyBindSetting].
      */
     fun setting(
         name: String,
         defaultValue: KeyCode,
-        visibility: () -> Boolean = { true },
         description: String = "",
-    ) = KeyBindSetting(name, defaultValue, visibility, description).also {
+        visibility: () -> Boolean = { true },
+    ) = KeyBindSetting(name, defaultValue, description, visibility).also {
         settings.add(it)
     }
 
@@ -383,17 +395,17 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Color] value of the setting.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * @return The created [ColorSetting].
      */
     fun setting(
         name: String,
         defaultValue: Color,
-        visibility: () -> Boolean = { true },
         description: String = "",
-    ) = ColorSetting(name, defaultValue, visibility, description).also {
+        visibility: () -> Boolean = { true },
+    ) = ColorSetting(name, defaultValue, description, visibility).also {
         settings.add(it)
     }
 
@@ -402,17 +414,17 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [BlockPos] value of the setting.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * @return The created [BlockPosSetting].
      */
     fun setting(
         name: String,
         defaultValue: BlockPos,
-        visibility: () -> Boolean = { true },
         description: String = "",
-    ) = BlockPosSetting(name, defaultValue, visibility, description).also {
+        visibility: () -> Boolean = { true },
+    ) = BlockPosSetting(name, defaultValue, description, visibility).also {
         settings.add(it)
     }
 
@@ -421,17 +433,17 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Block] value of the setting.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * @return The created [BlockSetting].
      */
     fun setting(
         name: String,
         defaultValue: Block,
-        visibility: () -> Boolean = { true },
         description: String = "",
-    ) = BlockSetting(name, defaultValue, visibility, description).also {
+        visibility: () -> Boolean = { true },
+    ) = BlockSetting(name, defaultValue, description, visibility).also {
         settings.add(it)
     }
 }

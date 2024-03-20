@@ -9,11 +9,8 @@
     "ClientConnectionMixin",
     "KeyboardMixin",
     "MinecraftClientMixin",
-    "MixinKeyBinding",
-    "PlayerEntityMixin",
-    "render.GlStateManagerMixin",
-    "render.VertexBufferMixin",
-    "render.InGameHudMixin"
+    "KeyBindingMixin",
+    "PlayerEntityMixin"
   ],
   "injectors": {
     "defaultRequire": 1
