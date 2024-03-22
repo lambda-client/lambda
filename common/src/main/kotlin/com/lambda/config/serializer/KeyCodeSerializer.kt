@@ -4,6 +4,7 @@ import com.google.gson.*
 import com.lambda.util.KeyCode
 import java.lang.reflect.Type
 
+// ToDo: Use key lookup table to store actual key names
 object KeyCodeSerializer : JsonSerializer<KeyCode>, JsonDeserializer<KeyCode> {
     override fun serialize(
         src: KeyCode?,

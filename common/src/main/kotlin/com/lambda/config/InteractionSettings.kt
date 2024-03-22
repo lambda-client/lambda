@@ -1,6 +1,6 @@
 package com.lambda.config
 
-import com.lambda.manager.interaction.InteractionConfig
+import com.lambda.interaction.InteractionConfig
 import com.lambda.util.world.raycast.RayCastMask
 
 class InteractionSettings(

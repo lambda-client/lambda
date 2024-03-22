@@ -1,7 +1,7 @@
 package com.lambda.module.modules.client
 
-import com.lambda.manager.rotation.IRotationConfig
-import com.lambda.manager.rotation.RotationMode
+import com.lambda.interaction.rotation.IRotationConfig
+import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.MathUtils.random

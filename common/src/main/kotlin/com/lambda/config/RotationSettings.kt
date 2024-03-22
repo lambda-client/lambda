@@ -1,7 +1,7 @@
 package com.lambda.config
 
-import com.lambda.manager.rotation.IRotationConfig
-import com.lambda.manager.rotation.RotationMode
+import com.lambda.interaction.rotation.IRotationConfig
+import com.lambda.interaction.rotation.RotationMode
 import kotlin.random.Random
 
 class RotationSettings(

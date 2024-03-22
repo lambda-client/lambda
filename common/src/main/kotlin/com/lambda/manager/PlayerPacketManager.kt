@@ -4,7 +4,7 @@ import com.lambda.Loadable
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
 import com.lambda.event.events.PlayerPacketEvent
-import com.lambda.manager.rotation.Rotation
+import com.lambda.interaction.rotation.Rotation
 import com.lambda.threading.runSafe
 import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.player.MovementUtils.motionX

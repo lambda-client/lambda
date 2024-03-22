@@ -6,17 +6,19 @@ import com.lambda.event.Event
 import com.lambda.event.cancellable.Cancellable
 import com.lambda.event.cancellable.ICancellable
 import com.lambda.manager.RotationManager
-import com.lambda.manager.interaction.InteractionConfig
-import com.lambda.manager.rotation.IRotationConfig
-import com.lambda.manager.rotation.Rotation
-import com.lambda.manager.rotation.Rotation.Companion.distance
-import com.lambda.manager.rotation.Rotation.Companion.rotationTo
-import com.lambda.manager.interaction.VisibilityChecker.scanVisibleSurfaces
+import com.lambda.interaction.InteractionConfig
+import com.lambda.interaction.rotation.IRotationConfig
+import com.lambda.interaction.rotation.Rotation
+import com.lambda.interaction.rotation.Rotation.Companion.distance
+import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
+import com.lambda.interaction.VisibilityChecker.scanVisibleSurfaces
+import com.lambda.module.modules.RotationTest
 import com.lambda.threading.runSafe
 import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.entity.LivingEntity
+import net.minecraft.util.Hand
 import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -35,14 +37,17 @@ abstract class RotationEvent : Event {
             }
         }
 
-        fun SafeContext.lookAt(
+        private fun SafeContext.lookAt(
             rotationConfig: IRotationConfig,
             interact: InteractionConfig,
             boxes: List<Box>,
             priority: Int = 0,
+            sides: Set<Direction> = emptySet(),
             hitCheck: HitResult.() -> Boolean,
         ) {
-            if (boxes.any { it.contains(player.eyePos) }) {
+            val eye = player.getCameraPosVec(mc.tickDelta)
+
+            if (boxes.any { it.contains(eye) }) {
                 stay(priority, rotationConfig)
                 return
             }
@@ -51,7 +56,7 @@ abstract class RotationEvent : Event {
             val currentCast = currentRotation.rayCast(
                 interact.reach,
                 interact.rayCastMask,
-                player.eyePos
+                eye
             )
             val check = currentCast?.let { it.hitCheck() } ?: false
 
@@ -67,15 +72,15 @@ abstract class RotationEvent : Event {
             var rotationDist = 0.0
 
             boxes.forEach { box ->
-                scanVisibleSurfaces(box, interact.resolution) { vec ->
-                    if (player.eyePos distSq vec > reachSq) return@scanVisibleSurfaces
+                scanVisibleSurfaces(box, sides, interact.resolution) { vec ->
+                    if (eye distSq vec > reachSq) return@scanVisibleSurfaces
 
-                    val newRotation = player.eyePos.rotationTo(vec)
+                    val newRotation = eye.rotationTo(vec)
 
                     val cast = newRotation.rayCast(
                         interact.reach,
                         interact.rayCastMask,
-                        player.eyePos
+                        eye
                     ) ?: return@scanVisibleSurfaces
                     if (!cast.hitCheck()) return@scanVisibleSurfaces
 
@@ -110,15 +115,15 @@ abstract class RotationEvent : Event {
             rotationConfig: IRotationConfig,
             interactionConfig: InteractionConfig,
             blockPos: BlockPos,
-            side: Direction,
+            sides: Set<Direction>,
             priority: Int = 0,
         ) {
             runSafe {
                 val state = world.getBlockState(blockPos)
                 val voxelShape = state.getOutlineShape(world, blockPos)
                 val boundingBoxes = voxelShape.boundingBoxes.map { it.offset(blockPos) }
-                lookAt(rotationConfig, interactionConfig, boundingBoxes, priority) {
-                    blockResult?.blockPos == blockPos && blockResult?.side == side
+                lookAt(rotationConfig, interactionConfig, boundingBoxes, priority, sides) {
+                    blockResult?.blockPos == blockPos && blockResult?.side in sides
                 }
             }
         }

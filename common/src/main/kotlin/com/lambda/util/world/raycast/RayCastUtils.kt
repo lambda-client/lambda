@@ -1,11 +1,11 @@
 package com.lambda.util.world.raycast
 
 import com.lambda.context.SafeContext
-import com.lambda.manager.rotation.Rotation
+import com.lambda.interaction.rotation.Rotation
 import com.lambda.threading.runSafe
 import com.lambda.util.math.VecUtils.distSq
 import net.minecraft.entity.Entity
-import net.minecraft.entity.projectile.ProjectileUtil.raycast
+import net.minecraft.entity.projectile.ProjectileUtil
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.hit.HitResult
@@ -40,7 +40,7 @@ object RayCastUtils {
             if (!mask.entity) return@run null
 
             val box = player.boundingBox.stretch(vec).expand(1.0)
-            val entity = raycast(player, pos, point, box, entityPredicate, reach * reach)
+            val entity = ProjectileUtil.raycast(player, pos, point, box, entityPredicate, reach * reach)
 
             entity?.entityResult
         }

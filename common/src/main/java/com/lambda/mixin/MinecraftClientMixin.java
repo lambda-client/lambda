@@ -51,6 +51,6 @@ public class MinecraftClientMixin {
     void injectFastPlace(CallbackInfo ci) {
         if (!Interact.INSTANCE.isEnabled()) return;
 
-        Lambda.INSTANCE.getMc().itemUseCooldown = Interact.getPlaceDelay();
+        Lambda.getMc().itemUseCooldown = Interact.getPlaceDelay();
     }
 }

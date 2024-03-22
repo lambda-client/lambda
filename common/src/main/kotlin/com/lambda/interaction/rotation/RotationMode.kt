@@ -1,4 +1,4 @@
-package com.lambda.manager.rotation
+package com.lambda.interaction.rotation
 
 /**
  * @property SILENT Spoofing server-side rotation.

@@ -7,6 +7,7 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.util.world.EntityUtils.getClosestEntity
 import net.minecraft.entity.passive.VillagerEntity
+import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -34,7 +35,8 @@ object RotationTest : Module(
 //                player.eyePos, interaction.reachDistance.toDouble()
 //            ) ?: return@listener
 
-            it.lookAt(rotationConfig, interactionConfig, pos, side)
+            it.lookAt(rotationConfig, interactionConfig, pos, setOf(side))
+
         }
     }
 }

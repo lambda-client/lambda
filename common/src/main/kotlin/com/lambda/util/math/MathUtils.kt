@@ -1,6 +1,6 @@
 package com.lambda.util.math
 
-import com.lambda.manager.rotation.Rotation
+import com.lambda.interaction.rotation.Rotation
 import com.lambda.util.math.ColorUtils.a
 import com.lambda.util.math.ColorUtils.b
 import com.lambda.util.math.ColorUtils.g

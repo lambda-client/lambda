@@ -1,11 +1,11 @@
-package com.lambda.manager.rotation
+package com.lambda.interaction.rotation
 
+import com.lambda.Lambda.mc
 import com.lambda.threading.runSafe
 import com.lambda.util.math.MathUtils.toDegree
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.world.raycast.RayCastMask
 import com.lambda.util.world.raycast.RayCastUtils.rayCast
-import net.minecraft.client.MinecraftClient
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
@@ -62,7 +62,6 @@ data class Rotation(val yaw: Double, val pitch: Double) {
         }
 
         fun Rotation.fixSensitivity(last: Rotation): Rotation {
-            val mc = MinecraftClient.getInstance()
             val f = mc.options.mouseSensitivity.value * 0.6 + 0.2
             val step = f * f * f * 8.0 * 0.15F
 

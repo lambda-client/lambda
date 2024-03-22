@@ -1,4 +1,4 @@
-package com.lambda.manager.interaction
+package com.lambda.interaction
 
 import com.lambda.context.SafeContext
 import com.lambda.util.primitives.extension.component6
@@ -6,22 +6,26 @@ import net.minecraft.util.math.*
 import java.util.*
 
 object VisibilityChecker {
-    inline fun SafeContext.scanVisibleSurfaces(box: Box, resolution: Int, check: (Vec3d) -> Unit) {
-        val shrunk = box.expand(-0.05)
-        getVisibleSides(box).forEach { side ->
-            val (minX, minY, minZ, maxX, maxY, maxZ) = shrunk.bounds(side)
-            val stepX = (maxX - minX) / resolution
-            val stepY = (maxY - minY) / resolution
-            val stepZ = (maxZ - minZ) / resolution
-            for (i in 0 .. resolution) {
-                val x = if (stepX != 0.0) minX + stepX * i else minX
-                for (j in 0 .. resolution) {
-                    val y = if (stepY != 0.0) minY + stepY * j else minY
-                    val z = if (stepZ != 0.0) minZ + stepZ * ((if (stepX != 0.0) j else i)) else minZ
-                    check(Vec3d(x, y, z))
+    inline fun SafeContext.scanVisibleSurfaces(box: Box, sides: Set<Direction>, resolution: Int, check: (Vec3d) -> Unit) {
+        val shrunk = box.expand(-0.005)
+        getVisibleSides(box)
+            .forEach { side ->
+                if (sides.isNotEmpty() && side !in sides) {
+                    return@forEach
+                }
+                val (minX, minY, minZ, maxX, maxY, maxZ) = shrunk.bounds(side)
+                val stepX = (maxX - minX) / resolution
+                val stepY = (maxY - minY) / resolution
+                val stepZ = (maxZ - minZ) / resolution
+                for (i in 0 .. resolution) {
+                    val x = if (stepX != 0.0) minX + stepX * i else minX
+                    for (j in 0 .. resolution) {
+                        val y = if (stepY != 0.0) minY + stepY * j else minY
+                        val z = if (stepZ != 0.0) minZ + stepZ * ((if (stepX != 0.0) j else i)) else minZ
+                        check(Vec3d(x, y, z))
+                    }
                 }
             }
-        }
     }
 
     fun Box.bounds(side: Direction) =
@@ -59,7 +63,6 @@ object VisibilityChecker {
             diff > limit -> {
                 add(positiveSide)
             }
-            else -> {}
         }
     }
 }

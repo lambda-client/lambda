@@ -1,5 +1,6 @@
 package com.lambda.manager
 
+import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.Loadable
 import com.lambda.config.RotationSettings
@@ -10,12 +11,12 @@ import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
-import com.lambda.manager.rotation.Rotation
-import com.lambda.manager.rotation.Rotation.Companion.angleDifference
-import com.lambda.manager.rotation.Rotation.Companion.fixSensitivity
-import com.lambda.manager.rotation.Rotation.Companion.interpolate
-import com.lambda.manager.rotation.RotationContext
-import com.lambda.manager.rotation.RotationMode
+import com.lambda.interaction.rotation.Rotation
+import com.lambda.interaction.rotation.Rotation.Companion.angleDifference
+import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
+import com.lambda.interaction.rotation.Rotation.Companion.interpolate
+import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runOnGameThread
 import com.lambda.threading.runSafe
@@ -80,20 +81,18 @@ object RotationManager : Loadable {
 
         currentRotation = Rotation(player.yaw, player.pitch)
 
-        val data = currentContext ?: return@runSafe
-        val settings = data.config
+        val context = currentContext ?: return@runSafe
+        val rotationTo = if (keepTicks >= 0) context.rotation else currentRotation
 
-        val rotationTo = if (keepTicks >= 0) data.rotation else currentRotation
-
-        var speedMultiplier = (settings as? RotationSettings)?.speedMultiplier ?: 1.0
+        var speedMultiplier = (context.config as? RotationSettings)?.speedMultiplier ?: 1.0
         if (keepTicks < 0) speedMultiplier = 1.0
 
-        val turnSpeed = settings.turnSpeed * speedMultiplier
+        val turnSpeed = context.config.turnSpeed * speedMultiplier
 
         currentRotation = interpolate(prevRotation, rotationTo, turnSpeed)
             .fixSensitivity(prevRotation)
 
-        if (settings.rotationMode == RotationMode.LOCK) {
+        if (context.config.rotationMode == RotationMode.LOCK) {
             player.yaw = currentRotation.yaw.toFloat()
             player.pitch = currentRotation.pitch.toFloat()
         }

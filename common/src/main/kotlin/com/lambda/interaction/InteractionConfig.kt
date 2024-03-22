@@ -1,4 +1,4 @@
-package com.lambda.manager.interaction
+package com.lambda.interaction
 
 import com.lambda.util.world.raycast.RayCastMask
 
