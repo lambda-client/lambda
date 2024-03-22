@@ -6,6 +6,7 @@ import com.lambda.config.Configuration
 import com.lambda.config.configurations.ModuleConfig
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.numeric.DoubleSetting
+import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.KeyPressEvent
 import com.lambda.event.listener.Listener
@@ -123,19 +124,19 @@ abstract class Module(
         isEnabled = !isEnabled
     }
 
-    protected fun onEnable(block: () -> Unit) {
+    protected fun onEnable(block: SafeContext.() -> Unit) {
         isEnabledSetting.listener { from, to ->
             if (!from && to) block()
         }
     }
 
-    protected fun onDisable(block: () -> Unit) {
+    protected fun onDisable(block: SafeContext.() -> Unit) {
         isEnabledSetting.listener { from, to ->
             if (from && !to) block()
         }
     }
 
-    protected fun onToggle(block: (to: Boolean) -> Unit) {
+    protected fun onToggle(block: SafeContext.(to: Boolean) -> Unit) {
         isEnabledSetting.listener { from, to ->
             if (from != to) block(to)
         }

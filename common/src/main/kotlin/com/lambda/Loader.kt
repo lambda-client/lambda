@@ -2,13 +2,15 @@ package com.lambda
 
 import com.lambda.Lambda.LOG
 import com.lambda.command.CommandManager
+import com.lambda.interaction.RotationManager
 import com.lambda.module.ModuleRegistry
 import kotlin.system.measureTimeMillis
 
 object Loader {
     private val loadables = listOf(
         ModuleRegistry,
-        CommandManager
+        CommandManager,
+        RotationManager
     )
 
     fun initialize() {

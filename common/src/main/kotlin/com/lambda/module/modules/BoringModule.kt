@@ -5,8 +5,6 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Communication.info
-import com.lambda.util.Communication.toast
 import com.lambda.util.KeyCode
 import net.minecraft.util.math.BlockPos
 import java.awt.Color

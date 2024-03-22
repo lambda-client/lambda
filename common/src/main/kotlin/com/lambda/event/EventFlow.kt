@@ -1,6 +1,7 @@
 package com.lambda.event
 
 import com.lambda.Lambda.LOG
+import com.lambda.event.cancellable.Cancellable
 import com.lambda.event.cancellable.ICancellable
 import com.lambda.event.listener.Listener
 import com.lambda.threading.runConcurrent
@@ -83,6 +84,18 @@ object EventFlow {
     fun <T> post(cancellable: T) : T where T : Event, T : ICancellable {
         post(cancellable as Event)
         return cancellable
+    }
+
+    @JvmStatic
+    fun <T> post(cancellable: T, process: T.() -> Unit) where T : Event, T : ICancellable {
+        val event = post(cancellable)
+        process(event)
+    }
+
+    @JvmStatic
+    fun <T> postChecked(cancellable: T, process: T.() -> Unit) where T : Event, T : ICancellable {
+        val event = post(cancellable)
+        if (!event.isCanceled()) process(event)
     }
 
     /**

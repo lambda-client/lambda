@@ -44,7 +44,7 @@ object EntityUtils {
 
         // Here we iterate over all sections within the specified distance and add all entities of type [T] to the list.
         // We do not have to worry about performance here, as the number of sections is very limited.
-        // For example if the player is on the edge of a section and the distance is 16, we only have to iterate over 9 sections.
+        // For example, if the player is on the edge of a section and the distance is 16, we only have to iterate over 9 sections.
         for (x in sectionX - chunks..sectionX + chunks) {
             for (y in sectionY - chunks..sectionY + chunks) {
                 for (z in sectionZ - chunks..sectionZ + chunks) {
