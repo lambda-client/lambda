@@ -2,7 +2,7 @@ package com.lambda
 
 import com.lambda.Lambda.LOG
 import com.lambda.command.CommandManager
-import com.lambda.manager.RotationManager
+import com.lambda.interaction.RotationManager
 import com.lambda.module.ModuleRegistry
 import kotlin.system.measureTimeMillis
 

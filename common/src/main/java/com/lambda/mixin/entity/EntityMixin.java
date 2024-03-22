@@ -1,7 +1,7 @@
 package com.lambda.mixin.entity;
 
 import com.lambda.Lambda;
-import com.lambda.manager.RotationManager;
+import com.lambda.interaction.RotationManager;
 import com.lambda.util.math.Vec2d;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.MovementType;

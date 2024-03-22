@@ -1,7 +1,7 @@
 package com.lambda.util.player
 
 import com.lambda.context.SafeContext
-import com.lambda.manager.RotationManager
+import com.lambda.interaction.RotationManager
 import com.lambda.util.math.MathUtils.random
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.MathUtils.toRadian

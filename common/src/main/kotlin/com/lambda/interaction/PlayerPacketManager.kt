@@ -1,4 +1,4 @@
-package com.lambda.manager
+package com.lambda.interaction
 
 import com.lambda.Loadable
 import com.lambda.context.SafeContext

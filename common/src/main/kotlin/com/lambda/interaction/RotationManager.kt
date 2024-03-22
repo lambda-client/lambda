@@ -1,4 +1,4 @@
-package com.lambda.manager
+package com.lambda.interaction
 
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
@@ -11,15 +11,14 @@ import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
-import com.lambda.interaction.rotation.Rotation
+import com.lambda.interaction.rotation.*
 import com.lambda.interaction.rotation.Rotation.Companion.angleDifference
 import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
 import com.lambda.interaction.rotation.Rotation.Companion.interpolate
-import com.lambda.interaction.rotation.RotationContext
-import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runOnGameThread
 import com.lambda.threading.runSafe
+import com.lambda.util.Communication.info
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
@@ -34,7 +33,7 @@ object RotationManager : Loadable {
     var currentRotation = Rotation.ZERO
     private var prevRotation = Rotation.ZERO
 
-    var currentContext: RotationContext? = null
+    var currentRequest: RotationRequest? = null
 
     private var keepTicks = 0
     private var pauseTicks = 0
@@ -43,10 +42,24 @@ object RotationManager : Loadable {
     fun update() =
         runSafe {
             EventFlow.post(RotationEvent.Pre()) {
-                rotate()
+                rotate()?.let {
+                    EventFlow.post(RotationEvent.Post(it))
+                }
             }
-            EventFlow.post(RotationEvent.Post())
         }
+
+    @JvmStatic
+    fun updateInterpolated() = runSafe {
+//        if (currentRequest == null) return@runSafe
+//        val interpolation = interpolate(prevRotation, currentRotation, mc.tickDelta.toDouble())
+//
+//        val rot = interpolation.fixSensitivity(prevRotation)
+//
+//        if (currentRequest?.config?.rotationMode == RotationMode.LOCK) {
+//            player.yaw = rot.yaw.toFloat()
+//            player.pitch = rot.pitch.toFloat()
+//        }
+    }
 
     init {
         listener<PacketEvent.Send.Post> { event ->
@@ -69,19 +82,22 @@ object RotationManager : Loadable {
         (keepTicks--).coerceAtLeast(0)
         (pauseTicks--).coerceAtLeast(0)
 
-        val resetTicks = currentContext?.config?.resetTicks ?: 0
+        val resetTicks = currentRequest?.config?.resetTicks ?: 0
         if (keepTicks + resetTicks < 0 || pauseTicks >= 0) {
-            currentContext = null
+            currentRequest = null
         }
 
-        requests.firstOrNull()?.let {
-            currentContext = RotationContext(it.config, it.rotation)
-            keepTicks = it.config.keepTicks
+        var chosenRequest: RotationRequest? = null
+
+        requests.firstOrNull()?.let { request ->
+            chosenRequest = request
+            currentRequest = request
+            keepTicks = request.config.keepTicks
         }
 
         currentRotation = Rotation(player.yaw, player.pitch)
 
-        val context = currentContext ?: return@runSafe
+        val context = currentRequest ?: return@runSafe chosenRequest
         val rotationTo = if (keepTicks >= 0) context.rotation else currentRotation
 
         var speedMultiplier = (context.config as? RotationSettings)?.speedMultiplier ?: 1.0
@@ -89,20 +105,29 @@ object RotationManager : Loadable {
 
         val turnSpeed = context.config.turnSpeed * speedMultiplier
 
-        currentRotation = interpolate(prevRotation, rotationTo, turnSpeed)
-            .fixSensitivity(prevRotation)
+        val interpolation = interpolate(prevRotation, rotationTo, turnSpeed)
+
+        currentRotation = interpolation.fixSensitivity(prevRotation)
 
         if (context.config.rotationMode == RotationMode.LOCK) {
             player.yaw = currentRotation.yaw.toFloat()
             player.pitch = currentRotation.pitch.toFloat()
         }
+
+        chosenRequest?.let { request ->
+            if (request.rotation.fixSensitivity(prevRotation) == currentRotation) {
+                request.isPending = false
+            }
+        }
+
+        return@runSafe chosenRequest
     }
 
     private fun reset(rotation: Rotation) {
         prevRotation = rotation
         currentRotation = rotation
 
-        currentContext = null
+        currentRequest = null
         pauseTicks = 3
     }
 
@@ -110,34 +135,34 @@ object RotationManager : Loadable {
         lerp(prevRotation, currentRotation, mc.partialTicks)
 
     @JvmStatic val lockRotation get() =
-        if (currentContext?.config?.rotationMode == RotationMode.LOCK) smoothRotation else null
+        if (currentRequest?.config?.rotationMode == RotationMode.LOCK) smoothRotation else null
 
     @JvmStatic val renderYaw get() =
-        if (currentContext?.config == null) null else smoothRotation.yaw.toFloat()
+        if (currentRequest?.config == null) null else smoothRotation.yaw.toFloat()
 
     @JvmStatic val renderPitch get() =
-        if (currentContext?.config == null) null else smoothRotation.pitch.toFloat()
+        if (currentRequest?.config == null) null else smoothRotation.pitch.toFloat()
 
     @JvmStatic val handYaw get() =
-        if (currentContext?.config?.rotationMode == RotationMode.LOCK) currentRotation.yaw.toFloat() else null
+        if (currentRequest?.config?.rotationMode == RotationMode.LOCK) currentRotation.yaw.toFloat() else null
 
     @JvmStatic val handPitch get() =
-        if (currentContext?.config?.rotationMode == RotationMode.LOCK) currentRotation.pitch.toFloat() else null
+        if (currentRequest?.config?.rotationMode == RotationMode.LOCK) currentRotation.pitch.toFloat() else null
 
     @JvmStatic val movementYaw: Float? get() {
-        val config = currentContext?.config ?: return null
+        val config = currentRequest?.config ?: return null
         if (config.rotationMode == RotationMode.SILENT) return null
         return currentRotation.yaw.toFloat()
     }
 
     @JvmStatic val movementPitch: Float? get() {
-        val config = currentContext?.config ?: return null
+        val config = currentRequest?.config ?: return null
         if (config.rotationMode == RotationMode.SILENT) return null
         return currentRotation.pitch.toFloat()
     }
 
     @JvmStatic fun getRotationForVector(deltaTime: Double): Vec2d? {
-        val config = currentContext?.config ?: return null
+        val config = currentRequest?.config ?: return null
         if (config.rotationMode == RotationMode.SILENT) return null
 
         val rot = lerp(prevRotation, currentRotation, deltaTime)
@@ -167,7 +192,7 @@ object RotationManager : Loadable {
 
         @JvmStatic
         fun processPlayerMovement() = runSafe {
-            val config = currentContext?.config ?: return@runSafe
+            val config = currentRequest?.config ?: return@runSafe
 
             val input = player.input
             val handledByBaritone = input !is KeyboardInput
