@@ -31,16 +31,19 @@ val shadowInclude: Configuration by configurations.creating
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
         implementation(it)
+        forgeRuntimeLibrary(it)
         include(it)
     }
 
     includeMod.dependencies.forEach {
         modImplementation(it)
+        forgeRuntimeLibrary(it)
         include(it)
     }
 
     shadowInclude.dependencies.forEach {
         implementation(it)
+        forgeRuntimeLibrary(it)
         shadowCommon(it)
     }
 }
@@ -54,13 +57,15 @@ dependencies {
 
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
-    includeLib("org.javassist:javassist:3.30.0-GA")
+    includeLib("org.javassist:javassist:3.28.0-GA")
 
     // Add mods to the mod jar
     // includeMod(...)
 
     // Add Kotlin
-    shadowInclude("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
+    shadowInclude("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion") {
+        exclude("org.jetbrains", "annotations")
+    }
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
@@ -82,6 +87,11 @@ tasks {
                 "version" to project.version,
             ))
         }
+    }
+
+    shadowJar {
+        relocate("kotlin", "com.lambda.kotlin")
+        relocate("kotlinx", "com.lambda.kotlinx")
     }
 
     remapJar {

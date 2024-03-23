@@ -1,7 +1,7 @@
 modLoader = "javafml"
 loaderVersion = "[2,)"
 license = "GNU General Public License v3.0"
-issueTrackerURL = "https://github.com/lambda-client/lambda/issues
+issueTrackerURL = "https://github.com/lambda-client/lambda/issues"
 #updateJSONURL = "https://raw.githubusercontent.com/lambda-client/lambda/main/update.json"
 
 [[mods]]
@@ -34,7 +34,7 @@ issueTrackerURL = "https://github.com/lambda-client/lambda/issues
     mandatory = true
     type = "required"
     versionRange = "[11.0.7,)"
-    ordering = "NONE"
+    ordering = "AFTER"
     side = "CLIENT"
 
 [[mixins]]

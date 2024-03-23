@@ -51,7 +51,7 @@ dependencies {
 
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
-    includeLib("org.javassist:javassist:3.27.0-GA")
+    includeLib("org.javassist:javassist:3.28.0-GA")
 
     // Add mods to the mod jar
     // includeMod(...)

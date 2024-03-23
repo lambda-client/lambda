@@ -1,5 +1,4 @@
 val forgeVersion = property("forge_version").toString()
-val kotlinVersion = property("kotlin_version").toString()
 val kotlinxCoroutinesVersion = property("kotlinx_coroutines_version").toString()
 val architecturyVersion = property("architectury_version").toString()
 val mixinExtrasVersion = property("mixinextras_version").toString()
@@ -58,10 +57,12 @@ fun DependencyHandlerScope.setupConfigurations() {
     includeMod.dependencies.forEach {
         implementation(it)
         forgeRuntimeLibrary(it)
+        include(it)
     }
 
     shadowInclude.dependencies.forEach {
         implementation(it)
+        forgeRuntimeLibrary(it)
         shadowCommon(it)
     }
 }
@@ -75,13 +76,12 @@ dependencies {
 
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
-    includeLib("org.javassist:javassist:3.30.0-GA")
+    includeLib("org.javassist:javassist:3.28.0-GA")
 
     // Add mods to the mod jar
     // includeMod(...)
 
     // Add Kotlin
-    shadowInclude("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
     shadowInclude("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
 
     // MixinExtras
