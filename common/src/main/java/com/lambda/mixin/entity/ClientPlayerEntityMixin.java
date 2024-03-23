@@ -5,6 +5,7 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
 import com.lambda.interaction.PlayerPacketManager;
 import com.lambda.interaction.RotationManager;
+import net.minecraft.client.input.Input;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.MovementType;
 import net.minecraft.util.math.Vec3d;
@@ -25,6 +26,8 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
     @Shadow public abstract boolean isUsingItem();
 
     @Shadow private boolean autoJumpEnabled;
+
+    @Shadow public Input input;
 
     @Inject(method = "move", at = @At("HEAD"), cancellable = true)
     void onMove(MovementType movementType, Vec3d movement, CallbackInfo ci) {
@@ -49,12 +52,14 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
     @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isUsingItem()Z"))
     boolean onSlowDown(ClientPlayerEntity entity) {
         if (EventFlow.post(new MovementEvent.SlowDown()).isCanceled()) return false;
-        return this.isUsingItem();
+        return isUsingItem();
     }
 
-    @Inject(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick(ZF)V", shift = At.Shift.AFTER))
-    void processMovement(CallbackInfo ci) {
-        RotationManager.BaritoneProcessor.processPlayerMovement();
+    @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick(ZF)V"))
+    void processMovement(Input input, boolean slowDown, float slowDownFactor) {
+        if (EventFlow.post(new MovementEvent.InputUpdate(input, slowDown, slowDownFactor)).isCanceled()) return;
+
+        input.tick(slowDown, slowDownFactor);
     }
 
     @Inject(method = "sendMovementPackets", at = @At(value = "HEAD"), cancellable = true)

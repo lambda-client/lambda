@@ -73,14 +73,14 @@ object VisibilityChecker {
 
         // Rotate to selected point
         closestRotation?.let { rotation ->
-            return RotationRequest(priority, rotationConfig, rotation)
+            return RotationRequest(rotationConfig, rotation, priority)
         }
 
         return null
     }
 
     private fun stay(priority: Int = 0, config: IRotationConfig) =
-        RotationRequest(priority, config, RotationManager.currentRotation)
+        RotationRequest(config, RotationManager.currentRotation, priority)
 
     inline fun SafeContext.scanVisibleSurfaces(box: Box, sides: Set<Direction>, resolution: Int, check: (Vec3d) -> Unit) {
         val shrunk = box.expand(-0.005)

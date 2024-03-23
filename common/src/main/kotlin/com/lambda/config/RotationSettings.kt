@@ -8,7 +8,7 @@ class RotationSettings(
     c: Configurable,
     vis: () -> Boolean = { true }
 ) : IRotationConfig {
-    override val rotationMode by c.setting("Mode", RotationMode.LOCK, "SILENT - server-side rotation, SYNC - server-side rotation; client-side movement, LOCK - Lock camera", vis)
+    override var rotationMode by c.setting("Mode", RotationMode.SYNC, "SILENT - server-side rotation, SYNC - server-side rotation; client-side movement, LOCK - Lock camera", vis)
     override val keepTicks by c.setting("Keep Rotation", 3, 1..10, 1, "Ticks to keep rotation", vis)
     override val resetTicks by c.setting("Reset Rotation", 3, 1..10, 1, "Ticks before rotation is reset", vis)
 

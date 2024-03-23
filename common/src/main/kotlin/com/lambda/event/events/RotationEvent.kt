@@ -24,7 +24,7 @@ abstract class RotationEvent : Event {
         init {
             // Always check if baritone wants to rotate as well
             RotationManager.BaritoneProcessor.baritoneContext?.let { context ->
-                requests.add(RotationRequest(-1, context.config, context.rotation))
+                requests.add(RotationRequest(context.config, context.rotation, -1))
             }
         }
 
