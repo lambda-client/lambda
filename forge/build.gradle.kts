@@ -18,18 +18,6 @@ loom {
         extraAccessWideners.add(loom.accessWidenerPath.get().asFile.name)
         mixinConfig("lambda.mixins.common.json")
     }
-
-    mods {
-        register("forge") {
-            sourceSet("main", project(":forge"))
-
-            sourceSets.forEach {
-                val dir = layout.buildDirectory.dir("sourcesSets/${it.name}")
-                it.output.setResourcesDir(dir)
-                it.java.destinationDirectory.set(dir)
-            }
-        }
-    }
 }
 
 repositories {
@@ -97,5 +85,11 @@ tasks {
                 "version" to project.version,
             ))
         }
+    }
+
+    sourceSets.forEach {
+        val dir = layout.buildDirectory.dir("sourcesSets/${it.name}")
+        it.output.setResourcesDir(dir)
+        it.java.destinationDirectory.set(dir)
     }
 }

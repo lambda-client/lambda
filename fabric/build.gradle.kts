@@ -45,6 +45,7 @@ dependencies {
     includeLib("org.javassist:javassist:3.28.0-GA")
 
     // Add mods to the mod jar
+    includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
     includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion")
 
     // Common (Do not touch)
