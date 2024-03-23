@@ -12,6 +12,7 @@ accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Ln
 # Renderer
 accessible field com/mojang/blaze3d/systems/RenderSystem$ShapeIndexBuffer id I
 accessible field net/minecraft/client/render/BufferRenderer currentVertexBuffer Lnet/minecraft/client/gl/VertexBuffer;
+accessible field net/minecraft/client/texture/NativeImage pointer J
 
 # Text
 accessible field net/minecraft/text/Style color Lnet/minecraft/text/TextColor;

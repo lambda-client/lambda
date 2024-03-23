@@ -24,8 +24,6 @@ interface IRenderer <T: IRenderEntry<T>> {
 
     /**
      * Ticks all render entries and rebuilds VAO if needed
-     *
-     * For DynamicESP renderers should be called from tick event
      */
     fun update()
 

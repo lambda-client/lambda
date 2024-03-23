@@ -15,6 +15,7 @@ import java.awt.Color
 
 class Shader(fragmentPath: String, vertexPath: String) {
     private val uniformCache: Object2IntMap<String> = Object2IntOpenHashMap()
+
     private val id by mainThread {
         createShaderProgram(
             loadShader(ShaderType.VERTEX_SHADER, LambdaResource("shaders/vertex/$vertexPath.vert")),

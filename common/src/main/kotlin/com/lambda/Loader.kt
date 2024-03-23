@@ -2,6 +2,7 @@ package com.lambda
 
 import com.lambda.Lambda.LOG
 import com.lambda.command.CommandManager
+import com.lambda.graphics.renderer.gui.font.LambdaFont
 import com.lambda.module.ModuleRegistry
 import kotlin.system.measureTimeMillis
 
