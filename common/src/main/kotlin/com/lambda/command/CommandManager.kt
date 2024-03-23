@@ -126,7 +126,7 @@ object CommandManager : Configurable(LambdaConfig), Loadable {
                 .addUrls(ClasspathHelper.forJavaClassPath())
                 .addUrls(ClasspathHelper.forClassLoader())
                 .filterInputsBy { it.contains("lambda") }
-                .forPackage("com.lambda.module.modules")
+                .forPackage("com.lambda.command.commands")
                 .setScanners(Scanners.SubTypes)
         ).getSubTypesOf(LambdaCommand::class.java).forEach { commandClass ->
             commandClass.declaredFields.find {
