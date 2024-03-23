@@ -1,7 +1,6 @@
 val neoVersion = property("neo_version").toString()
-val kotlinxCoroutinesVersion = property("kotlinx_coroutines_version").toString()
 val architecturyVersion = property("architectury_version").toString()
-val mixinExtrasVersion = property("mixinextras_version").toString()
+val kotlinForgeVersion = property("kotlin_forge_version").toString()
 
 architectury {
     platformSetupLoomIde()
@@ -16,6 +15,7 @@ loom {
 
 repositories {
     maven("https://maven.neoforged.net/releases/")
+    maven("https://thedarkcolour.github.io/KotlinForForge/")
 }
 
 val common: Configuration by configurations.creating {
@@ -26,7 +26,6 @@ val common: Configuration by configurations.creating {
 
 val includeLib: Configuration by configurations.creating
 val includeMod: Configuration by configurations.creating
-val shadowInclude: Configuration by configurations.creating
 
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
@@ -36,15 +35,8 @@ fun DependencyHandlerScope.setupConfigurations() {
     }
 
     includeMod.dependencies.forEach {
-        modImplementation(it)
-        forgeRuntimeLibrary(it)
-        include(it)
-    }
-
-    shadowInclude.dependencies.forEach {
         implementation(it)
-        forgeRuntimeLibrary(it)
-        shadowCommon(it)
+        include(it)
     }
 }
 
@@ -52,20 +44,12 @@ dependencies {
     // NeoForge API
     neoForge("net.neoforged:neoforge:$neoVersion")
 
-    // Remove the following line if you don't want to depend on the API
-    modApi("dev.architectury:architectury-neoforge:$architecturyVersion")
-
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
 
     // Add mods to the mod jar
-    // includeMod(...)
-
-    // Add Kotlin
-    shadowInclude("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion") {
-        exclude("org.jetbrains", "annotations")
-    }
+    includeMod("thedarkcolour:kotlinforforge-neoforge:$kotlinForgeVersion")
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
@@ -87,11 +71,6 @@ tasks {
                 "version" to project.version,
             ))
         }
-    }
-
-    shadowJar {
-        relocate("kotlin", "com.lambda.kotlin")
-        relocate("kotlinx", "com.lambda.kotlinx")
     }
 
     remapJar {

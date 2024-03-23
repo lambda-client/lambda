@@ -1,8 +1,7 @@
 val fabricLoaderVersion = property("fabric_loader_version").toString()
 val fabricApiVersion = property("fabric_api_version").toString()
-val kotlinVersion = property("kotlin_version").toString()
-val kotlinxCoroutinesVersion = property("kotlinx_coroutines_version").toString()
 val architecturyVersion = property("architectury_version").toString()
+val kotlinFabricVersion = property("kotlin_fabric_version").toString()
 
 architectury {
     platformSetupLoomIde()
@@ -24,7 +23,6 @@ val common: Configuration by configurations.creating {
 
 val includeLib: Configuration by configurations.creating
 val includeMod: Configuration by configurations.creating
-val shadowInclude: Configuration by configurations.creating
 
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
@@ -34,11 +32,7 @@ fun DependencyHandlerScope.setupConfigurations() {
 
     includeMod.dependencies.forEach {
         modImplementation(it)
-    }
-
-    shadowInclude.dependencies.forEach {
-        implementation(it)
-        shadowCommon(it)
+        include(it)
     }
 }
 
@@ -46,18 +40,12 @@ dependencies {
     // Fabric API (Do not touch)
     modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
 
-    // Remove the following line if you don't want to depend on the API
-    modApi("dev.architectury:architectury-fabric:$architecturyVersion")
-
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
 
     // Add mods to the mod jar
-    // includeMod(...)
-
-    // Add Kotlin
-    shadowInclude("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
+    includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion")
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }

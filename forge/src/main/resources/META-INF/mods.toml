@@ -1,5 +1,5 @@
-modLoader = "javafml"
-loaderVersion = "[48,)"
+modLoader = "kotlinforforge"
+loaderVersion = "[4.10,)"
 license = "GNU General Public License v3.0"
 issueTrackerURL = "https://github.com/lambda-client/lambda/issues"
 
@@ -27,8 +27,8 @@ issueTrackerURL = "https://github.com/lambda-client/lambda/issues"
     side = "CLIENT"
 
 [[dependencies.lambda]]
-    modId = "architectury"
+    modId = "kotlinforforge"
     mandatory = true
-    versionRange = "[11.0.7,)"
-    ordering = "AFTER"
+    versionRange = "[4.10,)"
+    ordering = "NONE"
     side = "CLIENT"

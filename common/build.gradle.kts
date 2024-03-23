@@ -20,9 +20,6 @@ dependencies {
     // Do NOT use other classes from fabric loader
     modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
 
-    // Remove the following line if you don't want to depend on the API
-    modApi("dev.architectury:architectury:$architecturyVersion")
-
     // Add dependencies on the required Kotlin modules.
     implementation("org.reflections:reflections:0.10.2")
 

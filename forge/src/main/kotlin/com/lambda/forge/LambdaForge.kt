@@ -8,7 +8,7 @@ import net.minecraftforge.fml.common.Mod
 
 
 @Mod(Lambda.MOD_ID)
-class LambdaForge {
+object LambdaForge {
     init {
         Lambda.initialize()
         LOG.info("$MOD_NAME Forge $VERSION initialized.")

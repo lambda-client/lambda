@@ -1,7 +1,7 @@
 val forgeVersion = property("forge_version").toString()
-val kotlinxCoroutinesVersion = property("kotlinx_coroutines_version").toString()
 val architecturyVersion = property("architectury_version").toString()
 val mixinExtrasVersion = property("mixinextras_version").toString()
+val kotlinForgeVersion = property("kotlin_forge_version").toString()
 
 architectury {
     platformSetupLoomIde()
@@ -34,6 +34,7 @@ loom {
 
 repositories {
     maven("https://cursemaven.com")
+    maven("https://thedarkcolour.github.io/KotlinForForge/")
 }
 
 val common: Configuration by configurations.creating {
@@ -48,22 +49,13 @@ val shadowInclude: Configuration by configurations.creating
 
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
-        implementation(it)
+        forgeRuntimeLibrary(it)
         include(it)
     }
 
-    // Please look at this before yelling at me
-    // https://docs.architectury.dev/loom/using_libraries/
     includeMod.dependencies.forEach {
-        implementation(it)
         forgeRuntimeLibrary(it)
         include(it)
-    }
-
-    shadowInclude.dependencies.forEach {
-        implementation(it)
-        forgeRuntimeLibrary(it)
-        shadowCommon(it)
     }
 }
 
@@ -71,22 +63,19 @@ dependencies {
     // Forge API
     forge("net.minecraftforge:forge:$forgeVersion")
 
-    // Remove the following line if you don't want to depend on the API
-    modApi("dev.architectury:architectury-forge:$architecturyVersion")
-
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
 
     // Add mods to the mod jar
-    // includeMod(...)
-
-    // Add Kotlin
-    shadowInclude("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
+    includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
 
     // MixinExtras
     implementation("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
+
+    // Fix KFF
+    compileOnly(kotlin("stdlib"))
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }

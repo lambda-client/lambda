@@ -7,7 +7,7 @@ import com.lambda.Lambda.MOD_NAME
 import com.lambda.Lambda.VERSION
 
 @Mod(Lambda.MOD_ID)
-class LambdaNeoForge {
+object LambdaNeoForge {
     init {
         Lambda.initialize()
         LOG.info("$MOD_NAME NeoForge $VERSION initialized.")

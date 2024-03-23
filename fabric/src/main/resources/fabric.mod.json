@@ -17,6 +17,7 @@
   "entrypoints": {
     "client": [
       {
+        "adapter": "kotlin",
         "value": "com.lambda.fabric.LambdaFabric"
       }
     ]
@@ -27,8 +28,8 @@
   "depends": {
     "fabricloader": ">=0.15.1",
     "fabric-api": ">=0.91.3+1.20.4",
-    "architectury": ">=11.0.8",
     "minecraft": "1.20.4",
+    "fabric-language-kotlin": ">=${kotlin_fabric_version}",
     "java": ">=17"
   }
 }
