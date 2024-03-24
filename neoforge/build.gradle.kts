@@ -1,7 +1,6 @@
 val neoVersion = property("neo_version").toString()
-val kotlinForgeVersion = property("kotlin_forge_version").toString()
 val architecturyVersion = property("architectury_version").toString()
-val mixinExtrasVersion = property("mixinextras_version").toString()
+val kotlinForgeVersion = property("kotlin_forge_version").toString()
 
 architectury {
     platformSetupLoomIde()
@@ -12,6 +11,9 @@ base.archivesName.set("${base.archivesName.get()}-neoforge")
 
 loom {
     accessWidenerPath.set(project(":common").loom.accessWidenerPath)
+    neoForge {
+        enableTransitiveAccessWideners = true
+    }
 }
 
 repositories {
@@ -31,11 +33,14 @@ val includeMod: Configuration by configurations.creating
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
         implementation(it)
+        forgeRuntimeLibrary(it)
         include(it)
     }
 
     includeMod.dependencies.forEach {
         implementation(it)
+        forgeRuntimeLibrary(it)
+        include(it)
     }
 }
 
@@ -43,11 +48,9 @@ dependencies {
     // NeoForge API
     neoForge("net.neoforged:neoforge:$neoVersion")
 
-    // Remove the following line if you don't want to depend on the API
-    modApi("dev.architectury:architectury-neoforge:$architecturyVersion")
-
     // Add dependencies on the required Kotlin modules.
-    // includeLib(...)
+    includeLib("org.reflections:reflections:0.10.2")
+    includeLib("org.javassist:javassist:3.28.0-GA")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge-neoforge:$kotlinForgeVersion")
@@ -62,11 +65,26 @@ dependencies {
 
 tasks {
     processResources {
+        inputs.property("group", project.group)
         inputs.property("version", project.version)
 
         filesMatching("META-INF/mods.toml") {
             expand(getProperties())
-            expand(mutableMapOf("version" to project.version))
+            expand(mutableMapOf(
+                "group" to project.group,
+                "version" to project.version,
+            ))
         }
+    }
+
+    remapJar {
+        atAccessWideners.add("lambda.accesswidener")
+        injectAccessWidener.set(true)
+    }
+
+    sourceSets.forEach {
+        val dir = layout.buildDirectory.dir("sourcesSets/${it.name}")
+        it.output.setResourcesDir(dir)
+        it.java.destinationDirectory.set(dir)
     }
 }

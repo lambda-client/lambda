@@ -1,7 +1,7 @@
 val fabricLoaderVersion = property("fabric_loader_version").toString()
 val fabricApiVersion = property("fabric_api_version").toString()
-val fabricKotlinVersion = property("fabric_kotlin_version").toString()
 val architecturyVersion = property("architectury_version").toString()
+val kotlinFabricVersion = property("kotlin_fabric_version").toString()
 
 architectury {
     platformSetupLoomIde()
@@ -32,26 +32,21 @@ fun DependencyHandlerScope.setupConfigurations() {
 
     includeMod.dependencies.forEach {
         modImplementation(it)
+        include(it)
     }
 }
 
 dependencies {
     // Fabric API (Do not touch)
     modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
-    modApi("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
-
-    // Remove the following line if you don't want to depend on the API
-    modApi("dev.architectury:architectury-fabric:$architecturyVersion")
-
-    // Kotlin for Fabric
-    modImplementation("net.fabricmc:fabric-language-kotlin:$fabricKotlinVersion")
 
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
-    includeLib("org.javassist:javassist:3.27.0-GA")
+    includeLib("org.javassist:javassist:3.28.0-GA")
 
     // Add mods to the mod jar
-    // includeMod(...)
+    includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
+    includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion")
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
@@ -70,7 +65,7 @@ tasks {
             expand(getProperties())
             expand(mutableMapOf(
                 "group" to project.group,
-                "version" to project.version
+                "version" to project.version,
             ))
         }
     }
