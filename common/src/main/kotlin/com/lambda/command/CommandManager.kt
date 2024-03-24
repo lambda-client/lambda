@@ -116,7 +116,17 @@ object CommandManager : Configurable(LambdaConfig), Loadable {
     override fun load(): String {
         Reflections(
             ConfigurationBuilder()
-                .setUrls(ClasspathHelper.forPackage("com.lambda.command.commands"))
+                // Let's hope the maintainer of the library releases a new version soon
+                // because this is horrible, it takes multiple SECONDS to scan the classpath,
+                // and it's not even that big
+                //
+                // The culprit may be due to [ClasspathHelper.forClassLoader()] loading
+                // the classes from the main thread while we are in a different thread.
+                // If this is the case I wish the maintainer a very bad day.
+                .addUrls(ClasspathHelper.forJavaClassPath())
+                .addUrls(ClasspathHelper.forClassLoader())
+                .filterInputsBy { it.contains("lambda") }
+                .forPackage("com.lambda.command.commands")
                 .setScanners(Scanners.SubTypes)
         ).getSubTypesOf(LambdaCommand::class.java).forEach { commandClass ->
             commandClass.declaredFields.find {

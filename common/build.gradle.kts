@@ -1,9 +1,10 @@
 val fabricLoaderVersion = property("fabric_loader_version").toString()
-val fabricKotlinVersion = property("fabric_kotlin_version").toString()
 val mixinExtrasVersion = property("mixinextras_version").toString()
+val kotlinVersion = property("kotlin_version").toString()
+val kotlinxCoroutinesVersion = property("kotlinx_coroutines_version").toString()
 val architecturyVersion = property("architectury_version").toString()
 
-architectury { common("fabric", "forge", "neoforge", "quilt") }
+architectury { common("fabric", "forge", "neoforge") }
 
 loom {
     silentMojangMappingsLicense()
@@ -12,10 +13,6 @@ loom {
 
 repositories {
     maven("https://maven.fabricmc.net/")
-    maven("https://jitpack.io")
-
-    mavenCentral()
-    mavenLocal()
 }
 
 dependencies {
@@ -23,13 +20,11 @@ dependencies {
     // Do NOT use other classes from fabric loader
     modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
 
-    // Remove the following line if you don't want to depend on the API
-    modApi("dev.architectury:architectury:$architecturyVersion")
-
     // Add dependencies on the required Kotlin modules.
-    modImplementation("net.fabricmc:fabric-language-kotlin:$fabricKotlinVersion")
     implementation("org.reflections:reflections:0.10.2")
-    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
+
+    // Add Kotlin
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
 }
 
 // Avoid nested jars
