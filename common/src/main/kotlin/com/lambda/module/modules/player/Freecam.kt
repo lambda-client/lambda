@@ -4,6 +4,7 @@ import com.lambda.Lambda.mc
 import com.lambda.config.RotationSettings
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.rotation.Rotation
@@ -109,6 +110,11 @@ object Freecam : Module(
             velocity = velocity.add(velocityDelta).multiply(0.6)
             prevPosition = position
             position = position.add(velocity)
+        }
+
+        listener<RenderEvent.UpdateTarget> {
+            it.cancel()
+            updateTarget()
         }
 
         listener<ConnectionEvent.Disconnect> {

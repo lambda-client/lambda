@@ -43,18 +43,6 @@ object RotationManager : Loadable {
             }
         }
 
-    @JvmStatic
-    fun updateInterpolated() = runSafe {
-        if (currentRequest == null) return@runSafe
-        if (currentRequest?.config?.rotationMode != RotationMode.LOCK) return@runSafe
-        val interpolation = prevRotation.interpolate(currentRotation, mc.tickDelta.toDouble())
-
-//        val rot = interpolation.fixSensitivity(prevRotation)
-
-        player.yaw = interpolation.yaw.toFloat()
-        player.pitch = interpolation.pitch.toFloat()
-    }
-
     init {
         listener<PacketEvent.Send.Post> { event ->
             val packet = event.packet
@@ -63,6 +51,17 @@ object RotationManager : Loadable {
             runOnGameThread {
                 reset(Rotation(packet.yaw, packet.pitch))
             }
+        }
+
+        listener<RenderEvent.UpdateTarget> {
+            if (currentRequest == null) return@listener
+            if (currentRequest?.config?.rotationMode != RotationMode.LOCK) return@listener
+            val interpolation = prevRotation.interpolate(currentRotation, mc.tickDelta.toDouble())
+
+//        val rot = interpolation.fixSensitivity(prevRotation)
+
+            player.yaw = interpolation.yaw.toFloat()
+            player.pitch = interpolation.pitch.toFloat()
         }
 
         unsafeListener<ConnectionEvent.Disconnect> {

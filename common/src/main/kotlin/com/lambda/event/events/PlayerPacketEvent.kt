@@ -1,8 +1,8 @@
 package com.lambda.event.events
 
 import com.lambda.event.Event
-import com.lambda.event.cancellable.Cancellable
-import com.lambda.event.cancellable.ICancellable
+import com.lambda.event.callback.Cancellable
+import com.lambda.event.callback.ICancellable
 import com.lambda.interaction.rotation.Rotation
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.util.math.Vec3d

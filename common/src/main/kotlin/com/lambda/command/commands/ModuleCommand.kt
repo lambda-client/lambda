@@ -17,7 +17,7 @@ import com.lambda.util.StringUtils
 import com.lambda.util.text.*
 import com.lambda.util.text.ClickEvents.suggestCommand
 
-object ModuleCommand : LambdaCommand() {
+object ModuleCommand : LambdaCommand {
     override val name = "module"
 
     init {

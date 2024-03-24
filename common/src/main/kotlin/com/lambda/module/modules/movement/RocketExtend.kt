@@ -14,8 +14,7 @@ import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 object RocketExtend : Module(
     name = "RocketExtend",
     description = "Extends rocket length on grim",
-    defaultTags = setOf(ModuleTag.MOVEMENT),
-    defaultKeybind = KeyCode.GraveAccent
+    defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
     private var extendedRockets = mutableListOf<FireworkRocketEntity>()
     private var pingPacket: CommonPongC2SPacket? = null
@@ -30,7 +29,7 @@ object RocketExtend : Module(
                 val rockets = event.packet.entityIds.map(world::getEntityById)
                     .filter { it is FireworkRocketEntity && it.shooter == player }
                     .mapNotNull { it as? FireworkRocketEntity }
-                    .also { event.packet.entityIds.removeAll(it.map(FireworkRocketEntity::getId)) }
+                    .also { event.packet.entityIds.removeAll(it.map(FireworkRocketEntity::getId).toSet()) }
                 extendedRockets.addAll(rockets)
             }
         }
@@ -41,7 +40,7 @@ object RocketExtend : Module(
                 lastPingTime = System.currentTimeMillis()
                 return@listener
             }
-            if(System.currentTimeMillis() - lastPingTime > keepAliveTime * 1000) {
+            if (System.currentTimeMillis() - lastPingTime > keepAliveTime * 1000) {
                 reset()
                 return@listener
             }

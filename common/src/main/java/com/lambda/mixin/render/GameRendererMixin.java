@@ -1,5 +1,8 @@
 package com.lambda.mixin.render;
 
+import com.lambda.event.EventFlow;
+import com.lambda.event.events.RenderEvent;
+import com.lambda.interaction.RotationManager;
 import com.lambda.module.modules.player.Freecam;
 import net.minecraft.client.render.GameRenderer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -11,9 +14,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class GameRendererMixin {
     @Inject(method = "updateTargetedEntity", at = @At("HEAD"), cancellable = true)
     private void updateTargetedEntityInvoke(float tickDelta, CallbackInfo info) {
-        if (!Freecam.INSTANCE.isEnabled()) return;
-
-        info.cancel();
-        Freecam.updateTarget();
+        if (EventFlow.post(new RenderEvent.UpdateTarget()).isCanceled()) {
+            info.cancel();
+        }
     }
 }

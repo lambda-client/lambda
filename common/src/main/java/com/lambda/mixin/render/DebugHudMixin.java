@@ -1,4 +1,4 @@
-package com.lambda.mixin;
+package com.lambda.mixin.render;
 
 import com.lambda.util.DebugInfoHud;
 import net.minecraft.client.gui.hud.DebugHud;
