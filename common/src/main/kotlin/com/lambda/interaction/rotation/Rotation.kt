@@ -14,7 +14,7 @@ import kotlin.math.*
 data class Rotation(val yaw: Double, val pitch: Double) {
     constructor(yaw: Float, pitch: Float) : this(yaw.toDouble(), pitch.toDouble())
 
-    private val rotationVector: Vec3d get() {
+    val vector: Vec3d get() {
         val yawRad = -yaw.toRadian()
         val pitchRad = pitch.toRadian()
 
@@ -22,13 +22,16 @@ data class Rotation(val yaw: Double, val pitch: Double) {
             .multiply(Vec3d(cos(pitchRad), sin(pitchRad), cos(pitchRad)))
     }
 
+    fun withDelta(yaw: Double = 0.0, pitch: Double = 0.0) =
+        Rotation(this.yaw + yaw, (this.pitch + pitch).coerceIn(-90.0, 90.0))
+
     fun rayCast(
         reach: Double,
         mask: RayCastMask = RayCastMask.BOTH,
         eye: Vec3d? = null,
         fluids: Boolean = false
     ) = runSafe {
-        rayCast(eye ?: player.eyePos, rotationVector, reach, mask, fluids)
+        rayCast(eye ?: player.eyePos, vector, reach, mask, fluids)
     }
 
     val Direction.yaw: Float
@@ -46,17 +49,17 @@ data class Rotation(val yaw: Double, val pitch: Double) {
 
         private fun wrap(deg: Double) = MathHelper.wrapDegrees(deg)
 
-        fun interpolate(a: Rotation, b: Rotation, speed: Double): Rotation {
-            val yawDiff = wrap(b.yaw - a.yaw)
-            val pitchDiff = wrap(b.pitch - a.pitch)
+        fun Rotation.interpolate(other: Rotation, delta: Double): Rotation {
+            val yawDiff = wrap(other.yaw - yaw)
+            val pitchDiff = wrap(other.pitch - pitch)
 
             val diff = hypot(yawDiff, pitchDiff)
 
-            val yawSpeed = abs(yawDiff / diff) * speed
-            val pitchSpeed = abs(pitchDiff / diff) * speed
+            val yawSpeed = abs(yawDiff / diff) * delta
+            val pitchSpeed = abs(pitchDiff / diff) * delta
 
-            val yaw = a.yaw + yawDiff.coerceIn(-yawSpeed, yawSpeed)
-            val pitch = a.pitch + pitchDiff.coerceIn(-pitchSpeed, pitchSpeed)
+            val yaw = yaw + yawDiff.coerceIn(-yawSpeed, yawSpeed)
+            val pitch = pitch + pitchDiff.coerceIn(-pitchSpeed, pitchSpeed)
 
             return Rotation(yaw, pitch)
         }

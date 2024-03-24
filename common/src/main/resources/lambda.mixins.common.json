@@ -15,7 +15,12 @@
     "PlayerEntityMixin",
     "entity.ClientPlayerEntityMixin",
     "entity.EntityMixin",
-    "entity.LivingEntityMixin"
+    "entity.LivingEntityMixin",
+    "input.KeyboardInputMixin",
+    "input.MouseMixin",
+    "render.CameraMixin",
+    "render.GameRendererMixin",
+    "render.WorldRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
