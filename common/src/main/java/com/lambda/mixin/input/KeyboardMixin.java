@@ -1,4 +1,4 @@
-package com.lambda.mixin;
+package com.lambda.mixin.input;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.KeyPressEvent;

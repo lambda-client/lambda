@@ -1,24 +1,22 @@
 package com.lambda.interaction
 
-import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.Loadable
 import com.lambda.config.RotationSettings
 import com.lambda.event.EventFlow
-import com.lambda.event.events.ConnectionEvent
-import com.lambda.event.events.PacketEvent
-import com.lambda.event.events.RotationEvent
-import com.lambda.event.events.TickEvent
+import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
-import com.lambda.interaction.rotation.*
+import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.angleDifference
 import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
 import com.lambda.interaction.rotation.Rotation.Companion.interpolate
+import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationMode
+import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runOnGameThread
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication.info
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
@@ -27,7 +25,8 @@ import net.minecraft.client.input.KeyboardInput
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.math.MathHelper
-import kotlin.math.*
+import kotlin.math.roundToInt
+import kotlin.math.sign
 
 object RotationManager : Loadable {
     var currentRotation = Rotation.ZERO
@@ -48,19 +47,6 @@ object RotationManager : Loadable {
             }
         }
 
-    @JvmStatic
-    fun updateInterpolated() = runSafe {
-//        if (currentRequest == null) return@runSafe
-//        val interpolation = interpolate(prevRotation, currentRotation, mc.tickDelta.toDouble())
-//
-//        val rot = interpolation.fixSensitivity(prevRotation)
-//
-//        if (currentRequest?.config?.rotationMode == RotationMode.LOCK) {
-//            player.yaw = rot.yaw.toFloat()
-//            player.pitch = rot.pitch.toFloat()
-//        }
-    }
-
     init {
         listener<PacketEvent.Send.Post> { event ->
             val packet = event.packet
@@ -69,6 +55,17 @@ object RotationManager : Loadable {
             runOnGameThread {
                 reset(Rotation(packet.yaw, packet.pitch))
             }
+        }
+
+        listener<RenderEvent.UpdateTarget> {
+            if (currentRequest == null) return@listener
+            if (currentRequest?.config?.rotationMode != RotationMode.LOCK) return@listener
+            val interpolation = prevRotation.interpolate(currentRotation, mc.tickDelta.toDouble())
+
+//        val rot = interpolation.fixSensitivity(prevRotation)
+
+            player.yaw = interpolation.yaw.toFloat()
+            player.pitch = interpolation.pitch.toFloat()
         }
 
         unsafeListener<ConnectionEvent.Disconnect> {
@@ -105,7 +102,7 @@ object RotationManager : Loadable {
 
         val turnSpeed = context.config.turnSpeed * speedMultiplier
 
-        val interpolation = interpolate(prevRotation, rotationTo, turnSpeed)
+        val interpolation = prevRotation.interpolate(rotationTo, turnSpeed)
 
         currentRotation = interpolation.fixSensitivity(prevRotation)
 
@@ -182,6 +179,10 @@ object RotationManager : Loadable {
         init {
             listener<TickEvent.Post> {
                 baritoneContext = null
+            }
+
+            listener<MovementEvent.InputUpdate> {
+                processPlayerMovement()
             }
         }
 

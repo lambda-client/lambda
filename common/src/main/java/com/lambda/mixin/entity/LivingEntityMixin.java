@@ -38,7 +38,7 @@ public abstract class LivingEntityMixin extends EntityMixin {
 
         if (self.isSprinting()) {
             Float yaw = RotationManager.getMovementYaw();
-            float f = ((yaw != null) ? yaw : self.getYaw()) * ((float)Math.PI / 180);
+            float f = ((yaw != null) ? yaw : self.getYaw()) * ((float) Math.PI / 180);
             self.setVelocity(self.getVelocity().add(-MathHelper.sin(f) * 0.2f, 0.0, MathHelper.cos(f) * 0.2f));
         }
 

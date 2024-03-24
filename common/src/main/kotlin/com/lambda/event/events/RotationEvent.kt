@@ -1,8 +1,8 @@
 package com.lambda.event.events
 
 import com.lambda.event.Event
-import com.lambda.event.cancellable.Cancellable
-import com.lambda.event.cancellable.ICancellable
+import com.lambda.event.callback.Cancellable
+import com.lambda.event.callback.ICancellable
 import com.lambda.interaction.InteractionConfig
 import com.lambda.interaction.RotationManager
 import com.lambda.interaction.rotation.IRotationConfig
@@ -24,7 +24,7 @@ abstract class RotationEvent : Event {
         init {
             // Always check if baritone wants to rotate as well
             RotationManager.BaritoneProcessor.baritoneContext?.let { context ->
-                requests.add(RotationRequest(-1, context.config, context.rotation))
+                requests.add(RotationRequest(context.config, context.rotation, -1))
             }
         }
 
@@ -62,5 +62,6 @@ abstract class RotationEvent : Event {
             }
         }
     }
+
     class Post(val request: RotationRequest) : RotationEvent()
 }

@@ -1,4 +1,4 @@
-package com.lambda.mixin;
+package com.lambda.mixin.entity;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
@@ -12,8 +12,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class PlayerEntityMixin {
     @Inject(method = "clipAtLedge", at = @At(value = "HEAD"), cancellable = true)
     private void injectSafeWalk(CallbackInfoReturnable<Boolean> cir) {
-        if (EventFlow.post(new MovementEvent.ClipAtLedge()).isCanceled()) {
-            cir.setReturnValue(true);
-        }
+        MovementEvent.ClipAtLedge event = new MovementEvent.ClipAtLedge(cir.getReturnValueZ());
+        EventFlow.post(event);
+        cir.setReturnValue(event.getReturnValue());
     }
 }

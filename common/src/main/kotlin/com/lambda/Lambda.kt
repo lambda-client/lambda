@@ -12,7 +12,6 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.awt.Color
 
-
 object Lambda {
     const val MOD_NAME = "Lambda"
     const val MOD_ID = "lambda"

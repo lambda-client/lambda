@@ -34,7 +34,11 @@ object MovementUtils {
     val SafeContext.verticalMovement get() =
         player.input.jumping.toInt() - player.input.sneaking.toInt()
 
-    fun SafeContext.calcMoveYaw(yawIn: Float = player.moveYaw, moveForward: Float = roundedForward, moveStrafe: Float = roundedStrafing): Double {
+    fun SafeContext.calcMoveYaw(
+        yawIn: Float = player.moveYaw,
+        moveForward: Float = roundedForward,
+        moveStrafe: Float = roundedStrafing,
+    ): Double {
         var strafe = 90 * moveStrafe
         strafe *= if (moveForward != 0F) moveForward * 0.5F else 1F
 

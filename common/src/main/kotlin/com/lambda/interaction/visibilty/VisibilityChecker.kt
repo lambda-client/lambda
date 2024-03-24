@@ -12,7 +12,9 @@ import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.primitives.extension.component6
 import net.minecraft.util.hit.HitResult
-import net.minecraft.util.math.*
+import net.minecraft.util.math.Box
+import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3d
 import java.util.*
 
 object VisibilityChecker {
@@ -23,7 +25,7 @@ object VisibilityChecker {
         priority: Int = 0,
         sides: Set<Direction> = emptySet(),
         hitCheck: HitResult.() -> Boolean,
-    ) : RotationRequest? {
+    ): RotationRequest? {
         val eye = player.getCameraPosVec(mc.tickDelta)
 
         if (boxes.any { it.contains(eye) }) {
@@ -73,16 +75,21 @@ object VisibilityChecker {
 
         // Rotate to selected point
         closestRotation?.let { rotation ->
-            return RotationRequest(priority, rotationConfig, rotation)
+            return RotationRequest(rotationConfig, rotation, priority)
         }
 
         return null
     }
 
     private fun stay(priority: Int = 0, config: IRotationConfig) =
-        RotationRequest(priority, config, RotationManager.currentRotation)
+        RotationRequest(config, RotationManager.currentRotation, priority)
 
-    inline fun SafeContext.scanVisibleSurfaces(box: Box, sides: Set<Direction>, resolution: Int, check: (Vec3d) -> Unit) {
+    inline fun SafeContext.scanVisibleSurfaces(
+        box: Box,
+        sides: Set<Direction>,
+        resolution: Int,
+        check: (Vec3d) -> Unit,
+    ) {
         val shrunk = box.expand(-0.005)
         getVisibleSides(box)
             .forEach { side ->
@@ -93,9 +100,9 @@ object VisibilityChecker {
                 val stepX = (maxX - minX) / resolution
                 val stepY = (maxY - minY) / resolution
                 val stepZ = (maxZ - minZ) / resolution
-                for (i in 0 .. resolution) {
+                for (i in 0..resolution) {
                     val x = if (stepX != 0.0) minX + stepX * i else minX
-                    for (j in 0 .. resolution) {
+                    for (j in 0..resolution) {
                         val y = if (stepY != 0.0) minY + stepY * j else minY
                         val z = if (stepZ != 0.0) minZ + stepZ * ((if (stepX != 0.0) j else i)) else minZ
                         check(Vec3d(x, y, z))
@@ -130,12 +137,13 @@ object VisibilityChecker {
         diff: Double,
         limit: Double,
         negativeSide: Direction,
-        positiveSide: Direction
+        positiveSide: Direction,
     ) = apply {
         when {
             diff < -limit -> {
                 add(negativeSide)
             }
+
             diff > limit -> {
                 add(positiveSide)
             }

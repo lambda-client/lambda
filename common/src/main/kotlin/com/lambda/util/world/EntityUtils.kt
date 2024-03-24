@@ -22,7 +22,11 @@ object EntityUtils {
      * @param predicate Optional predicate to filter entities.
      * @return The closest entity of type [T] within the specified range, or null if none is found.
      */
-    inline fun <reified T : Entity> SafeContext.getClosestEntity(pos: Vec3d, range: Double, noinline predicate: (T) -> Boolean = { true }): T? {
+    inline fun <reified T : Entity> SafeContext.getClosestEntity(
+        pos: Vec3d,
+        range: Double,
+        noinline predicate: (T) -> Boolean = { true },
+    ): T? {
         return getFastEntities(pos, range, predicate).firstOrNull { it.pos.squaredDistanceTo(pos) <= range * range }
     }
 
@@ -34,7 +38,11 @@ object EntityUtils {
      * @param predicate Optional predicate to filter entities.
      * @return A list of entities of type [T] within the specified distance from the position.
      */
-    inline fun <reified T : Entity> SafeContext.getFastEntities(pos: Vec3d, distance: Double, noinline predicate: (T) -> Boolean = { true }): List<T> {
+    inline fun <reified T : Entity> SafeContext.getFastEntities(
+        pos: Vec3d,
+        distance: Double,
+        noinline predicate: (T) -> Boolean = { true },
+    ): List<T> {
         val chunks = ceil(distance / 16).toInt()
         val sectionX = pos.x.toInt() shr 4
         val sectionY = pos.y.toInt() shr 4

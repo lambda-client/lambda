@@ -1,4 +1,4 @@
-package com.lambda.mixin;
+package com.lambda.mixin.render;
 
 import com.lambda.command.CommandManager;
 import com.mojang.brigadier.CommandDispatcher;

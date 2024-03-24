@@ -10,11 +10,15 @@ object SafeWalk : Module(
     description = "Keeps you at the edge",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
-    private val realisticCollision = setting("Collide", true, "Realistic collision on the edge")
+    private val realisticCollision by setting("Collide", true, "Realistic collision on the edge")
 
     init {
+//        listener<MovementEvent.Post> {
+//            if (realisticCollision) player.velocity = Vec3d.ZERO
+//        }
+
         listener<MovementEvent.ClipAtLedge> {
-            it.cancel()
+            it.returnValue = true
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.lambda.event.cancellable
+package com.lambda.event.callback
 
 import com.lambda.event.CallbackEvent
 import java.util.concurrent.atomic.AtomicBoolean

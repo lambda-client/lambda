@@ -10,6 +10,11 @@ accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minec
 
 # Entity
 accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Lnet/minecraft/entity/LivingEntity;
+accessible method net/minecraft/entity/Entity movementInputToVelocity (Lnet/minecraft/util/math/Vec3d;FF)Lnet/minecraft/util/math/Vec3d;
+
+# Camera
+accessible method net/minecraft/client/render/Camera setPos (DDD)V
+accessible method net/minecraft/client/render/Camera setRotation (FF)V
 
 # Text
 accessible field net/minecraft/text/Style color Lnet/minecraft/text/TextColor;

@@ -10,7 +10,8 @@ abstract class ConnectionEvent : Event {
         val host: String,
         port: Int,
         listener: PacketListener,
-        intent: ConnectionIntent
+        intent: ConnectionIntent,
     ) : ConnectionEvent()
+
     class Disconnect(val reason: Text) : ConnectionEvent()
 }

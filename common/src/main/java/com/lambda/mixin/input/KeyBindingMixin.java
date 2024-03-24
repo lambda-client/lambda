@@ -1,4 +1,4 @@
-package com.lambda.mixin;
+package com.lambda.mixin.input;
 
 import com.lambda.module.modules.movement.Sprint;
 import net.minecraft.client.option.KeyBinding;

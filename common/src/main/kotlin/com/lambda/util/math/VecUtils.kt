@@ -1,13 +1,8 @@
 package com.lambda.util.math
 
-import com.lambda.context.SafeContext
 import com.lambda.util.math.MathUtils.sq
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Box
-import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
-import java.util.*
 
 object VecUtils {
     infix fun Vec3d.dist(other: Vec3d) =

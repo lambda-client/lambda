@@ -34,7 +34,7 @@ import com.lambda.util.Nameable
  * If a module does not need to be activated by a key (like [ClickGUI]),
  * the default [keybind] should not be set (using [KeyCode.Unbound]).
  *
- * [Module]s are [Configurable] with [settings] (see [AbstractSetting] for all setting types).
+ * [Module]s are [Configurable]s with [settings] (see [AbstractSetting] for all setting types).
  * For example, a [BooleanSetting] and a [DoubleSetting] can be defined like this:
  * ```kotlin
  * private val foo by setting("Foo", true)

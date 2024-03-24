@@ -29,12 +29,14 @@ object PlayerPacketManager : Loadable {
     @JvmStatic
     fun sendPlayerPackets() {
         runSafe {
-            EventFlow.post(PlayerPacketEvent.Pre(
-                player.pos,
-                RotationManager.currentRotation,
-                player.isOnGround,
-                player.isSprinting
-            )) {
+            EventFlow.post(
+                PlayerPacketEvent.Pre(
+                    player.pos,
+                    RotationManager.currentRotation,
+                    player.isOnGround,
+                    player.isSprinting
+                )
+            ) {
                 updatePlayerPackets(this)
             }
         }
@@ -53,14 +55,16 @@ object PlayerPacketManager : Loadable {
         RotationManager.currentRotation = rotation
 
         if (player.hasVehicle()) {
-            connection.sendPacket(Full(
-                player.motionX,
-                -999.0,
-                player.motionZ,
-                rotation.yaw.toFloat(),
-                rotation.pitch.toFloat(),
-                ground
-            ))
+            connection.sendPacket(
+                Full(
+                    player.motionX,
+                    -999.0,
+                    player.motionZ,
+                    rotation.yaw.toFloat(),
+                    rotation.pitch.toFloat(),
+                    ground
+                )
+            )
             lastRotation = rotation
             return
         }
@@ -77,15 +81,19 @@ object PlayerPacketManager : Loadable {
             updatePosition && updateRotation -> {
                 Full(x, y, z, yaw, pitch, ground)
             }
+
             updatePosition -> {
                 PositionAndOnGround(x, y, z, ground)
             }
+
             updateRotation -> {
                 LookAndOnGround(yaw, pitch, ground)
             }
+
             lastOnGround != ground -> {
                 OnGroundOnly(ground)
             }
+
             else -> null
         }
 
