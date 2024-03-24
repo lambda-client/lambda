@@ -47,10 +47,16 @@ object DiscordRPC : Module(
 
     init {
         onEnableUnsafe {
-            runConcurrent(rpc::connect)
+            runConcurrent {
+                rpc.connect()
+            }
         }
 
-        onDisableUnsafe(rpc::disconnect)
+        onDisableUnsafe {
+            runConcurrent {
+                if (rpc.connected) rpc.disconnect()
+            }
+        }
 
         runConcurrent {
             rpc.on<ReadyEvent> {
