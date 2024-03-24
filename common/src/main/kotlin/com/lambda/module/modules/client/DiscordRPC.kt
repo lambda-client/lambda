@@ -100,11 +100,9 @@ object DiscordRPC : Module(
                 timestamps(System.currentTimeMillis())
             }
 
-            rpc.subscribe(DiscordEvent.CurrentUserUpdate)
             rpc.subscribe(DiscordEvent.ActivityJoinRequest)
             rpc.subscribe(DiscordEvent.ActivityJoin)
             rpc.subscribe(DiscordEvent.ActivityInvite)
-            rpc.subscribe(DiscordEvent.ActivitySpectate)
         }
 
         rpc.on<ActivityInviteEvent> {
