@@ -7,15 +7,17 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.onShutdown
 import com.lambda.threading.runConcurrent
+import com.lambda.util.Communication.info
 import com.lambda.util.Nameable
 import dev.cbyrne.kdiscordipc.KDiscordIPC
 import dev.cbyrne.kdiscordipc.core.event.DiscordEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ActivityInviteEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ActivityJoinEvent
-import dev.cbyrne.kdiscordipc.core.event.impl.DisconnectedEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ReadyEvent
 import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.ErrorPacket
+import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.SetActivityPacket
 import dev.cbyrne.kdiscordipc.data.activity.*
+import dev.cbyrne.kdiscordipc.data.user.User
 import java.util.*
 
 object DiscordRPC : Module(
@@ -23,13 +25,13 @@ object DiscordRPC : Module(
     description = "Discord Rich Presence configuration",
     defaultTags = setOf(ModuleTag.CLIENT)
 ) {
-    private val details by setting("Details", "Playing on Lambda")
+    private val playDetails by setting("Details", "Playing on Lambda")
     private val playState by setting("Play State", "Playing")
 
-    private val partyId by setting("Party ID", UUID.randomUUID().toString())
-    private val joinSecret by setting("Join Secret", UUID.randomUUID().toString())
-    private val partySize by setting("Party Size", 1, 1..100, 1)
-    private val partyMax by setting("Party Max", 2, 2..100, 1)
+    private var joinSecret by setting("Join Secret", UUID.randomUUID().toString(), visibility = { false })
+    private var partyId by setting("Party ID", UUID.randomUUID().toString(), visibility = { false })
+    private var partySize by setting("Party Size", 1, 1..16, 1, visibility = { false })
+    private var partyMax by setting("Party Max Size", 16, 16..16, 1, visibility = { false })
 
     private val confirmCoordinates by setting("Show Coordinates", false)
     private val confirmServer by setting("Show Server", false)
@@ -41,6 +43,7 @@ object DiscordRPC : Module(
     private val delay by setting("Update Delay", 200, 200..2000, 1, unit = "ms")
 
     private val rpc = KDiscordIPC("1221289599427416127", scope = EventFlow.lambdaScope)
+    private lateinit var lastInviter: User
 
     private enum class LineInfo(val value: String) : Nameable {
         VERSION(Lambda.VERSION),
@@ -59,47 +62,56 @@ object DiscordRPC : Module(
     }
 
     init {
-        onEnableUnsafe {
-            runConcurrent {
-                rpc.connect()
-            }
-        }
-
-        onDisableUnsafe(::shutdown)
-        onShutdown(::shutdown)
-
         runConcurrent {
             rpc.on<ReadyEvent> {
-                Lambda.LOG.info("Discord RPC connected.")
+                Lambda.LOG.info("Discord RPC connected to ${data.user.username}.")
 
                 rpc.activityManager.setActivity {
-                    //timestamps(System.currentTimeMillis())
+                    details = playDetails
+                    state = playState
+
                     largeImage("lambda", Lambda.VERSION)
 
-                    button("Download", "https://github.com/lambda-client/lambda/releases/latest")
-
-                    //party(partyId, partySize, partyMax)
-                    //secrets(joinSecret)
+                    party(partyId, partySize, partyMax)
+                    secrets(joinSecret)
+                    timestamps(System.currentTimeMillis())
                 }
 
                 rpc.subscribe(DiscordEvent.CurrentUserUpdate)
                 rpc.subscribe(DiscordEvent.ActivityJoinRequest)
                 rpc.subscribe(DiscordEvent.ActivityJoin)
                 rpc.subscribe(DiscordEvent.ActivityInvite)
+                rpc.subscribe(DiscordEvent.ActivitySpectate)
             }
 
             rpc.on<ActivityInviteEvent> {
-                Lambda.LOG.info("Discord RPC invite: $data")
+                lastInviter = data.user
+                info("${lastInviter.username} has invited you to play")
+                rpc.activityManager.acceptInvite(data) // TODO: Click button to join
             }
 
             rpc.on<ActivityJoinEvent> {
-                Lambda.LOG.info("Discord RPC join: $data")
+                joinSecret = data.secret
+                info("Joined ${lastInviter.username}'s party.") // TODO: Join server button
             }
 
-            rpc.on<ErrorPacket> {
-                Lambda.LOG.error("Discord RPC error: $message")
+            rpc.on<SetActivityPacket> {
+                partyId = data?.party?.id ?: partyId
+                partySize = data?.party?.size?.currentSize ?: partySize
+                partyMax = data?.party?.size?.maxSize ?: partyMax
             }
+
+            rpc.connect()
         }
+
+        /*onEnableUnsafe {
+            runConcurrent {
+                rpc.connect()
+            }
+        }*/
+
+        onDisableUnsafe(::shutdown)
+        onShutdown(::shutdown)
     }
 
     private fun shutdown() {
