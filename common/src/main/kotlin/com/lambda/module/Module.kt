@@ -6,6 +6,7 @@ import com.lambda.config.Configuration
 import com.lambda.config.configurations.ModuleConfig
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.numeric.DoubleSetting
+import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.KeyPressEvent
 import com.lambda.event.listener.Listener
@@ -93,10 +94,10 @@ abstract class Module(
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.Unbound,
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
-    private val isEnabledSetting = setting("Enabled", enabledByDefault, { false })
+    private val isEnabledSetting = setting("Enabled", enabledByDefault, visibility = { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)
     private val isVisible = setting("Visible", true)
-    private val customTags = setting("Tags", defaultTags, { false })
+    private val customTags = setting("Tags", defaultTags, visibility = { false })
 
     var isEnabled by isEnabledSetting
     override val isMuted: Boolean
@@ -105,7 +106,7 @@ abstract class Module(
 
     init {
         listener<KeyPressEvent>(alwaysListen = true) { event ->
-            if (event.key == keybind.key && mc.currentScreen == null) {
+            if (mc.currentScreen == null && event.key == keybind.key) {
                 toggle()
             }
         }
@@ -123,19 +124,19 @@ abstract class Module(
         isEnabled = !isEnabled
     }
 
-    protected fun onEnable(block: () -> Unit) {
+    protected fun onEnable(block: SafeContext.() -> Unit) {
         isEnabledSetting.listener { from, to ->
             if (!from && to) block()
         }
     }
 
-    protected fun onDisable(block: () -> Unit) {
+    protected fun onDisable(block: SafeContext.() -> Unit) {
         isEnabledSetting.listener { from, to ->
             if (from && !to) block()
         }
     }
 
-    protected fun onToggle(block: (to: Boolean) -> Unit) {
+    protected fun onToggle(block: SafeContext.(to: Boolean) -> Unit) {
         isEnabledSetting.listener { from, to ->
             if (from != to) block(to)
         }

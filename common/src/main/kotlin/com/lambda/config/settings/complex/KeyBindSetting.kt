@@ -6,10 +6,10 @@ import com.lambda.util.KeyCode
 class KeyBindSetting(
     override val name: String,
     defaultValue: KeyCode,
-    visibility: () -> Boolean,
     description: String,
+    visibility: () -> Boolean,
 ) : AbstractSetting<KeyCode>(
     defaultValue,
-    visibility,
-    description
+    description,
+    visibility
 )

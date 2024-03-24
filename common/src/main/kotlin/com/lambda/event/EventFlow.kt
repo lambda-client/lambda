@@ -1,8 +1,11 @@
 package com.lambda.event
 
+import com.lambda.Lambda.LOG
+import com.lambda.event.cancellable.Cancellable
 import com.lambda.event.cancellable.ICancellable
 import com.lambda.event.listener.Listener
 import com.lambda.threading.runConcurrent
+import com.lambda.util.Communication.info
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -63,10 +66,36 @@ object EventFlow {
         event.executeListenerSynchronous()
     }
 
+    /**
+     * Posts a [cancellable] [Event] to the event flow and returns the [Event].
+     *
+     * This function is a variant of the [post] function specifically for [ICancellable] [Event]s.
+     * It posts the [Event] to the event flow,
+     * runs it through the synchronous set of listeners ([syncListeners]), and then returns the [Event].
+     * This is useful as [ICancellable] [Event]s are often checked after being processed by the [Listener]s.
+     *
+     * The returned event is guaranteed to be of the same type as the input,
+     * thanks to the type parameter [T] which is a subtype of both [Event] and [ICancellable].
+     *
+     * @param cancellable The cancellable [Event] to be posted to the event flow.
+     * @return The same [ICancellable] [Event] after being processed by the [Listener]s.
+     */
     @JvmStatic
-    fun post(cancellable: ICancellable): ICancellable {
+    fun <T> post(cancellable: T) : T where T : Event, T : ICancellable {
         post(cancellable as Event)
         return cancellable
+    }
+
+    @JvmStatic
+    fun <T> post(cancellable: T, process: T.() -> Unit) where T : Event, T : ICancellable {
+        val event = post(cancellable)
+        process(event)
+    }
+
+    @JvmStatic
+    fun <T> postChecked(cancellable: T, process: T.() -> Unit) where T : Event, T : ICancellable {
+        val event = post(cancellable)
+        if (!event.isCanceled()) process(event)
     }
 
     /**
@@ -84,25 +113,23 @@ object EventFlow {
 
     private fun Event.executeListenerSynchronous() {
         syncListeners[this::class]?.forEach { listener ->
-            if (listener.owner is Muteable
-                && (listener.owner as Muteable).isMuted
-                && !listener.alwaysListen
-            ) return
-            if (this is ICancellable && this.isCanceled()) return
-            listener.execute(this@executeListenerSynchronous)
+            if (shouldNotNotify(listener, this)) return@forEach
+            listener.execute(this)
         }
     }
 
     private fun Event.executeListenerConcurrently() {
         concurrentListeners[this::class]?.forEach { listener ->
-            if (listener.owner is Muteable
-                && (listener.owner as Muteable).isMuted
-                && !listener.alwaysListen
-            ) return
-            if (this is ICancellable && this.isCanceled()) return
+            if (shouldNotNotify(listener, this)) return@forEach
             runConcurrent {
-                listener.execute(this@executeListenerConcurrently)
+                listener.execute(this)
             }
         }
     }
+
+    private fun shouldNotNotify(listener: Listener, event: Event) =
+        listener.owner is Muteable
+            && (listener.owner as Muteable).isMuted
+            && !listener.alwaysListen
+            || event is ICancellable && event.isCanceled()
 }

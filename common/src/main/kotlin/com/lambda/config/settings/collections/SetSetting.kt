@@ -8,12 +8,12 @@ import com.lambda.config.AbstractSetting
 class SetSetting<T : Any>(
     override val name: String,
     defaultValue: Set<T>,
-    visibility: () -> Boolean,
     description: String,
+    visibility: () -> Boolean,
 ) : AbstractSetting<Set<T>>(
     defaultValue,
-    visibility,
-    description
+    description,
+    visibility
 ) {
     override fun loadFromJson(serialized: JsonElement) {
         val setType = object : TypeToken<Set<T>>() {}.type

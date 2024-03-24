@@ -7,10 +7,15 @@
     "ChatInputSuggestorMixin",
     "ChatScreenMixin",
     "ClientConnectionMixin",
+    "DebugHudMixin",
+    "GameRendererMixin",
+    "KeyBindingMixin",
     "KeyboardMixin",
     "MinecraftClientMixin",
-    "MixinKeyBinding",
-    "PlayerEntityMixin"
+    "PlayerEntityMixin",
+    "entity.ClientPlayerEntityMixin",
+    "entity.EntityMixin",
+    "entity.LivingEntityMixin"
   ],
   "injectors": {
     "defaultRequire": 1

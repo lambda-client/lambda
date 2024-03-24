@@ -8,12 +8,12 @@ import com.lambda.config.AbstractSetting
 class MapSetting<K, V>(
     override val name: String,
     defaultValue: Map<K, V>,
-    visibility: () -> Boolean,
     description: String,
+    visibility: () -> Boolean,
 ) : AbstractSetting<Map<K, V>>(
     defaultValue,
-    visibility,
-    description
+    description,
+    visibility
 ) {
     override fun loadFromJson(serialized: JsonElement) {
         val mapType = object : TypeToken<Map<K, V>>() {}.type

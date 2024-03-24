@@ -29,7 +29,7 @@ object CommandManager : Configurable(LambdaConfig), Loadable {
 
     val prefix by setting("prefix", ';')
 
-    private val commands = mutableSetOf<LambdaCommand>()
+    val commands = mutableSetOf<LambdaCommand>()
     private val dispatcher by lazy { CommandDispatcher<CommandSource>() }
     private const val ERROR_PADDING = 10
 
