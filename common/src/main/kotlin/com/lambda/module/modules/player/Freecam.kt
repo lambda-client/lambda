@@ -65,14 +65,13 @@ object Freecam : Module(
 
     @JvmStatic fun updateTarget() {
         runSafe {
-            val cast = rayCast(
+            mc.crosshairTarget = rayCast(
                 interpolatedPosition,
                 interpolatedRotation.vector,
                 interaction.reachDistance.toDouble(),
                 RayCastMask.BOTH,
                 true
             )
-            mc.crosshairTarget = cast
         }
     }
 
