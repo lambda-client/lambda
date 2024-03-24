@@ -8,7 +8,6 @@ import org.reflections.util.ClasspathHelper
 import org.reflections.util.ConfigurationBuilder
 
 
-
 /**
  * The [ModuleRegistry] object is responsible for managing all [Module] instances in the system.
  *

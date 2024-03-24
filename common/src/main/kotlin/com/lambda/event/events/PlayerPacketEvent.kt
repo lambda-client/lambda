@@ -12,9 +12,10 @@ abstract class PlayerPacketEvent : Event {
         var position: Vec3d,
         var rotation: Rotation,
         var onGround: Boolean,
-        var isSprinting: Boolean
+        var isSprinting: Boolean,
     ) : PlayerPacketEvent(), ICancellable by Cancellable()
+
     class Post(
-        val packet: PlayerMoveC2SPacket
+        val packet: PlayerMoveC2SPacket,
     ) : PlayerPacketEvent(), ICancellable by Cancellable()
 }

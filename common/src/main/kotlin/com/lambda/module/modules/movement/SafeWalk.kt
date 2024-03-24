@@ -4,7 +4,6 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import net.minecraft.util.math.Vec3d
 
 object SafeWalk : Module(
     name = "SafeWalk",

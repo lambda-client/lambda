@@ -29,7 +29,7 @@ data class Rotation(val yaw: Double, val pitch: Double) {
         reach: Double,
         mask: RayCastMask = RayCastMask.BOTH,
         eye: Vec3d? = null,
-        fluids: Boolean = false
+        fluids: Boolean = false,
     ) = runSafe {
         rayCast(eye ?: player.eyePos, vector, reach, mask, fluids)
     }

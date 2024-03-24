@@ -13,11 +13,13 @@ abstract class MovementEvent : Event {
     class InputUpdate(
         val input: Input,
         val slowDown: Boolean,
-        val slowDownFactor: Float
+        val slowDownFactor: Float,
     ) : MovementEvent(), ICancellable by Cancellable()
+
     class ClipAtLedge(
-        var defaultValue: Boolean
+        var defaultValue: Boolean,
     ) : MovementEvent(), IReturnable<Boolean> by Returnable(defaultValue)
+
     class Jump(var height: Double) : MovementEvent(), ICancellable by Cancellable()
     class SlowDown : Event, ICancellable by Cancellable()
 }

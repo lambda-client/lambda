@@ -1,10 +1,10 @@
 package com.lambda.command
 
-import com.lambda.config.configurations.LambdaConfig
 import com.lambda.Loadable
 import com.lambda.brigadier.CommandException
 import com.lambda.brigadier.register
 import com.lambda.config.Configurable
+import com.lambda.config.configurations.LambdaConfig
 import com.lambda.context.SafeContext
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication

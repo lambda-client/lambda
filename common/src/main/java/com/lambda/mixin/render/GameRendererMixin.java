@@ -2,8 +2,6 @@ package com.lambda.mixin.render;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.RenderEvent;
-import com.lambda.interaction.RotationManager;
-import com.lambda.module.modules.player.Freecam;
 import net.minecraft.client.render.GameRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

@@ -62,5 +62,6 @@ abstract class RotationEvent : Event {
             }
         }
     }
+
     class Post(val request: RotationRequest) : RotationEvent()
 }

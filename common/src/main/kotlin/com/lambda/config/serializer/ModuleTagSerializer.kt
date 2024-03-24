@@ -8,7 +8,7 @@ object ModuleTagSerializer : JsonSerializer<ModuleTag>, JsonDeserializer<ModuleT
     override fun serialize(
         src: ModuleTag?,
         typeOfSrc: Type?,
-        context: JsonSerializationContext?
+        context: JsonSerializationContext?,
     ): JsonElement =
         src?.let {
             JsonPrimitive(it.name)
@@ -17,7 +17,7 @@ object ModuleTagSerializer : JsonSerializer<ModuleTag>, JsonDeserializer<ModuleT
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type?,
-        context: JsonDeserializationContext?
+        context: JsonDeserializationContext?,
     ): ModuleTag =
         json?.asString?.let { ModuleTag(it) } ?: throw JsonParseException("Invalid module tag format")
 }

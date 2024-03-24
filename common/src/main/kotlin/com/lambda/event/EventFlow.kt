@@ -2,7 +2,6 @@ package com.lambda.event
 
 import com.lambda.event.callback.ICancellable
 import com.lambda.event.callback.Returnable
-import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.Listener
 import com.lambda.threading.runConcurrent
 import kotlinx.coroutines.CoroutineScope

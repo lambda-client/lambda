@@ -9,7 +9,7 @@ object KeyCodeSerializer : JsonSerializer<KeyCode>, JsonDeserializer<KeyCode> {
     override fun serialize(
         src: KeyCode?,
         typeOfSrc: Type?,
-        context: JsonSerializationContext?
+        context: JsonSerializationContext?,
     ): JsonElement =
         src?.let {
             JsonPrimitive(it.key)
@@ -18,7 +18,7 @@ object KeyCodeSerializer : JsonSerializer<KeyCode>, JsonDeserializer<KeyCode> {
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type?,
-        context: JsonDeserializationContext?
+        context: JsonDeserializationContext?,
     ): KeyCode =
         json?.asInt?.let { KeyCode(it) } ?: throw JsonParseException("Invalid key code format")
 }

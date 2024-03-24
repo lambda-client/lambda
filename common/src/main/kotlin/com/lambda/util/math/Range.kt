@@ -1,13 +1,11 @@
 package com.lambda.util.math
 
 import net.minecraft.util.math.Box
-import java.util.Random
-import java.util.concurrent.ThreadLocalRandom
 import kotlin.random.Random.Default.nextDouble
 
 class DoubleRange(
     override val start: Double,
-    override val endInclusive: Double
+    override val endInclusive: Double,
 ) : ClosedRange<Double> {
     infix fun step(step: Double): DoubleIterator {
         return object : DoubleIterator() {
@@ -37,7 +35,8 @@ infix fun Double.to(that: Double) = DoubleRange(this, that)
 /**
  * Converts a value from one range to a normalized value between 0 and 1.
  */
-fun <T> ClosedRange<T>.normalized(value: T): T where T : Comparable<T>, T : Number = scale(value, 0.0 as T, 1.0 as T) // hacky
+fun <T> ClosedRange<T>.normalized(value: T): T where T : Comparable<T>, T : Number =
+    scale(value, 0.0 as T, 1.0 as T) // hacky
 
 /**
  * Inverts the range.

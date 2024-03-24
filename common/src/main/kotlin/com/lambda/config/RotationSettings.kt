@@ -6,7 +6,7 @@ import kotlin.random.Random
 
 class RotationSettings(
     c: Configurable,
-    vis: () -> Boolean = { true }
+    vis: () -> Boolean = { true },
 ) : IRotationConfig {
     override var rotationMode by c.setting("Mode", RotationMode.SYNC, "SILENT - server-side rotation, SYNC - server-side rotation; client-side movement, LOCK - Lock camera", vis)
     override val keepTicks by c.setting("Keep Rotation", 3, 1..10, 1, "Ticks to keep rotation", vis)

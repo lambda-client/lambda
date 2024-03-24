@@ -7,10 +7,13 @@ import com.lambda.event.EventFlow
 import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
-import com.lambda.interaction.rotation.*
+import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.angleDifference
 import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
 import com.lambda.interaction.rotation.Rotation.Companion.interpolate
+import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationMode
+import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runOnGameThread
 import com.lambda.threading.runSafe
@@ -22,7 +25,8 @@ import net.minecraft.client.input.KeyboardInput
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.math.MathHelper
-import kotlin.math.*
+import kotlin.math.roundToInt
+import kotlin.math.sign
 
 object RotationManager : Loadable {
     var currentRotation = Rotation.ZERO

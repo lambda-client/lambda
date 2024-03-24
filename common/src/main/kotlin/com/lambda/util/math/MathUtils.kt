@@ -31,7 +31,7 @@ object MathUtils {
 
     fun Double.ceilToInt() = ceil(this).toInt()
 
-    fun <T: Number> T.roundToStep(step: T): T {
+    fun <T : Number> T.roundToStep(step: T): T {
         val stepD = step.toDouble()
         var value = round(toDouble() / stepD) * stepD
         value = value.roundToPlaces(decimalPlaces(stepD))
@@ -43,9 +43,9 @@ object MathUtils {
     fun Double.roundToPlaces(places: Int) =
         BigDecimal(this).setScale(places, RoundingMode.HALF_EVEN).toDouble()
 
-    fun <T: Number> T.typeConvert(valueIn: Double): T {
+    fun <T : Number> T.typeConvert(valueIn: Double): T {
         @Suppress("UNCHECKED_CAST")
-        return when(this) {
+        return when (this) {
             is Byte -> valueIn.toInt().toByte()
             is Short -> valueIn.toInt().toShort()
             is Double -> valueIn

@@ -21,7 +21,7 @@ object RayCastUtils {
         dir: Vec3d,
         reach: Double,
         mask: RayCastMask,
-        fluids: Boolean = false
+        fluids: Boolean = false,
     ): HitResult? {
         val vec = dir.multiply(reach)
         val point = pos.add(vec)
