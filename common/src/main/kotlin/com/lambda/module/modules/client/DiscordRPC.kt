@@ -14,10 +14,10 @@ import dev.cbyrne.kdiscordipc.core.event.DiscordEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ActivityInviteEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ActivityJoinEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ReadyEvent
-import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.ErrorPacket
 import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.SetActivityPacket
 import dev.cbyrne.kdiscordipc.data.activity.*
 import dev.cbyrne.kdiscordipc.data.user.User
+import kotlinx.coroutines.Job
 import java.util.*
 
 object DiscordRPC : Module(
@@ -28,10 +28,10 @@ object DiscordRPC : Module(
     private val playDetails by setting("Details", "Playing on Lambda")
     private val playState by setting("Play State", "Playing")
 
-    private var joinSecret by setting("Join Secret", UUID.randomUUID().toString(), visibility = { false })
-    private var partyId by setting("Party ID", UUID.randomUUID().toString(), visibility = { false })
-    private var partySize by setting("Party Size", 1, 1..16, 1, visibility = { false })
-    private var partyMax by setting("Party Max Size", 16, 16..16, 1, visibility = { false })
+    private var joinSecret by setting("Join Secret", UUID.randomUUID().toString())
+    private var partyId by setting("Party ID", UUID.randomUUID().toString())
+    private var partySize by setting("Party Size", 1, 1..16, 1)
+    private var partyMax by setting("Party Max Size", 16, 2..16, 1)
 
     private val confirmCoordinates by setting("Show Coordinates", false)
     private val confirmServer by setting("Show Server", false)
@@ -43,7 +43,8 @@ object DiscordRPC : Module(
     private val delay by setting("Update Delay", 200, 200..2000, 1, unit = "ms")
 
     private val rpc = KDiscordIPC("1221289599427416127", scope = EventFlow.lambdaScope)
-    private lateinit var lastInviter: User
+    private var lastInviter: User? = null
+    private var job: Job? = null
 
     private enum class LineInfo(val value: String) : Nameable {
         VERSION(Lambda.VERSION),
@@ -62,62 +63,79 @@ object DiscordRPC : Module(
     }
 
     init {
-        runConcurrent {
-            rpc.on<ReadyEvent> {
-                Lambda.LOG.info("Discord RPC connected to ${data.user.username}.")
+        lock(runConcurrent {
+            setup()
+            connect()
+        }) // Works
 
-                rpc.activityManager.setActivity {
-                    details = playDetails
-                    state = playState
-
-                    largeImage("lambda", Lambda.VERSION)
-
-                    party(partyId, partySize, partyMax)
-                    secrets(joinSecret)
-                    timestamps(System.currentTimeMillis())
-                }
-
-                rpc.subscribe(DiscordEvent.CurrentUserUpdate)
-                rpc.subscribe(DiscordEvent.ActivityJoinRequest)
-                rpc.subscribe(DiscordEvent.ActivityJoin)
-                rpc.subscribe(DiscordEvent.ActivityInvite)
-                rpc.subscribe(DiscordEvent.ActivitySpectate)
-            }
-
-            rpc.on<ActivityInviteEvent> {
-                lastInviter = data.user
-                info("${lastInviter.username} has invited you to play")
-                rpc.activityManager.acceptInvite(data) // TODO: Click button to join
-            }
-
-            rpc.on<ActivityJoinEvent> {
-                joinSecret = data.secret
-                info("Joined ${lastInviter.username}'s party.") // TODO: Join server button
-            }
-
-            rpc.on<SetActivityPacket> {
-                partyId = data?.party?.id ?: partyId
-                partySize = data?.party?.size?.currentSize ?: partySize
-                partyMax = data?.party?.size?.maxSize ?: partyMax
-            }
-
-            rpc.connect()
+        onEnableUnsafe {
+            lock(runConcurrent {
+                setup()
+                connect()
+            }) // Doesn't work
         }
 
-        /*onEnableUnsafe {
-            runConcurrent {
-                rpc.connect()
-            }
-        }*/
-
-        onDisableUnsafe(::shutdown)
-        onShutdown(::shutdown)
+        onDisableUnsafe(::disconnect)
+        onShutdown(::disconnect)
     }
 
-    private fun shutdown() {
+    private fun lock(rpc: Job?) {
+        if (job?.isActive == true) job?.cancel()
+        job = rpc
+    }
+
+    private suspend fun setup() {
+        rpc.on<ReadyEvent> {
+            Lambda.LOG.info("Discord RPC connected to ${data.user.username}.")
+
+            rpc.activityManager.setActivity {
+                details = playDetails
+                state = playState
+
+                largeImage("lambda", Lambda.VERSION)
+
+                party(partyId, partySize, partyMax)
+                secrets(joinSecret)
+                timestamps(System.currentTimeMillis())
+            }
+
+            rpc.subscribe(DiscordEvent.CurrentUserUpdate)
+            rpc.subscribe(DiscordEvent.ActivityJoinRequest)
+            rpc.subscribe(DiscordEvent.ActivityJoin)
+            rpc.subscribe(DiscordEvent.ActivityInvite)
+            rpc.subscribe(DiscordEvent.ActivitySpectate)
+        }
+
+        rpc.on<ActivityInviteEvent> {
+            lastInviter = data.user
+            info("${lastInviter?.username} has invited you to play")
+            rpc.activityManager.acceptInvite(data) // TODO: Click button to join
+        }
+
+        rpc.on<ActivityJoinEvent> {
+            joinSecret = data.secret
+            info("Joined ${lastInviter?.username}'s party.") // TODO: Join server button
+        }
+
+        rpc.on<SetActivityPacket> {
+            partyId = data?.party?.id ?: partyId
+            partySize = data?.party?.size?.currentSize ?: partySize
+            partyMax = data?.party?.size?.maxSize ?: partyMax
+        }
+    }
+
+    private suspend fun connect() {
+        if (!rpc.connected) {
+            Lambda.LOG.info("Connecting to Discord RPC.")
+            rpc.connect()
+        }
+    }
+
+    private fun disconnect() {
         if (rpc.connected) {
             Lambda.LOG.info("Gracefully disconnecting from Discord RPC.")
             rpc.disconnect()
+            lock(null)
         }
     }
 }
