@@ -2,6 +2,7 @@ package com.lambda.module.modules.client
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
+import com.lambda.event.EventFlow
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runConcurrent
@@ -26,7 +27,7 @@ object DiscordRPC : Module(
     private val confirmServer by setting("Show Server", false)
     private val delay by setting("Update Delay", 200, 200..2000, 1, unit = "ms")
 
-    private val rpc = KDiscordIPC("835368493150502923")
+    private val rpc = KDiscordIPC("835368493150502923", scope = EventFlow.lambdaScope)
 
     private enum class LineInfo(val value: String) {
         VERSION(Lambda.VERSION),
