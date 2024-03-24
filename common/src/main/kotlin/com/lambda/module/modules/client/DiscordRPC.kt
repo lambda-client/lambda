@@ -13,6 +13,7 @@ import dev.cbyrne.kdiscordipc.KDiscordIPC
 import dev.cbyrne.kdiscordipc.core.event.DiscordEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ActivityInviteEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ActivityJoinEvent
+import dev.cbyrne.kdiscordipc.core.event.impl.ErrorEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ReadyEvent
 import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.SetActivityPacket
 import dev.cbyrne.kdiscordipc.data.activity.*
@@ -121,6 +122,10 @@ object DiscordRPC : Module(
             partyId = data?.party?.id ?: partyId
             partySize = data?.party?.size?.currentSize ?: partySize
             partyMax = data?.party?.size?.maxSize ?: partyMax
+        }
+
+        rpc.on<ErrorEvent> {
+            Lambda.LOG.error("Discord RPC error: ${data.message}")
         }
     }
 
