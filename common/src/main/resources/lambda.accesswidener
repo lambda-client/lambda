@@ -2,12 +2,19 @@ accessWidener   v2      named
 # MC
 accessible field net/minecraft/client/MinecraftClient itemUseCooldown I
 accessible field net/minecraft/client/MinecraftClient attackCooldown I
+accessible field net/minecraft/client/MinecraftClient paused Z
+accessible field net/minecraft/client/MinecraftClient pausedTickDelta F
 
 # World
 accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minecraft/client/world/ClientEntityManager;
 
 # Entity
 accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Lnet/minecraft/entity/LivingEntity;
+accessible method net/minecraft/entity/Entity movementInputToVelocity (Lnet/minecraft/util/math/Vec3d;FF)Lnet/minecraft/util/math/Vec3d;
+
+# Camera
+accessible method net/minecraft/client/render/Camera setPos (DDD)V
+accessible method net/minecraft/client/render/Camera setRotation (FF)V
 
 # Renderer
 accessible field com/mojang/blaze3d/systems/RenderSystem$ShapeIndexBuffer id I

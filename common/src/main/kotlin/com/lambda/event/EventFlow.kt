@@ -1,10 +1,9 @@
 package com.lambda.event
 
-import com.lambda.Lambda.LOG
-import com.lambda.event.cancellable.ICancellable
+import com.lambda.event.callback.ICancellable
+import com.lambda.event.callback.Returnable
 import com.lambda.event.listener.Listener
 import com.lambda.threading.runConcurrent
-import com.lambda.util.Communication.info
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -59,8 +58,7 @@ object EventFlow {
      *
      * @param event The [Event] to be posted to the event flow.
      */
-    @JvmStatic
-    fun post(event: Event) {
+    @JvmStatic fun post(event: Event) {
         concurrentFlow.tryEmit(event)
         event.executeListenerSynchronous()
     }
@@ -74,15 +72,36 @@ object EventFlow {
      * This is useful as [ICancellable] [Event]s are often checked after being processed by the [Listener]s.
      *
      * The returned event is guaranteed to be of the same type as the input,
-     * thanks to the type parameter [T] which is a subtype of both [Event] and [ICancellable].
+     * thanks to the type parameter [E] which is a subtype of both [Event] and [ICancellable].
      *
      * @param cancellable The cancellable [Event] to be posted to the event flow.
      * @return The same [ICancellable] [Event] after being processed by the [Listener]s.
      */
-    @JvmStatic
-    fun <T> post(cancellable: T) : T where T : Event, T : ICancellable {
+    @JvmStatic fun <E> post(cancellable: E) : E where E : Event, E : ICancellable {
         post(cancellable as Event)
         return cancellable
+    }
+
+    @JvmStatic fun <E> post(cancellable: E, process: E.() -> Unit) where E : Event, E : ICancellable {
+        post(cancellable)
+        cancellable.process()
+    }
+
+    @JvmStatic fun <E> postChecked(cancellable: E, process: E.() -> Unit) where E : Event, E : ICancellable {
+        post(cancellable)
+        if (!cancellable.isCanceled()) cancellable.process()
+    }
+
+    @JvmStatic fun <E, R> postR(returnable: E): E where E : Returnable<R>, E : Event {
+        post(returnable as Event)
+        return returnable
+    }
+
+    @JvmStatic fun <R, E> post(
+        returnable: E, process: E.() -> Unit
+    ) where E : Returnable<R>, E : Event {
+        post(returnable as Event)
+        returnable.process()
     }
 
     /**

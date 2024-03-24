@@ -6,6 +6,7 @@ import com.lambda.config.Configuration
 import com.lambda.config.configurations.ModuleConfig
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.numeric.DoubleSetting
+import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
 import com.lambda.event.events.KeyPressEvent
 import com.lambda.event.listener.Listener
@@ -33,7 +34,7 @@ import com.lambda.util.Nameable
  * If a module does not need to be activated by a key (like [ClickGUI]),
  * the default [keybind] should not be set (using [KeyCode.Unbound]).
  *
- * [Module]s are [Configurable] with [settings] (see [AbstractSetting] for all setting types).
+ * [Module]s are [Configurable]s with [settings] (see [AbstractSetting] for all setting types).
  * For example, a [BooleanSetting] and a [DoubleSetting] can be defined like this:
  * ```kotlin
  * private val foo by setting("Foo", true)
@@ -123,19 +124,19 @@ abstract class Module(
         isEnabled = !isEnabled
     }
 
-    protected fun onEnable(block: () -> Unit) {
+    protected fun onEnable(block: SafeContext.() -> Unit) {
         isEnabledSetting.listener { from, to ->
             if (!from && to) block()
         }
     }
 
-    protected fun onDisable(block: () -> Unit) {
+    protected fun onDisable(block: SafeContext.() -> Unit) {
         isEnabledSetting.listener { from, to ->
             if (from && !to) block()
         }
     }
 
-    protected fun onToggle(block: (to: Boolean) -> Unit) {
+    protected fun onToggle(block: SafeContext.(to: Boolean) -> Unit) {
         isEnabledSetting.listener { from, to ->
             if (from != to) block(to)
         }

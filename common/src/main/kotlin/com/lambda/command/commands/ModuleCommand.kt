@@ -1,11 +1,14 @@
 package com.lambda.command.commands
 
-import com.lambda.brigadier.*
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.boolean
 import com.lambda.brigadier.argument.string
 import com.lambda.brigadier.argument.value
+import com.lambda.brigadier.executeWithResult
+import com.lambda.brigadier.get
+import com.lambda.brigadier.optional
+import com.lambda.brigadier.required
 import com.lambda.command.CommandManager.prefix
 import com.lambda.command.CommandManager.register
 import com.lambda.command.LambdaCommand
@@ -18,7 +21,7 @@ import com.lambda.util.text.*
 import com.lambda.util.text.ClickEvents.suggestCommand
 import java.awt.Color
 
-object ModuleCommand : LambdaCommand() {
+object ModuleCommand : LambdaCommand {
     override val name = "module"
 
     init {

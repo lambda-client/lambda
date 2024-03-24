@@ -2,8 +2,6 @@ package com.lambda.util
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
-import com.lambda.command.LambdaCommand
-import com.lambda.module.Module
 import com.lambda.threading.runSafe
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.text.*
@@ -93,7 +91,7 @@ object Communication {
     enum class LogLevel(
         val logoColor: Color,
         private val messageColor: Color,
-        val type: SystemToast.Type
+        val type: SystemToast.Type,
     ) {
         DEBUG(Color.WHITE, Color.WHITE, SystemToast.Type.WORLD_BACKUP),
         INFO(Color.GREEN, Color.WHITE, SystemToast.Type.NARRATOR_TOGGLE),

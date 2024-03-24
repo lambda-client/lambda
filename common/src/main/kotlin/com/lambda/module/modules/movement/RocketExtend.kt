@@ -5,7 +5,6 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.KeyCode
 import net.minecraft.entity.projectile.FireworkRocketEntity
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
 import net.minecraft.network.packet.s2c.play.EntitiesDestroyS2CPacket
@@ -14,8 +13,7 @@ import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 object RocketExtend : Module(
     name = "RocketExtend",
     description = "Extends rocket length on grim",
-    defaultTags = setOf(ModuleTag.MOVEMENT),
-    defaultKeybind = KeyCode.GraveAccent
+    defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
     private var extendedRockets = mutableListOf<FireworkRocketEntity>()
     private var pingPacket: CommonPongC2SPacket? = null
@@ -41,7 +39,7 @@ object RocketExtend : Module(
                 lastPingTime = System.currentTimeMillis()
                 return@listener
             }
-            if(System.currentTimeMillis() - lastPingTime > keepAliveTime * 1000) {
+            if (System.currentTimeMillis() - lastPingTime > keepAliveTime * 1000) {
                 reset()
                 return@listener
             }
@@ -49,7 +47,9 @@ object RocketExtend : Module(
             event.cancel()
         }
 
-        onDisable(::reset)
+        onDisable {
+            reset()
+        }
     }
 
     private fun reset() = runSafe {

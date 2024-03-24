@@ -4,16 +4,24 @@
   "package": "com.lambda.mixin",
   "compatibilityLevel": "JAVA_17",
   "client": [
-    "ChatInputSuggestorMixin",
-    "ChatScreenMixin",
     "ClientConnectionMixin",
-    "KeyBindingMixin",
-    "KeyboardMixin",
     "MinecraftClientMixin",
-    "PlayerEntityMixin",
+    "entity.ClientPlayerEntityMixin",
+    "entity.EntityMixin",
+    "entity.LivingEntityMixin",
+    "entity.PlayerEntityMixin",
+    "input.KeyBindingMixin",
+    "input.KeyboardMixin",
+    "input.MouseMixin",
+    "render.CameraMixin",
+    "render.ChatInputSuggestorMixin",
+    "render.ChatScreenMixin",
+    "render.DebugHudMixin",
+    "render.GameRendererMixin",
     "render.GlStateManagerMixin",
     "render.InGameHudMixin",
-    "render.VertexBufferMixin"
+    "render.VertexBufferMixin",
+    "render.WorldRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

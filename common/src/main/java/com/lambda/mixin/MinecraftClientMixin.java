@@ -12,7 +12,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(MinecraftClient.class)
 public class MinecraftClientMixin {
@@ -51,6 +50,6 @@ public class MinecraftClientMixin {
     void injectFastPlace(CallbackInfo ci) {
         if (!Interact.INSTANCE.isEnabled()) return;
 
-        Lambda.INSTANCE.getMc().itemUseCooldown = Interact.getPlaceDelay();
+        Lambda.getMc().itemUseCooldown = Interact.getPlaceDelay();
     }
 }

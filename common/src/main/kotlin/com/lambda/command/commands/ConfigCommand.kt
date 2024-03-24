@@ -12,7 +12,7 @@ import com.lambda.command.CommandManager.register
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Configuration
 
-object ConfigCommand : LambdaCommand() {
+object ConfigCommand : LambdaCommand {
     override val name = "config"
 
     init {

@@ -10,7 +10,7 @@ val yarnMappings = property("yarn_mappings").toString()
 val libs = file("libs")
 
 plugins {
-    kotlin("jvm") version "1.9.22"
+    kotlin("jvm") version "1.9.23"
     id("org.jetbrains.dokka") version "1.9.20"
     id("architectury-plugin") version "3.4-SNAPSHOT"
     id("dev.architectury.loom") version "1.5-SNAPSHOT" apply false
@@ -26,14 +26,8 @@ subprojects {
     apply(plugin = "org.jetbrains.dokka")
 
     dependencies {
-        if (path == ":quilt") {
-            "minecraft"("com.mojang:minecraft:1.20.2")
-            "mappings"("net.fabricmc:yarn:1.20.2+build.3:v2")
-        }
-        else {
-            "minecraft"("com.mojang:minecraft:$minecraftVersion")
-            "mappings"("net.fabricmc:yarn:$yarnMappings:v2")
-        }
+        "minecraft"("com.mojang:minecraft:$minecraftVersion")
+        "mappings"("net.fabricmc:yarn:$yarnMappings:v2")
     }
 
     if (path == ":common") return@subprojects
@@ -46,17 +40,20 @@ subprojects {
             isCanBeConsumed = false
             isCanBeResolved = true
         }
+
         val shadow = named<ShadowJar>("shadowJar") {
             archiveVersion = versionWithMCVersion
             archiveClassifier.set("shadow")
             configurations = listOf(shadowCommon)
         }
+
         named<RemapJarTask>("remapJar") {
             dependsOn(shadow)
             inputFile = shadow.flatMap { it.archiveFile }
             archiveVersion = versionWithMCVersion
             archiveClassifier = ""
         }
+
         jar {
             enabled = false
         }
