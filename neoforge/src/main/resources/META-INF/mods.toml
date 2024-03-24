@@ -13,6 +13,9 @@ issueTrackerURL = "https://github.com/lambda-client/lambda/issues"
     logoFile = "assets/lambda/lambda.png"
     displayTest = "IGNORE_ALL_VERSION"
 
+[[mixins]]
+    config = "lambda.mixins.common.json"
+
 [[dependencies.lambda]]
     modId = "neoforge"
     mandatory = true
@@ -36,7 +39,3 @@ issueTrackerURL = "https://github.com/lambda-client/lambda/issues"
     versionRange = "[4.10,)"
     ordering = "NONE"
     side = "CLIENT"
-
-[[mixins]]
-    config = "lambda.mixins.common.json"
-    environment = "client"

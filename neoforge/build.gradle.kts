@@ -11,6 +11,9 @@ base.archivesName.set("${base.archivesName.get()}-neoforge")
 
 loom {
     accessWidenerPath.set(project(":common").loom.accessWidenerPath)
+    neoForge {
+        enableTransitiveAccessWideners = true
+    }
 }
 
 repositories {
@@ -36,6 +39,7 @@ fun DependencyHandlerScope.setupConfigurations() {
 
     includeMod.dependencies.forEach {
         implementation(it)
+        forgeRuntimeLibrary(it)
         include(it)
     }
 }
@@ -75,5 +79,12 @@ tasks {
 
     remapJar {
         atAccessWideners.add("lambda.accesswidener")
+        injectAccessWidener.set(true)
+    }
+
+    sourceSets.forEach {
+        val dir = layout.buildDirectory.dir("sourcesSets/${it.name}")
+        it.output.setResourcesDir(dir)
+        it.java.destinationDirectory.set(dir)
     }
 }
