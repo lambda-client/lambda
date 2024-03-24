@@ -3,6 +3,7 @@ val mixinExtrasVersion = property("mixinextras_version").toString()
 val kotlinVersion = property("kotlin_version").toString()
 val kotlinxCoroutinesVersion = property("kotlinx_coroutines_version").toString()
 val architecturyVersion = property("architectury_version").toString()
+val discordIPCVersion = property("discord_ipc_version").toString()
 
 architectury { common("fabric", "forge", "neoforge") }
 
@@ -13,6 +14,7 @@ loom {
 
 repositories {
     maven("https://maven.fabricmc.net/")
+    mavenCentral()
 }
 
 dependencies {
@@ -25,10 +27,13 @@ dependencies {
 
     // Add Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
+
+    // Add Discord IPC
+    implementation("com.github.caoimhebyrne:KDiscordIPC:$discordIPCVersion")
 }
 
-// Avoid nested jars
-tasks.named("remapJar") {
-    enabled = false
+tasks {
+    remapJar {
+        enabled = false
+    }
 }
-

@@ -2,6 +2,7 @@ val forgeVersion = property("forge_version").toString()
 val architecturyVersion = property("architectury_version").toString()
 val mixinExtrasVersion = property("mixinextras_version").toString()
 val kotlinForgeVersion = property("kotlin_forge_version").toString()
+val discordIPCVersion = property("discord_ipc_version").toString()
 
 architectury {
     platformSetupLoomIde()
@@ -54,6 +55,7 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
+    includeLib("com.github.caoimhebyrne:KDiscordIPC:$discordIPCVersion")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
