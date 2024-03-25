@@ -2,6 +2,7 @@ package com.lambda.graphics
 
 import com.lambda.Lambda.mc
 import com.lambda.event.EventFlow
+import com.lambda.event.EventFlow.post
 import com.lambda.event.events.RenderEvent
 import com.lambda.graphics.gl.GlStateUtils.setupGL
 import com.lambda.graphics.gl.Matrices.translate
@@ -22,10 +23,10 @@ object RenderMain {
 
         setupGL {
             rescale(HUD.scale)
-            EventFlow.post(RenderEvent.GUI.Scaled(HUD.scale))
+            RenderEvent.GUI.Scaled(HUD.scale).post()
 
             rescale(1.0)
-            EventFlow.post(RenderEvent.GUI.Fixed())
+            RenderEvent.GUI.Fixed().post()
         }
     }
 
