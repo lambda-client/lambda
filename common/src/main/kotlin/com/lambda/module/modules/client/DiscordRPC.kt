@@ -94,6 +94,7 @@ object DiscordRPC : Module(
                 state = playState
 
                 largeImage("lambda", Lambda.VERSION)
+                smallImage("https://mc-heads.net/avatar/${mc.gameProfile.id}/nohelm", mc.gameProfile.name)
 
                 party(partyId, partySize, partyMax)
                 secrets(joinSecret)
