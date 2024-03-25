@@ -45,7 +45,7 @@ object Rubberband : Module(
                 color(Color.YELLOW) {
                     literal("${PlayerPacketManager.configurations.reversed().indexOf(last) + 1}")
                 }
-                literal(" ticks (derivation: ")
+                literal(" ticks (deviation: ")
                 color(Color.YELLOW) {
                     literal("%.3f".format(last.position dist newPos))
                 }
