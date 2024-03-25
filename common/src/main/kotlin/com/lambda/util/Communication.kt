@@ -9,14 +9,15 @@ import net.minecraft.client.toast.SystemToast
 import net.minecraft.text.Text
 
 object Communication {
-    fun Any.debug(message: String) = log(LogLevel.DEBUG.text(message), LogLevel.DEBUG)
-    fun Any.debug(message: Text) = log(message, LogLevel.DEBUG)
-    fun Any.info(message: String) = log(LogLevel.INFO.text(message), LogLevel.INFO)
-    fun Any.info(message: Text) = log(message, LogLevel.INFO)
-    fun Any.warn(message: String) = log(LogLevel.WARN.text(message), LogLevel.WARN)
-    fun Any.warn(message: Text) = log(message, LogLevel.WARN)
-    fun Any.logError(message: String) = logError(LogLevel.ERROR.text(message))
-    fun Any.logError(message: Text) = log(message, LogLevel.ERROR)
+    fun Any.debug(message: String, source: String = "") = log(LogLevel.DEBUG.text(message), LogLevel.DEBUG, source)
+    fun Any.debug(message: Text, source: Text = Text.empty()) = log(message, LogLevel.DEBUG, textSource = source)
+    fun Any.info(message: String, source: String = "") = log(LogLevel.INFO.text(message), LogLevel.INFO, source)
+    fun Any.info(message: Text, source: Text = Text.empty()) = log(message, LogLevel.INFO, textSource = source)
+    fun Any.warn(message: String, source: String = "") = log(LogLevel.WARN.text(message), LogLevel.WARN, source)
+    fun Any.warn(message: Text, source: String = "") = log(message, LogLevel.WARN, source)
+    fun Any.warn(message: Text, source: Text = Text.empty()) = log(message, LogLevel.WARN, textSource = source)
+    fun Any.logError(message: String, source: String = "") = log(LogLevel.ERROR.text(message), LogLevel.ERROR, source)
+    fun Any.logError(message: Text, source: Text = Text.empty()) = log(message, LogLevel.ERROR, textSource = source)
 
     fun Any.toast(message: String, logLevel: LogLevel = LogLevel.INFO) {
         toast(logLevel.text(message), logLevel)
@@ -25,7 +26,7 @@ object Communication {
     fun Any.toast(message: Text, logLevel: LogLevel = LogLevel.INFO) {
         runSafe {
             buildText {
-                text(this@toast.source(logLevel, Color.YELLOW))
+                text(this@toast.source(logLevel, color = Color.YELLOW))
             }.let { title ->
                 mc.toastManager.add(logLevel.toast(title, message))
             }
@@ -41,10 +42,10 @@ object Communication {
         }
     }
 
-    fun Any.log(message: Text, logLevel: LogLevel = LogLevel.INFO) {
+    fun Any.log(message: Text, logLevel: LogLevel = LogLevel.INFO, source: String = "", textSource: Text = Text.empty()) {
         runSafe {
             buildText {
-                text(this@log.source(logLevel))
+                text(this@log.source(logLevel, source, textSource))
                 text(message)
             }.let { log ->
                 player.sendMessage(log)
@@ -54,6 +55,8 @@ object Communication {
 
     private fun Any.source(
         logLevel: LogLevel,
+        source: String = "",
+        textSource: Text = Text.empty(),
         color: Color = Color.GREY,
     ) = buildText {
         text(logLevel.prefix())
@@ -76,6 +79,16 @@ object Communication {
             styled(color, italic = true) {
                 literal("${name.capitalize()} ")
             }
+        }
+
+        if (source.isNotBlank()) {
+            styled(color, italic = true) {
+                literal("$source ")
+            }
+        }
+
+        if (textSource.string.isNotBlank()) {
+            text(textSource)
         }
     }
 

@@ -1,7 +1,9 @@
-package com.lambda
+package com.lambda.core
 
+import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.command.CommandManager
+import com.lambda.interaction.PlayerPacketManager
 import com.lambda.interaction.RotationManager
 import com.lambda.module.ModuleRegistry
 import kotlin.system.measureTimeMillis
@@ -10,7 +12,8 @@ object Loader {
     private val loadables = listOf(
         ModuleRegistry,
         CommandManager,
-        RotationManager
+        RotationManager,
+        PlayerPacketManager
     )
 
     fun initialize() {

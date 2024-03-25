@@ -3,6 +3,7 @@ package com.lambda
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.lambda.config.serializer.*
+import com.lambda.core.Loader
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
 import net.minecraft.block.Block
