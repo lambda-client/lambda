@@ -17,13 +17,8 @@ import com.lambda.util.player.MovementUtils.motionZ
 import com.lambda.util.primitives.extension.component1
 import com.lambda.util.primitives.extension.component2
 import com.lambda.util.primitives.extension.component3
-import com.lambda.util.text.Color
-import com.lambda.util.text.buildText
-import com.lambda.util.text.color
-import com.lambda.util.text.literal
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.*
-import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.math.MathHelper.square
 import net.minecraft.util.math.Vec3d
 
