@@ -27,7 +27,10 @@ class FontGlyphs(font: Font) {
         var y = SPACE
         var rowHeight = 0
 
-        charList.forEach { char ->
+        // Because UTF16 takes 2 bytes per character, we can't use the full range of characters
+        // As the texture size is limited to 2^15, we can only use the first 2^14 characters
+        // But then we don't want to fill the whole heap, so we limit ourselves to the first 2^13 characters
+        (Char.MIN_VALUE..'\u1FFF').forEach { char ->
             val charImage = getCharImage(font, char)
 
             val fullWidth = charImage.width + SPACE
@@ -41,7 +44,7 @@ class FontGlyphs(font: Font) {
                 rowHeight = 0
             }
 
-            check(y + fullHeight <= TEXTURE_SIZE) { "Can't load font glyphs. Too small texture size" }
+            check(y + fullHeight <= TEXTURE_SIZE) { "Can't load font glyphs. Texture size is too small" }
 
             graphics.drawImage(charImage, x, y, null)
 
@@ -70,21 +73,15 @@ class FontGlyphs(font: Font) {
         charMap[char.code]
 
     companion object {
-        private const val TEXTURE_SIZE = 2048
+        // The size cannot be bigger than 2^15 because the rasterizer needs to be fed with dimensions that when multiplied together are less than 2^31
+        // This can be bypassed by using a custom rasterizer, but it's not worth the effort
+        // The size is also limited by the java heap size, as the image is stored in memory
+        // and then uploaded to the GPU
+        // Since most Lambda users probably have bad pc we will limit it to 512mb of ram when loading
+        // and in the future we could grow the textures when needed
+        private const val TEXTURE_SIZE = 8192
         private const val SPACE = 2
         private const val ONE_TEXEL_SIZE = 1.0 / TEXTURE_SIZE
         private const val LOD_LEVELS = 4
-
-        private val latin = ('a'..'z').toList()
-        private val cyrillic = ('а'..'я').toList()
-
-        private val german = "üÜöÖäÄß".toCharArray().toList()
-        private val ukrainian = "ґҐїЇєЄ".toCharArray().toList()
-
-        private val special = ((32..47) + (58..64) + (91..96) + (123..126)).map(::Char)
-
-        private val charList = special +
-                latin + cyrillic +
-                german + ukrainian
     }
 }
