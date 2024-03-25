@@ -1,58 +1,61 @@
 package com.lambda.interaction
 
-import com.lambda.Loadable
+import com.lambda.core.Loadable
 import com.lambda.context.SafeContext
-import com.lambda.event.EventFlow
+import com.lambda.event.EventFlow.post
+import com.lambda.event.EventFlow.postChecked
+import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerPacketEvent
-import com.lambda.interaction.rotation.Rotation
+import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.threading.runSafe
+import com.lambda.util.Communication.warn
+import com.lambda.util.collections.LimitedOrderedSet
+import com.lambda.util.math.VecUtils.dist
 import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.player.MovementUtils.motionX
 import com.lambda.util.player.MovementUtils.motionZ
 import com.lambda.util.primitives.extension.component1
 import com.lambda.util.primitives.extension.component2
 import com.lambda.util.primitives.extension.component3
+import com.lambda.util.text.Color
+import com.lambda.util.text.buildText
+import com.lambda.util.text.color
+import com.lambda.util.text.literal
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.*
+import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.math.MathHelper.square
 import net.minecraft.util.math.Vec3d
 
 object PlayerPacketManager : Loadable {
-    private var prevPosition: Vec3d = Vec3d.ZERO
-    private var lastPosition = Vec3d(0.0, -1000.0, 0.0)
-    private var lastRotation = Rotation(0.0, -10000.0)
-    private var lastOnGround: Boolean? = null
-    private var lastSprinting: Boolean? = null
-    private var lastSneaking: Boolean? = null
+    val configurations = LimitedOrderedSet<PlayerPacketEvent.Pre>(100)
     private var sendTicks = 0
 
     @JvmStatic
     fun sendPlayerPackets() {
         runSafe {
-            EventFlow.post(
-                PlayerPacketEvent.Pre(
-                    player.pos,
-                    RotationManager.currentRotation,
-                    player.isOnGround,
-                    player.isSprinting
-                )
-            ) {
+            PlayerPacketEvent.Pre(
+                player.pos,
+                RotationManager.currentRotation,
+                player.isOnGround,
+                player.isSprinting,
+                player.isSneaking
+            ).post {
                 updatePlayerPackets(this)
             }
         }
     }
 
-    private fun SafeContext.updatePlayerPackets(event: PlayerPacketEvent.Pre) {
-        reportSprint(event.isSprinting)
-        reportSneak(player.isSneaking)
+    private fun SafeContext.updatePlayerPackets(new: PlayerPacketEvent.Pre) {
+        val previous = configurations.lastOrNull() ?: new
+        configurations.add(new)
+
+        reportSprint(previous, new)
+        reportSneak(previous, new)
 
         if (mc.cameraEntity != player) return
 
-        val position = event.position
-        val rotation = event.rotation
-        val ground = event.onGround
-
-        RotationManager.currentRotation = rotation
+        RotationManager.currentRotation = new.rotation
 
         if (player.hasVehicle()) {
             connection.sendPacket(
@@ -60,66 +63,57 @@ object PlayerPacketManager : Loadable {
                     player.motionX,
                     -999.0,
                     player.motionZ,
-                    rotation.yaw.toFloat(),
-                    rotation.pitch.toFloat(),
-                    ground
+                    new.rotation.yaw.toFloat(),
+                    new.rotation.pitch.toFloat(),
+                    new.onGround
                 )
             )
-            lastRotation = rotation
             return
         }
 
-        val updatePosition = (position.subtract(lastPosition) distSq Vec3d.ZERO) > square(2.0E-4) || ++sendTicks >= 20
-        val updateRotation = rotation != lastRotation
+        val updatePosition = (new.position.subtract(previous.position) distSq Vec3d.ZERO) > square(2.0E-4) || ++sendTicks >= 20
+        val updateRotation = new.rotation != previous.rotation
 
-        val (x, y, z) = position
+        val (x, y, z) = new.position
 
-        val (yawD, pitchD) = rotation
+        val (yawD, pitchD) = new.rotation
         val (yaw, pitch) = yawD.toFloat() to pitchD.toFloat()
 
         val packet = when {
             updatePosition && updateRotation -> {
-                Full(x, y, z, yaw, pitch, ground)
+                Full(x, y, z, yaw, pitch, new.onGround)
             }
 
             updatePosition -> {
-                PositionAndOnGround(x, y, z, ground)
+                PositionAndOnGround(x, y, z, new.onGround)
             }
 
             updateRotation -> {
-                LookAndOnGround(yaw, pitch, ground)
+                LookAndOnGround(yaw, pitch, new.onGround)
             }
 
-            lastOnGround != ground -> {
-                OnGroundOnly(ground)
+            previous.onGround != new.onGround -> {
+                OnGroundOnly(new.onGround)
             }
 
             else -> null
         }
 
         if (updatePosition) {
-            prevPosition = lastPosition
-            lastPosition = position
             sendTicks = 0
         }
-        if (updateRotation) {
-            lastRotation = rotation
-        }
-
-        lastOnGround = ground
 
         packet?.let {
-            EventFlow.postChecked(PlayerPacketEvent.Post(it)) {
+            PlayerPacketEvent.Post(it).postChecked {
                 connection.sendPacket(this.packet)
             }
         }
     }
 
-    private fun SafeContext.reportSprint(isSprinting: Boolean) {
-        if (lastSprinting == isSprinting) return
-        lastSprinting = isSprinting
+    private fun SafeContext.reportSprint(previous: PlayerPacketEvent.Pre, new: PlayerPacketEvent.Pre) {
+        if (previous.isSprinting == new.isSprinting) return
 
-        val state = if (isSprinting) {
+        val state = if (new.isSprinting) {
             ClientCommandC2SPacket.Mode.START_SPRINTING
         } else {
             ClientCommandC2SPacket.Mode.STOP_SPRINTING
@@ -128,12 +122,14 @@ object PlayerPacketManager : Loadable {
         connection.sendPacket(ClientCommandC2SPacket(player, state))
     }
 
-    private fun SafeContext.reportSneak(flag: Boolean) {
-        if (lastSneaking == flag) return
-        lastSneaking = flag
+    private fun SafeContext.reportSneak(previous: PlayerPacketEvent.Pre, new: PlayerPacketEvent.Pre) {
+        if (previous.isSneaking == new.isSneaking) return
 
-        val state = if (flag) ClientCommandC2SPacket.Mode.PRESS_SHIFT_KEY
-        else ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY
+        val state = if (new.isSneaking) {
+            ClientCommandC2SPacket.Mode.PRESS_SHIFT_KEY
+        } else {
+            ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY
+        }
 
         connection.sendPacket(ClientCommandC2SPacket(player, state))
     }

@@ -1,7 +1,6 @@
 package com.lambda.event
 
 import com.lambda.event.callback.ICancellable
-import com.lambda.event.callback.Returnable
 import com.lambda.event.listener.Listener
 import com.lambda.threading.runConcurrent
 import kotlinx.coroutines.CoroutineScope
@@ -13,6 +12,13 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNot
 
+
+/**
+ * [EventFlow] is an object that manages the flow ([MutableSharedFlow]) of [Event]s in the application.
+ * It provides methods to post [Event]s to both synchronous and asynchronous [Listener]s.
+ *
+ * The [EventFlow] also provides methods to unsubscribe from event flows for a specific event type.
+ */
 object EventFlow {
     /**
      * [lambdaScope] is a [CoroutineScope] which is used to launch coroutines.
@@ -56,52 +62,46 @@ object EventFlow {
      * An instant callback ([CallbackEvent]) can only be achieved by synchronous listening objects
      * as the concurrent listener will be executed "later".
      *
-     * @param event The [Event] to be posted to the event flow.
+     * CAUTION: The returned [Event] may have not yet been processed by concurrent listeners.
+     *
+     * @param E The type of the event to be posted. This should be a subclass of Event.
+     * @receiver The [Event] to be posted to the event flow.
      */
-    @JvmStatic fun post(event: Event) {
-        concurrentFlow.tryEmit(event)
-        event.executeListenerSynchronous()
+    @JvmStatic fun <E : Event> E.post(): E {
+        concurrentFlow.tryEmit(this)
+        executeListenerSynchronous()
+        return this@post
     }
 
     /**
-     * Posts a [cancellable] [Event] to the event flow and returns the [Event].
+     * Posts an [Event] to the event flow and then applies the given [process] function to the event.
      *
-     * This function is a variant of the [post] function specifically for [ICancellable] [Event]s.
-     * It posts the [Event] to the event flow,
-     * runs it through the synchronous set of listeners ([syncListeners]), and then returns the [Event].
-     * This is useful as [ICancellable] [Event]s are often checked after being processed by the [Listener]s.
+     * This function first posts the event to the event flow by calling the [post] function.
+     * After the event has been posted, it applies the [process] function to the event.
      *
-     * The returned event is guaranteed to be of the same type as the input,
-     * thanks to the type parameter [E] which is a subtype of both [Event] and [ICancellable].
+     * CAUTION: The processed [Event] may have not yet been processed by concurrent listeners.
      *
-     * @param cancellable The cancellable [Event] to be posted to the event flow.
-     * @return The same [ICancellable] [Event] after being processed by the [Listener]s.
+     * @param E The type of the event to be posted. This should be a subclass of Event.
+     * @param process A function to be applied to the event after it has been posted.
      */
-    @JvmStatic fun <E> post(cancellable: E) : E where E : Event, E : ICancellable {
-        post(cancellable as Event)
-        return cancellable
+    @JvmStatic fun <E : Event> E.post(process: E.() -> Unit) {
+        post()
+        process()
     }
 
-    @JvmStatic fun <E> post(cancellable: E, process: E.() -> Unit) where E : Event, E : ICancellable {
-        post(cancellable)
-        cancellable.process()
-    }
-
-    @JvmStatic fun <E> postChecked(cancellable: E, process: E.() -> Unit) where E : Event, E : ICancellable {
-        post(cancellable)
-        if (!cancellable.isCanceled()) cancellable.process()
-    }
-
-    @JvmStatic fun <E, R> postR(returnable: E): E where E : Returnable<R>, E : Event {
-        post(returnable as Event)
-        return returnable
-    }
-
-    @JvmStatic fun <R, E> post(
-        returnable: E, process: E.() -> Unit
-    ) where E : Returnable<R>, E : Event {
-        post(returnable as Event)
-        returnable.process()
+    /**
+     * Posts an [Event] to the event flow and then applies the given [process] function to the event
+     * if it is not canceled.
+     * If not it applies the [process] function to the event.
+     *
+     * CAUTION: The processed [Event] may have not yet been processed by concurrent listeners.
+     *
+     * @param E The type of the event to be posted. This should be a subclass of [Event] and implement [ICancellable].
+     * @param process A function to be applied to the event after it has been posted if the [Event] is not canceled.
+     */
+    @JvmStatic fun <E> E.postChecked(process: E.() -> Unit) where E : Event, E : ICancellable {
+        post()
+        if (!isCanceled()) process()
     }
 
     /**

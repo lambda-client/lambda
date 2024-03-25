@@ -1,6 +1,6 @@
 package com.lambda.module
 
-import com.lambda.Loadable
+import com.lambda.core.Loadable
 import com.lambda.module.ModuleRegistry.modules
 import org.reflections.Reflections
 import org.reflections.scanners.Scanners

@@ -18,6 +18,7 @@
     "render.ChatScreenMixin",
     "render.DebugHudMixin",
     "render.GameRendererMixin",
+    "render.RenderTickCounterMixin",
     "render.WorldRendererMixin"
   ],
   "injectors": {

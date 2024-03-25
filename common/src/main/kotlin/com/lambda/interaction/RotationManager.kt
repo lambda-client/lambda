@@ -1,9 +1,9 @@
 package com.lambda.interaction
 
 import com.lambda.Lambda.mc
-import com.lambda.Loadable
+import com.lambda.core.Loadable
 import com.lambda.config.RotationSettings
-import com.lambda.event.EventFlow
+import com.lambda.event.EventFlow.post
 import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
@@ -40,9 +40,9 @@ object RotationManager : Loadable {
     @JvmStatic
     fun update() =
         runSafe {
-            EventFlow.post(RotationEvent.Pre()) {
+            RotationEvent.Pre().post {
                 rotate()?.let {
-                    EventFlow.post(RotationEvent.Post(it))
+                    RotationEvent.Post(it).post()
                 }
             }
         }

@@ -13,6 +13,7 @@ abstract class PlayerPacketEvent : Event {
         var rotation: Rotation,
         var onGround: Boolean,
         var isSprinting: Boolean,
+        var isSneaking: Boolean,
     ) : PlayerPacketEvent(), ICancellable by Cancellable()
 
     class Post(
