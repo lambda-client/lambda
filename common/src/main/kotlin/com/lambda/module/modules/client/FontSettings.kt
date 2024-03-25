@@ -13,6 +13,7 @@ object FontSettings : Module(
     val shadowShift by setting("Shadow Shift", 1.0, 0.0..2.0, 0.05, visibility = { shadow })
     val gapSetting by setting("Gap", 1.5, -10.0..10.0, 0.5)
     val baselineOffset by setting("Vertical Offset", 0.0, -10.0..10.0, 0.5)
+    val amountOfGlyphs by setting("Glyph Count", 2048, 128..65536, 1)
     private val lodBiasSetting by setting("Smoothing", -1.0, -10.0..10.0, 0.5)
 
     val lodBias get() = lodBiasSetting * 0.25f - 0.5f

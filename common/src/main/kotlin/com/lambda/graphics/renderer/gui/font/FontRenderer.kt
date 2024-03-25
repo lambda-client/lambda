@@ -4,7 +4,7 @@ import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.renderer.gui.AbstractGuiRenderer
 import com.lambda.graphics.shader.Shader
 
-class FontRenderer(private val font: LambdaFont = LambdaFont.FiraSansRegular) : AbstractGuiRenderer<IFontEntry>(
+class FontRenderer(private val font: LambdaFont) : AbstractGuiRenderer<IFontEntry>(
     VertexAttrib.Group.FONT
 ) {
     override fun render() {
