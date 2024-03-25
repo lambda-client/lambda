@@ -64,18 +64,6 @@ object Freecam : Module(
         rotation = rotation.withDelta(deltaYaw * factor, deltaPitch * factor)
     }
 
-    @JvmStatic fun updateTarget() {
-        runSafe {
-            mc.crosshairTarget = rayCast(
-                interpolatedPosition,
-                interpolatedRotation.vector,
-                interaction.reachDistance.toDouble(),
-                RayCastMask.BOTH,
-                true
-            )
-        }
-    }
-
     init {
         onEnable {
             position = player.eyePos
@@ -114,7 +102,13 @@ object Freecam : Module(
 
         listener<RenderEvent.UpdateTarget> {
             it.cancel()
-            updateTarget()
+            mc.crosshairTarget = rayCast(
+                interpolatedPosition,
+                interpolatedRotation.vector,
+                interaction.reachDistance.toDouble(),
+                RayCastMask.BOTH,
+                true
+            )
         }
 
         listener<ConnectionEvent.Disconnect> {

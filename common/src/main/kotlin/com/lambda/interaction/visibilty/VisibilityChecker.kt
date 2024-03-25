@@ -84,7 +84,7 @@ object VisibilityChecker {
     private fun stay(priority: Int = 0, config: IRotationConfig) =
         RotationRequest(config, RotationManager.currentRotation, priority)
 
-    inline fun SafeContext.scanVisibleSurfaces(
+    private inline fun SafeContext.scanVisibleSurfaces(
         box: Box,
         sides: Set<Direction>,
         resolution: Int,
