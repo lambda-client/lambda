@@ -28,7 +28,7 @@ import net.minecraft.util.math.MathHelper.square
 import net.minecraft.util.math.Vec3d
 
 object PlayerPacketManager : Loadable {
-    private val configurations = LimitedOrderedSet<PlayerPacketEvent.Pre>(100)
+    val configurations = LimitedOrderedSet<PlayerPacketEvent.Pre>(100)
     private var sendTicks = 0
 
     @JvmStatic
@@ -43,35 +43,6 @@ object PlayerPacketManager : Loadable {
             ).post {
                 updatePlayerPackets(this)
             }
-        }
-    }
-
-    init {
-        listener<PacketEvent.Receive.Pre> { event ->
-            if (event.packet !is PlayerPositionLookS2CPacket) return@listener
-
-            if (configurations.isEmpty()) {
-                warn("Position was reverted", "Rubberband")
-                return@listener
-            }
-
-            val newPos = Vec3d(event.packet.x, event.packet.y, event.packet.z)
-            val last = configurations.minBy {
-                it.position distSq newPos
-            }
-            val delta = last.position dist newPos
-
-            warn(buildText {
-                literal("Reverted position by ")
-                color(Color.YELLOW) {
-                    literal("${configurations.reversed().indexOf(last) + 1}")
-                }
-                literal(" ticks (derivation: ")
-                color(Color.YELLOW) {
-                    literal("%.3f".format(delta))
-                }
-                literal(")")
-            }, "Rubberband")
         }
     }
 

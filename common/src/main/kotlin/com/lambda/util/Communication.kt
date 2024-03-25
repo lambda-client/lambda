@@ -14,7 +14,6 @@ object Communication {
     fun Any.info(message: String, source: String = "") = log(LogLevel.INFO.text(message), LogLevel.INFO, source)
     fun Any.info(message: Text, source: Text = Text.empty()) = log(message, LogLevel.INFO, textSource = source)
     fun Any.warn(message: String, source: String = "") = log(LogLevel.WARN.text(message), LogLevel.WARN, source)
-    fun Any.warn(message: Text, source: String = "") = log(message, LogLevel.WARN, source)
     fun Any.warn(message: Text, source: Text = Text.empty()) = log(message, LogLevel.WARN, textSource = source)
     fun Any.logError(message: String, source: String = "") = log(LogLevel.ERROR.text(message), LogLevel.ERROR, source)
     fun Any.logError(message: Text, source: Text = Text.empty()) = log(message, LogLevel.ERROR, textSource = source)

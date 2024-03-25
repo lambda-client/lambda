@@ -106,7 +106,7 @@ object ModuleCommand : LambdaCommand {
                                             literal("$name already ")
                                             literal(if (module.isEnabled) "enabled" else "disabled")
                                         }
-                                    }, "")
+                                    })
                                     return@runSafe success()
                                 }
 
