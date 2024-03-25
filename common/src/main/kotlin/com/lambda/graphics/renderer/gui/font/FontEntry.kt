@@ -15,7 +15,7 @@ class FontEntry(
     override var text by owner.field("")
     override var position by owner.field(Vec2d.ZERO)
 
-    override var color by owner.field(Color.WHITE!!)
+    override var color by owner.field(Color.WHITE)
     override var scale by owner.field(1.0)
     override var shadow by owner.field(true)
 
