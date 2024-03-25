@@ -18,7 +18,7 @@ object SafeWalk : Module(
 //        }
 
         listener<MovementEvent.ClipAtLedge> {
-            it.returnValue = true
+            it.clip = true
         }
     }
 }

@@ -13,7 +13,6 @@ public class PlayerEntityMixin {
     @Inject(method = "clipAtLedge", at = @At(value = "HEAD"), cancellable = true)
     private void injectSafeWalk(CallbackInfoReturnable<Boolean> cir) {
         MovementEvent.ClipAtLedge event = new MovementEvent.ClipAtLedge(cir.getReturnValueZ());
-        EventFlow.post(event);
-        cir.setReturnValue(event.getReturnValue());
+        cir.setReturnValue(EventFlow.post(event).getClip());
     }
 }

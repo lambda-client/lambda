@@ -21,6 +21,7 @@
     "render.GlStateManagerMixin",
     "render.InGameHudMixin",
     "render.VertexBufferMixin",
+    "render.RenderTickCounterMixin",
     "render.WorldRendererMixin"
   ],
   "injectors": {
