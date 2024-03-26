@@ -31,6 +31,7 @@ object EventFlow {
      * useful when you have multiple independent [Job]s running in parallel.
      */
     val lambdaScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val concurrentFlow = MutableSharedFlow<Event>(
         extraBufferCapacity = 1000,
         onBufferOverflow = BufferOverflow.DROP_OLDEST

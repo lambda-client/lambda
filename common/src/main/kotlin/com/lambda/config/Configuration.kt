@@ -5,6 +5,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
+import com.lambda.event.EventFlow.ioScope
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
@@ -81,7 +82,7 @@ abstract class Configuration : Jsonable {
     }
 
     fun tryLoad() {
-        lambdaScope.launch(Dispatchers.IO) {
+        ioScope.launch {
             runCatching { load(primary) }
                 .onSuccess {
                     val message = "${configName.capitalize()} config loaded."
@@ -108,7 +109,7 @@ abstract class Configuration : Jsonable {
     }
 
     fun trySave() {
-        lambdaScope.launch(Dispatchers.IO) {
+        ioScope.launch {
             runCatching { save() }
                 .onSuccess {
                     val message = "Saved ${configName.capitalize()} config."
