@@ -5,5 +5,5 @@ import com.lambda.util.FolderRegister
 
 object LambdaConfig : Configuration() {
     override val configName = "lambda"
-    override val primary = FolderRegister.lambda.resolve("$configName.json")
+    override val primary = FolderRegister.config.resolve("$configName.json")
 }
