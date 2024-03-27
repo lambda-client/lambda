@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class PlayerEntityMixin {
     @Inject(method = "clipAtLedge", at = @At(value = "HEAD"), cancellable = true)
     private void injectSafeWalk(CallbackInfoReturnable<Boolean> cir) {
-        MovementEvent.ClipAtLedge event = new MovementEvent.ClipAtLedge(cir.getReturnValueZ());
+        MovementEvent.ClipAtLedge event = new MovementEvent.ClipAtLedge(((PlayerEntity) (Object) this).isSneaking());
         cir.setReturnValue(EventFlow.post(event).getClip());
     }
 }
