@@ -6,6 +6,7 @@ import com.lambda.command.CommandManager
 import com.lambda.interaction.PlayerPacketManager
 import com.lambda.interaction.RotationManager
 import com.lambda.module.ModuleRegistry
+import com.lambda.util.Communication.ascii
 import kotlin.system.measureTimeMillis
 
 object Loader {
@@ -17,6 +18,7 @@ object Loader {
     )
 
     fun initialize() {
+        ascii.split("\n").forEach { LOG.info(it) }
         LOG.info("Initializing ${Lambda.MOD_NAME} ${Lambda.VERSION}")
 
         val initTime = measureTimeMillis {

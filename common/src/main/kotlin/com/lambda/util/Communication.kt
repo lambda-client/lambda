@@ -9,6 +9,16 @@ import net.minecraft.client.toast.SystemToast
 import net.minecraft.text.Text
 
 object Communication {
+    val ascii = """
+        ⣰⡛⠶⣄⠀⠀⠀⠀⠀⠀
+        ⠑⠭⣛⡜⣳⡀⠀⠀⠀⠀
+        ⠀⠀⠹⣾⣥⣛⡄⠀⠀⠀
+        ⠀⠀⢠⣿⢯⣷⣻⡄⠀⠀
+        ⠀⢠⣿⣿⣿⢶⣏⡿⡄⠀
+        ⢠⣿⣿⡿⠃⠘⣿⣼⣻⣄
+        ⠻⢿⡿⠁⠀⠀⠘⢷⡽⠞
+    """.trimIndent()
+
     fun Any.debug(message: String, source: String = "") = log(LogLevel.DEBUG.text(message), LogLevel.DEBUG, source)
     fun Any.debug(message: Text, source: Text = Text.empty()) = log(message, LogLevel.DEBUG, textSource = source)
     fun Any.info(message: String, source: String = "") = log(LogLevel.INFO.text(message), LogLevel.INFO, source)
