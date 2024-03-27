@@ -3,6 +3,7 @@ package com.lambda.util.world
 import com.lambda.context.SafeContext
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.ChunkSectionPos
+import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3d
 import kotlin.math.ceil
 
@@ -63,5 +64,17 @@ object EntityUtils {
         }
 
         return entities
+    }
+
+    fun Entity.direction(): EightWayDirection {
+        // Normalize the yaw to be within the range of -180 to 179 degrees
+        var normalizedYaw = (yaw + 180.0) % 360.0
+        if (normalizedYaw < 0) {
+            normalizedYaw += 360.0
+        }
+
+        // Calculate the index of the closest direction
+        val directionIndex = ((normalizedYaw + 22.5) / 45.0).toInt() % 8
+        return EightWayDirection.entries[directionIndex]
     }
 }

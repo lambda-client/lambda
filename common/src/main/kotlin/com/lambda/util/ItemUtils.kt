@@ -54,6 +54,8 @@ object ItemUtils {
         Items.SHEARS,
     )
 
+    val tools = pickaxes + shovels + axes + hoes + swords + misc
+
     val shulkerBoxes = setOf(
         Items.SHULKER_BOX,
         Items.WHITE_SHULKER_BOX,
@@ -81,7 +83,21 @@ object ItemUtils {
         Items.BARREL,
     )
 
-    val tools = pickaxes + shovels + axes + hoes + swords + misc
+    val defaultDisposables = setOf(
+        Items.DIRT,
+        Items.COBBLESTONE,
+        Items.GRANITE,
+        Items.DIORITE,
+        Items.ANDESITE,
+        Items.SANDSTONE,
+        Items.RED_SANDSTONE,
+        Items.NETHERRACK,
+        Items.END_STONE,
+        Items.STONE,
+        Items.BASALT,
+        Items.BLACKSTONE,
+        Items.COBBLED_DEEPSLATE
+    )
 
     val Item.block: Block get() = Block.getBlockFromItem(this)
 

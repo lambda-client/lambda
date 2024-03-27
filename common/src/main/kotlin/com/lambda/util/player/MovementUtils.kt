@@ -8,6 +8,7 @@ import com.lambda.util.math.MathUtils.toRadian
 import net.minecraft.client.input.Input
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity
+import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3d
 import kotlin.math.cos
 import kotlin.math.hypot
