@@ -81,6 +81,8 @@ class FontEntry(
         val x = position.x
         val y = position.y
 
+        grow(4)
+
         putQuad(
             vec2(pos1.x + x, pos1.y + y).vec2(ci.uv1.x, ci.uv1.y).color(color).end(),
             vec2(pos1.x + x, pos2.y + y).vec2(ci.uv1.x, ci.uv2.y).color(color).end(),
