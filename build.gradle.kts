@@ -30,6 +30,10 @@ subprojects {
         "mappings"("net.fabricmc:yarn:$yarnMappings:v2")
     }
 
+    repositories {
+        maven("https://babbaj.github.io/maven/")
+    }
+
     if (path == ":common") return@subprojects
 
     apply(plugin = "com.github.johnrengelman.shadow")
