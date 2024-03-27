@@ -6,6 +6,8 @@
   "client": [
     "ClientConnectionMixin",
     "MinecraftClientMixin",
+    "baritone.MixinLookBehavior",
+    "baritone.MixinBaritonePlayerContext",
     "entity.ClientPlayerEntityMixin",
     "entity.EntityMixin",
     "entity.LivingEntityMixin",
