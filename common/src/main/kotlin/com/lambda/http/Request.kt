@@ -66,7 +66,7 @@ class Request(
     }
 
     /**
-     * Executes an HTTP GET request and parses the response as JSON.
+     * Executes an HTTP request synchronously and parses the response as JSON.
      *
      * @param T The type of the expected JSON response.
      * @param completion A callback function to handle the parsed JSON response.
