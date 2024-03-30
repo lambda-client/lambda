@@ -31,7 +31,7 @@ class Request(
      *
      * @param completion A callback function to handle the response asynchronously.
      */
-    fun doRequest(completion: (Response) -> Unit) {
+    fun doRequest(): Response =
         runCatching {
             val url = URL(
                 if (parameters.isNotEmpty()) "$url?${parameters.query}"
@@ -56,37 +56,16 @@ class Request(
             )
 
             connection.disconnect()
-            completion(response)
-
-            response
-        }.recoverCatching {
-            val response = Response(exception = it)
-            completion(response)
+            return response
+        }.getOrElse {
+            return Response(exception = it)
         }
-    }
 
     /**
      * Executes an HTTP request synchronously and parses the response as JSON.
      *
      * @param T The type of the expected JSON response.
-     * @param completion A callback function to handle the parsed JSON response.
      */
-    inline fun <reified T: Any> getJson(crossinline completion: (T, Response) -> Unit) {
-        doRequest {
-            val result = Lambda.gson.fromJson(it.body, T::class.java)
-            completion(result, it)
-        }
-    }
-
-    /**
-     * Executes an HTTP request asynchronously and parses the response as JSON
-     *
-     * @param T The type of the expected JSON response.
-     * @param completion A callback function to handle the parsed JSON response.
-     * @return A [Job] representing the asynchronous operation.
-     */
-    inline fun <reified T: Any> getJsonAsync(crossinline completion: (T?, Response) -> Unit) =
-        EventFlow.ioScope.launch {
-            getJson(completion)
-        }
+    inline fun <reified T: Any> json(): T? =
+        doRequest().body?.let { Lambda.gson.fromJson(it, T::class.java) }
 }

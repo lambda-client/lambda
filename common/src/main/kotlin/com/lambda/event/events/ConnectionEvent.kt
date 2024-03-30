@@ -71,7 +71,6 @@ sealed class ConnectionEvent : Event {
              * The secret key MUST ABSOLUTELY be destroyed after use to prevent memory leaks and security vulnerabilities.
              * This can be done by calling the `destroy()` method on the secret key object.
              * We are NOT responsible for any security incidents that may occur due to improper handling of cryptographic keys.
-             * The worse case scenario is that someone creates a malicious plugin that steals your secret key and uses it to decrypt your traffic.
              * It cannot be used for stealing accounts, but you may still want to keep it secret.
              */
             class Key(
