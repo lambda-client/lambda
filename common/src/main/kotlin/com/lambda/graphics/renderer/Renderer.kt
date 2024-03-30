@@ -6,7 +6,7 @@ import kotlin.properties.Delegates
 
 abstract class Renderer <T: IRenderEntry<T>> : IRenderer<T> {
     private val entrySet = mutableSetOf<T>()
-    private var rebuild = true
+    private var rebuild = false
 
     abstract val vao: VAO
     protected abstract fun newEntry(block: T.() -> Unit): T

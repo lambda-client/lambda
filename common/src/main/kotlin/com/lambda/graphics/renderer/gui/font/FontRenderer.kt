@@ -9,7 +9,7 @@ class FontRenderer(private val font: LambdaFont) : AbstractGuiRenderer<IFontEntr
 ) {
     override fun render() {
         shader.use()
-        font.bind()
+        font.glyphs.bind()
         super.render()
     }
 

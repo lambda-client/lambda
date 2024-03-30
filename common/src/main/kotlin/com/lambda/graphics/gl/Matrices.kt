@@ -1,10 +1,10 @@
 package com.lambda.graphics.gl
 
-import com.lambda.graphics.RenderMain
+import net.minecraft.client.util.math.MatrixStack
 
 object Matrices {
-    private val stack get() = RenderMain.stack
-    private val matrix get() = RenderMain.modelViewMatrix
+    var stack = MatrixStack()
+    private val matrix get() = stack.peek().positionMatrix
 
     fun pushMatrix() {
         stack.push()
@@ -12,6 +12,10 @@ object Matrices {
 
     fun popMatrix() {
         stack.push()
+    }
+
+    fun resetMatrix() {
+        stack = MatrixStack()
     }
 
     fun translate(x: Double, y: Double, z: Double = 0.0) {

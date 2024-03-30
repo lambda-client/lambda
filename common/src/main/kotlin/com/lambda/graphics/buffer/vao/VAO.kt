@@ -33,26 +33,25 @@ class VAO(
     private var ibo = 0
 
     private val objectSize: Int
-    private var verticesPointerStart = 0L
 
     private lateinit var vertices: ByteBuffer
     private var verticesPointer = 0L
+    private var verticesPosition = 0L
 
     private lateinit var indices: ByteBuffer
     private var indicesPointer = 0L
-
-    private var vertexI = 0
     private var indicesCount = 0
 
-    // region Initializing
+    private var vertexIndex = 0
+
     init {
         val stride = attribGroup.stride
         objectSize = stride * drawMode.indicesCount
 
         runOnGameThread {
             vertices = byteBuffer(objectSize * 256 * 4)
-            verticesPointerStart = address(vertices)
-            verticesPointer = verticesPointerStart
+            verticesPosition = address(vertices)
+            verticesPointer = verticesPosition
 
             indices = byteBuffer(drawMode.indicesCount * 512 * 4)
             indicesPointer = address(indices)
@@ -78,9 +77,7 @@ class VAO(
             unbindIndexBuffer()
         }
     }
-    // endregion
 
-    // region Vertex Attributes
     override fun vec3(x: Double, y: Double, z: Double): VAO {
         verticesPointer += vec3(verticesPointer, x, y, z)
         return this
@@ -96,12 +93,8 @@ class VAO(
         return this
     }
 
-    override fun end(): Int {
-        return vertexI++
-    }
-    // endregion
+    override fun end() = vertexIndex++
 
-    // region Vertex Objects
     override fun putLine(vertex1: Int, vertex2: Int) {
         growIndices(2)
         val p = indicesPointer + indicesCount * 4L
@@ -133,14 +126,12 @@ class VAO(
         int(p + 20, vertex1)
         indicesCount += 6
     }
-    // endregion
 
-    // region Memory
     override fun grow(amount: Int) {
         val cap = vertices.capacity
-        if ((vertexI + amount + 1) * objectSize < cap) return
+        if ((vertexIndex + amount + 1) * objectSize < cap) return
 
-        val offset = verticesPointer - verticesPointerStart
+        val offset = verticesPointer - verticesPosition
         var newSize = cap * 2
         if (newSize % objectSize != 0) newSize += newSize % objectSize
         val newVertices = byteBuffer(newSize)
@@ -150,8 +141,8 @@ class VAO(
         copy(from, to, offset)
 
         vertices = newVertices
-        verticesPointerStart = address(vertices)
-        verticesPointer = verticesPointerStart + offset
+        verticesPosition = address(vertices)
+        verticesPointer = verticesPosition + offset
     }
 
     private fun growIndices(amount: Int) {
@@ -169,20 +160,19 @@ class VAO(
         indices = newIndices
         indicesPointer = address(indices)
     }
-    // endregion
+
     override fun render() {
         if (indicesCount <= 0) return
+
         bindVertexArray(vao)
         drawElements(drawMode.gl, indicesCount, GL_UNSIGNED_INT)
         unbindVertexArray()
     }
 
     override fun upload() {
-        // Buffer is empty
         if (indicesCount <= 0) return
 
-        // Uploading
-        val vboData = vertices.limit((verticesPointer - verticesPointerStart).toInt())
+        val vboData = vertices.limit((verticesPointer - verticesPosition).toInt())
         val iboData = indices.limit(indicesCount * 4)
 
         bindVertexBuffer(vbo)
@@ -195,8 +185,8 @@ class VAO(
     }
 
     override fun clear() {
-        verticesPointer = verticesPointerStart
-        vertexI = 0
+        verticesPointer = verticesPosition
+        vertexIndex = 0
         indicesCount = 0
     }
 }

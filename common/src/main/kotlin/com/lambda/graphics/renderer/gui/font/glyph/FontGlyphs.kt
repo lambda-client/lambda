@@ -1,6 +1,7 @@
 package com.lambda.graphics.renderer.gui.font.glyph
 
 import com.lambda.Lambda
+import com.lambda.graphics.texture.MipmapTexture
 import com.lambda.graphics.texture.TextureUtils.getCharImage
 import com.lambda.module.modules.client.FontSettings
 import com.lambda.util.math.Vec2d
@@ -55,7 +56,7 @@ class FontGlyphs(font: Font) {
                 x += charImage.width
             }
 
-            fontTexture = MipmapTexture(image, 4)
+            fontTexture = MipmapTexture(image)
         }
 
         Lambda.LOG.info("Font ${font.fontName} loaded with ${charMap.size} characters (${time}ms)")

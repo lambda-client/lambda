@@ -10,7 +10,6 @@ enum class LambdaFont(fontName: String) {
 
     val glyphs = FontGlyphs(getFont(fontName))
 
-    fun bind() = glyphs.bind()
     operator fun get(char: Char) = glyphs.getChar(char)
 
     private fun getFont(name: String): Font {

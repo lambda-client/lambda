@@ -32,6 +32,12 @@ object GlStateUtils {
         lineSmooth(false)
     }
 
+    fun withDepth(block: () -> Unit) {
+        depthTest(true)
+        block()
+        depthTest(false)
+    }
+
     @JvmStatic
     fun capSet(id: Int, flag: Boolean) {
         val field = when (id) {

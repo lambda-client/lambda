@@ -42,8 +42,7 @@ class RectEntry(
         val halfSize = size * 0.5
         val minSize = min(halfSize.x, halfSize.y)
 
-        var round = roundRadius
-        round = min(round, minSize)
+        val round = min(roundRadius, minSize)
 
         val p1 = pos1 - 0.75
         val p2 = pos2 + 0.75

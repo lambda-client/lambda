@@ -1,6 +1,5 @@
-package com.lambda.graphics.renderer.gui.font.glyph
+package com.lambda.graphics.texture
 
-import com.lambda.graphics.texture.Texture
 import com.lambda.graphics.texture.TextureUtils.rescale
 import com.lambda.graphics.texture.TextureUtils.setupLOD
 import com.lambda.graphics.texture.TextureUtils.upload
