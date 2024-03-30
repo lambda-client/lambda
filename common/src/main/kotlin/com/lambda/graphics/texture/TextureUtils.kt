@@ -1,25 +1,22 @@
 package com.lambda.graphics.texture
 
-import com.mojang.blaze3d.platform.GlConst
-import com.mojang.blaze3d.platform.GlStateManager
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.client.texture.NativeImage
 import org.lwjgl.BufferUtils
-import org.lwjgl.opengl.GL12C.*
-import org.lwjgl.opengl.GL13
+import org.lwjgl.opengl.GL13C.*
 import java.awt.Color
 import java.awt.Font
 import java.awt.RenderingHints
+import java.awt.Transparency
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
-import java.nio.IntBuffer
 import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 object TextureUtils {
     fun bindTexture(id: Int, slot: Int = 0) {
-        RenderSystem.activeTexture(GL13.GL_TEXTURE0 + slot)
+        RenderSystem.activeTexture(GL_TEXTURE0 + slot)
         RenderSystem.bindTexture(id)
     }
 
@@ -27,12 +24,8 @@ object TextureUtils {
         val width = bufferedImage.width
         val height = bufferedImage.height
 
-        glTexImage2D(GL_TEXTURE_2D, lod, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, null as IntBuffer?)
-
+        glTexImage2D(GL_TEXTURE_2D, lod, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, readImage(bufferedImage))
         setupTexture(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
-        readImage(bufferedImage, lod)
-        GlStateManager._texParameter(GlConst.GL_TEXTURE_2D, GlConst.GL_TEXTURE_WRAP_S, GlConst.GL_CLAMP_TO_EDGE)
-        GlStateManager._texParameter(GlConst.GL_TEXTURE_2D, GlConst.GL_TEXTURE_WRAP_T, GlConst.GL_CLAMP_TO_EDGE)
     }
 
     fun setupLOD(levels: Int) {
@@ -54,7 +47,7 @@ object TextureUtils {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 4)
     }
 
-    private fun readImage(bufferedImage: BufferedImage, lod: Int) {
+    private fun readImage(bufferedImage: BufferedImage): Long {
         val stream = ByteArrayOutputStream()
         ImageIO.write(bufferedImage, "png", stream)
 
@@ -64,15 +57,12 @@ object TextureUtils {
             .put(bytes)
             .flip()
 
-        val image = NativeImage.read(buffer)
-        val width = bufferedImage.width
-        val height = bufferedImage.height
-
-        glTexSubImage2D(GL_TEXTURE_2D, lod, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, image.pointer)
-        buffer.clear()
+        return NativeImage.read(buffer).pointer
     }
 
-    fun getCharImage(font: Font, char: Char): BufferedImage {
+    fun getCharImage(font: Font, char: Char): BufferedImage? {
+        if (!font.canDisplay(char)) return null
+
         val tempGraphics2D = BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB).createGraphics()
         tempGraphics2D.font = font
         val fontMetrics = tempGraphics2D.fontMetrics
@@ -93,26 +83,37 @@ object TextureUtils {
         return charImage
     }
 
-    fun rescale(imageIn: BufferedImage, targetSize: Int): BufferedImage {
-        var image = imageIn
+    fun BufferedImage.rescale(targetWidth: Int, targetHeight: Int): BufferedImage {
+        val type = if (this.transparency == Transparency.OPAQUE)
+            BufferedImage.TYPE_INT_RGB
+        else BufferedImage.TYPE_INT_ARGB
 
-        var size = image.width
-        val divisor = sqrt((size / targetSize).toDouble())
+        var image = this
+
+        var width = image.width
+        var height = image.height
+
+        val divisorX = sqrt((width / targetWidth).toDouble())
+        val divisorY = sqrt((height / targetHeight).toDouble())
 
         do {
-            if (size > targetSize) {
-                size = (size / divisor).roundToInt().coerceAtLeast(targetSize)
+            if (width > targetWidth) {
+                width = (width / divisorX).roundToInt().coerceAtLeast(targetWidth)
             }
 
-            val tempImage = BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB)
+            if (height > targetHeight) {
+                height = (height / divisorY).roundToInt().coerceAtLeast(targetHeight)
+            }
+
+            val tempImage = BufferedImage(width, height, type)
             val graphics2D = tempImage.createGraphics()
 
             graphics2D.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
-            graphics2D.drawImage(image, 0, 0, size, size, null)
+            graphics2D.drawImage(image, 0, 0, width, height, null)
             graphics2D.dispose()
 
             image = tempImage
-        } while (size != targetSize)
+        } while (width != targetWidth || height != targetHeight)
 
         return image
     }

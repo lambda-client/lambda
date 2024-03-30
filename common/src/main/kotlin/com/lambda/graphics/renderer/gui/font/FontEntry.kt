@@ -45,8 +45,8 @@ class FontEntry(
         val scaledGap = gap * actualScale
         val shadowColor = getShadowColor(color)
 
-        var posX = baselineOffset * actualScale
-        val posY = height * -0.5
+        var posX = 0.0
+        val posY = height * -0.5 + baselineOffset * actualScale
 
         text.toCharArray().forEach { char ->
             val charInfo = font[char] ?: return@forEach

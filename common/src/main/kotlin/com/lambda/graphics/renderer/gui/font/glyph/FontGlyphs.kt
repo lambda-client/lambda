@@ -2,7 +2,6 @@ package com.lambda.graphics.renderer.gui.font.glyph
 
 import com.lambda.Lambda
 import com.lambda.graphics.texture.TextureUtils.getCharImage
-import com.lambda.graphics.texture.TextureUtils.rescale
 import com.lambda.module.modules.client.FontSettings
 import com.lambda.util.math.Vec2d
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
@@ -11,12 +10,11 @@ import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import kotlin.math.max
-import kotlin.math.pow
 import kotlin.system.measureTimeMillis
 
 class FontGlyphs(font: Font) {
     private val charMap = Int2ObjectOpenHashMap<CharInfo>()
-    private val fontTexture: FontTexture
+    private val fontTexture: MipmapTexture
 
     var fontHeight = 0.0; private set
 
@@ -33,7 +31,7 @@ class FontGlyphs(font: Font) {
 
             // Because UTF16 takes 2 bytes per character, we can't use the full range of characters
             (Char.MIN_VALUE..<TEXTURE_SIZE.toChar()).forEach { char ->
-                val charImage = getCharImage(font, char)
+                val charImage = getCharImage(font, char) ?: return@forEach
 
                 rowHeight = max(rowHeight, charImage.height)
 
@@ -57,19 +55,18 @@ class FontGlyphs(font: Font) {
                 x += charImage.width
             }
 
-            val lodImages = (0..LOD_LEVELS).map { level ->
-                if (level == 0) return@map image
-                val size = TEXTURE_SIZE / (2.0.pow(level).toInt())
-                rescale(image, size)
-            }
-
-            fontTexture = FontTexture(lodImages)
+            fontTexture = MipmapTexture(image, 4)
         }
 
         Lambda.LOG.info("Font ${font.fontName} loaded with ${charMap.size} characters (${time}ms)")
     }
 
-    fun bind() = fontTexture.bind()
+    fun bind() {
+        with(fontTexture) {
+            bind()
+            setLOD(FontSettings.lodBias.toFloat())
+        }
+    }
 
     fun getChar(char: Char): CharInfo? =
         charMap[char.code]
@@ -83,6 +80,5 @@ class FontGlyphs(font: Font) {
         // and in the future we could grow the textures when needed
         private val TEXTURE_SIZE = FontSettings.amountOfGlyphs * 2
         private val ONE_TEXEL_SIZE = 1.0 / TEXTURE_SIZE
-        private const val LOD_LEVELS = 4
     }
 }
