@@ -2,12 +2,13 @@ package com.lambda.module.modules.client
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
-import com.lambda.event.EventFlow
 import com.lambda.event.EventFlow.ioScope
+import com.lambda.event.events.ConnectionEvent
+import com.lambda.event.events.PacketEvent
+import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.onShutdown
-import com.lambda.threading.runConcurrent
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.toast
 import com.lambda.util.Nameable
@@ -28,6 +29,10 @@ import dev.cbyrne.kdiscordipc.data.activity.*
 import dev.cbyrne.kdiscordipc.data.user.User
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import net.minecraft.network.NetworkState
+import net.minecraft.network.encryption.NetworkEncryptionUtils
+import net.minecraft.network.packet.s2c.login.LoginHelloS2CPacket
+import java.math.BigInteger
 import java.util.*
 
 object DiscordRPC : Module(
@@ -57,8 +62,11 @@ object DiscordRPC : Module(
 
     private val rpc = KDiscordIPC(Lambda.APP_ID, scope = ioScope)
     private val startup = System.currentTimeMillis()
+
     private var lastInviter: User? = null
     private var lastInvite: ActivityInviteEventData? = null
+
+    private var serverId: String? = null
 
     private enum class LineInfo(val value: () -> String) : Nameable {
         VERSION({ Lambda.VERSION }),
@@ -84,6 +92,19 @@ object DiscordRPC : Module(
                 if (rpc.connected) update()
                 delay(delay * 1000L)
             }
+        }
+
+        unsafeListener<PacketEvent.Receive.Pre> {
+            if (it.packet !is LoginHelloS2CPacket) return@unsafeListener
+            serverId = it.packet.serverId
+        }
+
+        unsafeListener<ConnectionEvent.Connect.Login.Key>(Int.MAX_VALUE) {
+            val hash = BigInteger(
+                NetworkEncryptionUtils.computeServerId(serverId ?: return@unsafeListener, it.publicKey, it.secretKey)
+            ).toString(16)
+
+            it.secretKey.destroy() // Destroy the secret key after use
         }
 
         onEnableUnsafe {
