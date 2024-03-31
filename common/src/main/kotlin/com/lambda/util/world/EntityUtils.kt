@@ -13,8 +13,6 @@ import kotlin.math.ceil
  */
 object EntityUtils {
 
-    // TODO: Tick cache implementation
-
     /**
      * Gets the closest entity of type [T] within a specified range.
      *
