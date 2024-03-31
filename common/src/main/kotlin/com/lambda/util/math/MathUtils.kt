@@ -125,7 +125,6 @@ object MathUtils {
             lerp(start.y, end.y, factor)
         )
 
-
     fun lerp(start: Rotation, end: Rotation, factor: Double) =
         Rotation(
             lerp(start.yaw, end.yaw, factor),
