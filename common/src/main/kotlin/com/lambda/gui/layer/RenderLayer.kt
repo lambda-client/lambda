@@ -10,9 +10,7 @@ class RenderLayer {
     val rect = RectRenderer().apply(::register)
     val font = FontRenderer().apply(::register)
 
-    fun register(renderer: IRenderer<*>) {
-        renderers.add(renderer)
-    }
+    fun register(renderer: IRenderer<*>) = renderers.add(renderer)
 
     fun render() {
         renderers.forEach(IRenderer<*>::update)
