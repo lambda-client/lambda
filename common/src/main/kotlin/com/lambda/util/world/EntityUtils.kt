@@ -1,6 +1,7 @@
 package com.lambda.util.world
 
 import com.lambda.context.SafeContext
+import com.lambda.util.collections.filterIsInstanceTo
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
@@ -48,7 +49,7 @@ object EntityUtils {
         val sectionY = pos.y.toInt() shr 4
         val sectionZ = pos.z.toInt() shr 4
 
-        val entities = mutableListOf<T>()
+        val entities = ArrayList<T>()
 
         // Here we iterate over all sections within the specified distance and add all entities of type [T] to the list.
         // We do not have to worry about performance here, as the number of sections is very limited.
@@ -57,7 +58,7 @@ object EntityUtils {
             for (y in sectionY - chunks..sectionY + chunks) {
                 for (z in sectionZ - chunks..sectionZ + chunks) {
                     val section = world.entityManager.cache.findTrackingSection(ChunkSectionPos.asLong(x, y, z)) ?: continue
-                    entities.addAll(section.collection.getAllOfType(T::class.java).filter(predicate))
+                    section.collection.filterIsInstanceTo(entities, predicate)
                 }
             }
         }
