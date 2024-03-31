@@ -1,6 +1,5 @@
 package com.lambda.gui
 
-import com.lambda.context.SafeContext
 import com.lambda.gui.component.IComponent
 import com.lambda.threading.runSafe
 import com.lambda.util.KeyCode
@@ -12,7 +11,8 @@ import net.minecraft.text.Text
 interface LambdaGui : IComponent {
     fun onCloseRequest(): Boolean = true
 
-    fun SafeContext.show() {
+    // We need to find an alternative to this
+    fun show() = runSafe {
         mc.setScreen(object : Screen(Text.of("Lambda Screen")) {
             override fun onDisplayed() {
                 onShow()
