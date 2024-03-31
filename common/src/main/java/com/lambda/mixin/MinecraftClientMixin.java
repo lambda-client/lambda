@@ -3,10 +3,16 @@ package com.lambda.mixin;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.ClientEvent;
+import com.lambda.event.events.ScreenEvent;
+import com.lambda.event.events.ScreenHandlerEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.module.modules.player.Interact;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.ingame.HandledScreen;
+import net.minecraft.client.gui.screen.ingame.ScreenHandlerProvider;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -36,6 +42,26 @@ public class MinecraftClientMixin {
     @Inject(at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;thread:Ljava/lang/Thread;", shift = At.Shift.AFTER, ordinal = 0), method = "run")
     private void onStartup(CallbackInfo ci) {
         EventFlow.post(new ClientEvent.Startup());
+    }
+
+    @Inject(method = "setScreen", at = @At("HEAD"))
+    private void onScreenOpen(@Nullable Screen screen, CallbackInfo ci) {
+        if (screen == null) return;
+        if (screen instanceof ScreenHandlerProvider<?> handledScreen) {
+            EventFlow.post(new ScreenHandlerEvent.Open<>(handledScreen.getScreenHandler()));
+        }
+
+        EventFlow.post(new ScreenEvent.Open<>(screen));
+    }
+
+    @Inject(method = "setScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/Screen;removed()V", shift = At.Shift.AFTER))
+    private void onScreenRemove(@Nullable Screen screen, CallbackInfo ci) {
+        if (screen == null) return;
+        if (screen instanceof ScreenHandlerProvider<?> handledScreen) {
+            EventFlow.post(new ScreenHandlerEvent.Close<>(handledScreen.getScreenHandler()));
+        }
+
+        EventFlow.post(new ScreenEvent.Close<>(screen));
     }
 
     @Redirect(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;isBreakingBlock()Z"))

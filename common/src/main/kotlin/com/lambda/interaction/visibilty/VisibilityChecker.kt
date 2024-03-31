@@ -111,7 +111,7 @@ object VisibilityChecker {
             }
     }
 
-    fun Box.bounds(side: Direction) =
+    private fun Box.bounds(side: Direction) =
         when (side) {
             Direction.DOWN -> doubleArrayOf(minX, minY, minZ, maxX, minY, maxZ)
             Direction.UP -> doubleArrayOf(minX, maxY, minZ, maxX, maxY, maxZ)
@@ -121,7 +121,7 @@ object VisibilityChecker {
             Direction.EAST -> doubleArrayOf(maxX, minY, minZ, maxX, maxY, maxZ)
         }
 
-    fun SafeContext.getVisibleSides(box: Box): Set<Direction> {
+    private fun SafeContext.getVisibleSides(box: Box): Set<Direction> {
         val visibleSides = EnumSet.noneOf(Direction::class.java)
 
         val eyePos = player.eyePos

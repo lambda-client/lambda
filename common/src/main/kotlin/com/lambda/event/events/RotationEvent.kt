@@ -8,6 +8,7 @@ import com.lambda.interaction.RotationManager
 import com.lambda.interaction.rotation.IRotationConfig
 import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.interaction.visibilty.VisibilityChecker.findRotation
+import com.lambda.module.modules.client.TaskFlow
 import com.lambda.threading.runSafe
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
@@ -44,22 +45,22 @@ abstract class RotationEvent : Event {
         }
 
         fun lookAtBlock(
-            rotationConfig: IRotationConfig,
-            interactionConfig: InteractionConfig,
             blockPos: BlockPos,
+            rotationConfig: IRotationConfig = TaskFlow.rotationSettings,
+            interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
             sides: Set<Direction> = emptySet(),
             priority: Int = 0,
-        ) {
-            runSafe {
-                val state = world.getBlockState(blockPos)
-                val voxelShape = state.getOutlineShape(world, blockPos)
-                val boundingBoxes = voxelShape.boundingBoxes.map { it.offset(blockPos) }
-                findRotation(rotationConfig, interactionConfig, boundingBoxes, priority, sides) {
-                    blockResult?.blockPos == blockPos && (blockResult?.side in sides || sides.isEmpty())
-                }?.let {
-                    requests.add(it)
-                }
+        ) = runSafe {
+            val state = world.getBlockState(blockPos)
+            val voxelShape = state.getOutlineShape(world, blockPos)
+            val boundingBoxes = voxelShape.boundingBoxes.map { it.offset(blockPos) }
+            findRotation(rotationConfig, interactionConfig, boundingBoxes, priority, sides) {
+                blockResult?.blockPos == blockPos && (blockResult?.side in sides || sides.isEmpty())
+            }?.let {
+                requests.add(it)
+                return@runSafe it
             }
+            return@runSafe null
         }
     }
 

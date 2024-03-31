@@ -6,9 +6,10 @@
   "client": [
     "ClientConnectionMixin",
     "MinecraftClientMixin",
-    "baritone.MixinLookBehavior",
     "baritone.MixinBaritonePlayerContext",
+    "baritone.MixinLookBehavior",
     "entity.ClientPlayerEntityMixin",
+    "entity.ClientPlayInteractionManagerMixin",
     "entity.EntityMixin",
     "entity.LivingEntityMixin",
     "entity.PlayerEntityMixin",
@@ -21,6 +22,7 @@
     "render.DebugHudMixin",
     "render.GameRendererMixin",
     "render.RenderTickCounterMixin",
+    "render.ScreenHandlerMixin",
     "render.WorldRendererMixin"
   ],
   "injectors": {

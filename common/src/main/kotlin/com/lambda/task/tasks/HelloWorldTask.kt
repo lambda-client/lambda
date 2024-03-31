@@ -14,7 +14,7 @@ class HelloWorldTask : Task<Unit>() {
         }
     }
 
-    override suspend fun SafeContext.onAction() {
+    override suspend fun onAction() {
         LOG.info("Hello, World!")
         delay(250)
         LOG.info("Bye, World! Action completed")

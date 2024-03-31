@@ -1,7 +1,7 @@
 package com.lambda.util
 
-import com.lambda.util.ItemUtils.block
-import com.lambda.util.ItemUtils.shulkerBoxes
+import com.lambda.util.item.ItemUtils.block
+import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.block.Block
 import net.minecraft.block.Blocks
 import net.minecraft.fluid.Fluids

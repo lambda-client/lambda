@@ -1,7 +1,9 @@
 package com.lambda.task
 
+import baritone.api.BaritoneAPI
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
+import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Subscriber
 import com.lambda.threading.runSafe
@@ -9,6 +11,10 @@ import com.lambda.util.Nameable
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withTimeout
 
 /**
@@ -45,7 +51,7 @@ abstract class Task<Result>(
     private var delay: Long = 0L,
     private var timeout: Long = Long.MAX_VALUE,
     private var maxAttempts: Int = 1,
-    private var repeats: Int = 1,
+    open var repeats: Int = 1,
     private var onSuccess: (suspend (Result) -> Unit) = {},
     private var onRetry: (suspend Task<Result>.() -> Unit) = {},
     private var onTimeout: (suspend Task<Result>.() -> Unit) = {},
@@ -59,6 +65,8 @@ abstract class Task<Result>(
     val syncListeners = Subscriber()
     private val concurrentListeners = Subscriber()
 
+    operator fun plus(other: Task<*>) = TaskChain(listOf(this, other))
+
     /**
      * Executes the main action of the task.
      *
@@ -67,7 +75,7 @@ abstract class Task<Result>(
      *
      * @return The result of the action, of type [Result].
      */
-    abstract suspend fun SafeContext.onAction(): Result
+    abstract suspend fun onAction(): Result
 
     /**
      * This function is called when the task is canceled.
@@ -100,15 +108,12 @@ abstract class Task<Result>(
             }
 
             startListening()
+            iteration++
 
             try {
                 withTimeout(timeout) {
-                    runSafe {
-                        onAction()
-                    }
+                    onAction()
                 }?.let { result ->
-                    iteration++
-
                     if (iteration == repeats) {
                         onSuccess(result)
                         tidyUp()
@@ -150,7 +155,7 @@ abstract class Task<Result>(
         EventFlow.syncListeners.unsubscribe(syncListeners)
         EventFlow.concurrentListeners.unsubscribe(concurrentListeners)
 
-        // ToDo: cancel baritone
+        BaritoneAPI.getProvider().primaryBaritone?.pathingBehavior?.cancelEverything()
     }
 
     private fun startListening() {
@@ -170,6 +175,7 @@ abstract class Task<Result>(
      * @param delay The delay in milliseconds.
      * @return This task instance with the updated delay.
      */
+    @Ta5kBuilder
     fun withDelay(delay: Long): Task<Result> {
         this.delay = delay
         return this
@@ -181,6 +187,7 @@ abstract class Task<Result>(
      * @param timeout The timeout in milliseconds
      * @return This task instance with the updated timeout.
      */
+    @Ta5kBuilder
     fun withTimeout(timeout: Long): Task<Result> {
         this.timeout = timeout
         return this
@@ -192,6 +199,7 @@ abstract class Task<Result>(
      * @param maxAttempts The maximum number of attempts.
      * @return This task instance with the updated maximum attempts.
      */
+    @Ta5kBuilder
     fun withMaxAttempts(maxAttempts: Int): Task<Result> {
         this.maxAttempts = maxAttempts
         return this
@@ -203,6 +211,7 @@ abstract class Task<Result>(
      * @param repeats The number of repeats.
      * @return This task instance with the updated number of repeats.
      */
+    @Ta5kBuilder
     fun withRepeats(repeats: Int): Task<Result> {
         this.repeats = repeats
         return this
@@ -214,6 +223,7 @@ abstract class Task<Result>(
      * @param action The action to be performed.
      * @return The task instance with the updated success action.
      */
+    @Ta5kBuilder
     fun onSuccess(action: suspend (Result) -> Unit): Task<Result> {
         this.onSuccess = action
         return this
@@ -225,6 +235,7 @@ abstract class Task<Result>(
      * @param action The action to be performed.
      * @return The task instance with the updated retry action.
      */
+    @Ta5kBuilder
     fun onRetry(action: suspend Task<Result>.() -> Unit): Task<Result> {
         this.onRetry = action
         return this
@@ -236,6 +247,7 @@ abstract class Task<Result>(
      * @param action The action to be performed.
      * @return The task instance with the updated timeout action.
      */
+    @Ta5kBuilder
     fun onTimeout(action: suspend Task<Result>.() -> Unit): Task<Result> {
         this.onTimeout = action
         return this
@@ -247,6 +259,7 @@ abstract class Task<Result>(
      * @param action The action to be performed.
      * @return The task instance with the updated exception action.
      */
+    @Ta5kBuilder
     fun onFailure(action: suspend Task<Result>.(Throwable) -> Unit): Task<Result> {
         this.onException = action
         return this
@@ -258,8 +271,16 @@ abstract class Task<Result>(
      * @param action The action to be performed.
      * @return The task instance with the updated repeat action.
      */
+    @Ta5kBuilder
     fun onRepeat(action: suspend Task<Result>.(Int) -> Unit): Task<Result> {
         this.onRepeat = action
         return this
+    }
+
+    companion object {
+        fun <T> (suspend () -> T).toTask(name: String = "Task") = object : Task<T>() {
+            override val name = name
+            override suspend fun onAction() = this@toTask()
+        }
     }
 }

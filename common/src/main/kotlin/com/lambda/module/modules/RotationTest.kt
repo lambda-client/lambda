@@ -33,7 +33,7 @@ object RotationTest : Module(
 //                player.eyePos, interaction.reachDistance.toDouble()
 //            ) ?: return@listener
 
-            event.lookAtBlock(rotationConfig, interactionConfig, pos, setOf(side))
+            event.lookAtBlock(pos, rotationConfig, interactionConfig, setOf(side))
         }
 
         listener<RotationEvent.Post> {
