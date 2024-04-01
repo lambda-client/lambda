@@ -3,6 +3,7 @@ package com.lambda.core
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.command.CommandManager
+import com.lambda.graphics.renderer.gui.font.LambdaFont
 import com.lambda.interaction.PlayerPacketManager
 import com.lambda.interaction.RotationManager
 import com.lambda.module.ModuleRegistry
@@ -13,7 +14,8 @@ object Loader {
         ModuleRegistry,
         CommandManager,
         RotationManager,
-        PlayerPacketManager
+        PlayerPacketManager,
+        LambdaFont.Loader
     )
 
     fun initialize() {
