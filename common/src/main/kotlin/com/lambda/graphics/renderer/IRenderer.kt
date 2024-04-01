@@ -25,4 +25,9 @@ interface IRenderer <T: IRenderEntry<T>> {
      * Clears the render set
      */
     fun clear()
+
+    /**
+     * Destroys this renderer and frees v-ram used by VAO
+     */
+    fun destroy()
 }

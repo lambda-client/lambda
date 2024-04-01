@@ -50,8 +50,8 @@ class VAO(
 
         runOnGameThread {
             vertices = byteBuffer(objectSize * 256 * 4)
-            verticesPosition = address(vertices)
-            verticesPointer = verticesPosition
+            verticesPointer = address(vertices)
+            verticesPosition = verticesPointer
 
             indices = byteBuffer(drawMode.indicesCount * 512 * 4)
             indicesPointer = address(indices)
@@ -79,17 +79,17 @@ class VAO(
     }
 
     override fun vec3(x: Double, y: Double, z: Double): VAO {
-        verticesPointer += vec3(verticesPointer, x, y, z)
+        verticesPosition += vec3(verticesPosition, x, y, z)
         return this
     }
 
     override fun vec2(x: Double, y: Double): VAO {
-        verticesPointer += vec2(verticesPointer, x, y)
+        verticesPosition += vec2(verticesPosition, x, y)
         return this
     }
 
     override fun color(color: Color): VAO {
-        verticesPointer += color(verticesPointer, color)
+        verticesPosition += color(verticesPosition, color)
         return this
     }
 
@@ -131,7 +131,7 @@ class VAO(
         val cap = vertices.capacity
         if ((vertexIndex + amount + 1) * objectSize < cap) return
 
-        val offset = verticesPointer - verticesPosition
+        val offset = verticesPosition - verticesPointer
         var newSize = cap * 2
         if (newSize % objectSize != 0) newSize += newSize % objectSize
         val newVertices = byteBuffer(newSize)
@@ -141,8 +141,8 @@ class VAO(
         copy(from, to, offset)
 
         vertices = newVertices
-        verticesPosition = address(vertices)
-        verticesPointer = verticesPosition + offset
+        verticesPointer = address(vertices)
+        verticesPosition = verticesPointer + offset
     }
 
     private fun growIndices(amount: Int) {
@@ -172,7 +172,7 @@ class VAO(
     override fun upload() {
         if (indicesCount <= 0) return
 
-        val vboData = vertices.limit((verticesPointer - verticesPosition).toInt())
+        val vboData = vertices.limit((verticesPosition - verticesPointer).toInt())
         val iboData = indices.limit(indicesCount * 4)
 
         bindVertexBuffer(vbo)
@@ -185,8 +185,14 @@ class VAO(
     }
 
     override fun clear() {
-        verticesPointer = verticesPosition
+        verticesPosition = verticesPointer
         vertexIndex = 0
         indicesCount = 0
+    }
+
+    fun destroy() {
+        glDeleteBuffers(ibo)
+        glDeleteBuffers(vbo)
+        glDeleteVertexArrays(vao)
     }
 }
