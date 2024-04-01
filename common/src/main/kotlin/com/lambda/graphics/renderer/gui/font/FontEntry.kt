@@ -71,7 +71,7 @@ class FontEntry(
         shadowSetting = FontSettings.shadow
         shadowBrightness = FontSettings.shadowBrightness
         shadowShift = FontSettings.shadowShift * 4.0
-        baselineOffset = FontSettings.baselineOffset * 2.0f - 20f
+        baselineOffset = FontSettings.baselineOffset * 2.0f - 10f
         gap = FontSettings.gapSetting * 0.5f - 0.8f
 
         super.update()
