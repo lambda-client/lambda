@@ -5,10 +5,8 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.InteractionConfig
 import com.lambda.interaction.RotationManager
 import com.lambda.interaction.rotation.IRotationConfig
-import com.lambda.interaction.rotation.Rotation
-import com.lambda.interaction.rotation.Rotation.Companion.distance
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.rotation.RotationRequest
+import com.lambda.interaction.rotation.RotationContext
 import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.primitives.extension.component6
 import net.minecraft.util.hit.HitResult
@@ -16,45 +14,41 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.util.*
+import kotlin.math.pow
 
 object VisibilityChecker {
     fun SafeContext.findRotation(
         rotationConfig: IRotationConfig,
         interact: InteractionConfig,
         boxes: List<Box>,
-        priority: Int = 0,
         sides: Set<Direction> = emptySet(),
-        hitCheck: HitResult.() -> Boolean,
-    ): RotationRequest? {
+        verify: HitResult.() -> Boolean,
+    ): RotationContext? {
         val eye = player.getCameraPosVec(mc.tickDelta)
 
         if (boxes.any { it.contains(eye) }) {
-            return stay(priority, rotationConfig)
+            return stay(rotationConfig)
         }
 
-        val currentRotation = RotationManager.currentRotation
-        val currentCast = currentRotation.rayCast(
-            interact.reach,
-            interact.rayCastMask,
-            eye
-        )
-        val check = currentCast?.let { it.hitCheck() } ?: false
+//        val currentRotation = RotationManager.currentRotation
+//        val currentCast = currentRotation.rayCast(
+//            interact.reach,
+//            interact.rayCastMask,
+//            eye
+//        )
+//        val passed = currentCast?.let { it.verify() } ?: false
+//        // Slowdown or freeze if looking correct
+//        (rotationConfig as? RotationSettings)?.slowdownIf(passed) ?: run {
+//            if (passed) {
+//                return stay(rotationConfig)
+//            }
+//        }
 
-        // Slowdown or freeze if looking correct
-        (rotationConfig as? RotationSettings)?.slowdownIf(check) ?: run {
-            if (check) {
-                return stay(priority, rotationConfig)
-            }
-        }
-
-        val reachSq = interact.reach * interact.reach
-
-        var closestRotation: Rotation? = null
-        var rotationDist = 0.0
+        val validHits = mutableSetOf<Vec3d>()
 
         boxes.forEach { box ->
             scanVisibleSurfaces(box, sides, interact.resolution) { vec ->
-                if (eye distSq vec > reachSq) return@scanVisibleSurfaces
+                if (eye distSq vec > interact.reach.pow(2)) return@scanVisibleSurfaces
 
                 val newRotation = eye.rotationTo(vec)
 
@@ -63,26 +57,24 @@ object VisibilityChecker {
                     interact.rayCastMask,
                     eye
                 ) ?: return@scanVisibleSurfaces
-                if (!cast.hitCheck()) return@scanVisibleSurfaces
+                if (!cast.verify()) return@scanVisibleSurfaces
 
-                val dist = newRotation.distance(currentRotation)
-                if (dist >= rotationDist && closestRotation != null) return@scanVisibleSurfaces
-
-                rotationDist = dist
-                closestRotation = newRotation
+                validHits.add(vec)
             }
         }
 
-        // Rotate to selected point
-        closestRotation?.let { rotation ->
-            return RotationRequest(rotationConfig, rotation, priority)
+        validHits.mostCenter?.let { optimum ->
+            validHits.minByOrNull { optimum distSq it }?.let { closest ->
+                val optimumRotation = eye.rotationTo(closest)
+                return RotationContext(optimumRotation, rotationConfig)
+            }
         }
 
         return null
     }
 
-    private fun stay(priority: Int = 0, config: IRotationConfig) =
-        RotationRequest(config, RotationManager.currentRotation, priority)
+    private fun stay(config: IRotationConfig) =
+        RotationContext(RotationManager.currentRotation, config)
 
     private inline fun SafeContext.scanVisibleSurfaces(
         box: Box,
@@ -91,7 +83,7 @@ object VisibilityChecker {
         check: (Vec3d) -> Unit,
     ) {
         val shrunk = box.expand(-0.005)
-        getVisibleSides(box)
+        getVisibleSurfaces(box)
             .forEach { side ->
                 if (sides.isNotEmpty() && side !in sides) {
                     return@forEach
@@ -100,9 +92,9 @@ object VisibilityChecker {
                 val stepX = (maxX - minX) / resolution
                 val stepY = (maxY - minY) / resolution
                 val stepZ = (maxZ - minZ) / resolution
-                for (i in 0..resolution) {
+                (0..resolution).forEach { i ->
                     val x = if (stepX != 0.0) minX + stepX * i else minX
-                    for (j in 0..resolution) {
+                    (0..resolution).forEach { j ->
                         val y = if (stepY != 0.0) minY + stepY * j else minY
                         val z = if (stepZ != 0.0) minZ + stepZ * ((if (stepX != 0.0) j else i)) else minZ
                         check(Vec3d(x, y, z))
@@ -110,6 +102,11 @@ object VisibilityChecker {
                 }
             }
     }
+
+    private val Set<Vec3d>.mostCenter: Vec3d?
+        get() = reduceOrNull { acc, vec3d ->
+            acc.add(vec3d)
+        }?.multiply(1.0 / size.toDouble())
 
     private fun Box.bounds(side: Direction) =
         when (side) {
@@ -121,7 +118,7 @@ object VisibilityChecker {
             Direction.EAST -> doubleArrayOf(maxX, minY, minZ, maxX, maxY, maxZ)
         }
 
-    private fun SafeContext.getVisibleSides(box: Box): Set<Direction> {
+    private fun SafeContext.getVisibleSurfaces(box: Box): Set<Direction> {
         val visibleSides = EnumSet.noneOf(Direction::class.java)
 
         val eyePos = player.eyePos
@@ -140,13 +137,8 @@ object VisibilityChecker {
         positiveSide: Direction,
     ) = apply {
         when {
-            diff < -limit -> {
-                add(negativeSide)
-            }
-
-            diff > limit -> {
-                add(positiveSide)
-            }
+            diff < -limit -> add(negativeSide)
+            diff > limit -> add(positiveSide)
         }
     }
 }

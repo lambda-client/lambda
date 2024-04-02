@@ -5,16 +5,16 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
-object TimerTest : Module(
-    name = "TimerTest",
-    description = "Test module for timer",
+object Timer : Module(
+    name = "Timer",
+    description = "Modify client tick speed.",
     defaultTags = setOf(ModuleTag.CLIENT)
 ) {
-    private val timer by setting("Timer", 0.5, 0.1..10.0, 0.1)
+    private val timer by setting("Timer", 50, 0..1000, 5, unit = "ms/tick")
 
     init {
         listener<ClientEvent.Timer> {
-            it.speed = timer
+            it.speed = timer / 50.0
         }
     }
 }

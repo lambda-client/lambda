@@ -6,6 +6,7 @@ import com.lambda.util.math.MathUtils.toDegree
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.world.raycast.RayCastMask
 import com.lambda.util.world.raycast.RayCastUtils.rayCast
+import net.minecraft.entity.Entity
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
@@ -13,6 +14,12 @@ import kotlin.math.*
 
 data class Rotation(val yaw: Double, val pitch: Double) {
     constructor(yaw: Float, pitch: Float) : this(yaw.toDouble(), pitch.toDouble())
+    
+    val yawF get() = yaw.toFloat()
+    val pitchF get() = pitch.toFloat()
+    val float get() = floatArrayOf(yawF, pitchF)
+    
+    fun equalFloat(other: Rotation): Boolean = yawF == other.yawF && pitchF == other.pitchF
 
     val vector: Vec3d get() {
         val yawRad = -yaw.toRadian()
@@ -46,17 +53,24 @@ data class Rotation(val yaw: Double, val pitch: Double) {
     companion object {
         val ZERO = Rotation(0.0, 0.0)
         val DOWN = Rotation(0.0, 90.0)
+        val Entity.rotation get() = Rotation(yaw, pitch)
 
         private fun wrap(deg: Double) = MathHelper.wrapDegrees(deg)
 
-        fun Rotation.interpolate(other: Rotation, delta: Double): Rotation {
+        fun Rotation.lerp(other: Rotation, delta: Double): Rotation {
+            val yaw = this.yaw + delta * (other.yaw - this.yaw)
+            val pitch = this.pitch + delta * (other.pitch - this.pitch)
+            return Rotation(yaw, pitch)
+        }
+
+        fun Rotation.slerp(other: Rotation, speed: Double): Rotation {
             val yawDiff = wrap(other.yaw - yaw)
             val pitchDiff = wrap(other.pitch - pitch)
 
             val diff = hypot(yawDiff, pitchDiff)
 
-            val yawSpeed = abs(yawDiff / diff) * delta
-            val pitchSpeed = abs(pitchDiff / diff) * delta
+            val yawSpeed = abs(yawDiff / diff) * speed
+            val pitchSpeed = abs(pitchDiff / diff) * speed
 
             val yaw = yaw + yawDiff.coerceIn(-yawSpeed, yawSpeed)
             val pitch = pitch + pitchDiff.coerceIn(-pitchSpeed, pitchSpeed)
