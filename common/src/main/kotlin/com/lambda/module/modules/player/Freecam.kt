@@ -8,13 +8,12 @@ import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.rotation.Rotation
-import com.lambda.interaction.rotation.Rotation.Companion.interpolate
+import com.lambda.interaction.rotation.Rotation.Companion.slerp
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
+import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
-import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runSafe
 import com.lambda.util.KeyCode
 import com.lambda.util.player.MovementUtils.cancel
 import com.lambda.util.primitives.extension.interpolate
@@ -47,7 +46,7 @@ object Freecam : Module(
     private var previousRotation: Rotation = Rotation.ZERO
     @JvmStatic var rotation: Rotation = Rotation.ZERO
     private val interpolatedRotation: Rotation
-        get() = previousRotation.interpolate(rotation, mc.tickDelta.toDouble())
+        get() = previousRotation.slerp(rotation, mc.tickDelta.toDouble())
 
     private var velocity: Vec3d = Vec3d.ZERO
 
@@ -76,7 +75,7 @@ object Freecam : Module(
             val target = mc.crosshairTarget ?: return@listener
 
             val rotation = player.eyePos.rotationTo(target.pos)
-            it.requests.add(RotationRequest(rotationConfig, rotation))
+            it.context = RotationContext(rotation, rotationConfig)
         }
 
         listener<MovementEvent.InputUpdate> { event ->
