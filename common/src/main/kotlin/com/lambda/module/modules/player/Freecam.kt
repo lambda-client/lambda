@@ -21,6 +21,7 @@ import com.lambda.util.primitives.extension.rotation
 import com.lambda.util.world.raycast.RayCastMask
 import com.lambda.util.world.raycast.RayCastUtils.rayCast
 import net.minecraft.client.input.KeyboardInput
+import net.minecraft.client.option.KeyBinding
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d
 import kotlin.math.pow
@@ -31,7 +32,8 @@ object Freecam : Module(
     defaultTags = setOf(ModuleTag.RENDER),
     defaultKeybind = KeyCode.G
 ) {
-    private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1)
+    private val speed by setting("Speed", 0.5f, 0.1f..1.0f, 0.1f)
+    private val sprint by setting("Sprint Multiplier", 3.0f, 0.1f..10.0f, 0.1f, description = "Set below 1.0 to fly slower on sprint.")
     private val rotateToTarget by setting("Rotate to target", true)
 
     private val rotationConfig = RotationSettings(this).apply {
@@ -91,7 +93,8 @@ object Freecam : Module(
             if (input.jumping) y++
             if (input.sneaking) y--
             val inputVec = Vec3d(input.movementSideways.toDouble(), y, input.movementForward.toDouble())
-            val velocityDelta = Entity.movementInputToVelocity(inputVec, speed.toFloat(), rotation.yaw.toFloat())
+            val endSpeed = speed * if (mc.options.sprintKey.isPressed) sprint else 1.0f
+            val velocityDelta = Entity.movementInputToVelocity(inputVec, endSpeed, rotation.yawF)
 
             // move freecam
             velocity = velocity.add(velocityDelta).multiply(0.6)
