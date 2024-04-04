@@ -21,6 +21,7 @@
     "render.ChatScreenMixin",
     "render.DebugHudMixin",
     "render.GameRendererMixin",
+    "render.LightmapTextureManagerMixin",
     "render.RenderTickCounterMixin",
     "render.ScreenHandlerMixin",
     "render.WorldRendererMixin"
