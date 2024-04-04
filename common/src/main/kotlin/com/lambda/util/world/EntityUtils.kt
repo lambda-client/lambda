@@ -25,9 +25,7 @@ object EntityUtils {
         pos: Vec3d,
         range: Double,
         noinline predicate: (T) -> Boolean = { true },
-    ): T? {
-        return getFastEntities(pos, range, predicate).firstOrNull { it.pos.squaredDistanceTo(pos) <= range * range }
-    }
+    ): T? = getFastEntities(pos, range, predicate).firstOrNull { it.pos.squaredDistanceTo(pos) <= range * range }
 
     /**
      * Gets all entities of type [T] within a specified distance from a position.
