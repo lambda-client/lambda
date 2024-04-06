@@ -12,7 +12,7 @@ out vec4 color;
 void main() {
     vec2 halfSize = v_Size * 0.5;
 
-    float radius = v_RoundRadius;
+    float radius = max(v_RoundRadius, SMOOTHING);
 
     vec2 smoothVec = vec2(SMOOTHING);
     vec2 coord = mix(-smoothVec, v_Size + smoothVec, v_TexCoord);
