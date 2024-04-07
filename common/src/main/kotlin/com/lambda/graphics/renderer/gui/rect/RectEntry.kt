@@ -44,8 +44,8 @@ class RectEntry(
 
         val round = min(roundRadius, maxRadius)
 
-        val p1 = pos1 - 0.5
-        val p2 = pos2 + 0.5
+        val p1 = pos1 - 0.75
+        val p2 = pos2 + 0.75
 
         grow(4)
 

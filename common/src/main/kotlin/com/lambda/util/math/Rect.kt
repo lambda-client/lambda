@@ -3,8 +3,6 @@ package com.lambda.util.math
 import com.lambda.util.math.MathUtils.lerp
 
 data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
-    constructor(size: Vec2d) : this(Vec2d.ZERO, size)
-
     val left   = pos1.x
     val top    = pos1.y
     val right  = pos2.x
@@ -24,10 +22,18 @@ data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
     fun moveFirst(vec2d: Vec2d) = Rect(pos1 + vec2d, pos2)
     fun moveSecond(vec2d: Vec2d) = Rect(pos1, pos2 + vec2d)
 
-    fun extend(amount: Double) = Rect(pos1 - amount, pos2 + amount)
-    fun shrink(amount: Double) = extend(-amount)
+    fun expand(amount: Double) = Rect(pos1 - amount, pos2 + amount)
+    fun shrink(amount: Double) = expand(-amount)
 
-    fun contains(point: Vec2d) = point.x in left..right && point.y in top..bottom
+    operator fun contains(point: Vec2d): Boolean {
+        if (size.x <= 0.0 || size.y <= 0.0) return false
+        return point.x in left..right && point.y in top..bottom
+    }
+
+    operator fun contains(other: Rect): Boolean {
+        if (size.x <= 0.0 || size.y <= 0.0) return false
+        return other.leftTop in this || other.rightBottom in this || leftTop in other || rightBottom in other
+    }
 
     companion object {
         val ZERO = Rect(Vec2d.ZERO, Vec2d.ZERO)
