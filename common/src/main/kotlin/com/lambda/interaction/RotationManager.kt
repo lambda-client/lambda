@@ -1,15 +1,16 @@
 package com.lambda.interaction
 
+import baritone.utils.PlayerMovementInput
 import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
 import com.lambda.config.RotationSettings
+import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.angleDifference
-import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
 import com.lambda.interaction.rotation.Rotation.Companion.slerp
 import com.lambda.interaction.rotation.Rotation.Companion.lerp
 import com.lambda.interaction.rotation.RotationContext
@@ -22,8 +23,6 @@ import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
 import com.lambda.util.primitives.extension.partialTicks
 import com.lambda.util.primitives.extension.rotation
-import net.minecraft.client.input.KeyboardInput
-import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.math.MathHelper
 import kotlin.math.roundToInt
@@ -88,25 +87,22 @@ object RotationManager : Loadable {
             keepTicks = request.config.keepTicks
         }
 
-        currentContext?.let { current ->
-            val rotationTo = if (keepTicks >= 0) current.rotation else currentRotation
+        currentRotation = currentContext?.let { context ->
+            val rotationTo = if (keepTicks >= 0) context.rotation else player.rotation
 
-            var speedMultiplier = (current.config as? RotationSettings)?.speedMultiplier ?: 1.0
+            var speedMultiplier = (context.config as? RotationSettings)?.speedMultiplier ?: 1.0
             if (keepTicks < 0) speedMultiplier = 1.0
 
-            val turnSpeed = current.config.turnSpeed * speedMultiplier
+            val turnSpeed = context.config.turnSpeed * speedMultiplier
 
-            val interpolation = prevRotation.slerp(rotationTo, turnSpeed)
-
-            currentRotation = interpolation.fixSensitivity(prevRotation)
-
-            if (current.config.rotationMode == RotationMode.LOCK) {
-                player.yaw = currentRotation.yaw.toFloat()
-                player.pitch = currentRotation.pitch.toFloat()
-            }
-        } ?: run {
-            currentRotation = player.rotation
-        }
+            prevRotation
+                .slerp(rotationTo, turnSpeed)
+                .apply {
+                    if (context.config.rotationMode != RotationMode.LOCK) return@apply
+                    player.yaw = this.yawF
+                    player.pitch = this.pitchF
+                }
+        } ?: player.rotation
     }
 
     private fun reset(rotation: Rotation) {
@@ -171,7 +167,7 @@ object RotationManager : Loadable {
             }
 
             listener<MovementEvent.InputUpdate> {
-                processPlayerMovement()
+                processPlayerMovement(it)
             }
         }
 
@@ -180,29 +176,27 @@ object RotationManager : Loadable {
             baritoneContext = RotationContext(Rotation(yaw, pitch), Baritone.rotation)
         }
 
-        @JvmStatic
-        fun processPlayerMovement() = runSafe {
-            val config = currentContext?.config ?: return@runSafe
+        private fun SafeContext.processPlayerMovement(event: MovementEvent.InputUpdate) {
+            val config = currentContext?.config ?: return
 
-            val input = player.input
-            val handledByBaritone = input !is KeyboardInput
+            // No changes are needed, when we don't modify the yaw used to move the player
+            if (config.rotationMode == RotationMode.SILENT) return
+
+            val input = event.input
+            val handledByBaritone = input is PlayerMovementInput
 
             // Sign it to remove previous speed modifier
             val signForward = sign(input.movementForward)
             val signStrafe = sign(input.movementSideways)
 
             // No changes are needed when no inputs are pressed
-            if (signForward == 0f && signStrafe == 0f) return@runSafe
+            if (signForward == 0f && signStrafe == 0f) return
 
             // Movement speed modifier
-            val multiplier = if (!player.shouldSlowDown()) 1f else
-                (0.3f + EnchantmentHelper.getSwiftSneakSpeedBoost(player)).coerceIn(0f, 1f)
-
-            // No changes are needed, when we don't modify the yaw used to move the player
-            if (config.rotationMode == RotationMode.SILENT) return@runSafe
+            val multiplier = if (event.slowDown) event.slowDownFactor else 1f
 
             val modifyMovement = config.rotationMode == RotationMode.SYNC || handledByBaritone
-            if (!modifyMovement) return@runSafe
+            if (!modifyMovement) return
 
             val playerYaw = player.yaw.toDouble()
             val baritoneYaw = if (handledByBaritone) baritoneContext?.rotation?.yaw else null
@@ -222,10 +216,12 @@ object RotationManager : Loadable {
             val newZ = signForward * cosDelta + signStrafe * sinDelta
 
             // Apply new movement
-            input.movementSideways = newX.roundToInt().toFloat() * multiplier
-            input.movementForward = newZ.roundToInt().toFloat() * multiplier
+            input.apply {
+                movementSideways = newX.roundToInt().toFloat() * multiplier
+                movementForward = newZ.roundToInt().toFloat() * multiplier
+            }
 
-            baritoneYaw ?: return@runSafe
+            baritoneYaw ?: return
 
             // Makes baritone movement safe
             // when yaw difference is too big to compensate it by modifying keyboard input

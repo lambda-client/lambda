@@ -21,6 +21,7 @@
     "render.DebugHudMixin",
     "render.GameRendererMixin",
     "render.LightmapTextureManagerMixin",
+    "render.LivingEntityRendererMixin",
     "render.RenderTickCounterMixin",
     "render.WorldRendererMixin"
   ],

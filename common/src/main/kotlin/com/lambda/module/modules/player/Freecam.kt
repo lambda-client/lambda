@@ -83,8 +83,6 @@ object Freecam : Module(
         listener<MovementEvent.InputUpdate> { event ->
             // Don't block baritone from working
             if (player.input !is PlayerMovementInput) {
-                event.cancel()
-
                 // Reset actual input
                 player.input.cancel()
             }
