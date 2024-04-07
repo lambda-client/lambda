@@ -4,13 +4,13 @@ import com.lambda.gui.api.LambdaGui
 import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.core.IListComponent
 import com.lambda.gui.api.component.sub.ButtonComponent
+import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
 
-class LambdaClickGui : LambdaGui, IListComponent<WindowComponent<ButtonComponent>> {
-    override val name = "Lambda ClickGui"
+class LambdaClickGui : LambdaGui("Lambda ClickGui", ClickGui), IListComponent<WindowComponent<ButtonComponent>> {
     override val children = mutableListOf<WindowComponent<ButtonComponent>>()
 
     init {
@@ -25,7 +25,7 @@ class LambdaClickGui : LambdaGui, IListComponent<WindowComponent<ButtonComponent
                 ModuleRegistry.modules.forEach { module ->
                     children.add(object : ButtonComponent(component) {
                         override val position = Vec2d(0.0, buh)
-                        override val size get() = Vec2d(FILL_PARENT, 11.0)
+                        override val size get() = Vec2d(FILL_PARENT, ClickGui.buttonHeight)
 
                         override val text: String get() = module.name
                         override val active: Boolean get() = module.isEnabled

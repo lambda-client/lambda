@@ -45,7 +45,7 @@ abstract class ButtonComponent(private val base: WindowComponent<*>) : Interacti
             text = this@ButtonComponent.text
             scale = 1.0 - pressAnimation * 0.05
 
-            val x = rect.left + ClickGui.padding + interactAnimation + hoverAnimation * 0.5
+            val x = rect.left + ClickGui.windowPadding + interactAnimation + hoverAnimation * 0.5
             position = Vec2d(x, rect.center.y)
         }
     }

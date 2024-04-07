@@ -24,7 +24,7 @@ abstract class WindowComponent <T : IRectComponent> : InteractiveComponent(), IL
 
     private var isOpen = false
     private var dragOffset: Vec2d? = null
-    private val padding get() = ClickGui.padding
+    private val padding get() = ClickGui.windowPadding
 
     final override val rect get() = Rect.basedOn(position, width, renderHeight + titleBarHeight)
     val contentRect get() = rect.shrink(padding).moveFirst(Vec2d(0.0, titleBarHeight - padding))

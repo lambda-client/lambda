@@ -1,7 +1,7 @@
 package com.lambda.module.modules.client
 
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.events.ClientEvent
+import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -17,7 +17,8 @@ object ClickGui : Module(
 
     // General
     val windowRadius by setting("Window Radius", 2.0, 0.0..10.0, 0.1)
-    val padding by setting("Padding", 2.0, 0.0..10.0, 0.1)
+    val windowPadding by setting("Window Padding", 2.0, 0.0..10.0, 0.1)
+    val buttonHeight by setting("Button Height", 11.0, 8.0..20.0, 0.1)
 
     // Colors
     val mainColor by setting("Main Color", Color(110, 0, 40), visibility = { page == Page.Colors })
@@ -34,12 +35,19 @@ object ClickGui : Module(
 
     init {
         onEnable {
-            mc.currentScreen?.close()
-            gui.show()
+            if (mc.currentScreen != gui) {
+                gui.show()
+            }
         }
 
-        listener<TickEvent.Pre> {
-            if (mc.currentScreen?.title?.literalString != gui.name) disable()
+        onDisable {
+            if (mc.currentScreen == gui) {
+                gui.close()
+            }
+        }
+
+        unsafeListener<ClientEvent.Shutdown> {
+            disable()
         }
     }
 }
