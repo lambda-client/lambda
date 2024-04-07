@@ -41,7 +41,7 @@ abstract class Configuration : Jsonable {
     init {
         unsafeListener<ClientEvent.Startup> { tryLoad() }
 
-        unsafeListener<ClientEvent.Shutdown> { trySave() }
+        unsafeListener<ClientEvent.Shutdown>(Int.MIN_VALUE) { trySave() }
 
         configurations.add(this)
     }
