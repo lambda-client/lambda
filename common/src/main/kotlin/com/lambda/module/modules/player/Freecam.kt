@@ -1,5 +1,6 @@
 package com.lambda.module.modules.player
 
+import baritone.utils.PlayerMovementInput
 import com.lambda.Lambda.mc
 import com.lambda.config.RotationSettings
 import com.lambda.event.events.ConnectionEvent
@@ -21,7 +22,6 @@ import com.lambda.util.primitives.extension.rotation
 import com.lambda.util.world.raycast.RayCastMask
 import com.lambda.util.world.raycast.RayCastUtils.rayCast
 import net.minecraft.client.input.KeyboardInput
-import net.minecraft.client.option.KeyBinding
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d
 import kotlin.math.pow
@@ -81,10 +81,13 @@ object Freecam : Module(
         }
 
         listener<MovementEvent.InputUpdate> { event ->
-            event.cancel()
+            // Don't block baritone from working
+            if (player.input !is PlayerMovementInput) {
+                event.cancel()
 
-            // Reset actual input
-            player.input.cancel()
+                // Reset actual input
+                player.input.cancel()
+            }
 
             // Create new input for freecam
             val input = KeyboardInput(mc.options)
