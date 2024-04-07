@@ -16,9 +16,9 @@ object ClickGui : Module(
     private val page by setting("Page", Page.Colors)
 
     // General
-    val windowRadius by setting("Window Radius", 2.0, 0.0..10.0, 0.1)
-    val windowPadding by setting("Window Padding", 2.0, 0.0..10.0, 0.1)
-    val buttonHeight by setting("Button Height", 11.0, 8.0..20.0, 0.1)
+    val windowRadius by setting("Window Radius", 2.0, 0.0..10.0, 0.1, visibility = { page == Page.General })
+    val windowPadding by setting("Window Padding", 2.0, 0.0..10.0, 0.1, visibility = { page == Page.General })
+    val buttonHeight by setting("Button Height", 11.0, 8.0..20.0, 0.1, visibility = { page == Page.General })
 
     // Colors
     val mainColor by setting("Main Color", Color(110, 0, 40), visibility = { page == Page.Colors })
