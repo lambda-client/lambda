@@ -10,6 +10,8 @@ class Mouse {
             val Right = Button(GLFW.GLFW_MOUSE_BUTTON_RIGHT)
             val Middle = Button(GLFW.GLFW_MOUSE_BUTTON_MIDDLE)
         }
+
+        val isMainButton get() = key == GLFW.GLFW_MOUSE_BUTTON_LEFT || key == GLFW.GLFW_MOUSE_BUTTON_RIGHT
     }
 
     enum class Action {

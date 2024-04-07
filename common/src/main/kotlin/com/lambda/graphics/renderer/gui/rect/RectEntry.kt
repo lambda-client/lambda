@@ -2,7 +2,7 @@ package com.lambda.graphics.renderer.gui.rect
 
 import com.lambda.graphics.buffer.vao.IRenderContext
 import com.lambda.graphics.renderer.IRenderEntry
-import com.lambda.util.math.Vec2d
+import com.lambda.util.math.Rect
 import java.awt.Color
 import kotlin.math.min
 
@@ -10,7 +10,7 @@ class RectEntry(
     override val owner: RectRenderer,
     override val updateBlock: IRectEntry.() -> Unit
 ) : IRectEntry {
-    override var position by owner.field(Vec2d.ZERO to Vec2d.ZERO)
+    override var position by owner.field(Rect.ZERO)
 
     override var roundRadius by owner.field(0.0)
 
@@ -33,16 +33,16 @@ class RectEntry(
             leftBottom .alpha < MIN_ALPHA
         ) return@use
 
-        val pos1 = position.first
-        val pos2 = position.second
+        val pos1 = position.leftTop
+        val pos2 = position.rightBottom
 
         val size = pos2 - pos1
         if (size.x < MIN_SIZE || size.y < MIN_SIZE) return@use
 
         val halfSize = size * 0.5
-        val minSize = min(halfSize.x, halfSize.y)
+        val maxRadius = min(halfSize.x, halfSize.y)
 
-        val round = min(roundRadius, minSize)
+        val round = min(roundRadius, maxRadius)
 
         val p1 = pos1 - 0.5
         val p2 = pos2 + 0.5
@@ -64,10 +64,7 @@ class RectEntry(
 }
 
 interface IRectEntry : IRenderEntry<IRectEntry> {
-    var position: Pair<Vec2d, Vec2d>
-
-    val size get() = position.second - position.first
-    val center get() = position.first + size * 0.5
+    var position: Rect
 
     var roundRadius: Double
 

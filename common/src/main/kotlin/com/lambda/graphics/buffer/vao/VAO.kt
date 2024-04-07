@@ -2,14 +2,14 @@ package com.lambda.graphics.buffer.vao
 
 import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.buffer.vao.vertex.VertexMode
-import com.lambda.graphics.gl.MemoryUtils.address
-import com.lambda.graphics.gl.MemoryUtils.byteBuffer
-import com.lambda.graphics.gl.MemoryUtils.capacity
-import com.lambda.graphics.gl.MemoryUtils.color
-import com.lambda.graphics.gl.MemoryUtils.copy
-import com.lambda.graphics.gl.MemoryUtils.int
-import com.lambda.graphics.gl.MemoryUtils.vec2
-import com.lambda.graphics.gl.MemoryUtils.vec3
+import com.lambda.graphics.gl.Memory.address
+import com.lambda.graphics.gl.Memory.byteBuffer
+import com.lambda.graphics.gl.Memory.capacity
+import com.lambda.graphics.gl.Memory.color
+import com.lambda.graphics.gl.Memory.copy
+import com.lambda.graphics.gl.Memory.int
+import com.lambda.graphics.gl.Memory.vec2
+import com.lambda.graphics.gl.Memory.vec3
 import com.lambda.graphics.gl.VaoUtils
 import com.lambda.graphics.gl.VaoUtils.bindIndexBuffer
 import com.lambda.graphics.gl.VaoUtils.bindVertexArray

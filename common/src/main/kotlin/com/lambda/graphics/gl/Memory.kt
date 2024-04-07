@@ -7,7 +7,7 @@ import java.awt.Color
 import java.nio.Buffer
 import java.nio.ByteBuffer
 
-object MemoryUtils {
+object Memory {
     private val vec2Size = VertexAttrib.Vec2.size
     private val vec3Size = VertexAttrib.Vec3.size
     private val colorSize = VertexAttrib.Color.size
