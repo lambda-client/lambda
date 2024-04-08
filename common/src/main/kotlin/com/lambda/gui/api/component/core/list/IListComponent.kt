@@ -1,5 +1,6 @@
-package com.lambda.gui.api.component.core
+package com.lambda.gui.api.component.core.list
 
+import com.lambda.gui.api.component.core.IComponent
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d

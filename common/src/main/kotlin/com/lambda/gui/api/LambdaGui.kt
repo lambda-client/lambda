@@ -54,7 +54,11 @@ abstract class LambdaGui(override val name: String, private val owner: Module? =
 
     final override fun removed() {
         onHide()
+
+        // quick crashfix (is there any other way to prevent gui being closed twice?)
+        mc.currentScreen = null
         owner?.disable()
+        mc.currentScreen = this
 
         with(EventFlow.syncListeners) {
             unsubscribe(renderListener)

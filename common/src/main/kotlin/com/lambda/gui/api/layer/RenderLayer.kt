@@ -1,21 +1,30 @@
 package com.lambda.gui.api.layer
 
-import com.lambda.graphics.renderer.IRenderer
 import com.lambda.graphics.renderer.gui.font.FontRenderer
 import com.lambda.graphics.renderer.gui.rect.RectRenderer
+import com.lambda.module.modules.client.ClickGui
+import com.mojang.blaze3d.systems.RenderSystem.blendFunc
+import com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc
+import org.lwjgl.opengl.GL11.GL_ONE
+import org.lwjgl.opengl.GL11.GL_SRC_ALPHA
 
-class RenderLayer() {
-    private val renderers = mutableListOf<IRenderer<*>>()
-
-    val rect = RectRenderer().apply(::register).asRenderer
-    val font = FontRenderer().apply(::register).asRenderer
-
-    fun register(renderer: IRenderer<*>) = renderers.add(renderer)
+class RenderLayer(private val allowGlowing: Boolean = false) {
+    val rect = RectRenderer().asRenderer
+    val font = FontRenderer().asRenderer
 
     fun render() {
-        renderers.forEach(IRenderer<*>::update)
-        renderers.forEach(IRenderer<*>::render)
+        rect.update()
+        font.update()
+
+        if (allowGlowing && ClickGui.glow) blendFunc(GL_SRC_ALPHA, GL_ONE)
+        rect.render()
+        defaultBlendFunc()
+
+        font.render()
     }
 
-    fun destroy() = renderers.forEach(IRenderer<*>::destroy)
+    fun destroy() {
+        rect.destroy()
+        font.destroy()
+    }
 }

@@ -1,10 +1,11 @@
 package com.lambda.gui.api.component
 
+import com.lambda.gui.api.component.core.IComponent
 import com.lambda.gui.api.component.core.IRectComponent
 import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
 
-abstract class InteractiveComponent : IRectComponent {
+abstract class InteractiveComponent : IComponent, IRectComponent {
     protected var hovered = false
     protected var pressed = false; set(value) {
         if (field == value) return

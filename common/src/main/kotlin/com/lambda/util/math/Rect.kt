@@ -25,6 +25,12 @@ data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
     fun expand(amount: Double) = Rect(pos1 - amount, pos2 + amount)
     fun shrink(amount: Double) = expand(-amount)
 
+    fun clamp(rect: Rect) =
+        Rect(
+            Vec2d(max(left, rect.left), max(top, rect.top)),
+            Vec2d(min(right, rect.right), min(bottom, rect.bottom))
+        )
+
     operator fun contains(point: Vec2d): Boolean {
         if (size.x <= 0.0 || size.y <= 0.0) return false
         return point.x in left..right && point.y in top..bottom

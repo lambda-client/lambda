@@ -4,8 +4,9 @@ import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.graphics.renderer.gui.font.IFontEntry
-import com.lambda.gui.api.component.core.IListComponent
-import com.lambda.gui.api.component.core.IRectComponent
+import com.lambda.gui.api.component.core.IComponent
+import com.lambda.gui.api.component.core.list.IListComponent
+import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.gui.api.layer.RenderLayer
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.KeyCode
@@ -14,7 +15,7 @@ import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 
-abstract class WindowComponent <T : IRectComponent> : InteractiveComponent(), IListComponent<T> {
+abstract class WindowComponent <T : ChildComponent> : InteractiveComponent(), IListComponent<T> {
     abstract val title: String
 
     abstract var width: Double
@@ -22,7 +23,7 @@ abstract class WindowComponent <T : IRectComponent> : InteractiveComponent(), IL
 
     var position = Vec2d.ZERO
 
-    private var isOpen = false
+    private var isOpen = true
     private var dragOffset: Vec2d? = null
     private val padding get() = ClickGui.windowPadding
 
@@ -37,7 +38,7 @@ abstract class WindowComponent <T : IRectComponent> : InteractiveComponent(), IL
     private val animation = AnimationTicker()
 
     override val children = mutableListOf<T>()
-    val subLayer = RenderLayer()
+    val subLayer = RenderLayer(true)
 
     private val renderHeight by animation.exp({ 0.0 }, { height + padding * 2 * isOpen.toInt() }, 0.5, ::isOpen)
 
@@ -69,7 +70,14 @@ abstract class WindowComponent <T : IRectComponent> : InteractiveComponent(), IL
 
     override fun onTick() {
         animation.tick()
-        super<IListComponent>.onTick()
+
+        children.forEach { child ->
+            child.visible = isChildAccessible(child)
+        }
+
+        children
+            .filter(ChildComponent::visible)
+            .forEach(IComponent::onTick)
     }
 
     override fun onRender() {

@@ -19,10 +19,12 @@ object ClickGui : Module(
     val windowRadius by setting("Window Radius", 2.0, 0.0..10.0, 0.1, visibility = { page == Page.General })
     val windowPadding by setting("Window Padding", 2.0, 0.0..10.0, 0.1, visibility = { page == Page.General })
     val buttonHeight by setting("Button Height", 11.0, 8.0..20.0, 0.1, visibility = { page == Page.General })
+    val buttonStep by setting("Button Step", 1.0, 0.0..5.0, 0.1, visibility = { page == Page.General })
 
     // Colors
-    val mainColor by setting("Main Color", Color(110, 0, 40), visibility = { page == Page.Colors })
-    val backgroundColor by setting("Background Color", Color(35, 15, 20), visibility = { page == Page.Colors })
+    val mainColor by setting("Main Color", Color(100, 215, 255), visibility = { page == Page.Colors })
+    val backgroundColor by setting("Background Color", Color(0, 0, 0, 80), visibility = { page == Page.Colors })
+    val glow by setting("Glow (experimental)", true, visibility = { page == Page.Colors })
 
     enum class Page {
         General,
