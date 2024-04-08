@@ -28,7 +28,7 @@ object EntityUtils {
             if (range > 64) getEntities(predicate)
             else getFastEntities(pos, range, predicate)
 
-        return entities.minByOrNull { it.squaredDistanceTo(pos) } // There is probably a faster way to do this
+        return entities.minByOrNull { it.squaredDistanceTo(pos) }
     }
 
     /**
@@ -78,7 +78,9 @@ object EntityUtils {
             for (y in sectionY - chunks..sectionY + chunks) {
                 for (z in sectionZ - chunks..sectionZ + chunks) {
                     val section = world.entityManager.cache.findTrackingSection(ChunkSectionPos.asLong(x, y, z)) ?: continue
-                    section.collection.filterIsInstanceTo(entities, predicate)
+                    section.collection.filterIsInstanceTo(entities) { entity ->
+                        entity != player && predicate(entity)
+                    }
                 }
             }
         }
