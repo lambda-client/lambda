@@ -1,6 +1,5 @@
 package com.lambda.util.combat
 
-import com.lambda.context.SafeContext
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.damage.DamageSource
@@ -9,13 +8,13 @@ import net.minecraft.registry.tag.DamageTypeTags
 import kotlin.math.max
 import kotlin.math.min
 
-object DamageUtils {
+object Damage {
     /**
      * @param entity The entity to calculate the damage for
      * @param damage The damage to apply
      * @return The damage dealt by the explosion
      */
-    fun SafeContext.applyProtection(entity: LivingEntity, damage: Double, source: DamageSource): Double {
+    fun mask(entity: LivingEntity, damage: Double, source: DamageSource): Double {
         val resistanceAmplifier = entity.getStatusEffect(StatusEffects.RESISTANCE)?.amplifier ?: -1
 
         if (source.isIn(DamageTypeTags.BYPASSES_EFFECTS)) return damage
@@ -31,5 +30,4 @@ object DamageUtils {
 
         return damage
     }
-
 }

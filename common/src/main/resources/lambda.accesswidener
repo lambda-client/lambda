@@ -32,3 +32,4 @@ accessible method net/minecraft/text/Style <init> (Lnet/minecraft/text/TextColor
 # Other
 accessible field net/minecraft/client/world/ClientEntityManager cache Lnet/minecraft/world/entity/SectionedEntityCache;
 accessible field net/minecraft/world/entity/EntityTrackingSection collection Lnet/minecraft/util/collection/TypeFilterableList;
+accessible field net/minecraft/world/explosion/Explosion behavior Lnet/minecraft/world/explosion/ExplosionBehavior;
