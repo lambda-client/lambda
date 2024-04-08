@@ -10,6 +10,28 @@ import kotlin.math.ceil
 
 object EntityUtils {
     /**
+     * Gets the closest entity of type [T] within a specified range.
+     *
+     * @param pos The position to search from.
+     * @param range The maximum distance to search for entities.
+     * @param predicate Optional predicate to filter entities.
+     * @return The first entity of type [T] that is closest to the position within the specified range.
+     */
+    inline fun <reified T : Entity> SafeContext.getClosestEntity(
+        pos: Vec3d = player.pos,
+        range: Double = 6.0,
+        noinline predicate: (T) -> Boolean = { true },
+    ): T? {
+
+        // Speculative execution trolling
+        val entities =
+            if (range > 64) getEntities(predicate)
+            else getFastEntities(pos, range, predicate)
+
+        return entities.minByOrNull { it.squaredDistanceTo(pos) } // There is probably a faster way to do this
+    }
+
+    /**
      * Gets all entities of type [T] within a specified distance from a position.
      *
      * This function retrieves entities of type [T] within a specified distance from a given position. It efficiently
