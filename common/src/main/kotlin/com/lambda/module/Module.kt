@@ -13,6 +13,7 @@ import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener
+import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
@@ -106,9 +107,11 @@ abstract class Module(
 
     init {
         listener<KeyPressEvent>(alwaysListen = true) { event ->
-            if (mc.currentScreen == null && event.key == keybind.key) {
-                toggle()
-            }
+            val screen = mc.currentScreen
+            if (event.key == keybind.key
+                && (screen == null
+                || screen is LambdaClickGui)
+            ) toggle()
         }
     }
 
