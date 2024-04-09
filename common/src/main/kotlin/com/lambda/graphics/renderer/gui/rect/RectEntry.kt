@@ -11,7 +11,6 @@ class RectEntry(
     override val updateBlock: IRectEntry.() -> Unit
 ) : IRectEntry {
     override var position by owner.field(Rect.ZERO)
-
     override var roundRadius by owner.field(0.0)
 
     private var leftTop     by owner.field(Color.WHITE!!)
@@ -65,7 +64,6 @@ class RectEntry(
 
 interface IRectEntry : IRenderEntry<IRectEntry> {
     var position: Rect
-
     var roundRadius: Double
 
     fun color(leftTop: Color, rightTop: Color, rightBottom: Color, leftBottom: Color)

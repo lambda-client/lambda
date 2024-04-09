@@ -1,5 +1,12 @@
 #version 330 core
 
+uniform bool u_Shade;
+uniform float u_Time;
+uniform vec4 u_Color1;
+uniform vec4 u_Color2;
+uniform vec2 u_Size;
+
+in vec2 v_Position;
 in vec2 v_TexCoord;
 in vec4 v_Color;
 in vec2 v_Size;
@@ -9,7 +16,16 @@ out vec4 color;
 
 #define SMOOTHING 0.5
 
-void main() {
+vec4 shade() {
+    if (!u_Shade) return v_Color;
+
+    vec2 pos = v_Position * u_Size;
+    float p = sin(pos.x + pos.y - u_Time) * 0.5 + 0.5;
+
+    return mix(u_Color1, u_Color2, p) * vec4(1.0, 1.0, 1.0, v_Color.a);
+}
+
+vec4 round() {
     vec2 halfSize = v_Size * 0.5;
 
     float radius = max(v_RoundRadius, SMOOTHING);
@@ -21,7 +37,9 @@ void main() {
     float distance = length(max(abs(center) - halfSize + radius, 0.0)) - radius;
 
     float alpha = 1.0 - smoothstep(-SMOOTHING, SMOOTHING, distance);
-    alpha = clamp(alpha, 0.0, 1.0);
+    return vec4(1.0, 1.0, 1.0, clamp(alpha, 0.0, 1.0));
+}
 
-    color = v_Color * vec4(1.0, 1.0, 1.0, alpha);
+void main() {
+    color = shade() * round();
 }
