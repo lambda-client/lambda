@@ -1,16 +1,20 @@
 package com.lambda.gui.impl.clickgui.windows
 
-import com.lambda.gui.api.LambdaGui
 import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
+import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.ClickGui
 
-class TagWindow(override val owner: LambdaGui) : WindowComponent<ModuleButton>(owner) {
+class TagWindow : WindowComponent<ModuleButton>() {
     override val title = "Test Window"
-
-    // TODO: resizing
     override var width = 110.0
     override var height = 300.0
+
+    init {
+        ModuleRegistry.modules.forEach {
+            children.add(ModuleButton(it, this))
+        }
+    }
 
     override fun onRender() {
         updateModules()

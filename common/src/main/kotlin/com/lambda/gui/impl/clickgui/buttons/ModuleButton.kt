@@ -1,13 +1,13 @@
 package com.lambda.gui.impl.clickgui.buttons
 
+import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.sub.ButtonComponent
-import com.lambda.gui.impl.clickgui.windows.TagWindow
 import com.lambda.module.Module
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
 
-class ModuleButton(val module: Module, override val owner: TagWindow) : ButtonComponent(owner) {
+class ModuleButton(val module: Module, owner: WindowComponent<*>) : ButtonComponent(owner) {
     override val position get() = Vec2d(0.0, heightOffset)
     override val size get() = Vec2d(FILL_PARENT, ClickGui.buttonHeight)
 

@@ -14,7 +14,7 @@ import com.lambda.util.math.Vec2d
 import java.awt.Color
 import kotlin.math.abs
 
-abstract class ButtonComponent(override val owner: WindowComponent<*>) : ChildComponent() {
+abstract class ButtonComponent(final override val owner: WindowComponent<*>) : ChildComponent() {
     abstract val position: Vec2d
     abstract val size: Vec2d
 
@@ -24,7 +24,7 @@ abstract class ButtonComponent(override val owner: WindowComponent<*>) : ChildCo
     private val actualSize get() = Vec2d(if (size.x == FILL_PARENT) owner.contentRect.size.x else size.x, size.y)
     final override val rect get() = Rect.basedOn(position, actualSize) + owner.contentRect.leftTop
 
-    private val layer by lazy { owner.subLayer }
+    private val layer = owner.subLayer
     private val animation = AnimationTicker()
 
     private var activeAnimation by animation.exp(0.0, 1.0, 0.1, ::active)
