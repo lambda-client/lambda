@@ -4,9 +4,11 @@ import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.graphics.renderer.gui.font.IFontEntry
+import com.lambda.gui.api.LambdaGui
 import com.lambda.gui.api.component.core.IComponent
 import com.lambda.gui.api.component.core.list.IListComponent
 import com.lambda.gui.api.component.core.list.ChildComponent
+import com.lambda.gui.api.component.core.list.IChildComponent
 import com.lambda.gui.api.layer.RenderLayer
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.KeyCode
@@ -15,7 +17,7 @@ import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 
-abstract class WindowComponent <T : ChildComponent> : InteractiveComponent(), IListComponent<T> {
+abstract class WindowComponent <T : ChildComponent> (override val owner: LambdaGui) : InteractiveComponent(), IListComponent<T>, IChildComponent {
     abstract val title: String
 
     abstract var width: Double

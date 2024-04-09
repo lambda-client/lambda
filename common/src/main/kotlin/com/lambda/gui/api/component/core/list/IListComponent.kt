@@ -6,7 +6,7 @@ import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
 
 interface IListComponent <T : IComponent> : IComponent {
-    val children: List<T>
+    val children: MutableList<T>
 
     fun isChildAccessible(child: T): Boolean = true
 

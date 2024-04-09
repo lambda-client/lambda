@@ -1,19 +1,22 @@
 package com.lambda.gui.impl.clickgui
 
 import com.lambda.gui.api.LambdaGui
-import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.core.list.IListComponent
-import com.lambda.gui.api.component.sub.ButtonComponent
+import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.windows.TagWindow
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.ClickGui
-import com.lambda.util.Mouse
-import com.lambda.util.math.Vec2d
 
-class LambdaClickGui : LambdaGui("Lambda ClickGui", ClickGui), IListComponent<WindowComponent<*>> {
-    override val children = mutableListOf<WindowComponent<*>>()
+class LambdaClickGui : LambdaGui("Lambda ClickGui", ClickGui), IListComponent<TagWindow> {
+    override val children = mutableListOf<TagWindow>()
 
     init {
-        children.add(TagWindow())
+        TagWindow(this).apply {
+            children.addAll(
+                ModuleRegistry.modules.map {
+                    ModuleButton(it, this)
+                }
+            )
+        }.apply(children::add)
     }
 }
