@@ -8,11 +8,12 @@ import net.minecraft.client.input.Input
 abstract class MovementEvent : Event {
     class Pre : MovementEvent()
     class Post : MovementEvent()
+
     class InputUpdate(
         val input: Input,
         val slowDown: Boolean,
         val slowDownFactor: Float,
-    ) : MovementEvent(), ICancellable by Cancellable()
+    ) : MovementEvent()
 
     class ClipAtLedge(
         var clip: Boolean,

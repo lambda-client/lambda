@@ -5,6 +5,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
+import com.lambda.config.configurations.ModuleConfig
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
@@ -14,7 +15,6 @@ import com.lambda.util.StringUtils.capitalize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
-import java.util.*
 
 /**
  * Represents a compound of [Configurable] objects whose [AbstractSetting]s

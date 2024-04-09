@@ -15,7 +15,9 @@ import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
-// ToDo: Should also include last packet info as HUD element and connection state. We may find a better name.
+// ToDo: Should also include last packet info as HUD element and connection state.
+//  We should find a better name.
+//  Also should pause baritone on lag.
 object Rubberband : Module(
     name = "Rubberband",
     description = "Info about rubberbands",
@@ -45,7 +47,7 @@ object Rubberband : Module(
                 color(Color.YELLOW) {
                     literal("${PlayerPacketManager.configurations.reversed().indexOf(last) + 1}")
                 }
-                literal(" ticks (derivation: ")
+                literal(" ticks (deviation: ")
                 color(Color.YELLOW) {
                     literal("%.3f".format(last.position dist newPos))
                 }

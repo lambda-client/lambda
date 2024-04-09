@@ -27,5 +27,6 @@ class ModuleTag(override val name: String) : Nameable {
         val HIDDEN = ModuleTag("Hidden")
         val GRIM = ModuleTag("Grim")
         val BYPASS = ModuleTag("Bypass")
+        val DEBUG = ModuleTag("Debug")
     }
 }

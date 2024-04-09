@@ -25,6 +25,10 @@ dependencies {
 
     // Add Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
+
+    // Baritone
+    modImplementation("baritone-api:baritone-api:1.10.2")
+    modImplementation("baritone-api:baritone-unoptimized-fabric:1.10.2")
 }
 
 // Avoid nested jars

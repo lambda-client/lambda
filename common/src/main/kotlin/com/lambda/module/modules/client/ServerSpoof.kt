@@ -42,7 +42,7 @@ object ServerSpoof : Module(
             event.cancel()
 
             this@ServerSpoof.info(buildText {
-                literal("Canceled ${if (packet.required) "required" else "optional"} server ressource pack. ")
+                literal("Canceled ${if (packet.required) "required" else "optional"} server resource pack. ")
                 clickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, packet.url)) {
                     styled(color = Color.GREEN, underlined = true) {
                         literal("(Click here to download)")

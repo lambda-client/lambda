@@ -4,14 +4,11 @@ import com.lambda.core.Loadable
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.EventFlow.postChecked
-import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerPacketEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedOrderedSet
-import com.lambda.util.math.VecUtils.dist
-import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.VecUtils.approximate
 import com.lambda.util.player.MovementUtils.motionX
 import com.lambda.util.player.MovementUtils.motionZ
 import com.lambda.util.primitives.extension.component1
@@ -50,7 +47,13 @@ object PlayerPacketManager : Loadable {
 
         if (mc.cameraEntity != player) return
 
-        RotationManager.currentRotation = new.rotation
+        val rotation = new.rotation
+        val position = new.position
+        val (yaw, pitch) = rotation.float
+        val onGround = new.onGround
+
+        // Fix sensitivity for absolutely any outgoing angle
+        RotationManager.currentRotation = rotation.fixSensitivity(RotationManager.prevRotation)
 
         if (player.hasVehicle()) {
             connection.sendPacket(
@@ -58,37 +61,35 @@ object PlayerPacketManager : Loadable {
                     player.motionX,
                     -999.0,
                     player.motionZ,
-                    new.rotation.yaw.toFloat(),
-                    new.rotation.pitch.toFloat(),
-                    new.onGround
+                    yaw,
+                    pitch,
+                    onGround
                 )
             )
             return
         }
 
-        val updatePosition = (new.position.subtract(previous.position) distSq Vec3d.ZERO) > square(2.0E-4) || ++sendTicks >= 20
-        val updateRotation = new.rotation != previous.rotation
+        val updatePosition = position.approximate(previous.position, 2.0E-4) || ++sendTicks >= 20
+        // has to be different in float precision
+        val updateRotation = !rotation.equalFloat(previous.rotation)
 
-        val (x, y, z) = new.position
-
-        val (yawD, pitchD) = new.rotation
-        val (yaw, pitch) = yawD.toFloat() to pitchD.toFloat()
+        val (x, y, z) = position
 
         val packet = when {
             updatePosition && updateRotation -> {
-                Full(x, y, z, yaw, pitch, new.onGround)
+                Full(x, y, z, yaw, pitch, onGround)
             }
 
             updatePosition -> {
-                PositionAndOnGround(x, y, z, new.onGround)
+                PositionAndOnGround(x, y, z, onGround)
             }
 
             updateRotation -> {
-                LookAndOnGround(yaw, pitch, new.onGround)
+                LookAndOnGround(yaw, pitch, onGround)
             }
 
-            previous.onGround != new.onGround -> {
-                OnGroundOnly(new.onGround)
+            previous.onGround != onGround -> {
+                OnGroundOnly(onGround)
             }
 
             else -> null
