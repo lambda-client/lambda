@@ -9,6 +9,7 @@ import com.lambda.gui.api.component.core.list.IListComponent
 import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.gui.api.layer.RenderLayer
 import com.lambda.module.modules.client.ClickGui
+import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.math.MathUtils.toInt
@@ -47,7 +48,7 @@ abstract class WindowComponent <T : ChildComponent> : InteractiveComponent(), IL
         layer.rect.build {
             position = rect
             roundRadius = ClickGui.windowRadius
-            color(ClickGui.backgroundColor)
+            color(GuiSettings.backgroundColor)
         }
 
         // Title

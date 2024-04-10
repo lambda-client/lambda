@@ -5,6 +5,7 @@ import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.module.modules.client.ClickGui
+import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.Mouse
 import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.MathUtils.lerp
@@ -40,7 +41,7 @@ abstract class ButtonComponent(final override val owner: WindowComponent<*>) : C
         // Active color
         layer.rect.build {
             position = rect.shrink(interactAnimation)
-            color(ClickGui.mainColor.multAlpha(activeAnimation * 0.2))
+            color(GuiSettings.mainColor.multAlpha(activeAnimation * 0.2))
         }
 
         // Hover glint
@@ -49,7 +50,7 @@ abstract class ButtonComponent(final override val owner: WindowComponent<*>) : C
             position = hoverRect.shrink(interactAnimation)
 
             val alpha = interactAnimation * 0.3
-            color(ClickGui.mainColor.multAlpha(alpha))
+            color(GuiSettings.mainColor.multAlpha(alpha))
         }
 
         // Toggle fx
@@ -63,7 +64,7 @@ abstract class ButtonComponent(final override val owner: WindowComponent<*>) : C
 
             // 0.0 .. 1.0 .. 0.0 animation
             val alpha = 1.0 - (abs(activeAnimation - 0.5) * 2.0)
-            val color = ClickGui.mainColor.multAlpha(alpha * 0.8)
+            val color = GuiSettings.mainColor.multAlpha(alpha * 0.8)
 
             // "Tail" effect
             val leftColor  = color.multAlpha(1.0 - active.toInt())
@@ -77,7 +78,7 @@ abstract class ButtonComponent(final override val owner: WindowComponent<*>) : C
             text = this@ButtonComponent.text
             scale = 1.0 - pressAnimation * 0.08
 
-            color = lerp(Color.WHITE, ClickGui.mainColor, activeAnimation)
+            color = lerp(Color.WHITE, GuiSettings.mainColor, activeAnimation)
 
             val x = rect.left + ClickGui.windowPadding + interactAnimation + hoverAnimation
             position = Vec2d(x, rect.center.y)

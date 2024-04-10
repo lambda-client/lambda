@@ -7,7 +7,7 @@ import com.lambda.graphics.gl.GlStateUtils.setupGL
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.resetMatrix
 import com.lambda.graphics.gl.Matrices.translate
-import com.lambda.module.modules.client.HUD
+import com.lambda.module.modules.client.GuiSettings
 import org.joml.Matrix4f
 
 object RenderMain {
@@ -20,8 +20,8 @@ object RenderMain {
         translate(0.0, 0.0, -3000.0)
 
         setupGL {
-            rescale(HUD.scale)
-            RenderEvent.GUI.Scaled(HUD.scale).post()
+            rescale(GuiSettings.scale)
+            RenderEvent.GUI.Scaled(GuiSettings.scale).post()
 
             rescale(1.0)
             RenderEvent.GUI.Fixed().post()

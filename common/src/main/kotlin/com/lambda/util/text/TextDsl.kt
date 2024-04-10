@@ -16,9 +16,6 @@
 
 package com.lambda.util.text
 
-import com.lambda.module.modules.client.HUD
-import com.lambda.util.math.hsb
-import com.lambda.util.math.readHSB
 import net.minecraft.text.*
 import net.minecraft.util.Identifier
 import java.awt.Color
