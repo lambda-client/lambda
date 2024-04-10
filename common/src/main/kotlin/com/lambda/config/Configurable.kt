@@ -149,7 +149,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      * The type parameter [T] must either be a primitive type or a type with a registered type adapter in [Lambda.gson].
      *
      * @param name The unique identifier for the setting.
-     * @param defaultValue The default [MutableList] value of type [T] for the setting.
+     * @param defaultValue The default [List] value of type [T] for the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
      * @param visibility A lambda expression that determines the visibility status of the setting.
      *
@@ -162,7 +162,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      */
     inline fun <reified T : Any> setting(
         name: String,
-        defaultValue: MutableList<T>,
+        defaultValue: List<T>,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
     ) = ListSetting(name, defaultValue, description, visibility).also {
