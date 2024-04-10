@@ -5,14 +5,16 @@ import com.lambda.module.tag.ModuleTag
 import java.awt.Color
 
 object GuiSettings : Module(
-    name = "HUD",
+    name = "GuiSettings",
     description = "Visual behaviour configuration",
     defaultTags = setOf(ModuleTag.CLIENT)
 ) {
     private val page by setting("Page", Page.General)
 
+    // General
     private val scaleSetting by setting("Scale", 1.0, 0.5..3.0, 0.01, visibility = { page == Page.General })
 
+    // Colors
     private val primaryColor by setting("Primary Color", Color(130, 200, 255), visibility = { page == Page.Colors })
     private val secondaryColor by setting("Secondary Color", Color(225, 130, 225), visibility = { page == Page.Colors && shade })
     val backgroundColor by setting("Background Color", Color(0, 0, 0, 80), visibility = { page == Page.Colors })
