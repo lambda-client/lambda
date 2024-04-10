@@ -29,8 +29,12 @@ abstract class InteractiveComponent : IComponent, IRectComponent {
         hovered = rect.contains(mouse)
     }
 
-    override fun onMouseClick(button: Mouse.Button, action: Mouse.Action, mouse: Vec2d) {
-        activeMouseButton = button.takeUnless { it.isMainButton && action == Mouse.Action.Click }
+    override fun onMouseClick(
+        button: Mouse.Button, action: Mouse.Action, mouse: Vec2d
+    ) {
+        activeMouseButton = button.takeUnless {
+            it.isMainButton && action == Mouse.Action.Click
+        }
         pressed = hovered && button.isMainButton && action == Mouse.Action.Click
     }
 }

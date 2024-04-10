@@ -1,7 +1,7 @@
 package com.lambda.gui.api
 
 import com.lambda.Lambda.mc
-import com.lambda.event.EventFlow
+import com.lambda.event.EventFlow.syncListeners
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.UnsafeListener
@@ -17,7 +17,10 @@ import net.minecraft.client.gui.screen.Screen
 import net.minecraft.text.Text
 
 @Suppress("LeakingThis")
-abstract class LambdaGui(override val name: String, private val owner: Module? = null) : Screen(Text.of(name)), IComponent, Nameable {
+abstract class LambdaGui(
+    override val name: String,
+    private val owner: Module? = null
+) : Screen(Text.of(name)), IComponent, Nameable {
     private var screenSize = Vec2d.ZERO
 
     private val renderListener = UnsafeListener(0, this, false) { event ->
@@ -38,7 +41,7 @@ abstract class LambdaGui(override val name: String, private val owner: Module? =
     fun show() {
         mc.currentScreen?.close()
 
-        recordRenderCall { // wait for previous screen to be closed
+        recordRenderCall { // wait for the previous screen to be closed
             mc.setScreen(this)
         }
     }
@@ -46,7 +49,7 @@ abstract class LambdaGui(override val name: String, private val owner: Module? =
     final override fun onDisplayed() {
         onShow()
 
-        with(EventFlow.syncListeners) {
+        with(syncListeners) {
             subscribe<RenderEvent.GUI.Scaled>(renderListener)
             subscribe<TickEvent.Pre>(tickListener)
         }
@@ -60,7 +63,7 @@ abstract class LambdaGui(override val name: String, private val owner: Module? =
         owner?.disable()
         mc.currentScreen = this
 
-        with(EventFlow.syncListeners) {
+        with(syncListeners) {
             unsubscribe(renderListener)
             unsubscribe(tickListener)
         }

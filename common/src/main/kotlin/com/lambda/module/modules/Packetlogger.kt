@@ -37,8 +37,8 @@ object Packetlogger : Module(
     private val networkSide by setting("Network Side", NetworkSide.ANY, "Side of the network to log packets from")
     private val logTicks by setting("Log Ticks", true, "Show game ticks in the log")
     private val scope by setting("Scope", Scope.ANY, "Scope of packets to log")
-    private val whitelist by setting("Whitelist Packets", emptyList<String>(), "Packets to whitelist") { scope == Scope.WHITELIST }
-    private val blacklist by setting("Blacklist Packets", emptyList<String>(), "Packets to blacklist") { scope == Scope.BLACKLIST }
+    private val whitelist by setting("Whitelist Packets", mutableListOf<String>(), "Packets to whitelist") { scope == Scope.WHITELIST }
+    private val blacklist by setting("Blacklist Packets", mutableListOf<String>(), "Packets to blacklist") { scope == Scope.BLACKLIST }
     private val maxRecursionDepth by setting("Max Recursion Depth", 6, 1..10, 1, "Maximum recursion depth for packet serialization")
     private val logConcurrent by setting("Build Data Concurrent", false, "Whether to serialize packets concurrently. Will not save packets in chronological order but wont lag the game.")
 

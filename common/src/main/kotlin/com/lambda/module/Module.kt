@@ -98,7 +98,7 @@ abstract class Module(
     private val isEnabledSetting = setting("Enabled", enabledByDefault, visibility = { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)
     private val isVisible = setting("Visible", true)
-    private val customTags = setting("Tags", defaultTags, visibility = { false })
+    val customTags = setting("Tags", defaultTags, visibility = { false })
 
     var isEnabled by isEnabledSetting
     override val isMuted: Boolean

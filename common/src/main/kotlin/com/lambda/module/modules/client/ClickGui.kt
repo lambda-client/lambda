@@ -19,20 +19,16 @@ object ClickGui : Module(
     val buttonHeight by setting("Button Height", 11.0, 8.0..20.0, 0.1)
     val buttonStep by setting("Button Step", 1.0, 0.0..5.0, 0.1)
 
-    private val gui by mainThread {
-        LambdaClickGui()
-    }
-
     init {
         onEnable {
-            if (mc.currentScreen != gui) {
-                gui.show()
+            if (mc.currentScreen != LambdaClickGui) {
+                LambdaClickGui.show()
             }
         }
 
         onDisable {
-            if (mc.currentScreen == gui) {
-                gui.close()
+            if (mc.currentScreen == LambdaClickGui) {
+                LambdaClickGui.close()
             }
         }
 

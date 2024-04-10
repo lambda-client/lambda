@@ -24,7 +24,7 @@ abstract class WindowComponent <T : ChildComponent> : InteractiveComponent(), IL
 
     var position = Vec2d.ZERO
 
-    private var isOpen = true
+    var isOpen = true
     private var dragOffset: Vec2d? = null
     private val padding get() = ClickGui.windowPadding
 
