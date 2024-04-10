@@ -27,7 +27,6 @@ object GuiSettings : Module(
     val shadeColor1 get() = primaryColor
     val shadeColor2 get() = secondaryColor
 
-
     enum class Page {
         General,
         Colors
