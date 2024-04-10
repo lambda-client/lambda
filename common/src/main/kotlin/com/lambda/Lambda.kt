@@ -3,6 +3,7 @@ package com.lambda
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.lambda.config.serializer.*
+import com.lambda.config.serializer.gui.ModuleTagSerializer
 import com.lambda.config.serializer.gui.TagWindowSerializer
 import com.lambda.core.Loader
 import com.lambda.gui.impl.clickgui.windows.TagWindow
