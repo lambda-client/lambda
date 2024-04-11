@@ -6,7 +6,7 @@ import com.lambda.event.callback.ICancellable
 import com.lambda.interaction.InteractionConfig
 import com.lambda.interaction.RotationManager
 import com.lambda.interaction.rotation.IRotationConfig
-import com.lambda.interaction.rotation.RotationRequest
+import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.visibilty.VisibilityChecker.findRotation
 import com.lambda.threading.runSafe
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -14,31 +14,36 @@ import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
-import java.util.*
 
 abstract class RotationEvent : Event {
+    /**
+     * This event allows listeners to register a rotation request to be executed that tick.
+     *
+     * CAUTION: The listener with the lowest priority will win as it is the last to override the context.
+     *
+     * @property context The rotation context that listeners can set. Only one rotation can "win" each tick.
+     */
     class Pre : RotationEvent(), ICancellable by Cancellable() {
         // Only one rotation can "win" each tick
-        val requests = TreeSet<RotationRequest>(Comparator.reverseOrder())
+        var context: RotationContext? = null
 
         init {
             // Always check if baritone wants to rotate as well
             RotationManager.BaritoneProcessor.baritoneContext?.let { context ->
-                requests.add(RotationRequest(context.config, context.rotation, -1))
+                this.context = RotationContext(context.rotation, context.config)
             }
         }
 
         fun lookAtEntity(
             rotationConfig: IRotationConfig,
             interactionConfig: InteractionConfig,
-            entity: LivingEntity,
-            priority: Int = 0,
+            entity: LivingEntity
         ) {
             runSafe {
-                findRotation(rotationConfig, interactionConfig, listOf(entity.boundingBox), priority) {
+                findRotation(rotationConfig, interactionConfig, listOf(entity.boundingBox)) {
                     entityResult?.entity == entity
-                }?.let {
-                    requests.add(it)
+                }?.let { rotationContext ->
+                    context = rotationContext
                 }
             }
         }
@@ -47,21 +52,20 @@ abstract class RotationEvent : Event {
             rotationConfig: IRotationConfig,
             interactionConfig: InteractionConfig,
             blockPos: BlockPos,
-            sides: Set<Direction> = emptySet(),
-            priority: Int = 0,
+            sides: Set<Direction> = emptySet()
         ) {
             runSafe {
                 val state = world.getBlockState(blockPos)
                 val voxelShape = state.getOutlineShape(world, blockPos)
                 val boundingBoxes = voxelShape.boundingBoxes.map { it.offset(blockPos) }
-                findRotation(rotationConfig, interactionConfig, boundingBoxes, priority, sides) {
+                findRotation(rotationConfig, interactionConfig, boundingBoxes, sides) {
                     blockResult?.blockPos == blockPos && (blockResult?.side in sides || sides.isEmpty())
-                }?.let {
-                    requests.add(it)
+                }?.let { rotationContext ->
+                    context = rotationContext
                 }
             }
         }
     }
 
-    class Post(val request: RotationRequest) : RotationEvent()
+    class Post(val context: RotationContext) : RotationEvent()
 }

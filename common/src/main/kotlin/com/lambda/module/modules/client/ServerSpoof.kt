@@ -12,6 +12,7 @@ import net.minecraft.network.packet.BrandCustomPayload
 import net.minecraft.network.packet.c2s.common.CustomPayloadC2SPacket
 import net.minecraft.network.packet.s2c.common.ResourcePackSendS2CPacket
 import net.minecraft.text.ClickEvent
+import java.awt.Color
 
 object ServerSpoof : Module(
     name = "ServerSpoof",
@@ -41,7 +42,7 @@ object ServerSpoof : Module(
             event.cancel()
 
             this@ServerSpoof.info(buildText {
-                literal("Canceled ${if (packet.required) "required" else "optional"} server ressource pack. ")
+                literal("Canceled ${if (packet.required) "required" else "optional"} server resource pack. ")
                 clickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, packet.url)) {
                     styled(color = Color.GREEN, underlined = true) {
                         literal("(Click here to download)")

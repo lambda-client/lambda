@@ -1,5 +1,6 @@
 package com.lambda.util.world.raycast
 
+import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.threading.runSafe
@@ -12,42 +13,44 @@ import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.RaycastContext
 import kotlin.math.max
+import kotlin.math.pow
 
 object RayCastUtils {
     private val entityPredicate = { entity: Entity -> !entity.isSpectator && entity.canHit() }
 
     fun SafeContext.rayCast(
-        pos: Vec3d,
-        dir: Vec3d,
+        start: Vec3d,
+        end: Vec3d,
         reach: Double,
         mask: RayCastMask,
         fluids: Boolean = false,
     ): HitResult? {
-        val vec = dir.multiply(reach)
-        val point = pos.add(vec)
+        val vec = end.multiply(reach)
+        val point = start.add(vec)
 
         val block = run {
             if (!mask.block) return@run null
 
             val fluidHandling = if (fluids) RaycastContext.FluidHandling.ANY else RaycastContext.FluidHandling.NONE
-            val context = RaycastContext(pos, point, RaycastContext.ShapeType.OUTLINE, fluidHandling, player)
-            val block = world.raycast(context)
+            val context = RaycastContext(start, point, RaycastContext.ShapeType.OUTLINE, fluidHandling, player)
+            val result = world.raycast(context)
 
-            block?.blockResult
+            result?.blockResult
         }
 
         val entity = run {
             if (!mask.entity) return@run null
 
-            val box = player.boundingBox.stretch(vec).expand(1.0)
-            val entity = ProjectileUtil.raycast(player, pos, point, box, entityPredicate, reach * reach)
+            val playerBox = player.boundingBox.stretch(vec).expand(1.0)
+            val result = ProjectileUtil.raycast(player, start, point, playerBox, entityPredicate, reach.pow(2))
 
-            entity?.entityResult
+            result?.entityResult
         }
 
-        return listOfNotNull(block, entity).minByOrNull { pos distSq it.pos }
+        return listOfNotNull(block, entity).minByOrNull { start distSq it.pos }
     }
 
+    // ToDo: Should rather move player hitbox down and check collision
     fun distanceToGround(maxDist: Double = 100.0) = runSafe {
         val pos = player.pos.add(0.0, 0.1, 0.0)
         val cast = Rotation.DOWN.rayCast(maxDist, RayCastMask.BLOCK, pos, false) ?: return@runSafe maxDist
@@ -63,5 +66,11 @@ object RayCastUtils {
     val HitResult.blockResult: BlockHitResult? get() {
         if (type == HitResult.Type.MISS) return null
         return this as? BlockHitResult
+    }
+
+    val HitResult.orNull get() = entityResult ?: blockResult
+
+    val HitResult?.orMiss get() = this ?: object : HitResult(mc.player?.eyePos ?: Vec3d.ZERO) {
+        override fun getType() = Type.MISS
     }
 }

@@ -8,12 +8,12 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.warn
 import com.lambda.util.math.VecUtils.dist
 import com.lambda.util.math.VecUtils.distSq
-import com.lambda.util.text.Color
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
 import com.lambda.util.text.literal
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.math.Vec3d
+import java.awt.Color
 
 // ToDo: Should also include last packet info as HUD element and connection state.
 //  We should find a better name.

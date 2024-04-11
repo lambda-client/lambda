@@ -125,6 +125,11 @@ object MathUtils {
             lerp(start.y, end.y, factor)
         )
 
+    fun lerp(start: Rect, end: Rect, factor: Double) =
+        Rect(
+            lerp(start.leftTop, end.leftTop, factor),
+            lerp(start.rightBottom, end.rightBottom, factor)
+        )
 
     fun lerp(start: Rotation, end: Rotation, factor: Double) =
         Rotation(
