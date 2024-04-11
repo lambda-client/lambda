@@ -1,5 +1,6 @@
 package com.lambda.module
 
+import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
 import com.lambda.config.Configurable
 import com.lambda.config.Configuration
@@ -98,7 +99,7 @@ abstract class Module(
     private val isEnabledSetting = setting("Enabled", enabledByDefault, visibility = { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)
     private val isVisible = setting("Visible", true)
-    val customTags = setting("Tags", defaultTags, visibility = { false })
+    val customTags = setting("Tags", defaultTags, object : TypeToken<Set<ModuleTag>>() {}.type, visibility = { false })
 
     var isEnabled by isEnabledSetting
     override val isMuted: Boolean

@@ -90,7 +90,7 @@ abstract class Configuration : Jsonable {
                 }
                 .onFailure {
                     val message = "Failed to load ${configName.capitalize()} config, loading backup"
-                    LOG.error(message)
+                    LOG.error(message, it)
                     this@Configuration.logError(message)
                     runCatching { load(backup) }
                         .onSuccess {

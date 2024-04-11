@@ -7,8 +7,8 @@ import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.tag.ModuleTag
 
 class TagWindow(
-    private val tags: Set<ModuleTag> = emptySet(),
-    override val title: String = "Test Window",
+    val tags: Set<ModuleTag> = emptySet(),
+    override var title: String = "Test Window",
     override var width: Double = 110.0,
     override var height: Double = 300.0
 ) : WindowComponent<ModuleButton>() {

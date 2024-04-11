@@ -2,6 +2,7 @@ package com.lambda.config.serializer.gui
 
 import com.google.gson.*
 import com.lambda.gui.impl.clickgui.windows.TagWindow
+import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.Vec2d
 import java.lang.reflect.Type
 
@@ -14,6 +15,15 @@ object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWind
     ): JsonElement = src?.let {
         JsonObject().apply {
             addProperty("title", it.title)
+            add("tags", JsonArray().apply {
+                it.tags.forEach { tag ->
+                    add(tag.name)
+//                    add(JsonObject().apply {
+//                        addProperty("name", tag.name)
+//                        addProperty("color", tag.color.rgb)
+//                    })
+                }
+            })
             addProperty("width", it.width)
             addProperty("height", it.height)
             addProperty("isOpen", it.isOpen)
@@ -29,9 +39,14 @@ object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWind
         typeOfT: Type?,
         context: JsonDeserializationContext?,
     ) = json?.asJsonObject?.let {
-        TagWindow().apply {
-            width = it["width"].asDouble
+        TagWindow(
+            tags = it["tags"].asJsonArray.map { tag ->
+                ModuleTag(tag.asString)
+            }.toSet(),
+            title = it["title"].asString,
+            width = it["width"].asDouble,
             height = it["height"].asDouble
+        ).apply {
             isOpen = it["isOpen"].asBoolean
             position = Vec2d(
                 it["position"].asJsonArray[0].asDouble,

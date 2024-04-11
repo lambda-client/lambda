@@ -1,15 +1,14 @@
 package com.lambda.config.settings.collections
 
 import com.google.gson.JsonElement
-import com.google.gson.reflect.TypeToken
-import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
 import com.lambda.config.AbstractSetting
-import com.lambda.util.DynamicReflectionSerializer.dynamicString
+import java.lang.reflect.Type
 
-class ListSetting<T>(
+class ListSetting<T : Any>(
     override val name: String,
     defaultValue: List<T>,
+    private val type: Type,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<List<T>>(
@@ -18,10 +17,6 @@ class ListSetting<T>(
     visibility
 ) {
     override fun loadFromJson(serialized: JsonElement) {
-        val listType = object : TypeToken<List<T>>() {}.type
-        LOG.info("Loading $name with value $serialized current value ${value.dynamicString()} $value and type ${listType.typeName}")
-        val dese = gson.fromJson<List<T>>(serialized, listType)
-        value = dese
-        LOG.info("Loaded $name with value ${value.dynamicString()} $value and type ${listType.typeName}")
+        value = gson.fromJson(serialized, type)
     }
 }

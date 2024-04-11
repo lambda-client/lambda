@@ -21,6 +21,7 @@ import com.lambda.util.Nameable
 import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
 import java.awt.Color
+import java.lang.reflect.Type
 
 /**
  * Represents a set of [AbstractSetting]s that are associated with the [name] of the [Configurable].
@@ -163,9 +164,10 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
     inline fun <reified T : Any> setting(
         name: String,
         defaultValue: List<T>,
+        type: Type,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = ListSetting(name, defaultValue, description, visibility).also {
+    ) = ListSetting(name, defaultValue, type, description, visibility).also {
         settings.add(it)
     }
 
@@ -189,9 +191,10 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
     inline fun <reified K : Any, V : Any> setting(
         name: String,
         defaultValue: Map<K, V>,
+        type: Type,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = MapSetting(name, defaultValue, description, visibility).also {
+    ) = MapSetting(name, defaultValue, type, description, visibility).also {
         settings.add(it)
     }
 
@@ -215,9 +218,10 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
     inline fun <reified T : Any> setting(
         name: String,
         defaultValue: Set<T>,
+        type: Type,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = SetSetting(name, defaultValue, description, visibility).also {
+    ) = SetSetting(name, defaultValue, type, description, visibility).also {
         settings.add(it)
     }
 
