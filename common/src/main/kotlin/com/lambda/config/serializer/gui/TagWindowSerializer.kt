@@ -7,7 +7,6 @@ import com.lambda.util.math.Vec2d
 import java.lang.reflect.Type
 
 object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWindow> {
-
     override fun serialize(
         src: TagWindow?,
         typeOfSrc: Type?,
@@ -15,7 +14,11 @@ object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWind
     ): JsonElement = src?.let {
         JsonObject().apply {
             addProperty("title", it.title)
-            addProperty("tag", it.tag.name)
+            add("tags", JsonArray().apply {
+                it.tags.forEach { tag ->
+                    add(tag.name)
+                }
+            })
             addProperty("width", it.width)
             addProperty("height", it.height)
             addProperty("isOpen", it.isOpen)
@@ -32,7 +35,9 @@ object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWind
         context: JsonDeserializationContext?,
     ) = json?.asJsonObject?.let {
         TagWindow(
-            tag = ModuleTag(it["tag"].asString),
+            tags = it["tags"].asJsonArray.map { tag ->
+                ModuleTag(tag.asString)
+            }.toSet(),
             title = it["title"].asString,
             width = it["width"].asDouble,
             height = it["height"].asDouble

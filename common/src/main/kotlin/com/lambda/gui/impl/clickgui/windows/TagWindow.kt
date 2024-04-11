@@ -7,15 +7,15 @@ import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.tag.ModuleTag
 
 class TagWindow(
-    val tag: ModuleTag,
-    override var title: String = tag.name,
+    val tags: Set<ModuleTag> = setOf(),
+    override var title: String = "Untitled",
     override var width: Double = 110.0,
     override var height: Double = 300.0
 ) : WindowComponent<ModuleButton>() {
     init {
-        ModuleRegistry.modules/*.filter { module ->
-            module.customTags.value.any { it.name.equals(tag.name, true) }
-        }*/.forEach {
+        ModuleRegistry.modules.filter { module ->
+            module.customTags.value.any(tags::contains)
+        }.forEach {
             children.add(ModuleButton(it, this))
         }
     }
