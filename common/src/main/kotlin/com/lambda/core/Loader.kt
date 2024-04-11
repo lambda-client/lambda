@@ -39,7 +39,6 @@ object Loader {
 
         LOG.info("${Lambda.MOD_NAME} ${Lambda.VERSION} was successfully initialized (${initTime}ms)")
 
-        GuiConfigurable
-        LambdaClickGui
+        GuiConfigurable // ToDo: Find more elegant solution
     }
 }
