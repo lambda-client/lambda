@@ -15,15 +15,7 @@ object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWind
     ): JsonElement = src?.let {
         JsonObject().apply {
             addProperty("title", it.title)
-            add("tags", JsonArray().apply {
-                it.tags.forEach { tag ->
-                    add(tag.name)
-//                    add(JsonObject().apply {
-//                        addProperty("name", tag.name)
-//                        addProperty("color", tag.color.rgb)
-//                    })
-                }
-            })
+            addProperty("tag", it.tag.name)
             addProperty("width", it.width)
             addProperty("height", it.height)
             addProperty("isOpen", it.isOpen)
@@ -40,9 +32,7 @@ object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWind
         context: JsonDeserializationContext?,
     ) = json?.asJsonObject?.let {
         TagWindow(
-            tags = it["tags"].asJsonArray.map { tag ->
-                ModuleTag(tag.asString)
-            }.toSet(),
+            tag = ModuleTag(it["tag"].asString),
             title = it["title"].asString,
             width = it["width"].asDouble,
             height = it["height"].asDouble
@@ -53,5 +43,5 @@ object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWind
                 it["position"].asJsonArray[1].asDouble
             )
         }
-    } ?: TagWindow()
+    } ?: throw JsonParseException("Invalid window data")
 }

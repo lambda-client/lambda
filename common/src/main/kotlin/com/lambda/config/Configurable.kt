@@ -2,6 +2,7 @@ package com.lambda.config
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.config.settings.CharSetting
@@ -164,10 +165,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
     inline fun <reified T : Any> setting(
         name: String,
         defaultValue: List<T>,
-        type: Type,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = ListSetting(name, defaultValue, type, description, visibility).also {
+    ) = ListSetting(name, defaultValue, object : TypeToken<List<T>>() {}.type, description, visibility).also {
         settings.add(it)
     }
 
@@ -191,10 +191,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
     inline fun <reified K : Any, V : Any> setting(
         name: String,
         defaultValue: Map<K, V>,
-        type: Type,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = MapSetting(name, defaultValue, type, description, visibility).also {
+    ) = MapSetting(name, defaultValue, object : TypeToken<Map<K, V>>() {}.type, description, visibility).also {
         settings.add(it)
     }
 
@@ -218,10 +217,9 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
     inline fun <reified T : Any> setting(
         name: String,
         defaultValue: Set<T>,
-        type: Type,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = SetSetting(name, defaultValue, type, description, visibility).also {
+    ) = SetSetting(name, defaultValue, object : TypeToken<Set<T>>() {}.type, description, visibility).also {
         settings.add(it)
     }
 
