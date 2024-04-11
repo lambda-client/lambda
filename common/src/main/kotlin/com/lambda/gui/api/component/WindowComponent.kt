@@ -15,6 +15,7 @@ import com.lambda.util.Mouse
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
+import kotlin.math.abs
 
 abstract class WindowComponent <T : ChildComponent> : InteractiveComponent(), IListComponent<T> {
     abstract val title: String
@@ -41,7 +42,8 @@ abstract class WindowComponent <T : ChildComponent> : InteractiveComponent(), IL
     override val children = mutableListOf<T>()
     val subLayer = RenderLayer(true)
 
-    private val renderHeight by animation.exp({ 0.0 }, { height + padding * 2 * isOpen.toInt() }, 0.5, ::isOpen)
+    private val actualHeight get() = height + padding * 2 * isOpen.toInt()
+    private var renderHeight by animation.exp({ 0.0 }, ::actualHeight, 0.5, ::isOpen)
 
     init {
         // Background
@@ -63,6 +65,7 @@ abstract class WindowComponent <T : ChildComponent> : InteractiveComponent(), IL
         super<IListComponent>.onShow()
 
         dragOffset = null
+        renderHeight = 0.0
     }
 
     override fun onHide() {
@@ -72,12 +75,12 @@ abstract class WindowComponent <T : ChildComponent> : InteractiveComponent(), IL
     override fun onTick() {
         animation.tick()
 
-        children.forEach { child ->
-            child.visible = isChildAccessible(child)
+        setChildrenAccessibility { child ->
+            child.rect in contentRect
         }
 
         children
-            .filter(ChildComponent::visible)
+            .filter(ChildComponent::accessible)
             .forEach(IComponent::onTick)
     }
 
@@ -115,13 +118,22 @@ abstract class WindowComponent <T : ChildComponent> : InteractiveComponent(), IL
         if (mouse in titleBar && action == Mouse.Action.Click) {
             when(button) {
                 Mouse.Button.Left -> dragOffset = mouse - position
-                Mouse.Button.Right -> isOpen = !isOpen
+                Mouse.Button.Right -> {
+                    // Don't let user spam
+                    val targetHeight = if (isOpen) actualHeight else 0.0
+                    if (abs(targetHeight - renderHeight) > 1) return
+
+                    isOpen = !isOpen
+                }
             }
         }
 
         super<IListComponent>.onMouseClick(button, action, mouse)
     }
 
-    override fun isChildAccessible(child: T) =
-        child.rect in contentRect
+    private fun setChildrenAccessibility(flag: (T) -> Boolean) {
+        children.forEach { child ->
+            child.accessible = flag(child)
+        }
+    }
 }

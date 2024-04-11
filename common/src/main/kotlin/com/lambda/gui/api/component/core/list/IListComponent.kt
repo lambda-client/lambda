@@ -8,7 +8,7 @@ import com.lambda.util.math.Vec2d
 interface IListComponent <T : IComponent> : IComponent {
     val children: List<T>
 
-    fun isChildAccessible(child: T): Boolean = true
+    fun isChildAccessible(child: T): Boolean = (child as? ChildComponent)?.accessible ?: true
 
     override fun onShow() {
         children.forEach(IComponent::onShow)

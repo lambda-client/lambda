@@ -29,9 +29,10 @@ abstract class ButtonComponent(final override val owner: WindowComponent<*>) : C
     private val animation = AnimationTicker()
 
     private var activeAnimation by animation.exp(0.0, 1.0, 0.1, ::active)
-    private var hoverAnimation by animation.exp({ 0.0 }, { 1.0 }, { if (renderHovered || active) 0.5 else 0.1 }, ::renderHovered)
+    private var hoverRectAnimation by animation.exp({ 0.0 }, { 1.0 }, { if (renderHovered) 0.5 else 0.1 }, ::renderHovered)
+    private var hoverFontAnimation by animation.exp(0.0, 1.0, 0.5, ::renderHovered)
     private var pressAnimation by animation.exp(0.0, 1.0, 0.5, ::pressed)
-    private val interactAnimation get() = lerp(hoverAnimation, 1.5, pressAnimation) * 0.4
+    private val interactAnimation get() = lerp(hoverRectAnimation, 1.5, pressAnimation) * 0.4
 
     private var lastHoveredTime = 0L
     private val renderHovered get() = hovered ||
@@ -46,7 +47,7 @@ abstract class ButtonComponent(final override val owner: WindowComponent<*>) : C
 
         // Hover glint
         layer.rect.build {
-            val hoverRect = Rect.basedOn(rect.leftTop, rect.size.x * hoverAnimation, rect.size.y)
+            val hoverRect = Rect.basedOn(rect.leftTop, rect.size.x * hoverRectAnimation, rect.size.y)
             position = hoverRect.shrink(interactAnimation)
 
             val alpha = interactAnimation * 0.3
@@ -80,7 +81,7 @@ abstract class ButtonComponent(final override val owner: WindowComponent<*>) : C
 
             color = lerp(Color.WHITE, GuiSettings.mainColor, activeAnimation)
 
-            val x = rect.left + ClickGui.windowPadding + interactAnimation + hoverAnimation
+            val x = rect.left + ClickGui.windowPadding + interactAnimation + hoverFontAnimation * 2.0
             position = Vec2d(x, rect.center.y)
         }
     }
@@ -89,7 +90,12 @@ abstract class ButtonComponent(final override val owner: WindowComponent<*>) : C
 
     override fun onShow() {
         super.onShow()
-        activeAnimation = 0.0
+        reset()
+    }
+
+    override fun onHide() {
+        super.onHide()
+        reset()
     }
 
     override fun onTick() {
@@ -105,6 +111,13 @@ abstract class ButtonComponent(final override val owner: WindowComponent<*>) : C
 
         val time = System.currentTimeMillis()
         if (hovered) lastHoveredTime = time
+    }
+
+    private fun reset() {
+        activeAnimation = 0.0
+        hoverRectAnimation = 0.0
+        pressAnimation = 0.0
+        lastHoveredTime = 0L
     }
 
     companion object {

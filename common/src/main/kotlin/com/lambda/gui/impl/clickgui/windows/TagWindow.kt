@@ -1,6 +1,9 @@
 package com.lambda.gui.impl.clickgui.windows
 
+import com.lambda.gui.api.LambdaGui
 import com.lambda.gui.api.component.WindowComponent
+import com.lambda.gui.api.component.core.list.IChildComponent
+import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.ClickGui
@@ -10,11 +13,12 @@ class TagWindow(
     val tags: Set<ModuleTag> = setOf(),
     override var title: String = "Untitled",
     override var width: Double = 110.0,
-    override var height: Double = 300.0
-) : WindowComponent<ModuleButton>() {
+    override var height: Double = 300.0,
+    override val owner: LambdaGui = LambdaClickGui
+) : WindowComponent<ModuleButton>(), IChildComponent {
     init {
         ModuleRegistry.modules.filter { module ->
-            module.customTags.value.any(tags::contains)
+            module.customTags.value.any(tags::contains) || tags.isEmpty()
         }.forEach {
             children.add(ModuleButton(it, this))
         }
