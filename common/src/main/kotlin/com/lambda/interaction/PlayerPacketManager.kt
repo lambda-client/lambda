@@ -16,6 +16,8 @@ import com.lambda.util.primitives.extension.component2
 import com.lambda.util.primitives.extension.component3
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.*
+import net.minecraft.util.math.MathHelper.square
+import net.minecraft.util.math.Vec3d
 
 object PlayerPacketManager : Loadable {
     val configurations = LimitedOrderedSet<PlayerPacketEvent.Pre>(100)

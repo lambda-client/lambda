@@ -18,6 +18,7 @@ package com.lambda.util.text
 
 import net.minecraft.text.*
 import net.minecraft.util.Identifier
+import java.awt.Color
 import java.util.*
 
 /**
@@ -320,7 +321,7 @@ fun TextBuilder.styled(
 @TextDsl
 fun TextBuilder.styled(style: Style, action: TextBuilder.() -> Unit) {
     styled(
-        style.color?.let(Color::from) ?: this.style.color,
+        style.color?.let { Color(it.rgb) } ?: this.style.color,
         style.isBold,
         style.isItalic,
         style.isUnderlined,

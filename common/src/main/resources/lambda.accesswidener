@@ -16,6 +16,11 @@ accessible method net/minecraft/entity/Entity movementInputToVelocity (Lnet/mine
 accessible method net/minecraft/client/render/Camera setPos (DDD)V
 accessible method net/minecraft/client/render/Camera setRotation (FF)V
 
+# Renderer
+accessible field com/mojang/blaze3d/systems/RenderSystem$ShapeIndexBuffer id I
+accessible field net/minecraft/client/render/BufferRenderer currentVertexBuffer Lnet/minecraft/client/gl/VertexBuffer;
+accessible field net/minecraft/client/texture/NativeImage pointer J
+
 # Text
 accessible field net/minecraft/text/Style color Lnet/minecraft/text/TextColor;
 accessible field net/minecraft/text/Style bold Ljava/lang/Boolean;

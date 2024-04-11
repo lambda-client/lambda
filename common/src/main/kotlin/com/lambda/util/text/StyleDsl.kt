@@ -18,11 +18,9 @@
 
 package com.lambda.util.text
 
-import net.minecraft.text.ClickEvent
-import net.minecraft.text.HoverEvent
-import net.minecraft.text.MutableText
-import net.minecraft.text.Style
+import net.minecraft.text.*
 import net.minecraft.util.Identifier
+import java.awt.Color
 
 /**
  * Marks objects as being part the Style Builder DSL.
@@ -177,7 +175,7 @@ class StyleBuilder {
      * @param blue The blue channel of the color
      */
     fun color(red: Double, green: Double, blue: Double) {
-        this.color = Color(red, green, blue)
+        color(red.toFloat(), green.toFloat(), blue.toFloat())
     }
 
     /**
@@ -225,7 +223,7 @@ class StyleBuilder {
      * into this builder.
      */
     fun copyFrom(base: Style) {
-        color = base.color?.let(Color::from) ?: color
+        color = base.color?.let { Color(it.rgb) } ?: color
         bold = base.isBold
         italic = base.isItalic
         strikethrough = base.strikethrough
@@ -250,7 +248,7 @@ class StyleBuilder {
         }
 
         return Style(
-            color?.toTextColor(),
+            color?.let { TextColor.fromRgb(it.rgb) },
             bold,
             italic,
             underlined,

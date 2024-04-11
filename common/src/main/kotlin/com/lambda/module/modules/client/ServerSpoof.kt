@@ -12,6 +12,7 @@ import net.minecraft.network.packet.BrandCustomPayload
 import net.minecraft.network.packet.c2s.common.CustomPayloadC2SPacket
 import net.minecraft.network.packet.s2c.common.ResourcePackSendS2CPacket
 import net.minecraft.text.ClickEvent
+import java.awt.Color
 
 object ServerSpoof : Module(
     name = "ServerSpoof",
