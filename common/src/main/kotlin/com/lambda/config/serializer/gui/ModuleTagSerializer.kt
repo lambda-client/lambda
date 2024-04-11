@@ -1,4 +1,4 @@
-package com.lambda.config.serializer
+package com.lambda.config.serializer.gui
 
 import com.google.gson.*
 import com.lambda.module.tag.ModuleTag

@@ -1,5 +1,6 @@
 package com.lambda.util.world.raycast
 
+import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.threading.runSafe
@@ -65,5 +66,11 @@ object RayCastUtils {
     val HitResult.blockResult: BlockHitResult? get() {
         if (type == HitResult.Type.MISS) return null
         return this as? BlockHitResult
+    }
+
+    val HitResult.orNull get() = entityResult ?: blockResult
+
+    val HitResult?.orMiss get() = this ?: object : HitResult(mc.player?.eyePos ?: Vec3d.ZERO) {
+        override fun getType() = Type.MISS
     }
 }

@@ -57,9 +57,8 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
 
     @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick(ZF)V"))
     void processMovement(Input input, boolean slowDown, float slowDownFactor) {
-        if (EventFlow.post(new MovementEvent.InputUpdate(input, slowDown, slowDownFactor)).isCanceled()) return;
-
         input.tick(slowDown, slowDownFactor);
+        EventFlow.post(new MovementEvent.InputUpdate(input, slowDown, slowDownFactor));
     }
 
     @Inject(method = "sendMovementPackets", at = @At(value = "HEAD"), cancellable = true)
