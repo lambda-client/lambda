@@ -5,7 +5,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
-import com.lambda.event.EventFlow.ioScope
+import com.lambda.config.configurations.ModuleConfig
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
@@ -15,7 +15,6 @@ import com.lambda.util.StringUtils.capitalize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
-import java.util.*
 
 /**
  * Represents a compound of [Configurable] objects whose [AbstractSetting]s
@@ -42,7 +41,7 @@ abstract class Configuration : Jsonable {
     init {
         unsafeListener<ClientEvent.Startup> { tryLoad() }
 
-        unsafeListener<ClientEvent.Shutdown> { trySave() }
+        unsafeListener<ClientEvent.Shutdown>(Int.MIN_VALUE) { trySave() }
 
         configurations.add(this)
     }
@@ -91,7 +90,7 @@ abstract class Configuration : Jsonable {
                 }
                 .onFailure {
                     val message = "Failed to load ${configName.capitalize()} config, loading backup"
-                    LOG.error(message)
+                    LOG.error(message, it)
                     this@Configuration.logError(message)
                     runCatching { load(backup) }
                         .onSuccess {

@@ -17,5 +17,5 @@ import java.io.File
  */
 object ModuleConfig : Configuration() {
     override val configName = "modules"
-    override val primary = File(FolderRegister.config, "$configName.json")
+    override val primary = FolderRegister.config.resolve("$configName.json")
 }

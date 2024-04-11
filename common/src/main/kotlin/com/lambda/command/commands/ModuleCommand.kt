@@ -19,6 +19,7 @@ import com.lambda.util.Communication.warn
 import com.lambda.util.StringUtils
 import com.lambda.util.text.*
 import com.lambda.util.text.ClickEvents.suggestCommand
+import java.awt.Color
 
 object ModuleCommand : LambdaCommand {
     override val name = "module"
@@ -36,7 +37,7 @@ object ModuleCommand : LambdaCommand {
                 }
 
                 this@ModuleCommand.info(buildText {
-                    styled(Color.GREY) {
+                    styled(Color.GRAY) {
                         literal("Enabled Modules: ")
                     }
                     enabled.forEachIndexed { index, module ->
@@ -70,7 +71,7 @@ object ModuleCommand : LambdaCommand {
                         } ?: return@executeWithResult failure(buildText {
                             styled(Color.RED) {
                                 literal("Module ")
-                                styled(Color.GREY) {
+                                styled(Color.GRAY) {
                                     literal("$name ")
                                 }
                                 literal("not found!")
@@ -88,7 +89,7 @@ object ModuleCommand : LambdaCommand {
                                     literal(", ")
                                 }
                                 clickEvent(suggestCommand("$prefix${input.replace(name, s)}")) {
-                                    styled(Color.GREY) {
+                                    styled(Color.GRAY) {
                                         literal(s)
                                     }
                                 }
@@ -102,7 +103,7 @@ object ModuleCommand : LambdaCommand {
                             } else {
                                 if (enable().value() == module.isEnabled) {
                                     this@ModuleCommand.warn(buildText {
-                                        styled(Color.GREY) {
+                                        styled(Color.GRAY) {
                                             literal("$name already ")
                                             literal(if (module.isEnabled) "enabled" else "disabled")
                                         }
@@ -117,7 +118,7 @@ object ModuleCommand : LambdaCommand {
                                 }
                             }
                             this@ModuleCommand.info(buildText {
-                                styled(Color.GREY) {
+                                styled(Color.GRAY) {
                                     literal("$name ")
                                 }
                                 styled(if (module.isEnabled) Color.GREEN else Color.RED) {

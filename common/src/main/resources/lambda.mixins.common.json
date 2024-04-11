@@ -5,6 +5,8 @@
   "compatibilityLevel": "JAVA_17",
   "client": [
     "MinecraftClientMixin",
+    "baritone.MixinBaritonePlayerContext",
+    "baritone.MixinLookBehavior",
     "entity.ClientPlayerEntityMixin",
     "entity.EntityMixin",
     "entity.LivingEntityMixin",
@@ -22,6 +24,11 @@
     "render.ChatScreenMixin",
     "render.DebugHudMixin",
     "render.GameRendererMixin",
+    "render.GlStateManagerMixin",
+    "render.InGameHudMixin",
+    "render.VertexBufferMixin",
+    "render.LightmapTextureManagerMixin",
+    "render.LivingEntityRendererMixin",
     "render.RenderTickCounterMixin",
     "render.WorldRendererMixin"
   ],

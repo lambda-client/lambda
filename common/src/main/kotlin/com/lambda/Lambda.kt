@@ -3,7 +3,10 @@ package com.lambda
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.lambda.config.serializer.*
+import com.lambda.config.serializer.gui.ModuleTagSerializer
+import com.lambda.config.serializer.gui.TagWindowSerializer
 import com.lambda.core.Loader
+import com.lambda.gui.impl.clickgui.windows.TagWindow
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
 import net.minecraft.block.Block
@@ -25,6 +28,7 @@ object Lambda {
     val gson: Gson = GsonBuilder()
         .setPrettyPrinting()
         .registerTypeAdapter(ModuleTag::class.java, ModuleTagSerializer)
+        .registerTypeAdapter(TagWindow::class.java, TagWindowSerializer)
         .registerTypeAdapter(KeyCode::class.java, KeyCodeSerializer)
         .registerTypeAdapter(Color::class.java, ColorSerializer)
         .registerTypeAdapter(BlockPos::class.java, BlockPosSerializer)

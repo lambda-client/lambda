@@ -2,6 +2,7 @@ package com.lambda.config
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.config.settings.CharSetting
@@ -21,6 +22,7 @@ import com.lambda.util.Nameable
 import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
 import java.awt.Color
+import java.lang.reflect.Type
 
 /**
  * Represents a set of [AbstractSetting]s that are associated with the [name] of the [Configurable].
@@ -165,7 +167,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         defaultValue: List<T>,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = ListSetting(name, defaultValue, description, visibility).also {
+    ) = ListSetting(name, defaultValue, object : TypeToken<List<T>>() {}.type, description, visibility).also {
         settings.add(it)
     }
 
@@ -191,7 +193,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         defaultValue: Map<K, V>,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = MapSetting(name, defaultValue, description, visibility).also {
+    ) = MapSetting(name, defaultValue, object : TypeToken<Map<K, V>>() {}.type, description, visibility).also {
         settings.add(it)
     }
 
@@ -217,7 +219,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         defaultValue: Set<T>,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = SetSetting(name, defaultValue, description, visibility).also {
+    ) = SetSetting(name, defaultValue, object : TypeToken<Set<T>>() {}.type, description, visibility).also {
         settings.add(it)
     }
 

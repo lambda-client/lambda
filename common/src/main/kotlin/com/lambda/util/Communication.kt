@@ -2,13 +2,26 @@ package com.lambda.util
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
+import com.lambda.threading.runOnGameThread
 import com.lambda.threading.runSafe
+import com.lambda.threading.runSafeOnGameThread
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.text.*
 import net.minecraft.client.toast.SystemToast
 import net.minecraft.text.Text
+import java.awt.Color
 
 object Communication {
+    val ascii = """
+        ⣰⡛⠶⣄⠀⠀⠀⠀⠀⠀
+        ⠑⠭⣛⡜⣳⡀⠀⠀⠀⠀
+        ⠀⠀⠹⣾⣥⣛⡄⠀⠀⠀
+        ⠀⠀⢠⣿⢯⣷⣻⡄⠀⠀
+        ⠀⢠⣿⣿⣿⢶⣏⡿⡄⠀
+        ⢠⣿⣿⡿⠃⠘⣿⣼⣻⣄
+        ⠻⢿⡿⠁⠀⠀⠘⢷⡽⠞
+    """.trimIndent()
+
     fun Any.debug(message: String, source: String = "") = log(LogLevel.DEBUG.text(message), LogLevel.DEBUG, source)
     fun Any.debug(message: Text, source: Text = Text.empty()) = log(message, LogLevel.DEBUG, textSource = source)
     fun Any.info(message: String, source: String = "") = log(LogLevel.INFO.text(message), LogLevel.INFO, source)
@@ -23,10 +36,10 @@ object Communication {
     }
 
     fun Any.toast(message: Text, logLevel: LogLevel = LogLevel.INFO) {
-        runSafe {
-            buildText {
-                text(this@toast.source(logLevel, color = Color.YELLOW))
-            }.let { title ->
+        buildText {
+            text(this@toast.source(logLevel, color = Color.YELLOW))
+        }.let { title ->
+            runSafeOnGameThread {
                 mc.toastManager.add(logLevel.toast(title, message))
             }
         }
@@ -42,11 +55,11 @@ object Communication {
     }
 
     fun Any.log(message: Text, logLevel: LogLevel = LogLevel.INFO, source: String = "", textSource: Text = Text.empty()) {
-        runSafe {
-            buildText {
-                text(this@log.source(logLevel, source, textSource))
-                text(message)
-            }.let { log ->
+        buildText {
+            text(this@log.source(logLevel, source, textSource))
+            text(message)
+        }.let { log ->
+            runSafeOnGameThread {
                 player.sendMessage(log)
             }
         }
@@ -56,7 +69,7 @@ object Communication {
         logLevel: LogLevel,
         source: String = "",
         textSource: Text = Text.empty(),
-        color: Color = Color.GREY,
+        color: Color = Color.GRAY
     ) = buildText {
         text(logLevel.prefix())
 

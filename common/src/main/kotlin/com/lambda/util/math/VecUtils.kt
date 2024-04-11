@@ -1,8 +1,12 @@
 package com.lambda.util.math
 
+import com.ibm.icu.number.Precision
 import com.lambda.util.math.MathUtils.sq
+import com.lambda.util.math.VecUtils.distSq
+import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
+import kotlin.math.pow
 
 object VecUtils {
     infix fun Vec3d.dist(other: Vec3d) =
@@ -10,6 +14,9 @@ object VecUtils {
 
     infix fun Vec3d.distSq(other: Vec3d) =
         this.squaredDistanceTo(other)
+
+    fun Vec3d.approximate(other: Vec3d, precision: Double = 2.0E-4) =
+        (subtract(other) distSq Vec3d.ZERO) > precision.pow(2)
 
     infix fun Vec3i.distSq(other: Vec3d) =
         Vec3d.of(this) distSq other
