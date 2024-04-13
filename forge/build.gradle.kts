@@ -13,7 +13,6 @@ base.archivesName.set("${base.archivesName.get()}-forge")
 
 loom {
     accessWidenerPath.set(project(":common").loom.accessWidenerPath)
-
     forge {
         convertAccessWideners = true
         extraAccessWideners.add(loom.accessWidenerPath.get().asFile.name)
@@ -55,7 +54,7 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
-    includeLib("com.github.caoimhebyrne:KDiscordIPC:$discordIPCVersion")
+    includeLib("com.github.caoimhebyrne:KDiscordIPC:$discordIPCVersion") { isTransitive = false }
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
