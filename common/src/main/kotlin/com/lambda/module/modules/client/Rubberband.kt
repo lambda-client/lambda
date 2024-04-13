@@ -21,7 +21,7 @@ import java.awt.Color
 object Rubberband : Module(
     name = "Rubberband",
     description = "Info about rubberbands",
-    defaultTags = setOf(ModuleTag.CLIENT)
+    tag = ModuleTag.CLIENT
 ) {
     private val showLastPacketInfo by setting("Show Last Packet", true)
     private val showConnectionState by setting("Show Connection State", true)

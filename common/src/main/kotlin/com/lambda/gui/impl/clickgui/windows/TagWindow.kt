@@ -18,7 +18,7 @@ class TagWindow(
 ) : WindowComponent<ModuleButton>(), IChildComponent {
     init {
         ModuleRegistry.modules.filter { module ->
-            module.customTags.value.any(tags::contains) || tags.isEmpty()
+            module.tags.any(tags::contains)
         }.forEach {
             children.add(ModuleButton(it, this))
         }

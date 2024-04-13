@@ -1,10 +1,10 @@
-package com.lambda.module.modules.render
+package com.lambda.module.modules.debug
 
 import com.lambda.Lambda.LOG
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
-import com.lambda.util.Communication.info
+import com.lambda.module.tag.ModuleTag
 import com.lambda.util.DynamicReflectionSerializer.dynamicString
 import net.minecraft.network.packet.c2s.play.*
 import net.minecraft.network.packet.s2c.play.InventoryS2CPacket
@@ -13,7 +13,7 @@ import net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket
 object InventoryDebug : Module(
     name = "InventoryDebug",
     description = "Debugs the inventory",
-    defaultTags = setOf()
+    tag = ModuleTag.DEBUG
 ) {
     init {
         listener<PacketEvent.Receive.Pre> {

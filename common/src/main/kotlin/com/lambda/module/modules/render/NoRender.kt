@@ -6,7 +6,7 @@ import com.lambda.module.tag.ModuleTag
 object NoRender : Module(
     name = "NoRender",
     description = "Disables rendering of certain things",
-    defaultTags = setOf(ModuleTag.RENDER)
+    tag = ModuleTag.RENDER
 ) {
     @JvmStatic val noDarkness by setting("No Darkness", true)
 }

@@ -6,5 +6,5 @@ import com.lambda.module.tag.ModuleTag
 object Sprint : Module(
     name = "Sprint",
     description = "Sprints automatically",
-    defaultTags = setOf(ModuleTag.MOVEMENT)
+    tag = ModuleTag.MOVEMENT
 )

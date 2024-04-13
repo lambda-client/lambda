@@ -1,6 +1,5 @@
-package com.lambda.module.modules
+package com.lambda.module.modules.debug
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
 import com.lambda.event.EventFlow.lambdaScope
@@ -30,7 +29,7 @@ import kotlin.io.path.pathString
 object Packetlogger : Module(
     name = "Packetlogger",
     description = "Serializes network traffic and persists it for later analysis",
-    defaultTags = setOf(ModuleTag.DEBUG)
+    tag = ModuleTag.DEBUG
 ) {
     private val logToChat by setting("Log To Chat", false, "Log packets to chat")
     // ToDo: Implement HUD logging when HUD is done

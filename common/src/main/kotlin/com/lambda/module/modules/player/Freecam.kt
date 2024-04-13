@@ -29,7 +29,7 @@ import net.minecraft.util.math.Vec3d
 object Freecam : Module(
     name = "Freecam",
     description = "Move your camera freely",
-    defaultTags = setOf(ModuleTag.RENDER),
+    tag = ModuleTag.PLAYER,
     defaultKeybind = KeyCode.G
 ) {
     private val speed by setting("Speed", 0.5f, 0.1f..1.0f, 0.1f)
@@ -82,9 +82,9 @@ object Freecam : Module(
 
         listener<MovementEvent.InputUpdate> {
             // Don't block baritone from working
-            if (player.input !is PlayerMovementInput) {
+            if (event.input !is PlayerMovementInput) {
                 // Reset actual input
-                player.input.cancel()
+                event.input.cancel()
             }
 
             // Create new input for freecam
