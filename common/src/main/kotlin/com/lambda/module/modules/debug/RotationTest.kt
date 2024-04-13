@@ -1,10 +1,11 @@
-package com.lambda.module.modules
+package com.lambda.module.modules.debug
 
 import com.lambda.config.InteractionSettings
 import com.lambda.config.RotationSettings
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
@@ -13,7 +14,7 @@ import net.minecraft.util.math.Direction
 object RotationTest : Module(
     name = "RotationTest",
     description = "Test rotation",
-    defaultTags = setOf()
+    tag = ModuleTag.DEBUG
 ) {
     private val rotationConfig = RotationSettings(this)
     private val interactionConfig = InteractionSettings(this)

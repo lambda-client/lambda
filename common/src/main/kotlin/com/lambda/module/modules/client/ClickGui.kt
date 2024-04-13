@@ -5,13 +5,13 @@ import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.mainThread
-import java.awt.Color
+import com.lambda.util.KeyCode
 
 object ClickGui : Module(
     name = "ClickGui",
     description = "Sexy",
-    defaultTags = setOf(ModuleTag.CLIENT)
+    tag = ModuleTag.CLIENT,
+    defaultKeybind = KeyCode.RIGHT_SHIFT
 ) {
     // General
     val windowRadius by setting("Window Radius", 2.0, 0.0..10.0, 0.1)

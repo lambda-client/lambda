@@ -166,7 +166,7 @@ object RotationManager : Loadable {
                 baritoneContext = null
             }
 
-            listener<MovementEvent.InputUpdate> {
+            listener<MovementEvent.InputUpdate>(Int.MAX_VALUE) {
                 processPlayerMovement(it)
             }
         }

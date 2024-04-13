@@ -9,7 +9,7 @@ import com.lambda.util.math.MathUtils.random
 object Baritone : Module(
     name = "Baritone",
     description = "Baritone configuration",
-    defaultTags = setOf(ModuleTag.CLIENT)
+    ModuleTag.CLIENT
 ) {
     private val r1 by setting("Turn Speed 1", 70.0, 1.0..180.0, 0.1)
     private val r2 by setting("Turn Speed 2", 110.0, 1.0..180.0, 0.1)

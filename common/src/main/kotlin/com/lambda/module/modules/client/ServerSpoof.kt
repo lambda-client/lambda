@@ -17,7 +17,7 @@ import java.awt.Color
 object ServerSpoof : Module(
     name = "ServerSpoof",
     description = "Decide yourself if you want to accept the server resource pack.",
-    defaultTags = setOf(ModuleTag.BYPASS)
+    tag = ModuleTag.CLIENT
 ) {
     private val spoofClientBrand by setting("Spoof Client Brand", true)
     private val spoofName by setting("Spoof Name", "vanilla", visibility = { spoofClientBrand })

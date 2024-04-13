@@ -15,18 +15,18 @@ import com.lambda.util.Nameable
  *
  * @param name The name of the tag.
  */
-class ModuleTag(override val name: String) : Nameable {
+data class ModuleTag(override val name: String) : Nameable {
     companion object {
         val COMBAT = ModuleTag("Combat")
         val MOVEMENT = ModuleTag("Movement")
         val RENDER = ModuleTag("Render")
         val PLAYER = ModuleTag("Player")
         val WORLD = ModuleTag("World")
-        val MISC = ModuleTag("Misc")
-        val CLIENT = ModuleTag("Client")
-        val HIDDEN = ModuleTag("Hidden")
-        val GRIM = ModuleTag("Grim")
-        val BYPASS = ModuleTag("Bypass")
         val DEBUG = ModuleTag("Debug")
+        val CLIENT = ModuleTag("Client")
+
+        val GRIM = ModuleTag("Grim")
+
+        val defaults = listOf(COMBAT, MOVEMENT, RENDER, PLAYER, WORLD, DEBUG, CLIENT)
     }
 }

@@ -7,7 +7,7 @@ import java.awt.Color
 object GuiSettings : Module(
     name = "GuiSettings",
     description = "Visual behaviour configuration",
-    defaultTags = setOf(ModuleTag.CLIENT)
+    tag = ModuleTag.CLIENT
 ) {
     private val page by setting("Page", Page.General)
 
