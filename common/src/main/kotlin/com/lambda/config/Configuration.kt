@@ -6,6 +6,7 @@ import com.google.gson.JsonParser
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
 import com.lambda.config.configurations.ModuleConfig
+import com.lambda.event.EventFlow.ioScope
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
