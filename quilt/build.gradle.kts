@@ -1,26 +1,27 @@
-val fabricLoaderVersion = property("fabric_loader_version").toString()
-val fabricApiVersion = property("fabric_api_version").toString()
-val kotlinFabricVersion = property("kotlin_fabric_version").toString()
-val discordIPCVersion = property("discord_ipc_version").toString()
+val quiltVersion = property("quilt_version").toString()
+val quiltedFabricVersion = property("quilted_fabric_version").toString()
+val kotlinQuiltVersion = property("kotlin_quilt_version").toString()
+val kotlinxCoroutineVersion = property("kotlinx_coroutines_version").toString()
 
-base.archivesName.set("${base.archivesName.get()}-fabric")
+base.archivesName.set("${base.archivesName.get()}-quilt")
 
 architectury {
     platformSetupLoomIde()
-    fabric()
+    loader("quilt")
 }
 
 loom {
-    accessWidenerPath.set(project(":common").loom.accessWidenerPath)
-    enableTransitiveAccessWideners.set(true)
+    accessWidenerPath = project(":common").loom.accessWidenerPath
+}
+
+repositories {
+    maven("https://maven.quiltmc.org/repository/release/")
 }
 
 val common: Configuration by configurations.creating {
     configurations.compileClasspath.get().extendsFrom(this)
     configurations.runtimeClasspath.get().extendsFrom(this)
-    configurations["developmentFabric"].extendsFrom(this)
-    isCanBeResolved = true
-    isCanBeConsumed = false
+    configurations["developmentQuilt"].extendsFrom(this)
 }
 
 val includeLib: Configuration by configurations.creating
@@ -48,23 +49,27 @@ fun DependencyHandlerScope.setupConfigurations() {
 }
 
 dependencies {
-    // Fabric API (Do not touch)
-    modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
+    // Quilt Loader
+    modImplementation("org.quiltmc:quilt-loader:$quiltVersion")
+
+    // Quilted Fabric API
+    modImplementation("org.quiltmc.quilted-fabric-api:quilted-fabric-api:$quiltedFabricVersion")
 
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
-    includeLib("dev.babbaj:nether-pathfinder:1.5")
-    includeLib("com.github.caoimhebyrne:KDiscordIPC:$discordIPCVersion")
 
     // Add mods to the mod jar
-    includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
-    includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion")
-    includeMod("baritone-api:baritone-unoptimized-fabric:1.10.2")
+    includeMod("org.quiltmc.quilt-kotlin-libraries:quilt-kotlin-libraries:$kotlinQuiltVersion") {
+        // Exclude fabric
+        exclude("net.fabricmc")
+        exclude("net.fabricmc.fabric-api")
+    }
+
 
     // Common (Do not touch)
-    common(project(":common", configuration = "namedElements")) { isTransitive = false }
-    shadowBundle(project(":common", configuration = "transformProductionFabric"))
+    common(project(path = ":common", configuration = "namedElements")) { isTransitive = false }
+    shadowBundle(project(path = ":common", configuration = "transformProductionQuilt"))
 
     // Finish the configuration
     setupConfigurations()
@@ -76,7 +81,7 @@ tasks {
     }
 
     processResources {
-        filesMatching("fabric.mod.json") {
+        filesMatching("quilt.mod.json") {
             expand(project(":common").properties)
         }
     }
