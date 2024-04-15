@@ -1,0 +1,88 @@
+val quiltVersion = property("quilt_version").toString()
+val quiltedFabricVersion = property("quilted_fabric_version").toString()
+val kotlinQuiltVersion = property("kotlin_quilt_version").toString()
+val kotlinxCoroutineVersion = property("kotlinx_coroutines_version").toString()
+
+base.archivesName.set("${base.archivesName.get()}-quilt")
+
+architectury {
+    platformSetupLoomIde()
+    loader("quilt")
+}
+
+loom {
+    accessWidenerPath = project(":common").loom.accessWidenerPath
+}
+
+repositories {
+    maven("https://maven.quiltmc.org/repository/release/")
+}
+
+val common: Configuration by configurations.creating {
+    configurations.compileClasspath.get().extendsFrom(this)
+    configurations.runtimeClasspath.get().extendsFrom(this)
+    configurations["developmentQuilt"].extendsFrom(this)
+}
+
+val includeLib: Configuration by configurations.creating
+val includeMod: Configuration by configurations.creating
+val shadowBundle: Configuration by configurations.creating {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+}
+
+fun DependencyHandlerScope.setupConfigurations() {
+    includeLib.dependencies.forEach {
+        implementation(it)
+        include(it)
+    }
+
+    includeMod.dependencies.forEach {
+        modImplementation(it)
+        include(it)
+    }
+
+    shadowBundle.dependencies.forEach {
+        shadowCommon(it)
+        shadow(it)
+    }
+}
+
+dependencies {
+    // Quilt Loader
+    modImplementation("org.quiltmc:quilt-loader:$quiltVersion")
+
+    // Quilted Fabric API
+    modImplementation("org.quiltmc.quilted-fabric-api:quilted-fabric-api:$quiltedFabricVersion")
+
+    // Add dependencies on the required Kotlin modules.
+    includeLib("org.reflections:reflections:0.10.2")
+    includeLib("org.javassist:javassist:3.28.0-GA")
+
+    // Add mods to the mod jar
+    includeMod("org.quiltmc.quilt-kotlin-libraries:quilt-kotlin-libraries:$kotlinQuiltVersion") {
+        // Exclude fabric
+        exclude("net.fabricmc")
+        exclude("net.fabricmc.fabric-api")
+    }
+
+
+    // Common (Do not touch)
+    common(project(path = ":common", configuration = "namedElements")) { isTransitive = false }
+    shadowBundle(project(path = ":common", configuration = "transformProductionQuilt"))
+
+    // Finish the configuration
+    setupConfigurations()
+}
+
+tasks {
+    remapJar {
+        injectAccessWidener = true
+    }
+
+    processResources {
+        filesMatching("quilt.mod.json") {
+            expand(project(":common").properties)
+        }
+    }
+}
