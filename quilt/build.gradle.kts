@@ -1,7 +1,7 @@
 val quiltVersion = property("quilt_version").toString()
 val quiltedFabricVersion = property("quilted_fabric_version").toString()
 val kotlinQuiltVersion = property("kotlin_quilt_version").toString()
-val kotlinxCoroutineVersion = property("kotlinx_coroutines_version").toString()
+val discordIPCVersion = property("discord_ipc_version").toString()
 
 base.archivesName.set("${base.archivesName.get()}-quilt")
 
@@ -52,19 +52,14 @@ dependencies {
     // Quilt Loader
     modImplementation("org.quiltmc:quilt-loader:$quiltVersion")
 
-    // Quilted Fabric API
-    modImplementation("org.quiltmc.quilted-fabric-api:quilted-fabric-api:$quiltedFabricVersion")
-
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
+    includeLib("com.github.caoimhebyrne:KDiscordIPC:$discordIPCVersion")
 
     // Add mods to the mod jar
-    includeMod("org.quiltmc.quilt-kotlin-libraries:quilt-kotlin-libraries:$kotlinQuiltVersion") {
-        // Exclude fabric
-        exclude("net.fabricmc")
-        exclude("net.fabricmc.fabric-api")
-    }
+    includeMod("org.quiltmc.quilted-fabric-api:quilted-fabric-api:$quiltedFabricVersion")
+    includeMod("org.quiltmc.quilt-kotlin-libraries:quilt-kotlin-libraries:$kotlinQuiltVersion")
 
 
     // Common (Do not touch)

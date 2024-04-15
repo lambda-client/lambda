@@ -39,11 +39,13 @@ val shadowBundle: Configuration by configurations.creating {
 
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
+        forgeRuntimeLibrary(it)
         implementation(it)
         include(it)
     }
 
     includeMod.dependencies.forEach {
+        forgeRuntimeLibrary(it)
         implementation(it)
         include(it)
     }

@@ -42,11 +42,13 @@ val shadowBundle: Configuration by configurations.creating {
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
         forgeRuntimeLibrary(it)
+        implementation(it)
         include(it)
     }
 
     includeMod.dependencies.forEach {
         forgeRuntimeLibrary(it)
+        implementation(it)
         include(it)
     }
 
@@ -63,7 +65,10 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
-    includeLib("com.github.caoimhebyrne:KDiscordIPC:$discordIPCVersion") { isTransitive = false }
+    includeLib("com.github.caoimhebyrne:KDiscordIPC:$discordIPCVersion") {
+        exclude(group = "org.jetbrains.kotlin")
+        exclude(group = "org.jetbrains.kotlinx")
+    }
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
