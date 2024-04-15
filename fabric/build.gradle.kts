@@ -1,14 +1,13 @@
 val fabricLoaderVersion = property("fabric_loader_version").toString()
 val fabricApiVersion = property("fabric_api_version").toString()
-val architecturyVersion = property("architectury_version").toString()
 val kotlinFabricVersion = property("kotlin_fabric_version").toString()
+
+base.archivesName.set("${base.archivesName.get()}-fabric")
 
 architectury {
     platformSetupLoomIde()
     fabric()
 }
-
-base.archivesName.set("${base.archivesName.get()}-fabric")
 
 loom {
     accessWidenerPath.set(project(":common").loom.accessWidenerPath)
@@ -19,10 +18,16 @@ val common: Configuration by configurations.creating {
     configurations.compileClasspath.get().extendsFrom(this)
     configurations.runtimeClasspath.get().extendsFrom(this)
     configurations["developmentFabric"].extendsFrom(this)
+    isCanBeResolved = true
+    isCanBeConsumed = false
 }
 
 val includeLib: Configuration by configurations.creating
 val includeMod: Configuration by configurations.creating
+val shadowBundle: Configuration by configurations.creating {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+}
 
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
@@ -33,6 +38,11 @@ fun DependencyHandlerScope.setupConfigurations() {
     includeMod.dependencies.forEach {
         modImplementation(it)
         include(it)
+    }
+
+    shadowBundle.dependencies.forEach {
+        shadowCommon(it)
+        shadow(it)
     }
 }
 
@@ -52,27 +62,20 @@ dependencies {
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
-    shadowCommon(project(":common", configuration = "transformProductionFabric")) { isTransitive = false }
+    shadowBundle(project(":common", configuration = "transformProductionFabric"))
 
     // Finish the configuration
     setupConfigurations()
 }
 
 tasks {
-    processResources {
-        inputs.property("group", project.group)
-        inputs.property("version", project.version)
-
-        filesMatching("fabric.mod.json") {
-            expand(getProperties())
-            expand(mutableMapOf(
-                "group" to project.group,
-                "version" to project.version,
-            ))
-        }
+    remapJar {
+        injectAccessWidener = true
     }
 
-    remapJar {
-        injectAccessWidener.set(true)
+    processResources {
+        filesMatching("fabric.mod.json") {
+            expand(project(":common").properties)
+        }
     }
 }
