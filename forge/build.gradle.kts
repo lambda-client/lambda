@@ -1,14 +1,13 @@
 val forgeVersion = property("forge_version").toString()
-val architecturyVersion = property("architectury_version").toString()
 val mixinExtrasVersion = property("mixinextras_version").toString()
 val kotlinForgeVersion = property("kotlin_forge_version").toString()
+
+base.archivesName.set("${base.archivesName.get()}-forge")
 
 architectury {
     platformSetupLoomIde()
     forge()
 }
-
-base.archivesName.set("${base.archivesName.get()}-forge")
 
 loom {
     accessWidenerPath.set(project(":common").loom.accessWidenerPath)
@@ -29,11 +28,16 @@ val common: Configuration by configurations.creating {
     configurations.compileClasspath.get().extendsFrom(this)
     configurations.runtimeClasspath.get().extendsFrom(this)
     configurations["developmentForge"].extendsFrom(this)
+    isCanBeResolved = true
+    isCanBeConsumed = false
 }
 
 val includeLib: Configuration by configurations.creating
 val includeMod: Configuration by configurations.creating
-val shadowInclude: Configuration by configurations.creating
+val shadowBundle: Configuration by configurations.creating {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+}
 
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
@@ -44,6 +48,11 @@ fun DependencyHandlerScope.setupConfigurations() {
     includeMod.dependencies.forEach {
         forgeRuntimeLibrary(it)
         include(it)
+    }
+
+    shadowBundle.dependencies.forEach {
+        shadowCommon(it)
+        shadow(it)
     }
 }
 
@@ -67,23 +76,20 @@ dependencies {
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
-    shadowCommon(project(path = ":common", configuration = "transformProductionForge")) { isTransitive = false }
+    shadowBundle(project(path = ":common", configuration = "transformProductionForge"))
 
     // Finish the configuration
     setupConfigurations()
 }
 
 tasks {
-    processResources {
-        inputs.property("group", project.group)
-        inputs.property("version", project.version)
+    remapJar {
+        injectAccessWidener = true
+    }
 
+    processResources {
         filesMatching("META-INF/mods.toml") {
-            expand(getProperties())
-            expand(mutableMapOf(
-                "group" to project.group,
-                "version" to project.version,
-            ))
+            expand(project(":common").properties)
         }
     }
 

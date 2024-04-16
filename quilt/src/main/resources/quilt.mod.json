@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "mixin": [
+    "lambda.mixins.common.json"
+  ],
+  "quilt_loader": {
+    "group": "${group}",
+    "id": "${mod_id}",
+    "version": "${mod_version}",
+    "metadata": {
+      "name": "Lambda",
+      "description": "${mod_description}",
+      "contributors": {
+        "Constructor": "Owner"
+      },
+      "contact": {
+        "sources": "https://github.com/lambda-client/lambda"
+      },
+      "icon": "assets/lambda/lambda.png"
+    },
+    "intermediate_mappings": "net.fabricmc:intermediary",
+    "entrypoints": {
+      "client_init": [
+        "com.lambda.quilt.LambdaQuilt"
+      ]
+    },
+    "depends": [
+      {
+        "id": "quilt_loader",
+        "version": "*"
+      },
+      {
+        "id": "quilt_base",
+        "version": "*"
+      },
+      {
+        "id": "qkl",
+        "version": ">=4.0.0"
+      },
+      {
+        "id": "minecraft",
+        "version": ">=1.20.4"
+      }
+    ]
+  },
+  "minecraft": {
+    "environment": "*"
+  }
+}
