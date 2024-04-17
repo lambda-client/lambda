@@ -22,10 +22,17 @@ object EntityUtils {
         range: Double = 6.0,
         noinline predicate: (T) -> Boolean = { true },
     ): T? {
-
         // Speculative execution trolling
         val entities =
             if (range > 64) getEntities(predicate)
+                // I have an idea for optimization.
+                //
+                // Since the search operates linearly, eventually it will reach the midpoint.
+                // Calculate the distance between the first and last entities.
+                // Obtain the delta value.
+                // Theoretically, the closest entity should be within a cubic space of delta^3 blocks.
+                // If there are no entities within this delta box, examine the outer box. (Although this is unlikely given the fact that the closest entity is within the delta box.)
+                // The performance improvement is relative to the initial state.
             else getFastEntities(pos, range, predicate)
 
         return entities.minByOrNull { it.squaredDistanceTo(pos) }
@@ -79,7 +86,7 @@ object EntityUtils {
                 for (z in sectionZ - chunks..sectionZ + chunks) {
                     val section = world.entityManager.cache.findTrackingSection(ChunkSectionPos.asLong(x, y, z)) ?: continue
                     section.collection.filterIsInstanceTo(entities) { entity ->
-                        entity != player && predicate(entity)
+                        entity != player && entity.squaredDistanceTo(pos) <= distance * distance && predicate(entity)
                     }
                 }
             }
