@@ -6,7 +6,6 @@ import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
 import com.lambda.task.TaskCha1nBuilder
 import com.lambda.task.TaskChainBuilder
-import net.minecraft.item.ItemStack
 
 class AcquireMaterial(
     val selection: StackSelection
@@ -14,7 +13,7 @@ class AcquireMaterial(
     override suspend fun onAction(): StackSelection {
         // Find the best source with enough supplies
         findContainerWithSelection(selection)?.let { container ->
-            (container.prepare() + container.withdraw(selection)).execute()
+            (container.prepare() + container.withdraw(selection)).run()
         } ?: throw ContainerManager.NoContainerFound(selection) // ToDo: Create crafting path
 
         return selection

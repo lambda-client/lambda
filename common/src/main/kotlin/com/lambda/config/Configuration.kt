@@ -9,6 +9,7 @@ import com.lambda.config.configurations.ModuleConfig
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.threading.runIO
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
 import com.lambda.util.StringUtils.capitalize
@@ -81,7 +82,7 @@ abstract class Configuration : Jsonable {
     }
 
     fun tryLoad() {
-        lambdaScope.launch(Dispatchers.IO) {
+        runIO {
             runCatching { load(primary) }
                 .onSuccess {
                     val message = "${configName.capitalize()} config loaded."
@@ -108,7 +109,7 @@ abstract class Configuration : Jsonable {
     }
 
     fun trySave() {
-        lambdaScope.launch(Dispatchers.IO) {
+        runIO {
             runCatching { save() }
                 .onSuccess {
                     val message = "Saved ${configName.capitalize()} config."

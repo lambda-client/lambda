@@ -1,6 +1,5 @@
 package com.lambda.module.modules.render
 
-import com.lambda.Lambda.LOG
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
@@ -19,7 +18,7 @@ object InventoryDebug : Module(
         listener<PacketEvent.Receive.Pre> {
             when (val packet = it.packet) {
                 is UpdateSelectedSlotS2CPacket, is InventoryS2CPacket -> {
-                    LOG.info(packet.dynamicString())
+                    this@InventoryDebug.info(packet.dynamicString())
                 }
             }
         }
@@ -33,7 +32,7 @@ object InventoryDebug : Module(
                 is CreativeInventoryActionC2SPacket,
                 is PickFromInventoryC2SPacket,
                 is UpdateSelectedSlotC2SPacket -> {
-                    LOG.info(it.packet.dynamicString())
+                    this@InventoryDebug.info(it.packet.dynamicString())
                 }
             }
         }

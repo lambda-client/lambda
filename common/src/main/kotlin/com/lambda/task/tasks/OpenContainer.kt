@@ -2,12 +2,12 @@ package com.lambda.task.tasks
 
 import com.lambda.event.EventFlow.awaitEvent
 import com.lambda.event.events.ScreenHandlerEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.task.Task
 import com.lambda.task.TaskCha1nBuilder
 import com.lambda.task.TaskChainBuilder
 import com.lambda.task.buildChain
-import com.lambda.task.tasks.GoalTask.Companion.moveIntoEntityRange
-import com.lambda.task.tasks.InteractBlock.Companion.interactWithBlock
 import com.lambda.task.tasks.LookAtBlock.Companion.lookAtBlock
 import com.lambda.threading.runGameBlocking
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -19,28 +19,36 @@ class OpenContainer<H : ScreenHandler>(
     private val blockPos: BlockPos,
     private val waitForSlotLoad: Boolean = true,
 ) : Task<H>() {
-    override suspend fun onAction(): H {
-        var screen: H? = null
+    private var screenHandler: H? = null
+    private var slotsLoaded = false
 
+    init {
+        listener<ScreenHandlerEvent.Open<H>> {
+            screenHandler = it.screenHandler
+        }
+
+        listener<ScreenHandlerEvent.Loaded> {
+            slotsLoaded = true
+        }
+    }
+
+    override suspend fun onAction(): H {
         buildChain {
-            moveIntoEntityRange(blockPos)
-                .withTimeout(60000L)
             lookAtBlock(blockPos)
-                .withTimeout(5000L)
+                .withTimeout(2000L)
                 .onSuccess { request ->
                     runGameBlocking {
                         val cast = request.rotation.rayCast(5.0)?.blockResult ?: throw IllegalStateException("Failed to raycast block")
                         interaction.interactBlock(player, Hand.MAIN_HAND, cast)
                     }
 
-                    screen = awaitEvent<ScreenHandlerEvent.Open<H>>().screen
-
-                    // block until the stacks were loaded
-                    if (waitForSlotLoad) awaitEvent<ScreenHandlerEvent.Loaded>()
+                    awaitEvent<TickEvent.Post> {
+                        screenHandler != null && (!waitForSlotLoad || slotsLoaded)
+                    }
                 }
-        }.execute()
+        }.run()
 
-        return screen ?: throw IllegalStateException("Failed to open container")
+        return screenHandler ?: throw IllegalStateException("Failed to open container")
     }
 
     companion object {

@@ -2,11 +2,10 @@ package com.lambda.task.tasks
 
 import com.lambda.event.EventFlow.awaitEvent
 import com.lambda.event.events.RotationEvent
-import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.InteractionConfig
 import com.lambda.interaction.rotation.IRotationConfig
-import com.lambda.interaction.rotation.RotationRequest
+import com.lambda.interaction.rotation.RotationContext
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.task.TaskCha1nBuilder
@@ -18,27 +17,19 @@ class LookAtBlock(
     val blockPos: BlockPos,
     private val rotationConfig: IRotationConfig = TaskFlow.rotationSettings,
     private val interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
-    private val sides: Set<Direction> = emptySet(),
-    private val priority: Int = 0,
-) : Task<RotationRequest>() {
-    private var finished = false
-    private var request: RotationRequest? = null
+    private val sides: Set<Direction> = emptySet()
+) : Task<RotationContext>() {
+    private var context: RotationContext? = null
     init {
         listener<RotationEvent.Pre> {
-            request = it.lookAtBlock(blockPos, rotationConfig, interactionConfig, sides, priority)
-        }
-
-        listener<RotationEvent.Post> {
-            request?.let {
-                finished = !it.isPending
-            }
+            context = it.lookAtBlock(blockPos, rotationConfig, interactionConfig, sides)
         }
     }
 
-    override suspend fun onAction(): RotationRequest {
-        awaitEvent<TickEvent.Post> { finished }
+    override suspend fun onAction(): RotationContext {
+        awaitEvent<RotationEvent.Post> { !it.context.isValid }
 
-        return request ?: throw IllegalStateException("Failed to look at block")
+        return context ?: throw IllegalStateException("Failed to look at block")
     }
 
     companion object {
@@ -47,9 +38,8 @@ class LookAtBlock(
             blockPos: BlockPos,
             rotationConfig: IRotationConfig = TaskFlow.rotationSettings,
             interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
-            sides: Set<Direction> = emptySet(),
-            priority: Int = 0,
-        ) = LookAtBlock(blockPos, rotationConfig, interactionConfig, sides, priority).apply {
+            sides: Set<Direction> = emptySet()
+        ) = LookAtBlock(blockPos, rotationConfig, interactionConfig, sides).apply {
             required(this)
         }
     }

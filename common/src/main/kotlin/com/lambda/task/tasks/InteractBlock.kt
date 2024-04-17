@@ -18,13 +18,13 @@ class InteractBlock(
         buildChain {
             lookAtBlock(blockPos)
                 .withTimeout(3000L)
-                .onSuccess { request ->
+                .onSuccess { context ->
                     runGameBlocking {
-                        val cast = request.rotation.rayCast(5.0)?.blockResult ?: throw IllegalStateException("Failed to raycast block")
+                        val cast = context.rotation.rayCast(5.0)?.blockResult ?: throw IllegalStateException("Failed to raycast block")
                         interaction.interactBlock(player, Hand.MAIN_HAND, cast)
                     }
                 }
-        }.execute()
+        }.run()
     }
 
     companion object {

@@ -4,6 +4,7 @@ import com.lambda.Lambda.mc
 import com.lambda.context.ClientContext
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
 import java.util.concurrent.CompletableFuture
@@ -37,11 +38,15 @@ inline fun runConcurrent(crossinline block: suspend () -> Unit) =
         block()
     }
 
-inline fun taskContext(crossinline block: suspend () -> Unit) {
+inline fun runIO(crossinline block: suspend () -> Unit) =
+    EventFlow.lambdaScope.launch(Dispatchers.IO) {
+        block()
+    }
+
+inline fun taskContext(crossinline block: suspend () -> Unit) =
     EventFlow.lambdaScope.launch {
         block()
     }
-}
 
 /**
  * This function is used to execute a block of code within a safe context on a new thread running asynchronously to the game thread.
@@ -73,7 +78,7 @@ inline fun runSafeConcurrent(crossinline block: SafeContext.() -> Unit) {
  *
  * @param block The task to be executed on the game's main thread.
  */
-inline fun runOnGameThreadConcurrent(crossinline block: () -> Unit) {
+inline fun runGameConcurrent(crossinline block: () -> Unit) {
     mc.executeSync { block() }
 }
 
@@ -94,8 +99,8 @@ inline fun runOnGameThreadConcurrent(crossinline block: () -> Unit) {
  *
  * @param block The task to be executed on the game's main thread within a safe context.
  */
-inline fun runSafeOnGameThreadConcurrent(crossinline block: SafeContext.() -> Unit) {
-    runOnGameThreadConcurrent { runSafe { block() } }
+inline fun runSafeGameConcurrent(crossinline block: SafeContext.() -> Unit) {
+    runGameConcurrent { runSafe { block() } }
 }
 
 /**

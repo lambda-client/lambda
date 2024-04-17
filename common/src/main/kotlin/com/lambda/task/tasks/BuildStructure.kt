@@ -9,13 +9,13 @@ import com.lambda.task.TaskChainBuilder
 import net.minecraft.util.math.BlockPos
 
 class BuildStructure(
-    val blueprint: Blueprint,
+    private val blueprint: Blueprint,
     private val collectDrops: Boolean = false,
     private val skipWeakBlocks: Boolean = false,
     private val pathing: Boolean = true,
 ) : Task<Unit>() {
     override suspend fun onAction() {
-        TODO("Not yet implemented")
+        blueprint.structureMap
     }
 
     companion object {

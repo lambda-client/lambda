@@ -1,21 +1,15 @@
 package com.lambda.task
 
-import baritone.api.BaritoneAPI
-import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
-import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Subscriber
 import com.lambda.threading.runSafe
+import com.lambda.util.BaritoneUtils
+import com.lambda.util.Communication.info
+import com.lambda.util.Communication.logError
+import com.lambda.util.Communication.warn
 import com.lambda.util.Nameable
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.*
 
 /**
  * A [Task] represents a time-critical activity that executes a suspending action function.
@@ -52,14 +46,14 @@ abstract class Task<Result>(
     private var timeout: Long = Long.MAX_VALUE,
     private var maxAttempts: Int = 1,
     open var repeats: Int = 1,
-    private var onSuccess: (suspend (Result) -> Unit) = {},
+    private var onSuccess: (suspend Task<Result>.(Result) -> Unit) = {},
     private var onRetry: (suspend Task<Result>.() -> Unit) = {},
     private var onTimeout: (suspend Task<Result>.() -> Unit) = {},
     private var onRepeat: (suspend Task<Result>.(Int) -> Unit) = {},
     private var onException: (suspend Task<Result>.(Throwable) -> Unit) = {},
 ) : Nameable {
     private val creationTimestamp = System.currentTimeMillis()
-    private val age: Long get() = System.currentTimeMillis() - creationTimestamp
+    val age: Long get() = System.currentTimeMillis() - creationTimestamp
     override val name: String get() = this::class.simpleName ?: "Task"
 
     val syncListeners = Subscriber()
@@ -93,9 +87,8 @@ abstract class Task<Result>(
      * It also manages the lifecycle of event listeners associated with the task.
      *
      * @return The result of the task execution, represented as a [TaskResult].
-     * This could be a successful result ([TaskResult.Success]), a cancellation ([TaskResult.Cancelled]),
-     * a failure ([TaskResult.Failure]) due to an exception, or a timeout
-     * ([TaskResult.Timeout]).
+     * This could be a [successful result][TaskResult.Success], a [cancellation][TaskResult.Cancelled],
+     * a [failure][TaskResult.Failure] due to an exception, or a [timeout][TaskResult.Timeout].
      */
     suspend fun execute(): TaskResult<Result> {
         var attempt = 1
@@ -103,7 +96,7 @@ abstract class Task<Result>(
 
         do {
             if (delay > 0) {
-                LOG.info("Delaying task $name for $delay ms")
+                info("Delaying for $delay ms")
                 delay(delay)
             }
 
@@ -124,16 +117,16 @@ abstract class Task<Result>(
                 }
             } catch (e: TimeoutCancellationException) {
                 attempt++
-                LOG.warn("Task $name timed out after $age ms and $attempt attempts")
+                warn("Timed out after $age ms and $attempt attempts")
                 onRetry()
                 tidyUp()
             } catch (e: CancellationException) {
                 tidyUp()
-                LOG.warn("Coroutine for task $name cancelled")
+//                warn("Job cancelled")
                 return TaskResult.Cancelled
             } catch (e: Throwable) {
                 attempt++
-                LOG.error("Task $name failed after $age ms and $attempt attempts", e)
+                logError("Failed after $age ms and $attempt attempts with exception: $e")
                 onException(e)
                 tidyUp()
                 return TaskResult.Failure(e)
@@ -142,7 +135,7 @@ abstract class Task<Result>(
             tidyUp()
         } while (attempt < maxAttempts || iteration <= repeats)
 
-        LOG.error("Task $name fully timed out after $age ms and $attempt attempts")
+        logError("Fully timed out after $age ms and $attempt attempts")
         onTimeout()
         return TaskResult.Timeout(timeout, attempt)
     }
@@ -155,7 +148,7 @@ abstract class Task<Result>(
         EventFlow.syncListeners.unsubscribe(syncListeners)
         EventFlow.concurrentListeners.unsubscribe(concurrentListeners)
 
-        BaritoneAPI.getProvider().primaryBaritone?.pathingBehavior?.cancelEverything()
+        BaritoneUtils.cancel()
     }
 
     private fun startListening() {
@@ -224,7 +217,7 @@ abstract class Task<Result>(
      * @return The task instance with the updated success action.
      */
     @Ta5kBuilder
-    fun onSuccess(action: suspend (Result) -> Unit): Task<Result> {
+    fun onSuccess(action: suspend Task<Result>.(Result) -> Unit): Task<Result> {
         this.onSuccess = action
         return this
     }

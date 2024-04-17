@@ -1,19 +1,27 @@
 package com.lambda.task
 
-import com.lambda.util.Communication.info
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 class TaskChain(
     private val steps: List<Task<*>> = listOf()
 ) {
-    operator fun plus(other: TaskChain) = TaskChain(steps + other.steps)
-
-    suspend fun execute() {
-//        info("Executing TaskChain $this")
-        steps.forEach {
-            info("Executing task: ${it.name}")
-            it.execute()
-        }
+    suspend fun run() {
+        steps.forEach { TaskRegistry.run(it) }
     }
+
+    fun tryRun() {
+        steps.forEach { TaskRegistry.tryRun(it) }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun cancel() {
+        TaskRegistry.taskFlow.resetReplayCache()
+        TaskRegistry.registry.keys
+            .filter { it in steps }
+            .forEach { TaskRegistry.cancel(it) }
+    }
+
+    operator fun plus(other: TaskChain) = TaskChain(steps + other.steps)
 
     override fun toString() = "TaskChain:\n${steps.withIndex().joinToString("\n") { "${it.index + 1}. ${it.value}" }}"
 }

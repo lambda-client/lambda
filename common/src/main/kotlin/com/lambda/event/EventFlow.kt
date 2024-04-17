@@ -1,8 +1,10 @@
 package com.lambda.event
 
+import com.lambda.context.SafeContext
 import com.lambda.event.callback.ICancellable
 import com.lambda.event.listener.Listener
 import com.lambda.threading.runConcurrent
+import com.lambda.threading.runSafe
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
@@ -48,6 +50,14 @@ object EventFlow {
     }
 
     suspend inline fun <reified E : Event> awaitEvent(
+        noinline predicate: SafeContext.(E) -> Boolean = { true },
+    ) = concurrentFlow.filterIsInstance<E>().first {
+        runSafe {
+            predicate(it)
+        } ?: false
+    }
+
+    suspend inline fun <reified E : Event> awaitEventUnsafe(
         noinline predicate: (E) -> Boolean = { true },
     ) = concurrentFlow.filterIsInstance<E>().first(predicate)
 

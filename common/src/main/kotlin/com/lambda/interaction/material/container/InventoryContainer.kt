@@ -15,33 +15,4 @@ object InventoryContainer : MaterialContainer(Rank.INVENTORY) {
     override fun withdraw(selection: StackSelection) = emptyChain()
 
     override fun deposit(selection: StackSelection) = emptyChain()
-
-//    Lambda.LOG.info("Moving $selection from inventory to slot ${destination.slot}")
-//    stacks.filter(selection.selector).take(selection.count).forEach { stack ->
-//        player.currentScreenHandler?.let { screenHandler ->
-//            if (screenHandler.stacks[destination.slot].item == stack.item) {
-//                return@forEach
-//            }
-//            val currentStackSlot = screenHandler.stacks.indexOf(stack)
-//            if (currentStackSlot == destination.slot) {
-//                return@forEach
-//            }
-//            interaction.clickSlot(
-//                player.currentScreenHandler?.syncId ?: 0,
-//                currentStackSlot,
-//                0,
-//                SlotActionType.PICKUP,
-//                player,
-//            )
-//            delay(TaskFlow.itemMoveDelay)
-//            interaction.clickSlot(
-//                player.currentScreenHandler?.syncId ?: 0,
-//                destination.slot,
-//                0,
-//                SlotActionType.PICKUP,
-//                player,
-//            )
-//            delay(TaskFlow.itemMoveDelay)
-//        }
-//    }
 }

@@ -1,15 +1,12 @@
 package com.lambda.interaction.material
 
-import com.lambda.context.SafeContext
 import com.lambda.event.events.InteractionEvent
 import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.*
-import com.lambda.module.modules.client.TaskFlow
 import com.lambda.util.Communication.info
 import com.lambda.util.item.ItemUtils
-import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.primitives.extension.containerStacks
 import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
@@ -41,7 +38,7 @@ object ContainerManager {
         }
 
         listener<ScreenHandlerEvent.Close<GenericContainerScreenHandler>> { event ->
-            val handler = event.screen
+            val handler = event.screenHandler
 
             when (val block = lastInteractedBlockEntity) {
                 is EnderChestBlockEntity -> {

@@ -1,6 +1,5 @@
 package com.lambda.interaction.visibilty
 
-import com.lambda.config.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.interaction.InteractionConfig
 import com.lambda.interaction.RotationManager
@@ -26,29 +25,23 @@ object VisibilityChecker {
     ): RotationContext? {
         val eye = player.getCameraPosVec(mc.tickDelta)
 
+        val currentRotation = RotationManager.currentRotation
+        val currentCast = currentRotation.rayCast(
+            interact.reach,
+            interact.rayCastMask,
+            eye
+        )
+
         if (boxes.any { it.contains(eye) }) {
-            return stay(rotationConfig)
+            return RotationContext(currentRotation, rotationConfig, verify, currentCast)
         }
 
-//        val currentRotation = RotationManager.currentRotation
-//        val currentCast = currentRotation.rayCast(
-//            interact.reach,
-//            interact.rayCastMask,
-//            eye
-//        )
-//        val passed = currentCast?.let { it.verify() } ?: false
-//        // Slowdown or freeze if looking correct
-//        (rotationConfig as? RotationSettings)?.slowdownIf(passed) ?: run {
-//            if (passed) {
-//                return stay(rotationConfig)
-//            }
-//        }
-
-        val validHits = mutableSetOf<Vec3d>()
+        val validHits = mutableMapOf<Vec3d, HitResult>()
+        val reachSq = interact.reach.pow(2)
 
         boxes.forEach { box ->
             scanVisibleSurfaces(box, sides, interact.resolution) { vec ->
-                if (eye distSq vec > interact.reach.pow(2)) return@scanVisibleSurfaces
+                if (eye distSq vec > reachSq) return@scanVisibleSurfaces
 
                 val newRotation = eye.rotationTo(vec)
 
@@ -59,24 +52,21 @@ object VisibilityChecker {
                 ) ?: return@scanVisibleSurfaces
                 if (!cast.verify()) return@scanVisibleSurfaces
 
-                validHits.add(vec)
+                validHits[vec] = cast
             }
         }
 
-        validHits.mostCenter?.let { optimum ->
-            validHits.minByOrNull { optimum distSq it }?.let { closest ->
-                val optimumRotation = eye.rotationTo(closest)
-                return RotationContext(optimumRotation, rotationConfig)
+        validHits.keys.mostCenter?.let { optimum ->
+            validHits.minByOrNull { optimum distSq it.key }?.let { closest ->
+                val optimumRotation = eye.rotationTo(closest.key)
+                return RotationContext(optimumRotation, rotationConfig, verify, closest.value)
             }
         }
 
         return null
     }
 
-    private fun stay(config: IRotationConfig) =
-        RotationContext(RotationManager.currentRotation, config)
-
-    private inline fun SafeContext.scanVisibleSurfaces(
+    inline fun SafeContext.scanVisibleSurfaces(
         box: Box,
         sides: Set<Direction>,
         resolution: Int,
@@ -108,7 +98,7 @@ object VisibilityChecker {
             acc.add(vec3d)
         }?.multiply(1.0 / size.toDouble())
 
-    private fun Box.bounds(side: Direction) =
+    fun Box.bounds(side: Direction) =
         when (side) {
             Direction.DOWN -> doubleArrayOf(minX, minY, minZ, maxX, minY, maxZ)
             Direction.UP -> doubleArrayOf(minX, maxY, minZ, maxX, maxY, maxZ)
@@ -118,7 +108,7 @@ object VisibilityChecker {
             Direction.EAST -> doubleArrayOf(maxX, minY, minZ, maxX, maxY, maxZ)
         }
 
-    private fun SafeContext.getVisibleSurfaces(box: Box): Set<Direction> {
+    fun SafeContext.getVisibleSurfaces(box: Box): Set<Direction> {
         val visibleSides = EnumSet.noneOf(Direction::class.java)
 
         val eyePos = player.eyePos

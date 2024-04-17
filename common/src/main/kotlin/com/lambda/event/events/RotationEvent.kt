@@ -31,7 +31,7 @@ abstract class RotationEvent : Event {
         init {
             // Always check if baritone wants to rotate as well
             RotationManager.BaritoneProcessor.baritoneContext?.let { context ->
-                this.context = RotationContext(context.rotation, context.config)
+                this.context = context
             }
         }
 
@@ -53,16 +53,15 @@ abstract class RotationEvent : Event {
             blockPos: BlockPos,
             rotationConfig: IRotationConfig = TaskFlow.rotationSettings,
             interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
-            sides: Set<Direction> = emptySet(),
-            priority: Int = 0,
+            sides: Set<Direction> = emptySet()
         ) = runSafe {
             val state = world.getBlockState(blockPos)
             val voxelShape = state.getOutlineShape(world, blockPos)
             val boundingBoxes = voxelShape.boundingBoxes.map { it.offset(blockPos) }
-            findRotation(rotationConfig, interactionConfig, boundingBoxes, priority, sides) {
+            findRotation(rotationConfig, interactionConfig, boundingBoxes, sides) {
                 blockResult?.blockPos == blockPos && (blockResult?.side in sides || sides.isEmpty())
             }?.let {
-                requests.add(it)
+                context = it
                 return@runSafe it
             }
             return@runSafe null

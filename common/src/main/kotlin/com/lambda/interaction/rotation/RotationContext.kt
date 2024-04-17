@@ -1,12 +1,12 @@
 package com.lambda.interaction.rotation
 
-import com.lambda.interaction.RotationManager.currentRotation
-import com.lambda.interaction.RotationManager.prevRotation
-import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
+import net.minecraft.util.hit.HitResult
 
 data class RotationContext(
     val rotation: Rotation,
     val config: IRotationConfig,
+    val verify: HitResult.() -> Boolean = { true },
+    val hitResult: HitResult? = null,
 ) {
-    val isPending: Boolean get() = rotation.fixSensitivity(prevRotation) == currentRotation
+    val isValid: Boolean get() = hitResult?.verify() == true
 }

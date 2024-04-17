@@ -2,9 +2,8 @@ package com.lambda.util
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
-import com.lambda.threading.runOnGameThread
 import com.lambda.threading.runSafe
-import com.lambda.threading.runSafeOnGameThread
+import com.lambda.threading.runSafeGameConcurrent
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.text.*
 import net.minecraft.client.toast.SystemToast
@@ -39,7 +38,7 @@ object Communication {
         buildText {
             text(this@toast.source(logLevel, color = Color.YELLOW))
         }.let { title ->
-            runSafeOnGameThread {
+            runSafeGameConcurrent {
                 mc.toastManager.add(logLevel.toast(title, message))
             }
         }
@@ -59,7 +58,7 @@ object Communication {
             text(this@log.source(logLevel, source, textSource))
             text(message)
         }.let { log ->
-            runSafeOnGameThread {
+            runSafeGameConcurrent {
                 player.sendMessage(log)
             }
         }

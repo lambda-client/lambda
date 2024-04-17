@@ -2,6 +2,7 @@ package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.Goal
 import baritone.api.pathing.goals.GoalXZ
+import com.lambda.Lambda.mc
 import com.lambda.event.EventFlow.awaitEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.task.Task
@@ -17,7 +18,7 @@ class GoalTask(
         BaritoneUtils.setGoalAndPath(goal)
 
         awaitEvent<TickEvent.Post> {
-            BaritoneUtils.isPathing
+            !BaritoneUtils.isActive
         }
     }
 

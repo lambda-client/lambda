@@ -10,6 +10,7 @@ import com.lambda.event.listener.UnsafeListener.Companion.unsafeConcurrentListen
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runIO
 import com.lambda.util.Communication
 import com.lambda.util.Communication.info
 import com.lambda.util.DynamicReflectionSerializer.dynamicString
@@ -71,7 +72,7 @@ object Packetlogger : Module(
     private val File.relativePath: Path get() = mc.runDirectory.toPath().relativize(toPath())
 
     init {
-        lambdaScope.launch(Dispatchers.IO) {
+        runIO {
             storageFlow.collect { entry ->
                 file?.appendText(entry)
                 if (logToChat) this@Packetlogger.info(entry)
