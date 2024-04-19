@@ -22,11 +22,12 @@
     "render.GameRendererMixin",
     "render.GlStateManagerMixin",
     "render.InGameHudMixin",
-    "render.VertexBufferMixin",
     "render.LightmapTextureManagerMixin",
     "render.LivingEntityRendererMixin",
     "render.RenderTickCounterMixin",
-    "render.WorldRendererMixin"
+    "render.VertexBufferMixin",
+    "render.WorldRendererMixin",
+    "world.WorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1
