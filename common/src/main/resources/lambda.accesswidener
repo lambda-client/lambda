@@ -7,6 +7,7 @@ accessible field net/minecraft/client/MinecraftClient pausedTickDelta F
 
 # World
 accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minecraft/client/world/ClientEntityManager;
+accessible field net/minecraft/client/network/ClientPlayerInteractionManager currentBreakingProgress F
 
 # Entity
 accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Lnet/minecraft/entity/LivingEntity;
