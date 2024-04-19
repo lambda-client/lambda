@@ -2,21 +2,22 @@ package com.lambda.config.serializer.gui
 
 import com.google.gson.*
 import com.lambda.gui.impl.clickgui.LambdaClickGui
-import com.lambda.gui.impl.clickgui.windows.tag.CustomTagWindow
+import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
+import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.Vec2d
 import java.lang.reflect.Type
 
-object CustomTagWindowSerializer : JsonSerializer<CustomTagWindow>, JsonDeserializer<CustomTagWindow> {
+object CustomModuleWindowSerializer : JsonSerializer<CustomModuleWindow>, JsonDeserializer<CustomModuleWindow> {
     override fun serialize(
-        src: CustomTagWindow?,
+        src: CustomModuleWindow?,
         typeOfSrc: Type?,
         context: JsonSerializationContext?,
     ): JsonElement = src?.let {
         JsonObject().apply {
             addProperty("title", it.title)
-            add("tags", JsonArray().apply {
-                it.tags.forEach {
+            add("modules", JsonArray().apply {
+                it.modules.forEach {
                     add(it.name)
                 }
             })
@@ -35,11 +36,13 @@ object CustomTagWindowSerializer : JsonSerializer<CustomTagWindow>, JsonDeserial
         typeOfT: Type?,
         context: JsonDeserializationContext?,
     )  = json?.asJsonObject?.let {
-        CustomTagWindow(
+        CustomModuleWindow(
             it["title"].asString,
-            it["tags"].asJsonArray.map { tag ->
-                ModuleTag(tag.asString)
-            }.toSet(),
+            it["modules"].asJsonArray.mapNotNull { name ->
+                ModuleRegistry.modules.firstOrNull { module ->
+                    module.name == name.asString
+                }
+            } as MutableList,
             LambdaClickGui
         ).apply {
             width = it["width"].asDouble

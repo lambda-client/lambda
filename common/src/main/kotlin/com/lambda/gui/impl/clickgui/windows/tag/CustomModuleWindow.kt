@@ -3,12 +3,13 @@ package com.lambda.gui.impl.clickgui.windows.tag
 import com.lambda.gui.impl.clickgui.AbstractClickGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.windows.ModuleWindow
+import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
 
-class CustomTagWindow(
-    title: String = "Untitled",
-    val tags: Set<ModuleTag>,
+class CustomModuleWindow(
+    override var title: String = "Untitled",
+    val modules: MutableList<Module> = mutableListOf(),
     owner: AbstractClickGui
 ) : ModuleWindow(title, owner = owner) {
     override fun onTick() {
@@ -17,11 +18,6 @@ class CustomTagWindow(
     }
 
     private fun updateModules() {
-        // TODO: Modules in windows > tags in modules
-        // Get needed modules
-        val modules = ModuleRegistry.modules
-            .filter { it.customTags.any(tags::contains) }
-
         // Add missing module buttons
         modules.filter { module ->
             children.all { button ->

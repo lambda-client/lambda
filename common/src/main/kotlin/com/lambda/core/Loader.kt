@@ -3,10 +3,8 @@ package com.lambda.core
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.command.CommandManager
-import com.lambda.config.configurations.GuiConfig
 import com.lambda.graphics.renderer.gui.font.LambdaFont
-import com.lambda.gui.impl.clickgui.GuiConfigurable
-import com.lambda.gui.impl.clickgui.LambdaClickGui
+import com.lambda.gui.GuiConfigurable
 import com.lambda.interaction.PlayerPacketManager
 import com.lambda.interaction.RotationManager
 import com.lambda.module.ModuleRegistry

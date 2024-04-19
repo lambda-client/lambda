@@ -1,9 +1,10 @@
-package com.lambda.gui.impl.clickgui
+package com.lambda.gui
 
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.GuiConfig
 import com.lambda.gui.api.component.WindowComponent
-import com.lambda.gui.impl.clickgui.windows.tag.CustomTagWindow
+import com.lambda.gui.impl.clickgui.LambdaClickGui
+import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
 import com.lambda.gui.impl.clickgui.windows.tag.TagWindow
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.Vec2d
@@ -17,7 +18,7 @@ object GuiConfigurable : Configurable(GuiConfig) {
         }
     }
 
-    val customWindows by setting("custom windows", listOf<CustomTagWindow>()).apply {
+    val customWindows by setting("custom windows", listOf<CustomModuleWindow>()).apply {
         listener { from, _ ->
             from.forEach(WindowComponent<*>::destroy) // free vram
         }

@@ -1,6 +1,7 @@
 package com.lambda.gui.impl.clickgui
 
-import com.lambda.gui.impl.clickgui.windows.tag.CustomTagWindow
+import com.lambda.gui.GuiConfigurable
+import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
 
 object LambdaClickGui : AbstractClickGui() {
     override fun onShow() {
@@ -19,7 +20,7 @@ object LambdaClickGui : AbstractClickGui() {
         children.addAll(new)
 
         children.removeIf {
-            if (it !is CustomTagWindow) return@removeIf false
+            if (it !is CustomModuleWindow) return@removeIf false
 
             val flag = it !in windows
             if (flag) it.destroy()
