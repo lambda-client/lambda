@@ -80,7 +80,7 @@ import com.lambda.util.Nameable
  * @property description The description of the module,
  * shown on hover over the module button in the GUI and in commands.
  * @property tag The leading module tag associated with the module.
- * @property extraTags The set of extra [ModuleTag]s associated with the module.
+ * @property extraTags The set of extra, basically user-defined [ModuleTag]s associated with the module.
  * @property alwaysListening If true, the module's listeners will be triggered even if the module is not enabled.
  * @property isEnabledSetting The setting that determines if the module is enabled.
  * @property keybindSetting The setting that determines the keybind for the module.
@@ -92,7 +92,7 @@ abstract class Module(
     override val name: String,
     val description: String = "",
     val tag: ModuleTag,
-    val extraTags: Set<ModuleTag> = setOf(),
+    extraTags: Set<ModuleTag> = setOf(),
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.Unbound,
@@ -100,9 +100,7 @@ abstract class Module(
     private val isEnabledSetting = setting("Enabled", enabledByDefault, visibility = { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)
     private val isVisible = setting("Visible", true)
-    private val customTags by setting("Tags", extraTags, visibility = { false })
-
-    val tags get() = customTags + tag
+    val customTags by setting("Tags", extraTags, visibility = { false })
 
     var isEnabled by isEnabledSetting
     override val isMuted: Boolean

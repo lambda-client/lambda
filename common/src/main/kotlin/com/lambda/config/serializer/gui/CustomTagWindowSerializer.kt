@@ -2,20 +2,24 @@ package com.lambda.config.serializer.gui
 
 import com.google.gson.*
 import com.lambda.gui.impl.clickgui.LambdaClickGui
-import com.lambda.gui.impl.clickgui.windows.ModuleWindow
-import com.lambda.gui.impl.clickgui.windows.tag.TagWindow
+import com.lambda.gui.impl.clickgui.windows.tag.CustomTagWindow
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.Vec2d
 import java.lang.reflect.Type
 
-object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWindow> {
+object CustomTagWindowSerializer : JsonSerializer<CustomTagWindow>, JsonDeserializer<CustomTagWindow> {
     override fun serialize(
-        src: TagWindow?,
+        src: CustomTagWindow?,
         typeOfSrc: Type?,
         context: JsonSerializationContext?,
     ): JsonElement = src?.let {
         JsonObject().apply {
-            addProperty("tag", it.tag.name)
+            addProperty("title", it.title)
+            add("tags", JsonArray().apply {
+                it.tags.forEach {
+                    add(it.name)
+                }
+            })
             addProperty("width", it.width)
             addProperty("height", it.height)
             addProperty("isOpen", it.isOpen)
@@ -31,7 +35,13 @@ object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWind
         typeOfT: Type?,
         context: JsonDeserializationContext?,
     )  = json?.asJsonObject?.let {
-        TagWindow(ModuleTag(it["tag"].asString), LambdaClickGui).apply {
+        CustomTagWindow(
+            it["title"].asString,
+            it["tags"].asJsonArray.map { tag ->
+                ModuleTag(tag.asString)
+            }.toSet(),
+            LambdaClickGui
+        ).apply {
             width = it["width"].asDouble
             height = it["height"].asDouble
             isOpen = it["isOpen"].asBoolean

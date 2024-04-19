@@ -33,6 +33,9 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
         fun AnimationTicker.exp(min: Double, max: Double, speed: Double, flag: () -> Boolean) =
             exp({ min }, { max }, { speed }, flag)
 
+        fun AnimationTicker.exp(target: () -> Double, speed: Double) =
+            exp(target, target, { speed }, { true })
+
         @Suppress("NAME_SHADOWING")
         fun AnimationTicker.exp(min: () -> Double, max: () -> Double, speed: () -> Double, flag: () -> Boolean) =
             Animation(min()) {

@@ -5,6 +5,7 @@ import com.lambda.event.EventFlow.syncListeners
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.UnsafeListener
+import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.gui.api.component.core.IComponent
 import com.lambda.module.Module
 import com.lambda.util.KeyCode
@@ -22,6 +23,7 @@ abstract class LambdaGui(
     private val owner: Module? = null
 ) : Screen(Text.of(name)), IComponent, Nameable {
     private var screenSize = Vec2d.ZERO
+    val animation = AnimationTicker()
 
     private val renderListener = UnsafeListener(0, this, false) { event ->
         event as RenderEvent.GUI.Scaled
@@ -30,6 +32,7 @@ abstract class LambdaGui(
     }
 
     private val tickListener = UnsafeListener(0, this, false) {
+        animation.tick()
         onTick()
     }
 

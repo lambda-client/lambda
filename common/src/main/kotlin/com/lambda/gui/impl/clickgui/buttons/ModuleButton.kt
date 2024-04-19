@@ -1,20 +1,13 @@
 package com.lambda.gui.impl.clickgui.buttons
 
 import com.lambda.gui.api.component.WindowComponent
-import com.lambda.gui.api.component.sub.ButtonComponent
+import com.lambda.gui.api.component.button.ListButton
 import com.lambda.module.Module
-import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.Mouse
-import com.lambda.util.math.Vec2d
 
-class ModuleButton(val module: Module, owner: WindowComponent<*>) : ButtonComponent(owner) {
-    override val position get() = Vec2d(0.0, heightOffset)
-    override val size get() = Vec2d(FILL_PARENT, ClickGui.buttonHeight)
-
-    override val text: String get() = module.name
-    override val active: Boolean get() = module.isEnabled
-
-    var heightOffset = 0.0
+class ModuleButton(val module: Module, owner: WindowComponent<*>) : ListButton(owner) {
+    override val text get() = module.name
+    override val active get() = module.isEnabled
 
     override fun performClickAction(mouse: Mouse.Button) {
         when (mouse) {
@@ -24,4 +17,10 @@ class ModuleButton(val module: Module, owner: WindowComponent<*>) : ButtonCompon
             }
         }
     }
+
+    override fun equals(other: Any?) =
+        (other as? ModuleButton)?.module == module
+
+    override fun hashCode() =
+        module.hashCode()
 }
