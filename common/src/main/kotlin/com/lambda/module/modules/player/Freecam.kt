@@ -14,7 +14,6 @@ import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.KeyCode
 import com.lambda.util.player.MovementUtils.cancel
 import com.lambda.util.player.MovementUtils.verticalMovement
 import com.lambda.util.primitives.extension.interpolate

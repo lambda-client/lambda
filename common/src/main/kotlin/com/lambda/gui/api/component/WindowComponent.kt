@@ -1,23 +1,28 @@
 package com.lambda.gui.api.component
 
 import com.lambda.graphics.animation.Animation.Companion.exp
-import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.graphics.renderer.gui.font.IFontEntry
-import com.lambda.gui.api.component.core.IComponent
 import com.lambda.gui.api.component.core.list.IListComponent
 import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.gui.api.layer.RenderLayer
+import com.lambda.gui.impl.clickgui.AbstractClickGui
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
+import com.lambda.util.math.ColorUtils.multAlpha
+import com.lambda.util.math.ColorUtils.setAlpha
+import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
+import java.awt.Color
 import kotlin.math.abs
 
-abstract class WindowComponent <T : ChildComponent> : InteractiveComponent(), IListComponent<T> {
+abstract class WindowComponent <T : ChildComponent> (
+    final override val owner: AbstractClickGui
+) : ChildComponent(), IListComponent<T> {
     abstract val title: String
 
     abstract var width: Double
@@ -37,35 +42,41 @@ abstract class WindowComponent <T : ChildComponent> : InteractiveComponent(), IL
     private val titleFont: IFontEntry
 
     private val layer = RenderLayer()
-    private val animation = AnimationTicker()
+    private val renderer = layer.entry()
+    val subLayer = RenderLayer()
 
-    override val children = mutableListOf<T>()
-    val subLayer = RenderLayer(true)
+    val animation = owner.animation
+    val guiAnimation get() = owner.guiAnimation
 
     private val actualHeight get() = height + padding * 2 * isOpen.toInt()
-    private var renderHeight by animation.exp({ 0.0 }, ::actualHeight, 0.5, ::isOpen)
+    private var renderHeightAnimation by animation.exp({ 0.0 }, ::actualHeight, 0.6, ::isOpen)
+    private val renderHeight get() = lerp(0.0, renderHeightAnimation, guiAnimation)
+
+    override val children = mutableListOf<T>()
 
     init {
         // Background
-        layer.rect.build {
+        renderer.rect {
             position = rect
             roundRadius = ClickGui.windowRadius
-            color(GuiSettings.backgroundColor)
+
+            val alpha = (guiAnimation * 2.0).coerceIn(0.0, 1.0)
+            color(GuiSettings.backgroundColor.multAlpha(alpha))
         }
 
         // Title
-        titleFont = layer.font.build {
+        titleFont = renderer.font {
             text = title
             position = titleBar.center - widthVec * 0.5
+            color = Color.WHITE.setAlpha(guiAnimation)
         }
     }
 
     override fun onShow() {
-        super<InteractiveComponent>.onShow()
+        super<ChildComponent>.onShow()
         super<IListComponent>.onShow()
 
         dragOffset = null
-        renderHeight = 0.0
     }
 
     override fun onHide() {
@@ -73,33 +84,33 @@ abstract class WindowComponent <T : ChildComponent> : InteractiveComponent(), IL
     }
 
     override fun onTick() {
-        animation.tick()
-
-        setChildrenAccessibility { child ->
-            child.rect in contentRect
+        children.forEach { child ->
+            child.accessible = child.rect in contentRect && this.accessible
         }
 
-        children
-            .filter(ChildComponent::accessible)
-            .forEach(IComponent::onTick)
+        super<IListComponent>.onTick()
     }
 
     override fun onRender() {
         layer.render()
 
         scissor(contentRect) {
-            subLayer.render()
+            subLayer.apply {
+                allowEffects = true
+                render()
+            }
+
             super<IListComponent>.onRender()
         }
     }
 
     override fun onMouseMove(mouse: Vec2d) {
-        super<InteractiveComponent>.onMouseMove(mouse)
-        super<IListComponent>.onMouseMove(mouse)
-
         dragOffset?.let {
             position = mouse - it
         }
+
+        super<ChildComponent>.onMouseMove(mouse)
+        super<IListComponent>.onMouseMove(mouse)
     }
 
     override fun onKey(key: KeyCode) {
@@ -111,7 +122,7 @@ abstract class WindowComponent <T : ChildComponent> : InteractiveComponent(), IL
     }
 
     override fun onMouseClick(button: Mouse.Button, action: Mouse.Action, mouse: Vec2d) {
-        super<InteractiveComponent>.onMouseClick(button, action, mouse)
+        super<ChildComponent>.onMouseClick(button, action, mouse)
 
         dragOffset = null
 
@@ -124,6 +135,8 @@ abstract class WindowComponent <T : ChildComponent> : InteractiveComponent(), IL
                     if (abs(targetHeight - renderHeight) > 1) return
 
                     isOpen = !isOpen
+
+                    if (isOpen) super<IListComponent>.onShow()
                 }
             }
         }
@@ -131,9 +144,9 @@ abstract class WindowComponent <T : ChildComponent> : InteractiveComponent(), IL
         super<IListComponent>.onMouseClick(button, action, mouse)
     }
 
-    private fun setChildrenAccessibility(flag: (T) -> Boolean) {
-        children.forEach { child ->
-            child.accessible = flag(child)
-        }
+    fun destroy() {
+        layer.destroy()
+        subLayer.destroy()
+        children.clear()
     }
 }

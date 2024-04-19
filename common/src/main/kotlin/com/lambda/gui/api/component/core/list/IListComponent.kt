@@ -39,17 +39,15 @@ interface IListComponent <T : IComponent> : IComponent {
     }
 
     override fun onMouseClick(button: Mouse.Button, action: Mouse.Action, mouse: Vec2d) {
-        children.filter(::isChildAccessible).forEach { child ->
-            child.onMouseClick(button, action, mouse)
+        children.forEach { child ->
+            val newAction = if (isChildAccessible(child)) action else Mouse.Action.Release
+            child.onMouseClick(button, newAction, mouse)
         }
     }
 
     override fun onMouseMove(mouse: Vec2d) {
         children.forEach { child ->
-            child.onMouseMove(
-                if (isChildAccessible(child)) mouse
-                else Vec2d(-1000.0, -1000.0) // junky but worky way to unfocus
-            )
+            child.onMouseMove(mouse)
         }
     }
 }
