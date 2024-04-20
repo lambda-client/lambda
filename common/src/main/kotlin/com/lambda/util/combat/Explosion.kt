@@ -47,9 +47,11 @@ object Explosion {
      * @param explosion The explosion to calculate the velocity for.
      * @return The velocity of the entities.
      */
-    fun SafeContext.velocity(explosion: Explosion) =
-        getFastEntities<LivingEntity>(explosion.position, explosion.power * 2.0, ArrayList())
-            .associateWith { entity -> velocity(entity, explosion) }
+    fun SafeContext.velocity(explosion: Explosion): Map<LivingEntity, Vec3d> {
+        val ref = ArrayList<LivingEntity>()
+        getFastEntities<LivingEntity>(explosion.position, explosion.power * 2.0, ref)
+        return ref.associateWith { entity -> velocity(entity, explosion) }
+    }
 
     /**
      * Calculates the velocity of a living entity affected by an explosion.
