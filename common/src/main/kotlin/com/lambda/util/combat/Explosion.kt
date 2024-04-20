@@ -48,7 +48,7 @@ object Explosion {
      * @return The velocity of the entities.
      */
     fun SafeContext.velocity(explosion: Explosion) =
-        getFastEntities<LivingEntity>(explosion.position, explosion.power * 2.0)
+        getFastEntities<LivingEntity>(explosion.position, explosion.power * 2.0, ArrayList())
             .associateWith { entity -> velocity(entity, explosion) }
 
     /**
