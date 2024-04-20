@@ -25,7 +25,7 @@ object EntityUtils {
         var closest: T? = null
         var closestDistance = Double.MAX_VALUE
 
-        val iterator: (T) -> Any = {
+        val iterator: (T) -> Unit = {
             val distance = it.squaredDistanceTo(pos)
             if (distance < closestDistance) {
                 closest = it
@@ -72,7 +72,7 @@ object EntityUtils {
     inline fun <reified T : Entity> SafeContext.getFastEntities(
         pos: Vec3d,
         distance: Double,
-        pointer: MutableList<T>,
+        pointer: MutableList<T>? = null,
         noinline predicate: (T) -> Boolean = { true },
         noinline iterator: (T) -> Unit = { },
     ) {
@@ -107,7 +107,7 @@ object EntityUtils {
      * @return A list of entities of type [T] within the specified distance from the position without the player.
      */
     inline fun <reified T : Entity> SafeContext.getEntities(
-        pointer: MutableList<T>,
+        pointer: MutableList<T>? = null,
         noinline predicate: (T) -> Boolean = { true },
         noinline iterator: (T) -> Unit = { },
     ) {
