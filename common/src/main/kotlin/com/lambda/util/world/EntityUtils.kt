@@ -69,9 +69,9 @@ object EntityUtils {
     inline fun <reified T : Entity> SafeContext.getFastEntities(
         pos: Vec3d,
         distance: Double,
-        entitiesPtr: MutableList<T>,
+        pointer: MutableList<T>,
         noinline predicate: (T) -> Boolean = { true },
-    ): List<T> {
+    ) {
         val chunks = ceil(distance / 16).toInt()
         val sectionX = pos.x.toInt() shr 4
         val sectionY = pos.y.toInt() shr 4
@@ -84,14 +84,12 @@ object EntityUtils {
             for (y in sectionY - chunks..sectionY + chunks) {
                 for (z in sectionZ - chunks..sectionZ + chunks) {
                     val section = world.entityManager.cache.findTrackingSection(ChunkSectionPos.asLong(x, y, z)) ?: continue
-                    section.collection.filterIsInstanceTo(entitiesPtr) { entity ->
+                    section.collection.filterIsInstanceTo(pointer) { entity ->
                         entity != player && entity.squaredDistanceTo(pos) <= distance * distance && predicate(entity)
                     }
                 }
             }
         }
-
-        return entitiesPtr
     }
 
     /**
@@ -104,10 +102,10 @@ object EntityUtils {
      * @return A list of entities of type [T] within the specified distance from the position without the player.
      */
     inline fun <reified T : Entity> SafeContext.getEntities(
-        entitiesPtr: MutableList<T>,
+        pointer: MutableList<T>,
         noinline predicate: (T) -> Boolean = { true }
     ) {
-        world.entities.filterIsInstanceTo(entitiesPtr) { entity ->
+        world.entities.filterIsInstanceTo(pointer) { entity ->
             entity != player && predicate(entity)
         }
     }
