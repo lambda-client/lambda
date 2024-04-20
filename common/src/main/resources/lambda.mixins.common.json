@@ -27,7 +27,8 @@
     "render.RenderTickCounterMixin",
     "render.VertexBufferMixin",
     "render.WorldRendererMixin",
-    "world.WorldMixin"
+    "world.WorldMixin",
+    "items.TridentMixin"
   ],
   "injectors": {
     "defaultRequire": 1
