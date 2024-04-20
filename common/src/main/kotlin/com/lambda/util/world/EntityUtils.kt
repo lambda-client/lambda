@@ -23,8 +23,8 @@ object EntityUtils {
         noinline predicate: (T) -> Boolean = { true },
     ): T? {
         // Speculative execution trolling
-        val entities =
-            if (range > 64) getEntities(predicate)
+        val entities = ArrayList<T>()
+            if (range > 64) getEntities(entities, predicate)
                 // I have an idea for optimization.
                 //
                 // Since the search operates linearly, eventually it will reach the midpoint.
@@ -33,7 +33,7 @@ object EntityUtils {
                 // Theoretically, the closest entity should be within a cubic space of delta^3 blocks.
                 // If there are no entities within this delta box, examine the outer box. (Although this is unlikely given the fact that the closest entity is within the delta box.)
                 // The performance improvement is relative to the initial state.
-            else getFastEntities(pos, range, predicate)
+            else getFastEntities(pos, range, entities, predicate)
 
         return entities.minByOrNull { it.squaredDistanceTo(pos) }
     }
@@ -69,14 +69,13 @@ object EntityUtils {
     inline fun <reified T : Entity> SafeContext.getFastEntities(
         pos: Vec3d,
         distance: Double,
+        pointer: MutableList<T>,
         noinline predicate: (T) -> Boolean = { true },
-    ): List<T> {
+    ) {
         val chunks = ceil(distance / 16).toInt()
         val sectionX = pos.x.toInt() shr 4
         val sectionY = pos.y.toInt() shr 4
         val sectionZ = pos.z.toInt() shr 4
-
-        val entities = ArrayList<T>()
 
         // Here we iterate over all sections within the specified distance and add all entities of type [T] to the list.
         // We do not have to worry about performance here, as the number of sections is very limited.
@@ -85,14 +84,12 @@ object EntityUtils {
             for (y in sectionY - chunks..sectionY + chunks) {
                 for (z in sectionZ - chunks..sectionZ + chunks) {
                     val section = world.entityManager.cache.findTrackingSection(ChunkSectionPos.asLong(x, y, z)) ?: continue
-                    section.collection.filterIsInstanceTo(entities) { entity ->
+                    section.collection.filterIsInstanceTo(pointer) { entity ->
                         entity != player && entity.squaredDistanceTo(pos) <= distance * distance && predicate(entity)
                     }
                 }
             }
         }
-
-        return entities
     }
 
     /**
@@ -104,13 +101,12 @@ object EntityUtils {
      * @param predicate Optional predicate to filter entities.
      * @return A list of entities of type [T] within the specified distance from the position without the player.
      */
-    inline fun <reified T : Entity> SafeContext.getEntities(noinline predicate: (T) -> Boolean = { true }): List<T> {
-        val entities = ArrayList<T>()
-
-        world.entities.filterIsInstanceTo(entities) { entity ->
+    inline fun <reified T : Entity> SafeContext.getEntities(
+        pointer: MutableList<T>,
+        noinline predicate: (T) -> Boolean = { true }
+    ) {
+        world.entities.filterIsInstanceTo(pointer) { entity ->
             entity != player && predicate(entity)
         }
-
-        return entities
     }
 }
