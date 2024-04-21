@@ -22,11 +22,15 @@ data class ModuleTag(override val name: String) : Nameable {
         val RENDER = ModuleTag("Render")
         val PLAYER = ModuleTag("Player")
         val WORLD = ModuleTag("World")
-        val DEBUG = ModuleTag("Debug")
+        val MISC = ModuleTag("Misc")
         val CLIENT = ModuleTag("Client")
-
-        val GRIM = ModuleTag("Grim")
+        val DEBUG = ModuleTag("Debug")
 
         val defaults = listOf(COMBAT, MOVEMENT, RENDER, PLAYER, WORLD, DEBUG, CLIENT)
+
+        // Do something with this ?
+        val HIDDEN = ModuleTag("Hidden")
+        val GRIM = ModuleTag("Grim")
+        val BYPASS = ModuleTag("Bypass")
     }
 }

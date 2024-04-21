@@ -10,7 +10,7 @@ import java.util.*
 object FakePlayer : Module(
     name = "FakePlayer",
     description = "Spawns a fake player",
-    defaultTags = setOf(ModuleTag.MISC, ModuleTag.RENDER)
+    tag = ModuleTag.MISC
 ) {
     private val playerName by setting("Name", "Steve")
 
