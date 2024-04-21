@@ -3,7 +3,10 @@ package com.lambda.graphics.texture
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.client.texture.NativeImage
 import org.lwjgl.BufferUtils
+import org.lwjgl.opengl.ARBTextureStorage.glTexStorage2D
+import org.lwjgl.opengl.GL11C
 import org.lwjgl.opengl.GL13C.*
+import org.lwjgl.opengl.GL30C.glGenerateMipmap
 import java.awt.Color
 import java.awt.Font
 import java.awt.RenderingHints
@@ -24,7 +27,13 @@ object TextureUtils {
         val width = bufferedImage.width
         val height = bufferedImage.height
 
-        glTexImage2D(GL_TEXTURE_2D, lod, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, readImage(bufferedImage))
+        // GL_UNSIGNED_INT_8_8_8_8_REV -> 0xRRGGBBAA
+        // GL_UNSIGNED_BYTE -> [RR, GG, BB, AA]
+        // In the end it will be the exact same but in the case that you
+        // supply the data in the reverse order, GL_UNSIGNED_INT_8_8_8_8_REV
+        // will swap the bytes for you.
+        glTexImage2D(GL_TEXTURE_2D, lod, GL_BGRA, width, height, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, 0)
+        glTexSubImage2D(GL_TEXTURE_2D, lod, 0, 0, width, height, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, readImage(bufferedImage))
         setupTexture(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
     }
 
@@ -84,7 +93,7 @@ object TextureUtils {
     }
 
     fun BufferedImage.rescale(targetWidth: Int, targetHeight: Int): BufferedImage {
-        val type = if (this.transparency == Transparency.OPAQUE)
+        val type = if (transparency == Transparency.OPAQUE)
             BufferedImage.TYPE_INT_RGB
         else BufferedImage.TYPE_INT_ARGB
 
