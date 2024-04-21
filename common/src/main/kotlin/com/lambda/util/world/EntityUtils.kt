@@ -7,6 +7,7 @@ import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
 import kotlin.math.ceil
 
+val nullptr = null
 
 object EntityUtils {
     /**
@@ -22,20 +23,22 @@ object EntityUtils {
         range: Double = 6.0,
         noinline predicate: (T) -> Boolean = { true },
     ): T? {
-        // Speculative execution trolling
-        val entities = ArrayList<T>()
-            if (range > 64) getEntities(entities, predicate)
-                // I have an idea for optimization.
-                //
-                // Since the search operates linearly, eventually it will reach the midpoint.
-                // Calculate the distance between the first and last entities.
-                // Obtain the delta value.
-                // Theoretically, the closest entity should be within a cubic space of delta^3 blocks.
-                // If there are no entities within this delta box, examine the outer box. (Although this is unlikely given the fact that the closest entity is within the delta box.)
-                // The performance improvement is relative to the initial state.
-            else getFastEntities(pos, range, entities, predicate)
+        var closest: T? = null
+        var closestDistance = Double.MAX_VALUE
 
-        return entities.minByOrNull { it.squaredDistanceTo(pos) }
+        val iterator: (T) -> Unit = {
+            val distance = it.squaredDistanceTo(pos)
+            if (distance < closestDistance) {
+                closest = it
+                closestDistance = distance
+            }
+        }
+
+        // Speculative execution trolling
+        if (range > 64) getEntities(nullptr, predicate, iterator)
+        else getFastEntities(pos, range, nullptr, predicate, iterator)
+
+        return closest
     }
 
     /**
@@ -62,15 +65,18 @@ object EntityUtils {
      *
      * @param pos The position to search from.
      * @param distance The maximum distance to search for entities.
+     * @param pointer The mutable list to store the entities in.
      * @param predicate Optional predicate to filter entities. It allows custom filtering based on entity properties.
+     * @param iterator Optional iterator to perform operations on each entity.
      * @return A list of entities of type [T] within the specified distance from the position, excluding the player.
      *
      */
     inline fun <reified T : Entity> SafeContext.getFastEntities(
         pos: Vec3d,
         distance: Double,
-        pointer: MutableList<T>,
+        pointer: MutableList<T>? = nullptr,
         noinline predicate: (T) -> Boolean = { true },
+        noinline iterator: (T) -> Unit = { },
     ) {
         val chunks = ceil(distance / 16).toInt()
         val sectionX = pos.x.toInt() shr 4
@@ -85,6 +91,7 @@ object EntityUtils {
                 for (z in sectionZ - chunks..sectionZ + chunks) {
                     val section = world.entityManager.cache.findTrackingSection(ChunkSectionPos.asLong(x, y, z)) ?: continue
                     section.collection.filterIsInstanceTo(pointer) { entity ->
+                        iterator(entity)
                         entity != player && entity.squaredDistanceTo(pos) <= distance * distance && predicate(entity)
                     }
                 }
@@ -98,14 +105,17 @@ object EntityUtils {
      * This function retrieves entities of type [T] within a specified distance from a given position. Unlike
      * [getFastEntities], it traverses all entities in the world to find matches, while also excluding the player entity.
      *
-     * @param predicate Optional predicate to filter entities.
-     * @return A list of entities of type [T] within the specified distance from the position without the player.
+     * @param pointer The mutable list to store the entities in.
+     * @param predicate Optional predicate to filter entities. It allows custom filtering based on entity properties.
+     * @param iterator Optional iterator to perform operations on each entity.
      */
     inline fun <reified T : Entity> SafeContext.getEntities(
-        pointer: MutableList<T>,
-        noinline predicate: (T) -> Boolean = { true }
+        pointer: MutableList<T>? = nullptr,
+        noinline predicate: (T) -> Boolean = { true },
+        noinline iterator: (T) -> Unit = { },
     ) {
         world.entities.filterIsInstanceTo(pointer) { entity ->
+            iterator(entity)
             entity != player && predicate(entity)
         }
     }
