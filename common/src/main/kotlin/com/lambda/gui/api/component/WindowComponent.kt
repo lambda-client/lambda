@@ -93,7 +93,7 @@ abstract class WindowComponent <T : ChildComponent> (
     }
 
     override fun onRender() {
-        BlurPostProcessor.render(rect, 30)
+        BlurPostProcessor.render(rect, 15) // TODO: Customizable blur level
         layer.render()
 
         scissor(contentRect) {
