@@ -7,6 +7,7 @@ import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
 import kotlin.math.ceil
 
+val nullptr = null
 
 object EntityUtils {
     /**
@@ -34,9 +35,8 @@ object EntityUtils {
         }
 
         // Speculative execution trolling
-        val entities = ArrayList<T>()
-            if (range > 64) getEntities(entities, predicate, iterator)
-            else getFastEntities(pos, range, entities, predicate, iterator)
+        if (range > 64) getEntities(nullptr, predicate, iterator)
+        else getFastEntities(pos, range, nullptr, predicate, iterator)
 
         return closest
     }
@@ -65,14 +65,16 @@ object EntityUtils {
      *
      * @param pos The position to search from.
      * @param distance The maximum distance to search for entities.
+     * @param pointer The mutable list to store the entities in.
      * @param predicate Optional predicate to filter entities. It allows custom filtering based on entity properties.
+     * @param iterator Optional iterator to perform operations on each entity.
      * @return A list of entities of type [T] within the specified distance from the position, excluding the player.
      *
      */
     inline fun <reified T : Entity> SafeContext.getFastEntities(
         pos: Vec3d,
         distance: Double,
-        pointer: MutableList<T>? = null,
+        pointer: MutableList<T>? = nullptr,
         noinline predicate: (T) -> Boolean = { true },
         noinline iterator: (T) -> Unit = { },
     ) {
@@ -103,11 +105,12 @@ object EntityUtils {
      * This function retrieves entities of type [T] within a specified distance from a given position. Unlike
      * [getFastEntities], it traverses all entities in the world to find matches, while also excluding the player entity.
      *
-     * @param predicate Optional predicate to filter entities.
-     * @return A list of entities of type [T] within the specified distance from the position without the player.
+     * @param pointer The mutable list to store the entities in.
+     * @param predicate Optional predicate to filter entities. It allows custom filtering based on entity properties.
+     * @param iterator Optional iterator to perform operations on each entity.
      */
     inline fun <reified T : Entity> SafeContext.getEntities(
-        pointer: MutableList<T>? = null,
+        pointer: MutableList<T>? = nullptr,
         noinline predicate: (T) -> Boolean = { true },
         noinline iterator: (T) -> Unit = { },
     ) {
