@@ -3,6 +3,7 @@ package com.lambda.gui.api.component
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.graphics.renderer.gui.font.IFontEntry
+import com.lambda.graphics.renderer.immediate.BlurPostProcessor
 import com.lambda.gui.api.component.core.list.IListComponent
 import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.gui.api.layer.RenderLayer
@@ -92,6 +93,7 @@ abstract class WindowComponent <T : ChildComponent> (
     }
 
     override fun onRender() {
+        BlurPostProcessor.render(rect, 30)
         layer.render()
 
         scissor(contentRect) {
