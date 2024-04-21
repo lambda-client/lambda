@@ -1,10 +1,7 @@
 package com.lambda.graphics.gl
 
-import com.mojang.blaze3d.systems.RenderSystem
-import com.mojang.blaze3d.systems.RenderSystem.depthMask
-import org.lwjgl.opengl.GL30C
+import org.lwjgl.opengl.GL30C.*
 
-@Suppress("NOTHING_TO_INLINE")
 object GlStateUtils {
     private var depthTestState = true
     private var depthMaskState = true
@@ -18,7 +15,7 @@ object GlStateUtils {
         val savedCull = cullState
 
         depthTest(false)
-        depthMask(false)
+        glDepthMask(false)
         blend(true)
         cull(false)
         lineSmooth(true)
@@ -26,7 +23,7 @@ object GlStateUtils {
         block()
 
         depthTest(savedDepthTest)
-        depthMask(savedDepthMask)
+        glDepthMask(savedDepthMask)
         blend(savedBlend)
         cull(savedCull)
         lineSmooth(false)
@@ -41,35 +38,32 @@ object GlStateUtils {
     @JvmStatic
     fun capSet(id: Int, flag: Boolean) {
         val field = when (id) {
-            GL30C.GL_DEPTH_TEST -> ::depthTestState
-            GL30C.GL_DEPTH -> ::depthMaskState
-            GL30C.GL_BLEND -> ::blendState
-            GL30C.GL_CULL_FACE -> ::cullState
+            GL_DEPTH_TEST -> ::depthTestState
+            GL_DEPTH -> ::depthMaskState
+            GL_BLEND -> ::blendState
+            GL_CULL_FACE -> ::cullState
             else -> return
         }
 
         field.set(flag)
     }
 
-    private inline fun blend(flag: Boolean) {
+    private fun blend(flag: Boolean) {
         if (flag) {
-            RenderSystem.enableBlend()
-            RenderSystem.defaultBlendFunc()
-        } else RenderSystem.disableBlend()
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        } else glDisable(GL_BLEND)
     }
 
-    private inline fun cull(flag: Boolean) {
-        if (flag) RenderSystem.enableCull()
-        else RenderSystem.disableCull()
+    private fun cull(flag: Boolean) {
+        if (flag) glEnable(GL_CULL_FACE)
+        else glDisable(GL_CULL_FACE)
     }
 
-    private inline fun depthTest(flag: Boolean) {
-        if (flag) RenderSystem.enableDepthTest()
-        else RenderSystem.disableDepthTest()
-    }
+    private fun depthTest(flag: Boolean) = glDepthMask(flag)
 
-    private inline fun lineSmooth(flag: Boolean) {
-        if (flag) GL30C.glEnable(GL30C.GL_LINE_SMOOTH)
-        else GL30C.glDisable(GL30C.GL_LINE_SMOOTH)
+    private fun lineSmooth(flag: Boolean) {
+        if (flag) glEnable(GL_LINE_SMOOTH)
+        else glDisable(GL_LINE_SMOOTH)
     }
 }
