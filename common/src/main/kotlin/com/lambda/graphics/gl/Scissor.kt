@@ -5,8 +5,7 @@ import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.Rect
-import com.mojang.blaze3d.systems.RenderSystem.disableScissor
-import com.mojang.blaze3d.systems.RenderSystem.enableScissor
+import org.lwjgl.opengl.GL30C.*
 import kotlin.math.max
 
 object Scissor {
@@ -29,7 +28,7 @@ object Scissor {
 
     private fun scissor(entry: Rect?) {
         if (entry == null) {
-            disableScissor()
+            glDisable(GL_SCISSOR_TEST)
             return
         }
 
@@ -43,7 +42,7 @@ object Scissor {
 
         val y = mc.window.framebufferHeight - pos1.y - height
 
-        enableScissor(
+        glScissor(
             pos1.x.floorToInt(),
             y.floorToInt(),
             width.ceilToInt(),

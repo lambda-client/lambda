@@ -1,7 +1,5 @@
 package com.lambda.graphics.gl
 
-import net.minecraft.client.util.math.MatrixStack
-
 object Matrices {
     var stack = MatrixStack()
     private val matrix get() = stack.peek().positionMatrix
