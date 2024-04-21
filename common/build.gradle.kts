@@ -1,10 +1,11 @@
+import java.util.Properties
+
 val fabricLoaderVersion = property("fabric_loader_version").toString()
 val mixinExtrasVersion = property("mixinextras_version").toString()
 val kotlinVersion = property("kotlin_version").toString()
 val kotlinxCoroutinesVersion = property("kotlinx_coroutines_version").toString()
-val architecturyVersion = property("architectury_version").toString()
 
-architectury { common("fabric", "forge", "neoforge") }
+architectury { common("fabric", "forge", "neoforge", "quilt") }
 
 loom {
     silentMojangMappingsLicense()
@@ -31,8 +32,17 @@ dependencies {
     modImplementation("baritone-api:baritone-unoptimized-fabric:1.10.2")
 }
 
-// Avoid nested jars
-tasks.named("remapJar") {
-    enabled = false
+tasks {
+    remapJar {
+        enabled = false
+    }
+
+    processResources {
+        Properties().apply {
+            load(project.rootProject.file("gradle.properties").inputStream())
+        }.forEach { key, value ->
+            inputs.property(key.toString(), value)
+        }
+    }
 }
 
