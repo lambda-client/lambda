@@ -43,8 +43,11 @@ abstract class Configuration : Jsonable {
 
         unsafeListener<ClientEvent.Shutdown>(Int.MIN_VALUE) { trySave() }
 
-        configurations.add(this)
+        register()
     }
+
+    // Avoid context-leaking warning
+    private fun register() = configurations.add(this)
 
     override fun toJson() =
         JsonObject().apply {
@@ -99,8 +102,7 @@ abstract class Configuration : Jsonable {
                             this@Configuration.info(message)
                         }
                         .onFailure {
-                            val message =
-                                "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
+                            val message = "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
                             LOG.error(message, it)
                             this@Configuration.logError(message)
                         }
