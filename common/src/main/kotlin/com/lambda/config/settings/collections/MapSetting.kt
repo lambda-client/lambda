@@ -21,7 +21,7 @@ class MapSetting<K, V>(
     }
 
     override fun toJson(): JsonElement {
-        value = defaultValue.toMutableMap() // Hack the Delegates.observable
+        value = defaultValue // Hack the Delegates.observable
         return gson.toJsonTree(value)
     }
 }
