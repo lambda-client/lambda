@@ -11,6 +11,7 @@ import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
 import com.lambda.gui.impl.clickgui.windows.tag.TagWindow
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
+import com.mojang.authlib.GameProfile
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
 import net.minecraft.util.math.BlockPos
@@ -35,6 +36,7 @@ object Lambda {
         .registerTypeAdapter(Color::class.java, ColorSerializer)
         .registerTypeAdapter(BlockPos::class.java, BlockPosSerializer)
         .registerTypeAdapter(Block::class.java, BlockSerializer)
+        .registerTypeAdapter(GameProfile::class.java, GameProfileSerializer)
         .create()
 
     fun initialize() = Loader.initialize()

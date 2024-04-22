@@ -4,7 +4,6 @@ import com.lambda.config.Configuration
 import com.lambda.config.configurations.ModuleConfig.configName
 import com.lambda.config.configurations.ModuleConfig.primary
 import com.lambda.util.FolderRegister
-import java.io.File
 
 
 /**

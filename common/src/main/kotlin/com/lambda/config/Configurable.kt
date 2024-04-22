@@ -151,13 +151,13 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      * The type parameter [T] must either be a primitive type or a type with a registered type adapter in [Lambda.gson].
      *
      * @param name The unique identifier for the setting.
-     * @param defaultValue The default [List] value of type [T] for the setting.
+     * @param defaultValue The default [ArrayList] value of type [T] for the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
      * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
      * // the parameter type is inferred from the defaultValue
-     * private val foo by setting("Foo", listOf("bar", "baz"))
+     * private val foo by setting("Foo", arrayListOf("bar", "baz"))
      * ```
      *
      * @return The created [ListSetting].
@@ -167,7 +167,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         defaultValue: List<T>,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = ListSetting(name, defaultValue, object : TypeToken<List<T>>() {}.type, description, visibility).also {
+    ) = ListSetting(name, defaultValue.toMutableList(), TypeToken.getParameterized(MutableList::class.java, T::class.java).type, description, visibility).also {
         settings.add(it)
     }
 
@@ -188,12 +188,12 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
      *
      * @return The created [MapSetting].
      */
-    inline fun <reified K : Any, V : Any> setting(
+    inline fun <reified K : Any, reified V : Any> setting(
         name: String,
         defaultValue: Map<K, V>,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = MapSetting(name, defaultValue, object : TypeToken<Map<K, V>>() {}.type, description, visibility).also {
+    ) = MapSetting(name, defaultValue.toMutableMap(), TypeToken.getParameterized(Map::class.java, K::class.java, V::class.java).type, description, visibility).also {
         settings.add(it)
     }
 
@@ -219,7 +219,7 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         defaultValue: Set<T>,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = SetSetting(name, defaultValue, object : TypeToken<Set<T>>() {}.type, description, visibility).also {
+    ) = SetSetting(name, defaultValue.toMutableSet(), TypeToken.getParameterized(Set::class.java, T::class.java).type, description, visibility).also {
         settings.add(it)
     }
 
