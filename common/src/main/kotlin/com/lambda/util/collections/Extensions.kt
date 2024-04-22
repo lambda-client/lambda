@@ -14,8 +14,9 @@ package com.lambda.util.collections
  * @param predicate The predicate function that determines whether an element should be included based on its type and other criteria.
  */
 inline fun <reified R, C : MutableCollection<in R>> Iterable<*>.filterIsInstanceTo(
-    destination: C,
+    destination: C? = null,
     predicate: (R) -> Boolean
 ) {
+    if (destination == null) return
     for (element in this) if (element is R && predicate(element)) destination.add(element)
 }
