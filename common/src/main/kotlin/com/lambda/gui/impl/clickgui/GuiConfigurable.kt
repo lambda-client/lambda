@@ -7,5 +7,5 @@ import com.lambda.gui.impl.clickgui.windows.TagWindow
 
 object GuiConfigurable : Configurable(GuiConfig), Loadable {
     override val name = "gui"
-    val windows = setting("windows", arrayListOf(TagWindow()))
+    val windows = setting("windows", listOf(TagWindow()))
 }

@@ -42,8 +42,6 @@ object Loader {
             }
         }
 
-        FriendManager.add(GameProfile(UUID.randomUUID(), "Lambda"))
-
         LOG.info("${Lambda.MOD_NAME} ${Lambda.VERSION} was successfully initialized (${initTime}ms)")
     }
 }

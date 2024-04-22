@@ -7,16 +7,21 @@ import java.lang.reflect.Type
 
 class SetSetting<T : Any>(
     override val name: String,
-    defaultValue: Set<T>,
+    private val defaultValue: MutableSet<T>,
     private val type: Type,
     description: String,
     visibility: () -> Boolean,
-) : AbstractSetting<Set<T>>(
+) : AbstractSetting<MutableSet<T>>(
     defaultValue,
     description,
     visibility
 ) {
     override fun loadFromJson(serialized: JsonElement) {
         value = gson.fromJson(serialized, type)
+    }
+
+    override fun toJson(): JsonElement {
+        value = defaultValue.toMutableSet() // Hack the Delegates.observable
+        return gson.toJsonTree(value)
     }
 }
