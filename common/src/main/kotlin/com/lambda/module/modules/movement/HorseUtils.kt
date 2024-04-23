@@ -12,7 +12,7 @@ import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 object HorseUtils : Module(
     name = "HorseUtils",
     description = "Various utilities for horses.",
-    defaultTags = setOf(ModuleTag.MOVEMENT, ModuleTag.BYPASS)
+    tag = ModuleTag.MOVEMENT
 ) {
     private val page by setting("Page", Page.General)
 
