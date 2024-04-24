@@ -1,80 +1,45 @@
 package com.lambda.graphics.gl
 
-import org.joml.Matrix3f
 import org.joml.Matrix4f
 import org.joml.Quaternionf
-import java.util.*
-import kotlin.math.cbrt
+import kotlin.collections.ArrayDeque
 
 object Matrices {
-    private val stack: Deque<Entry> = ArrayDeque(
-        listOf(Entry(Matrix4f(), Matrix3f()))
-    )
+    private val stack = ArrayDeque(listOf(Matrix4f()))
 
-    fun translate(x: Double, y: Double, z: Double): Matrix4f =
+    fun translate(x: Double, y: Double, z: Double) {
         translate(x.toFloat(), y.toFloat(), z.toFloat())
+    }
 
-    fun translate(x: Float, y: Float, z: Float): Matrix4f =
-        stack.last.position.translate(x, y, z)
+    fun translate(x: Float, y: Float, z: Float) {
+        stack.last().translate(x, y, z)
+    }
 
     fun scale(x: Float, y: Float, z: Float) {
-        val entry = stack.last
-        entry.position.scale(x, y, z)
-        if (x == y && y == z) {
-            if (x > 0.0f) {
-                return
-            }
-            entry.normal.scale(-1.0f)
-        }
-        val f = 1.0f / x
-        val g = 1.0f / y
-        val h = 1.0f / z
-        val i = cbrt(f * g * h)
-        entry.normal.scale(i * f, i * g, i * h)
+        stack.last().scale(x, y, z)
     }
 
     fun multiply(quaternion: Quaternionf) {
-        val entry = stack.last
-        entry.position.rotate(quaternion)
-        entry.normal.rotate(quaternion)
+        stack.last().rotate(quaternion)
     }
 
     fun multiply(quaternion: Quaternionf, originX: Float, originY: Float, originZ: Float) {
-        val entry = stack.last
-        entry.position.rotateAround(quaternion, originX, originY, originZ)
-        entry.normal.rotate(quaternion)
+        stack.last().rotateAround(quaternion, originX, originY, originZ)
     }
 
     fun push() {
-        val entry = stack.last
-        stack.addLast(Entry(Matrix4f(entry.position), Matrix3f(entry.normal)))
+        val entry = stack.last()
+        stack.addLast(Matrix4f(entry))
     }
 
     fun pop() {
         stack.removeLast()
     }
 
-    fun peek(): Entry {
-        return stack.last
-    }
-
-    fun isEmpty() = stack.size <= 1
+    fun peek() = stack.last()
 
     fun resetMatrix() {
-        val entry = stack.last
-        entry.position.identity()
-        entry.normal.identity()
+        stack.clear()
+        stack.add(Matrix4f())
     }
-
-    fun loadIdentity() {
-        val entry = stack.last
-        entry.position.identity()
-        entry.normal.identity()
-    }
-
-    fun multiplyPositionMatrix(matrix: Matrix4f) {
-        stack.last.position.mul(matrix)
-    }
-
-    data class Entry(val position: Matrix4f, val normal: Matrix3f)
 }

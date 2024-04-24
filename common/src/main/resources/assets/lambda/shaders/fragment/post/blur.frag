@@ -5,6 +5,7 @@
 uniform sampler2D u_Texture;
 uniform vec2 u_Direction;
 uniform int u_BlurLevel;
+uniform float u_Alpha;
 
 in vec2 v_TexCoord;
 out vec4 color;
@@ -14,27 +15,18 @@ float gaussian(float x) {
 }
 
 void main() {
-    vec4 col = texture(u_Texture, v_TexCoord);
     float totalWeight = 1.0;
+    color = texture(u_Texture, v_TexCoord);
 
     for (int i = -u_BlurLevel; i <= u_BlurLevel; ++i) {
         float offset = float(i);
+        float amount = gaussian(offset);
         vec2 texOffset = offset * u_Direction;
-        col += texture(u_Texture, v_TexCoord + texOffset) * gaussian(offset);
-        totalWeight += gaussian(offset);
+
+        color += texture(u_Texture, v_TexCoord + texOffset) * amount;
+        totalWeight += amount;
     }
 
-    // Normalize the color
-    col /= totalWeight;
-
-    // Vertical blur
-    totalWeight = 0.0;
-    for (int i = -u_BlurLevel; i <= u_BlurLevel; ++i) {
-        float offset = float(i);
-        vec2 texOffset = offset * u_Direction;
-        col += texture(u_Texture, v_TexCoord + texOffset) * gaussian(offset);
-        totalWeight += gaussian(offset);
-    }
-
-    color = col / totalWeight;
+    color /= totalWeight;
+    color *= vec4(1.0, 1.0, 1.0, u_Alpha);
 }

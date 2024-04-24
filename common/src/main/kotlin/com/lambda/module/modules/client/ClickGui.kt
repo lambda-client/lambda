@@ -18,6 +18,7 @@ object ClickGui : Module(
     val windowPadding by setting("Window Padding", 2.0, 0.0..10.0, 0.1)
     val buttonHeight by setting("Button Height", 11.0, 8.0..20.0, 0.1)
     val buttonStep by setting("Button Step", 1.0, 0.0..5.0, 0.1)
+    val windowBlur by setting("Window Blur", 30, 0..100, 1)
 
     // Animation
     val openSpeed by setting("Open Speed", 0.6, 0.1..1.0, 0.01)

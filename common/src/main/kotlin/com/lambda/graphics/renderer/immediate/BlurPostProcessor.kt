@@ -14,13 +14,13 @@ object BlurPostProcessor {
     private val vao = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.BLUR)
     private val shader = Shader("post/blur")
 
-
-    fun render(rect: Rect, level: Int) {
-        renderPass(rect, Vec2d.RIGHT, level)
-        renderPass(rect, Vec2d.BOTTOM, level)
+    fun render(rect: Rect, level: Int, alpha: Double) {
+        if (level <= 0 || alpha <= 0.1) return
+        renderPass(rect, Vec2d.RIGHT, level, alpha)
+        renderPass(rect, Vec2d.BOTTOM, level, alpha)
     }
 
-    private fun renderPass(rect: Rect, direction: Vec2d, level: Int) {
+    private fun renderPass(rect: Rect, direction: Vec2d, level: Int, alpha: Double) {
         val x1 = rect.leftTop.x
         val y1 = rect.leftTop.y
         val x2 = rect.rightBottom.x
@@ -43,6 +43,7 @@ object BlurPostProcessor {
             shader.use()
             shader["u_Direction"] = direction / Vec2d(mc.window.framebufferWidth, mc.window.framebufferHeight)
             shader["u_BlurLevel"] = level
+            shader["u_Alpha"] = alpha
 
             bindTexture(mc.framebuffer.colorAttachment)
             upload()

@@ -13,7 +13,7 @@ import org.joml.Matrix4f
 
 object RenderMain {
     val projectionMatrix = Matrix4f()
-    val modelViewMatrix: Matrix4f get() = Matrices.peek().position
+    val modelViewMatrix: Matrix4f get() = Matrices.peek()
 
     var screenSize = Vec2d.ZERO
 
