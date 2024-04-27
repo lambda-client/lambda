@@ -1,6 +1,8 @@
 package com.lambda.util.math
 
 import com.lambda.util.math.MathUtils.lerp
+import kotlin.math.max
+import kotlin.math.min
 
 data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
     val left   = pos1.x

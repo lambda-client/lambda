@@ -2,20 +2,14 @@ package com.lambda.module.modules.combat
 
 import com.lambda.config.InteractionSettings
 import com.lambda.config.RotationSettings
-import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.concurrentListener
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Communication.info
-import com.lambda.util.combat.Explosion.velocity
-import com.lambda.util.world.EntityUtils.getClosestEntity
-import com.lambda.util.world.EntityUtils.getFastEntities
-import net.minecraft.entity.Entity
+import com.lambda.util.world.WorldUtils.getClosestEntity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.Hand
-import net.minecraft.world.explosion.Explosion
 
 object CrystalAura : Module(
     name = "CrystalAura",

@@ -21,7 +21,7 @@ class ListSetting<T : Any>(
     }
 
     override fun toJson(): JsonElement {
-        value = defaultValue.toMutableList() // Hack the Delegates.observable
+        value = defaultValue // Hack the Delegates.observable
         return gson.toJsonTree(value)
     }
 }
