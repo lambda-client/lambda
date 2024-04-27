@@ -3,7 +3,7 @@ package com.lambda.util.combat
 import com.lambda.context.SafeContext
 import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.math.VecUtils.times
-import com.lambda.util.world.EntityUtils.getFastEntities
+import com.lambda.util.world.WorldUtils.getFastEntities
 import net.minecraft.enchantment.ProtectionEnchantment
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.BlockPos

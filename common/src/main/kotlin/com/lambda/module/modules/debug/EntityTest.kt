@@ -4,7 +4,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.world.EntityUtils.getClosestEntity
+import com.lambda.util.world.WorldUtils.getClosestEntity
 import net.minecraft.entity.Entity
 
 object EntityTest : Module(

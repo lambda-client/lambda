@@ -13,10 +13,10 @@ package com.lambda.util.collections
  * @param destination The mutable collection to which the filtered elements will be added.
  * @param predicate The predicate function that determines whether an element should be included based on its type and other criteria.
  */
-inline fun <reified R, C : MutableCollection<in R>> Iterable<*>.filterIsInstanceTo(
+inline fun <reified R, C : MutableCollection<in R>> Iterable<*>.filterPointer(
     destination: C? = null,
-    predicate: (R) -> Boolean
+    iterator: (R) -> Unit,
+    predicate: (R) -> Boolean,
 ) {
-    if (destination == null) return
-    for (element in this) if (element is R && predicate(element)) destination.add(element)
+    for (element in this) if (element is R && predicate(element)) { iterator(element); destination?.add(element) }
 }
