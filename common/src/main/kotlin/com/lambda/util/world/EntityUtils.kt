@@ -1,13 +1,11 @@
 package com.lambda.util.world
 
 import com.lambda.context.SafeContext
-import com.lambda.util.collections.filterIsInstanceTo
+import com.lambda.util.collections.filterPointer
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
 import kotlin.math.ceil
-
-val nullptr = null
 
 object EntityUtils {
     /**
@@ -26,6 +24,7 @@ object EntityUtils {
         var closest: T? = null
         var closestDistance = Double.MAX_VALUE
 
+        // change this to not create a new lambda every time
         val iterator: (T) -> Unit = {
             val distance = it.squaredDistanceTo(pos)
             if (distance < closestDistance) {
@@ -35,8 +34,8 @@ object EntityUtils {
         }
 
         // Speculative execution trolling
-        if (range > 64) getEntities(nullptr, predicate, iterator)
-        else getFastEntities(pos, range, nullptr, predicate, iterator)
+        if (range > 64) getEntities(null, predicate, iterator)
+        else getFastEntities(pos, range, null, predicate, iterator)
 
         return closest
     }
@@ -74,7 +73,7 @@ object EntityUtils {
     inline fun <reified T : Entity> SafeContext.getFastEntities(
         pos: Vec3d,
         distance: Double,
-        pointer: MutableList<T>? = nullptr,
+        pointer: MutableList<T>? = null,
         noinline predicate: (T) -> Boolean = { true },
         noinline iterator: (T) -> Unit = { },
     ) {
@@ -90,8 +89,7 @@ object EntityUtils {
             for (y in sectionY - chunks..sectionY + chunks) {
                 for (z in sectionZ - chunks..sectionZ + chunks) {
                     val section = world.entityManager.cache.findTrackingSection(ChunkSectionPos.asLong(x, y, z)) ?: continue
-                    section.collection.filterIsInstanceTo(pointer) { entity ->
-                        iterator(entity)
+                    section.collection.filterPointer(pointer, iterator) { entity ->
                         entity != player && entity.squaredDistanceTo(pos) <= distance * distance && predicate(entity)
                     }
                 }
@@ -110,12 +108,11 @@ object EntityUtils {
      * @param iterator Optional iterator to perform operations on each entity.
      */
     inline fun <reified T : Entity> SafeContext.getEntities(
-        pointer: MutableList<T>? = nullptr,
+        pointer: MutableList<T>? = null,
         noinline predicate: (T) -> Boolean = { true },
         noinline iterator: (T) -> Unit = { },
     ) {
-        world.entities.filterIsInstanceTo(pointer) { entity ->
-            iterator(entity)
+        world.entities.filterPointer(pointer, iterator) { entity ->
             entity != player && predicate(entity)
         }
     }
