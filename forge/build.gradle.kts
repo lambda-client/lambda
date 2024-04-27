@@ -65,9 +65,13 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
-    includeLib("com.github.caoimhebyrne:KDiscordIPC:$discordIPCVersion") {
+
+    // Temporary, only works for production
+    // See https://github.com/MinecraftForge/MinecraftForge/issues/8878
+    shadowBundle("com.github.caoimhebyrne:KDiscordIPC:$discordIPCVersion") {
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.jetbrains.kotlinx")
+        exclude(group = "org.slf4j")
     }
 
     // Add mods to the mod jar
