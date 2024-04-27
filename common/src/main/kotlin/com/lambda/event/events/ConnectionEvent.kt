@@ -8,9 +8,9 @@ import net.minecraft.text.Text
 abstract class ConnectionEvent : Event {
     class Connect(
         val host: String,
-        port: Int,
-        listener: PacketListener,
-        intent: ConnectionIntent,
+        val port: Int,
+        val listener: PacketListener,
+        val intent: ConnectionIntent,
     ) : ConnectionEvent()
 
     class Disconnect(val reason: Text) : ConnectionEvent()
