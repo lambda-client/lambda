@@ -11,12 +11,14 @@ package com.lambda.util.collections
  * @param R The target type to filter elements to.
  * @param C The type of the destination mutable collection.
  * @param destination The mutable collection to which the filtered elements will be added.
+ * @param iterator The iterator function that processes the filtered elements and their index.
  * @param predicate The predicate function that determines whether an element should be included based on its type and other criteria.
  */
 inline fun <reified R, C : MutableCollection<in R>> Iterable<*>.filterPointer(
     destination: C?,
-    iterator: (R) -> Unit,
+    iterator: (R, Int) -> Unit,
     predicate: (R) -> Boolean,
 ) {
-    for (element in this) if (element is R && predicate(element)) { iterator(element); destination?.add(element) }
+    var index = 0
+    for (element in this) if (element is R && predicate(element)) { iterator(element, index++); destination?.add(element) }
 }

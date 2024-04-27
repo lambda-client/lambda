@@ -30,7 +30,7 @@ object EntityControl : Module(
 
     init {
         listener<TickEvent.Pre> {
-            getEntities(player.pos, 8.0, theHonses, { horse -> horse.setHorseFlag(4, true) })
+            getEntities(player.pos, 8.0, theHonses, { horse, _ -> horse.setHorseFlag(4, true) })
         }
 
         /*listener<MovementEvent.Pre> {

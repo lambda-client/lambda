@@ -28,7 +28,7 @@ object RocketExtend : Module(
 
             if (event.packet is EntitiesDestroyS2CPacket) {
                 event.packet.entityIds.map(world::getEntityById)
-                    .filterPointer(extendedRockets, { event.packet.entityIds.removeInt(it.id) }) { rocket -> rocket.shooter == player }
+                    .filterPointer(extendedRockets, { _, id -> event.packet.entityIds.removeInt(id) }) { rocket -> rocket.shooter == player }
             }
         }
 

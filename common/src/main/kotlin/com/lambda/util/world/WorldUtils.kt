@@ -58,7 +58,7 @@ object WorldUtils {
         var closest: T? = null
         var closestDistance = Double.MAX_VALUE
 
-        val comparator = { entity: T ->
+        val comparator = { entity: T, _: Int ->
             val distance = pos.squaredDistanceTo(entity.pos)
             if (distance < closestDistance) {
                 closest = entity
@@ -103,7 +103,7 @@ object WorldUtils {
         pos: Vec3d,
         distance: Double,
         pointer: MutableList<T>? = null,
-        iterator: (T) -> Unit = {},
+        iterator: (T, Int) -> Unit = { _, _ -> },
         predicate: (T) -> Boolean = { true },
     ) {
         val chunks = ceil(distance / 16).toInt()
@@ -144,7 +144,7 @@ object WorldUtils {
         pos: Vec3d,
         distance: Double,
         pointer: MutableList<T>? = null,
-        iterator: (T) -> Unit = {},
+        iterator: (T, Int) -> Unit = { _, _ -> },
         predicate: (T) -> Boolean = { true },
     ) {
         world.entities.filterPointer(pointer, iterator) { entity ->
@@ -171,7 +171,7 @@ object WorldUtils {
         rangeY: Int,
         rangeZ: Int,
         pointer: MutableList<Block>? = null,
-        iterator: (Block) -> Unit = {},
+        iterator: (Block, Int) -> Unit = { _, _ -> },
         predicate: (Block) -> Boolean = { true },
     ) = searchBlock(pos, Vec3i(rangeX, rangeY, rangeZ), pointer, iterator, predicate)
 
@@ -188,7 +188,7 @@ object WorldUtils {
         pos: Vec3i,
         range: Vec3i,
         pointer: MutableList<Block>? = null,
-        iterator: (Block) -> Unit = {},
+        iterator: (Block, Int) -> Unit = { _, _ -> },
         predicate: (Block) -> Boolean = { true },
     ) {
         // TODO: Implement O(1) pointer mapping
@@ -212,7 +212,7 @@ object WorldUtils {
         pos: Vec3i,
         range: Vec3i,
         pointer: MutableList<T>? = null,
-        iterator: (T) -> Unit = {},
+        iterator: (T, Int) -> Unit = { _, _ -> },
         predicate: (T) -> Boolean = { true },
     ) {
         // TODO: Implement O(1) pointer mapping
