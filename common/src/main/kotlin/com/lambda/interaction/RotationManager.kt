@@ -73,6 +73,9 @@ object RotationManager : Loadable {
     private fun rotate(newContext: RotationContext?) = runSafe {
         prevRotation = currentRotation
 
+        keepTicks--
+        pauseTicks--
+
         currentContext?.let { current ->
             if (keepTicks + current.config.resetTicks < 0 || pauseTicks >= 0) {
                 currentContext = null
