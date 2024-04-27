@@ -40,11 +40,6 @@ fun ClosedRange<Float>.normalize(value: Float): Float =
 /**
  * Inverts the range.
  */
-fun ClosedRange<Double>.inverted() = endInclusive to start
-
-/**
- * Inverts the range.
- */
 fun ClosedRange<Float>.inverted() = endInclusive to start
 
 /**
