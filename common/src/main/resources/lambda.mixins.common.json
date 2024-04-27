@@ -19,6 +19,7 @@
     "network.HandshakeC2SPacketMixin",
     "network.LoginHelloC2SPacketMixin",
     "network.LoginKeyC2SPacketMixin",
+    "items.TridentMixin",
     "render.CameraMixin",
     "render.ChatInputSuggestorMixin",
     "render.ChatScreenMixin",
@@ -31,8 +32,7 @@
     "render.RenderTickCounterMixin",
     "render.VertexBufferMixin",
     "render.WorldRendererMixin",
-    "world.WorldMixin",
-    "items.TridentMixin"
+    "world.WorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1

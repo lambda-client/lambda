@@ -55,11 +55,15 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
+    includeLib("dev.babbaj:nether-pathfinder:1.5")
     includeLib("com.github.caoimhebyrne:KDiscordIPC:$discordIPCVersion")
 
     // Add mods to the mod jar
     includeMod("org.quiltmc.quilted-fabric-api:quilted-fabric-api:$quiltedFabricVersion")
     includeMod("org.quiltmc.quilt-kotlin-libraries:quilt-kotlin-libraries:$kotlinQuiltVersion")
+
+    // We'll need to include the fabric modloader in quilt for this to work
+    // includeMod("baritone-api:baritone-unoptimized-fabric:1.10.2")
 
 
     // Common (Do not touch)
