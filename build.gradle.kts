@@ -1,4 +1,5 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import net.fabricmc.loom.api.LoomGradleExtensionAPI
 import net.fabricmc.loom.task.RemapJarTask
 
 val modId = property("mod_id").toString()
@@ -8,6 +9,8 @@ val minecraftVersion = property("minecraft_version").toString()
 val yarnMappings = property("yarn_mappings").toString()
 
 val libs = file("libs")
+val Project.loom: LoomGradleExtensionAPI
+    get() = (this as ExtensionAware).extensions.getByName("loom") as LoomGradleExtensionAPI
 
 plugins {
     kotlin("jvm") version "1.9.23"
