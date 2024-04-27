@@ -15,6 +15,7 @@
     "input.KeyBindingMixin",
     "input.KeyboardMixin",
     "input.MouseMixin",
+    "items.TridentMixin",
     "render.CameraMixin",
     "render.ChatInputSuggestorMixin",
     "render.ChatScreenMixin",
@@ -27,8 +28,7 @@
     "render.RenderTickCounterMixin",
     "render.VertexBufferMixin",
     "render.WorldRendererMixin",
-    "world.WorldMixin",
-    "items.TridentMixin"
+    "world.WorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1
