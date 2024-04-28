@@ -35,17 +35,12 @@ import dev.cbyrne.kdiscordipc.core.event.impl.ActivityJoinEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ErrorEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ReadyEvent
 import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.AuthenticatePacket
-import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.SetActivityPacket
 import dev.cbyrne.kdiscordipc.data.activity.*
-import dev.cbyrne.kdiscordipc.data.user.User
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.minecraft.network.encryption.NetworkEncryptionUtils
 import net.minecraft.network.packet.s2c.login.LoginHelloS2CPacket
-import net.minecraft.util.Uuids
 import java.math.BigInteger
-import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
 
 object DiscordRPC : Module(
@@ -73,9 +68,9 @@ object DiscordRPC : Module(
     /* Party settings */
     private val enableParty by setting("Enable Party", true, description = "Allows you to create parties.") { page == Page.Party }
     private val createByDefault by setting("Create Party by Default", false, description = "Automatically create a party when you join a server.") { page == Page.Party && enableParty }
-    private val maxPlayers = setting("Max Players", 10, 2..20, visibility = { page == Page.Party })
-    private val public = setting("Public Party", true, description = "Allow anyone to join your party.") { page == Page.Party }
-    private val listed = setting("Listed Party", true, description = "Allow your party to be listed for other players.") { page == Page.Party && public.value }
+    private val maxPlayers by setting("Max Players", 10, 2..20, visibility = { page == Page.Party }).apply { listener { _, _ -> edit() }}
+    private val public by setting("Public Party", false, description = "Allow anyone to join your party.") { page == Page.Party }.apply { listener { _, _ -> edit() }}
+    private val listed by setting("Listed Party", false, description = "Allow your party to be listed for other players.") { page == Page.Party && public }.apply { listener { _, _ -> edit() }}
 
     private val rpc = KDiscordIPC(Lambda.APP_ID, scope = ioScope)
     private val startup = System.currentTimeMillis()
@@ -122,19 +117,6 @@ object DiscordRPC : Module(
     }
 
     init {
-        // I don't like this, can we provide a listener directly?
-        maxPlayers.listener { _, _ ->
-            if (allowed) edit()
-        }
-
-        public.listener { _, _ ->
-            if (allowed) edit()
-        }
-
-        listed.listener { _, _ ->
-            if (allowed) edit()
-        }
-
         unsafeListener<PacketEvent.Receive.Pre> {
             if (it.packet !is LoginHelloS2CPacket) return@unsafeListener
             connectionTime = System.currentTimeMillis()
@@ -186,7 +168,9 @@ object DiscordRPC : Module(
             } else {
                 warn("Failed to authenticate with the RPC server.")
             }
-        } else warn("You are using an offline account, please use a premium account to access all the RPC features.")
+        } else {
+            warn("You are using an offline account, please use a premium account to access all the RPC features.")
+        }
 
         loop@ while (true) {
             if (rpc.connected) update() else break@loop
@@ -215,7 +199,7 @@ object DiscordRPC : Module(
         if (!allowed) return
 
         ioScope.launch {
-            createParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, maxPlayers.value, public.value, listed.value)
+            createParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, maxPlayers, public, listed)
                 .also { currentParty.lazySet(it) }
         }
     }
@@ -225,7 +209,7 @@ object DiscordRPC : Module(
 
         ioScope.launch {
             currentParty.acquire?.let {
-                editParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, maxPlayers.value, public.value, listed.value)
+                editParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, maxPlayers, public, listed)
                     .also { currentParty.lazySet(it) }
             }
         }
