@@ -8,9 +8,9 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.http.Method
 import com.lambda.http.Request
-import com.lambda.http.openapi.rpc.v1.endpoints.login
-import com.lambda.http.openapi.rpc.v1.models.Authentication
-import com.lambda.http.openapi.rpc.v1.models.Party
+import com.lambda.http.api.rpc.v1.endpoints.login
+import com.lambda.http.api.rpc.v1.models.Authentication
+import com.lambda.http.api.rpc.v1.models.Party
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.onShutdown

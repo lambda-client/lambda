@@ -28,8 +28,6 @@ class Request(
 
     /**
      * Executes the HTTP request synchronously.
-     *
-     * @param completion A callback function to handle the response asynchronously.
      */
     fun doRequest(): Response =
         runCatching {
