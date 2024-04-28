@@ -4,7 +4,7 @@ import com.lambda.http.Method
 import com.lambda.http.Request
 import com.lambda.http.api.rpc.v1.models.Party
 
-fun createParty(
+fun editParty(
     endpoint: String,
     version: String,
     accessToken: String,
@@ -21,18 +21,17 @@ fun createParty(
     // Whether the party can be listed or not.
     // example: true
     listed: Boolean = true,
-) =
-    Request(
-        "$endpoint/api/$version/party/create",
-        Method.POST,
-        parameters =
-            mapOf(
-                "max_players" to maxPlayers,
-                "public" to public,
-                "listed" to listed
-            ),
-        headers =
-            mapOf(
-                "Authorization" to "Bearer $accessToken"
-            )
+) = Request(
+    "$endpoint/api/$version/party/edit",
+    Method.PATCH,
+    parameters =
+        mapOf(
+            "max_players" to maxPlayers,
+            "public" to public,
+            "listed" to listed
+        ),
+    headers =
+        mapOf(
+            "Authorization" to "Bearer $accessToken"
+        )
     ).json<Party>()

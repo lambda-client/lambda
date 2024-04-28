@@ -1,13 +1,15 @@
 package com.lambda.module.modules.client
 
 import com.lambda.Lambda
+import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.event.EventFlow.ioScope
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
-import com.lambda.http.Method
-import com.lambda.http.Request
+import com.lambda.http.api.rpc.v1.endpoints.createParty
+import com.lambda.http.api.rpc.v1.endpoints.editParty
+import com.lambda.http.api.rpc.v1.endpoints.joinParty
 import com.lambda.http.api.rpc.v1.endpoints.login
 import com.lambda.http.api.rpc.v1.models.Authentication
 import com.lambda.http.api.rpc.v1.models.Party
@@ -17,8 +19,10 @@ import com.lambda.threading.onShutdown
 import com.lambda.threading.runConcurrent
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.toast
+import com.lambda.util.Communication.warn
 import com.lambda.util.Nameable
 import com.lambda.util.StringUtils.capitalize
+import com.lambda.util.primitives.extension.isOffline
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.buildText
 import com.lambda.util.text.clickEvent
@@ -39,47 +43,62 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.minecraft.network.encryption.NetworkEncryptionUtils
 import net.minecraft.network.packet.s2c.login.LoginHelloS2CPacket
+import net.minecraft.util.Uuids
 import java.math.BigInteger
-import java.util.*
+import java.util.UUID
+import java.util.concurrent.atomic.AtomicReference
 
 object DiscordRPC : Module(
     name = "DiscordRPC",
     description = "Discord Rich Presence configuration",
     defaultTags = setOf(ModuleTag.CLIENT),
 ) {
+    private val page by setting("Page", Page.General)
 
-    private var rpcServer by setting("RPC Server", "http://127.0.0.1:8080")
-    private var apiVersion by setting("API Version", ApiVersion.V1)
+    /* General settings */
+    private val line1Left by setting("Line 1 Left", LineInfo.WORLD) { page == Page.General }
+    private val line1Right by setting("Line 1 Right", LineInfo.USERNAME) { page == Page.General }
+    private val line2Left by setting("Line 2 Left", LineInfo.DIMENSION) { page == Page.General }
+    private val line2Right by setting("Line 2 Right", LineInfo.FPS) { page == Page.General }
 
-    private val line1Left by setting("Line 1 Left", LineInfo.WORLD)
-    private val line1Right by setting("Line 1 Right", LineInfo.USERNAME)
-    private val line2Left by setting("Line 2 Left", LineInfo.DIMENSION)
-    private val line2Right by setting("Line 2 Right", LineInfo.FPS)
+    private val confirmCoordinates by setting("Show Coordinates", false) { page == Page.General }
+    private val confirmServer by setting("Expose server", false, description = "Allow to show what server you are on and allow to join parties.") { page == Page.General }
+    private val showTime by setting("Show Time", true, description = "Show how long you have been playing for.") { page == Page.General }
 
-    private val confirmCoordinates by setting("Show Coordinates", false)
-    private val confirmServer by setting("Expose server", false, description = "Allow to show what server you are on and allow to join parties.")
-    private val enableParty by setting("Enable Party", true, description = "Will allow you to create and join parties but cannot have buttons.")
-    private val showTime by setting("Show Time", true, description = "Show how long you have been playing for.")
+    /* Technical settings */
+    private var rpcServer by setting("RPC Server", "http://127.0.0.1:8080") { page == Page.Settings } // TODO: Change this in production
+    private var apiVersion by setting("API Version", ApiVersion.V1) { page == Page.Settings }
+    private val delay by setting("Update Delay", 4, 4..60, 1, unit = "ms", visibility = { page == Page.Settings })
 
-    private val delay by setting("Update Delay", 4, 4..60, 1, unit = "s")
+    /* Party settings */
+    private val enableParty by setting("Enable Party", true, description = "Allows you to create parties.") { page == Page.Party }
+    private val createByDefault by setting("Create Party by Default", false, description = "Automatically create a party when you join a server.") { page == Page.Party && enableParty }
+    private val maxPlayers = setting("Max Players", 10, 2..20, visibility = { page == Page.Party })
+    private val public = setting("Public Party", true, description = "Allow anyone to join your party.") { page == Page.Party }
+    private val listed = setting("Listed Party", true, description = "Allow your party to be listed for other players.") { page == Page.Party && public.value }
 
     private val rpc = KDiscordIPC(Lambda.APP_ID, scope = ioScope)
     private val startup = System.currentTimeMillis()
+    private val cracked = mc.gameProfile.isOffline
 
     private var discordAuth: AuthenticatePacket.Data? = null
     private var rpcAuth: Authentication? = null
-    private var currentParty: Party? = null
+    private var currentParty: AtomicReference<Party?> = AtomicReference(null)
 
-    private var lastInviter: User? = null
     private var lastInvite: ActivityInviteEventData? = null
 
+    private var connectionTime: Long = 0
     private var serverId: String? = null
 
     /**
-     * Check if the player can create parties
+     * If the player can interact with the party system.
      */
     private val allowed: Boolean
-        get() = rpcAuth != null && discordAuth != null && rpc.connected
+        get() = rpcAuth != null && discordAuth != null && !cracked && enableParty
+
+    private enum class Page {
+        General, Settings, Party
+    }
 
     private enum class LineInfo(val value: () -> String) : Nameable {
         VERSION({ Lambda.VERSION }),
@@ -98,73 +117,133 @@ object DiscordRPC : Module(
     }
 
     private enum class ApiVersion(val value: String) {
-        // We can use @Deprecated("Not supported") to remove the old API version in the future
+        // We can use @Deprecated("Not supported") to remove old API versions in the future
         V1("v1"),
     }
 
     init {
+        // I don't like this, can we provide a listener directly?
+        maxPlayers.listener { _, _ ->
+            if (allowed) edit()
+        }
+
+        public.listener { _, _ ->
+            if (allowed) edit()
+        }
+
+        listed.listener { _, _ ->
+            if (allowed) edit()
+        }
+
         unsafeListener<PacketEvent.Receive.Pre> {
             if (it.packet !is LoginHelloS2CPacket) return@unsafeListener
+            connectionTime = System.currentTimeMillis()
             serverId = it.packet.serverId
         }
 
-        // Will not work in single player
-        unsafeListener<ConnectionEvent.Connect.Login.Key>(Int.MAX_VALUE) {
-            val hash = BigInteger(
-                NetworkEncryptionUtils.computeServerId(serverId ?: return@unsafeListener, it.publicKey, it.secretKey)
-            ).toString(16)
-
-            serverId = null
-            it.secretKey.destroy() // Destroy the secret key after use
-
+        // Will not work in single player or cracked servers
+        unsafeListener<ConnectionEvent.Connect.Login.Key> { event ->
             runConcurrent {
-                discordAuth = rpc.applicationManager.authenticate() // We only have access to the basic user info, no email, no password
-                rpcAuth = login(rpcServer, apiVersion.value, discordAuth?.accessToken ?: "", mc.session.username, hash)
+                connect(event)
             }
         }
 
         onEnableUnsafe {
-            ioScope.launch {
-                rpc.register()
+            runConcurrent {
                 connect()
-
-                while (true) {
-                    if (rpc.connected) update() else cancel()
-                    delay(delay * 1000L)
-                }
             }
         }
 
-        onDisableUnsafe(::disconnect)
-
-        onShutdown(::disconnect)
+        onDisableUnsafe { disconnect() }
+        onShutdown { disconnect() }
     }
 
-    private suspend fun connect() {
+    private suspend fun connect(event: ConnectionEvent.Connect.Login.Key? = null) {
         if (!rpc.connected) {
-            Lambda.LOG.info("Connecting to Discord RPC.")
+            rpc.register()
             rpc.connect()
+        }
+
+        if (!cracked &&
+            (rpcAuth == null ||
+            discordAuth == null) &&
+            event != null)
+        {
+            if (System.currentTimeMillis() - connectionTime > 300000) {
+                warn("The authentication hash has expired, please reconnect to the server.")
+                return
+            }
+
+            val hash = BigInteger(NetworkEncryptionUtils.computeServerId(serverId ?: return, event.publicKey, event.secretKey)).toString(16)
+
+            // Prompt the user to authorize
+            discordAuth = rpc.applicationManager.authenticate()
+            rpcAuth = login(rpcServer, apiVersion.value, discordAuth?.accessToken ?: "", mc.session.username, hash)
+
+            if (rpcAuth != null) {
+                info("Successfully authenticated with the RPC server.")
+                if (createByDefault) create()
+            } else {
+                warn("Failed to authenticate with the RPC server.")
+            }
+        } else warn("You are using an offline account, please use a premium account to access all the RPC features.")
+
+        loop@ while (true) {
+            if (rpc.connected) update() else break@loop
+            delay(delay * 1000L)
         }
     }
 
     private fun disconnect() {
         if (rpc.connected) {
-            Lambda.LOG.info("Gracefully disconnecting from Discord RPC.")
+            LOG.info("Gracefully disconnecting from Discord RPC.")
             rpc.disconnect()
+        }
+    }
+
+    // We won't need to specify non-null variables in kotlin 2.0
+    private fun join(id: String) {
+        if (!allowed) return
+
+        ioScope.launch {
+            joinParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, id)
+                .also { currentParty.lazySet(it) }
+        }
+    }
+
+    private fun create() {
+        if (!allowed) return
+
+        ioScope.launch {
+            createParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, maxPlayers.value, public.value, listed.value)
+                .also { currentParty.lazySet(it) }
+        }
+    }
+
+    private fun edit() {
+        if (!allowed) return
+
+        ioScope.launch {
+            currentParty.acquire?.let {
+                editParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, maxPlayers.value, public.value, listed.value)
+                    .also { currentParty.lazySet(it) }
+            }
         }
     }
 
     private suspend fun update() {
         rpc.activityManager.setActivity {
-            details = "${line1Left.value()} ${line1Right.value()}".take(128)
-            state = "${line2Left.value()} ${line2Right.value()}".take(128)
+            details = "${line1Left.value()} | ${line1Right.value()}".take(128)
+            state = "${line2Left.value()} | ${line2Right.value()}".take(128)
 
             largeImage("lambda", Lambda.VERSION)
             smallImage("https://mc-heads.net/avatar/${mc.gameProfile.id}/nohelm", mc.gameProfile.name)
 
-            if (enableParty && allowed) {
-                /*party(partyId, currentParty?.players?.size ?: 1, 16)
-                secrets(joinSecret)*/
+            val party = currentParty.acquire
+
+            if (allowed && party != null) {
+                party(party.id, party.players.size, party.settings.maxPlayers)
+                secrets(party.joinSecret)
             } else {
                 button("Download", "https://modrinth.com/") // ToDo: Add real link
             }
@@ -175,38 +254,43 @@ object DiscordRPC : Module(
 
     private suspend fun KDiscordIPC.register() {
         on<ReadyEvent> {
-            Lambda.LOG.info("Discord RPC connected to ${data.user.username}.")
+            LOG.info("Discord RPC connected to ${data.user.username}.")
 
-            subscribe(DiscordEvent.ActivityJoinRequest)
-            subscribe(DiscordEvent.ActivityJoin)
-            subscribe(DiscordEvent.ActivityInvite)
+            if (!cracked) {
+                // Party features
+                subscribe(DiscordEvent.ActivityJoinRequest)
+                subscribe(DiscordEvent.ActivityJoin)
+                subscribe(DiscordEvent.ActivityInvite)
+                subscribe(DiscordEvent.LobbyUpdate)
+                subscribe(DiscordEvent.LobbyDelete)
+                subscribe(DiscordEvent.LobbyMemberConnect)
+                subscribe(DiscordEvent.LobbyMemberDisconnect)
+                subscribe(DiscordEvent.LobbyMemberUpdate)
+
+                // QOL features
+                subscribe(DiscordEvent.SpeakingStart)
+                subscribe(DiscordEvent.SpeakingStop)
+            }
         }
 
         on<ActivityInviteEvent> {
-            lastInviter = data.user
+            lastInvite = data
 
             info(buildText {
-                clickEvent(ClickEvents.runCommand(";rpc accept")) {
+                clickEvent(ClickEvents.runCommand(";rpc accept")) { // TODO: Custom click events
                     literal("Click to join ${data.user.username}'s party.")
                 }
             })
 
-            toast("You have been invited to play by ${lastInviter?.username}") // TODO: Custom toast ?
-            lastInvite = data
+            toast("You have been invited to play by ${lastInvite?.user?.username}")
         }
 
         on<ActivityJoinEvent> {
-            info("Joined ${lastInviter?.username}'s party.")
-        }
-
-        on<SetActivityPacket> {
-            /*partyId = data?.party?.id ?: partyId
-            partySize = data?.party?.size?.currentSize ?: partySize
-            partyMax = data?.party?.size?.maxSize ?: partyMax*/
+            info("Joined ${lastInvite?.user?.username}'s party.")
         }
 
         on<ErrorEvent> {
-            Lambda.LOG.error("Discord RPC error: ${data.message}")
+            LOG.error("Discord RPC error: ${data.message}")
         }
     }
 }

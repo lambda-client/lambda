@@ -68,10 +68,9 @@ sealed class ConnectionEvent : Event {
              * @property publicKey The public key exchanged during login.
              * @property nonce The nonce associated with the login.
              *
-             * The secret key MUST ABSOLUTELY be destroyed after use to prevent memory leaks and security vulnerabilities.
+             * The secret key MUST ABSOLUTELY be, if stored, destroyed after use to avoid security vulnerabilities.
              * This can be done by calling the `destroy()` method on the secret key object.
-             * We are NOT responsible for any security incidents that may occur due to improper handling of cryptographic keys.
-             * It cannot be used for stealing accounts, but you may still want to keep it secret.
+             * We are NOT responsible for any incidents that may occur due to improper handling of cryptographic keys.
              */
             class Key(
                 val secretKey: SecretKey,

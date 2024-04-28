@@ -41,6 +41,8 @@ accessible field net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPa
 accessible field net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket type Lnet/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler;
 accessible class net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler
 accessible class net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractAtHandler
+accessible field net/minecraft/network/packet/c2s/login/LoginKeyC2SPacket encryptedSecretKey [B
+accessible field net/minecraft/network/packet/c2s/login/LoginKeyC2SPacket nonce [B
 
 # Other
 accessible field net/minecraft/client/world/ClientEntityManager cache Lnet/minecraft/world/entity/SectionedEntityCache;

@@ -1,6 +1,5 @@
 package com.lambda.http.api.rpc.v1.models
 
-// Represents a player in a party.
 data class Player (
     // The player's name.
     // example: Notch

@@ -1,13 +1,8 @@
 package com.lambda.http
 
 import com.lambda.Lambda
-import com.lambda.event.EventFlow
-import com.lambda.threading.runConcurrent
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import java.net.HttpURLConnection
 import java.net.URL
-import java.net.URLEncoder
 
 /**
  * Represents an HTTP request handler that allows making various HTTP requests.
@@ -25,45 +20,47 @@ class Request(
     private val headers: Map<String, String> = mapOf(),
     private val config: ((HttpURLConnection) -> Unit) = {},
 ) {
+    private val canBeEncoded: Boolean
+        get() = method != Method.POST && method != Method.PUT && method != Method.PATCH
 
     /**
      * Executes the HTTP request synchronously.
      */
-    fun doRequest(): Response =
-        runCatching {
-            val url = URL(
-                if (parameters.isNotEmpty()) "$url?${parameters.query}"
-                else url
-            )
+    fun doRequest(): Response {
+        val url = URL(
+            if (parameters.isNotEmpty() && canBeEncoded) "$url?${parameters.query}"
+            else url
+        )
 
-            val connection = url.openConnection() as HttpURLConnection
-            config.invoke(connection)
-            connection.requestMethod = method.value
-            headers.forEach { (key, value) -> connection.setRequestProperty(key, value) }
+        val connection = url.openConnection() as HttpURLConnection
+        config.invoke(connection)
 
-            if (method == Method.POST || method == Method.PUT) {
-                connection.doOutput = true
-                connection.outputStream.use {
-                    it.write(parameters.query.toByteArray())
-                }
+        connection.requestMethod = method.value
+
+        headers.forEach { (key, value) -> connection.setRequestProperty(key, Lambda.gson.toJson(value)) }
+
+        if (!canBeEncoded) {
+            connection.doOutput = true
+            connection.outputStream.use {
+                it.write(Lambda.gson.toJson(parameters).toByteArray())
             }
-
-            val response = Response(
-                connection = connection,
-                body = connection.inputStream.bufferedReader()
-            )
-
-            connection.disconnect()
-            return response
-        }.getOrElse {
-            return Response(exception = it)
         }
+
+        connection.connect()
+
+        val response = Response(
+            connection = connection,
+            body = connection.inputStream.bufferedReader()
+        )
+
+        return response
+    }
 
     /**
      * Executes an HTTP request synchronously and parses the response as JSON.
      *
      * @param T The type of the expected JSON response.
      */
-    inline fun <reified T: Any> json(): T? =
+    inline fun <reified T : Any> json(): T? =
         doRequest().body?.let { Lambda.gson.fromJson(it, T::class.java) }
 }

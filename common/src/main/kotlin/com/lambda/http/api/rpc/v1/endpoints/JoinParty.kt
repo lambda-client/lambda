@@ -8,6 +8,9 @@ fun joinParty(
     endpoint: String,
     version: String,
     accessToken: String,
+
+    // The ID of the party.
+    // example: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
     partyId: String,
 ) =
     Request(
@@ -15,7 +18,7 @@ fun joinParty(
         Method.PUT,
         parameters =
             mapOf(
-                "partyId" to partyId
+                "id" to partyId
             ),
         headers =
             mapOf(
