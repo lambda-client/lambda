@@ -12,6 +12,7 @@ accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minec
 accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Lnet/minecraft/entity/LivingEntity;
 accessible method net/minecraft/entity/Entity movementInputToVelocity (Lnet/minecraft/util/math/Vec3d;FF)Lnet/minecraft/util/math/Vec3d;
 accessible method net/minecraft/entity/passive/AbstractHorseEntity setHorseFlag (IZ)V
+accessible method net/minecraft/entity/passive/AbstractHorseEntity updateSaddle ()V
 
 # Camera
 accessible method net/minecraft/client/render/Camera setPos (DDD)V
