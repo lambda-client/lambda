@@ -7,7 +7,9 @@ import com.lambda.util.math.Vec2d
 import kotlinx.coroutines.*
 import kotlin.properties.Delegates
 
-abstract class Renderer <T: IRenderEntry<T>> (private val shader: Shader) : IRenderer<T> {
+abstract class Renderer <T: IRenderEntry<T>> (
+    protected val shader: Shader
+) : IRenderer<T> {
     private val entrySet = mutableSetOf<T>()
     protected var rebuild = false
     private var destroyed = false

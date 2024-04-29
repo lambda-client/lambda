@@ -25,9 +25,9 @@ class RenderLayer {
         rect.apply {
             shadeColor = GuiSettings.shade && allowEffects
             fancyBlending = GuiSettings.glow && allowEffects
-            render()
         }
 
+        rect.render()
         font.render()
     }
 
