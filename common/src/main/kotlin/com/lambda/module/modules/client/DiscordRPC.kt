@@ -3,6 +3,7 @@ package com.lambda.module.modules.client
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
+import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.ioScope
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
@@ -186,12 +187,22 @@ object DiscordRPC : Module(
     }
 
     // We won't need to specify non-null variables in kotlin 2.0
-    private fun join(id: String) {
+    fun join(id: String) {
         if (!allowed) return
 
         ioScope.launch {
             joinParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, id)
                 .also { currentParty.lazySet(it) }
+        }
+    }
+
+    fun accept() {
+        if (!allowed) return
+
+        ioScope.launch {
+            lastInvite?.let {
+                join(it.activity.party.id)
+            }
         }
     }
 
