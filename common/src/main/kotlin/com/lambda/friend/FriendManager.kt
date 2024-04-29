@@ -32,7 +32,7 @@ object FriendManager : Configurable(FriendConfig), Loadable {
     fun ServerPlayerEntity.unfriend() = remove(gameProfile)
 
     override fun load(): String {
-        if (friends.isEmpty()) return "No friends loaded, damn bro you don't have to be antisocial online too,"
+        if (friends.isEmpty()) return "No friends loaded, you don't have to be antisocial online too,"
         val word = if (friends.size == 1) "friend" else "friends"
         return "Loaded ${friends.size} $word."
     }
