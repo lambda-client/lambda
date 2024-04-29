@@ -141,6 +141,9 @@ object DiscordRPC : Module(
         onShutdown { disconnect() }
     }
 
+    // TODO: Fix the rpc only showing up in the second connection
+    // We should do a video of my sanity slowing degrading over time
+    // as I try to implement stuff and fix other stuff
     private suspend fun connect(event: ConnectionEvent.Connect.Login.Key? = null) {
         if (!rpc.connected) {
             rpc.register()
