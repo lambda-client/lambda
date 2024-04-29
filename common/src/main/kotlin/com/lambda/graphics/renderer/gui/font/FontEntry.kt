@@ -13,7 +13,7 @@ class FontEntry(
     private val font: LambdaFont
 ) : IFontEntry {
     override var text by owner.field("")
-    override var position by owner.field(Vec2d.ZERO)
+    override var position by owner.positionVec2()
 
     override var color by owner.field(Color.WHITE)
     override var scale by owner.field(1.0)

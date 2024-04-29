@@ -10,7 +10,7 @@ class RectEntry(
     override val owner: RectRenderer,
     override val updateBlock: IRectEntry.() -> Unit
 ) : IRectEntry {
-    override var position by owner.field(Rect.ZERO)
+    override var position by owner.positionRect()
     override var roundRadius by owner.field(0.0)
 
     private var leftTop     by owner.field(Color.WHITE!!)

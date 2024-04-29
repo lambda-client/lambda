@@ -1,15 +1,22 @@
 package com.lambda.graphics.renderer
 
 import com.lambda.graphics.buffer.vao.VAO
+import com.lambda.graphics.gl.Matrices
+import com.lambda.graphics.shader.Shader
+import com.lambda.util.math.Vec2d
 import kotlinx.coroutines.*
 import kotlin.properties.Delegates
 
-abstract class Renderer <T: IRenderEntry<T>> : IRenderer<T> {
+abstract class Renderer <T: IRenderEntry<T>> (private val shader: Shader) : IRenderer<T> {
     private val entrySet = mutableSetOf<T>()
-    private var rebuild = false
+    protected var rebuild = false
     private var destroyed = false
 
     val asRenderer get() = this as IRenderer<T>
+
+    // Optimization tweak to reduce build calls when whole renderer moves
+    // Instead of rebuilding all entries you translate the matrix
+    var matrixOffset = Vec2d.ZERO
 
     abstract val vao: VAO
     protected abstract fun newEntry(block: T.() -> Unit): T
@@ -35,8 +42,17 @@ abstract class Renderer <T: IRenderEntry<T>> : IRenderer<T> {
             vao.upload()
         }
 
+        Matrices.push()
+        Matrices.translate(matrixOffset.x, matrixOffset.y, 0.0)
+
+        shader.use()
+        preRender()
         vao.render()
+
+        Matrices.pop()
     }
+
+    protected open fun preRender() {}
 
     override fun update() {
         checkDestroyed()

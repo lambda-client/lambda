@@ -12,14 +12,12 @@ import org.lwjgl.opengl.GL11.GL_ONE
 import org.lwjgl.opengl.GL11.GL_SRC_ALPHA
 
 class RectRenderer : AbstractGuiRenderer<IRectEntry>(
-    VertexAttrib.Group.RECT
+    VertexAttrib.Group.RECT, shader
 ) {
     var shadeColor = false
     var fancyBlending = false
 
-    override fun render() {
-        shader.use()
-
+    override fun preRender() {
         shader["u_Shade"] = shadeColor
 
         if (shadeColor) {
@@ -30,6 +28,9 @@ class RectRenderer : AbstractGuiRenderer<IRectEntry>(
         }
 
         if (fancyBlending) blendFunc(GL_SRC_ALPHA, GL_ONE)
+    }
+
+    override fun render() {
         super.render()
         defaultBlendFunc()
     }

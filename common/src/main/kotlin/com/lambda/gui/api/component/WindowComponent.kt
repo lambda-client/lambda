@@ -93,7 +93,12 @@ abstract class WindowComponent <T : ChildComponent> (
     }
 
     override fun onRender() {
-        BlurPostProcessor.render(rect, ClickGui.windowBlur, guiAnimation)
+        // TODO: fix blur
+        // BlurPostProcessor.render(rect, ClickGui.windowBlur, guiAnimation)
+
+        layer.assignOffset(position)
+        subLayer.assignOffset(position)
+
         layer.render()
 
         scissor(contentRect) {
