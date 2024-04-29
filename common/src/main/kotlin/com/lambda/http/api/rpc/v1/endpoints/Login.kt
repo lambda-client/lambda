@@ -9,7 +9,7 @@ fun login(
     version: String,
 
     // The player's Discord token.
-    // example: OTk1MTU1NzcyMzYxMTQ2NDM4.AAAAAA.BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+    // example: OTk1MTU1NzcyMzYxMTQ2NDM4
     discordToken: String,
 
     // The player's username.
@@ -25,7 +25,7 @@ fun login(
         Method.POST,
         parameters =
             mapOf(
-                "token" to "Bearer $discordToken",
+                "token" to discordToken,
                 "username" to username,
                 "hash" to hash
             )
