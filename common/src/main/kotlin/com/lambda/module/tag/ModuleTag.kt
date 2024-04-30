@@ -25,6 +25,7 @@ class ModuleTag(override val name: String) : Nameable {
         val MISC = ModuleTag("Misc")
         val CLIENT = ModuleTag("Client")
         val HIDDEN = ModuleTag("Hidden")
+        val NETWORK = ModuleTag("Network")
         val GRIM = ModuleTag("Grim")
         val BYPASS = ModuleTag("Bypass")
         val DEBUG = ModuleTag("Debug")

@@ -1,6 +1,5 @@
-package com.lambda.module.modules
+package com.lambda.module.modules.network
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
 import com.lambda.event.EventFlow.lambdaScope
@@ -27,10 +26,10 @@ import java.nio.file.Path
 import java.time.format.DateTimeFormatter
 import kotlin.io.path.pathString
 
-object Packetlogger : Module(
-    name = "Packetlogger",
+object PacketLogger : Module(
+    name = "PacketLogger",
     description = "Serializes network traffic and persists it for later analysis",
-    defaultTags = setOf(ModuleTag.DEBUG)
+    defaultTags = setOf(ModuleTag.NETWORK, ModuleTag.DEBUG)
 ) {
     private val logToChat by setting("Log To Chat", false, "Log packets to chat")
     // ToDo: Implement HUD logging when HUD is done
@@ -74,7 +73,7 @@ object Packetlogger : Module(
         lambdaScope.launch(Dispatchers.IO) {
             storageFlow.collect { entry ->
                 file?.appendText(entry)
-                if (logToChat) this@Packetlogger.info(entry)
+                if (logToChat) this@PacketLogger.info(entry)
             }
         }
 
@@ -94,7 +93,7 @@ object Packetlogger : Module(
                         literal(" (click to open)")
                     }
                 }
-                this@Packetlogger.info(info)
+                this@PacketLogger.info(info)
             }.apply {
                 // ToDo: Add more rich and accurate data to the header
                 StringBuilder().apply {
@@ -130,7 +129,7 @@ object Packetlogger : Module(
                         literal(" (click to open)")
                     }
                 }
-                this@Packetlogger.info(info)
+                this@PacketLogger.info(info)
 
                 file = null
             }

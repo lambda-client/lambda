@@ -1,6 +1,5 @@
 package com.lambda.module
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
 import com.lambda.config.Configurable
 import com.lambda.config.Configuration
@@ -129,37 +128,37 @@ abstract class Module(
     }
 
     protected fun onEnable(block: SafeContext.() -> Unit) {
-        isEnabledSetting.listener { from, to ->
+        isEnabledSetting.onValueChange { from, to ->
             if (!from && to) block()
         }
     }
 
     protected fun onDisable(block: SafeContext.() -> Unit) {
-        isEnabledSetting.listener { from, to ->
+        isEnabledSetting.onValueChange { from, to ->
             if (from && !to) block()
         }
     }
 
     protected fun onToggle(block: SafeContext.(to: Boolean) -> Unit) {
-        isEnabledSetting.listener { from, to ->
+        isEnabledSetting.onValueChange { from, to ->
             if (from != to) block(to)
         }
     }
 
     protected fun onEnableUnsafe(block: () -> Unit) {
-        isEnabledSetting.unsafeListener { from, to ->
+        isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (!from && to) block()
         }
     }
 
     protected fun onDisableUnsafe(block: () -> Unit) {
-        isEnabledSetting.unsafeListener { from, to ->
+        isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from && !to) block()
         }
     }
 
     protected fun onToggleUnsafe(block: (to: Boolean) -> Unit) {
-        isEnabledSetting.unsafeListener { from, to ->
+        isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from != to) block(to)
         }
     }
