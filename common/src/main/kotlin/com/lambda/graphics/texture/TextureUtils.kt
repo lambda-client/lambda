@@ -3,10 +3,7 @@ package com.lambda.graphics.texture
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.client.texture.NativeImage
 import org.lwjgl.BufferUtils
-import org.lwjgl.opengl.ARBTextureStorage.glTexStorage2D
-import org.lwjgl.opengl.GL11C
 import org.lwjgl.opengl.GL13C.*
-import org.lwjgl.opengl.GL30C.glGenerateMipmap
 import java.awt.Color
 import java.awt.Font
 import java.awt.RenderingHints

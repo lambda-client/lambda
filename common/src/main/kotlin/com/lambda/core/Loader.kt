@@ -30,7 +30,7 @@ object Loader {
 
         val initTime = measureTimeMillis {
             loadables.forEach { loadable ->
-                var info: String
+                val info: String
                 val phaseTime = measureTimeMillis {
                     info = loadable.load()
                 }

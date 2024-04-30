@@ -1,7 +1,7 @@
 package com.lambda.gui.impl.clickgui
 
 import com.lambda.gui.GuiConfigurable
-import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
+import com.lambda.gui.api.component.WindowComponent
 
 object LambdaClickGui : AbstractClickGui() {
     override fun onShow() {
@@ -14,17 +14,16 @@ object LambdaClickGui : AbstractClickGui() {
         super.onTick()
     }
 
-    private fun updateWindows() {
+    fun updateWindows() {
         val windows = GuiConfigurable.mainWindows + GuiConfigurable.customWindows
-        val new = windows.subtract(children)
+        val new = windows.subtract(children.toSet())
         children.addAll(new)
-
         children.removeIf {
-            if (it !is CustomModuleWindow) return@removeIf false
+            if (it !is WindowComponent<*>) return@removeIf false
 
-            val flag = it !in windows
-            if (flag) it.destroy()
-            flag
+            val absent = it !in windows
+            if (absent) it.destroy()
+            absent
         }
     }
 }
