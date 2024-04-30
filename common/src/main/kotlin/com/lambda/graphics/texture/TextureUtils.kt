@@ -27,13 +27,32 @@ object TextureUtils {
         val width = bufferedImage.width
         val height = bufferedImage.height
 
-        // GL_UNSIGNED_INT_8_8_8_8_REV -> 0xRRGGBBAA
+        // Here we cannot use GL_UNSIGNED_INT_8_8_8_8_REV or GL_UNSIGNED_INT_8_8_8_8
+        // because the RGBA values are affected by the machine's endianness.
+        // On little-endian machines, you would read the data as
+        // 0xAABBGGRR and on big-endian machines as 0xRRGGBBAA.
+        // The solution is to use GL_UNSIGNED_BYTE and swap the bytes
+        // manually if necessary. (We won't need to)
+        //
         // GL_UNSIGNED_BYTE -> [RR, GG, BB, AA]
-        // In the end it will be the exact same but in the case that you
-        // supply the data in the reverse order, GL_UNSIGNED_INT_8_8_8_8_REV
-        // will swap the bytes for you.
-        glTexImage2D(GL_TEXTURE_2D, lod, GL_BGRA, width, height, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, 0)
-        glTexSubImage2D(GL_TEXTURE_2D, lod, 0, 0, width, height, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, readImage(bufferedImage))
+        // Array of floats normalized to [0.0, 1.0] -> [R, G, B, A]
+        glTexImage2D(GL_TEXTURE_2D, lod, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, readImage(bufferedImage))
+
+        // I'd also like to use glTexSubImage2D, but we have an issue where the function
+        // would return an error about an invalid texture format.
+        //
+        // It would allow us to upload texture data asynchronously and is more efficient
+        // from testing we gain approximately 20% runtime performance.
+        // If someone with advanced OpenGL knowledge could help us out, that would be great.
+        // (Very unlikely to happen, but I can hope)
+        //
+        // I've also read online that glTexStorage2D can be used for the same purpose as
+        // glTexImage2D with NULL data.
+        // However, some users may have ancient hardware that does not support this function.
+        // as it was implemented in OpenGL 4.2 and ES 3.0.
+        //
+        // glTexSubImage2D(GL_TEXTURE_2D, lod, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, readImage(bufferedImage))
+
         setupTexture(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
     }
 
