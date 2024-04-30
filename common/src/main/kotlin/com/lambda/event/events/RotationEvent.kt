@@ -12,7 +12,7 @@ import com.lambda.module.modules.client.TaskFlow
 import com.lambda.threading.runSafe
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
-import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.Entity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
@@ -38,7 +38,7 @@ abstract class RotationEvent : Event {
         fun lookAtEntity(
             rotationConfig: IRotationConfig,
             interactionConfig: InteractionConfig,
-            entity: LivingEntity
+            entity: Entity
         ) {
             runSafe {
                 findRotation(rotationConfig, interactionConfig, listOf(entity.boundingBox)) {

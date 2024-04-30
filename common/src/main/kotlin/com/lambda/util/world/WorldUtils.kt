@@ -1,0 +1,225 @@
+package com.lambda.util.world
+
+import com.lambda.context.SafeContext
+import com.lambda.util.collections.filterPointer
+import com.lambda.util.math.VecUtils.distSq
+import net.minecraft.block.Block
+import net.minecraft.entity.Entity
+import net.minecraft.fluid.Fluid
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.ChunkSectionPos
+import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.Vec3i
+import kotlin.math.ceil
+
+/**
+ * Utility functions for working with the Minecraft world.
+ *
+ * This object employs a pass-by-reference model, allowing functions to modify
+ * data structures passed to them rather than creating new ones. This approach
+ * offers 2 main benefits:
+ *
+ * - **Performance**: Pass-by-reference avoids unnecessary memory allocations
+ * and reallocations that can occur when creating new data structures.
+ *
+ * - **Reduced Garbage Collection Overhead**: In languages with garbage collection
+ * like Kotlin, creating and discarding many temporary objects can lead to increased
+ * overhead. Pass-by-reference helps mitigate this by minimizing the creation of
+ * temporary objects.
+ *
+ * When you create a new object, the JVM allocates memory for it on the heap.
+ * When it is no longer needed, the garbage collector frees up the memory.
+ * This process **IS** expensive, especially if you are creating and discarding many objects
+ * in a short period of time, for example, when retrieving all the 200 pigs in your farm every game tick.
+ *
+ * @see <a href="https://www.ibm.com/docs/en/i/7.4?topic=calls-pass-by-reference">IBM - Pass By Reference</a>
+ * @see <a href="https://www.cs.fsu.edu/~myers/c++/notes/references.html">Florida State University - Pass By Reference vs. Pass By Value</a>
+ * @see <a href="https://www.ibm.com/docs/no/aix/7.2?topic=monitoring-garbage-collection-impacts-java-performance">IBM - Garbage Collection Impacts on Java Performance</a>
+ * @see <a href="https://devdiaries.medium.com/gc-and-its-effect-on-java-performance-9cba51ffb196">Medium - GC and Its Effect on Java Performance</a>
+ *
+ */
+object WorldUtils {
+    /**
+     * Gets the closest entity of type [T] within a specified range.
+     *
+     * Because we don't want to troll the CPU speculative execution, we only use the [getFastEntities] function.
+     * This should not be an issue as the performance of this function is optimized for small distances.
+     *
+     * @param pos The position to search from.
+     * @param range The maximum distance to search for entities.
+     * @param predicate Predicate to filter entities.
+     * @return The first entity of type [T] that is closest to the position within the specified range.
+     */
+    inline fun <reified T : Entity> SafeContext.getClosestEntity(
+        pos: Vec3d,
+        range: Double,
+        predicate: (T) -> Boolean = { true },
+    ): T? {
+        var closest: T? = null
+        var closestDistance = Double.MAX_VALUE
+
+        val comparator = { entity: T, _: Int ->
+            val distance = pos.squaredDistanceTo(entity.pos)
+            if (distance < closestDistance) {
+                closest = entity
+                closestDistance = distance
+            }
+        }
+
+        getFastEntities(pos, range, null, comparator, predicate)
+
+        return closest
+    }
+
+    /**
+     * Gets all entities of type [T] within a specified distance from a position.
+     *
+     * This function retrieves entities of type [T] within a specified distance from a given position. It efficiently
+     * queries nearby chunks based on the distance and returns a list of matching entities, excluding the player entity.
+     *
+     *
+     * Getting all Zombie entities within a certain distance:
+     * ```
+     * val nearbyZombies = getFastEntities<ZombieEntity>(playerPos, 20.0)
+     * ```
+     *
+     * Getting all hostile entities within a certain distance:
+     * ```
+     * val hostileEntities = getFastEntities<HostileEntity>(playerPos, 30.0)
+     * ```
+     * This fetches all hostile entities (e.g., Monsters) within a 30-block radius from the player's position.
+     *
+     * Please note that this implementation is optimized for performance at small distances. For larger distances, it is
+     * recommended to use the [getEntities] function instead.
+     * With the time complexity, we can determine that after 64 blocks, the performance of this function will degrade.
+     *
+     * @param pos The position to search from.
+     * @param distance The maximum distance to search for entities.
+     * @param pointer The mutable list to store the entities in.
+     * @param iterator Iterator to perform operations on each entity.
+     * @param predicate Predicate to filter entities.
+     */
+    inline fun <reified T : Entity> SafeContext.getFastEntities(
+        pos: Vec3d,
+        distance: Double,
+        pointer: MutableList<T>? = null,
+        iterator: (T, Int) -> Unit = { _, _ -> },
+        predicate: (T) -> Boolean = { true },
+    ) {
+        val chunks = ceil(distance / 16).toInt()
+        val sectionX = pos.x.toInt() shr 4
+        val sectionY = pos.y.toInt() shr 4
+        val sectionZ = pos.z.toInt() shr 4
+
+        // Here we iterate over all sections within the specified distance and add all entities of type [T] to the list.
+        // We do not have to worry about performance here, as the number of sections is very limited.
+        // For example, if the player is on the edge of a section and the distance is 16, we only have to iterate over 9 sections.
+        for (x in sectionX - chunks..sectionX + chunks) {
+            for (y in sectionY - chunks..sectionY + chunks) {
+                for (z in sectionZ - chunks..sectionZ + chunks) {
+                    val section =
+                        world.entityManager.cache.findTrackingSection(ChunkSectionPos.asLong(x, y, z)) ?: continue
+
+                    section.collection.filterPointer(pointer, iterator) { entity ->
+                        entity != player &&
+                                entity.squaredDistanceTo(pos) <= distance * distance &&
+                                predicate(entity)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Gets all entities of type [T] within a specified distance from a position.
+     *
+     * This function retrieves entities of type [T] within a specified distance from a given position. Unlike
+     * [getFastEntities], it traverses all entities in the world to find matches, while also excluding the player entity.
+     *
+     * @param pointer The mutable list to store the entities in.
+     * @param iterator Iterator to perform operations on each entity.
+     * @param predicate Predicate to filter entities.
+     */
+    inline fun <reified T : Entity> SafeContext.getEntities(
+        pos: Vec3d,
+        distance: Double,
+        pointer: MutableList<T>? = null,
+        iterator: (T, Int) -> Unit = { _, _ -> },
+        predicate: (T) -> Boolean = { true },
+    ) {
+        world.entities.filterPointer(pointer, iterator) { entity ->
+            entity != player &&
+                    entity.squaredDistanceTo(pos) <= distance * distance &&
+                    predicate(entity)
+        }
+    }
+
+    /**
+     * Returns all the position within the range where the predicate is true.
+     *
+     * @param pos The position to search from.
+     * @param rangeX The maximum distance to search for entities in the x-axis.
+     * @param rangeY The maximum distance to search for entities in the y-axis.
+     * @param rangeZ The maximum distance to search for entities in the z-axis.
+     * @param pointer The mutable list to store the positions in.
+     * @param iterator Iterator to perform operations on each block.
+     * @param predicate Predicate to filter the blocks.
+     */
+    inline fun SafeContext.searchBlock(
+        pos: Vec3i,
+        rangeX: Int,
+        rangeY: Int,
+        rangeZ: Int,
+        pointer: MutableList<Block>? = null,
+        iterator: (Block, Int) -> Unit = { _, _ -> },
+        predicate: (Block) -> Boolean = { true },
+    ) = searchBlock(pos, Vec3i(rangeX, rangeY, rangeZ), pointer, iterator, predicate)
+
+    /**
+     * Returns all the position within the range where the predicate is true.
+     *
+     * @param pos The position to search from.
+     * @param range The maximum distance to search for entities in each axis.
+     * @param pointer The mutable list to store the positions in.
+     * @param iterator Iterator to perform operations on each block.
+     * @param predicate Predicate to filter the blocks.
+     */
+    inline fun SafeContext.searchBlock(
+        pos: Vec3i,
+        range: Vec3i,
+        pointer: MutableList<Block>? = null,
+        iterator: (Block, Int) -> Unit = { _, _ -> },
+        predicate: (Block) -> Boolean = { true },
+    ) {
+        // TODO: Implement O(1) pointer mapping
+        BlockPos.iterateOutwards(BlockPos(pos), range.x, range.y, range.z)
+            .map { world.getBlockState(it).block }
+            .filterPointer(pointer, iterator) { block ->
+                predicate(block)
+            }
+    }
+
+    /**
+     * Returns all the position within the range where the predicate is true.
+     *
+     * @param pos The position to search from.
+     * @param range The maximum distance to search for fluids in each axis.
+     * @param pointer The mutable list to store the positions in.
+     * @param iterator Iterator to perform operations on each fluid.
+     * @param predicate Predicate to filter the fluids.
+     */
+    inline fun <reified T : Fluid> SafeContext.searchFluid(
+        pos: Vec3i,
+        range: Vec3i,
+        pointer: MutableList<T>? = null,
+        iterator: (T, Int) -> Unit = { _, _ -> },
+        predicate: (T) -> Boolean = { true },
+    ) {
+        // TODO: Implement O(1) pointer mapping
+        BlockPos.iterateOutwards(BlockPos(pos), range.x, range.y, range.z)
+            .map { world.getFluidState(it).fluid }
+            .filterPointer(pointer, iterator) { fluid ->
+                predicate(fluid)
+            }
+    }
+}

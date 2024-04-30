@@ -44,8 +44,11 @@ abstract class Configuration : Jsonable {
 
         unsafeListener<ClientEvent.Shutdown>(Int.MIN_VALUE) { trySave() }
 
-        configurations.add(this)
+        register()
     }
+
+    // Avoid context-leaking warning
+    private fun register() = configurations.add(this)
 
     override fun toJson() =
         JsonObject().apply {
