@@ -20,12 +20,12 @@ object PacketLimiter : Module(
     defaultTags = setOf(ModuleTag.NETWORK)
 ) {
     private var packetQueue = LimitedDecayQueue<PacketEvent.Send.Pre>(99, 1000)
-    private val limit by setting("Limit", 99, 1..100, 1, "The maximum amount of packets to send per second").apply {
+    private val limit by setting("Limit", 99, 1..100, 1, "The maximum amount of packets to send per given time interval").apply {
         onValueChange { _, to ->
             packetQueue.setMaxSize(to)
         }
     }
-    private val interval by setting("Duration", 1000L, 1L..1000L, 50L, "The duration in milliseconds to limit packets for").apply {
+    private val interval by setting("Duration", 1000L, 1L..1000L, 50L, "The interval / duration in milliseconds to limit packets for").apply {
         onValueChange { _, to ->
             packetQueue.setInterval(to)
         }
