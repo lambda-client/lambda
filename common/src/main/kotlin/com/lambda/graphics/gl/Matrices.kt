@@ -38,8 +38,8 @@ object Matrices {
 
     fun peek() = stack.last()
 
-    fun resetMatrix() {
+    fun resetMatrix(entry: Matrix4f = Matrix4f()) {
         stack.clear()
-        stack.add(Matrix4f())
+        stack.add(entry)
     }
 }

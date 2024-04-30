@@ -4,29 +4,30 @@ import org.lwjgl.opengl.GL30C.*
 
 object GlStateUtils {
     private var depthTestState = true
-    private var depthMaskState = true
     private var blendState = false
     private var cullState = true
 
     fun setupGL(block: () -> Unit) {
         val savedDepthTest = depthTestState
-        val savedDepthMask = depthMaskState
         val savedBlend = blendState
         val savedCull = cullState
 
-        depthTest(false)
         glDepthMask(false)
+        lineSmooth(true)
+
+        depthTest(false)
         blend(true)
         cull(false)
-        lineSmooth(true)
+
 
         block()
 
+        glDepthMask(true)
+        lineSmooth(false)
+
         depthTest(savedDepthTest)
-        glDepthMask(savedDepthMask)
         blend(savedBlend)
         cull(savedCull)
-        lineSmooth(false)
     }
 
     fun withDepth(block: () -> Unit) {
@@ -39,7 +40,6 @@ object GlStateUtils {
     fun capSet(id: Int, flag: Boolean) {
         val field = when (id) {
             GL_DEPTH_TEST -> ::depthTestState
-            GL_DEPTH -> ::depthMaskState
             GL_BLEND -> ::blendState
             GL_CULL_FACE -> ::cullState
             else -> return
@@ -60,7 +60,10 @@ object GlStateUtils {
         else glDisable(GL_CULL_FACE)
     }
 
-    private fun depthTest(flag: Boolean) = glDepthMask(flag)
+    private fun depthTest(flag: Boolean) {
+        if (flag) glEnable(GL_DEPTH_TEST)
+        else glDisable(GL_DEPTH_TEST)
+    }
 
     private fun lineSmooth(flag: Boolean) {
         if (flag) glEnable(GL_LINE_SMOOTH)

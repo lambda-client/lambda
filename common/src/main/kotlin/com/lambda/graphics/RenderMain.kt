@@ -9,6 +9,7 @@ import com.lambda.graphics.gl.Matrices.resetMatrix
 import com.lambda.graphics.gl.Matrices.translate
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.math.Vec2d
+import com.mojang.blaze3d.systems.RenderSystem.getProjectionMatrix
 import org.joml.Matrix4f
 
 object RenderMain {
@@ -28,6 +29,16 @@ object RenderMain {
 
             rescale(1.0)
             RenderEvent.GUI.Fixed().post()
+        }
+    }
+
+    @JvmStatic
+    fun render3D(matrix: Matrix4f) {
+        resetMatrix(matrix)
+        projectionMatrix.set(getProjectionMatrix())
+
+        setupGL {
+            RenderEvent.World().post()
         }
     }
 

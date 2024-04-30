@@ -13,6 +13,7 @@ object DirectionMask {
     const val NORTH = 32 // Z -
 
     const val ALL = EAST or WEST or UP or DOWN or SOUTH or NORTH
+    const val NONE = 0
 
     fun Int.exclude(dir: Int) = this xor dir
     fun Int.hasDirection(dir: Int) = (this and dir) != 0
@@ -24,5 +25,10 @@ object DirectionMask {
         Direction.SOUTH -> SOUTH
         Direction.WEST -> WEST
         Direction.EAST -> EAST
+    }
+
+    enum class OutlineMode(val check: (Boolean, Boolean) -> Boolean) {
+        AND(Boolean::and),
+        OR(Boolean::or)
     }
 }
