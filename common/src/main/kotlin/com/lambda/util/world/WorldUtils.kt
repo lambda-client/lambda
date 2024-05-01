@@ -191,12 +191,13 @@ object WorldUtils {
         iterator: (Block, Int) -> Unit = { _, _ -> },
         predicate: (Block) -> Boolean = { true },
     ) {
-        // TODO: Implement O(1) pointer mapping
-        BlockPos.iterateOutwards(BlockPos(pos), range.x, range.y, range.z)
-            .map { world.getBlockState(it).block }
-            .filterPointer(pointer, iterator) { block ->
-                predicate(block)
+        iteratePositions(pos, range) { blockPos, index ->
+            val block = world.getBlockState(blockPos).block
+            if (predicate(block)) {
+                pointer?.add(block)
+                iterator(block, index)
             }
+        }
     }
 
     /**
@@ -215,11 +216,29 @@ object WorldUtils {
         iterator: (T, Int) -> Unit = { _, _ -> },
         predicate: (T) -> Boolean = { true },
     ) {
-        // TODO: Implement O(1) pointer mapping
+        iteratePositions(pos, range) { blockPos, index ->
+            val fluid = world.getFluidState(blockPos).fluid as? T ?: return@iteratePositions
+            if (predicate(fluid)) {
+                pointer?.add(fluid)
+                iterator(fluid, index)
+            }
+        }
+    }
+
+    /**
+     * Iterates over all positions within the specified range.
+     * @param pos The position to start from.
+     * @param range The maximum distance to search for entities in each axis.
+     * @param iterator Iterator to perform operations on each position.
+     */
+    inline fun SafeContext.iteratePositions(
+        pos: Vec3i,
+        range: Vec3i,
+        iterator: (BlockPos, Int) -> Unit,
+    ) {
         BlockPos.iterateOutwards(BlockPos(pos), range.x, range.y, range.z)
-            .map { world.getFluidState(it).fluid }
-            .filterPointer(pointer, iterator) { fluid ->
-                predicate(fluid)
+            .forEachIndexed { index, blockPos ->
+                iterator(blockPos, index)
             }
     }
 }
