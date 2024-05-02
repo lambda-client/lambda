@@ -24,7 +24,7 @@ abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, Cli
     fun scheduleAction(block: () -> Unit) = actionPool.add(block)
 
     override fun onEvent(e: GuiEvent) {
-        while (actionPool.isNotEmpty()) actionPool.last().invoke()
+        while (actionPool.isNotEmpty()) actionPool.removeLast().invoke()
 
         when (e) {
             is GuiEvent.Show -> {
