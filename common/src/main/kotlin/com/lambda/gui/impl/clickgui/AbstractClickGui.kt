@@ -16,7 +16,7 @@ abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, Cli
     private var activeWindow: WindowComponent<*>? = null
 
     private var closing = false
-    var guiAnimation by animation.exp(0.0, 1.0, {
+    var showAnimation by animation.exp(0.0, 1.0, {
         if (closing) ClickGui.closeSpeed else ClickGui.openSpeed
     }) { !closing }; private set
 
@@ -30,11 +30,11 @@ abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, Cli
             is GuiEvent.Show -> {
                 activeWindow = null
                 closing = false
-                guiAnimation = 0.0
+                showAnimation = 0.0
             }
 
             is GuiEvent.Tick -> {
-                if (closing && guiAnimation < 0.01) mc.setScreen(null)
+                if (closing && showAnimation < 0.01) mc.setScreen(null)
             }
 
             is GuiEvent.MouseClick -> {

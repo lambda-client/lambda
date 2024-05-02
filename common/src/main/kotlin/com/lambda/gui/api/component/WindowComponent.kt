@@ -4,7 +4,6 @@ import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.graphics.renderer.gui.font.IFontEntry
 import com.lambda.gui.api.GuiEvent
-import com.lambda.gui.api.component.button.ButtonComponent
 import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.api.layer.RenderLayer
@@ -47,11 +46,11 @@ abstract class WindowComponent <T : ChildComponent> (
     val subLayer = RenderLayer()
 
     val animation = owner.animation
-    val guiAnimation get() = owner.guiAnimation
+    open val showAnimation get() = owner.showAnimation
 
     private val actualHeight get() = height + padding * 2 * isOpen.toInt()
     private var renderHeightAnimation by animation.exp({ 0.0 }, ::actualHeight, 0.6, ::isOpen)
-    private val renderHeight get() = lerp(0.0, renderHeightAnimation, guiAnimation)
+    private val renderHeight get() = lerp(0.0, renderHeightAnimation, showAnimation)
 
     val contentComponents = ChildLayer<T> { child ->
         child.rect in contentRect && accessible && isOpen
@@ -67,7 +66,7 @@ abstract class WindowComponent <T : ChildComponent> (
             position = rect
             roundRadius = ClickGui.windowRadius
 
-            val alpha = (guiAnimation * 2.0).coerceIn(0.0, 1.0)
+            val alpha = (showAnimation * 2.0).coerceIn(0.0, 1.0)
             color(GuiSettings.backgroundColor.multAlpha(alpha))
         }
 
@@ -75,7 +74,7 @@ abstract class WindowComponent <T : ChildComponent> (
         titleFont = renderer.font {
             text = title
             position = titleBar.center - widthVec * 0.5
-            color = Color.WHITE.setAlpha(guiAnimation)
+            color = Color.WHITE.setAlpha(showAnimation)
         }
     }
 
@@ -132,6 +131,14 @@ abstract class WindowComponent <T : ChildComponent> (
 
         contentComponents.onEvent(e)
         //titleBarComponents.onEvent(e)
+    }
+
+    fun destroy() {
+        owner.apply {
+            scheduleAction {
+                windows.removeChild(this@WindowComponent)
+            }
+        }
     }
 
     override fun onRemove() {

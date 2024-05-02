@@ -12,7 +12,7 @@ abstract class ListButton(owner: WindowComponent<*>) : ButtonComponent(owner) {
     override val size get() = Vec2d(FILL_PARENT, ClickGui.buttonHeight)
 
     var heightOffset = 0.0
-    private val targetHeightOffset get() = heightOffset * owner.guiAnimation * owner.isOpen.toInt()
+    private val targetHeightOffset get() = heightOffset * owner.showAnimation * owner.isOpen.toInt()
     private var renderHeightOffset by animation.exp(::targetHeightOffset, 0.5)
 
     override fun onEvent(e: GuiEvent) {

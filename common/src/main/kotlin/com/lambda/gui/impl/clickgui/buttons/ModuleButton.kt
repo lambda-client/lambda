@@ -17,21 +17,18 @@ class ModuleButton(val module: Module, owner: WindowComponent<*>) : ListButton(o
             Mouse.Button.Left -> if (hovered) module.toggle()
             Mouse.Button.Right -> {
                 gui.apply {
-                    windows.children.forEach { child ->
-                        if (child is SettingsWindow && child.button == this@ModuleButton) {
-                            gui.scheduleAction {
-                                gui.windows.removeChild(child)
+                    // Open new settings window or move existing one to the cursor
+                    windows.children
+                        .firstOrNull { it is SettingsWindow && it.button == this@ModuleButton }
+                        ?.let { it.position = e.mouse }
+                        ?: run {
+                            scheduleAction {
+                                windows.addChild(SettingsWindow(this@ModuleButton, this).apply {
+                                    position = e.mouse
+                                })
                             }
                         }
-                    }
-
-                    scheduleAction {
-                        windows.addChild(SettingsWindow(this@ModuleButton, this).apply {
-                            position = e.mouse
-                        })
-                    }
                 }
-
             }
         }
     }

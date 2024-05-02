@@ -36,7 +36,7 @@ abstract class ButtonComponent(
     private var pressAnimation by animation.exp(0.0, 1.0, 0.5, ::pressed)
     private val interactAnimation get() = lerp(hoverRectAnimation, 1.5, pressAnimation) * 0.4
     private val showAnimationRaw by animation.exp(0.0, 1.0, 0.7, owner::isOpen)
-    private val showAnimation get() = lerp(0.0, showAnimationRaw, owner.guiAnimation)
+    private val showAnimation get() = lerp(0.0, showAnimationRaw, owner.showAnimation)
 
     private var lastHoveredTime = 0L
     private val renderHovered get() = hovered ||
