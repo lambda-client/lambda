@@ -7,7 +7,7 @@ import com.lambda.gui.impl.clickgui.AbstractClickGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 
 class SettingsWindow(
-    button: ModuleButton,
+    val button: ModuleButton,
     owner: AbstractClickGui
 ) : ListWindow<ListButton>(owner) {
     private val module = button.module

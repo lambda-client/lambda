@@ -12,17 +12,26 @@ class ModuleButton(val module: Module, owner: WindowComponent<*>) : ListButton(o
     override val active get() = module.isEnabled
     private val gui = owner.owner
 
-    private val settingsWindow = SettingsWindow(this, gui)
-
     override fun performClickAction(e: GuiEvent.MouseClick) {
         when (e.button) {
             Mouse.Button.Left -> if (hovered) module.toggle()
             Mouse.Button.Right -> {
-                gui.scheduleAction {
-                    gui.windows.addChild(settingsWindow.apply {
-                        position = e.mouse
-                    })
+                gui.apply {
+                    windows.children.forEach { child ->
+                        if (child is SettingsWindow && child.button == this@ModuleButton) {
+                            gui.scheduleAction {
+                                gui.windows.removeChild(child)
+                            }
+                        }
+                    }
+
+                    scheduleAction {
+                        windows.addChild(SettingsWindow(this@ModuleButton, this).apply {
+                            position = e.mouse
+                        })
+                    }
                 }
+
             }
         }
     }
