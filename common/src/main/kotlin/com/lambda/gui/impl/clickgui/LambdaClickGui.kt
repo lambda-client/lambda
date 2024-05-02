@@ -1,29 +1,28 @@
 package com.lambda.gui.impl.clickgui
 
 import com.lambda.gui.GuiConfigurable
-import com.lambda.gui.api.component.WindowComponent
+import com.lambda.gui.api.GuiEvent
 
 object LambdaClickGui : AbstractClickGui() {
-    override fun onShow() {
-        updateWindows()
-        super.onShow()
-    }
+    override fun onEvent(e: GuiEvent) {
+        if (e is GuiEvent.Show || e is GuiEvent.Tick) {
+            updateWindows()
+        }
 
-    override fun onTick() {
-        updateWindows()
-        super.onTick()
+        super.onEvent(e)
     }
 
     fun updateWindows() {
-        val windows = GuiConfigurable.mainWindows + GuiConfigurable.customWindows
-        val new = windows.subtract(children.toSet())
-        children.addAll(new)
-        children.removeIf {
-            if (it !is WindowComponent<*>) return@removeIf false
+        windows.apply {
+            val windows = GuiConfigurable.mainWindows + GuiConfigurable.customWindows
+            val new = windows.subtract(children.toSet())
+            children.addAll(new)
 
-            val absent = it !in windows
-            if (absent) it.destroy()
-            absent
+            val iterator = children.iterator()
+            while (iterator.hasNext()) {
+                val next = iterator.next()
+                if (next !in windows) removeChild(next)
+            }
         }
     }
 }

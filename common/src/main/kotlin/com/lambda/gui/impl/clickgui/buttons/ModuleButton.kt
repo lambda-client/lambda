@@ -11,7 +11,7 @@ class ModuleButton(val module: Module, owner: WindowComponent<*>) : ListButton(o
 
     override fun performClickAction(mouse: Mouse.Button) {
         when (mouse) {
-            Mouse.Button.Left -> module.toggle()
+            Mouse.Button.Left -> if (hovered) module.toggle()
             Mouse.Button.Right -> {
                 // open settings window
             }

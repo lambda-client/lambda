@@ -3,14 +3,14 @@ package com.lambda.gui.api.component
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.graphics.renderer.gui.font.IFontEntry
-import com.lambda.graphics.renderer.immediate.BlurPostProcessor
-import com.lambda.gui.api.component.core.list.IListComponent
+import com.lambda.gui.api.GuiEvent
+import com.lambda.gui.api.component.button.ButtonComponent
 import com.lambda.gui.api.component.core.list.ChildComponent
+import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.api.layer.RenderLayer
 import com.lambda.gui.impl.clickgui.AbstractClickGui
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
-import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.ColorUtils.setAlpha
@@ -23,7 +23,7 @@ import kotlin.math.abs
 
 abstract class WindowComponent <T : ChildComponent> (
     final override val owner: AbstractClickGui
-) : ChildComponent(), IListComponent<T> {
+) : ChildComponent() {
     abstract val title: String
 
     abstract var width: Double
@@ -53,7 +53,13 @@ abstract class WindowComponent <T : ChildComponent> (
     private var renderHeightAnimation by animation.exp({ 0.0 }, ::actualHeight, 0.6, ::isOpen)
     private val renderHeight get() = lerp(0.0, renderHeightAnimation, guiAnimation)
 
-    override val children = mutableListOf<T>()
+    val contentComponents = ChildLayer<T> { child ->
+        child.rect in contentRect && accessible && isOpen
+    }
+
+    /*val titleBarComponents = ChildLayer<ButtonComponent> { child ->
+        child.rect in titleBar && accessible
+    }*/ // TODO: window close button
 
     init {
         // Background
@@ -73,87 +79,63 @@ abstract class WindowComponent <T : ChildComponent> (
         }
     }
 
-    override fun onShow() {
-        super<ChildComponent>.onShow()
-        super<IListComponent>.onShow()
+    override fun onEvent(e: GuiEvent) {
+        super.onEvent(e)
 
-        dragOffset = null
-    }
-
-    override fun onHide() {
-        super<IListComponent>.onHide()
-    }
-
-    override fun onTick() {
-        children.forEach { child ->
-            child.accessible = child.rect in contentRect && this.accessible
-        }
-
-        super<IListComponent>.onTick()
-    }
-
-    override fun onRender() {
-        // TODO: fix blur
-        // BlurPostProcessor.render(rect, ClickGui.windowBlur, guiAnimation)
-
-        layer.assignOffset(position)
-        subLayer.assignOffset(position)
-
-        layer.render()
-
-        scissor(contentRect) {
-            subLayer.apply {
-                allowEffects = true
-                render()
+        when (e) {
+            is GuiEvent.Show -> {
+                dragOffset = null
             }
 
-            super<IListComponent>.onRender()
-        }
-    }
+            is GuiEvent.Render -> {
+                layer.assignOffset(position)
+                subLayer.assignOffset(position)
 
-    override fun onMouseMove(mouse: Vec2d) {
-        dragOffset?.let {
-            position = mouse - it
-        }
+                // TODO: fix blur
+                // BlurPostProcessor.render(rect, ClickGui.windowBlur, guiAnimation)
 
-        super<ChildComponent>.onMouseMove(mouse)
-        super<IListComponent>.onMouseMove(mouse)
-    }
+                layer.render()
 
-    override fun onKey(key: KeyCode) {
-        super<IListComponent>.onKey(key)
-    }
+                scissor(contentRect) {
+                    subLayer.apply {
+                        allowEffects = true
+                        render()
+                    }
+                }
+            }
 
-    override fun onChar(char: Char) {
-        super<IListComponent>.onChar(char)
-    }
+            is GuiEvent.MouseMove -> {
+                dragOffset?.let {
+                    position = e.mouse - it
+                }
+            }
 
-    override fun onMouseClick(button: Mouse.Button, action: Mouse.Action, mouse: Vec2d) {
-        super<ChildComponent>.onMouseClick(button, action, mouse)
+            is GuiEvent.MouseClick -> {
+                dragOffset = null
 
-        dragOffset = null
+                if (e.mouse in titleBar && e.action == Mouse.Action.Click) {
+                    when (e.button) {
+                        Mouse.Button.Left -> dragOffset = e.mouse - position
+                        Mouse.Button.Right -> {
+                            // Don't let user spam
+                            val targetHeight = if (isOpen) actualHeight else 0.0
+                            if (abs(targetHeight - renderHeight) > 1) return
 
-        if (mouse in titleBar && action == Mouse.Action.Click) {
-            when(button) {
-                Mouse.Button.Left -> dragOffset = mouse - position
-                Mouse.Button.Right -> {
-                    // Don't let user spam
-                    val targetHeight = if (isOpen) actualHeight else 0.0
-                    if (abs(targetHeight - renderHeight) > 1) return
+                            isOpen = !isOpen
 
-                    isOpen = !isOpen
-
-                    if (isOpen) super<IListComponent>.onShow()
+                            if (isOpen) contentComponents.onEvent(GuiEvent.Show())
+                        }
+                    }
                 }
             }
         }
 
-        super<IListComponent>.onMouseClick(button, action, mouse)
+        contentComponents.onEvent(e)
+        //titleBarComponents.onEvent(e)
     }
 
-    fun destroy() {
+    override fun onRemove() {
         layer.destroy()
         subLayer.destroy()
-        children.clear()
     }
 }

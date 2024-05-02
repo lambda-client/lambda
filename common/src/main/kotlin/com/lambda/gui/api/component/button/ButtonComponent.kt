@@ -1,6 +1,7 @@
 package com.lambda.gui.api.component.button
 
 import com.lambda.graphics.animation.Animation.Companion.exp
+import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.module.modules.client.ClickGui
@@ -13,7 +14,9 @@ import com.lambda.util.math.Vec2d
 import java.awt.Color
 import kotlin.math.abs
 
-abstract class ButtonComponent(final override val owner: WindowComponent<*>) : ChildComponent() {
+abstract class ButtonComponent(
+    final override val owner: WindowComponent<*>
+) : ChildComponent() {
     abstract val position: Vec2d
     abstract val size: Vec2d
 
@@ -90,25 +93,21 @@ abstract class ButtonComponent(final override val owner: WindowComponent<*>) : C
 
     abstract fun performClickAction(mouse: Mouse.Button)
 
-    override fun onShow() {
-        super.onShow()
-        reset()
-    }
+    override fun onEvent(e: GuiEvent) {
+        super.onEvent(e)
 
-    override fun onHide() {
-        super.onHide()
-        reset()
+        when (e) {
+            is GuiEvent.Show, is GuiEvent.Hide -> reset()
+
+            is GuiEvent.MouseMove -> {
+                val time = System.currentTimeMillis()
+                if (hovered) lastHoveredTime = time
+            }
+        }
     }
 
     override fun onRelease() {
-        if (hovered) activeMouseButton?.let(::performClickAction)
-    }
-
-    override fun onMouseMove(mouse: Vec2d) {
-        super.onMouseMove(mouse)
-
-        val time = System.currentTimeMillis()
-        if (hovered) lastHoveredTime = time
+        activeMouseButton?.let(::performClickAction)
     }
 
     override fun onRemove() {

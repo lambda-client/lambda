@@ -1,5 +1,7 @@
 package com.lambda.gui.impl.clickgui.windows
 
+import com.lambda.gui.api.GuiEvent
+import com.lambda.gui.api.component.ListWindow
 import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.impl.clickgui.AbstractClickGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
@@ -10,16 +12,18 @@ abstract class ModuleWindow(
     override var width: Double = 110.0,
     override var height: Double = 300.0,
     owner: AbstractClickGui
-) : WindowComponent<ModuleButton>(owner) {
-    override fun onTick() {
-        children.sortBy {
-            it.module.name
+) : ListWindow<ModuleButton>(owner) {
+    override fun onEvent(e: GuiEvent) {
+        if (e is GuiEvent.Tick) {
+            contentComponents.children.apply {
+                sortBy {
+                    it.module.name
+                }
+
+
+            }
         }
 
-        children.forEachIndexed { i, button ->
-            button.heightOffset = i * (ClickGui.buttonHeight + ClickGui.buttonStep)
-        }
-
-        super.onTick()
+        super.onEvent(e)
     }
 }

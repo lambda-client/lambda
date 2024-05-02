@@ -1,6 +1,7 @@
 package com.lambda.gui.api.component.button
 
 import com.lambda.graphics.animation.Animation.Companion.exp
+import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.WindowComponent
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.math.MathUtils.toInt
@@ -14,8 +15,9 @@ abstract class ListButton(owner: WindowComponent<*>) : ButtonComponent(owner) {
     private val targetHeightOffset get() = heightOffset * owner.guiAnimation * owner.isOpen.toInt()
     private var renderHeightOffset by animation.exp(::targetHeightOffset, 0.5)
 
-    override fun onShow() {
-        super.onShow()
-        renderHeightOffset = 0.0
+    override fun onEvent(e: GuiEvent) {
+        super.onEvent(e)
+
+        if (e is GuiEvent.Show) renderHeightOffset = 0.0
     }
 }

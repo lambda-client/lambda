@@ -1,5 +1,6 @@
 package com.lambda.gui.impl.clickgui.windows.tag
 
+import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.impl.clickgui.AbstractClickGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.windows.ModuleWindow
@@ -12,24 +13,27 @@ class CustomModuleWindow(
     val modules: MutableList<Module> = mutableListOf(),
     owner: AbstractClickGui
 ) : ModuleWindow(title, owner = owner) {
-    override fun onTick() {
-        updateModules()
-        super.onTick()
+    override fun onEvent(e: GuiEvent) {
+        if (e is GuiEvent.Tick) updateModules()
+        super.onEvent(e)
     }
 
     private fun updateModules() {
-        // Add missing module buttons
-        modules.filter { module ->
-            children.all { button ->
-                button.module != module
-            }
-        }.map { ModuleButton(it, this) }.forEach(children::add)
+        contentComponents.apply {
+            // Add missing module buttons
+            modules.filter { module ->
+                children.all { button ->
+                    button.module != module
+                }
+            }.map { ModuleButton(it, this@CustomModuleWindow) }
+                .forEach(contentComponents::addChild)
 
-        // Remove deleted modules
-        children.removeIf {
-            val flag = it.module !in modules
-            if (flag) it.onRemove()
-            flag
+            // Remove deleted modules
+            val iterator = children.iterator()
+            while (iterator.hasNext()) {
+                val next = iterator.next()
+                if (next.module !in modules) removeChild(next)
+            }
         }
     }
 }

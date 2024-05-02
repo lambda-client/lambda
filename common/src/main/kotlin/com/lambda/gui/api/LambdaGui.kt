@@ -28,12 +28,12 @@ abstract class LambdaGui(
     private val renderListener = UnsafeListener(0, this, false) { event ->
         event as RenderEvent.GUI.Scaled
         screenSize = event.screenSize
-        onRender()
+        onEvent(GuiEvent.Render())
     }
 
     private val tickListener = UnsafeListener(0, this, false) {
         animation.tick()
-        onTick()
+        onEvent(GuiEvent.Tick())
     }
 
     /**
@@ -50,7 +50,7 @@ abstract class LambdaGui(
     }
 
     final override fun onDisplayed() {
-        onShow()
+        onEvent(GuiEvent.Show())
 
         with(syncListeners) {
             subscribe<RenderEvent.GUI.Scaled>(renderListener)
@@ -59,7 +59,7 @@ abstract class LambdaGui(
     }
 
     final override fun removed() {
-        onHide()
+        onEvent(GuiEvent.Hide())
 
         // quick crashfix (is there any other way to prevent gui being closed twice?)
         mc.currentScreen = null
@@ -77,7 +77,7 @@ abstract class LambdaGui(
     }
 
     final override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
-        onKey(KeyCode(keyCode))
+        onEvent(GuiEvent.KeyPress(KeyCode(keyCode)))
 
         if (keyCode == KeyCode.Escape.key) {
             close()
@@ -87,22 +87,22 @@ abstract class LambdaGui(
     }
 
     final override fun charTyped(chr: Char, modifiers: Int): Boolean {
-        onChar(chr)
+        onEvent(GuiEvent.CharTyped(chr))
         return true
     }
 
     final override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        onMouseClick(Mouse.Button(button), Mouse.Action.Click, rescaleMouse(mouseX, mouseY))
+        onEvent(GuiEvent.MouseClick(Mouse.Button(button), Mouse.Action.Click, rescaleMouse(mouseX, mouseY)))
         return true
     }
 
     final override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        onMouseClick(Mouse.Button(button), Mouse.Action.Release, rescaleMouse(mouseX, mouseY))
+        onEvent(GuiEvent.MouseClick(Mouse.Button(button), Mouse.Action.Release, rescaleMouse(mouseX, mouseY)))
         return true
     }
 
     final override fun mouseMoved(mouseX: Double, mouseY: Double) {
-        onMouseMove(rescaleMouse(mouseX, mouseY))
+        onEvent(GuiEvent.MouseMove(rescaleMouse(mouseX, mouseY)))
     }
 
     final override fun shouldPause() = false

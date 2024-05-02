@@ -1,9 +1,9 @@
 package com.lambda.gui.api.component
 
+import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.IComponent
 import com.lambda.gui.api.component.core.IRectComponent
 import com.lambda.util.Mouse
-import com.lambda.util.math.Vec2d
 
 abstract class InteractiveComponent : IComponent, IRectComponent {
     protected var hovered = false
@@ -20,21 +20,24 @@ abstract class InteractiveComponent : IComponent, IRectComponent {
     protected open fun onPress() {}
     protected open fun onRelease() {}
 
-    override fun onShow() {
-        hovered = false
-        pressed = false
-    }
+    override fun onEvent(e: GuiEvent) {
+        when (e) {
+            is GuiEvent.Show -> {
+                hovered = false
+                pressed = false
+            }
 
-    override fun onMouseMove(mouse: Vec2d) {
-        hovered = rect.contains(mouse)
-    }
+            is GuiEvent.MouseMove -> {
+                hovered = rect.contains(e.mouse)
+            }
 
-    override fun onMouseClick(
-        button: Mouse.Button, action: Mouse.Action, mouse: Vec2d
-    ) {
-        activeMouseButton = button.takeUnless {
-            it.isMainButton && action == Mouse.Action.Click
+            is GuiEvent.MouseClick -> {
+                activeMouseButton = e.button.takeUnless {
+                    it.isMainButton && e.action == Mouse.Action.Click
+                }
+
+                pressed = hovered && e.button.isMainButton && e.action == Mouse.Action.Click
+            }
         }
-        pressed = hovered && button.isMainButton && action == Mouse.Action.Click
     }
 }

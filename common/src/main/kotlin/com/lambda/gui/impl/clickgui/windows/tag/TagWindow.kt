@@ -14,6 +14,6 @@ class TagWindow(
         ModuleRegistry.modules
             .filter { it.tag == tag }
             .map { ModuleButton(it, this) }
-            .forEach(children::add)
+            .forEach(contentComponents::addChild)
     }
 }
