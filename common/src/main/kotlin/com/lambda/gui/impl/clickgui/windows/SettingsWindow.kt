@@ -7,6 +7,7 @@ import com.lambda.gui.api.component.button.ListButton
 import com.lambda.gui.impl.clickgui.AbstractClickGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.module.modules.client.ClickGui
+import com.lambda.util.math.MathUtils.lerp
 
 class SettingsWindow(
     val button: ModuleButton,
@@ -18,7 +19,8 @@ class SettingsWindow(
     override var width = button.owner.width
     override var height = 0.0
 
-    override val showAnimation by animation.exp(0.0, 1.0, ClickGui.openSpeed, ::isOpen)
+    private val showAnimation0 by animation.exp(0.0, 1.0, ClickGui.openSpeed, ::isOpen)
+    override val showAnimation get() = lerp(0.0, showAnimation0, owner.showAnimation)
 
     override fun onEvent(e: GuiEvent) {
         if (e is GuiEvent.Tick) {

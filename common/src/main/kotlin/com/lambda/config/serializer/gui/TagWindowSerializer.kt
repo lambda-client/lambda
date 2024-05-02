@@ -2,7 +2,6 @@ package com.lambda.config.serializer.gui
 
 import com.google.gson.*
 import com.lambda.gui.impl.clickgui.LambdaClickGui
-import com.lambda.gui.impl.clickgui.windows.ModuleWindow
 import com.lambda.gui.impl.clickgui.windows.tag.TagWindow
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.Vec2d
@@ -35,10 +34,10 @@ object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWind
             width = it["width"].asDouble
             height = it["height"].asDouble
             isOpen = it["isOpen"].asBoolean
-            position = Vec2d(
+            forceSetPosition(Vec2d(
                 it["position"].asJsonArray[0].asDouble,
                 it["position"].asJsonArray[1].asDouble
-            )
+            ))
         }
     } ?: throw JsonParseException("Invalid window data")
 }

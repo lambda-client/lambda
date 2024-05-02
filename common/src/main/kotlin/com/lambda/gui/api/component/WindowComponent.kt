@@ -1,5 +1,6 @@
 package com.lambda.gui.api.component
 
+import com.lambda.Lambda.mc
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.graphics.renderer.gui.font.IFontEntry
@@ -17,6 +18,7 @@ import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
+import com.lambda.util.primitives.extension.partialTicks
 import java.awt.Color
 import kotlin.math.abs
 
@@ -29,12 +31,13 @@ abstract class WindowComponent <T : ChildComponent> (
     abstract var height: Double
 
     var position = Vec2d.ZERO
+    private var prevPosition = position
 
     var isOpen = true
     private var dragOffset: Vec2d? = null
     private val padding get() = ClickGui.windowPadding
 
-    final override val rect get() = Rect.basedOn(position, width, renderHeight + titleBarHeight)
+    final override val rect get() = Rect.basedOn(renderPosition, width, renderHeight + titleBarHeight)
     val contentRect get() = rect.shrink(padding).moveFirst(Vec2d(0.0, titleBarHeight - padding))
 
     private val titleBar get() = Rect.basedOn(rect.leftTop, rect.size.x, titleBarHeight)
@@ -51,6 +54,7 @@ abstract class WindowComponent <T : ChildComponent> (
     private val actualHeight get() = height + padding * 2 * isOpen.toInt()
     private var renderHeightAnimation by animation.exp({ 0.0 }, ::actualHeight, 0.6, ::isOpen)
     private val renderHeight get() = lerp(0.0, renderHeightAnimation, showAnimation)
+    private val renderPosition get() = lerp(prevPosition, position, mc.partialTicks)
 
     val contentComponents = ChildLayer<T> { child ->
         child.rect in contentRect && accessible && isOpen
@@ -86,9 +90,13 @@ abstract class WindowComponent <T : ChildComponent> (
                 dragOffset = null
             }
 
+            is GuiEvent.Tick -> {
+                prevPosition = position
+            }
+
             is GuiEvent.Render -> {
-                layer.assignOffset(position)
-                subLayer.assignOffset(position)
+                layer.assignOffset(renderPosition)
+                subLayer.assignOffset(renderPosition)
 
                 // TODO: fix blur
                 // BlurPostProcessor.render(rect, ClickGui.windowBlur, guiAnimation)
@@ -131,6 +139,24 @@ abstract class WindowComponent <T : ChildComponent> (
 
         contentComponents.onEvent(e)
         //titleBarComponents.onEvent(e)
+    }
+
+    fun forceSetPosition(pos: Vec2d) {
+        position = pos
+        prevPosition = position
+    }
+
+    fun focus() {
+        // move window into foreground
+        owner.apply {
+            scheduleAction {
+                windows.children.apply {
+                    this@WindowComponent
+                        .apply(::remove)
+                        .apply(::add)
+                }
+            }
+        }
     }
 
     fun destroy() {

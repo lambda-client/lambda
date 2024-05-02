@@ -6,6 +6,7 @@ import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.LambdaGui
 import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
+import com.lambda.gui.impl.clickgui.windows.SettingsWindow
 import com.lambda.module.modules.client.ClickGui
 
 abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, ClickGui) {
@@ -31,6 +32,10 @@ abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, Cli
                 activeWindow = null
                 closing = false
                 showAnimation = 0.0
+
+                windows.children
+                    .filterIsInstance<SettingsWindow>()
+                    .forEach(WindowComponent<*>::destroy)
             }
 
             is GuiEvent.Tick -> {
@@ -38,13 +43,7 @@ abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, Cli
             }
 
             is GuiEvent.MouseClick -> {
-                // move active window into foreground
-                activeWindow?.let {
-                    windows.children.apply {
-                        remove(it)
-                        add(it)
-                    }
-                }
+                activeWindow?.focus()
             }
 
             is GuiEvent.MouseMove -> {

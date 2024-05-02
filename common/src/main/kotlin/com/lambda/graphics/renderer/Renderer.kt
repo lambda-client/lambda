@@ -24,17 +24,15 @@ abstract class Renderer <T: IRenderEntry<T>> (
     protected abstract fun newEntry(block: T.() -> Unit): T
 
     override fun build(block: T.() -> Unit): T {
-        checkDestroyed()
         return newEntry(block).process(entrySet::add)
     }
 
     override fun remove(entry: T): T {
-        checkDestroyed()
         return entry.process(entrySet::remove)
     }
 
     override fun render() {
-        checkDestroyed()
+        if (destroyed) return
 
         if (rebuild) {
             rebuild = false
@@ -57,19 +55,19 @@ abstract class Renderer <T: IRenderEntry<T>> (
     protected open fun preRender() {}
 
     override fun update() {
-        checkDestroyed()
+        if (destroyed) return
         entrySet.forEach(IRenderEntry<T>::update)
     }
 
     override fun clear() {
-        checkDestroyed()
+        if (destroyed) return
 
         entrySet.clear()
         vao.clear()
     }
 
     override fun destroy() {
-        checkDestroyed()
+        if (destroyed) return
 
         entrySet.clear()
         vao.destroy()
@@ -88,8 +86,4 @@ abstract class Renderer <T: IRenderEntry<T>> (
             if (prev == curr) return@observable
             rebuild = true
         }
-
-    private fun checkDestroyed() {
-        check(!destroyed) { "Using the renderer after it is destroyed" }
-    }
 }

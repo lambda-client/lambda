@@ -6,6 +6,7 @@ import com.lambda.gui.api.component.button.ListButton
 import com.lambda.gui.impl.clickgui.windows.SettingsWindow
 import com.lambda.module.Module
 import com.lambda.util.Mouse
+import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 
 class ModuleButton(val module: Module, owner: WindowComponent<*>) : ListButton(owner) {
     override val text get() = module.name
@@ -18,16 +19,22 @@ class ModuleButton(val module: Module, owner: WindowComponent<*>) : ListButton(o
             Mouse.Button.Right -> {
                 gui.apply {
                     // Open new settings window or move existing one to the cursor
-                    windows.children
-                        .firstOrNull { it is SettingsWindow && it.button == this@ModuleButton }
-                        ?.let { it.position = e.mouse }
-                        ?: run {
+                    val settingsWindow = windows.children.filterIsInstance<SettingsWindow>()
+                        .firstOrNull { it.button == this@ModuleButton }?.apply {
+                            position = e.mouse
+                        } ?: SettingsWindow(this@ModuleButton, this).apply {
+                            forceSetPosition(e.mouse)
+
                             scheduleAction {
-                                windows.addChild(SettingsWindow(this@ModuleButton, this).apply {
-                                    position = e.mouse
-                                })
+                                windows.addChild(this)
                             }
                         }
+
+                    // we have to wait this tag window to be focused after handling a click event
+                    // to place settings window over it
+                    recordRenderCall {
+                        settingsWindow.focus()
+                    }
                 }
             }
         }

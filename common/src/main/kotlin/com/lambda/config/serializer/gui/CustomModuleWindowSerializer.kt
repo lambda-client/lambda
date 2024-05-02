@@ -4,7 +4,6 @@ import com.google.gson.*
 import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
 import com.lambda.module.ModuleRegistry
-import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.Vec2d
 import java.lang.reflect.Type
 
@@ -48,10 +47,10 @@ object CustomModuleWindowSerializer : JsonSerializer<CustomModuleWindow>, JsonDe
             width = it["width"].asDouble
             height = it["height"].asDouble
             isOpen = it["isOpen"].asBoolean
-            position = Vec2d(
+            forceSetPosition(Vec2d(
                 it["position"].asJsonArray[0].asDouble,
                 it["position"].asJsonArray[1].asDouble
-            )
+            ))
         }
     } ?: throw JsonParseException("Invalid window data")
 }

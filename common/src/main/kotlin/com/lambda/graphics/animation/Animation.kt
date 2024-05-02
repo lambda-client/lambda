@@ -46,8 +46,8 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
                 else lerp(it, target, speed())
             }.apply(::register)
 
-        // Exponent animation will never reach target value
-        private const val CLAMP = 0.001
+        // Exponent animation never reaches target value
+        private const val CLAMP = 0.01
     }
 }
 

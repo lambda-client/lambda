@@ -29,7 +29,7 @@ object GuiConfigurable : Configurable(GuiConfig), Loadable {
         ModuleTag.defaults.mapIndexed { index, tag ->
             TagWindow(tag, ownerGui).apply {
                 val step = 3.0
-                position = Vec2d((width + step) * index, 0.0) + step
+                forceSetPosition(Vec2d((width + step) * index, 0.0) + step)
             }
         }
 }
