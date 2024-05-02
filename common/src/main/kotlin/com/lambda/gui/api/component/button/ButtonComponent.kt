@@ -6,7 +6,6 @@ import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
-import com.lambda.util.Mouse
 import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.Rect
@@ -91,7 +90,7 @@ abstract class ButtonComponent(
         }
     }
 
-    abstract fun performClickAction(mouse: Mouse.Button)
+    abstract fun performClickAction(e: GuiEvent.MouseClick)
 
     override fun onEvent(e: GuiEvent) {
         super.onEvent(e)
@@ -106,8 +105,8 @@ abstract class ButtonComponent(
         }
     }
 
-    override fun onRelease() {
-        activeMouseButton?.let(::performClickAction)
+    override fun onRelease(e: GuiEvent.MouseClick) {
+        performClickAction(e)
     }
 
     override fun onRemove() {
