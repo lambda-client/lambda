@@ -18,10 +18,12 @@ object LambdaClickGui : AbstractClickGui() {
             val new = windows.subtract(children.toSet())
             children.addAll(new)
 
-            val iterator = children.iterator()
-            while (iterator.hasNext()) {
-                val next = iterator.next()
-                if (next !in windows) removeChild(next)
+            children.forEach { window ->
+                if (window !in windows) {
+                    scheduleAction {
+                        removeChild(window)
+                    }
+                }
             }
         }
     }

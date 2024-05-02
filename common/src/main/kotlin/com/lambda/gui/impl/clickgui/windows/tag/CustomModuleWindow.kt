@@ -29,10 +29,12 @@ class CustomModuleWindow(
                 .forEach(contentComponents::addChild)
 
             // Remove deleted modules
-            val iterator = children.iterator()
-            while (iterator.hasNext()) {
-                val next = iterator.next()
-                if (next.module !in modules) removeChild(next)
+            children.forEach { button ->
+                if (button.module !in modules) {
+                    owner.scheduleAction {
+                        removeChild(button)
+                    }
+                }
             }
         }
     }

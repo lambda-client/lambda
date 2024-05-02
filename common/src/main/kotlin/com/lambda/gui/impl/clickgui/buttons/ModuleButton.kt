@@ -2,6 +2,7 @@ package com.lambda.gui.impl.clickgui.buttons
 
 import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.button.ListButton
+import com.lambda.gui.impl.clickgui.windows.SettingsWindow
 import com.lambda.module.Module
 import com.lambda.util.Mouse
 
@@ -13,7 +14,12 @@ class ModuleButton(val module: Module, owner: WindowComponent<*>) : ListButton(o
         when (mouse) {
             Mouse.Button.Left -> if (hovered) module.toggle()
             Mouse.Button.Right -> {
-                // open settings window
+                val gui = owner.owner
+
+                gui.scheduleAction {
+                    val settingsWindow = SettingsWindow(this, gui)
+                    gui.windows.addChild(settingsWindow)
+                }
             }
         }
     }
