@@ -13,7 +13,7 @@ object Scissor {
 
     fun scissor(rect: Rect, block: () -> Unit) {
         // clamp corners so children scissor box can't overlap parent
-        val processed = stack.lastOrNull()?.let { rect.clamp(it) } ?: rect
+        val processed = stack.lastOrNull()?.let(rect::clamp) ?: rect
         registerScissor(processed, block)
     }
 
@@ -42,6 +42,7 @@ object Scissor {
 
         val y = mc.window.framebufferHeight - pos1.y - height
 
+        glEnable(GL_SCISSOR_TEST)
         glScissor(
             pos1.x.floorToInt(),
             y.floorToInt(),
