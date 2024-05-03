@@ -24,8 +24,10 @@ import kotlin.time.toDuration
 // ToDo: Needs more dense data storage (Not using JSON)
 //  - Use a custom binary format to store the data
 //  - Actually store the data in a file
-//  - Implement a way to save and load the data (Commands)
+//  - Implement a way to save and load the data (Commands?)
 //  - Pause and resume the replay and recording
+//  - Play n time - Loop mode
+//  - Record other types of inputs: (Interactions, etc.)
 object Replay : Module(
     name = "Replay",
     description = "Replays the last few seconds of gameplay",
@@ -140,7 +142,7 @@ object Replay : Module(
         when (mode) {
             ReplayMode.RECORD -> {
                 mode = ReplayMode.INACTIVE
-                this@Replay.info(GSON.toJson(actions))
+//                this@Replay.info(GSON.toJson(actions))
                 this@Replay.info("Recording stopped. Recorded for $duration")
             }
 
