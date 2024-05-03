@@ -21,6 +21,14 @@ object RenderTest : Module(
     description = "RenderTest",
     tag = ModuleTag.RENDER
 ) {
+    private val test1 by setting("Toggle visibility", true)
+    private val test21 by setting("Hallo 1", true, visibility = ::test1)
+    private val test22 by setting("Hallo 2", true, visibility = ::test1)
+    private val test23 by setting("Hallo 3", true, visibility = ::test1)
+    private val test31 by setting("Holla 1", true, visibility = { !test1 })
+    private val test32 by setting("Holla 2", true, visibility = { !test1 })
+    private val test33 by setting("Holla 3", true, visibility = { !test1 })
+
     private val filled = DynamicFilledRenderer()
     private val outline = DynamicOutlineRenderer()
     private val color = Color(60, 200, 60)

@@ -6,7 +6,7 @@ import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.LambdaGui
 import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
-import com.lambda.gui.impl.clickgui.windows.SettingsWindow
+import com.lambda.gui.impl.clickgui.windows.SettingWindow
 import com.lambda.module.modules.client.ClickGui
 
 abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, ClickGui) {
@@ -34,7 +34,7 @@ abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, Cli
                 showAnimation = 0.0
 
                 windows.children
-                    .filterIsInstance<SettingsWindow>()
+                    .filterIsInstance<SettingWindow>()
                     .forEach(WindowComponent<*>::destroy)
             }
 

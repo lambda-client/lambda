@@ -11,7 +11,6 @@ import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 import java.awt.Color
-import kotlin.math.abs
 
 abstract class ButtonComponent(
     final override val owner: WindowComponent<*>
@@ -20,23 +19,21 @@ abstract class ButtonComponent(
     abstract val size: Vec2d
 
     abstract val text: String
-    abstract val active: Boolean
+    protected abstract var activeAnimation: Double
 
     private val actualSize get() = Vec2d(if (size.x == FILL_PARENT) owner.contentRect.size.x else size.x, size.y)
     final override val rect get() = Rect.basedOn(position, actualSize) + owner.contentRect.leftTop
 
     private val layer = owner.subLayer
-    private val renderer = layer.entry()
+    protected val renderer = layer.entry()
     protected val animation = owner.animation
 
-    private var activeAnimation by animation.exp(0.0, 1.0, 0.15, ::active)
-    private var toggleFxDirection by animation.exp(0.0, 1.0, 0.6, ::active)
     private var hoverRectAnimation by animation.exp({ 0.0 }, { 1.0 }, { if (renderHovered) 0.6 else 0.07 }, ::renderHovered)
     private var hoverFontAnimation by animation.exp(0.0, 1.0, 0.5, ::renderHovered)
     private var pressAnimation by animation.exp(0.0, 1.0, 0.5, ::pressed)
-    private val interactAnimation get() = lerp(hoverRectAnimation, 1.5, pressAnimation) * 0.4
+    protected val interactAnimation get() = lerp(hoverRectAnimation, 1.5, pressAnimation) * 0.4
     private val showAnimationRaw by animation.exp(0.0, 1.0, 0.7, owner::isOpen)
-    private val showAnimation get() = lerp(0.0, showAnimationRaw, owner.showAnimation)
+    protected open val showAnimation get() = lerp(0.0, showAnimationRaw, owner.showAnimation)
 
     private var lastHoveredTime = 0L
     private val renderHovered get() = hovered ||
@@ -56,26 +53,6 @@ abstract class ButtonComponent(
 
             val alpha = interactAnimation * 0.2
             color(GuiSettings.mainColor.multAlpha(alpha))
-        }
-
-        // Toggle fx
-        renderer.rect {
-            val left  = rect - Vec2d(rect.size.x, 0.0)
-            val right = rect + Vec2d(rect.size.x, 0.0)
-
-            position = lerp(left, right, activeAnimation)
-                .clamp(rect)
-                .shrink(interactAnimation)
-
-            // 0.0 .. 1.0 .. 0.0 animation
-            val alpha = 1.0 - (abs(activeAnimation - 0.5) * 2.0)
-            val color = GuiSettings.mainColor.multAlpha(alpha * 0.6 * showAnimation)
-
-            // "Tail" effect
-            val leftColor  = color.multAlpha(1.0 - toggleFxDirection)
-            val rightColor = color.multAlpha(toggleFxDirection)
-
-            colorH(leftColor, rightColor)
         }
 
         // Text

@@ -1,7 +1,7 @@
 package com.lambda.gui.api.layer
 
 import com.lambda.graphics.renderer.gui.font.FontRenderer
-import com.lambda.graphics.renderer.gui.rect.RectRenderer
+import com.lambda.graphics.renderer.gui.rect.filled.RectRenderer
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.math.Vec2d
 

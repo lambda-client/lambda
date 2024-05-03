@@ -3,7 +3,7 @@ package com.lambda.gui.api.layer
 import com.lambda.graphics.renderer.IRenderEntry
 import com.lambda.graphics.renderer.IRenderer
 import com.lambda.graphics.renderer.gui.font.IFontEntry
-import com.lambda.graphics.renderer.gui.rect.IRectEntry
+import com.lambda.graphics.renderer.gui.rect.filled.IRectEntry
 
 // Used to group all render entries related to a component
 class LayerEntry (
