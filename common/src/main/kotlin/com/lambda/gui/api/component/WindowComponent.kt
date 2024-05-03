@@ -66,12 +66,23 @@ abstract class WindowComponent <T : ChildComponent> (
 
     init {
         // Background
-        renderer.rect {
+        renderer.filled {
             position = rect
             roundRadius = ClickGui.windowRadius
+            shade = GuiSettings.shadeBackground
 
             val alpha = (showAnimation * 2.0).coerceIn(0.0, 1.0)
             color(GuiSettings.backgroundColor.multAlpha(alpha))
+        }
+
+        renderer.outline {
+            position = rect
+            roundRadius = ClickGui.windowRadius
+            outerGlow = ClickGui.windowRadius
+            shade = GuiSettings.shade
+
+            val alpha = (showAnimation * 2.0).coerceIn(0.0, 1.0)
+            color(GuiSettings.mainColor.multAlpha(alpha))
         }
 
         // Title
@@ -104,10 +115,7 @@ abstract class WindowComponent <T : ChildComponent> (
                 layer.render()
 
                 scissor(contentRect) {
-                    subLayer.apply {
-                        allowEffects = true
-                        render()
-                    }
+                    subLayer.render()
                 }
             }
 
@@ -130,7 +138,7 @@ abstract class WindowComponent <T : ChildComponent> (
 
                             isOpen = !isOpen
 
-                            if (isOpen) contentComponents.onEvent(GuiEvent.Show())
+                            if (isOpen) onEvent(GuiEvent.Show())
                         }
                     }
                 }

@@ -13,15 +13,10 @@ abstract class SettingButton <V : Any, T : AbstractSetting<V>> (
     owner: WindowComponent<*>
 ): ListButton(owner) {
     protected var value by setting
-    var visible = true
+    var visible = false
 
-    private var visibilityAnimation by animation.exp(0.0, 1.0, 0.6, ::visible)
+    private var visibilityAnimation by animation.exp({ 0.0 }, { 1.0 }, { if (visible) 0.2 else 0.8 }, ::visible)
     override val showAnimation get() = lerp(0.0, super.showAnimation, visibilityAnimation)
-    override val targetHeightOffset: Double get() {
-        var out = super.targetHeightOffset
-        if (!visible) out -= size.y * 0.5
-        return out
-    }
 
     override var accessible: Boolean = false; get() = field && visible
 

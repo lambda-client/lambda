@@ -41,15 +41,17 @@ abstract class ButtonComponent(
 
     init {
         // Active color
-        renderer.rect {
+        renderer.filled {
             position = rect.shrink(interactAnimation)
+            shade = GuiSettings.shade
             color(GuiSettings.mainColor.multAlpha(activeAnimation * 0.3 * showAnimation))
         }
 
         // Hover glint
-        renderer.rect {
+        renderer.filled {
             val hoverRect = Rect.basedOn(rect.leftTop, rect.size.x * hoverRectAnimation, rect.size.y)
             position = hoverRect.shrink(interactAnimation)
+            shade = GuiSettings.shade
 
             val alpha = interactAnimation * 0.2
             color(GuiSettings.mainColor.multAlpha(alpha))

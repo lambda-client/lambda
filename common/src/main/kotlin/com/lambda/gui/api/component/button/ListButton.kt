@@ -17,7 +17,6 @@ abstract class ListButton(owner: WindowComponent<*>) : ButtonComponent(owner) {
 
     override fun onEvent(e: GuiEvent) {
         super.onEvent(e)
-
         if (e is GuiEvent.Show) renderHeightOffset = 0.0
     }
 }

@@ -24,7 +24,7 @@ class ModuleButton(val module: Module, owner: WindowComponent<*>) : ListButton(o
 
     init {
         // Toggle fx
-        renderer.rect {
+        renderer.filled {
             val left  = rect - Vec2d(rect.size.x, 0.0)
             val right = rect + Vec2d(rect.size.x, 0.0)
 
@@ -40,8 +40,15 @@ class ModuleButton(val module: Module, owner: WindowComponent<*>) : ListButton(o
             val leftColor  = color.multAlpha(1.0 - toggleFxDirection)
             val rightColor = color.multAlpha(toggleFxDirection)
 
+            shade = GuiSettings.shade
             colorH(leftColor, rightColor)
         }
+    }
+
+    override fun onEvent(e: GuiEvent) {
+        super.onEvent(e)
+
+        if (e is GuiEvent.Show) toggleFxDirection = 0.0
     }
 
     override fun performClickAction(e: GuiEvent.MouseClick) {

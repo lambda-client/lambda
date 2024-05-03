@@ -28,7 +28,7 @@ object GuiConfigurable : Configurable(GuiConfig), Loadable {
     private val defaultWindows get() =
         ModuleTag.defaults.mapIndexed { index, tag ->
             TagWindow(tag, ownerGui).apply {
-                val step = 3.0
+                val step = 5.0
                 forceSetPosition(Vec2d((width + step) * index, 0.0) + step)
             }
         }
