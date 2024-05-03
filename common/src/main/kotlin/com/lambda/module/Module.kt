@@ -109,6 +109,7 @@ abstract class Module(
         listener<KeyPressEvent>(alwaysListen = true) { event ->
             val screen = mc.currentScreen
             if (event.key == keybind.key
+                && !mc.options.commandKey.isPressed
                 && (screen == null
                 || screen is LambdaClickGui)
             ) toggle()
