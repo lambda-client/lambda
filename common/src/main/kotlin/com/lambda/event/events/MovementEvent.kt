@@ -11,9 +11,11 @@ abstract class MovementEvent : Event {
 
     class InputUpdate(
         val input: Input,
-        val slowDown: Boolean,
-        val slowDownFactor: Float,
+        var slowDown: Boolean,
+        var slowDownFactor: Float,
     ) : MovementEvent()
+
+    class Sprint : MovementEvent(), ICancellable by Cancellable()
 
     class ClipAtLedge(
         var clip: Boolean,
