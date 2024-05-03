@@ -1,5 +1,6 @@
 package com.lambda.module.modules.player
 
+import com.google.gson.annotations.SerializedName
 import com.lambda.config.RotationSettings
 import com.lambda.event.events.KeyPressEvent
 import com.lambda.event.events.MovementEvent
@@ -15,17 +16,25 @@ import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
 import com.lambda.util.primitives.extension.rotation
 import net.minecraft.client.input.Input
+import net.minecraft.datafixer.fix.BlockEntitySignTextStrictJsonFix.GSON
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
+// ToDo: Needs more dense data storage (Not using JSON)
+//  - Use a custom binary format to store the data
+//  - Actually store the data in a file
+//  - Implement a way to save and load the data (Commands)
+//  - Pause and resume the replay and recording
 object Replay : Module(
     name = "Replay",
     description = "Replays the last few seconds of gameplay",
     defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
 ) {
     private val record by setting("Record", KeyCode.R)
-    private val replay by setting("Replay", KeyCode.C)
+    private val play by setting("Play", KeyCode.P)
+    private val pause by setting("Pause", KeyCode.V)
+    private val stop by setting("Stop", KeyCode.S)
 
     private val rotationConfig = RotationSettings(this).apply {
         rotationMode = RotationMode.LOCK
@@ -55,7 +64,7 @@ object Replay : Module(
 
             when (it.key) {
                 record.key -> handleRecord()
-                replay.key -> handleReplay()
+                play.key -> handlePlay()
             }
         }
 
@@ -108,7 +117,7 @@ object Replay : Module(
         }
     }
 
-    private fun handleReplay() {
+    private fun handlePlay() {
         when (mode) {
             ReplayMode.REPLAY -> {
                 mode = ReplayMode.INACTIVE
@@ -131,6 +140,7 @@ object Replay : Module(
         when (mode) {
             ReplayMode.RECORD -> {
                 mode = ReplayMode.INACTIVE
+                this@Replay.info(GSON.toJson(actions))
                 this@Replay.info("Recording stopped. Recorded for $duration")
             }
 
@@ -150,8 +160,11 @@ object Replay : Module(
     }
 
     data class MoveInputAction(
+        @SerializedName("i")
         val input: InputAction,
+        @SerializedName("s")
         val slowDown: Boolean,
+        @SerializedName("f")
         val slowDownFactor: Float
     ) {
         fun update(event: MovementEvent.InputUpdate) {
@@ -191,13 +204,21 @@ object Replay : Module(
     }
 
     data class InputAction(
+        @SerializedName("s")
         val movementSideways: Float,
+        @SerializedName("f")
         val movementForward: Float,
+        @SerializedName("pf")
         val pressingForward: Boolean,
+        @SerializedName("pb")
         val pressingBack: Boolean,
+        @SerializedName("pl")
         val pressingLeft: Boolean,
+        @SerializedName("pr")
         val pressingRight: Boolean,
+        @SerializedName("j")
         val jumping: Boolean,
+        @SerializedName("sn")
         val sneaking: Boolean
     )
 }
