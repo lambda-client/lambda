@@ -36,6 +36,8 @@ object Replay : Module(
     private val record by setting("Record", KeyCode.R)
     private val play by setting("Play / Pause", KeyCode.C)
     private val stop by setting("Stop", KeyCode.X)
+    private val check by setting("Checkpoint", KeyCode.V, description = "Create a checkpoint in the recording.")
+    private val playCheck by setting("Play checkpoints", KeyCode.B, description = "Replays until the last set checkpoint.")
     private val loop by setting("Loop", false)
     private val loops by setting("Loops", -1, -1..10, 1, description = "Number of times to loop the replay. -1 for infinite.", unit = "repeats") { loop }
     private val cancelOnDerivation by setting("Cancel on derivation", true)
@@ -50,6 +52,7 @@ object Replay : Module(
         RECORDING,
         PAUSED_RECORDING,
         PLAYING,
+        PLAYING_CHECKPOINTS,
         PAUSED_REPLAY
     }
 
@@ -83,6 +86,7 @@ object Replay : Module(
         }
     }
 
+    private var checkpoint: Recording? = null
     private var recording: Recording? = null
     private var replay: Recording? = null
     private var repeats = 0
@@ -95,6 +99,8 @@ object Replay : Module(
                 record.key -> handleRecord()
                 play.key -> handlePlay()
                 stop.key -> handleStop()
+                check.key -> handleCheckpoint()
+                playCheck.key -> handlePlayCheckpoints()
                 else -> {}
             }
         }
@@ -107,18 +113,17 @@ object Replay : Module(
                         it.position.add(player.pos)
                     }
                 }
-                State.PLAYING -> {
+                State.PLAYING, State.PLAYING_CHECKPOINTS -> {
                     replay?.let {
-                        it.position.removeFirstOrNull()?.let { pos ->
+                        it.position.removeFirstOrNull()?.let a@{ pos ->
                             val diff = pos.subtract(player.pos).length()
-                            if (diff > 0.001) {
-                                this@Replay.info("Current derivation: ${"%.2f".format(diff)} blocks.")
+                            if (diff < 0.001) return@a
 
-                                if (cancelOnDerivation && diff > derivationThreshold) {
-                                    state = State.INACTIVE
-                                    this@Replay.info("Replay cancelled due to exceeding derivation threshold.")
-                                    return@listener
-                                }
+                            this@Replay.info("Current derivation: ${"%.3f".format(diff)} blocks.")
+                            if (cancelOnDerivation && diff > derivationThreshold) {
+                                state = State.INACTIVE
+                                this@Replay.info("Replay cancelled due to exceeding derivation threshold.")
+                                return@listener
                             }
                         }
                         it.movement.removeFirstOrNull()?.update(event) ?: run {
@@ -127,8 +132,15 @@ object Replay : Module(
                                 replay = recording?.duplicate()
                                 this@Replay.info("Replay looped. $repeats / $loops")
                             } else {
-                                state = State.INACTIVE
-                                this@Replay.info("Recording finished after ${recording?.duration}.")
+                                if (state != State.PLAYING_CHECKPOINTS) {
+                                    state = State.INACTIVE
+                                    this@Replay.info("Replay finished after ${recording?.duration}.")
+                                    return@listener
+                                }
+
+                                state = State.RECORDING
+                                recording = checkpoint?.duplicate()
+                                this@Replay.info("Checkpoint replayed. Continued recording...")
                             }
                         }
                     }
@@ -142,7 +154,7 @@ object Replay : Module(
                 State.RECORDING -> {
                     recording?.rotation?.add(player.rotation)
                 }
-                State.PLAYING -> {
+                State.PLAYING, State.PLAYING_CHECKPOINTS -> {
                     replay?.let {
                         it.rotation.removeFirstOrNull()?.let { rot ->
                             event.context = RotationContext(rot, rotationConfig)
@@ -158,7 +170,7 @@ object Replay : Module(
                 State.RECORDING -> {
                     recording?.sprint?.add(player.isSprinting)
                 }
-                State.PLAYING -> {
+                State.PLAYING, State.PLAYING_CHECKPOINTS -> {
                     replay?.let {
                         it.sprint.removeFirstOrNull()?.let { sprint ->
                             event.sprint = sprint
@@ -190,7 +202,7 @@ object Replay : Module(
                 state = State.RECORDING
                 this@Replay.info("Recording resumed.")
             }
-            State.PLAYING -> {
+            State.PLAYING, State.PLAYING_CHECKPOINTS -> { // ToDo: More general pausing for all states
                 state = State.PAUSED_REPLAY
                 this@Replay.info("Replay paused.")
             }
@@ -222,9 +234,29 @@ object Replay : Module(
                 state = State.INACTIVE
                 this@Replay.info("Recording stopped. Recorded for ${recording?.duration}.")
             }
-            State.PLAYING, State.PAUSED_REPLAY -> {
+            State.PLAYING, State.PAUSED_REPLAY, State.PLAYING_CHECKPOINTS -> {
                 state = State.INACTIVE
                 this@Replay.info("Replay stopped.")
+            }
+            else -> {}
+        }
+    }
+
+    private fun handleCheckpoint() {
+        when (state) {
+            State.RECORDING -> {
+                checkpoint = recording?.duplicate()
+                this@Replay.info("Checkpoint created.")
+            }
+            else -> {}
+        }
+    }
+
+    private fun handlePlayCheckpoints() {
+        when (state) {
+            State.INACTIVE -> {
+                state = State.PLAYING_CHECKPOINTS
+                replay = checkpoint?.duplicate()
             }
             else -> {}
         }
