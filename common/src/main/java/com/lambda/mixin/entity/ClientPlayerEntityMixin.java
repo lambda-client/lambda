@@ -63,7 +63,7 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
 
     @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isSprinting()Z"))
     boolean isSprinting(ClientPlayerEntity entity) {
-        return !EventFlow.post(new MovementEvent.Sprint()).isCanceled();
+        return EventFlow.post(new MovementEvent.Sprint(entity.isSprinting())).getSprint();
     }
 
     @Inject(method = "sendMovementPackets", at = @At(value = "HEAD"), cancellable = true)

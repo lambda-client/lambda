@@ -15,7 +15,7 @@ abstract class MovementEvent : Event {
         var slowDownFactor: Float,
     ) : MovementEvent()
 
-    class Sprint : MovementEvent(), ICancellable by Cancellable()
+    class Sprint(var sprint: Boolean) : MovementEvent()
 
     class ClipAtLedge(
         var clip: Boolean,

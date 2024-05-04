@@ -2,6 +2,7 @@ package com.lambda.module.modules.player
 
 import com.google.gson.annotations.SerializedName
 import com.lambda.config.RotationSettings
+import com.lambda.core.TimerManager
 import com.lambda.event.events.KeyPressEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RotationEvent
@@ -13,52 +14,78 @@ import com.lambda.module.Module
 import com.lambda.module.modules.player.Replay.MoveInputAction.Companion.toAction
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
+import com.lambda.util.Communication.warn
 import com.lambda.util.KeyCode
 import com.lambda.util.primitives.extension.rotation
 import net.minecraft.client.input.Input
-import net.minecraft.datafixer.fix.BlockEntitySignTextStrictJsonFix.GSON
+import net.minecraft.util.math.Vec3d
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
-// ToDo: Needs more dense data storage (Not using JSON)
-//  - Use a custom binary format to store the data
+// ToDo:
+//  - Use a custom binary format to store the data (Protobuf / DB?)
 //  - Actually store the data in a file
 //  - Implement a way to save and load the data (Commands?)
-//  - Pause and resume the replay and recording
-//  - Play n time - Loop mode
 //  - Record other types of inputs: (Interactions, etc.)
 object Replay : Module(
     name = "Replay",
-    description = "Replays the last few seconds of gameplay",
+    description = "Replay gameplay action recordings",
     defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
 ) {
     private val record by setting("Record", KeyCode.R)
-    private val play by setting("Play", KeyCode.P)
-    private val pause by setting("Pause", KeyCode.V)
-    private val stop by setting("Stop", KeyCode.S)
+    private val play by setting("Play / Pause", KeyCode.C)
+    private val stop by setting("Stop", KeyCode.X)
+    private val loop by setting("Loop", false)
+    private val loops by setting("Loops", -1, -1..10, 1, description = "Number of times to loop the replay. -1 for infinite.", unit = "repeats") { loop }
+    private val cancelOnDerivation by setting("Cancel on derivation", true)
+    private val derivationThreshold by setting("Derivation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the derivation to cancel the replay.") { cancelOnDerivation }
 
     private val rotationConfig = RotationSettings(this).apply {
         rotationMode = RotationMode.LOCK
     }
 
-    private var mode = ReplayMode.INACTIVE
-
-    private val actions = mutableListOf<MoveInputAction>()
-    private val rotations = mutableListOf<Rotation>()
-    private val sprints = mutableListOf<Boolean>()
-    private var actionSnapshot = mutableListOf<MoveInputAction>()
-    private var rotationSnapshot = mutableListOf<Rotation>()
-    private var sprintSnapshot = mutableListOf<Boolean>()
-
-    private val duration: Duration
-        get() = (actions.size * 50L).toDuration(DurationUnit.MILLISECONDS)
-
-    enum class ReplayMode {
+    enum class State {
         INACTIVE,
-        REPLAY,
-        RECORD
+        RECORDING,
+        PAUSED_RECORDING,
+        PLAYING,
+        PAUSED_REPLAY
     }
+
+    private var state = State.INACTIVE
+
+    data class Recording(
+        val movement: MutableList<MoveInputAction>,
+        val rotation: MutableList<Rotation>,
+        val sprint: MutableList<Boolean>,
+        val position: MutableList<Vec3d>
+    ) {
+        val size: Int
+            get() = maxOf(movement.size, rotation.size, sprint.size, position.size)
+        val duration: Duration
+            get() = (size * TimerManager.tickLength * 1.0).toDuration(DurationUnit.MILLISECONDS)
+
+        fun duplicate() = Recording(
+            movement.toMutableList(),
+            rotation.toMutableList(),
+            sprint.toMutableList(),
+            position.toMutableList()
+        )
+
+        companion object {
+            fun new() = Recording(
+                mutableListOf(),
+                mutableListOf(),
+                mutableListOf(),
+                mutableListOf()
+            )
+        }
+    }
+
+    private var recording: Recording? = null
+    private var replay: Recording? = null
+    private var repeats = 0
 
     init {
         listener<KeyPressEvent> {
@@ -67,52 +94,77 @@ object Replay : Module(
             when (it.key) {
                 record.key -> handleRecord()
                 play.key -> handlePlay()
+                stop.key -> handleStop()
+                else -> {}
             }
         }
 
         listener<MovementEvent.InputUpdate> { event ->
-            when (mode) {
-                ReplayMode.RECORD -> {
-                    val action = event.toAction()
-                    actions.add(action)
-                }
-                ReplayMode.REPLAY -> {
-                    actionSnapshot.removeFirstOrNull()?.update(event) ?: run {
-                        mode = ReplayMode.INACTIVE
-                        this@Replay.info("Replay finished.")
+            when (state) {
+                State.RECORDING -> {
+                    recording?.let {
+                        it.movement.add(event.toAction())
+                        it.position.add(player.pos)
                     }
                 }
-                else -> {}
-            }
-        }
+                State.PLAYING -> {
+                    replay?.let {
+                        it.position.removeFirstOrNull()?.let { pos ->
+                            val diff = pos.subtract(player.pos).length()
+                            if (diff > 0.001) {
+                                this@Replay.info("Current derivation: ${"%.2f".format(diff)} blocks.")
 
-        listener<RotationEvent.Pre> {
-            when (mode) {
-                ReplayMode.REPLAY -> {
-                    rotationSnapshot.removeFirstOrNull()?.let { rot ->
-                        it.context = RotationContext(rot, rotationConfig)
-                    }
-                }
-                ReplayMode.RECORD -> {
-                    rotations.add(player.rotation)
-                }
-                else -> {}
-            }
-        }
-
-        listener<MovementEvent.Sprint> {
-            when (mode) {
-                ReplayMode.REPLAY -> {
-                    sprintSnapshot.removeFirstOrNull()?.let { sprinting ->
-                        if (!sprinting) {
-                            it.cancel()
-                        } else {
-                            player.isSprinting = true
+                                if (cancelOnDerivation && diff > derivationThreshold) {
+                                    state = State.INACTIVE
+                                    this@Replay.info("Replay cancelled due to exceeding derivation threshold.")
+                                    return@listener
+                                }
+                            }
+                        }
+                        it.movement.removeFirstOrNull()?.update(event) ?: run {
+                            if (loop && repeats < loops) {
+                                repeats++
+                                replay = recording?.duplicate()
+                                this@Replay.info("Replay looped. $repeats / $loops")
+                            } else {
+                                state = State.INACTIVE
+                                this@Replay.info("Recording finished after ${recording?.duration}.")
+                            }
                         }
                     }
                 }
-                ReplayMode.RECORD -> {
-                    sprints.add(player.isSprinting)
+                else -> {}
+            }
+        }
+
+        listener<RotationEvent.Pre> { event ->
+            when (state) {
+                State.RECORDING -> {
+                    recording?.rotation?.add(player.rotation)
+                }
+                State.PLAYING -> {
+                    replay?.let {
+                        it.rotation.removeFirstOrNull()?.let { rot ->
+                            event.context = RotationContext(rot, rotationConfig)
+                        }
+                    }
+                }
+                else -> {}
+            }
+        }
+
+        listener<MovementEvent.Sprint> { event ->
+            when (state) {
+                State.RECORDING -> {
+                    recording?.sprint?.add(player.isSprinting)
+                }
+                State.PLAYING -> {
+                    replay?.let {
+                        it.sprint.removeFirstOrNull()?.let { sprint ->
+                            event.sprint = sprint
+                            player.isSprinting = sprint
+                        }
+                    }
                 }
                 else -> {}
             }
@@ -120,43 +172,60 @@ object Replay : Module(
     }
 
     private fun handlePlay() {
-        when (mode) {
-            ReplayMode.REPLAY -> {
-                mode = ReplayMode.INACTIVE
-                this@Replay.info("Replay stopped.")
+        when (state) {
+            State.INACTIVE -> {
+                recording?.let {
+                    state = State.PLAYING
+                    replay = it.duplicate()
+                    this@Replay.info("Replay started and will take ${it.duration}.")
+                } ?: run {
+                    this@Replay.warn("No recording to replay.")
+                }
             }
-
-            ReplayMode.INACTIVE -> {
-                mode = ReplayMode.REPLAY
-                actionSnapshot = actions.toMutableList()
-                rotationSnapshot = rotations.toMutableList()
-                sprintSnapshot = sprints.toMutableList()
-                this@Replay.info("Replay started.")
+            State.RECORDING -> {
+                state = State.PAUSED_RECORDING
+                this@Replay.info("Recording paused.")
             }
-
-            else -> {}
+            State.PAUSED_RECORDING -> {
+                state = State.RECORDING
+                this@Replay.info("Recording resumed.")
+            }
+            State.PLAYING -> {
+                state = State.PAUSED_REPLAY
+                this@Replay.info("Replay paused.")
+            }
+            State.PAUSED_REPLAY -> {
+                state = State.PLAYING
+                this@Replay.info("Replay resumed.")
+            }
         }
     }
 
     private fun handleRecord() {
-        when (mode) {
-            ReplayMode.RECORD -> {
-                mode = ReplayMode.INACTIVE
-//                this@Replay.info(GSON.toJson(actions))
-                this@Replay.info("Recording stopped. Recorded for $duration")
+        when (state) {
+            State.RECORDING -> {
+                state = State.INACTIVE
+                this@Replay.info("Recording stopped. Recorded for ${recording?.duration}.")
             }
-
-            ReplayMode.INACTIVE -> {
-                if (actions.isNotEmpty()) {
-                    this@Replay.info("Overriding previous recording.")
-                    actions.clear()
-                    rotations.clear()
-                    sprints.clear()
-                }
+            State.INACTIVE -> {
+                recording = Recording.new()
+                state = State.RECORDING
                 this@Replay.info("Recording started.")
-                mode = ReplayMode.RECORD
             }
+            else -> {}
+        }
+    }
 
+    private fun handleStop() {
+        when (state) {
+            State.RECORDING, State.PAUSED_RECORDING -> {
+                state = State.INACTIVE
+                this@Replay.info("Recording stopped. Recorded for ${recording?.duration}.")
+            }
+            State.PLAYING, State.PAUSED_REPLAY -> {
+                state = State.INACTIVE
+                this@Replay.info("Replay stopped.")
+            }
             else -> {}
         }
     }
