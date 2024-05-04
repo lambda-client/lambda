@@ -67,7 +67,7 @@ dependencies {
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
     includeMod("baritone-api:baritone-unoptimized-forge:1.10.2")
-    
+
     // MixinExtras
     implementation("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
@@ -86,12 +86,6 @@ dependencies {
 tasks {
     remapJar {
         injectAccessWidener = true
-    }
-
-    processResources {
-        filesMatching("META-INF/mods.toml") {
-            expand(project(":common").properties)
-        }
     }
 
     sourceSets.forEach {

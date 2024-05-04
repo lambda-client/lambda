@@ -36,13 +36,5 @@ tasks {
     remapJar {
         enabled = false
     }
-
-    processResources {
-        Properties().apply {
-            load(project.rootProject.file("gradle.properties").inputStream())
-        }.forEach { key, value ->
-            inputs.property(key.toString(), value)
-        }
-    }
 }
 

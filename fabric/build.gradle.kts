@@ -72,10 +72,4 @@ tasks {
     remapJar {
         injectAccessWidener = true
     }
-
-    processResources {
-        filesMatching("fabric.mod.json") {
-            expand(project(":common").properties)
-        }
-    }
 }
