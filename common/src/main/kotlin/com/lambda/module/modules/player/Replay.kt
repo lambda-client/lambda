@@ -101,23 +101,7 @@ object Replay : Module(
                                 return@listener
                             }
                         }
-                        it.input.removeFirstOrNull()?.update(event.input) ?: run {
-                            if (loop && repeats < loops) {
-                                if (repeats >= 0) repeats++
-                                replay = recording?.duplicate()
-                                this@Replay.info("Replay looped. $repeats / $loops")
-                            } else {
-                                if (state != State.PLAYING_CHECKPOINTS) {
-                                    state = State.INACTIVE
-                                    this@Replay.info("Replay finished after ${recording?.duration}.")
-                                    return@listener
-                                }
-
-                                state = State.RECORDING
-                                recording = checkpoint?.duplicate()
-                                this@Replay.info("Checkpoint replayed. Continued recording...")
-                            }
-                        }
+                        it.input.removeFirstOrNull()?.update(event.input)
                     }
                 }
                 else -> {}
@@ -150,6 +134,33 @@ object Replay : Module(
                         it.sprint.removeFirstOrNull()?.let { sprint ->
                             event.sprint = sprint
                             player.isSprinting = sprint // ToDo: Find out why
+                        }
+                    }
+                }
+                else -> {}
+            }
+        }
+
+        listener<MovementEvent.Post> {
+            when (state) {
+                State.PLAYING, State.PLAYING_CHECKPOINTS -> {
+                    replay?.let {
+                        if (it.size != 0) return@listener
+
+                        if (loop && repeats < loops) {
+                            if (repeats >= 0) repeats++
+                            replay = recording?.duplicate()
+                            this@Replay.info("Replay looped. $repeats / $loops")
+                        } else {
+                            if (state != State.PLAYING_CHECKPOINTS) {
+                                state = State.INACTIVE
+                                this@Replay.info("Replay finished after ${recording?.duration}.")
+                                return@listener
+                            }
+
+                            state = State.RECORDING
+                            recording = checkpoint?.duplicate()
+                            this@Replay.info("Checkpoint replayed. Continued recording...")
                         }
                     }
                 }
