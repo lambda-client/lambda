@@ -8,14 +8,13 @@ object ReplayCommand : LambdaCommand {
 
     init {
         register(name, "rep") {
-            // 1. Save current replay to disc with name
+            // 1. Save current recording / checkpoint to disc with name
             // 2. Load replay from disc with name
             // 3. Play replay
             // 4. Stop replay
             // 5. Pause replay
             // 6. Resume replay
             // 7. Set replay speed
-            // 8. Set replay position
         }
     }
 }

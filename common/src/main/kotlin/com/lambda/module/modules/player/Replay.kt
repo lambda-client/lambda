@@ -28,9 +28,10 @@ import kotlin.time.toDuration
 //  - Actually store the data in a file
 //  - Implement a way to save and load the data (Commands?)
 //  - Record other types of inputs: (Interactions, etc.)
+//  - Fix continue derivation after replaying the checkpoint for spliced runs
 object Replay : Module(
     name = "Replay",
-    description = "Replay gameplay action recordings",
+    description = "Record gameplay actions and replay them like a TAS.",
     defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
 ) {
     private val record by setting("Record", KeyCode.R)
@@ -174,7 +175,7 @@ object Replay : Module(
                     replay?.let {
                         it.sprint.removeFirstOrNull()?.let { sprint ->
                             event.sprint = sprint
-                            player.isSprinting = sprint
+                            player.isSprinting = sprint // ToDo: Find out why
                         }
                     }
                 }
