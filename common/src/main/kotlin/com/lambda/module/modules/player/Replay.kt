@@ -2,6 +2,7 @@ package com.lambda.module.modules.player
 
 import com.google.gson.annotations.SerializedName
 import com.lambda.config.RotationSettings
+import com.lambda.context.SafeContext
 import com.lambda.core.TimerManager
 import com.lambda.event.events.KeyPressEvent
 import com.lambda.event.events.MovementEvent
@@ -11,7 +12,7 @@ import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
-import com.lambda.module.modules.player.Replay.MoveInputAction.Companion.toAction
+import com.lambda.module.modules.player.Replay.InputAction.Companion.toAction
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
@@ -28,7 +29,7 @@ import kotlin.time.toDuration
 //  - Actually store the data in a file
 //  - Implement a way to save and load the data (Commands?)
 //  - Record other types of inputs: (Interactions, etc.)
-//  - Fix continue derivation after replaying the checkpoint for spliced runs
+//  - Fix continue deviation after replaying the checkpoint for spliced runs
 object Replay : Module(
     name = "Replay",
     description = "Record gameplay actions and replay them like a TAS.",
@@ -37,12 +38,12 @@ object Replay : Module(
     private val record by setting("Record", KeyCode.R)
     private val play by setting("Play / Pause", KeyCode.C)
     private val stop by setting("Stop", KeyCode.X)
-    private val check by setting("Checkpoint", KeyCode.V, description = "Create a checkpoint in the recording.")
-    private val playCheck by setting("Play checkpoints", KeyCode.B, description = "Replays until the last set checkpoint.")
+    private val check by setting("Checkpoint", KeyCode.V, description = "Create a checkpoint while recording.")
+    private val playCheck by setting("Play until checkpoint", KeyCode.B, description = "Replays until the last set checkpoint.")
     private val loop by setting("Loop", false)
     private val loops by setting("Loops", -1, -1..10, 1, description = "Number of times to loop the replay. -1 for infinite.", unit = "repeats") { loop }
-    private val cancelOnDerivation by setting("Cancel on derivation", true)
-    private val derivationThreshold by setting("Derivation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the derivation to cancel the replay.") { cancelOnDerivation }
+    private val cancelOnDeviation by setting("Cancel on deviation", true)
+    private val deviationThreshold by setting("Deviation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the deviation to cancel the replay.") { cancelOnDeviation }
 
     private val rotationConfig = RotationSettings(this).apply {
         rotationMode = RotationMode.LOCK
@@ -59,35 +60,8 @@ object Replay : Module(
 
     private var state = State.INACTIVE
 
-    data class Recording(
-        val movement: MutableList<MoveInputAction>,
-        val rotation: MutableList<Rotation>,
-        val sprint: MutableList<Boolean>,
-        val position: MutableList<Vec3d>
-    ) {
-        val size: Int
-            get() = maxOf(movement.size, rotation.size, sprint.size, position.size)
-        val duration: Duration
-            get() = (size * TimerManager.tickLength * 1.0).toDuration(DurationUnit.MILLISECONDS)
-
-        fun duplicate() = Recording(
-            movement.toMutableList(),
-            rotation.toMutableList(),
-            sprint.toMutableList(),
-            position.toMutableList()
-        )
-
-        companion object {
-            fun new() = Recording(
-                mutableListOf(),
-                mutableListOf(),
-                mutableListOf(),
-                mutableListOf()
-            )
-        }
-    }
-
     private var checkpoint: Recording? = null
+
     private var recording: Recording? = null
     private var replay: Recording? = null
     private var repeats = 0
@@ -110,7 +84,7 @@ object Replay : Module(
             when (state) {
                 State.RECORDING -> {
                     recording?.let {
-                        it.movement.add(event.toAction())
+                        it.input.add(event.input.toAction())
                         it.position.add(player.pos)
                     }
                 }
@@ -120,16 +94,16 @@ object Replay : Module(
                             val diff = pos.subtract(player.pos).length()
                             if (diff < 0.001) return@a
 
-                            this@Replay.info("Current derivation: ${"%.3f".format(diff)} blocks.")
-                            if (cancelOnDerivation && diff > derivationThreshold) {
+                            this@Replay.warn("Position deviates from the recording by ${"%.3f".format(diff)} blocks.")
+                            if (cancelOnDeviation && diff > deviationThreshold) {
                                 state = State.INACTIVE
-                                this@Replay.info("Replay cancelled due to exceeding derivation threshold.")
+                                this@Replay.warn("Replay cancelled due to exceeding deviation threshold.")
                                 return@listener
                             }
                         }
-                        it.movement.removeFirstOrNull()?.update(event) ?: run {
+                        it.input.removeFirstOrNull()?.update(event.input) ?: run {
                             if (loop && repeats < loops) {
-                                repeats++
+                                if (repeats >= 0) repeats++
                                 replay = recording?.duplicate()
                                 this@Replay.info("Replay looped. $repeats / $loops")
                             } else {
@@ -190,7 +164,7 @@ object Replay : Module(
                 recording?.let {
                     state = State.PLAYING
                     replay = it.duplicate()
-                    this@Replay.info("Replay started and will take ${it.duration}.")
+                    this@Replay.info("Replay started. ETA: ${it.duration}.")
                 } ?: run {
                     this@Replay.warn("No recording to replay.")
                 }
@@ -221,7 +195,7 @@ object Replay : Module(
                 this@Replay.info("Recording stopped. Recorded for ${recording?.duration}.")
             }
             State.INACTIVE -> {
-                recording = Recording.new()
+                recording = Recording()
                 state = State.RECORDING
                 this@Replay.info("Recording started.")
             }
@@ -243,9 +217,14 @@ object Replay : Module(
         }
     }
 
-    private fun handleCheckpoint() {
+    private fun SafeContext.handleCheckpoint() {
         when (state) {
             State.RECORDING -> {
+                if (player.velocity != Vec3d(0.0, -0.0784000015258789, 0.0)) {
+                    this@Replay.info("Cannot create checkpoint while moving.")
+                    return
+                }
+
                 checkpoint = recording?.duplicate()
                 this@Replay.info("Checkpoint created.")
             }
@@ -258,53 +237,29 @@ object Replay : Module(
             State.INACTIVE -> {
                 state = State.PLAYING_CHECKPOINTS
                 replay = checkpoint?.duplicate()
+                this@Replay.info("Replaying until last set checkpoint. ETA: ${checkpoint?.duration}")
             }
             else -> {}
         }
     }
 
-    data class MoveInputAction(
-        @SerializedName("i")
-        val input: InputAction,
-        @SerializedName("s")
-        val slowDown: Boolean,
-        @SerializedName("f")
-        val slowDownFactor: Float
+    data class Recording(
+        val input: MutableList<InputAction> = mutableListOf(),
+        val rotation: MutableList<Rotation> = mutableListOf(),
+        val sprint: MutableList<Boolean> = mutableListOf(),
+        val position: MutableList<Vec3d> = mutableListOf()
     ) {
-        fun update(event: MovementEvent.InputUpdate) {
-            event.input.update(input)
-            event.slowDown = slowDown
-            event.slowDownFactor = slowDownFactor
-        }
+        val size: Int
+            get() = minOf(input.size, rotation.size, sprint.size, position.size)
+        val duration: Duration
+            get() = (size * TimerManager.tickLength * 1.0).toDuration(DurationUnit.MILLISECONDS)
 
-        companion object {
-            fun MovementEvent.InputUpdate.toAction() =
-                MoveInputAction(
-                    InputAction(
-                        input.movementSideways,
-                        input.movementForward,
-                        input.pressingForward,
-                        input.pressingBack,
-                        input.pressingLeft,
-                        input.pressingRight,
-                        input.jumping,
-                        input.sneaking
-                    ),
-                    slowDown,
-                    slowDownFactor
-                )
-
-            fun Input.update(input: InputAction) {
-                movementSideways = input.movementSideways
-                movementForward = input.movementForward
-                pressingForward = input.pressingForward
-                pressingBack = input.pressingBack
-                pressingLeft = input.pressingLeft
-                pressingRight = input.pressingRight
-                jumping = input.jumping
-                sneaking = input.sneaking
-            }
-        }
+        fun duplicate() = Recording(
+            input.take(size).toMutableList(),
+            rotation.take(size).toMutableList(),
+            sprint.take(size).toMutableList(),
+            position.take(size).toMutableList()
+        )
     }
 
     data class InputAction(
@@ -324,5 +279,30 @@ object Replay : Module(
         val jumping: Boolean,
         @SerializedName("sn")
         val sneaking: Boolean
-    )
+    ) {
+        fun update(input: Input) {
+            input.movementSideways = movementSideways
+            input.movementForward = movementForward
+            input.pressingForward = pressingForward
+            input.pressingBack = pressingBack
+            input.pressingLeft = pressingLeft
+            input.pressingRight = pressingRight
+            input.jumping = jumping
+            input.sneaking = sneaking
+        }
+
+        companion object {
+            fun Input.toAction() =
+                InputAction(
+                    movementSideways,
+                    movementForward,
+                    pressingForward,
+                    pressingBack,
+                    pressingLeft,
+                    pressingRight,
+                    jumping,
+                    sneaking
+                )
+        }
+    }
 }
