@@ -10,8 +10,8 @@ architectury {
 }
 
 loom {
-    accessWidenerPath.set(project(":common").loom.accessWidenerPath)
-    enableTransitiveAccessWideners.set(true)
+    accessWidenerPath = project(":common").loom.accessWidenerPath
+    enableTransitiveAccessWideners = true
 }
 
 val common: Configuration by configurations.creating {

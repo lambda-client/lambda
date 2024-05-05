@@ -1,4 +1,5 @@
 rootProject.name = "Lambda"
+
 pluginManagement {
     repositories {
         maven("https://maven.fabricmc.net/")

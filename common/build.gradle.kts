@@ -1,5 +1,3 @@
-import java.util.Properties
-
 val fabricLoaderVersion = property("fabric_loader_version").toString()
 val mixinExtrasVersion = property("mixinextras_version").toString()
 val kotlinVersion = property("kotlin_version").toString()
@@ -9,7 +7,7 @@ architectury { common("fabric", "forge", "neoforge") }
 
 loom {
     silentMojangMappingsLicense()
-    accessWidenerPath.set(File("src/main/resources/lambda.accesswidener"))
+    accessWidenerPath = File("src/main/resources/lambda.accesswidener")
 }
 
 repositories {
@@ -33,6 +31,7 @@ dependencies {
 }
 
 tasks {
+    // Prevent recursive libraries
     remapJar {
         enabled = false
     }
