@@ -25,7 +25,7 @@ object ReplayCommand : LambdaCommand {
             // 7. Set replay speed
             required(string("replay name")) { replayName ->
                 suggests { _, builder ->
-                    FolderRegister.replays.listFiles()?.map {
+                    FolderRegister.replay.listFiles()?.map {
                             it.nameWithoutExtension
                         }?.forEach {
                             builder.suggest(it)
@@ -34,7 +34,7 @@ object ReplayCommand : LambdaCommand {
                 }
 
                 executeWithResult {
-                    val replayFile = FolderRegister.replays.resolve("${this[replayName].value()}.json")
+                    val replayFile = FolderRegister.replay.resolve("${this[replayName].value()}.json")
 
                     if (!replayFile.exists()) {
                         return@executeWithResult CommandResult.failure("Replay file does not exist")

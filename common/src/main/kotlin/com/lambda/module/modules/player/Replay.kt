@@ -34,8 +34,6 @@ import kotlin.time.toDuration
 
 // ToDo:
 //  - Use a custom binary format to store the data (Protobuf / DB?)
-//  - Actually store the data in a file
-//  - Implement a way to save and load the data (Commands?)
 //  - Record other types of inputs: (Interactions, etc.)
 object Replay : Module(
     name = "Replay",
@@ -107,6 +105,7 @@ object Replay : Module(
                 }
                 State.PLAYING, State.PLAYING_CHECKPOINTS -> {
                     replay?.let {
+                        it.input.removeFirstOrNull()?.update(event.input)
                         it.position.removeFirstOrNull()?.let a@{ pos ->
                             val diff = pos.subtract(player.pos).length()
                             if (diff < 0.001) return@a
@@ -118,7 +117,6 @@ object Replay : Module(
                                 return@listener
                             }
                         }
-                        it.input.removeFirstOrNull()?.update(event.input)
                     }
                 }
                 else -> {}
@@ -131,10 +129,8 @@ object Replay : Module(
                     recording?.rotation?.add(player.rotation)
                 }
                 State.PLAYING, State.PLAYING_CHECKPOINTS -> {
-                    replay?.let {
-                        it.rotation.removeFirstOrNull()?.let { rot ->
-                            event.context = RotationContext(rot, rotationConfig)
-                        }
+                    replay?.rotation?.removeFirstOrNull()?.let { rot ->
+                        event.context = RotationContext(rot, rotationConfig)
                     }
                 }
                 else -> {}
@@ -147,11 +143,9 @@ object Replay : Module(
                     recording?.sprint?.add(player.isSprinting)
                 }
                 State.PLAYING, State.PLAYING_CHECKPOINTS -> {
-                    replay?.let {
-                        it.sprint.removeFirstOrNull()?.let { sprint ->
-                            event.sprint = sprint
-                            player.isSprinting = sprint // ToDo: Find out why
-                        }
+                    replay?.sprint?.removeFirstOrNull()?.let { sprint ->
+                        event.sprint = sprint
+                        player.isSprinting = sprint
                     }
                 }
                 else -> {}
@@ -255,8 +249,8 @@ object Replay : Module(
 
                 checkpoint = recording?.duplicate()
                 lambdaScope.launch(Dispatchers.IO) {
-                    FolderRegister.replays.mkdirs()
-                    FolderRegister.replays.resolve("checkpoint-${
+                    FolderRegister.replay.mkdirs()
+                    FolderRegister.replay.resolve("checkpoint-${
                         mc.currentServerEntry?.address?.replace(":", "_")
                     }-${
                         world.dimensionKey?.value?.path?.replace("/", "_")
@@ -361,21 +355,13 @@ object Replay : Module(
     }
 
     data class InputAction(
-        @SerializedName("s")
         val movementSideways: Float,
-        @SerializedName("f")
         val movementForward: Float,
-        @SerializedName("pf")
         val pressingForward: Boolean,
-        @SerializedName("pb")
         val pressingBack: Boolean,
-        @SerializedName("pl")
         val pressingLeft: Boolean,
-        @SerializedName("pr")
         val pressingRight: Boolean,
-        @SerializedName("j")
         val jumping: Boolean,
-        @SerializedName("sn")
         val sneaking: Boolean
     ) {
         fun update(input: Input) {
