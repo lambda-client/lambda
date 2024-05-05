@@ -18,4 +18,5 @@ object FolderRegister {
     val lambda: File = File(minecraft, "lambda")
     val config: File = File(lambda, "config")
     val packetLogs: File = File(lambda, "packet-log")
+    val replays: File = File(lambda, "replays")
 }

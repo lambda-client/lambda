@@ -1,9 +1,11 @@
 package com.lambda.module.modules.player
 
+import com.google.gson.*
 import com.google.gson.annotations.SerializedName
 import com.lambda.config.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerManager
+import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.KeyPressEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RotationEvent
@@ -15,11 +17,17 @@ import com.lambda.module.Module
 import com.lambda.module.modules.player.Replay.InputAction.Companion.toAction
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
+import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
+import com.lambda.util.FolderRegister
 import com.lambda.util.KeyCode
 import com.lambda.util.primitives.extension.rotation
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import net.minecraft.client.input.Input
 import net.minecraft.util.math.Vec3d
+import java.io.File
+import java.lang.reflect.Type
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -29,7 +37,6 @@ import kotlin.time.toDuration
 //  - Actually store the data in a file
 //  - Implement a way to save and load the data (Commands?)
 //  - Record other types of inputs: (Interactions, etc.)
-//  - Fix continue deviation after replaying the checkpoint for spliced runs
 object Replay : Module(
     name = "Replay",
     description = "Record gameplay actions and replay them like a TAS.",
@@ -65,6 +72,16 @@ object Replay : Module(
     private var recording: Recording? = null
     private var replay: Recording? = null
     private var repeats = 0
+
+    private val gsonCompact = GsonBuilder()
+        .registerTypeAdapter(Recording::class.java, Recording())
+        .create()
+
+    fun loadRecording(file: File) {
+        recording = gsonCompact.fromJson(file.readText(), Recording::class.java)
+
+        info("Recording ${file.nameWithoutExtension} loaded. Duration: ${recording?.duration}.")
+    }
 
     init {
         listener<KeyPressEvent> {
@@ -232,11 +249,21 @@ object Replay : Module(
         when (state) {
             State.RECORDING -> {
                 if (player.velocity != Vec3d(0.0, -0.0784000015258789, 0.0)) {
-                    this@Replay.info("Cannot create checkpoint while moving.")
+                    this@Replay.logError("Cannot create checkpoint while moving. Try again!")
                     return
                 }
 
                 checkpoint = recording?.duplicate()
+                lambdaScope.launch(Dispatchers.IO) {
+                    FolderRegister.replays.mkdirs()
+                    FolderRegister.replays.resolve("checkpoint-${
+                        mc.currentServerEntry?.address?.replace(":", "_")
+                    }-${
+                        world.dimensionKey?.value?.path?.replace("/", "_")
+                    }-${
+                        System.currentTimeMillis()
+                    }.json").writeText(gsonCompact.toJson(checkpoint))
+                }
                 this@Replay.info("Checkpoint created.")
             }
             else -> {}
@@ -259,7 +286,7 @@ object Replay : Module(
         val rotation: MutableList<Rotation> = mutableListOf(),
         val sprint: MutableList<Boolean> = mutableListOf(),
         val position: MutableList<Vec3d> = mutableListOf()
-    ) {
+    ) : JsonSerializer<Recording>, JsonDeserializer<Recording> {
         val size: Int
             get() = minOf(input.size, rotation.size, sprint.size, position.size)
         val duration: Duration
@@ -271,6 +298,66 @@ object Replay : Module(
             sprint.take(size).toMutableList(),
             position.take(size).toMutableList()
         )
+
+        override fun serialize(
+            src: Recording?,
+            typeOfSrc: Type?,
+            context: JsonSerializationContext?,
+        ): JsonElement = src?.let { recording ->
+            JsonArray().apply {
+                repeat(recording.size) { i ->
+                    add(JsonArray().apply {
+                        val inputI = recording.input[i]
+                        add(inputI.movementSideways)
+                        add(inputI.movementForward)
+                        add(inputI.pressingForward)
+                        add(inputI.pressingBack)
+                        add(inputI.pressingLeft)
+                        add(inputI.pressingRight)
+                        add(inputI.jumping)
+                        add(inputI.sneaking)
+                        val rotationI = recording.rotation[i]
+                        add(rotationI.yaw)
+                        add(rotationI.pitch)
+                        add(recording.sprint[i])
+                        val positionI = recording.position[i]
+                        add(positionI.x)
+                        add(positionI.y)
+                        add(positionI.z)
+                    })
+                }
+            }
+        } ?: JsonNull.INSTANCE
+
+        override fun deserialize(
+            json: JsonElement?,
+            typeOfT: Type?,
+            context: JsonDeserializationContext?
+        ): Recording = json?.asJsonArray?.let {
+            val input = mutableListOf<InputAction>()
+            val rotation = mutableListOf<Rotation>()
+            val sprint = mutableListOf<Boolean>()
+            val position = mutableListOf<Vec3d>()
+
+            it.forEach { element ->
+                val array = element.asJsonArray
+                input.add(InputAction(
+                    array[0].asFloat,
+                    array[1].asFloat,
+                    array[2].asBoolean,
+                    array[3].asBoolean,
+                    array[4].asBoolean,
+                    array[5].asBoolean,
+                    array[6].asBoolean,
+                    array[7].asBoolean
+                ))
+                rotation.add(Rotation(array[8].asDouble, array[9].asDouble))
+                sprint.add(array[10].asBoolean)
+                position.add(Vec3d(array[11].asDouble, array[12].asDouble, array[13].asDouble))
+            }
+
+            Recording(input, rotation, sprint, position)
+        } ?: Recording()
     }
 
     data class InputAction(
