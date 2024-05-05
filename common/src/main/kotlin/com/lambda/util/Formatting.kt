@@ -10,6 +10,11 @@ object Formatting {
     val Vec3d.asString: String
         get() = "(%.2f, %.2f, %.2f)".format(x, y, z)
 
+    fun Vec3d.asString(decimals: Int = 2): String {
+        val format = "%.${decimals}f"
+        return "(${format.format(x)}, ${format.format(y)}, ${format.format(z)})"
+    }
+
     fun getTime(formatter: DateTimeFormatter = DateTimeFormatter.RFC_1123_DATE_TIME): String {
         val localDateTime = LocalDateTime.now()
         val zoneId = ZoneId.systemDefault()

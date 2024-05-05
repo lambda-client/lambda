@@ -10,22 +10,32 @@ import com.lambda.event.events.KeyPressEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
+import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.player.Replay.InputAction.Companion.toAction
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
 import com.lambda.util.FolderRegister
+import com.lambda.util.Formatting.asString
 import com.lambda.util.KeyCode
 import com.lambda.util.primitives.extension.rotation
+import com.lambda.util.text.buildText
+import com.lambda.util.text.color
+import com.lambda.util.text.literal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minecraft.client.input.Input
+import net.minecraft.client.sound.PositionedSoundInstance
+import net.minecraft.client.sound.SoundInstance
+import net.minecraft.sound.SoundEvents
 import net.minecraft.util.math.Vec3d
+import java.awt.Color
 import java.io.File
 import java.lang.reflect.Type
 import kotlin.time.Duration
@@ -33,8 +43,10 @@ import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 // ToDo:
-//  - Use a custom binary format to store the data (Protobuf / DB?)
-//  - Record other types of inputs: (Interactions, etc.)
+//  - Record other types of inputs: (place, break, inventory, etc.)
+//  - Fancy logging
+//  - Add HUD for recording / replaying info
+//  - Maybe use a custom binary format to store the data (Protobuf / DB?)
 object Replay : Module(
     name = "Replay",
     description = "Record gameplay actions and replay them like a TAS.",
@@ -78,7 +90,12 @@ object Replay : Module(
     fun loadRecording(file: File) {
         recording = gsonCompact.fromJson(file.readText(), Recording::class.java)
 
-        info("Recording ${file.nameWithoutExtension} loaded. Duration: ${recording?.duration}.")
+        info(buildText {
+            literal("Recording ")
+            color(Color.GRAY) { literal(file.nameWithoutExtension) }
+            literal(" loaded. Duration: ")
+            color(Color.GRAY) { literal(recording?.duration.toString()) }
+        })
     }
 
     init {
@@ -110,10 +127,10 @@ object Replay : Module(
                             val diff = pos.subtract(player.pos).length()
                             if (diff < 0.001) return@a
 
-                            this@Replay.warn("Position deviates from the recording by ${"%.3f".format(diff)} blocks.")
+                            this@Replay.warn("Position deviates from the recording by ${"%.3f".format(diff)} blocks. Desired position: ${pos.asString(3)}")
                             if (cancelOnDeviation && diff > deviationThreshold) {
                                 state = State.INACTIVE
-                                this@Replay.warn("Replay cancelled due to exceeding deviation threshold.")
+                                this@Replay.logError("Replay cancelled due to exceeding deviation threshold.")
                                 return@listener
                             }
                         }
@@ -165,12 +182,21 @@ object Replay : Module(
                         } else {
                             if (state != State.PLAYING_CHECKPOINTS) {
                                 state = State.INACTIVE
-                                this@Replay.info("Replay finished after ${recording?.duration}.")
+                                this@Replay.info(buildText {
+                                    literal("Replay finished after ")
+                                    color(Color.GRAY) { literal(it.duration.toString()) }
+                                    literal(".")
+                                })
                                 return@listener
                             }
 
                             state = State.RECORDING
                             recording = checkpoint?.duplicate()
+                            mc.soundManager.play(
+                                PositionedSoundInstance.master(
+                                    SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f
+                                )
+                            )
                             this@Replay.info("Checkpoint replayed. Continued recording...")
                         }
                     }
@@ -186,7 +212,7 @@ object Replay : Module(
                 recording?.let {
                     state = State.PLAYING
                     replay = it.duplicate()
-                    this@Replay.info("Replay started. ETA: ${it.duration}.")
+                    this@Replay.info("Replay started. Duration: ${it.duration}.")
                 } ?: run {
                     this@Replay.warn("No recording to replay.")
                 }
@@ -210,10 +236,13 @@ object Replay : Module(
         }
     }
 
-    private fun handleRecord() {
+    private fun SafeContext.handleRecord() {
         when (state) {
             State.RECORDING -> {
                 state = State.INACTIVE
+                recording?.let {
+                    save(it, "recording")
+                }
                 this@Replay.info("Recording stopped. Recorded for ${recording?.duration}.")
             }
             State.INACTIVE -> {
@@ -225,10 +254,13 @@ object Replay : Module(
         }
     }
 
-    private fun handleStop() {
+    private fun SafeContext.handleStop() {
         when (state) {
             State.RECORDING, State.PAUSED_RECORDING -> {
                 state = State.INACTIVE
+                recording?.let {
+                    save(it, "recording")
+                }
                 this@Replay.info("Recording stopped. Recorded for ${recording?.duration}.")
             }
             State.PLAYING, State.PAUSED_REPLAY, State.PLAYING_CHECKPOINTS -> {
@@ -248,15 +280,8 @@ object Replay : Module(
                 }
 
                 checkpoint = recording?.duplicate()
-                lambdaScope.launch(Dispatchers.IO) {
-                    FolderRegister.replay.mkdirs()
-                    FolderRegister.replay.resolve("checkpoint-${
-                        mc.currentServerEntry?.address?.replace(":", "_")
-                    }-${
-                        world.dimensionKey?.value?.path?.replace("/", "_")
-                    }-${
-                        System.currentTimeMillis()
-                    }.json").writeText(gsonCompact.toJson(checkpoint))
+                checkpoint?.let {
+                    save(it, "checkpoint")
                 }
                 this@Replay.info("Checkpoint created.")
             }
@@ -269,9 +294,22 @@ object Replay : Module(
             State.INACTIVE -> {
                 state = State.PLAYING_CHECKPOINTS
                 replay = checkpoint?.duplicate()
-                this@Replay.info("Replaying until last set checkpoint. ETA: ${checkpoint?.duration}")
+                this@Replay.info("Replaying until last set checkpoint. Duration: ${checkpoint?.duration}")
             }
             else -> {}
+        }
+    }
+
+    private fun SafeContext.save(recording: Recording, name: String) {
+        lambdaScope.launch(Dispatchers.IO) {
+            FolderRegister.replay.mkdirs()
+            FolderRegister.replay.resolve("$name-${
+                mc.currentServerEntry?.address?.replace(":", "_")
+            }-${
+                world.dimensionKey?.value?.path?.replace("/", "_")
+            }-${
+                System.currentTimeMillis()
+            }.json").writeText(gsonCompact.toJson(recording))
         }
     }
 
@@ -279,7 +317,8 @@ object Replay : Module(
         val input: MutableList<InputAction> = mutableListOf(),
         val rotation: MutableList<Rotation> = mutableListOf(),
         val sprint: MutableList<Boolean> = mutableListOf(),
-        val position: MutableList<Vec3d> = mutableListOf()
+        val position: MutableList<Vec3d> = mutableListOf(),
+//        val interaction: MutableList<Interaction> = mutableListOf()
     ) : JsonSerializer<Recording>, JsonDeserializer<Recording> {
         val size: Int
             get() = minOf(input.size, rotation.size, sprint.size, position.size)
