@@ -14,7 +14,7 @@ object LambdaClickGui : AbstractClickGui() {
     fun updateWindows() {
         windows.apply {
             val windows = GuiConfigurable.mainWindows + GuiConfigurable.customWindows
-            children.addAll(windows.subtract(children.toSet()))
+            windows.subtract(children.toSet()).forEach(::showWindow)
 
             children.filter { it !in windows && it is CustomModuleWindow }
                 .forEach(WindowComponent<*>::destroy)

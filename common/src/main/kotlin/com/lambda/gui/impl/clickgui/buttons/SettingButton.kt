@@ -3,14 +3,14 @@ package com.lambda.gui.impl.clickgui.buttons
 import com.lambda.config.AbstractSetting
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.api.GuiEvent
-import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.button.ListButton
+import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.toInt
 
 abstract class SettingButton <V : Any, T : AbstractSetting<V>> (
     val setting: T,
-    owner: WindowComponent<*>
+    owner: ChildLayer.Drawable<*>
 ): ListButton(owner) {
     protected var value by setting
     var visible = false

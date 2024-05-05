@@ -6,20 +6,20 @@ import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.LambdaGui
 import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
-import com.lambda.gui.impl.clickgui.windows.SettingWindow
 import com.lambda.module.modules.client.ClickGui
+import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 
 abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, ClickGui) {
-    val windows = ChildLayer<WindowComponent<*>> { child ->
-        child == activeWindow && !closing
-    }
-
     private var activeWindow: WindowComponent<*>? = null
-
     private var closing = false
-    var showAnimation by animation.exp(0.0, 1.0, {
+
+    final override var showAnimation by animation.exp(0.0, 1.0, {
         if (closing) ClickGui.closeSpeed else ClickGui.openSpeed
     }) { !closing }; private set
+
+    val windows = ChildLayer<WindowComponent<*>>(this, this, ::rect) { child ->
+        child == activeWindow && !closing
+    }
 
     private val actionPool = ArrayDeque<() -> Unit>()
     fun scheduleAction(block: () -> Unit) = actionPool.add(block)
@@ -32,10 +32,6 @@ abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, Cli
                 activeWindow = null
                 closing = false
                 showAnimation = 0.0
-
-                windows.children
-                    .filterIsInstance<SettingWindow>()
-                    .forEach(WindowComponent<*>::destroy)
             }
 
             is GuiEvent.Tick -> {
@@ -54,6 +50,13 @@ abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, Cli
         }
 
         windows.onEvent(e)
+    }
+
+    fun showWindow(window: WindowComponent<*>) {
+        // we have to wait some time to place this window over other ones
+        recordRenderCall {
+            windows.addChild(window)
+        }
     }
 
     override fun close() {

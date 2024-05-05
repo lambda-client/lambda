@@ -47,10 +47,10 @@ object CustomModuleWindowSerializer : JsonSerializer<CustomModuleWindow>, JsonDe
             width = it["width"].asDouble
             height = it["height"].asDouble
             isOpen = it["isOpen"].asBoolean
-            forceSetPosition(Vec2d(
+            position = Vec2d(
                 it["position"].asJsonArray[0].asDouble,
                 it["position"].asJsonArray[1].asDouble
-            ))
+            )
         }
     } ?: throw JsonParseException("Invalid window data")
 }

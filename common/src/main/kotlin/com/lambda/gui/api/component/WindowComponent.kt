@@ -1,6 +1,5 @@
 package com.lambda.gui.api.component
 
-import com.lambda.Lambda.mc
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.graphics.renderer.gui.font.IFontEntry
@@ -18,27 +17,27 @@ import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
-import com.lambda.util.primitives.extension.partialTicks
 import java.awt.Color
 import kotlin.math.abs
 
 abstract class WindowComponent <T : ChildComponent> (
     final override val owner: AbstractClickGui
-) : ChildComponent() {
+) : ChildComponent(owner) {
     abstract val title: String
 
     abstract var width: Double
     abstract var height: Double
 
     var position = Vec2d.ZERO
-    private var prevPosition = position
 
     var isOpen = true
+    override val isActive get() = isOpen
+
     private var dragOffset: Vec2d? = null
     private val padding get() = ClickGui.windowPadding
 
-    final override val rect get() = Rect.basedOn(renderPosition, width, renderHeight + titleBarHeight)
-    val contentRect get() = rect.shrink(padding).moveFirst(Vec2d(0.0, titleBarHeight - padding))
+    final override val rect get() = Rect.basedOn(position, width, renderHeight + titleBarHeight)
+    private val contentRect get() = rect.shrink(padding).moveFirst(Vec2d(0.0, titleBarHeight - padding))
 
     private val titleBar get() = Rect.basedOn(rect.leftTop, rect.size.x, titleBarHeight)
     private val titleBarHeight get() = titleFont.height + 2 + padding * 2
@@ -46,19 +45,20 @@ abstract class WindowComponent <T : ChildComponent> (
 
     private val layer = RenderLayer()
     private val renderer = layer.entry()
-    val subLayer = RenderLayer()
+    private val contentLayer = RenderLayer()
 
-    val animation = owner.animation
-    open val showAnimation get() = owner.showAnimation
+    private val animation = owner.animation
+    private val gui = owner
+
+    // Show animation for children
+    private val showAnimation0 by animation.exp(0.0, 1.0, 0.5, ::isOpen)
+    override val showAnimation get() = lerp(0.0, showAnimation0, gui.showAnimation)
 
     private val actualHeight get() = height + padding * 2 * isOpen.toInt()
     private var renderHeightAnimation by animation.exp({ 0.0 }, ::actualHeight, 0.6, ::isOpen)
     private val renderHeight get() = lerp(0.0, renderHeightAnimation, showAnimation)
-    private val renderPosition get() = lerp(prevPosition, position, mc.partialTicks)
 
-    val contentComponents = ChildLayer<T> { child ->
-        child.rect in contentRect && accessible && isOpen
-    }
+    val contentComponents = ChildLayer.Drawable<T>(gui, this, contentLayer, ::contentRect)
 
     /*val titleBarComponents = ChildLayer<ButtonComponent> { child ->
         child.rect in titleBar && accessible
@@ -71,7 +71,7 @@ abstract class WindowComponent <T : ChildComponent> (
             roundRadius = ClickGui.windowRadius
             shade = GuiSettings.shadeBackground
 
-            val alpha = (showAnimation * 2.0).coerceIn(0.0, 1.0)
+            val alpha = (gui.showAnimation * 2.0).coerceIn(0.0, 1.0)
             color(GuiSettings.backgroundColor.multAlpha(alpha))
         }
 
@@ -81,7 +81,7 @@ abstract class WindowComponent <T : ChildComponent> (
             outerGlow = ClickGui.windowRadius
             shade = GuiSettings.shade
 
-            val alpha = (showAnimation * 2.0).coerceIn(0.0, 1.0)
+            val alpha = (gui.showAnimation * 2.0).coerceIn(0.0, 1.0)
             color(GuiSettings.mainColor.multAlpha(alpha))
         }
 
@@ -89,7 +89,7 @@ abstract class WindowComponent <T : ChildComponent> (
         titleFont = renderer.font {
             text = title
             position = titleBar.center - widthVec * 0.5
-            color = Color.WHITE.setAlpha(showAnimation)
+            color = Color.WHITE.setAlpha(gui.showAnimation)
         }
     }
 
@@ -101,13 +101,9 @@ abstract class WindowComponent <T : ChildComponent> (
                 dragOffset = null
             }
 
-            is GuiEvent.Tick -> {
-                prevPosition = position
-            }
-
             is GuiEvent.Render -> {
-                layer.assignOffset(renderPosition)
-                subLayer.assignOffset(renderPosition)
+                layer.assignOffset(position)
+                contentLayer.assignOffset(position)
 
                 // TODO: fix blur
                 // BlurPostProcessor.render(rect, ClickGui.windowBlur, guiAnimation)
@@ -115,8 +111,11 @@ abstract class WindowComponent <T : ChildComponent> (
                 layer.render()
 
                 scissor(contentRect) {
-                    subLayer.render()
+                    contentLayer.render()
+                    contentComponents.onEvent(e)
                 }
+
+                return
             }
 
             is GuiEvent.MouseMove -> {
@@ -149,11 +148,6 @@ abstract class WindowComponent <T : ChildComponent> (
         //titleBarComponents.onEvent(e)
     }
 
-    fun forceSetPosition(pos: Vec2d) {
-        position = pos
-        prevPosition = position
-    }
-
     fun focus() {
         // move window into foreground
         owner.apply {
@@ -177,6 +171,6 @@ abstract class WindowComponent <T : ChildComponent> (
 
     override fun onRemove() {
         layer.destroy()
-        subLayer.destroy()
+        contentLayer.destroy()
     }
 }

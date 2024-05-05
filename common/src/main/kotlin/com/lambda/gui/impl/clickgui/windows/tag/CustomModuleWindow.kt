@@ -5,8 +5,6 @@ import com.lambda.gui.impl.clickgui.AbstractClickGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.windows.ModuleWindow
 import com.lambda.module.Module
-import com.lambda.module.ModuleRegistry
-import com.lambda.module.tag.ModuleTag
 
 class CustomModuleWindow(
     override var title: String = "Untitled",
@@ -25,13 +23,13 @@ class CustomModuleWindow(
                 children.all { button ->
                     button.module != module
                 }
-            }.map { ModuleButton(it, this@CustomModuleWindow) }
+            }.map { ModuleButton(it, contentComponents) }
                 .forEach(contentComponents::addChild)
 
             // Remove deleted modules
             children.forEach { button ->
                 if (button.module !in modules) {
-                    owner.scheduleAction {
+                    this@CustomModuleWindow.owner.scheduleAction {
                         removeChild(button)
                     }
                 }

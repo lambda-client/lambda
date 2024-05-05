@@ -11,6 +11,7 @@ import com.lambda.module.Module
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.Nameable
+import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 import net.minecraft.client.gui.DrawContext
@@ -23,6 +24,8 @@ abstract class LambdaGui(
     private val owner: Module? = null
 ) : Screen(Text.of(name)), IComponent, Nameable {
     private var screenSize = Vec2d.ZERO
+    override val rect get() = Rect(Vec2d.ZERO, screenSize)
+
     val animation = AnimationTicker()
 
     private val renderListener = UnsafeListener(0, this, false) { event ->

@@ -2,8 +2,8 @@ package com.lambda.gui.api.component.button
 
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.api.GuiEvent
-import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.core.list.ChildComponent
+import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.math.ColorUtils.multAlpha
@@ -13,31 +13,29 @@ import com.lambda.util.math.Vec2d
 import java.awt.Color
 
 abstract class ButtonComponent(
-    final override val owner: WindowComponent<*>
-) : ChildComponent() {
+    final override val owner: ChildLayer.Drawable<*>
+) : ChildComponent(owner) {
     abstract val position: Vec2d
     abstract val size: Vec2d
 
     abstract val text: String
+    protected open val textY: Double get() = rect.size.y
     protected abstract var activeAnimation: Double
 
-    private val actualSize get() = Vec2d(if (size.x == FILL_PARENT) owner.contentRect.size.x else size.x, size.y)
-    final override val rect get() = Rect.basedOn(position, actualSize) + owner.contentRect.leftTop
+    private val actualSize get() = Vec2d(if (size.x == FILL_PARENT) owner.rect.size.x else size.x, size.y)
+    final override val rect get() = Rect.basedOn(position, actualSize) + owner.rect.leftTop
 
-    private val layer = owner.subLayer
-    protected val renderer = layer.entry()
-    protected val animation = owner.animation
+    protected val renderer = owner.renderer.entry()
+    protected val animation = owner.gui.animation
 
     private var hoverRectAnimation by animation.exp({ 0.0 }, { 1.0 }, { if (renderHovered) 0.6 else 0.07 }, ::renderHovered)
     private var hoverFontAnimation by animation.exp(0.0, 1.0, 0.5, ::renderHovered)
     private var pressAnimation by animation.exp(0.0, 1.0, 0.5, ::pressed)
     protected val interactAnimation get() = lerp(hoverRectAnimation, 1.5, pressAnimation) * 0.4
-    private val showAnimationRaw by animation.exp(0.0, 1.0, 0.7, owner::isOpen)
-    protected open val showAnimation get() = lerp(0.0, showAnimationRaw, owner.showAnimation)
+    override val showAnimation: Double get() = owner.showAnimation
 
     private var lastHoveredTime = 0L
-    private val renderHovered get() = hovered ||
-            System.currentTimeMillis() - lastHoveredTime < 110 // a bit more than 2 ticks
+    private val renderHovered get() = hovered || System.currentTimeMillis() - lastHoveredTime < 110
 
     init {
         // Active color
@@ -64,8 +62,8 @@ abstract class ButtonComponent(
 
             color = lerp(Color.WHITE, GuiSettings.mainColor, activeAnimation).multAlpha(showAnimation)
 
-            val x = rect.left + ClickGui.windowPadding + interactAnimation + hoverFontAnimation
-            position = Vec2d(x, rect.center.y)
+            val x = ClickGui.windowPadding + interactAnimation + hoverFontAnimation
+            position = rect.leftTop + Vec2d(x, textY)
         }
     }
 
@@ -85,7 +83,7 @@ abstract class ButtonComponent(
     }
 
     override fun onRelease(e: GuiEvent.MouseClick) {
-        performClickAction(e)
+        if (hovered) performClickAction(e)
     }
 
     override fun onRemove() {

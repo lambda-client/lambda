@@ -2,10 +2,10 @@ package com.lambda.gui.api.component
 
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.IComponent
-import com.lambda.gui.api.component.core.IRectComponent
 import com.lambda.util.Mouse
+import com.lambda.util.math.Rect
 
-abstract class InteractiveComponent : IComponent, IRectComponent {
+abstract class InteractiveComponent : IComponent {
     protected var hovered = false
     protected var pressed = false
 
