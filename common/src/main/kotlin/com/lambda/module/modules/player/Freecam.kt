@@ -14,7 +14,6 @@ import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.KeyCode
 import com.lambda.util.player.MovementUtils.cancel
 import com.lambda.util.player.MovementUtils.verticalMovement
 import com.lambda.util.primitives.extension.interpolate
@@ -29,8 +28,7 @@ import net.minecraft.util.math.Vec3d
 object Freecam : Module(
     name = "Freecam",
     description = "Move your camera freely",
-    defaultTags = setOf(ModuleTag.RENDER),
-    defaultKeybind = KeyCode.G
+    tag = ModuleTag.PLAYER
 ) {
     private val speed by setting("Speed", 0.5f, 0.1f..1.0f, 0.1f)
     private val sprint by setting("Sprint Multiplier", 3.0f, 0.1f..10.0f, 0.1f, description = "Set below 1.0 to fly slower on sprint.")
@@ -80,11 +78,11 @@ object Freecam : Module(
             it.context = RotationContext(rotation, rotationConfig)
         }
 
-        listener<MovementEvent.InputUpdate> {
+        listener<MovementEvent.InputUpdate> { event ->2
             // Don't block baritone from working
-            if (player.input !is PlayerMovementInput) {
+            if (event.input !is PlayerMovementInput) {
                 // Reset actual input
-                player.input.cancel()
+                event.input.cancel()
             }
 
             // Create new input for freecam
@@ -94,7 +92,7 @@ object Freecam : Module(
 
             val inputVec = Vec3d(
                 input.movementSideways.toDouble(),
-                verticalMovement.toDouble(),
+                input.verticalMovement.toDouble(),
                 input.movementForward.toDouble()
             )
 

@@ -1,40 +1,36 @@
 package com.lambda.gui.api.component
 
+import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.IComponent
-import com.lambda.gui.api.component.core.IRectComponent
 import com.lambda.util.Mouse
-import com.lambda.util.math.Vec2d
+import com.lambda.util.math.Rect
 
-abstract class InteractiveComponent : IComponent, IRectComponent {
+abstract class InteractiveComponent : IComponent {
     protected var hovered = false
-    protected var pressed = false; set(value) {
-        if (field == value) return
-        field = value
+    protected var pressed = false
 
-        if (value) onPress()
-        else onRelease()
-    }
+    protected open fun onPress(e: GuiEvent.MouseClick) {}
+    protected open fun onRelease(e: GuiEvent.MouseClick) {}
 
-    protected var activeMouseButton: Mouse.Button? = null
+    override fun onEvent(e: GuiEvent) {
+        when (e) {
+            is GuiEvent.Show -> {
+                hovered = false
+                pressed = false
+            }
 
-    protected open fun onPress() {}
-    protected open fun onRelease() {}
+            is GuiEvent.MouseMove -> {
+                hovered = rect.contains(e.mouse)
+            }
 
-    override fun onShow() {
-        hovered = false
-        pressed = false
-    }
+            is GuiEvent.MouseClick -> {
+                val prevPressed = pressed
+                pressed = hovered && e.button.isMainButton && e.action == Mouse.Action.Click
 
-    override fun onMouseMove(mouse: Vec2d) {
-        hovered = rect.contains(mouse)
-    }
-
-    override fun onMouseClick(
-        button: Mouse.Button, action: Mouse.Action, mouse: Vec2d
-    ) {
-        activeMouseButton = button.takeUnless {
-            it.isMainButton && action == Mouse.Action.Click
+                if (prevPressed == pressed) return
+                if (pressed) onPress(e)
+                else onRelease(e)
+            }
         }
-        pressed = hovered && button.isMainButton && action == Mouse.Action.Click
     }
 }

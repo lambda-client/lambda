@@ -7,7 +7,7 @@ import java.awt.Color
 object GuiSettings : Module(
     name = "GuiSettings",
     description = "Visual behaviour configuration",
-    defaultTags = setOf(ModuleTag.CLIENT)
+    tag = ModuleTag.CLIENT
 ) {
     private val page by setting("Page", Page.General)
 
@@ -17,11 +17,11 @@ object GuiSettings : Module(
     // Colors
     private val primaryColor by setting("Primary Color", Color(130, 200, 255), visibility = { page == Page.Colors })
     private val secondaryColor by setting("Secondary Color", Color(225, 130, 225), visibility = { page == Page.Colors && shade })
-    val backgroundColor by setting("Background Color", Color(0, 0, 0, 80), visibility = { page == Page.Colors })
-    val glow by setting("Glow", true, visibility = { page == Page.Colors })
-    val shade by setting("Shade Color", true, visibility = { page == Page.Colors })
-    val colorWidth by setting("Color Width", 40.0, 1.0..100.0, 1.0, visibility = { page == Page.Colors && shade })
-    val colorHeight by setting("Color Height", 40.0, 1.0..100.0, 1.0, visibility = { page == Page.Colors && shade })
+    val backgroundColor by setting("Background Color", Color(50, 50, 50), visibility = { page == Page.Colors })
+    val shade by setting("Shade", true, visibility = { page == Page.Colors })
+    val shadeBackground by setting("Shade Background", true, visibility = { page == Page.Colors })
+    val colorWidth by setting("Color Width", 100.0, 1.0..100.0, 1.0, visibility = { page == Page.Colors && shade })
+    val colorHeight by setting("Color Height", 100.0, 1.0..100.0, 1.0, visibility = { page == Page.Colors && shade })
     val colorSpeed by setting("Color Speed", 1.0, 0.1..10.0, 0.1, visibility = { page == Page.Colors && shade })
 
     val mainColor: Color get() = if (shade) Color.WHITE else primaryColor

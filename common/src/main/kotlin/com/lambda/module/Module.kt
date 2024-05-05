@@ -1,6 +1,5 @@
 package com.lambda.module
 
-import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
 import com.lambda.config.Configurable
 import com.lambda.config.Configuration
@@ -80,7 +79,7 @@ import com.lambda.util.Nameable
  * @property name The name of the module, displayed in-game.
  * @property description The description of the module,
  * shown on hover over the module button in the GUI and in commands.
- * @property defaultTags The set of [ModuleTag]s associated with the module.
+ * @property tag The leading module tag associated with the module.
  * @property alwaysListening If true, the module's listeners will be triggered even if the module is not enabled.
  * @property isEnabledSetting The setting that determines if the module is enabled.
  * @property keybindSetting The setting that determines the keybind for the module.
@@ -91,7 +90,7 @@ import com.lambda.util.Nameable
 abstract class Module(
     override val name: String,
     val description: String = "",
-    val defaultTags: Set<ModuleTag> = setOf(),
+    val tag: ModuleTag,
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.Unbound,
@@ -99,7 +98,6 @@ abstract class Module(
     private val isEnabledSetting = setting("Enabled", enabledByDefault, visibility = { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)
     private val isVisible = setting("Visible", true)
-    val customTags = setting("Tags", defaultTags, visibility = { false })
 
     var isEnabled by isEnabledSetting
     override val isMuted: Boolean
@@ -129,37 +127,37 @@ abstract class Module(
     }
 
     protected fun onEnable(block: SafeContext.() -> Unit) {
-        isEnabledSetting.listener { from, to ->
+        isEnabledSetting.onValueChange { from, to ->
             if (!from && to) block()
         }
     }
 
     protected fun onDisable(block: SafeContext.() -> Unit) {
-        isEnabledSetting.listener { from, to ->
+        isEnabledSetting.onValueChange { from, to ->
             if (from && !to) block()
         }
     }
 
     protected fun onToggle(block: SafeContext.(to: Boolean) -> Unit) {
-        isEnabledSetting.listener { from, to ->
+        isEnabledSetting.onValueChange { from, to ->
             if (from != to) block(to)
         }
     }
 
     protected fun onEnableUnsafe(block: () -> Unit) {
-        isEnabledSetting.unsafeListener { from, to ->
+        isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (!from && to) block()
         }
     }
 
     protected fun onDisableUnsafe(block: () -> Unit) {
-        isEnabledSetting.unsafeListener { from, to ->
+        isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from && !to) block()
         }
     }
 
     protected fun onToggleUnsafe(block: (to: Boolean) -> Unit) {
-        isEnabledSetting.unsafeListener { from, to ->
+        isEnabledSetting.onValueChangeUnsafe { from, to ->
             if (from != to) block(to)
         }
     }

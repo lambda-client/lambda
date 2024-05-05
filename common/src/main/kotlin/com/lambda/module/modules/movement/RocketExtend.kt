@@ -13,7 +13,7 @@ import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 object RocketExtend : Module(
     name = "RocketExtend",
     description = "Extends rocket length on grim",
-    defaultTags = setOf(ModuleTag.MOVEMENT)
+    tag = ModuleTag.MOVEMENT
 ) {
     private var extendedRockets = mutableListOf<FireworkRocketEntity>()
     private var pingPacket: CommonPongC2SPacket? = null

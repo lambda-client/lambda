@@ -78,7 +78,7 @@ abstract class AbstractSetting<T : Any>(
         value = gson.fromJson(serialized, value::class.java)
     }
 
-    fun listener(block: SafeContext.(from: T, to: T) -> Unit) {
+    fun onValueChange(block: SafeContext.(from: T, to: T) -> Unit) {
         listeners.add { from, to ->
             runSafe {
                 block(from, to)
@@ -86,7 +86,7 @@ abstract class AbstractSetting<T : Any>(
         }
     }
 
-    fun unsafeListener(block: (from: T, to: T) -> Unit) {
+    fun onValueChangeUnsafe(block: (from: T, to: T) -> Unit) {
         listeners.add(block)
     }
 

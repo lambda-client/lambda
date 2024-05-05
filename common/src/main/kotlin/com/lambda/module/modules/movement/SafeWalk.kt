@@ -8,7 +8,7 @@ import com.lambda.module.tag.ModuleTag
 object SafeWalk : Module(
     name = "SafeWalk",
     description = "Keeps you at the edge",
-    defaultTags = setOf(ModuleTag.MOVEMENT)
+    tag = ModuleTag.MOVEMENT
 ) {
     private val realisticCollision by setting("Collide", true, "Realistic collision on the edge")
 

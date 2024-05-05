@@ -26,13 +26,16 @@ object MovementUtils {
         pressingBack = false
         pressingLeft = false
         pressingRight = false
+
+        sneaking = false
+        jumping = false
     }
 
     val SafeContext.isInputting: Boolean get() =
         roundedForward != 0f || roundedStrafing != 0f
 
-    val SafeContext.verticalMovement get() =
-        player.input.jumping.toInt() - player.input.sneaking.toInt()
+    val Input.verticalMovement get() =
+        jumping.toInt() - sneaking.toInt()
 
     fun SafeContext.calcMoveYaw(
         yawIn: Float = player.moveYaw,

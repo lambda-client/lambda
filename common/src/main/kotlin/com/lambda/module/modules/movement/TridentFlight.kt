@@ -20,7 +20,7 @@ import kotlin.math.sqrt
 object TridentFlight : Module(
     name = "TridentFlight",
     description = "Allows you to fly with tridents",
-    defaultTags = setOf(ModuleTag.MOVEMENT, ModuleTag.BYPASS, ModuleTag.GRIM),
+    tag = ModuleTag.MOVEMENT
 ) {
     private val bounce by setting("Bounce", true, description = "Automatically use the trident")
     private val delay by setting("Delay", 0, 0..20, 1, description = "Delay in ticks before releasing the trident", visibility = { bounce })

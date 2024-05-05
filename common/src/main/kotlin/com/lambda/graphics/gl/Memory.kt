@@ -8,6 +8,7 @@ import java.nio.Buffer
 import java.nio.ByteBuffer
 
 object Memory {
+    private val floatSize = VertexAttrib.Float.size
     private val vec2Size = VertexAttrib.Vec2.size
     private val vec3Size = VertexAttrib.Vec3.size
     private val colorSize = VertexAttrib.Color.size
@@ -41,8 +42,9 @@ object Memory {
         MemoryUtil.memPutInt(address, value)
     }
 
-    fun float(address: Long, value: Double) {
+    fun float(address: Long, value: Double): Int {
         MemoryUtil.memPutFloat(address, value.toFloat())
+        return floatSize
     }
 
     fun address(buffer: Buffer): Long {

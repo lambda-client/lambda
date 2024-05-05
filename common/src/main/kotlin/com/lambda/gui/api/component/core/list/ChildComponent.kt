@@ -1,14 +1,17 @@
 package com.lambda.gui.api.component.core.list
 
+import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.InteractiveComponent
+import com.lambda.gui.api.component.core.IComponent
 
-abstract class ChildComponent : InteractiveComponent(), IChildComponent {
-    // mostly used to create an animation when an element appears
-    var accessible = false; set(value) {
-        if (field == value) return
-        field = value
+abstract class ChildComponent(open val owner: IComponent) : InteractiveComponent() {
+    open var accessible = false
 
-        if (value) onShow()
-        else onHide()
+    override fun onEvent(e: GuiEvent) {
+        super.onEvent(e)
+        if (e is GuiEvent.MouseMove) hovered = hovered && accessible
     }
+
+    open fun onAdd() {}
+    open fun onRemove() {}
 }

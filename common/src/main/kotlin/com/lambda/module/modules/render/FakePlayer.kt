@@ -10,24 +10,19 @@ import java.util.*
 object FakePlayer : Module(
     name = "FakePlayer",
     description = "Spawns a fake player",
-    defaultTags = setOf(ModuleTag.MISC, ModuleTag.RENDER)
+    tag = ModuleTag.MISC
 ) {
     private val playerName by setting("Name", "Steve")
 
     private val uuid = UUID.fromString("41C82C87-7AfB-4024-BA57-13D2C99CAE77")
-
     private var fakePlayer: OtherClientPlayerEntity? = null
 
     init {
         onEnable {
-            OtherClientPlayerEntity(world, GameProfile(uuid, playerName)).apply {
-                copyFrom(player)
-                id = -2024-4-20
-
-                fakePlayer = this
-            }
-
-            world.addEntity(fakePlayer)
+            fakePlayer = OtherClientPlayerEntity(world, GameProfile(uuid, playerName))
+                .apply(player::copyFrom)
+                .apply(world::addEntity)
+                .apply { id = -2024-4-20 }
         }
 
         onDisable {

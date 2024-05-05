@@ -9,6 +9,7 @@ import com.lambda.util.LambdaResource
 import com.lambda.util.math.Vec2d
 import it.unimi.dsi.fastutil.objects.Object2IntMap
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
+import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
 import org.lwjgl.opengl.GL20C.*
 import java.awt.Color
@@ -51,6 +52,9 @@ class Shader(fragmentPath: String, vertexPath: String) {
 
     operator fun set(name: String, vec: Vec2d) =
         glUniform2f(loc(name), vec.x.toFloat(), vec.y.toFloat())
+
+    operator fun set(name: String, vec: Vec3d) =
+        glUniform3f(loc(name), vec.x.toFloat(), vec.y.toFloat(), vec.z.toFloat())
 
     operator fun set(name: String, color: Color) =
         glUniform4f(
