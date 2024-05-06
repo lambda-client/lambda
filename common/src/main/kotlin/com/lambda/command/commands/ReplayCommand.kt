@@ -10,6 +10,7 @@ import com.lambda.command.CommandManager.register
 import com.lambda.command.LambdaCommand
 import com.lambda.module.modules.player.Replay
 import com.lambda.util.FolderRegister
+import com.lambda.util.FolderRegister.listRecursive
 
 object ReplayCommand : LambdaCommand {
     override val name = "replay"
@@ -25,16 +26,15 @@ object ReplayCommand : LambdaCommand {
             // 7. Set replay speed
             required(string("replay name")) { replayName ->
                 suggests { _, builder ->
-                    FolderRegister.replay.listFiles()?.map {
-                            it.nameWithoutExtension
-                        }?.forEach {
-                            builder.suggest(it)
-                        }
+                    val dir = FolderRegister.replay
+                    dir.listRecursive().forEach {
+                        builder.suggest(it.relativeTo(dir).path)
+                    }
                     builder.buildFuture()
                 }
 
                 executeWithResult {
-                    val replayFile = FolderRegister.replay.resolve("${this[replayName].value()}.json")
+                    val replayFile = FolderRegister.replay.resolve(this[replayName].value())
 
                     if (!replayFile.exists()) {
                         return@executeWithResult CommandResult.failure("Replay file does not exist")

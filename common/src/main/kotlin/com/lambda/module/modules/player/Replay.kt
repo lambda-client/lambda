@@ -1,16 +1,15 @@
 package com.lambda.module.modules.player
 
 import com.google.gson.*
-import com.google.gson.annotations.SerializedName
 import com.lambda.config.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
+import com.lambda.event.events.InteractionEvent
 import com.lambda.event.events.KeyPressEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
@@ -22,8 +21,10 @@ import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
 import com.lambda.util.FolderRegister
+import com.lambda.util.FolderRegister.locationBoundDirectory
 import com.lambda.util.Formatting.asString
 import com.lambda.util.KeyCode
+import com.lambda.util.StringUtils.sanitizeForFilename
 import com.lambda.util.primitives.extension.rotation
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
@@ -32,12 +33,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minecraft.client.input.Input
 import net.minecraft.client.sound.PositionedSoundInstance
-import net.minecraft.client.sound.SoundInstance
 import net.minecraft.sound.SoundEvents
 import net.minecraft.util.math.Vec3d
-import java.awt.Color
 import java.io.File
 import java.lang.reflect.Type
+import java.time.Instant
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -55,8 +55,8 @@ object Replay : Module(
     private val record by setting("Record", KeyCode.R)
     private val play by setting("Play / Pause", KeyCode.C)
     private val stop by setting("Stop", KeyCode.X)
-    private val check by setting("Checkpoint", KeyCode.V, description = "Create a checkpoint while recording.")
-    private val playCheck by setting("Play until checkpoint", KeyCode.B, description = "Replays until the last set checkpoint.")
+    private val check by setting("Set Checkpoint", KeyCode.V, description = "Create a checkpoint while recording.")
+    private val playCheck by setting("Play Checkpoint", KeyCode.B, description = "Replays until the last set checkpoint.")
     private val loop by setting("Loop", false)
     private val loops by setting("Loops", -1, -1..10, 1, description = "Number of times to loop the replay. -1 for infinite.", unit = "repeats") { loop }
     private val cancelOnDeviation by setting("Cancel on deviation", true)
@@ -64,6 +64,8 @@ object Replay : Module(
 
     private val rotationConfig = RotationSettings(this).apply {
         rotationMode = RotationMode.LOCK
+        r1 = 1000.0
+        r2 = 1001.0
     }
 
     enum class State {
@@ -71,8 +73,9 @@ object Replay : Module(
         RECORDING,
         PAUSED_RECORDING,
         PLAYING,
+        PAUSED_REPLAY,
         PLAYING_CHECKPOINTS,
-        PAUSED_REPLAY
+        PAUSED_CHECKPOINTS
     }
 
     private var state = State.INACTIVE
@@ -82,6 +85,7 @@ object Replay : Module(
     private var recording: Recording? = null
     private var replay: Recording? = null
     private var repeats = 0
+    private val still = Vec3d(0.0, -0.0784000015258789, 0.0)
 
     private val gsonCompact = GsonBuilder()
         .registerTypeAdapter(Recording::class.java, Recording())
@@ -92,9 +96,9 @@ object Replay : Module(
 
         info(buildText {
             literal("Recording ")
-            color(Color.GRAY) { literal(file.nameWithoutExtension) }
+            color(GuiSettings.primaryColor) { literal(file.nameWithoutExtension) }
             literal(" loaded. Duration: ")
-            color(Color.GRAY) { literal(recording?.duration.toString()) }
+            color(GuiSettings.primaryColor) { literal(recording?.duration.toString()) }
         })
     }
 
@@ -178,13 +182,16 @@ object Replay : Module(
                         if (loop && repeats < loops) {
                             if (repeats >= 0) repeats++
                             replay = recording?.duplicate()
-                            this@Replay.info("Replay looped. $repeats / $loops")
+                            this@Replay.info(buildText {
+                                color(GuiSettings.primaryColor) { literal("[$repeats / $loops]") }
+                                literal(" Replay looped.")
+                            })
                         } else {
                             if (state != State.PLAYING_CHECKPOINTS) {
                                 state = State.INACTIVE
                                 this@Replay.info(buildText {
                                     literal("Replay finished after ")
-                                    color(Color.GRAY) { literal(it.duration.toString()) }
+                                    color(GuiSettings.primaryColor) { literal(recording?.duration.toString()) }
                                     literal(".")
                                 })
                                 return@listener
@@ -212,26 +219,37 @@ object Replay : Module(
                 recording?.let {
                     state = State.PLAYING
                     replay = it.duplicate()
-                    this@Replay.info("Replay started. Duration: ${it.duration}.")
+                    info(buildText {
+                        literal("Replay started. Duration: ")
+                        color(GuiSettings.primaryColor) { literal(it.duration.toString()) }
+                    })
                 } ?: run {
                     this@Replay.warn("No recording to replay.")
                 }
             }
             State.RECORDING -> {
                 state = State.PAUSED_RECORDING
-                this@Replay.info("Recording paused.")
+                info("Recording paused.")
             }
             State.PAUSED_RECORDING -> {
                 state = State.RECORDING
-                this@Replay.info("Recording resumed.")
+                info("Recording resumed.")
             }
-            State.PLAYING, State.PLAYING_CHECKPOINTS -> { // ToDo: More general pausing for all states
+            State.PLAYING -> { // ToDo: More general pausing for all states
                 state = State.PAUSED_REPLAY
-                this@Replay.info("Replay paused.")
+                info("Replay paused.")
             }
             State.PAUSED_REPLAY -> {
                 state = State.PLAYING
-                this@Replay.info("Replay resumed.")
+                info("Replay resumed.")
+            }
+            State.PLAYING_CHECKPOINTS -> {
+                state = State.PAUSED_CHECKPOINTS
+                info("Checkpoint replay paused.")
+            }
+            State.PAUSED_CHECKPOINTS -> {
+                state = State.PLAYING_CHECKPOINTS
+                info("Checkpoint replay resumed.")
             }
         }
     }
@@ -239,13 +257,14 @@ object Replay : Module(
     private fun SafeContext.handleRecord() {
         when (state) {
             State.RECORDING -> {
-                state = State.INACTIVE
-                recording?.let {
-                    save(it, "recording")
-                }
-                this@Replay.info("Recording stopped. Recorded for ${recording?.duration}.")
+                stopRecording()
             }
             State.INACTIVE -> {
+                if (player.velocity != still) {
+                    this@Replay.logError("Cannot start recording while moving. Slow down and try again!")
+                    return
+                }
+
                 recording = Recording()
                 state = State.RECORDING
                 this@Replay.info("Recording started.")
@@ -257,11 +276,7 @@ object Replay : Module(
     private fun SafeContext.handleStop() {
         when (state) {
             State.RECORDING, State.PAUSED_RECORDING -> {
-                state = State.INACTIVE
-                recording?.let {
-                    save(it, "recording")
-                }
-                this@Replay.info("Recording stopped. Recorded for ${recording?.duration}.")
+                stopRecording()
             }
             State.PLAYING, State.PAUSED_REPLAY, State.PLAYING_CHECKPOINTS -> {
                 state = State.INACTIVE
@@ -271,19 +286,26 @@ object Replay : Module(
         }
     }
 
+    private fun SafeContext.stopRecording() {
+        state = State.INACTIVE
+        recording?.let {
+            save(it, "recording")
+            this@Replay.info(buildText {
+                literal("Recording stopped. Recorded for ")
+                color(GuiSettings.primaryColor) { literal(it.duration.toString()) }
+                literal(".")
+            })
+        }
+    }
+
     private fun SafeContext.handleCheckpoint() {
         when (state) {
             State.RECORDING -> {
-                if (player.velocity != Vec3d(0.0, -0.0784000015258789, 0.0)) {
-                    this@Replay.logError("Cannot create checkpoint while moving. Try again!")
-                    return
-                }
-
                 checkpoint = recording?.duplicate()
                 checkpoint?.let {
                     save(it, "checkpoint")
+                    this@Replay.info("Checkpoint created.")
                 }
-                this@Replay.info("Checkpoint created.")
             }
             else -> {}
         }
@@ -294,7 +316,10 @@ object Replay : Module(
             State.INACTIVE -> {
                 state = State.PLAYING_CHECKPOINTS
                 replay = checkpoint?.duplicate()
-                this@Replay.info("Replaying until last set checkpoint. Duration: ${checkpoint?.duration}")
+                info(buildText {
+                    literal("Replaying until last set checkpoint. Duration: ")
+                    color(GuiSettings.primaryColor) { literal(checkpoint?.duration.toString()) }
+                })
             }
             else -> {}
         }
@@ -302,14 +327,9 @@ object Replay : Module(
 
     private fun SafeContext.save(recording: Recording, name: String) {
         lambdaScope.launch(Dispatchers.IO) {
-            FolderRegister.replay.mkdirs()
-            FolderRegister.replay.resolve("$name-${
-                mc.currentServerEntry?.address?.replace(":", "_")
-            }-${
-                world.dimensionKey?.value?.path?.replace("/", "_")
-            }-${
-                System.currentTimeMillis()
-            }.json").writeText(gsonCompact.toJson(recording))
+            locationBoundDirectory(FolderRegister.replay).resolve("${
+                Instant.now().toString().sanitizeForFilename()
+            }-$name.json").writeText(gsonCompact.toJson(recording))
         }
     }
 

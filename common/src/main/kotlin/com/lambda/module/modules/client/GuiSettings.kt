@@ -15,8 +15,8 @@ object GuiSettings : Module(
     private val scaleSetting by setting("Scale", 1.0, 0.5..3.0, 0.01, visibility = { page == Page.General })
 
     // Colors
-    private val primaryColor by setting("Primary Color", Color(130, 200, 255), visibility = { page == Page.Colors })
-    private val secondaryColor by setting("Secondary Color", Color(225, 130, 225), visibility = { page == Page.Colors && shade })
+    val primaryColor by setting("Primary Color", Color(130, 200, 255), visibility = { page == Page.Colors })
+    val secondaryColor by setting("Secondary Color", Color(225, 130, 225), visibility = { page == Page.Colors && shade })
     val backgroundColor by setting("Background Color", Color(0, 0, 0, 80), visibility = { page == Page.Colors })
     val glow by setting("Glow", true, visibility = { page == Page.Colors })
     val shade by setting("Shade Color", true, visibility = { page == Page.Colors })

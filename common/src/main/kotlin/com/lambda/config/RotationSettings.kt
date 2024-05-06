@@ -2,6 +2,8 @@ package com.lambda.config
 
 import com.lambda.interaction.rotation.IRotationConfig
 import com.lambda.interaction.rotation.RotationMode
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.random.Random
 
 class RotationSettings(
@@ -12,10 +14,10 @@ class RotationSettings(
     override val keepTicks by c.setting("Keep Rotation", 3, 1..10, 1, "Ticks to keep rotation", "", vis)
     override val resetTicks by c.setting("Reset Rotation", 3, 1..10, 1, "Ticks before rotation is reset", "", vis)
 
-    private val r1 by c.setting("Turn Speed 1", 70.0, 1.0..180.0, 0.1, "Rotation Speed 1", "", vis)
-    private val r2 by c.setting("Turn Speed 2", 110.0, 1.0..180.0, 0.1, "Rotation Speed 2", "", vis)
+    var r1 by c.setting("Turn Speed 1", 70.0, 1.0..180.0, 0.1, "Rotation Speed 1", "", vis)
+    var r2 by c.setting("Turn Speed 2", 110.0, 1.0..180.0, 0.1, "Rotation Speed 2", "", vis)
 
-    override val turnSpeed get() = Random.nextDouble(r1, r2)
+    override val turnSpeed get() = Random.nextDouble(min(r1, r2), max(r1, r2) + 0.01)
 
     var speedMultiplier = 1.0
 
