@@ -5,7 +5,6 @@ import com.lambda.config.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
-import com.lambda.event.events.InteractionEvent
 import com.lambda.event.events.KeyPressEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RotationEvent
