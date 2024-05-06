@@ -1,0 +1,449 @@
+package com.lambda.module.modules.player
+
+import com.google.gson.*
+import com.lambda.config.RotationSettings
+import com.lambda.context.SafeContext
+import com.lambda.core.TimerManager
+import com.lambda.event.EventFlow.lambdaScope
+import com.lambda.event.events.KeyPressEvent
+import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.RotationEvent
+import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.interaction.rotation.Rotation
+import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationMode
+import com.lambda.module.Module
+import com.lambda.module.modules.client.GuiSettings
+import com.lambda.module.modules.player.Replay.InputAction.Companion.toAction
+import com.lambda.module.tag.ModuleTag
+import com.lambda.util.Communication.info
+import com.lambda.util.Communication.logError
+import com.lambda.util.Communication.warn
+import com.lambda.util.FolderRegister
+import com.lambda.util.FolderRegister.locationBoundDirectory
+import com.lambda.util.Formatting.asString
+import com.lambda.util.KeyCode
+import com.lambda.util.StringUtils.sanitizeForFilename
+import com.lambda.util.primitives.extension.rotation
+import com.lambda.util.text.buildText
+import com.lambda.util.text.color
+import com.lambda.util.text.literal
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import net.minecraft.client.input.Input
+import net.minecraft.client.sound.PositionedSoundInstance
+import net.minecraft.sound.SoundEvents
+import net.minecraft.util.math.Vec3d
+import java.io.File
+import java.lang.reflect.Type
+import java.time.Instant
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
+
+// ToDo:
+//  - Record other types of inputs: (place, break, inventory, etc.)
+//  - Add HUD for recording / replaying info
+//  - Maybe use a custom binary format to store the data (Protobuf / DB?)
+object Replay : Module(
+    name = "Replay",
+    description = "Record gameplay actions and replay them like a TAS.",
+    defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
+) {
+    private val record by setting("Record", KeyCode.R)
+    private val play by setting("Play / Pause", KeyCode.C)
+    private val stop by setting("Stop", KeyCode.X)
+    private val check by setting("Set Checkpoint", KeyCode.V, description = "Create a checkpoint while recording.")
+    private val playCheck by setting("Play Checkpoint", KeyCode.B, description = "Replays until the last set checkpoint.")
+    private val loop by setting("Loop", false)
+    private val loops by setting("Loops", -1, -1..10, 1, description = "Number of times to loop the replay. -1 for infinite.", unit = "repeats") { loop }
+    private val cancelOnDeviation by setting("Cancel on deviation", true)
+    private val deviationThreshold by setting("Deviation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the deviation to cancel the replay.") { cancelOnDeviation }
+
+    private val rotationConfig = RotationSettings(this).apply {
+        rotationMode = RotationMode.LOCK
+        r1 = 1000.0
+        r2 = 1001.0
+    }
+
+    enum class State {
+        INACTIVE,
+        RECORDING,
+        PAUSED_RECORDING,
+        PLAYING,
+        PAUSED_REPLAY,
+        PLAYING_CHECKPOINTS,
+        PAUSED_CHECKPOINTS
+    }
+
+    private var state = State.INACTIVE
+
+    private var checkpoint: Recording? = null
+
+    private var recording: Recording? = null
+    private var replay: Recording? = null
+    private var repeats = 0
+    private val still = Vec3d(0.0, -0.0784000015258789, 0.0)
+
+    private val gsonCompact = GsonBuilder()
+        .registerTypeAdapter(Recording::class.java, Recording())
+        .create()
+
+    fun loadRecording(file: File) {
+        recording = gsonCompact.fromJson(file.readText(), Recording::class.java)
+
+        info(buildText {
+            literal("Recording ")
+            color(GuiSettings.primaryColor) { literal(file.nameWithoutExtension) }
+            literal(" loaded. Duration: ")
+            color(GuiSettings.primaryColor) { literal(recording?.duration.toString()) }
+        })
+    }
+
+    init {
+        listener<KeyPressEvent> {
+            if (mc.currentScreen != null && !mc.options.commandKey.isPressed) return@listener
+
+            when (it.key) {
+                record.key -> handleRecord()
+                play.key -> handlePlay()
+                stop.key -> handleStop()
+                check.key -> handleCheckpoint()
+                playCheck.key -> handlePlayCheckpoints()
+                else -> {}
+            }
+        }
+
+        listener<MovementEvent.InputUpdate> { event ->
+            when (state) {
+                State.RECORDING -> {
+                    recording?.let {
+                        it.input.add(event.input.toAction())
+                        it.position.add(player.pos)
+                    }
+                }
+                State.PLAYING, State.PLAYING_CHECKPOINTS -> {
+                    replay?.let {
+                        it.input.removeFirstOrNull()?.update(event.input)
+                        it.position.removeFirstOrNull()?.let a@{ pos ->
+                            val diff = pos.subtract(player.pos).length()
+                            if (diff < 0.001) return@a
+
+                            this@Replay.warn("Position deviates from the recording by ${"%.3f".format(diff)} blocks. Desired position: ${pos.asString(3)}")
+                            if (cancelOnDeviation && diff > deviationThreshold) {
+                                state = State.INACTIVE
+                                this@Replay.logError("Replay cancelled due to exceeding deviation threshold.")
+                                return@listener
+                            }
+                        }
+                    }
+                }
+                else -> {}
+            }
+        }
+
+        listener<RotationEvent.Pre> { event ->
+            when (state) {
+                State.RECORDING -> {
+                    recording?.rotation?.add(player.rotation)
+                }
+                State.PLAYING, State.PLAYING_CHECKPOINTS -> {
+                    replay?.rotation?.removeFirstOrNull()?.let { rot ->
+                        event.context = RotationContext(rot, rotationConfig)
+                    }
+                }
+                else -> {}
+            }
+        }
+
+        listener<MovementEvent.Sprint> { event ->
+            when (state) {
+                State.RECORDING -> {
+                    recording?.sprint?.add(player.isSprinting)
+                }
+                State.PLAYING, State.PLAYING_CHECKPOINTS -> {
+                    replay?.sprint?.removeFirstOrNull()?.let { sprint ->
+                        event.sprint = sprint
+                        player.isSprinting = sprint
+                    }
+                }
+                else -> {}
+            }
+        }
+
+        listener<MovementEvent.Post> {
+            when (state) {
+                State.PLAYING, State.PLAYING_CHECKPOINTS -> {
+                    replay?.let {
+                        if (it.size != 0) return@listener
+
+                        if (loop && repeats < loops) {
+                            if (repeats >= 0) repeats++
+                            replay = recording?.duplicate()
+                            this@Replay.info(buildText {
+                                color(GuiSettings.primaryColor) { literal("[$repeats / $loops]") }
+                                literal(" Replay looped.")
+                            })
+                        } else {
+                            if (state != State.PLAYING_CHECKPOINTS) {
+                                state = State.INACTIVE
+                                this@Replay.info(buildText {
+                                    literal("Replay finished after ")
+                                    color(GuiSettings.primaryColor) { literal(recording?.duration.toString()) }
+                                    literal(".")
+                                })
+                                return@listener
+                            }
+
+                            state = State.RECORDING
+                            recording = checkpoint?.duplicate()
+                            mc.soundManager.play(
+                                PositionedSoundInstance.master(
+                                    SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f
+                                )
+                            )
+                            this@Replay.info("Checkpoint replayed. Continued recording...")
+                        }
+                    }
+                }
+                else -> {}
+            }
+        }
+    }
+
+    private fun handlePlay() {
+        when (state) {
+            State.INACTIVE -> {
+                recording?.let {
+                    state = State.PLAYING
+                    replay = it.duplicate()
+                    info(buildText {
+                        literal("Replay started. Duration: ")
+                        color(GuiSettings.primaryColor) { literal(it.duration.toString()) }
+                    })
+                } ?: run {
+                    this@Replay.warn("No recording to replay.")
+                }
+            }
+            State.RECORDING -> {
+                state = State.PAUSED_RECORDING
+                info("Recording paused.")
+            }
+            State.PAUSED_RECORDING -> {
+                state = State.RECORDING
+                info("Recording resumed.")
+            }
+            State.PLAYING -> { // ToDo: More general pausing for all states
+                state = State.PAUSED_REPLAY
+                info("Replay paused.")
+            }
+            State.PAUSED_REPLAY -> {
+                state = State.PLAYING
+                info("Replay resumed.")
+            }
+            State.PLAYING_CHECKPOINTS -> {
+                state = State.PAUSED_CHECKPOINTS
+                info("Checkpoint replay paused.")
+            }
+            State.PAUSED_CHECKPOINTS -> {
+                state = State.PLAYING_CHECKPOINTS
+                info("Checkpoint replay resumed.")
+            }
+        }
+    }
+
+    private fun SafeContext.handleRecord() {
+        when (state) {
+            State.RECORDING -> {
+                stopRecording()
+            }
+            State.INACTIVE -> {
+                if (player.velocity != still) {
+                    this@Replay.logError("Cannot start recording while moving. Slow down and try again!")
+                    return
+                }
+
+                recording = Recording()
+                state = State.RECORDING
+                this@Replay.info("Recording started.")
+            }
+            else -> {}
+        }
+    }
+
+    private fun SafeContext.handleStop() {
+        when (state) {
+            State.RECORDING, State.PAUSED_RECORDING -> {
+                stopRecording()
+            }
+            State.PLAYING, State.PAUSED_REPLAY, State.PLAYING_CHECKPOINTS -> {
+                state = State.INACTIVE
+                this@Replay.info("Replay stopped.")
+            }
+            else -> {}
+        }
+    }
+
+    private fun SafeContext.stopRecording() {
+        state = State.INACTIVE
+        recording?.let {
+            save(it, "recording")
+            this@Replay.info(buildText {
+                literal("Recording stopped. Recorded for ")
+                color(GuiSettings.primaryColor) { literal(it.duration.toString()) }
+                literal(".")
+            })
+        }
+    }
+
+    private fun SafeContext.handleCheckpoint() {
+        when (state) {
+            State.RECORDING -> {
+                checkpoint = recording?.duplicate()
+                checkpoint?.let {
+                    save(it, "checkpoint")
+                    this@Replay.info("Checkpoint created.")
+                }
+            }
+            else -> {}
+        }
+    }
+
+    private fun handlePlayCheckpoints() {
+        when (state) {
+            State.INACTIVE -> {
+                state = State.PLAYING_CHECKPOINTS
+                replay = checkpoint?.duplicate()
+                info(buildText {
+                    literal("Replaying until last set checkpoint. Duration: ")
+                    color(GuiSettings.primaryColor) { literal(checkpoint?.duration.toString()) }
+                })
+            }
+            else -> {}
+        }
+    }
+
+    private fun SafeContext.save(recording: Recording, name: String) {
+        lambdaScope.launch(Dispatchers.IO) {
+            locationBoundDirectory(FolderRegister.replay).resolve("${
+                Instant.now().toString().sanitizeForFilename()
+            }-$name.json").writeText(gsonCompact.toJson(recording))
+        }
+    }
+
+    data class Recording(
+        val input: MutableList<InputAction> = mutableListOf(),
+        val rotation: MutableList<Rotation> = mutableListOf(),
+        val sprint: MutableList<Boolean> = mutableListOf(),
+        val position: MutableList<Vec3d> = mutableListOf(),
+//        val interaction: MutableList<Interaction> = mutableListOf()
+    ) : JsonSerializer<Recording>, JsonDeserializer<Recording> {
+        val size: Int
+            get() = minOf(input.size, rotation.size, sprint.size, position.size)
+        val duration: Duration
+            get() = (size * TimerManager.tickLength * 1.0).toDuration(DurationUnit.MILLISECONDS)
+
+        fun duplicate() = Recording(
+            input.take(size).toMutableList(),
+            rotation.take(size).toMutableList(),
+            sprint.take(size).toMutableList(),
+            position.take(size).toMutableList()
+        )
+
+        override fun serialize(
+            src: Recording?,
+            typeOfSrc: Type?,
+            context: JsonSerializationContext?,
+        ): JsonElement = src?.let { recording ->
+            JsonArray().apply {
+                repeat(recording.size) { i ->
+                    add(JsonArray().apply {
+                        val inputI = recording.input[i]
+                        add(inputI.movementSideways)
+                        add(inputI.movementForward)
+                        add(inputI.pressingForward)
+                        add(inputI.pressingBack)
+                        add(inputI.pressingLeft)
+                        add(inputI.pressingRight)
+                        add(inputI.jumping)
+                        add(inputI.sneaking)
+                        val rotationI = recording.rotation[i]
+                        add(rotationI.yaw)
+                        add(rotationI.pitch)
+                        add(recording.sprint[i])
+                        val positionI = recording.position[i]
+                        add(positionI.x)
+                        add(positionI.y)
+                        add(positionI.z)
+                    })
+                }
+            }
+        } ?: JsonNull.INSTANCE
+
+        override fun deserialize(
+            json: JsonElement?,
+            typeOfT: Type?,
+            context: JsonDeserializationContext?
+        ): Recording = json?.asJsonArray?.let {
+            val input = mutableListOf<InputAction>()
+            val rotation = mutableListOf<Rotation>()
+            val sprint = mutableListOf<Boolean>()
+            val position = mutableListOf<Vec3d>()
+
+            it.forEach { element ->
+                val array = element.asJsonArray
+                input.add(InputAction(
+                    array[0].asFloat,
+                    array[1].asFloat,
+                    array[2].asBoolean,
+                    array[3].asBoolean,
+                    array[4].asBoolean,
+                    array[5].asBoolean,
+                    array[6].asBoolean,
+                    array[7].asBoolean
+                ))
+                rotation.add(Rotation(array[8].asDouble, array[9].asDouble))
+                sprint.add(array[10].asBoolean)
+                position.add(Vec3d(array[11].asDouble, array[12].asDouble, array[13].asDouble))
+            }
+
+            Recording(input, rotation, sprint, position)
+        } ?: Recording()
+    }
+
+    data class InputAction(
+        val movementSideways: Float,
+        val movementForward: Float,
+        val pressingForward: Boolean,
+        val pressingBack: Boolean,
+        val pressingLeft: Boolean,
+        val pressingRight: Boolean,
+        val jumping: Boolean,
+        val sneaking: Boolean
+    ) {
+        fun update(input: Input) {
+            input.movementSideways = movementSideways
+            input.movementForward = movementForward
+            input.pressingForward = pressingForward
+            input.pressingBack = pressingBack
+            input.pressingLeft = pressingLeft
+            input.pressingRight = pressingRight
+            input.jumping = jumping
+            input.sneaking = sneaking
+        }
+
+        companion object {
+            fun Input.toAction() =
+                InputAction(
+                    movementSideways,
+                    movementForward,
+                    pressingForward,
+                    pressingBack,
+                    pressingLeft,
+                    pressingRight,
+                    jumping,
+                    sneaking
+                )
+        }
+    }
+}

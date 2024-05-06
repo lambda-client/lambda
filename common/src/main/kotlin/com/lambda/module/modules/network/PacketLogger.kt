@@ -79,6 +79,8 @@ object PacketLogger : Module(
 
         onEnableUnsafe {
             val fileName = "packet-log-${getTime(fileFormatter)}.txt"
+
+            // ToDo: Organize files with FolderRegister.worldBoundDirectory
             file = FolderRegister.packetLogs.resolve(fileName).apply {
                 if (!parentFile.exists()) {
                     parentFile.mkdirs()
