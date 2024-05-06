@@ -43,7 +43,6 @@ import kotlin.time.toDuration
 
 // ToDo:
 //  - Record other types of inputs: (place, break, inventory, etc.)
-//  - Fancy logging
 //  - Add HUD for recording / replaying info
 //  - Maybe use a custom binary format to store the data (Protobuf / DB?)
 object Replay : Module(
