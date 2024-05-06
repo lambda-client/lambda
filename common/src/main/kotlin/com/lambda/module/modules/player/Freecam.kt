@@ -94,7 +94,7 @@ object Freecam : Module(
 
             val inputVec = Vec3d(
                 input.movementSideways.toDouble(),
-                verticalMovement.toDouble(),
+                input.verticalMovement.toDouble(),
                 input.movementForward.toDouble()
             )
 
