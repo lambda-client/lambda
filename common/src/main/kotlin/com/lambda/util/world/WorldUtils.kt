@@ -2,10 +2,11 @@ package com.lambda.util.world
 
 import com.lambda.context.SafeContext
 import com.lambda.util.collections.filterPointer
-import com.lambda.util.math.VecUtils.distSq
 import net.minecraft.block.Block
+import net.minecraft.block.BlockState
 import net.minecraft.entity.Entity
 import net.minecraft.fluid.Fluid
+import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
@@ -165,15 +166,15 @@ object WorldUtils {
      * @param iterator Iterator to perform operations on each block.
      * @param predicate Predicate to filter the blocks.
      */
-    inline fun SafeContext.searchBlock(
+    inline fun SafeContext.searchBlocks(
         pos: Vec3i,
         rangeX: Int,
         rangeY: Int,
         rangeZ: Int,
         pointer: MutableList<Block>? = null,
-        iterator: (Block, Int) -> Unit = { _, _ -> },
-        predicate: (Block) -> Boolean = { true },
-    ) = searchBlock(pos, Vec3i(rangeX, rangeY, rangeZ), pointer, iterator, predicate)
+        iterator: (BlockState, BlockPos, Int) -> Unit = { _, _, _ -> },
+        predicate: (BlockState, BlockPos) -> Boolean = { _, _ -> true },
+    ) = searchBlocks(pos, Vec3i(rangeX, rangeY, rangeZ), pointer, iterator, predicate)
 
     /**
      * Returns all the position within the range where the predicate is true.
@@ -184,18 +185,18 @@ object WorldUtils {
      * @param iterator Iterator to perform operations on each block.
      * @param predicate Predicate to filter the blocks.
      */
-    inline fun SafeContext.searchBlock(
+    inline fun SafeContext.searchBlocks(
         pos: Vec3i,
         range: Vec3i,
         pointer: MutableList<Block>? = null,
-        iterator: (Block, Int) -> Unit = { _, _ -> },
-        predicate: (Block) -> Boolean = { true },
+        iterator: (BlockState, BlockPos, Int) -> Unit = { _, _, _ -> },
+        predicate: (BlockState, BlockPos) -> Boolean = { _, _ -> true },
     ) {
         iteratePositions(pos, range) { blockPos, index ->
-            val block = world.getBlockState(blockPos).block
-            if (predicate(block)) {
-                pointer?.add(block)
-                iterator(block, index)
+            val state = world.getBlockState(blockPos)
+            if (predicate(state, blockPos)) {
+                pointer?.add(state.block)
+                iterator(state, blockPos, index)
             }
         }
     }
@@ -209,18 +210,18 @@ object WorldUtils {
      * @param iterator Iterator to perform operations on each fluid.
      * @param predicate Predicate to filter the fluids.
      */
-    inline fun <reified T : Fluid> SafeContext.searchFluid(
+    inline fun <reified T : Fluid> SafeContext.searchFluids(
         pos: Vec3i,
         range: Vec3i,
         pointer: MutableList<T>? = null,
-        iterator: (T, Int) -> Unit = { _, _ -> },
-        predicate: (T) -> Boolean = { true },
+        iterator: (FluidState, BlockPos, Int) -> Unit = { _, _, _ -> },
+        predicate: (FluidState, BlockPos) -> Boolean = { _, _ -> true },
     ) {
         iteratePositions(pos, range) { blockPos, index ->
-            val fluid = world.getFluidState(blockPos).fluid as? T ?: return@iteratePositions
-            if (predicate(fluid)) {
-                pointer?.add(fluid)
-                iterator(fluid, index)
+            val state = world.getFluidState(blockPos)
+            if (predicate(state, blockPos)) {
+                pointer?.add(state.fluid as? T ?: return@iteratePositions)
+                iterator(state, blockPos, index)
             }
         }
     }

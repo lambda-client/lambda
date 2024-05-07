@@ -7,7 +7,8 @@ import com.lambda.module.Module
 import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
 import com.lambda.util.math.VecUtils.dist
-import net.minecraft.util.math.BlockPos
+import com.lambda.util.world.WorldUtils.searchBlocks
+import net.minecraft.util.math.Vec3i
 
 object Nuker : Module(
     name = "Nuker",
@@ -16,26 +17,25 @@ object Nuker : Module(
 ) {
     private val flatten by setting("Flatten", true)
 
+    private val range = Vec3i(4, 4, 4) // TODO: Customizable
+
     init {
         listener<TickEvent.Pre> {
-            BlockPos.iterateOutwards(player.blockPos, 4, 4, 4).map {
-                it.toImmutable()
-            }.filter {
-                val state = world.getBlockState(it)
-                state.isSolidBlock(world, it)
+            searchBlocks(player.blockPos, range, null,
+                iterator = { state, pos, _ ->
+                    state.getCollisionShape(world, pos).boundingBox
+                        .getVisibleSurfaces(player.eyePos).firstOrNull()?.let {
+                            interaction.updateBlockBreakingProgress(pos, it)
+                        }
+                    this@Nuker.info("Breaking ${state.block.name.string} at $pos with hardness ${state.getHardness(world, pos)}")
+                },
+            ) { state, pos ->
+                state.isSolidBlock(world, pos)
                         && !state.isAir
-                        && (!flatten || it.y >= player.y)
-                        && /*state.getHardness(world, it) <= 1.0f &&*/ state.getHardness(world, it) > 0.0f
-                        && player.eyePos dist it.toCenterPos() <= interaction.reachDistance - 1
-            }.sortedBy {
-                player.eyePos dist it.toCenterPos()
-            }.forEach { pos ->
-                val state = world.getBlockState(pos)
-                state.getCollisionShape(world, pos).boundingBox
-                    .getVisibleSurfaces(player.eyePos).firstOrNull()?.let {
-                        interaction.updateBlockBreakingProgress(pos, it)
-                    }
-                this@Nuker.info("Breaking ${state.block.name.string} at $pos with hardness ${state.getHardness(world, pos)}")
+                        && (!flatten || pos.y >= player.y)
+                        //&& state.getHardness(world, pos) <= 1.0f
+                        && state.getHardness(world, pos) > 0.0f
+                        && player.eyePos dist pos.toCenterPos() <= interaction.reachDistance - 1
             }
         }
     }
