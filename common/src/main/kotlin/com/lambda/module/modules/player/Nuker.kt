@@ -25,7 +25,7 @@ object Nuker : Module(
                 iterator = { state, pos, _ ->
                     state.getCollisionShape(world, pos).boundingBox
                         .getVisibleSurfaces(player.eyePos).firstOrNull()?.let {
-                            interaction.updateBlockBreakingProgress(pos, it)
+                            interaction.updateBlockBreakingProgress(pos, it) // Crashes if the time to mine is not instant ??
                         }
                     this@Nuker.info("Breaking ${state.block.name.string} at $pos with hardness ${state.getHardness(world, pos)}")
                 },
