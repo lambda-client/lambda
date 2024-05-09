@@ -1,30 +1,30 @@
 package com.lambda.command.commands
 
-import com.lambda.brigadier.CommandResult
-import com.lambda.brigadier.argument.string
-import com.lambda.brigadier.argument.value
-import com.lambda.brigadier.executeWithResult
-import com.lambda.brigadier.get
-import com.lambda.brigadier.required
-import com.lambda.command.CommandManager.register
+import com.google.gson.JsonSyntaxException
+import com.lambda.brigadier.*
+import com.lambda.brigadier.argument.*
 import com.lambda.command.LambdaCommand
 import com.lambda.module.modules.player.Replay
 import com.lambda.util.FolderRegister
 import com.lambda.util.FolderRegister.listRecursive
+import com.lambda.util.primitives.extension.CommandBuilder
 
-object ReplayCommand : LambdaCommand {
-    override val name = "replay"
+object ReplayCommand : LambdaCommand(
+    name = "replay",
+    usage = "replay <play|load|save|prune>",
+    description = "Play, load, save, or prune a replay"
+) {
+    override fun CommandBuilder.create() {
+        required(literal("play")) {
+            required(integer("index")) { index ->
+                executeWithResult {
+                    Replay.playRecording(index().value())
+                }
+            }
+        }
 
-    init {
-        register(name, "rep") {
-            // 1. Save current recording / checkpoint to disc with name
-            // 2. Load replay from disc with name
-            // 3. Play replay
-            // 4. Stop replay
-            // 5. Pause replay
-            // 6. Resume replay
-            // 7. Set replay speed
-            required(string("replay name")) { replayName ->
+        required(literal("load")) {
+            required(greedyString("replay filepath")) { replayName ->
                 suggests { _, builder ->
                     val dir = FolderRegister.replay
                     dir.listRecursive().forEach {
@@ -34,14 +34,35 @@ object ReplayCommand : LambdaCommand {
                 }
 
                 executeWithResult {
-                    val replayFile = FolderRegister.replay.resolve(this[replayName].value())
+                    val replayFile = FolderRegister.replay.resolve(replayName().value())
 
                     if (!replayFile.exists()) {
                         return@executeWithResult CommandResult.failure("Replay file does not exist")
                     }
 
-                    Replay.loadRecording(replayFile)
+                    try {
+                        Replay.loadRecording(replayFile)
+                    } catch (e: JsonSyntaxException) {
+                        return@executeWithResult CommandResult.failure("Failed to load replay file: ${e.message}")
+                    }
+
                     CommandResult.success()
+                }
+            }
+        }
+        required(literal("save")) {
+            required(integer("id")) { id ->
+                required(greedyString("replay name")) { replayName ->
+                    executeWithResult {
+                        Replay.saveRecording(id().value(), replayName().value())
+                    }
+                }
+            }
+        }
+        required(literal("prune")) {
+            required(integer("id")) { id ->
+                executeWithResult {
+                    Replay.pruneRecording(id().value())
                 }
             }
         }
