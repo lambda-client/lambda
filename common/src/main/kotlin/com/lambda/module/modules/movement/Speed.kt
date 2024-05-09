@@ -20,7 +20,7 @@ import kotlin.math.max
 object Speed : Module(
     name = "Speed",
     description = "Fastest module",
-    tag = ModuleTag.MOVEMENT
+    defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
     private val mode by setting("Mode", Mode.MATRIX_STRAFE_1)
 

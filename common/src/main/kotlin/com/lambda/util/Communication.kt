@@ -2,7 +2,13 @@ package com.lambda.util
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
-import com.lambda.threading.runOnGameThread
+import com.lambda.command.CommandManager
+import com.lambda.command.LambdaCommand
+import com.lambda.config.Configuration
+import com.lambda.event.EventFlow
+import com.lambda.module.Module
+import com.lambda.module.ModuleRegistry
+import com.lambda.module.modules.client.GuiSettings
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeOnGameThread
 import com.lambda.util.StringUtils.capitalize
@@ -73,23 +79,15 @@ object Communication {
     ) = buildText {
         text(logLevel.prefix())
 
-//        if (this@source is LambdaCommand) {
-//            styled(color, italic = true) {
-//                literal("Command ")
-//            }
-//        }
-//
-//        if (this@source is Module) {
-//            styled(color, italic = true) {
-//                literal("Module ")
-//            }
-//        }
-//
-//        // ToDo: HUD elements
-//
-        if (this@source is Nameable) {
-            styled(color, italic = true) {
-                literal("${name.capitalize()} ")
+        // ToDo: HUD elements
+
+        when (this@source) {
+            is LambdaCommand -> commandSource(this@source, color)
+            is Module -> moduleSource(this@source, color)
+            is Nameable -> {
+                styled(color, italic = true) {
+                    literal("${name.capitalize()} ")
+                }
             }
         }
 
@@ -104,13 +102,94 @@ object Communication {
         }
     }
 
+    private fun TextBuilder.commandSource(command: LambdaCommand, color: Color) {
+        hoverEvent(HoverEvents.showText(buildText {
+            literal(command.description)
+            literal("\n")
+            literal(command.usage)
+            literal("\n")
+            literal("Aliases: ")
+            joinToText(command.aliases) {
+                color(GuiSettings.primaryColor) {
+                    literal(it)
+                }
+            }
+        })) {
+            styled(color, italic = true) {
+                literal("${command.name.capitalize()} ")
+            }
+        }
+    }
+
+    private fun TextBuilder.moduleSource(module: Module, color: Color) {
+        hoverEvent(HoverEvents.showText(buildText {
+            literal(module.description)
+            literal("\n")
+            literal("Keybind: ")
+            color(GuiSettings.primaryColor) {
+                literal(module.keybind.key.toString())
+            }
+            literal("\n")
+            literal("Default tags: ")
+            joinToText(module.defaultTags) {
+                color(GuiSettings.primaryColor) {
+                    literal(it.name)
+                }
+            }
+            if (module.customTags.value.isNotEmpty()) {
+                literal("\n")
+                literal("Custom tags: ")
+                joinToText(module.customTags.value) {
+                    color(GuiSettings.primaryColor) {
+                        literal(it.name)
+                    }
+                }
+            }
+        })) {
+            styled(color, italic = true) {
+                literal("${module.name.capitalize()} ")
+            }
+        }
+    }
+
     private fun LogLevel.prefix() =
         buildText {
-            styled(logoColor) {
-                literal(Lambda.SYMBOL)
+            hoverEvent(HoverEvents.showText(buildText {
+                literal("Lambda ")
+                color(logoColor) {
+                    literal(Lambda.SYMBOL)
+                }
+                literal(" v${Lambda.VERSION}\n")
+                literal("Modules: ${ModuleRegistry.modules.size}\n")
+                literal("Commands: ${CommandManager.commands.size}\n")
+                literal("Settings: ${Configuration.configurations.sumOf { config ->
+                    config.configurables.sumOf { it.settings.size }
+                }}")
+                literal("\n")
+                literal("Synchronous listeners: ${EventFlow.syncListeners.size}\n")
+                literal("Concurrent listeners: ${EventFlow.concurrentListeners.size}")
+
+            })) {
+                styled(logoColor) {
+                    literal(Lambda.SYMBOL)
+                }
+                literal(" ")
             }
-            literal(" ")
+
         }
+
+    fun <T> TextBuilder.joinToText(
+        elements: Collection<T>,
+        separator: String = ", ",
+        action: TextBuilder.(T) -> Unit
+    ) {
+        elements.forEachIndexed { index, element ->
+            if (index != 0) {
+                literal(separator)
+            }
+            action(element)
+        }
+    }
 
     enum class LogLevel(
         val logoColor: Color,

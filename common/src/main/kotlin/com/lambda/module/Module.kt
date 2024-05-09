@@ -90,7 +90,7 @@ import com.lambda.util.Nameable
 abstract class Module(
     override val name: String,
     val description: String = "",
-    val tag: ModuleTag,
+    val defaultTags: Set<ModuleTag> = setOf(),
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.Unbound,
@@ -98,16 +98,18 @@ abstract class Module(
     private val isEnabledSetting = setting("Enabled", enabledByDefault, visibility = { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)
     private val isVisible = setting("Visible", true)
+    val customTags = setting("Tags", emptySet<ModuleTag>(), visibility = { false })
 
     var isEnabled by isEnabledSetting
     override val isMuted: Boolean
         get() = !isEnabled && !alwaysListening
-    private val keybind by keybindSetting
+    val keybind by keybindSetting
 
     init {
         listener<KeyPressEvent>(alwaysListen = true) { event ->
             val screen = mc.currentScreen
             if (event.key == keybind.key
+                && !mc.options.commandKey.isPressed
                 && (screen == null
                 || screen is LambdaClickGui)
             ) toggle()

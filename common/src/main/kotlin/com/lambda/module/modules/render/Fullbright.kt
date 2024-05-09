@@ -6,5 +6,5 @@ import com.lambda.module.tag.ModuleTag
 object Fullbright : Module(
     name = "Fullbright",
     description = "Makes everything brighter",
-    tag = ModuleTag.RENDER
+    defaultTags = setOf(ModuleTag.RENDER)
 )

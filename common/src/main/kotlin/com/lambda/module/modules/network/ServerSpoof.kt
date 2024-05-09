@@ -1,4 +1,4 @@
-package com.lambda.module.modules.client
+package com.lambda.module.modules.network
 
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
@@ -17,7 +17,7 @@ import java.awt.Color
 object ServerSpoof : Module(
     name = "ServerSpoof",
     description = "Decide yourself if you want to accept the server resource pack.",
-    tag = ModuleTag.CLIENT
+    defaultTags = setOf(ModuleTag.NETWORK, ModuleTag.BYPASS)
 ) {
     private val spoofClientBrand by setting("Spoof Client Brand", true)
     private val spoofName by setting("Spoof Name", "vanilla", visibility = { spoofClientBrand })

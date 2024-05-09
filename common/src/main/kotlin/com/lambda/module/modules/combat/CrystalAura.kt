@@ -14,7 +14,7 @@ import net.minecraft.util.Hand
 object CrystalAura : Module(
     name = "CrystalAura",
     description = "Automatically attacks entities with crystals",
-    tag = ModuleTag.COMBAT,
+    defaultTags = setOf(ModuleTag.COMBAT),
 ) {
     private val page by setting("Page", Page.General)
 

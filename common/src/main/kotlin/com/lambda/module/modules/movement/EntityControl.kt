@@ -9,31 +9,37 @@ import com.lambda.util.world.WorldUtils.getEntities
 import net.minecraft.entity.passive.AbstractHorseEntity
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 
-object HorseUtils : Module(
-    name = "HorseUtils",
-    description = "Various utilities for horses.",
-    tag = ModuleTag.MOVEMENT
+object EntityControl : Module(
+    name = "EntityControl",
+    description = "Control mountable entities",
+    defaultTags = setOf(ModuleTag.MOVEMENT, ModuleTag.BYPASS)
 ) {
     private val page by setting("Page", Page.General)
 
     /* General */
     private val forceMount by setting("Force Mount", true, description = "Attempts to force mount chested entities.", visibility = { page == Page.General })
-    private val tameHorses by setting("Tame Horses", true, description = "Automatically tames horses (client-side only).", visibility = { page == Page.General })
 
-    /* Rendering */
-    private val showInfo by setting("Show Info", true, description = "Renders information about entities.", visibility = { page == Page.Rendering })
-
-    private val theHonses = mutableListOf<AbstractHorseEntity>() // Petah, the honse is here
-    private val tame: (AbstractHorseEntity) -> Unit = { horse -> if (tameHorses) horse.setHorseFlag(4, true) }
+    /* Movement */
+    private val speed by setting("Entity Speed", 2.0, 0.1..10.0, 0.1, description = "Speed for entities.", visibility = { page == Page.Movement })
 
     private enum class Page {
-        General, Rendering
+        General, Movement
     }
+
+    private val theHonses = mutableListOf<AbstractHorseEntity>() // Petah, the honse is here
 
     init {
         listener<TickEvent.Pre> {
-            getEntities(theHonses, iterator = tame)
+            getEntities(player.pos, 8.0, theHonses, { horse, _ -> horse.setHorseFlag(4, true) })
         }
+
+        /*listener<MovementEvent.Pre> {
+            if (!player.isRiding) return@listener
+
+            // We can do this because the player movement depends on the entity movement
+            player.vehicle?.motionX = speed
+            player.vehicle?.motionZ = speed
+        }*/
 
         listener<PacketEvent.Send.Pre> { event ->
             if (!forceMount) return@listener
@@ -44,6 +50,11 @@ object HorseUtils : Module(
             if (entity !is AbstractHorseEntity) return@listener
 
             event.cancel()
+        }
+
+        onDisable {
+            theHonses.forEach { horse -> horse.updateSaddle() }
+            theHonses.clear()
         }
     }
 }

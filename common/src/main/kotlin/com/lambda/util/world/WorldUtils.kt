@@ -2,10 +2,11 @@ package com.lambda.util.world
 
 import com.lambda.context.SafeContext
 import com.lambda.util.collections.filterPointer
-import com.lambda.util.math.VecUtils.distSq
 import net.minecraft.block.Block
+import net.minecraft.block.BlockState
 import net.minecraft.entity.Entity
 import net.minecraft.fluid.Fluid
+import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
@@ -42,20 +43,23 @@ object WorldUtils {
     /**
      * Gets the closest entity of type [T] within a specified range.
      *
+     * Because we don't want to troll the CPU speculative execution, we only use the [getFastEntities] function.
+     * This should not be an issue as the performance of this function is optimized for small distances.
+     *
      * @param pos The position to search from.
      * @param range The maximum distance to search for entities.
-     * @param predicate Optional predicate to filter entities.
+     * @param predicate Predicate to filter entities.
      * @return The first entity of type [T] that is closest to the position within the specified range.
      */
     inline fun <reified T : Entity> SafeContext.getClosestEntity(
-        pos: Vec3d = player.pos,
-        range: Double = 6.0,
-        noinline predicate: (T) -> Boolean = { true },
+        pos: Vec3d,
+        range: Double,
+        predicate: (T) -> Boolean = { true },
     ): T? {
         var closest: T? = null
         var closestDistance = Double.MAX_VALUE
 
-        val comparator = { entity: T ->
+        val comparator = { entity: T, _: Int ->
             val distance = pos.squaredDistanceTo(entity.pos)
             if (distance < closestDistance) {
                 closest = entity
@@ -63,9 +67,7 @@ object WorldUtils {
             }
         }
 
-        // Speculative execution trolling
-        if (range > 64) getEntities(null, comparator, predicate)
-        else getFastEntities(pos, range, null, comparator, predicate)
+        getFastEntities(pos, range, null, comparator, predicate)
 
         return closest
     }
@@ -95,17 +97,15 @@ object WorldUtils {
      * @param pos The position to search from.
      * @param distance The maximum distance to search for entities.
      * @param pointer The mutable list to store the entities in.
-     * @param predicate Optional predicate to filter entities. It allows custom filtering based on entity properties.
-     * @param iterator Optional iterator to perform operations on each entity.
-     * @return A list of entities of type [T] within the specified distance from the position, excluding the player.
-     *
+     * @param iterator Iterator to perform operations on each entity.
+     * @param predicate Predicate to filter entities.
      */
     inline fun <reified T : Entity> SafeContext.getFastEntities(
         pos: Vec3d,
         distance: Double,
         pointer: MutableList<T>? = null,
-        noinline iterator: (T) -> Unit = { },
-        noinline predicate: (T) -> Boolean = { true },
+        iterator: (T, Int) -> Unit = { _, _ -> },
+        predicate: (T) -> Boolean = { true },
     ) {
         val chunks = ceil(distance / 16).toInt()
         val sectionX = pos.x.toInt() shr 4
@@ -118,9 +118,13 @@ object WorldUtils {
         for (x in sectionX - chunks..sectionX + chunks) {
             for (y in sectionY - chunks..sectionY + chunks) {
                 for (z in sectionZ - chunks..sectionZ + chunks) {
-                    val section = world.entityManager.cache.findTrackingSection(ChunkSectionPos.asLong(x, y, z)) ?: continue
+                    val section =
+                        world.entityManager.cache.findTrackingSection(ChunkSectionPos.asLong(x, y, z)) ?: continue
+
                     section.collection.filterPointer(pointer, iterator) { entity ->
-                        entity != player && entity.squaredDistanceTo(pos) <= distance * distance && predicate(entity)
+                        entity != player &&
+                                entity.squaredDistanceTo(pos) <= distance * distance &&
+                                predicate(entity)
                     }
                 }
             }
@@ -134,16 +138,20 @@ object WorldUtils {
      * [getFastEntities], it traverses all entities in the world to find matches, while also excluding the player entity.
      *
      * @param pointer The mutable list to store the entities in.
-     * @param predicate Optional predicate to filter entities. It allows custom filtering based on entity properties.
-     * @param iterator Optional iterator to perform operations on each entity.
+     * @param iterator Iterator to perform operations on each entity.
+     * @param predicate Predicate to filter entities.
      */
     inline fun <reified T : Entity> SafeContext.getEntities(
+        pos: Vec3d,
+        distance: Double,
         pointer: MutableList<T>? = null,
-        noinline iterator: (T) -> Unit = { },
-        noinline predicate: (T) -> Boolean = { true },
+        iterator: (T, Int) -> Unit = { _, _ -> },
+        predicate: (T) -> Boolean = { true },
     ) {
         world.entities.filterPointer(pointer, iterator) { entity ->
-            entity != player && predicate(entity)
+            entity != player &&
+                    entity.squaredDistanceTo(pos) <= distance * distance &&
+                    predicate(entity)
         }
     }
 
@@ -155,20 +163,18 @@ object WorldUtils {
      * @param rangeY The maximum distance to search for entities in the y-axis.
      * @param rangeZ The maximum distance to search for entities in the z-axis.
      * @param pointer The mutable list to store the positions in.
-     * @param predicate Optional predicate to filter the blocks.
-     * @param iterator Optional iterator to perform operations on each block.
-     *
-     * @return A list of positions that match the predicate.
+     * @param iterator Iterator to perform operations on each block.
+     * @param predicate Predicate to filter the blocks.
      */
-    fun SafeContext.searchBlock(
+    inline fun SafeContext.searchBlocks(
         pos: Vec3i,
         rangeX: Int,
         rangeY: Int,
         rangeZ: Int,
         pointer: MutableList<Block>? = null,
-        iterator: (Block) -> Unit = { },
-        predicate: (Block) -> Boolean = { true },
-    ) = searchBlock(pos, Vec3i(rangeX, rangeY, rangeZ), pointer, iterator, predicate)
+        iterator: (BlockState, BlockPos, Int) -> Unit = { _, _, _ -> },
+        predicate: (BlockState, BlockPos) -> Boolean = { _, _ -> true },
+    ) = searchBlocks(pos, Vec3i(rangeX, rangeY, rangeZ), pointer, iterator, predicate)
 
     /**
      * Returns all the position within the range where the predicate is true.
@@ -176,23 +182,23 @@ object WorldUtils {
      * @param pos The position to search from.
      * @param range The maximum distance to search for entities in each axis.
      * @param pointer The mutable list to store the positions in.
-     * @param predicate Optional predicate to filter the blocks.
-     * @param iterator Optional iterator to perform operations on each block.
-     *
-     * @return A list of positions that match the predicate.
+     * @param iterator Iterator to perform operations on each block.
+     * @param predicate Predicate to filter the blocks.
      */
-    fun SafeContext.searchBlock(
+    inline fun SafeContext.searchBlocks(
         pos: Vec3i,
         range: Vec3i,
         pointer: MutableList<Block>? = null,
-        iterator: (Block) -> Unit = { },
-        predicate: (Block) -> Boolean = { true },
+        iterator: (BlockState, BlockPos, Int) -> Unit = { _, _, _ -> },
+        predicate: (BlockState, BlockPos) -> Boolean = { _, _ -> true },
     ) {
-        // TODO: Implement O(1) pointer mapping
-        BlockPos.iterateOutwards(BlockPos(pos), range.x, range.y, range.z)
-            .map { world.getBlockState(it).block }.filterPointer(pointer, iterator) { block ->
-                predicate(block)
+        iteratePositions(pos, range) { blockPos, index ->
+            val state = world.getBlockState(blockPos)
+            if (predicate(state, blockPos)) {
+                pointer?.add(state.block)
+                iterator(state, blockPos, index)
             }
+        }
     }
 
     /**
@@ -201,20 +207,39 @@ object WorldUtils {
      * @param pos The position to search from.
      * @param range The maximum distance to search for fluids in each axis.
      * @param pointer The mutable list to store the positions in.
-     * @param predicate Optional predicate to filter the fluids.
-     * @param iterator Optional iterator to perform operations on each fluid.
+     * @param iterator Iterator to perform operations on each fluid.
+     * @param predicate Predicate to filter the fluids.
      */
-    inline fun <reified T : Fluid> SafeContext.searchFluid(
+    inline fun <reified T : Fluid> SafeContext.searchFluids(
         pos: Vec3i,
         range: Vec3i,
         pointer: MutableList<T>? = null,
-        noinline predicate: (T) -> Boolean = { true },
-        noinline iterator: (T) -> Unit = { },
+        iterator: (FluidState, BlockPos, Int) -> Unit = { _, _, _ -> },
+        predicate: (FluidState, BlockPos) -> Boolean = { _, _ -> true },
     ) {
-        // TODO: Implement O(1) pointer mapping
+        iteratePositions(pos, range) { blockPos, index ->
+            val state = world.getFluidState(blockPos)
+            if (predicate(state, blockPos)) {
+                pointer?.add(state.fluid as? T ?: return@iteratePositions)
+                iterator(state, blockPos, index)
+            }
+        }
+    }
+
+    /**
+     * Iterates over all positions within the specified range.
+     * @param pos The position to start from.
+     * @param range The maximum distance to search for entities in each axis.
+     * @param iterator Iterator to perform operations on each position.
+     */
+    inline fun SafeContext.iteratePositions(
+        pos: Vec3i,
+        range: Vec3i,
+        iterator: (BlockPos, Int) -> Unit,
+    ) {
         BlockPos.iterateOutwards(BlockPos(pos), range.x, range.y, range.z)
-            .map { world.getFluidState(it).fluid }.filterPointer(pointer, iterator) { fluid ->
-                predicate(fluid)
+            .forEachIndexed { index, blockPos ->
+                iterator(blockPos, index)
             }
     }
 }

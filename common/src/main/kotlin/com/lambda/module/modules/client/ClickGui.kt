@@ -10,7 +10,7 @@ import com.lambda.util.KeyCode
 object ClickGui : Module(
     name = "ClickGui",
     description = "Sexy",
-    tag = ModuleTag.CLIENT,
+    defaultTags = setOf(ModuleTag.CLIENT),
     defaultKeybind = KeyCode.RIGHT_SHIFT
 ) {
     // General

@@ -12,7 +12,7 @@ class TagWindow(
 ) : ModuleWindow(tag.name, owner = owner) {
     init {
         ModuleRegistry.modules
-            .filter { it.tag == tag }
+            .filter { it.defaultTags.firstOrNull() == tag }
             .map { ModuleButton(it, contentComponents) }
             .forEach(contentComponents::addChild)
     }

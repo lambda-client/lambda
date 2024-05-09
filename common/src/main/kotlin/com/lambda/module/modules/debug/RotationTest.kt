@@ -14,7 +14,7 @@ import net.minecraft.util.math.Direction
 object RotationTest : Module(
     name = "RotationTest",
     description = "Test rotation",
-    tag = ModuleTag.DEBUG
+    defaultTags = setOf(ModuleTag.DEBUG),
 ) {
     private val rotationConfig = RotationSettings(this)
     private val interactionConfig = InteractionSettings(this)

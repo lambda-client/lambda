@@ -19,7 +19,7 @@ import java.awt.Color
 object RenderTest : Module(
     name = "RenderTest",
     description = "RenderTest",
-    tag = ModuleTag.RENDER
+    defaultTags = setOf(ModuleTag.DEBUG)
 ) {
     private val test1 by setting("Toggle visibility", true)
     private val test21 by setting("Hallo 1", true, visibility = ::test1)

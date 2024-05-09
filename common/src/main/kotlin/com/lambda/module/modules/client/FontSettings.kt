@@ -6,7 +6,7 @@ import com.lambda.module.tag.ModuleTag
 object FontSettings : Module(
     name = "FontSettings",
     description = "Font renderer configuration",
-    tag = ModuleTag.CLIENT
+    defaultTags = setOf(ModuleTag.CLIENT)
 ) {
     val shadow by setting("Shadow", true)
     val shadowBrightness by setting("Shadow Brightness", 0.35, 0.0..0.5, 0.01, visibility = { shadow })

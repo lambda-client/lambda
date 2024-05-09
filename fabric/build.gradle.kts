@@ -10,8 +10,8 @@ architectury {
 }
 
 loom {
-    accessWidenerPath.set(project(":common").loom.accessWidenerPath)
-    enableTransitiveAccessWideners.set(true)
+    accessWidenerPath = project(":common").loom.accessWidenerPath
+    enableTransitiveAccessWideners = true
 }
 
 val common: Configuration by configurations.creating {
@@ -71,11 +71,5 @@ dependencies {
 tasks {
     remapJar {
         injectAccessWidener = true
-    }
-
-    processResources {
-        filesMatching("fabric.mod.json") {
-            expand(project(":common").properties)
-        }
     }
 }

@@ -1,4 +1,4 @@
-package com.lambda.module.modules.debug
+package com.lambda.module.modules.network
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
@@ -26,10 +26,10 @@ import java.nio.file.Path
 import java.time.format.DateTimeFormatter
 import kotlin.io.path.pathString
 
-object Packetlogger : Module(
-    name = "Packetlogger",
+object PacketLogger : Module(
+    name = "PacketLogger",
     description = "Serializes network traffic and persists it for later analysis",
-    tag = ModuleTag.DEBUG
+    defaultTags = setOf(ModuleTag.NETWORK, ModuleTag.DEBUG)
 ) {
     private val logToChat by setting("Log To Chat", false, "Log packets to chat")
     // ToDo: Implement HUD logging when HUD is done
@@ -43,8 +43,8 @@ object Packetlogger : Module(
     private val logConcurrent by setting("Build Data Concurrent", false, "Whether to serialize packets concurrently. Will not save packets in chronological order but wont lag the game.")
 
     private var file: File? = null
-    private val entryFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSSS")
-    private val fileFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss.SSSS")
+    private val entryFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSSS")
+    private val fileFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss.SSS")
 
     enum class NetworkSide {
         ANY, CLIENT, SERVER;
@@ -73,12 +73,14 @@ object Packetlogger : Module(
         lambdaScope.launch(Dispatchers.IO) {
             storageFlow.collect { entry ->
                 file?.appendText(entry)
-                if (logToChat) this@Packetlogger.info(entry)
+                if (logToChat) this@PacketLogger.info(entry)
             }
         }
 
         onEnableUnsafe {
             val fileName = "packet-log-${getTime(fileFormatter)}.txt"
+
+            // ToDo: Organize files with FolderRegister.worldBoundDirectory
             file = FolderRegister.packetLogs.resolve(fileName).apply {
                 if (!parentFile.exists()) {
                     parentFile.mkdirs()
@@ -93,7 +95,7 @@ object Packetlogger : Module(
                         literal(" (click to open)")
                     }
                 }
-                this@Packetlogger.info(info)
+                this@PacketLogger.info(info)
             }.apply {
                 // ToDo: Add more rich and accurate data to the header
                 StringBuilder().apply {
@@ -129,7 +131,7 @@ object Packetlogger : Module(
                         literal(" (click to open)")
                     }
                 }
-                this@Packetlogger.info(info)
+                this@PacketLogger.info(info)
 
                 file = null
             }

@@ -6,5 +6,5 @@ import com.lambda.module.tag.ModuleTag
 object XRay : Module(
     name = "XRay",
     description = "Allows you to see ores through walls",
-    tag = ModuleTag.RENDER
+    defaultTags = setOf(ModuleTag.RENDER)
 )

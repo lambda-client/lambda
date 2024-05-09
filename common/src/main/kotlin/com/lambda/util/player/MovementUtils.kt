@@ -27,8 +27,8 @@ object MovementUtils {
         pressingLeft = false
         pressingRight = false
 
-        sneaking = false
         jumping = false
+        sneaking = false
     }
 
     val SafeContext.isInputting: Boolean get() =

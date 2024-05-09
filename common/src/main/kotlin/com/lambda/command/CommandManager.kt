@@ -31,18 +31,8 @@ object CommandManager : Configurable(LambdaConfig), Loadable {
     val prefix by setting("prefix", ';')
 
     val commands = mutableSetOf<LambdaCommand>()
-    private val dispatcher by lazy { CommandDispatcher<CommandSource>() }
+    val dispatcher by lazy { CommandDispatcher<CommandSource>() }
     private const val ERROR_PADDING = 10
-
-    fun register(
-        command: String,
-        vararg alias: String,
-        action: LiteralArgumentBuilder<CommandSource>.() -> Unit,
-    ) {
-        (listOf(command) + alias).forEach {
-            dispatcher.register(it, action)
-        }
-    }
 
     fun executeCommand(command: String) {
         runSafe {

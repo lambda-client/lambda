@@ -8,7 +8,7 @@ import com.lambda.module.tag.ModuleTag
 object Timer : Module(
     name = "Timer",
     description = "Modify client tick speed.",
-    tag = ModuleTag.WORLD
+    defaultTags = setOf(ModuleTag.WORLD)
 ) {
     private val timer by setting("Timer", 50, 0..1000, 5, unit = "ms/tick")
 
