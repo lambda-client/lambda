@@ -1,11 +1,14 @@
 package com.lambda.gui.impl.clickgui.buttons.setting
 
 import com.lambda.config.settings.comparable.BooleanSetting
+import com.lambda.core.SoundManager
+import com.lambda.core.SoundManager.playSound
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.impl.clickgui.buttons.SettingButton
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.threading.runSafe
 import com.lambda.util.Mouse
 import com.lambda.util.math.ColorUtils.setAlpha
 import com.lambda.util.math.MathUtils.lerp
@@ -47,5 +50,8 @@ class BooleanButton(
 
     override fun performClickAction(e: GuiEvent.MouseClick) {
         if (e.button == Mouse.Button.Left) value = !value
+        runSafe {
+            playSound(SoundManager.LambdaSound.MODULE_TOGGLE.event)
+        }
     }
 }

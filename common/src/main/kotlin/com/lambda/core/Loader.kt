@@ -22,6 +22,7 @@ object Loader {
         LambdaFont.Loader,
         GuiConfigurable,
         FriendManager,
+        SoundManager,
     )
 
     fun initialize() {
