@@ -33,7 +33,7 @@ class BooleanButton(
             position = checkboxRect
             roundRadius = checkboxRect.size.y
             shade = GuiSettings.shade
-            color(GuiSettings.mainColor.setAlpha(showAnimation * (0.3 + active * 0.15)))
+            color(GuiSettings.mainColor.setAlpha(showAnimation * (0.2 + active * 0.2)))
         }
 
         // Checkbox Knob

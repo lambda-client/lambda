@@ -7,6 +7,7 @@ import com.lambda.gui.api.LambdaGui
 import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.module.modules.client.ClickGui
+import com.lambda.util.Mouse
 import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 
 abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, ClickGui) {
@@ -39,7 +40,7 @@ abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, Cli
             }
 
             is GuiEvent.MouseClick -> {
-                activeWindow?.focus()
+                if (e.action == Mouse.Action.Click) activeWindow?.focus()
             }
 
             is GuiEvent.MouseMove -> {

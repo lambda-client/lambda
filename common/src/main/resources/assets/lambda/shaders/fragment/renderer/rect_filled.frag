@@ -14,7 +14,7 @@ in float v_Shade;
 
 out vec4 color;
 
-#define SMOOTHING 0.5
+#define SMOOTHING 0.25
 
 vec4 shade() {
     if (v_Shade != 1.0) return v_Color;

@@ -2,7 +2,6 @@ package com.lambda.gui.impl.clickgui.buttons.setting
 
 import com.lambda.config.settings.NumericSetting
 import com.lambda.graphics.animation.Animation.Companion.exp
-import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.math.ColorUtils.setAlpha
