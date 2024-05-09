@@ -92,18 +92,18 @@ abstract class Configuration : Jsonable {
                     this@Configuration.info(message)
                 }
                 .onFailure {
-                    val message = "Failed to load ${configName.capitalize()} config, loading backup"
+                    var message = "Failed to load ${configName.capitalize()} config, loading backup"
                     LOG.error(message, it)
                     this@Configuration.logError(message)
                     runCatching { load(backup) }
                         .onSuccess {
-                            val message = "${configName.capitalize()} config loaded from backup"
+                            message = "${configName.capitalize()} config loaded from backup"
                             LOG.info(message)
                             this@Configuration.info(message)
                         }
-                        .onFailure {
-                            val message = "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
-                            LOG.error(message, it)
+                        .onFailure { error ->
+                            message = "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
+                            LOG.error(message, error)
                             this@Configuration.logError(message)
                         }
                 }
