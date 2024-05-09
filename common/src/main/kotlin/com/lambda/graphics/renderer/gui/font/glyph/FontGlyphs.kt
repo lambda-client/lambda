@@ -30,13 +30,12 @@ class FontGlyphs(font: Font) {
             var y = 0
             var rowHeight = 0
 
-            // Because UTF16 takes 2 bytes per character, we can't use the full range of characters
-            (Char.MIN_VALUE..<TEXTURE_SIZE.toChar()).forEach { char ->
+            (Char.MIN_VALUE..<CHAR_AMOUNT.toChar()).forEach { char ->
                 val charImage = getCharImage(font, char) ?: return@forEach
 
-                rowHeight = max(rowHeight, charImage.height)
+                rowHeight = max(rowHeight, charImage.height + STEP)
 
-                if (x + charImage.width >= TEXTURE_SIZE) {
+                if (x + charImage.width + STEP >= TEXTURE_SIZE) {
                     y += rowHeight
                     x = 0
                     rowHeight = 0
@@ -53,7 +52,7 @@ class FontGlyphs(font: Font) {
                 charMap[char.code] = CharInfo(size, uv1, uv2)
                 fontHeight = max(fontHeight, size.y)
 
-                x += charImage.width
+                x += charImage.width + STEP
             }
 
             fontTexture = MipmapTexture(image)
@@ -73,13 +72,12 @@ class FontGlyphs(font: Font) {
         charMap[char.code]
 
     companion object {
-        // The size cannot be bigger than 2^15 because the rasterizer needs to be fed with dimensions that when multiplied together are less than 2^31
-        // This can be bypassed by using a custom rasterizer, but it's not worth the effort
-        // The size is also limited by the java heap size, as the image is stored in memory
-        // and then uploaded to the GPU
         // Since most Lambda users probably have bad pc, the default size is 2048, which includes latin, cyrillic, greek and arabic
         // and in the future we could grow the textures when needed
-        private val TEXTURE_SIZE = FontSettings.amountOfGlyphs * 2
-        private val ONE_TEXEL_SIZE = 1.0 / TEXTURE_SIZE
+        private const val CHAR_AMOUNT = 2048
+        private const val TEXTURE_SIZE = 4096
+        private const val ONE_TEXEL_SIZE = 1.0 / TEXTURE_SIZE
+        // The space between glyphs is necessary to prevent artifacts from appearing when the font texture is blurred
+        private const val STEP = 2
     }
 }
