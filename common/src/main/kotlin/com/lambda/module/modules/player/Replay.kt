@@ -121,7 +121,7 @@ object Replay : Module(
                         it.input.removeFirstOrNull()?.update(event.input)
                         it.position.removeFirstOrNull()?.let a@{ pos ->
                             val diff = pos.subtract(player.pos).length()
-                            if (diff < 0.001) return@a
+                            if (diff < 0.02) return@a
 
                             this@Replay.warn("Position deviates from the recording by ${
                                 "%.3f".format(diff)
@@ -200,7 +200,11 @@ object Replay : Module(
                             if (repeats >= 0) repeats++
                             buffer = playback?.duplicate()
                             this@Replay.info(buildText {
-                                color(GuiSettings.primaryColor) { literal("[$repeats / $loops]") }
+                                if (repeats > 0) {
+                                    color(GuiSettings.primaryColor) { literal("[$repeats / $loops]") }
+                                } else {
+                                    color(GuiSettings.primaryColor) { literal("[$repeats/∞]") }
+                                }
                                 literal(" Replay looped.")
                             })
                         } else {
@@ -266,7 +270,7 @@ object Replay : Module(
         info(buildText {
             literal("Replaying recording #")
             color(GuiSettings.primaryColor) { literal(index.toString()) }
-            literal(". Duration: ")
+            literal(" of ")
             color(GuiSettings.primaryColor) { literal(recording.duration.toString()) }
         })
         return CommandResult.success()

@@ -12,7 +12,7 @@ abstract class LambdaCommand(
     val usage: String = "",
     val description: String = "",
 ) : Nameable {
-
+    // ToDo: Include usage and description in the help command
     init {
         (listOf(name) + aliases).forEach {
             val argument = LiteralArgumentBuilder.literal<CommandSource>(it)
