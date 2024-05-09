@@ -20,8 +20,8 @@ object GuiSettings : Module(
     val backgroundColor by setting("Background Color", Color(50, 50, 50), visibility = { page == Page.Colors })
     val shade by setting("Shade", true, visibility = { page == Page.Colors })
     val shadeBackground by setting("Shade Background", true, visibility = { page == Page.Colors })
-    val colorWidth by setting("Color Width", 100.0, 1.0..100.0, 1.0, visibility = { page == Page.Colors && shade })
-    val colorHeight by setting("Color Height", 100.0, 1.0..100.0, 1.0, visibility = { page == Page.Colors && shade })
+    val colorWidth by setting("Color Width", 400.0, 10.0..1000.0, 10.0, visibility = { page == Page.Colors && shade })
+    val colorHeight by setting("Color Height", 400.0, 10.0..1000.0, 10.0, visibility = { page == Page.Colors && shade })
     val colorSpeed by setting("Color Speed", 1.0, 0.1..10.0, 0.1, visibility = { page == Page.Colors && shade })
 
     val mainColor: Color get() = if (shade) Color.WHITE else primaryColor

@@ -26,7 +26,7 @@ class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButt
     override var activeAnimation by animation.exp(0.0, 1.0, 0.15, ::enabled)
     private val toggleFxDirection by animation.exp(0.0, 1.0, 0.7, ::enabled)
 
-    override val listStep: Double get() = super.listStep * 2.0 + renderHeight
+    override val listStep: Double get() = super.listStep + renderHeight
 
     private var isOpen = false
     override val isActive get() = isOpen
@@ -126,7 +126,7 @@ class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButt
             var lastStep = 0.0
             settingsLayer.children
                 .filter(SettingButton<*, *>::visible)
-                .sumOf {  lastStep = it.listStep;  it.size.y + it.listStep } - lastStep
+                .sumOf {  lastStep = it.listStep;  it.size.y + it.listStep } - lastStep + super.listStep
         } else 0.0
     }
 
