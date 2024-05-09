@@ -10,13 +10,18 @@ import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.api.layer.RenderLayer
 import com.lambda.gui.impl.clickgui.buttons.setting.BooleanButton
 import com.lambda.gui.impl.clickgui.buttons.setting.NumberSlider
+import com.lambda.gui.impl.clickgui.windows.ModuleWindow
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.Mouse
 import com.lambda.util.math.ColorUtils.multAlpha
+import com.lambda.util.math.ColorUtils.setAlpha
 import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.transform
+import java.awt.Color
 import kotlin.math.abs
 
 class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButton(owner) {
@@ -37,16 +42,18 @@ class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButt
     private var settingsHeight = 0.0
     private var renderHeight by animation.exp(::settingsHeight, 0.6)
     private val settingsRect get() = rect
-        .moveFirst(Vec2d(childShowAnimation * 2.0, size.y + super.listStep))
-        .moveSecond(Vec2d(0.0, listStep))
+        .moveFirst(Vec2d(0.0, size.y + super.listStep))
+        .moveSecond(Vec2d(0.0, renderHeight))
 
     private val settingsRenderer = RenderLayer()
-    private val settingsLayer = ChildLayer.Drawable(owner.gui, this, settingsRenderer, ::settingsRect, SettingButton<*, *>::visible)
+    private val settingsLayer = ChildLayer.Drawable<SettingButton<*, *>>(owner.gui, this, settingsRenderer, ::settingsRect) {
+        it.visible && abs(settingsHeight - renderHeight) <3
+    }
 
     init {
         // Toggle fx
         renderer.filled {
-            val left  = rect - Vec2d(rect.size.x, 0.0)
+            val left = rect - Vec2d(rect.size.x, 0.0)
             val right = rect + Vec2d(rect.size.x, 0.0)
 
             position = lerp(left, right, activeAnimation)
@@ -58,23 +65,32 @@ class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButt
             val color = GuiSettings.mainColor.multAlpha(alpha * 0.6 * showAnimation)
 
             // "Tail" effect
-            val leftColor  = color.multAlpha(1.0 - toggleFxDirection)
+            val leftColor = color.multAlpha(1.0 - toggleFxDirection)
             val rightColor = color.multAlpha(toggleFxDirection)
 
             shade = GuiSettings.shade
             colorH(leftColor, rightColor)
         }
 
-        // Line
+        // Shadow
         renderer.filled {
-            val pos1 = Vec2d(rect.left, settingsRect.top)
-            val pos2 = Vec2d(rect.left + childShowAnimation * 1.0, settingsRect.bottom)
-            val color = GuiSettings.mainColor.multAlpha(childShowAnimation * 0.6)
+            position = Rect(
+                rect.leftTop + Vec2d(0.0, size.y),
+                rect.rightTop + Vec2d(0.0, size.y + 5.0)
+            )
+            val progress = transform(renderHeight, 0.0, 10.0, 0.0, 1.0).coerceIn(0.0, 1.0)
+            colorV(Color.BLACK.setAlpha(0.2 * progress), Color.BLACK.setAlpha(0.0))
+        }
 
-            position = Rect(pos1, pos2)
+        // Bottom shadow
+        renderer.filled {
+            val show = (owner.owner as? ModuleWindow)?.let {
+                this@ModuleButton != it.contentComponents.children.lastOrNull()
+            } ?: false
 
-            shade = GuiSettings.shade
-            color(color)
+            position = Rect(settingsRect.leftBottom - Vec2d(0.0, 5.0), settingsRect.rightBottom)
+            val progress = transform(renderHeight, 0.0, 10.0, 0.0, 1.0).coerceIn(0.0, 1.0) * show.toInt()
+            colorV(Color.BLACK.setAlpha(0.0), Color.BLACK.setAlpha(0.2 * progress))
         }
 
         module.settings.mapNotNull {
@@ -126,7 +142,7 @@ class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButt
             var lastStep = 0.0
             settingsLayer.children
                 .filter(SettingButton<*, *>::visible)
-                .sumOf {  lastStep = it.listStep;  it.size.y + it.listStep } - lastStep + super.listStep
+                .sumOf {  lastStep = it.listStep;  it.size.y + it.listStep } - lastStep + super.listStep * 2.0
         } else 0.0
     }
 
