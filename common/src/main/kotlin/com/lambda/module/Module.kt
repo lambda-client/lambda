@@ -98,12 +98,12 @@ abstract class Module(
     private val isEnabledSetting = setting("Enabled", enabledByDefault, visibility = { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)
     private val isVisible = setting("Visible", true)
-    val customTags = setting("Tags", defaultTags, visibility = { false })
+    val customTags = setting("Tags", emptySet<ModuleTag>(), visibility = { false })
 
     var isEnabled by isEnabledSetting
     override val isMuted: Boolean
         get() = !isEnabled && !alwaysListening
-    private val keybind by keybindSetting
+    val keybind by keybindSetting
 
     init {
         listener<KeyPressEvent>(alwaysListen = true) { event ->
