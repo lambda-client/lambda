@@ -1,0 +1,7 @@
+{
+  "module_toggle": {
+    "sounds": [
+      "lambda:ui/module_toggle"
+    ]
+  }
+}

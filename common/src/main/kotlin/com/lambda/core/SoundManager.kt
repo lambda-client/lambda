@@ -1,7 +1,7 @@
 package com.lambda.core
 
 import com.lambda.Lambda
-import com.lambda.context.SafeContext
+import com.lambda.Lambda.mc
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
@@ -18,17 +18,11 @@ object SoundManager : Loadable {
         return "Loaded ${LambdaSound.entries.size} sounds"
     }
 
-    enum class LambdaSound(val id: Identifier) {
-        MODULE_TOGGLE("module_toggle".toIdentifier());
-
-        val event: SoundEvent = SoundEvent.of(id)
-    }
-
-    fun SafeContext.playSound(event: SoundEvent, pitch: Float = 1.0f) {
+    fun playSound(event: SoundEvent, pitch: Float = 1.0f) {
         mc.soundManager.play(
             PositionedSoundInstance.master(event, pitch)
         )
     }
 
-    private fun String.toIdentifier() = Identifier("${Lambda.MOD_ID}:${this}")
+    fun String.toIdentifier() = Identifier(Lambda.MOD_ID, this)
 }
