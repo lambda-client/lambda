@@ -31,6 +31,7 @@ class FilledRectEntry(
         val pos2 = position.rightBottom
 
         val size = pos2 - pos1
+        if (leftTop.alpha < MIN_ALPHA && rightTop.alpha < MIN_ALPHA && rightBottom.alpha < MIN_ALPHA && leftBottom.alpha < MIN_ALPHA) return@use
         if (size.x < MIN_SIZE || size.y < MIN_SIZE) return@use
 
         val halfSize = size * 0.5
@@ -38,8 +39,8 @@ class FilledRectEntry(
 
         val round = min(roundRadius, maxRadius)
 
-        val p1 = pos1 - 0.75
-        val p2 = pos2 + 0.75
+        val p1 = pos1 - 0.25
+        val p2 = pos2 + 0.25
         val s = shade.toInt().toDouble()
 
         grow(4)
@@ -54,5 +55,6 @@ class FilledRectEntry(
 
     companion object {
         private const val MIN_SIZE = 0.5
+        private const val MIN_ALPHA = 3
     }
 }
