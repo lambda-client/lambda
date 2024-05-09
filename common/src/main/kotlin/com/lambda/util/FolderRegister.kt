@@ -1,7 +1,6 @@
 package com.lambda.util
 
 import com.lambda.Lambda.mc
-import com.lambda.context.SafeContext
 import com.lambda.util.FolderRegister.config
 import com.lambda.util.FolderRegister.lambda
 import com.lambda.util.FolderRegister.minecraft
@@ -29,12 +28,12 @@ object FolderRegister {
 
     fun File.listRecursive() = walk().filter { it.isFile }
 
-    fun SafeContext.locationBoundDirectory(file: File): File {
-        val hostName = (connection.connection.address as? InetSocketAddress)?.hostName ?: "singleplayer"
-        val path = file.resolve(
+    fun File.locationBoundDirectory(): File {
+        val hostName = (mc.networkHandler?.connection?.address as? InetSocketAddress)?.hostName ?: "singleplayer"
+        val path = resolve(
             hostName.sanitizeForFilename()
         ).resolve(
-            world.dimensionKey?.value?.path?.sanitizeForFilename() ?: "unknown"
+            mc.world?.dimensionKey?.value?.path?.sanitizeForFilename() ?: "unknown"
         )
         path.createIfNotExists()
         return path

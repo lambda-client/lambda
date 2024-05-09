@@ -43,8 +43,8 @@ object PacketLogger : Module(
     private val logConcurrent by setting("Build Data Concurrent", false, "Whether to serialize packets concurrently. Will not save packets in chronological order but wont lag the game.")
 
     private var file: File? = null
-    private val entryFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSSS")
-    private val fileFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss.SSSS")
+    private val entryFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSSS")
+    private val fileFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss.SSS")
 
     enum class NetworkSide {
         ANY, CLIENT, SERVER;

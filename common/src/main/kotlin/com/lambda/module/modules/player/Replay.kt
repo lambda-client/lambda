@@ -1,6 +1,7 @@
 package com.lambda.module.modules.player
 
 import com.google.gson.*
+import com.lambda.brigadier.CommandResult
 import com.lambda.config.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerManager
@@ -22,21 +23,22 @@ import com.lambda.util.Communication.warn
 import com.lambda.util.FolderRegister
 import com.lambda.util.FolderRegister.locationBoundDirectory
 import com.lambda.util.Formatting.asString
+import com.lambda.util.Formatting.getTime
 import com.lambda.util.KeyCode
+import com.lambda.util.SoundUtils.playSound
 import com.lambda.util.StringUtils.sanitizeForFilename
+import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.primitives.extension.rotation
-import com.lambda.util.text.buildText
-import com.lambda.util.text.color
-import com.lambda.util.text.literal
+import com.lambda.util.text.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minecraft.client.input.Input
-import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.sound.SoundEvents
 import net.minecraft.util.math.Vec3d
 import java.io.File
 import java.lang.reflect.Type
-import java.time.Instant
+import java.time.format.DateTimeFormatter
+import kotlin.io.path.pathString
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -51,12 +53,12 @@ object Replay : Module(
     defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
 ) {
     private val record by setting("Record", KeyCode.R)
-    private val play by setting("Play / Pause", KeyCode.C)
-    private val stop by setting("Stop", KeyCode.X)
+    private val play by setting("Play / Stop", KeyCode.C)
+    private val cycle by setting("Cycle Play Mode", KeyCode.B, description = "REPLAY: Replay the recording once. CONTINUE: Replay the recording and continue recording. LOOP: Loop the recording.")
     private val check by setting("Set Checkpoint", KeyCode.V, description = "Create a checkpoint while recording.")
-    private val playCheck by setting("Play Checkpoint", KeyCode.B, description = "Replays until the last set checkpoint.")
-    private val loop by setting("Loop", false)
-    private val loops by setting("Loops", -1, -1..10, 1, description = "Number of times to loop the replay. -1 for infinite.", unit = "repeats") { loop }
+
+    private val loops by setting("Loops", -1, -1..10, 1, description = "Number of times to loop the replay. -1 for infinite.", unit = "repeats")
+    private val velocityCheck by setting("Velocity check", true, description = "Check if the player is moving before starting a recording.")
     private val cancelOnDeviation by setting("Cancel on deviation", true)
     private val deviationThreshold by setting("Deviation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the deviation to cancel the replay.") { cancelOnDeviation }
 
@@ -69,36 +71,29 @@ object Replay : Module(
     enum class State {
         INACTIVE,
         RECORDING,
-        PAUSED_RECORDING,
         PLAYING,
-        PAUSED_REPLAY,
-        PLAYING_CHECKPOINTS,
-        PAUSED_CHECKPOINTS
+    }
+
+    enum class PlayMode {
+        REPLAY,
+        CONTINUE,
+        LOOP
     }
 
     private var state = State.INACTIVE
+    private var playMode = PlayMode.REPLAY
 
-    private var checkpoint: Recording? = null
+    private var buffer: Recording? = null
+    private var playback: Recording? = null
+    private var recordings = mutableListOf<Recording>()
 
-    private var recording: Recording? = null
-    private var replay: Recording? = null
     private var repeats = 0
     private val still = Vec3d(0.0, -0.0784000015258789, 0.0)
+    private val fileFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss.SS")
 
     private val gsonCompact = GsonBuilder()
         .registerTypeAdapter(Recording::class.java, Recording())
         .create()
-
-    fun loadRecording(file: File) {
-        recording = gsonCompact.fromJson(file.readText(), Recording::class.java)
-
-        info(buildText {
-            literal("Recording ")
-            color(GuiSettings.primaryColor) { literal(file.nameWithoutExtension) }
-            literal(" loaded. Duration: ")
-            color(GuiSettings.primaryColor) { literal(recording?.duration.toString()) }
-        })
-    }
 
     init {
         listener<KeyPressEvent> {
@@ -107,9 +102,8 @@ object Replay : Module(
             when (it.key) {
                 record.key -> handleRecord()
                 play.key -> handlePlay()
-                stop.key -> handleStop()
+                cycle.key -> handlePlayModeCycle()
                 check.key -> handleCheckpoint()
-                playCheck.key -> handlePlayCheckpoints()
                 else -> {}
             }
         }
@@ -117,19 +111,21 @@ object Replay : Module(
         listener<MovementEvent.InputUpdate> { event ->
             when (state) {
                 State.RECORDING -> {
-                    recording?.let {
+                    buffer?.let {
                         it.input.add(event.input.toAction())
                         it.position.add(player.pos)
                     }
                 }
-                State.PLAYING, State.PLAYING_CHECKPOINTS -> {
-                    replay?.let {
+                State.PLAYING -> {
+                    buffer?.let {
                         it.input.removeFirstOrNull()?.update(event.input)
                         it.position.removeFirstOrNull()?.let a@{ pos ->
                             val diff = pos.subtract(player.pos).length()
                             if (diff < 0.001) return@a
 
-                            this@Replay.warn("Position deviates from the recording by ${"%.3f".format(diff)} blocks. Desired position: ${pos.asString(3)}")
+                            this@Replay.warn("Position deviates from the recording by ${
+                                "%.3f".format(diff)
+                            } blocks. Desired position: ${pos.asString(3)}")
                             if (cancelOnDeviation && diff > deviationThreshold) {
                                 state = State.INACTIVE
                                 this@Replay.logError("Replay cancelled due to exceeding deviation threshold.")
@@ -145,10 +141,10 @@ object Replay : Module(
         listener<RotationEvent.Pre> { event ->
             when (state) {
                 State.RECORDING -> {
-                    recording?.rotation?.add(player.rotation)
+                    buffer?.rotation?.add(player.rotation)
                 }
-                State.PLAYING, State.PLAYING_CHECKPOINTS -> {
-                    replay?.rotation?.removeFirstOrNull()?.let { rot ->
+                State.PLAYING -> {
+                    buffer?.rotation?.removeFirstOrNull()?.let { rot ->
                         event.context = RotationContext(rot, rotationConfig)
                     }
                 }
@@ -159,10 +155,10 @@ object Replay : Module(
         listener<MovementEvent.Sprint> { event ->
             when (state) {
                 State.RECORDING -> {
-                    recording?.sprint?.add(player.isSprinting)
+                    buffer?.sprint?.add(player.isSprinting)
                 }
-                State.PLAYING, State.PLAYING_CHECKPOINTS -> {
-                    replay?.sprint?.removeFirstOrNull()?.let { sprint ->
+                State.PLAYING -> {
+                    buffer?.sprint?.removeFirstOrNull()?.let { sprint ->
                         event.sprint = sprint
                         player.isSprinting = sprint
                     }
@@ -173,36 +169,57 @@ object Replay : Module(
 
         listener<MovementEvent.Post> {
             when (state) {
-                State.PLAYING, State.PLAYING_CHECKPOINTS -> {
-                    replay?.let {
+                State.RECORDING -> {
+                    buffer?.let {
+                        val standingStill = player.velocity.squaredDistanceTo(Vec3d.ZERO) == 0.0
+                        val isNotStart = player.pos != it.startPos
+                        val didntSaveYet = (recordings.lastOrNull()?.endPos != player.pos || recordings.isEmpty())
+                        if (standingStill && didntSaveYet && isNotStart) {
+                            val saving = it.duplicate()
+                            recordings.add(saving)
+                            val index = recordings.indexOf(saving)
+                            this@Replay.info(buildText {
+                                literal("Auto saved #")
+                                color(GuiSettings.primaryColor) { literal("$index") }
+                                literal(" of ")
+                                color(GuiSettings.primaryColor) { literal(saving.duration.toString()) }
+                                literal(" at ")
+                                color(GuiSettings.primaryColor) { literal(saving.endPos.asString(1)) }
+                                playMessage(saving)
+                                saveMessage(saving)
+                                pruneMessage(saving)
+                            })
+                        }
+                    }
+                }
+                State.PLAYING -> {
+                    buffer?.let {
                         if (it.size != 0) return@listener
 
-                        if (loop && repeats < loops) {
+                        if (playMode == PlayMode.LOOP && (repeats < loops || loops < 0)) {
                             if (repeats >= 0) repeats++
-                            replay = recording?.duplicate()
+                            buffer = playback?.duplicate()
                             this@Replay.info(buildText {
                                 color(GuiSettings.primaryColor) { literal("[$repeats / $loops]") }
                                 literal(" Replay looped.")
                             })
                         } else {
-                            if (state != State.PLAYING_CHECKPOINTS) {
+                            repeats = 0
+
+                            if (playMode != PlayMode.CONTINUE) {
                                 state = State.INACTIVE
                                 this@Replay.info(buildText {
                                     literal("Replay finished after ")
-                                    color(GuiSettings.primaryColor) { literal(recording?.duration.toString()) }
+                                    color(GuiSettings.primaryColor) { literal(playback?.duration.toString()) }
                                     literal(".")
                                 })
                                 return@listener
                             }
 
                             state = State.RECORDING
-                            recording = checkpoint?.duplicate()
-                            mc.soundManager.play(
-                                PositionedSoundInstance.master(
-                                    SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f
-                                )
-                            )
-                            this@Replay.info("Checkpoint replayed. Continued recording...")
+                            buffer = playback?.duplicate()
+                            playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP)
+                            this@Replay.info("Recording fully replayed. Continuing recording...")
                         }
                     }
                 }
@@ -211,44 +228,92 @@ object Replay : Module(
         }
     }
 
+    fun loadRecording(file: File) {
+        val deserialized = gsonCompact.fromJson(file.readText(), Recording::class.java)
+        recordings.add(deserialized)
+
+        info(buildText {
+            literal("Recording #${recordings.indexOf(deserialized)} ")
+            color(GuiSettings.primaryColor) { literal(file.nameWithoutExtension) }
+            literal(" loaded. Duration: ")
+            color(GuiSettings.primaryColor) { literal(deserialized.duration.toString()) }
+            playMessage(deserialized)
+            pruneMessage(deserialized)
+        })
+    }
+
+    fun saveRecording(index: Int, name: String): CommandResult {
+        val recording = recordings.getOrNull(index) ?: run {
+            return CommandResult.failure("Recording #$index does not exist.")
+        }
+
+        save(recording, name)
+        return CommandResult.success()
+    }
+
+    fun playRecording(index: Int): CommandResult {
+        if (state != State.INACTIVE) {
+            return CommandResult.failure("Cannot play recording while recording or replaying. Finish the current action first.")
+        }
+
+        val recording = recordings.getOrNull(index) ?: run {
+            return CommandResult.failure("Recording #$index does not exist.")
+        }
+
+        state = State.PLAYING
+        buffer = recording.duplicate()
+        playback = recording
+        info(buildText {
+            literal("Replaying recording #")
+            color(GuiSettings.primaryColor) { literal(index.toString()) }
+            literal(". Duration: ")
+            color(GuiSettings.primaryColor) { literal(recording.duration.toString()) }
+        })
+        return CommandResult.success()
+    }
+
+    fun pruneRecording(index: Int): CommandResult {
+        val toShorten = recordings.getOrNull(index) ?: run {
+            return CommandResult.failure("Recording #$index does not exist.")
+        }
+
+        val pruned = toShorten.postProcess()
+        recordings.add(pruned)
+        info(buildText {
+            literal("Shortened recording #")
+            color(GuiSettings.primaryColor) { literal(recordings.indexOf(toShorten).toString()) }
+            literal(" of ")
+            color(GuiSettings.primaryColor) { literal(toShorten.duration.toString()) }
+            literal(" to new recording #")
+            color(GuiSettings.primaryColor) { literal(recordings.indexOf(pruned).toString()) }
+            literal(" of ")
+            color(GuiSettings.primaryColor) { literal(pruned.duration.toString()) }
+            playMessage(pruned)
+            saveMessage(pruned)
+        })
+        return CommandResult.success()
+    }
+
     private fun handlePlay() {
         when (state) {
             State.INACTIVE -> {
-                recording?.let {
+                recordings.lastOrNull()?.let {
                     state = State.PLAYING
-                    replay = it.duplicate()
+                    playback = it
+                    buffer = it.duplicate()
                     info(buildText {
-                        literal("Replay started. Duration: ")
+                        literal("Replaying most recent recording #${recordings.indexOf(it)}. Duration: ")
                         color(GuiSettings.primaryColor) { literal(it.duration.toString()) }
                     })
                 } ?: run {
                     this@Replay.warn("No recording to replay.")
                 }
             }
-            State.RECORDING -> {
-                state = State.PAUSED_RECORDING
-                info("Recording paused.")
+            State.PLAYING -> {
+                state = State.INACTIVE
+                this@Replay.info("Replay stopped.")
             }
-            State.PAUSED_RECORDING -> {
-                state = State.RECORDING
-                info("Recording resumed.")
-            }
-            State.PLAYING -> { // ToDo: More general pausing for all states
-                state = State.PAUSED_REPLAY
-                info("Replay paused.")
-            }
-            State.PAUSED_REPLAY -> {
-                state = State.PLAYING
-                info("Replay resumed.")
-            }
-            State.PLAYING_CHECKPOINTS -> {
-                state = State.PAUSED_CHECKPOINTS
-                info("Checkpoint replay paused.")
-            }
-            State.PAUSED_CHECKPOINTS -> {
-                state = State.PLAYING_CHECKPOINTS
-                info("Checkpoint replay resumed.")
-            }
+            else -> {}
         }
     }
 
@@ -258,78 +323,203 @@ object Replay : Module(
                 stopRecording()
             }
             State.INACTIVE -> {
-                if (player.velocity != still) {
+                if (velocityCheck && player.velocity != still) {
                     this@Replay.logError("Cannot start recording while moving. Slow down and try again!")
                     return
                 }
 
-                recording = Recording()
+                buffer = Recording()
                 state = State.RECORDING
-                this@Replay.info("Recording started.")
+                this@Replay.info("Recording started...")
             }
             else -> {}
         }
     }
 
-    private fun SafeContext.handleStop() {
-        when (state) {
-            State.RECORDING, State.PAUSED_RECORDING -> {
-                stopRecording()
-            }
-            State.PLAYING, State.PAUSED_REPLAY, State.PLAYING_CHECKPOINTS -> {
-                state = State.INACTIVE
-                this@Replay.info("Replay stopped.")
-            }
-            else -> {}
-        }
-    }
-
-    private fun SafeContext.stopRecording() {
+    private fun stopRecording() {
         state = State.INACTIVE
-        recording?.let {
-            save(it, "recording")
+
+        val rec = buffer ?: return
+        recordings.add(rec)
+        this@Replay.info(buildText {
+            literal("Stopped recording #")
+            color(GuiSettings.primaryColor) { literal("${recordings.indexOf(rec)}") }
+            literal(" of ")
+            color(GuiSettings.primaryColor) { literal(rec.duration.toString()) }
+            literal(".")
+            playMessage(rec)
+            saveMessage(rec)
+            pruneMessage(rec)
+        })
+    }
+
+    private fun handleCheckpoint() {
+        when (state) {
+            State.RECORDING -> {
+                val checkRec = buffer?.duplicate() ?: return
+                recordings.add(checkRec)
+                this@Replay.info(buildText {
+                    literal("Checkpoint #")
+                    color(GuiSettings.primaryColor) { literal("${recordings.indexOf(checkRec)}") }
+                    literal(" created at ")
+                    color(GuiSettings.primaryColor) { literal(checkRec.endPos.asString(0)) }
+                    literal(".")
+                    playMessage(checkRec)
+                    saveMessage(checkRec)
+                    pruneMessage(checkRec)
+                })
+            }
+            else -> {
+                this@Replay.info("Cannot set checkpoint while not recording.")
+            }
+        }
+    }
+
+    private fun handlePlayModeCycle() {
+        val oldMode = playMode
+        playMode = PlayMode.entries[(playMode.ordinal + 1) % PlayMode.entries.size]
+        info(buildText {
+            literal("Set play mode to ")
+            color(GuiSettings.primaryColor) { literal(playMode.name) }
+            literal(" (previously ")
+            color(GuiSettings.primaryColor) { literal(oldMode.name) }
+            literal(")")
+        })
+    }
+
+    private fun save(
+        recording: Recording,
+        name: String
+    ) {
+        if (recording.size <= 5) {
+            this@Replay.warn("Recording too short. Minimum length: 5 ticks.")
+            return
+        }
+        val file = FolderRegister.replay.locationBoundDirectory().resolve("$name.json")
+
+        lambdaScope.launch(Dispatchers.IO) {
+            file.writeText(gsonCompact.toJson(recording))
+
             this@Replay.info(buildText {
-                literal("Recording stopped. Recorded for ")
-                color(GuiSettings.primaryColor) { literal(it.duration.toString()) }
-                literal(".")
+                literal("Saved recording #")
+                color(GuiSettings.primaryColor) { literal("${recordings.indexOf(recording)}") }
+                literal(" of ")
+                color(GuiSettings.primaryColor) { literal(recording.duration.toString()) }
+                literal(" in file ")
+                color(GuiSettings.primaryColor) { literal(name) }
+                val filePath = file.toPath().pathString
+                hoverEvent(HoverEvents.showText(buildText {
+                    literal("Open file ")
+                    color(GuiSettings.primaryColor) { literal(filePath) }
+                })) {
+                    clickEvent(ClickEvents.openFile(filePath)) {
+                        literal(" [")
+                        color(GuiSettings.secondaryColor) { literal("OPEN FILE") }
+                        literal("]")
+                    }
+                }
+                val parentPath = file.parentFile.toPath().pathString
+                hoverEvent(HoverEvents.showText(buildText {
+                    literal("Open folder ")
+                    color(GuiSettings.primaryColor) { literal(parentPath) }
+                })) {
+                    clickEvent(ClickEvents.openFile(parentPath)) {
+                        literal(" [")
+                        color(GuiSettings.secondaryColor) { literal("OPEN FOLDER") }
+                        literal("]")
+                    }
+                }
             })
         }
     }
 
-    private fun SafeContext.handleCheckpoint() {
-        when (state) {
-            State.RECORDING -> {
-                checkpoint = recording?.duplicate()
-                checkpoint?.let {
-                    save(it, "checkpoint")
-                    this@Replay.info("Checkpoint created.")
+    private fun TextBuilder.playMessage(recording: Recording) {
+        hoverEvent(HoverEvents.showText(buildText {
+            literal("Click to replay recording #")
+            color(GuiSettings.primaryColor) { literal("${recordings.indexOf(recording)}") }
+            literal(".")
+        })) {
+            clickEvent(ClickEvents.suggestCommand(";replay play ${recordings.indexOf(recording)}")) {
+                literal(" [")
+                color(GuiSettings.secondaryColor) {
+                    literal("PLAY")
                 }
+                literal("]")
             }
-            else -> {}
         }
     }
 
-    private fun handlePlayCheckpoints() {
-        when (state) {
-            State.INACTIVE -> {
-                state = State.PLAYING_CHECKPOINTS
-                replay = checkpoint?.duplicate()
-                info(buildText {
-                    literal("Replaying until last set checkpoint. Duration: ")
-                    color(GuiSettings.primaryColor) { literal(checkpoint?.duration.toString()) }
-                })
+    private fun TextBuilder.pruneMessage(recording: Recording) {
+        if (recording.pruneTimesave.inWholeMilliseconds <= 0) return
+
+        hoverEvent(HoverEvents.showText(buildText {
+            literal(" Recording can be shortened by ")
+            color(GuiSettings.primaryColor) {
+                literal(recording.pruneTimesave.toString())
             }
-            else -> {}
+            literal(" by removing idles and cyclic paths.")
+        })) {
+            clickEvent(ClickEvents.suggestCommand(";replay prune ${recordings.indexOf(recording)}")) {
+                literal(" [")
+                color(GuiSettings.secondaryColor) {
+                    literal("PRUNE ")
+                }
+                color(GuiSettings.primaryColor) {
+                    literal("${recording.pruneTimesave}")
+                }
+                literal("]")
+            }
         }
     }
 
-    private fun SafeContext.save(recording: Recording, name: String) {
-        lambdaScope.launch(Dispatchers.IO) {
-            locationBoundDirectory(FolderRegister.replay).resolve("${
-                Instant.now().toString().sanitizeForFilename()
-            }-$name.json").writeText(gsonCompact.toJson(recording))
+    private fun TextBuilder.saveMessage(recording: Recording) {
+        hoverEvent(HoverEvents.showText(buildText {
+            literal("Click to save recording #")
+            color(GuiSettings.primaryColor) { literal("${recordings.indexOf(recording)}") }
+            literal(".")
+        })) {
+            clickEvent(ClickEvents.suggestCommand(";replay save ${recordings.indexOf(recording)} ${getTime(fileFormatter).sanitizeForFilename()}")) {
+                literal(" [")
+                color(GuiSettings.secondaryColor) { literal("SAVE") }
+                literal("]")
+            }
         }
     }
+
+    private fun Recording.postProcess(): Recording {
+        val pruned = duplicate()
+        val cyclicPaths = position.findCyclicPaths()
+
+        if (cyclicPaths.size >= pruned.size - 5) return pruned
+        this@Replay.info("Removing cyclic paths...")
+
+        cyclicPaths.sortedDescending().forEach {
+            pruned.input.removeAt(it)
+            pruned.rotation.removeAt(it)
+            pruned.sprint.removeAt(it)
+            pruned.position.removeAt(it)
+        }
+        this@Replay.info(buildText {
+            literal("Postprocessing finished. Shortened recording by ")
+            color(GuiSettings.primaryColor) { literal((duration - pruned.duration).toString()) }
+            literal(".")
+        })
+        return pruned
+    }
+
+    private fun <T> List<T>.findCyclicPaths(minInterval: Int = 5) =
+        flatMapIndexed { i, e ->
+            subList(i + 1, size)
+                .firstOrNull { it == e }
+                ?.let {
+                    val last = lastIndexOf(it) - 1
+                    val interval = last - (i + 1)
+                    if (interval > minInterval) {
+                        return@flatMapIndexed (i + 2)..last - 2
+                    }
+                }
+            return@flatMapIndexed emptyList()
+        }.toSet()
 
     data class Recording(
         val input: MutableList<InputAction> = mutableListOf(),
@@ -342,6 +532,12 @@ object Replay : Module(
             get() = minOf(input.size, rotation.size, sprint.size, position.size)
         val duration: Duration
             get() = (size * TimerManager.tickLength * 1.0).toDuration(DurationUnit.MILLISECONDS)
+        val startPos: Vec3d
+            get() = position.firstOrNull() ?: Vec3d.ZERO
+        val endPos: Vec3d
+            get() = position.lastOrNull() ?: Vec3d.ZERO
+        val pruneTimesave: Duration
+            get() = (position.findCyclicPaths(5).size * 50L).toDuration(DurationUnit.MILLISECONDS)
 
         fun duplicate() = Recording(
             input.take(size).toMutableList(),
@@ -349,6 +545,10 @@ object Replay : Module(
             sprint.take(size).toMutableList(),
             position.take(size).toMutableList()
         )
+
+        override fun toString() = "Recording from ${
+            startPos.asString(1)
+        } to ${endPos.asString(1)} (in ${duration})"
 
         override fun serialize(
             src: Recording?,
