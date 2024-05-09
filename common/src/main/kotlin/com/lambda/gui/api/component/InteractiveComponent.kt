@@ -24,6 +24,8 @@ abstract class InteractiveComponent : IComponent {
             }
 
             is GuiEvent.MouseClick -> {
+                hovered = rect.contains(e.mouse)
+
                 val prevPressed = pressed
                 pressed = hovered && e.button.isMainButton && e.action == Mouse.Action.Click
 

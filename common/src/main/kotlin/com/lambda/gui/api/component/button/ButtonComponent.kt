@@ -67,7 +67,7 @@ abstract class ButtonComponent(
         }
     }
 
-    abstract fun performClickAction(e: GuiEvent.MouseClick)
+    open fun performClickAction(e: GuiEvent.MouseClick) {}
 
     override fun onEvent(e: GuiEvent) {
         super.onEvent(e)

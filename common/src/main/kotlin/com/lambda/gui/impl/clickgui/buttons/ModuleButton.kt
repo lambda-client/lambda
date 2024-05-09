@@ -1,5 +1,6 @@
 package com.lambda.gui.impl.clickgui.buttons
 
+import com.lambda.config.settings.NumericSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
@@ -8,6 +9,7 @@ import com.lambda.gui.api.component.button.ListButton
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.api.layer.RenderLayer
 import com.lambda.gui.impl.clickgui.buttons.setting.BooleanButton
+import com.lambda.gui.impl.clickgui.buttons.setting.NumberSlider
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.Mouse
@@ -78,6 +80,7 @@ class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButt
         module.settings.mapNotNull {
             when (it) {
                 is BooleanSetting -> BooleanButton(it, settingsLayer)
+                is NumericSetting<*> -> NumberSlider(it, settingsLayer)
                 else -> null
             }
         }.forEach(settingsLayer::addChild)
@@ -87,22 +90,22 @@ class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButt
         when (e) {
             is GuiEvent.Show -> {
                 isOpen = false
-                updateHeight(true)
+                updateHeight()
+                renderHeight = settingsHeight
             }
 
             is GuiEvent.Tick -> {
-                if (renderHeight > 0.5) {
-                    updateHeight()
-                }
-            }
+                if (renderHeight < 0.5) return
+                updateHeight()
 
-            is GuiEvent.Render -> {
                 var y = 0.0
                 settingsLayer.children.filter(SettingButton<*, *>::visible).forEach { button ->
                     button.heightOffset = y
                     y += button.size.y + button.listStep
                 }
+            }
 
+            is GuiEvent.Render -> {
                 if (renderHeight > 0.5) {
                     scissor(settingsRect) {
                         settingsLayer.onEvent(e)
@@ -118,16 +121,13 @@ class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButt
         settingsLayer.onEvent(e)
     }
 
-    private fun updateHeight(forceAnimation: Boolean = false) {
+    private fun updateHeight() {
         settingsHeight = if (isOpen) {
             var lastStep = 0.0
             settingsLayer.children
                 .filter(SettingButton<*, *>::visible)
                 .sumOf {  lastStep = it.listStep;  it.size.y + it.listStep } - lastStep
-        }
-        else 0.0
-
-        if (forceAnimation) renderHeight = settingsHeight
+        } else 0.0
     }
 
     override fun performClickAction(e: GuiEvent.MouseClick) {

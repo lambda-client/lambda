@@ -37,7 +37,7 @@ class FontEntry(
         return width * actualScale
     }
 
-    override val height: Double
+    override val stringHeight: Double
         get() = font.glyphs.fontHeight * actualScale * 0.7
 
     override fun build(ctx: IRenderContext) = ctx.use {
@@ -46,7 +46,7 @@ class FontEntry(
         val shadowColor = getShadowColor(color)
 
         var posX = 0.0
-        val posY = height * -0.5 + baselineOffset * actualScale
+        val posY = stringHeight * -0.5 + baselineOffset * actualScale
 
         text.toCharArray().forEach { char ->
             val charInfo = font[char] ?: return@forEach
@@ -109,9 +109,9 @@ interface IFontEntry : IRenderEntry<IFontEntry> {
 
     fun getWidth(text: String): Double
 
-    val width get() = getWidth(text)
-    val height: Double
+    val stringWidth get() = getWidth(text)
+    val stringHeight: Double
 
-    val widthVec get() = Vec2d(width, 0.0)
-    val heightVec get() = Vec2d(0.0, height)
+    val widthVec get() = Vec2d(stringWidth, 0.0)
+    val heightVec get() = Vec2d(0.0, stringHeight)
 }

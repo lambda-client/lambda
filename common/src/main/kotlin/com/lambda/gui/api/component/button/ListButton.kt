@@ -14,12 +14,14 @@ abstract class ListButton(owner: ChildLayer.Drawable<*>) : ButtonComponent(owner
     open val listStep get() = ClickGui.buttonStep
 
     var heightOffset = 0.0
-    protected open var renderHeightOffset by animation.exp(::heightOffset, 0.9)
+
+    protected var renderHeightAnimation by animation.exp(::heightOffset, 0.8)
+    protected open val renderHeightOffset get() = renderHeightAnimation
 
     override fun onEvent(e: GuiEvent) {
         if (e is GuiEvent.Show) {
             heightOffset = 0.0
-            renderHeightOffset = 0.0
+            renderHeightAnimation = 0.0
         }
         super.onEvent(e)
     }

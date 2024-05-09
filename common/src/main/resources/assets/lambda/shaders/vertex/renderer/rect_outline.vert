@@ -16,7 +16,7 @@ out float v_Shade;
 void main() {
     gl_Position = u_Projection * u_ModelView * pos;
 
-    v_Position = pos.xy;
+    v_Position = gl_Position.xy * 0.5 + 0.5;
     v_Alpha = alpha;
     v_Color = color;
     v_Shade = shade;

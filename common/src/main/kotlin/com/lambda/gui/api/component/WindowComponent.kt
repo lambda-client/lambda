@@ -40,7 +40,7 @@ abstract class WindowComponent <T : ChildComponent> (
     private val contentRect get() = rect.shrink(padding).moveFirst(Vec2d(0.0, titleBarHeight - padding))
 
     private val titleBar get() = Rect.basedOn(rect.leftTop, rect.size.x, titleBarHeight)
-    private val titleBarHeight get() = ClickGui.buttonHeight + padding * 2
+    private val titleBarHeight get() = ClickGui.buttonHeight * 1.25
     private val titleFont: IFontEntry
 
     private val layer = RenderLayer()

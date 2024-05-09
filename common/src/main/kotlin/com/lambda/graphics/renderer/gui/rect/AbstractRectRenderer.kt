@@ -1,5 +1,6 @@
 package com.lambda.graphics.renderer.gui.rect
 
+import com.lambda.Lambda.mc
 import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.renderer.IRenderEntry
 import com.lambda.graphics.renderer.gui.AbstractGuiRenderer
@@ -16,6 +17,9 @@ abstract class AbstractRectRenderer <T : IRenderEntry<T>> (
         shader["u_Time"] = glfwGetTime() * GuiSettings.colorSpeed * 5.0
         shader["u_Color1"] = GuiSettings.shadeColor1
         shader["u_Color2"] = GuiSettings.shadeColor2
-        shader["u_Size"] = Vec2d.ONE / Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
+
+        val screen = Vec2d(mc.window.framebufferWidth, mc.window.framebufferHeight)
+        val size = Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
+        shader["u_Size"] = screen / size
     }
 }

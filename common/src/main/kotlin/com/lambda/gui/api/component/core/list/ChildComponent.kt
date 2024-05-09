@@ -9,7 +9,7 @@ abstract class ChildComponent(open val owner: IComponent) : InteractiveComponent
 
     override fun onEvent(e: GuiEvent) {
         super.onEvent(e)
-        if (e is GuiEvent.MouseMove) hovered = hovered && accessible
+        if (e is GuiEvent.MouseMove || e is GuiEvent.MouseClick) hovered = hovered && accessible
     }
 
     open fun onAdd() {}
