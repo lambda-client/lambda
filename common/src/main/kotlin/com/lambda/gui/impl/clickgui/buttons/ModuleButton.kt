@@ -1,39 +1,45 @@
 package com.lambda.gui.impl.clickgui.buttons
 
+import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.button.ListButton
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.api.layer.RenderLayer
+import com.lambda.gui.impl.clickgui.buttons.setting.BooleanButton
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.Mouse
 import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.MathUtils.lerp
-import com.lambda.util.math.MathUtils.toInt
+import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 import kotlin.math.abs
 
 class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButton(owner) {
     override val text get() = module.name
-    private val active get() = module.isEnabled
+    private val enabled get() = module.isEnabled
 
-    override val size: Vec2d get() = super.size + Vec2d(0.0, renderHeight)
-    override val textY: Double get() = super.size.y * 0.5
+    override var activeAnimation by animation.exp(0.0, 1.0, 0.15, ::enabled)
+    private val toggleFxDirection by animation.exp(0.0, 1.0, 0.7, ::enabled)
 
-    override var activeAnimation by animation.exp(0.0, 1.0, 0.15, ::active)
-    private val toggleFxDirection by animation.exp(0.0, 1.0, 0.7, ::active)
+    override val listStep: Double get() = super.listStep * 2.0 + renderHeight
 
     private var isOpen = false
     override val isActive get() = isOpen
 
+    private val childShowAnimation0 by animation.exp(0.0, 1.0, 0.7, ::isOpen)
+    override val childShowAnimation get() = lerp(0.0, childShowAnimation0, owner.childShowAnimation)
+
     private var settingsHeight = 0.0
     private var renderHeight by animation.exp(::settingsHeight, 0.6)
-    private val settingsRect get() = rect.moveFirst(Vec2d(0.0, super.size.y))
+    private val settingsRect get() = rect
+        .moveFirst(Vec2d(childShowAnimation * 2.0, size.y + super.listStep))
+        .moveSecond(Vec2d(0.0, listStep))
 
     private val settingsRenderer = RenderLayer()
-    private val settingsLayer = ChildLayer.Drawable<SettingButton<*, *>>(owner.gui, this, settingsRenderer, ::settingsRect)
+    private val settingsLayer = ChildLayer.Drawable(owner.gui, this, settingsRenderer, ::settingsRect, SettingButton<*, *>::visible)
 
     init {
         // Toggle fx
@@ -56,36 +62,72 @@ class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButt
             shade = GuiSettings.shade
             colorH(leftColor, rightColor)
         }
+
+        // Line
+        renderer.filled {
+            val pos1 = Vec2d(rect.left, settingsRect.top)
+            val pos2 = Vec2d(rect.left + childShowAnimation * 1.0, settingsRect.bottom)
+            val color = GuiSettings.mainColor.multAlpha(childShowAnimation * 0.6)
+
+            position = Rect(pos1, pos2)
+
+            shade = GuiSettings.shade
+            color(color)
+        }
+
+        module.settings.mapNotNull {
+            when (it) {
+                is BooleanSetting -> BooleanButton(it, settingsLayer)
+                else -> null
+            }
+        }.forEach(settingsLayer::addChild)
     }
 
     override fun onEvent(e: GuiEvent) {
-        super.onEvent(e)
-
         when (e) {
             is GuiEvent.Show -> {
                 isOpen = false
-                renderHeight = 0.0
+                updateHeight(true)
             }
 
             is GuiEvent.Tick -> {
-                updateSettingsHeight()
+                if (renderHeight > 0.5) {
+                    updateHeight()
+                }
             }
 
             is GuiEvent.Render -> {
-                scissor(settingsRect) {
-                    settingsRenderer.render()
-                    settingsLayer.onEvent(e)
+                var y = 0.0
+                settingsLayer.children.filter(SettingButton<*, *>::visible).forEach { button ->
+                    button.heightOffset = y
+                    y += button.size.y + button.listStep
                 }
+
+                if (renderHeight > 0.5) {
+                    scissor(settingsRect) {
+                        settingsLayer.onEvent(e)
+                        settingsRenderer.render()
+                    }
+                }
+
                 return
             }
         }
+
+        super.onEvent(e)
+        settingsLayer.onEvent(e)
     }
 
-    private fun updateSettingsHeight() {
-        /*val c = settingsLayer.children
-        settingsHeight = c.sumOf { it.size.y } + ((c.size - 1) * ClickGui.buttonStep).coerceAtLeast(0.0)*/
+    private fun updateHeight(forceAnimation: Boolean = false) {
+        settingsHeight = if (isOpen) {
+            var lastStep = 0.0
+            settingsLayer.children
+                .filter(SettingButton<*, *>::visible)
+                .sumOf {  lastStep = it.listStep;  it.size.y + it.listStep } - lastStep
+        }
+        else 0.0
 
-        settingsHeight = 30.0 * isOpen.toInt()
+        if (forceAnimation) renderHeight = settingsHeight
     }
 
     override fun performClickAction(e: GuiEvent.MouseClick) {
@@ -97,7 +139,8 @@ class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButt
                 if (abs(targetHeight - renderHeight) > 1) return
 
                 isOpen = !isOpen
-                updateSettingsHeight()
+                if (isOpen) settingsLayer.onEvent(GuiEvent.Show())
+                updateHeight()
             }
         }
     }

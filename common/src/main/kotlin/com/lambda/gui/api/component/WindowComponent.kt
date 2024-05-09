@@ -40,7 +40,7 @@ abstract class WindowComponent <T : ChildComponent> (
     private val contentRect get() = rect.shrink(padding).moveFirst(Vec2d(0.0, titleBarHeight - padding))
 
     private val titleBar get() = Rect.basedOn(rect.leftTop, rect.size.x, titleBarHeight)
-    private val titleBarHeight get() = titleFont.height + 2 + padding * 2
+    private val titleBarHeight get() = ClickGui.buttonHeight + padding * 2
     private val titleFont: IFontEntry
 
     private val layer = RenderLayer()
@@ -50,13 +50,12 @@ abstract class WindowComponent <T : ChildComponent> (
     private val animation = owner.animation
     private val gui = owner
 
-    // Show animation for children
-    private val showAnimation0 by animation.exp(0.0, 1.0, 0.5, ::isOpen)
-    override val showAnimation get() = lerp(0.0, showAnimation0, gui.showAnimation)
+    private val showAnimation by animation.exp(0.0, 1.0, 0.6, ::isOpen)
+    override val childShowAnimation get() = lerp(0.0, showAnimation, gui.childShowAnimation)
 
     private val actualHeight get() = height + padding * 2 * isOpen.toInt()
     private var renderHeightAnimation by animation.exp({ 0.0 }, ::actualHeight, 0.6, ::isOpen)
-    private val renderHeight get() = lerp(0.0, renderHeightAnimation, showAnimation)
+    private val renderHeight get() = lerp(0.0, renderHeightAnimation, childShowAnimation)
 
     val contentComponents = ChildLayer.Drawable<T>(gui, this, contentLayer, ::contentRect)
 
@@ -71,7 +70,7 @@ abstract class WindowComponent <T : ChildComponent> (
             roundRadius = ClickGui.windowRadius
             shade = GuiSettings.shadeBackground
 
-            val alpha = (gui.showAnimation * 2.0).coerceIn(0.0, 1.0)
+            val alpha = (gui.childShowAnimation * 2.0).coerceIn(0.0, 1.0)
             color(GuiSettings.backgroundColor.multAlpha(alpha))
         }
 
@@ -81,7 +80,7 @@ abstract class WindowComponent <T : ChildComponent> (
             outerGlow = ClickGui.windowRadius
             shade = GuiSettings.shade
 
-            val alpha = (gui.showAnimation * 2.0).coerceIn(0.0, 1.0)
+            val alpha = (gui.childShowAnimation * 2.0).coerceIn(0.0, 1.0)
             color(GuiSettings.mainColor.multAlpha(alpha))
         }
 
@@ -89,7 +88,7 @@ abstract class WindowComponent <T : ChildComponent> (
         titleFont = renderer.font {
             text = title
             position = titleBar.center - widthVec * 0.5
-            color = Color.WHITE.setAlpha(gui.showAnimation)
+            color = Color.WHITE.setAlpha(gui.childShowAnimation)
         }
     }
 

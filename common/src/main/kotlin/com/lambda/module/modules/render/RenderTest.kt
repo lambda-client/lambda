@@ -25,9 +25,8 @@ object RenderTest : Module(
     private val test21 by setting("Hallo 1", true, visibility = ::test1)
     private val test22 by setting("Hallo 2", true, visibility = ::test1)
     private val test23 by setting("Hallo 3", true, visibility = ::test1)
-    private val test31 by setting("Holla 1", true, visibility = { !test1 })
-    private val test32 by setting("Holla 2", true, visibility = { !test1 })
-    private val test33 by setting("Holla 3", true, visibility = { !test1 })
+    private val test31 by setting("Holla huh 1", true, visibility = { !test1 })
+    private val test32 by setting("Holla buh 2", true, visibility = { !test1 })
 
     private val filled = DynamicFilledRenderer()
     private val outline = DynamicOutlineRenderer()

@@ -14,7 +14,7 @@ open class ChildLayer <T : ChildComponent> (
     private val childAccessible: (T) -> Boolean = { true }
 ) : IComponent {
     override val isActive get() = owner.isActive
-    override val showAnimation get() = owner.showAnimation
+    override val childShowAnimation get() = owner.childShowAnimation
     override val rect get() = childRect()
     val children = mutableListOf<T>()
 

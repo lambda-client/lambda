@@ -19,7 +19,6 @@ abstract class ButtonComponent(
     abstract val size: Vec2d
 
     abstract val text: String
-    protected open val textY: Double get() = rect.size.y
     protected abstract var activeAnimation: Double
 
     private val actualSize get() = Vec2d(if (size.x == FILL_PARENT) owner.rect.size.x else size.x, size.y)
@@ -32,7 +31,8 @@ abstract class ButtonComponent(
     private var hoverFontAnimation by animation.exp(0.0, 1.0, 0.5, ::renderHovered)
     private var pressAnimation by animation.exp(0.0, 1.0, 0.5, ::pressed)
     protected val interactAnimation get() = lerp(hoverRectAnimation, 1.5, pressAnimation) * 0.4
-    override val showAnimation: Double get() = owner.showAnimation
+    override val childShowAnimation: Double get() = owner.childShowAnimation
+    protected open val showAnimation get() = owner.childShowAnimation
 
     private var lastHoveredTime = 0L
     private val renderHovered get() = hovered || System.currentTimeMillis() - lastHoveredTime < 110
@@ -51,7 +51,7 @@ abstract class ButtonComponent(
             position = hoverRect.shrink(interactAnimation)
             shade = GuiSettings.shade
 
-            val alpha = interactAnimation * 0.2
+            val alpha = interactAnimation * 0.2 * showAnimation
             color(GuiSettings.mainColor.multAlpha(alpha))
         }
 
@@ -63,7 +63,7 @@ abstract class ButtonComponent(
             color = lerp(Color.WHITE, GuiSettings.mainColor, activeAnimation).multAlpha(showAnimation)
 
             val x = ClickGui.windowPadding + interactAnimation + hoverFontAnimation
-            position = rect.leftTop + Vec2d(x, textY)
+            position = rect.leftTop + Vec2d(x, rect.size.y * 0.5)
         }
     }
 
