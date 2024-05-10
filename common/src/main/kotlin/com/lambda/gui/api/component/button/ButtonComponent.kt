@@ -1,11 +1,14 @@
 package com.lambda.gui.api.component.button
 
+import com.lambda.core.LambdaSound
+import com.lambda.core.SoundManager.playSoundRandomly
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.util.Mouse
 import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.Rect
@@ -80,6 +83,11 @@ abstract class ButtonComponent(
                 if (hovered) lastHoveredTime = time
             }
         }
+    }
+
+    override fun onPress(e: GuiEvent.MouseClick) {
+        val pitch = if (e.button == Mouse.Button.Left) 1.0 else 0.9
+        playSoundRandomly(LambdaSound.BUTTON_CLICK.event, pitch)
     }
 
     override fun onRelease(e: GuiEvent.MouseClick) {

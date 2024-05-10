@@ -2,6 +2,8 @@ package com.lambda.gui.impl.clickgui.buttons
 
 import com.lambda.config.settings.NumericSetting
 import com.lambda.config.settings.comparable.BooleanSetting
+import com.lambda.core.LambdaSound
+import com.lambda.core.SoundManager.playSoundRandomly
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.gui.api.GuiEvent
@@ -147,8 +149,11 @@ class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButt
     }
 
     override fun performClickAction(e: GuiEvent.MouseClick) {
-        when (e.button) {
-            Mouse.Button.Left -> module.toggle()
+        val sound = when (e.button) {
+            Mouse.Button.Left -> {
+                module.toggle()
+                if (module.isEnabled) LambdaSound.MODULE_ON else LambdaSound.MODULE_OFF
+            }
             Mouse.Button.Right -> {
                 // Don't let user spam
                 val targetHeight = if (isOpen) settingsHeight else 0.0
@@ -157,8 +162,13 @@ class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButt
                 isOpen = !isOpen
                 if (isOpen) settingsLayer.onEvent(GuiEvent.Show())
                 updateHeight()
+
+                if (isOpen) LambdaSound.SETTINGS_OPEN else LambdaSound.SETTINGS_CLOSE
             }
+            else -> return
         }
+
+        playSoundRandomly(sound.event)
     }
 
     override fun equals(other: Any?) =

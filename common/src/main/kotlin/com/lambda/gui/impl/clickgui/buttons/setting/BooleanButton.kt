@@ -2,8 +2,7 @@ package com.lambda.gui.impl.clickgui.buttons.setting
 
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.core.LambdaSound
-import com.lambda.core.SoundManager
-import com.lambda.core.SoundManager.playSound
+import com.lambda.core.SoundManager.playSoundRandomly
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.list.ChildLayer
@@ -49,7 +48,11 @@ class BooleanButton(
     }
 
     override fun performClickAction(e: GuiEvent.MouseClick) {
-        if (e.button == Mouse.Button.Left) value = !value
-        playSound(LambdaSound.MODULE_TOGGLE.event)
+        if (e.button != Mouse.Button.Left) return
+        value = !value
+
+        val sound = if (value) LambdaSound.BOOLEAN_SETTING_ON else LambdaSound.BOOLEAN_SETTING_OFF
+        val pitch = if (value) 1.0 else 0.9
+        playSoundRandomly(sound.event, pitch)
     }
 }

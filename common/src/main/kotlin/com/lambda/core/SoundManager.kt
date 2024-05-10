@@ -2,6 +2,7 @@ package com.lambda.core
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
+import com.lambda.util.math.random
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.registry.Registries
 import net.minecraft.registry.Registry
@@ -18,9 +19,17 @@ object SoundManager : Loadable {
         return "Loaded ${LambdaSound.entries.size} sounds"
     }
 
-    fun playSound(event: SoundEvent, pitch: Float = 1.0f) {
+    fun playSound(event: SoundEvent, pitch: Double = 1.0) {
         mc.soundManager.play(
-            PositionedSoundInstance.master(event, pitch)
+            PositionedSoundInstance.master(event, pitch.toFloat())
+        )
+    }
+
+    fun playSoundRandomly(event: SoundEvent, pitch: Double = 1.0, pitchRange: Double = 0.05) {
+        val actualPitch = (pitch - pitchRange..pitch + pitchRange).random()
+
+        mc.soundManager.play(
+            PositionedSoundInstance.master(event, actualPitch.toFloat())
         )
     }
 
