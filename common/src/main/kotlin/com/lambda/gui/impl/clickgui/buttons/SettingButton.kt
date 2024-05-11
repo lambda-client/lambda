@@ -9,7 +9,7 @@ import com.lambda.util.math.MathUtils.lerp
 
 abstract class SettingButton <V : Any, T : AbstractSetting<V>> (
     val setting: T,
-    owner: ChildLayer.Drawable<*>
+    final override val owner: ChildLayer.Drawable<*, ModuleButton>
 ): ListButton(owner) {
     override val text = setting.name
     protected var value by setting
@@ -19,17 +19,14 @@ abstract class SettingButton <V : Any, T : AbstractSetting<V>> (
 
     private var visibilityAnimation by animation.exp(0.0, 1.0, 0.6, ::visible)
     override val showAnimation get() = lerp(0.0, super.showAnimation, visibilityAnimation)
-    override var activeAnimation = 0.0
     override val renderHeightOffset get() = renderHeightAnimation + lerp(-size.y, 0.0, visibilityAnimation)
+    override var activeAnimation = 0.0
 
     override fun onEvent(e: GuiEvent) {
         super.onEvent(e)
 
-        when (e) {
-            is GuiEvent.Tick -> {
-                if (!prevTickVisible && visible) renderHeightAnimation = heightOffset
-                prevTickVisible = visible
-            }
-        }
+        if (e !is GuiEvent.Tick) return
+        if (!prevTickVisible && visible) renderHeightAnimation = heightOffset
+        prevTickVisible = visible
     }
 }

@@ -9,7 +9,7 @@ import com.lambda.module.tag.ModuleTag
 class TagWindow(
     val tag: ModuleTag,
     owner: AbstractClickGui
-) : ModuleWindow(tag.name, owner = owner) {
+) : ModuleWindow(tag.name, gui = owner) {
     init {
         ModuleRegistry.modules
             .filter { it.defaultTags.firstOrNull() == tag }

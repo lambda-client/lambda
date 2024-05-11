@@ -9,8 +9,8 @@ import com.lambda.module.Module
 class CustomModuleWindow(
     override var title: String = "Untitled",
     val modules: MutableList<Module> = mutableListOf(),
-    owner: AbstractClickGui
-) : ModuleWindow(title, owner = owner) {
+    gui: AbstractClickGui
+) : ModuleWindow(title, gui = gui) {
     override fun onEvent(e: GuiEvent) {
         if (e is GuiEvent.Tick) updateModules()
         super.onEvent(e)
@@ -29,7 +29,7 @@ class CustomModuleWindow(
             // Remove deleted modules
             children.forEach { button ->
                 if (button.module !in modules) {
-                    this@CustomModuleWindow.owner.scheduleAction {
+                    this@CustomModuleWindow.gui.scheduleAction {
                         removeChild(button)
                     }
                 }

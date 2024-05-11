@@ -7,12 +7,12 @@ import com.lambda.core.SoundManager.playSoundRandomly
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.gui.api.GuiEvent
+import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.button.ListButton
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.api.layer.RenderLayer
 import com.lambda.gui.impl.clickgui.buttons.setting.BooleanButton
 import com.lambda.gui.impl.clickgui.buttons.setting.NumberSlider
-import com.lambda.gui.impl.clickgui.windows.ModuleWindow
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.Mouse
@@ -26,7 +26,10 @@ import com.lambda.util.math.transform
 import java.awt.Color
 import kotlin.math.abs
 
-class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButton(owner) {
+class ModuleButton(
+    val module: Module,
+    override val owner: ChildLayer.Drawable<ModuleButton, WindowComponent<ModuleButton>>
+) : ListButton(owner) {
     override val text get() = module.name
     private val enabled get() = module.isEnabled
 
@@ -38,8 +41,8 @@ class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButt
     private var isOpen = false
     override val isActive get() = isOpen
 
-    private val childShowAnimation0 by animation.exp(0.0, 1.0, 0.7, ::isOpen)
-    override val childShowAnimation get() = lerp(0.0, childShowAnimation0, owner.childShowAnimation)
+    private val openAnimation by animation.exp(0.0, 1.0, 0.7, ::isOpen)
+    override val childShowAnimation get() = lerp(0.0, openAnimation, owner.childShowAnimation)
 
     private var settingsHeight = 0.0
     private var renderHeight by animation.exp(::settingsHeight, 0.6)
@@ -48,7 +51,7 @@ class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButt
         .moveSecond(Vec2d(0.0, renderHeight))
 
     private val settingsRenderer = RenderLayer()
-    private val settingsLayer = ChildLayer.Drawable<SettingButton<*, *>>(owner.gui, this, settingsRenderer, ::settingsRect) {
+    val settingsLayer = ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>(owner.gui, this, settingsRenderer, ::settingsRect) {
         it.visible && abs(settingsHeight - renderHeight) <3
     }
 
@@ -86,9 +89,8 @@ class ModuleButton(val module: Module, owner: ChildLayer.Drawable<*>) : ListButt
 
         // Bottom shadow
         renderer.filled {
-            val show = (owner.owner as? ModuleWindow)?.let {
-                this@ModuleButton != it.contentComponents.children.lastOrNull()
-            } ?: false
+            val last = this@ModuleButton.owner.ownerComponent.contentComponents.children.lastOrNull()
+            val show = this@ModuleButton != last
 
             position = Rect(settingsRect.leftBottom - Vec2d(0.0, 5.0), settingsRect.rightBottom)
             val progress = transform(renderHeight, 0.0, 10.0, 0.0, 1.0).coerceIn(0.0, 1.0) * show.toInt()

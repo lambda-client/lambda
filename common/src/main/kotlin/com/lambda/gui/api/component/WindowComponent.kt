@@ -21,8 +21,8 @@ import java.awt.Color
 import kotlin.math.abs
 
 abstract class WindowComponent <T : ChildComponent> (
-    final override val owner: AbstractClickGui
-) : ChildComponent(owner) {
+    val gui: AbstractClickGui
+) : ChildComponent(gui.windows) {
     abstract val title: String
 
     abstract var width: Double
@@ -47,8 +47,7 @@ abstract class WindowComponent <T : ChildComponent> (
     private val renderer = layer.entry()
     private val contentLayer = RenderLayer()
 
-    private val animation = owner.animation
-    private val gui = owner
+    private val animation = gui.animation
 
     private val showAnimation by animation.exp(0.0, 1.0, 0.6, ::isOpen)
     override val childShowAnimation get() = lerp(0.0, showAnimation, gui.childShowAnimation)
@@ -57,7 +56,7 @@ abstract class WindowComponent <T : ChildComponent> (
     private var renderHeightAnimation by animation.exp({ 0.0 }, ::actualHeight, 0.6, ::isOpen)
     private val renderHeight get() = lerp(0.0, renderHeightAnimation, childShowAnimation)
 
-    val contentComponents = ChildLayer.Drawable<T>(gui, this, contentLayer, ::contentRect)
+    open val contentComponents = ChildLayer.Drawable<T, WindowComponent<T>>(gui, this, contentLayer, ::contentRect)
 
     /*val titleBarComponents = ChildLayer<ButtonComponent> { child ->
         child.rect in titleBar && accessible
@@ -149,7 +148,7 @@ abstract class WindowComponent <T : ChildComponent> (
 
     fun focus() {
         // move window into foreground
-        owner.apply {
+        gui.apply {
             scheduleAction {
                 windows.children.apply {
                     this@WindowComponent
@@ -161,7 +160,7 @@ abstract class WindowComponent <T : ChildComponent> (
     }
 
     fun destroy() {
-        owner.apply {
+        gui.apply {
             scheduleAction {
                 windows.removeChild(this@WindowComponent)
             }

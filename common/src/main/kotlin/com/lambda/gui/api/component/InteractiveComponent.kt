@@ -3,11 +3,10 @@ package com.lambda.gui.api.component
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.IComponent
 import com.lambda.util.Mouse
-import com.lambda.util.math.Rect
 
 abstract class InteractiveComponent : IComponent {
     protected var hovered = false
-    protected var pressed = false
+    protected var activeButton: Mouse.Button? = null
 
     protected open fun onPress(e: GuiEvent.MouseClick) {}
     protected open fun onRelease(e: GuiEvent.MouseClick) {}
@@ -16,7 +15,7 @@ abstract class InteractiveComponent : IComponent {
         when (e) {
             is GuiEvent.Show -> {
                 hovered = false
-                pressed = false
+                activeButton = null
             }
 
             is GuiEvent.MouseMove -> {
@@ -26,8 +25,9 @@ abstract class InteractiveComponent : IComponent {
             is GuiEvent.MouseClick -> {
                 hovered = rect.contains(e.mouse)
 
-                val prevPressed = pressed
-                pressed = hovered && e.button.isMainButton && e.action == Mouse.Action.Click
+                val prevPressed = activeButton != null
+                activeButton = if (hovered && e.button.isMainButton && e.action == Mouse.Action.Click) e.button else null
+                val pressed = activeButton != null
 
                 if (prevPressed == pressed) return
                 if (pressed) onPress(e)

@@ -18,7 +18,7 @@ abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, Cli
         if (closing) ClickGui.closeSpeed else ClickGui.openSpeed
     }) { !closing }; private set
 
-    val windows = ChildLayer<WindowComponent<*>>(this, this, ::rect) { child ->
+    val windows = ChildLayer<WindowComponent<*>, AbstractClickGui>(this, this, ::rect) { child ->
         child == activeWindow && !closing
     }
 

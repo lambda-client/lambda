@@ -16,23 +16,24 @@ import com.lambda.util.math.Vec2d
 import java.awt.Color
 
 abstract class ButtonComponent(
-    final override val owner: ChildLayer.Drawable<*>
+    owner: ChildLayer.Drawable<*, *>
 ) : ChildComponent(owner) {
     abstract val position: Vec2d
     abstract val size: Vec2d
 
     abstract val text: String
+    protected open val textColor get() = lerp(Color.WHITE, GuiSettings.mainColor, activeAnimation).multAlpha(showAnimation)
     protected abstract var activeAnimation: Double
 
     private val actualSize get() = Vec2d(if (size.x == FILL_PARENT) owner.rect.size.x else size.x, size.y)
     final override val rect get() = Rect.basedOn(position, actualSize) + owner.rect.leftTop
 
-    protected val renderer = owner.renderer.entry()
+    val renderer = owner.renderer.entry()
     protected val animation = owner.gui.animation
 
     private var hoverRectAnimation by animation.exp({ 0.0 }, { 1.0 }, { if (renderHovered) 0.6 else 0.07 }, ::renderHovered)
-    private var hoverFontAnimation by animation.exp(0.0, 1.0, 0.5, ::renderHovered)
-    private var pressAnimation by animation.exp(0.0, 1.0, 0.5, ::pressed)
+    protected var hoverFontAnimation by animation.exp(0.0, 1.0, 0.5, ::renderHovered)
+    protected var pressAnimation by animation.exp(0.0, 1.0, 0.5) { activeButton != null }
     protected val interactAnimation get() = lerp(hoverRectAnimation, 1.5, pressAnimation) * 0.4
     override val childShowAnimation: Double get() = owner.childShowAnimation
     protected open val showAnimation get() = owner.childShowAnimation
@@ -40,10 +41,13 @@ abstract class ButtonComponent(
     private var lastHoveredTime = 0L
     private val renderHovered get() = hovered || System.currentTimeMillis() - lastHoveredTime < 110
 
+    // Removes button shrinking if there's no space between buttons
+    protected val shrink get() = lerp(0.0, interactAnimation, ClickGui.buttonStep)
+
     init {
         // Active color
         renderer.filled {
-            position = rect.shrink(interactAnimation)
+            position = rect.shrink(shrink)
             shade = GuiSettings.shade
             color(GuiSettings.mainColor.multAlpha(activeAnimation * 0.3 * showAnimation))
         }
@@ -51,7 +55,7 @@ abstract class ButtonComponent(
         // Hover glint
         renderer.filled {
             val hoverRect = Rect.basedOn(rect.leftTop, rect.size.x * hoverRectAnimation, rect.size.y)
-            position = hoverRect.shrink(interactAnimation)
+            position = hoverRect.shrink(shrink)
             shade = GuiSettings.shade
 
             val alpha = interactAnimation * 0.2 * showAnimation
@@ -63,10 +67,10 @@ abstract class ButtonComponent(
             text = this@ButtonComponent.text
             scale = 1.0 - pressAnimation * 0.08
 
-            color = lerp(Color.WHITE, GuiSettings.mainColor, activeAnimation).multAlpha(showAnimation)
+            color = textColor
 
             val x = ClickGui.windowPadding + interactAnimation + hoverFontAnimation
-            position = rect.leftTop + Vec2d(x, rect.size.y * 0.5)
+            position = Vec2d(rect.left + x, rect.center.y)
         }
     }
 

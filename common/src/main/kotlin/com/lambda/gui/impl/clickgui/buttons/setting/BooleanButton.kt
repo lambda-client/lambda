@@ -6,10 +6,11 @@ import com.lambda.core.SoundManager.playSoundRandomly
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.list.ChildLayer
+import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.buttons.SettingButton
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.Mouse
-import com.lambda.util.math.ColorUtils.setAlpha
+import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Rect.Companion.inv
@@ -17,7 +18,7 @@ import com.lambda.util.math.Vec2d
 
 class BooleanButton(
     setting: BooleanSetting,
-    owner: ChildLayer.Drawable<*>
+    owner: ChildLayer.Drawable<*, ModuleButton>
 ) : SettingButton<Boolean, BooleanSetting>(setting, owner) {
     private var active by animation.exp(0.0, 1.0, 0.6, ::value)
     private val zoomAnimation get() = lerp(2.0, 0.0, showAnimation)
@@ -35,7 +36,7 @@ class BooleanButton(
             position = checkboxRect
             roundRadius = checkboxRect.size.y
             shade = GuiSettings.shade
-            color(GuiSettings.mainColor.setAlpha(showAnimation * (0.2 + active * 0.2)))
+            color(GuiSettings.mainColor.multAlpha(showAnimation * (0.2 + active * 0.2)))
         }
 
         // Checkbox Knob
@@ -43,7 +44,7 @@ class BooleanButton(
             position = checkboxKnob
             roundRadius = checkboxKnob.size.y
             shade = GuiSettings.shadeBackground
-            color(GuiSettings.backgroundColor.setAlpha(showAnimation))
+            color(GuiSettings.backgroundColor.multAlpha(showAnimation))
         }
     }
 
