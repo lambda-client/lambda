@@ -98,9 +98,7 @@ allprojects {
     }
 
     java {
-        // Uncomment these lines when the plugin system is ready
-        // withSourcesJar()
-        // withJavadocJar()
+        withSourcesJar()
 
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

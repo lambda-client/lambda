@@ -8,11 +8,13 @@ import com.lambda.gui.impl.clickgui.GuiConfigurable
 import com.lambda.interaction.PlayerPacketManager
 import com.lambda.interaction.RotationManager
 import com.lambda.module.ModuleRegistry
+import com.lambda.plugin.PluginRegistry
 import com.lambda.util.Communication.ascii
 import kotlin.system.measureTimeMillis
 
 object Loader {
     private val loadables = listOf(
+        PluginRegistry,
         ModuleRegistry,
         CommandManager,
         RotationManager,

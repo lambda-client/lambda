@@ -21,6 +21,7 @@ object FolderRegister {
     val config: File = File(lambda, "config")
     val packetLogs: File = File(lambda, "packet-log")
     val replay: File = File(lambda, "replay")
+    val plugins: File = File(lambda, "plugins")
 
     fun File.createIfNotExists() {
         if (!exists()) { mkdirs() }
