@@ -26,8 +26,11 @@ abstract class SettingButton <V : Any, T : AbstractSetting<V>> (
         super.onEvent(e)
 
         if (e !is GuiEvent.Tick) return
+
         if (!prevTickVisible && visible) renderHeightAnimation = heightOffset
         prevTickVisible = visible
+
+        if (!visible) unfocus()
     }
 
     open fun unfocus() {}

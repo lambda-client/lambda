@@ -1,15 +1,10 @@
 package com.lambda.gui.api.component.core.list
 
-import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.InteractiveComponent
 
 abstract class ChildComponent(open val owner: ChildLayer<*, *>) : InteractiveComponent() {
     open var accessible = false
-
-    override fun onEvent(e: GuiEvent) {
-        super.onEvent(e)
-        if (e is GuiEvent.MouseMove || e is GuiEvent.MouseClick) hovered = hovered && accessible
-    }
+    override val hovered; get() = super.hovered && accessible
 
     open fun onAdd() {}
     open fun onRemove() {}

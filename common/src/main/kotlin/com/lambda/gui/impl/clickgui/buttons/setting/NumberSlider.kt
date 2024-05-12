@@ -1,7 +1,6 @@
 package com.lambda.gui.impl.clickgui.buttons.setting
 
 import com.lambda.config.settings.NumericSetting
-import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.button.InputBarOverlay
 import com.lambda.gui.api.component.core.list.ChildLayer
@@ -19,13 +18,11 @@ import com.lambda.util.math.normalize
 class NumberSlider <N>(
     setting: NumericSetting<N>,
     owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
-) : SliderSetting<N, NumericSetting<N>>(
+) : Slider<N, NumericSetting<N>>(
     setting, owner
 ) where N : Number, N : Comparable<N> {
     private val doubleRange get() = setting.range.let { it.start.toDouble()..it.endInclusive.toDouble() }
-    private val targetProgress get() = doubleRange.normalize(value.toDouble())
-    private val renderProgress0 by animation.exp(::targetProgress, 0.6)
-    override val renderProgress get() = lerp(0.0, renderProgress0, showAnimation)
+    override val progress get() = doubleRange.normalize(value.toDouble())
 
     private val layer = ChildLayer.Drawable(owner.gui, this, owner.renderer, ::rect, InputBarOverlay::isActive)
     private val inputBar: InputBarOverlay = object : InputBarOverlay(renderer, layer) {

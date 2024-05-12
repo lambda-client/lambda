@@ -3,6 +3,7 @@ package com.lambda.gui.impl.clickgui.buttons.setting
 import com.lambda.config.AbstractSetting
 import com.lambda.core.LambdaSound
 import com.lambda.core.SoundManager.playSound
+import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
@@ -14,10 +15,13 @@ import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.transform
 
-abstract class SliderSetting <V : Any, T : AbstractSetting<V>>(
+abstract class Slider <V : Any, T : AbstractSetting<V>>(
     setting: T, owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
 ) : SettingButton<V, T>(setting, owner) {
-    protected abstract val renderProgress: Double
+    protected abstract val progress: Double
+    private val progressAnimation by animation.exp(::progress, 0.6)
+    private val renderProgress get() = lerp(0.0, progressAnimation, showAnimation)
+
     protected abstract fun setValueByProgress(progress: Double)
     private var lastPlayedValue = value
     private var lastPlayedTiming = 0L
