@@ -26,7 +26,7 @@ class JarClassLoader(
     }
 
     public override fun findClass(name: String): Class<*> {
-        val clazz = classes[name] ?: throw ClassNotFoundException(name)
+        val clazz = classes[name] ?: return parent.loadClass(name)
         return defineClass(name, clazz, 0, clazz.size)
     }
 

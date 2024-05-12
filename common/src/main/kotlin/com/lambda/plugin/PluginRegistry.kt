@@ -18,7 +18,7 @@ object PluginRegistry : Loadable {
         val mainClass = jar.manifest.mainAttributes.getValue("Main-Class")
             ?: return LOG.error("The plugin $jar does not have a main class")
 
-        val clazz = loader.findClass(mainClass)
+        val clazz = loader.loadClass(mainClass)
         val instance =
             clazz.declaredFields.firstOrNull { it.name == "INSTANCE" }?.get(null) ?: clazz.constructors.firstOrNull()
                 ?.newInstance()

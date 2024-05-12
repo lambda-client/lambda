@@ -4,7 +4,6 @@ import com.lambda.core.Loadable
 import com.lambda.module.ModuleRegistry.modules
 import org.reflections.Reflections
 import org.reflections.scanners.Scanners
-import org.reflections.util.ClasspathHelper
 import org.reflections.util.ConfigurationBuilder
 
 
