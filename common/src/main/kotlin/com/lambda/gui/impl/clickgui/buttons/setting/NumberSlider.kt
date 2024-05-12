@@ -7,21 +7,18 @@ import com.lambda.gui.api.component.button.InputBarOverlay
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.impl.clickgui.AbstractClickGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
-import com.lambda.gui.impl.clickgui.windows.ModuleWindow
-import com.lambda.module.modules.client.ClickGui
+import com.lambda.gui.impl.clickgui.buttons.SettingButton
 import com.lambda.util.Mouse
 import com.lambda.util.math.ColorUtils.multAlpha
-import com.lambda.util.math.ColorUtils.setAlpha
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.MathUtils.typeConvert
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.normalize
-import java.awt.Color
 
 class NumberSlider <N>(
     setting: NumericSetting<N>,
-    owner: ChildLayer.Drawable<*, ModuleButton>
+    owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
 ) : SliderSetting<N, NumericSetting<N>>(
     setting, owner
 ) where N : Number, N : Comparable<N> {
@@ -37,7 +34,7 @@ class NumberSlider <N>(
         override val hoverFontAnimation get() = this@NumberSlider.hoverFontAnimation
         override val showAnimation      get() = this@NumberSlider.showAnimation
 
-        override fun getInitText() = value.let(Number::toString)
+        override fun getText() = value.let(Number::toString)
         override fun setValue(string: String) {
             string.toDoubleOrNull()?.let(::setValue)
         }
@@ -45,35 +42,18 @@ class NumberSlider <N>(
 
     override val textColor get() = super.textColor.multAlpha(1.0 - inputBar.activeAnimation)
 
-    init {
-        renderer.font {
-            text = value.let(Number::toString)
-
-            val progress = 1.0 - inputBar.activeAnimation
-            scale = lerp(0.5, 1.0, progress)
-            position = Vec2d(rect.right, rect.center.y) - Vec2d(ClickGui.windowPadding + stringWidth, 0.0)
-            color = Color.WHITE.setAlpha(lerp(0.0, progress, showAnimation))
-        }
-    }
-
     override fun onEvent(e: GuiEvent) {
         super.onEvent(e)
         layer.onEvent(e)
     }
 
+    override fun unfocus() {
+        inputBar.isActive = false
+    }
+
     override fun performClickAction(e: GuiEvent.MouseClick) {
         if (e.button != Mouse.Button.Right) return
-
-        val windows = (owner.gui as AbstractClickGui).windows
-        windows.children.filterIsInstance<ModuleWindow>().forEach { moduleWindow ->
-            moduleWindow.contentComponents.children.forEach { moduleButton ->
-                moduleButton.settingsLayer.children
-                    .filterIsInstance<NumberSlider<*>>()
-                    .apply { (this as MutableList).remove(this@NumberSlider) }
-                    .forEach { it.inputBar.isActive = false }
-            }
-        }
-
+        if (!inputBar.isActive) (owner.gui as? AbstractClickGui)?.unfocusSettings()
         inputBar.toggle()
     }
 

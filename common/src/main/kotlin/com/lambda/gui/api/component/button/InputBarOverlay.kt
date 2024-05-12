@@ -7,6 +7,7 @@ import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.api.layer.LayerEntry
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.KeyCode
+import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.ColorUtils.setAlpha
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.Rect
@@ -18,10 +19,10 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
     override val rect: Rect get() = owner.rect
     override var isActive = false
 
-    abstract val pressAnimation: Double
-    abstract val interactAnimation: Double
-    abstract val hoverFontAnimation: Double
-    abstract val showAnimation: Double
+    protected abstract val pressAnimation: Double
+    protected abstract val interactAnimation: Double
+    protected abstract val hoverFontAnimation: Double
+    protected abstract val showAnimation: Double
 
     val activeAnimation by owner.gui.animation.exp(0.0, 1.0, 0.7, ::isActive)
     private var typeAnimation by owner.gui.animation.exp({ 0.0 }, 0.2)
@@ -29,7 +30,7 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
     private var targetOffset = 0.0
     private var offset by owner.gui.animation.exp(::targetOffset, 0.4)
 
-    abstract fun getInitText(): String
+    abstract fun getText(): String
     abstract fun setValue(string: String)
 
     open fun isCharAllowed(char: Char): Boolean = true
@@ -53,7 +54,16 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
                 Vec2d(1.0, rect.bottom - shrink)
             ) + Vec2d(lerp(rect.right, x, activeAnimation), 0.0)
 
-            color(field.color.setAlpha(0.8))
+            color(field.color.multAlpha(0.8))
+        }
+
+        renderer.font {
+            text = getText()
+
+            val progress = 1.0 - activeAnimation
+            scale = lerp(0.5, 1.0, progress)
+            position = Vec2d(rect.right, rect.center.y) - Vec2d(ClickGui.windowPadding + stringWidth, 0.0)
+            color = Color.WHITE.setAlpha(lerp(0.0, progress, showAnimation))
         }
     }
 
@@ -93,7 +103,7 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
         isActive = !isActive
 
         if (isActive) {
-            field.text = getInitText()
+            field.text = getText()
             targetOffset = field.stringWidth
         }
     }

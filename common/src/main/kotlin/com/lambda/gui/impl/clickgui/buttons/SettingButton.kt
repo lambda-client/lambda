@@ -9,7 +9,7 @@ import com.lambda.util.math.MathUtils.lerp
 
 abstract class SettingButton <V : Any, T : AbstractSetting<V>> (
     val setting: T,
-    final override val owner: ChildLayer.Drawable<*, ModuleButton>
+    final override val owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
 ): ListButton(owner) {
     override val text = setting.name
     protected var value by setting
@@ -29,4 +29,6 @@ abstract class SettingButton <V : Any, T : AbstractSetting<V>> (
         if (!prevTickVisible && visible) renderHeightAnimation = heightOffset
         prevTickVisible = visible
     }
+
+    open fun unfocus() {}
 }

@@ -15,7 +15,7 @@ import com.lambda.util.math.Vec2d
 import com.lambda.util.math.transform
 
 abstract class SliderSetting <V : Any, T : AbstractSetting<V>>(
-    setting: T, owner: ChildLayer.Drawable<*, ModuleButton>
+    setting: T, owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
 ) : SettingButton<V, T>(setting, owner) {
     protected abstract val renderProgress: Double
     protected abstract fun setValueByProgress(progress: Double)

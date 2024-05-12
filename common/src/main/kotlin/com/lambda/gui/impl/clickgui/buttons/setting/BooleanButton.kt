@@ -18,7 +18,7 @@ import com.lambda.util.math.Vec2d
 
 class BooleanButton(
     setting: BooleanSetting,
-    owner: ChildLayer.Drawable<*, ModuleButton>
+    owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
 ) : SettingButton<Boolean, BooleanSetting>(setting, owner) {
     private var active by animation.exp(0.0, 1.0, 0.6, ::value)
     private val zoomAnimation get() = lerp(2.0, 0.0, showAnimation)

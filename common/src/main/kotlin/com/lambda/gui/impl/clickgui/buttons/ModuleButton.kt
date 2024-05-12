@@ -1,6 +1,7 @@
 package com.lambda.gui.impl.clickgui.buttons
 
 import com.lambda.config.settings.NumericSetting
+import com.lambda.config.settings.StringSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.core.LambdaSound
 import com.lambda.core.SoundManager.playSoundRandomly
@@ -13,6 +14,7 @@ import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.api.layer.RenderLayer
 import com.lambda.gui.impl.clickgui.buttons.setting.BooleanButton
 import com.lambda.gui.impl.clickgui.buttons.setting.NumberSlider
+import com.lambda.gui.impl.clickgui.buttons.setting.StringButton
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.Mouse
@@ -101,6 +103,7 @@ class ModuleButton(
             when (it) {
                 is BooleanSetting -> BooleanButton(it, settingsLayer)
                 is NumericSetting<*> -> NumberSlider(it, settingsLayer)
+                is StringSetting -> StringButton(it, settingsLayer)
                 else -> null
             }
         }.forEach(settingsLayer::addChild)
