@@ -44,7 +44,7 @@ object WorldUtils {
     * Gets the closest entity of type [T] within a specified range.
     */
     inline fun <reified T : Entity> SafeContext.getClosestEntity(
-        type: Class<T>, // This is a class reference, not an instance of the class.
+        type: Class<out T>, // This is a class reference, not an instance of the class.
         pos: Vec3d,
         range: Double,
         predicate: (T) -> Boolean = { true },
@@ -87,8 +87,8 @@ object WorldUtils {
     /**
      * Gets all entities of type [T] within a specified distance from a position.
      */
-    inline fun <reified T : Entity> SafeContext.getFastEntities(
-        type: Class<T>, // This is a class reference, not an instance of the class.
+    inline fun <T : Entity> SafeContext.getFastEntities(
+        type: Class<out T>, // This is a class reference, not an instance of the class.
         pos: Vec3d,
         distance: Double,
         pointer: MutableList<Entity>? = null,
@@ -161,7 +161,7 @@ object WorldUtils {
      * Gets all entities of type [T] within a specified distance from a position.
      */
     inline fun <reified T : Entity> SafeContext.getEntities(
-        type: Class<T>, // This is a class reference, not an instance of the class.
+        type: Class<out T>, // This is a class reference, not an instance of the class.
         pos: Vec3d,
         distance: Double,
         pointer: MutableList<Entity>? = null,
