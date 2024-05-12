@@ -11,9 +11,12 @@ import java.net.InetSocketAddress
 /**
  * The [FolderRegister] object is responsible for managing the directory structure of the application.
  *
- * @property minecraft The root directory of the Minecraft client. It is retrieved using the [Platform.getGameFolder] function of the Architectury API.
+ * @property minecraft The root directory of the Minecraft client.
  * @property lambda The directory for the Lambda client, located within the Minecraft directory.
  * @property config The directory for storing configuration files, located within the Lambda directory.
+ * @property packetLogs The directory for storing packet logs, located within the Lambda directory.
+ * @property replay The directory for storing replay files, located within the Lambda directory.
+ * @property plugins The directory for storing plugin files, located within the Lambda directory.
  */
 object FolderRegister {
     val minecraft: File = mc.runDirectory

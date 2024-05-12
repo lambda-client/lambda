@@ -1,30 +1,34 @@
 package com.lambda.plugin
 
-import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.core.Loadable
-import com.lambda.plugin.api.Plugin
-import com.lambda.util.Communication.warn
 import com.lambda.util.FolderRegister.createIfNotExists
 import com.lambda.util.FolderRegister.listRecursive
 import com.lambda.util.FolderRegister.plugins
 import java.io.File
-import java.net.URLClassLoader
 import java.util.jar.JarFile
 
 object PluginRegistry : Loadable {
     private fun loadPlugin(file: File) {
-        val loader = URLClassLoader(arrayOf(file.toURI().toURL()))
-        val manifest = JarFile(file).manifest
-        val mainClass = manifest.mainAttributes.getValue("Main-Class")
+        if (!file.name.endsWith(".jar")) return
+        if (file.length() == 0L) return LOG.error("The plugin $file is empty")
 
-        val clazz = loader.loadClass(mainClass)
-        val isObject = clazz.declaredFields.any { it.name == "INSTANCE" }
-        val instance = if (isObject) clazz.getDeclaredField("INSTANCE").get(null)
-        else clazz.getDeclaredConstructor().newInstance()
+        val jar = JarFile(file)
+        val loader = JarClassLoader(jar, this::class.java.classLoader)
+        val mainClass = jar.manifest.mainAttributes.getValue("Main-Class")
+            ?: return LOG.error("The plugin $jar does not have a main class")
 
-        if (instance is Plugin) instance.load()
-        else LOG.warn("Plugin $file is not a valid plugin")
+        val clazz = loader.findClass(mainClass)
+        val instance =
+            clazz.declaredFields.firstOrNull { it.name == "INSTANCE" }?.get(null) ?: clazz.constructors.firstOrNull()
+                ?.newInstance()
+            ?: return LOG.error("The plugin $jar does not have an object instance or a public constructor")
+
+        val loadMethod =
+            clazz.methods.find { it.name == "load" } ?: return LOG.warn("The plugin $jar does not have a load method")
+
+        loadMethod.invoke(instance)
+        loader.close()
     }
 
     override fun load(): String {

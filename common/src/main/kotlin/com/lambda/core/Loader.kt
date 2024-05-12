@@ -14,7 +14,6 @@ import kotlin.system.measureTimeMillis
 
 object Loader {
     private val loadables = listOf(
-        PluginRegistry,
         ModuleRegistry,
         CommandManager,
         RotationManager,
@@ -22,6 +21,7 @@ object Loader {
         LambdaFont.Loader,
         GuiConfigurable,
         FriendManager,
+        PluginRegistry, // The plugins must absolutely be loaded last
     )
 
     fun initialize() {
