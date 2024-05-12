@@ -42,12 +42,12 @@ abstract class ButtonComponent(
     private val renderHovered get() = hovered || System.currentTimeMillis() - lastHoveredTime < 110
 
     // Removes button shrinking if there's no space between buttons
-    protected val shrink get() = lerp(0.0, interactAnimation, ClickGui.buttonStep)
+    protected val shrinkAnimation get() = lerp(0.0, interactAnimation, ClickGui.buttonStep)
 
     init {
         // Active color
         renderer.filled {
-            position = rect.shrink(shrink)
+            position = rect.shrink(shrinkAnimation)
             shade = GuiSettings.shade
             color(GuiSettings.mainColor.multAlpha(activeAnimation * 0.3 * showAnimation))
         }
@@ -55,7 +55,7 @@ abstract class ButtonComponent(
         // Hover glint
         renderer.filled {
             val hoverRect = Rect.basedOn(rect.leftTop, rect.size.x * hoverRectAnimation, rect.size.y)
-            position = hoverRect.shrink(shrink)
+            position = hoverRect.shrink(shrinkAnimation)
             shade = GuiSettings.shade
 
             val alpha = interactAnimation * 0.2 * showAnimation

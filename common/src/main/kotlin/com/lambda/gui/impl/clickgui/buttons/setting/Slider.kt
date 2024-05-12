@@ -28,7 +28,7 @@ abstract class Slider <V : Any, T : AbstractSetting<V>>(
 
     init {
         renderer.filled {
-            position = rect.moveSecond(Vec2d(-rect.size.x * (1.0 - renderProgress), 0.0)).shrink(shrink)
+            position = rect.moveSecond(Vec2d(-rect.size.x * (1.0 - renderProgress), 0.0)).shrink(shrinkAnimation)
             shade = GuiSettings.shade
             color(GuiSettings.mainColor.multAlpha(showAnimation * 0.3))
         }

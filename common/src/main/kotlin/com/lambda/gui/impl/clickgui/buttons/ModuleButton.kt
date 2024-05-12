@@ -67,7 +67,7 @@ class ModuleButton(
 
             position = lerp(left, right, activeAnimation)
                 .clamp(rect)
-                .shrink(interactAnimation)
+                .shrink(shrinkAnimation)
 
             // 0.0 .. 1.0 .. 0.0 animation
             val alpha = 1.0 - (abs(activeAnimation - 0.5) * 2.0)
