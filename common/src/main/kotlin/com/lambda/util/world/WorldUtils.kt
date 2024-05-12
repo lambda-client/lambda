@@ -41,6 +41,18 @@ import kotlin.math.ceil
  */
 object WorldUtils {
     /**
+    * Gets the closest entity of type [T] within a specified range.
+    */
+    inline fun <reified T : Entity> SafeContext.getClosestEntity(
+        type: Class<T>, // This is a class reference, not an instance of the class.
+        pos: Vec3d,
+        range: Double,
+        predicate: (T) -> Boolean = { true },
+    ): T? {
+        return getClosestEntity(pos, range, predicate)
+    }
+
+    /**
      * Gets the closest entity of type [T] within a specified range.
      *
      * Because we don't want to troll the CPU speculative execution, we only use the [getFastEntities] function.
@@ -70,6 +82,20 @@ object WorldUtils {
         getFastEntities(pos, range, null, comparator, predicate)
 
         return closest
+    }
+
+    /**
+     * Gets all entities of type [T] within a specified distance from a position.
+     */
+    inline fun <reified T : Entity> SafeContext.getFastEntities(
+        type: Class<T>, // This is a class reference, not an instance of the class.
+        pos: Vec3d,
+        distance: Double,
+        pointer: MutableList<Entity>? = null,
+        iterator: (Entity, Int) -> Unit = { _, _ -> },
+        predicate: (Entity) -> Boolean = { true },
+    ) {
+        return getFastEntities(pos, distance, pointer, iterator, predicate)
     }
 
     /**
@@ -129,6 +155,20 @@ object WorldUtils {
                 }
             }
         }
+    }
+
+    /**
+     * Gets all entities of type [T] within a specified distance from a position.
+     */
+    inline fun <reified T : Entity> SafeContext.getEntities(
+        type: Class<T>, // This is a class reference, not an instance of the class.
+        pos: Vec3d,
+        distance: Double,
+        pointer: MutableList<Entity>? = null,
+        iterator: (Entity, Int) -> Unit = { _, _ -> },
+        predicate: (Entity) -> Boolean = { true },
+    ) {
+        return getEntities(pos, distance, pointer, iterator, predicate)
     }
 
     /**
