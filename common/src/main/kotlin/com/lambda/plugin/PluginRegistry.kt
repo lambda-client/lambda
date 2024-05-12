@@ -14,7 +14,7 @@ object PluginRegistry : Loadable {
         if (file.length() == 0L) return LOG.error("The plugin $file is empty")
 
         val jar = JarFile(file)
-        val loader = JarClassLoader(jar, this::class.java.classLoader)
+        val loader = PluginClassLoader(jar, this::class.java.classLoader)
         val mainClass = jar.manifest.mainAttributes.getValue("Main-Class")
             ?: return LOG.error("The plugin $jar does not have a main class")
 

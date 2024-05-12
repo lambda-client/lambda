@@ -2,7 +2,7 @@ package com.lambda.plugin
 
 import java.util.jar.JarFile
 
-class JarClassLoader(
+class PluginClassLoader(
     private val jarFile: JarFile,
     parent: ClassLoader,
 ) : ClassLoader(parent) {
