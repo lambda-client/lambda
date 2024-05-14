@@ -12,5 +12,6 @@ abstract class Plugin(
     val loadBefore: List<String>? = null,
     val loadAfter: List<String>? = null,
 ) : Nameable {
+    open fun preLoad() {} // This is invoked before the game launches
     abstract fun load()
 }

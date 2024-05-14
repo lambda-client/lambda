@@ -1,13 +1,30 @@
 package com.lambda.plugin
 
+import java.io.*
 import java.util.jar.JarFile
+
 
 class PluginClassLoader(
     private val jarFile: JarFile,
     parent: ClassLoader,
-) : ClassLoader(parent) {
+) : ClassLoader(parent), Closeable {
     private val classes = mutableMapOf<String, ByteArray>()
     private val resources = mutableMapOf<String, ByteArray>()
+
+    val mixinFileName: String?
+        get() = resources.keys.firstOrNull { it.endsWith(".mixins.json") }
+
+    val accessWidenerFileName: String?
+        get() = resources.keys.firstOrNull { it.endsWith(".accesswidener") }
+
+    public override fun findClass(name: String): Class<*> {
+        val clazz = classes[name] ?: return super.findClass(name)
+        return defineClass(name, clazz, 0, clazz.size)
+    }
+
+    override fun close() {
+        jarFile.close()
+    }
 
     init {
         jarFile.entries().asSequence().forEach { entry ->
@@ -23,14 +40,5 @@ class PluginClassLoader(
                 resources[entry.name] = bytes
             }
         }
-    }
-
-    public override fun findClass(name: String): Class<*> {
-        val clazz = classes[name] ?: return parent.loadClass(name)
-        return defineClass(name, clazz, 0, clazz.size)
-    }
-
-    fun close() {
-        jarFile.close()
     }
 }
