@@ -1,5 +1,4 @@
 val fabricLoaderVersion = property("fabric_loader_version").toString()
-val mixinExtrasVersion = property("mixinextras_version").toString()
 val kotlinVersion = property("kotlin_version").toString()
 val kotlinxCoroutinesVersion = property("kotlinx_coroutines_version").toString()
 
