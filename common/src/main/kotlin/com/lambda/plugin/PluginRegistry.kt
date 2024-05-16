@@ -5,73 +5,75 @@ import com.lambda.core.Loadable
 import com.lambda.util.FolderRegister.listRecursive
 import com.lambda.util.FolderRegister.mods
 import java.io.File
-import java.lang.reflect.InvocationTargetException
-import java.lang.reflect.Method
-import java.net.URL
 import java.util.jar.JarFile
 
 object PluginRegistry : Loadable {
-    private val errorMessageFMT = """
-                A serious error occurred while loading a plugin.
-                This is likely a bug in the plugin itself but it could also be a bug in Lambda.
-                If you are a developer, please check the plugin's main class and load method.
-                If you are a regular user, please report this issue to Lambda team and the plugin developer.
+    private val classLoaderError = """
+                An error occurred while retrieving the thread class loader.
+                This likely mean that newer versions of the mod loader
+                have changed the way mods are loaded, affecting the plugin system.
+                Please report this error to the Lambda developers with the following information:
+                - The version of Lambda
+                - The version of the mod loader (ex. Fabric, Forge, etc.)
+                - The version of Minecraft you are using
+                - The version of Java you are using
                 
-                Plugin: {}
-                Stacktrace: {}
+                Plugin: %s
+                Stacktrace:
+                %s
                 """.trimIndent()
 
-    private val threadClassLoader: ClassLoader = Thread.currentThread().contextClassLoader
-    private val addUrlMethod: Method
-
-    init {
-        try {
-            addUrlMethod =
-                threadClassLoader.javaClass.getMethod("addUrlFwd", URL::class.java) // TODO: Check for other methods if not found
-
-            addUrlMethod.isAccessible = true
-        } catch (e: NoSuchMethodException) {
-            throw RuntimeException("Failed to get the addURL method from the KnotClassLoader.")
-        }
-    }
-
-    @Throws(
-        IllegalAccessException::class,
-        IllegalArgumentException::class,
-        InvocationTargetException::class)
-    fun forceFeedJar(jar: File) {
-        addUrlMethod.invoke(threadClassLoader, jar.toURI().toURL())
-    }
+    private val loadingError = """
+                An error occurred while loading a plugin.
+                If you are a developer, please check the plugin's main class and load method.
+                If you are a regular user, please report this issue to the plugin developer.
+                
+                Plugin: %s
+                Error: %s
+                Stacktrace:
+                %s
+                """.trimIndent()
 
     private fun loadPlugin(file: File) {
         runCatching {
-            // Someone got a better idea?
-            // Don't like nested try-catch blocks
-            runCatching { forceFeedJar(file) }
-                .onFailure {
-                    LOG.error("Failed to feed the plugin {} to the thread class loader", file)
-                }
-
-            LOG.debug("Added the URL of the plugin {} to the thread class loader", file)
-
             val jar = JarFile(file)
 
             val mainClass = jar.manifest.mainAttributes.getValue("Main-Class")
                 ?: return LOG.error("The plugin $jar does not have a main class")
 
-            val loadClass = threadClassLoader.loadClass(mainClass)
+            val loader = PluginLoader(jar,
+                Thread.currentThread().contextClassLoader ?:
+                        return classLoaderError.format(
+                            file,
+                            Thread.currentThread().stackTrace.joinToString("\n")
+                        )
+                            .split("\n")
+                            .forEach(LOG::error))
+
+            val loadClass = loader.loadClass(mainClass)
 
             val loadInstance =
                 loadClass.declaredFields.firstOrNull { it.name == "INSTANCE" }?.get(null)
                     ?: loadClass.constructors.firstOrNull()?.newInstance()
                         ?: return LOG.error("The plugin $jar does not have an object instance or a public constructor")
-
             val loadMethod =
                 loadClass?.methods?.find { it.name == "load" }
                     ?: return LOG.warn("The plugin $jar does not have a load method")
 
             loadMethod.invoke(loadInstance)
-        }.onFailure { LOG.error(errorMessageFMT, file, Thread.currentThread().stackTrace.joinToString("\n")) }
+        }.onFailure {
+            val threadDump = Thread.getAllStackTraces().entries.joinToString("\n") {
+                it.key.toString() + it.value.joinToString("\n") { "\tat $it" }
+            }
+
+            loadingError.format(
+                file,
+                it.message,
+                threadDump
+            )
+                .split("\n")
+                .forEach(LOG::error)
+        }
     }
 
     override fun load(): String {
