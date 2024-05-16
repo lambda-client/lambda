@@ -62,14 +62,10 @@ object PluginRegistry : Loadable {
 
             loadMethod.invoke(loadInstance)
         }.onFailure {
-            val threadDump = Thread.getAllStackTraces().entries.joinToString("\n") {
-                it.key.toString() + it.value.joinToString("\n") { "\tat $it" }
-            }
-
             loadingError.format(
                 file,
                 it.message,
-                threadDump
+                it.stackTraceToString()
             )
                 .split("\n")
                 .forEach(LOG::error)
