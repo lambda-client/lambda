@@ -20,12 +20,6 @@
         "adapter": "kotlin",
         "value": "com.lambda.fabric.LambdaFabric"
       }
-    ],
-    "preLaunch": [
-      {
-        "adapter": "kotlin",
-        "value": "com.lambda.fabric.LambdaBootstrap"
-      }
     ]
   },
   "mixins": [

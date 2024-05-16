@@ -2,7 +2,7 @@ val fabricLoaderVersion = property("fabric_loader_version").toString()
 val fabricApiVersion = property("fabric_api_version").toString()
 val kotlinFabricVersion = property("kotlin_fabric_version").toString()
 
-base.archivesName.set("${base.archivesName.get()}-fabric")
+base.archivesName = "${base.archivesName.get()}-fabric"
 
 architectury {
     platformSetupLoomIde()

@@ -2,6 +2,7 @@ package com.lambda.plugin.api
 
 import com.lambda.util.Nameable
 
+// TODO: Make this api better
 abstract class Plugin(
     override val name: String,
     val description: String,
@@ -12,6 +13,5 @@ abstract class Plugin(
     val loadBefore: List<String>? = null,
     val loadAfter: List<String>? = null,
 ) : Nameable {
-    open fun preLoad() {} // This is invoked before the game launches
     abstract fun load()
 }

@@ -80,9 +80,10 @@ allprojects {
     apply(plugin = "maven-publish")
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
-    base.archivesName.set(modId)
     group = mavenGroup
     version = modVersion
+
+    base.archivesName = modId
 
     repositories {
         maven("https://api.modrinth.com/maven")

@@ -13,24 +13,24 @@ import java.net.InetSocketAddress
  *
  * @property minecraft The root directory of the Minecraft client.
  * @property lambda The directory for the Lambda client, located within the Minecraft directory.
+ * @property mods The directory for storing mods, located within the Minecraft directory.
  * @property config The directory for storing configuration files, located within the Lambda directory.
  * @property packetLogs The directory for storing packet logs, located within the Lambda directory.
  * @property replay The directory for storing replay files, located within the Lambda directory.
- * @property plugins The directory for storing plugin files, located within the Lambda directory.
  */
 object FolderRegister {
     val minecraft: File = mc.runDirectory
     val lambda: File = File(minecraft, "lambda")
+    val mods: File = File(minecraft, "mods")
     val config: File = File(lambda, "config")
     val packetLogs: File = File(lambda, "packet-log")
     val replay: File = File(lambda, "replay")
-    val plugins: File = File(lambda, "plugins")
 
     fun File.createIfNotExists() {
         if (!exists()) { mkdirs() }
     }
 
-    fun File.listRecursive() = walk().filter { it.isFile }
+    fun File.listRecursive(predicate: (File) -> Boolean = { true }) = walk().filter(predicate)
 
     fun File.locationBoundDirectory(): File {
         val hostName = (mc.networkHandler?.connection?.address as? InetSocketAddress)?.hostName ?: "singleplayer"
