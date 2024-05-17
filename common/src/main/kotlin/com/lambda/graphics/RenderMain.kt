@@ -8,11 +8,15 @@ import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.resetMatrix
 import com.lambda.graphics.gl.Matrices.translate
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.util.math.Vec2d
+import com.mojang.blaze3d.systems.RenderSystem.getProjectionMatrix
 import org.joml.Matrix4f
 
 object RenderMain {
     val projectionMatrix = Matrix4f()
-    val modelViewMatrix: Matrix4f get() = Matrices.stack.peek().positionMatrix
+    val modelViewMatrix: Matrix4f get() = Matrices.peek()
+
+    var screenSize = Vec2d.ZERO
 
     @JvmStatic
     fun render2D() {
@@ -28,6 +32,16 @@ object RenderMain {
         }
     }
 
+    @JvmStatic
+    fun render3D(matrix: Matrix4f) {
+        resetMatrix(matrix)
+        projectionMatrix.set(getProjectionMatrix())
+
+        setupGL {
+            RenderEvent.World().post()
+        }
+    }
+
     private fun rescale(factor: Double) {
         val width = mc.window.framebufferWidth.toFloat()
         val height = mc.window.framebufferHeight.toFloat()
@@ -35,6 +49,7 @@ object RenderMain {
         val scaledWidth = width / factor
         val scaledHeight = height / factor
 
+        screenSize = Vec2d(scaledWidth, scaledHeight)
         projectionMatrix.setOrtho(0f, scaledWidth.toFloat(), scaledHeight.toFloat(), 0f, 1000f, 21000f)
     }
 }

@@ -4,7 +4,7 @@ import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.command.CommandManager
 import com.lambda.graphics.renderer.gui.font.LambdaFont
-import com.lambda.gui.impl.clickgui.GuiConfigurable
+import com.lambda.gui.GuiConfigurable
 import com.lambda.interaction.PlayerPacketManager
 import com.lambda.interaction.RotationManager
 import com.lambda.module.ModuleRegistry
@@ -20,6 +20,7 @@ object Loader {
         LambdaFont.Loader,
         GuiConfigurable,
         FriendManager,
+        SoundManager,
     )
 
     fun initialize() {
@@ -28,7 +29,7 @@ object Loader {
 
         val initTime = measureTimeMillis {
             loadables.forEach { loadable ->
-                var info: String
+                val info: String
                 val phaseTime = measureTimeMillis {
                     info = loadable.load()
                 }

@@ -33,6 +33,9 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
         fun AnimationTicker.exp(min: Double, max: Double, speed: Double, flag: () -> Boolean) =
             exp({ min }, { max }, { speed }, flag)
 
+        fun AnimationTicker.exp(target: () -> Double, speed: Double) =
+            exp(target, target, { speed }, { true })
+
         @Suppress("NAME_SHADOWING")
         fun AnimationTicker.exp(min: () -> Double, max: () -> Double, speed: () -> Double, flag: () -> Boolean) =
             Animation(min()) {
@@ -43,8 +46,8 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
                 else lerp(it, target, speed())
             }.apply(::register)
 
-        // Exponent animation will never reach target value
-        private const val CLAMP = 0.001
+        // Exponent animation never reaches target value
+        private const val CLAMP = 0.01
     }
 }
 

@@ -7,6 +7,7 @@ import com.lambda.graphics.gl.Memory.byteBuffer
 import com.lambda.graphics.gl.Memory.capacity
 import com.lambda.graphics.gl.Memory.color
 import com.lambda.graphics.gl.Memory.copy
+import com.lambda.graphics.gl.Memory.float
 import com.lambda.graphics.gl.Memory.int
 import com.lambda.graphics.gl.Memory.vec2
 import com.lambda.graphics.gl.Memory.vec3
@@ -18,6 +19,7 @@ import com.lambda.graphics.gl.VaoUtils.bufferData
 import com.lambda.graphics.gl.VaoUtils.unbindIndexBuffer
 import com.lambda.graphics.gl.VaoUtils.unbindVertexArray
 import com.lambda.graphics.gl.VaoUtils.unbindVertexBuffer
+import com.lambda.threading.mainThread
 import com.lambda.threading.runOnGameThread
 import com.mojang.blaze3d.systems.RenderSystem.drawElements
 import org.lwjgl.opengl.GL30C.*
@@ -85,6 +87,11 @@ class VAO(
 
     override fun vec2(x: Double, y: Double): VAO {
         verticesPosition += vec2(verticesPosition, x, y)
+        return this
+    }
+
+    override fun float(v: Double): VAO {
+        verticesPosition += float(verticesPosition, v)
         return this
     }
 
@@ -191,8 +198,10 @@ class VAO(
     }
 
     fun destroy() {
-        glDeleteBuffers(ibo)
-        glDeleteBuffers(vbo)
-        glDeleteVertexArrays(vao)
+        runOnGameThread {
+            glDeleteBuffers(ibo)
+            glDeleteBuffers(vbo)
+            glDeleteVertexArrays(vao)
+        }
     }
 }

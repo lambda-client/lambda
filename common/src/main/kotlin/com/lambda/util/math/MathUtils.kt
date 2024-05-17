@@ -59,6 +59,7 @@ object MathUtils {
     private fun decimalPlaces(value: Double) = BigDecimal.valueOf(value).scale()
 
     fun random(v1: Double, v2: Double): Double {
+        if (v1 == v2) return v1
         val min = min(v1, v2)
         val max = max(v1, v2)
         return nextDouble(min, max)
