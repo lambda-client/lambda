@@ -8,15 +8,9 @@ import com.lambda.util.FolderRegister.mods
 import org.reflections.Reflections
 import org.reflections.scanners.Scanners
 import org.reflections.util.ConfigurationBuilder
-import java.io.File
-import java.lang.reflect.Method
-import java.net.URI
-import java.net.URL
-import java.net.URLClassLoader
-import java.util.jar.JarFile
 
 object PluginRegistry : Loadable {
-    val plugins = mutableListOf<Plugin>()
+    val plugins = mutableMapOf<String, Plugin>()
 
     private val loadingError = """
                 An error occurred while loading a plugin.
@@ -40,17 +34,27 @@ object PluginRegistry : Loadable {
             val instance = (pluginClass.declaredFields.find { it.name == "INSTANCE" }?.get(null)
                 ?: pluginClass.constructors.firstOrNull()?.newInstance()) as? Plugin
                 ?: null.also {
-                    loadingError.format(
-                        pluginClass,
-                        "The plugin does not have an object instance or a public constructor"
-                    ).also { LOG.warn(it) }
+                    LOG.warn(
+                        loadingError.format(
+                            pluginClass,
+                            "The plugin does not have an object instance or a public constructor"
+                        )
+                    )
                 }
 
-            plugins.add(instance ?: return@forEach)
+            val plugin = instance ?: return@forEach
+            plugins[plugin.name] = plugin
         }
 
-        // TODO: Implement API logic here
+        //plugins.forEach { (_, plugin) ->
+//            node(plugin, plugin
+//                .dependencies
+//                ?.mapNotNull { name ->
+//                    plugins[name] ?: return@mapNotNull null.also {
+//                        LOG.error("Plugin ${plugin.name} has a dependency on $name, which does not exist")
+//                    }
+//                } ?: emptyList())
 
-        return "Registered ${plugins.size} plugins"
+        return "Loaded ${plugins.size} plugins"
     }
 }
