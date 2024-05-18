@@ -101,6 +101,7 @@ abstract class Module(
     val customTags = setting("Tags", emptySet<ModuleTag>(), visibility = { false })
 
     var isEnabled by isEnabledSetting
+    val isDisabled get() = !isEnabled
     override val isMuted: Boolean
         get() = !isEnabled && !alwaysListening
     val keybind by keybindSetting
