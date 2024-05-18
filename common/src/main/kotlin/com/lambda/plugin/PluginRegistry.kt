@@ -46,11 +46,10 @@ object PluginRegistry : Loadable {
                     ).also { LOG.warn(it) }
                 }
 
-            if (instance == null) return@forEach
-
-            instance.load()
-            plugins.add(instance)
+            plugins.add(instance ?: return@forEach)
         }
+
+        // TODO: Implement API logic here
 
         return "Registered ${plugins.size} plugins"
     }
