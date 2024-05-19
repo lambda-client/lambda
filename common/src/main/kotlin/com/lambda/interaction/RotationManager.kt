@@ -12,7 +12,6 @@ import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.angleDifference
 import com.lambda.interaction.rotation.Rotation.Companion.slerp
-import com.lambda.interaction.rotation.Rotation.Companion.lerp
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.modules.client.Baritone
@@ -56,15 +55,6 @@ object RotationManager : Loadable {
             }
         }
 
-        listener<RenderEvent.UpdateTarget> {
-            val context = currentContext ?: return@listener
-            if (context.config.rotationMode != RotationMode.LOCK) return@listener
-            val interpolation = prevRotation.lerp(currentRotation, mc.tickDelta.toDouble())
-
-            player.yaw = interpolation.yawF
-            player.pitch = interpolation.pitchF
-        }
-
         unsafeListener<ConnectionEvent.Disconnect> {
             reset(Rotation.ZERO)
         }
@@ -73,8 +63,8 @@ object RotationManager : Loadable {
     private fun rotate(newContext: RotationContext?) = runSafe {
         prevRotation = currentRotation
 
-        (keepTicks--).coerceAtLeast(0)
-        (pauseTicks--).coerceAtLeast(0)
+        keepTicks--
+        pauseTicks--
 
         currentContext?.let { current ->
             if (keepTicks + current.config.resetTicks < 0 || pauseTicks >= 0) {
@@ -166,7 +156,7 @@ object RotationManager : Loadable {
                 baritoneContext = null
             }
 
-            listener<MovementEvent.InputUpdate> {
+            listener<MovementEvent.InputUpdate>(Int.MAX_VALUE) {
                 processPlayerMovement(it)
             }
         }

@@ -242,8 +242,8 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         range: ClosedRange<Byte>,
         step: Byte = 1,
         description: String = "",
-        visibility: () -> Boolean = { true },
         unit: String = "",
+        visibility: () -> Boolean = { true },
     ) = ByteSetting(name, defaultValue, range, step, description, visibility, unit).also {
         settings.add(it)
     }
@@ -267,8 +267,8 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         range: ClosedRange<Double>,
         step: Double = 1.0,
         description: String = "",
-        visibility: () -> Boolean = { true },
         unit: String = "",
+        visibility: () -> Boolean = { true },
     ) = DoubleSetting(name, defaultValue, range, step, description, visibility, unit).also {
         settings.add(it)
     }
@@ -292,8 +292,8 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         range: ClosedRange<Float>,
         step: Float = 1f,
         description: String = "",
-        visibility: () -> Boolean = { true },
         unit: String = "",
+        visibility: () -> Boolean = { true },
     ) = FloatSetting(name, defaultValue, range, step, description, visibility, unit).also {
         settings.add(it)
     }
@@ -317,8 +317,8 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         range: ClosedRange<Int>,
         step: Int = 1,
         description: String = "",
-        visibility: () -> Boolean = { true },
         unit: String = "",
+        visibility: () -> Boolean = { true },
     ) = IntegerSetting(name, defaultValue, range, step, description, visibility, unit).also {
         settings.add(it)
     }
@@ -342,8 +342,8 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         range: ClosedRange<Long>,
         step: Long = 1,
         description: String = "",
-        visibility: () -> Boolean = { true },
         unit: String = "",
+        visibility: () -> Boolean = { true },
     ) = LongSetting(name, defaultValue, range, step, description, visibility, unit).also {
         settings.add(it)
     }
@@ -367,8 +367,8 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         range: ClosedRange<Short>,
         step: Short = 1,
         description: String = "",
-        visibility: () -> Boolean = { true },
         unit: String = "",
+        visibility: () -> Boolean = { true },
     ) = ShortSetting(name, defaultValue, range, step, description, visibility, unit).also {
         settings.add(it)
     }

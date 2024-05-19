@@ -83,7 +83,7 @@ object VisibilityChecker {
         check: (Vec3d) -> Unit,
     ) {
         val shrunk = box.expand(-0.005)
-        getVisibleSurfaces(box)
+        box.getVisibleSurfaces(player.eyePos)
             .forEach { side ->
                 if (sides.isNotEmpty() && side !in sides) {
                     return@forEach
@@ -118,17 +118,11 @@ object VisibilityChecker {
             Direction.EAST -> doubleArrayOf(maxX, minY, minZ, maxX, maxY, maxZ)
         }
 
-    private fun SafeContext.getVisibleSurfaces(box: Box): Set<Direction> {
-        val visibleSides = EnumSet.noneOf(Direction::class.java)
-
-        val eyePos = player.eyePos
-        val center = box.center
-
-        return visibleSides
-            .checkAxis(eyePos.x - center.x, box.lengthX / 2, Direction.WEST, Direction.EAST)
-            .checkAxis(eyePos.y - center.y, box.lengthY / 2, Direction.DOWN, Direction.UP)
-            .checkAxis(eyePos.z - center.z, box.lengthZ / 2, Direction.NORTH, Direction.SOUTH)
-    }
+    fun Box.getVisibleSurfaces(eyes: Vec3d) =
+        EnumSet.noneOf(Direction::class.java)
+            .checkAxis(eyes.x - center.x, lengthX / 2, Direction.WEST, Direction.EAST)
+            .checkAxis(eyes.y - center.y, lengthY / 2, Direction.DOWN, Direction.UP)
+            .checkAxis(eyes.z - center.z, lengthZ / 2, Direction.NORTH, Direction.SOUTH)
 
     private fun EnumSet<Direction>.checkAxis(
         diff: Double,

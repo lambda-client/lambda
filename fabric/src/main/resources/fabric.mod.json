@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "lambda",
-  "version": "${version}",
+  "id": "${mod_id}",
+  "version": "${mod_version}",
   "name": "Lambda",
-  "description": "",
+  "description": "${mod_description}",
   "authors": [
     "Constructor"
   ],

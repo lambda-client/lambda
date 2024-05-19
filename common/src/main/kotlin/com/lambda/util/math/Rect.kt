@@ -51,5 +51,7 @@ data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
 
         fun basedOn(base: Vec2d, size: Vec2d) =
             Rect(base, base + size)
+
+        fun Rect.inv() = Rect(rightBottom, leftTop)
     }
 }

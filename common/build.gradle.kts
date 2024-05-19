@@ -1,21 +1,16 @@
-import java.util.Properties
-
 val fabricLoaderVersion = property("fabric_loader_version").toString()
-val mixinExtrasVersion = property("mixinextras_version").toString()
 val kotlinVersion = property("kotlin_version").toString()
 val kotlinxCoroutinesVersion = property("kotlinx_coroutines_version").toString()
-val discordIPCVersion = property("discord_ipc_version").toString()
 
-architectury { common("fabric", "forge", "neoforge", "quilt") }
+architectury { common("fabric", "forge", "neoforge") }
 
 loom {
     silentMojangMappingsLicense()
-    accessWidenerPath.set(File("src/main/resources/lambda.accesswidener"))
+    accessWidenerPath = File("src/main/resources/lambda.accesswidener")
 }
 
 repositories {
     maven("https://maven.fabricmc.net/")
-    mavenCentral()
 }
 
 dependencies {
@@ -28,25 +23,9 @@ dependencies {
 
     // Add Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
+    implementation(kotlin("reflect"))
 
     // Baritone
     modImplementation("baritone-api:baritone-api:1.10.2")
     modImplementation("baritone-api:baritone-unoptimized-fabric:1.10.2")
-
-    // Add Discord IPC
-    implementation("com.github.caoimhebyrne:KDiscordIPC:$discordIPCVersion")
-}
-
-tasks {
-    remapJar {
-        enabled = false
-    }
-
-    processResources {
-        Properties().apply {
-            load(project.rootProject.file("gradle.properties").inputStream())
-        }.forEach { key, value ->
-            inputs.property(key.toString(), value)
-        }
-    }
 }

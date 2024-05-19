@@ -2,13 +2,10 @@ package com.lambda.gui.api.component.core.list
 
 import com.lambda.gui.api.component.InteractiveComponent
 
-abstract class ChildComponent : InteractiveComponent(), IChildComponent {
-    // mostly used to create an animation when an element appears
-    var accessible = false; set(value) {
-        if (field == value) return
-        field = value
+abstract class ChildComponent(open val owner: ChildLayer<*, *>) : InteractiveComponent() {
+    open var accessible = false
+    override val hovered; get() = super.hovered && accessible
 
-        if (value) onShow()
-        else onHide()
-    }
+    open fun onAdd() {}
+    open fun onRemove() {}
 }

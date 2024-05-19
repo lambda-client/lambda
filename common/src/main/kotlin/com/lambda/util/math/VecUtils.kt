@@ -1,14 +1,16 @@
 package com.lambda.util.math
 
-import com.ibm.icu.number.Precision
 import com.lambda.util.math.MathUtils.sq
-import com.lambda.util.math.VecUtils.distSq
-import net.minecraft.util.math.MathHelper
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 import kotlin.math.pow
+import kotlin.math.roundToInt
 
 object VecUtils {
+    val Vec3d.blockPos: BlockPos
+        get() = BlockPos(x.roundToInt(), y.roundToInt(), z.roundToInt())
+
     infix fun Vec3d.dist(other: Vec3d) =
         this.distanceTo(other)
 

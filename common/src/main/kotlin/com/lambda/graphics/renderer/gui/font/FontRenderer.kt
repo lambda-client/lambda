@@ -5,12 +5,10 @@ import com.lambda.graphics.renderer.gui.AbstractGuiRenderer
 import com.lambda.graphics.shader.Shader
 
 class FontRenderer(private val font: LambdaFont = LambdaFont.FiraSansRegular) : AbstractGuiRenderer<IFontEntry>(
-    VertexAttrib.Group.FONT
+    VertexAttrib.Group.FONT, shader
 ) {
-    override fun render() {
-        shader.use()
+    override fun preRender() {
         font.glyphs.bind()
-        super.render()
     }
 
     override fun newEntry(block: IFontEntry.() -> Unit) =

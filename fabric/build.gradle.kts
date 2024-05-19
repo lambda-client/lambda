@@ -3,7 +3,7 @@ val fabricApiVersion = property("fabric_api_version").toString()
 val kotlinFabricVersion = property("kotlin_fabric_version").toString()
 val discordIPCVersion = property("discord_ipc_version").toString()
 
-base.archivesName.set("${base.archivesName.get()}-fabric")
+base.archivesName = "${base.archivesName.get()}-fabric"
 
 architectury {
     platformSetupLoomIde()
@@ -11,8 +11,8 @@ architectury {
 }
 
 loom {
-    accessWidenerPath.set(project(":common").loom.accessWidenerPath)
-    enableTransitiveAccessWideners.set(true)
+    accessWidenerPath = project(":common").loom.accessWidenerPath
+    enableTransitiveAccessWideners = true
 }
 
 val common: Configuration by configurations.creating {
@@ -73,11 +73,5 @@ dependencies {
 tasks {
     remapJar {
         injectAccessWidener = true
-    }
-
-    processResources {
-        filesMatching("fabric.mod.json") {
-            expand(project(":common").properties)
-        }
     }
 }

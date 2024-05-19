@@ -1,11 +1,9 @@
 package com.lambda.graphics.gl
 
-import com.mojang.blaze3d.platform.GlStateManager
 import net.minecraft.client.render.BufferRenderer
 import org.lwjgl.opengl.GL30C.*
 import java.nio.ByteBuffer
 
-@Suppress("NOTHING_TO_INLINE")
 object VaoUtils {
     @JvmField var lastIbo = 0
     private var prevIbo = 0
@@ -33,12 +31,12 @@ object VaoUtils {
     fun unbindIndexBuffer() =
         bindIndexBuffer(0)
 
-    inline fun enableVertexAttribute(i: Int) =
+    fun enableVertexAttribute(i: Int) =
         glEnableVertexAttribArray(i)
 
-    inline fun vertexAttribute(index: Int, size: Int, type: Int, normalized: Boolean, stride: Int, pointer: Long) =
+    fun vertexAttribute(index: Int, size: Int, type: Int, normalized: Boolean, stride: Int, pointer: Long) =
         glVertexAttribPointer(index, size, type, normalized, stride, pointer)
 
-    inline fun bufferData(target: Int, data: ByteBuffer, usage: Int) =
-        GlStateManager._glBufferData(target, data, usage)
+    fun bufferData(target: Int, data: ByteBuffer, usage: Int) =
+        glBufferData(target, data, usage)
 }
