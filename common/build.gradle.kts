@@ -1,12 +1,13 @@
-val fabricLoaderVersion = property("fabric_loader_version").toString()
-val kotlinVersion = property("kotlin_version").toString()
-val kotlinxCoroutinesVersion = property("kotlinx_coroutines_version").toString()
+val modId: String by project
+val fabricLoaderVersion: String by project
+val kotlinVersion: String by project
+val kotlinxCoroutinesVersion: String by project
 
 architectury { common("fabric", "forge", "neoforge") }
 
 loom {
     silentMojangMappingsLicense()
-    accessWidenerPath = File("src/main/resources/lambda.accesswidener")
+    accessWidenerPath = File("src/main/resources/$modId.accesswidener")
 }
 
 repositories {

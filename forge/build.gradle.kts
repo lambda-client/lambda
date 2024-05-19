@@ -1,9 +1,10 @@
-val forgeVersion = property("forge_version").toString()
-val mixinExtrasVersion = property("mixinextras_version").toString()
-val kotlinForgeVersion = property("kotlin_forge_version").toString()
-val discordIPCVersion = property("discord_ipc_version").toString()
+val minecraftVersion: String by project
+val forgeVersion: String by project
+val mixinExtrasVersion: String by project
+val kotlinForgeVersion: String by project
+val discordIPCVersion: String by project
 
-base.archivesName.set("${base.archivesName.get()}-forge")
+base.archivesName = "${base.archivesName.get()}-forge"
 
 architectury {
     platformSetupLoomIde()
@@ -13,14 +14,26 @@ architectury {
 loom {
     accessWidenerPath.set(project(":common").loom.accessWidenerPath)
     forge {
+        // This is required to convert the access wideners to the forge
+        // format, access transformers.
         convertAccessWideners = true
-        extraAccessWideners.add(loom.accessWidenerPath.get().asFile.name)
+
+        // Add the mod's mixins to the list of mixins to be applied.
+        // In the extraordinary case that you need to add mixins for
+        // different mod loaders, you can add them using the
+        // `extraAccessWideners` property.
+        // And then add them to the `mixinConfig` function.
         mixinConfig("lambda.mixins.common.json")
     }
 }
 
 repositories {
-    maven("https://cursemaven.com")
+    // You can add more repositories here if you plan
+    // on using environment-specific dependencies.
+    // If you simply want to add a global repository,
+    // you can add it to the `settings.gradle.kts` file
+    // in the base of the project and gradle will do the
+    // rest for you.
     maven("https://thedarkcolour.github.io/KotlinForForge/")
 }
 
@@ -60,7 +73,7 @@ fun DependencyHandlerScope.setupConfigurations() {
 
 dependencies {
     // Forge API
-    forge("net.minecraftforge:forge:$forgeVersion")
+    forge("net.minecraftforge:forge:$minecraftVersion-$forgeVersion")
 
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
@@ -94,10 +107,6 @@ dependencies {
 }
 
 tasks {
-    remapJar {
-        injectAccessWidener = true
-    }
-
     sourceSets.forEach {
         val dir = layout.buildDirectory.dir("sourcesSets/${it.name}")
         it.output.setResourcesDir(dir)
