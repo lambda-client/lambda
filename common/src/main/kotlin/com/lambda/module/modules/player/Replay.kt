@@ -4,7 +4,7 @@ import com.google.gson.*
 import com.lambda.brigadier.CommandResult
 import com.lambda.config.RotationSettings
 import com.lambda.context.SafeContext
-import com.lambda.core.SoundManager.playSound
+import com.lambda.sound.SoundManager.playSound
 import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.KeyPressEvent

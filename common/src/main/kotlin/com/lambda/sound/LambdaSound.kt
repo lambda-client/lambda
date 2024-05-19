@@ -1,6 +1,6 @@
-package com.lambda.core
+package com.lambda.sound
 
-import com.lambda.core.SoundManager.toIdentifier
+import com.lambda.sound.SoundManager.toIdentifier
 import net.minecraft.sound.SoundEvent
 import net.minecraft.util.Identifier
 

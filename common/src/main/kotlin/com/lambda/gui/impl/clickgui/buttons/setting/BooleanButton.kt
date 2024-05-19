@@ -1,8 +1,8 @@
 package com.lambda.gui.impl.clickgui.buttons.setting
 
 import com.lambda.config.settings.comparable.BooleanSetting
-import com.lambda.core.LambdaSound
-import com.lambda.core.SoundManager.playSoundRandomly
+import com.lambda.sound.LambdaSound
+import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.list.ChildLayer
