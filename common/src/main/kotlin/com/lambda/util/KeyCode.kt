@@ -3,7 +3,7 @@ package com.lambda.util
 import com.lambda.util.primitives.extension.displayValue
 import org.lwjgl.glfw.GLFW
 
-enum class KeyCode(val key: Int) {
+enum class KeyCode(val keyCode: Int) {
     Unbound(GLFW.GLFW_KEY_UNKNOWN),
     Space(GLFW.GLFW_KEY_SPACE),
     Apostrophe(GLFW.GLFW_KEY_APOSTROPHE),
@@ -127,11 +127,13 @@ enum class KeyCode(val key: Int) {
     MENU(GLFW.GLFW_KEY_MENU),
     LAST(GLFW.GLFW_KEY_LAST);
 
-    companion object {
-        fun byIdOrNull(key: Int) = entries.firstOrNull { it.key == key }
-        fun byId(key: Int) = byIdOrNull(key) ?: Unbound
+    val localizedName by lazy { GLFW.glfwGetKeyName(keyCode, 0)?.uppercase() ?: displayValue }
 
-        fun byNameOrNull(name: String) = entries.firstOrNull { it.displayValue.equals(name, true) }
-        fun byName(name: String) = byNameOrNull(name) ?: Unbound
+    companion object {
+        fun fromKeyCodeOrNull(keyCode: Int) = entries.firstOrNull { it.keyCode == keyCode }
+        fun fromKeyCode(keyCode: Int) = fromKeyCodeOrNull(keyCode) ?: Unbound
+
+        fun fromNameOrNull(name: String) = entries.firstOrNull { it.name.equals(name, true) }
+        fun fromName(name: String) = fromNameOrNull(name) ?: Unbound
     }
 }

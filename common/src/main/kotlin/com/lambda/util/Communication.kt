@@ -127,7 +127,7 @@ object Communication {
             literal("\n")
             literal("Keybind: ")
             color(GuiSettings.primaryColor) {
-                literal(module.keybind.key.toString())
+                literal(module.keybind.keyCode.toString())
             }
             literal("\n")
             literal("Default tags: ")

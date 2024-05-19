@@ -109,7 +109,7 @@ abstract class Module(
     init {
         listener<KeyPressEvent>(alwaysListen = true) { event ->
             val screen = mc.currentScreen
-            if (event.key == keybind.key
+            if (event.key == keybind.keyCode
                 && !mc.options.commandKey.isPressed
                 && (screen == null
                 || screen is LambdaClickGui)
