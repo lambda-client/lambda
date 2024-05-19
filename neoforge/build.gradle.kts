@@ -1,7 +1,7 @@
-val neoVersion = property("neo_version").toString()
-val kotlinForgeVersion = property("kotlin_forge_version").toString()
+val neoVersion: String by project
+val kotlinForgeVersion: String by project
 
-base.archivesName.set("${base.archivesName.get()}-neoforge")
+base.archivesName = "${base.archivesName.get()}-neoforge"
 
 architectury {
     platformSetupLoomIde()

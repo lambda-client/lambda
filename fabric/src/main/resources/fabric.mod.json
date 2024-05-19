@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "${mod_id}",
-  "version": "${mod_version}",
+  "id": "${modId}",
+  "version": "${modVersion}",
   "name": "Lambda",
-  "description": "${mod_description}",
+  "description": "${modDescription}",
   "authors": [
     "Constructor"
   ],
@@ -29,7 +29,7 @@
     "fabricloader": ">=0.15.1",
     "fabric-api": ">=0.91.3+1.20.4",
     "minecraft": "1.20.4",
-    "fabric-language-kotlin": ">=${kotlin_fabric_version}",
+    "fabric-language-kotlin": ">=${kotlinFabricVersion}",
     "java": ">=17"
   }
 }

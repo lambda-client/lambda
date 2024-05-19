@@ -7,16 +7,16 @@ val replacements = file("gradle.properties").inputStream().use { stream ->
     Properties().apply { load(stream) }
 }.map { (k, v) -> k.toString() to v.toString() }.toMap()
 
-val modId = property("mod_id").toString()
-val modVersion = property("mod_version").toString()
-val mavenGroup = property("maven_group").toString()
-val minecraftVersion = property("minecraft_version").toString()
-val yarnMappings = property("yarn_mappings").toString()
+val modId: String by project
+val modVersion: String by project
+val mavenGroup: String by project
+val minecraftVersion: String by project
+val yarnMappings: String by project
 
 val libs = file("libs")
 
 plugins {
-    kotlin("jvm") version "1.9.23"
+    kotlin("jvm") version "1.9.24"
     id("org.jetbrains.dokka") version "1.9.20"
     id("architectury-plugin") version "3.4-SNAPSHOT"
     id("dev.architectury.loom") version "1.6-SNAPSHOT" apply false
@@ -33,7 +33,7 @@ subprojects {
 
     dependencies {
         "minecraft"("com.mojang:minecraft:$minecraftVersion")
-        "mappings"("net.fabricmc:yarn:$yarnMappings:v2")
+        "mappings"("net.fabricmc:yarn:$minecraftVersion+$yarnMappings:v2")
     }
 
     if (path == ":common") return@subprojects

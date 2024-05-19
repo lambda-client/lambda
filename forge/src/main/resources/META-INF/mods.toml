@@ -1,34 +1,34 @@
 modLoader = "kotlinforforge"
-loaderVersion = "[4.10,)"
+loaderVersion = "[$kotlinForgeVersion,)"
 license = "GNU General Public License v3.0"
 issueTrackerURL = "https://github.com/lambda-client/lambda/issues"
 
 [[mods]]
-    modId = "lambda"
-    version = "${mod_version}"
+    modId = "${modId}"
+    version = "${modVersion}"
     displayName = "Lambda"
-    authors = "${authors}"
-    description = "${mod_description}"
+    authors = "${modAuthors}"
+    description = "${modDescription}"
     logoFile = "assets/lambda/lambda.png"
     displayTest = "IGNORE_ALL_VERSION"
 
-[[dependencies.lambda]]
+[[dependencies.${modId}]]
     modId = "forge"
     mandatory = true
-    versionRange = "[49,)"
+    versionRange = "[${forgeVersion},)"
     ordering = "NONE"
     side = "CLIENT"
 
-[[dependencies.lambda]]
+[[dependencies.${modId}]]
     modId = "minecraft"
     mandatory = true
-    versionRange = "[1.20.4,)"
+    versionRange = "[${minecraftVersion},)"
     ordering = "NONE"
     side = "CLIENT"
 
-[[dependencies.lambda]]
+[[dependencies.${modId}]]
     modId = "kotlinforforge"
     mandatory = true
-    versionRange = "[4.10,)"
+    versionRange = "[${kotlinForgeVersion},)"
     ordering = "NONE"
     side = "CLIENT"
