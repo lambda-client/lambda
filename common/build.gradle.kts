@@ -1,13 +1,13 @@
-val fabricLoaderVersion = property("fabric_loader_version").toString()
-val mixinExtrasVersion = property("mixinextras_version").toString()
-val kotlinVersion = property("kotlin_version").toString()
-val kotlinxCoroutinesVersion = property("kotlinx_coroutines_version").toString()
+val modId: String by project
+val fabricLoaderVersion: String by project
+val kotlinVersion: String by project
+val kotlinxCoroutinesVersion: String by project
 
 architectury { common("fabric", "forge", "neoforge") }
 
 loom {
     silentMojangMappingsLicense()
-    accessWidenerPath = File("src/main/resources/lambda.accesswidener")
+    accessWidenerPath = File("src/main/resources/$modId.accesswidener")
 }
 
 repositories {
@@ -24,16 +24,9 @@ dependencies {
 
     // Add Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
+    implementation(kotlin("reflect"))
 
     // Baritone
     modImplementation("baritone-api:baritone-api:1.10.2")
     modImplementation("baritone-api:baritone-unoptimized-fabric:1.10.2")
 }
-
-tasks {
-    // Prevent recursive libraries
-    remapJar {
-        enabled = false
-    }
-}
-

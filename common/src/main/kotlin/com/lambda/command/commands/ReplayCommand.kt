@@ -27,7 +27,7 @@ object ReplayCommand : LambdaCommand(
             required(greedyString("replay filepath")) { replayName ->
                 suggests { _, builder ->
                     val dir = FolderRegister.replay
-                    dir.listRecursive().forEach {
+                    dir.listRecursive { it.isFile }.forEach {
                         builder.suggest(it.relativeTo(dir).path)
                     }
                     builder.buildFuture()

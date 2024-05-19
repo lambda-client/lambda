@@ -2,7 +2,7 @@ package com.lambda.util
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
-import com.lambda.command.CommandManager
+import com.lambda.command.CommandRegistry
 import com.lambda.event.EventFlow
 import com.lambda.module.ModuleRegistry
 import net.minecraft.util.Formatting
@@ -15,7 +15,7 @@ object DebugInfoHud {
         add("")
         add("" + Formatting.UNDERLINE + "Lambda ${Lambda.VERSION}+${mc.versionType}")
         add("Modules: ${ModuleRegistry.modules.size} with ${ModuleRegistry.modules.sumOf { it.settings.size }} settings")
-        add("Commands: ${CommandManager.commands.size}")
+        add("Commands: ${CommandRegistry.commands.size}")
         add("Synchronous Listeners: ${EventFlow.syncListeners.size}")
         add("Concurrent Listeners: ${EventFlow.concurrentListeners.size}")
 

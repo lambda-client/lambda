@@ -1,8 +1,9 @@
-val fabricLoaderVersion = property("fabric_loader_version").toString()
-val fabricApiVersion = property("fabric_api_version").toString()
-val kotlinFabricVersion = property("kotlin_fabric_version").toString()
+val minecraftVersion: String by project
+val fabricLoaderVersion: String by project
+val fabricApiVersion: String by project
+val kotlinFabricVersion: String by project
 
-base.archivesName.set("${base.archivesName.get()}-fabric")
+base.archivesName = "${base.archivesName.get()}-fabric"
 
 architectury {
     platformSetupLoomIde()
@@ -56,7 +57,7 @@ dependencies {
     includeLib("dev.babbaj:nether-pathfinder:1.5")
 
     // Add mods to the mod jar
-    includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
+    includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion+$minecraftVersion")
     includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion")
     includeMod("baritone-api:baritone-unoptimized-fabric:1.10.2")
 
@@ -69,6 +70,9 @@ dependencies {
 }
 
 tasks {
+    // Access wideners are the successor of the mixins accessor
+    // that were used in the past to access private fields and methods.
+    // They allow you to make field, method, and class access public.
     remapJar {
         injectAccessWidener = true
     }
