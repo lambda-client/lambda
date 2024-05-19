@@ -1,8 +1,7 @@
-package com.lambda.friend
+package com.lambda.core
 
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.FriendConfig
-import com.lambda.core.Loadable
 import com.mojang.authlib.GameProfile
 import net.minecraft.server.network.ServerPlayerEntity
 import java.util.UUID
