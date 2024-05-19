@@ -20,7 +20,7 @@ object Loader {
         RotationManager,
         PlayerPacketManager,
         LambdaFont.Loader,
-        GuiConfigurable, // TODO: Why is this a loadable ?
+        GuiConfigurable,
         FriendRegistry,
         SoundRegistry,
     )
