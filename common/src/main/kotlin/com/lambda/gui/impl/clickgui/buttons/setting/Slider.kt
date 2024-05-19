@@ -47,15 +47,17 @@ abstract class Slider <V : Any, T : AbstractSetting<V>>(
     protected open fun slide(mouse: Vec2d) {
         if (activeButton != Mouse.Button.Left) return
 
-        val p = transform(mouse.x, rect.left, rect.right, 0.0, 1.0).coerceIn(0.0, 1.0)
-        setValueByProgress(p)
+        setValueByProgress(transform(mouse.x, rect.left, rect.right, 0.0, 1.0).coerceIn(0.0, 1.0))
+        playClickSound()
+    }
 
+    protected fun playClickSound() {
         val time = System.currentTimeMillis()
         if (lastPlayedValue == value || time - lastPlayedTiming < 50) return
 
         lastPlayedValue = value
         lastPlayedTiming = time
 
-        playSound(LambdaSound.BUTTON_CLICK.event, lerp(0.9, 1.2, p))
+        playSound(LambdaSound.BUTTON_CLICK.event, lerp(0.9, 1.2, progress))
     }
 }

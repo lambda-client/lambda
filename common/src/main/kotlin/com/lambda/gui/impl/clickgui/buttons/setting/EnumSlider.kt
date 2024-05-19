@@ -35,7 +35,11 @@ class EnumSlider <T : Enum<T>> (
     override fun onPress(e: GuiEvent.MouseClick) {}
 
     override fun onRelease(e: GuiEvent.MouseClick) {
-        if (dragProgress == -1.0) setting.next()
+        if (dragProgress == -1.0) {
+            setting.next()
+            playClickSound()
+        }
+
         dragProgress = -1.0
     }
 
