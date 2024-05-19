@@ -23,6 +23,7 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
     protected abstract val interactAnimation: Double
     protected abstract val hoverFontAnimation: Double
     protected abstract val showAnimation: Double
+    protected open val isKeyBind: Boolean = false
 
     val activeAnimation by owner.gui.animation.exp(0.0, 1.0, 0.7, ::isActive)
     private var typeAnimation by owner.gui.animation.exp({ 0.0 }, 0.2)
@@ -31,7 +32,8 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
     private var offset by owner.gui.animation.exp(::targetOffset, 0.4)
 
     abstract fun getText(): String
-    abstract fun setValue(string: String)
+    open fun setStringValue(string: String) {}
+    open fun setKeyValue(key: KeyCode) {}
 
     open fun isCharAllowed(char: Char): Boolean = true
 
@@ -76,7 +78,7 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
             }
 
             is GuiEvent.CharTyped -> {
-                if (!isActive || !isCharAllowed(e.char)) return
+                if (!isActive || !isCharAllowed(e.char) || isKeyBind) return
                 field.text += e.char
                 typeAnimation = 1.0
             }
@@ -84,9 +86,21 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
             is GuiEvent.KeyPress -> {
                 if (!isActive) return
 
+                if (isKeyBind) {
+                    val key = when (e.key) {
+                        KeyCode.Delete, KeyCode.Backspace -> KeyCode.Unbound
+                        KeyCode.Escape -> return
+                        else -> e.key
+                    }
+
+                    setKeyValue(key)
+                    toggle()
+                    return
+                }
+
                 when (e.key) {
                     KeyCode.Enter -> {
-                        setValue(field.text)
+                        setStringValue(field.text)
                         toggle()
                     }
 
@@ -94,6 +108,8 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
                         field.text = field.text.dropLast(1)
                         typeAnimation = -1.0
                     }
+
+                    else -> {}
                 }
             }
         }

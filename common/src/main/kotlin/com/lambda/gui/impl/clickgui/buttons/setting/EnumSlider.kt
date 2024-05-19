@@ -10,6 +10,7 @@ import com.lambda.util.math.ColorUtils.setAlpha
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.transform
+import com.lambda.util.primitives.extension.displayValue
 import java.awt.Color
 import kotlin.math.floor
 
@@ -40,7 +41,7 @@ class EnumSlider <T : Enum<T>> (
 
     init {
         renderer.font {
-            text = setting.displayValue
+            text = value.displayValue
 
             val progress = 1.0 - activeAnimation
             scale = lerp(0.5, 1.0, progress)

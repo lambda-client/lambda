@@ -80,7 +80,9 @@ abstract class LambdaGui(
     }
 
     final override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
-        onEvent(GuiEvent.KeyPress(KeyCode(keyCode)))
+        KeyCode.byIdOrNull(keyCode)?.let {
+            onEvent(GuiEvent.KeyPress(it))
+        }
 
         if (keyCode == KeyCode.Escape.key) {
             close()

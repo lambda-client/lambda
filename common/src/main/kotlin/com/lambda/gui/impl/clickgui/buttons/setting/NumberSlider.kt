@@ -32,7 +32,7 @@ class NumberSlider <N>(
         override val showAnimation      get() = this@NumberSlider.showAnimation
 
         override fun getText() = value.let(Number::toString)
-        override fun setValue(string: String) {
+        override fun setStringValue(string: String) {
             string.toDoubleOrNull()?.let(::setValue)
         }
     }.apply(layer::addChild)

@@ -78,7 +78,7 @@ object Freecam : Module(
             it.context = RotationContext(rotation, rotationConfig)
         }
 
-        listener<MovementEvent.InputUpdate> { event ->2
+        listener<MovementEvent.InputUpdate> { event ->
             // Don't block baritone from working
             if (event.input !is PlayerMovementInput) {
                 // Reset actual input
