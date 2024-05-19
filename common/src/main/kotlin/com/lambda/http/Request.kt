@@ -21,6 +21,8 @@ class Request(
     private val headers: Map<String, String> = mapOf(),
     private val config: ((HttpURLConnection) -> Unit) = {},
 ) {
+    private val exceptionFormat = "HTTP request failed with status code %d\nResponse: %s"
+
     private val canBeEncoded: Boolean
         get() = method != Method.POST && method != Method.PUT && method != Method.PATCH
 
@@ -56,8 +58,10 @@ class Request(
             return Response(
                 connection = connection,
                 exception = Throwable(
-                    "HTTP request failed with status code ${connection.responseCode}\n" +
-                            "Response: ${connection.errorStream.bufferedReader().readText()}"
+                    exceptionFormat.format(
+                        connection.responseCode,
+                        connection.errorStream.bufferedReader().readText()
+                    )
                 )
             )
         }
