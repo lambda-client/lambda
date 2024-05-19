@@ -6,7 +6,6 @@ import org.reflections.Reflections
 import org.reflections.scanners.Scanners
 import org.reflections.util.ConfigurationBuilder
 
-
 /**
  * The [ModuleRegistry] object is responsible for managing all [Module] instances in the system.
  *
@@ -18,10 +17,14 @@ object ModuleRegistry : Loadable {
     val moduleNames: Set<String>
         get() = modules.map { it.name }.toSet()
 
+    private val paths = mutableSetOf("com.lambda.module.modules")
+
+    fun injectPath(path: String) = paths.add(path)
+
     override fun load(): String {
         Reflections(
             ConfigurationBuilder()
-                .forPackage("com.lambda.module.modules")
+                .forPackages(*paths.toTypedArray())
                 .addScanners(Scanners.SubTypes)
         ).getSubTypesOf(Module::class.java).forEach { moduleClass ->
             moduleClass.declaredFields.find {
