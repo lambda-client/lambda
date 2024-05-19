@@ -1,5 +1,4 @@
 val fabricLoaderVersion = property("fabric_loader_version").toString()
-val mixinExtrasVersion = property("mixinextras_version").toString()
 val kotlinVersion = property("kotlin_version").toString()
 val kotlinxCoroutinesVersion = property("kotlinx_coroutines_version").toString()
 
@@ -24,16 +23,9 @@ dependencies {
 
     // Add Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
+    implementation(kotlin("reflect"))
 
     // Baritone
     modImplementation("baritone-api:baritone-api:1.10.2")
     modImplementation("baritone-api:baritone-unoptimized-fabric:1.10.2")
 }
-
-tasks {
-    // Prevent recursive libraries
-    remapJar {
-        enabled = false
-    }
-}
-

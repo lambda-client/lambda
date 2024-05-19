@@ -6,10 +6,9 @@ import com.lambda.brigadier.argument.boolean
 import com.lambda.brigadier.argument.string
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
-import com.lambda.brigadier.get
 import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
-import com.lambda.command.CommandManager.prefix
+import com.lambda.command.CommandRegistry.prefix
 import com.lambda.command.LambdaCommand
 import com.lambda.module.ModuleRegistry
 import com.lambda.threading.runSafe

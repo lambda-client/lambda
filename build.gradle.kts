@@ -80,9 +80,10 @@ allprojects {
     apply(plugin = "maven-publish")
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
-    base.archivesName.set(modId)
     group = mavenGroup
     version = modVersion
+
+    base.archivesName = modId
 
     repositories {
         maven("https://api.modrinth.com/maven")
@@ -98,9 +99,7 @@ allprojects {
     }
 
     java {
-        // Uncomment these lines when the plugin system is ready
-        // withSourcesJar()
-        // withJavadocJar()
+        withSourcesJar()
 
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

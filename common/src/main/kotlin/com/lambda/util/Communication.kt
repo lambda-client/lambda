@@ -2,7 +2,7 @@ package com.lambda.util
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
-import com.lambda.command.CommandManager
+import com.lambda.command.CommandRegistry
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Configuration
 import com.lambda.event.EventFlow
@@ -161,7 +161,7 @@ object Communication {
                 }
                 literal(" v${Lambda.VERSION}\n")
                 literal("Modules: ${ModuleRegistry.modules.size}\n")
-                literal("Commands: ${CommandManager.commands.size}\n")
+                literal("Commands: ${CommandRegistry.commands.size}\n")
                 literal("Settings: ${Configuration.configurations.sumOf { config ->
                     config.configurables.sumOf { it.settings.size }
                 }}")

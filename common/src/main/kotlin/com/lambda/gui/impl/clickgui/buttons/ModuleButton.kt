@@ -4,8 +4,8 @@ import com.lambda.config.settings.NumericSetting
 import com.lambda.config.settings.StringSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
-import com.lambda.core.LambdaSound
-import com.lambda.core.SoundManager.playSoundRandomly
+import com.lambda.sound.LambdaSound
+import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.gui.api.GuiEvent
