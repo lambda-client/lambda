@@ -1,6 +1,7 @@
 package com.lambda.http
 
 import com.lambda.Lambda
+import com.lambda.Lambda.LOG
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -51,6 +52,16 @@ class Request(
 
         connection.connect()
 
+        if (connection.responseCode !in 200..299) {
+            return Response(
+                connection = connection,
+                exception = Throwable(
+                    "HTTP request failed with status code ${connection.responseCode}\n" +
+                            "Response: ${connection.errorStream.bufferedReader().readText()}"
+                )
+            )
+        }
+
         val response = Response(
             connection = connection,
             body = connection.inputStream.bufferedReader()
@@ -64,6 +75,14 @@ class Request(
      *
      * @param T The type of the expected JSON response.
      */
-    inline fun <reified T : Any> json(): T? =
-        doRequest().body?.let { Lambda.gson.fromJson(it, T::class.java) }
+    inline fun <reified T : Any> json(): T? {
+        val response = doRequest()
+
+        response.exception?.let {
+            LOG.error(it)
+            return null
+        }
+
+        return response.body?.let { Lambda.gson.fromJson(it, T::class.java) }
+    }
 }
