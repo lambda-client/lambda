@@ -31,6 +31,14 @@ class NumberSlider <N>(
         override val hoverFontAnimation get() = this@NumberSlider.hoverFontAnimation
         override val showAnimation      get() = this@NumberSlider.showAnimation
 
+        override fun isCharAllowed(string: String, char: Char): Boolean {
+            return when (char) {
+                '.' -> char !in string
+                '-' -> string.isEmpty()
+                else -> char.isDigit()
+            }
+        }
+
         override fun getText() = value.let(Number::toString)
         override fun setStringValue(string: String) {
             string.toDoubleOrNull()?.let(::setValue)

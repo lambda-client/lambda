@@ -35,7 +35,7 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
     open fun setStringValue(string: String) {}
     open fun setKeyValue(key: KeyCode) {}
 
-    open fun isCharAllowed(char: Char): Boolean = true
+    open fun isCharAllowed(string: String, char: Char): Boolean = true
 
     private val field = renderer.font {
         scale = lerp(0.5, 1.0, activeAnimation) - pressAnimation * 0.08
@@ -78,7 +78,7 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
             }
 
             is GuiEvent.CharTyped -> {
-                if (!isActive || !isCharAllowed(e.char) || isKeyBind) return
+                if (!isActive || !isCharAllowed(field.text, e.char) || isKeyBind) return
                 field.text += e.char
                 typeAnimation = 1.0
             }
