@@ -80,7 +80,7 @@ abstract class LambdaGui(
     }
 
     final override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
-        KeyCode.fromKeyCodeOrNull(keyCode)?.let {
+        KeyCode.translateKeyCode(keyCode, scanCode).let {
             onEvent(GuiEvent.KeyPress(it))
         }
 

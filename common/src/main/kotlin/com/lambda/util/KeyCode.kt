@@ -2,6 +2,15 @@ package com.lambda.util
 
 import com.lambda.util.primitives.extension.displayValue
 import org.lwjgl.glfw.GLFW
+import java.util.*
+
+const val charNames = "`-=[]\\,;\'./"
+val charKeys = intArrayOf(
+    GLFW.GLFW_KEY_GRAVE_ACCENT, GLFW.GLFW_KEY_MINUS, GLFW.GLFW_KEY_EQUAL,
+    GLFW.GLFW_KEY_LEFT_BRACKET, GLFW.GLFW_KEY_RIGHT_BRACKET, GLFW.GLFW_KEY_BACKSLASH,
+    GLFW.GLFW_KEY_COMMA, GLFW.GLFW_KEY_SEMICOLON, GLFW.GLFW_KEY_APOSTROPHE,
+    GLFW.GLFW_KEY_PERIOD, GLFW.GLFW_KEY_SLASH, 0
+)
 
 enum class KeyCode(val keyCode: Int) {
     Unbound(GLFW.GLFW_KEY_UNKNOWN),
@@ -130,10 +139,37 @@ enum class KeyCode(val keyCode: Int) {
     val localizedName by lazy { GLFW.glfwGetKeyName(keyCode, 0)?.uppercase() ?: displayValue }
 
     companion object {
-        fun fromKeyCodeOrNull(keyCode: Int) = entries.firstOrNull { it.keyCode == keyCode }
+        private val keyCodeMap: Map<Int, KeyCode> = entries.associateBy { it.keyCode }
+        private val nameMap: Map<String, KeyCode> = entries.associateBy { it.name.lowercase(Locale.getDefault()) }
+
+        fun fromKeyCodeOrNull(keyCode: Int) = keyCodeMap[keyCode]
         fun fromKeyCode(keyCode: Int) = fromKeyCodeOrNull(keyCode) ?: Unbound
 
-        fun fromNameOrNull(name: String) = entries.firstOrNull { it.name.equals(name, true) }
+        fun fromNameOrNull(name: String) = nameMap[name.lowercase(Locale.getDefault())]
         fun fromName(name: String) = fromNameOrNull(name) ?: Unbound
+
+        fun translateKeyCode(key: Int, scanCode: Int): KeyCode {
+            if (key in GLFW.GLFW_KEY_KP_0..GLFW.GLFW_KEY_KP_EQUAL) {
+                return fromKeyCode(key)
+            }
+
+            val keyName = GLFW.glfwGetKeyName(key, scanCode) ?: return fromKeyCode(key)
+
+            if (keyName.length == 1) {
+                when (val char = keyName[0]) {
+                    in '0'..'9' -> return fromKeyCode(GLFW.GLFW_KEY_0 + (char - '0'))
+                    in 'A'..'Z' -> return fromKeyCode(GLFW.GLFW_KEY_A + (char - 'A'))
+                    in 'a'..'z' -> return fromKeyCode(GLFW.GLFW_KEY_A + (char - 'a'))
+                    else -> {
+                        val index = charNames.indexOf(char)
+                        if (index != -1) {
+                            return fromKeyCode(charKeys[index])
+                        }
+                    }
+                }
+            }
+
+            return fromKeyCode(key)
+        }
     }
 }
