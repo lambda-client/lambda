@@ -5,11 +5,13 @@ import com.lambda.event.EventFlow.syncListeners
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.UnsafeListener
+import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.gui.api.component.core.IComponent
 import com.lambda.module.Module
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.Nameable
+import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 import net.minecraft.client.gui.DrawContext
@@ -22,15 +24,19 @@ abstract class LambdaGui(
     private val owner: Module? = null
 ) : Screen(Text.of(name)), IComponent, Nameable {
     private var screenSize = Vec2d.ZERO
+    override val rect get() = Rect(Vec2d.ZERO, screenSize)
+
+    val animation = AnimationTicker()
 
     private val renderListener = UnsafeListener(0, this, false) { event ->
         event as RenderEvent.GUI.Scaled
         screenSize = event.screenSize
-        onRender()
+        onEvent(GuiEvent.Render())
     }
 
     private val tickListener = UnsafeListener(0, this, false) {
-        onTick()
+        animation.tick()
+        onEvent(GuiEvent.Tick())
     }
 
     /**
@@ -47,7 +53,7 @@ abstract class LambdaGui(
     }
 
     final override fun onDisplayed() {
-        onShow()
+        onEvent(GuiEvent.Show())
 
         with(syncListeners) {
             subscribe<RenderEvent.GUI.Scaled>(renderListener)
@@ -56,7 +62,7 @@ abstract class LambdaGui(
     }
 
     final override fun removed() {
-        onHide()
+        onEvent(GuiEvent.Hide())
 
         // quick crashfix (is there any other way to prevent gui being closed twice?)
         mc.currentScreen = null
@@ -74,7 +80,7 @@ abstract class LambdaGui(
     }
 
     final override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
-        onKey(KeyCode(keyCode))
+        onEvent(GuiEvent.KeyPress(KeyCode(keyCode)))
 
         if (keyCode == KeyCode.Escape.key) {
             close()
@@ -84,22 +90,22 @@ abstract class LambdaGui(
     }
 
     final override fun charTyped(chr: Char, modifiers: Int): Boolean {
-        onChar(chr)
+        onEvent(GuiEvent.CharTyped(chr))
         return true
     }
 
     final override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        onMouseClick(Mouse.Button(button), Mouse.Action.Click, rescaleMouse(mouseX, mouseY))
+        onEvent(GuiEvent.MouseClick(Mouse.Button(button), Mouse.Action.Click, rescaleMouse(mouseX, mouseY)))
         return true
     }
 
     final override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        onMouseClick(Mouse.Button(button), Mouse.Action.Release, rescaleMouse(mouseX, mouseY))
+        onEvent(GuiEvent.MouseClick(Mouse.Button(button), Mouse.Action.Release, rescaleMouse(mouseX, mouseY)))
         return true
     }
 
     final override fun mouseMoved(mouseX: Double, mouseY: Double) {
-        onMouseMove(rescaleMouse(mouseX, mouseY))
+        onEvent(GuiEvent.MouseMove(rescaleMouse(mouseX, mouseY)))
     }
 
     final override fun shouldPause() = false

@@ -1,33 +1,45 @@
 package com.lambda.graphics.gl
 
-import net.minecraft.client.util.math.MatrixStack
+import org.joml.Matrix4f
+import org.joml.Quaternionf
+import kotlin.collections.ArrayDeque
 
 object Matrices {
-    var stack = MatrixStack()
-    private val matrix get() = stack.peek().positionMatrix
+    private val stack = ArrayDeque(listOf(Matrix4f()))
 
-    fun pushMatrix() {
-        stack.push()
+    fun translate(x: Double, y: Double, z: Double) {
+        translate(x.toFloat(), y.toFloat(), z.toFloat())
     }
 
-    fun popMatrix() {
-        stack.push()
+    fun translate(x: Float, y: Float, z: Float) {
+        stack.last().translate(x, y, z)
     }
 
-    fun resetMatrix() {
-        stack = MatrixStack()
+    fun scale(x: Float, y: Float, z: Float) {
+        stack.last().scale(x, y, z)
     }
 
-    fun translate(x: Double, y: Double, z: Double = 0.0) {
-        matrix.translate(x.toFloat(), y.toFloat(), z.toFloat())
+    fun multiply(quaternion: Quaternionf) {
+        stack.last().rotate(quaternion)
     }
 
-    fun scale(x: Double, y: Double, z: Double = 1.0) {
-        matrix.scale(x.toFloat(), y.toFloat(), z.toFloat())
+    fun multiply(quaternion: Quaternionf, originX: Float, originY: Float, originZ: Float) {
+        stack.last().rotateAround(quaternion, originX, originY, originZ)
     }
 
-    fun scale(value: Double) {
-        val valueFloat = value.toFloat()
-        matrix.scale(valueFloat, valueFloat, valueFloat)
+    fun push() {
+        val entry = stack.last()
+        stack.addLast(Matrix4f(entry))
+    }
+
+    fun pop() {
+        stack.removeLast()
+    }
+
+    fun peek() = stack.last()
+
+    fun resetMatrix(entry: Matrix4f = Matrix4f()) {
+        stack.clear()
+        stack.add(entry)
     }
 }

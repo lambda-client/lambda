@@ -31,6 +31,6 @@ abstract class NumericSetting<T>(
     override fun toString() = "$value$unit"
 
     override operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: T) {
-        value = valueIn.coerceIn(range).roundToStep(step)
+        value = valueIn.coerceIn(range)
     }
 }

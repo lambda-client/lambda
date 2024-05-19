@@ -1,31 +1,38 @@
 package com.lambda.graphics.renderer
 
 import com.lambda.graphics.buffer.vao.VAO
+import com.lambda.graphics.gl.Matrices
+import com.lambda.graphics.shader.Shader
+import com.lambda.util.math.Vec2d
 import kotlinx.coroutines.*
 import kotlin.properties.Delegates
 
-abstract class Renderer <T: IRenderEntry<T>> : IRenderer<T> {
+abstract class Renderer <T: IRenderEntry<T>> (
+    protected val shader: Shader
+) : IRenderer<T> {
     private val entrySet = mutableSetOf<T>()
-    private var rebuild = false
+    protected var rebuild = false
     private var destroyed = false
 
     val asRenderer get() = this as IRenderer<T>
+
+    // Optimization tweak to reduce build calls when whole renderer moves
+    // Instead of rebuilding all entries you translate the matrix
+    var matrixOffset = Vec2d.ZERO
 
     abstract val vao: VAO
     protected abstract fun newEntry(block: T.() -> Unit): T
 
     override fun build(block: T.() -> Unit): T {
-        checkDestroyed()
         return newEntry(block).process(entrySet::add)
     }
 
     override fun remove(entry: T): T {
-        checkDestroyed()
         return entry.process(entrySet::remove)
     }
 
     override fun render() {
-        checkDestroyed()
+        if (destroyed) return
 
         if (rebuild) {
             rebuild = false
@@ -35,23 +42,32 @@ abstract class Renderer <T: IRenderEntry<T>> : IRenderer<T> {
             vao.upload()
         }
 
+        Matrices.push()
+        Matrices.translate(matrixOffset.x, matrixOffset.y, 0.0)
+
+        shader.use()
+        preRender()
         vao.render()
+
+        Matrices.pop()
     }
 
+    protected open fun preRender() {}
+
     override fun update() {
-        checkDestroyed()
+        if (destroyed) return
         entrySet.forEach(IRenderEntry<T>::update)
     }
 
     override fun clear() {
-        checkDestroyed()
+        if (destroyed) return
 
         entrySet.clear()
         vao.clear()
     }
 
     override fun destroy() {
-        checkDestroyed()
+        if (destroyed) return
 
         entrySet.clear()
         vao.destroy()
@@ -70,8 +86,4 @@ abstract class Renderer <T: IRenderEntry<T>> : IRenderer<T> {
             if (prev == curr) return@observable
             rebuild = true
         }
-
-    private fun checkDestroyed() {
-        check(!destroyed) { "Using the renderer after it is destroyed" }
-    }
 }

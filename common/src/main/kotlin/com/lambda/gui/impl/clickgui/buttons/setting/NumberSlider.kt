@@ -1,0 +1,72 @@
+package com.lambda.gui.impl.clickgui.buttons.setting
+
+import com.lambda.config.settings.NumericSetting
+import com.lambda.gui.api.GuiEvent
+import com.lambda.gui.api.component.button.InputBarOverlay
+import com.lambda.gui.api.component.core.list.ChildLayer
+import com.lambda.gui.impl.clickgui.AbstractClickGui
+import com.lambda.gui.impl.clickgui.buttons.ModuleButton
+import com.lambda.gui.impl.clickgui.buttons.SettingButton
+import com.lambda.util.Mouse
+import com.lambda.util.math.ColorUtils.multAlpha
+import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.MathUtils.roundToStep
+import com.lambda.util.math.MathUtils.typeConvert
+import com.lambda.util.math.Vec2d
+import com.lambda.util.math.normalize
+
+class NumberSlider <N>(
+    setting: NumericSetting<N>,
+    owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
+) : Slider<N, NumericSetting<N>>(
+    setting, owner
+) where N : Number, N : Comparable<N> {
+    private val doubleRange get() = setting.range.let { it.start.toDouble()..it.endInclusive.toDouble() }
+    override val progress get() = doubleRange.normalize(value.toDouble())
+
+    private val layer = ChildLayer.Drawable(owner.gui, this, owner.renderer, ::rect, InputBarOverlay::isActive)
+    private val inputBar: InputBarOverlay = object : InputBarOverlay(renderer, layer) {
+        override val pressAnimation     get() = this@NumberSlider.pressAnimation
+        override val interactAnimation  get() = this@NumberSlider.interactAnimation
+        override val hoverFontAnimation get() = this@NumberSlider.hoverFontAnimation
+        override val showAnimation      get() = this@NumberSlider.showAnimation
+
+        override fun getText() = value.let(Number::toString)
+        override fun setValue(string: String) {
+            string.toDoubleOrNull()?.let(::setValue)
+        }
+    }.apply(layer::addChild)
+
+    override val textColor get() = super.textColor.multAlpha(1.0 - inputBar.activeAnimation)
+
+    override fun onEvent(e: GuiEvent) {
+        super.onEvent(e)
+        layer.onEvent(e)
+    }
+
+    override fun unfocus() {
+        inputBar.isActive = false
+    }
+
+    override fun performClickAction(e: GuiEvent.MouseClick) {
+        if (e.button != Mouse.Button.Right) return
+        if (!inputBar.isActive) (owner.gui as? AbstractClickGui)?.unfocusSettings()
+        inputBar.toggle()
+    }
+
+    override fun slide(mouse: Vec2d) {
+        if (!inputBar.isActive) super.slide(mouse)
+    }
+
+    override fun setValueByProgress(progress: Double) {
+        setValue(lerp(
+            setting.range.start.toDouble(),
+            setting.range.endInclusive.toDouble(),
+            progress
+        ))
+    }
+
+    private fun setValue(valueIn: Double) {
+        value = value.typeConvert(valueIn.roundToStep(setting.step.toDouble()))
+    }
+}

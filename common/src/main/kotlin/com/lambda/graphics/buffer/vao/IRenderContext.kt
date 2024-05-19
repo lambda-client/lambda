@@ -5,6 +5,7 @@ import java.awt.Color
 interface IRenderContext {
     fun vec3(x: Double, y: Double, z: Double): IRenderContext
     fun vec2(x: Double, y: Double): IRenderContext
+    fun float(v: Double): IRenderContext
     fun color(color: Color): IRenderContext
     fun end(): Int
 

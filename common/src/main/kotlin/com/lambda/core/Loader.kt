@@ -5,10 +5,11 @@ import com.lambda.Lambda.LOG
 import com.lambda.command.CommandRegistry
 import com.lambda.friend.FriendRegistry
 import com.lambda.graphics.renderer.gui.font.LambdaFont
-import com.lambda.gui.impl.clickgui.GuiConfigurable
+import com.lambda.gui.GuiConfigurable
 import com.lambda.interaction.PlayerPacketManager
 import com.lambda.interaction.RotationManager
 import com.lambda.module.ModuleRegistry
+import com.lambda.sound.SoundRegistry
 import com.lambda.util.Communication.ascii
 import kotlin.system.measureTimeMillis
 
@@ -21,6 +22,7 @@ object Loader {
         LambdaFont.Loader,
         GuiConfigurable, // TODO: Why is this a loadable ?
         FriendRegistry,
+        SoundRegistry,
     )
 
     fun initialize() {
@@ -29,7 +31,7 @@ object Loader {
 
         val initTime = measureTimeMillis {
             loadables.forEach { loadable ->
-                var info: String
+                val info: String
                 val phaseTime = measureTimeMillis {
                     info = loadable.load()
                 }
