@@ -17,10 +17,6 @@ fun createParty(
     // If false can only be joined by invite.
     // example: true
     public: Boolean = true,
-
-    // Whether the party can be listed or not.
-    // example: true
-    listed: Boolean = true,
 ) =
     Request(
         "$endpoint/api/$version/party/create",
@@ -29,7 +25,6 @@ fun createParty(
             mapOf(
                 "max_players" to maxPlayers,
                 "public" to public,
-                "listed" to listed
             ),
         headers =
             mapOf(

@@ -3,7 +3,6 @@ package com.lambda.module.modules.client
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
-import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.ioScope
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
@@ -23,7 +22,6 @@ import com.lambda.util.Communication.toast
 import com.lambda.util.Communication.warn
 import com.lambda.util.Nameable
 import com.lambda.util.StringUtils.capitalize
-import com.lambda.util.primitives.extension.isOffline
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.buildText
 import com.lambda.util.text.clickEvent
@@ -48,6 +46,7 @@ object DiscordRPC : Module(
     name = "DiscordRPC",
     description = "Discord Rich Presence configuration",
     defaultTags = setOf(ModuleTag.CLIENT),
+    enabledByDefault = true,
 ) {
     private val page by setting("Page", Page.General)
 
@@ -68,14 +67,12 @@ object DiscordRPC : Module(
 
     /* Party settings */
     private val enableParty by setting("Enable Party", true, description = "Allows you to create parties.") { page == Page.Party }
-    private val createByDefault by setting("Create Party by Default", false, description = "Automatically create a party when you join a server.") { page == Page.Party && enableParty }
-    private val maxPlayers by setting("Max Players", 10, 2..20, visibility = { page == Page.Party }).apply { listener { _, _ -> edit() }}
-    private val public by setting("Public Party", false, description = "Allow anyone to join your party.") { page == Page.Party }.apply { listener { _, _ -> edit() }}
-    private val listed by setting("Listed Party", false, description = "Allow your party to be listed for other players.") { page == Page.Party && public }.apply { listener { _, _ -> edit() }}
+    private val createByDefault by setting("Create Party by Default", true, description = "Automatically create a party when you join a server.") { page == Page.Party && enableParty }
+    private val maxPlayers by setting("Max Players", 10, 2..20, visibility = { page == Page.Party }).apply { onValueChange { _, _ -> edit() } }
+    private val public by setting("Public Party", false, description = "Allow anyone to join your party.") { page == Page.Party }.apply { onValueChange { _, _ -> edit() } }
 
     private val rpc = KDiscordIPC(Lambda.APP_ID, scope = ioScope)
     private val startup = System.currentTimeMillis()
-    private val cracked = mc.gameProfile.isOffline
 
     private var discordAuth: AuthenticatePacket.Data? = null
     private var rpcAuth: Authentication? = null
@@ -90,7 +87,7 @@ object DiscordRPC : Module(
      * If the player can interact with the party system.
      */
     private val allowed: Boolean
-        get() = rpcAuth != null && discordAuth != null && !cracked && enableParty
+        get() = rpcAuth != null && discordAuth != null && enableParty
 
     private enum class Page {
         General, Settings, Party
@@ -99,17 +96,31 @@ object DiscordRPC : Module(
     private enum class LineInfo(val value: () -> String) : Nameable {
         VERSION({ Lambda.VERSION }),
         WORLD({
-            if (mc.currentServerEntry != null) "Multiplayer"
-            else if (mc.isIntegratedServerRunning) "Singleplayer"
-            else "Main Menu"
+            when {
+                mc.currentServerEntry != null -> "Multiplayer"
+                mc.isIntegratedServerRunning -> "Singleplayer"
+                else -> "Main Menu"
+            }
         }),
         USERNAME({ mc.session.username }),
         HEALTH({ "${mc.player?.health ?: 0} HP" }),
         HUNGER({ "${mc.player?.hungerManager?.foodLevel ?: 0} Hunger" }),
         DIMENSION({ mc.world?.dimensionKey?.value?.path?.capitalize() ?: "Unknown" }),
-        COORDINATES({ if (confirmCoordinates) "Coords: ${mc.player?.blockPos?.toShortString()}" else "[Redacted]" }),
-        SERVER({ if (confirmServer) mc.currentServerEntry?.address ?: "Not Connected" else "[Redacted]" }),
-        FPS({ "${mc.currentFps} FPS" }),
+        COORDINATES({
+            if (confirmCoordinates) {
+                "Coords: ${mc.player?.blockPos?.toShortString()}"
+            } else {
+                "[Redacted]"
+            }
+        }),
+        SERVER({
+            if (confirmServer) {
+                mc.currentServerEntry?.address ?: "Not Connected"
+            } else {
+                "[Redacted]"
+            }
+        }),
+        FPS({ "${mc.currentFps} FPS" });
     }
 
     private enum class ApiVersion(val value: String) {
@@ -141,43 +152,13 @@ object DiscordRPC : Module(
         onShutdown { disconnect() }
     }
 
-    // TODO: Fix the rpc only showing up in the second connection
-    // We should do a video of my sanity slowing degrading over time
-    // as I try to implement stuff and fix other stuff
     private suspend fun connect(event: ConnectionEvent.Connect.Login.Key? = null) {
-        if (!rpc.connected) {
-            rpc.register()
-            rpc.connect()
-        }
+        if (event != null) rpc.register(event)
 
-        if (!cracked &&
-            (rpcAuth == null ||
-            discordAuth == null) &&
-            event != null)
-        {
-            if (System.currentTimeMillis() - connectionTime > 300000) {
-                warn("The authentication hash has expired, please reconnect to the server.")
-                return
-            }
+        if (!rpc.connected) runConcurrent { rpc.connect() }
 
-            val hash = BigInteger(NetworkEncryptionUtils.computeServerId(serverId ?: return, event.publicKey, event.secretKey)).toString(16)
-
-            // Prompt the user to authorize
-            discordAuth = rpc.applicationManager.authenticate()
-            rpcAuth = login(rpcServer, apiVersion.value, discordAuth?.accessToken ?: "", mc.session.username, hash)
-
-            if (rpcAuth != null) {
-                info("Successfully authenticated with the RPC server.")
-                if (createByDefault) create()
-            } else {
-                warn("Failed to authenticate with the RPC server.")
-            }
-        } else {
-            warn("You are using an offline account, please use a premium account to access all the RPC features.")
-        }
-
-        loop@ while (true) {
-            if (rpc.connected) update() else break@loop
+        while (true) {
+            if (rpc.connected) update()
             delay(delay * 1000L)
         }
     }
@@ -209,11 +190,12 @@ object DiscordRPC : Module(
         }
     }
 
-    private fun create() {
+    fun create() {
         if (!allowed) return
 
         ioScope.launch {
-            createParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, maxPlayers, public, listed)
+            println(rpcAuth)
+            createParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, maxPlayers, public)
                 .also { currentParty.lazySet(it) }
         }
     }
@@ -223,7 +205,7 @@ object DiscordRPC : Module(
 
         ioScope.launch {
             currentParty.acquire?.let {
-                editParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, maxPlayers, public, listed)
+                editParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, maxPlayers, public)
                     .also { currentParty.lazySet(it) }
             }
         }
@@ -250,24 +232,40 @@ object DiscordRPC : Module(
         }
     }
 
-    private suspend fun KDiscordIPC.register() {
+    private suspend fun KDiscordIPC.register(auth: ConnectionEvent.Connect.Login.Key) {
         on<ReadyEvent> {
-            LOG.info("Discord RPC connected to ${data.user.username}.")
+            // Party features
+            subscribe(DiscordEvent.ActivityJoinRequest)
+            subscribe(DiscordEvent.ActivityJoin)
+            subscribe(DiscordEvent.ActivityInvite)
+            //subscribe(DiscordEvent.LobbyUpdate) // Invalid Event ?
+            //subscribe(DiscordEvent.LobbyDelete) // Invalid Event ?
+            //subscribe(DiscordEvent.LobbyMemberConnect)
+            //subscribe(DiscordEvent.LobbyMemberDisconnect)
+            //subscribe(DiscordEvent.LobbyMemberUpdate)
 
-            if (!cracked) {
-                // Party features
-                subscribe(DiscordEvent.ActivityJoinRequest)
-                subscribe(DiscordEvent.ActivityJoin)
-                subscribe(DiscordEvent.ActivityInvite)
-                subscribe(DiscordEvent.LobbyUpdate)
-                subscribe(DiscordEvent.LobbyDelete)
-                subscribe(DiscordEvent.LobbyMemberConnect)
-                subscribe(DiscordEvent.LobbyMemberDisconnect)
-                subscribe(DiscordEvent.LobbyMemberUpdate)
+            // QOL features
+            subscribe(DiscordEvent.SpeakingStart)
+            subscribe(DiscordEvent.SpeakingStop)
 
-                // QOL features
-                subscribe(DiscordEvent.SpeakingStart)
-                subscribe(DiscordEvent.SpeakingStop)
+            if (System.currentTimeMillis() - connectionTime > 300000) {
+                warn("The authentication hash has expired, reconnect to the server.")
+                return@on
+            }
+
+            val hash = BigInteger(
+                NetworkEncryptionUtils.computeServerId(serverId ?: return@on, auth.publicKey, auth.secretKey)
+            ).toString(16)
+
+            // Prompt the user to authorize
+            discordAuth = rpc.applicationManager.authenticate()
+            rpcAuth = login(rpcServer, apiVersion.value, discordAuth?.accessToken ?: "", mc.session.username, hash)
+
+            if (rpcAuth != null) {
+                info("Successfully authenticated with the RPC server.")
+                if (createByDefault) create()
+            } else {
+                warn("Failed to authenticate with the RPC server.")
             }
         }
 

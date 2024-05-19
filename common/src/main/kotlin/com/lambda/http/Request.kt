@@ -39,6 +39,9 @@ class Request(
 
         headers.forEach { (key, value) -> connection.setRequestProperty(key, Lambda.gson.toJson(value)) }
 
+        // For the moment we are only supporting JSON requests.
+        connection.setRequestProperty("Content-Type", "application/json")
+
         if (!canBeEncoded) {
             connection.doOutput = true
             connection.outputStream.use {

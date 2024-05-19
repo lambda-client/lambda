@@ -8,4 +8,4 @@ val PlayerEntity.isOffline
     get() = gameProfile.isOffline
 
 val GameProfile.isOffline
-    get() = Uuids.getOfflinePlayerUuid(name) == id
+    get() = properties.isEmpty
