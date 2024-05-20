@@ -60,6 +60,9 @@ class Request(
                 exception = Throwable(
                     exceptionFormat.format(
                         connection.responseCode,
+                        // If there is an error here, it means the connection
+                        // was abruptly closed and there is no error stream.
+                        // I don't know how to handle this rare edge case.
                         connection.errorStream.bufferedReader().readText()
                     )
                 )

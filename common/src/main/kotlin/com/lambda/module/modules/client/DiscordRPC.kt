@@ -194,7 +194,6 @@ object DiscordRPC : Module(
         if (!allowed) return
 
         ioScope.launch {
-            println(rpcAuth)
             createParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, maxPlayers, public)
                 .also { currentParty.lazySet(it) }
         }
