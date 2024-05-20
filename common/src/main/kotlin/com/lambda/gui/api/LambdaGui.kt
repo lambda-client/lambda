@@ -80,16 +80,16 @@ abstract class LambdaGui(
     }
 
     final override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
-        KeyCode.translateKeyCode(keyCode, scanCode).let {
-            onEvent(GuiEvent.KeyPress(it))
-        }
+        val translated = KeyCode.fromUS(keyCode, scanCode)
+        onEvent(GuiEvent.KeyPress(translated))
 
-        if (keyCode == KeyCode.Escape.keyCode) {
+        if (keyCode == KeyCode.ESCAPE.keyCode) {
             close()
         }
 
         return true
     }
+
 
     final override fun charTyped(chr: Char, modifiers: Int): Boolean {
         onEvent(GuiEvent.CharTyped(chr))

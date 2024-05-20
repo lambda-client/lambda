@@ -19,5 +19,5 @@ object KeyCodeSerializer : JsonSerializer<KeyCode>, JsonDeserializer<KeyCode> {
         typeOfT: Type?,
         context: JsonDeserializationContext?,
     ): KeyCode =
-        json?.asString?.let(KeyCode::fromNameOrNull) ?: throw JsonParseException("Invalid key code format")
+        json?.asString?.let(KeyCode::fromKeyName) ?: throw JsonParseException("Invalid key code format")
 }

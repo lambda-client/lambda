@@ -9,7 +9,7 @@ import org.lwjgl.glfw.GLFW
 object TaskTester {
     init {
         listener<KeyPressEvent> {
-            if (it.key != GLFW.GLFW_KEY_Z) {
+            if (it.keyCode != GLFW.GLFW_KEY_Z) {
                 return@listener
             }
 

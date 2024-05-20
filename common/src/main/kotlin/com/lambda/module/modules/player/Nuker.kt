@@ -12,8 +12,7 @@ import net.minecraft.util.math.Vec3i
 
 object Nuker : Module(
     name = "Nuker",
-    description = "Breaks blocks around you",
-    defaultKeybind = KeyCode.Comma
+    description = "Breaks blocks around you"
 ) {
     private val flatten by setting("Flatten", true)
 

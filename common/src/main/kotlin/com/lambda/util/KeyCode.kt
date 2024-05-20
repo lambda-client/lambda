@@ -1,37 +1,27 @@
 package com.lambda.util
 
-import com.lambda.util.primitives.extension.displayValue
 import org.lwjgl.glfw.GLFW
-import java.util.*
-
-const val charNames = "`-=[]\\,;\'./"
-val charKeys = intArrayOf(
-    GLFW.GLFW_KEY_GRAVE_ACCENT, GLFW.GLFW_KEY_MINUS, GLFW.GLFW_KEY_EQUAL,
-    GLFW.GLFW_KEY_LEFT_BRACKET, GLFW.GLFW_KEY_RIGHT_BRACKET, GLFW.GLFW_KEY_BACKSLASH,
-    GLFW.GLFW_KEY_COMMA, GLFW.GLFW_KEY_SEMICOLON, GLFW.GLFW_KEY_APOSTROPHE,
-    GLFW.GLFW_KEY_PERIOD, GLFW.GLFW_KEY_SLASH, 0
-)
 
 enum class KeyCode(val keyCode: Int) {
-    Unbound(GLFW.GLFW_KEY_UNKNOWN),
-    Space(GLFW.GLFW_KEY_SPACE),
-    Apostrophe(GLFW.GLFW_KEY_APOSTROPHE),
-    Comma(GLFW.GLFW_KEY_COMMA),
-    Minus(GLFW.GLFW_KEY_MINUS),
-    Period(GLFW.GLFW_KEY_PERIOD),
-    Slash(GLFW.GLFW_KEY_SLASH),
-    Num0(GLFW.GLFW_KEY_0),
-    Num1(GLFW.GLFW_KEY_1),
-    Num2(GLFW.GLFW_KEY_2),
-    Num3(GLFW.GLFW_KEY_3),
-    Num4(GLFW.GLFW_KEY_4),
-    Num5(GLFW.GLFW_KEY_5),
-    Num6(GLFW.GLFW_KEY_6),
-    Num7(GLFW.GLFW_KEY_7),
-    Num8(GLFW.GLFW_KEY_8),
-    Num9(GLFW.GLFW_KEY_9),
-    Semicolon(GLFW.GLFW_KEY_SEMICOLON),
-    Equal(GLFW.GLFW_KEY_EQUAL),
+    UNBOUND(GLFW.GLFW_KEY_UNKNOWN),
+    SPACE(GLFW.GLFW_KEY_SPACE),
+    APOSTROPHE(GLFW.GLFW_KEY_APOSTROPHE),
+    COMMA(GLFW.GLFW_KEY_COMMA),
+    MINUS(GLFW.GLFW_KEY_MINUS),
+    PERIOD(GLFW.GLFW_KEY_PERIOD),
+    SLASH(GLFW.GLFW_KEY_SLASH),
+    NUM_0(GLFW.GLFW_KEY_0),
+    NUM_1(GLFW.GLFW_KEY_1),
+    NUM_2(GLFW.GLFW_KEY_2),
+    NUM_3(GLFW.GLFW_KEY_3),
+    NUM_4(GLFW.GLFW_KEY_4),
+    NUM_5(GLFW.GLFW_KEY_5),
+    NUM_6(GLFW.GLFW_KEY_6),
+    NUM_7(GLFW.GLFW_KEY_7),
+    NUM_8(GLFW.GLFW_KEY_8),
+    NUM_9(GLFW.GLFW_KEY_9),
+    SEMICOLON(GLFW.GLFW_KEY_SEMICOLON),
+    EQUAL(GLFW.GLFW_KEY_EQUAL),
     A(GLFW.GLFW_KEY_A),
     B(GLFW.GLFW_KEY_B),
     C(GLFW.GLFW_KEY_C),
@@ -58,31 +48,31 @@ enum class KeyCode(val keyCode: Int) {
     X(GLFW.GLFW_KEY_X),
     Y(GLFW.GLFW_KEY_Y),
     Z(GLFW.GLFW_KEY_Z),
-    LeftBracket(GLFW.GLFW_KEY_LEFT_BRACKET),
-    Backslash(GLFW.GLFW_KEY_BACKSLASH),
-    RightBracket(GLFW.GLFW_KEY_RIGHT_BRACKET),
-    GraveAccent(GLFW.GLFW_KEY_GRAVE_ACCENT),
-    World1(GLFW.GLFW_KEY_WORLD_1),
-    World2(GLFW.GLFW_KEY_WORLD_2),
-    Escape(GLFW.GLFW_KEY_ESCAPE),
-    Enter(GLFW.GLFW_KEY_ENTER),
-    Tab(GLFW.GLFW_KEY_TAB),
-    Backspace(GLFW.GLFW_KEY_BACKSPACE),
-    Insert(GLFW.GLFW_KEY_INSERT),
-    Delete(GLFW.GLFW_KEY_DELETE),
-    Right(GLFW.GLFW_KEY_RIGHT),
-    Left(GLFW.GLFW_KEY_LEFT),
-    Down(GLFW.GLFW_KEY_DOWN),
-    Up(GLFW.GLFW_KEY_UP),
-    PageUp(GLFW.GLFW_KEY_PAGE_UP),
-    PageDown(GLFW.GLFW_KEY_PAGE_DOWN),
-    Home(GLFW.GLFW_KEY_HOME),
-    End(GLFW.GLFW_KEY_END),
-    CapsLock(GLFW.GLFW_KEY_CAPS_LOCK),
-    ScrollLock(GLFW.GLFW_KEY_SCROLL_LOCK),
-    NumLock(GLFW.GLFW_KEY_NUM_LOCK),
-    PrintScreen(GLFW.GLFW_KEY_PRINT_SCREEN),
-    Pause(GLFW.GLFW_KEY_PAUSE),
+    LEFT_BRACKET(GLFW.GLFW_KEY_LEFT_BRACKET),
+    BACKSLASH(GLFW.GLFW_KEY_BACKSLASH),
+    RIGHT_BRACKET(GLFW.GLFW_KEY_RIGHT_BRACKET),
+    GRAVE_ACCENT(GLFW.GLFW_KEY_GRAVE_ACCENT),
+    WORLD_1(GLFW.GLFW_KEY_WORLD_1),
+    WORLD_2(GLFW.GLFW_KEY_WORLD_2),
+    ESCAPE(GLFW.GLFW_KEY_ESCAPE),
+    ENTER(GLFW.GLFW_KEY_ENTER),
+    TAB(GLFW.GLFW_KEY_TAB),
+    BACKSPACE(GLFW.GLFW_KEY_BACKSPACE),
+    INSERT(GLFW.GLFW_KEY_INSERT),
+    DELETE(GLFW.GLFW_KEY_DELETE),
+    RIGHT(GLFW.GLFW_KEY_RIGHT),
+    LEFT(GLFW.GLFW_KEY_LEFT),
+    DOWN(GLFW.GLFW_KEY_DOWN),
+    UP(GLFW.GLFW_KEY_UP),
+    PAGE_UP(GLFW.GLFW_KEY_PAGE_UP),
+    PAGE_DOWN(GLFW.GLFW_KEY_PAGE_DOWN),
+    HOME(GLFW.GLFW_KEY_HOME),
+    END(GLFW.GLFW_KEY_END),
+    CAPS_LOCK(GLFW.GLFW_KEY_CAPS_LOCK),
+    SCROLL_LOCK(GLFW.GLFW_KEY_SCROLL_LOCK),
+    NUM_LOCK(GLFW.GLFW_KEY_NUM_LOCK),
+    PRINT_SCREEN(GLFW.GLFW_KEY_PRINT_SCREEN),
+    PAUSE(GLFW.GLFW_KEY_PAUSE),
     F1(GLFW.GLFW_KEY_F1),
     F2(GLFW.GLFW_KEY_F2),
     F3(GLFW.GLFW_KEY_F3),
@@ -136,40 +126,15 @@ enum class KeyCode(val keyCode: Int) {
     MENU(GLFW.GLFW_KEY_MENU),
     LAST(GLFW.GLFW_KEY_LAST);
 
-    val localizedName by lazy { GLFW.glfwGetKeyName(keyCode, 0)?.uppercase() ?: displayValue }
-
     companion object {
         private val keyCodeMap: Map<Int, KeyCode> = entries.associateBy { it.keyCode }
-        private val nameMap: Map<String, KeyCode> = entries.associateBy { it.name.lowercase(Locale.getDefault()) }
+        private val nameMap: Map<String, KeyCode> = entries.associateBy { it.name.lowercase() }
 
         fun fromKeyCodeOrNull(keyCode: Int) = keyCodeMap[keyCode]
-        fun fromKeyCode(keyCode: Int) = fromKeyCodeOrNull(keyCode) ?: Unbound
+        fun fromKeyCode(keyCode: Int) = fromKeyCodeOrNull(keyCode) ?: UNBOUND
+        fun fromKeyName(name: String) = nameMap[name.lowercase()] ?: UNBOUND
 
-        fun fromNameOrNull(name: String) = nameMap[name.lowercase(Locale.getDefault())]
-        fun fromName(name: String) = fromNameOrNull(name) ?: Unbound
-
-        fun translateKeyCode(key: Int, scanCode: Int): KeyCode {
-            if (key in GLFW.GLFW_KEY_KP_0..GLFW.GLFW_KEY_KP_EQUAL) {
-                return fromKeyCode(key)
-            }
-
-            val keyName = GLFW.glfwGetKeyName(key, scanCode) ?: return fromKeyCode(key)
-
-            if (keyName.length == 1) {
-                when (val char = keyName[0]) {
-                    in '0'..'9' -> return fromKeyCode(GLFW.GLFW_KEY_0 + (char - '0'))
-                    in 'A'..'Z' -> return fromKeyCode(GLFW.GLFW_KEY_A + (char - 'A'))
-                    in 'a'..'z' -> return fromKeyCode(GLFW.GLFW_KEY_A + (char - 'a'))
-                    else -> {
-                        val index = charNames.indexOf(char)
-                        if (index != -1) {
-                            return fromKeyCode(charKeys[index])
-                        }
-                    }
-                }
-            }
-
-            return fromKeyCode(key)
-        }
+        fun fromUS(keyCode: Int, scanCode: Int) =
+            GLFW.glfwGetKeyName(keyCode, scanCode)?.let { fromKeyName(it) } ?: fromKeyCode(keyCode)
     }
 }

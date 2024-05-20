@@ -88,8 +88,8 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
 
                 if (isKeyBind) {
                     val key = when (e.key) {
-                        KeyCode.Delete, KeyCode.Backspace -> KeyCode.Unbound
-                        KeyCode.Escape -> return
+                        KeyCode.DELETE, KeyCode.BACKSPACE -> KeyCode.UNBOUND
+                        KeyCode.ESCAPE -> return
                         else -> e.key
                     }
 
@@ -99,12 +99,12 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
                 }
 
                 when (e.key) {
-                    KeyCode.Enter -> {
+                    KeyCode.ENTER -> {
                         setStringValue(field.text)
                         toggle()
                     }
 
-                    KeyCode.Backspace -> {
+                    KeyCode.BACKSPACE -> {
                         field.text = field.text.dropLast(1)
                         typeAnimation = -1.0
                     }

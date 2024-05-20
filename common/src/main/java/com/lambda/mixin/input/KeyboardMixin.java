@@ -14,6 +14,6 @@ public class KeyboardMixin {
     void onKey(long window, int key, int scancode, int action, int modifiers, CallbackInfo ci) {
         if (key <= 0) return;
         if (action != 1) return;
-        EventFlow.post(new KeyPressEvent(key));
+        EventFlow.post(new KeyPressEvent(key, scancode, action, modifiers));
     }
 }
