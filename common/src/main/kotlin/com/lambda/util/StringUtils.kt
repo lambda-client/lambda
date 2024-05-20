@@ -1,6 +1,30 @@
 package com.lambda.util
 
 object StringUtils {
+    fun String.sanitizeForFilename() =
+        replace("\\", "_")
+            .replace("/", "_")
+            .replace(":", "_")
+            .replace("*", "_")
+            .replace("?", "_")
+            .replace("\"", "_")
+            .replace("<", "_")
+            .replace(">", "_")
+            .replace("|", "_")
+            .trim()
+            .take(255) // truncate to 255 characters for Windows compatibility
+
+    // ToDo: Fix this. Does not work for some reason
+//    fun String.sanitizeForFilename(): String {
+//        val invalidChars = Regex.fromLiteral("[\\\\/*?|<>:\"\\[\\]\\(\\)\\s]")
+//        val safeChars = Regex.fromLiteral("[^\\p{L}\\p{N}_\\-~]")
+//        return replace(invalidChars, "_")
+//            .replace(safeChars, "")
+//            .trim()
+//            .take(255) // truncate to 255 characters for Windows compatibility
+//    }
+
+
     fun String.capitalize() = replaceFirstChar { it.titlecase() }
 
     /**

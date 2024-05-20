@@ -1,12 +1,14 @@
 package com.lambda.module.modules.player
 
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.module.Module
-import com.lambda.task.TaskChain
-import com.lambda.task.buildChain
-import com.lambda.task.tasks.BreakBlock.Companion.breakBlock
 import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
-import net.minecraft.util.math.BlockPos
+import com.lambda.util.math.VecUtils.dist
+import com.lambda.util.world.WorldUtils.searchBlocks
+import net.minecraft.util.math.Vec3i
 
 object Nuker : Module(
     name = "Nuker",
@@ -15,49 +17,26 @@ object Nuker : Module(
 ) {
     private val flatten by setting("Flatten", true)
 
-    private var taskChain: TaskChain? = null
+    private val range = Vec3i(4, 4, 4) // TODO: Customizable
 
     init {
-        onEnable {
-            taskChain = buildChain {
-                BlockPos.iterateOutwards(player.blockPos, 4, 4, 4).map {
-                    it.toImmutable()
-                }.filter {
-                    world.getBlockState(it).isSolidBlock(world, it) && (!flatten || it.y >= player.y)
-                }.forEach { pos ->
-                    breakBlock(pos)
-                        .onSuccess {
-                            this@Nuker.info("Break of ${pos.toShortString()} took $age ms")
+        listener<TickEvent.Pre> {
+            searchBlocks(player.blockPos, range, null,
+                iterator = { state, pos, _ ->
+                    state.getCollisionShape(world, pos).boundingBox
+                        .getVisibleSurfaces(player.eyePos).firstOrNull()?.let {
+                            interaction.updateBlockBreakingProgress(pos, it) // Crashes if the time to mine is not instant ??
                         }
-                }
+                    this@Nuker.info("Breaking ${state.block.name.string} at $pos with hardness ${state.getHardness(world, pos)}")
+                },
+            ) { state, pos ->
+                state.isSolidBlock(world, pos)
+                        && !state.isAir
+                        && (!flatten || pos.y >= player.y)
+                        //&& state.getHardness(world, pos) <= 1.0f
+                        && state.getHardness(world, pos) > 0.0f
+                        && player.eyePos dist pos.toCenterPos() <= interaction.reachDistance - 1
             }
-
-            taskChain?.tryRun()
         }
-
-        onDisable {
-            taskChain?.cancel()
-        }
-
-//        listener<TickEvent.Pre> {
-//            taskChain?.cancel()
-//
-//            BlockPos.iterateOutwards(player.blockPos, 4, 4, 4).map {
-//                it.toImmutable()
-//            }.filter {
-//                world.getBlockState(it).isSolidBlock(world, it) && (!flatten || it.y >= player.y)
-//            }.minByOrNull {
-//                player.pos distSq it.toCenterPos()
-//            }?.let { pos ->
-//                taskChain = buildChain {
-//                    breakBlock(pos)
-//                        .onSuccess {
-//                            this@Nuker.info("Break took $age ms")
-//                        }
-//                }
-//
-//                taskChain?.tryRun()
-//            }
-//        }
     }
 }

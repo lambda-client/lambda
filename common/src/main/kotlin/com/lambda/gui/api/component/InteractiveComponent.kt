@@ -1,40 +1,41 @@
 package com.lambda.gui.api.component
 
+import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.IComponent
-import com.lambda.gui.api.component.core.IRectComponent
 import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
 
-abstract class InteractiveComponent : IComponent, IRectComponent {
-    protected var hovered = false
-    protected var pressed = false; set(value) {
-        if (field == value) return
-        field = value
+abstract class InteractiveComponent : IComponent {
+    protected open val hovered get() = rect.contains(lastMouse)
+    protected var activeButton: Mouse.Button? = null
 
-        if (value) onPress()
-        else onRelease()
-    }
+    protected open fun onPress(e: GuiEvent.MouseClick) {}
+    protected open fun onRelease(e: GuiEvent.MouseClick) {}
 
-    protected var activeMouseButton: Mouse.Button? = null
+    private var lastMouse = Vec2d.ZERO
 
-    protected open fun onPress() {}
-    protected open fun onRelease() {}
+    override fun onEvent(e: GuiEvent) {
+        when (e) {
+            is GuiEvent.Show -> {
+                lastMouse = Vec2d.ONE * -1000.0
+                activeButton = null
+            }
 
-    override fun onShow() {
-        hovered = false
-        pressed = false
-    }
+            is GuiEvent.MouseMove -> {
+                lastMouse = e.mouse
+            }
 
-    override fun onMouseMove(mouse: Vec2d) {
-        hovered = rect.contains(mouse)
-    }
+            is GuiEvent.MouseClick -> {
+                lastMouse = e.mouse
 
-    override fun onMouseClick(
-        button: Mouse.Button, action: Mouse.Action, mouse: Vec2d
-    ) {
-        activeMouseButton = button.takeUnless {
-            it.isMainButton && action == Mouse.Action.Click
+                val prevPressed = activeButton != null
+                activeButton = if (hovered && e.button.isMainButton && e.action == Mouse.Action.Click) e.button else null
+                val pressed = activeButton != null
+
+                if (prevPressed == pressed) return
+                if (pressed) onPress(e)
+                else onRelease(e)
+            }
         }
-        pressed = hovered && button.isMainButton && action == Mouse.Action.Click
     }
 }

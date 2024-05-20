@@ -63,8 +63,8 @@ object RotationManager : Loadable {
     private fun rotate(newContext: RotationContext?) = runSafe {
         prevRotation = currentRotation
 
-        (keepTicks--).coerceAtLeast(0)
-        (pauseTicks--).coerceAtLeast(0)
+        keepTicks--
+        pauseTicks--
 
         currentContext?.let { current ->
             if (keepTicks + current.config.resetTicks < 0 || pauseTicks >= 0) {
@@ -156,7 +156,7 @@ object RotationManager : Loadable {
                 baritoneContext = null
             }
 
-            listener<MovementEvent.InputUpdate> {
+            listener<MovementEvent.InputUpdate>(Int.MAX_VALUE) {
                 processPlayerMovement(it)
             }
         }

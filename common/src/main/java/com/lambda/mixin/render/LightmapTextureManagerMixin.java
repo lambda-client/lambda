@@ -13,11 +13,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(LightmapTextureManager.class)
 public class LightmapTextureManagerMixin {
     @ModifyArg(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/texture/NativeImage;setColor(III)V"), index = 2)
-    private int updateModify(int x) {
+    private int updateModify(int color) {
         if (Fullbright.INSTANCE.isEnabled() || XRay.INSTANCE.isEnabled()) {
             return 0xFFFFFFFF;
         }
-        return x;
+        return color;
     }
 
     @Inject(method = "getDarknessFactor(F)F", at = @At("HEAD"), cancellable = true)

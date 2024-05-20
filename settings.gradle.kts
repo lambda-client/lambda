@@ -1,4 +1,5 @@
 rootProject.name = "Lambda"
+
 pluginManagement {
     repositories {
         maven("https://maven.fabricmc.net/")
@@ -13,4 +14,3 @@ include("common")
 include("fabric")
 include("forge")
 include("neoforge")
-include("quilt")

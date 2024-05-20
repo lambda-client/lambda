@@ -9,11 +9,11 @@ import com.lambda.util.math.Vec2d
 abstract class RenderEvent : Event {
     class World : RenderEvent()
 
-    abstract class GUI(val scaleFactor: Double) : RenderEvent() {
+    abstract class GUI(val scale: Double) : RenderEvent() {
         class Scaled(scaleFactor: Double) : GUI(scaleFactor)
         class Fixed : GUI(1.0)
 
-        val screenSize = Vec2d(mc.window.framebufferWidth, mc.window.framebufferHeight) / scaleFactor
+        val screenSize = Vec2d(mc.window.framebufferWidth, mc.window.framebufferHeight) / scale
     }
     class UpdateTarget : RenderEvent(), ICancellable by Cancellable()
 }

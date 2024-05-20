@@ -1,7 +1,7 @@
-val neoVersion = property("neo_version").toString()
-val kotlinForgeVersion = property("kotlin_forge_version").toString()
+val neoVersion: String by project
+val kotlinForgeVersion: String by project
 
-base.archivesName.set("${base.archivesName.get()}-neoforge")
+base.archivesName = "${base.archivesName.get()}-neoforge"
 
 architectury {
     platformSetupLoomIde()
@@ -10,10 +10,6 @@ architectury {
 
 loom {
     accessWidenerPath.set(project(":common").loom.accessWidenerPath)
-
-    neoForge {
-        enableTransitiveAccessWideners = true
-    }
 }
 
 repositories {
@@ -60,7 +56,6 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
-    includeLib("dev.babbaj:nether-pathfinder:1.5")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge-neoforge:$kotlinForgeVersion")
@@ -75,13 +70,14 @@ dependencies {
 }
 
 tasks {
-    remapJar {
-        injectAccessWidener = true
+    processResources {
+        from(project(":common").file("src/main/resources/lambda.accesswidener")) {
+            into("/assets/") // Copy the access wideners because the API was not included for NeoForge
+        }
     }
 
-    processResources {
-        filesMatching("META-INF/mods.toml") {
-            expand(project(":common").properties)
-        }
+    remapJar {
+        dependsOn(processResources)
+        atAccessWideners.add("lambda.accesswidener") // Add the access widener to the remapper
     }
 }

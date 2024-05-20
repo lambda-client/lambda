@@ -1,10 +1,7 @@
 package com.lambda.command
 
-import com.lambda.core.Loadable
 import com.lambda.brigadier.CommandException
-import com.lambda.brigadier.register
-import com.lambda.config.Configurable
-import com.lambda.config.configurations.LambdaConfig
+import com.lambda.command.CommandRegistry.prefix
 import com.lambda.context.SafeContext
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication
@@ -13,36 +10,17 @@ import com.lambda.util.text.*
 import com.lambda.util.text.ClickEvents.suggestCommand
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.StringReader
-import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.exceptions.CommandSyntaxException
 import net.minecraft.command.CommandSource
-import org.reflections.Reflections
-import org.reflections.scanners.Scanners
-import org.reflections.util.ClasspathHelper
-import org.reflections.util.ConfigurationBuilder
 import java.awt.Color
 import kotlin.math.max
 import kotlin.math.min
 
 
-object CommandManager : Configurable(LambdaConfig), Loadable {
-    override val name = "command"
-
-    val prefix by setting("prefix", ';')
-
-    val commands = mutableSetOf<LambdaCommand>()
-    private val dispatcher by lazy { CommandDispatcher<CommandSource>() }
+object CommandManager {
     private const val ERROR_PADDING = 10
 
-    fun register(
-        command: String,
-        vararg alias: String,
-        action: LiteralArgumentBuilder<CommandSource>.() -> Unit,
-    ) {
-        (listOf(command) + alias).forEach {
-            dispatcher.register(it, action)
-        }
-    }
+    val dispatcher by lazy { CommandDispatcher<CommandSource>() }
 
     fun executeCommand(command: String) {
         runSafe {
@@ -112,24 +90,5 @@ object CommandManager : Configurable(LambdaConfig), Loadable {
                 }
             }
         })
-    }
-
-    override fun load(): String {
-        Reflections(
-            ConfigurationBuilder()
-                .forPackage("com.lambda.command.commands")
-                .setScanners(Scanners.SubTypes)
-        ).getSubTypesOf(LambdaCommand::class.java).forEach { commandClass ->
-            commandClass.declaredFields.find {
-                it.name == "INSTANCE"
-            }?.apply {
-                isAccessible = true
-                (get(null) as? LambdaCommand)?.let { command ->
-                    commands.add(command)
-                }
-            }
-        }
-
-        return "Registered ${commands.size} commands"
     }
 }

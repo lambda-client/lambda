@@ -1,17 +1,11 @@
 package com.lambda.friend
 
-import com.lambda.config.Configurable
-import com.lambda.config.configurations.FriendConfig
-import com.lambda.core.Loadable
+import com.lambda.friend.FriendRegistry.friends
 import com.mojang.authlib.GameProfile
 import net.minecraft.server.network.ServerPlayerEntity
 import java.util.UUID
 
-object FriendManager : Configurable(FriendConfig), Loadable {
-    override val name = "FriendManager"
-
-    private var friends by setting("friends", listOf<GameProfile>())
-
+object FriendManager {
     fun add(profile: GameProfile) = friends.add(profile)
 
     fun remove(profile: GameProfile) = friends.remove(profile)
@@ -30,10 +24,4 @@ object FriendManager : Configurable(FriendConfig), Loadable {
 
     fun ServerPlayerEntity.befriend() = add(gameProfile)
     fun ServerPlayerEntity.unfriend() = remove(gameProfile)
-
-    override fun load(): String {
-        if (friends.isEmpty()) return "No friends loaded, you don't have to be antisocial online too,"
-        val word = if (friends.size == 1) "friend" else "friends"
-        return "Loaded ${friends.size} $word."
-    }
 }
