@@ -15,7 +15,7 @@ import com.lambda.interaction.rotation.Rotation.Companion.slerp
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.modules.client.Baritone
-import com.lambda.threading.runGameConcurrent
+import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.toRadian
@@ -50,7 +50,7 @@ object RotationManager : Loadable {
             val packet = event.packet
             if (packet !is PlayerPositionLookS2CPacket) return@listener
 
-            runGameConcurrent {
+            runGameScheduled {
                 reset(Rotation(packet.yaw, packet.pitch))
             }
         }

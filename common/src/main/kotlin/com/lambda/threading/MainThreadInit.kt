@@ -8,7 +8,7 @@ class MainThreadInit <T: Any> (private val initializer: () -> T) {
     operator fun getValue(thisRef: Any?, property: KProperty<*>) = value
 
     init {
-        runGameConcurrent {
+        runGameScheduled {
             value = initializer()
         }
     }

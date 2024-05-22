@@ -46,7 +46,5 @@ accessible class net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPa
 accessible class net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractAtHandler
 
 # Other
-accessible field net/minecraft/client/world/ClientEntityManager cache Lnet/minecraft/world/entity/SectionedEntityCache;
-accessible field net/minecraft/world/entity/EntityTrackingSection collection Lnet/minecraft/util/collection/TypeFilterableList;
 accessible field net/minecraft/world/explosion/Explosion behavior Lnet/minecraft/world/explosion/ExplosionBehavior;
 accessible field net/minecraft/structure/StructureTemplate blockInfoLists Ljava/util/List;

@@ -1,15 +1,15 @@
 package com.lambda.util
 
+import com.lambda.context.SafeContext
+import com.lambda.util.Communication.info
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.block.Block
+import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.fluid.Fluids
 import net.minecraft.item.Item
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.EightWayDirection
-import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.*
 import kotlin.math.floor
 
 object BlockUtils {
@@ -96,10 +96,19 @@ object BlockUtils {
 
     val allSigns = signs + wallSigns + hangingSigns + hangingWallSigns
 
+    fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos): Boolean {
+        val ticksNeeded = 1 / blockState.calcBlockBreakingDelta(player, world, blockPos)
+//        info("State: $blockState Ticks to break: $ticksNeeded")
+        return ticksNeeded <= 1 && ticksNeeded != 0f
+    }
+    fun SafeContext.safeLiquid(blockPos: BlockPos) = Direction.entries.all {
+        if (it == Direction.UP) return@all true
+        world.getFluidState(blockPos.offset(it)).isEmpty
+    }
+    val Vec3i.blockPos: BlockPos get() = BlockPos(this)
     val Block.item: Item get() = asItem()
-    val Vec3d.blockPos: BlockPos get() = BlockPos(floor(x).toInt(), floor(y).toInt(), floor(z).toInt())
+    val Vec3d.flooredPos: BlockPos get() = BlockPos(floor(x).toInt(), floor(y).toInt(), floor(z).toInt())
     fun BlockPos.vecOf(direction: Direction): Vec3d = toCenterPos().add(Vec3d.of(direction.vector).multiply(0.5))
     fun BlockPos.offset(eightWayDirection: EightWayDirection, amount: Int): BlockPos =
         add(eightWayDirection.offsetX * amount, 0, eightWayDirection.offsetZ * amount)
-
 }

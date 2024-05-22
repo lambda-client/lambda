@@ -3,7 +3,7 @@ package com.lambda.task
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 class TaskChain(
-    private val steps: List<Task<*>> = listOf()
+    val steps: List<Task<*>> = listOf()
 ) {
     suspend fun run() {
         steps.forEach { TaskRegistry.run(it) }

@@ -25,7 +25,7 @@ import com.lambda.util.Nameable
  *
  * Each [Module] has a [name], which is displayed in-game.
  * The [description] of the module is shown when hovering over
- * the [ModuleButton] in the GUI and in [Command]s.
+ * the [ModuleButton] in the GUI and in [Commands]s.
  * The [Module] can be associated with a [Set] of [ModuleTag]s to allow for
  * easier filtering and searching in the GUI.
  *
