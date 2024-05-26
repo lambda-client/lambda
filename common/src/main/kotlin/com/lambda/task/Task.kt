@@ -23,24 +23,20 @@ import org.apache.commons.lang3.time.DurationFormatUtils
 import java.awt.Color
 
 /**
- * A [Task] represents a time-critical activity that executes a suspending action function.
- * It is designed to automate in-game activities without the need for strict event-based programming,
- * thanks to the use of suspending functions which allow for linear coding.
+ * A [Task] represents a time-critical activity.
+ * It automates in-game activities through event-based programming, leveraging game events to control task flow.
  *
  * [Result] is the type of the result that the task will return when it completes successfully.
  * In case the task should not return any result, [Unit] can be used as the type.
  *
- * A [Task] can have event listeners, but they are only active while the action function is running.
+ * A [Task] can have event listeners that are active while the task is running.
+ * The task will attempt to execute its subtasks sequentially, and can either keep listening
+ * or stop receiving events while the subtasks are running.
  *
  * It supports a builder pattern, allowing you to chain configuration methods like [withDelay],
  * [withTimeout], [withMaxAttempts], [withRepeats], [onSuccess], [onRetry], [onTimeout], [onFailure], and [onRepeat]
  * to construct a [Task] instance.
  * This makes it easy to build complex flows of nested tasks.
- *
- * CAUTION: When implementing the [onAction] function,
- * ensure that the function adheres to thread safety measures.
- * This includes avoiding write operations on non-synchronized in-game data
- * unless explicitly running on the game thread using `runSafeOnGameThread { ... }`.
  *
  * @property delay The delay before the task starts, in milliseconds.
  * @property timeout The maximum time that the task is allowed to run, in milliseconds.
@@ -125,8 +121,12 @@ abstract class Task<Result>(
         }
     }
 
+    /**
+     * "Typo" in name is used to force the dsl style green
+     * (color is based on name hash, don't ask me who came up with this)
+     */
     @DslMarker
-    annotation class Ta5kBuilder // Name is used to force the dsl style yellow (name hash)
+    annotation class Ta5kBuilder
 
     @Ta5kBuilder
     open fun SafeContext.onStart() {}
