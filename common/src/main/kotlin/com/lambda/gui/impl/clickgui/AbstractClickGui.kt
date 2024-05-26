@@ -58,7 +58,7 @@ abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, Cli
     fun showWindow(window: WindowComponent<*>) {
         // we have to wait some time to place this window over other ones
         recordRenderCall {
-            windows.addChild(window)
+            windows.children.add(window)
         }
     }
 

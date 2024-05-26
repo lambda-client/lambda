@@ -30,13 +30,13 @@ abstract class ModuleWindow(
                     button.module != module
                 }
             }.map { ModuleButton(it, contentComponents) }
-                .forEach(contentComponents::addChild)
+                .forEach(contentComponents.children::add)
 
             // Remove deleted modules
             children.forEach { button ->
                 if (button.module !in modules) {
                     this@ModuleWindow.gui.scheduleAction {
-                        removeChild(button)
+                        children.remove(button)
                     }
                 }
             }

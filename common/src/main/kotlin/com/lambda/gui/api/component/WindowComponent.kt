@@ -2,11 +2,10 @@ package com.lambda.gui.api.component
 
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
-import com.lambda.graphics.renderer.gui.font.IFontEntry
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
-import com.lambda.gui.api.layer.RenderLayer
+import com.lambda.gui.api.RenderLayer
 import com.lambda.gui.impl.clickgui.AbstractClickGui
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
@@ -41,11 +40,9 @@ abstract class WindowComponent <T : ChildComponent> (
 
     private val titleBar get() = Rect.basedOn(rect.leftTop, rect.size.x, titleBarHeight)
     private val titleBarHeight get() = ClickGui.buttonHeight * 1.25
-    private val titleFont: IFontEntry
 
-    private val layer = RenderLayer()
-    private val renderer = layer.entry()
-    private val contentLayer = RenderLayer()
+    private val renderer = RenderLayer()
+    private val contentRenderer = RenderLayer()
 
     private val animation = gui.animation
 
@@ -56,40 +53,7 @@ abstract class WindowComponent <T : ChildComponent> (
     private var renderHeightAnimation by animation.exp({ 0.0 }, ::actualHeight, 0.6, ::isOpen)
     private val renderHeight get() = lerp(0.0, renderHeightAnimation, childShowAnimation)
 
-    open val contentComponents = ChildLayer.Drawable<T, WindowComponent<T>>(gui, this, contentLayer, ::contentRect)
-
-    /*val titleBarComponents = ChildLayer<ButtonComponent> { child ->
-        child.rect in titleBar && accessible
-    }*/ // TODO: window close button
-
-    init {
-        // Background
-        renderer.filled {
-            position = rect
-            roundRadius = ClickGui.windowRadius
-            shade = GuiSettings.shadeBackground
-
-            val alpha = (gui.childShowAnimation * 2.0).coerceIn(0.0, 1.0)
-            color(GuiSettings.backgroundColor.multAlpha(alpha))
-        }
-
-        renderer.outline {
-            position = rect
-            roundRadius = ClickGui.windowRadius
-            outerGlow = ClickGui.windowRadius
-            shade = GuiSettings.shade
-
-            val alpha = (gui.childShowAnimation * 2.0).coerceIn(0.0, 1.0)
-            color(GuiSettings.mainColor.multAlpha(alpha))
-        }
-
-        // Title
-        titleFont = renderer.font {
-            text = title
-            position = titleBar.center - widthVec * 0.5
-            color = Color.WHITE.setAlpha(gui.childShowAnimation)
-        }
-    }
+    open val contentComponents = ChildLayer.Drawable<T, WindowComponent<T>>(gui, this, contentRenderer, ::contentRect)
 
     override fun onEvent(e: GuiEvent) {
         super.onEvent(e)
@@ -100,17 +64,41 @@ abstract class WindowComponent <T : ChildComponent> (
             }
 
             is GuiEvent.Render -> {
-                layer.assignOffset(position)
-                contentLayer.assignOffset(position)
-
                 // TODO: fix blur
                 // BlurPostProcessor.render(rect, ClickGui.windowBlur, guiAnimation)
 
-                layer.render()
+                val alpha = (gui.childShowAnimation * 2.0).coerceIn(0.0, 1.0)
+
+                // Background
+                renderer.filled.build(
+                    rect = rect,
+                    roundRadius = ClickGui.windowRadius,
+                    color = GuiSettings.backgroundColor.multAlpha(alpha),
+                    shade = GuiSettings.shadeBackground
+                )
+
+                // Outline
+                renderer.outline.build(
+                    rect = rect,
+                    roundRadius = ClickGui.windowRadius,
+                    innerGlow = ClickGui.windowRadius.coerceAtMost(1.0),
+                    outerGlow = ClickGui.windowRadius,
+                    color = GuiSettings.mainColor.multAlpha(alpha),
+                    shade = GuiSettings.shadeBackground
+                )
+
+                // Title
+                renderer.font.build(
+                    text = title,
+                    position = titleBar.center - Vec2d(renderer.font.getWidth(title) * 0.5, 0.0),
+                    color = Color.WHITE.setAlpha(gui.childShowAnimation)
+                )
+
+                renderer.render()
 
                 scissor(contentRect) {
-                    contentLayer.render()
                     contentComponents.onEvent(e)
+                    contentRenderer.render()
                 }
 
                 return
@@ -143,7 +131,6 @@ abstract class WindowComponent <T : ChildComponent> (
         }
 
         contentComponents.onEvent(e)
-        //titleBarComponents.onEvent(e)
     }
 
     fun focus() {
@@ -162,13 +149,8 @@ abstract class WindowComponent <T : ChildComponent> (
     fun destroy() {
         gui.apply {
             scheduleAction {
-                windows.removeChild(this@WindowComponent)
+                windows.children.remove(this@WindowComponent)
             }
         }
-    }
-
-    override fun onRemove() {
-        layer.destroy()
-        contentLayer.destroy()
     }
 }

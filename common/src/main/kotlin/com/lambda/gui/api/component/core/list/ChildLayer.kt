@@ -3,7 +3,7 @@ package com.lambda.gui.api.component.core.list
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.LambdaGui
 import com.lambda.gui.api.component.core.IComponent
-import com.lambda.gui.api.layer.RenderLayer
+import com.lambda.gui.api.RenderLayer
 import com.lambda.util.Mouse
 import com.lambda.util.math.Rect
 
@@ -16,17 +16,8 @@ open class ChildLayer <T : ChildComponent, R : IComponent> (
     override val isActive get() = ownerComponent.isActive
     override val childShowAnimation get() = ownerComponent.childShowAnimation
     override val rect get() = childRect()
+
     val children = mutableListOf<T>()
-
-    fun addChild(child : T) {
-        children.add(child)
-        child.onAdd()
-    }
-
-    fun removeChild(child : T) {
-        children.remove(child)
-        child.onRemove()
-    }
 
     override fun onEvent(e: GuiEvent) {
         children.forEach { child ->

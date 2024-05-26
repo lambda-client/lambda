@@ -22,7 +22,7 @@ class StringButton(
 
         override fun getText() = value
         override fun setStringValue(string: String) { value = string }
-    }.apply(layer::addChild)
+    }.apply(layer.children::add)
 
     override val textColor get() = super.textColor.multAlpha(1.0 - inputBar.activeAnimation)
 

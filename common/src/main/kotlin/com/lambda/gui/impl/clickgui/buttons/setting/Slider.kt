@@ -26,17 +26,24 @@ abstract class Slider <V : Any, T : AbstractSetting<V>>(
     private var lastPlayedValue = value
     private var lastPlayedTiming = 0L
 
-    init {
-        renderer.filled {
-            position = rect.moveSecond(Vec2d(-rect.size.x * (1.0 - renderProgress), 0.0)).shrink(shrinkAnimation)
-            shade = GuiSettings.shade
-            color(GuiSettings.mainColor.multAlpha(showAnimation * 0.3))
-        }
-    }
-
     override fun onEvent(e: GuiEvent) {
         super.onEvent(e)
-        if (e is GuiEvent.MouseMove) slide(e.mouse)
+
+        when (e) {
+            is GuiEvent.Render -> {
+                // Slider rect
+                renderer.filled.build(
+                    rect = rect.moveSecond(Vec2d(-rect.size.x * (1.0 - renderProgress), 0.0)).shrink(shrinkAnimation),
+                    roundRadius = 0.0,
+                    color = GuiSettings.mainColor.multAlpha(showAnimation * 0.3),
+                    shade = GuiSettings.shade
+                )
+            }
+
+            is GuiEvent.MouseMove -> {
+                slide(e.mouse)
+            }
+        }
     }
 
     override fun onPress(e: GuiEvent.MouseClick) {

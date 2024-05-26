@@ -43,7 +43,7 @@ class NumberSlider <N>(
         override fun setStringValue(string: String) {
             string.toDoubleOrNull()?.let(::setValue)
         }
-    }.apply(layer::addChild)
+    }.apply(layer.children::add)
 
     override val textColor get() = super.textColor.multAlpha(1.0 - inputBar.activeAnimation)
 

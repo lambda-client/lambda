@@ -2,9 +2,9 @@ package com.lambda.gui.api.component.button
 
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.api.GuiEvent
+import com.lambda.gui.api.RenderLayer
 import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
-import com.lambda.gui.api.layer.LayerEntry
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.KeyCode
 import com.lambda.util.math.ColorUtils.multAlpha
@@ -15,7 +15,7 @@ import com.lambda.util.math.Vec2d
 import java.awt.Color
 import kotlin.math.abs
 
-abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable<InputBarOverlay, *>) : ChildComponent(owner) {
+abstract class InputBarOverlay (val renderer: RenderLayer, owner: ChildLayer.Drawable<InputBarOverlay, *>) : ChildComponent(owner) {
     override val rect: Rect get() = owner.rect
     override var isActive = false
 
@@ -37,37 +37,7 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
 
     open fun isCharAllowed(string: String, char: Char): Boolean = true
 
-    private val field = renderer.font {
-        scale = lerp(0.5, 1.0, activeAnimation) - pressAnimation * 0.08
-        color = Color.WHITE.setAlpha(lerp(0.0, activeAnimation, showAnimation))
-
-        val x = ClickGui.windowPadding + interactAnimation + hoverFontAnimation
-        position = Vec2d(rect.left + x, rect.center.y)
-        targetOffset = stringWidth
-    }
-
-    init {
-        renderer.filled {
-            val shrink = lerp(rect.size.y * 0.5, 2 + abs(typeAnimation), activeAnimation)
-            val x = field.position.x + offset + 2
-
-            position = Rect(
-                Vec2d(0.0, rect.top + shrink),
-                Vec2d(1.0, rect.bottom - shrink)
-            ) + Vec2d(lerp(rect.right, x, activeAnimation), 0.0)
-
-            color(field.color.multAlpha(0.8))
-        }
-
-        renderer.font {
-            text = getText()
-
-            val progress = 1.0 - activeAnimation
-            scale = lerp(0.5, 1.0, progress)
-            position = Vec2d(rect.right, rect.center.y) - Vec2d(ClickGui.windowPadding + stringWidth, 0.0)
-            color = Color.WHITE.setAlpha(lerp(0.0, progress, showAnimation))
-        }
-    }
+    private var typed = ""
 
     override fun onEvent(e: GuiEvent) {
         super.onEvent(e)
@@ -77,9 +47,45 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
                 isActive = false
             }
 
+            is GuiEvent.Render -> {
+                // Value text
+                renderer.font.apply {
+                    val text = getText()
+                    val scale = lerp(0.5, 1.0, 1.0 - activeAnimation)
+                    val position = Vec2d(rect.right, rect.center.y) - Vec2d(ClickGui.windowPadding + getWidth(text, scale), 0.0)
+                    val color = Color.WHITE.setAlpha(lerp(0.0, 1.0 - activeAnimation, showAnimation))
+
+                    build(text, position, color, scale)
+                }
+
+                val textStartX = rect.left + ClickGui.windowPadding + interactAnimation + hoverFontAnimation
+                val textColor = Color.WHITE.setAlpha(lerp(0.0, activeAnimation, showAnimation))
+
+                // Typing field
+                renderer.font.apply {
+                    val scale = lerp(0.5, 1.0, activeAnimation) - pressAnimation * 0.08
+                    val position = Vec2d(textStartX, rect.center.y)
+
+                    targetOffset = getWidth(typed, scale)
+                    build(typed, position, textColor, scale)
+                }
+
+                // Separator
+                renderer.filled.apply {
+                    val shrink = lerp(rect.size.y * 0.5, 2 + abs(typeAnimation), activeAnimation)
+
+                    val rect = Rect(
+                        Vec2d(0.0, rect.top + shrink),
+                        Vec2d(1.0, rect.bottom - shrink)
+                    ) + Vec2d(lerp(rect.right, textStartX + offset + 2, activeAnimation), 0.0)
+
+                    build(rect, color = textColor.multAlpha(0.8))
+                }
+            }
+
             is GuiEvent.CharTyped -> {
-                if (!isActive || !isCharAllowed(field.text, e.char) || isKeyBind) return
-                field.text += e.char
+                if (!isActive || !isCharAllowed(typed, e.char) || isKeyBind) return
+                typed += e.char
                 typeAnimation = 1.0
             }
 
@@ -100,12 +106,12 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
 
                 when (e.key) {
                     KeyCode.Enter -> {
-                        setStringValue(field.text)
+                        setStringValue(typed)
                         toggle()
                     }
 
                     KeyCode.Backspace -> {
-                        field.text = field.text.dropLast(1)
+                        typed = typed.dropLast(1)
                         typeAnimation = -1.0
                     }
 
@@ -117,10 +123,6 @@ abstract class InputBarOverlay (renderer: LayerEntry, owner: ChildLayer.Drawable
 
     fun toggle() {
         isActive = !isActive
-
-        if (isActive) {
-            field.text = getText()
-            targetOffset = field.stringWidth
-        }
+        if (isActive) typed = getText()
     }
 }

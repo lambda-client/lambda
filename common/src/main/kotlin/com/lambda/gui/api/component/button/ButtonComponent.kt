@@ -28,7 +28,7 @@ abstract class ButtonComponent(
     private val actualSize get() = Vec2d(if (size.x == FILL_PARENT) owner.rect.size.x else size.x, size.y)
     final override val rect get() = Rect.basedOn(position, actualSize) + owner.rect.leftTop
 
-    val renderer = owner.renderer.entry()
+    protected val renderer = owner.renderer
     protected val animation = owner.gui.animation
 
     private var hoverRectAnimation by animation.exp({ 0.0 }, { 1.0 }, { if (renderHovered) 0.6 else 0.07 }, ::renderHovered)
@@ -44,36 +44,6 @@ abstract class ButtonComponent(
     // Removes button shrinking if there's no space between buttons
     protected val shrinkAnimation get() = lerp(0.0, interactAnimation, ClickGui.buttonStep)
 
-    init {
-        // Active color
-        renderer.filled {
-            position = rect.shrink(shrinkAnimation)
-            shade = GuiSettings.shade
-            color(GuiSettings.mainColor.multAlpha(activeAnimation * 0.3 * showAnimation))
-        }
-
-        // Hover glint
-        renderer.filled {
-            val hoverRect = Rect.basedOn(rect.leftTop, rect.size.x * hoverRectAnimation, rect.size.y)
-            position = hoverRect.shrink(shrinkAnimation)
-            shade = GuiSettings.shade
-
-            val alpha = interactAnimation * 0.2 * showAnimation
-            color(GuiSettings.mainColor.multAlpha(alpha))
-        }
-
-        // Text
-        renderer.font {
-            text = this@ButtonComponent.text
-            scale = 1.0 - pressAnimation * 0.08
-
-            color = textColor
-
-            val x = ClickGui.windowPadding + interactAnimation + hoverFontAnimation
-            position = Vec2d(rect.left + x, rect.center.y)
-        }
-    }
-
     open fun performClickAction(e: GuiEvent.MouseClick) {}
 
     override fun onEvent(e: GuiEvent) {
@@ -81,6 +51,32 @@ abstract class ButtonComponent(
 
         when (e) {
             is GuiEvent.Show, is GuiEvent.Hide -> reset()
+
+            is GuiEvent.Render -> {
+                // Active color
+                renderer.filled.build(
+                    rect = rect.shrink(shrinkAnimation),
+                    color = GuiSettings.mainColor.multAlpha(activeAnimation * 0.3 * showAnimation),
+                    shade = GuiSettings.shade
+                )
+
+                // Hover glint
+                val hoverRect = Rect.basedOn(rect.leftTop, rect.size.x * hoverRectAnimation, rect.size.y)
+                renderer.filled.build(
+                    rect = hoverRect.shrink(shrinkAnimation),
+                    color = GuiSettings.mainColor.multAlpha(interactAnimation * 0.2 * showAnimation),
+                    shade = GuiSettings.shade
+                )
+
+                // Text
+                val textX = ClickGui.windowPadding + interactAnimation + hoverFontAnimation
+                renderer.font.build(
+                    text = text,
+                    position = Vec2d(rect.left + textX, rect.center.y),
+                    color = textColor,
+                    scale = 1.0 - pressAnimation * 0.08
+                )
+            }
 
             is GuiEvent.MouseMove -> {
                 val time = System.currentTimeMillis()
@@ -96,10 +92,6 @@ abstract class ButtonComponent(
 
     override fun onRelease(e: GuiEvent.MouseClick) {
         if (hovered) performClickAction(e)
-    }
-
-    override fun onRemove() {
-        renderer.destroy()
     }
 
     private fun reset() {

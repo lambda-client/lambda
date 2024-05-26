@@ -24,7 +24,7 @@ class BindButton(
 
         override fun getText() = value.localizedName
         override fun setKeyValue(key: KeyCode) { value = key }
-    }.apply(layer::addChild)
+    }.apply(layer.children::add)
 
     override val textColor get() = super.textColor.multAlpha(1.0 - inputBar.activeAnimation)
 
