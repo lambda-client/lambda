@@ -170,7 +170,6 @@ object DiscordRPC : Module(
         }
     }
 
-    // We won't need to specify non-null variables in kotlin 2.0
     fun join(id: String) {
         if (!allowed) return
 
