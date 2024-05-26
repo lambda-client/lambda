@@ -24,9 +24,7 @@ data class BreakContext(
 
     override fun compareTo(other: ComparableContext): Int {
         return when (other) {
-            is BreakContext -> compareByDescending<BreakContext> {
-                it.exposedSides
-            }.thenBy {
+            is BreakContext -> compareBy<BreakContext> {
                 it.distance
             }.compare(this, other)
             else -> 1

@@ -3,6 +3,7 @@ package com.lambda.interaction.construction
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.primitives.extension.Structure
 import net.minecraft.structure.StructureTemplate
 import net.minecraft.util.math.BlockBox
@@ -12,10 +13,10 @@ import net.minecraft.util.math.Box
 abstract class Blueprint {
     abstract val structure: Structure
 
-    fun isDone(safeContext: SafeContext) =
+    open fun isDone(safeContext: SafeContext) =
         structure.all { (pos, targetState) ->
             with(safeContext) {
-                targetState.matches(world.getBlockState(pos), pos, world)
+                targetState.matches(pos.blockState(world), pos, world)
             }
         }
 

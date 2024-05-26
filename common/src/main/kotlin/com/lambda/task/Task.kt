@@ -1,15 +1,25 @@
 package com.lambda.task
 
 import com.lambda.context.SafeContext
+import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Subscriber
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.threading.runSafe
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
 import com.lambda.util.Nameable
+import com.lambda.util.text.buildText
+import com.lambda.util.text.color
+import com.lambda.util.text.literal
+import com.lambda.util.text.text
 import kotlinx.coroutines.*
+import net.minecraft.text.Text
+import org.apache.commons.lang3.time.DurationFormatUtils
+import java.awt.Color
 
 /**
  * A [Task] represents a time-critical activity that executes a suspending action function.
@@ -33,8 +43,8 @@ import kotlinx.coroutines.*
  *
  * @property delay The delay before the task starts, in milliseconds.
  * @property timeout The maximum time that the task is allowed to run, in milliseconds.
- * @property maxAttempts The maximum number of attempts to execute the task before it is considered failed.
- * @property repeats The number of times the task should be repeated.
+ * @property tries The maximum number of attempts to execute the task before it is considered failed.
+ * @property executions The number of times the task should be repeated.
  * @property onSuccess The action to be performed when the task completes successfully.
  * @property onRetry The action to be performed when the task is retried after a failure or timeout.
  * @property onTimeout The action to be performed when the task times out.
@@ -42,34 +52,177 @@ import kotlinx.coroutines.*
  * @property onException The action to be performed when the task encounters an exception.
  */
 abstract class Task<Result>(
-    private var delay: Long = 0L,
-    private var timeout: Long = Long.MAX_VALUE,
-    private var maxAttempts: Int = 1,
-    open var repeats: Int = 1,
-    private var onSuccess: (suspend Task<Result>.(Result) -> Unit) = {},
-    private var onRetry: (suspend Task<Result>.() -> Unit) = {},
-    private var onTimeout: (suspend Task<Result>.() -> Unit) = {},
-    private var onRepeat: (suspend Task<Result>.(Int) -> Unit) = {},
-    private var onException: (suspend Task<Result>.(Throwable) -> Unit) = {},
+    private var delay: Int = 0,
+    private var timeout: Int = Int.MAX_VALUE,
+    private var tries: Int = 1,
+    private var repeats: Int = 1,
+    private var onSuccess: SafeContext.(Task<Result>, Result) -> Unit = { _, _ -> },
+    private var onRetry: SafeContext.(Task<Result>) -> Unit = {},
+    private var onTimeout: SafeContext.(Task<Result>) -> Unit = {},
+    private var onRepeat: SafeContext.(Task<Result>, Result, Int) -> Unit = { _, _, _ -> },
+    private var onException: SafeContext.(Task<Result>, Throwable) -> Unit = { _, _ -> },
 ) : Nameable {
-    private val creationTimestamp = System.currentTimeMillis()
-    val age: Long get() = System.currentTimeMillis() - creationTimestamp
-    override val name: String get() = this::class.simpleName ?: "Task"
+    private var parent: Task<*>? = null
+
+    private var executions = 0
+    private var attempted = 0
+    private val subTasks = mutableListOf<Task<*>>()
+    private var state = State.IDLE
+    var age: Int = 0
+
+    private val isDeactivated get() = state == State.DEACTIVATED
+    val isActivated get() = state == State.ACTIVATED
+    val isRunning get() = state == State.ACTIVATED || state == State.DEACTIVATED
+    val isFailed get() = state == State.FAILED
+    val isCompleted get() = state == State.COMPLETED
+    override var name = this::class.simpleName ?: "Task"
+
+    // ToDo: Better color management
+    private val primaryColor = Color(0, 255, 0, 100)
+    val info: Text
+        get() = buildText {
+            literal("Name ")
+            color(primaryColor) { literal(name) }
+
+            literal(" State ")
+            color(primaryColor) { literal(state.name) }
+
+            literal(" Runtime ")
+            color(primaryColor) {
+                literal(DurationFormatUtils.formatDuration(age * 50L, "HH:mm:ss,SSS"))
+            }
+
+            subTasks.forEach {
+                literal("\n    ")
+                text(it.info)
+            }
+        }
 
     val syncListeners = Subscriber()
     private val concurrentListeners = Subscriber()
 
-    operator fun plus(other: Task<*>) = TaskChain(listOf(this, other))
+    enum class State {
+        IDLE,
+        ACTIVATED,
+        DEACTIVATED,
+        CANCELLED,
+        FAILED,
+        COMPLETED
+    }
 
-    /**
-     * Executes the main action of the task.
-     *
-     * This function should only perform read operations on the game thread due to potential concurrency issues.
-     * If write operations are necessary, they should be wrapped in the `runSafeOnGameThread { ... }` function to ensure thread safety.
-     *
-     * @return The result of the action, of type [Result].
-     */
-    abstract suspend fun onAction(): Result
+    operator fun plus(other: Task<*>) = subTasks.add(other)
+
+    init {
+        listener<TickEvent.Pre> {
+            parent?.let {
+                it.age++
+            }
+            if (++age >= timeout) {
+                onTimeout(this@Task)
+                failure(TimeoutException(age, attempted))
+            }
+        }
+    }
+
+    @Ta5kBuilder
+    open fun SafeContext.onStart() {}
+
+    @Ta5kBuilder
+    fun start(parent: Task<*>?, pauseParent: Boolean = true): Task<Result> {
+        this.parent = parent
+        executions++
+
+        runSafe { onStart() }
+        this.parent?.let { par ->
+            par.subTasks.add(this)
+            info("${par.name} started this task.")
+            if (pauseParent && par.isActivated) {
+                info("Pausing parent ${par.name}")
+                par.deactivate()
+            }
+        } ?: info("Root started this task")
+
+        activate()
+        return this
+    }
+
+    @Ta5kBuilder
+    private fun activate() {
+        subTasks.firstOrNull { !it.isCompleted }?.let {
+            info("Starting subtask ${it.name}")
+            deactivate()
+            it.start(this)
+        } ?: run {
+            info("Activated")
+            state = State.ACTIVATED
+            startListening()
+        }
+    }
+
+    @Ta5kBuilder
+    fun deactivate() {
+        info("Deactivated")
+        state = State.DEACTIVATED
+        stopListening()
+    }
+
+    @Ta5kBuilder
+    fun SafeContext.success(result: Result) {
+        onSuccess(this@Task, result)
+
+        if (executions < repeats) {
+            executions++
+            this@Task.info("Repeating task $executions/$repeats...")
+            onRepeat(this@Task, result, executions)
+            reset()
+            return
+        }
+
+        this@Task.info("Task completed successfully after $attempted retries and $executions executions.")
+        state = State.COMPLETED
+        tidyUp()
+    }
+
+    @Ta5kBuilder
+    fun cancel() {
+        cancelSubTasks()
+        state = State.CANCELLED
+        tidyUp()
+        runSafe { onCancel() }
+    }
+
+    @Ta5kBuilder
+    fun cancelSubTasks() {
+        subTasks
+            .filter { it.isRunning }
+            .forEach { it.cancel() }
+    }
+
+    @Ta5kBuilder
+    fun failure(message: String) {
+        failure(IllegalStateException(message))
+    }
+
+    @Ta5kBuilder
+    fun failure(e: Throwable) {
+        if (attempted < tries) {
+            attempted++
+            warn("Failed task with error: ${e.message}, retrying ($attempted/$tries) ...")
+            runSafe {
+                onRetry(this@Task)
+            }
+            reset()
+            return
+        }
+
+        state = State.FAILED
+        logError("Task failed after $attempted attempts with error: ${e.message}")
+        tidyUp()
+        runSafe {
+            onException(this@Task, e)
+        }
+        parent?.failure(e)
+    }
 
     /**
      * This function is called when the task is canceled.
@@ -77,78 +230,25 @@ abstract class Task<Result>(
      * such as cancelling a block breaking progress, releasing resources,
      * or stopping any ongoing operations that were started by the task.
      */
+    @Ta5kBuilder
     open fun SafeContext.onCancel() {}
 
-    /**
-     * Executes the task with the configured parameters.
-     *
-     * This function will attempt to execute the task for a specified number of attempts and repeats.
-     * It handles delays before task execution, task timeouts, and task cancellations.
-     * It also manages the lifecycle of event listeners associated with the task.
-     *
-     * @return The result of the task execution, represented as a [TaskResult].
-     * This could be a [successful result][TaskResult.Success], a [cancellation][TaskResult.Cancelled],
-     * a [failure][TaskResult.Failure] due to an exception, or a [timeout][TaskResult.Timeout].
-     */
-    suspend fun execute(): TaskResult<Result> {
-        var attempt = 1
-        var iteration = 0
-
-        do {
-            if (delay > 0) {
-                info("Delaying for $delay ms")
-                delay(delay)
+    private fun tidyUp() {
+        stopListening()
+        BaritoneUtils.cancel()
+        parent?.let {
+//            it.subTasks.remove(this)
+            if (it.isDeactivated) {
+                it.activate()
+            } else {
+                info("Parent ${it.name} is activated, not reactivating")
             }
-
-            startListening()
-            iteration++
-
-            try {
-                withTimeout(timeout) {
-                    onAction()
-                }?.let { result ->
-                    if (iteration == repeats) {
-                        onSuccess(result)
-                        tidyUp()
-                        return TaskResult.Success(result)
-                    }
-
-                    onRepeat(iteration)
-                }
-            } catch (e: TimeoutCancellationException) {
-                attempt++
-                warn("Timed out after $age ms and $attempt attempts")
-                onRetry()
-                tidyUp()
-            } catch (e: CancellationException) {
-                tidyUp()
-//                warn("Job cancelled")
-                return TaskResult.Cancelled
-            } catch (e: Throwable) {
-                attempt++
-                logError("Failed after $age ms and $attempt attempts with exception: $e")
-                onException(e)
-                tidyUp()
-                return TaskResult.Failure(e)
-            }
-
-            tidyUp()
-        } while (attempt < maxAttempts || iteration <= repeats)
-
-        logError("Fully timed out after $age ms and $attempt attempts")
-        onTimeout()
-        return TaskResult.Timeout(timeout, attempt)
+        }
     }
 
-    private fun tidyUp() {
-        runSafe {
-            onCancel()
-        }
-
-        EventFlow.syncListeners.unsubscribe(syncListeners)
-        EventFlow.concurrentListeners.unsubscribe(concurrentListeners)
-
-        BaritoneUtils.cancel()
+    @Ta5kBuilder
+    private fun reset() {
+        age = 0
     }
 
     private fun startListening() {
@@ -156,10 +256,9 @@ abstract class Task<Result>(
         EventFlow.concurrentListeners.subscribe(concurrentListeners)
     }
 
-    fun cancel() {
-        runSafe {
-            onCancel()
-        }
+    private fun stopListening() {
+        EventFlow.syncListeners.unsubscribe(syncListeners)
+        EventFlow.concurrentListeners.unsubscribe(concurrentListeners)
     }
 
     /**
@@ -169,7 +268,7 @@ abstract class Task<Result>(
      * @return This task instance with the updated delay.
      */
     @Ta5kBuilder
-    fun withDelay(delay: Long): Task<Result> {
+    fun withDelay(delay: Int): Task<Result> {
         this.delay = delay
         return this
     }
@@ -181,7 +280,7 @@ abstract class Task<Result>(
      * @return This task instance with the updated timeout.
      */
     @Ta5kBuilder
-    fun withTimeout(timeout: Long): Task<Result> {
+    fun withTimeout(timeout: Int): Task<Result> {
         this.timeout = timeout
         return this
     }
@@ -194,7 +293,7 @@ abstract class Task<Result>(
      */
     @Ta5kBuilder
     fun withMaxAttempts(maxAttempts: Int): Task<Result> {
-        this.maxAttempts = maxAttempts
+        this.tries = maxAttempts
         return this
     }
 
@@ -217,7 +316,7 @@ abstract class Task<Result>(
      * @return The task instance with the updated success action.
      */
     @Ta5kBuilder
-    fun onSuccess(action: suspend Task<Result>.(Result) -> Unit): Task<Result> {
+    fun onSuccess(action: SafeContext.(Task<Result>, Result) -> Unit): Task<Result> {
         this.onSuccess = action
         return this
     }
@@ -229,7 +328,7 @@ abstract class Task<Result>(
      * @return The task instance with the updated retry action.
      */
     @Ta5kBuilder
-    fun onRetry(action: suspend Task<Result>.() -> Unit): Task<Result> {
+    fun onRetry(action: SafeContext.(Task<Result>) -> Unit): Task<Result> {
         this.onRetry = action
         return this
     }
@@ -241,7 +340,7 @@ abstract class Task<Result>(
      * @return The task instance with the updated timeout action.
      */
     @Ta5kBuilder
-    fun onTimeout(action: suspend Task<Result>.() -> Unit): Task<Result> {
+    fun onTimeout(action: SafeContext.(Task<Result>) -> Unit): Task<Result> {
         this.onTimeout = action
         return this
     }
@@ -253,7 +352,7 @@ abstract class Task<Result>(
      * @return The task instance with the updated exception action.
      */
     @Ta5kBuilder
-    fun onFailure(action: suspend Task<Result>.(Throwable) -> Unit): Task<Result> {
+    fun onFailure(action: SafeContext.(Task<Result>, Throwable) -> Unit): Task<Result> {
         this.onException = action
         return this
     }
@@ -265,15 +364,64 @@ abstract class Task<Result>(
      * @return The task instance with the updated repeat action.
      */
     @Ta5kBuilder
-    fun onRepeat(action: suspend Task<Result>.(Int) -> Unit): Task<Result> {
+    fun onRepeat(action: SafeContext.(Task<Result>, Result, Int) -> Unit): Task<Result> {
         this.onRepeat = action
         return this
     }
 
+    @TaskCha1nBuilder
+    fun withSubTasks(subTaskBuilder: SubTaskBuilder.(Task<*>) -> Unit): Task<Result> {
+        with(SubTaskBuilder()) {
+            subTaskBuilder(this@Task)
+            subTasks.addAll(tasks)
+        }
+        return this
+    }
+
+    @TaskCha1nBuilder
+    inline fun <reified T : Event> withListener(
+        event: TickEvent.Pre, crossinline action: SafeContext.(Task<Result>) -> Unit
+    ): Task<Result> {
+        listener<T> {
+            action(this@Task)
+        }
+        return this
+    }
+
+    @TaskCha1nBuilder
+    fun withName(name: String): Task<Result> {
+        this.name = name
+        return this
+    }
+
+    class TimeoutException(age: Int, attempts: Int) : Exception("Task timed out after $age ticks and $attempts attempts")
+
+    class SubTaskBuilder {
+        val tasks = mutableListOf<Task<*>>()
+    }
+
     companion object {
-        fun <T> (suspend () -> T).toTask(name: String = "Task") = object : Task<T>() {
-            override val name = name
-            override suspend fun onAction() = this@toTask()
+        @TaskCha1nBuilder
+        fun emptyTask() = object : Task<Unit>() {
+            override fun SafeContext.onStart() {}
+        }
+
+        @TaskCha1nBuilder
+        fun buildTask(
+            block: SafeContext.() -> Unit
+        ) = object : Task<Unit>() {
+            override fun SafeContext.onStart() {
+                block()
+            }
+        }
+
+        @TaskCha1nBuilder
+        inline fun <reified R> buildTaskWithReturn(
+            crossinline block: SafeContext.() -> Unit
+        ) = object : Task<R>() {
+            override fun SafeContext.onStart() {
+                block()
+            }
         }
     }
 }

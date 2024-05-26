@@ -1,5 +1,6 @@
 package com.lambda.interaction.construction.verify
 
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.item.ItemUtils.block
 import net.minecraft.block.BlockState
 import net.minecraft.client.world.ClientWorld
@@ -23,7 +24,7 @@ sealed class TargetState : StateMatcher {
     }
     data class Support(val direction: Direction) : TargetState() {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
-            world.getBlockState(pos.offset(direction)).isSolidBlock(world, pos.offset(direction))
+            pos.offset(direction).blockState(world).isSolidBlock(world, pos.offset(direction))
 
         override fun getStack(world: ClientWorld, pos: BlockPos) =
             ItemStack(Items.NETHERRACK)

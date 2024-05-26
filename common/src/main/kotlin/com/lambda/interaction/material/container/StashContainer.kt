@@ -2,7 +2,7 @@ package com.lambda.interaction.material.container
 
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
-import com.lambda.task.buildChain
+import com.lambda.task.Task
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.Box
 
@@ -14,15 +14,11 @@ data class StashContainer(
         get() = chests.flatMap { it.stacks }
         set(_) {}
 
-    override fun prepare() = buildChain {
+    override fun withdraw(selection: StackSelection): Task<*> {
         TODO("Not yet implemented")
     }
 
-    override fun withdraw(selection: StackSelection) = buildChain {
-        TODO("Not yet implemented")
-    }
-
-    override fun deposit(selection: StackSelection) = buildChain {
+    override fun deposit(selection: StackSelection): Task<*> {
         TODO("Not yet implemented")
     }
 

@@ -1,12 +1,13 @@
 package com.lambda.util
 
 import com.lambda.context.SafeContext
-import com.lambda.util.Communication.info
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
+import net.minecraft.client.world.ClientWorld
+import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
 import net.minecraft.item.Item
 import net.minecraft.util.math.*
@@ -96,6 +97,8 @@ object BlockUtils {
 
     val allSigns = signs + wallSigns + hangingSigns + hangingWallSigns
 
+    fun BlockPos.blockState(world: ClientWorld): BlockState = world.getBlockState(this)
+    fun BlockPos.fluidState(world: ClientWorld): FluidState = world.getFluidState(this)
     fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos): Boolean {
         val ticksNeeded = 1 / blockState.calcBlockBreakingDelta(player, world, blockPos)
 //        info("State: $blockState Ticks to break: $ticksNeeded")

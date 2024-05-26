@@ -1,10 +1,10 @@
 package com.lambda.interaction.material.transfer
 
-import com.lambda.task.TaskChain
+import com.lambda.task.Task
 
 sealed class TransferResult {
     data class Success(
-        val taskChain: TaskChain
+        val task: Task<*>
     ) : TransferResult()
     data object NoSpace : TransferResult() // ToDo: Needs inventory space resolver. compressing or disposing
     data class MissingItems(val missing: Int) : TransferResult() // ToDo: Find other satisfying permutations

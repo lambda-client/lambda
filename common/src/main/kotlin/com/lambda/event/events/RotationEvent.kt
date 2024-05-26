@@ -10,6 +10,7 @@ import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.visibilty.VisibilityChecker.findRotation
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.threading.runSafe
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.entity.Entity
@@ -55,7 +56,7 @@ abstract class RotationEvent : Event {
             interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
             sides: Set<Direction> = emptySet()
         ) = runSafe {
-            val state = world.getBlockState(blockPos)
+            val state = blockPos.blockState(world)
             val voxelShape = state.getOutlineShape(world, blockPos)
             val boundingBoxes = voxelShape.boundingBoxes.map { it.offset(blockPos) }
             findRotation(rotationConfig, interactionConfig, boundingBoxes, sides) {

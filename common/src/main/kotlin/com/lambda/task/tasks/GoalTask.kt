@@ -2,31 +2,33 @@ package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.Goal
 import baritone.api.pathing.goals.GoalXZ
-import com.lambda.Lambda.mc
-import com.lambda.event.EventFlow.awaitEvent
+import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.task.Task
 import com.lambda.task.TaskCha1nBuilder
-import com.lambda.task.TaskChainBuilder
 import com.lambda.util.BaritoneUtils
 import net.minecraft.util.math.BlockPos
 
 class GoalTask(
     private val goal: Goal
 ) : Task<Unit>() {
-    override suspend fun onAction() {
-        BaritoneUtils.setGoalAndPath(goal)
 
-        awaitEvent<TickEvent.Post> {
-            !BaritoneUtils.isActive
+    override fun SafeContext.onStart() {
+        BaritoneUtils.setGoalAndPath(goal)
+    }
+
+    init {
+        listener<TickEvent.Post> {
+            if (!BaritoneUtils.isActive) {
+                success(Unit)
+            }
         }
     }
 
     companion object {
         @TaskCha1nBuilder
-        fun TaskChainBuilder.moveIntoEntityRange(blockPos: BlockPos) =
-            GoalTask(GoalXZ(blockPos.x, blockPos.z)).apply {
-                required(this)
-            }
+        fun moveIntoEntityRange(blockPos: BlockPos) =
+            GoalTask(GoalXZ(blockPos.x, blockPos.z))
     }
 }

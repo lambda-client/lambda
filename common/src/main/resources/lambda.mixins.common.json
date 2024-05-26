@@ -31,9 +31,10 @@
     "render.LivingEntityRendererMixin",
     "render.RenderLayersMixin",
     "render.RenderTickCounterMixin",
-    "render.VertexBufferMixin",
     "render.ScreenHandlerMixin",
+    "render.VertexBufferMixin",
     "render.WorldRendererMixin",
+    "world.ClientWorldMixin",
     "world.WorldMixin"
   ],
   "injectors": {

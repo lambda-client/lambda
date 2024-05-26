@@ -1,8 +1,7 @@
 package com.lambda.interaction.construction.result
 
 import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.task.buildChain
-import com.lambda.task.tasks.BreakBlock.Companion.breakBlock
+import com.lambda.task.tasks.BreakBlock.Companion.uncheckedBreak
 
 sealed class BreakResult : BuildResult() {
 
@@ -13,9 +12,7 @@ sealed class BreakResult : BuildResult() {
     data class Success(val context: BreakContext) : Resolvable, BreakResult() {
         override val rank = Rank.BREAK_SUCCESS
 
-        override val resolve = buildChain {
-            breakBlock(context.hitPos)
-        }
+        override val resolve = uncheckedBreak(context.hitPos)
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {

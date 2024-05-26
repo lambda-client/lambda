@@ -10,7 +10,6 @@ import com.lambda.interaction.PlayerPacketManager
 import com.lambda.interaction.RotationManager
 import com.lambda.module.ModuleRegistry
 import com.lambda.sound.SoundRegistry
-import com.lambda.task.TaskRegistry
 import com.lambda.util.Communication.ascii
 import kotlin.system.measureTimeMillis
 
@@ -42,7 +41,5 @@ object Loader {
         }
 
         LOG.info("${Lambda.MOD_NAME} ${Lambda.VERSION} was successfully initialized (${initTime}ms)")
-
-        TaskRegistry
     }
 }

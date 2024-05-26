@@ -3,7 +3,7 @@ package com.lambda.interaction.material.container
 import com.lambda.Lambda.mc
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
-import com.lambda.task.emptyChain
+import com.lambda.task.Task
 import com.lambda.util.player.SlotUtils.combined
 import net.minecraft.item.ItemStack
 
@@ -12,7 +12,11 @@ object InventoryContainer : MaterialContainer(Rank.INVENTORY) {
         get() = mc.player?.combined ?: emptyList()
         set(_) {}
 
-    override fun withdraw(selection: StackSelection) = emptyChain()
+    override fun withdraw(selection: StackSelection): Task<*> {
+        TODO("Not yet implemented")
+    }
 
-    override fun deposit(selection: StackSelection) = emptyChain()
+    override fun deposit(selection: StackSelection): Task<*> {
+        TODO("Not yet implemented")
+    }
 }

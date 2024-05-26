@@ -2,6 +2,7 @@ package com.lambda.util.world
 
 import com.lambda.context.SafeContext
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.collections.filterPointer
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
@@ -236,7 +237,7 @@ object WorldUtils {
         iterator: (BlockState, BlockPos, Int) -> Unit = { _, _, _ -> },
     ) {
         iteratePositions(pos, range) { blockPos, index ->
-            val state = world.getBlockState(blockPos)
+            val state = blockPos.blockState(world)
             if (predicate(state, blockPos)) {
                 pointer?.add(state.block)
                 iterator(state, blockPos, index)

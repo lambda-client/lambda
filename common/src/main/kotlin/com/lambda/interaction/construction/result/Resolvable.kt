@@ -1,7 +1,7 @@
 package com.lambda.interaction.construction.result
 
-import com.lambda.task.TaskChain
+import com.lambda.task.Task
 
 interface Resolvable {
-    val resolve: TaskChain
+    val resolve: Task<*>
 }

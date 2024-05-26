@@ -4,8 +4,7 @@ import com.lambda.Lambda.mc
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.module.modules.client.TaskFlow
-import com.lambda.task.TaskChain
-import com.lambda.task.buildChain
+import com.lambda.task.Task
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.player.SlotUtils.hotbar
 import kotlinx.coroutines.delay
@@ -19,7 +18,9 @@ object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
         get() = mc.player?.mainHandStack?.let { listOf(it) } ?: emptyList()
         set(_) {}
 
-    override fun withdraw(selection: StackSelection) = buildChain {
+    override fun withdraw(selection: StackSelection): Task<*> {
+        TODO("Not yet implemented")
+    }
 //        InventoryContainer.stacks.filter(selection.selector).take(selection.count).forEach { stack ->
 //            if (ItemStack.areEqual(stack, player.mainHandStack)) {
 //                return@forEach
@@ -46,9 +47,9 @@ object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
 //            interaction.pickFromInventory(player.combined.indexOf(stack))
 //            delay(TaskFlow.itemMoveDelay)
 //        }
-    }
+//    }
 
-    override fun deposit(selection: StackSelection): TaskChain {
+    override fun deposit(selection: StackSelection): Task<*> {
         TODO("Not yet implemented")
     }
 }

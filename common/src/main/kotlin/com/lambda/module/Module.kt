@@ -15,6 +15,7 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener
 import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.module.tag.ModuleTag
+import com.lambda.task.Task
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 
