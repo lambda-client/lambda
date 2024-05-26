@@ -16,7 +16,7 @@ val yarnMappings: String by project
 val libs = file("libs")
 
 plugins {
-    kotlin("jvm") version "1.9.24"
+    kotlin("jvm") version "2.0.0"
     id("org.jetbrains.dokka") version "1.9.20"
     id("architectury-plugin") version "3.4-SNAPSHOT"
     id("dev.architectury.loom") version "1.6-SNAPSHOT" apply false
