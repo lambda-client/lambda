@@ -48,7 +48,7 @@ class Request(
         if (!canBeEncoded) {
             connection.doOutput = true
             connection.outputStream.use {
-                it.write(Lambda.gson.toJson(parameters).toByteArray())
+                it.write(parameters.toJson().toByteArray())
             }
         }
 
@@ -60,10 +60,10 @@ class Request(
                 exception = Throwable(
                     exceptionFormat.format(
                         connection.responseCode,
-                        // If there is an error here, it means the connection
-                        // was abruptly closed and there is no error stream.
-                        // I don't know how to handle this rare edge case.
-                        connection.errorStream.bufferedReader().readText()
+                        tryOrDefault(
+                            connection.errorStream.bufferedReader().readText()
+                        ) { "A critical error causes the remote client to abruptly close the connection.\n" +
+                                "No action is required on your side." }
                     )
                 )
             )
