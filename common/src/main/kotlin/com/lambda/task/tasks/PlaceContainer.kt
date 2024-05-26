@@ -1,7 +1,6 @@
 package com.lambda.task.tasks
 
 import com.lambda.task.Task
-import com.lambda.task.TaskCha1nBuilder
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
 
@@ -10,7 +9,7 @@ class PlaceContainer(
 ) : Task<BlockPos>() {
 
     companion object {
-        @TaskCha1nBuilder
+        @Ta5kBuilder
         fun placeContainer(stack: ItemStack) =
             PlaceContainer(stack)
     }

@@ -9,9 +9,7 @@ import com.lambda.interaction.InteractionConfig
 import com.lambda.interaction.rotation.IRotationConfig
 import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.module.modules.client.TaskFlow
-import com.lambda.task.Ta5kBuilder
 import com.lambda.task.Task
-import com.lambda.task.TaskCha1nBuilder
 import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -95,7 +93,7 @@ class BreakBlock @Ta5kBuilder constructor(
     }
 
     companion object {
-        @TaskCha1nBuilder
+        @Ta5kBuilder
         fun uncheckedBreak(
             blockPos: BlockPos,
             rotationConfig: IRotationConfig = TaskFlow.rotationSettings,

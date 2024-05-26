@@ -5,7 +5,6 @@ import com.lambda.interaction.material.ContainerManager
 import com.lambda.interaction.material.ContainerManager.findContainerWithSelection
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
-import com.lambda.task.TaskCha1nBuilder
 
 class AcquireMaterial(
     val selection: StackSelection
@@ -22,7 +21,7 @@ class AcquireMaterial(
     }
 
     companion object {
-        @TaskCha1nBuilder
+        @Ta5kBuilder
         fun acquireStack(selection: StackSelection) =
             AcquireMaterial(selection)
     }

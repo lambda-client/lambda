@@ -4,7 +4,6 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
-import com.lambda.task.TaskCha1nBuilder
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.primitives.extension.containerSlots
 import com.lambda.util.primitives.extension.inventorySlots
@@ -40,14 +39,14 @@ class InventoryTask<H : ScreenHandler>(
     }
 
     companion object {
-        @TaskCha1nBuilder
+        @Ta5kBuilder
         inline fun <reified H : ScreenHandler> withdraw(screen: H, selection: StackSelection) =
             InventoryTask(
                 screen,
                 selection.filterSlots(screen.containerSlots)
             )
 
-        @TaskCha1nBuilder
+        @Ta5kBuilder
         inline fun <reified H : ScreenHandler> deposit(screen: H, selection: StackSelection) =
             InventoryTask(
                 screen,

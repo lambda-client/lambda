@@ -12,7 +12,6 @@ import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Resolvable
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.task.Task
-import com.lambda.task.TaskCha1nBuilder
 import com.lambda.util.Communication.warn
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -64,7 +63,7 @@ class BuildStructure(
     }
 
     companion object {
-        @TaskCha1nBuilder
+        @Ta5kBuilder
         fun buildStructure(
             collectDrops: Boolean = false,
             skipWeakBlocks: Boolean = false,
@@ -79,7 +78,7 @@ class BuildStructure(
                 finishOnDone
             )
 
-        @TaskCha1nBuilder
+        @Ta5kBuilder
         fun breakAndCollectBlock(
             blockPos: BlockPos
         ) = BuildStructure(
@@ -87,7 +86,7 @@ class BuildStructure(
             collectDrops = true
         )
 
-        @TaskCha1nBuilder
+        @Ta5kBuilder
         fun breakBlock(
             blockPos: BlockPos
         ) = BuildStructure(

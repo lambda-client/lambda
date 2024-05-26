@@ -6,7 +6,6 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.task.Task
-import com.lambda.task.TaskCha1nBuilder
 import com.lambda.util.BaritoneUtils
 import net.minecraft.util.math.BlockPos
 
@@ -27,7 +26,7 @@ class GoalTask(
     }
 
     companion object {
-        @TaskCha1nBuilder
+        @Ta5kBuilder
         fun moveIntoEntityRange(blockPos: BlockPos) =
             GoalTask(GoalXZ(blockPos.x, blockPos.z))
     }

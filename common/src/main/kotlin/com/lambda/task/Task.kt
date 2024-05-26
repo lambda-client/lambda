@@ -1,5 +1,6 @@
 package com.lambda.task
 
+import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.EventFlow
@@ -124,6 +125,9 @@ abstract class Task<Result>(
         }
     }
 
+    @DslMarker
+    annotation class Ta5kBuilder // Name is used to force the dsl style yellow (name hash)
+
     @Ta5kBuilder
     open fun SafeContext.onStart() {}
 
@@ -135,12 +139,12 @@ abstract class Task<Result>(
         runSafe { onStart() }
         this.parent?.let { par ->
             par.subTasks.add(this)
-            info("${par.name} started this task.")
+            LOG.info("${par.name} started $name")
             if (pauseParent && par.isActivated) {
-                info("Pausing parent ${par.name}")
+                LOG.info("$name pausing parent ${par.name}")
                 par.deactivate()
             }
-        } ?: info("Root started this task")
+        } ?: LOG.info("Root started $name")
 
         activate()
         return this
@@ -149,11 +153,13 @@ abstract class Task<Result>(
     @Ta5kBuilder
     private fun activate() {
         subTasks.firstOrNull { !it.isCompleted }?.let {
-            info("Starting subtask ${it.name}")
+            LOG.info("$name starting subtask ${it.name}")
             deactivate()
             it.start(this)
         } ?: run {
-            info("Activated")
+            if (isActivated) return
+
+            LOG.info("$name activated")
             state = State.ACTIVATED
             startListening()
         }
@@ -161,7 +167,7 @@ abstract class Task<Result>(
 
     @Ta5kBuilder
     fun deactivate() {
-        info("Deactivated")
+        LOG.info("$name deactivated")
         state = State.DEACTIVATED
         stopListening()
     }
@@ -172,13 +178,13 @@ abstract class Task<Result>(
 
         if (executions < repeats) {
             executions++
-            this@Task.info("Repeating task $executions/$repeats...")
+            LOG.info("Repeating $name $executions/$repeats...")
             onRepeat(this@Task, result, executions)
             reset()
             return
         }
 
-        this@Task.info("Task completed successfully after $attempted retries and $executions executions.")
+        LOG.info("$name completed successfully after $attempted retries and $executions executions.")
         state = State.COMPLETED
         tidyUp()
     }
@@ -187,7 +193,8 @@ abstract class Task<Result>(
     fun cancel() {
         cancelSubTasks()
         state = State.CANCELLED
-        tidyUp()
+        stopListening()
+        BaritoneUtils.cancel()
         runSafe { onCancel() }
     }
 
@@ -236,14 +243,7 @@ abstract class Task<Result>(
     private fun tidyUp() {
         stopListening()
         BaritoneUtils.cancel()
-        parent?.let {
-//            it.subTasks.remove(this)
-            if (it.isDeactivated) {
-                it.activate()
-            } else {
-                info("Parent ${it.name} is activated, not reactivating")
-            }
-        }
+        parent?.activate()
     }
 
     @Ta5kBuilder
@@ -369,7 +369,7 @@ abstract class Task<Result>(
         return this
     }
 
-    @TaskCha1nBuilder
+    @Ta5kBuilder
     fun withSubTasks(subTaskBuilder: SubTaskBuilder.(Task<*>) -> Unit): Task<Result> {
         with(SubTaskBuilder()) {
             subTaskBuilder(this@Task)
@@ -378,7 +378,7 @@ abstract class Task<Result>(
         return this
     }
 
-    @TaskCha1nBuilder
+    @Ta5kBuilder
     inline fun <reified T : Event> withListener(
         event: TickEvent.Pre, crossinline action: SafeContext.(Task<Result>) -> Unit
     ): Task<Result> {
@@ -388,7 +388,7 @@ abstract class Task<Result>(
         return this
     }
 
-    @TaskCha1nBuilder
+    @Ta5kBuilder
     fun withName(name: String): Task<Result> {
         this.name = name
         return this
@@ -401,12 +401,12 @@ abstract class Task<Result>(
     }
 
     companion object {
-        @TaskCha1nBuilder
+        @Ta5kBuilder
         fun emptyTask() = object : Task<Unit>() {
             override fun SafeContext.onStart() {}
         }
 
-        @TaskCha1nBuilder
+        @Ta5kBuilder
         fun buildTask(
             block: SafeContext.() -> Unit
         ) = object : Task<Unit>() {
@@ -415,7 +415,7 @@ abstract class Task<Result>(
             }
         }
 
-        @TaskCha1nBuilder
+        @Ta5kBuilder
         inline fun <reified R> buildTaskWithReturn(
             crossinline block: SafeContext.() -> Unit
         ) = object : Task<R>() {

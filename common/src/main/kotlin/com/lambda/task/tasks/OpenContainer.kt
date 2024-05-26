@@ -7,7 +7,6 @@ import com.lambda.interaction.InteractionConfig
 import com.lambda.interaction.rotation.IRotationConfig
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
-import com.lambda.task.TaskCha1nBuilder
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.util.Hand
@@ -53,7 +52,7 @@ class OpenContainer<H : ScreenHandler>(
     }
 
     companion object {
-        @TaskCha1nBuilder
+        @Ta5kBuilder
         inline fun <reified T : ScreenHandler> openContainer(
             blockPos: BlockPos,
             waitForSlotLoad: Boolean = true
