@@ -9,6 +9,7 @@ import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.buttons.SettingButton
 import com.lambda.util.KeyCode
 import com.lambda.util.math.ColorUtils.multAlpha
+import com.lambda.util.primitives.extension.displayValue
 
 class BindButton(
     setting: KeyBindSetting,
@@ -22,7 +23,7 @@ class BindButton(
         override val showAnimation      get() = this@BindButton.showAnimation
         override val isKeyBind = true
 
-        override fun getText() = value.localizedName
+        override fun getText() = value.displayValue
         override fun setKeyValue(key: KeyCode) { value = key }
     }.apply(layer.children::add)
 

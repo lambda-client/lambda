@@ -15,8 +15,10 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener
 import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
+import org.lwjgl.glfw.GLFW
 
 /**
  * A [Module] is a feature or tool for the utility mod.
@@ -33,7 +35,7 @@ import com.lambda.util.Nameable
  * The default [keybind] is the key on which
  * the module will be activated by default.
  * If a module does not need to be activated by a key (like [ClickGUI]),
- * the default [keybind] should not be set (using [KeyCode.Unbound]).
+ * the default [keybind] should not be set (using [KeyCode.UNBOUND]).
  *
  * [Module]s are [Configurable]s with [settings] (see [AbstractSetting] for all setting types).
  * For example, a [BooleanSetting] and a [DoubleSetting] can be defined like this:
@@ -93,7 +95,7 @@ abstract class Module(
     val defaultTags: Set<ModuleTag> = setOf(),
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
-    defaultKeybind: KeyCode = KeyCode.Unbound,
+    defaultKeybind: KeyCode = KeyCode.UNBOUND,
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
     private val isEnabledSetting = setting("Enabled", enabledByDefault, visibility = { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)
@@ -109,7 +111,7 @@ abstract class Module(
     init {
         listener<KeyPressEvent>(alwaysListen = true) { event ->
             val screen = mc.currentScreen
-            if (event.key == keybind.keyCode
+            if (event.translated == keybind
                 && !mc.options.commandKey.isPressed
                 && (screen == null
                 || screen is LambdaClickGui)

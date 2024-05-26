@@ -98,11 +98,11 @@ object Replay : Module(
         listener<KeyPressEvent> {
             if (mc.currentScreen != null && !mc.options.commandKey.isPressed) return@listener
 
-            when (it.key) {
-                record.keyCode -> handleRecord()
-                play.keyCode -> handlePlay()
-                cycle.keyCode -> handlePlayModeCycle()
-                check.keyCode -> handleCheckpoint()
+            when (it.translated) {
+                record -> handleRecord()
+                play -> handlePlay()
+                cycle -> handlePlayModeCycle()
+                check -> handleCheckpoint()
                 else -> {}
             }
         }
