@@ -25,16 +25,19 @@ abstract class MaterialContainer(
     /**
      * Brings the player into a withdrawal/deposit state. E.g.: move to a chest etc.
      */
-    open fun prepare(): Task<*> = emptyTask()
+    @Task.Ta5kBuilder
+    open fun prepare(): Task<*> = emptyTask("EmptyPrepare")
 
     /**
      * Withdraws items from the container to the player's inventory.
      */
+    @Task.Ta5kBuilder
     abstract fun withdraw(selection: StackSelection): Task<*>
 
     /**
      * Deposits items from the player's inventory into the container.
      */
+    @Task.Ta5kBuilder
     abstract fun deposit(selection: StackSelection): Task<*>
 
     open fun filter(selection: StackSelection) =
@@ -64,12 +67,15 @@ abstract class MaterialContainer(
         selector = { true }
         count = transferAmount
 
-        return TransferResult.Success(emptyTask().withSubTasks {
-            prepare()
-            withdraw(this@transfer)
-            destination.prepare()
-            deposit(this@transfer)
-        })
+        return TransferResult.Success(
+            prepare().onSuccess { prep, _ ->
+                withdraw(this@transfer).onSuccess { with, _ ->
+                    destination.prepare().onSuccess { dest, _ ->
+                        destination.deposit(this@transfer).start(dest)
+                    }.start(with)
+                }.start(prep)
+            }
+        )
     }
 
     fun List<ItemStack>.doShulkerCheck() =

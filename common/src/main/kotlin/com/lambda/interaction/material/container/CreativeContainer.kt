@@ -1,5 +1,6 @@
 package com.lambda.interaction.material.container
 
+import com.lambda.Lambda.mc
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task.Companion.buildTask
@@ -10,9 +11,9 @@ data object CreativeContainer : MaterialContainer(Rank.CREATIVE) {
     override var stacks = emptyList<ItemStack>()
 
     override fun available(selection: StackSelection): Int =
-        if (selection.optimalStack != null) Int.MAX_VALUE else 0
+        if (mc.player?.isCreative == true && selection.optimalStack != null) Int.MAX_VALUE else 0
 
-    override fun deposit(selection: StackSelection) = buildTask {
+    override fun deposit(selection: StackSelection) = buildTask("CreativeDeposit") {
         if (!player.isCreative) {
             // ToDo: Maybe switch gamemode?
             throw NotInCreativeModeException()
@@ -25,7 +26,7 @@ data object CreativeContainer : MaterialContainer(Rank.CREATIVE) {
     }
 
     // Withdraws items from the creative menu to the player's main hand
-    override fun withdraw(selection: StackSelection) = buildTask {
+    override fun withdraw(selection: StackSelection) = buildTask("CreativeWithdraw") {
         selection.optimalStack?.let { optimalStack ->
             if (player.mainHandStack.equal(optimalStack)) return@buildTask
 

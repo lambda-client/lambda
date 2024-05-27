@@ -2,14 +2,10 @@ package com.lambda.interaction.material.container
 
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.task.Task
-import com.lambda.task.tasks.AcquireMaterial.Companion.acquireStack
-import com.lambda.task.tasks.GoalTask.Companion.moveIntoEntityRange
 import com.lambda.task.tasks.InventoryTask.Companion.deposit
 import com.lambda.task.tasks.InventoryTask.Companion.withdraw
 import com.lambda.task.tasks.OpenContainer.Companion.openContainer
-import com.lambda.task.tasks.PlaceContainer.Companion.placeContainer
 import net.minecraft.block.Blocks
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items

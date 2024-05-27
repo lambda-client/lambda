@@ -1,5 +1,6 @@
 package com.lambda.task
 
+import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.Event
@@ -17,7 +18,6 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.color
 import com.lambda.util.text.literal
 import com.lambda.util.text.text
-import kotlinx.coroutines.*
 import net.minecraft.text.Text
 import org.apache.commons.lang3.time.DurationFormatUtils
 import java.awt.Color
@@ -51,8 +51,8 @@ import java.awt.Color
 abstract class Task<Result>(
     private var delay: Int = 0,
     private var timeout: Int = Int.MAX_VALUE,
-    private var tries: Int = 1,
-    private var repeats: Int = 1,
+    private var tries: Int = 0,
+    private var repeats: Int = 0,
     private var onSuccess: SafeContext.(Task<Result>, Result) -> Unit = { _, _ -> },
     private var onRetry: SafeContext.(Task<Result>) -> Unit = {},
     private var onTimeout: SafeContext.(Task<Result>) -> Unit = {},
@@ -60,6 +60,8 @@ abstract class Task<Result>(
     private var onException: SafeContext.(Task<Result>, Throwable) -> Unit = { _, _ -> },
 ) : Nameable {
     private var parent: Task<*>? = null
+    private val root: Task<*> get() = parent?.root ?: this
+    private val depth: Int get() = parent?.depth?.plus(1) ?: 0
 
     private var executions = 0
     private var attempted = 0
@@ -90,7 +92,7 @@ abstract class Task<Result>(
             }
 
             subTasks.forEach {
-                literal("\n    ")
+                literal("\n${"  ".repeat(depth + 1)}")
                 text(it.info)
             }
         }
@@ -136,37 +138,35 @@ abstract class Task<Result>(
         this.parent = parent
         executions++
 
-        runSafe { onStart() }
-        this.parent?.let { par ->
+        parent?.let { par ->
             par.subTasks.add(this)
-            LOG.info("${par.name} started $name")
+            LOG.info("$name was started by ${par.name}")
             if (pauseParent && par.isActivated) {
-                LOG.info("$name pausing parent ${par.name}")
+                LOG.info("$name deactivating parent ${par.name}")
                 par.deactivate()
             }
         } ?: LOG.info("Root started $name")
 
         activate()
+        LOG.info("\n${root.info.string}")
+        runSafe { onStart() }
+        LOG.info("\n${root.info.string}")
         return this
     }
 
     @Ta5kBuilder
     private fun activate() {
-        subTasks.firstOrNull { !it.isCompleted }?.let {
-            LOG.info("$name starting subtask ${it.name}")
-            deactivate()
-            it.start(this)
-        } ?: run {
-            if (isActivated) return
+        if (isActivated) return
 
-            LOG.info("$name activated")
-            state = State.ACTIVATED
-            startListening()
-        }
+        LOG.info("$name activated")
+        state = State.ACTIVATED
+        startListening()
     }
 
     @Ta5kBuilder
     fun deactivate() {
+        if (isDeactivated) return
+
         LOG.info("$name deactivated")
         state = State.DEACTIVATED
         stopListening()
@@ -174,8 +174,6 @@ abstract class Task<Result>(
 
     @Ta5kBuilder
     fun SafeContext.success(result: Result) {
-        onSuccess(this@Task, result)
-
         if (executions < repeats) {
             executions++
             LOG.info("Repeating $name $executions/$repeats...")
@@ -187,6 +185,7 @@ abstract class Task<Result>(
         LOG.info("$name completed successfully after $attempted retries and $executions executions.")
         state = State.COMPLETED
         tidyUp()
+        onSuccess(this@Task, result)
     }
 
     @Ta5kBuilder
@@ -219,15 +218,14 @@ abstract class Task<Result>(
                 onRetry(this@Task)
             }
             reset()
+//            activate()
             return
         }
 
         state = State.FAILED
         logError("Task failed after $attempted attempts with error: ${e.message}")
         tidyUp()
-        runSafe {
-            onException(this@Task, e)
-        }
+        runSafe { onException(this@Task, e) }
         parent?.failure(e)
     }
 
@@ -368,16 +366,7 @@ abstract class Task<Result>(
         this.onRepeat = action
         return this
     }
-
-    @Ta5kBuilder
-    fun withSubTasks(subTaskBuilder: SubTaskBuilder.(Task<*>) -> Unit): Task<Result> {
-        with(SubTaskBuilder()) {
-            subTaskBuilder(this@Task)
-            subTasks.addAll(tasks)
-        }
-        return this
-    }
-
+    
     @Ta5kBuilder
     inline fun <reified T : Event> withListener(
         event: TickEvent.Pre, crossinline action: SafeContext.(Task<Result>) -> Unit
@@ -402,25 +391,38 @@ abstract class Task<Result>(
 
     companion object {
         @Ta5kBuilder
-        fun emptyTask() = object : Task<Unit>() {
-            override fun SafeContext.onStart() {}
+        fun emptyTask(
+            name: String = "EmptyTask",
+        ) = object : Task<Unit>() {
+            init { this.name = name }
+            override fun SafeContext.onStart() { success(Unit) }
         }
 
         @Ta5kBuilder
         fun buildTask(
+            name: String = "Task",
             block: SafeContext.() -> Unit
         ) = object : Task<Unit>() {
+            init { this.name = name }
             override fun SafeContext.onStart() {
-                block()
+                try {
+                    success(block())
+                } catch (e: Throwable) {
+                    failure(e)
+                }
             }
         }
 
         @Ta5kBuilder
         inline fun <reified R> buildTaskWithReturn(
-            crossinline block: SafeContext.() -> Unit
+            crossinline block: SafeContext.() -> R
         ) = object : Task<R>() {
             override fun SafeContext.onStart() {
-                block()
+                try {
+                    success(block())
+                } catch (e: Throwable) {
+                    failure(e)
+                }
             }
         }
     }

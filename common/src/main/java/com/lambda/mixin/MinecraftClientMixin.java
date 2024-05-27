@@ -14,6 +14,7 @@ import net.minecraft.client.gui.screen.ingame.ScreenHandlerProvider;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -21,6 +22,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(MinecraftClient.class)
 public class MinecraftClientMixin {
+    @Shadow @Nullable public Screen currentScreen;
+
     @Inject(method = "tick", at = @At("HEAD"))
     void onTickPre(CallbackInfo ci) {
         EventFlow.post(new TickEvent.Pre());
@@ -56,12 +59,12 @@ public class MinecraftClientMixin {
 
     @Inject(method = "setScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/Screen;removed()V", shift = At.Shift.AFTER))
     private void onScreenRemove(@Nullable Screen screen, CallbackInfo ci) {
-        if (screen == null) return;
-        if (screen instanceof ScreenHandlerProvider<?> handledScreen) {
+        if (currentScreen == null) return;
+        if (currentScreen instanceof ScreenHandlerProvider<?> handledScreen) {
             EventFlow.post(new ScreenHandlerEvent.Close<>(handledScreen.getScreenHandler()));
         }
 
-        EventFlow.post(new ScreenEvent.Close<>(screen));
+        EventFlow.post(new ScreenEvent.Close<>(currentScreen));
     }
 
     @Redirect(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;isBreakingBlock()Z"))

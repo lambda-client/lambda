@@ -99,6 +99,7 @@ object BlockUtils {
 
     fun BlockPos.blockState(world: ClientWorld): BlockState = world.getBlockState(this)
     fun BlockPos.fluidState(world: ClientWorld): FluidState = world.getFluidState(this)
+    fun BlockPos.blockEntity(world: ClientWorld) = world.getBlockEntity(this)
     fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos): Boolean {
         val ticksNeeded = 1 / blockState.calcBlockBreakingDelta(player, world, blockPos)
 //        info("State: $blockState Ticks to break: $ticksNeeded")

@@ -11,18 +11,17 @@ class AcquireMaterial(
 ) : Task<StackSelection>() {
     override fun SafeContext.onStart() {
         findContainerWithSelection(selection)?.let { container ->
-            emptyTask().withSubTasks {
-                container.prepare()
-                container.withdraw(selection)
-            }.onSuccess { _, _ ->
-                success(selection)
-            }
-        } ?: throw ContainerManager.NoContainerFound(selection) // ToDo: Create crafting path
+            container.prepare().onSuccess { _, _ ->
+                container.withdraw(selection).onSuccess { _, _ ->
+                    success(selection)
+                }.start(this@AcquireMaterial)
+            }.start(this@AcquireMaterial)
+        } ?: failure(ContainerManager.NoContainerFound(selection)) // ToDo: Create crafting path
     }
 
     companion object {
         @Ta5kBuilder
-        fun acquireStack(selection: StackSelection) =
-            AcquireMaterial(selection)
+        fun acquire(selection: () -> StackSelection) =
+            AcquireMaterial(selection())
     }
 }

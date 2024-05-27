@@ -1,10 +1,12 @@
 package com.lambda.interaction.material
 
+import com.lambda.core.Loadable
 import com.lambda.event.events.InteractionEvent
 import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.*
+import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.Communication.info
 import com.lambda.util.item.ItemUtils
 import com.lambda.util.primitives.extension.containerStacks
@@ -19,7 +21,7 @@ import net.minecraft.screen.ScreenHandlerType
 import java.util.TreeSet
 
 // ToDo: Make this a Configurable to save container caches. Should use a cached region based storage system.
-object ContainerManager {
+object ContainerManager : Loadable {
     // ToDo: Maybe use reflection to get all containers?
     val container = TreeSet<MaterialContainer>().apply {
         add(CreativeContainer)
@@ -34,10 +36,14 @@ object ContainerManager {
 
     init {
         listener<InteractionEvent.Block> {
-            lastInteractedBlockEntity = world.getBlockEntity(it.blockHitResult.blockPos)
+            lastInteractedBlockEntity = it.blockHitResult.blockPos.blockEntity(world)
         }
 
         listener<ScreenHandlerEvent.Close<GenericContainerScreenHandler>> { event ->
+            // ToDo: ;-; i hate type erasure.
+            //  The listener will be triggered for any H, not just GenericContainerScreenHandler
+            if (event.screenHandler !is GenericContainerScreenHandler) return@listener
+
             val handler = event.screenHandler
 
             when (val block = lastInteractedBlockEntity) {
