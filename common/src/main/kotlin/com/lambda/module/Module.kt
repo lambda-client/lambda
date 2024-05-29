@@ -15,10 +15,8 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener
 import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
-import org.lwjgl.glfw.GLFW
 
 /**
  * A [Module] is a feature or tool for the utility mod.
@@ -110,6 +108,8 @@ abstract class Module(
 
     init {
         listener<KeyPressEvent>(alwaysListen = true) { event ->
+            if (keybind == KeyCode.UNBOUND) return@listener
+
             val screen = mc.currentScreen
             if (event.translated == keybind
                 && !mc.options.commandKey.isPressed
