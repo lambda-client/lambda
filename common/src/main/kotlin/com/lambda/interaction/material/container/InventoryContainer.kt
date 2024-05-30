@@ -12,11 +12,7 @@ object InventoryContainer : MaterialContainer(Rank.INVENTORY) {
         get() = mc.player?.combined ?: emptyList()
         set(_) {}
 
-    override fun withdraw(selection: StackSelection): Task<*> {
-        TODO("Not yet implemented")
-    }
+    override fun withdraw(selection: StackSelection) = Task.emptyTask()
 
-    override fun deposit(selection: StackSelection): Task<*> {
-        TODO("Not yet implemented")
-    }
+    override fun deposit(selection: StackSelection) = Task.emptyTask()
 }

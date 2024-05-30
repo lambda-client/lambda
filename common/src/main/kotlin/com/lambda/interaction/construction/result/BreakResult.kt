@@ -2,9 +2,9 @@ package com.lambda.interaction.construction.result
 
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.material.ContainerManager.findBestAvailableTool
+import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.CreativeContainer.transfer
 import com.lambda.interaction.material.container.MainHandContainer
 import com.lambda.task.Task
 import com.lambda.task.Task.Companion.emptyTask

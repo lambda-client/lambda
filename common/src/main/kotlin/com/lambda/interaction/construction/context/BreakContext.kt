@@ -14,7 +14,7 @@ data class BreakContext(
     val result: BlockHitResult,
     val rotation: RotationContext,
     val checkedState: BlockState,
-    val hand: Hand,
+    var hand: Hand,
     val instantBreak: Boolean,
 ) : BuildContext, ComparableContext {
     override val distance: Double by lazy {

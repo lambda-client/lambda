@@ -8,9 +8,8 @@ import com.lambda.task.Task
 import com.lambda.task.Task.Companion.emptyTask
 import com.lambda.task.tasks.BuildStructure.Companion.buildStructure
 import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.BlockUtils.instantBreakable
-import com.lambda.util.BlockUtils.safeLiquid
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.KeyCode
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3i
@@ -23,7 +22,6 @@ object Nuker : Module(
 ) {
     private val flatten by setting("Flatten", true)
     private val onlyBreakInstant by setting("Only Break Instant", true)
-    private val doNotExposeLiquids by setting("Do Not Expose Liquids", true)
     private val fillFloor by setting("Fill Floor", false)
 
     private val range = Vec3i(4, 4, 4) // TODO: Customizable
@@ -42,7 +40,6 @@ object Nuker : Module(
                         .filter { !world.isAir(it) }
                         .filter { !flatten || it.y >= player.blockPos.y }
                         .filter { !onlyBreakInstant || instantBreakable(it.blockState(world), it) }
-                        .filter { !doNotExposeLiquids || safeLiquid(it) }
                         .associateWith { TargetState.Air }
 
 //                    if (fillFloor) {

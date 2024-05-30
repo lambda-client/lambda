@@ -103,6 +103,8 @@ class BuildStructure(
 
                 lastResult = result
                 cancelSubTasks()
+
+                if (!pathing && result is BreakResult.OutOfReach) return@let
                 result.resolve.start(this@BuildStructure, false)
             }
         }
@@ -280,15 +282,17 @@ class BuildStructure(
 
             /* player has a better tool for the job available */
             findBestAvailableTool(state)?.let { bestTool ->
-                var added = false
-                Hand.entries.forEach {
+                Hand.entries.firstOrNull {
                     val stack = player.getStackInHand(it)
-                    if (stack.isEmpty) return@forEach
-                    if (stack.item == bestTool) return@forEach
-                    added = true
+                    stack.item == bestTool
+                }?.let { hand ->
+                    breakContext.hand = hand
+                    acc.add(BreakResult.Success(pos, breakContext))
+                    return acc
+                } ?: run {
                     acc.add(BreakResult.WrongTool(pos, breakContext, bestTool))
+                    return acc
                 }
-                if (added) return acc
             }
 
             acc.add(BreakResult.Success(pos, breakContext))

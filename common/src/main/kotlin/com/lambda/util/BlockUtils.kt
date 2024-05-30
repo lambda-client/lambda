@@ -105,10 +105,6 @@ object BlockUtils {
 //        info("State: $blockState Ticks to break: $ticksNeeded")
         return ticksNeeded <= 1 && ticksNeeded != 0f
     }
-    fun SafeContext.safeLiquid(blockPos: BlockPos) = Direction.entries.all {
-        if (it == Direction.UP) return@all true
-        world.getFluidState(blockPos.offset(it)).isEmpty
-    }
     val Vec3i.blockPos: BlockPos get() = BlockPos(this)
     val Block.item: Item get() = asItem()
     val Vec3d.flooredPos: BlockPos get() = BlockPos(floor(x).toInt(), floor(y).toInt(), floor(z).toInt())

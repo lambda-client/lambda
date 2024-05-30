@@ -5,6 +5,8 @@ import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
+import com.lambda.task.Task.Companion.buildTask
+import com.lambda.task.Task.Companion.emptyTask
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.player.SlotUtils.hotbar
 import kotlinx.coroutines.delay
@@ -18,38 +20,31 @@ object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
         get() = mc.player?.mainHandStack?.let { listOf(it) } ?: emptyList()
         set(_) {}
 
-    override fun withdraw(selection: StackSelection): Task<*> {
-        TODO("Not yet implemented")
-    }
-//        InventoryContainer.stacks.filter(selection.selector).take(selection.count).forEach { stack ->
-//            if (ItemStack.areEqual(stack, player.mainHandStack)) {
-//                return@forEach
-//            }
-//
-//            if (ItemStack.areEqual(stack, player.offHandStack)) {
-//                connection.sendPacket(
-//                    PlayerActionC2SPacket(
-//                        PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
-//                        BlockPos.ORIGIN,
-//                        Direction.DOWN,
-//                    ),
-//                )
-//                delay(TaskFlow.itemMoveDelay)
-//                return@forEach
-//            }
-//
-//            if (stack in player.hotbar) {
-//                player.inventory.selectedSlot = player.hotbar.indexOf(stack)
-//                delay(TaskFlow.itemMoveDelay)
-//                return@forEach
-//            }
-//
-//            interaction.pickFromInventory(player.combined.indexOf(stack))
-//            delay(TaskFlow.itemMoveDelay)
-//        }
-//    }
+    override fun withdraw(selection: StackSelection) = emptyTask("WithdrawFromMainHand")
 
-    override fun deposit(selection: StackSelection): Task<*> {
-        TODO("Not yet implemented")
+    override fun deposit(selection: StackSelection) = buildTask("DepositToMainHand") {
+        InventoryContainer.filter(selection).firstOrNull()?.let { stack ->
+            if (ItemStack.areEqual(stack, player.mainHandStack)) {
+                return@buildTask
+            }
+
+            if (ItemStack.areEqual(stack, player.offHandStack)) {
+                connection.sendPacket(
+                    PlayerActionC2SPacket(
+                        PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
+                        BlockPos.ORIGIN,
+                        Direction.DOWN,
+                    ),
+                )
+                return@buildTask
+            }
+
+            if (stack in player.hotbar) {
+                player.inventory.selectedSlot = player.hotbar.indexOf(stack)
+                return@buildTask
+            }
+
+            interaction.pickFromInventory(player.combined.indexOf(stack))
+        }
     }
 }

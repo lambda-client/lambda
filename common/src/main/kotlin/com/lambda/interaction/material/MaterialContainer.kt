@@ -52,26 +52,26 @@ abstract class MaterialContainer(
     open fun spaceLeft(selection: StackSelection) =
         filter(selection).spaceLeft + stacks.empty * selection.stackSize
 
-    fun StackSelection.transfer(destination: MaterialContainer): TransferResult {
-        val amount = available(this)
-        if (amount < count) {
-            return TransferResult.MissingItems(amount - count)
+    fun transfer(selection: StackSelection, destination: MaterialContainer): TransferResult {
+        val amount = available(selection)
+        if (amount < selection.count) {
+            return TransferResult.MissingItems(amount - selection.count)
         }
 
-        val space = destination.spaceLeft(this)
-        if (space == 0) {
-            return TransferResult.NoSpace
-        }
+//        val space = destination.spaceLeft(selection)
+//        if (space == 0) {
+//            return TransferResult.NoSpace
+//        }
 
-        val transferAmount = minOf(amount, space)
-        selector = { true }
-        count = transferAmount
+//        val transferAmount = minOf(amount, space)
+//        selection.selector = { true }
+//        selection.count = transferAmount
 
         return TransferResult.Success(
             prepare().onSuccess { prep, _ ->
-                withdraw(this@transfer).onSuccess { with, _ ->
+                withdraw(selection).onSuccess { with, _ ->
                     destination.prepare().onSuccess { dest, _ ->
-                        destination.deposit(this@transfer).start(dest)
+                        destination.deposit(selection).start(dest)
                     }.start(with)
                 }.start(prep)
             }

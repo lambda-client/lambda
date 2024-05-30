@@ -28,7 +28,7 @@ class OpenContainer<H : ScreenHandler>(
         listener<ScreenHandlerEvent.Open<H>> {
             screenHandler = it.screenHandler
 
-            if (!waitForSlotLoad) success(it.screenHandler)
+            if (!waitForSlotLoad || slotsLoaded) success(it.screenHandler)
         }
 
         listener<ScreenHandlerEvent.Close<H>> {
@@ -42,10 +42,12 @@ class OpenContainer<H : ScreenHandler>(
         }
 
         listener<RotationEvent.Pre> { event ->
+            if (screenHandler != null) return@listener
             event.context = lookAtBlock(blockPos, rotationConfig, interactionConfig, sides)
         }
 
         listener<RotationEvent.Post> {
+            if (screenHandler != null) return@listener
             if (!it.context.isValid) return@listener
             val hitResult = it.context.hitResult?.blockResult ?: return@listener
             interaction.interactBlock(player, Hand.MAIN_HAND, hitResult)
