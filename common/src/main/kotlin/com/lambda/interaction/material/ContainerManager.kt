@@ -72,7 +72,6 @@ object ContainerManager : Loadable {
 
     fun StackSelection.transfer(destination: MaterialContainer) =
         findContainerWithSelection(this)?.transfer(this, destination)
-            ?: throw NoContainerFound(this)
 
     fun findContainer(
         block: (MaterialContainer) -> Boolean

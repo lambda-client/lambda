@@ -24,6 +24,7 @@ data class ModuleTag(override val name: String) : Nameable {
         val WORLD = ModuleTag("World")
         val MISC = ModuleTag("Misc")
         val CLIENT = ModuleTag("Client")
+        val BUILDING = ModuleTag("Building")
 
         // Do something with this ?
         val HIDDEN = ModuleTag("Hidden")
@@ -33,6 +34,6 @@ data class ModuleTag(override val name: String) : Nameable {
         val AUTOMATION = ModuleTag("Automation")
         val DEBUG = ModuleTag("Debug")
 
-        val defaults = listOf(COMBAT, MOVEMENT, RENDER, PLAYER, WORLD, DEBUG, CLIENT)
+        val defaults = listOf(COMBAT, MOVEMENT, RENDER, PLAYER, WORLD, DEBUG, CLIENT, BUILDING)
     }
 }

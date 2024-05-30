@@ -1,17 +1,30 @@
 package com.lambda.interaction.construction
 
 import com.lambda.context.SafeContext
+import com.lambda.threading.runSafe
 import com.lambda.util.primitives.extension.Structure
 import net.minecraft.util.math.Vec3i
 
 data class DynamicBlueprint(
-    val initial: Structure = emptyMap(),
-    val update: SafeContext.(Structure) -> Structure,
+    val init: SafeContext.(Structure) -> Structure = { emptyMap() },
+    val onTick: SafeContext.(Structure) -> Structure = { it },
+    val onDone: SafeContext.(Structure) -> Structure? = { null }
 ) : Blueprint() {
-    fun update(ctx: SafeContext) =
-        ctx.update(structure)
+    fun onTick(ctx: SafeContext) {
+        structure = ctx.onTick(structure)
+    }
 
-    override val structure: Structure by lazy { initial }
+    fun onDone(ctx: SafeContext): Boolean {
+        structure = ctx.onDone(structure) ?: return true
+        return false
+    }
+
+    fun create(ctx: SafeContext) {
+        structure = ctx.init(structure)
+    }
+
+    override var structure: Structure = emptyMap()
+        private set
 
     companion object {
         fun offset(offset: Vec3i): SafeContext.(Structure) -> Structure = {
@@ -20,8 +33,18 @@ data class DynamicBlueprint(
             }.toMap()
         }
 
+        fun blueprintOnTick(
+            init: SafeContext.(Structure) -> Structure = { emptyMap() },
+            onTick: SafeContext.(Structure) -> Structure
+        ) = DynamicBlueprint(init, onTick = onTick)
+
+        fun blueprintOnDone(
+            init: SafeContext.(Structure) -> Structure = { emptyMap() },
+            onDone: SafeContext.(Structure) -> Structure
+        ) = DynamicBlueprint(init, onDone = onDone)
+
         fun Structure.toBlueprint(
-            update: SafeContext.(Structure) -> Structure
-        ) = DynamicBlueprint(this, update)
+            onTick: SafeContext.(Structure) -> Structure
+        ) = DynamicBlueprint({ emptyMap() }, onTick)
     }
 }

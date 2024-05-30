@@ -15,7 +15,7 @@ object TransferCommand : LambdaCommand(
 ) {
     override fun CommandBuilder.create() {
         execute {
-            Items.OBSIDIAN.select().transfer(MainHandContainer).solve.start(null)
+            Items.OBSIDIAN.select().transfer(MainHandContainer)?.solve?.start(null)
         }
     }
 }

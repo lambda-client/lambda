@@ -3,7 +3,6 @@ package com.lambda.task.tasks
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RotationEvent
-import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.task.Task
@@ -14,13 +13,14 @@ class PlaceBlock @Ta5kBuilder constructor(
     val ctx: PlaceContext,
     private val swingHand: Boolean = true,
     private val rotate: Boolean = true,
-    private val waitForConfirmation: Boolean = true,
+    private val waitForConfirmation: Boolean = false,
 ) : Task<Unit>() {
     private var beginState: BlockState? = null
     private val SafeContext.resultingState: BlockState get() = ctx.resultingPos.blockState(world)
+    private val SafeContext.matches get() = ctx.targetState.matches(ctx.resultingPos.blockState(world), ctx.resultingPos, world)
 
     override fun SafeContext.onStart() {
-        if (ctx.expectedState == resultingState) {
+        if (matches) {
             success(Unit)
             return
         }
@@ -39,6 +39,10 @@ class PlaceBlock @Ta5kBuilder constructor(
 
             placeBlock()
         }
+
+//        listener<WorldEvent.BlockUpdate> {
+//            if (matches) success(Unit)
+//        }
     }
 
     private fun SafeContext.placeBlock() {
@@ -50,8 +54,7 @@ class PlaceBlock @Ta5kBuilder constructor(
             ctx.result
         )
 
-        val match = ctx.targetState.matches(ctx.resultingPos.blockState(world), ctx.resultingPos, world)
-        if (actionResult.isAccepted && match) {
+        if (actionResult.isAccepted && matches) {
             if (actionResult.shouldSwingHand() && swingHand) {
                 player.swingHand(ctx.hand)
             }
@@ -61,7 +64,7 @@ class PlaceBlock @Ta5kBuilder constructor(
                 mc.gameRenderer.firstPersonRenderer.resetEquipProgress(ctx.hand)
             }
 
-            success(Unit)
+            if (!waitForConfirmation) success(Unit)
         } else {
             failure("Failed to place block as simulation does not match actual result $actionResult")
         }
@@ -75,7 +78,7 @@ class PlaceBlock @Ta5kBuilder constructor(
             ctx: PlaceContext,
             swingHand: Boolean = true,
             rotate: Boolean = true,
-            waitForConfirmation: Boolean = true,
+            waitForConfirmation: Boolean = false,
         ) = PlaceBlock(ctx, swingHand, rotate, waitForConfirmation)
     }
 }

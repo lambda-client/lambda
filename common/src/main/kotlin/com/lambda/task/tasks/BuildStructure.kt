@@ -42,7 +42,7 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import kotlin.math.pow
 
-class BuildStructure(
+class BuildStructure @Ta5kBuilder constructor(
     private val blueprint: Blueprint,
     private val collectDrops: Boolean = false,
     private val skipWeakBlocks: Boolean = false,
@@ -53,25 +53,34 @@ class BuildStructure(
 ) : Task<Unit>() {
     private var lastResult: BuildResult? = null
 
+    override fun SafeContext.onStart() {
+        (blueprint as? DynamicBlueprint)?.create(this)
+    }
+
     init {
         listener<TickEvent.Pre> {
-            val structure = when (blueprint) {
-                is DynamicBlueprint -> blueprint.update(this)
-                else -> blueprint.structure
-            }
+            (blueprint as? DynamicBlueprint)?.onTick(this)
 
-            if (finishOnDone && structure.isEmpty()) {
+            if (finishOnDone && blueprint.structure.isEmpty()) {
                 failure("Structure is empty")
                 return@listener
             }
 
             if (finishOnDone && blueprint.isDone(this)) {
+                if (blueprint is DynamicBlueprint) {
+                    if (!blueprint.onDone(this)) {
+                        this@BuildStructure.info("Structure moved")
+                        return@listener
+                    }
+                }
+
                 this@BuildStructure.info("Structure is done")
+                cancelSubTasks()
                 success(Unit)
                 return@listener
             }
 
-            val results = structure.entries.fold(mutableSetOf<BuildResult>()) { acc, (pos, target) ->
+            val results = blueprint.structure.entries.fold(mutableSetOf<BuildResult>()) { acc, (pos, target) ->
                 checkRequirements(pos, target)?.let {
                     acc.add(it)
                     return@fold acc

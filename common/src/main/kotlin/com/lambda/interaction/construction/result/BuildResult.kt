@@ -132,7 +132,7 @@ abstract class BuildResult : ComparableResult<Rank> {
         override val rank = Rank.WRONG_ITEM
 
         override val resolve: Task<*> =
-            neededItem.select().transfer(MainHandContainer).solve
+            neededItem.select().transfer(MainHandContainer)?.solve ?: emptyTask() // ToDo: Should throw error
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {

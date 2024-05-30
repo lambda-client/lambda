@@ -75,7 +75,7 @@ sealed class BreakResult : BuildResult() {
                     ?.solve ?: run {
                         selectStack {
                             isItem(badItem).not()
-                        }.transfer(MainHandContainer).solve
+                        }.transfer(MainHandContainer)?.solve ?: emptyTask() // ToDo: Should throw error
                     }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {

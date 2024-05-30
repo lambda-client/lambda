@@ -1,6 +1,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.interaction.construction.DynamicBlueprint
+import com.lambda.interaction.construction.DynamicBlueprint.Companion.blueprintOnTick
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -33,7 +34,7 @@ object Nuker : Module(
                 pathing = false,
                 finishOnDone = false
             ) {
-                DynamicBlueprint { _ ->
+                blueprintOnTick { _ ->
                     val selection = BlockPos.iterateOutwards(player.blockPos, range.x, range.y, range.z)
                         .asSequence()
                         .map { it.blockPos }
