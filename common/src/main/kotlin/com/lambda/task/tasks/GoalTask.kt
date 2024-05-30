@@ -11,9 +11,10 @@ import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
 import net.minecraft.util.math.BlockPos
 
+// ToDo: Custom heuristic goals
 class GoalTask(
     private val goal: Goal,
-    private val check: SafeContext.() -> Boolean = { true }
+    private val check: SafeContext.() -> Boolean = { false }
 ) : Task<Unit>() {
 
     override fun SafeContext.onStart() {
@@ -22,7 +23,7 @@ class GoalTask(
 
     init {
         listener<TickEvent.Post> {
-            if (!BaritoneUtils.isActive && check()) {
+            if (!BaritoneUtils.isActive || check()) {
                 success(Unit)
             }
         }
@@ -30,8 +31,18 @@ class GoalTask(
 
     companion object {
         @Ta5kBuilder
+        fun moveToBlock(blockPos: BlockPos) =
+            GoalTask(GoalBlock(blockPos))
+
+        @Ta5kBuilder
         fun moveToXY(blockPos: BlockPos) =
             GoalTask(GoalXZ(blockPos.x, blockPos.z))
+
+        @Ta5kBuilder
+        fun moveUntilLoaded(blockPos: BlockPos) =
+            GoalTask(GoalBlock(blockPos)) {
+                world.isPosLoaded(blockPos.x, blockPos.z)
+            }
 
         @Ta5kBuilder
         fun moveIntoEntityRange(blockPos: BlockPos, range: Int = 3) =

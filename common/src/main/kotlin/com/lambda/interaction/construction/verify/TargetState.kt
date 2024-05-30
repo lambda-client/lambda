@@ -20,14 +20,14 @@ sealed class TargetState : StateMatcher {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
             state.isSolidBlock(world, pos)
         override fun getStack(world: ClientWorld, pos: BlockPos) =
-            ItemStack(Items.NETHERRACK)
+            ItemStack(Items.NETHERRACK) // ToDo: Find any disposable block
     }
     data class Support(val direction: Direction) : TargetState() {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
             pos.offset(direction).blockState(world).isSolidBlock(world, pos.offset(direction))
 
         override fun getStack(world: ClientWorld, pos: BlockPos) =
-            ItemStack(Items.NETHERRACK)
+            ItemStack(Items.NETHERRACK) // ToDo: Find any disposable block
     }
     data class State(val blockState: BlockState) : TargetState() {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =

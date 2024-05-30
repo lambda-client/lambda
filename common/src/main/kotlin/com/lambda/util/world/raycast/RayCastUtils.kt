@@ -68,6 +68,8 @@ object RayCastUtils {
         return this as? BlockHitResult
     }
 
+    fun HitResult.distanceTo(pos: Vec3d) = pos.distanceTo(pos)
+
     val HitResult.orNull get() = entityResult ?: blockResult
 
     val HitResult?.orMiss get() = this ?: object : HitResult(mc.player?.eyePos ?: Vec3d.ZERO) {

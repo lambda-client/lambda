@@ -6,9 +6,15 @@ import com.lambda.interaction.RotationManager
 import com.lambda.interaction.rotation.IRotationConfig
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationContext
+import com.lambda.module.modules.client.TaskFlow
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.primitives.extension.component6
+import com.lambda.util.world.raycast.RayCastUtils.blockResult
+import com.lambda.util.world.raycast.RayCastUtils.entityResult
+import net.minecraft.entity.Entity
 import net.minecraft.util.hit.HitResult
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
@@ -16,10 +22,32 @@ import java.util.*
 import kotlin.math.pow
 
 object VisibilityChecker {
-    fun SafeContext.findRotation(
+    fun SafeContext.lookAtEntity(
         rotationConfig: IRotationConfig,
-        interact: InteractionConfig,
+        interactionConfig: InteractionConfig,
+        entity: Entity
+    ) = findRotation(listOf(entity.boundingBox), rotationConfig, interactionConfig) {
+        entityResult?.entity == entity
+    }
+
+    fun SafeContext.lookAtBlock(
+        blockPos: BlockPos,
+        rotationConfig: IRotationConfig = TaskFlow.rotationSettings,
+        interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
+        sides: Set<Direction> = emptySet()
+    ): RotationContext? {
+        val state = blockPos.blockState(world)
+        val voxelShape = state.getOutlineShape(world, blockPos)
+        val boundingBoxes = voxelShape.boundingBoxes.map { it.offset(blockPos) }
+        return findRotation(boundingBoxes, rotationConfig, interactionConfig, sides) {
+            blockResult?.blockPos == blockPos && (blockResult?.side in sides || sides.isEmpty())
+        }
+    }
+
+    fun SafeContext.findRotation(
         boxes: List<Box>,
+        rotationConfig: IRotationConfig = TaskFlow.rotationSettings,
+        interact: InteractionConfig = TaskFlow.interactionSettings,
         sides: Set<Direction> = emptySet(),
         verify: HitResult.() -> Boolean,
     ): RotationContext? {
@@ -33,14 +61,14 @@ object VisibilityChecker {
         )
 
         if (boxes.any { it.contains(eye) }) {
-            return RotationContext(currentRotation, rotationConfig, verify, currentCast)
+            return RotationContext(currentRotation, rotationConfig, currentCast, verify)
         }
 
         val validHits = mutableMapOf<Vec3d, HitResult>()
         val reachSq = interact.reach.pow(2)
 
         boxes.forEach { box ->
-            scanVisibleSurfaces(box, sides, interact.resolution) { vec ->
+            scanVisibleSurfaces(player.eyePos, box, sides, interact.resolution) { vec ->
                 if (eye distSq vec > reachSq) return@scanVisibleSurfaces
 
                 val newRotation = eye.rotationTo(vec)
@@ -59,25 +87,24 @@ object VisibilityChecker {
         validHits.keys.mostCenter?.let { optimum ->
             validHits.minByOrNull { optimum distSq it.key }?.let { closest ->
                 val optimumRotation = eye.rotationTo(closest.key)
-                return RotationContext(optimumRotation, rotationConfig, verify, closest.value)
+                return RotationContext(optimumRotation, rotationConfig, closest.value, verify)
             }
         }
 
         return null
     }
 
-    inline fun SafeContext.scanVisibleSurfaces(
+    inline fun scanVisibleSurfaces(
+        eyes: Vec3d,
         box: Box,
         sides: Set<Direction>,
         resolution: Int,
         check: (Vec3d) -> Unit,
     ) {
         val shrunk = box.expand(-0.005)
-        box.getVisibleSurfaces(player.eyePos)
+        box.getVisibleSurfaces(eyes)
             .forEach { side ->
-                if (sides.isNotEmpty() && side !in sides) {
-                    return@forEach
-                }
+                if (sides.isNotEmpty() && side !in sides) return@forEach
                 val (minX, minY, minZ, maxX, maxY, maxZ) = shrunk.bounds(side)
                 val stepX = (maxX - minX) / resolution
                 val stepY = (maxY - minY) / resolution
@@ -93,7 +120,7 @@ object VisibilityChecker {
             }
     }
 
-    private val Set<Vec3d>.mostCenter: Vec3d?
+    val Set<Vec3d>.mostCenter: Vec3d?
         get() = reduceOrNull { acc, vec3d ->
             acc.add(vec3d)
         }?.multiply(1.0 / size.toDouble())

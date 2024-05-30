@@ -8,8 +8,8 @@ data class DynamicBlueprint(
     val initial: Structure = emptyMap(),
     val update: SafeContext.(Structure) -> Structure,
 ) : Blueprint() {
-    fun update(safeContext: SafeContext) =
-        safeContext.update(structure)
+    fun update(ctx: SafeContext) =
+        ctx.update(structure)
 
     override val structure: Structure by lazy { initial }
 

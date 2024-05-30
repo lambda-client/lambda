@@ -6,8 +6,10 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.InteractionConfig
+import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.rotation.IRotationConfig
 import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BlockUtils.instantBreakable
@@ -15,20 +17,21 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.BlockState
 import net.minecraft.entity.ItemEntity
-import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
 class BreakBlock @Ta5kBuilder constructor(
-    private val blockPos: BlockPos,
+    private val ctx: BreakContext,
     private val rotationConfig: IRotationConfig = TaskFlow.rotationSettings,
     private val interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
     private val sides: Set<Direction> = emptySet(),
     private val collectDrop: Boolean = false,
     private val noRotationForInstant: Boolean = true,
 ) : Task<ItemEntity?>() {
+    val blockPos: BlockPos get() = ctx.result.blockPos
     private var beginState: BlockState? = null
     val SafeContext.state: BlockState get() = blockPos.blockState(world)
+    val SafeContext.instant: Boolean get() = instantBreakable(state, blockPos) && noRotationForInstant
 
     override fun SafeContext.onStart() {
         if (state.isAir && !collectDrop) {
@@ -40,12 +43,12 @@ class BreakBlock @Ta5kBuilder constructor(
 
     init {
         listener<RotationEvent.Pre> { event ->
-            if (instantBreakable(state, blockPos) && noRotationForInstant) return@listener
-            event.lookAtBlock(blockPos, rotationConfig, interactionConfig, sides)
+            if (instant) return@listener
+            event.context = lookAtBlock(blockPos, rotationConfig, interactionConfig, sides)
         }
 
         listener<RotationEvent.Post> {
-            if (instantBreakable(state, blockPos) && noRotationForInstant) return@listener
+            if (instant) return@listener
             if (!it.context.isValid) return@listener
             val hitResult = it.context.hitResult?.blockResult ?: return@listener
 
@@ -58,9 +61,9 @@ class BreakBlock @Ta5kBuilder constructor(
                 return@listener
             }
 
-            if (!instantBreakable(state, blockPos) || !noRotationForInstant) return@listener
-            val shape = state.getOutlineShape(world, blockPos)
+            if (!instant) return@listener
 
+            val shape = state.getOutlineShape(world, blockPos)
             if (shape.isEmpty) {
                 failure("${blockPos.toShortString()} in state $state has no outline shape")
                 return@listener
@@ -87,22 +90,23 @@ class BreakBlock @Ta5kBuilder constructor(
     private fun SafeContext.breakBlock(side: Direction) {
         if (interaction.updateBlockBreakingProgress(blockPos, side)) {
             mc.particleManager.addBlockBreakingParticles(blockPos, side)
-//            mc.particleManager.addParticle(ParticleTypes.CRIT, hitResult.pos.x, hitResult.pos.y, hitResult.pos.z, 0.0, 0.0, 0.0)
-            if (!instantBreakable(state, blockPos) || !noRotationForInstant) player.swingHand(Hand.MAIN_HAND)
+            if (!instant) {
+                player.swingHand(ctx.hand)
+            }
         }
     }
 
     companion object {
         @Ta5kBuilder
-        fun uncheckedBreak(
-            blockPos: BlockPos,
+        fun breakBlock(
+            ctx: BreakContext,
             rotationConfig: IRotationConfig = TaskFlow.rotationSettings,
             interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
             sides: Set<Direction> = emptySet(),
             collectDrop: Boolean = false,
             noRotationForInstant: Boolean = true,
         ) = BreakBlock(
-            blockPos,
+            ctx,
             rotationConfig,
             interactionConfig,
             sides,

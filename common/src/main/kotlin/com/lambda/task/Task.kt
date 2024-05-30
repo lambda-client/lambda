@@ -1,6 +1,5 @@
 package com.lambda.task
 
-import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.Event
@@ -10,7 +9,6 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.threading.runSafe
 import com.lambda.util.BaritoneUtils
-import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
 import com.lambda.util.Nameable
@@ -74,6 +72,7 @@ abstract class Task<Result>(
     val isRunning get() = state == State.ACTIVATED || state == State.DEACTIVATED
     val isFailed get() = state == State.FAILED
     val isCompleted get() = state == State.COMPLETED
+    val isRoot get() = parent == null
     override var name = this::class.simpleName ?: "Task"
 
     // ToDo: Better color management
@@ -88,13 +87,24 @@ abstract class Task<Result>(
 
             literal(" Runtime ")
             color(primaryColor) {
-                literal(DurationFormatUtils.formatDuration(age * 50L, "HH:mm:ss,SSS"))
+                literal(DurationFormatUtils.formatDuration(age * 50L, "HH:mm:ss,SSS").dropLast(1))
             }
 
-            subTasks.forEach {
+            val display = subTasks.reversed().take(MAX_DEBUG_ENTRIES)
+            display.forEach {
                 literal("\n${"  ".repeat(depth + 1)}")
                 text(it.info)
             }
+
+            val left = subTasks.size - display.size
+            if (left > 0) {
+                literal("\n${"  ".repeat(depth + 1)}And ")
+                color(primaryColor) {
+                    literal("$left")
+                }
+                literal(" more...")
+            }
+
         }
 
     val syncListeners = Subscriber()
@@ -135,27 +145,24 @@ abstract class Task<Result>(
 
     @Ta5kBuilder
     fun start(parent: Task<*>?, pauseParent: Boolean = true): Task<Result> {
-        this.parent = parent
         executions++
+        val owner = parent ?: RootTask
+        owner.subTasks.add(this)
 
-        parent?.let { par ->
-            par.subTasks.add(this)
-            LOG.info("$name was started by ${par.name}")
-            if (pauseParent && par.isActivated) {
-                LOG.info("$name deactivating parent ${par.name}")
-                par.deactivate()
-            }
-        } ?: LOG.info("Root started $name")
+        if (pauseParent && owner.isActivated && !owner.isRoot) {
+            LOG.info("$name deactivating parent ${owner.name}")
+            owner.deactivate()
+        }
+        LOG.info("$name was started by ${owner.name}")
+        this.parent = owner
 
         activate()
-        LOG.info("\n${root.info.string}")
         runSafe { onStart() }
-        LOG.info("\n${root.info.string}")
         return this
     }
 
     @Ta5kBuilder
-    private fun activate() {
+    fun activate() {
         if (isActivated) return
 
         LOG.info("$name activated")
@@ -369,7 +376,7 @@ abstract class Task<Result>(
     
     @Ta5kBuilder
     inline fun <reified T : Event> withListener(
-        event: TickEvent.Pre, crossinline action: SafeContext.(Task<Result>) -> Unit
+        crossinline action: SafeContext.(Task<Result>) -> Unit
     ): Task<Result> {
         listener<T> {
             action(this@Task)
@@ -390,6 +397,9 @@ abstract class Task<Result>(
     }
 
     companion object {
+        val MAX_DEPTH = 20
+        const val MAX_DEBUG_ENTRIES = 7
+
         @Ta5kBuilder
         fun emptyTask(
             name: String = "EmptyTask",

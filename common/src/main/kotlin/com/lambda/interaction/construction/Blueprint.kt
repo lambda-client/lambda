@@ -13,9 +13,9 @@ import net.minecraft.util.math.Box
 abstract class Blueprint {
     abstract val structure: Structure
 
-    open fun isDone(safeContext: SafeContext) =
+    open fun isDone(ctx: SafeContext) =
         structure.all { (pos, targetState) ->
-            with(safeContext) {
+            with(ctx) {
                 targetState.matches(pos.blockState(world), pos, world)
             }
         }

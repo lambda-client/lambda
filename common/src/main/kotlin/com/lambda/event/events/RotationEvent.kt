@@ -35,38 +35,6 @@ abstract class RotationEvent : Event {
                 this.context = context
             }
         }
-
-        fun lookAtEntity(
-            rotationConfig: IRotationConfig,
-            interactionConfig: InteractionConfig,
-            entity: Entity
-        ) {
-            runSafe {
-                findRotation(rotationConfig, interactionConfig, listOf(entity.boundingBox)) {
-                    entityResult?.entity == entity
-                }?.let { rotationContext ->
-                    context = rotationContext
-                }
-            }
-        }
-
-        fun lookAtBlock(
-            blockPos: BlockPos,
-            rotationConfig: IRotationConfig = TaskFlow.rotationSettings,
-            interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
-            sides: Set<Direction> = emptySet()
-        ) = runSafe {
-            val state = blockPos.blockState(world)
-            val voxelShape = state.getOutlineShape(world, blockPos)
-            val boundingBoxes = voxelShape.boundingBoxes.map { it.offset(blockPos) }
-            findRotation(rotationConfig, interactionConfig, boundingBoxes, sides) {
-                blockResult?.blockPos == blockPos && (blockResult?.side in sides || sides.isEmpty())
-            }?.let {
-                context = it
-                return@runSafe it
-            }
-            return@runSafe null
-        }
     }
 
     class Post(val context: RotationContext) : RotationEvent()

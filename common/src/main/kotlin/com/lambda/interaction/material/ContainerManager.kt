@@ -79,6 +79,14 @@ object ContainerManager : Loadable {
     ): MaterialContainer? =
         container.find { it.available(selection) >= selection.count }
 
+    fun findContainerWithSelection(
+        selectionBuilder: StackSelection.() -> Unit
+    ): MaterialContainer? {
+        val selection = StackSelection().apply(selectionBuilder)
+        return container.find { it.available(selection) >= selection.count }
+    }
+
+
     fun findContainerWithStacks(
         count: Int = StackSelection.DEFAULT_AMOUNT,
         selection: (ItemStack) -> Boolean,

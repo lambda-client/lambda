@@ -3,6 +3,8 @@ package com.lambda.module.modules.client
 import com.lambda.config.InteractionSettings
 import com.lambda.config.RotationSettings
 import com.lambda.module.Module
+import com.lambda.util.BlockUtils.allSigns
+import net.minecraft.block.Block
 
 object TaskFlow : Module(
     name = "TaskFlow",
@@ -10,9 +12,6 @@ object TaskFlow : Module(
 ) {
     val rotationSettings = RotationSettings(this)
     val interactionSettings = InteractionSettings(this)
-    private val itemMoveDelaySetting = setting("Item Move Delay", 5, 0..20, unit = "ticks")
 //    val disposables by setting("Disposables", ItemUtils.defaultDisposables)
-
-    val itemMoveDelay: Long
-        get() = itemMoveDelaySetting.value * 50L
+    val ignoredBlocks = mutableSetOf<Block>().apply { addAll(allSigns) }
 }

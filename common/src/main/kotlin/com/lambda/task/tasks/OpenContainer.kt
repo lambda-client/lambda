@@ -5,6 +5,7 @@ import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.InteractionConfig
 import com.lambda.interaction.rotation.IRotationConfig
+import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -41,7 +42,7 @@ class OpenContainer<H : ScreenHandler>(
         }
 
         listener<RotationEvent.Pre> { event ->
-            event.lookAtBlock(blockPos, rotationConfig, interactionConfig, sides)
+            event.context = lookAtBlock(blockPos, rotationConfig, interactionConfig, sides)
         }
 
         listener<RotationEvent.Post> {

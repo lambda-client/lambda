@@ -14,4 +14,6 @@ interface InteractionConfig {
     val resolution: Int
 
     val rayCastMask: RayCastMask
+
+    val ignoreRayCast: Boolean
 }
