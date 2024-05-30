@@ -171,8 +171,8 @@ class BuildStructure(
             val neighPos = pos.offset(neighbor)
             val hitSide = neighbor.opposite
 
-            val voxelShape = neighPos.blockState(world).getOutlineShape(world, pos)
-            val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
+            val voxelShape = neighPos.blockState(world).getOutlineShape(world, neighPos)
+            val boxes = voxelShape.boundingBoxes.map { it.offset(neighPos) }
             val verify: HitResult.() -> Boolean = {
                 blockResult?.blockPos == neighPos && blockResult?.side == hitSide
             }

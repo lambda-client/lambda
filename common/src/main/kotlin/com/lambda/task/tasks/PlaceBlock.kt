@@ -3,6 +3,7 @@ package com.lambda.task.tasks
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RotationEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.task.Task
@@ -49,7 +50,8 @@ class PlaceBlock @Ta5kBuilder constructor(
             ctx.result
         )
 
-        if (actionResult.isAccepted) {
+        val match = ctx.targetState.matches(ctx.resultingPos.blockState(world), ctx.resultingPos, world)
+        if (actionResult.isAccepted && match) {
             if (actionResult.shouldSwingHand() && swingHand) {
                 player.swingHand(ctx.hand)
             }
@@ -58,6 +60,8 @@ class PlaceBlock @Ta5kBuilder constructor(
             if (!player.getStackInHand(ctx.hand).isEmpty && interaction.hasCreativeInventory()) {
                 mc.gameRenderer.firstPersonRenderer.resetEquipProgress(ctx.hand)
             }
+
+            success(Unit)
         } else {
             failure("Failed to place block as simulation does not match actual result $actionResult")
         }

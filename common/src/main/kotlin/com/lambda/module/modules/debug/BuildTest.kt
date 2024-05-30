@@ -17,8 +17,7 @@ object BuildTest : Module(
         onEnable {
             buildStructure {
                 player.blockPos
-                    .offset(player.horizontalFacing)
-                    .offset(player.horizontalFacing)
+                    .offset(player.horizontalFacing, 2)
                     .toStructure(TargetState.Block(Blocks.NETHERRACK))
                     .toBlueprint()
             }.start(null)
