@@ -6,9 +6,7 @@ import com.lambda.task.Task
 import com.lambda.task.tasks.InventoryTask.Companion.deposit
 import com.lambda.task.tasks.InventoryTask.Companion.withdraw
 import com.lambda.task.tasks.OpenContainer.Companion.openContainer
-import net.minecraft.block.Blocks
 import net.minecraft.item.ItemStack
-import net.minecraft.item.Items
 import net.minecraft.screen.GenericContainerScreenHandler
 import net.minecraft.util.math.BlockPos
 

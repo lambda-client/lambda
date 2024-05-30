@@ -90,7 +90,6 @@ object ContainerManager : Loadable {
         return container.find { it.available(selection) >= selection.count }
     }
 
-
     fun findContainerWithStacks(
         count: Int = StackSelection.DEFAULT_AMOUNT,
         selection: (ItemStack) -> Boolean,
