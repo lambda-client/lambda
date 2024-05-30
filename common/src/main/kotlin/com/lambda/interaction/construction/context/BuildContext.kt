@@ -1,9 +1,13 @@
 package com.lambda.interaction.construction.context
 
 import net.minecraft.block.BlockState
+import net.minecraft.util.Hand
+import net.minecraft.util.math.BlockPos
 
-interface BuildContext {
+interface BuildContext : ComparableContext {
     val distance: Double
     val expectedState: BlockState
-//    val resultingPos: BlockPos
+    val checkedState: BlockState
+    val hand: Hand
+    val resultingPos: BlockPos
 }

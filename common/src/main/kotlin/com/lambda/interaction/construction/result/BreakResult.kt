@@ -38,27 +38,6 @@ sealed class BreakResult : BuildResult() {
     }
 
     /**
-     * Represents a break out of reach.
-     * @param blockPos The position of the block that is out of reach.
-     * @param distance The distance to the hit vector.
-     */
-    data class OutOfReach(
-        override val blockPos: BlockPos,
-        val distance: Double
-    ) : Resolvable, BreakResult() {
-        override val rank = Rank.BREAK_OUT_OF_REACH
-
-        override val resolve = moveToBlock(blockPos)
-
-        override fun compareTo(other: ComparableResult<Rank>): Int {
-            return when (other) {
-                is OutOfReach -> distance.compareTo(other.distance)
-                else -> super.compareTo(other)
-            }
-        }
-    }
-
-    /**
      * Represents a break configuration where the hit side is not exposed to air.
      * @param blockPos The position of the block that is not exposed.
      * @param side The side that is not exposed.
@@ -74,28 +53,6 @@ sealed class BreakResult : BuildResult() {
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
                 is NotExposed -> blockPos.compareTo(other.blockPos)
-                else -> super.compareTo(other)
-            }
-        }
-    }
-
-    /**
-     * The checked break configuration hits on a side not in the player direction.
-     * @param blockPos The position of the block that is not exposed.
-     * @param side The side that is not exposed.
-     */
-    data class NotVisible(
-        override val blockPos: BlockPos,
-        val side: Direction,
-        val distance: Double
-    ) : Resolvable, BreakResult() {
-        override val rank = Rank.BREAK_NOT_VISIBLE
-
-        override val resolve = emptyTask()
-
-        override fun compareTo(other: ComparableResult<Rank>): Int {
-            return when (other) {
-                is NotVisible -> distance.compareTo(other.distance)
                 else -> super.compareTo(other)
             }
         }
@@ -124,28 +81,6 @@ sealed class BreakResult : BuildResult() {
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
                 is ItemCantMine -> badItem.name.string.compareTo(other.badItem.name.string)
-                else -> super.compareTo(other)
-            }
-        }
-    }
-
-    /**
-     * Player has an inefficient tool equipped.
-     * @param bestTool The best tool for the block state.
-     */
-    data class WrongTool(
-        override val blockPos: BlockPos,
-        val context: BreakContext,
-        val bestTool: Item
-    ) : Resolvable, BreakResult() {
-        override val rank = Rank.BREAK_WRONG_TOOL
-
-        override val resolve: Task<*> =
-            bestTool.select().transfer(MainHandContainer).solve
-
-        override fun compareTo(other: ComparableResult<Rank>): Int {
-            return when (other) {
-                is WrongTool -> context.compareTo(other.context)
                 else -> super.compareTo(other)
             }
         }

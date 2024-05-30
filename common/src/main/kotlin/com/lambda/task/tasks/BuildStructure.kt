@@ -9,8 +9,10 @@ import com.lambda.interaction.construction.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.DynamicBlueprint
 import com.lambda.interaction.construction.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
+import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.result.BuildResult
+import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.result.Resolvable
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerManager.findBestAvailableTool
@@ -20,12 +22,18 @@ import com.lambda.interaction.visibilty.VisibilityChecker.mostCenter
 import com.lambda.interaction.visibilty.VisibilityChecker.scanVisibleSurfaces
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
+import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.Communication.info
 import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.OperatorBlock
+import net.minecraft.block.pattern.CachedBlockPosition
+import net.minecraft.item.BlockItem
+import net.minecraft.item.ItemPlacementContext
+import net.minecraft.item.ItemUsageContext
+import net.minecraft.registry.RegistryKeys
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.BlockPos
@@ -68,11 +76,11 @@ class BuildStructure(
                     acc.add(it)
                     return@fold acc
                 }
-//                checkPlaceResults(pos, target).let {
-//                    if (it.isEmpty()) return@let
-//                    acc.addAll(it)
-//                    return@fold acc
-//                }
+                checkPlaceResults(pos, target).let {
+                    if (it.isEmpty()) return@let
+                    acc.addAll(it)
+                    return@fold acc
+                }
                 checkBreakResults(pos, target).let {
                     if (it.isEmpty()) return@let
                     acc.addAll(it)
@@ -104,7 +112,7 @@ class BuildStructure(
                 lastResult = result
                 cancelSubTasks()
 
-                if (!pathing && result is BreakResult.OutOfReach) return@let
+                if (!pathing && result is BuildResult.OutOfReach) return@let
                 result.resolve.start(this@BuildStructure, false)
             }
         }
@@ -154,8 +162,130 @@ class BuildStructure(
     private fun SafeContext.checkPlaceResults(pos: BlockPos, target: TargetState): Set<BuildResult> {
         val acc = mutableSetOf<BuildResult>()
 
-        val state = pos.blockState(world)
-        if (target is TargetState.Air || !state.isReplaceable) return acc
+        if (target is TargetState.Air || !pos.blockState(world).isReplaceable) return acc
+
+        val interact = TaskFlow.interactionSettings
+        val rotation = TaskFlow.rotationSettings
+
+        Direction.entries.forEach { neighbor ->
+            val neighPos = pos.offset(neighbor)
+            val hitSide = neighbor.opposite
+
+            val voxelShape = neighPos.blockState(world).getOutlineShape(world, pos)
+            val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
+            val verify: HitResult.() -> Boolean = {
+                blockResult?.blockPos == neighPos && blockResult?.side == hitSide
+            }
+
+            val eye = player.getCameraPosVec(mc.tickDelta)
+            val validHits = mutableMapOf<Vec3d, HitResult>()
+            val reachSq = interact.reach.pow(2)
+
+            boxes.forEach { box ->
+                // ToDo: Verify needed resolution
+                scanVisibleSurfaces(eye, box, setOf(hitSide), 2) { vec ->
+                    if (eye distSq vec > reachSq) {
+                        acc.add(BuildResult.OutOfReach(pos, eye.distanceTo(vec)))
+                        return@scanVisibleSurfaces
+                    }
+                    val cast = eye.rotationTo(vec).rayCast(
+                        interact.reach,
+                        interact.rayCastMask,
+                        eye
+                    ) ?: return@scanVisibleSurfaces
+                    if (!cast.verify()) return@scanVisibleSurfaces
+
+                    validHits[vec] = cast
+                }
+            }
+
+            validHits.keys.mostCenter?.let { optimum ->
+                validHits.minByOrNull { optimum distSq it.key }?.let { closest ->
+                    val optimumRotation = eye.rotationTo(closest.key)
+                    RotationContext(optimumRotation, rotation, closest.value, verify)
+                }
+            }?.let { rotation ->
+                val optimalStack = target.getStack(world, pos)
+
+                val usageContext = ItemUsageContext(
+                    player,
+                    Hand.MAIN_HAND, // ToDo: notice that the hand may have a different item stack and simulation will be wrong
+                    rotation.hitResult?.blockResult,
+                )
+                val cachePos = CachedBlockPosition(
+                    usageContext.world,
+                    usageContext.blockPos,
+                    false
+                )
+                val canBePlacedOn = optimalStack.canPlaceOn(
+                    usageContext.world.registryManager.get(RegistryKeys.BLOCK),
+                    cachePos,
+                )
+                if (!player.abilities.allowModifyWorld && !canBePlacedOn) {
+                    acc.add(PlaceResult.IllegalUsage(pos))
+                    return@forEach
+                }
+
+                var context = ItemPlacementContext(usageContext)
+
+                if (!optimalStack.item.isEnabled(world.enabledFeatures)) {
+                    acc.add(PlaceResult.BlockFeatureDisabled(pos, optimalStack))
+                    return@forEach
+                }
+
+                if (!context.canPlace()) {
+                    acc.add(PlaceResult.CantReplace(pos, context))
+                    return@forEach
+                }
+
+                val blockItem = optimalStack.item as? BlockItem ?: run {
+                    acc.add(PlaceResult.NotItemBlock(pos, optimalStack))
+                    return@forEach
+                }
+
+                val checked = blockItem.getPlacementContext(context)
+                if (checked == null) {
+                    acc.add(PlaceResult.ScaffoldExceeded(pos, context))
+                    return@forEach
+                } else {
+                    context = checked
+                }
+
+                val resultState = blockItem.getPlacementState(context) ?: run {
+                    acc.add(PlaceResult.CantReplace(pos, context))
+                    return@forEach
+                }
+
+                if (!target.matches(resultState, pos, world)) {
+                    acc.add(PlaceResult.NoIntegrity(pos, resultState, context))
+                    return@forEach
+                }
+
+                val blockHit = rotation.hitResult?.blockResult ?: return@forEach
+                val hitBlock = blockHit.blockPos.blockState(world).block
+                val shouldSneak = hitBlock in BlockUtils.interactionBlacklist
+
+                val placeContext = PlaceContext(
+                    eye,
+                    blockHit,
+                    rotation,
+                    eye.distanceTo(blockHit.pos),
+                    resultState,
+                    blockHit.blockPos.blockState(world),
+                    target,
+                    Hand.MAIN_HAND,
+                    shouldSneak,
+                    false
+                )
+
+                if (optimalStack.item != player.getStackInHand(placeContext.hand).item) {
+                    acc.add(BuildResult.WrongItem(pos, placeContext, optimalStack.item))
+                    return@forEach
+                }
+
+                acc.add(PlaceResult.Success(pos, placeContext))
+            }
+        }
 
         return acc
     }
@@ -249,7 +379,7 @@ class BuildStructure(
             // ToDo: Verify needed resolution
             scanVisibleSurfaces(eye, box, emptySet(), 2) { vec ->
                 if (eye distSq vec > reachSq) {
-                    acc.add(BreakResult.OutOfReach(pos, eye.distanceTo(vec)))
+                    acc.add(BuildResult.OutOfReach(pos, eye.distanceTo(vec)))
                     return@scanVisibleSurfaces
                 }
                 val cast = eye.rotationTo(vec).rayCast(
@@ -290,7 +420,7 @@ class BuildStructure(
                     acc.add(BreakResult.Success(pos, breakContext))
                     return acc
                 } ?: run {
-                    acc.add(BreakResult.WrongTool(pos, breakContext, bestTool))
+                    acc.add(BuildResult.WrongItem(pos, breakContext, bestTool))
                     return acc
                 }
             }

@@ -24,7 +24,7 @@ class BreakBlock @Ta5kBuilder constructor(
     private val interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
     private val sides: Set<Direction> = emptySet(),
     private val collectDrop: Boolean = false,
-    private val dontRotate: Boolean = true,
+    private val rotate: Boolean = false,
     private val swingHand: Boolean = true,
     private val particles: Boolean = true,
 ) : Task<ItemEntity?>() {
@@ -42,12 +42,12 @@ class BreakBlock @Ta5kBuilder constructor(
 
     init {
         listener<RotationEvent.Pre> { event ->
-            if (dontRotate) return@listener
+            if (!rotate) return@listener
             event.context = lookAtBlock(blockPos, rotationConfig, interactionConfig, sides)
         }
 
         listener<RotationEvent.Post> {
-            if (dontRotate) return@listener
+            if (!rotate) return@listener
             if (!it.context.isValid) return@listener
             val hitResult = it.context.hitResult?.blockResult ?: return@listener
 
@@ -60,7 +60,7 @@ class BreakBlock @Ta5kBuilder constructor(
                 return@listener
             }
 
-            if (!dontRotate) return@listener
+            if (rotate) return@listener
 
             breakBlock(ctx.result.side)
         }
@@ -92,14 +92,14 @@ class BreakBlock @Ta5kBuilder constructor(
             interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
             sides: Set<Direction> = emptySet(),
             collectDrop: Boolean = false,
-            noRotationForInstant: Boolean = true,
+            rotate: Boolean = false,
         ) = BreakBlock(
             ctx,
             rotationConfig,
             interactionConfig,
             sides,
             collectDrop,
-            noRotationForInstant
+            rotate
         )
     }
 }

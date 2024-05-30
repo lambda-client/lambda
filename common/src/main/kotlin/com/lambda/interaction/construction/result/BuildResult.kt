@@ -1,9 +1,18 @@
 package com.lambda.interaction.construction.result
 
+import com.lambda.interaction.construction.context.BreakContext
+import com.lambda.interaction.construction.context.BuildContext
+import com.lambda.interaction.material.ContainerManager.transfer
+import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.interaction.material.container.MainHandContainer
+import com.lambda.task.Task
+import com.lambda.task.Task.Companion.emptyTask
+import com.lambda.task.tasks.GoalTask.Companion.moveToBlock
 import com.lambda.task.tasks.GoalTask.Companion.moveUntilLoaded
-import net.minecraft.block.Block
 import net.minecraft.block.BlockState
+import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 
 abstract class BuildResult : ComparableResult<Rank> {
     abstract val blockPos: BlockPos
@@ -51,7 +60,7 @@ abstract class BuildResult : ComparableResult<Rank> {
      */
     data class Restricted(
         override val blockPos: BlockPos
-    ) : BreakResult() {
+    ) : BuildResult() {
         override val rank = Rank.BREAK_RESTRICTED
     }
 
@@ -63,7 +72,7 @@ abstract class BuildResult : ComparableResult<Rank> {
     data class NoPermission(
         override val blockPos: BlockPos,
         val blockState: BlockState
-    ) : BreakResult() {
+    ) : BuildResult() {
         override val rank = Rank.BREAK_NO_PERMISSION
     }
 
@@ -73,7 +82,7 @@ abstract class BuildResult : ComparableResult<Rank> {
      */
     data class OutOfWorld(
         override val blockPos: BlockPos
-    ) : BreakResult() {
+    ) : BuildResult() {
         override val rank = Rank.BREAK_OUT_OF_WORLD
     }
 
@@ -85,7 +94,72 @@ abstract class BuildResult : ComparableResult<Rank> {
     data class Unbreakable(
         override val blockPos: BlockPos,
         val blockState: BlockState
-    ) : BreakResult() {
-        override val rank = Rank.BREAK_UNBREAKABLE
+    ) : BuildResult() {
+        override val rank = Rank.UNBREAKABLE
+    }
+
+    /**
+     * The checked configuration hits on a side not in the player direction.
+     * @param blockPos The position of the block that is not exposed.
+     * @param side The side that is not exposed.
+     */
+    data class NotVisible(
+        override val blockPos: BlockPos,
+        val side: Direction,
+        val distance: Double
+    ) : Resolvable, BuildResult() {
+        override val rank = Rank.NOT_VISIBLE
+
+        override val resolve = emptyTask()
+
+        override fun compareTo(other: ComparableResult<Rank>): Int {
+            return when (other) {
+                is NotVisible -> distance.compareTo(other.distance)
+                else -> super.compareTo(other)
+            }
+        }
+    }
+
+    /**
+     * Player has an inefficient tool equipped.
+     * @param neededItem The best tool for the block state.
+     */
+    data class WrongItem(
+        override val blockPos: BlockPos,
+        val context: BuildContext,
+        val neededItem: Item
+    ) : Resolvable, BuildResult() {
+        override val rank = Rank.WRONG_ITEM
+
+        override val resolve: Task<*> =
+            neededItem.select().transfer(MainHandContainer).solve
+
+        override fun compareTo(other: ComparableResult<Rank>): Int {
+            return when (other) {
+                is WrongItem -> context.compareTo(other.context)
+                else -> super.compareTo(other)
+            }
+        }
+    }
+
+    /**
+     * Represents a break out of reach.
+     * @param blockPos The position of the block that is out of reach.
+     * @param distance The distance to the hit vector.
+     */
+    data class OutOfReach(
+        override val blockPos: BlockPos,
+        val distance: Double
+    ) : Resolvable, BuildResult() {
+        override val rank = Rank.OUT_OF_REACH
+
+        override val resolve = moveToBlock(blockPos)
+
+        override fun compareTo(other: ComparableResult<Rank>): Int {
+            return when (other) {
+                is OutOfReach -> distance.compareTo(other.distance)
+                else -> super.compareTo(other)
+            }
+        }
     }
 }
