@@ -101,7 +101,7 @@ class ModuleButton(
                     )
 
                     val progress = transform(renderHeight, 0.0, 10.0, 0.0, 1.0).coerceIn(0.0, 1.0)
-                    val topColor = Color.BLACK.setAlpha(0.2 * progress)
+                    val topColor = Color.BLACK.setAlpha(0.2 * progress * showAnimation)
                     val bottomColor = Color.BLACK.setAlpha(0.0)
 
                     build(rect, 0.0, topColor, topColor, bottomColor, bottomColor)
@@ -119,7 +119,7 @@ class ModuleButton(
 
                     val progress = transform(renderHeight, 0.0, 10.0, 0.0, 1.0).coerceIn(0.0, 1.0) * show.toInt()
                     val topColor = Color.BLACK.setAlpha(0.0)
-                    val bottomColor = Color.BLACK.setAlpha(0.2 * progress)
+                    val bottomColor = Color.BLACK.setAlpha(0.2 * progress * showAnimation)
 
                     build(rect, 0.0, topColor, topColor, bottomColor, bottomColor)
                 }

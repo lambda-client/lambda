@@ -71,6 +71,7 @@ abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, Cli
     }
 
     override fun close() {
+        if (!isOpen) return
         closing = true
     }
 }

@@ -26,6 +26,8 @@ abstract class LambdaGui(
     private var screenSize = Vec2d.ZERO
     override val rect get() = Rect(Vec2d.ZERO, screenSize)
 
+    val isOpen get() = mc.currentScreen == this
+
     val animation = AnimationTicker()
 
     private val renderListener = UnsafeListener(0, this, false) { event ->
@@ -45,6 +47,7 @@ abstract class LambdaGui(
      * No safe context required (TODO: let user open clickgui via main menu)
      */
     fun show() {
+        if (isOpen) return
         mc.currentScreen?.close()
 
         recordRenderCall { // wait for the previous screen to be closed
