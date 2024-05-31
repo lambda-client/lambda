@@ -31,8 +31,7 @@
     "render.RenderLayersMixin",
     "render.RenderTickCounterMixin",
     "render.VertexBufferMixin",
-    "render.WorldRendererMixin",
-    "world.WorldMixin"
+    "render.WorldRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
