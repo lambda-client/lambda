@@ -1,4 +1,4 @@
-package com.lambda.module.modules.render
+package com.lambda.module.modules.combat
 
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -10,7 +10,7 @@ import java.util.*
 object FakePlayer : Module(
     name = "FakePlayer",
     description = "Spawns a fake player",
-    defaultTags = setOf(ModuleTag.MISC, ModuleTag.RENDER)
+    defaultTags = setOf(ModuleTag.COMBAT, ModuleTag.RENDER)
 ) {
     private val playerName by setting("Name", "Steve")
 

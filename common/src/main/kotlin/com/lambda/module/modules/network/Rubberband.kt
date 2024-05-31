@@ -1,4 +1,4 @@
-package com.lambda.module.modules.client
+package com.lambda.module.modules.network
 
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
@@ -21,7 +21,7 @@ import java.awt.Color
 object Rubberband : Module(
     name = "Rubberband",
     description = "Info about rubberbands",
-    defaultTags = setOf(ModuleTag.CLIENT)
+    defaultTags = setOf(ModuleTag.NETWORK, ModuleTag.DEBUG)
 ) {
     private val showLastPacketInfo by setting("Show Last Packet", true)
     private val showConnectionState by setting("Show Connection State", true)

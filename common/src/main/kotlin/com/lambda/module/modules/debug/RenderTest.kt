@@ -1,4 +1,4 @@
-package com.lambda.module.modules.render
+package com.lambda.module.modules.debug
 
 import com.lambda.Lambda.mc
 import com.lambda.event.events.RenderEvent
@@ -35,13 +35,13 @@ object RenderTest : Module(
     init {
         filled.build {
             val flag = mc.crosshairTarget?.blockResult?.blockPos?.let { box = Box(it) } != null
-            color = this@RenderTest.color.setAlpha((color.a + flag.toIntSign() * 0.05).coerceAtMost(0.2))
+            color = color.setAlpha((color.a + flag.toIntSign() * 0.05).coerceAtMost(0.2))
         }
 
         outline.build {
             val block = mc.crosshairTarget?.blockResult
             val flag = block?.blockPos?.let { box = Box(it) } != null
-            color = this@RenderTest.color.setAlpha(color.a + flag.toIntSign() * 0.2)
+            color = color.setAlpha(color.a + flag.toIntSign() * 0.2)
             sides = block?.side?.mask ?: sides
         }
 

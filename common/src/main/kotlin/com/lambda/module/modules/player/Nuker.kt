@@ -18,8 +18,7 @@ import net.minecraft.util.math.Vec3i
 object Nuker : Module(
     name = "Nuker",
     description = "Breaks blocks around you",
-    defaultKeybind = KeyCode.Comma,
-    defaultTags = setOf(ModuleTag.PLAYER)
+    defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
 ) {
     private val flatten by setting("Flatten", true)
     private val onlyBreakInstant by setting("Only Break Instant", true)
