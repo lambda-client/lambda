@@ -196,8 +196,8 @@ class VAO(
         indicesCount = 0
     }
 
-    fun destroy() {
-        runGameScheduled {
+    protected fun finalize() {
+        runOnGameThread {
             glDeleteBuffers(ibo)
             glDeleteBuffers(vbo)
             glDeleteVertexArrays(vao)

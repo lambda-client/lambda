@@ -1,5 +1,11 @@
 package com.lambda.module.modules.client
 
+import com.lambda.event.events.ConnectionEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.graphics.animation.Animation.Companion.exp
+import com.lambda.graphics.animation.AnimationTicker
+import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import java.awt.Color
@@ -12,17 +18,21 @@ object GuiSettings : Module(
     private val page by setting("Page", Page.General)
 
     // General
-    private val scaleSetting by setting("Scale", 1.0, 0.5..3.0, 0.01, visibility = { page == Page.General })
+    private val scaleSetting by setting("Scale", 100, 50..300, 1, unit = "%", visibility = { page == Page.General }).apply {
+        onValueSet { _, _ ->
+            lastChange = System.currentTimeMillis()
+        }
+    }
 
     // Colors
     val primaryColor by setting("Primary Color", Color(130, 200, 255), visibility = { page == Page.Colors })
-    val secondaryColor by setting("Secondary Color", Color(225, 130, 225), visibility = { page == Page.Colors && shade })
+    val secondaryColor by setting("Secondary Color", Color(225, 130, 225), visibility = { page == Page.Colors && (shade || shadeBackground) })
     val backgroundColor by setting("Background Color", Color(50, 50, 50), visibility = { page == Page.Colors })
     val shade by setting("Shade", true, visibility = { page == Page.Colors })
     val shadeBackground by setting("Shade Background", true, visibility = { page == Page.Colors })
-    val colorWidth by setting("Color Width", 400.0, 10.0..1000.0, 10.0, visibility = { page == Page.Colors && shade })
-    val colorHeight by setting("Color Height", 400.0, 10.0..1000.0, 10.0, visibility = { page == Page.Colors && shade })
-    val colorSpeed by setting("Color Speed", 1.0, 0.1..10.0, 0.1, visibility = { page == Page.Colors && shade })
+    val colorWidth by setting("Color Width", 400.0, 10.0..1000.0, 10.0, visibility = { page == Page.Colors && (shade || shadeBackground) })
+    val colorHeight by setting("Color Height", 400.0, 10.0..1000.0, 10.0, visibility = { page == Page.Colors && (shade || shadeBackground) })
+    val colorSpeed by setting("Color Speed", 1.0, 0.1..10.0, 0.1, visibility = { page == Page.Colors && (shade || shadeBackground) })
 
     val mainColor: Color get() = if (shade) Color.WHITE else primaryColor
 
@@ -34,5 +44,24 @@ object GuiSettings : Module(
         Colors
     }
 
-    val scale get() = scaleSetting * 2
+    private var targetScale = 2.0; get() {
+        val update = System.currentTimeMillis() - lastChange > 200 || !LambdaClickGui.isOpen
+        if (update) field = scaleSetting / 100.0 * 2.0
+        return field
+    }
+
+    private val animation = with(AnimationTicker()) {
+        unsafeListener<TickEvent.Pre>(alwaysListen = true) {
+            tick()
+        }
+
+        exp({ targetScale }, 0.5).apply {
+            unsafeListener<ConnectionEvent.Connect>(alwaysListen = true) {
+                setValue(targetScale)
+            }
+        }
+    }
+
+    private var lastChange = 0L
+    val scale by animation
 }

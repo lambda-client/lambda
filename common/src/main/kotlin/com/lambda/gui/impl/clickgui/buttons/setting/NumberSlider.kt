@@ -31,11 +31,19 @@ class NumberSlider <N>(
         override val hoverFontAnimation get() = this@NumberSlider.hoverFontAnimation
         override val showAnimation      get() = this@NumberSlider.showAnimation
 
-        override fun getText() = value.let(Number::toString)
-        override fun setValue(string: String) {
+        override fun isCharAllowed(string: String, char: Char): Boolean {
+            return when (char) {
+                '.' -> char !in string
+                '-' -> string.isEmpty()
+                else -> char.isDigit()
+            }
+        }
+
+        override fun getText() = "$setting"
+        override fun setStringValue(string: String) {
             string.toDoubleOrNull()?.let(::setValue)
         }
-    }.apply(layer::addChild)
+    }.apply(layer.children::add)
 
     override val textColor get() = super.textColor.multAlpha(1.0 - inputBar.activeAnimation)
 
@@ -54,8 +62,8 @@ class NumberSlider <N>(
         inputBar.toggle()
     }
 
-    override fun slide(mouse: Vec2d) {
-        if (!inputBar.isActive) super.slide(mouse)
+    override fun slide() {
+        if (!inputBar.isActive) super.slide()
     }
 
     override fun setValueByProgress(progress: Double) {

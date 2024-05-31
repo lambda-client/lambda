@@ -1,12 +1,12 @@
-package com.lambda.graphics.renderer.immediate
+package com.lambda.graphics.renderer.gui
 
-import com.lambda.Lambda.mc
+import com.lambda.Lambda
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.buffer.vao.VAO
 import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.buffer.vao.vertex.VertexMode
 import com.lambda.graphics.shader.Shader
-import com.lambda.graphics.texture.TextureUtils.bindTexture
+import com.lambda.graphics.texture.TextureUtils
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 
@@ -41,11 +41,14 @@ object BlurPostProcessor {
             )
 
             shader.use()
-            shader["u_Direction"] = direction / Vec2d(mc.window.framebufferWidth, mc.window.framebufferHeight)
+            shader["u_Direction"] = direction / Vec2d(
+                Lambda.mc.window.framebufferWidth,
+                Lambda.mc.window.framebufferHeight
+            )
             shader["u_BlurLevel"] = level
             shader["u_Alpha"] = alpha
 
-            bindTexture(mc.framebuffer.colorAttachment)
+            TextureUtils.bindTexture(Lambda.mc.framebuffer.colorAttachment)
             upload()
             render()
             clear()
