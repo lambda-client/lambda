@@ -20,7 +20,7 @@ object RocketExtend : Module(
     private var extendedRockets = mutableListOf<FireworkRocketEntity>()
     private var pingPacket: CommonPongC2SPacket? = null
     private var lastPingTime = -1L
-    private val keepAliveTime by setting("Keepalive timeout seconds", 45, 0..60, 1)
+    private val keepAliveTime by setting("Keepalive timeout", 45, 0..60, 1, unit = " s")
 
     init {
         listener<PacketEvent.Receive.Pre> { event ->

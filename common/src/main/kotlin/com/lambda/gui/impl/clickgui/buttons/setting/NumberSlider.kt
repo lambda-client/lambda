@@ -39,7 +39,7 @@ class NumberSlider <N>(
             }
         }
 
-        override fun getText() = value.let(Number::toString)
+        override fun getText() = "$setting"
         override fun setStringValue(string: String) {
             string.toDoubleOrNull()?.let(::setValue)
         }
