@@ -30,6 +30,6 @@ data class ModuleTag(override val name: String) : Nameable {
         val AUTOMATION = ModuleTag("Automation")
         val GRIM = ModuleTag("Grim")
 
-        val defaults = listOf(COMBAT, MOVEMENT, RENDER, PLAYER, CLIENT, NETWORK, DEBUG)
+        val defaults = listOf(COMBAT, MOVEMENT, RENDER, PLAYER, NETWORK, DEBUG, CLIENT)
     }
 }
