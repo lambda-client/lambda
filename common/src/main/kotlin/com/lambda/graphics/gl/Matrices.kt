@@ -15,6 +15,10 @@ object Matrices {
         stack.last().translate(x, y, z)
     }
 
+    fun scale(x: Double, y: Double, z: Double) {
+        stack.last().scale(x.toFloat(), y.toFloat(), z.toFloat())
+    }
+
     fun scale(x: Float, y: Float, z: Float) {
         stack.last().scale(x, y, z)
     }
@@ -30,6 +34,12 @@ object Matrices {
     fun push() {
         val entry = stack.last()
         stack.addLast(Matrix4f(entry))
+    }
+
+    fun push(block: Matrices.() -> Unit) {
+        push()
+        this.block()
+        pop()
     }
 
     fun pop() {
