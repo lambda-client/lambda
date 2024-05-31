@@ -4,7 +4,6 @@ import com.google.gson.*
 import com.lambda.util.KeyCode
 import java.lang.reflect.Type
 
-// ToDo: Use key lookup table to store actual key names
 object KeyCodeSerializer : JsonSerializer<KeyCode>, JsonDeserializer<KeyCode> {
     override fun serialize(
         src: KeyCode?,
@@ -12,7 +11,7 @@ object KeyCodeSerializer : JsonSerializer<KeyCode>, JsonDeserializer<KeyCode> {
         context: JsonSerializationContext?,
     ): JsonElement =
         src?.let {
-            JsonPrimitive(it.key)
+            JsonPrimitive(it.name)
         } ?: JsonNull.INSTANCE
 
     override fun deserialize(
@@ -20,5 +19,5 @@ object KeyCodeSerializer : JsonSerializer<KeyCode>, JsonDeserializer<KeyCode> {
         typeOfT: Type?,
         context: JsonDeserializationContext?,
     ): KeyCode =
-        json?.asInt?.let { KeyCode(it) } ?: throw JsonParseException("Invalid key code format")
+        json?.asString?.let(KeyCode::fromKeyName) ?: throw JsonParseException("Invalid key code format")
 }

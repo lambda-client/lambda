@@ -19,43 +19,61 @@ abstract class Slider <V : Any, T : AbstractSetting<V>>(
     setting: T, owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
 ) : SettingButton<V, T>(setting, owner) {
     protected abstract val progress: Double
-    private val progressAnimation by animation.exp(::progress, 0.6)
+    // Force this slider to follow mouse when dragging instead of rounding to the closest setting value
+    private val progressAnimation by animation.exp({ mouseX?.let(::getProgressByMouse) ?: progress }, 0.6)
     private val renderProgress get() = lerp(0.0, progressAnimation, showAnimation)
 
     protected abstract fun setValueByProgress(progress: Double)
     private var lastPlayedValue = value
     private var lastPlayedTiming = 0L
 
-    init {
-        renderer.filled {
-            position = rect.moveSecond(Vec2d(-rect.size.x * (1.0 - renderProgress), 0.0)).shrink(shrinkAnimation)
-            shade = GuiSettings.shade
-            color(GuiSettings.mainColor.multAlpha(showAnimation * 0.3))
-        }
+    private var mouseX: Double? = null; get() {
+        if (activeButton != Mouse.Button.Left) field = null
+        return field
     }
 
     override fun onEvent(e: GuiEvent) {
         super.onEvent(e)
-        if (e is GuiEvent.MouseMove) slide(e.mouse)
+
+        when (e) {
+            is GuiEvent.Render -> {
+                // Slider rect
+                renderer.filled.build(
+                    rect = rect.moveSecond(Vec2d(-rect.size.x * (1.0 - renderProgress), 0.0)).shrink(shrinkAnimation),
+                    roundRadius = 0.0,
+                    color = GuiSettings.mainColor.multAlpha(showAnimation * 0.3),
+                    shade = GuiSettings.shade
+                )
+
+                slide()
+            }
+
+            is GuiEvent.MouseMove -> {
+                mouseX = e.mouse.x
+            }
+        }
     }
 
     override fun onPress(e: GuiEvent.MouseClick) {
         super.onPress(e)
-        slide(e.mouse)
+        mouseX = e.mouse.x
     }
 
-    protected open fun slide(mouse: Vec2d) {
-        if (activeButton != Mouse.Button.Left) return
+    protected open fun slide() = mouseX?.let { mouseX ->
+        setValueByProgress(getProgressByMouse(mouseX))
+        playClickSound()
+    }
 
-        val p = transform(mouse.x, rect.left, rect.right, 0.0, 1.0).coerceIn(0.0, 1.0)
-        setValueByProgress(p)
-
+    protected fun playClickSound() {
         val time = System.currentTimeMillis()
         if (lastPlayedValue == value || time - lastPlayedTiming < 50) return
 
         lastPlayedValue = value
         lastPlayedTiming = time
 
-        playSound(LambdaSound.BUTTON_CLICK.event, lerp(0.9, 1.2, p))
+        playSound(LambdaSound.BUTTON_CLICK.event, lerp(0.9, 1.2, progress))
     }
+
+    private fun getProgressByMouse(mouseX: Double) =
+        transform(mouseX, rect.left, rect.right, 0.0, 1.0).coerceIn(0.0, 1.0)
 }

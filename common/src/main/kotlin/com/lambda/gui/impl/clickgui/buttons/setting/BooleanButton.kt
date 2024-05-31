@@ -30,21 +30,25 @@ class BooleanButton(
     private val knobEnd get() = Rect.basedOn(checkboxRect.rightBottom, Vec2d.ONE * checkboxRect.size.y * -1.0).inv()
     private val checkboxKnob get() = lerp(knobStart, knobEnd, active).shrink(1.0 + zoomAnimation + interactAnimation)
 
-    init {
-        // Checkbox Background
-        renderer.filled {
-            position = checkboxRect
-            roundRadius = checkboxRect.size.y
-            shade = GuiSettings.shade
-            color(GuiSettings.mainColor.multAlpha(showAnimation * (0.2 + active * 0.2)))
-        }
+    override fun onEvent(e: GuiEvent) {
+        super.onEvent(e)
 
-        // Checkbox Knob
-        renderer.filled {
-            position = checkboxKnob
-            roundRadius = checkboxKnob.size.y
-            shade = GuiSettings.shadeBackground
-            color(GuiSettings.backgroundColor.multAlpha(showAnimation))
+        if (e is GuiEvent.Render) {
+            // Checkbox Background
+            renderer.filled.build(
+                rect = checkboxRect,
+                roundRadius = checkboxRect.size.y,
+                color = GuiSettings.mainColor.multAlpha(showAnimation * (0.2 + active * 0.2)),
+                shade = GuiSettings.shade
+            )
+
+            // Checkbox Knob
+            renderer.filled.build(
+                rect = checkboxKnob,
+                roundRadius = checkboxKnob.size.y,
+                color = GuiSettings.backgroundColor.multAlpha(showAnimation),
+                shade = GuiSettings.shadeBackground
+            )
         }
     }
 
