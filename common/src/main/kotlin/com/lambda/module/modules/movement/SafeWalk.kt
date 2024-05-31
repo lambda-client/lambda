@@ -9,7 +9,7 @@ import net.minecraft.entity.LivingEntity
 object SafeWalk : Module(
     name = "SafeWalk",
     description = "Keeps you at the edge",
-    defaultTags = setOf(ModuleTag.MOVEMENT)
+    defaultTags = setOf(ModuleTag.MOVEMENT, ModuleTag.GRIM)
 ) {
     private val sneakOnLedge by setting("Sneak On Ledge", true)
     private val ledgeDistance by setting("Ledge Distance", 0.25, 0.0..0.5, 0.05, unit = " blocks")
