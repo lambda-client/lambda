@@ -33,9 +33,8 @@
     "render.RenderTickCounterMixin",
     "render.ScreenHandlerMixin",
     "render.VertexBufferMixin",
-    "render.WorldRendererMixin"
-    "world.ClientWorldMixin",
-    "world.WorldMixin"
+    "render.WorldRendererMixin",
+    "world.ClientWorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1

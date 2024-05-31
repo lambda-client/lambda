@@ -1,6 +1,5 @@
-package com.lambda.module.modules.debug
+package com.lambda.module.modules.player
 
-import com.lambda.interaction.construction.DynamicBlueprint
 import com.lambda.interaction.construction.DynamicBlueprint.Companion.blueprintOnDone
 import com.lambda.interaction.construction.DynamicBlueprint.Companion.offset
 import com.lambda.interaction.construction.verify.TargetState
@@ -20,7 +19,7 @@ import kotlin.math.roundToInt
 object HighwayTools : Module(
     name = "HighwayTools",
     description = "Auto highway builder",
-    defaultTags = setOf(ModuleTag.BUILDING),
+    defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION),
     defaultKeybind = KeyCode.X
 ) {
     private val height by setting("Height", 4, 1..10, 1)
