@@ -29,9 +29,4 @@ public class TridentMixin {
     private boolean modifyIsTouchingWaterOrRain(boolean original) {
         return TridentBoost.INSTANCE.isEnabled() && TridentBoost.getForceUse() || original;
     }
-
-    @ModifyArg(method = "onStoppedUsing", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;useRiptide(I)V"))
-    private int modifyRiptide(int riptide) {
-        return TridentBoost.INSTANCE.isEnabled() ? TridentBoost.getDelay() : riptide;
-    }
 }
