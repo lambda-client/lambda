@@ -80,7 +80,6 @@ abstract class LambdaGui(
     }
 
     final override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
-        println(KeyCode.virtualMapUS(keyCode, scanCode))
         val translated = KeyCode.virtualMapUS(keyCode, scanCode)
         onEvent(GuiEvent.KeyPress(translated))
 
