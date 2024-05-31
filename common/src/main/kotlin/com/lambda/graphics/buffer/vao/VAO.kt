@@ -20,7 +20,7 @@ import com.lambda.graphics.gl.VaoUtils.unbindIndexBuffer
 import com.lambda.graphics.gl.VaoUtils.unbindVertexArray
 import com.lambda.graphics.gl.VaoUtils.unbindVertexBuffer
 import com.lambda.threading.runGameScheduled
-import com.mojang.blaze3d.systems.RenderSystem.drawElements
+import org.lwjgl.opengl.GL11C
 import org.lwjgl.opengl.GL30C.*
 import java.awt.Color
 import java.nio.ByteBuffer
@@ -171,7 +171,7 @@ class VAO(
         if (indicesCount <= 0) return
 
         bindVertexArray(vao)
-        drawElements(drawMode.gl, indicesCount, GL_UNSIGNED_INT)
+        glDrawElements(drawMode.gl, indicesCount, GL_UNSIGNED_INT, 0)
         unbindVertexArray()
     }
 
