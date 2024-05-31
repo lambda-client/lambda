@@ -23,5 +23,5 @@ data class KeyPressEvent(
     val modifiers: Int,
 ) : ICancellable by Cancellable() {
     val translated: KeyCode
-        get() = KeyCode.fromUS(keyCode, scanCode)
+        get() = KeyCode.virtualMapUS(keyCode, scanCode)
 }

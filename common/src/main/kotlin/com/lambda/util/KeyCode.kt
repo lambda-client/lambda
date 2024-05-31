@@ -127,14 +127,34 @@ enum class KeyCode(val keyCode: Int) {
     LAST(GLFW.GLFW_KEY_LAST);
 
     companion object {
-        private val keyCodeMap: Map<Int, KeyCode> = entries.associateBy { it.keyCode }
-        private val nameMap: Map<String, KeyCode> = entries.associateBy { it.name.lowercase() }
+        private const val printablePool = "`-=[]\\,;\'./"
+        private val glfwPool = intArrayOf(
+            GLFW.GLFW_KEY_GRAVE_ACCENT, GLFW.GLFW_KEY_MINUS, GLFW.GLFW_KEY_EQUAL,
+            GLFW.GLFW_KEY_LEFT_BRACKET, GLFW.GLFW_KEY_RIGHT_BRACKET, GLFW.GLFW_KEY_BACKSLASH,
+            GLFW.GLFW_KEY_COMMA, GLFW.GLFW_KEY_SEMICOLON, GLFW.GLFW_KEY_APOSTROPHE,
+            GLFW.GLFW_KEY_PERIOD, GLFW.GLFW_KEY_SLASH, 0
+        )
 
-        fun fromKeyCodeOrNull(keyCode: Int) = keyCodeMap[keyCode]
-        fun fromKeyCode(keyCode: Int) = fromKeyCodeOrNull(keyCode) ?: UNBOUND
+        private val keyCodeMap = entries.associateBy { it.keyCode }
+        private val nameMap = entries.associateBy { it.name.lowercase() }
+
+        fun fromKeyCode(keyCode: Int) = keyCodeMap[keyCode] ?: UNBOUND
         fun fromKeyName(name: String) = nameMap[name.lowercase()] ?: UNBOUND
 
-        fun fromUS(keyCode: Int, scanCode: Int) =
-            GLFW.glfwGetKeyName(keyCode, scanCode)?.let { fromKeyName(it) } ?: fromKeyCode(keyCode)
+        fun virtualMapUS(keyCode: Int, scanCode: Int): KeyCode {
+            if (keyCode in GLFW.GLFW_KEY_KP_0..GLFW.GLFW_KEY_KP_EQUAL) return fromKeyCode(keyCode)
+
+            val keyName = GLFW.glfwGetKeyName(keyCode, scanCode) ?: return fromKeyCode(keyCode)
+
+            return when (
+                val char = keyName.first()
+            ) {
+                in '0'..'9' -> return fromKeyCode(GLFW.GLFW_KEY_0 + (char - '0'))
+                in 'A'..'Z' -> return fromKeyCode(GLFW.GLFW_KEY_A + (char - 'A'))
+                in 'a'..'z' -> return fromKeyCode(GLFW.GLFW_KEY_A + (char - 'a'))
+                in printablePool -> fromKeyCode(glfwPool[printablePool.indexOf(char)])
+                else -> fromKeyCode(keyCode)
+            }
+        }
     }
 }
