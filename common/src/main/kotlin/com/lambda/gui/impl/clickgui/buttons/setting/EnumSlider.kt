@@ -21,10 +21,8 @@ class EnumSlider <T : Enum<T>> (
     private val values = setting.enumValues
     private val enumSize = values.size
 
-    override val progress get() = if (dragProgress != -1.0) dragProgress else
-        transform(value.ordinal.toDouble(), 0.0, enumSize - 1.0, 0.0, 1.0)
-
-    private var dragProgress = -1.0
+    override val progress get() = transform(value.ordinal.toDouble(), 0.0, enumSize - 1.0, 0.0, 1.0)
+    private var valueSetByDrag = false
 
     override fun onEvent(e: GuiEvent) {
         super.onEvent(e)
@@ -47,17 +45,16 @@ class EnumSlider <T : Enum<T>> (
     override fun setValueByProgress(progress: Double) {
         val entryIndex = floor(progress * enumSize).toInt().coerceIn(0, enumSize - 1)
         value = values[entryIndex]
-        dragProgress = progress
+        valueSetByDrag = true
     }
 
-    override fun onPress(e: GuiEvent.MouseClick) {}
+    override fun onPress(e: GuiEvent.MouseClick) {
+        valueSetByDrag = false
+    }
 
     override fun onRelease(e: GuiEvent.MouseClick) {
-        if (dragProgress == -1.0) {
-            setting.next()
-            playClickSound()
-        }
-
-        dragProgress = -1.0
+        if (valueSetByDrag) return
+        playClickSound()
+        setting.next()
     }
 }

@@ -19,12 +19,18 @@ abstract class Slider <V : Any, T : AbstractSetting<V>>(
     setting: T, owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
 ) : SettingButton<V, T>(setting, owner) {
     protected abstract val progress: Double
-    private val progressAnimation by animation.exp(::progress, 0.6)
+    // Force this slider to follow mouse when dragging instead of rounding to the closest setting value
+    private val progressAnimation by animation.exp({ mouseX?.let(::getProgressByMouse) ?: progress }, 0.6)
     private val renderProgress get() = lerp(0.0, progressAnimation, showAnimation)
 
     protected abstract fun setValueByProgress(progress: Double)
     private var lastPlayedValue = value
     private var lastPlayedTiming = 0L
+
+    private var mouseX: Double? = null; get() {
+        if (activeButton != Mouse.Button.Left) field = null
+        return field
+    }
 
     override fun onEvent(e: GuiEvent) {
         super.onEvent(e)
@@ -38,23 +44,23 @@ abstract class Slider <V : Any, T : AbstractSetting<V>>(
                     color = GuiSettings.mainColor.multAlpha(showAnimation * 0.3),
                     shade = GuiSettings.shade
                 )
+
+                slide()
             }
 
             is GuiEvent.MouseMove -> {
-                slide(e.mouse)
+                mouseX = e.mouse.x
             }
         }
     }
 
     override fun onPress(e: GuiEvent.MouseClick) {
         super.onPress(e)
-        slide(e.mouse)
+        mouseX = e.mouse.x
     }
 
-    protected open fun slide(mouse: Vec2d) {
-        if (activeButton != Mouse.Button.Left) return
-
-        setValueByProgress(transform(mouse.x, rect.left, rect.right, 0.0, 1.0).coerceIn(0.0, 1.0))
+    protected open fun slide() = mouseX?.let { mouseX ->
+        setValueByProgress(getProgressByMouse(mouseX))
         playClickSound()
     }
 
@@ -67,4 +73,7 @@ abstract class Slider <V : Any, T : AbstractSetting<V>>(
 
         playSound(LambdaSound.BUTTON_CLICK.event, lerp(0.9, 1.2, progress))
     }
+
+    private fun getProgressByMouse(mouseX: Double) =
+        transform(mouseX, rect.left, rect.right, 0.0, 1.0).coerceIn(0.0, 1.0)
 }

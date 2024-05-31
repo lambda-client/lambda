@@ -19,7 +19,7 @@ object GuiSettings : Module(
 
     // General
     private val scaleSetting by setting("Scale", 100, 50..300, 1, visibility = { page == Page.General }).apply {
-        onValueChangeUnsafe { _, _ ->
+        onValueSet { _, _ ->
             lastChange = System.currentTimeMillis()
         }
     }
@@ -45,7 +45,7 @@ object GuiSettings : Module(
     }
 
     private var targetScale = 2.0; get() {
-        val update = System.currentTimeMillis() - lastChange > 1000 || !LambdaClickGui.isOpen
+        val update = System.currentTimeMillis() - lastChange > 200 || !LambdaClickGui.isOpen
         if (update) field = scaleSetting / 100.0 * 2.0
         return field
     }

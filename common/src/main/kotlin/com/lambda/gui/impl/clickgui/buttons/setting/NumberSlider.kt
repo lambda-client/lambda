@@ -62,8 +62,8 @@ class NumberSlider <N>(
         inputBar.toggle()
     }
 
-    override fun slide(mouse: Vec2d) {
-        if (!inputBar.isActive) super.slide(mouse)
+    override fun slide() {
+        if (!inputBar.isActive) super.slide()
     }
 
     override fun setValueByProgress(progress: Double) {
