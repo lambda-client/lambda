@@ -4,6 +4,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
 import com.lambda.util.math.VecUtils.dist
@@ -12,7 +13,8 @@ import net.minecraft.util.math.Vec3i
 
 object Nuker : Module(
     name = "Nuker",
-    description = "Breaks blocks around you"
+    description = "Breaks blocks around you",
+    defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
 ) {
     private val flatten by setting("Flatten", true)
 
