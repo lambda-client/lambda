@@ -10,7 +10,7 @@ import com.lambda.task.tasks.BuildStructure.Companion.buildStructure
 import com.lambda.util.BaritoneUtils.primary
 import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
-import com.lambda.util.player.MovementUtils.direction
+import com.lambda.util.player.MovementUtils.octant
 import com.lambda.util.primitives.extension.Structure
 import com.lambda.util.world.StructureUtils.generateDirectionalTube
 import net.minecraft.block.Blocks
@@ -31,10 +31,11 @@ object HighwayTools : Module(
     private val cornerBlock by setting("Corner Block", false, description = "Include corner blocks in the highway")
     private val material = Blocks.OBSIDIAN
     private val distance by setting("Distance", -1, -1..1000000, 1, description = "Distance to build the highway (negative for infinite)")
+    private val sliceSize by setting("Slice Size", 3, 1..5, 1, description = "Number of slices to build at once")
     // ToDo: Fix block setting
 //    private val material by setting("Material", Blocks.OBSIDIAN, description = "Material to build the highway with")
 
-    private var direction = EightWayDirection.NORTH
+    private var octant = EightWayDirection.NORTH
     private var distanceMoved = 0
     private var startPos = BlockPos.ORIGIN
     private var currentPos = BlockPos.ORIGIN
@@ -42,7 +43,7 @@ object HighwayTools : Module(
 
     init {
         onEnable {
-            direction = player.direction()
+            octant = player.octant
             startPos = player.blockPos
             currentPos = startPos
             buildSlice()
@@ -55,22 +56,22 @@ object HighwayTools : Module(
     }
 
     private fun buildSlice() {
-        val blueprint = generateHighway()
-            .map { it.key.add(currentPos) to it.value }
-            .toMap()
-            .toBlueprint()
+        distanceMoved += sliceSize
+
+        var structure: Structure = mutableMapOf()
+        val slice = highwaySlice()
+        repeat(sliceSize) {
+            val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
+            currentPos = currentPos.add(vec)
+            structure += slice.map { it.key.add(currentPos) to it.value }
+        }
 
         buildStructure {
-            blueprint
+            structure.toBlueprint()
         }.apply {
             runningTask = this
-            primary.customGoalProcess.setGoalAndPath(GoalNear(currentPos, 1))
+            primary.customGoalProcess.setGoalAndPath(GoalNear(currentPos, sliceSize))
             onSuccess { _, _ ->
-                distanceMoved++
-
-                val vec = Vec3i(direction.offsetX, 0, direction.offsetZ)
-                currentPos = currentPos.add(vec)
-
                 if (distanceMoved < distance || distance < 0) {
                     buildSlice()
                 } else {
@@ -82,9 +83,9 @@ object HighwayTools : Module(
         }
     }
 
-    private fun generateHighway(): Structure {
+    private fun highwaySlice(): Structure {
         val structure = mutableMapOf<BlockPos, TargetState>()
-        val orthogonal = EightWayDirection.entries[(direction.ordinal + 2).mod(8)]
+        val orthogonal = EightWayDirection.entries[(octant.ordinal + 2).mod(8)]
         val center = (width / 2.0).roundToInt()
 
         // Area to clear

@@ -84,15 +84,16 @@ object MovementUtils {
     val Entity.moveDelta get() = moveDiff.let { hypot(it.x, it.z) }
     val Entity.motionDelta get() = hypot(this.velocity.x, this.velocity.z)
 
-    fun Entity.direction(): EightWayDirection {
-        // Normalize the yaw to be within the range of -180 to 179 degrees
-        var normalizedYaw = (yaw + 180.0) % 360.0
-        if (normalizedYaw < 0) {
-            normalizedYaw += 360.0
-        }
+    val Entity.octant: EightWayDirection
+        get() {
+            // Normalize the yaw to be within the range of -180 to 179 degrees
+            var normalizedYaw = (yaw + 180.0) % 360.0
+            if (normalizedYaw < 0) {
+                normalizedYaw += 360.0
+            }
 
-        // Calculate the index of the closest direction
-        val directionIndex = ((normalizedYaw + 22.5) / 45.0).toInt() % 8
-        return EightWayDirection.entries[directionIndex]
-    }
+            // Calculate the index of the closest direction
+            val directionIndex = ((normalizedYaw + 22.5) / 45.0).toInt() % 8
+            return EightWayDirection.entries[directionIndex]
+        }
 }
