@@ -10,8 +10,31 @@ import com.lambda.module.modules.client.FontSettings
 import com.lambda.util.math.Vec2d
 import java.awt.Color
 
-class FontRenderer(private val font: LambdaFont) : Renderer(VertexMode.TRIANGLES, VertexAttrib.Group.FONT) {
+class FontRenderer(
+    private val font: LambdaFont,
+    private val emojis: LambdaMoji,
+) : Renderer(VertexMode.TRIANGLES, VertexAttrib.Group.FONT) {
     var scaleMultiplier = 1.0
+    private val emojiRegex = Regex(":[a-zA-Z0-9_]+:")
+
+    /**
+     * Parses the emojis in the given text.
+     *
+     * @param text The text to parse.
+     * @return A list of triples containing the emoji text, start index, and end index.
+     */
+    private fun parseEmojis(text: String): List<
+            Triple<CharInfo, Int, Int>> {
+        val result = mutableListOf<Triple<CharInfo, Int, Int>>()
+        val matches = emojiRegex.findAll(text)
+
+        matches.forEach {
+            val index = it.value.substring(1, it.value.length - 1)
+            result.add(Triple(emojis[index] ?: return@forEach, it.range.first, it.range.last))
+        }
+
+        return result
+    }
 
     fun build(
         text: String,
@@ -28,7 +51,25 @@ class FontRenderer(private val font: LambdaFont) : Renderer(VertexMode.TRIANGLES
         var posX = 0.0
         val posY = getHeight(scale) * -0.5 + baselineOffset * actualScale
 
-        text.toCharArray().forEach { char ->
+        val emojis = parseEmojis(text)
+
+        val subText = emojis.asReversed().fold(text) { acc, (
+            charInfo, start, end
+        ) ->
+            val emojiWidth = charInfo.size.x * actualScale
+            val emojiHeight = charInfo.size.y * actualScale
+
+            val startPos = Vec2d(posX, posY)
+            val endPos = startPos + Vec2d(emojiWidth, emojiHeight)
+
+            putChar(position, startPos, endPos, color, charInfo)
+
+            posX += emojiWidth + scaledGap
+
+            acc.replaceRange(start, end, " ")
+        }
+
+        subText.toCharArray().forEach { char ->
             val charInfo = font[char] ?: return@forEach
             val scaledSize = charInfo.size * actualScale
 
@@ -50,8 +91,20 @@ class FontRenderer(private val font: LambdaFont) : Renderer(VertexMode.TRIANGLES
     fun getWidth(text: String, scale: Double = 1.0): Double {
         var width = 0.0
 
-        text.forEach { char ->
-            val glyph = font[char] ?: return@forEach
+        val emojis = parseEmojis(text)
+
+        val subText = emojis.asReversed().fold(text) { acc, (
+            charInfo, start, end
+        ) ->
+            val emojiWidth = charInfo.size.x
+
+            width += emojiWidth + gap
+
+            acc.replaceRange(start, end, " ")
+        }
+
+        subText.forEach {
+            val glyph = font[it] ?: return@forEach
             width += glyph.size.x + gap
         }
 
@@ -88,6 +141,7 @@ class FontRenderer(private val font: LambdaFont) : Renderer(VertexMode.TRIANGLES
     override fun render() {
         shader.use()
         font.glyphs.bind()
+        //emojis.glyphs.bind() // You have to modify the uniform in the shader to use the correct texture
         super.render()
     }
 

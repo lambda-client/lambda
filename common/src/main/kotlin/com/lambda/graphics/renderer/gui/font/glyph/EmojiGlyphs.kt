@@ -1,18 +1,19 @@
 package com.lambda.graphics.renderer.gui.font.glyph
 
+import com.lambda.Lambda.LOG
 import com.lambda.graphics.texture.MipmapTexture
 import com.lambda.module.modules.client.FontSettings
 import com.lambda.util.math.Vec2d
 import java.awt.Color
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
-import java.io.File
 import java.net.URL
 import java.nio.file.Files
 import java.util.zip.ZipFile
 import javax.imageio.ImageIO
 import kotlin.math.ceil
 import kotlin.math.sqrt
+import kotlin.system.measureTimeMillis
 
 class EmojiGlyphs(zipUrl: String) {
     private val emojiMap = mutableMapOf<String, CharInfo>()
@@ -40,25 +41,29 @@ class EmojiGlyphs(zipUrl: String) {
             var x = 0
             var y = 0
 
-            zip.entries().asSequence().forEach { entry ->
-                val name = entry.name.substringAfterLast("/").substringBeforeLast(".")
-                val emoji = ImageIO.read(zip.getInputStream(entry))
+            val time = measureTimeMillis {
+                zip.entries().asSequence().forEach { entry ->
+                    val name = entry.name.substringAfterLast("/").substringBeforeLast(".")
+                    val emoji = ImageIO.read(zip.getInputStream(entry))
 
-                if (x + emoji.width >= width) {
-                    y += emoji.height
-                    x = 0
+                    if (x + emoji.width >= width) {
+                        y += emoji.height
+                        x = 0
+                    }
+
+                    graphics.drawImage(emoji, x, y, null)
+
+                    val uv1 = Vec2d(x.toDouble(), y.toDouble()) * texelSize
+                    val uv2 = Vec2d(x, y).plus(dimensions) * texelSize
+                    emojiMap[name] = CharInfo(dimensions, uv1, uv2)
+
+                    x += emoji.width
                 }
-
-                graphics.drawImage(emoji, x, y, null)
-
-                val uv1 = Vec2d(x.toDouble(), y.toDouble()) * texelSize
-                val uv2 = Vec2d(x, y).plus(dimensions) * texelSize
-                emojiMap[name] = CharInfo(dimensions, uv1, uv2)
-
-                x += emoji.width
             }
 
             fontTexture = MipmapTexture(image)
+
+            LOG.info("Emoji loaded with ${emojiMap.size} characters (${time}ms)")
         }
     }
 
