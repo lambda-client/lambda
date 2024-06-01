@@ -72,12 +72,17 @@ class FontGlyphs(font: Font) {
         charMap[char.code]
 
     companion object {
+        // The space between glyphs is necessary to prevent artifacts from appearing when the font texture is blurred
+        private const val STEP = 2
+
         // Since most Lambda users probably have bad pc, the default size is 2048, which includes latin, cyrillic, greek and arabic
         // and in the future we could grow the textures when needed
         private const val CHAR_AMOUNT = 2048
-        private const val TEXTURE_SIZE = 4096
+
+        // The size of the texture in pixels
+        private const val TEXTURE_SIZE = CHAR_AMOUNT * 2
+
+        // The size of one texel in UV coordinates
         private const val ONE_TEXEL_SIZE = 1.0 / TEXTURE_SIZE
-        // The space between glyphs is necessary to prevent artifacts from appearing when the font texture is blurred
-        private const val STEP = 2
     }
 }
