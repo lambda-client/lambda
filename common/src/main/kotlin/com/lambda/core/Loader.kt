@@ -5,6 +5,7 @@ import com.lambda.Lambda.LOG
 import com.lambda.command.CommandRegistry
 import com.lambda.friend.FriendRegistry
 import com.lambda.graphics.renderer.gui.font.LambdaFont
+import com.lambda.graphics.renderer.gui.font.LambdaMoji
 import com.lambda.gui.GuiConfigurable
 import com.lambda.interaction.PlayerPacketManager
 import com.lambda.interaction.RotationManager
@@ -20,6 +21,7 @@ object Loader {
         RotationManager,
         PlayerPacketManager,
         LambdaFont.Loader,
+        LambdaMoji.Loader,
         GuiConfigurable,
         FriendRegistry,
         SoundRegistry,
