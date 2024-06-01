@@ -1,23 +1,15 @@
 package com.lambda.interaction.construction
 
 import com.lambda.context.SafeContext
-import com.lambda.threading.runSafe
 import com.lambda.util.primitives.extension.Structure
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3i
 
 data class DynamicBlueprint(
     val init: SafeContext.(Structure) -> Structure = { emptyMap() },
-    val onTick: SafeContext.(Structure) -> Structure = { it },
-    val onDone: SafeContext.(Structure) -> Structure? = { null },
+    val update: SafeContext.(Structure) -> Structure = { it },
 ) : Blueprint() {
-    fun onTick(ctx: SafeContext) {
-        structure = ctx.onTick(structure)
-    }
-
-    fun onDone(ctx: SafeContext): Boolean {
-        structure = ctx.onDone(structure) ?: return true
-        return false
+    fun update(ctx: SafeContext) {
+        structure = ctx.update(structure)
     }
 
     fun create(ctx: SafeContext) {
@@ -37,15 +29,10 @@ data class DynamicBlueprint(
         fun blueprintOnTick(
             init: SafeContext.(Structure) -> Structure = { emptyMap() },
             onTick: SafeContext.(Structure) -> Structure
-        ) = DynamicBlueprint(init = init, onTick = onTick)
-
-        fun blueprintOnDone(
-            init: SafeContext.(Structure) -> Structure = { emptyMap() },
-            onDone: SafeContext.(Structure) -> Structure
-        ) = DynamicBlueprint(init = init, onDone = onDone)
+        ) = DynamicBlueprint(init = init, update = onTick)
 
         fun Structure.toBlueprint(
             onTick: SafeContext.(Structure) -> Structure
-        ) = DynamicBlueprint(init = { emptyMap() }, onTick = onTick)
+        ) = DynamicBlueprint(init = { emptyMap() }, update = onTick)
     }
 }

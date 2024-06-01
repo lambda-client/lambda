@@ -1,6 +1,5 @@
 package com.lambda.task.tasks
 
-import baritone.api.pathing.goals.GoalNear
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
@@ -23,13 +22,10 @@ import com.lambda.interaction.visibilty.VisibilityChecker.mostCenter
 import com.lambda.interaction.visibilty.VisibilityChecker.scanVisibleSurfaces
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
-import com.lambda.util.BaritoneUtils.primary
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.instantBreakable
-import com.lambda.util.Communication.info
 import com.lambda.util.math.VecUtils.distSq
-import com.lambda.util.primitives.extension.Structure
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.OperatorBlock
 import net.minecraft.block.pattern.CachedBlockPosition
@@ -57,7 +53,6 @@ class BuildStructure @Ta5kBuilder constructor(
     private val useRayCast: Boolean = TaskFlow.interactionSettings.useRayCast,
 ) : Task<Unit>() {
     private var lastTask: Task<*>? = null
-    private var doneBlueprint: Structure? = null
 
     override fun SafeContext.onStart() {
         (blueprint as? DynamicBlueprint)?.create(this)
@@ -65,28 +60,10 @@ class BuildStructure @Ta5kBuilder constructor(
 
     init {
         listener<TickEvent.Pre> {
-            (blueprint as? DynamicBlueprint)?.onTick(this)
+            (blueprint as? DynamicBlueprint)?.update(this)
 
             if (finishOnDone && blueprint.structure.isEmpty()) {
                 failure("Structure is empty")
-                return@listener
-            }
-
-            doneBlueprint?.entries?.take(3)?.lastOrNull()?.let {
-                primary.customGoalProcess.setGoalAndPath(GoalNear(it.key.up(), 0))
-            }
-
-            if (finishOnDone && blueprint.isDone(this)) {
-                doneBlueprint = blueprint.structure
-                if (blueprint is DynamicBlueprint) {
-                    if (!blueprint.onDone(this)) {
-                        return@listener
-                    }
-                }
-
-                this@BuildStructure.info("Structure is done")
-                cancelSubTasks()
-                success(Unit)
                 return@listener
             }
 
@@ -125,7 +102,15 @@ class BuildStructure @Ta5kBuilder constructor(
             res
 
             results.minOrNull()?.let { result ->
-                if (result !is Resolvable) return@listener
+                if (result !is Resolvable) {
+                    if (result is BuildResult.Done) {
+                        checkDone()
+                    } else {
+                        failure("Failed to resolve build result: $result")
+                        return@listener
+                    }
+                    return@listener
+                }
                 if (lastTask?.isCompleted == false) return@listener
 
                 lastTask = result.resolve
@@ -135,6 +120,14 @@ class BuildStructure @Ta5kBuilder constructor(
                 result.resolve.start(this@BuildStructure, false)
             }
         }
+    }
+
+    private fun SafeContext.checkDone() {
+        if (!finishOnDone) return
+
+        cancelSubTasks()
+        success(Unit)
+        return
     }
 
     private fun SafeContext.checkRequirements(pos: BlockPos, target: TargetState): BuildResult? {
