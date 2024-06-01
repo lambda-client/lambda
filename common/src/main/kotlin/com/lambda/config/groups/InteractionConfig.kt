@@ -1,6 +1,4 @@
-package com.lambda.interaction
-
-import com.lambda.util.world.raycast.RayCastMask
+package com.lambda.config.groups
 
 interface InteractionConfig {
     /**
@@ -13,7 +11,5 @@ interface InteractionConfig {
      */
     val resolution: Int
 
-    val rayCastMask: RayCastMask
-
-    val ignoreRayCast: Boolean
+    val useRayCast: Boolean
 }

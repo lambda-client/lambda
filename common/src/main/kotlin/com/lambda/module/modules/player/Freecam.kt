@@ -2,7 +2,7 @@ package com.lambda.module.modules.player
 
 import baritone.utils.PlayerMovementInput
 import com.lambda.Lambda.mc
-import com.lambda.config.RotationSettings
+import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RenderEvent

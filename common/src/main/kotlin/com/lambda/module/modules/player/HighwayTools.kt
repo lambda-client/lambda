@@ -1,11 +1,15 @@
 package com.lambda.module.modules.player
 
+import baritone.api.pathing.goals.GoalNear
+import com.lambda.interaction.construction.DynamicBlueprint
 import com.lambda.interaction.construction.DynamicBlueprint.Companion.blueprintOnDone
 import com.lambda.interaction.construction.DynamicBlueprint.Companion.offset
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.task.Task
 import com.lambda.task.tasks.BuildStructure.Companion.buildStructure
+import com.lambda.util.BaritoneUtils.primary
 import com.lambda.util.KeyCode
 import com.lambda.util.player.MovementUtils.direction
 import com.lambda.util.primitives.extension.Structure
@@ -32,23 +36,32 @@ object HighwayTools : Module(
 //    private val material by setting("Material", Blocks.OBSIDIAN, description = "Material to build the highway with")
 
     private var direction = EightWayDirection.NORTH
+    private var distanceMoved = 0
     private var startPos = BlockPos.ORIGIN
+    private var currentPos = BlockPos.ORIGIN
+    private var runningTask: Task<*>? = null
 
     init {
         onEnable {
             direction = player.direction()
             startPos = player.blockPos
-            highwayTask.start(null)
+            val task = getTask()
+            task.start(null)
+            runningTask = task
         }
-        onDisable { highwayTask.cancel() }
+        onDisable { runningTask?.cancel() }
     }
 
-    private val highwayTask = buildStructure {
-        blueprintOnDone({ generateHighway() }) { last ->
-            val vec = Vec3i(direction.offsetX, 0, direction.offsetZ)
-            offset(vec).invoke(this, last)
+    private fun getTask() =
+        buildStructure {
+            blueprintOnDone({ generateHighway() }) { last ->
+                distanceMoved++
+
+                val vec = Vec3i(direction.offsetX, 0, direction.offsetZ)
+                currentPos = currentPos.add(vec)
+                offset(vec).invoke(this, last)
+            }
         }
-    }
 
     private fun generateHighway(): Structure {
         val structure = mutableMapOf<BlockPos, TargetState>()

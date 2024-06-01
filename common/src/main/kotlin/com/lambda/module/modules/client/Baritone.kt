@@ -1,6 +1,6 @@
 package com.lambda.module.modules.client
 
-import com.lambda.interaction.rotation.IRotationConfig
+import com.lambda.config.groups.IRotationConfig
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag

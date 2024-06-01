@@ -3,7 +3,6 @@ package com.lambda.interaction.construction.result
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildStructure.Companion.breakBlock
-import com.lambda.task.tasks.GoalTask.Companion.moveToBlock
 import com.lambda.task.tasks.PlaceBlock.Companion.placeBlock
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemPlacementContext

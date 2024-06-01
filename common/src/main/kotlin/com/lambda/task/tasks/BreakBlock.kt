@@ -5,9 +5,9 @@ import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.interaction.InteractionConfig
+import com.lambda.config.groups.InteractionConfig
 import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.interaction.rotation.IRotationConfig
+import com.lambda.config.groups.IRotationConfig
 import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
@@ -23,10 +23,10 @@ class BreakBlock @Ta5kBuilder constructor(
     private val rotationConfig: IRotationConfig = TaskFlow.rotationSettings,
     private val interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
     private val sides: Set<Direction> = emptySet(),
-    private val collectDrop: Boolean = false,
-    private val rotate: Boolean = false,
-    private val swingHand: Boolean = true,
-    private val particles: Boolean = true,
+    private val collectDrop: Boolean = TaskFlow.buildSettings.collectDrops,
+    private val rotate: Boolean = TaskFlow.buildSettings.rotateForBreak,
+    private val swingHand: Boolean = TaskFlow.buildSettings.swingHand,
+    private val particles: Boolean = TaskFlow.buildSettings.particlesOnBreak,
 ) : Task<ItemEntity?>() {
     val blockPos: BlockPos get() = ctx.result.blockPos
     private var beginState: BlockState? = null
@@ -63,9 +63,6 @@ class BreakBlock @Ta5kBuilder constructor(
             if (rotate) return@listener
 
             breakBlock(ctx.result.side)
-        }
-
-        listener<TickEvent.Post> {
             if (state.isAir && !collectDrop) success(null)
         }
 

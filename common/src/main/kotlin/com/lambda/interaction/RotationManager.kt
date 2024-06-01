@@ -2,8 +2,8 @@ package com.lambda.interaction
 
 import baritone.utils.PlayerMovementInput
 import com.lambda.Lambda.mc
+import com.lambda.config.groups.RotationSettings
 import com.lambda.core.Loadable
-import com.lambda.config.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.*

@@ -10,7 +10,7 @@ import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 
 class PlaceBlock @Ta5kBuilder constructor(
-    val ctx: PlaceContext,
+    private val ctx: PlaceContext,
     private val swingHand: Boolean = true,
     private val rotate: Boolean = true,
     private val waitForConfirmation: Boolean = false,
@@ -54,22 +54,26 @@ class PlaceBlock @Ta5kBuilder constructor(
             ctx.result
         )
 
-        if (actionResult.isAccepted && matches) {
+        if (actionResult.isAccepted) {
             if (actionResult.shouldSwingHand() && swingHand) {
                 player.swingHand(ctx.hand)
             }
 
-            // ToDo: WTF did i do here? i dont remember
             if (!player.getStackInHand(ctx.hand).isEmpty && interaction.hasCreativeInventory()) {
                 mc.gameRenderer.firstPersonRenderer.resetEquipProgress(ctx.hand)
             }
 
-            if (!waitForConfirmation) success(Unit)
+            if (!waitForConfirmation && matches) {
+                LOG.info("Placed $preStack at ${
+                    ctx.result.blockPos.toShortString()
+                } (${ctx.result.side}) with expecting state ${
+                    ctx.expectedState
+                } and expecting position at ${ctx.resultingPos.toShortString()}")
+                success(Unit)
+            }
         } else {
-            failure("Failed to place block as simulation does not match actual result $actionResult")
+            failure("Internal interaction failed with $actionResult")
         }
-
-        LOG.info("Placed $preStack at ${ctx.result.blockPos.toShortString()} (${ctx.result.side}) with expecting state ${ctx.expectedState} and expecting position at ${ctx.resultingPos.toShortString()}")
     }
 
     companion object {

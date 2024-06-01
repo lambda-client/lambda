@@ -1,18 +1,18 @@
 package com.lambda.interaction.construction.result
 
-import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.MainHandContainer
 import com.lambda.task.Task
 import com.lambda.task.Task.Companion.emptyTask
-import com.lambda.task.tasks.GoalTask.Companion.moveToBlock
+import com.lambda.task.tasks.GoalTask.Companion.moveNearBlock
 import com.lambda.task.tasks.GoalTask.Companion.moveUntilLoaded
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3d
 
 abstract class BuildResult : ComparableResult<Rank> {
     abstract val blockPos: BlockPos
@@ -145,15 +145,25 @@ abstract class BuildResult : ComparableResult<Rank> {
     /**
      * Represents a break out of reach.
      * @param blockPos The position of the block that is out of reach.
-     * @param distance The distance to the hit vector.
+     * @param startVec The start vector of the reach.
+     * @param hitVec The hit vector of the reach.
+     * @param reach The maximum reach distance.
+     * @param side The side that is out of reach.
      */
     data class OutOfReach(
         override val blockPos: BlockPos,
-        val distance: Double
+        val startVec: Vec3d,
+        val hitVec: Vec3d,
+        val reach: Double,
+        val side: Direction,
     ) : Resolvable, BuildResult() {
         override val rank = Rank.OUT_OF_REACH
 
-        override val resolve = moveToBlock(blockPos)
+        val distance: Double by lazy {
+            startVec.distanceTo(hitVec)
+        }
+
+        override val resolve = moveNearBlock(blockPos, 2)
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {

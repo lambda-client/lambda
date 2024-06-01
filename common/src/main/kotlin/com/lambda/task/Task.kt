@@ -74,6 +74,7 @@ abstract class Task<Result>(
     val isCompleted get() = state == State.COMPLETED
     val isRoot get() = parent == null
     override var name = this::class.simpleName ?: "Task"
+    val identifier get() = "$name@${hashCode()}"
 
     // ToDo: Better color management
     private val primaryColor = Color(0, 255, 0, 100)
@@ -150,10 +151,10 @@ abstract class Task<Result>(
         owner.subTasks.add(this)
 
         if (pauseParent && owner.isActivated && !owner.isRoot) {
-            LOG.info("$name deactivating parent ${owner.name}")
+            LOG.info("$identifier deactivating parent ${owner.identifier}")
             owner.deactivate()
         }
-        LOG.info("$name was started by ${owner.name}")
+        LOG.info("${owner.identifier} started $identifier")
         this.parent = owner
 
         activate()
@@ -164,8 +165,6 @@ abstract class Task<Result>(
     @Ta5kBuilder
     fun activate() {
         if (isActivated) return
-
-        LOG.info("$name activated")
         state = State.ACTIVATED
         startListening()
     }
@@ -174,7 +173,7 @@ abstract class Task<Result>(
     fun deactivate() {
         if (isDeactivated) return
 
-        LOG.info("$name deactivated")
+        LOG.info("$identifier deactivated")
         state = State.DEACTIVATED
         stopListening()
     }
@@ -183,16 +182,17 @@ abstract class Task<Result>(
     fun SafeContext.success(result: Result) {
         if (executions < repeats) {
             executions++
-            LOG.info("Repeating $name $executions/$repeats...")
+            LOG.info("Repeating $identifier $executions/$repeats...")
             onRepeat(this@Task, result, executions)
             reset()
             return
         }
 
-        LOG.info("$name completed successfully after $attempted retries and $executions executions.")
+        LOG.info("$identifier completed successfully after $attempted retries and $executions executions.")
         state = State.COMPLETED
-        tidyUp()
+        stopListening()
         onSuccess(this@Task, result)
+        notifyParent()
     }
 
     @Ta5kBuilder
@@ -200,8 +200,8 @@ abstract class Task<Result>(
         cancelSubTasks()
         state = State.CANCELLED
         stopListening()
-        BaritoneUtils.cancel()
         runSafe { onCancel() }
+        LOG.info("$identifier was cancelled")
     }
 
     @Ta5kBuilder
@@ -231,7 +231,7 @@ abstract class Task<Result>(
 
         state = State.FAILED
         logError("Task failed after $attempted attempts with error: ${e.message}")
-        tidyUp()
+        stopListening()
         runSafe { onException(this@Task, e) }
         parent?.failure(e)
     }
@@ -245,10 +245,17 @@ abstract class Task<Result>(
     @Ta5kBuilder
     open fun SafeContext.onCancel() {}
 
-    private fun tidyUp() {
-        stopListening()
-        BaritoneUtils.cancel()
-        parent?.activate()
+    private fun notifyParent() {
+        parent?.let { par ->
+            if (par.isCompleted) {
+                LOG.info("$identifier notified parent ${par.identifier}")
+                par.notifyParent()
+                return@let
+            }
+
+            LOG.info("$identifier reactivated parent ${par.identifier}")
+            par.activate()
+        }
     }
 
     @Ta5kBuilder
@@ -398,7 +405,7 @@ abstract class Task<Result>(
 
     companion object {
         val MAX_DEPTH = 20
-        const val MAX_DEBUG_ENTRIES = 7
+        const val MAX_DEBUG_ENTRIES = 15
 
         interface EmptyTask
 

@@ -9,6 +9,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
+import com.lambda.util.BaritoneUtils.primary
 import net.minecraft.util.math.BlockPos
 
 // ToDo: Custom heuristic goals
@@ -23,7 +24,8 @@ class GoalTask(
 
     init {
         listener<TickEvent.Post> {
-            if (!BaritoneUtils.isActive || check()) {
+            if (goal.isInGoal(player.blockPos) || check()) {
+                primary.customGoalProcess.goal = null
                 success(Unit)
             }
         }
@@ -33,6 +35,14 @@ class GoalTask(
         @Ta5kBuilder
         fun moveToBlock(blockPos: BlockPos) =
             GoalTask(GoalBlock(blockPos))
+
+        @Ta5kBuilder
+        fun moveNearBlock(blockPos: BlockPos, range: Int) =
+            GoalTask(GoalNear(blockPos, range))
+
+        @Ta5kBuilder
+        fun moveToBlockUntil(blockPos: BlockPos, check: SafeContext.() -> Boolean) =
+            GoalTask(GoalBlock(blockPos), check)
 
         @Ta5kBuilder
         fun moveToXY(blockPos: BlockPos) =

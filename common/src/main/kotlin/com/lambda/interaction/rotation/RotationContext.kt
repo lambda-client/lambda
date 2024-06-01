@@ -1,5 +1,6 @@
 package com.lambda.interaction.rotation
 
+import com.lambda.config.groups.IRotationConfig
 import net.minecraft.util.hit.HitResult
 
 data class RotationContext(

@@ -2,7 +2,7 @@ package com.lambda.task
 
 object RootTask : Task<Unit>() {
     init {
-        name = "Root Task"
+        name = "RootTask"
     }
 
     fun addInfo(debugText: MutableList<String>) {

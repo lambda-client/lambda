@@ -1,9 +1,9 @@
 package com.lambda.interaction.visibilty
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.InteractionConfig
+import com.lambda.config.groups.InteractionConfig
 import com.lambda.interaction.RotationManager
-import com.lambda.interaction.rotation.IRotationConfig
+import com.lambda.config.groups.IRotationConfig
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.module.modules.client.TaskFlow
@@ -54,11 +54,7 @@ object VisibilityChecker {
         val eye = player.getCameraPosVec(mc.tickDelta)
 
         val currentRotation = RotationManager.currentRotation
-        val currentCast = currentRotation.rayCast(
-            interact.reach,
-            interact.rayCastMask,
-            eye
-        )
+        val currentCast = currentRotation.rayCast(interact.reach, eye)
 
         if (boxes.any { it.contains(eye) }) {
             return RotationContext(currentRotation, rotationConfig, currentCast, verify)
@@ -68,16 +64,12 @@ object VisibilityChecker {
         val reachSq = interact.reach.pow(2)
 
         boxes.forEach { box ->
-            scanVisibleSurfaces(player.eyePos, box, sides, interact.resolution) { vec ->
+            scanVisibleSurfaces(player.eyePos, box, sides, interact.resolution) { _, vec ->
                 if (eye distSq vec > reachSq) return@scanVisibleSurfaces
 
                 val newRotation = eye.rotationTo(vec)
 
-                val cast = newRotation.rayCast(
-                    interact.reach,
-                    interact.rayCastMask,
-                    eye
-                ) ?: return@scanVisibleSurfaces
+                val cast = newRotation.rayCast(interact.reach, eye) ?: return@scanVisibleSurfaces
                 if (!cast.verify()) return@scanVisibleSurfaces
 
                 validHits[vec] = cast
@@ -99,7 +91,7 @@ object VisibilityChecker {
         box: Box,
         sides: Set<Direction>,
         resolution: Int,
-        check: (Vec3d) -> Unit,
+        check: (Direction, Vec3d) -> Unit,
     ) {
         val shrunk = box.expand(-0.005)
         box.getVisibleSurfaces(eyes)
@@ -114,7 +106,7 @@ object VisibilityChecker {
                     (0..resolution).forEach { j ->
                         val y = if (stepY != 0.0) minY + stepY * j else minY
                         val z = if (stepZ != 0.0) minZ + stepZ * ((if (stepX != 0.0) j else i)) else minZ
-                        check(Vec3d(x, y, z))
+                        check(side, Vec3d(x, y, z))
                     }
                 }
             }

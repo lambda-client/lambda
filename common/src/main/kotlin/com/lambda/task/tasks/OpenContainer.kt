@@ -3,8 +3,8 @@ package com.lambda.task.tasks
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.interaction.InteractionConfig
-import com.lambda.interaction.rotation.IRotationConfig
+import com.lambda.config.groups.InteractionConfig
+import com.lambda.config.groups.IRotationConfig
 import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task

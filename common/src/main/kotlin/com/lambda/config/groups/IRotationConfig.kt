@@ -1,4 +1,6 @@
-package com.lambda.interaction.rotation
+package com.lambda.config.groups
+
+import com.lambda.interaction.rotation.RotationMode
 
 interface IRotationConfig {
     /**

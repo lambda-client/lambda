@@ -6,10 +6,8 @@ import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.MainHandContainer
-import com.lambda.task.Task
 import com.lambda.task.Task.Companion.emptyTask
 import com.lambda.task.tasks.BreakBlock.Companion.breakBlock
-import com.lambda.task.tasks.GoalTask.Companion.moveToBlock
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos

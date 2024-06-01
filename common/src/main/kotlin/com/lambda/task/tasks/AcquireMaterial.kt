@@ -10,13 +10,12 @@ class AcquireMaterial(
     val selection: StackSelection
 ) : Task<StackSelection>() {
     override fun SafeContext.onStart() {
-        findContainerWithSelection(selection)?.let { container ->
-            container.prepare().onSuccess { _, _ ->
-                container.withdraw(selection).onSuccess { _, _ ->
-                    success(selection)
-                }.start(this@AcquireMaterial)
-            }.start(this@AcquireMaterial)
-        } ?: failure(ContainerManager.NoContainerFound(selection)) // ToDo: Create crafting path
+        findContainerWithSelection(selection)
+            ?.doWithdrawal(selection)
+            ?.onSuccess { _, _ ->
+                success(selection)
+            }?.start(this@AcquireMaterial)
+            ?: failure(ContainerManager.NoContainerFound(selection)) // ToDo: Create crafting path
     }
 
     companion object {
