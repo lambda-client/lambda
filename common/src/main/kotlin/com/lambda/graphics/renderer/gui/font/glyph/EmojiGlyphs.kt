@@ -6,6 +6,7 @@ import com.lambda.util.math.Vec2d
 import java.awt.Color
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
+import java.io.File
 import java.net.URL
 import java.nio.file.Files
 import java.util.zip.ZipFile
@@ -23,12 +24,16 @@ class EmojiGlyphs(zipUrl: String) {
         file.writeBytes(url.readBytes())
 
         ZipFile(file).use { zip ->
-            val size = zip.entries().asSequence().count()
-            val dimensions = Vec2d(72.0, 72.0)
-            val texelSize = 1.0 / size
-            val width = 72 * ceil(sqrt(size.toDouble())).toInt()
+            // someone please refactor this
+            val first = ImageIO.read(zip.getInputStream(zip.entries().nextElement()))
 
-            val image = BufferedImage(width, width, BufferedImage.TYPE_INT_ARGB)
+            val size = zip.entries().asSequence().count()
+            val dimensions = Vec2d(first.width.toDouble(), first.height.toDouble())
+            val texelSize = 1.0 / size
+            val width = first.width * ceil(sqrt(size.toDouble())).toInt()
+            val height = first.height * ceil(sqrt(size.toDouble())).toInt()
+
+            val image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
             val graphics = image.graphics as Graphics2D
             graphics.background = Color(0, 0, 0, 0)
 
@@ -37,20 +42,20 @@ class EmojiGlyphs(zipUrl: String) {
 
             zip.entries().asSequence().forEach { entry ->
                 val name = entry.name.substringAfterLast("/").substringBeforeLast(".")
-                val charImage = ImageIO.read(zip.getInputStream(entry))
+                val emoji = ImageIO.read(zip.getInputStream(entry))
 
-                if (x + 72 >= width) {
-                    y += 72
+                if (x + emoji.width >= width) {
+                    y += emoji.height
                     x = 0
                 }
 
-                graphics.drawImage(charImage, x, y, null)
+                graphics.drawImage(emoji, x, y, null)
 
                 val uv1 = Vec2d(x.toDouble(), y.toDouble()) * texelSize
                 val uv2 = Vec2d(x, y).plus(dimensions) * texelSize
                 emojiMap[name] = CharInfo(dimensions, uv1, uv2)
 
-                x += 72
+                x += emoji.width
             }
 
             fontTexture = MipmapTexture(image)
