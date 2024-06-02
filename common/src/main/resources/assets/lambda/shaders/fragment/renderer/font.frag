@@ -14,7 +14,7 @@ void main() {
     if (v_TexCoord.x > 0.0) {
         tex = texture(u_FontTexture, v_TexCoord);
     } else {
-        tex = texture(u_EmojiTexture, v_TexCoord);
+        tex = texture(u_EmojiTexture, -v_TexCoord);
     }
 
     color = tex * v_Color;

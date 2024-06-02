@@ -56,15 +56,14 @@ class FontRenderer(
         val subText = emojis.asReversed().fold(text) { acc, (
             charInfo, start, end
         ) ->
-            val emojiWidth = charInfo.size.x * actualScale
-            val emojiHeight = charInfo.size.y * actualScale
+            val emojiSize = charInfo.size * actualScale
 
             val startPos = Vec2d(posX, posY)
-            val endPos = startPos + Vec2d(emojiWidth, emojiHeight)
+            val endPos = startPos + emojiSize
 
             putChar(position, startPos, endPos, color, charInfo)
 
-            posX += emojiWidth + scaledGap
+            posX += emojiSize.x + scaledGap
 
             acc.replaceRange(start, end, " ")
         }
@@ -142,8 +141,6 @@ class FontRenderer(
         shader.use()
 
         font.glyphs.bind()
-        shader["u_FontTexture"] = 0
-
         emojis.glyphs.bind()
         shader["u_EmojiTexture"] = 1
 

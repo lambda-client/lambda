@@ -14,7 +14,7 @@ abstract class Texture {
 
     protected abstract fun init()
 
-    open fun bind(slot: Int = 0) = bindTexture(id)
+    open fun bind(slot: Int = 0) = bindTexture(id, slot)
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
