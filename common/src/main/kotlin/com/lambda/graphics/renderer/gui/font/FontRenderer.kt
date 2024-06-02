@@ -53,24 +53,33 @@ class FontRenderer(
 
         val emojis = parseEmojis(text)
 
-        val subText = emojis.asReversed().fold(text) { acc, (
-            charInfo, start, end
-        ) ->
-            val emojiSize = charInfo.size * actualScale
+        var index = 0
+        while (index < text.length) {
+            emojis
+                .firstOrNull { index in it.second..it.third }
+                ?.let { emoji ->
+                    val scaledSize = emoji.first.size * actualScale
+                    val pos1 = Vec2d(posX, posY)
+                    val pos2 = pos1 + scaledSize
 
-            val startPos = Vec2d(posX, posY)
-            val endPos = startPos + emojiSize
+                    putChar(position, pos1, pos2, color, emoji.first)
 
-            putChar(position, startPos, endPos, color, charInfo)
+                    posX += scaledSize.x + scaledGap
+                    index += emoji.third - emoji.second + 1
 
-            posX += emojiSize.x + scaledGap
+                    if (index >= text.length) {
+                        // This means we've reached the end of the text
+                        return@use
+                    }
+                }
 
-            acc.replaceRange(start, end, " ")
-        }
+            val char = text[index]
+            val glyph = font[char] ?: run {
+                index++
+                return@use
+            }
 
-        subText.toCharArray().forEach { char ->
-            val charInfo = font[char] ?: return@forEach
-            val scaledSize = charInfo.size * actualScale
+            val scaledSize = glyph.size * actualScale
 
             val pos1 = Vec2d(posX, posY)
             val pos2 = pos1 + scaledSize
@@ -78,12 +87,13 @@ class FontRenderer(
             if (shadow && FontSettings.shadow) {
                 val shadowPos1 = pos1 + scaledShadowShift
                 val shadowPos2 = shadowPos1 + scaledSize
-                putChar(position, shadowPos1, shadowPos2, shadowColor, charInfo)
+                putChar(position, shadowPos1, shadowPos2, shadowColor, glyph)
             }
 
-            putChar(position, pos1, pos2, color, charInfo)
+            putChar(position, pos1, pos2, color, glyph)
 
             posX += scaledSize.x + scaledGap
+            index++
         }
     }
 
@@ -92,19 +102,30 @@ class FontRenderer(
 
         val emojis = parseEmojis(text)
 
-        val subText = emojis.asReversed().fold(text) { acc, (
-            charInfo, start, end
-        ) ->
-            val emojiWidth = charInfo.size.x
+        var index = 0
+        while (index < text.length) {
+            emojis
+                .firstOrNull { index in it.second..it.third }
+                ?.let { emoji ->
+                    val scaledSize = emoji.first.size * getScaleFactor(scale)
+                    width += scaledSize.x + gap
 
-            width += emojiWidth + gap
+                    index += emoji.third - emoji.second + 1
 
-            acc.replaceRange(start, end, " ")
-        }
+                    if (index >= text.length) {
+                        // This means we've reached the end of the text
+                        return width * getScaleFactor(scale)
+                    }
+                }
 
-        subText.forEach {
-            val glyph = font[it] ?: return@forEach
-            width += glyph.size.x + gap
+            val char = text[index]
+            val glyph = font[char] ?: run {
+                index++
+                return width * getScaleFactor(scale)
+            }
+
+            width += glyph.width + gap
+            index++
         }
 
         return width * getScaleFactor(scale)
