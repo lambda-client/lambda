@@ -7,8 +7,8 @@ import com.lambda.util.math.Vec2d
 import java.awt.Color
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
+import java.io.File
 import java.net.URL
-import java.nio.file.Files
 import java.util.zip.ZipFile
 import javax.imageio.ImageIO
 import kotlin.math.ceil
@@ -19,52 +19,63 @@ class EmojiGlyphs(zipUrl: String) {
     private val emojiMap = mutableMapOf<String, CharInfo>()
     private val fontTexture: MipmapTexture
 
+    private val image: BufferedImage
+    private val graphics: Graphics2D
+
     init {
-        val file = Files.createTempFile("emoji", ".zip").toFile()
-        val url = URL(zipUrl)
-        file.writeBytes(url.readBytes())
+        var x = 0
+        var y = 0
 
-        ZipFile(file).use { zip ->
-            // someone please refactor this
-            val first = ImageIO.read(zip.getInputStream(zip.entries().nextElement()))
+        val time = measureTimeMillis {
+            val file = File.createTempFile("emoji", ".zip")
+            file.deleteOnExit()
 
-            val size = zip.entries().asSequence().count()
-            val dimensions = Vec2d(first.width.toDouble(), first.height.toDouble())
-            val texelSize = 1.0 / size
-            val width = first.width * ceil(sqrt(size.toDouble())).toInt()
-            val height = first.height * ceil(sqrt(size.toDouble())).toInt()
-
-            val image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
-            val graphics = image.graphics as Graphics2D
-            graphics.background = Color(0, 0, 0, 0)
-
-            var x = 0
-            var y = 0
-
-            val time = measureTimeMillis {
-                zip.entries().asSequence().forEach { entry ->
-                    val name = entry.name.substringAfterLast("/").substringBeforeLast(".")
-                    val emoji = ImageIO.read(zip.getInputStream(entry))
-
-                    if (x + emoji.width >= width) {
-                        y += emoji.height
-                        x = 0
-                    }
-
-                    graphics.drawImage(emoji, x, y, null)
-
-                    val uv1 = Vec2d(x.toDouble(), y.toDouble()) * texelSize
-                    val uv2 = Vec2d(x, y).plus(dimensions) * texelSize
-                    emojiMap[name] = CharInfo(dimensions, uv1 * -1.0, uv2 * -1.0)
-
-                    x += emoji.width
+            file.outputStream().use { output ->
+                URL(zipUrl).openStream().use { input ->
+                    input.copyTo(output)
                 }
             }
 
-            fontTexture = MipmapTexture(image)
+            ZipFile(file).use { zip ->
+                val firstImage = ImageIO.read(zip.getInputStream(zip.entries().nextElement()))
 
-            LOG.info("Loaded $size emojis in $time ms")
+                val length = zip.size().toDouble()
+                val squaredLength = ceil(sqrt(length)).toInt()
+
+                val texelSize = 1.0 / length
+                val width = firstImage.width
+                val height = firstImage.height
+
+                image = BufferedImage(width * squaredLength, height * squaredLength, BufferedImage.TYPE_INT_ARGB)
+                graphics = image.graphics as Graphics2D
+                graphics.color = Color(0, 0, 0, 0)
+
+                zip.entries().asSequence()
+                    .forEach { entry ->
+                        val name = entry.name.substringAfterLast("/").substringBeforeLast(".")
+                        val emoji = ImageIO.read(zip.getInputStream(entry))
+
+                        if (x + emoji.width >= image.width) {
+                            y += emoji.height
+                            x = 0
+                        }
+
+                        graphics.drawImage(emoji, x, y, null)
+
+                        val size = Vec2d(emoji.width, emoji.height)
+                        val uv1 = Vec2d(-x, -y) * texelSize
+                        val uv2 = Vec2d(-x, -y).minus(size) * texelSize
+
+                        emojiMap[name] = CharInfo(size, uv1, uv2)
+
+                        x += emoji.width
+                    }
+            }
+
+            fontTexture = MipmapTexture(image)
         }
+
+        LOG.info("Loaded ${emojiMap.size} emojis in $time ms")
     }
 
     fun bind() {
@@ -78,6 +89,6 @@ class EmojiGlyphs(zipUrl: String) {
         emojiMap[emoji]
 
     companion object {
-        private const val GL_TEXTURE_SLOT = 1
+        private const val GL_TEXTURE_SLOT = 1 // TODO: Texture slot borrowing
     }
 }
