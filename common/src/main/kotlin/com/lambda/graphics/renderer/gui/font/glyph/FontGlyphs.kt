@@ -41,7 +41,7 @@ class FontGlyphs(font: Font) {
                     rowHeight = 0
                 }
 
-                check(y + charImage.height < TEXTURE_SIZE) { "Can't load font glyphs. Texture size is too small" }
+                check(y + charImage.height <= TEXTURE_SIZE) { "Can't load font glyphs. Texture size is too small" }
 
                 graphics.drawImage(charImage, x, y, null)
 

@@ -1,5 +1,6 @@
 package com.lambda.graphics.renderer.gui.font.glyph
 
+import com.google.common.math.IntMath.pow
 import com.lambda.Lambda.LOG
 import com.lambda.graphics.texture.MipmapTexture
 import com.lambda.module.modules.client.FontSettings
@@ -12,6 +13,7 @@ import java.net.URL
 import java.util.zip.ZipFile
 import javax.imageio.ImageIO
 import kotlin.math.ceil
+import kotlin.math.log2
 import kotlin.math.sqrt
 import kotlin.system.measureTimeMillis
 
@@ -40,37 +42,40 @@ class EmojiGlyphs(zipUrl: String) {
                 val firstImage = ImageIO.read(zip.getInputStream(zip.entries().nextElement()))
 
                 val length = zip.size().toDouble()
-                val squaredLength = ceil(sqrt(length)).toInt()
 
-                val texelSize = 1.0 / length
-                val width = firstImage.width
-                val height = firstImage.height
+                // TODO: This is a hack but it works
+                val width = pow(2, ceil(log2(firstImage.width * sqrt(length))).toInt())
+                val height = pow(2, ceil(log2(firstImage.height * sqrt(length))).toInt())
+                val texelSize = 1.0 / width // This assumes that the texture is a power of 2
 
-                image = BufferedImage(width * squaredLength, height * squaredLength, BufferedImage.TYPE_INT_ARGB)
+                image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
                 graphics = image.graphics as Graphics2D
                 graphics.color = Color(0, 0, 0, 0)
 
-                zip.entries().asSequence()
-                    .forEach { entry ->
-                        val name = entry.name.substringAfterLast("/").substringBeforeLast(".")
-                        val emoji = ImageIO.read(zip.getInputStream(entry))
+                for (entry in zip.entries()) {
+                    val name = entry.name.substringAfterLast("/").substringBeforeLast(".")
+                    val emoji = ImageIO.read(zip.getInputStream(entry))
 
-                        if (x + emoji.width >= image.width) {
-                            y += emoji.height
-                            x = 0
-                        }
-
-                        graphics.drawImage(emoji, x, y, null)
-
-                        val size = Vec2d(emoji.width, emoji.height)
-                        val uv1 = Vec2d(-x, -y) * texelSize
-                        val uv2 = Vec2d(-x, -y).minus(size) * texelSize
-
-                        emojiMap[name] = CharInfo(size, uv1, uv2)
-
-                        x += emoji.width
+                    if (x + emoji.width >= image.width) {
+                        y += emoji.height
+                        x = 0
                     }
+
+                    check(y + emoji.height < image.height) { "Can't load emoji glyphs. Texture size is too small" }
+
+                    graphics.drawImage(emoji, x, y, null)
+
+                    val size = Vec2d(emoji.width, emoji.height)
+                    val uv1 = Vec2d(x, y) * texelSize
+                    val uv2 = Vec2d(x, y).plus(size) * texelSize
+
+                    emojiMap[name] = CharInfo(size, -uv1, -uv2)
+
+                    x += emoji.width
+                }
             }
+
+            ImageIO.write(image, "png", File("emoji.png"))
 
             fontTexture = MipmapTexture(image)
         }
