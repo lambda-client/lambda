@@ -23,7 +23,7 @@ import java.util.TreeSet
 // ToDo: Make this a Configurable to save container caches. Should use a cached region based storage system.
 object ContainerManager : Loadable {
     // ToDo: Maybe use reflection to get all containers?
-    val container = TreeSet<MaterialContainer>().apply {
+    private val container = TreeSet<MaterialContainer>().apply {
         add(CreativeContainer)
         add(EnderChestContainer)
         add(HotbarContainer)
@@ -70,23 +70,27 @@ object ContainerManager : Loadable {
         }
     }
 
+    fun container() = container.flatMap {
+        setOf(it) + it.shulkerContainer
+    }
+
     fun StackSelection.transfer(destination: MaterialContainer) =
         findContainerWithSelection(this)?.transfer(this, destination)
 
     fun findContainer(
         block: (MaterialContainer) -> Boolean
-    ): MaterialContainer? = container.find(block)
+    ): MaterialContainer? = container().find(block)
 
     fun findContainerWithSelection(
         selection: StackSelection
     ): MaterialContainer? =
-        container.find { it.available(selection) >= selection.count }
+        container().find { it.available(selection) >= selection.count }
 
     fun findContainerWithSelection(
         selectionBuilder: StackSelection.() -> Unit
     ): MaterialContainer? {
         val selection = StackSelection().apply(selectionBuilder)
-        return container.find { it.available(selection) >= selection.count }
+        return container().find { it.available(selection) >= selection.count }
     }
 
     fun findContainerWithStacks(

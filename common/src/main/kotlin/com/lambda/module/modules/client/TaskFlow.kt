@@ -18,13 +18,13 @@ object TaskFlow : Module(
     }
 
     private val page by setting("Page", Page.BUILD)
-    val buildSettings = BuildSettings(this) {
+    val build = BuildSettings(this) {
         page == Page.BUILD
     }
-    val rotationSettings = RotationSettings(this) {
+    val rotation = RotationSettings(this) {
         page == Page.ROTATION
     }
-    val interactionSettings = InteractionSettings(this) {
+    val interact = InteractionSettings(this) {
         page == Page.INTERACTION
     }
 //    val disposables by setting("Disposables", ItemUtils.defaultDisposables)

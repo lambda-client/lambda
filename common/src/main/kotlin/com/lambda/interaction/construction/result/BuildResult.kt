@@ -1,5 +1,6 @@
 package com.lambda.interaction.construction.result
 
+import baritone.process.BuilderProcess.GoalAdjacent
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
@@ -7,6 +8,7 @@ import com.lambda.interaction.material.container.MainHandContainer
 import com.lambda.task.Task
 import com.lambda.task.Task.Companion.emptyTask
 import com.lambda.task.tasks.GoalTask.Companion.moveNearBlock
+import com.lambda.task.tasks.GoalTask.Companion.moveToGoal
 import com.lambda.task.tasks.GoalTask.Companion.moveUntilLoaded
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
@@ -105,12 +107,13 @@ abstract class BuildResult : ComparableResult<Rank> {
      */
     data class NotVisible(
         override val blockPos: BlockPos,
+        val hitPos: BlockPos,
         val side: Direction,
         val distance: Double
     ) : Resolvable, BuildResult() {
         override val rank = Rank.NOT_VISIBLE
 
-        override val resolve = emptyTask()
+        override val resolve = moveToGoal(GoalAdjacent(hitPos, blockPos, true))
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {

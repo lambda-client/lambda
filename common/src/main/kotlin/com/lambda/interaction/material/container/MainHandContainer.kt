@@ -20,7 +20,7 @@ object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
     override fun withdraw(selection: StackSelection) = emptyTask("WithdrawFromMainHand")
 
     override fun deposit(selection: StackSelection) = buildTask("DepositToMainHand") {
-        InventoryContainer.filter(selection).firstOrNull()?.let { stack ->
+        selection.matchingStacks().firstOrNull()?.let { stack ->
             if (ItemStack.areEqual(stack, player.mainHandStack)) {
                 return@buildTask
             }

@@ -4,7 +4,6 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.ShulkerBoxContainer
 import com.lambda.interaction.material.transfer.TransferResult
 import com.lambda.task.Task
-import com.lambda.task.Task.Companion.emptyTask
 import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.empty
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
@@ -17,6 +16,17 @@ abstract class MaterialContainer(
     private val rank: Rank
 ) : Comparable<MaterialContainer> {
     abstract var stacks: List<ItemStack>
+
+    val shulkerContainer get() =
+        stacks.filter {
+            it.item in ItemUtils.shulkerBoxes
+        }.map { stack ->
+            ShulkerBoxContainer(
+                stack.shulkerBoxContents,
+                containedIn = this@MaterialContainer,
+                shulkerStack = stack,
+            )
+        }.toSet()
 
     fun update(stacks: List<ItemStack>) {
         this.stacks = stacks
@@ -53,17 +63,17 @@ abstract class MaterialContainer(
             }
         } ?: deposit(selection)
 
-    open fun filter(selection: StackSelection) =
-        selection.filterStacks(stacks)
+    open fun StackSelection.matchingStacks() =
+        filterStacks(stacks)
 
-    open fun filter(selection: (ItemStack) -> Boolean) =
-        filter(selection.select())
+    open fun matchingStacks(selection: (ItemStack) -> Boolean) =
+        selection.select().matchingStacks()
 
     open fun available(selection: StackSelection) =
-        filter(selection).count
+        selection.matchingStacks().count
 
     open fun spaceLeft(selection: StackSelection) =
-        filter(selection).spaceLeft + stacks.empty * selection.stackSize
+        selection.matchingStacks().spaceLeft + stacks.empty * selection.stackSize
 
     fun transfer(selection: StackSelection, destination: MaterialContainer): TransferResult {
         val amount = available(selection)
@@ -86,17 +96,6 @@ abstract class MaterialContainer(
             }
         )
     }
-
-    fun List<ItemStack>.doShulkerCheck() =
-        filter {
-            it.item in ItemUtils.shulkerBoxes
-        }.map { stack ->
-            ShulkerBoxContainer(
-                stack.shulkerBoxContents,
-                containedIn = this@MaterialContainer,
-                shulkerStack = stack,
-            )
-        }.toSet()
 
     enum class Rank {
         CREATIVE,

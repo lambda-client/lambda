@@ -20,13 +20,13 @@ import net.minecraft.util.math.Direction
 
 class BreakBlock @Ta5kBuilder constructor(
     private val ctx: BreakContext,
-    private val rotationConfig: IRotationConfig = TaskFlow.rotationSettings,
-    private val interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
+    private val rotationConfig: IRotationConfig = TaskFlow.rotation,
+    private val interactionConfig: InteractionConfig = TaskFlow.interact,
     private val sides: Set<Direction> = emptySet(),
-    private val collectDrop: Boolean = TaskFlow.buildSettings.collectDrops,
-    private val rotate: Boolean = TaskFlow.buildSettings.rotateForBreak,
-    private val swingHand: Boolean = TaskFlow.buildSettings.swingHand,
-    private val particles: Boolean = TaskFlow.buildSettings.particlesOnBreak,
+    private val collectDrop: Boolean = TaskFlow.build.collectDrops,
+    private val rotate: Boolean = TaskFlow.build.rotateForBreak,
+    private val swingHand: Boolean = TaskFlow.build.swingHand,
+    private val particles: Boolean = TaskFlow.build.particlesOnBreak,
 ) : Task<ItemEntity?>() {
     val blockPos: BlockPos get() = ctx.result.blockPos
     private var beginState: BlockState? = null
@@ -85,8 +85,8 @@ class BreakBlock @Ta5kBuilder constructor(
         @Ta5kBuilder
         fun breakBlock(
             ctx: BreakContext,
-            rotationConfig: IRotationConfig = TaskFlow.rotationSettings,
-            interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
+            rotationConfig: IRotationConfig = TaskFlow.rotation,
+            interactionConfig: InteractionConfig = TaskFlow.interact,
             sides: Set<Direction> = emptySet(),
             collectDrop: Boolean = false,
             rotate: Boolean = false,

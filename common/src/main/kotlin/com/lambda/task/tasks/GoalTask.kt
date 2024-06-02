@@ -7,6 +7,7 @@ import baritone.api.pathing.goals.GoalXZ
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.BaritoneUtils.primary
@@ -32,6 +33,10 @@ class GoalTask(
     }
 
     companion object {
+        @Ta5kBuilder
+        fun moveToGoal(goal: Goal) =
+            GoalTask(goal)
+
         @Ta5kBuilder
         fun moveToBlock(blockPos: BlockPos) =
             GoalTask(GoalBlock(blockPos))

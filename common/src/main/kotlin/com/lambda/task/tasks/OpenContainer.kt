@@ -17,8 +17,8 @@ import net.minecraft.util.math.Direction
 class OpenContainer<H : ScreenHandler>(
     private val blockPos: BlockPos,
     private val waitForSlotLoad: Boolean = true,
-    private val rotationConfig: IRotationConfig = TaskFlow.rotationSettings,
-    private val interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
+    private val rotationConfig: IRotationConfig = TaskFlow.rotation,
+    private val interactionConfig: InteractionConfig = TaskFlow.interact,
     private val sides: Set<Direction> = emptySet(),
 ) : Task<H>() {
     private var screenHandler: H? = null

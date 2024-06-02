@@ -32,8 +32,8 @@ object VisibilityChecker {
 
     fun SafeContext.lookAtBlock(
         blockPos: BlockPos,
-        rotationConfig: IRotationConfig = TaskFlow.rotationSettings,
-        interactionConfig: InteractionConfig = TaskFlow.interactionSettings,
+        rotationConfig: IRotationConfig = TaskFlow.rotation,
+        interactionConfig: InteractionConfig = TaskFlow.interact,
         sides: Set<Direction> = emptySet()
     ): RotationContext? {
         val state = blockPos.blockState(world)
@@ -46,8 +46,8 @@ object VisibilityChecker {
 
     fun SafeContext.findRotation(
         boxes: List<Box>,
-        rotationConfig: IRotationConfig = TaskFlow.rotationSettings,
-        interact: InteractionConfig = TaskFlow.interactionSettings,
+        rotationConfig: IRotationConfig = TaskFlow.rotation,
+        interact: InteractionConfig = TaskFlow.interact,
         sides: Set<Direction> = emptySet(),
         verify: HitResult.() -> Boolean,
     ): RotationContext? {

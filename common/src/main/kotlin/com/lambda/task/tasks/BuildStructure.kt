@@ -25,6 +25,7 @@ import com.lambda.task.Task
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.instantBreakable
+import com.lambda.util.BlockUtils.vecOf
 import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.OperatorBlock
@@ -45,12 +46,8 @@ import kotlin.math.pow
 class BuildStructure @Ta5kBuilder constructor(
     private val blueprint: Blueprint,
     private val finishOnDone: Boolean = true,
-    private val collectDrops: Boolean = TaskFlow.buildSettings.collectDrops,
-    private val breakWeakBlocks: Boolean = TaskFlow.buildSettings.breakWeakBlocks,
-    private val pathing: Boolean = TaskFlow.buildSettings.pathing,
-    private val interactLimit: Int = TaskFlow.buildSettings.interactLimit,
-    private val instantAtOnce: Boolean = TaskFlow.buildSettings.breakInstantAtOnce,
-    private val useRayCast: Boolean = TaskFlow.interactionSettings.useRayCast,
+    private val pathing: Boolean = TaskFlow.build.pathing,
+    private val collectDrops: Boolean = TaskFlow.build.collectDrops,
 ) : Task<Unit>() {
     private var lastTask: Task<*>? = null
 
@@ -87,9 +84,10 @@ class BuildStructure @Ta5kBuilder constructor(
 
             val instantResults = results.filterIsInstance<BreakResult.Success>()
                 .filter { it.context.instantBreak }
-                .take(interactLimit)
+                .sorted()
+                .take(TaskFlow.build.interactLimit)
 
-            if (instantAtOnce && instantResults.isNotEmpty()) {
+            if (TaskFlow.build.breakInstantAtOnce && instantResults.isNotEmpty()) {
                 cancelSubTasks()
                 instantResults.forEach {
                     it.resolve.start(this@BuildStructure, false)
@@ -98,10 +96,9 @@ class BuildStructure @Ta5kBuilder constructor(
                 return@listener
             }
 
-            val res = results.sorted()
-            res
-
             results.minOrNull()?.let { result ->
+                if (!pathing && result is BuildResult.OutOfReach) return@let
+
                 if (result !is Resolvable) {
                     if (result is BuildResult.Done) {
                         checkDone()
@@ -116,7 +113,6 @@ class BuildStructure @Ta5kBuilder constructor(
                 lastTask = result.resolve
                 cancelSubTasks()
 
-                if (!pathing && result is BuildResult.OutOfReach) return@let
                 result.resolve.start(this@BuildStructure, false)
             }
         }
@@ -176,8 +172,8 @@ class BuildStructure @Ta5kBuilder constructor(
 
         if (target is TargetState.Air || !pos.blockState(world).isReplaceable) return acc
 
-        val interact = TaskFlow.interactionSettings
-        val rotation = TaskFlow.rotationSettings
+        val interact = TaskFlow.interact
+        val rotation = TaskFlow.rotation
 
         Direction.entries.forEach { neighbor ->
             val hitPos = pos.offset(neighbor)
@@ -194,14 +190,14 @@ class BuildStructure @Ta5kBuilder constructor(
             val reachSq = interact.reach.pow(2)
 
             boxes.forEach { box ->
-                val res = if (useRayCast) interact.resolution else 2
+                val res = if (TaskFlow.interact.useRayCast) interact.resolution else 2
                 scanVisibleSurfaces(eye, box, setOf(hitSide), res) { side, vec ->
                     if (eye distSq vec > reachSq) {
                         acc.add(BuildResult.OutOfReach(pos, eye, vec, interact.reach, side))
                         return@scanVisibleSurfaces
                     }
 
-                    validHits[vec] = if (useRayCast) {
+                    validHits[vec] = if (TaskFlow.interact.useRayCast) {
                         val cast = eye.rotationTo(vec)
                             .rayCast(interact.reach, eye) ?: return@scanVisibleSurfaces
                         if (!cast.verify()) return@scanVisibleSurfaces
@@ -217,6 +213,11 @@ class BuildStructure @Ta5kBuilder constructor(
                     }
 
                 }
+            }
+
+            if (validHits.isEmpty()) {
+                acc.add(BuildResult.NotVisible(pos, hitPos, hitSide, eye.distanceTo(hitPos.vecOf(hitSide))))
+                return@forEach
             }
 
             validHits.keys.mostCenter?.let { optimum ->
@@ -315,7 +316,7 @@ class BuildStructure @Ta5kBuilder constructor(
         val state = pos.blockState(world)
 
         /* is a block that will be destroyed by breaking adjacent blocks */
-        if (breakWeakBlocks && state.block.hardness == 0f && !state.isAir) {
+        if (TaskFlow.build.breakWeakBlocks && state.block.hardness == 0f && !state.isAir) {
             acc.add(BuildResult.Ignored(pos))
             return acc
         }
@@ -362,8 +363,8 @@ class BuildStructure @Ta5kBuilder constructor(
 
         val eye = player.getCameraPosVec(mc.tickDelta)
 
-        val interact = TaskFlow.interactionSettings
-        val rotation = TaskFlow.rotationSettings
+        val interact = TaskFlow.interact
+        val rotation = TaskFlow.rotation
         val currentRotation = RotationManager.currentRotation
         val currentCast = currentRotation.rayCast(interact.reach, eye)
 
@@ -392,14 +393,14 @@ class BuildStructure @Ta5kBuilder constructor(
         val reachSq = interact.reach.pow(2)
 
         boxes.forEach { box ->
-            val res = if (useRayCast) interact.resolution else 2
+            val res = if (TaskFlow.interact.useRayCast) interact.resolution else 2
             scanVisibleSurfaces(eye, box, emptySet(), res) { side, vec ->
                 if (eye distSq vec > reachSq) {
                     acc.add(BuildResult.OutOfReach(pos, eye, vec, interact.reach, side))
                     return@scanVisibleSurfaces
                 }
 
-                validHits[vec] = if (useRayCast) {
+                validHits[vec] = if (TaskFlow.interact.useRayCast) {
                     val cast = eye.rotationTo(vec)
                         .rayCast(interact.reach, eye) ?: return@scanVisibleSurfaces
                     if (!cast.verify()) return@scanVisibleSurfaces
@@ -458,22 +459,14 @@ class BuildStructure @Ta5kBuilder constructor(
         @Ta5kBuilder
         fun buildStructure(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = TaskFlow.buildSettings.collectDrops,
-            breakWeakBlocks: Boolean = TaskFlow.buildSettings.breakWeakBlocks,
-            pathing: Boolean = TaskFlow.buildSettings.pathing,
-            interactLimit: Int = TaskFlow.buildSettings.interactLimit,
-            instantAtOnce: Boolean = TaskFlow.buildSettings.breakInstantAtOnce,
-            useRayCast: Boolean = TaskFlow.interactionSettings.useRayCast,
+            collectDrops: Boolean = TaskFlow.build.collectDrops,
+            pathing: Boolean = TaskFlow.build.pathing,
             blueprint: () -> Blueprint,
         ) = BuildStructure(
                 blueprint(),
                 finishOnDone,
-                collectDrops,
-                breakWeakBlocks,
                 pathing,
-                interactLimit,
-                instantAtOnce,
-                useRayCast
+                collectDrops,
             )
 
         @Ta5kBuilder

@@ -217,7 +217,10 @@ abstract class Task<Result>(
     }
 
     @Ta5kBuilder
-    fun failure(e: Throwable) {
+    fun failure(
+        e: Throwable,
+        stacktrace: MutableList<Task<*>> = mutableListOf()
+    ) {
         if (attempted < tries) {
             attempted++
             warn("Failed task with error: ${e.message}, retrying ($attempted/$tries) ...")
@@ -230,10 +233,21 @@ abstract class Task<Result>(
         }
 
         state = State.FAILED
-        logError("Task failed after $attempted attempts with error: ${e.message}")
         stopListening()
         runSafe { onException(this@Task, e) }
-        parent?.failure(e)
+        stacktrace.add(this)
+        parent?.failure(e, stacktrace) ?: run {
+            val message = buildString {
+                stacktrace.firstOrNull()?.let { first ->
+                    append("${first.identifier} failed: ${e.message}\n")
+                    stacktrace.drop(1).forEach {
+                        append("  -> ${it.identifier}\n")
+                    }
+                }
+            }
+            LOG.error(message, e)
+            logError(message)
+        }
     }
 
     /**
