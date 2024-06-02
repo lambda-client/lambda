@@ -63,17 +63,17 @@ abstract class MaterialContainer(
             }
         } ?: deposit(selection)
 
-    open fun StackSelection.matchingStacks() =
-        filterStacks(stacks)
+    open fun stacksMatching(selection: StackSelection) =
+        selection.filterStacks(stacks)
 
-    open fun matchingStacks(selection: (ItemStack) -> Boolean) =
-        selection.select().matchingStacks()
+    open fun stacksMatching(selection: (ItemStack) -> Boolean) =
+        stacksMatching(selection.select())
 
     open fun available(selection: StackSelection) =
-        selection.matchingStacks().count
+        stacksMatching(selection).count
 
     open fun spaceLeft(selection: StackSelection) =
-        selection.matchingStacks().spaceLeft + stacks.empty * selection.stackSize
+        stacksMatching(selection).spaceLeft + stacks.empty * selection.stackSize
 
     fun transfer(selection: StackSelection, destination: MaterialContainer): TransferResult {
         val amount = available(selection)

@@ -26,7 +26,6 @@ class BreakBlock @Ta5kBuilder constructor(
     private val collectDrop: Boolean = TaskFlow.build.collectDrops,
     private val rotate: Boolean = TaskFlow.build.rotateForBreak,
     private val swingHand: Boolean = TaskFlow.build.swingHand,
-    private val particles: Boolean = TaskFlow.build.particlesOnBreak,
 ) : Task<ItemEntity?>() {
     val blockPos: BlockPos get() = ctx.result.blockPos
     private var beginState: BlockState? = null
@@ -76,7 +75,6 @@ class BreakBlock @Ta5kBuilder constructor(
 
     private fun SafeContext.breakBlock(side: Direction) {
         if (interaction.updateBlockBreakingProgress(blockPos, side)) {
-            if (particles) mc.particleManager.addBlockBreakingParticles(blockPos, side)
             if (swingHand) player.swingHand(ctx.hand)
         }
     }

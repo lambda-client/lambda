@@ -8,5 +8,4 @@ interface BuildConfig {
     val breakInstantAtOnce: Boolean
     val rotateForBreak: Boolean
     val swingHand: Boolean
-    val particlesOnBreak: Boolean
 }

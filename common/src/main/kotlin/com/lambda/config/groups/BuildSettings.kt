@@ -13,5 +13,4 @@ class BuildSettings(
     override val breakInstantAtOnce by c.setting("Break Instant At Once", true, "Break all instant blocks at once", vis)
     override val rotateForBreak by c.setting("Rotate For Break", false, "Rotate towards block while breaking", vis)
     override val swingHand by c.setting("Swing Hand", true, "Swing hand on interactions", vis)
-    override val particlesOnBreak by c.setting("Particles On Break", true, "Show particles when breaking blocks", vis)
 }
