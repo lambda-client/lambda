@@ -12,7 +12,7 @@ class EnumSetting<T : Enum<T>>(
     description,
     visibility,
 ) {
-    private val enumValues: Array<T> = defaultValue.declaringJavaClass.enumConstants
+    val enumValues: Array<T> = defaultValue.declaringJavaClass.enumConstants
 
     fun next() {
         value = enumValues[((value.ordinal + 1) % enumValues.size)]

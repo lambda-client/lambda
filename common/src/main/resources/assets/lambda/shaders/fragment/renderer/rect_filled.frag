@@ -14,13 +14,21 @@ in float v_Shade;
 
 out vec4 color;
 
-#define SMOOTHING 0.5
+#define SMOOTHING 0.25
+#define NOISE_GRANULARITY 0.005
+
+vec4 noise() {
+    // https://shader-tutorial.dev/advanced/color-banding-dithering/
+    float random = fract(sin(dot(v_TexCoord, vec2(12.9898, 78.233))) * 43758.5453);
+    float ofs = mix(-NOISE_GRANULARITY, NOISE_GRANULARITY, random);
+    return vec4(ofs, ofs, ofs, 0.0);
+}
 
 vec4 shade() {
     if (v_Shade != 1.0) return v_Color;
 
     vec2 pos = v_Position * u_Size;
-    float p = sin(pos.x + pos.y - u_Time) * 0.5 + 0.5;
+    float p = sin(pos.x - pos.y - u_Time) * 0.5 + 0.5;
 
     return mix(u_Color1, u_Color2, p) * v_Color;
 }
@@ -41,5 +49,5 @@ vec4 round() {
 }
 
 void main() {
-    color = shade() * round();
+    color = shade() * round() + noise();
 }

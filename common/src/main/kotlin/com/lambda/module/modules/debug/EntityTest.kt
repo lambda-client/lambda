@@ -10,7 +10,7 @@ import net.minecraft.entity.Entity
 object EntityTest : Module(
     name = "EntityTest",
     description = "Test entity",
-    tag = ModuleTag.DEBUG,
+    defaultTags = setOf(ModuleTag.DEBUG)
 ) {
     init {
         listener<TickEvent.Pre> {

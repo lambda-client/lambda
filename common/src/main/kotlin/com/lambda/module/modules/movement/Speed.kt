@@ -17,12 +17,13 @@ import com.lambda.util.player.MovementUtils.moveYaw
 import com.lambda.util.player.MovementUtils.setSpeed
 import kotlin.math.max
 
+// ToDo: Revisit and implement grim strafing
 object Speed : Module(
     name = "Speed",
     description = "Fastest module",
-    tag = ModuleTag.MOVEMENT
+    defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
-    private val mode by setting("Mode", Mode.MATRIX_STRAFE_1)
+    private val mode by setting("Mode", Mode.NCP_STRAFE)
 
     // NCP
     private val ncpBaseSpeed by setting("Base Speed", 0.2873, 0.1..0.3, 0.0001, visibility = { mode == Mode.NCP_STRAFE })
@@ -40,13 +41,9 @@ object Speed : Module(
     private var ncpSpeed = ncpBaseSpeed
     private var lastDistance = 0.0
 
-    // Matrix
-    private var matrixSprint = false
-
     private enum class Mode {
         NCP_STRAFE,
-        MATRIX_STRAFE_1,
-        MATRIX_STRAFE_2,
+        GRIM_STRAFE,
     }
 
     private enum class NCPPhase {
@@ -107,21 +104,8 @@ object Speed : Module(
 
                     setSpeed(moveSpeed)
                 }
-
-                Mode.MATRIX_STRAFE_1, Mode.MATRIX_STRAFE_2 -> {
-                    if (!isInputting) return@listener
-
-                    var speed = player.motionDelta
-
-                    if (speed > 0.21) {
-                        if (mode == Mode.MATRIX_STRAFE_2) return@listener
-                        speed *= 0.9999 // Memetrix
-                    }
-
-                    if (!player.horizontalCollision)
-                        speed = max(speed, 0.1)
-
-                    setSpeed(speed)
+                Mode.GRIM_STRAFE -> {
+                    // ToDo: Implement
                 }
             }
         }
@@ -141,23 +125,8 @@ object Speed : Module(
 
             when (mode) {
                 Mode.NCP_STRAFE -> it.cancel()
-                Mode.MATRIX_STRAFE_1, Mode.MATRIX_STRAFE_2 -> {
-                    if (!isInputting) return@listener
-
-                    if (player.isSprinting) {
-                        addSpeed(-0.2, player.moveYaw.toRadian().toDouble())
-                    }
-
-                    addSpeed(0.2)
-                }
+                Mode.GRIM_STRAFE -> {}
             }
-        }
-
-        listener<PlayerPacketEvent.Pre> {
-            if (!shouldWork()) return@listener
-            if (mode != Mode.MATRIX_STRAFE_1 || !isInputting) return@listener
-            it.isSprinting = matrixSprint
-            matrixSprint = !matrixSprint
         }
 
         onEnable {

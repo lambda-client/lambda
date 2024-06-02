@@ -6,8 +6,8 @@ import com.lambda.module.tag.ModuleTag
 object TridentBoost : Module(
     name = "TridentBoost",
     description = "Boosts you with tridents",
-    tag = ModuleTag.MOVEMENT
+    defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
-    val tridentSpeed by setting("Speed Factor", 2.0, 0.1..3.0, 0.1, description = "Speed factor of the trident boost")
-    val forceUse by setting("Force Use", true, description = "Try to use the trident outside of water or rain")
+    @JvmStatic val tridentSpeed by setting("Speed Factor", 1.0, 0.1..3.0, 0.1, description = "Speed factor of the trident boost")
+    @JvmStatic val forceUse by setting("Force Use", true, description = "Try to use the trident outside of water or rain")
 }

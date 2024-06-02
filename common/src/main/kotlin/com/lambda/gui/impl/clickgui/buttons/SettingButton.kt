@@ -6,23 +6,32 @@ import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.button.ListButton
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.util.math.MathUtils.lerp
-import com.lambda.util.math.MathUtils.toInt
 
 abstract class SettingButton <V : Any, T : AbstractSetting<V>> (
     val setting: T,
-    owner: ChildLayer.Drawable<*>
+    final override val owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
 ): ListButton(owner) {
+    override val text = setting.name
     protected var value by setting
-    var visible = false
 
-    private var visibilityAnimation by animation.exp({ 0.0 }, { 1.0 }, { if (visible) 0.2 else 0.8 }, ::visible)
+    val visible; get() = setting.visibility()
+    private var prevTickVisible = false
+
+    private var visibilityAnimation by animation.exp(0.0, 1.0, 0.6, ::visible)
     override val showAnimation get() = lerp(0.0, super.showAnimation, visibilityAnimation)
-
-    override var accessible: Boolean = false; get() = field && visible
+    override val renderHeightOffset get() = renderHeightAnimation + lerp(-size.y, 0.0, visibilityAnimation)
+    override var activeAnimation = 0.0
 
     override fun onEvent(e: GuiEvent) {
-        if (e is GuiEvent.Show || e is GuiEvent.Tick) visible = setting.visibility()
-        if (e is GuiEvent.Show) visibilityAnimation = visible.toInt().toDouble()
         super.onEvent(e)
+
+        if (e !is GuiEvent.Tick) return
+
+        if (!prevTickVisible && visible) renderHeightAnimation = heightOffset
+        prevTickVisible = visible
+
+        if (!visible) unfocus()
     }
+
+    open fun unfocus() {}
 }

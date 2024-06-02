@@ -28,7 +28,7 @@ import net.minecraft.util.math.Vec3d
 object Freecam : Module(
     name = "Freecam",
     description = "Move your camera freely",
-    tag = ModuleTag.PLAYER
+    defaultTags = setOf(ModuleTag.PLAYER)
 ) {
     private val speed by setting("Speed", 0.5f, 0.1f..1.0f, 0.1f)
     private val sprint by setting("Sprint Multiplier", 3.0f, 0.1f..10.0f, 0.1f, description = "Set below 1.0 to fly slower on sprint.")
@@ -78,7 +78,7 @@ object Freecam : Module(
             it.context = RotationContext(rotation, rotationConfig)
         }
 
-        listener<MovementEvent.InputUpdate> { event ->2
+        listener<MovementEvent.InputUpdate> { event ->
             // Don't block baritone from working
             if (event.input !is PlayerMovementInput) {
                 // Reset actual input

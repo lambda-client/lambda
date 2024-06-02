@@ -197,7 +197,7 @@ class VAO(
         indicesCount = 0
     }
 
-    fun destroy() {
+    protected fun finalize() {
         runOnGameThread {
             glDeleteBuffers(ibo)
             glDeleteBuffers(vbo)

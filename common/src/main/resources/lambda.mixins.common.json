@@ -15,6 +15,9 @@
     "input.KeyBindingMixin",
     "input.KeyboardMixin",
     "input.MouseMixin",
+    "items.BarrierBlockMixin",
+    "items.TridentMixin",
+    "render.BlockRenderManagerMixin",
     "render.CameraMixin",
     "render.ChatInputSuggestorMixin",
     "render.ChatScreenMixin",
@@ -22,13 +25,13 @@
     "render.GameRendererMixin",
     "render.GlStateManagerMixin",
     "render.InGameHudMixin",
+    "render.InGameOverlayRendererMixin",
     "render.LightmapTextureManagerMixin",
     "render.LivingEntityRendererMixin",
+    "render.RenderLayersMixin",
     "render.RenderTickCounterMixin",
     "render.VertexBufferMixin",
-    "render.WorldRendererMixin",
-    "world.WorldMixin",
-    "items.TridentMixin"
+    "render.WorldRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

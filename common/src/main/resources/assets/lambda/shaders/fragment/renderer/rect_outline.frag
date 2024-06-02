@@ -16,7 +16,7 @@ vec4 shade() {
     if (v_Shade != 1.0) return v_Color;
 
     vec2 pos = v_Position * u_Size;
-    float p = sin(pos.x + pos.y - u_Time) * 0.5 + 0.5;
+    float p = sin(pos.x - pos.y - u_Time) * 0.5 + 0.5;
 
     return mix(u_Color1, u_Color2, p) * v_Color;
 }

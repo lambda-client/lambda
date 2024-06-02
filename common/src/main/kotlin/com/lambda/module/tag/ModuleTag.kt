@@ -21,16 +21,15 @@ data class ModuleTag(override val name: String) : Nameable {
         val MOVEMENT = ModuleTag("Movement")
         val RENDER = ModuleTag("Render")
         val PLAYER = ModuleTag("Player")
-        val WORLD = ModuleTag("World")
-        val MISC = ModuleTag("Misc")
         val CLIENT = ModuleTag("Client")
+        val NETWORK = ModuleTag("Network")
         val DEBUG = ModuleTag("Debug")
 
-        val defaults = listOf(COMBAT, MOVEMENT, RENDER, PLAYER, WORLD, DEBUG, CLIENT)
-
-        // Do something with this ?
-        val HIDDEN = ModuleTag("Hidden")
+        // currently secondary tags
+        val WORLD = ModuleTag("World")
+        val AUTOMATION = ModuleTag("Automation")
         val GRIM = ModuleTag("Grim")
-        val BYPASS = ModuleTag("Bypass")
+
+        val defaults = listOf(COMBAT, MOVEMENT, RENDER, PLAYER, NETWORK, DEBUG, CLIENT)
     }
 }

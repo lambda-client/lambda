@@ -1,7 +1,7 @@
-val neoVersion = property("neo_version").toString()
-val kotlinForgeVersion = property("kotlin_forge_version").toString()
+val neoVersion: String by project
+val kotlinForgeVersion: String by project
 
-base.archivesName.set("${base.archivesName.get()}-neoforge")
+base.archivesName = "${base.archivesName.get()}-neoforge"
 
 architectury {
     platformSetupLoomIde()
@@ -10,10 +10,6 @@ architectury {
 
 loom {
     accessWidenerPath.set(project(":common").loom.accessWidenerPath)
-
-    neoForge {
-        enableTransitiveAccessWideners = true
-    }
 }
 
 repositories {
@@ -63,6 +59,7 @@ dependencies {
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge-neoforge:$kotlinForgeVersion")
+    includeMod("baritone-api:baritone-unoptimized-neoforge:1.10.2")
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
@@ -73,13 +70,14 @@ dependencies {
 }
 
 tasks {
-    remapJar {
-        injectAccessWidener = true
+    processResources {
+        from(project(":common").file("src/main/resources/lambda.accesswidener")) {
+            into("/assets/") // Copy the access wideners because the API was not included for NeoForge
+        }
     }
 
-    processResources {
-        filesMatching("META-INF/mods.toml") {
-            expand(project(":common").properties)
-        }
+    remapJar {
+        dependsOn(processResources)
+        atAccessWideners.add("lambda.accesswidener") // Add the access widener to the remapper
     }
 }

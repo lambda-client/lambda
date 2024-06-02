@@ -13,7 +13,7 @@ import net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket
 object InventoryDebug : Module(
     name = "InventoryDebug",
     description = "Debugs the inventory",
-    tag = ModuleTag.DEBUG
+    defaultTags = setOf(ModuleTag.DEBUG)
 ) {
     init {
         listener<PacketEvent.Receive.Pre> {
