@@ -55,7 +55,7 @@ class EmojiGlyphs(zipUrl: String) {
 
                     val uv1 = Vec2d(x.toDouble(), y.toDouble()) * texelSize
                     val uv2 = Vec2d(x, y).plus(dimensions) * texelSize
-                    emojiMap[name] = CharInfo(dimensions, uv1, uv2)
+                    emojiMap[name] = CharInfo(dimensions, uv1 * -1.0, uv2 * -1.0)
 
                     x += emoji.width
                 }
@@ -69,11 +69,15 @@ class EmojiGlyphs(zipUrl: String) {
 
     fun bind() {
         with(fontTexture) {
-            bind()
+            bind(GL_TEXTURE_SLOT)
             setLOD(FontSettings.lodBias.toFloat())
         }
     }
 
     fun getEmoji(emoji: String): CharInfo? =
         emojiMap[emoji]
+
+    companion object {
+        private const val GL_TEXTURE_SLOT = 1
+    }
 }

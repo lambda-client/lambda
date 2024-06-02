@@ -140,8 +140,13 @@ class FontRenderer(
 
     override fun render() {
         shader.use()
+
         font.glyphs.bind()
-        //emojis.glyphs.bind() // You have to modify the uniform in the shader to use the correct texture
+        shader["u_FontTexture"] = 0
+
+        emojis.glyphs.bind()
+        shader["u_EmojiTexture"] = 1
+
         super.render()
     }
 

@@ -63,7 +63,7 @@ class FontGlyphs(font: Font) {
 
     fun bind() {
         with(fontTexture) {
-            bind()
+            bind(GL_TEXTURE_SLOT)
             setLOD(FontSettings.lodBias.toFloat())
         }
     }
@@ -72,6 +72,9 @@ class FontGlyphs(font: Font) {
         charMap[char.code]
 
     companion object {
+        // The allocated texture slot
+        private const val GL_TEXTURE_SLOT = 0
+
         // The space between glyphs is necessary to prevent artifacts from appearing when the font texture is blurred
         private const val STEP = 2
 
