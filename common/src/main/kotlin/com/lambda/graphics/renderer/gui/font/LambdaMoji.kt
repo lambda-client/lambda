@@ -17,7 +17,7 @@ enum class LambdaMoji(private val zipUrl: String) {
     object Loader : Loadable {
         override fun load(): String {
             LambdaMoji.entries.forEach(LambdaMoji::loadGlyphs)
-            return "Loaded ${LambdaMoji.entries.size} emoji sets"
+            return "Loaded ${LambdaMoji.entries.size} emoji pools"
         }
     }
 }

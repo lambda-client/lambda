@@ -63,7 +63,7 @@ class EmojiGlyphs(zipUrl: String) {
 
             fontTexture = MipmapTexture(image)
 
-            LOG.info("Emoji loaded with ${emojiMap.size} characters (${time}ms)")
+            LOG.info("Loaded $size emojis in $time ms")
         }
     }
 

@@ -58,7 +58,7 @@ class FontGlyphs(font: Font) {
             fontTexture = MipmapTexture(image)
         }
 
-        Lambda.LOG.info("Font ${font.fontName} loaded with ${charMap.size} characters (${time}ms)")
+        Lambda.LOG.info("Font ${font.fontName} loaded with ${charMap.size} characters in $time ms")
     }
 
     fun bind() {
