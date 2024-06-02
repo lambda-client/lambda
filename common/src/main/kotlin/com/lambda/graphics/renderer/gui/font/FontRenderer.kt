@@ -12,9 +12,9 @@ import java.awt.Color
 
 class FontRenderer(
     private val font: LambdaFont,
-    private val emojis: LambdaMoji,
+    private val emojis: LambdaMoji
 ) : Renderer(VertexMode.TRIANGLES, VertexAttrib.Group.FONT) {
-    var scaleMultiplier = 1.0
+    private val scaleMultiplier = 1.0
     private val emojiRegex = Regex(":[a-zA-Z0-9_]+:")
 
     /**
@@ -23,19 +23,22 @@ class FontRenderer(
      * @param text The text to parse.
      * @return A list of triples containing the emoji text, start index, and end index.
      */
-    fun parseEmojis(text: String): List<
-            Triple<CharInfo, Int, Int>> {
+    fun parseEmojis(text: String): List<Triple<CharInfo, Int, Int>> {
         val result = mutableListOf<Triple<CharInfo, Int, Int>>()
         val matches = emojiRegex.findAll(text)
 
-        matches.forEach {
-            val index = it.value.substring(1, it.value.length - 1)
-            result.add(Triple(emojis[index] ?: return@forEach, it.range.first, it.range.last))
+        for (match in matches) {
+            val emojiKey = match.value.substring(1, match.value.length - 1)
+            val charInfo = emojis[emojiKey] ?: continue
+            result.add(Triple(charInfo, match.range.first, match.range.last))
         }
 
         return result
     }
 
+    /**
+     * Builds the vertex array for rendering the text.
+     */
     fun build(
         text: String,
         position: Vec2d,
@@ -43,10 +46,49 @@ class FontRenderer(
         scale: Double = 1.0,
         shadow: Boolean = true
     ) = vao.use {
+        iterateText(text, scale, shadow, color) { char, pos1, pos2, color ->
+            putChar(position, pos1, pos2, color, char)
+        }
+    }
+
+    /**
+     * Calculates the width of the given text.
+     */
+    fun getWidth(text: String, scale: Double = 1.0): Double {
+        var width = 0.0
+        iterateText(text, scale, false) { char, _, _, _ -> width += char.width + gap }
+        return width * getScaleFactor(scale)
+    }
+
+    /**
+     * Calculates the height of the text.
+     *
+     * The values are hardcoded
+     * We do not need to ask the emoji font since the height is smaller
+     */
+    private fun getHeight(scale: Double = 1.0) = font.glyphs.fontHeight * getScaleFactor(scale) * 0.7
+
+    /**
+     * Iterates over each character and emoji in the text.
+     *
+     * @param text The text to iterate over.
+     * @param scale The scale of the text.
+     * @param shadow Whether to render a shadow.
+     * @param color The color of the text.
+     * @param block The block to execute for each character.
+     *
+     * @see CharInfo
+     */
+    private fun iterateText(
+        text: String,
+        scale: Double,
+        shadow: Boolean,
+        color: Color = Color.WHITE,
+        block: (CharInfo, Vec2d, Vec2d, Color) -> Unit
+    ) {
         val actualScale = getScaleFactor(scale)
         val scaledShadowShift = shadowShift * actualScale
         val scaledGap = gap * actualScale
-        val shadowColor = getShadowColor(color)
 
         var posX = 0.0
         val posY = getHeight(scale) * -0.5 + baselineOffset * actualScale
@@ -55,84 +97,42 @@ class FontRenderer(
 
         var index = 0
         while (index < text.length) {
-            emojis
-                .firstOrNull { index in it.second..it.third }
-                ?.let { emoji ->
-                    val scaledSize = emoji.first.size * actualScale
-                    val pos1 = Vec2d(posX, posY)
-                    val pos2 = pos1 + scaledSize
+            run { // Because continue is not allowed in lambda
+                emojis
+                    .firstOrNull { index in it.second..it.third }
+                    ?.let { emoji ->
+                        val scaledSize = emoji.first.size * actualScale
+                        val pos1 = Vec2d(posX, posY)
+                        val pos2 = pos1 + scaledSize
 
-                    putChar(position, pos1, pos2, color, emoji.first)
+                        block(emoji.first, pos1, pos2, color)
 
-                    posX += scaledSize.x + scaledGap
-                    index += emoji.third - emoji.second + 1
-
-                    if (index >= text.length) {
-                        // This means we've reached the end of the text
-                        return@use
+                        posX += scaledSize.x + scaledGap
+                        index += emoji.third - emoji.second + 1
+                        return@run
                     }
+
+                val char = text[index]
+                val glyph = font[char] ?: return@run
+
+                val scaledSize = glyph.size * actualScale
+                val pos1 = Vec2d(posX, posY)
+                val pos2 = pos1 + scaledSize
+
+                if (shadow && FontSettings.shadow) {
+                    val shadowPos1 = pos1 + scaledShadowShift
+                    val shadowPos2 = shadowPos1 + scaledSize
+                    block(glyph, shadowPos1, shadowPos2, getShadowColor(color))
                 }
 
-            val char = text[index]
-            val glyph = font[char] ?: run {
-                index++
-                return@use
+                block(glyph, pos1, pos2, color)
+
+                posX += scaledSize.x + scaledGap
             }
 
-            val scaledSize = glyph.size * actualScale
-
-            val pos1 = Vec2d(posX, posY)
-            val pos2 = pos1 + scaledSize
-
-            if (shadow && FontSettings.shadow) {
-                val shadowPos1 = pos1 + scaledShadowShift
-                val shadowPos2 = shadowPos1 + scaledSize
-                putChar(position, shadowPos1, shadowPos2, shadowColor, glyph)
-            }
-
-            putChar(position, pos1, pos2, color, glyph)
-
-            posX += scaledSize.x + scaledGap
             index++
         }
     }
-
-    fun getWidth(text: String, scale: Double = 1.0): Double {
-        var width = 0.0
-
-        val emojis = parseEmojis(text)
-
-        var index = 0
-        while (index < text.length) {
-            emojis
-                .firstOrNull { index in it.second..it.third }
-                ?.let { emoji ->
-                    val scaledSize = emoji.first.size * getScaleFactor(scale)
-                    width += scaledSize.x + gap
-
-                    index += emoji.third - emoji.second + 1
-
-                    if (index >= text.length) {
-                        // This means we've reached the end of the text
-                        return width * getScaleFactor(scale)
-                    }
-                }
-
-            val char = text[index]
-            val glyph = font[char] ?: run {
-                index++
-                return width * getScaleFactor(scale)
-            }
-
-            width += glyph.width + gap
-            index++
-        }
-
-        return width * getScaleFactor(scale)
-    }
-
-    fun getHeight(scale: Double = 1.0) =
-        font.glyphs.fontHeight * getScaleFactor(scale) * 0.7
 
     private fun IRenderContext.putChar(pos: Vec2d, lt: Vec2d, rb: Vec2d, color: Color, ci: CharInfo) {
         val x = pos.x
@@ -148,20 +148,22 @@ class FontRenderer(
         )
     }
 
-    private fun getScaleFactor(scale: Double) =
-        scaleMultiplier * scale * 0.12
+    private fun getScaleFactor(scale: Double) = scaleMultiplier * scale * 0.12
 
-    private fun getShadowColor(color: Color) = Color(
-        (color.red * FontSettings.shadowBrightness).toInt(),
-        (color.green * FontSettings.shadowBrightness).toInt(),
-        (color.blue * FontSettings.shadowBrightness).toInt(),
-        color.alpha
-    )
+    private fun getShadowColor(color: Color): Color {
+        return Color(
+            (color.red * FontSettings.shadowBrightness).toInt(),
+            (color.green * FontSettings.shadowBrightness).toInt(),
+            (color.blue * FontSettings.shadowBrightness).toInt(),
+            color.alpha
+        )
+    }
 
     override fun render() {
         shader.use()
 
         font.glyphs.bind()
+
         emojis.glyphs.bind()
         shader["u_EmojiTexture"] = 1
 
@@ -170,7 +172,6 @@ class FontRenderer(
 
     companion object {
         private val shader = Shader("renderer/font")
-
         private val shadowShift get() = FontSettings.shadowShift * 4.0
         private val baselineOffset get() = FontSettings.baselineOffset * 2.0f - 10f
         private val gap get() = FontSettings.gapSetting * 0.5f - 0.8f

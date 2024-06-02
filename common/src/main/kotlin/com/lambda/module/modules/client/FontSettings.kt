@@ -9,8 +9,8 @@ object FontSettings : Module(
     defaultTags = setOf(ModuleTag.CLIENT)
 ) {
     val shadow by setting("Shadow", true)
-    val shadowBrightness by setting("Shadow Brightness", 0.35, 0.0..0.5, 0.01, visibility = { shadow })
-    val shadowShift by setting("Shadow Shift", 1.0, 0.0..2.0, 0.05, visibility = { shadow })
+    val shadowBrightness by setting("Shadow Brightness", 0.35, 0.0..0.5, 0.01) { shadow }
+    val shadowShift by setting("Shadow Shift", 1.0, 0.0..2.0, 0.05) { shadow }
     val gapSetting by setting("Gap", 1.5, -10.0..10.0, 0.5)
     val baselineOffset by setting("Vertical Offset", 0.0, -10.0..10.0, 0.5)
     private val lodBiasSetting by setting("Smoothing", 0.0, -10.0..10.0, 0.5)
