@@ -23,7 +23,7 @@ class FontRenderer(
      * @param text The text to parse.
      * @return A list of triples containing the emoji text, start index, and end index.
      */
-    private fun parseEmojis(text: String): List<
+    fun parseEmojis(text: String): List<
             Triple<CharInfo, Int, Int>> {
         val result = mutableListOf<Triple<CharInfo, Int, Int>>()
         val matches = emojiRegex.findAll(text)
