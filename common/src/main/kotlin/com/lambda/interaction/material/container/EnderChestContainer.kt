@@ -12,6 +12,7 @@ import net.minecraft.util.math.BlockPos
 
 object EnderChestContainer : MaterialContainer(Rank.ENDER_CHEST) {
     override var stacks = emptyList<ItemStack>()
+    override val name = "EnderChest"
     private var placePos: BlockPos? = null
 
     override fun prepare(): Task<*> {

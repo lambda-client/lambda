@@ -150,12 +150,12 @@ abstract class Task<Result>(
         val owner = parent ?: RootTask
         owner.subTasks.add(this)
 
+        LOG.info("${owner.identifier} started $identifier")
+        this.parent = owner
         if (pauseParent && owner.isActivated && !owner.isRoot) {
             LOG.info("$identifier deactivating parent ${owner.identifier}")
             owner.deactivate()
         }
-        LOG.info("${owner.identifier} started $identifier")
-        this.parent = owner
 
         activate()
         runSafe { onStart() }
@@ -261,14 +261,14 @@ abstract class Task<Result>(
 
     private fun notifyParent() {
         parent?.let { par ->
-            if (par.isCompleted) {
-                LOG.info("$identifier notified parent ${par.identifier}")
-                par.notifyParent()
-                return@let
-            }
+//            if (par.isCompleted) {
+//                LOG.info("$identifier notified parent ${par.identifier}")
+//                par.notifyParent()
+//                return@let
+//            }
 
-            LOG.info("$identifier reactivated parent ${par.identifier}")
-            par.activate()
+//            LOG.info("$identifier reactivated parent ${par.identifier}")
+//            par.activate()
         }
     }
 

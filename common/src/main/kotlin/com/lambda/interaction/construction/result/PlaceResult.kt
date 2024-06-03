@@ -1,13 +1,19 @@
 package com.lambda.interaction.construction.result
 
+import baritone.api.pathing.goals.GoalBlock
+import baritone.api.pathing.goals.GoalInverted
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildStructure.Companion.breakBlock
+import com.lambda.task.tasks.GoalTask.Companion.moveToGoal
+import com.lambda.task.tasks.GoalTask.Companion.moveToGoalUntil
 import com.lambda.task.tasks.PlaceBlock.Companion.placeBlock
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
+import net.minecraft.util.shape.VoxelShape
 
 /**
  * [PlaceResult] represents the result of a placement simulation.
@@ -51,6 +57,16 @@ sealed class PlaceResult : BuildResult() {
         override val rank = Rank.PLACE_NO_INTEGRITY
     }
 
+    data class BlockedByPlayer(
+        override val blockPos: BlockPos
+    ) : Resolvable, PlaceResult() {
+        override val rank = Rank.PLACE_BLOCKED_BY_PLAYER
+
+        override val resolve = moveToGoalUntil(GoalInverted(GoalBlock(blockPos))) {
+            !world.canCollide(player, Box(blockPos))
+        }
+    }
+
     /**
      * The placement configuration cannot replace the block at the target position.
      * @param simulated The simulated placement configuration.
@@ -61,7 +77,10 @@ sealed class PlaceResult : BuildResult() {
     ) : Resolvable, PlaceResult() {
         override val rank = Rank.PLACE_CANT_REPLACE
 
-        override val resolve = breakBlock(simulated.blockPos)
+//        override val resolve = breakBlock(simulated.blockPos)
+        override val resolve = moveToGoalUntil(GoalInverted(GoalBlock(blockPos))) {
+            !world.canCollide(player, Box(blockPos))
+        }
     }
 
     /**

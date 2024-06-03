@@ -1,9 +1,11 @@
 package com.lambda.interaction.material
 
+import com.lambda.Lambda.LOG
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.ShulkerBoxContainer
 import com.lambda.interaction.material.transfer.TransferResult
 import com.lambda.task.Task
+import com.lambda.util.Nameable
 import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.empty
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
@@ -14,7 +16,7 @@ import net.minecraft.item.ItemStack
 // ToDo: Make jsonable to persistently store them
 abstract class MaterialContainer(
     private val rank: Rank
-) : Comparable<MaterialContainer> {
+) : Nameable, Comparable<MaterialContainer> {
     abstract var stacks: List<ItemStack>
 
     val shulkerContainer get() =
@@ -85,11 +87,12 @@ abstract class MaterialContainer(
 //        if (space == 0) {
 //            return TransferResult.NoSpace
 //        }
-
+//
 //        val transferAmount = minOf(amount, space)
 //        selection.selector = { true }
 //        selection.count = transferAmount
 
+        LOG.info("Transferring $selection from $name to ${destination.name}")
         return TransferResult.Success(
             doWithdrawal(selection).onSuccess { withdraw, _ ->
                 destination.doDeposit(selection).start(withdraw)

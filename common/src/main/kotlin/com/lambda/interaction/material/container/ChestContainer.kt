@@ -17,6 +17,8 @@ data class ChestContainer(
     override var stacks: List<ItemStack>,
     val blockPos: BlockPos,
 ) : MaterialContainer(Rank.CHEST) {
+    override val name = "Chest at ${blockPos.toShortString()}"
+
     override fun prepare() =
         moveIntoEntityRange(blockPos).onSuccess { _, _ ->
 //            when {

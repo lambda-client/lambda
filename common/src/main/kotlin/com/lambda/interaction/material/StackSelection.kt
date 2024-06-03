@@ -43,10 +43,8 @@ class StackSelection {
         }
 
     val filterStacks: (List<ItemStack>) -> List<ItemStack>
-        get() = { stacks ->
-            // ToDo: count should represent item count not stack count.
-            //  Would need partial selections with permutations
-            stacks.filter(filterStack).take(count)
+        get() = {
+            it.filter(filterStack)
         }
 
     val filterSlots: (List<Slot>) -> List<Slot>

@@ -1,16 +1,21 @@
 package com.lambda.interaction.construction.result
 
+import baritone.api.pathing.goals.GoalBlock
+import baritone.api.pathing.goals.GoalInverted
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.material.ContainerManager.findBestAvailableTool
 import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.MainHandContainer
+import com.lambda.task.Task
 import com.lambda.task.Task.Companion.emptyTask
 import com.lambda.task.tasks.BreakBlock.Companion.breakBlock
+import com.lambda.task.tasks.GoalTask.Companion.moveToGoalUntil
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 
 sealed class BreakResult : BuildResult() {
@@ -112,7 +117,14 @@ sealed class BreakResult : BuildResult() {
     data class PlayerOnTop(
         override val blockPos: BlockPos,
         val blockState: BlockState
-    ) : BreakResult() {
+    ) : Resolvable, BreakResult() {
         override val rank = Rank.BREAK_PLAYER_ON_TOP
+
+        override val resolve =
+            moveToGoalUntil(GoalInverted(GoalBlock(blockPos))) {
+                val pBox = player.boundingBox
+                val aabb = Box(pBox.minX, pBox.minY - 1.0E-6, pBox.minZ, pBox.maxX, pBox.minY, pBox.maxZ)
+                world.findSupportingBlockPos(player, aabb).orElse(null) != blockPos
+            }
     }
 }

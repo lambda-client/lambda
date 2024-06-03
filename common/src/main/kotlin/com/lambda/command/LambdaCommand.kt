@@ -4,7 +4,10 @@ import com.lambda.command.CommandManager.dispatcher
 import com.lambda.util.Nameable
 import com.lambda.util.primitives.extension.CommandBuilder
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
+import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.command.CommandSource
+import net.minecraft.registry.BuiltinRegistries
+import net.minecraft.server.command.CommandManager
 
 abstract class LambdaCommand(
     final override val name: String,
@@ -12,6 +15,10 @@ abstract class LambdaCommand(
     val usage: String = "",
     val description: String = "",
 ) : Nameable {
+    val registry: CommandRegistryAccess by lazy {
+        CommandManager.createRegistryAccess(BuiltinRegistries.createWrapperLookup())
+    }
+
     // ToDo: Include usage and description in the help command
     init {
         (listOf(name) + aliases).forEach {

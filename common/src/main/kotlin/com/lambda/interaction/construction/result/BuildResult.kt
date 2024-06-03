@@ -1,6 +1,6 @@
 package com.lambda.interaction.construction.result
 
-import baritone.process.BuilderProcess.GoalAdjacent
+import baritone.process.BuilderProcess.GoalPlace
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
@@ -12,6 +12,7 @@ import com.lambda.task.tasks.GoalTask.Companion.moveToGoal
 import com.lambda.task.tasks.GoalTask.Companion.moveUntilLoaded
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
+import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
@@ -85,7 +86,7 @@ abstract class BuildResult : ComparableResult<Rank> {
     data class OutOfWorld(
         override val blockPos: BlockPos
     ) : BuildResult() {
-        override val rank = Rank.BREAK_OUT_OF_WORLD
+        override val rank = Rank.OUT_OF_WORLD
     }
 
     /**
@@ -113,7 +114,7 @@ abstract class BuildResult : ComparableResult<Rank> {
     ) : Resolvable, BuildResult() {
         override val rank = Rank.NOT_VISIBLE
 
-        override val resolve = moveToGoal(GoalAdjacent(hitPos, blockPos, true))
+        override val resolve = moveToGoal(GoalPlace(blockPos))
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -136,6 +137,29 @@ abstract class BuildResult : ComparableResult<Rank> {
 
         override val resolve: Task<*> =
             neededItem.select().transfer(MainHandContainer)?.solve ?: emptyTask() // ToDo: Should throw error
+
+        override fun compareTo(other: ComparableResult<Rank>): Int {
+            return when (other) {
+                is WrongItem -> context.compareTo(other.context)
+                else -> super.compareTo(other)
+            }
+        }
+    }
+
+    /**
+     * The Player has the wrong item stack selected.
+     * @param blockPos The position of the block that needs a different tool.
+     * @param neededStack The best tool for the block state.
+     */
+    data class WrongStack(
+        override val blockPos: BlockPos,
+        val context: BuildContext,
+        val neededStack: ItemStack
+    ) : Resolvable, BuildResult() {
+        override val rank = Rank.WRONG_ITEM
+
+        override val resolve: Task<*> =
+            neededStack.select().transfer(MainHandContainer)?.solve ?: emptyTask() // ToDo: Should throw error
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {

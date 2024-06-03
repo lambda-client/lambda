@@ -72,7 +72,7 @@ object ContainerManager : Loadable {
 
     fun container() = container.flatMap {
         setOf(it) + it.shulkerContainer
-    }
+    }.sorted()
 
     fun StackSelection.transfer(destination: MaterialContainer) =
         findContainerWithSelection(this)?.transfer(this, destination)
@@ -85,6 +85,11 @@ object ContainerManager : Loadable {
         selection: StackSelection
     ): MaterialContainer? =
         container().find { it.available(selection) >= selection.count }
+
+    fun containerMatchSelection(
+        selection: StackSelection
+    ): Set<MaterialContainer> =
+        container().filter { it.available(selection) >= selection.count }.toSet()
 
     fun findContainerWithSelection(
         selectionBuilder: StackSelection.() -> Unit

@@ -38,6 +38,10 @@ class GoalTask(
             GoalTask(goal)
 
         @Ta5kBuilder
+        fun moveToGoalUntil(goal: Goal, check: SafeContext.() -> Boolean) =
+            GoalTask(goal, check)
+
+        @Ta5kBuilder
         fun moveToBlock(blockPos: BlockPos) =
             GoalTask(GoalBlock(blockPos))
 

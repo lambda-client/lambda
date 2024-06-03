@@ -21,12 +21,16 @@ data class ShulkerBoxContainer(
     private var openScreen: ShulkerBoxScreenHandler? = null
     private var placePosition: BlockPos? = null
 
+    override val name = "${shulkerStack.name.string} in slot $slotInContainer in ${containedIn.name}"
+
+    private val slotInContainer: Int get() = containedIn.stacks.indexOf(shulkerStack)
+
     override fun prepare() =
-        placeContainer(shulkerStack).onSuccess { _, placePos ->
+        placeContainer(shulkerStack).onSuccess { place, placePos ->
             placePosition = placePos
             openContainer<ShulkerBoxScreenHandler>(placePos).onSuccess { _, screen ->
                 openScreen = screen
-            }
+            }.start(place)
         }
 
     override fun withdraw(selection: StackSelection): Task<*> {

@@ -14,8 +14,9 @@ object HotbarContainer : MaterialContainer(Rank.HOTBAR) {
     override var stacks: List<ItemStack>
         get() = mc.player?.hotbar ?: emptyList()
         set(_) {}
+    override val name = "Hotbar"
 
-    override fun withdraw(selection: StackSelection) = emptyTask("HotbarWithdraw")
+    override fun withdraw(selection: StackSelection) = emptyTask("WithdrawFromHotbar")
 
     override fun deposit(selection: StackSelection): Task<*> {
         val handledScreen = mc.currentScreen as? ScreenHandlerProvider<*> ?: return emptyTask()

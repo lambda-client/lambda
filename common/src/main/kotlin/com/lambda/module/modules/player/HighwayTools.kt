@@ -79,6 +79,9 @@ object HighwayTools : Module(
                     disable()
                 }
             }
+            onFailure { _, _ ->
+                disable()
+            }
             start(null)
         }
     }

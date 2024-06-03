@@ -11,6 +11,7 @@ object InventoryContainer : MaterialContainer(Rank.INVENTORY) {
     override var stacks: List<ItemStack>
         get() = mc.player?.combined ?: emptyList()
         set(_) {}
+    override val name = "Inventory"
 
     override fun withdraw(selection: StackSelection) = Task.emptyTask()
 

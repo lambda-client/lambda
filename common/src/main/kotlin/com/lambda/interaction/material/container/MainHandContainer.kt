@@ -16,6 +16,7 @@ object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
     override var stacks: List<ItemStack>
         get() = mc.player?.mainHandStack?.let { listOf(it) } ?: emptyList()
         set(_) {}
+    override val name = "MainHand"
 
     override fun withdraw(selection: StackSelection) = emptyTask("WithdrawFromMainHand")
 

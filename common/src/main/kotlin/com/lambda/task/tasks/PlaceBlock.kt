@@ -7,6 +7,7 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.task.Task
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.Communication.info
 import net.minecraft.block.BlockState
 
 class PlaceBlock @Ta5kBuilder constructor(
@@ -46,7 +47,7 @@ class PlaceBlock @Ta5kBuilder constructor(
     }
 
     private fun SafeContext.placeBlock() {
-        val preStack = player.getStackInHand(ctx.hand)
+        val preStack = player.getStackInHand(ctx.hand).copy()
 
         val actionResult = interaction.interactBlock(
             player,
@@ -72,7 +73,7 @@ class PlaceBlock @Ta5kBuilder constructor(
                 success(Unit)
             }
         } else {
-            failure("Internal interaction failed with $actionResult")
+            info("Internal interaction failed with $actionResult")
         }
     }
 

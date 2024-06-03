@@ -9,6 +9,7 @@ import net.minecraft.item.ItemStack
 
 data object CreativeContainer : MaterialContainer(Rank.CREATIVE) {
     override var stacks = emptyList<ItemStack>()
+    override val name = "Creative"
 
     override fun available(selection: StackSelection): Int =
         if (mc.player?.isCreative == true && selection.optimalStack != null) Int.MAX_VALUE else 0
