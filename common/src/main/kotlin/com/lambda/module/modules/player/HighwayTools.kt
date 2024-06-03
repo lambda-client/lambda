@@ -27,7 +27,7 @@ object HighwayTools : Module(
 ) {
     private val height by setting("Height", 4, 1..10, 1)
     private val width by setting("Width", 6, 1..30, 1)
-    private val rimHeight by setting("Rim Height", 0, 1..6, 1)
+    private val rimHeight by setting("Rim Height", 1, 0..6, 1)
     private val cornerBlock by setting("Corner Block", false, description = "Include corner blocks in the highway")
     private val material = Blocks.OBSIDIAN
     private val distance by setting("Distance", -1, -1..1000000, 1, description = "Distance to build the highway (negative for infinite)")
