@@ -45,12 +45,17 @@ abstract class MaterialContainer(
     abstract fun withdraw(selection: StackSelection): Task<*>
 
     @Task.Ta5kBuilder
-    fun doWithdrawal(selection: StackSelection) =
-        prepare()?.let { prep ->
+    fun doWithdrawal(selection: StackSelection): Task<*> {
+        return prepare()?.let { prep ->
             prep.onSuccess { _, _ ->
                 withdraw(selection).start(prep)
+            }.onStart {
+                LOG.info("${it.identifier} withdrawing [$selection] from [$name]")
             }
-        } ?: withdraw(selection)
+        } ?: withdraw(selection).onStart {
+            LOG.info("${it.identifier} withdrawing [$selection] from [$name]")
+        }
+    }
 
     /**
      * Deposits items from the player's inventory into the container.
@@ -58,24 +63,29 @@ abstract class MaterialContainer(
     abstract fun deposit(selection: StackSelection): Task<*>
 
     @Task.Ta5kBuilder
-    fun doDeposit(selection: StackSelection) =
-        prepare()?.let { prep ->
+    fun doDeposit(selection: StackSelection): Task<*> {
+        return prepare()?.let { prep ->
             prep.onSuccess { _, _ ->
                 deposit(selection).start(prep)
+            }.onStart {
+                LOG.info("${it.identifier} depositing [$selection] to [$name]")
             }
-        } ?: deposit(selection)
+        } ?: deposit(selection).onStart {
+            LOG.info("${it.identifier} depositing [$selection] to [$name]")
+        }
+    }
 
-    open fun stacksMatching(selection: StackSelection) =
+    open fun matchingStacks(selection: StackSelection) =
         selection.filterStacks(stacks)
 
-    open fun stacksMatching(selection: (ItemStack) -> Boolean) =
-        stacksMatching(selection.select())
+    open fun matchingStacks(selection: (ItemStack) -> Boolean) =
+        matchingStacks(selection.select())
 
     open fun available(selection: StackSelection) =
-        stacksMatching(selection).count
+        matchingStacks(selection).count
 
     open fun spaceLeft(selection: StackSelection) =
-        stacksMatching(selection).spaceLeft + stacks.empty * selection.stackSize
+        matchingStacks(selection).spaceLeft + stacks.empty * selection.stackSize
 
     fun transfer(selection: StackSelection, destination: MaterialContainer): TransferResult {
         val amount = available(selection)
@@ -92,12 +102,7 @@ abstract class MaterialContainer(
 //        selection.selector = { true }
 //        selection.count = transferAmount
 
-        LOG.info("Transferring $selection from $name to ${destination.name}")
-        return TransferResult.Success(
-            doWithdrawal(selection).onSuccess { withdraw, _ ->
-                destination.doDeposit(selection).start(withdraw)
-            }
-        )
+        return TransferResult.Success(selection, from = this, to = destination)
     }
 
     enum class Rank {

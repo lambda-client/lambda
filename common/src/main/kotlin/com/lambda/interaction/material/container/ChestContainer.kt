@@ -16,6 +16,7 @@ import net.minecraft.util.math.BlockPos
 data class ChestContainer(
     override var stacks: List<ItemStack>,
     val blockPos: BlockPos,
+    val containedInStash: StashContainer? = null,
 ) : MaterialContainer(Rank.CHEST) {
     override val name = "Chest at ${blockPos.toShortString()}"
 

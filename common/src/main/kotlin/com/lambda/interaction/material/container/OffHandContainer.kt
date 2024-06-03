@@ -3,7 +3,6 @@ package com.lambda.interaction.material.container
 import com.lambda.Lambda.mc
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
-import com.lambda.task.Task
 import com.lambda.task.Task.Companion.buildTask
 import com.lambda.task.Task.Companion.emptyTask
 import com.lambda.util.player.SlotUtils.combined
@@ -22,7 +21,7 @@ object OffHandContainer : MaterialContainer(Rank.OFF_HAND) {
     override fun withdraw(selection: StackSelection) = emptyTask("WithdrawFromOffHand")
 
     override fun deposit(selection: StackSelection) = buildTask("DepositToOffHand") {
-        InventoryContainer.stacksMatching(selection).firstOrNull()?.let { stack ->
+        InventoryContainer.matchingStacks(selection).firstOrNull()?.let { stack ->
             if (ItemStack.areEqual(stack, player.offHandStack)) {
                 return@buildTask
             }

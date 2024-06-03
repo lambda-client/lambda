@@ -51,12 +51,15 @@ abstract class Task<Result>(
     private var timeout: Int = Int.MAX_VALUE,
     private var tries: Int = 0,
     private var repeats: Int = 0,
+    private var onStart: SafeContext.(Task<Result>) -> Unit = {},
     private var onSuccess: SafeContext.(Task<Result>, Result) -> Unit = { _, _ -> },
     private var onRetry: SafeContext.(Task<Result>) -> Unit = {},
     private var onTimeout: SafeContext.(Task<Result>) -> Unit = {},
     private var onRepeat: SafeContext.(Task<Result>, Result, Int) -> Unit = { _, _, _ -> },
     private var onException: SafeContext.(Task<Result>, Throwable) -> Unit = { _, _ -> },
 ) : Nameable {
+    open var pausable = true
+
     private var parent: Task<*>? = null
     private val root: Task<*> get() = parent?.root ?: this
     private val depth: Int get() = parent?.depth?.plus(1) ?: 0
@@ -158,7 +161,10 @@ abstract class Task<Result>(
         }
 
         activate()
-        runSafe { onStart() }
+        runSafe {
+            onStart(this@Task)
+            onStart()
+        }
         return this
     }
 
@@ -172,8 +178,6 @@ abstract class Task<Result>(
     @Ta5kBuilder
     fun deactivate() {
         if (isDeactivated) return
-
-        LOG.info("$identifier deactivated")
         state = State.DEACTIVATED
         stopListening()
     }
@@ -267,8 +271,10 @@ abstract class Task<Result>(
 //                return@let
 //            }
 
-//            LOG.info("$identifier reactivated parent ${par.identifier}")
-//            par.activate()
+            if (par.isActivated) return@let
+
+            LOG.info("$identifier reactivated parent ${par.identifier}")
+            par.activate()
         }
     }
 
@@ -332,6 +338,18 @@ abstract class Task<Result>(
     @Ta5kBuilder
     fun withRepeats(repeats: Int): Task<Result> {
         this.repeats = repeats
+        return this
+    }
+
+    /**
+     * Sets the action to be performed when the task starts.
+     *
+     * @param action The action to be performed.
+     * @return The task instance with the updated start action.
+     */
+    @Ta5kBuilder
+    fun onStart(action: SafeContext.(Task<Result>) -> Unit): Task<Result> {
+        this.onStart = action
         return this
     }
 

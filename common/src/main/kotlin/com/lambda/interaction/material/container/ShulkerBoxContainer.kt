@@ -1,8 +1,10 @@
 package com.lambda.interaction.material.container
 
+import com.lambda.Lambda.LOG
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
+import com.lambda.task.Task.Companion.emptyTask
 import com.lambda.task.tasks.BuildStructure.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.InventoryTask.Companion.deposit
 import com.lambda.task.tasks.InventoryTask.Companion.withdraw
@@ -27,6 +29,7 @@ data class ShulkerBoxContainer(
 
     override fun prepare() =
         placeContainer(shulkerStack).onSuccess { place, placePos ->
+            LOG.info("Container placed. Opening now ShulkerBoxContainer")
             placePosition = placePos
             openContainer<ShulkerBoxScreenHandler>(placePos).onSuccess { _, screen ->
                 openScreen = screen
@@ -34,8 +37,8 @@ data class ShulkerBoxContainer(
         }
 
     override fun withdraw(selection: StackSelection): Task<*> {
-        val open = openScreen ?: return Task.emptyTask()
-        val place = placePosition ?: return Task.emptyTask()
+        val open = openScreen ?: return emptyTask("No open screen found for ShulkerBoxContainer")
+        val place = placePosition ?: return emptyTask("No place position found for ShulkerBoxContainer")
         info("Withdrawing $selection from ${shulkerStack.name.string}")
         return withdraw(open, selection).onSuccess { withdraw, _ ->
             breakAndCollectBlock(place).start(withdraw)
@@ -43,8 +46,8 @@ data class ShulkerBoxContainer(
     }
 
     override fun deposit(selection: StackSelection): Task<*> {
-        val open = openScreen ?: return Task.emptyTask()
-        val place = placePosition ?: return Task.emptyTask()
+        val open = openScreen ?: return emptyTask("No open screen found for ShulkerBoxContainer")
+        val place = placePosition ?: return emptyTask("No place position found for ShulkerBoxContainer")
         info("Depositing $selection to ${shulkerStack.name.string}")
         return deposit(open, selection).onSuccess { deposit, _ ->
             breakAndCollectBlock(place).start(deposit)

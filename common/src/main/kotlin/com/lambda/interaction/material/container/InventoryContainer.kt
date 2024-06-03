@@ -4,6 +4,7 @@ import com.lambda.Lambda.mc
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
+import com.lambda.task.Task.Companion.emptyTask
 import com.lambda.util.player.SlotUtils.combined
 import net.minecraft.item.ItemStack
 
@@ -13,7 +14,7 @@ object InventoryContainer : MaterialContainer(Rank.INVENTORY) {
         set(_) {}
     override val name = "Inventory"
 
-    override fun withdraw(selection: StackSelection) = Task.emptyTask()
+    override fun withdraw(selection: StackSelection) = emptyTask("WithdrawFromInventory")
 
-    override fun deposit(selection: StackSelection) = Task.emptyTask()
+    override fun deposit(selection: StackSelection) = emptyTask("DepositToInventory")
 }

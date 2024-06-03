@@ -8,7 +8,6 @@ import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.MainHandContainer
-import com.lambda.task.Task
 import com.lambda.task.Task.Companion.emptyTask
 import com.lambda.task.tasks.BreakBlock.Companion.breakBlock
 import com.lambda.task.tasks.GoalTask.Companion.moveToGoalUntil
@@ -30,7 +29,7 @@ sealed class BreakResult : BuildResult() {
     ) : Resolvable, BreakResult() {
         override val rank = Rank.BREAK_SUCCESS
 
-        override val resolve = breakBlock(context)
+        override val resolve get() = breakBlock(context)
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -51,7 +50,7 @@ sealed class BreakResult : BuildResult() {
     ) : Resolvable, BreakResult() {
         override val rank = Rank.BREAK_NOT_EXPOSED
 
-        override val resolve = emptyTask()
+        override val resolve get() = emptyTask("Block is not exposed to air.")
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -72,13 +71,13 @@ sealed class BreakResult : BuildResult() {
         val badItem: Item
     ) : Resolvable, BreakResult() {
         override val rank = Rank.BREAK_ITEM_CANT_MINE
-        override val resolve = findBestAvailableTool(blockState)
+        override val resolve get() = findBestAvailableTool(blockState)
                     ?.select()
                     ?.transfer(MainHandContainer)
                     ?.solve ?: run {
                         selectStack {
                             isItem(badItem).not()
-                        }.transfer(MainHandContainer)?.solve ?: emptyTask() // ToDo: Should throw error
+                        }.transfer(MainHandContainer)?.solve ?: emptyTask("No item found or space") // ToDo: Should throw error
                     }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
@@ -120,7 +119,7 @@ sealed class BreakResult : BuildResult() {
     ) : Resolvable, BreakResult() {
         override val rank = Rank.BREAK_PLAYER_ON_TOP
 
-        override val resolve =
+        override val resolve get() =
             moveToGoalUntil(GoalInverted(GoalBlock(blockPos))) {
                 val pBox = player.boundingBox
                 val aabb = Box(pBox.minX, pBox.minY - 1.0E-6, pBox.minZ, pBox.maxX, pBox.minY, pBox.maxZ)

@@ -75,7 +75,7 @@ class BuildStructure @Ta5kBuilder constructor(
                 .take(TaskFlow.build.interactLimit)
 
             if (TaskFlow.build.breakInstantAtOnce && instantResults.isNotEmpty()) {
-                cancelSubTasks()
+//                cancelSubTasks()
                 instantResults.forEach {
                     it.resolve.start(this@BuildStructure, false)
                 }
@@ -98,7 +98,7 @@ class BuildStructure @Ta5kBuilder constructor(
 //                if (lastTask?.isCompleted == false) return@listener
 
                 lastTask = result.resolve
-                cancelSubTasks()
+//                cancelSubTasks()
 
                 LOG.info("Resolving: $result")
                 result.resolve.start(this@BuildStructure)
@@ -109,7 +109,7 @@ class BuildStructure @Ta5kBuilder constructor(
     private fun SafeContext.checkDone() {
         if (!finishOnDone) return
 
-        cancelSubTasks()
+//        cancelSubTasks()
         success(Unit)
         return
     }

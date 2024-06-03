@@ -47,7 +47,7 @@ abstract class BuildResult : ComparableResult<Rank> {
     ) : Resolvable, BuildResult() {
         override val rank = Rank.CHUNK_NOT_LOADED
 
-        override val resolve = moveUntilLoaded(blockPos)
+        override val resolve get() = moveUntilLoaded(blockPos)
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -76,7 +76,7 @@ abstract class BuildResult : ComparableResult<Rank> {
         override val blockPos: BlockPos,
         val blockState: BlockState
     ) : BuildResult() {
-        override val rank = Rank.BREAK_NO_PERMISSION
+        override val rank get() = Rank.BREAK_NO_PERMISSION
     }
 
     /**
@@ -114,7 +114,7 @@ abstract class BuildResult : ComparableResult<Rank> {
     ) : Resolvable, BuildResult() {
         override val rank = Rank.NOT_VISIBLE
 
-        override val resolve = moveToGoal(GoalPlace(blockPos))
+        override val resolve get() = moveToGoal(GoalPlace(blockPos))
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -135,8 +135,8 @@ abstract class BuildResult : ComparableResult<Rank> {
     ) : Resolvable, BuildResult() {
         override val rank = Rank.WRONG_ITEM
 
-        override val resolve: Task<*> =
-            neededItem.select().transfer(MainHandContainer)?.solve ?: emptyTask() // ToDo: Should throw error
+        override val resolve get() =
+            neededItem.select().transfer(MainHandContainer)?.solve ?: emptyTask("Item ${neededItem.name.string} not found") // ToDo: Should throw error
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -158,7 +158,7 @@ abstract class BuildResult : ComparableResult<Rank> {
     ) : Resolvable, BuildResult() {
         override val rank = Rank.WRONG_ITEM
 
-        override val resolve: Task<*> =
+        override val resolve get() =
             neededStack.select().transfer(MainHandContainer)?.solve ?: emptyTask() // ToDo: Should throw error
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
@@ -190,7 +190,7 @@ abstract class BuildResult : ComparableResult<Rank> {
             startVec.distanceTo(hitVec)
         }
 
-        override val resolve = moveNearBlock(blockPos, 2)
+        override val resolve get() = moveNearBlock(blockPos, 2)
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {

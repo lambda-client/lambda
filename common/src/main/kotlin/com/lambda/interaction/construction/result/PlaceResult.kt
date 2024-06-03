@@ -33,7 +33,7 @@ sealed class PlaceResult : BuildResult() {
     ) : Resolvable, PlaceResult() {
         override val rank = Rank.PLACE_SUCCESS
 
-        override val resolve = placeBlock(context)
+        override val resolve get() = placeBlock(context)
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -62,7 +62,7 @@ sealed class PlaceResult : BuildResult() {
     ) : Resolvable, PlaceResult() {
         override val rank = Rank.PLACE_BLOCKED_BY_PLAYER
 
-        override val resolve = moveToGoalUntil(GoalInverted(GoalBlock(blockPos))) {
+        override val resolve get() = moveToGoalUntil(GoalInverted(GoalBlock(blockPos))) {
             !world.canCollide(player, Box(blockPos))
         }
     }
@@ -78,7 +78,7 @@ sealed class PlaceResult : BuildResult() {
         override val rank = Rank.PLACE_CANT_REPLACE
 
 //        override val resolve = breakBlock(simulated.blockPos)
-        override val resolve = moveToGoalUntil(GoalInverted(GoalBlock(blockPos))) {
+        override val resolve get() = moveToGoalUntil(GoalInverted(GoalBlock(blockPos))) {
             !world.canCollide(player, Box(blockPos))
         }
     }
@@ -123,6 +123,6 @@ sealed class PlaceResult : BuildResult() {
     ) : Resolvable, PlaceResult() {
         override val rank = Rank.PLACE_NOT_ITEM_BLOCK
 
-        override val resolve = Task.emptyTask() // ToDo: analyze interaction with non-block items
+        override val resolve get() = Task.emptyTask() // ToDo: analyze interaction with non-block items
     }
 }
