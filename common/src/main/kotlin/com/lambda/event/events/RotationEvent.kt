@@ -37,7 +37,7 @@ abstract class RotationEvent : Event {
         fun lookAtEntity(
             rotationConfig: IRotationConfig,
             interactionConfig: InteractionConfig,
-            entity: Entity
+            entity: Entity,
         ) {
             runSafe {
                 findRotation(rotationConfig, interactionConfig, listOf(entity.boundingBox)) {
@@ -52,7 +52,7 @@ abstract class RotationEvent : Event {
             rotationConfig: IRotationConfig,
             interactionConfig: InteractionConfig,
             blockPos: BlockPos,
-            sides: Set<Direction> = emptySet()
+            sides: Set<Direction> = emptySet(),
         ) {
             runSafe {
                 val state = world.getBlockState(blockPos)

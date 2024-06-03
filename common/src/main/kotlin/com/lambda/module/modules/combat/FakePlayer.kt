@@ -23,7 +23,7 @@ object FakePlayer : Module(
                 .apply {
                     copyFrom(player)
 
-                    id = -2024-4-20
+                    id = -2024 - 4 - 20
                 }
 
             world.addEntity(fakePlayer)

@@ -77,6 +77,7 @@ class FontGlyphs(font: Font) {
         private const val CHAR_AMOUNT = 2048
         private const val TEXTURE_SIZE = 4096
         private const val ONE_TEXEL_SIZE = 1.0 / TEXTURE_SIZE
+
         // The space between glyphs is necessary to prevent artifacts from appearing when the font texture is blurred
         private const val STEP = 2
     }

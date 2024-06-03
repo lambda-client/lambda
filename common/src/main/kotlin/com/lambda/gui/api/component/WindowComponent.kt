@@ -3,9 +3,9 @@ package com.lambda.gui.api.component
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.gui.api.GuiEvent
+import com.lambda.gui.api.RenderLayer
 import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
-import com.lambda.gui.api.RenderLayer
 import com.lambda.gui.impl.clickgui.AbstractClickGui
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
@@ -19,8 +19,8 @@ import com.lambda.util.math.Vec2d
 import java.awt.Color
 import kotlin.math.abs
 
-abstract class WindowComponent <T : ChildComponent> (
-    val gui: AbstractClickGui
+abstract class WindowComponent<T : ChildComponent>(
+    val gui: AbstractClickGui,
 ) : ChildComponent(gui.windows) {
     abstract val title: String
 

@@ -13,18 +13,20 @@ import com.lambda.util.primitives.extension.displayValue
 
 class BindButton(
     setting: KeyBindSetting,
-    owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
+    owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>,
 ) : SettingButton<KeyCode, KeyBindSetting>(setting, owner) {
     private val layer = ChildLayer.Drawable(owner.gui, this, owner.renderer, ::rect, InputBarOverlay::isActive)
     private val inputBar: InputBarOverlay = object : InputBarOverlay(renderer, layer) {
-        override val pressAnimation     get() = this@BindButton.pressAnimation
-        override val interactAnimation  get() = this@BindButton.interactAnimation
+        override val pressAnimation get() = this@BindButton.pressAnimation
+        override val interactAnimation get() = this@BindButton.interactAnimation
         override val hoverFontAnimation get() = this@BindButton.hoverFontAnimation
-        override val showAnimation      get() = this@BindButton.showAnimation
+        override val showAnimation get() = this@BindButton.showAnimation
         override val isKeyBind = true
 
         override fun getText() = value.displayValue
-        override fun setKeyValue(key: KeyCode) { value = key }
+        override fun setKeyValue(key: KeyCode) {
+            value = key
+        }
     }.apply(layer.children::add)
 
     override val textColor get() = super.textColor.multAlpha(1.0 - inputBar.activeAnimation)

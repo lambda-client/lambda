@@ -22,7 +22,6 @@ import com.lambda.util.Nameable
 import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
 import java.awt.Color
-import java.lang.reflect.Type
 
 /**
  * Represents a set of [AbstractSetting]s that are associated with the [name] of the [Configurable].
@@ -167,7 +166,13 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         defaultValue: List<T>,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = ListSetting(name, defaultValue.toMutableList(), TypeToken.getParameterized(MutableList::class.java, T::class.java).type, description, visibility).also {
+    ) = ListSetting(
+        name,
+        defaultValue.toMutableList(),
+        TypeToken.getParameterized(MutableList::class.java, T::class.java).type,
+        description,
+        visibility
+    ).also {
         settings.add(it)
     }
 
@@ -193,7 +198,13 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         defaultValue: Map<K, V>,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = MapSetting(name, defaultValue.toMutableMap(), TypeToken.getParameterized(Map::class.java, K::class.java, V::class.java).type, description, visibility).also {
+    ) = MapSetting(
+        name,
+        defaultValue.toMutableMap(),
+        TypeToken.getParameterized(Map::class.java, K::class.java, V::class.java).type,
+        description,
+        visibility
+    ).also {
         settings.add(it)
     }
 
@@ -219,7 +230,13 @@ abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
         defaultValue: Set<T>,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = SetSetting(name, defaultValue.toMutableSet(), TypeToken.getParameterized(Set::class.java, T::class.java).type, description, visibility).also {
+    ) = SetSetting(
+        name,
+        defaultValue.toMutableSet(),
+        TypeToken.getParameterized(Set::class.java, T::class.java).type,
+        description,
+        visibility
+    ).also {
         settings.add(it)
     }
 

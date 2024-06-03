@@ -41,20 +41,23 @@ object Freecam : Module(
 
     private var prevPosition: Vec3d = Vec3d.ZERO
     private var position: Vec3d = Vec3d.ZERO
-    private val interpolatedPosition: Vec3d get() =
-        prevPosition.interpolate(position, mc.partialTicks)
+    private val interpolatedPosition: Vec3d
+        get() =
+            prevPosition.interpolate(position, mc.partialTicks)
 
     private var rotation: Rotation = Rotation.ZERO
     private var velocity: Vec3d = Vec3d.ZERO
 
-    @JvmStatic fun updateCam() {
+    @JvmStatic
+    fun updateCam() {
         mc.gameRenderer.apply {
             camera.setRotation(rotation.yawF, rotation.pitchF)
             camera.setPos(interpolatedPosition.x, interpolatedPosition.y, interpolatedPosition.z)
         }
     }
 
-    @JvmStatic fun updateRotation(deltaYaw: Double, deltaPitch: Double) {
+    @JvmStatic
+    fun updateRotation(deltaYaw: Double, deltaPitch: Double) {
         rotation = rotation.withDelta(deltaYaw * SENSITIVITY_FACTOR, deltaPitch * SENSITIVITY_FACTOR)
     }
 

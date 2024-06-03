@@ -5,7 +5,8 @@ import org.lwjgl.opengl.GL30C.*
 import java.nio.ByteBuffer
 
 object VaoUtils {
-    @JvmField var lastIbo = 0
+    @JvmField
+    var lastIbo = 0
     private var prevIbo = 0
 
     fun bindVertexArray(vao: Int) {

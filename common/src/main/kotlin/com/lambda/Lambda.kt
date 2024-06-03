@@ -25,7 +25,8 @@ object Lambda {
     const val SYMBOL = "λ"
     val VERSION: String = LoaderInfo.getVersion()
     val LOG: Logger = LogManager.getLogger(SYMBOL)
-    @JvmStatic val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
+    @JvmStatic
+    val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
 
     val gson: Gson = GsonBuilder()
         .setPrettyPrinting()

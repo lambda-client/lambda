@@ -32,9 +32,8 @@ object InventoryDebug : Module(
                 is CraftRequestC2SPacket,
                 is CreativeInventoryActionC2SPacket,
                 is PickFromInventoryC2SPacket,
-                is UpdateSelectedSlotC2SPacket -> {
-                    LOG.info(it.packet.dynamicString())
-                }
+                is UpdateSelectedSlotC2SPacket,
+                -> LOG.info(it.packet.dynamicString())
             }
         }
     }

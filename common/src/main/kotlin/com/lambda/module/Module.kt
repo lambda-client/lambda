@@ -114,7 +114,7 @@ abstract class Module(
             if (event.translated == keybind
                 && !mc.options.commandKey.isPressed
                 && (screen == null
-                || screen is LambdaClickGui)
+                        || screen is LambdaClickGui)
             ) toggle()
         }
     }

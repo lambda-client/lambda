@@ -1,8 +1,13 @@
 package com.lambda.command.commands
 
 import com.google.gson.JsonSyntaxException
-import com.lambda.brigadier.*
-import com.lambda.brigadier.argument.*
+import com.lambda.brigadier.CommandResult
+import com.lambda.brigadier.argument.greedyString
+import com.lambda.brigadier.argument.integer
+import com.lambda.brigadier.argument.literal
+import com.lambda.brigadier.argument.value
+import com.lambda.brigadier.executeWithResult
+import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.module.modules.player.Replay
 import com.lambda.util.FolderRegister

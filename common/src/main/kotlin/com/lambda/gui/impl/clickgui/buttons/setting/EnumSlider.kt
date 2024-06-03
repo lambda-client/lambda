@@ -14,9 +14,9 @@ import com.lambda.util.primitives.extension.displayValue
 import java.awt.Color
 import kotlin.math.floor
 
-class EnumSlider <T : Enum<T>> (
+class EnumSlider<T : Enum<T>>(
     setting: EnumSetting<T>,
-    owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
+    owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>,
 ) : Slider<T, EnumSetting<T>>(setting, owner) {
     private val values = setting.enumValues
     private val enumSize = values.size

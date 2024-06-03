@@ -1,8 +1,8 @@
 package com.lambda.graphics.buffer.vao.vertex
 
 import com.lambda.graphics.gl.GLObject
-import org.lwjgl.opengl.GL11C.*
-import org.lwjgl.opengl.GL20C.GL_MAX_VERTEX_ATTRIBS
+import org.lwjgl.opengl.GL11C.GL_FLOAT
+import org.lwjgl.opengl.GL11C.GL_UNSIGNED_BYTE
 
 enum class VertexAttrib(val componentCount: Int, componentSize: Int, val normalized: Boolean, override val gl: Int) : GLObject {
     Float(1, 4, false, GL_FLOAT),

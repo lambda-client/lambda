@@ -5,18 +5,18 @@ import com.lambda.config.settings.StringSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.config.settings.complex.KeyBindSetting
-import com.lambda.sound.LambdaSound
-import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.gui.api.GuiEvent
+import com.lambda.gui.api.RenderLayer
 import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.button.ListButton
 import com.lambda.gui.api.component.core.list.ChildLayer
-import com.lambda.gui.api.RenderLayer
 import com.lambda.gui.impl.clickgui.buttons.setting.*
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.sound.LambdaSound
+import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.util.Mouse
 import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.ColorUtils.setAlpha
@@ -30,7 +30,7 @@ import kotlin.math.abs
 
 class ModuleButton(
     val module: Module,
-    override val owner: ChildLayer.Drawable<ModuleButton, WindowComponent<ModuleButton>>
+    override val owner: ChildLayer.Drawable<ModuleButton, WindowComponent<ModuleButton>>,
 ) : ListButton(owner) {
     override val text get() = module.name
     private val enabled get() = module.isEnabled
@@ -48,14 +48,16 @@ class ModuleButton(
 
     private var settingsHeight = 0.0
     private var renderHeight by animation.exp(::settingsHeight, 0.6)
-    private val settingsRect get() = rect
-        .moveFirst(Vec2d(0.0, size.y + super.listStep))
-        .moveSecond(Vec2d(0.0, renderHeight))
+    private val settingsRect
+        get() = rect
+            .moveFirst(Vec2d(0.0, size.y + super.listStep))
+            .moveSecond(Vec2d(0.0, renderHeight))
 
     private val settingsRenderer = RenderLayer()
-    val settingsLayer = ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>(owner.gui, this, settingsRenderer, ::settingsRect) {
-        it.visible && abs(settingsHeight - renderHeight) <3
-    }
+    val settingsLayer =
+        ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>(owner.gui, this, settingsRenderer, ::settingsRect) {
+            it.visible && abs(settingsHeight - renderHeight) < 3
+        }
 
     init {
         // TODO: resort when all settings are implemented
@@ -164,7 +166,7 @@ class ModuleButton(
             var lastStep = 0.0
             settingsLayer.children
                 .filter(SettingButton<*, *>::visible)
-                .sumOf {  lastStep = it.listStep;  it.size.y + it.listStep } - lastStep + super.listStep * 2.0
+                .sumOf { lastStep = it.listStep; it.size.y + it.listStep } - lastStep + super.listStep * 2.0
         } else 0.0
     }
 
@@ -174,6 +176,7 @@ class ModuleButton(
                 module.toggle()
                 if (module.isEnabled) LambdaSound.MODULE_ON else LambdaSound.MODULE_OFF
             }
+
             Mouse.Button.Right -> {
                 // Don't let user spam
                 val targetHeight = if (isOpen) settingsHeight else 0.0
@@ -185,6 +188,7 @@ class ModuleButton(
 
                 if (isOpen) LambdaSound.SETTINGS_OPEN else LambdaSound.SETTINGS_CLOSE
             }
+
             else -> return
         }
 

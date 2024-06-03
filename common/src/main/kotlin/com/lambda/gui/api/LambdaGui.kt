@@ -21,7 +21,7 @@ import net.minecraft.text.Text
 @Suppress("LeakingThis")
 abstract class LambdaGui(
     override val name: String,
-    private val owner: Module? = null
+    private val owner: Module? = null,
 ) : Screen(Text.of(name)), IComponent, Nameable {
     private var screenSize = Vec2d.ZERO
     override val rect get() = Rect(Vec2d.ZERO, screenSize)

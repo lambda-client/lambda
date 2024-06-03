@@ -8,7 +8,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL11.GL_CULL_FACE;
 
 @Mixin(GlStateManager.class)
 public class GlStateManagerMixin {

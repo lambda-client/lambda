@@ -19,7 +19,6 @@ import com.lambda.graphics.gl.VaoUtils.bufferData
 import com.lambda.graphics.gl.VaoUtils.unbindIndexBuffer
 import com.lambda.graphics.gl.VaoUtils.unbindVertexArray
 import com.lambda.graphics.gl.VaoUtils.unbindVertexBuffer
-import com.lambda.threading.mainThread
 import com.lambda.threading.runOnGameThread
 import com.mojang.blaze3d.systems.RenderSystem.drawElements
 import org.lwjgl.opengl.GL30C.*
@@ -28,7 +27,7 @@ import java.nio.ByteBuffer
 
 class VAO(
     private val drawMode: VertexMode,
-    attribGroup: VertexAttrib.Group
+    attribGroup: VertexAttrib.Group,
 ) : IRenderContext {
     private var vao = 0
     private var vbo = 0

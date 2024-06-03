@@ -7,10 +7,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
 import com.lambda.util.collections.LimitedDecayQueue
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.LookAndOnGround
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.Full
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.OnGroundOnly
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.PositionAndOnGround
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.*
 import net.minecraft.network.packet.c2s.play.TeleportConfirmC2SPacket
 
 // ToDo: HUD info

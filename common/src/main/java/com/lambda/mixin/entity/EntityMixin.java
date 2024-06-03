@@ -13,9 +13,12 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(Entity.class)
 public abstract class EntityMixin {
-    @Shadow public void move(MovementType movementType, Vec3d movement) {}
+    @Shadow
+    public void move(MovementType movementType, Vec3d movement) {
+    }
 
-    @Shadow public abstract float getYaw();
+    @Shadow
+    public abstract float getYaw();
 
     @Redirect(method = "updateVelocity", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw()F"))
     public float velocityYaw(Entity entity) {

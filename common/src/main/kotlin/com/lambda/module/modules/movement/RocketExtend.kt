@@ -5,7 +5,6 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runSafe
 import com.lambda.util.collections.filterPointer
 import net.minecraft.entity.projectile.FireworkRocketEntity
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket

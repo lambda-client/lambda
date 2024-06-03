@@ -29,7 +29,7 @@ object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWind
         json: JsonElement?,
         typeOfT: Type?,
         context: JsonDeserializationContext?,
-    )  = json?.asJsonObject?.let {
+    ) = json?.asJsonObject?.let {
         TagWindow(ModuleTag(it["tag"].asString), LambdaClickGui).apply {
             width = it["width"].asDouble
             height = it["height"].asDouble

@@ -4,6 +4,9 @@ import com.lambda.Lambda.mc
 import com.lambda.util.FolderRegister.config
 import com.lambda.util.FolderRegister.lambda
 import com.lambda.util.FolderRegister.minecraft
+import com.lambda.util.FolderRegister.mods
+import com.lambda.util.FolderRegister.packetLogs
+import com.lambda.util.FolderRegister.replay
 import com.lambda.util.StringUtils.sanitizeForFilename
 import java.io.File
 import java.net.InetSocketAddress
@@ -27,7 +30,9 @@ object FolderRegister {
     val replay: File = File(lambda, "replay")
 
     fun File.createIfNotExists() {
-        if (!exists()) { mkdirs() }
+        if (!exists()) {
+            mkdirs()
+        }
     }
 
     fun File.listRecursive(predicate: (File) -> Boolean = { true }) = walk().filter(predicate)

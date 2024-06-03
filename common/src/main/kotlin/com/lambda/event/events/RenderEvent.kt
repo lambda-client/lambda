@@ -15,5 +15,6 @@ abstract class RenderEvent : Event {
 
         val screenSize = Vec2d(mc.window.framebufferWidth, mc.window.framebufferHeight) / scale
     }
+
     class UpdateTarget : RenderEvent(), ICancellable by Cancellable()
 }

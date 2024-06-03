@@ -31,11 +31,13 @@ object MovementUtils {
         sneaking = false
     }
 
-    val SafeContext.isInputting: Boolean get() =
-        roundedForward != 0f || roundedStrafing != 0f
+    val SafeContext.isInputting: Boolean
+        get() =
+            roundedForward != 0f || roundedStrafing != 0f
 
-    val Input.verticalMovement get() =
-        jumping.toInt() - sneaking.toInt()
+    val Input.verticalMovement
+        get() =
+            jumping.toInt() - sneaking.toInt()
 
     fun SafeContext.calcMoveYaw(
         yawIn: Float = player.moveYaw,

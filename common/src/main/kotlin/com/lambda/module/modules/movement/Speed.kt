@@ -3,19 +3,13 @@ package com.lambda.module.modules.movement
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.MathUtils.toRadian
-import com.lambda.util.player.MovementUtils.addSpeed
 import com.lambda.util.player.MovementUtils.isInputting
-import com.lambda.util.player.MovementUtils.motionDelta
 import com.lambda.util.player.MovementUtils.motionY
 import com.lambda.util.player.MovementUtils.moveDelta
-import com.lambda.util.player.MovementUtils.moveYaw
 import com.lambda.util.player.MovementUtils.setSpeed
-import kotlin.math.max
 
 // ToDo: Revisit and implement grim strafing
 object Speed : Module(
@@ -104,6 +98,7 @@ object Speed : Module(
 
                     setSpeed(moveSpeed)
                 }
+
                 Mode.GRIM_STRAFE -> {
                     // ToDo: Implement
                 }

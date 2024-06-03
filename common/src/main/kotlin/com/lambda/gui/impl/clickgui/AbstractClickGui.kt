@@ -47,7 +47,7 @@ abstract class AbstractClickGui(name: String = "ClickGui") : LambdaGui(name, Cli
 
             is GuiEvent.MouseMove -> {
                 activeWindow = windows.children.lastOrNull { child ->
-                   e.mouse in child.rect
+                    e.mouse in child.rect
                 }
             }
         }

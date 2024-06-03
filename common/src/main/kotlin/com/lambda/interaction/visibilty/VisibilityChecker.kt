@@ -1,6 +1,5 @@
 package com.lambda.interaction.visibilty
 
-import com.lambda.config.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.interaction.InteractionConfig
 import com.lambda.interaction.RotationManager

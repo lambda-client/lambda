@@ -7,7 +7,7 @@ import com.lambda.module.tag.ModuleTag
 
 class TagWindow(
     val tag: ModuleTag,
-    owner: AbstractClickGui
+    owner: AbstractClickGui,
 ) : ModuleWindow(tag.name, gui = owner) {
     override fun getModuleList() = ModuleRegistry.modules
         .filter { it.defaultTags.firstOrNull() == tag }

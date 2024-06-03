@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 class LimitedDecayQueue<E>(
     private var sizeLimit: Int,
-    private var interval: Long
+    private var interval: Long,
 ) {
     private val queue: ConcurrentLinkedQueue<Pair<E, Instant>> = ConcurrentLinkedQueue()
 

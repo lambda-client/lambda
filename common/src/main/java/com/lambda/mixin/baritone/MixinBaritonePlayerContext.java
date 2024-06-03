@@ -14,7 +14,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = BaritonePlayerContext.class, remap = false) // fix compileJava warning
 public class MixinBaritonePlayerContext {
-    @Shadow @Final private Baritone baritone;
+    @Shadow
+    @Final
+    private Baritone baritone;
 
     // Let baritone know the actual rotation
     @Inject(method = "playerRotations", at = @At("HEAD"), cancellable = true, remap = false)
