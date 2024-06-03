@@ -44,12 +44,11 @@ object GuiSettings : Module(
         Colors
     }
 
-    private var targetScale = 2.0;
-        get() {
-            val update = System.currentTimeMillis() - lastChange > 200 || !LambdaClickGui.isOpen
-            if (update) field = scaleSetting / 100.0 * 2.0
-            return field
-        }
+    private var targetScale = 2.0; get() {
+        val update = System.currentTimeMillis() - lastChange > 200 || !LambdaClickGui.isOpen
+        if (update) field = scaleSetting / 100.0 * 2.0
+        return field
+    }
 
     private val animation = with(AnimationTicker()) {
         unsafeListener<TickEvent.Pre>(alwaysListen = true) {

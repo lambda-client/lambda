@@ -28,11 +28,10 @@ abstract class Slider<V : Any, T : AbstractSetting<V>>(
     private var lastPlayedValue = value
     private var lastPlayedTiming = 0L
 
-    private var mouseX: Double? = null;
-        get() {
-            if (activeButton != Mouse.Button.Left) field = null
-            return field
-        }
+    private var mouseX: Double? = null; get() {
+        if (activeButton != Mouse.Button.Left) field = null
+        return field
+    }
 
     override fun onEvent(e: GuiEvent) {
         super.onEvent(e)
