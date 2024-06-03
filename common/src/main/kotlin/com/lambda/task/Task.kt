@@ -439,14 +439,20 @@ abstract class Task<Result>(
         val MAX_DEPTH = 20
         const val MAX_DEBUG_ENTRIES = 15
 
-        interface EmptyTask
-
         @Ta5kBuilder
         fun emptyTask(
             name: String = "EmptyTask",
-        ): Task<Unit> = object : EmptyTask, Task<Unit>() {
+        ): Task<Unit> = object : Task<Unit>() {
             init { this.name = name }
             override fun SafeContext.onStart() { success(Unit) }
+        }
+        
+        @Ta5kBuilder
+        fun failTask(
+            message: String
+        ): Task<Unit> = object : Task<Unit>() {
+            init { this.name = "FailTask" }
+            override fun SafeContext.onStart() { failure(message) }
         }
 
         @Ta5kBuilder

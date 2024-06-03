@@ -3,6 +3,7 @@ package com.lambda.interaction.material.transfer
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
+import com.lambda.task.Task.Companion.failTask
 
 abstract class TransferResult {
     abstract val solve: Task<*>
@@ -23,11 +24,11 @@ abstract class TransferResult {
 
     data object NoSpace : TransferResult() {
         // ToDo: Needs inventory space resolver. compressing or disposing
-        override val solve = Task.emptyTask("NoSpace")
+        override val solve = failTask("NoSpace")
     }
 
     data class MissingItems(val missing: Int) : TransferResult() {
         // ToDo: Find other satisfying permutations
-        override val solve = Task.emptyTask("MissingItems")
+        override val solve = failTask("MissingItems")
     }
 }

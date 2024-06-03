@@ -4,6 +4,7 @@ import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
 import com.lambda.task.Task.Companion.emptyTask
+import com.lambda.task.Task.Companion.failTask
 import com.lambda.task.tasks.InventoryTask.Companion.deposit
 import com.lambda.task.tasks.InventoryTask.Companion.withdraw
 import com.lambda.task.tasks.OpenContainer.Companion.openContainer
@@ -31,7 +32,7 @@ object EnderChestContainer : MaterialContainer(Rank.ENDER_CHEST) {
 //        }
 
     override fun withdraw(selection: StackSelection): Task<*> {
-        val pos = placePos ?: return emptyTask("No placePos found for EnderChestContainer")
+        val pos = placePos ?: return failTask("No placePos found for EnderChestContainer")
         return openContainer<GenericContainerScreenHandler>(pos)
             .onSuccess { _, screen ->
                 withdraw(screen, selection)
@@ -39,7 +40,7 @@ object EnderChestContainer : MaterialContainer(Rank.ENDER_CHEST) {
     }
 
     override fun deposit(selection: StackSelection): Task<*> {
-        val pos = placePos ?: return emptyTask("No placePos found for EnderChestContainer")
+        val pos = placePos ?: return failTask("No placePos found for EnderChestContainer")
         return openContainer<GenericContainerScreenHandler>(pos)
             .onSuccess { _, screen ->
                 deposit(screen, selection)

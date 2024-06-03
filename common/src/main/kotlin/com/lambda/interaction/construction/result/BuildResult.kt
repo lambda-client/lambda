@@ -7,6 +7,7 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.MainHandContainer
 import com.lambda.task.Task
 import com.lambda.task.Task.Companion.emptyTask
+import com.lambda.task.Task.Companion.failTask
 import com.lambda.task.tasks.GoalTask.Companion.moveNearBlock
 import com.lambda.task.tasks.GoalTask.Companion.moveToGoal
 import com.lambda.task.tasks.GoalTask.Companion.moveUntilLoaded
@@ -136,7 +137,7 @@ abstract class BuildResult : ComparableResult<Rank> {
         override val rank = Rank.WRONG_ITEM
 
         override val resolve get() =
-            neededItem.select().transfer(MainHandContainer)?.solve ?: emptyTask("Item ${neededItem.name.string} not found") // ToDo: Should throw error
+            neededItem.select().transfer(MainHandContainer)?.solve ?: failTask("Item ${neededItem.name.string} not found")
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -159,7 +160,7 @@ abstract class BuildResult : ComparableResult<Rank> {
         override val rank = Rank.WRONG_ITEM
 
         override val resolve get() =
-            neededStack.select().transfer(MainHandContainer)?.solve ?: emptyTask() // ToDo: Should throw error
+            neededStack.select().transfer(MainHandContainer)?.solve ?: failTask("Stack ${neededStack.name.string} not found")
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {

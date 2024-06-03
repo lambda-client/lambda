@@ -9,6 +9,7 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.MainHandContainer
 import com.lambda.task.Task.Companion.emptyTask
+import com.lambda.task.Task.Companion.failTask
 import com.lambda.task.tasks.BreakBlock.Companion.breakBlock
 import com.lambda.task.tasks.GoalTask.Companion.moveToGoalUntil
 import net.minecraft.block.BlockState
@@ -50,7 +51,7 @@ sealed class BreakResult : BuildResult() {
     ) : Resolvable, BreakResult() {
         override val rank = Rank.BREAK_NOT_EXPOSED
 
-        override val resolve get() = emptyTask("Block is not exposed to air.")
+        override val resolve get() = failTask("Block is not exposed to air.")
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -77,7 +78,7 @@ sealed class BreakResult : BuildResult() {
                     ?.solve ?: run {
                         selectStack {
                             isItem(badItem).not()
-                        }.transfer(MainHandContainer)?.solve ?: emptyTask("No item found or space") // ToDo: Should throw error
+                        }.transfer(MainHandContainer)?.solve ?: failTask("No item found or space")
                     }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {

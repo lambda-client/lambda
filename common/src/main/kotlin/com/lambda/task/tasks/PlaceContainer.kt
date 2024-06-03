@@ -14,7 +14,7 @@ import com.lambda.util.BlockUtils.blockPos
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
 
-class PlaceContainer(
+class PlaceContainer @Ta5kBuilder constructor(
     val stack: ItemStack,
 ) : Task<BlockPos>() {
     override fun SafeContext.onStart() {
