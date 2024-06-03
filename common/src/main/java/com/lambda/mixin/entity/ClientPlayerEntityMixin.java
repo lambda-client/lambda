@@ -21,13 +21,16 @@ import java.util.Objects;
 @Mixin(value = ClientPlayerEntity.class, priority = Integer.MAX_VALUE)
 public abstract class ClientPlayerEntityMixin extends EntityMixin {
 
-    @Shadow protected abstract void autoJump(float dx, float dz);
+    @Shadow
+    public Input input;
+    @Shadow
+    private boolean autoJumpEnabled;
 
-    @Shadow public abstract boolean isUsingItem();
+    @Shadow
+    protected abstract void autoJump(float dx, float dz);
 
-    @Shadow private boolean autoJumpEnabled;
-
-    @Shadow public Input input;
+    @Shadow
+    public abstract boolean isUsingItem();
 
     @Inject(method = "move", at = @At("HEAD"), cancellable = true)
     void onMove(MovementType movementType, Vec3d movement, CallbackInfo ci) {

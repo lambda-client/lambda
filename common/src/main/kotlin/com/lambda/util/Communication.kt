@@ -60,7 +60,12 @@ object Communication {
         }
     }
 
-    fun Any.log(message: Text, logLevel: LogLevel = LogLevel.INFO, source: String = "", textSource: Text = Text.empty()) {
+    fun Any.log(
+        message: Text,
+        logLevel: LogLevel = LogLevel.INFO,
+        source: String = "",
+        textSource: Text = Text.empty(),
+    ) {
         buildText {
             text(this@log.source(logLevel, source, textSource))
             text(message)
@@ -75,7 +80,7 @@ object Communication {
         logLevel: LogLevel,
         source: String = "",
         textSource: Text = Text.empty(),
-        color: Color = Color.GRAY
+        color: Color = Color.GRAY,
     ) = buildText {
         text(logLevel.prefix())
 
@@ -162,9 +167,13 @@ object Communication {
                 literal(" v${Lambda.VERSION}\n")
                 literal("Modules: ${ModuleRegistry.modules.size}\n")
                 literal("Commands: ${CommandRegistry.commands.size}\n")
-                literal("Settings: ${Configuration.configurations.sumOf { config ->
-                    config.configurables.sumOf { it.settings.size }
-                }}")
+                literal(
+                    "Settings: ${
+                        Configuration.configurations.sumOf { config ->
+                            config.configurables.sumOf { it.settings.size }
+                        }
+                    }"
+                )
                 literal("\n")
                 literal("Synchronous listeners: ${EventFlow.syncListeners.size}\n")
                 literal("Concurrent listeners: ${EventFlow.concurrentListeners.size}")
@@ -181,7 +190,7 @@ object Communication {
     fun <T> TextBuilder.joinToText(
         elements: Collection<T>,
         separator: String = ", ",
-        action: TextBuilder.(T) -> Unit
+        action: TextBuilder.(T) -> Unit,
     ) {
         elements.forEachIndexed { index, element ->
             if (index != 0) {

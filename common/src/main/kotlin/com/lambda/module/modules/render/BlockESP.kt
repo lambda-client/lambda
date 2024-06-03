@@ -10,13 +10,15 @@ object BlockESP : Module(
     description = "Render block ESP",
     defaultTags = setOf(ModuleTag.RENDER)
 ) {
-    @JvmStatic val barrier by setting("Solid Barrier Block", true, "Render barrier blocks")
+    @JvmStatic
+    val barrier by setting("Solid Barrier Block", true, "Render barrier blocks")
 
     // ToDo: I wanted to render this as a transparent / translucent block with a red tint.
     //  Like the red stained glass block without the texture sprite.
     //  Creating a custom baked model for this would be needed but seems really hard to do.
     //  mc.blockRenderManager.getModel(Blocks.RED_STAINED_GLASS.defaultState)
-    @JvmStatic val model: BakedModel get() = mc.bakedModelManager.missingModel
+    @JvmStatic
+    val model: BakedModel get() = mc.bakedModelManager.missingModel
 
     init {
         onToggle {

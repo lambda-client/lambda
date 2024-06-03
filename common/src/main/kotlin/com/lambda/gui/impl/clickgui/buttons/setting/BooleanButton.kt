@@ -1,14 +1,14 @@
 package com.lambda.gui.impl.clickgui.buttons.setting
 
 import com.lambda.config.settings.comparable.BooleanSetting
-import com.lambda.sound.LambdaSound
-import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.buttons.SettingButton
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.sound.LambdaSound
+import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.util.Mouse
 import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.MathUtils.lerp
@@ -18,13 +18,14 @@ import com.lambda.util.math.Vec2d
 
 class BooleanButton(
     setting: BooleanSetting,
-    owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
+    owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>,
 ) : SettingButton<Boolean, BooleanSetting>(setting, owner) {
     private var active by animation.exp(0.0, 1.0, 0.6, ::value)
     private val zoomAnimation get() = lerp(2.0, 0.0, showAnimation)
 
-    private val checkboxRect get() = Rect(rect.rightTop - Vec2d(rect.size.y * 1.75, 0.0), rect.rightBottom)
-        .shrink(1.0 + zoomAnimation)
+    private val checkboxRect
+        get() = Rect(rect.rightTop - Vec2d(rect.size.y * 1.75, 0.0), rect.rightBottom)
+            .shrink(1.0 + zoomAnimation)
 
     private val knobStart get() = Rect.basedOn(checkboxRect.leftTop, Vec2d.ONE * checkboxRect.size.y)
     private val knobEnd get() = Rect.basedOn(checkboxRect.rightBottom, Vec2d.ONE * checkboxRect.size.y * -1.0).inv()

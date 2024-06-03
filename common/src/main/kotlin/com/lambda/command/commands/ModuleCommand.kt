@@ -17,8 +17,11 @@ import com.lambda.util.Communication.joinToText
 import com.lambda.util.Communication.warn
 import com.lambda.util.StringUtils
 import com.lambda.util.primitives.extension.CommandBuilder
-import com.lambda.util.text.*
 import com.lambda.util.text.ClickEvents.suggestCommand
+import com.lambda.util.text.buildText
+import com.lambda.util.text.clickEvent
+import com.lambda.util.text.literal
+import com.lambda.util.text.styled
 import java.awt.Color
 
 object ModuleCommand : LambdaCommand(

@@ -5,7 +5,10 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
-import com.lambda.util.text.*
+import com.lambda.util.text.buildText
+import com.lambda.util.text.clickEvent
+import com.lambda.util.text.literal
+import com.lambda.util.text.styled
 import io.netty.buffer.Unpooled
 import net.minecraft.network.PacketByteBuf
 import net.minecraft.network.packet.BrandCustomPayload

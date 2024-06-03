@@ -96,7 +96,8 @@ object EventFlow {
      * @param E The type of the event to be posted. This should be a subclass of Event.
      * @receiver The [Event] to be posted to the event flow.
      */
-    @JvmStatic fun <E : Event> E.post(): E {
+    @JvmStatic
+    fun <E : Event> E.post(): E {
         concurrentFlow.tryEmit(this)
         executeListenerSynchronous()
         return this@post
@@ -113,7 +114,8 @@ object EventFlow {
      * @param E The type of the event to be posted. This should be a subclass of Event.
      * @param process A function to be applied to the event after it has been posted.
      */
-    @JvmStatic fun <E : Event> E.post(process: E.() -> Unit) {
+    @JvmStatic
+    fun <E : Event> E.post(process: E.() -> Unit) {
         post()
         process()
     }
@@ -128,7 +130,8 @@ object EventFlow {
      * @param E The type of the event to be posted. This should be a subclass of [Event] and implement [ICancellable].
      * @param process A function to be applied to the event after it has been posted if the [Event] is not canceled.
      */
-    @JvmStatic fun <E> E.postChecked(process: E.() -> Unit) where E : Event, E : ICancellable {
+    @JvmStatic
+    fun <E> E.postChecked(process: E.() -> Unit) where E : Event, E : ICancellable {
         post()
         if (!isCanceled()) process()
     }
@@ -164,7 +167,7 @@ object EventFlow {
 
     private fun shouldNotNotify(listener: Listener, event: Event) =
         listener.owner is Muteable
-            && (listener.owner as Muteable).isMuted
-            && !listener.alwaysListen
-            || event is ICancellable && event.isCanceled()
+                && (listener.owner as Muteable).isMuted
+                && !listener.alwaysListen
+                || event is ICancellable && event.isCanceled()
 }

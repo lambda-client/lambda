@@ -25,7 +25,7 @@ class OutlineRectRenderer : AbstractRectRenderer(
         innerGlow: Double = 1.0,
         outerGlow: Double = 1.0,
         color: Color = Color.WHITE,
-        shade: Boolean = false
+        shade: Boolean = false,
     ) = build(rect, roundRadius, innerGlow, outerGlow, color, color, color, color, shade)
 
     fun build(
@@ -37,7 +37,7 @@ class OutlineRectRenderer : AbstractRectRenderer(
         rightTop: Color = Color.WHITE,
         rightBottom: Color = Color.WHITE,
         leftBottom: Color = Color.WHITE,
-        shade: Boolean = false
+        shade: Boolean = false,
     ) = vao.use {
         val drawInner = innerGlow >= 1
         val drawOuter = outerGlow >= 1
@@ -65,9 +65,9 @@ class OutlineRectRenderer : AbstractRectRenderer(
                 add(vec2(pos.x, pos.y).float(a).float(s).color(c).end())
             }
 
-            val rt = r.rightTop    + Vec2d(-round,  round)
-            val lt = r.leftTop     + Vec2d( round,  round)
-            val lb = r.leftBottom  + Vec2d( round, -round)
+            val rt = r.rightTop + Vec2d(-round, round)
+            val lt = r.leftTop + Vec2d(round, round)
+            val lb = r.leftBottom + Vec2d(round, -round)
             val rb = r.rightBottom + Vec2d(-round, -round)
 
             return mutableListOf<Int>().apply {

@@ -109,9 +109,11 @@ object PacketLogger : Module(
                         mc.isIntegratedServerRunning -> {
                             appendLine("Integrated server running.")
                         }
+
                         mc.currentServerEntry != null -> {
                             appendLine("Connected to ${mc.currentServerEntry?.name} at ${mc.currentServerEntry?.address}.")
                         }
+
                         else -> {
                             appendLine("Started in Main Menu")
                         }

@@ -2,7 +2,6 @@ package com.lambda.graphics.gl
 
 import org.joml.Matrix4f
 import org.joml.Quaternionf
-import kotlin.collections.ArrayDeque
 
 object Matrices {
     private val stack = ArrayDeque(listOf(Matrix4f()))

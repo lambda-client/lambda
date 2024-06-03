@@ -20,9 +20,13 @@ object FakePlayer : Module(
     init {
         onEnable {
             fakePlayer = OtherClientPlayerEntity(world, GameProfile(uuid, playerName))
-                .apply(player::copyFrom)
-                .apply(world::addEntity)
-                .apply { id = -2024-4-20 }
+                .apply {
+                    copyFrom(player)
+
+                    id = -2024 - 4 - 20
+                }
+
+            world.addEntity(fakePlayer)
         }
 
         onDisable {

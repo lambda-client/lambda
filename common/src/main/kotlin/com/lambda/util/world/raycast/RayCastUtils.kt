@@ -58,22 +58,24 @@ object RayCastUtils {
         return@runSafe max(0.0, pos.y - cast.pos.y)
     }
 
+    val HitResult.entityResult: EntityHitResult?
+        get() {
+            if (type == HitResult.Type.MISS) return null
+            return this as? EntityHitResult
+        }
 
-    val HitResult.entityResult: EntityHitResult? get() {
-        if (type == HitResult.Type.MISS) return null
-        return this as? EntityHitResult
-    }
-
-    val HitResult.blockResult: BlockHitResult? get() {
-        if (type == HitResult.Type.MISS) return null
-        return this as? BlockHitResult
-    }
+    val HitResult.blockResult: BlockHitResult?
+        get() {
+            if (type == HitResult.Type.MISS) return null
+            return this as? BlockHitResult
+        }
 
     fun HitResult.distanceTo(pos: Vec3d) = this.pos.distanceTo(pos)
 
     val HitResult.orNull get() = entityResult ?: blockResult
 
-    val HitResult?.orMiss get() = this ?: object : HitResult(mc.player?.eyePos ?: Vec3d.ZERO) {
-        override fun getType() = Type.MISS
-    }
+    val HitResult?.orMiss
+        get() = this ?: object : HitResult(mc.player?.eyePos ?: Vec3d.ZERO) {
+            override fun getType() = Type.MISS
+        }
 }

@@ -11,7 +11,7 @@ import org.lwjgl.glfw.GLFW.glfwGetTime
 
 abstract class AbstractRectRenderer(
     attribGroup: VertexAttrib.Group,
-    val shader: Shader
+    val shader: Shader,
 ) : Renderer(VertexMode.TRIANGLES, attribGroup) {
     override fun render() {
         shader.use()

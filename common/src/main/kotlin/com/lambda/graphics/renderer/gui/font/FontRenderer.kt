@@ -18,7 +18,7 @@ class FontRenderer(private val font: LambdaFont) : Renderer(VertexMode.TRIANGLES
         position: Vec2d,
         color: Color = Color.WHITE,
         scale: Double = 1.0,
-        shadow: Boolean = true
+        shadow: Boolean = true,
     ) = vao.use {
         val actualScale = getScaleFactor(scale)
         val scaledShadowShift = shadowShift * actualScale

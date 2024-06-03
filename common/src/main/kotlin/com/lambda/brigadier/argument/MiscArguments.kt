@@ -23,10 +23,8 @@
 package com.lambda.brigadier.argument
 
 import com.lambda.brigadier.*
-import com.lambda.brigadier.assumeSourceNotUsed
 import com.mojang.brigadier.arguments.ArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
-
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import net.minecraft.command.argument.TimeArgumentType
 import net.minecraft.command.argument.UuidArgumentType
@@ -70,7 +68,7 @@ fun DefaultArgumentReader<UuidArgumentType>.value(): UUID {
 @BrigadierDsl
 fun <S> time(
     name: String,
-    minimumTicks: Int = 0
+    minimumTicks: Int = 0,
 ): DefaultArgumentConstructor<S, TimeArgumentType> {
     return argument(name, TimeArgumentType.time(minimumTicks))
 }
@@ -80,7 +78,7 @@ fun <S> time(
  */
 @BrigadierDsl
 fun <S> uuid(
-    name: String
+    name: String,
 ): RequiredArgumentConstructor<
         S,
         DefaultArgumentDescriptor<
@@ -99,7 +97,7 @@ fun <S> uuid(
  */
 @BrigadierDsl
 fun <S> literal(
-    name: String
+    name: String,
 ): ArgumentConstructor<
         S,
         LiteralArgumentBuilder<S>,

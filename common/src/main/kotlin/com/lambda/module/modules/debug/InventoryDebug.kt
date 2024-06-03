@@ -1,5 +1,6 @@
 package com.lambda.module.modules.debug
 
+import com.lambda.Lambda.LOG
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
@@ -32,9 +33,8 @@ object InventoryDebug : Module(
                 is CraftRequestC2SPacket,
                 is CreativeInventoryActionC2SPacket,
                 is PickFromInventoryC2SPacket,
-                is UpdateSelectedSlotC2SPacket -> {
-                    this@InventoryDebug.info(it.packet.dynamicString())
-                }
+                is UpdateSelectedSlotC2SPacket,
+                -> LOG.info(it.packet.dynamicString())
             }
         }
     }

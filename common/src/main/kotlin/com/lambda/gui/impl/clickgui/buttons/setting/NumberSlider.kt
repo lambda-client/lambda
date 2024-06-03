@@ -12,12 +12,11 @@ import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.MathUtils.typeConvert
-import com.lambda.util.math.Vec2d
 import com.lambda.util.math.normalize
 
-class NumberSlider <N>(
+class NumberSlider<N>(
     setting: NumericSetting<N>,
-    owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
+    owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>,
 ) : Slider<N, NumericSetting<N>>(
     setting, owner
 ) where N : Number, N : Comparable<N> {
@@ -26,10 +25,10 @@ class NumberSlider <N>(
 
     private val layer = ChildLayer.Drawable(owner.gui, this, owner.renderer, ::rect, InputBarOverlay::isActive)
     private val inputBar: InputBarOverlay = object : InputBarOverlay(renderer, layer) {
-        override val pressAnimation     get() = this@NumberSlider.pressAnimation
-        override val interactAnimation  get() = this@NumberSlider.interactAnimation
+        override val pressAnimation get() = this@NumberSlider.pressAnimation
+        override val interactAnimation get() = this@NumberSlider.interactAnimation
         override val hoverFontAnimation get() = this@NumberSlider.hoverFontAnimation
-        override val showAnimation      get() = this@NumberSlider.showAnimation
+        override val showAnimation get() = this@NumberSlider.showAnimation
 
         override fun isCharAllowed(string: String, char: Char): Boolean {
             return when (char) {
@@ -67,11 +66,13 @@ class NumberSlider <N>(
     }
 
     override fun setValueByProgress(progress: Double) {
-        setValue(lerp(
-            setting.range.start.toDouble(),
-            setting.range.endInclusive.toDouble(),
-            progress
-        ))
+        setValue(
+            lerp(
+                setting.range.start.toDouble(),
+                setting.range.endInclusive.toDouble(),
+                progress
+            )
+        )
     }
 
     private fun setValue(valueIn: Double) {

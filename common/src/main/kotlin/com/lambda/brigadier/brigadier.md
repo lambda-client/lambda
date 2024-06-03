@@ -43,32 +43,32 @@ registerEvents {
                 //optional argument
                 optional(literal("ping")) { ping ->
                     execute {
-                       //shorthand for source.sendFeedback 
-                       sendFeedback(
-                          buildText { 
-                             val sourceName = entity?.displayName ?: "stranger"
-                             literal("Hello $sourceName! ")
-                             
-                             //accessing an argument with a special requirement (block pos must be loaded) 
-                             val state = world.getBlockState(getPos().requireLoaded()) 
-                             val id = Registry.BLOCK.getId(state.block)
-                             literal("Selected block was $id. ")
-                             
-                             //accessing a normal argument 
-                             val range = getIntRange().value() 
-                             val random = Random.nextInt(range.min ?: 0, (range.max ?: 100) + 1)
-                             literal("Random number is $random.")
-                             
-                             //check if optional present 
-                             if (ping != null) { 
-                                 literal(" Pong!") 
-                             } 
-                          }
-                       ) 
-                    } 
-                } 
-            } 
-        } 
+                        //shorthand for source.sendFeedback 
+                        sendFeedback(
+                            buildText {
+                                val sourceName = entity?.displayName ?: "stranger"
+                                literal("Hello $sourceName! ")
+
+                                //accessing an argument with a special requirement (block pos must be loaded) 
+                                val state = world.getBlockState(getPos().requireLoaded())
+                                val id = Registry.BLOCK.getId(state.block)
+                                literal("Selected block was $id. ")
+
+                                //accessing a normal argument 
+                                val range = getIntRange().value()
+                                val random = Random.nextInt(range.min ?: 0, (range.max ?: 100) + 1)
+                                literal("Random number is $random.")
+
+                                //check if optional present 
+                                if (ping != null) {
+                                    literal(" Pong!")
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 ```
@@ -126,20 +126,23 @@ and pass those along with the name to QKL's `argument` function:
 
 ```kotlin
 //arguments using default descriptors can use shorter versions and typealiases
-@BrigadierDsl fun <S> identifier(
+@BrigadierDsl
+fun <S> identifier(
     name: String
 ): DefaultArgumentConstructor<S, IdentifierArgumentType> {
     return argument(name, IdentifierArgumentType.identifier())
 }
 
 //two ways to create an entity argument
-@BrigadierDsl fun <S> entity(
+@BrigadierDsl
+fun <S> entity(
     name: String
 ): RequiredArgumentConstructor<S, SingleEntityArgumentDescriptor> {
     return argument(name, EntityArgumentType.entity(), SingleEntityArgumentDescriptor)
 }
 
-@BrigadierDsl fun <S> entities(
+@BrigadierDsl
+fun <S> entities(
     name: String
 ): RequiredArgumentConstructor<S, ListEntityArgumentDescriptor> {
     return argument(name, EntityArgumentType.entities(), ListEntityArgumentDescriptor)
@@ -156,25 +159,28 @@ and the argument name:
 //A reader using the default descriptor for StringArgumentType and usable on any context
 //If creating multiple functions with the same name, give them different JVM names
 @JvmName("valueStringArg")
-@BrigadierDsl fun DefaultArgumentReader<StringArgumentType>.value(): String {
+@BrigadierDsl
+fun DefaultArgumentReader<StringArgumentType>.value(): String {
     return StringArgumentType.getString(context, name)
 }
 
 //A reader for multiple entities argument
 //Uses the List descriptor and can only be called for ServerCommandSource contexts
 @JvmName("optionalEntityArg")
-@BrigadierDsl fun ArgumentReader<
-        ServerCommandSource, 
+@BrigadierDsl
+fun ArgumentReader<
+        ServerCommandSource,
         ListEntityArgumentDescriptor
         >.optional(): Collection<Entity> {
-  return EntityArgumentType.getOptionalEntities(context, name)
+    return EntityArgumentType.getOptionalEntities(context, name)
 }
 
 //A reader for string-based EnumArgumentType
 //Similar to above, but callable on any context
 @JvmName("valueEnumStringArg")
-@BrigadierDsl fun ArgumentReader<*, StringEnumArgumentDescriptor>.value(): String {
-  return EnumArgumentType.getEnum(context, name)
+@BrigadierDsl
+fun ArgumentReader<*, StringEnumArgumentDescriptor>.value(): String {
+    return EnumArgumentType.getEnum(context, name)
 }
 ```
 
@@ -219,11 +225,11 @@ context receiver instead, e.g.:
 @BrigadierDsl
 context(CommandContext<*>)
 fun <T : Enum<T>> ArgumentReader<TypedEnumArgumentDescriptor<T>>.value(): T {
-   return EnumArgumentType.getEnumConstant(
-      this@CommandContext,
-      name,
-      argumentDescriptor.type
-   )
+    return EnumArgumentType.getEnumConstant(
+        this@CommandContext,
+        name,
+        argumentDescriptor.type
+    )
 }
 ```
 
@@ -231,16 +237,16 @@ The use-site would then change as well:
 
 ```kotlin
 //before
-required(blockPos("pos")) { getPos -> 
-  execute {
-      getPos().value()
-  }
+required(blockPos("pos")) { getPos ->
+    execute {
+        getPos().value()
+    }
 }
 
 //after
-required(blockPos("pos")) { pos -> 
-  execute {
-      pos.value()
-  }
+required(blockPos("pos")) { pos ->
+    execute {
+        pos.value()
+    }
 }
 ```

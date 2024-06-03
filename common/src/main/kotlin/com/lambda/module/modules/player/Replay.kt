@@ -4,7 +4,6 @@ import com.google.gson.*
 import com.lambda.brigadier.CommandResult
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
-import com.lambda.sound.SoundManager.playSound
 import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.KeyPressEvent
@@ -18,6 +17,7 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.player.Replay.InputAction.Companion.toAction
 import com.lambda.module.tag.ModuleTag
+import com.lambda.sound.SoundManager.playSound
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
@@ -115,6 +115,7 @@ object Replay : Module(
                         it.position.add(player.pos)
                     }
                 }
+
                 State.PLAYING -> {
                     buffer?.let {
                         it.input.removeFirstOrNull()?.update(event.input)
@@ -122,9 +123,11 @@ object Replay : Module(
                             val diff = pos.subtract(player.pos).length()
                             if (diff < 0.02) return@a
 
-                            this@Replay.warn("Position deviates from the recording by ${
-                                "%.3f".format(diff)
-                            } blocks. Desired position: ${pos.asString(3)}")
+                            this@Replay.warn(
+                                "Position deviates from the recording by ${
+                                    "%.3f".format(diff)
+                                } blocks. Desired position: ${pos.asString(3)}"
+                            )
                             if (cancelOnDeviation && diff > deviationThreshold) {
                                 state = State.INACTIVE
                                 this@Replay.logError("Replay cancelled due to exceeding deviation threshold.")
@@ -133,6 +136,7 @@ object Replay : Module(
                         }
                     }
                 }
+
                 else -> {}
             }
         }
@@ -142,11 +146,13 @@ object Replay : Module(
                 State.RECORDING -> {
                     buffer?.rotation?.add(player.rotation)
                 }
+
                 State.PLAYING -> {
                     buffer?.rotation?.removeFirstOrNull()?.let { rot ->
                         event.context = RotationContext(rot, rotationConfig)
                     }
                 }
+
                 else -> {}
             }
         }
@@ -156,12 +162,14 @@ object Replay : Module(
                 State.RECORDING -> {
                     buffer?.sprint?.add(player.isSprinting)
                 }
+
                 State.PLAYING -> {
                     buffer?.sprint?.removeFirstOrNull()?.let { sprint ->
                         event.sprint = sprint
                         player.isSprinting = sprint
                     }
                 }
+
                 else -> {}
             }
         }
@@ -191,6 +199,7 @@ object Replay : Module(
                         }
                     }
                 }
+
                 State.PLAYING -> {
                     buffer?.let {
                         if (it.size != 0) return@listener
@@ -226,6 +235,7 @@ object Replay : Module(
                         }
                     }
                 }
+
                 else -> {}
             }
         }
@@ -312,10 +322,12 @@ object Replay : Module(
                     this@Replay.warn("No recording to replay.")
                 }
             }
+
             State.PLAYING -> {
                 state = State.INACTIVE
                 this@Replay.info("Replay stopped.")
             }
+
             else -> {}
         }
     }
@@ -325,6 +337,7 @@ object Replay : Module(
             State.RECORDING -> {
                 stopRecording()
             }
+
             State.INACTIVE -> {
                 if (velocityCheck && player.velocity != still) {
                     this@Replay.logError("Cannot start recording while moving. Slow down and try again!")
@@ -335,6 +348,7 @@ object Replay : Module(
                 state = State.RECORDING
                 this@Replay.info("Recording started...")
             }
+
             else -> {}
         }
     }
@@ -372,6 +386,7 @@ object Replay : Module(
                     pruneMessage(checkRec)
                 })
             }
+
             else -> {
                 this@Replay.info("Cannot set checkpoint while not recording.")
             }
@@ -392,7 +407,7 @@ object Replay : Module(
 
     private fun save(
         recording: Recording,
-        name: String
+        name: String,
     ) {
         if (recording.size <= 5) {
             this@Replay.warn("Recording too short. Minimum length: 5 ticks.")
@@ -586,7 +601,7 @@ object Replay : Module(
         override fun deserialize(
             json: JsonElement?,
             typeOfT: Type?,
-            context: JsonDeserializationContext?
+            context: JsonDeserializationContext?,
         ): Recording = json?.asJsonArray?.let {
             val input = mutableListOf<InputAction>()
             val rotation = mutableListOf<Rotation>()
@@ -595,16 +610,18 @@ object Replay : Module(
 
             it.forEach { element ->
                 val array = element.asJsonArray
-                input.add(InputAction(
-                    array[0].asFloat,
-                    array[1].asFloat,
-                    array[2].asBoolean,
-                    array[3].asBoolean,
-                    array[4].asBoolean,
-                    array[5].asBoolean,
-                    array[6].asBoolean,
-                    array[7].asBoolean
-                ))
+                input.add(
+                    InputAction(
+                        array[0].asFloat,
+                        array[1].asFloat,
+                        array[2].asBoolean,
+                        array[3].asBoolean,
+                        array[4].asBoolean,
+                        array[5].asBoolean,
+                        array[6].asBoolean,
+                        array[7].asBoolean
+                    )
+                )
                 rotation.add(Rotation(array[8].asDouble, array[9].asDouble))
                 sprint.add(array[10].asBoolean)
                 position.add(Vec3d(array[11].asDouble, array[12].asDouble, array[13].asDouble))
@@ -622,7 +639,7 @@ object Replay : Module(
         val pressingLeft: Boolean,
         val pressingRight: Boolean,
         val jumping: Boolean,
-        val sneaking: Boolean
+        val sneaking: Boolean,
     ) {
         fun update(input: Input) {
             input.movementSideways = movementSideways

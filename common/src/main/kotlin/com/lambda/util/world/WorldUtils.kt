@@ -43,8 +43,8 @@ import kotlin.math.ceil
  */
 object WorldUtils {
     /**
-    * Gets the closest entity of type [T] within a specified range.
-    */
+     * Gets the closest entity of type [T] within a specified range.
+     */
     inline fun <reified T : Entity> SafeContext.getClosestEntity(
         type: Class<out T>, // This is a class reference, not an instance of the class.
         pos: Vec3d,
