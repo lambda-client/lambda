@@ -1,26 +1,20 @@
 package com.lambda.module.modules.player
 
 import com.lambda.context.SafeContext
-import com.lambda.event.events.HandleBlockBreakingEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.mixin.entity.ClientPlayerInteractionManagerAccessor
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.BlockState
-import net.minecraft.block.FluidBlock
+import net.minecraft.block.Blocks
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.enchantment.Enchantments
 import net.minecraft.entity.effect.StatusEffectUtil
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
-import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.registry.tag.FluidTags
-import net.minecraft.util.Hand
-import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.BlockPos
 
 object AutoTool: Module(
@@ -29,17 +23,12 @@ object AutoTool: Module(
     defaultTags = setOf(ModuleTag.PLAYER)
 ) {
 
-    private val silent by setting("Silent", false)
-
     private var swapped = false
     private var returnSlot = -1
 
-    private var silenting = false
-    private var ignore = false
-
     init {
         listener<PacketEvent.Send.Pre> {
-            if (it.packet is PlayerActionC2SPacket && !silent
+            if (it.packet is PlayerActionC2SPacket
                 && (it.packet.action.equals(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK)
                         || it.packet.action.equals(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK)
                         || it.packet.action.equals(PlayerActionC2SPacket.Action.ABORT_DESTROY_BLOCK))
@@ -47,7 +36,7 @@ object AutoTool: Module(
                     val state = world.getBlockState(it.packet.pos)
 
                 if (state.isAir
-                    || state.block is FluidBlock) {
+                    || state.block.equals(Blocks.WATER)) {
                     return@listener
                 }
 
@@ -67,64 +56,12 @@ object AutoTool: Module(
         }
 
         listener<TickEvent.Pre> {
-            if (!silent
-                && swapped
+            if (swapped
                 && returnSlot != -1
                 && !interaction.isBreakingBlock) {
                 player.inventory.selectedSlot = returnSlot
                 swapped = false
                 returnSlot = -1
-            }
-        }
-
-        listener<HandleBlockBreakingEvent.Pre> {
-
-            if (ignore)
-                return@listener
-
-            val crosshairTarget = mc.crosshairTarget ?: return@listener
-
-            if (silent
-                && mc.options.attackKey.isPressed
-                && crosshairTarget.type.equals(HitResult.Type.BLOCK)) {
-
-                val blockResult = crosshairTarget.blockResult ?: return@listener
-
-                // wtf is the .add doing here? why do I need this???
-                val blockPos = blockResult.blockPos
-
-                val bestTool = getBestTool(world.getBlockState(blockPos), blockPos)
-
-                if (bestTool == -1)
-                    return@listener
-
-
-                returnSlot = player.inventory.selectedSlot
-                silenting = true
-
-                player.networkHandler.sendPacket(UpdateSelectedSlotC2SPacket(bestTool))
-                player.inventory.selectedSlot = bestTool
-                (interaction as ClientPlayerInteractionManagerAccessor)
-                    .setLastSelectedSlot(bestTool)
-                (interaction as ClientPlayerInteractionManagerAccessor)
-                    .setSelectedStack(player.mainHandStack)
-
-                player.swingHand(Hand.MAIN_HAND)
-
-                ignore = true
-                interaction.updateBlockBreakingProgress(blockPos, blockResult.side)
-                ignore = false
-
-                it.cancel()
-
-                player.inventory.selectedSlot = returnSlot
-                (interaction as ClientPlayerInteractionManagerAccessor)
-                    .setLastSelectedSlot(returnSlot)
-                (interaction as ClientPlayerInteractionManagerAccessor)
-                    .setSelectedStack(player.mainHandStack)
-                player.networkHandler.sendPacket(UpdateSelectedSlotC2SPacket(returnSlot))
-                returnSlot = -1
-                silenting = false
             }
         }
     }
