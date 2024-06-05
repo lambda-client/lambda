@@ -5,7 +5,6 @@ import com.lambda.event.events.HandleBlockBreakingEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.mixin.entity.ClientPlayerInteractionManagerAccessor
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -104,10 +103,8 @@ object AutoTool: Module(
 
                 player.networkHandler.sendPacket(UpdateSelectedSlotC2SPacket(bestTool))
                 player.inventory.selectedSlot = bestTool
-                (interaction as ClientPlayerInteractionManagerAccessor)
-                    .setLastSelectedSlot(bestTool)
-                (interaction as ClientPlayerInteractionManagerAccessor)
-                    .setSelectedStack(player.mainHandStack)
+                interaction.lastSelectedSlot = bestTool
+                interaction.selectedStack = player.mainHandStack
 
                 player.swingHand(Hand.MAIN_HAND)
 
@@ -118,10 +115,8 @@ object AutoTool: Module(
                 it.cancel()
 
                 player.inventory.selectedSlot = returnSlot
-                (interaction as ClientPlayerInteractionManagerAccessor)
-                    .setLastSelectedSlot(returnSlot)
-                (interaction as ClientPlayerInteractionManagerAccessor)
-                    .setSelectedStack(player.mainHandStack)
+                interaction.lastSelectedSlot = returnSlot
+                interaction.selectedStack = player.mainHandStack
                 player.networkHandler.sendPacket(UpdateSelectedSlotC2SPacket(returnSlot))
                 returnSlot = -1
                 silenting = false
