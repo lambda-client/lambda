@@ -90,7 +90,6 @@ object AutoTool: Module(
 
                 val blockResult = crosshairTarget.blockResult ?: return@listener
 
-                // wtf is the .add doing here? why do I need this???
                 val blockPos = blockResult.blockPos
 
                 val bestTool = getBestTool(world.getBlockState(blockPos), blockPos)
