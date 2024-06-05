@@ -9,6 +9,7 @@
     "baritone.MixinBaritonePlayerContext",
     "baritone.MixinLookBehavior",
     "entity.ClientPlayerEntityMixin",
+    "entity.ClientPlayerInteractionManagerAccessor",
     "entity.EntityMixin",
     "entity.LivingEntityMixin",
     "entity.PlayerEntityMixin",

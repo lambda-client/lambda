@@ -2,6 +2,7 @@ package com.lambda.mixin;
 
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
+import com.lambda.event.events.HandleBlockBreakingEvent;
 import com.lambda.event.events.ClientEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.module.modules.player.Interact;
@@ -52,4 +53,18 @@ public class MinecraftClientMixin {
 
         Lambda.getMc().itemUseCooldown = Interact.getPlaceDelay();
     }
+
+    @Inject(method = "handleBlockBreaking", at = @At("HEAD"), cancellable = true)
+    public void handleBlockBreakingPre(boolean breaking, CallbackInfo ci) {
+        if (EventFlow.post(new HandleBlockBreakingEvent.Pre()).isCanceled()) {
+            ci.cancel();
+        }
+    }
+
+    @Inject(method = "handleBlockBreaking", at = @At("RETURN"))
+    public void handleBlockBreakingPost(boolean breaking, CallbackInfo ci) {
+        EventFlow.post(new HandleBlockBreakingEvent.Post());
+    }
+
+
 }
