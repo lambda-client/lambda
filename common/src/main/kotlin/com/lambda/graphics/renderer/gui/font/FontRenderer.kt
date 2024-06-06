@@ -1,6 +1,5 @@
 package com.lambda.graphics.renderer.gui.font
 
-import com.lambda.graphics.buffer.vao.IRenderContext
 import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.buffer.vao.vertex.VertexMode
 import com.lambda.graphics.renderer.Renderer
@@ -25,18 +24,14 @@ class FontRenderer(
      * @param text The text to parse.
      * @return A list of triples containing the emoji text, start index, and end index.
      */
-    fun parseEmojis(text: String): List<Pair<GlyphInfo, IntRange>> {
-        val result = mutableListOf<Pair<GlyphInfo, IntRange>>()
-        val matches = emojiRegex.findAll(text)
-
-        for (match in matches) {
-            val emojiKey = match.value.substring(1, match.value.length - 1)
-            val charInfo = emojis[emojiKey] ?: continue
-            result.add(charInfo to match.range)
+    fun parseEmojis(text: String) =
+        mutableListOf<Pair<GlyphInfo, IntRange>>().apply {
+            emojiRegex.findAll(text).forEach { match ->
+                val emojiKey = match.value.substring(1, match.value.length - 1)
+                val charInfo = emojis[emojiKey] ?: return@forEach
+                add(charInfo to match.range)
+            }
         }
-
-        return result
-    }
 
     /**
      * Builds the vertex array for rendering the text.
@@ -49,7 +44,13 @@ class FontRenderer(
         shadow: Boolean = true
     ) = vao.use {
         iterateText(text, scale, shadow, color) { char, pos1, pos2, color ->
-            putChar(position, pos1, pos2, color, char)
+            grow(4)
+            putQuad(
+                vec2(pos1.x + position.x, pos1.y + position.y).vec2(char.uv1.x, char.uv1.y).color(color).end(),
+                vec2(pos1.x + position.x, pos2.y + position.y).vec2(char.uv1.x, char.uv2.y).color(color).end(),
+                vec2(pos2.x + position.x, pos2.y + position.y).vec2(char.uv2.x, char.uv2.y).color(color).end(),
+                vec2(pos2.x + position.x, pos1.y + position.y).vec2(char.uv2.x, char.uv1.y).color(color).end()
+            )
         }
     }
 
@@ -89,8 +90,8 @@ class FontRenderer(
         block: (GlyphInfo, Vec2d, Vec2d, Color) -> Unit
     ) {
         val actualScale = getScaleFactor(scale)
-        val scaledShadowShift = shadowShift * actualScale
         val scaledGap = gap * actualScale
+
         val shadowColor = getShadowColor(color)
         val emojiColor = Color.WHITE.setAlpha(color.a)
 
@@ -99,57 +100,37 @@ class FontRenderer(
 
         val emojis = parseEmojis(text)
 
-        var index = 0
-        while (index < text.length) {
-            run { // Because continue is not allowed in lambda
-                emojis
-                    .firstOrNull { index in it.second }
-                    ?.let { emoji ->
-                        val scaledSize = emoji.first.size * actualScale
-                        val pos1 = Vec2d(posX, posY)
-                        val pos2 = pos1 + scaledSize
-
-                        block(emoji.first, pos1, pos2, emojiColor)
-
-                        posX += scaledSize.x + scaledGap
-                        index = emoji.second.last
-                        return@run
-                    }
-
-                val char = text[index]
-                val glyph = font[char] ?: return@run
-
-                val scaledSize = glyph.size * actualScale
-                val pos1 = Vec2d(posX, posY)
+        repeat(text.length) { index ->
+            fun draw(info: GlyphInfo, color: Color, offset: Double = 0.0) {
+                val scaledSize = info.size * actualScale
+                val pos1 = Vec2d(posX, posY) + offset * actualScale
                 val pos2 = pos1 + scaledSize
 
-                if (shadow && FontSettings.shadow) {
-                    val shadowPos1 = pos1 + scaledShadowShift
-                    val shadowPos2 = shadowPos1 + scaledSize
-                    block(glyph, shadowPos1, shadowPos2, shadowColor)
-                }
-
-                block(glyph, pos1, pos2, color)
-
-                posX += scaledSize.x + scaledGap
+                block(info, pos1, pos2, color)
+                if (offset == 0.0) posX += scaledSize.x + scaledGap
             }
 
-            index++
+            // Check if there's an emoji
+            emojis.firstOrNull { index in it.second }?.let { emoji ->
+                // Replace first emoji char by an emoji glyph and skip the other ones
+                if (index == emoji.second.first) {
+                    draw(emoji.first, emojiColor)
+                }
+
+                return@repeat
+            }
+
+            // Render chars
+            font[text[index]]?.let { info ->
+                // Draw a shadow before
+                if (shadow && FontSettings.shadow && shadowShift > 0.0) {
+                    draw(info, shadowColor, shadowShift)
+                }
+
+                // Draw actual char over the shadow
+                draw(info, color)
+            }
         }
-    }
-
-    private fun IRenderContext.putChar(pos: Vec2d, lt: Vec2d, rb: Vec2d, color: Color, ci: GlyphInfo) {
-        val x = pos.x
-        val y = pos.y
-
-        grow(4)
-
-        putQuad(
-            vec2(lt.x + x, lt.y + y).vec2(ci.uv1.x, ci.uv1.y).color(color).end(),
-            vec2(lt.x + x, rb.y + y).vec2(ci.uv1.x, ci.uv2.y).color(color).end(),
-            vec2(rb.x + x, rb.y + y).vec2(ci.uv2.x, ci.uv2.y).color(color).end(),
-            vec2(rb.x + x, lt.y + y).vec2(ci.uv2.x, ci.uv1.y).color(color).end()
-        )
     }
 
     private fun getScaleFactor(scale: Double) = scaleMultiplier * scale * 0.12
@@ -176,7 +157,7 @@ class FontRenderer(
     companion object {
         private val shader = Shader("renderer/font")
 
-        private val shadowShift get() = FontSettings.shadowShift * 4.0
+        private val shadowShift get() = FontSettings.shadowShift * 5.0
         private val baselineOffset get() = FontSettings.baselineOffset * 2.0f - 10f
         private val gap get() = FontSettings.gapSetting * 0.5f - 0.8f
     }
