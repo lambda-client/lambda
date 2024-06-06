@@ -4,9 +4,11 @@ import com.lambda.graphics.buffer.vao.IRenderContext
 import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.buffer.vao.vertex.VertexMode
 import com.lambda.graphics.renderer.Renderer
-import com.lambda.graphics.renderer.gui.font.glyph.CharInfo
+import com.lambda.graphics.renderer.gui.font.glyph.GlyphInfo
 import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.FontSettings
+import com.lambda.util.math.ColorUtils.a
+import com.lambda.util.math.ColorUtils.setAlpha
 import com.lambda.util.math.Vec2d
 import java.awt.Color
 
@@ -23,14 +25,14 @@ class FontRenderer(
      * @param text The text to parse.
      * @return A list of triples containing the emoji text, start index, and end index.
      */
-    fun parseEmojis(text: String): List<Triple<CharInfo, Int, Int>> {
-        val result = mutableListOf<Triple<CharInfo, Int, Int>>()
+    fun parseEmojis(text: String): List<Pair<GlyphInfo, IntRange>> {
+        val result = mutableListOf<Pair<GlyphInfo, IntRange>>()
         val matches = emojiRegex.findAll(text)
 
         for (match in matches) {
             val emojiKey = match.value.substring(1, match.value.length - 1)
             val charInfo = emojis[emojiKey] ?: continue
-            result.add(Triple(charInfo, match.range.first, match.range.last))
+            result.add(charInfo to match.range)
         }
 
         return result
@@ -77,18 +79,20 @@ class FontRenderer(
      * @param color The color of the text.
      * @param block The block to execute for each character.
      *
-     * @see CharInfo
+     * @see GlyphInfo
      */
     private fun iterateText(
         text: String,
         scale: Double,
         shadow: Boolean,
         color: Color = Color.WHITE,
-        block: (CharInfo, Vec2d, Vec2d, Color) -> Unit
+        block: (GlyphInfo, Vec2d, Vec2d, Color) -> Unit
     ) {
         val actualScale = getScaleFactor(scale)
         val scaledShadowShift = shadowShift * actualScale
         val scaledGap = gap * actualScale
+        val shadowColor = getShadowColor(color)
+        val emojiColor = Color.WHITE.setAlpha(color.a)
 
         var posX = 0.0
         val posY = getHeight(scale) * -0.5 + baselineOffset * actualScale
@@ -99,16 +103,16 @@ class FontRenderer(
         while (index < text.length) {
             run { // Because continue is not allowed in lambda
                 emojis
-                    .firstOrNull { index in it.second..it.third }
+                    .firstOrNull { index in it.second }
                     ?.let { emoji ->
                         val scaledSize = emoji.first.size * actualScale
                         val pos1 = Vec2d(posX, posY)
                         val pos2 = pos1 + scaledSize
 
-                        block(emoji.first, pos1, pos2, color)
+                        block(emoji.first, pos1, pos2, emojiColor)
 
                         posX += scaledSize.x + scaledGap
-                        index += emoji.third - emoji.second + 1
+                        index = emoji.second.last
                         return@run
                     }
 
@@ -122,7 +126,7 @@ class FontRenderer(
                 if (shadow && FontSettings.shadow) {
                     val shadowPos1 = pos1 + scaledShadowShift
                     val shadowPos2 = shadowPos1 + scaledSize
-                    block(glyph, shadowPos1, shadowPos2, getShadowColor(color))
+                    block(glyph, shadowPos1, shadowPos2, shadowColor)
                 }
 
                 block(glyph, pos1, pos2, color)
@@ -134,7 +138,7 @@ class FontRenderer(
         }
     }
 
-    private fun IRenderContext.putChar(pos: Vec2d, lt: Vec2d, rb: Vec2d, color: Color, ci: CharInfo) {
+    private fun IRenderContext.putChar(pos: Vec2d, lt: Vec2d, rb: Vec2d, color: Color, ci: GlyphInfo) {
         val x = pos.x
         val y = pos.y
 
@@ -161,17 +165,17 @@ class FontRenderer(
 
     override fun render() {
         shader.use()
+        shader["u_EmojiTexture"] = 1
 
         font.glyphs.bind()
-
         emojis.glyphs.bind()
-        shader["u_EmojiTexture"] = 1
 
         super.render()
     }
 
     companion object {
         private val shader = Shader("renderer/font")
+
         private val shadowShift get() = FontSettings.shadowShift * 4.0
         private val baselineOffset get() = FontSettings.baselineOffset * 2.0f - 10f
         private val gap get() = FontSettings.gapSetting * 0.5f - 0.8f

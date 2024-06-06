@@ -9,7 +9,7 @@ import com.lambda.util.math.Vec2d
  * @property uv1 The top-left UV coordinates of the character texture.
  * @property uv2 The bottom-right UV coordinates of the character texture.
  */
-data class CharInfo(
+data class GlyphInfo(
     val size: Vec2d,
     val uv1: Vec2d,
     val uv2: Vec2d

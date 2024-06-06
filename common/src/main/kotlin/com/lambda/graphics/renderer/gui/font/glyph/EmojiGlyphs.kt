@@ -17,8 +17,9 @@ import kotlin.math.log2
 import kotlin.math.sqrt
 import kotlin.system.measureTimeMillis
 
+// TODO: AbstractGlyphs to use for both Font & Emoji glyphs?
 class EmojiGlyphs(zipUrl: String) {
-    private val emojiMap = mutableMapOf<String, CharInfo>()
+    private val emojiMap = mutableMapOf<String, GlyphInfo>()
     private val fontTexture: MipmapTexture
 
     private val image: BufferedImage
@@ -43,10 +44,12 @@ class EmojiGlyphs(zipUrl: String) {
 
                 val length = zip.size().toDouble()
 
-                // TODO: This is a hack but it works
-                val width = pow(2, ceil(log2(firstImage.width * sqrt(length))).toInt())
-                val height = pow(2, ceil(log2(firstImage.height * sqrt(length))).toInt())
-                val texelSize = 1.0 / width // This assumes that the texture is a power of 2
+                fun getTextureDimensionLength(dimLength: Int) =
+                    pow(2, ceil(log2((dimLength + STEP) * sqrt(length))).toInt())
+
+                val width = getTextureDimensionLength(firstImage.width)
+                val height = getTextureDimensionLength(firstImage.height)
+                val texelSize = Vec2d.ONE / Vec2d(width, height)
 
                 image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
                 graphics = image.graphics as Graphics2D
@@ -57,7 +60,7 @@ class EmojiGlyphs(zipUrl: String) {
                     val emoji = ImageIO.read(zip.getInputStream(entry))
 
                     if (x + emoji.width >= image.width) {
-                        y += emoji.height
+                        y += emoji.height + STEP
                         x = 0
                     }
 
@@ -69,13 +72,13 @@ class EmojiGlyphs(zipUrl: String) {
                     val uv1 = Vec2d(x, y) * texelSize
                     val uv2 = Vec2d(x, y).plus(size) * texelSize
 
-                    emojiMap[name] = CharInfo(size, -uv1, -uv2)
+                    emojiMap[name] = GlyphInfo(size, -uv1, -uv2)
 
-                    x += emoji.width
+                    x += emoji.width + STEP
                 }
             }
 
-            ImageIO.write(image, "png", File("emoji.png"))
+            //ImageIO.write(image, "png", File("emoji.png"))
 
             fontTexture = MipmapTexture(image)
         }
@@ -90,10 +93,12 @@ class EmojiGlyphs(zipUrl: String) {
         }
     }
 
-    fun getEmoji(emoji: String): CharInfo? =
+    fun getEmoji(emoji: String): GlyphInfo? =
         emojiMap[emoji]
 
     companion object {
+        private const val STEP = 2
+
         private const val GL_TEXTURE_SLOT = 1 // TODO: Texture slot borrowing
     }
 }

@@ -14,7 +14,7 @@ import kotlin.math.max
 import kotlin.system.measureTimeMillis
 
 class FontGlyphs(font: Font) {
-    private val charMap = Int2ObjectOpenHashMap<CharInfo>()
+    private val charMap = Int2ObjectOpenHashMap<GlyphInfo>()
     private val fontTexture: MipmapTexture
 
     var fontHeight = 0.0; private set
@@ -35,7 +35,7 @@ class FontGlyphs(font: Font) {
 
                 rowHeight = max(rowHeight, charImage.height + STEP)
 
-                if (x + charImage.width + STEP >= TEXTURE_SIZE) {
+                if (x + charImage.width >= TEXTURE_SIZE) {
                     y += rowHeight
                     x = 0
                     rowHeight = 0
@@ -49,7 +49,7 @@ class FontGlyphs(font: Font) {
                 val uv1 = Vec2d(x, y) * ONE_TEXEL_SIZE
                 val uv2 = Vec2d(x, y).plus(size) * ONE_TEXEL_SIZE
 
-                charMap[char.code] = CharInfo(size, uv1, uv2)
+                charMap[char.code] = GlyphInfo(size, uv1, uv2)
                 fontHeight = max(fontHeight, size.y)
 
                 x += charImage.width + STEP
@@ -68,7 +68,7 @@ class FontGlyphs(font: Font) {
         }
     }
 
-    fun getChar(char: Char): CharInfo? =
+    fun getChar(char: Char): GlyphInfo? =
         charMap[char.code]
 
     companion object {

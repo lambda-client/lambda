@@ -4,7 +4,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
 object RenderTest : Module(
-    name = "RenderTest",
+    name = "Render:shrimp:Test:canned_food:",
     description = "RenderTest",
     defaultTags = setOf(ModuleTag.DEBUG)
 ) {
