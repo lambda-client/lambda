@@ -1,7 +1,7 @@
 package com.lambda.module.modules.network
 
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
@@ -27,20 +27,20 @@ object ServerSpoof : Module(
     private val cancelResourcePack by setting("Cancel Resource Pack Loading", true)
 
     init {
-        listener<PacketEvent.Send.Pre> {
+        unsafeListener<PacketEvent.Send.Pre> {
             val packet = it.packet
-            if (packet !is CustomPayloadC2SPacket) return@listener
+            if (packet !is CustomPayloadC2SPacket) return@unsafeListener
             val payload = packet.payload
-            if (payload !is BrandCustomPayload) return@listener
-            if (!spoofClientBrand || payload.id() != BrandCustomPayload.ID) return@listener
+            if (payload !is BrandCustomPayload) return@unsafeListener
+            if (!spoofClientBrand || payload.id() != BrandCustomPayload.ID) return@unsafeListener
 
             payload.write(PacketByteBuf(Unpooled.buffer()).writeString(spoofName))
         }
 
-        listener<PacketEvent.Receive.Pre> { event ->
+        unsafeListener<PacketEvent.Receive.Pre> { event ->
             val packet = event.packet
-            if (!cancelResourcePack) return@listener
-            if (packet !is ResourcePackSendS2CPacket) return@listener
+            if (!cancelResourcePack) return@unsafeListener
+            if (packet !is ResourcePackSendS2CPacket) return@unsafeListener
 
             event.cancel()
 
