@@ -8,6 +8,8 @@ import com.lambda.event.Subscriber
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.modules.client.TaskFlow
+import com.lambda.threading.runConcurrent
+import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.logError
@@ -18,6 +20,7 @@ import com.lambda.util.text.buildText
 import com.lambda.util.text.color
 import com.lambda.util.text.literal
 import com.lambda.util.text.text
+import kotlinx.coroutines.delay
 import net.minecraft.text.Text
 import org.apache.commons.lang3.time.DurationFormatUtils
 import java.awt.Color
@@ -39,7 +42,7 @@ import java.awt.Color
  * This makes it easy to build complex flows of nested tasks.
  *
  * @property delay The delay before the task starts, in milliseconds.
- * @property timeout The maximum time that the task is allowed to run, in milliseconds.
+ * @property timeout The maximum time that the task is allowed to run, in ticks.
  * @property tries The maximum number of attempts to execute the task before it is considered failed.
  * @property executions The number of times the task should be repeated.
  * @property onSuccess The action to be performed when the task completes successfully.
@@ -48,22 +51,22 @@ import java.awt.Color
  * @property onRepeat The action to be performed each time the task is repeated.
  * @property onException The action to be performed when the task encounters an exception.
  */
-abstract class Task<Result>(
-    private var delay: Int = 0,
-    private var timeout: Int = Int.MAX_VALUE,
-    private var tries: Int = 0,
-    private var repeats: Int = 0,
-    private var cooldown: Int = TaskFlow.taskCooldown,
-    private var onStart: SafeContext.(Task<Result>) -> Unit = {},
-    private var onSuccess: SafeContext.(Task<Result>, Result) -> Unit = { _, _ -> },
-    private var onRetry: SafeContext.(Task<Result>) -> Unit = {},
-    private var onTimeout: SafeContext.(Task<Result>) -> Unit = {},
-    private var onRepeat: SafeContext.(Task<Result>, Result, Int) -> Unit = { _, _, _ -> },
-    private var onException: SafeContext.(Task<Result>, Throwable) -> Unit = { _, _ -> },
-) : Nameable {
+abstract class Task<Result> : Nameable {
+    open var delay: Int = 0
+    open var timeout: Int = Int.MAX_VALUE
+    open var tries: Int = 0
+    open var repeats: Int = 0
+    open var cooldown: Int = TaskFlow.taskCooldown
+    open var onStart: SafeContext.(Task<Result>) -> Unit = {}
+    open var onSuccess: SafeContext.(Task<Result>, Result) -> Unit = { _, _ -> }
+    open var onRetry: SafeContext.(Task<Result>) -> Unit = {}
+    open var onTimeout: SafeContext.(Task<Result>) -> Unit = {}
+    open var onRepeat: SafeContext.(Task<Result>, Result, Int) -> Unit = { _, _, _ -> }
+    open var onException: SafeContext.(Task<Result>, Throwable) -> Unit = { _, _ -> }
+
     open var pausable = true
 
-    private var parent: Task<*>? = null
+    var parent: Task<*>? = null
     private val root: Task<*> get() = parent?.root ?: this
     private val depth: Int get() = parent?.depth?.plus(1) ?: 0
 
@@ -77,7 +80,7 @@ abstract class Task<Result>(
     val isActivated get() = state == State.ACTIVATED
     val isRunning get() = state == State.ACTIVATED || state == State.DEACTIVATED
     val isFailed get() = state == State.FAILED
-    val isCompleted get() = state == State.COMPLETED
+    val isCompleted get() = state == State.COMPLETED || state == State.COOLDOWN
     val isRoot get() = parent == null
     override var name = this::class.simpleName ?: "Task"
     val identifier get() = "$name@${hashCode()}"
@@ -94,6 +97,7 @@ abstract class Task<Result>(
         DEACTIVATED,
         CANCELLED,
         FAILED,
+        COOLDOWN,
         COMPLETED,
     }
 
@@ -158,8 +162,6 @@ abstract class Task<Result>(
 
     @Ta5kBuilder
     fun SafeContext.success(result: Result) {
-        LOG.info("$identifier completed successfully after $attempted retries and $executions executions.")
-
         if (executions < repeats) {
             executions++
             LOG.info("Repeating $identifier $executions/$repeats...")
@@ -168,10 +170,31 @@ abstract class Task<Result>(
             return
         }
 
-        state = State.COMPLETED
         stopListening()
-        onSuccess(this@Task, result)
+        if (cooldown > 0) {
+            state = State.COOLDOWN
+            runConcurrent {
+                delay(cooldown.toLong())
+                runGameScheduled {
+                    finish(result)
+                }
+            }
+        } else finish(result)
+    }
+
+    private fun SafeContext.finish(result: Result) {
+        state = State.COMPLETED
+        try {
+            onSuccess(this@Task, result)
+        } catch (e: ClassCastException) {
+            result?.let {
+                LOG.error("Failed to cast result of $identifier to ${it::class.simpleName}")
+            }
+            failure(e)
+        }
+
         notifyParent()
+        LOG.info("$identifier completed successfully after $attempted retries and $executions executions.")
     }
 
     @Ta5kBuilder
@@ -270,7 +293,7 @@ abstract class Task<Result>(
     /**
      * Sets the delay before the task starts.
      *
-     * @param delay The delay in milliseconds.
+     * @param delay The delay in ticks.
      * @return This task instance with the updated delay.
      */
     @Ta5kBuilder
@@ -282,12 +305,26 @@ abstract class Task<Result>(
     /**
      * Sets the timeout for a single attempt of the task
      *
-     * @param timeout The timeout in milliseconds
+     * @param timeout The timeout in ticks.
      * @return This task instance with the updated timeout.
      */
     @Ta5kBuilder
     fun withTimeout(timeout: Int): Task<Result> {
         this.timeout = timeout
+        return this
+    }
+
+    /**
+     * Sets the cooldown period for the task.
+     *
+     * The cooldown period is the time that the task will wait before it the next task can be executed.
+     *
+     * @param cooldown The cooldown period in milliseconds.
+     * @return This task instance with the updated cooldown period.
+     */
+    @Ta5kBuilder
+    fun withCooldown(cooldown: Int): Task<Result> {
+        this.cooldown = cooldown
         return this
     }
 
@@ -340,6 +377,14 @@ abstract class Task<Result>(
         return this
     }
 
+    /**
+     * This method allows you to chain another task that will be started upon the successful completion of the current task.
+     * The action provided as a parameter will be used to create the next task.
+     * The context of the action, the current task, and the result of the current task are passed as parameters to the action.
+     *
+     * @param action A lambda function that takes the current task and its result as parameters and returns the next task to be started.
+     * @return The current task instance with the updated success action.
+     */
     @Ta5kBuilder
     fun thenRun(action: SafeContext.(Task<Result>, Result) -> Task<*>): Task<Result> {
         this.onSuccess = { task, result ->

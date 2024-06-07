@@ -4,6 +4,7 @@ import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
 import com.lambda.task.Task.Companion.failTask
+import com.lambda.task.tasks.ContainerTransfer
 
 abstract class TransferResult {
     abstract val solve: Task<*>
@@ -13,13 +14,10 @@ abstract class TransferResult {
         val from: MaterialContainer,
         val to: MaterialContainer
     ) : TransferResult() {
-        override val solve: Task<*> = from.doWithdrawal(selection).onSuccess { withdraw, _ ->
-            to.doDeposit(selection).start(withdraw)
-        }
+        override val solve = ContainerTransfer(selection, from, to)
+        val undo = ContainerTransfer(selection, to, from)
 
-        val undo = to.doWithdrawal(selection).onSuccess { withdraw, _ ->
-            from.doDeposit(selection).start(withdraw)
-        }
+        override fun toString() = "Transfer of [$selection] from [$from] to [$to]"
     }
 
     data object NoSpace : TransferResult() {

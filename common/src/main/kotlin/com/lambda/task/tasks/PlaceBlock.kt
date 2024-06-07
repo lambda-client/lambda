@@ -3,8 +3,10 @@ package com.lambda.task.tasks
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RotationEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.info
@@ -14,11 +16,12 @@ class PlaceBlock @Ta5kBuilder constructor(
     private val ctx: PlaceContext,
     private val swingHand: Boolean = true,
     private val rotate: Boolean = true,
-    private val waitForConfirmation: Boolean = false,
+    private val waitForConfirmation: Boolean = true,
 ) : Task<Unit>() {
     private var beginState: BlockState? = null
     private val SafeContext.resultingState: BlockState get() = ctx.resultingPos.blockState(world)
     private val SafeContext.matches get() = ctx.targetState.matches(ctx.resultingPos.blockState(world), ctx.resultingPos, world)
+    override var cooldown = TaskFlow.build.placeCooldown
 
     override fun SafeContext.onStart() {
         if (matches) {
@@ -41,14 +44,16 @@ class PlaceBlock @Ta5kBuilder constructor(
             placeBlock()
         }
 
+        listener<TickEvent.Post> {
+            if (matches) finish()
+        }
+
 //        listener<WorldEvent.BlockUpdate> {
 //            if (matches) success(Unit)
 //        }
     }
 
     private fun SafeContext.placeBlock() {
-        val preStack = player.getStackInHand(ctx.hand).copy()
-
         val actionResult = interaction.interactBlock(
             player,
             ctx.hand,
@@ -65,16 +70,20 @@ class PlaceBlock @Ta5kBuilder constructor(
             }
 
             if (!waitForConfirmation && matches) {
-                LOG.info("Placed $preStack at ${
-                    ctx.result.blockPos.toShortString()
-                } (${ctx.result.side}) with expecting state ${
-                    ctx.expectedState
-                } and expecting position at ${ctx.resultingPos.toShortString()}")
-                success(Unit)
+                finish()
             }
         } else {
             info("Internal interaction failed with $actionResult")
         }
+    }
+
+    private fun SafeContext.finish() {
+        LOG.info("Placed at ${
+            ctx.result.blockPos.toShortString()
+        } (${ctx.result.side}) with expecting state ${
+            ctx.expectedState
+        } and expecting position at ${ctx.resultingPos.toShortString()}")
+        success(Unit)
     }
 
     companion object {
@@ -83,7 +92,7 @@ class PlaceBlock @Ta5kBuilder constructor(
             ctx: PlaceContext,
             swingHand: Boolean = true,
             rotate: Boolean = true,
-            waitForConfirmation: Boolean = false,
+            waitForConfirmation: Boolean = true,
         ) = PlaceBlock(ctx, swingHand, rotate, waitForConfirmation)
     }
 }

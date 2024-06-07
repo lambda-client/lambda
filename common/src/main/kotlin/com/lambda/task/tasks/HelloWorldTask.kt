@@ -18,8 +18,6 @@ class HelloWorldTask @Ta5kBuilder constructor() : Task<Unit>() {
 
     companion object {
         @Ta5kBuilder
-        fun Task<*>.helloWorld() = HelloWorldTask()
-        @Ta5kBuilder
-        fun SubTaskBuilder.helloWorld() = HelloWorldTask().also { tasks.add(it) }
+        fun helloWorld() = HelloWorldTask()
     }
 }

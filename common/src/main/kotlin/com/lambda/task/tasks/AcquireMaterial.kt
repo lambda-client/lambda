@@ -11,7 +11,7 @@ class AcquireMaterial(
 ) : Task<StackSelection>() {
     override fun SafeContext.onStart() {
         findContainerWithSelection(selection)
-            ?.doWithdrawal(selection)
+            ?.withdraw(selection)
             ?.onSuccess { _, _ ->
                 success(selection)
             }?.start(this@AcquireMaterial)

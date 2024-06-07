@@ -121,6 +121,11 @@ object BuildSimulator {
             if (voxelShape.isEmpty) return@forEach
 
             val boxes = voxelShape.boundingBoxes.map { it.offset(hitPos) }
+
+            if (boxes.all { it.center.distanceTo(eye) > interact.reach + 1 }) {
+                acc.add(BuildResult.OutOfReach(pos, eye, hitPos.vecOf(hitSide), interact.reach, hitSide))
+                return@forEach
+            }
             val verify: HitResult.() -> Boolean = {
                 blockResult?.blockPos == hitPos && blockResult?.side == hitSide
             }
@@ -321,9 +326,14 @@ object BuildSimulator {
         voxelShape.getClosestPointTo(eye).ifPresent {
             // ToDo: Use closest point of shape
         }
-        val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
-        val verify: HitResult.() -> Boolean = { blockResult?.blockPos == pos }
 
+        val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
+        if (boxes.all { it.center.distanceTo(eye) > interact.reach + 1 }) {
+            acc.add(BuildResult.OutOfReach(pos, eye, pos.toCenterPos(), interact.reach, Direction.UP))
+            return acc
+        }
+
+        val verify: HitResult.() -> Boolean = { blockResult?.blockPos == pos }
         /* the player is buried inside the block */
         if (boxes.any { it.contains(eye) }) {
             currentCast?.blockResult?.let { blockHit ->

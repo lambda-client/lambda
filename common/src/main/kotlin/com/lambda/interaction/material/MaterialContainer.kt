@@ -1,6 +1,5 @@
 package com.lambda.interaction.material
 
-import com.lambda.Lambda.LOG
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.ShulkerBoxContainer
 import com.lambda.interaction.material.transfer.TransferResult
@@ -35,45 +34,16 @@ abstract class MaterialContainer(
     }
 
     /**
-     * Brings the player into a withdrawal/deposit state. E.g.: move to a chest etc.
-     */
-    open fun prepare(): Task<*>? = null
-
-    /**
      * Withdraws items from the container to the player's inventory.
      */
-    abstract fun withdraw(selection: StackSelection): Task<*>
-
     @Task.Ta5kBuilder
-    fun doWithdrawal(selection: StackSelection): Task<*> {
-        return prepare()?.let { prep ->
-            prep.onSuccess { _, _ ->
-                withdraw(selection).start(prep)
-            }.onStart {
-                LOG.info("${it.identifier} withdrawing [$selection] from [$name]")
-            }
-        } ?: withdraw(selection).onStart {
-            LOG.info("${it.identifier} withdrawing [$selection] from [$name]")
-        }
-    }
+    abstract fun withdraw(selection: StackSelection): Task<*>
 
     /**
      * Deposits items from the player's inventory into the container.
      */
-    abstract fun deposit(selection: StackSelection): Task<*>
-
     @Task.Ta5kBuilder
-    fun doDeposit(selection: StackSelection): Task<*> {
-        return prepare()?.let { prep ->
-            prep.onSuccess { _, _ ->
-                deposit(selection).start(prep)
-            }.onStart {
-                LOG.info("${it.identifier} depositing [$selection] to [$name]")
-            }
-        } ?: deposit(selection).onStart {
-            LOG.info("${it.identifier} depositing [$selection] to [$name]")
-        }
-    }
+    abstract fun deposit(selection: StackSelection): Task<*>
 
     open fun matchingStacks(selection: StackSelection) =
         selection.filterStacks(stacks)
@@ -90,7 +60,7 @@ abstract class MaterialContainer(
     fun transfer(selection: StackSelection, destination: MaterialContainer): TransferResult {
         val amount = available(selection)
         if (amount < selection.count) {
-            return TransferResult.MissingItems(amount - selection.count)
+            return TransferResult.MissingItems( selection.count - amount)
         }
 
 //        val space = destination.spaceLeft(selection)

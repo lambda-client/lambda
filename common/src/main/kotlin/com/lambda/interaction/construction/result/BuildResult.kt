@@ -115,7 +115,9 @@ abstract class BuildResult : ComparableResult<Rank> {
     ) : Navigable, Resolvable, BuildResult() {
         override val rank = Rank.NOT_VISIBLE
 
-        override val resolve get() = moveToGoal(GoalPlace(blockPos))
+        override val resolve get() = moveToGoal {
+            GoalPlace(blockPos)
+        }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {

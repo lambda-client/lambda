@@ -1,5 +1,6 @@
 package com.lambda.task.tasks
 
+import baritone.api.pathing.goals.GoalBlock
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
@@ -11,6 +12,10 @@ import com.lambda.config.groups.IRotationConfig
 import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
+import com.lambda.task.tasks.GoalTask.Companion.moveToBlock
+import com.lambda.task.tasks.GoalTask.Companion.moveToBlockUntil
+import com.lambda.task.tasks.GoalTask.Companion.moveToGoal
+import com.lambda.task.tasks.GoalTask.Companion.moveToGoalUntil
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.BlockState
@@ -23,15 +28,22 @@ class BreakBlock @Ta5kBuilder constructor(
     private val rotationConfig: IRotationConfig = TaskFlow.rotation,
     private val interactionConfig: InteractionConfig = TaskFlow.interact,
     private val sides: Set<Direction> = emptySet(),
-    private val collectDrop: Boolean = TaskFlow.build.collectDrops,
+    private var collectDrop: Boolean = TaskFlow.build.collectDrops,
     private val rotate: Boolean = TaskFlow.build.rotateForBreak,
     private val swingHand: Boolean = TaskFlow.build.swingHand,
 ) : Task<ItemEntity?>() {
     val blockPos: BlockPos get() = ctx.result.blockPos
     private var beginState: BlockState? = null
     val SafeContext.state: BlockState get() = blockPos.blockState(world)
+    override var cooldown = TaskFlow.build.breakCoolDown
 
     override fun SafeContext.onStart() {
+        parent?.let {
+            if (it is BuildStructure) {
+                collectDrop = it.collectDrops
+            }
+        }
+
         if (state.isAir && !collectDrop) {
             success(null)
             return
@@ -54,7 +66,7 @@ class BreakBlock @Ta5kBuilder constructor(
         }
 
         listener<TickEvent.Pre> {
-            if (state.isAir && !collectDrop) {
+            if (finish()) {
                 success(null)
                 return@listener
             }
@@ -62,16 +74,27 @@ class BreakBlock @Ta5kBuilder constructor(
             if (rotate) return@listener
 
             breakBlock(ctx.result.side)
-            if (state.isAir && !collectDrop) success(null)
+            if (finish()) success(null)
         }
 
         listener<WorldEvent.EntitySpawn> {
-            if (it.entity is ItemEntity
+            if (collectDrop
+                && it.entity is ItemEntity
                 && it.entity.pos.isInRange(blockPos.toCenterPos(), 1.0)
 //                && it.entity.stack.item == beginState?.block?.item // ToDo: The item entities are all air??
-            ) success(it.entity)
+            ) {
+                moveToGoalUntil(
+                    { GoalBlock(it.entity.blockPos) },
+                    { !world.entities.contains(it.entity) }
+                ).onSuccess { _, _ ->
+                    success(it.entity)
+                }.start(this@BreakBlock)
+//                success(it.entity)
+            }
         }
     }
+
+    private fun SafeContext.finish() = state.isAir && !collectDrop
 
     private fun SafeContext.breakBlock(side: Direction) {
         if (interaction.updateBlockBreakingProgress(blockPos, side)) {

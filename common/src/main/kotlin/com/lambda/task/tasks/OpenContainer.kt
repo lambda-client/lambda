@@ -38,7 +38,9 @@ class OpenContainer<H : ScreenHandler>(
         listener<ScreenHandlerEvent.Loaded> {
             slotsLoaded = true
 
-            screenHandler?.let { success(it) }
+            screenHandler?.let {
+                success(it)
+            }
         }
 
         listener<RotationEvent.Pre> { event ->

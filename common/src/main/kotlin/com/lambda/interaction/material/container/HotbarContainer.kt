@@ -7,7 +7,6 @@ import com.lambda.task.Task
 import com.lambda.task.Task.Companion.emptyTask
 import com.lambda.task.tasks.InventoryTask.Companion.deposit
 import com.lambda.util.player.SlotUtils.hotbar
-import net.minecraft.client.gui.screen.ingame.ScreenHandlerProvider
 import net.minecraft.item.ItemStack
 
 object HotbarContainer : MaterialContainer(Rank.HOTBAR) {
@@ -19,7 +18,7 @@ object HotbarContainer : MaterialContainer(Rank.HOTBAR) {
     override fun withdraw(selection: StackSelection) = emptyTask("WithdrawFromHotbar")
 
     override fun deposit(selection: StackSelection): Task<*> {
-        val handledScreen = mc.currentScreen as? ScreenHandlerProvider<*> ?: return emptyTask()
-        return deposit(handledScreen.screenHandler, selection)
+        val handler = mc.player?.currentScreenHandler ?: return emptyTask("NoScreenHandler")
+        return deposit(handler, selection)
     }
 }

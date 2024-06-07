@@ -10,7 +10,7 @@ object SlotUtils {
     val ClientPlayerEntity.storage: List<ItemStack> get() = inventory.main.subList(9, 36)
     val ClientPlayerEntity.hotbarAndStorage: List<ItemStack> get() = inventory.main.subList(0, 36)
     val ClientPlayerEntity.combined: List<ItemStack> get() = inventory.main + inventory.armor + inventory.offHand
-    val ClientPlayerEntity.offhand: ItemStack get() = inventory.offHand.first()
+    val ClientPlayerEntity.offhand: ItemStack get() = offHandStack
 
     fun SafeContext.clickSlot(
         slotId: Int,

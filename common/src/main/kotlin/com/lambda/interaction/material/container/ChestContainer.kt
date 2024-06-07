@@ -2,12 +2,10 @@ package com.lambda.interaction.material.container
 
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
-import com.lambda.task.tasks.GoalTask.Companion.moveIntoEntityRange
 import com.lambda.task.tasks.InventoryTask.Companion.deposit
 import com.lambda.task.tasks.InventoryTask.Companion.withdraw
 import com.lambda.task.tasks.OpenContainer.Companion.openContainer
 import com.lambda.util.Communication.info
-import net.minecraft.block.ChestBlock
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.GenericContainerScreenHandler
 import net.minecraft.screen.ScreenHandler
@@ -20,16 +18,16 @@ data class ChestContainer(
 ) : MaterialContainer(Rank.CHEST) {
     override val name = "Chest at ${blockPos.toShortString()}"
 
-    override fun prepare() =
-        moveIntoEntityRange(blockPos).onSuccess { _, _ ->
-//            when {
-//                ChestBlock.hasBlockOnTop(world, blockPos) -> breakBlock(blockPos.up())
-//                ChestBlock.hasCatOnTop(world, blockPos) -> kill(cat)
+//    override fun prepare() =
+//        moveIntoEntityRange(blockPos).onSuccess { _, _ ->
+////            when {
+////                ChestBlock.hasBlockOnTop(world, blockPos) -> breakBlock(blockPos.up())
+////                ChestBlock.hasCatOnTop(world, blockPos) -> kill(cat)
+////            }
+//            if (ChestBlock.isChestBlocked(world, blockPos)) {
+//                throw ChestBlockedException()
 //            }
-            if (ChestBlock.isChestBlocked(world, blockPos)) {
-                throw ChestBlockedException()
-            }
-        }
+//        }
 
     override fun withdraw(selection: StackSelection) =
         openContainer<GenericContainerScreenHandler>(blockPos)

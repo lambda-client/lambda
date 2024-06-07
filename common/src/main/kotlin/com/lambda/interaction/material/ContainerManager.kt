@@ -17,6 +17,7 @@ import net.minecraft.block.entity.EnderChestBlockEntity
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.GenericContainerScreenHandler
+import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 import java.util.TreeSet
 
@@ -39,7 +40,7 @@ object ContainerManager : Loadable {
             lastInteractedBlockEntity = it.blockHitResult.blockPos.blockEntity(world)
         }
 
-        listener<ScreenHandlerEvent.Close<GenericContainerScreenHandler>> { event ->
+        listener<ScreenHandlerEvent.Close<ScreenHandler>> { event ->
             // ToDo: ;-; i hate type erasure.
             //  The listener will be triggered for any H, not just GenericContainerScreenHandler
             if (event.screenHandler !is GenericContainerScreenHandler) return@listener

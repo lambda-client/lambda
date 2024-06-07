@@ -1,5 +1,6 @@
 package com.lambda.util.item
 
+import com.lambda.util.collections.Cacheable.Companion.cacheable
 import net.minecraft.inventory.Inventories
 import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemStack
@@ -39,14 +40,15 @@ object ItemStackUtils {
         return listOf(copyWithCount(maxCount), copyWithCount(remainder))
     }
 
-    val ItemStack.shulkerBoxContents: List<ItemStack> get() =
-        BlockItem.getBlockEntityNbt(this)?.takeIf {
+    val ItemStack.shulkerBoxContents: List<ItemStack> by cacheable { stack ->
+        BlockItem.getBlockEntityNbt(stack)?.takeIf {
             it.contains("Items", NbtElement.LIST_TYPE.toInt())
         }?.let {
             val list = DefaultedList.ofSize(27, ItemStack.EMPTY)
             Inventories.readNbt(it, list)
             list
         } ?: emptyList()
+    }
 
     /**
      * Checks if the given item stacks are equal, including the item count and NBT.

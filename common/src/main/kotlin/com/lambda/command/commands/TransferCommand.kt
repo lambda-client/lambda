@@ -25,7 +25,8 @@ object TransferCommand : LambdaCommand(
             required(integer("amount")) { amount ->
                 required(string("from")) { from ->
                     suggests { ctx, builder ->
-                        val selection = selectStack(amount(ctx).value()) {
+                        val count = amount(ctx).value()
+                        val selection = selectStack(count) {
                             isItem(stack(ctx).value().item)
                         }
                         containerMatchSelection(selection).forEach {
