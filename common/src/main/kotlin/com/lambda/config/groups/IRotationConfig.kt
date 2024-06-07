@@ -26,6 +26,20 @@ interface IRotationConfig {
      */
     val resetTicks: Int
 
+    /**
+     * If true, rotation will be instant without any transition. If false, rotation will transition over time.
+     */
+    val instant: Boolean
+
+    /**
+     * The mean (average) value for the Gaussian distribution used to calculate rotation speed.
+     * This value represents the center of the distribution.
+     */
     val mean: Double
+
+    /**
+     * The standard deviation for the Gaussian distribution used to calculate rotation speed.
+     * This value represents the spread or dispersion of the distribution.
+     */
     val derivation: Double
 }
