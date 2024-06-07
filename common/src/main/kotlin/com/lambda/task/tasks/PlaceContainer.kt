@@ -19,9 +19,7 @@ class PlaceContainer @Ta5kBuilder constructor(
 ) : Task<BlockPos>() {
     override fun SafeContext.onStart() {
         val results = BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
-//            .filter { world.isAir(it) }
             .map { it.blockPos }
-//            .filter { world.isAir(it) }
             .flatMap {
                 it.blockPos
                     .toStructure(TargetState.Stack(stack))
@@ -32,10 +30,13 @@ class PlaceContainer @Ta5kBuilder constructor(
 //        val res = results.sorted()
 //        res
 
-        val useful = results.filterIsInstance<PlaceResult.Success>() + results.filterIsInstance<BuildResult.WrongStack>()
-        useful.minOrNull()?.let { result ->
+        val succeeds = results.filterIsInstance<PlaceResult.Success>()
+        val wrongStacks = results.filterIsInstance<BuildResult.WrongStack>()
+        (succeeds + wrongStacks).minOrNull()?.let { result ->
             buildStructure {
-                result.blockPos.toStructure(TargetState.Stack(stack)).toBlueprint()
+                result.blockPos
+                    .toStructure(TargetState.Stack(stack))
+                    .toBlueprint()
             }.onSuccess { _, _ ->
                 success(result.blockPos)
             }.start(this@PlaceContainer)

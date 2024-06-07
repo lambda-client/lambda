@@ -7,10 +7,12 @@ import com.lambda.event.EventFlow
 import com.lambda.event.Subscriber
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.module.modules.client.TaskFlow
 import com.lambda.threading.runSafe
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
+import com.lambda.util.DynamicReflectionSerializer.dynamicString
 import com.lambda.util.Nameable
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
@@ -51,6 +53,7 @@ abstract class Task<Result>(
     private var timeout: Int = Int.MAX_VALUE,
     private var tries: Int = 0,
     private var repeats: Int = 0,
+    private var cooldown: Int = TaskFlow.taskCooldown,
     private var onStart: SafeContext.(Task<Result>) -> Unit = {},
     private var onSuccess: SafeContext.(Task<Result>, Result) -> Unit = { _, _ -> },
     private var onRetry: SafeContext.(Task<Result>) -> Unit = {},
@@ -68,7 +71,7 @@ abstract class Task<Result>(
     private var attempted = 0
     private val subTasks = mutableListOf<Task<*>>()
     private var state = State.IDLE
-    var age: Int = 0
+    var age = 0
 
     private val isDeactivated get() = state == State.DEACTIVATED
     val isActivated get() = state == State.ACTIVATED
@@ -81,35 +84,6 @@ abstract class Task<Result>(
 
     // ToDo: Better color management
     private val primaryColor = Color(0, 255, 0, 100)
-    val info: Text
-        get() = buildText {
-            literal("Name ")
-            color(primaryColor) { literal(name) }
-
-            literal(" State ")
-            color(primaryColor) { literal(state.name) }
-
-            literal(" Runtime ")
-            color(primaryColor) {
-                literal(DurationFormatUtils.formatDuration(age * 50L, "HH:mm:ss,SSS").dropLast(1))
-            }
-
-            val display = subTasks.reversed().take(MAX_DEBUG_ENTRIES)
-            display.forEach {
-                literal("\n${"  ".repeat(depth + 1)}")
-                text(it.info)
-            }
-
-            val left = subTasks.size - display.size
-            if (left > 0) {
-                literal("\n${"  ".repeat(depth + 1)}And ")
-                color(primaryColor) {
-                    literal("$left")
-                }
-                literal(" more...")
-            }
-
-        }
 
     val syncListeners = Subscriber()
     private val concurrentListeners = Subscriber()
@@ -120,7 +94,7 @@ abstract class Task<Result>(
         DEACTIVATED,
         CANCELLED,
         FAILED,
-        COMPLETED
+        COMPLETED,
     }
 
     operator fun plus(other: Task<*>) = subTasks.add(other)
@@ -184,6 +158,8 @@ abstract class Task<Result>(
 
     @Ta5kBuilder
     fun SafeContext.success(result: Result) {
+        LOG.info("$identifier completed successfully after $attempted retries and $executions executions.")
+
         if (executions < repeats) {
             executions++
             LOG.info("Repeating $identifier $executions/$repeats...")
@@ -192,7 +168,6 @@ abstract class Task<Result>(
             return
         }
 
-        LOG.info("$identifier completed successfully after $attempted retries and $executions executions.")
         state = State.COMPLETED
         stopListening()
         onSuccess(this@Task, result)
@@ -201,6 +176,8 @@ abstract class Task<Result>(
 
     @Ta5kBuilder
     fun cancel() {
+        if (state == State.CANCELLED) return
+
         cancelSubTasks()
         state = State.CANCELLED
         stopListening()
@@ -210,9 +187,7 @@ abstract class Task<Result>(
 
     @Ta5kBuilder
     fun cancelSubTasks() {
-        subTasks
-            .filter { it.isRunning }
-            .forEach { it.cancel() }
+        subTasks.forEach { it.cancel() }
     }
 
     @Ta5kBuilder
@@ -232,7 +207,6 @@ abstract class Task<Result>(
                 onRetry(this@Task)
             }
             reset()
-//            activate()
             return
         }
 
@@ -265,16 +239,16 @@ abstract class Task<Result>(
 
     private fun notifyParent() {
         parent?.let { par ->
-//            if (par.isCompleted) {
-//                LOG.info("$identifier notified parent ${par.identifier}")
-//                par.notifyParent()
-//                return@let
-//            }
-
-            if (par.isActivated) return@let
-
-            LOG.info("$identifier reactivated parent ${par.identifier}")
-            par.activate()
+            when {
+                par.isCompleted -> {
+                    LOG.info("$identifier completed parent ${par.identifier}")
+                    par.notifyParent()
+                }
+                !par.isActivated -> {
+                    LOG.info("$identifier reactivated parent ${par.identifier}")
+                    par.activate()
+                }
+            }
         }
     }
 
@@ -362,6 +336,15 @@ abstract class Task<Result>(
     @Ta5kBuilder
     fun onSuccess(action: SafeContext.(Task<Result>, Result) -> Unit): Task<Result> {
         this.onSuccess = action
+        LOG.info("Success action $action set for $identifier")
+        return this
+    }
+
+    @Ta5kBuilder
+    fun thenRun(action: SafeContext.(Task<Result>, Result) -> Task<*>): Task<Result> {
+        this.onSuccess = { task, result ->
+            action(this, task, result).start(task)
+        }
         return this
     }
 
@@ -431,10 +414,6 @@ abstract class Task<Result>(
 
     class TimeoutException(age: Int, attempts: Int) : Exception("Task timed out after $age ticks and $attempts attempts")
 
-    class SubTaskBuilder {
-        val tasks = mutableListOf<Task<*>>()
-    }
-
     companion object {
         val MAX_DEPTH = 20
         const val MAX_DEBUG_ENTRIES = 15
@@ -452,7 +431,19 @@ abstract class Task<Result>(
             message: String
         ): Task<Unit> = object : Task<Unit>() {
             init { this.name = "FailTask" }
-            override fun SafeContext.onStart() { failure(message) }
+            override fun SafeContext.onStart() {
+                failure(message)
+            }
+        }
+
+        @Ta5kBuilder
+        fun failTask(
+            e: Throwable
+        ): Task<Unit> = object : Task<Unit>() {
+            init { this.name = "FailTask" }
+            override fun SafeContext.onStart() {
+                failure(e)
+            }
         }
 
         @Ta5kBuilder
@@ -483,4 +474,34 @@ abstract class Task<Result>(
             }
         }
     }
+
+    val info: Text
+        get() = buildText {
+            literal("Name ")
+            color(primaryColor) { literal(name) }
+
+            literal(" State ")
+            color(primaryColor) { literal(state.name) }
+
+            literal(" Runtime ")
+            color(primaryColor) {
+                literal(DurationFormatUtils.formatDuration(age * 50L, "HH:mm:ss,SSS").dropLast(1))
+            }
+
+            val display = subTasks.reversed().take(MAX_DEBUG_ENTRIES)
+            display.forEach {
+                literal("\n${"  ".repeat(depth + 1)}")
+                text(it.info)
+            }
+
+            val left = subTasks.size - display.size
+            if (left > 0) {
+                literal("\n${"  ".repeat(depth + 1)}And ")
+                color(primaryColor) {
+                    literal("$left")
+                }
+                literal(" more...")
+            }
+
+        }
 }

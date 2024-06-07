@@ -14,10 +14,11 @@ object TaskFlow : Module(
     defaultTags = setOf(ModuleTag.CLIENT, ModuleTag.AUTOMATION)
 ) {
     enum class Page {
-        BUILD, ROTATION, INTERACTION
+        TASKS, BUILD, ROTATION, INTERACTION
     }
 
     private val page by setting("Page", Page.BUILD)
+    val taskCooldown by setting("Task Cooldown", 0, 0..200, 1, " ticks")
     val build = BuildSettings(this) {
         page == Page.BUILD
     }
