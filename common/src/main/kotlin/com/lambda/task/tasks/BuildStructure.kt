@@ -11,10 +11,7 @@ import com.lambda.interaction.construction.DynamicBlueprint
 import com.lambda.interaction.construction.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.PlaceContext
-import com.lambda.interaction.construction.result.BreakResult
-import com.lambda.interaction.construction.result.BuildResult
-import com.lambda.interaction.construction.result.PlaceResult
-import com.lambda.interaction.construction.result.Resolvable
+import com.lambda.interaction.construction.result.*
 import com.lambda.interaction.construction.simulation.BuildSimulator
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
@@ -50,7 +47,8 @@ class BuildStructure @Ta5kBuilder constructor(
     private val blueprint: Blueprint,
     private val finishOnDone: Boolean = true,
     private val pathing: Boolean = TaskFlow.build.pathing,
-    private val collectDrops: Boolean = TaskFlow.build.collectDrops,
+    val collectDrops: Boolean = TaskFlow.build.collectDrops,
+    private val cancelOnUnsolvable: Boolean = true,
 ) : Task<Unit>() {
     private var lastTask: Task<*>? = null
 
@@ -72,33 +70,29 @@ class BuildStructure @Ta5kBuilder constructor(
             val instantResults = results.filterIsInstance<BreakResult.Success>()
                 .filter { it.context.instantBreak }
                 .sorted()
-                .take(TaskFlow.build.interactLimit)
+                .take(TaskFlow.build.breaksPerTick)
 
-            if (TaskFlow.build.breakInstantAtOnce && instantResults.isNotEmpty()) {
-//                cancelSubTasks()
+            if (TaskFlow.build.breaksPerTick > 1 && instantResults.isNotEmpty()) {
                 instantResults.forEach {
-                    it.resolve.start(this@BuildStructure, false)
+                    it.resolve.start(this@BuildStructure, pauseParent = false)
                 }
                 lastTask = instantResults.last().resolve
                 return@listener
             }
 
             results.minOrNull()?.let { result ->
-                if (!pathing && result is BuildResult.OutOfReach) return@let
+                if (!pathing && result is Navigable) return@let
 
                 if (result !is Resolvable) {
                     if (result is BuildResult.Done) {
                         checkDone()
-                    } else {
+                    } else if (cancelOnUnsolvable) {
                         failure("Failed to resolve build result: $result")
                         return@listener
                     }
                     return@listener
                 }
-//                if (lastTask?.isCompleted == false) return@listener
-
                 lastTask = result.resolve
-//                cancelSubTasks()
 
                 LOG.info("Resolving: $result")
                 result.resolve.start(this@BuildStructure)
@@ -120,12 +114,14 @@ class BuildStructure @Ta5kBuilder constructor(
             finishOnDone: Boolean = true,
             collectDrops: Boolean = TaskFlow.build.collectDrops,
             pathing: Boolean = TaskFlow.build.pathing,
+            cancelOnUnsolvable: Boolean = true,
             blueprint: () -> Blueprint,
         ) = BuildStructure(
                 blueprint(),
                 finishOnDone,
                 pathing,
                 collectDrops,
+                cancelOnUnsolvable
             )
 
         @Ta5kBuilder

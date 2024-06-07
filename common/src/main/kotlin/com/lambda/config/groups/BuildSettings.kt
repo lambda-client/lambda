@@ -6,11 +6,12 @@ class BuildSettings(
     c: Configurable,
     vis: () -> Boolean = { true }
 ) : BuildConfig {
+    override val breakCoolDown by c.setting("Break Cooldown", 0, 0..20, 1, "Delay between breaking blocks", " ticks", vis)
+    override val placeCooldown by c.setting("Place Cooldown", 0, 0..20, 1, "Delay between placing blocks", " ticks", vis)
     override val collectDrops by c.setting("Collect All Drops", false, "Collect all drops when breaking blocks", vis)
     override val breakWeakBlocks by c.setting("Break Weak Blocks", false, "Break blocks that dont have structural integrity (e.g: grass)", vis)
     override val pathing by c.setting("Pathing", true, "Path to blocks", vis)
-    override val interactLimit by c.setting("Interaction Limit", 15, 1..100, 1, "Max interactions per tick", " i/t", vis)
-    override val breakInstantAtOnce by c.setting("Break Instant At Once", true, "Break all instant blocks at once", vis)
+    override val breaksPerTick by c.setting("Instant Breaks Per Tick", 10, 1..30, 1, "Maximum instant block breaks per tick", "", vis)
     override val rotateForBreak by c.setting("Rotate For Break", false, "Rotate towards block while breaking", vis)
     override val swingHand by c.setting("Swing Hand", true, "Swing hand on interactions", vis)
 }

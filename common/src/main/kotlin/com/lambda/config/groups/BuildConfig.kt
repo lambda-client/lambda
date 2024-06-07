@@ -1,11 +1,12 @@
 package com.lambda.config.groups
 
 interface BuildConfig {
+    val breakCoolDown: Int
+    val placeCooldown: Int
     val collectDrops: Boolean
     val breakWeakBlocks: Boolean
     val pathing: Boolean
-    val interactLimit: Int
-    val breakInstantAtOnce: Boolean
+    val breaksPerTick: Int
     val rotateForBreak: Boolean
     val swingHand: Boolean
 }
