@@ -117,7 +117,7 @@ sealed class BreakResult : BuildResult() {
     data class PlayerOnTop(
         override val blockPos: BlockPos,
         val blockState: BlockState
-    ) : Resolvable, BreakResult() {
+    ) : Navigable, Resolvable, BreakResult() {
         override val rank = Rank.BREAK_PLAYER_ON_TOP
 
         override val resolve get() =

@@ -45,7 +45,7 @@ abstract class BuildResult : ComparableResult<Rank> {
      */
     data class ChunkNotLoaded(
         override val blockPos: BlockPos
-    ) : Resolvable, BuildResult() {
+    ) : Navigable, Resolvable, BuildResult() {
         override val rank = Rank.CHUNK_NOT_LOADED
 
         override val resolve get() = moveUntilLoaded(blockPos)
@@ -112,7 +112,7 @@ abstract class BuildResult : ComparableResult<Rank> {
         val hitPos: BlockPos,
         val side: Direction,
         val distance: Double
-    ) : Resolvable, BuildResult() {
+    ) : Navigable, Resolvable, BuildResult() {
         override val rank = Rank.NOT_VISIBLE
 
         override val resolve get() = moveToGoal(GoalPlace(blockPos))
@@ -184,7 +184,7 @@ abstract class BuildResult : ComparableResult<Rank> {
         val hitVec: Vec3d,
         val reach: Double,
         val side: Direction,
-    ) : Resolvable, BuildResult() {
+    ) : Navigable, Resolvable, BuildResult() {
         override val rank = Rank.OUT_OF_REACH
 
         val distance: Double by lazy {

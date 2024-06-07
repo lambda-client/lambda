@@ -59,7 +59,7 @@ sealed class PlaceResult : BuildResult() {
 
     data class BlockedByPlayer(
         override val blockPos: BlockPos
-    ) : Resolvable, PlaceResult() {
+    ) : Navigable, Resolvable, PlaceResult() {
         override val rank = Rank.PLACE_BLOCKED_BY_PLAYER
 
         override val resolve get() = moveToGoalUntil(GoalInverted(GoalBlock(blockPos))) {
@@ -74,7 +74,7 @@ sealed class PlaceResult : BuildResult() {
     data class CantReplace(
         override val blockPos: BlockPos,
         val simulated: ItemPlacementContext
-    ) : Resolvable, PlaceResult() {
+    ) : Navigable, Resolvable, PlaceResult() {
         override val rank = Rank.PLACE_CANT_REPLACE
 
 //        override val resolve = breakBlock(simulated.blockPos)
