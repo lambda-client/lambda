@@ -14,7 +14,7 @@ import java.util.List;
 
 @Mixin(ScreenHandler.class)
 public class ScreenHandlerMixin {
-    @Inject(method = "updateSlotStacks", at = @At("HEAD"))
+    @Inject(method = "updateSlotStacks", at = @At("TAIL"))
     private void onUpdateSlotStacksHead(int revision, List<ItemStack> stacks, ItemStack cursorStack, CallbackInfo ci) {
         EventFlow.post(new ScreenHandlerEvent.Loaded(revision, stacks, cursorStack));
     }
