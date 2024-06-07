@@ -22,8 +22,7 @@ import kotlin.math.roundToInt
 object HighwayTools : Module(
     name = "HighwayTools",
     description = "Auto highway builder",
-    defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION),
-    defaultKeybind = KeyCode.X
+    defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
 ) {
     private val height by setting("Height", 4, 1..10, 1)
     private val width by setting("Width", 6, 1..30, 1)
