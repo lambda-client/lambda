@@ -24,7 +24,7 @@ class FontRenderer(
      * Parses the emojis in the given text.
      *
      * @param text The text to parse.
-     * @return A list of triples containing the emoji text, start index, and end index.
+     * @return A list of pairs containing the glyph info and the range of the emoji in the text.    
      */
     fun parseEmojis(text: String) =
         mutableListOf<Pair<GlyphInfo, IntRange>>().apply {
