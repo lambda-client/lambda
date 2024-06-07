@@ -25,4 +25,7 @@ interface IRotationConfig {
      * Ticks to rotate back to the actual rotation.
      */
     val resetTicks: Int
+
+    val mean: Double
+    val derivation: Double
 }
