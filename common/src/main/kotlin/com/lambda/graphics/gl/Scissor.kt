@@ -13,7 +13,7 @@ object Scissor {
     private var stack = ArrayDeque<Rect>()
 
     fun scissor(rect: Rect, block: () -> Unit) {
-        // clamp corners so children scissor box can't overlap parent
+        // clamp corners so children scissor boxes can't overlap parent
         val processed = stack.lastOrNull()?.let(rect::clamp) ?: rect
         registerScissor(processed, block)
     }
@@ -25,7 +25,7 @@ object Scissor {
         block()
 
         stack.removeLast()
-        stack.lastOrNull().apply(::scissor)
+        scissor(stack.lastOrNull())
     }
 
     private fun scissor(entry: Rect?) {

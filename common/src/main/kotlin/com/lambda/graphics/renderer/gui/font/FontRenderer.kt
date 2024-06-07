@@ -1,8 +1,8 @@
 package com.lambda.graphics.renderer.gui.font
 
+import com.lambda.graphics.buffer.vao.VAO
 import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.buffer.vao.vertex.VertexMode
-import com.lambda.graphics.renderer.Renderer
 import com.lambda.graphics.renderer.gui.font.glyph.GlyphInfo
 import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.FontSettings
@@ -14,7 +14,9 @@ import java.awt.Color
 class FontRenderer(
     private val font: LambdaFont,
     private val emojis: LambdaMoji
-) : Renderer(VertexMode.TRIANGLES, VertexAttrib.Group.FONT) {
+) {
+    private val vao = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.FONT)
+
     private val scaleMultiplier = 1.0
     private val emojiRegex = Regex(":[a-zA-Z0-9_]+:")
 
@@ -144,14 +146,16 @@ class FontRenderer(
         )
     }
 
-    override fun render() {
+    fun render() {
         shader.use()
         shader["u_EmojiTexture"] = 1
 
         font.glyphs.bind()
         emojis.glyphs.bind()
 
-        super.render()
+        vao.upload()
+        vao.render()
+        vao.clear()
     }
 
     companion object {
