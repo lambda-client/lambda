@@ -5,6 +5,9 @@ import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import com.lambda.util.math.Vec2d
+import net.minecraft.entity.LivingEntity
+import net.minecraft.util.math.BlockPos
+import java.awt.Color
 
 abstract class RenderEvent : Event {
     class World : RenderEvent()
@@ -15,5 +18,6 @@ abstract class RenderEvent : Event {
 
         val screenSize = Vec2d(mc.window.framebufferWidth, mc.window.framebufferHeight) / scale
     }
+
     class UpdateTarget : RenderEvent(), ICancellable by Cancellable()
 }

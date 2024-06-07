@@ -36,6 +36,12 @@ object GlStateUtils {
         depthTest(false)
     }
 
+    fun withLineWidth(width: Double, block: () -> Unit) {
+        glLineWidth(width.toFloat())
+        block()
+        glLineWidth(1f)
+    }
+
     @JvmStatic
     fun capSet(id: Int, flag: Boolean) {
         val field = when (id) {
