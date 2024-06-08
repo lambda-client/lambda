@@ -1,9 +1,9 @@
 package com.lambda.module.modules.debug
 
+import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.graphics.renderer.esp.CachedEspRenderer
-import com.lambda.graphics.renderer.esp.EntityEspRegistry.renderEntityESP
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.ColorUtils.setAlpha
@@ -30,9 +30,9 @@ object RenderTest : Module(
     private val rendeer = CachedEspRenderer(this)
 
     init {
-        renderEntityESP(this) { renderer ->
-            val entity = getClosestEntity<LivingEntity>(player.pos, 8.0) ?: return@renderEntityESP
-            renderer.build(entity, filledColor, outlineColor)
+        listener<RenderEvent.EntityESP> {
+            val entity = getClosestEntity<LivingEntity>(player.pos, 8.0) ?: return@listener
+            it.build(entity, filledColor, outlineColor)
         }
 
         listener<TickEvent.Pre> {
