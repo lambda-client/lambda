@@ -10,11 +10,11 @@ object Timer : Module(
     description = "Modify client tick speed.",
     defaultTags = setOf(ModuleTag.MOVEMENT, ModuleTag.WORLD)
 ) {
-    private val timer by setting("Timer", 50, 0..1000, 5, unit = "ms/tick")
+    private val timer by setting("Timer", 1.0, 0.0..10.0, 0.01)
 
     init {
         listener<ClientEvent.Timer> {
-            it.speed = timer / 50.0
+            it.speed = timer.coerceAtLeast(0.05)
         }
     }
 }
