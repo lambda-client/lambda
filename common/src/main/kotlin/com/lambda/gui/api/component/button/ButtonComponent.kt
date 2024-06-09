@@ -1,13 +1,13 @@
 package com.lambda.gui.api.component.button
 
-import com.lambda.sound.LambdaSound
-import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.sound.LambdaSound
+import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.util.Mouse
 import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.MathUtils.lerp
@@ -16,7 +16,7 @@ import com.lambda.util.math.Vec2d
 import java.awt.Color
 
 abstract class ButtonComponent(
-    owner: ChildLayer.Drawable<*, *>
+    owner: ChildLayer.Drawable<*, *>,
 ) : ChildComponent(owner) {
     abstract val position: Vec2d
     abstract val size: Vec2d

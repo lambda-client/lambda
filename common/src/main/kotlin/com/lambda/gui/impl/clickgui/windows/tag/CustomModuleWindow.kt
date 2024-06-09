@@ -7,7 +7,7 @@ import com.lambda.module.Module
 class CustomModuleWindow(
     override var title: String = "Untitled",
     val modules: MutableList<Module> = mutableListOf(),
-    gui: AbstractClickGui
+    gui: AbstractClickGui,
 ) : ModuleWindow(title, gui = gui) {
     override fun getModuleList() = modules
 }

@@ -10,7 +10,7 @@ abstract class ModuleWindow(
     override var title: String,
     override var width: Double = 110.0,
     override var height: Double = 300.0,
-    gui: AbstractClickGui
+    gui: AbstractClickGui,
 ) : ListWindow<ModuleButton>(gui) {
     private var lastUpdate = 0L
 

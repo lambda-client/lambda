@@ -11,6 +11,6 @@ object FriendRegistry : Configurable(FriendConfig), Loadable {
     val friends by setting("friends", listOf<GameProfile>()) // Todo: Fix the fucking delegates
 
     override fun load(): String {
-        return "Loaded ${friends.size} friends."
+        return "Loaded ${friends.size} friends"
     }
 }

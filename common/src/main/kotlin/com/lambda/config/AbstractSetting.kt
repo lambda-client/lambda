@@ -103,5 +103,5 @@ abstract class AbstractSetting<T : Any>(
         value = defaultValue
     }
 
-    class ValueListener <T> (val requiresValueChange: Boolean, val execute: (from: T, to: T) -> Unit)
+    class ValueListener<T>(val requiresValueChange: Boolean, val execute: (from: T, to: T) -> Unit)
 }

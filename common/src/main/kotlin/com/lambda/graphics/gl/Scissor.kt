@@ -6,7 +6,6 @@ import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.Rect
 import com.mojang.blaze3d.systems.RenderSystem
-import org.lwjgl.opengl.GL30C.*
 import kotlin.math.max
 
 object Scissor {

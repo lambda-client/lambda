@@ -14,7 +14,7 @@ class FilledRectRenderer : AbstractRectRenderer(
         rect: Rect,
         roundRadius: Double = 0.0,
         color: Color = Color.WHITE,
-        shade: Boolean = false
+        shade: Boolean = false,
     ) = build(rect, roundRadius, color, color, color, color, shade)
 
     fun build(
@@ -24,7 +24,7 @@ class FilledRectRenderer : AbstractRectRenderer(
         rightTop: Color = Color.WHITE,
         rightBottom: Color = Color.WHITE,
         leftBottom: Color = Color.WHITE,
-        shade: Boolean = false
+        shade: Boolean = false,
     ) = vao.use {
         val pos1 = rect.leftTop
         val pos2 = rect.rightBottom

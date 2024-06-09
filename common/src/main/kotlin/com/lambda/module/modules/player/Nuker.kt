@@ -6,7 +6,6 @@ import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
-import com.lambda.util.KeyCode
 import com.lambda.util.math.VecUtils.dist
 import com.lambda.util.world.WorldUtils.searchBlocks
 import net.minecraft.util.math.Vec3i

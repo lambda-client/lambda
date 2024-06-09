@@ -43,7 +43,7 @@ class FontRenderer(
         position: Vec2d,
         color: Color = Color.WHITE,
         scale: Double = 1.0,
-        shadow: Boolean = true
+        shadow: Boolean = true,
     ) = vao.use {
         iterateText(text, scale, shadow, color) { char, pos1, pos2, color ->
             grow(4)

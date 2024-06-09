@@ -26,7 +26,7 @@ import java.nio.ByteBuffer
 
 class VAO(
     private val drawMode: VertexMode,
-    attribGroup: VertexAttrib.Group
+    attribGroup: VertexAttrib.Group,
 ) : IRenderContext {
     private var vao = 0
     private var vbo = 0

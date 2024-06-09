@@ -1,24 +1,25 @@
 package com.lambda.gui.impl.clickgui.buttons.setting
 
 import com.lambda.config.AbstractSetting
-import com.lambda.sound.LambdaSound
-import com.lambda.sound.SoundManager.playSound
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.buttons.SettingButton
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.sound.LambdaSound
+import com.lambda.sound.SoundManager.playSound
 import com.lambda.util.Mouse
 import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.transform
 
-abstract class Slider <V : Any, T : AbstractSetting<V>>(
-    setting: T, owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
+abstract class Slider<V : Any, T : AbstractSetting<V>>(
+    setting: T, owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>,
 ) : SettingButton<V, T>(setting, owner) {
     protected abstract val progress: Double
+
     // Force this slider to follow mouse when dragging instead of rounding to the closest setting value
     private val progressAnimation by animation.exp({ mouseX?.let(::getProgressByMouse) ?: progress }, 0.6)
     private val renderProgress get() = lerp(0.0, progressAnimation, showAnimation)

@@ -115,6 +115,7 @@ object DynamicReflectionSerializer {
                     "${formatFieldValue(k)}: ${formatFieldValue(v)}"
                 }
             }}"
+
             is Text -> value.string
             is Identifier -> "${value.namespace}:${value.path}"
             is NbtCompound -> value.asString()
