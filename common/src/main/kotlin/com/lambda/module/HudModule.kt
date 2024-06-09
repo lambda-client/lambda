@@ -19,26 +19,46 @@ abstract class HudModule(
 
     protected abstract val width: Double
     protected abstract val height: Double
+    private val size get() = Vec2d(width, height)
 
-    private var px by setting("Position X", 0.0, -10000.0..10000.0, 0.1) { false }
-    private var py by setting("Position Y", 0.0, -10000.0..10000.0, 0.1) { false }
+    private var relativePosX by setting("Position X", 0.0, -10000.0..10000.0, 0.1) { false }
+    private var relativePosY by setting("Position Y", 0.0, -10000.0..10000.0, 0.1) { false }
+    private var relativePos get() = Vec2d(relativePosX, relativePosY); set(value) {
+        val vec = absToRelative(relativeToAbs(value))
+        relativePosX = vec.x; relativePosY = vec.y
+    }
 
-    private var screenSize = Vec2d.ZERO
-    var position get() = Vec2d(px, py); set(value) { setPos(value.x, value.y) }
+    var position get() = relativeToAbs(relativePos).let {
+        val x = it.x.coerceIn(0.0, screenSize.x - width)
+        val y = it.y.coerceIn(0.0, screenSize.y - height)
+        Vec2d(x, y)
+    }; set(value) { relativePos = absToRelative(value) }
+
+    private fun relativeToAbs(posIn: Vec2d) = posIn + (screenSize - size) * dockingMultiplier
+    private fun absToRelative(posIn: Vec2d) = posIn - (screenSize - size) * dockingMultiplier
+
+    private val dockingH by setting("Docking H", HAlign.LEFT).apply {
+        onValueChange { from, to ->
+            val delta = to.multiplier - from.multiplier
+            relativePosX += delta * (size.x - screenSize.x)
+        }
+    }
+    private val dockingV by setting("Docking V", VAlign.TOP).apply {
+        onValueChange { from, to ->
+            val delta = to.multiplier - from.multiplier
+            relativePosY += delta * (size.y - screenSize.y)
+        }
+    }
+
+    private val dockingMultiplier get() = Vec2d(dockingH.multiplier, dockingV.multiplier)
+
     val rect get() = Rect.basedOn(position, width, height)
 
+    private var screenSize = Vec2d.ZERO
     private val renderer = RenderLayer()
 
     protected fun onRender(block: RenderLayer.() -> Unit) =
         renderCallables.add(block)
-
-    private fun setPos(x: Double, y: Double) {
-        val xRange = 0.0..screenSize.x - width
-        val yRange = 0.0..screenSize.y - height
-
-        px = x.coerceIn(xRange)
-        py = y.coerceIn(yRange)
-    }
 
     init {
         listener<RenderEvent.GUI.HUD> { event ->
@@ -50,5 +70,19 @@ abstract class HudModule(
 
             renderer.render()
         }
+    }
+
+    @Suppress("UNUSED")
+    enum class HAlign(val multiplier: Float) {
+        LEFT(0.0f),
+        CENTER(0.5f),
+        RIGHT(1.0f)
+    }
+
+    @Suppress("UNUSED")
+    enum class VAlign(val multiplier: Float) {
+        TOP(0.0f),
+        CENTER(0.5f),
+        BOTTOM(1.0f)
     }
 }
