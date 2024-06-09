@@ -4,7 +4,7 @@ import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.button.InputBarOverlay
 import com.lambda.gui.api.component.core.list.ChildLayer
-import com.lambda.gui.impl.clickgui.AbstractClickGui
+import com.lambda.gui.impl.AbstractClickGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.buttons.SettingButton
 import com.lambda.util.Mouse
@@ -12,7 +12,6 @@ import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.MathUtils.typeConvert
-import com.lambda.util.math.Vec2d
 import com.lambda.util.math.normalize
 
 class NumberSlider <N>(

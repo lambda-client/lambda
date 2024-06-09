@@ -2,7 +2,7 @@ package com.lambda.gui.impl.clickgui.windows
 
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.ListWindow
-import com.lambda.gui.impl.clickgui.AbstractClickGui
+import com.lambda.gui.impl.AbstractClickGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.module.Module
 
@@ -22,7 +22,7 @@ abstract class ModuleWindow(
         lastUpdate = time
 
         contentComponents.apply {
-            val modules = getModuleList()
+            val modules = getModuleList().filter((gui as AbstractClickGui).moduleFilter)
 
             // Add missing module buttons
             modules.filter { module ->
@@ -33,12 +33,8 @@ abstract class ModuleWindow(
                 .forEach(contentComponents.children::add)
 
             // Remove deleted modules
-            children.forEach { button ->
-                if (button.module !in modules) {
-                    this@ModuleWindow.gui.scheduleAction {
-                        children.remove(button)
-                    }
-                }
+            children.removeIf {
+                it.module !in modules
             }
         }
     }

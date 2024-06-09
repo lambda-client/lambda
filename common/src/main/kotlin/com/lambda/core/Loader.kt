@@ -7,6 +7,7 @@ import com.lambda.friend.FriendRegistry
 import com.lambda.graphics.renderer.gui.font.LambdaFont
 import com.lambda.graphics.renderer.gui.font.LambdaMoji
 import com.lambda.gui.GuiConfigurable
+import com.lambda.gui.HudGuiConfigurable
 import com.lambda.interaction.PlayerPacketManager
 import com.lambda.interaction.RotationManager
 import com.lambda.module.ModuleRegistry
@@ -23,6 +24,7 @@ object Loader {
         LambdaFont.Loader,
         LambdaMoji.Loader,
         GuiConfigurable,
+        HudGuiConfigurable,
         FriendRegistry,
         SoundRegistry,
     )

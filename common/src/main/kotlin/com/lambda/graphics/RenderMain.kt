@@ -25,11 +25,12 @@ object RenderMain {
         translate(0.0, 0.0, -3000.0)
 
         setupGL {
-            rescale(GuiSettings.scale)
-            RenderEvent.GUI.Scaled(GuiSettings.scale).post()
-
             rescale(1.0)
             RenderEvent.GUI.Fixed().post()
+
+            rescale(GuiSettings.scale)
+            RenderEvent.GUI.HUD(GuiSettings.scale).post()
+            RenderEvent.GUI.Scaled(GuiSettings.scale).post()
         }
     }
 

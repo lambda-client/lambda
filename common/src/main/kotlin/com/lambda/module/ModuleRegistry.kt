@@ -17,7 +17,7 @@ object ModuleRegistry : Loadable {
     val moduleNames: Set<String>
         get() = modules.map { it.name }.toSet()
 
-    private val paths = mutableSetOf("com.lambda.module.modules")
+    private val paths = mutableSetOf("com.lambda.module.modules", "com.lambda.module.hud")
 
     fun injectPath(path: String) = paths.add(path)
 
