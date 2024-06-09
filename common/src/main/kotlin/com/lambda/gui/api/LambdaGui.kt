@@ -9,6 +9,7 @@ import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.gui.api.component.core.IComponent
 import com.lambda.gui.impl.AbstractClickGui
 import com.lambda.module.Module
+import com.lambda.threading.runSafe
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.Nameable
@@ -79,14 +80,16 @@ abstract class LambdaGui(
     override fun removed() {
         onEvent(GuiEvent.Hide())
 
-        // quick crashfix (is there any other way to prevent gui being closed twice?)
-        mc.currentScreen = null
-        owner?.disable()
-        mc.currentScreen = this
+        runSafe {
+            // quick crashfix (is there any other way to prevent gui being closed twice?)
+            mc.currentScreen = null
+            owner?.disable()
+            mc.currentScreen = this@LambdaGui
 
-        closingAction?.let {
-            recordRenderCall(it)
-            closingAction = null
+            closingAction?.let {
+                recordRenderCall(it)
+                closingAction = null
+            }
         }
     }
 
