@@ -8,7 +8,7 @@ import com.mojang.authlib.GameProfile
 object FriendRegistry : Configurable(FriendConfig), Loadable {
     override val name = "friends"
 
-    val friends by setting("friends", listOf<GameProfile>())
+    val friends by setting("friends", listOf<GameProfile>()) // Todo: Fix the fucking delegates
 
     override fun load(): String {
         return "Loaded ${friends.size} friends."
