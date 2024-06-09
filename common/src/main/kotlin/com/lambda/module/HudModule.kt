@@ -20,10 +20,11 @@ abstract class HudModule(
     protected abstract val width: Double
     protected abstract val height: Double
 
-    private var px by setting("Position X", 10.0, 0.0..10000.0, 1.0) { false }
-    private var py by setting("Position Y", 10.0, 0.0..10000.0, 1.0) { false }
+    private var px by setting("Position X", 0.0, -10000.0..10000.0, 0.1) { false }
+    private var py by setting("Position Y", 0.0, -10000.0..10000.0, 0.1) { false }
 
-    var position get() = Vec2d(px, py); set(value) { px = value.x; py = value.y }
+    private var screenSize = Vec2d.ZERO
+    var position get() = Vec2d(px, py); set(value) { setPos(value.x, value.y) }
     val rect get() = Rect.basedOn(position, width, height)
 
     private val renderer = RenderLayer()
@@ -31,8 +32,18 @@ abstract class HudModule(
     protected fun onRender(block: RenderLayer.() -> Unit) =
         renderCallables.add(block)
 
+    private fun setPos(x: Double, y: Double) {
+        val xRange = 0.0..screenSize.x - width
+        val yRange = 0.0..screenSize.y - height
+
+        px = x.coerceIn(xRange)
+        py = y.coerceIn(yRange)
+    }
+
     init {
         listener<RenderEvent.GUI.HUD> { event ->
+            screenSize = event.screenSize
+
             renderCallables.forEach { function ->
                 function.invoke(renderer)
             }

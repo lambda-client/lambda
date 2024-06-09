@@ -72,13 +72,6 @@ abstract class AbstractClickGui(name: String, owner: Module? = null) : LambdaGui
         windows.onEvent(e)
     }
 
-    fun showWindow(window: WindowComponent<*>) {
-        // we have to wait some time to place this window over other ones
-        recordRenderCall {
-            windows.children.add(window)
-        }
-    }
-
     fun unfocusSettings() {
         windows.children.filterIsInstance<ModuleWindow>().forEach { moduleWindow ->
             moduleWindow.contentComponents.children.forEach { moduleButton ->
