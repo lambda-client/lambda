@@ -22,7 +22,6 @@ import com.lambda.util.Nameable
 import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
 import java.awt.Color
-import java.lang.reflect.Type
 
 /**
  * Represents a set of [AbstractSetting]s that are associated with the [name] of the [Configurable].

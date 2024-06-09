@@ -1,5 +1,6 @@
 package com.lambda.config.settings.complex
 
+import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
 import java.awt.Color
 
@@ -10,6 +11,7 @@ class ColorSetting(
     visibility: () -> Boolean,
 ) : AbstractSetting<Color>(
     defaultValue,
+    TypeToken.get(Color::class.java).type,
     description,
     visibility
 )
