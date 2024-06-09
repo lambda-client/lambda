@@ -34,6 +34,7 @@
     "render.ScreenHandlerMixin",
     "render.VertexBufferMixin",
     "render.WorldRendererMixin",
+    "world.ClientChunkManagerMixin",
     "world.ClientWorldMixin"
   ],
   "injectors": {

@@ -44,18 +44,6 @@ import kotlin.math.ceil
 object WorldUtils {
     /**
      * Gets the closest entity of type [T] within a specified range.
-     */
-    inline fun <reified T : Entity> SafeContext.getClosestEntity(
-        type: Class<out T>, // This is a class reference, not an instance of the class.
-        pos: Vec3d,
-        range: Double,
-        predicate: (T) -> Boolean = { true },
-    ): T? {
-        return getClosestEntity(pos, range, predicate)
-    }
-
-    /**
-     * Gets the closest entity of type [T] within a specified range.
      *
      * Because we don't want to troll the CPU speculative execution, we only use the [getFastEntities] function.
      * This should not be an issue as the performance of this function is optimized for small distances.
@@ -69,6 +57,7 @@ object WorldUtils {
         pos: Vec3d,
         range: Double,
         predicate: (T) -> Boolean = { true },
+        type: Class<out T> = T::class.java,
     ): T? {
         var closest: T? = null
         var closestDistance = Double.MAX_VALUE
@@ -84,20 +73,6 @@ object WorldUtils {
         getFastEntities(pos, range, null, comparator, predicate)
 
         return closest
-    }
-
-    /**
-     * Gets all entities of type [T] within a specified distance from a position.
-     */
-    inline fun <T : Entity> SafeContext.getFastEntities(
-        type: Class<out T>, // This is a class reference, not an instance of the class.
-        pos: Vec3d,
-        distance: Double,
-        collector: MutableList<Entity>? = null,
-        iterator: (Entity, Int) -> Unit = { _, _ -> },
-        predicate: (Entity) -> Boolean = { true },
-    ) {
-        return getFastEntities(pos, distance, collector, iterator, predicate)
     }
 
     /**
@@ -134,6 +109,7 @@ object WorldUtils {
         pointer: MutableList<T>? = null,
         iterator: (T, Int) -> Unit = { _, _ -> },
         predicate: (T) -> Boolean = { true },
+        type: Class<out T> = T::class.java,
     ) {
         val chunks = ceil(distance / 16).toInt()
         val sectionX = pos.x.toInt() shr 4
@@ -163,20 +139,6 @@ object WorldUtils {
 
     /**
      * Gets all entities of type [T] within a specified distance from a position.
-     */
-    inline fun <reified T : Entity> SafeContext.getEntities(
-        type: Class<out T>, // This is a class reference, not an instance of the class.
-        pos: Vec3d,
-        distance: Double,
-        pointer: MutableList<Entity>? = null,
-        iterator: (Entity, Int) -> Unit = { _, _ -> },
-        predicate: (Entity) -> Boolean = { true },
-    ) {
-        return getEntities(pos, distance, pointer, iterator, predicate)
-    }
-
-    /**
-     * Gets all entities of type [T] within a specified distance from a position.
      *
      * This function retrieves entities of type [T] within a specified distance from a given position. Unlike
      * [getFastEntities], it traverses all entities in the world to find matches, while also excluding the player entity.
@@ -191,6 +153,7 @@ object WorldUtils {
         pointer: MutableList<T>? = null,
         iterator: (T, Int) -> Unit = { _, _ -> },
         predicate: (T) -> Boolean = { true },
+        type: Class<out T> = T::class.java,
     ) {
         world.entities.filterPointer(pointer, iterator) { entity ->
             entity != player &&
