@@ -7,6 +7,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildStructure.Companion.buildStructure
+import com.lambda.util.BaritoneUtils
 import com.lambda.util.BaritoneUtils.primary
 import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
@@ -51,6 +52,7 @@ object HighwayTools : Module(
             runningTask?.cancel()
             runningTask = null
             distanceMoved = 0
+            BaritoneUtils.cancel()
         }
     }
 

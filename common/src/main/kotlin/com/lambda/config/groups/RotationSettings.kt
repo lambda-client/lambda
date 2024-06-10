@@ -13,8 +13,8 @@ class RotationSettings(
     override val keepTicks by c.setting("Keep Rotation", 3, 1..10, 1, "Ticks to keep rotation", " ticks", vis)
     override val resetTicks by c.setting("Reset Rotation", 3, 1..10, 1, "Ticks before rotation is reset", " ticks", vis)
     override var instant by c.setting("Instant Rotation", true, "Instantly rotate", vis)
-    override var mean by c.setting("Mean", 20.0, 1.0..80.0, 0.1, "Average rotation speed") { vis() && !instant }
-    override var derivation by c.setting("Standard Deviation", 5.0, 0.0..20.0, 0.1, "Spread of rotation speeds") { vis() && !instant }
+    override var mean by c.setting("Mean", 20.0, 1.0..80.0, 0.1, "Average rotation speed", unit = "°") { vis() && !instant }
+    override var derivation by c.setting("Standard Deviation", 5.0, 0.0..20.0, 0.1, "Spread of rotation speeds", unit = "°") { vis() && !instant }
 
     override val turnSpeed get() = abs(nextGaussian(mean, derivation))
 

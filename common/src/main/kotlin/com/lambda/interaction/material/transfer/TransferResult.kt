@@ -17,7 +17,7 @@ abstract class TransferResult {
         override val solve = ContainerTransfer(selection, from, to)
         val undo = ContainerTransfer(selection, to, from)
 
-        override fun toString() = "Transfer of [$selection] from [$from] to [$to]"
+        override fun toString() = "Transfer of [$selection] from [${from.name}] to [${to.name}]"
     }
 
     data object NoSpace : TransferResult() {

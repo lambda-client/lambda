@@ -1,6 +1,7 @@
 package com.lambda.interaction.material.container
 
 import com.lambda.Lambda.mc
+import com.lambda.interaction.construction.result.ComparableResult
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task.Companion.buildTask
@@ -13,6 +14,8 @@ data object CreativeContainer : MaterialContainer(Rank.CREATIVE) {
 
     override fun available(selection: StackSelection): Int =
         if (mc.player?.isCreative == true && selection.optimalStack != null) Int.MAX_VALUE else 0
+
+    override fun spaceLeft(selection: StackSelection) = Int.MAX_VALUE
 
     override fun deposit(selection: StackSelection) = buildTask("CreativeDeposit") {
         if (!player.isCreative) {

@@ -98,6 +98,7 @@ class BreakBlock @Ta5kBuilder constructor(
 
     private fun SafeContext.breakBlock(side: Direction) {
         if (interaction.updateBlockBreakingProgress(blockPos, side)) {
+            if (player.isCreative) interaction.blockBreakingCooldown = 0
             if (swingHand) player.swingHand(ctx.hand)
         }
     }

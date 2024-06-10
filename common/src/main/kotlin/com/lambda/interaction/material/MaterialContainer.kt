@@ -76,11 +76,11 @@ abstract class MaterialContainer(
     }
 
     enum class Rank {
-        CREATIVE,
         MAIN_HAND,
         OFF_HAND,
         HOTBAR,
         INVENTORY,
+        CREATIVE,
         SHULKER_BOX,
         ENDER_CHEST,
         CHEST,

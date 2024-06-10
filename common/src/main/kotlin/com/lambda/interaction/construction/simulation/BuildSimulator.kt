@@ -397,7 +397,7 @@ object BuildSimulator {
             )
 
             /* player has a better tool for the job available */
-            findBestAvailableTool(state)?.let { bestTool ->
+            if (!player.isCreative) findBestAvailableTool(state)?.let { bestTool ->
                 Hand.entries.firstOrNull {
                     val stack = player.getStackInHand(it)
                     stack.item == bestTool

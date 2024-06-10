@@ -30,7 +30,9 @@ object TransferCommand : LambdaCommand(
                             isItem(stack(ctx).value().item)
                         }
                         containerMatchSelection(selection).forEach {
-                            builder.suggest("\"${it.name} with ${it.available(selection)}\"")
+                            val available = it.available(selection)
+                            val availableMsg = if (available == Int.MAX_VALUE) "∞" else available.toString()
+                            builder.suggest("\"${it.name} with $availableMsg\"")
                         }
                         builder.buildFuture()
                     }
@@ -41,7 +43,8 @@ object TransferCommand : LambdaCommand(
                             }
                             ContainerManager.container().forEach {
                                 val space = it.spaceLeft(selection)
-                                if (space > 0) builder.suggest("\"${it.name} with $space space left\"")
+                                val spaceMsg = if (space == Int.MAX_VALUE) "∞" else space.toString()
+                                if (space > 0) builder.suggest("\"${it.name} with $spaceMsg space left\"")
                             }
                             builder.buildFuture()
                         }
@@ -59,9 +62,11 @@ object TransferCommand : LambdaCommand(
 
                             when (val result = fromContainer.transfer(selection, toContainer)) {
                                 is TransferResult.Success -> {
-                                    info("Transferring $selection from ${fromContainer.name} to ${toContainer.name}")
+                                    info("$result started.")
                                     lastTransfer = result
-                                    result.solve.start(null)
+                                    result.solve.onSuccess { _, _ ->
+                                        info("$lastTransfer completed.")
+                                    }.start(null)
                                     return@executeWithResult success()
                                 }
                                 is TransferResult.MissingItems -> {
@@ -84,6 +89,7 @@ object TransferCommand : LambdaCommand(
                 lastTransfer?.solve?.cancel() ?: run {
                     return@executeWithResult failure("No transfer to cancel")
                 }
+                info("$lastTransfer cancelled")
                 lastTransfer = null
                 success()
             }
@@ -94,6 +100,7 @@ object TransferCommand : LambdaCommand(
                 lastTransfer?.undo ?: run {
                     return@executeWithResult failure("No transfer to undo")
                 }
+                info("Undoing $lastTransfer")
                 success()
             }
         }

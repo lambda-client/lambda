@@ -102,8 +102,7 @@ object BlockUtils {
     fun BlockPos.blockEntity(world: ClientWorld) = world.getBlockEntity(this)
     fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos): Boolean {
         val ticksNeeded = 1 / blockState.calcBlockBreakingDelta(player, world, blockPos)
-//        info("State: $blockState Ticks to break: $ticksNeeded")
-        return ticksNeeded <= 1 && ticksNeeded != 0f
+        return (ticksNeeded <= 1 && ticksNeeded != 0f) || player.isCreative
     }
     val Vec3i.blockPos: BlockPos get() = BlockPos(this)
     val Block.item: Item get() = asItem()
