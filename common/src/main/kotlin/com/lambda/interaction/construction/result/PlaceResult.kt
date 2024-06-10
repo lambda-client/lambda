@@ -1,5 +1,6 @@
 package com.lambda.interaction.construction.result
 
+import baritone.api.pathing.goals.Goal
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import com.lambda.interaction.construction.context.PlaceContext
@@ -59,12 +60,10 @@ sealed class PlaceResult : BuildResult() {
 
     data class BlockedByPlayer(
         override val blockPos: BlockPos
-    ) : Navigable, Resolvable, PlaceResult() {
+    ) : Navigable, PlaceResult() {
         override val rank = Rank.PLACE_BLOCKED_BY_PLAYER
 
-        override val resolve get() = moveToGoalUntil(GoalInverted(GoalBlock(blockPos))) {
-            !world.canCollide(player, Box(blockPos))
-        }
+        override val goal = GoalInverted(GoalBlock(blockPos))
     }
 
     /**
@@ -74,13 +73,10 @@ sealed class PlaceResult : BuildResult() {
     data class CantReplace(
         override val blockPos: BlockPos,
         val simulated: ItemPlacementContext
-    ) : Navigable, Resolvable, PlaceResult() {
+    ) : Resolvable, PlaceResult() {
         override val rank = Rank.PLACE_CANT_REPLACE
 
-//        override val resolve = breakBlock(simulated.blockPos)
-        override val resolve get() = moveToGoalUntil(GoalInverted(GoalBlock(blockPos))) {
-            !world.canCollide(player, Box(blockPos))
-        }
+        override val resolve = breakBlock(blockPos)
     }
 
     /**
@@ -123,6 +119,6 @@ sealed class PlaceResult : BuildResult() {
     ) : Resolvable, PlaceResult() {
         override val rank = Rank.PLACE_NOT_ITEM_BLOCK
 
-        override val resolve get() = Task.emptyTask() // ToDo: analyze interaction with non-block items
+        override val resolve get() = TODO("Not expected")
     }
 }

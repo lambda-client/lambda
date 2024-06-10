@@ -3,7 +3,7 @@ package com.lambda.task.tasks
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RotationEvent
-import com.lambda.event.events.TickEvent
+import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.module.modules.client.TaskFlow
@@ -14,43 +14,53 @@ import net.minecraft.block.BlockState
 
 class PlaceBlock @Ta5kBuilder constructor(
     private val ctx: PlaceContext,
-    private val swingHand: Boolean = true,
-    private val rotate: Boolean = true,
-    private val waitForConfirmation: Boolean = true,
+    private val swingHand: Boolean,
+    private val rotate: Boolean,
+    private val waitForConfirmation: Boolean,
 ) : Task<Unit>() {
     private var beginState: BlockState? = null
-    private val SafeContext.resultingState: BlockState get() = ctx.resultingPos.blockState(world)
-    private val SafeContext.matches get() = ctx.targetState.matches(ctx.resultingPos.blockState(world), ctx.resultingPos, world)
-    override var cooldown = TaskFlow.build.placeCooldown
+    override var cooldown = Int.MAX_VALUE
+        get() = maxOf(TaskFlow.build.placeCooldown, TaskFlow.taskCooldown)
+    override var timeout = 20
+    private var placed = false
+
+    private val SafeContext.resultingState: BlockState get() =
+        ctx.resultingPos.blockState(world)
+    private val SafeContext.matches get() =
+        ctx.targetState.matches(ctx.resultingPos.blockState(world), ctx.resultingPos, world)
 
     override fun SafeContext.onStart() {
         if (matches) {
-            success(Unit)
+            finish()
             return
         }
         beginState = resultingState
+
+        if (!rotate) placeBlock()
     }
 
     init {
         listener<RotationEvent.Pre> { event ->
+            if (placed) return@listener
             if (!rotate) return@listener
             event.context = ctx.rotation
         }
 
         listener<RotationEvent.Post> {
+            if (placed) return@listener
             if (!rotate) return@listener
             if (!it.context.isValid) return@listener
 
             placeBlock()
         }
 
-        listener<TickEvent.Post> {
-            if (matches) finish()
-        }
+        listener<WorldEvent.BlockUpdate> {
+            if (it.pos != ctx.resultingPos) return@listener
 
-//        listener<WorldEvent.BlockUpdate> {
-//            if (matches) success(Unit)
-//        }
+            if (ctx.targetState.matches(it.state, it.pos, world)) {
+                finish()
+            }
+        }
     }
 
     private fun SafeContext.placeBlock() {
@@ -69,8 +79,9 @@ class PlaceBlock @Ta5kBuilder constructor(
                 mc.gameRenderer.firstPersonRenderer.resetEquipProgress(ctx.hand)
             }
 
-            if (!waitForConfirmation && matches) {
-                finish()
+            if (matches) {
+                placed = true
+                if (!waitForConfirmation) finish()
             }
         } else {
             info("Internal interaction failed with $actionResult")
@@ -90,9 +101,9 @@ class PlaceBlock @Ta5kBuilder constructor(
         @Ta5kBuilder
         fun placeBlock(
             ctx: PlaceContext,
-            swingHand: Boolean = true,
-            rotate: Boolean = true,
-            waitForConfirmation: Boolean = true,
+            swingHand: Boolean = TaskFlow.build.swingHand,
+            rotate: Boolean = TaskFlow.build.rotateForPlace,
+            waitForConfirmation: Boolean = TaskFlow.build.placeConfirmation,
         ) = PlaceBlock(ctx, swingHand, rotate, waitForConfirmation)
     }
 }

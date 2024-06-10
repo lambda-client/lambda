@@ -126,10 +126,10 @@ object BuildSimulator {
                 acc.add(BuildResult.OutOfReach(pos, eye, hitPos.vecOf(hitSide), interact.reach, hitSide))
                 return@forEach
             }
+
             val verify: HitResult.() -> Boolean = {
                 blockResult?.blockPos == hitPos && blockResult?.side == hitSide
             }
-
             val validHits = mutableMapOf<Vec3d, HitResult>()
             val reachSq = interact.reach.pow(2)
 
@@ -251,7 +251,7 @@ object BuildSimulator {
 
                 val currentHandStack = player.getStackInHand(Hand.MAIN_HAND)
                 if (target is TargetState.Stack && !target.itemStack.equal(currentHandStack)) {
-                    acc.add(BuildResult.WrongStack(pos, placeContext, target.itemStack))
+                    acc.add(BuildResult.WrongStack(pos, placeContext, target.copy))
                     return@forEach
                 }
                 

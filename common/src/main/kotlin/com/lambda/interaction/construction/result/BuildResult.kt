@@ -1,16 +1,13 @@
 package com.lambda.interaction.construction.result
 
+import baritone.api.pathing.goals.GoalBlock
+import baritone.api.pathing.goals.GoalNear
 import baritone.process.BuilderProcess.GoalPlace
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.MainHandContainer
-import com.lambda.task.Task
-import com.lambda.task.Task.Companion.emptyTask
 import com.lambda.task.Task.Companion.failTask
-import com.lambda.task.tasks.GoalTask.Companion.moveNearBlock
-import com.lambda.task.tasks.GoalTask.Companion.moveToGoal
-import com.lambda.task.tasks.GoalTask.Companion.moveUntilLoaded
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
@@ -45,10 +42,10 @@ abstract class BuildResult : ComparableResult<Rank> {
      */
     data class ChunkNotLoaded(
         override val blockPos: BlockPos
-    ) : Navigable, Resolvable, BuildResult() {
+    ) : Navigable, BuildResult() {
         override val rank = Rank.CHUNK_NOT_LOADED
 
-        override val resolve get() = moveUntilLoaded(blockPos)
+        override val goal = GoalBlock(blockPos)
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -112,12 +109,10 @@ abstract class BuildResult : ComparableResult<Rank> {
         val hitPos: BlockPos,
         val side: Direction,
         val distance: Double
-    ) : Navigable, Resolvable, BuildResult() {
+    ) : Navigable, BuildResult() {
         override val rank = Rank.NOT_VISIBLE
 
-        override val resolve get() = moveToGoal {
-            GoalPlace(blockPos)
-        }
+        override val goal = GoalPlace(blockPos)
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -186,14 +181,14 @@ abstract class BuildResult : ComparableResult<Rank> {
         val hitVec: Vec3d,
         val reach: Double,
         val side: Direction,
-    ) : Navigable, Resolvable, BuildResult() {
+    ) : Navigable, BuildResult() {
         override val rank = Rank.OUT_OF_REACH
 
         val distance: Double by lazy {
             startVec.distanceTo(hitVec)
         }
 
-        override val resolve get() = moveNearBlock(blockPos, 2)
+        override val goal = GoalNear(blockPos, 2)
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {

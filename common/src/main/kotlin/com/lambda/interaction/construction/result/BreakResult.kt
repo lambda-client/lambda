@@ -117,14 +117,9 @@ sealed class BreakResult : BuildResult() {
     data class PlayerOnTop(
         override val blockPos: BlockPos,
         val blockState: BlockState
-    ) : Navigable, Resolvable, BreakResult() {
+    ) : Navigable, BreakResult() {
         override val rank = Rank.BREAK_PLAYER_ON_TOP
 
-        override val resolve get() =
-            moveToGoalUntil(GoalInverted(GoalBlock(blockPos))) {
-                val pBox = player.boundingBox
-                val aabb = Box(pBox.minX, pBox.minY - 1.0E-6, pBox.minZ, pBox.maxX, pBox.minY, pBox.maxZ)
-                world.findSupportingBlockPos(player, aabb).orElse(null) != blockPos
-            }
+        override val goal = GoalInverted(GoalBlock(blockPos))
     }
 }

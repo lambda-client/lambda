@@ -1,6 +1,5 @@
 package com.lambda.module.modules.player
 
-import baritone.api.pathing.goals.GoalNear
 import com.lambda.interaction.construction.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
@@ -8,9 +7,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildStructure.Companion.buildStructure
 import com.lambda.util.BaritoneUtils
-import com.lambda.util.BaritoneUtils.primary
 import com.lambda.util.Communication.info
-import com.lambda.util.KeyCode
 import com.lambda.util.player.MovementUtils.octant
 import com.lambda.util.primitives.extension.Structure
 import com.lambda.util.world.StructureUtils.generateDirectionalTube
@@ -67,11 +64,9 @@ object HighwayTools : Module(
             structure += slice.map { it.key.add(currentPos) to it.value }
         }
 
-        buildStructure {
+        runningTask = buildStructure {
             structure.toBlueprint()
         }.apply {
-            runningTask = this
-            primary.customGoalProcess.setGoalAndPath(GoalNear(currentPos, sliceSize))
             onSuccess { _, _ ->
                 if (distanceMoved < distance || distance < 0) {
                     buildSlice()

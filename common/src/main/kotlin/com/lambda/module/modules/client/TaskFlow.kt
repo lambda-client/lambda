@@ -14,13 +14,10 @@ object TaskFlow : Module(
     defaultTags = setOf(ModuleTag.CLIENT, ModuleTag.AUTOMATION)
 ) {
     enum class Page {
-        TASKS, BUILD, ROTATION, INTERACTION
+        BUILD, ROTATION, INTERACTION, TASKS
     }
 
     private val page by setting("Page", Page.BUILD)
-    val taskCooldown by setting("Task Cooldown", 0, 0..10000, 10, " ms") {
-        page == Page.TASKS
-    }
     val build = BuildSettings(this) {
         page == Page.BUILD
     }
@@ -29,6 +26,9 @@ object TaskFlow : Module(
     }
     val interact = InteractionSettings(this) {
         page == Page.INTERACTION
+    }
+    val taskCooldown by setting("Task Cooldown", 0, 0..10000, 10, unit = " ms") {
+        page == Page.TASKS
     }
 //    val disposables by setting("Disposables", ItemUtils.defaultDisposables)
     val ignoredBlocks = mutableSetOf<Block>().apply { addAll(allSigns) }

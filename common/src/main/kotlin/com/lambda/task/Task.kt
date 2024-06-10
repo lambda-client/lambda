@@ -373,7 +373,6 @@ abstract class Task<Result> : Nameable {
     @Ta5kBuilder
     fun onSuccess(action: SafeContext.(Task<Result>, Result) -> Unit): Task<Result> {
         this.onSuccess = action
-        LOG.info("Success action $action set for $identifier")
         return this
     }
 
