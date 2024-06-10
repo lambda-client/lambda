@@ -6,8 +6,8 @@ class BuildSettings(
     c: Configurable,
     vis: () -> Boolean = { true }
 ) : BuildConfig {
-    override val breakCoolDown by c.setting("Break Cooldown", 0, 0..20, 1, "Delay between breaking blocks", " ticks", vis)
-    override val placeCooldown by c.setting("Place Cooldown", 0, 0..20, 1, "Delay between placing blocks", " ticks", vis)
+    override val breakCoolDown by c.setting("Break Cooldown", 0, 0..1000, 1, "Delay between breaking blocks", " ms", vis)
+    override val placeCooldown by c.setting("Place Cooldown", 0, 0..1000, 1, "Delay between placing blocks", " ms", vis)
     override val collectDrops by c.setting("Collect All Drops", false, "Collect all drops when breaking blocks", vis)
     override val breakWeakBlocks by c.setting("Break Weak Blocks", false, "Break blocks that dont have structural integrity (e.g: grass)", vis)
     override val pathing by c.setting("Pathing", true, "Path to blocks", vis)

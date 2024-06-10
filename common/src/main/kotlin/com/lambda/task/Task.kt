@@ -176,7 +176,7 @@ abstract class Task<Result> : Nameable {
             runConcurrent {
                 delay(cooldown.toLong())
                 runGameScheduled {
-                    finish(result)
+                    if (isRunning) finish(result)
                 }
             }
         } else finish(result)
