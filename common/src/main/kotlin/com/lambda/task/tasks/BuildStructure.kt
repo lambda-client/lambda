@@ -1,9 +1,7 @@
 package com.lambda.task.tasks
 
-import baritone.api.pathing.goals.Goal
 import baritone.api.pathing.goals.GoalNear
 import com.lambda.Lambda.LOG
-import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
@@ -16,13 +14,8 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
-import com.lambda.threading.runConcurrent
-import com.lambda.threading.runGameScheduled
 import com.lambda.util.BaritoneUtils
-import net.minecraft.block.BlockState
-import net.minecraft.util.math.BlockBox
 import net.minecraft.util.math.BlockPos
-import net.minecraft.world.chunk.WorldChunk
 
 class BuildStructure @Ta5kBuilder constructor(
     private val blueprint: Blueprint,

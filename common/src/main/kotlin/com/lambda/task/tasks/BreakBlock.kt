@@ -16,10 +16,17 @@ import com.lambda.task.tasks.GoalTask.Companion.moveToBlock
 import com.lambda.task.tasks.GoalTask.Companion.moveToBlockUntil
 import com.lambda.task.tasks.GoalTask.Companion.moveToGoal
 import com.lambda.task.tasks.GoalTask.Companion.moveToGoalUntil
+import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.item
+import com.lambda.util.item.ItemUtils.defaultDisposables
+import com.lambda.util.player.SlotUtils.clickSlot
+import com.lambda.util.player.SlotUtils.hotbarAndStorage
+import com.lambda.util.primitives.extension.inventorySlots
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.BlockState
 import net.minecraft.entity.ItemEntity
+import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
@@ -37,6 +44,7 @@ class BreakBlock @Ta5kBuilder constructor(
     val SafeContext.state: BlockState get() = blockPos.blockState(world)
     override var cooldown = Int.MAX_VALUE
         get() = maxOf(TaskFlow.build.breakCoolDown, TaskFlow.taskCooldown)
+    private var drop: ItemEntity? = null
 
     override fun SafeContext.onStart() {
         parent?.let {
@@ -67,6 +75,23 @@ class BreakBlock @Ta5kBuilder constructor(
         }
 
         listener<TickEvent.Pre> {
+            drop?.let { itemDrop ->
+                if (!world.entities.contains(itemDrop)) {
+                    success(itemDrop)
+                    return@listener
+                }
+
+                if (player.hotbarAndStorage.none { it.isEmpty }) {
+                    player.currentScreenHandler.inventorySlots.firstOrNull {
+                        it.stack.item in defaultDisposables
+                    }?.let {
+                        clickSlot(it.index, 1, SlotActionType.THROW)
+                    }
+                }
+
+                BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
+            }
+
             if (finish()) {
                 success(null)
                 return@listener
@@ -80,17 +105,12 @@ class BreakBlock @Ta5kBuilder constructor(
 
         listener<WorldEvent.EntitySpawn> {
             if (collectDrop
+                && drop == null
                 && it.entity is ItemEntity
                 && it.entity.pos.isInRange(blockPos.toCenterPos(), 1.0)
 //                && it.entity.stack.item == beginState?.block?.item // ToDo: The item entities are all air??
             ) {
-                moveToGoalUntil(
-                    { GoalBlock(it.entity.blockPos) },
-                    { !world.entities.contains(it.entity) }
-                ).onSuccess { _, _ ->
-                    success(it.entity)
-                }.start(this@BreakBlock)
-//                success(it.entity)
+                drop = it.entity
             }
         }
     }
