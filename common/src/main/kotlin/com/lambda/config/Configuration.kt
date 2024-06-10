@@ -11,6 +11,7 @@ import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
+import com.lambda.util.FolderRegister
 import com.lambda.util.StringUtils.capitalize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -33,13 +34,13 @@ import kotlin.concurrent.fixedRateTimer
  * @property primary The primary file where the configuration is saved.
  * @property configurables A set of [Configurable] objects that this configuration manages.
  */
-abstract class Configuration : Jsonable {
-    abstract val configName: String
-    abstract val primary: File
+abstract class Configuration(
+    val configName: String,
+) : Jsonable {
+    private val primary = FolderRegister.config.resolve("$configName.json")
+    private val backup = File("${primary.parent}/${primary.nameWithoutExtension}-backup.${primary.extension}")
 
     val configurables = mutableSetOf<Configurable>()
-    private val backup: File
-        get() = File("${primary.parent}/${primary.nameWithoutExtension}-backup.${primary.extension}")
 
     init {
         unsafeListener<ClientEvent.Startup> { tryLoad() }
