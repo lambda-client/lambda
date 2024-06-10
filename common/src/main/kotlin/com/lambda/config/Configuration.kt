@@ -16,7 +16,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 import java.time.Duration
-import java.util.concurrent.Executors
 import kotlin.concurrent.fixedRateTimer
 
 
@@ -115,7 +114,8 @@ abstract class Configuration : Jsonable {
                             this@Configuration.info(message)
                         }
                         .onFailure { error ->
-                            message = "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
+                            message =
+                                "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
                             LOG.error(message, error)
                             this@Configuration.logError(message)
                         }

@@ -3,9 +3,6 @@ package com.lambda.command
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.LambdaConfig
 import com.lambda.core.Loadable
-import com.lambda.module.Module
-import com.lambda.module.ModuleRegistry
-import com.lambda.module.ModuleRegistry.modules
 import org.reflections.Reflections
 import org.reflections.scanners.Scanners
 import org.reflections.util.ConfigurationBuilder
