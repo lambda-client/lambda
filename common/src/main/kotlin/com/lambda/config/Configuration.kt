@@ -6,15 +6,10 @@ import com.google.gson.JsonParser
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
 import com.lambda.config.configurations.ModuleConfig
-import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
-import com.lambda.util.Communication.info
-import com.lambda.util.Communication.logError
 import com.lambda.util.FolderRegister
 import com.lambda.util.StringUtils.capitalize
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.io.File
 import java.time.Duration
 import kotlin.concurrent.fixedRateTimer
@@ -98,45 +93,37 @@ abstract class Configuration(
         loadFromJson(JsonParser.parseReader(file.reader()).asJsonObject)
     }
 
-    fun tryLoad() {
-        lambdaScope.launch(Dispatchers.IO) {
-            runCatching { load(primary) }
-                .onSuccess {
-                    val message = "${configName.capitalize()} config loaded."
-                    LOG.info(message)
-                    this@Configuration.info(message)
-                }
-                .onFailure {
-                    var message: String
-                    runCatching { load(backup) }
-                        .onSuccess {
-                            message = "${configName.capitalize()} config loaded from backup"
-                            LOG.info(message)
-                            this@Configuration.info(message)
-                        }
-                        .onFailure { error ->
-                            message =
-                                "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
-                            LOG.error(message, error)
-                            this@Configuration.logError(message)
-                        }
-                }
-        }
-    }
+    fun tryLoad() =
+        runCatching { load(primary) }
+            .onSuccess {
+                val message = "${configName.capitalize()} config loaded."
+                LOG.info(message)
+            }
+            .onFailure {
+                runCatching { load(backup) }
+                    .onSuccess {
+                        LOG.info("${configName.capitalize()} config loaded from backup.")
+                    }
+                    .onFailure { backupError ->
+                        LOG.error(
+                            "Failed to load ${configName.capitalize()} config from backup, unrecoverable error.",
+                            backupError
+                        )
+                    }
+            }
+            .exceptionOrNull()
 
-    fun trySave() {
+    fun trySave() =
         runCatching { save() }
             .onSuccess {
                 val message = "Saved ${configName.capitalize()} config."
                 LOG.info(message)
-                this@Configuration.info(message)
             }
             .onFailure {
                 val message = "Failed to save ${configName.capitalize()} config"
                 LOG.error(message, it)
-                this@Configuration.logError(message)
             }
-    }
+            .exceptionOrNull()
 
     companion object {
         val configurations = mutableSetOf<Configuration>()
