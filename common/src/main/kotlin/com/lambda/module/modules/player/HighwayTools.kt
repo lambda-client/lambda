@@ -13,6 +13,7 @@ import com.lambda.util.primitives.extension.Structure
 import com.lambda.util.world.StructureUtils.generateDirectionalTube
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3i
 import kotlin.math.roundToInt
@@ -139,25 +140,25 @@ object HighwayTools : Module(
                 -center,
                 -1,
             )
-
-            // Remove the left corner
-//            structure += generateDirectionalTube(
-//                orthogonal,
-//                1,
-//                1,
-//                -center + width - 1,
-//                -1,
-//            ).associateWith { TargetState.Support(Direction.UP) }
-
-            // Remove the right corner
-//            structure += generateDirectionalTube(
-//                orthogonal,
-//                1,
-//                1,
-//                -center,
-//                -1,
-//            ).associateWith { TargetState.Support(Direction.UP) }
         }
+
+        // Support for the left corner
+        structure += generateDirectionalTube(
+            orthogonal,
+            1,
+            1,
+            -center + width - 1,
+            -1,
+        ).associateWith { TargetState.Solid }
+
+        // Support for the right corner
+        structure += generateDirectionalTube(
+            orthogonal,
+            1,
+            1,
+            -center,
+            -1,
+        ).associateWith { TargetState.Solid }
 
         return structure
     }
