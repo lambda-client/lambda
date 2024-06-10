@@ -1,6 +1,8 @@
 package com.lambda.config.settings
 
 import com.lambda.config.AbstractSetting
+import java.text.NumberFormat
+import java.util.*
 import kotlin.reflect.KProperty
 
 /**
@@ -27,7 +29,9 @@ abstract class NumericSetting<T>(
     description,
     visibility
 ) where T : Number, T : Comparable<T> {
-    override fun toString() = "$value$unit"
+    private val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
+
+    override fun toString() = "${formatter.format(value)}$unit"
 
     override operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: T) {
         value = valueIn.coerceIn(range)
