@@ -6,15 +6,12 @@ import com.google.gson.JsonParser
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
 import com.lambda.config.configurations.ModuleConfig
-import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.threading.runIO
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
 import com.lambda.util.StringUtils.capitalize
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.io.File
 import java.time.Duration
 import kotlin.concurrent.fixedRateTimer
@@ -104,7 +101,7 @@ abstract class Configuration : Jsonable {
                 .onSuccess {
                     val message = "${configName.capitalize()} config loaded."
                     LOG.info(message)
-                    this@Configuration.info(message)
+                    info(message)
                 }
                 .onFailure {
                     var message: String
@@ -112,30 +109,29 @@ abstract class Configuration : Jsonable {
                         .onSuccess {
                             message = "${configName.capitalize()} config loaded from backup"
                             LOG.info(message)
-                            this@Configuration.info(message)
+                            info(message)
                         }
                         .onFailure { error ->
                             message =
                                 "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
                             LOG.error(message, error)
-                            this@Configuration.logError(message)
+                            logError(message)
                         }
                 }
         }
     }
 
-    fun trySave() {
+    fun trySave(logToChat: Boolean = false) {
         runIO {
             runCatching { save() }
                 .onSuccess {
                     val message = "Saved ${configName.capitalize()} config."
                     LOG.info(message)
-                    this@Configuration.info(message)
+                    if (logToChat) info(message)
                 }
                 .onFailure {
                     val message = "Failed to save ${configName.capitalize()} config"
-                    LOG.error(message, it)
-                    this@Configuration.logError(message)
+                    logError(message)
                 }
         }
     }
