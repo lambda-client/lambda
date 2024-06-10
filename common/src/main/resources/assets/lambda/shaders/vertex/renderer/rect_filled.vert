@@ -7,8 +7,7 @@ layout (location = 3) in float round;
 layout (location = 4) in float shade;
 layout (location = 5) in vec4 color;
 
-uniform mat4 u_Projection;
-uniform mat4 u_ModelView;
+uniform mat4 u_ProjModel;
 
 out vec2 v_Position;
 out vec2 v_TexCoord;
@@ -18,7 +17,7 @@ out float v_RoundRadius;
 out float v_Shade;
 
 void main() {
-    gl_Position = u_Projection * u_ModelView * pos;
+    gl_Position = u_ProjModel * pos;
 
     v_Position = gl_Position.xy * 0.5 + 0.5;
     v_TexCoord = uv;
