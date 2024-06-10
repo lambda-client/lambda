@@ -16,6 +16,9 @@ import com.lambda.util.StringUtils.capitalize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
+import java.time.Duration
+import kotlin.concurrent.fixedRateTimer
+
 
 /**
  * Represents a compound of [Configurable] objects whose [AbstractSetting]s
@@ -48,7 +51,18 @@ abstract class Configuration : Jsonable {
     }
 
     // Avoid context-leaking warning
-    private fun register() = configurations.add(this)
+    private fun register() {
+        fixedRateTimer(
+            daemon = true,
+            name = "Scheduler-config-${configName}",
+            initialDelay = Duration.ofMinutes(5).toMillis(),
+            period = Duration.ofMinutes(5).toMillis()
+        ) {
+            trySave()
+        }
+
+        configurations.add(this)
+    }
 
     override fun toJson() =
         JsonObject().apply {
@@ -93,9 +107,7 @@ abstract class Configuration : Jsonable {
                     this@Configuration.info(message)
                 }
                 .onFailure {
-                    var message = "Failed to load ${configName.capitalize()} config, loading backup"
-                    LOG.error(message, it)
-                    this@Configuration.logError(message)
+                    var message: String
                     runCatching { load(backup) }
                         .onSuccess {
                             message = "${configName.capitalize()} config loaded from backup"
@@ -103,7 +115,8 @@ abstract class Configuration : Jsonable {
                             this@Configuration.info(message)
                         }
                         .onFailure { error ->
-                            message = "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
+                            message =
+                                "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
                             LOG.error(message, error)
                             this@Configuration.logError(message)
                         }
