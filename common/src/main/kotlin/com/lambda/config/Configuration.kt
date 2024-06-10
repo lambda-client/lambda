@@ -92,9 +92,7 @@ abstract class Configuration : Jsonable {
                     this@Configuration.info(message)
                 }
                 .onFailure {
-                    var message = "Failed to load ${configName.capitalize()} config, loading backup"
-                    LOG.error(message, it)
-                    this@Configuration.logError(message)
+                    var message: String
                     runCatching { load(backup) }
                         .onSuccess {
                             message = "${configName.capitalize()} config loaded from backup"
