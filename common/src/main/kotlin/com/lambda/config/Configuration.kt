@@ -15,6 +15,10 @@ import com.lambda.util.StringUtils.capitalize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
+import java.time.Duration
+import java.util.concurrent.Executors
+import kotlin.concurrent.fixedRateTimer
+
 
 /**
  * Represents a compound of [Configurable] objects whose [AbstractSetting]s
@@ -47,7 +51,18 @@ abstract class Configuration : Jsonable {
     }
 
     // Avoid context-leaking warning
-    private fun register() = configurations.add(this)
+    private fun register() {
+        fixedRateTimer(
+            daemon = true,
+            name = "Scheduler-config-${configName}",
+            initialDelay = Duration.ofMinutes(5).toMillis(),
+            period = Duration.ofMinutes(5).toMillis()
+        ) {
+            trySave()
+        }
+
+        configurations.add(this)
+    }
 
     override fun toJson() =
         JsonObject().apply {
@@ -109,19 +124,17 @@ abstract class Configuration : Jsonable {
     }
 
     fun trySave() {
-        lambdaScope.launch(Dispatchers.IO) {
-            runCatching { save() }
-                .onSuccess {
-                    val message = "Saved ${configName.capitalize()} config."
-                    LOG.info(message)
-                    this@Configuration.info(message)
-                }
-                .onFailure {
-                    val message = "Failed to save ${configName.capitalize()} config"
-                    LOG.error(message, it)
-                    this@Configuration.logError(message)
-                }
-        }
+        runCatching { save() }
+            .onSuccess {
+                val message = "Saved ${configName.capitalize()} config."
+                LOG.info(message)
+                this@Configuration.info(message)
+            }
+            .onFailure {
+                val message = "Failed to save ${configName.capitalize()} config"
+                LOG.error(message, it)
+                this@Configuration.logError(message)
+            }
     }
 
     companion object {

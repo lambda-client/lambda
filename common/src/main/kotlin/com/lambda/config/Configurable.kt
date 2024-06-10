@@ -31,12 +31,16 @@ import java.awt.Color
  *
  * @property settings A set of [AbstractSetting]s that this configurable manages.
  */
-abstract class Configurable(configuration: Configuration) : Jsonable, Nameable {
+abstract class Configurable(
+    private val configuration: Configuration
+) : Jsonable, Nameable {
     val settings = mutableSetOf<AbstractSetting<*>>()
 
     init {
-        configuration.configurables.add(this) // ToDo: Find non-leaking solution
+        register()
     }
+
+    private fun register() = configuration.configurables.add(this)
 
     override fun toJson() =
         JsonObject().apply {
