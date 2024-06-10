@@ -25,12 +25,12 @@ import net.minecraft.util.math.Direction
 
 class BreakBlock @Ta5kBuilder constructor(
     private val ctx: BreakContext,
-    private val rotationConfig: IRotationConfig = TaskFlow.rotation,
-    private val interactionConfig: InteractionConfig = TaskFlow.interact,
-    private val sides: Set<Direction> = emptySet(),
-    private var collectDrop: Boolean = TaskFlow.build.collectDrops,
-    private val rotate: Boolean = TaskFlow.build.rotateForBreak,
-    private val swingHand: Boolean = TaskFlow.build.swingHand,
+    private val rotationConfig: IRotationConfig,
+    private val interactionConfig: InteractionConfig,
+    private val sides: Set<Direction>,
+    private var collectDrop: Boolean,
+    private val rotate: Boolean,
+    private val swingHand: Boolean,
 ) : Task<ItemEntity?>() {
     val blockPos: BlockPos get() = ctx.result.blockPos
     private var beginState: BlockState? = null
@@ -111,15 +111,17 @@ class BreakBlock @Ta5kBuilder constructor(
             rotationConfig: IRotationConfig = TaskFlow.rotation,
             interactionConfig: InteractionConfig = TaskFlow.interact,
             sides: Set<Direction> = emptySet(),
-            collectDrop: Boolean = false,
-            rotate: Boolean = false,
+            collectDrop: Boolean = TaskFlow.build.collectDrops,
+            rotate: Boolean = TaskFlow.build.rotateForBreak,
+            swingHand: Boolean = TaskFlow.interact.swingHand,
         ) = BreakBlock(
             ctx,
             rotationConfig,
             interactionConfig,
             sides,
             collectDrop,
-            rotate
+            rotate,
+            swingHand
         )
     }
 }

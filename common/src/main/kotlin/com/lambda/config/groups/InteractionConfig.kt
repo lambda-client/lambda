@@ -12,4 +12,5 @@ interface InteractionConfig {
     val resolution: Int
 
     val useRayCast: Boolean
+    val swingHand: Boolean
 }

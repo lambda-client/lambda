@@ -101,7 +101,7 @@ class PlaceBlock @Ta5kBuilder constructor(
         @Ta5kBuilder
         fun placeBlock(
             ctx: PlaceContext,
-            swingHand: Boolean = TaskFlow.build.swingHand,
+            swingHand: Boolean = TaskFlow.interact.swingHand,
             rotate: Boolean = TaskFlow.build.rotateForPlace,
             waitForConfirmation: Boolean = TaskFlow.build.placeConfirmation,
         ) = PlaceBlock(ctx, swingHand, rotate, waitForConfirmation)
