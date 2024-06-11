@@ -251,7 +251,7 @@ object BuildSimulator {
 
                 val currentHandStack = player.getStackInHand(Hand.MAIN_HAND)
                 if (target is TargetState.Stack && !target.itemStack.equal(currentHandStack)) {
-                    acc.add(BuildResult.WrongStack(pos, placeContext, target.copy))
+                    acc.add(BuildResult.WrongStack(pos, placeContext, target.itemStack))
                     return@forEach
                 }
                 

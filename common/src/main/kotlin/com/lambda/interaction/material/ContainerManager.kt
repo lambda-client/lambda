@@ -40,9 +40,7 @@ object ContainerManager : Loadable {
             lastInteractedBlockEntity = it.blockHitResult.blockPos.blockEntity(world)
         }
 
-        listener<ScreenHandlerEvent.Close<ScreenHandler>> { event ->
-            // ToDo: ;-; i hate type erasure.
-            //  The listener will be triggered for any H, not just GenericContainerScreenHandler
+        listener<ScreenHandlerEvent.Close> { event ->
             if (event.screenHandler !is GenericContainerScreenHandler) return@listener
 
             val handler = event.screenHandler

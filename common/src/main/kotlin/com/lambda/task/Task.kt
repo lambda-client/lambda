@@ -73,7 +73,7 @@ abstract class Task<Result> : Nameable {
     private var executions = 0
     private var attempted = 0
     private val subTasks = mutableListOf<Task<*>>()
-    private var state = State.IDLE
+    protected var state = State.IDLE
     var age = 0
 
     private val isDeactivated get() = state == State.DEACTIVATED
@@ -385,9 +385,9 @@ abstract class Task<Result> : Nameable {
      * @return The current task instance with the updated success action.
      */
     @Ta5kBuilder
-    fun thenRun(action: SafeContext.(Task<Result>, Result) -> Task<*>): Task<Result> {
+    fun thenRun(owner: Task<*>?, action: SafeContext.(Task<Result>, Result) -> Task<*>): Task<Result> {
         this.onSuccess = { task, result ->
-            action(this, task, result).start(task)
+            action(this, task, result).start(owner)
         }
         return this
     }

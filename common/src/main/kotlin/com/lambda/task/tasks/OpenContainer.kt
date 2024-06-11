@@ -14,24 +14,24 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-class OpenContainer<H : ScreenHandler>(
+class OpenContainer(
     private val blockPos: BlockPos,
     private val waitForSlotLoad: Boolean = true,
     private val rotationConfig: IRotationConfig = TaskFlow.rotation,
     private val interactionConfig: InteractionConfig = TaskFlow.interact,
     private val sides: Set<Direction> = emptySet(),
-) : Task<H>() {
-    private var screenHandler: H? = null
+) : Task<ScreenHandler>() {
+    private var screenHandler: ScreenHandler? = null
     private var slotsLoaded = false
 
     init {
-        listener<ScreenHandlerEvent.Open<H>> {
+        listener<ScreenHandlerEvent.Open> {
             screenHandler = it.screenHandler
 
             if (!waitForSlotLoad || slotsLoaded) success(it.screenHandler)
         }
 
-        listener<ScreenHandlerEvent.Close<H>> {
+        listener<ScreenHandlerEvent.Close> {
             screenHandler = null
         }
 
@@ -58,9 +58,9 @@ class OpenContainer<H : ScreenHandler>(
 
     companion object {
         @Ta5kBuilder
-        inline fun <reified T : ScreenHandler> openContainer(
+        fun openContainer(
             blockPos: BlockPos,
             waitForSlotLoad: Boolean = true
-        ) = OpenContainer<T>(blockPos, waitForSlotLoad)
+        ) = OpenContainer(blockPos, waitForSlotLoad)
     }
 }

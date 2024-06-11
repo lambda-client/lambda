@@ -11,10 +11,10 @@ class ContainerTransfer(
     val to: MaterialContainer
 ) : Task<Unit>() {
     override fun SafeContext.onStart() {
-        from.withdraw(selection).onSuccess { withdraw, _ ->
+        from.withdraw(selection).thenRun(this@ContainerTransfer) { _, _ ->
             to.deposit(selection).onSuccess { _, _ ->
                 success(Unit)
-            }.start(withdraw)
+            }
         }.start(this@ContainerTransfer)
     }
 }

@@ -42,12 +42,12 @@ sealed class TargetState : StateMatcher {
             block.getPickStack(world, pos, block.defaultState)
     }
     data class Stack(val itemStack: ItemStack) : TargetState() {
-        val copy: ItemStack = itemStack.copy()
+        private val block = itemStack.item.block
 
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
-            state.block == copy.item.block
+            state.block == block
 
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
-            copy
+            itemStack
     }
 }

@@ -21,6 +21,8 @@ class BuildStructure @Ta5kBuilder constructor(
     private val blueprint: Blueprint,
     private val finishOnDone: Boolean = true,
     private val pathing: Boolean = TaskFlow.build.pathing,
+    private val stayInRange: Boolean = true,
+    private val forceSilkTouch: Boolean = false,
     val collectDrops: Boolean = TaskFlow.build.collectDrops,
     private val cancelOnUnsolvable: Boolean = true,
 ) : Task<Unit>() {
@@ -62,7 +64,7 @@ class BuildStructure @Ta5kBuilder constructor(
                     is Resolvable -> {
                         LOG.info("Resolving: $result")
                         result.resolve.start(this@BuildStructure)
-                        if (pathing) {
+                        if (pathing && stayInRange) {
                             BaritoneUtils.setGoalAndPath(GoalNear(result.blockPos, 2))
                         }
                     }
@@ -81,6 +83,7 @@ class BuildStructure @Ta5kBuilder constructor(
 
     private fun SafeContext.checkDone() {
         if (!finishOnDone) return
+        BaritoneUtils.cancel()
         success(Unit)
         return
     }
@@ -91,12 +94,14 @@ class BuildStructure @Ta5kBuilder constructor(
             finishOnDone: Boolean = true,
             collectDrops: Boolean = TaskFlow.build.collectDrops,
             pathing: Boolean = TaskFlow.build.pathing,
+            stayInRange: Boolean = true,
             cancelOnUnsolvable: Boolean = true,
             blueprint: () -> Blueprint,
         ) = BuildStructure(
                 blueprint(),
                 finishOnDone,
                 pathing,
+                stayInRange,
                 collectDrops,
                 cancelOnUnsolvable
             )
@@ -104,8 +109,12 @@ class BuildStructure @Ta5kBuilder constructor(
         @Ta5kBuilder
         fun breakAndCollectBlock(
             blockPos: BlockPos,
+            withSilkTouch: Boolean = false,
+            stayInRange: Boolean = false,
         ) = BuildStructure(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
+            forceSilkTouch = withSilkTouch,
+            stayInRange = stayInRange,
             collectDrops = true
         )
 

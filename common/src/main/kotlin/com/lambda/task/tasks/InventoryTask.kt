@@ -14,8 +14,8 @@ import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
 
-class InventoryTask<H : ScreenHandler>(
-    val screen: H,
+class InventoryTask(
+    val screen: ScreenHandler,
     val selection: StackSelection,
     val from: List<Slot>,
     val to: List<Slot>,
@@ -64,19 +64,20 @@ class InventoryTask<H : ScreenHandler>(
 
     companion object {
         @Ta5kBuilder
-        inline fun <reified H : ScreenHandler> moveItems(
-            screen: H,
+        fun moveItems(
+            screen: ScreenHandler,
             selection: StackSelection,
             from: List<Slot>,
             to: List<Slot>,
-        ) = InventoryTask(screen, selection, from, to)
+            closeScreen: Boolean = true
+        ) = InventoryTask(screen, selection, from, to, closeScreen)
 
         @Ta5kBuilder
-        inline fun <reified H : ScreenHandler> withdraw(screen: H, selection: StackSelection) =
+        fun withdraw(screen: ScreenHandler, selection: StackSelection) =
             moveItems(screen, selection, screen.containerSlots, screen.inventorySlots)
 
         @Ta5kBuilder
-        inline fun <reified H : ScreenHandler> deposit(screen: H, selection: StackSelection) =
+        fun deposit(screen: ScreenHandler, selection: StackSelection) =
             moveItems(screen, selection, screen.inventorySlots, screen.containerSlots)
     }
 }

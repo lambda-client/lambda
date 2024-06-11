@@ -14,7 +14,7 @@ import net.minecraft.util.math.*
 import kotlin.math.floor
 
 object BlockUtils {
-    private val shulkerBlocks = shulkerBoxes.map { it.block }
+    val shulkerBlocks = shulkerBoxes.map { it.block }
 
     val interactionBlacklist = mutableSetOf(
         Blocks.CHEST,
