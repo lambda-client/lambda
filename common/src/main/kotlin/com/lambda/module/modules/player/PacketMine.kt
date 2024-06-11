@@ -29,8 +29,8 @@ object PacketMine : Module(
     defaultTags = setOf(ModuleTag.PLAYER)
 ) {
 
-    private val blockTimeout by setting("Block Timeout", 500, 0..3000, 1, "Time delay before cancelling the current block after its time to mine is complete", unit = "milliseconds")
-    private val speedyReBreak by setting("Speedy Re-Break", false, "Re-breaks blocks instantly however can cause ghost blocks")
+    private val reBreak by setting("Re-Break", true, "Automatically re-breaks the last mined block if it gets replaced")
+    private val fastReBreak by setting("Speedy Re-Break", false, "Re-breaks blocks instantly however could potentially cause ghost blocks", visibility = ::reBreak)
 
     private var currentMiningBlock: BlockData? = null
     private var reBreakBlock: BlockData? = null
@@ -39,6 +39,10 @@ object PacketMine : Module(
     init {
         listener<TickEvent.Pre> {
             currentMiningBlock?.apply {
+                this.mineTicks++
+
+                if (this.awaitingResponse) return@listener
+
                 val state = world.getBlockState(this.pos)
 
                 if (state != this.state) {
@@ -47,18 +51,12 @@ object PacketMine : Module(
 
                 val bestTool = getBestTool(state, this.pos)
 
-                if (this.mineTicks * calcBreakDelta(this.state, this.pos, bestTool) < 1) {
-                    swapStopBreak(this.pos, bestTool)
-                } else {
+                if (this.mineTicks * calcBreakDelta(this.state, this.pos, bestTool) > 0.7) {
                     if (!this.awaitingResponse) {
                         this.awaitingResponse = true
-                        this.timeCompletedAt = System.currentTimeMillis()
-                    }
-                    if (System.currentTimeMillis() - this.timeCompletedAt > blockTimeout) {
-                        currentMiningBlock = null
+                        swapStopBreak(this.pos, bestTool)
                     }
                 }
-                this.mineTicks++
             } ?: reBreakBlock?.apply {
                 if (player.eyePos.distanceTo(this.pos.toCenterPos()) > 6) {
                     reBreakBlock = null
@@ -74,9 +72,11 @@ object PacketMine : Module(
 
                 if (this.mineTicks * calcBreakDelta(this.state, this.pos, bestTool) > 0.7) {
                     if ((!state.isAir && (state.fluidState.isEmpty || state.properties.contains(Properties.WATERLOGGED)))
-                        || speedyReBreak) {
+                        || fastReBreak) {
                         swapStopBreak(this.pos, bestTool)
-                        interaction.breakBlock(this.pos)
+                        if (fastReBreak) {
+                            interaction.breakBlock(this.pos)
+                        }
                     }
                 }
             }
@@ -103,7 +103,9 @@ object PacketMine : Module(
                 if (calcBreakDelta(world.getBlockState(it.packet.pos), it.packet.pos, bestTool) > 0.7) {
                     swapStartBreak(it.packet.pos, bestTool)
                     currentMiningBlock = null
-                    reBreakBlock = BlockData(it.packet.pos, state)
+                    if (reBreak) {
+                        reBreakBlock = BlockData(it.packet.pos, state)
+                    }
                     state.block.onBreak(world, it.packet.pos, state, player)
                 } else {
                     swapStartPacketBreak(it.packet.pos, bestTool)
@@ -120,7 +122,8 @@ object PacketMine : Module(
                     && (if (miningBlock.state.properties.contains(Properties.WATERLOGGED))
                         it.packet.state.fluidState.fluid.equals(Fluids.WATER)
                         else it.packet.state.isAir)) {
-                    if (player.eyePos.distanceTo(miningBlock.pos.toCenterPos()) < 6) {
+                    if (reBreak
+                        && player.eyePos.distanceTo(miningBlock.pos.toCenterPos()) < 6) {
                         reBreakBlock = miningBlock
                     }
                     miningBlock.state.block.onBreak(world, miningBlock.pos, miningBlock.state, player)
@@ -132,12 +135,30 @@ object PacketMine : Module(
                                 && (if (miningBlock.state.properties.contains(Properties.WATERLOGGED))
                                     state.fluidState.fluid.equals(Fluids.WATER)
                                     else state.isAir)) {
-                                if (player.eyePos.distanceTo(miningBlock.pos.toCenterPos()) < 6) {
+                                if (reBreak
+                                    && player.eyePos.distanceTo(miningBlock.pos.toCenterPos()) < 6) {
                                     reBreakBlock = miningBlock
                                 }
                                 miningBlock.state.block.onBreak(world, miningBlock.pos, miningBlock.state, player)
                                 currentMiningBlock = null
                             }
+                        }
+                    })
+                }
+            } ?: reBreakBlock?.let { reBlock ->
+                if (it.packet is BlockUpdateS2CPacket
+                    && it.packet.pos.equals(reBlock.pos)
+                    && (if (reBlock.state.properties.contains(Properties.WATERLOGGED))
+                        it.packet.state.fluidState.fluid.equals(Fluids.WATER)
+                    else it.packet.state.isAir)) {
+                    if (!fastReBreak) reBlock.state.block.onBreak(world, reBlock.pos, reBlock.state, player)
+                } else if (it.packet is ChunkDeltaUpdateS2CPacket) {
+                    it.packet.visitUpdates(BiConsumer { pos: BlockPos, state: BlockState ->
+                        if (pos == reBlock.pos
+                            && (if (reBlock.state.properties.contains(Properties.WATERLOGGED))
+                                state.fluidState.fluid.equals(Fluids.WATER)
+                                else state.isAir)) {
+                            if (!fastReBreak) reBlock.state.block.onBreak(world, reBlock.pos, reBlock.state, player)
                         }
                     })
                 }
@@ -251,6 +272,5 @@ object PacketMine : Module(
     private class BlockData(var pos: BlockPos, var state: BlockState) {
         var mineTicks: Int = 0
         var awaitingResponse: Boolean = false
-        var timeCompletedAt: Long = -1
     }
 }
