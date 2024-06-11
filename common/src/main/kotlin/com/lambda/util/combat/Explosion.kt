@@ -1,6 +1,8 @@
 package com.lambda.util.combat
 
 import com.lambda.context.SafeContext
+import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.fluidState
 import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.math.VecUtils.times
 import com.lambda.util.world.WorldUtils.getFastEntities
@@ -104,8 +106,8 @@ object Explosion {
 
                         while (intensity > 0) {
                             val blockPos = BlockPos.ofFloored(explosionX, explosionY, explosionZ)
-                            val block = world.getBlockState(blockPos)
-                            val fluid = world.getFluidState(blockPos)
+                            val block = blockPos.blockState(world)
+                            val fluid = blockPos.fluidState(world)
                             if (!world.isInBuildLimit(blockPos)) {
                                 break
                             }

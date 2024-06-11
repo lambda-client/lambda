@@ -8,7 +8,9 @@ import com.lambda.Lambda.gson
 import com.lambda.config.configurations.ModuleConfig
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
-import com.lambda.util.FolderRegister
+import com.lambda.threading.runIO
+import com.lambda.util.Communication.info
+import com.lambda.util.Communication.logError
 import com.lambda.util.StringUtils.capitalize
 import java.io.File
 import java.time.Duration
@@ -29,13 +31,13 @@ import kotlin.concurrent.fixedRateTimer
  * @property primary The primary file where the configuration is saved.
  * @property configurables A set of [Configurable] objects that this configuration manages.
  */
-abstract class Configuration(
-    val configName: String,
-) : Jsonable {
-    private val primary = FolderRegister.config.resolve("$configName.json")
-    private val backup = File("${primary.parent}/${primary.nameWithoutExtension}-backup.${primary.extension}")
+abstract class Configuration : Jsonable {
+    abstract val configName: String
+    abstract val primary: File
 
     val configurables = mutableSetOf<Configurable>()
+    private val backup: File
+        get() = File("${primary.parent}/${primary.nameWithoutExtension}-backup.${primary.extension}")
 
     init {
         unsafeListener<ClientEvent.Startup> { tryLoad() }
@@ -93,37 +95,46 @@ abstract class Configuration(
         loadFromJson(JsonParser.parseReader(file.reader()).asJsonObject)
     }
 
-    fun tryLoad() =
-        runCatching { load(primary) }
-            .onSuccess {
-                val message = "${configName.capitalize()} config loaded."
-                LOG.info(message)
-            }
-            .onFailure {
-                runCatching { load(backup) }
-                    .onSuccess {
-                        LOG.info("${configName.capitalize()} config loaded from backup.")
-                    }
-                    .onFailure { backupError ->
-                        LOG.error(
-                            "Failed to load ${configName.capitalize()} config from backup, unrecoverable error.",
-                            backupError
-                        )
-                    }
-            }
-            .exceptionOrNull()
+    fun tryLoad() {
+        runIO {
+            runCatching { load(primary) }
+                .onSuccess {
+                    val message = "${configName.capitalize()} config loaded."
+                    LOG.info(message)
+                    info(message)
+                }
+                .onFailure {
+                    var message: String
+                    runCatching { load(backup) }
+                        .onSuccess {
+                            message = "${configName.capitalize()} config loaded from backup"
+                            LOG.info(message)
+                            info(message)
+                        }
+                        .onFailure { error ->
+                            message =
+                                "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
+                            LOG.error(message, error)
+                            logError(message)
+                        }
+                }
+        }
+    }
 
-    fun trySave() =
-        runCatching { save() }
-            .onSuccess {
-                val message = "Saved ${configName.capitalize()} config."
-                LOG.info(message)
-            }
-            .onFailure {
-                val message = "Failed to save ${configName.capitalize()} config"
-                LOG.error(message, it)
-            }
-            .exceptionOrNull()
+    fun trySave(logToChat: Boolean = false) {
+        runIO {
+            runCatching { save() }
+                .onSuccess {
+                    val message = "Saved ${configName.capitalize()} config."
+                    LOG.info(message)
+                    if (logToChat) info(message)
+                }
+                .onFailure {
+                    val message = "Failed to save ${configName.capitalize()} config"
+                    logError(message)
+                }
+        }
+    }
 
     companion object {
         val configurations = mutableSetOf<Configuration>()

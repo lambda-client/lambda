@@ -1,6 +1,5 @@
 package com.lambda.command.commands
 
-import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.executeWithResult
@@ -20,9 +19,8 @@ object ConfigCommand : LambdaCommand(
         required(literal("save")) {
             executeWithResult {
                 Configuration.configurations.forEach { config ->
-                    config.trySave()?.let { return@executeWithResult failure(it) }
+                    config.trySave(true)
                 }
-
                 this@ConfigCommand.info("Saved ${Configuration.configurations.size} configuration files.")
                 return@executeWithResult success()
             }
@@ -30,9 +28,8 @@ object ConfigCommand : LambdaCommand(
         required(literal("load")) {
             executeWithResult {
                 Configuration.configurations.forEach { config ->
-                    config.tryLoad()?.let { return@executeWithResult failure(it) }
+                    config.tryLoad()
                 }
-
                 this@ConfigCommand.info("Loaded ${Configuration.configurations.size} configuration files.")
                 return@executeWithResult success()
             }

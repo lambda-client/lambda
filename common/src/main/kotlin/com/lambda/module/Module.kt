@@ -15,6 +15,7 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener
 import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.module.tag.ModuleTag
+import com.lambda.task.Task
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 
@@ -25,7 +26,7 @@ import com.lambda.util.Nameable
  *
  * Each [Module] has a [name], which is displayed in-game.
  * The [description] of the module is shown when hovering over
- * the [ModuleButton] in the GUI and in [Command]s.
+ * the [ModuleButton] in the GUI and in [Commands]s.
  * The [Module] can be associated with a [Set] of [ModuleTag]s to allow for
  * easier filtering and searching in the GUI.
  *

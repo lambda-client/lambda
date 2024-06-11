@@ -1,10 +1,13 @@
 package com.lambda.threading
 
-import com.lambda.Lambda
+import com.lambda.Lambda.mc
 import com.lambda.context.ClientContext
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
+import java.util.concurrent.CompletableFuture
 
 /**
  * Executes a block of code only if the context is safe. A context is considered safe when all the following properties are not null:
@@ -18,13 +21,12 @@ import kotlinx.coroutines.launch
  * @param block The block of code to be executed within the safe context.
  * @return The result of the block execution if the context is safe, null otherwise.
  */
-inline fun <T> runSafe(block: SafeContext.() -> T): T? {
-    return ClientContext().toSafe()?.let { block(it) }
-}
+inline fun <T> runSafe(block: SafeContext.() -> T) =
+    ClientContext().toSafe()?.let { block(it) }
 
 /**
  * This function is used to execute a block of code on a new thread running asynchronously to the game thread.
- * It should only be used when you need to perform read actions on the game data.
+ * It should only be used when you need to perform read actions on the game data (not write).
  *
  * Caution: Using this function to write to the game data can lead to race conditions. Therefore, it is recommended
  * to use this function only for read operations to avoid potential concurrency issues.
@@ -36,11 +38,15 @@ inline fun runConcurrent(crossinline block: suspend () -> Unit) =
         block()
     }
 
-inline fun taskContext(crossinline block: suspend () -> Unit) {
+inline fun runIO(crossinline block: suspend () -> Unit) =
+    EventFlow.lambdaScope.launch(Dispatchers.IO) {
+        block()
+    }
+
+inline fun taskContext(crossinline block: suspend () -> Unit) =
     EventFlow.lambdaScope.launch {
         block()
     }
-}
 
 /**
  * This function is used to execute a block of code within a safe context on a new thread running asynchronously to the game thread.
@@ -72,8 +78,8 @@ inline fun runSafeConcurrent(crossinline block: SafeContext.() -> Unit) {
  *
  * @param block The task to be executed on the game's main thread.
  */
-inline fun runOnGameThread(crossinline block: () -> Unit) {
-    Lambda.mc.executeSync { block() }
+inline fun runGameScheduled(crossinline block: () -> Unit) {
+    mc.executeSync { block() }
 }
 
 /**
@@ -93,6 +99,27 @@ inline fun runOnGameThread(crossinline block: () -> Unit) {
  *
  * @param block The task to be executed on the game's main thread within a safe context.
  */
-inline fun runSafeOnGameThread(crossinline block: SafeContext.() -> Unit) {
-    runOnGameThread { runSafe { block() } }
+inline fun runSafeGameConcurrent(crossinline block: SafeContext.() -> Unit) {
+    runGameScheduled { runSafe { block() } }
 }
+
+/**
+ * Executes a given task on the game's main thread within a safe context
+ * and blocks the coroutine until the task is completed.
+ * A context is considered safe when all the following properties are not null:
+ * - [SafeContext.world]
+ * - [SafeContext.player]
+ * - [SafeContext.interaction]
+ * - [SafeContext.connection]
+ *
+ * This function is used when a task needs to be performed on the game's main thread,
+ * as certain operations are not safe to perform on other threads.
+ *
+ * Note:
+ * This function is blocking
+ * as it uses [CompletableFuture]'s [await] method to [suspend] the coroutine until the task is completed.
+ *
+ * @param block The task to be executed on the game's main thread within a safe context.
+ */
+suspend inline fun <T> runGameBlocking(noinline block: SafeContext.() -> T) =
+    CompletableFuture.supplyAsync({ runSafe { block() } }, mc).await() ?: throw IllegalStateException("Unsafe")

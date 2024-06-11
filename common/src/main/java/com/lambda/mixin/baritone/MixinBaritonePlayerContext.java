@@ -24,6 +24,8 @@ public class MixinBaritonePlayerContext {
         if (baritone != BaritoneUtils.getPrimary()) return;
 
         RotationManager rm = RotationManager.INSTANCE;
-        cir.setReturnValue(new Rotation((float) rm.getCurrentRotation().getYaw(), (float) rm.getCurrentRotation().getPitch()));
+        cir.setReturnValue(new Rotation(
+                (float) rm.getCurrentRotation().getYaw(), (float) rm.getCurrentRotation().getPitch())
+        );
     }
 }

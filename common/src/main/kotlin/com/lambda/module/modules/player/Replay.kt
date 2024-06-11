@@ -2,7 +2,7 @@ package com.lambda.module.modules.player
 
 import com.google.gson.*
 import com.lambda.brigadier.CommandResult
-import com.lambda.config.RotationSettings
+import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
@@ -56,15 +56,14 @@ object Replay : Module(
     private val cycle by setting("Cycle Play Mode", KeyCode.B, description = "REPLAY: Replay the recording once. CONTINUE: Replay the recording and continue recording. LOOP: Loop the recording.")
     private val check by setting("Set Checkpoint", KeyCode.V, description = "Create a checkpoint while recording.")
 
-    private val loops by setting("Loops", -1, -1..10, 1, description = "Number of times to loop the replay. -1 for infinite.", unit = "repeats")
+    private val loops by setting("Loops", -1, -1..10, 1, description = "Number of times to loop the replay. -1 for infinite.", unit = " repeats")
     private val velocityCheck by setting("Velocity check", true, description = "Check if the player is moving before starting a recording.")
     private val cancelOnDeviation by setting("Cancel on deviation", true)
     private val deviationThreshold by setting("Deviation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the deviation to cancel the replay.") { cancelOnDeviation }
 
     private val rotationConfig = RotationSettings(this).apply {
         rotationMode = RotationMode.LOCK
-        r1 = 1000.0
-        r2 = 1001.0
+        instant = true
     }
 
     enum class State {

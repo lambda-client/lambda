@@ -7,7 +7,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 object Formatting {
-    val Vec3d.asString: String
+    val Vec3d.string: String
         get() = asString()
 
     fun Vec3d.asString(decimals: Int = 2): String {
