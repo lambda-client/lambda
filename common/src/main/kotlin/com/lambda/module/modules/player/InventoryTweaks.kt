@@ -10,10 +10,15 @@ import com.lambda.task.Task
 import com.lambda.task.tasks.BuildStructure.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainer.Companion.openContainer
 import com.lambda.task.tasks.PlaceContainer.Companion.placeContainer
+import com.lambda.threading.runConcurrent
 import com.lambda.util.item.ItemUtils.shulkerBoxes
+import com.lambda.util.player.SlotUtils.clickSlot
 import com.lambda.util.player.SlotUtils.hotbar
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
+import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.math.BlockPos
@@ -23,17 +28,17 @@ object InventoryTweaks : Module(
     name = "InventoryTweaks",
     defaultTags = setOf(ModuleTag.PLAYER)
 ) {
-    private val shulkerPeak by setting("Shulker Peek", true, description = "Peek into shulker boxes in your inventory")
+    private val instantShulker by setting("Instant Shulker", true, description = "Right-click shulker boxes in your inventory to instantly place them and open them.")
+    private val instantEChest by setting("Instant Ender-Chest", true, description = "Right-click ender chests in your inventory to instantly place them and open them.")
     private var placedPos: BlockPos? = null
     private var lastPlace: Task<*>? = null
     private var lastBreak: Task<*>? = null
 
     init {
         listener<InteractionEvent.SlotClick> {
-            if (!shulkerPeak) return@listener
             if (it.action != SlotActionType.PICKUP || it.button != 1) return@listener
             val stack = it.screenHandler.getSlot(it.slot).stack
-            if (stack.item !in shulkerBoxes && stack.item != Items.ENDER_CHEST) return@listener
+            if (!(instantShulker && stack.item in shulkerBoxes) && !(instantEChest && stack.item == Items.ENDER_CHEST)) return@listener
             it.cancel()
             move(it.slot, stack)
 
@@ -46,7 +51,6 @@ object InventoryTweaks : Module(
         }
 
         listener<ScreenHandlerEvent.Close> {
-            if (!shulkerPeak) return@listener
             placedPos?.let {
                 lastBreak = breakAndCollectBlock(it).start(null)
                 placedPos = null
@@ -80,6 +84,6 @@ object InventoryTweaks : Module(
             return
         }
 
-        interaction.pickFromInventory(index)
+        clickSlot(index, player.inventory.selectedSlot, SlotActionType.SWAP)
     }
 }
