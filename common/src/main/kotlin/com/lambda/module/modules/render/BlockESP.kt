@@ -1,9 +1,13 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
+import com.lambda.graphics.renderer.esp.BlockEspRenderer.Companion.newEspRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.math.ColorUtils.setAlpha
+import net.minecraft.block.Blocks
 import net.minecraft.client.render.model.BakedModel
+import java.awt.Color
 
 object BlockESP : Module(
     name = "BlockESP",
@@ -24,5 +28,13 @@ object BlockESP : Module(
         onToggle {
             mc.worldRenderer.reload()
         }
+
+        val outlineColor = Color(100, 150, 255).setAlpha(0.5)
+        val filledColor = outlineColor.setAlpha(0.2)
+
+        newEspRenderer(
+            { view, pos -> view.getBlockState(pos).block.defaultState == Blocks.GRASS_BLOCK.defaultState },
+            { _, _ -> filledColor to outlineColor }
+        )
     }
 }

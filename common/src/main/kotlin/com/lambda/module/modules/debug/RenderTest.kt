@@ -3,7 +3,7 @@ package com.lambda.module.modules.debug
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.graphics.renderer.esp.CachedEspRenderer
+import com.lambda.graphics.renderer.esp.EspRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.ColorUtils.setAlpha
@@ -27,7 +27,7 @@ object RenderTest : Module(
     private val outlineColor = Color(100, 150, 255).setAlpha(0.5)
     private val filledColor = outlineColor.setAlpha(0.2)
 
-    private val rendeer = CachedEspRenderer(this)
+    private val rendeer = EspRenderer()
 
     init {
         listener<RenderEvent.EntityESP> {
@@ -37,6 +37,10 @@ object RenderTest : Module(
 
         listener<TickEvent.Pre> {
             rendeer.build(Box.of(player.pos, 0.3, 0.3, 0.3), filledColor, outlineColor)
+        }
+
+        listener<RenderEvent.World> {
+            rendeer.render()
         }
 
         onEnable {
