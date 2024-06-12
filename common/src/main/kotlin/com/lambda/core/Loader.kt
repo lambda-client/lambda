@@ -8,6 +8,7 @@ import com.lambda.graphics.renderer.gui.font.LambdaFont
 import com.lambda.gui.GuiConfigurable
 import com.lambda.interaction.PlayerPacketManager
 import com.lambda.interaction.RotationManager
+import com.lambda.interaction.material.ContainerManager
 import com.lambda.module.ModuleRegistry
 import com.lambda.sound.SoundRegistry
 import com.lambda.util.Communication.ascii
@@ -23,6 +24,7 @@ object Loader {
         GuiConfigurable,
         FriendRegistry,
         SoundRegistry,
+        ContainerManager
     )
 
     fun initialize() {

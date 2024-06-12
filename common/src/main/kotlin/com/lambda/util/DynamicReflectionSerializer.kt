@@ -1,5 +1,6 @@
 package com.lambda.util
 
+import com.lambda.util.DynamicReflectionSerializer.formatFieldValue
 import com.mojang.serialization.Codec
 import net.minecraft.block.BlockState
 import net.minecraft.client.resource.language.TranslationStorage
@@ -86,7 +87,7 @@ object DynamicReflectionSerializer {
         }
         val fieldValue = field.get(this)
         val fieldIndent = indent + " ".repeat(INDENT)
-        builder.appendLine("$fieldIndent${field.name}: ${formatFieldValue(fieldValue)}")
+        builder.appendLine("$fieldIndent${field.name}: ${fieldValue.formatFieldValue()}")
 
         if (currentDepth < maxRecursionDepth
             && fieldValue != null
@@ -105,22 +106,20 @@ object DynamicReflectionSerializer {
         }
     }
 
-    private fun formatFieldValue(value: Any?): String {
-        return when (value) {
-            is String -> "\"$value\""
-            is Collection<*> -> "[${value.joinToString(", ") { formatFieldValue(it) }}]"
-            is Array<*> -> "[${value.joinToString(", ") { formatFieldValue(it) }}]"
+    private fun Any?.formatFieldValue(): String =
+        when (this) {
+            is String -> "\"${this}\""
+            is Collection<*> -> "[${joinToString(", ") { it.formatFieldValue() }}]"
+            is Array<*> -> "[${joinToString(", ") { it.formatFieldValue() }}]"
             is Map<*, *> -> "{${
-                value.entries.joinToString(", ") { (k, v) ->
-                    "${formatFieldValue(k)}: ${formatFieldValue(v)}"
+                entries.joinToString(", ") { (k, v) ->
+                    "${k.formatFieldValue()}: ${v.formatFieldValue()}"
                 }
             }}"
-
-            is Text -> value.string
-            is Identifier -> "${value.namespace}:${value.path}"
-            is NbtCompound -> value.asString()
-            is RegistryEntry<*> -> "${value.value()}"
-            else -> value?.toString() ?: "null"
+            is Text -> string
+            is Identifier -> "$namespace:$path"
+            is NbtCompound -> asString()
+            is RegistryEntry<*> -> "${value()}"
+            else -> this?.toString() ?: "null"
         }
-    }
 }

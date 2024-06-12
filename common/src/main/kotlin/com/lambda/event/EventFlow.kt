@@ -1,16 +1,13 @@
 package com.lambda.event
 
+import com.lambda.context.SafeContext
 import com.lambda.event.callback.ICancellable
 import com.lambda.event.listener.Listener
 import com.lambda.threading.runConcurrent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
+import com.lambda.threading.runSafe
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.*
 
 
 /**
@@ -31,7 +28,7 @@ object EventFlow {
      * useful when you have multiple independent [Job]s running in parallel.
      */
     val lambdaScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-    private val concurrentFlow = MutableSharedFlow<Event>(
+    val concurrentFlow = MutableSharedFlow<Event>(
         extraBufferCapacity = 1000,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
@@ -50,6 +47,38 @@ object EventFlow {
                     event.executeListenerConcurrently()
                 }
         }
+    }
+
+    suspend inline fun <reified E : Event> awaitEvent(
+        noinline predicate: SafeContext.(E) -> Boolean = { true },
+    ) = concurrentFlow.filterIsInstance<E>().first {
+        runSafe {
+            predicate(it)
+        } ?: false
+    }
+
+    suspend inline fun <reified E : Event> awaitEventUnsafe(
+        noinline predicate: (E) -> Boolean = { true },
+    ) = concurrentFlow.filterIsInstance<E>().first(predicate)
+
+    suspend inline fun <reified E : Event> awaitEvent(
+        timeout: Long,
+        noinline predicate: (E) -> Boolean = { true },
+    ) = runBlocking {
+            withTimeout(timeout) {
+                concurrentFlow.filterIsInstance<E>().first(predicate)
+            }
+        }
+
+    suspend inline fun <reified E : Event> awaitEvents(
+        crossinline predicate: (E) -> Boolean = { true },
+    ): Flow<E> = flow {
+        concurrentFlow
+            .filterIsInstance<E>()
+            .filter { predicate(it) }
+            .collect {
+                emit(it)
+            }
     }
 
     /**

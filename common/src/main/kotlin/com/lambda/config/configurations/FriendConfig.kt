@@ -1,8 +1,9 @@
 package com.lambda.config.configurations
 
 import com.lambda.config.Configuration
+import com.lambda.util.FolderRegister
 
-/**
- * The [FriendConfig] object represents the configuration file for the friends.
- */
-object FriendConfig : Configuration(configName = "friends")
+object FriendConfig : Configuration() {
+    override val configName get() = "friends"
+    override val primary = FolderRegister.config.resolve("$configName.json")
+}
