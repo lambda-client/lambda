@@ -10,16 +10,13 @@ import com.lambda.task.Task
 import com.lambda.task.tasks.BuildStructure.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainer.Companion.openContainer
 import com.lambda.task.tasks.PlaceContainer.Companion.placeContainer
-import com.lambda.threading.runConcurrent
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import com.lambda.util.player.SlotUtils.clickSlot
 import com.lambda.util.player.SlotUtils.hotbar
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
-import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
+import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -33,6 +30,7 @@ object InventoryTweaks : Module(
     private var placedPos: BlockPos? = null
     private var lastPlace: Task<*>? = null
     private var lastBreak: Task<*>? = null
+    private var lastOpenScreen: ScreenHandler? = null
 
     init {
         listener<InteractionEvent.SlotClick> {
@@ -46,11 +44,15 @@ object InventoryTweaks : Module(
 
             lastPlace = placeContainer(stack).thenRun(null) { _, placePos ->
                 placedPos = placePos
-                openContainer(placePos)
+                openContainer(placePos).onSuccess { _, screenHandler ->
+                    lastOpenScreen = screenHandler
+                }
             }.start(null)
         }
 
-        listener<ScreenHandlerEvent.Close> {
+        listener<ScreenHandlerEvent.Close> { event ->
+            if (event.screenHandler != lastOpenScreen) return@listener
+            lastOpenScreen = null
             placedPos?.let {
                 lastBreak = breakAndCollectBlock(it).start(null)
                 placedPos = null
