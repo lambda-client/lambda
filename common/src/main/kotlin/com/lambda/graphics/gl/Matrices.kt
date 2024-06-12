@@ -4,7 +4,7 @@ import org.joml.Matrix4f
 import org.joml.Quaternionf
 
 object Matrices {
-    private val stack = ArrayDeque(listOf(Matrix4f()))
+    private val stack = ArrayDeque<Matrix4f>(1)
 
     fun translate(x: Double, y: Double, z: Double) {
         translate(x.toFloat(), y.toFloat(), z.toFloat())
