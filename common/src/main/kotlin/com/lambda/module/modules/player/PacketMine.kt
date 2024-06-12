@@ -33,49 +33,33 @@ object PacketMine : Module(
     private val fastReBreak by setting("Speedy Re-Break", false, "Re-breaks blocks instantly however could potentially cause ghost blocks", visibility = ::reBreak)
 
     private var currentMiningBlock: BlockData? = null
-    private var reBreakBlock: BlockData? = null
     private var ignorePacketSend = false
 
     init {
         listener<TickEvent.Pre> {
             currentMiningBlock?.apply {
+
                 this.mineTicks++
-
-                if (this.awaitingResponse) return@listener
-
                 val state = world.getBlockState(this.pos)
-
-                if (state != this.state) {
-                    this.state = state
-                }
-
+                if (state != this.state) this.state = state
                 val bestTool = getBestTool(state, this.pos)
 
-                if (this.mineTicks * calcBreakDelta(this.state, this.pos, bestTool) > 0.7) {
-                    if (!this.awaitingResponse) {
-                        this.awaitingResponse = true
+                if (this.breakState == BreakState.BREAKING) {
+                    if (this.mineTicks * calcBreakDelta(this.state, this.pos, bestTool) > 0.7) {
+                        this.breakState = BreakState.AWAITING_RESPONSE
                         swapStopBreak(this.pos, bestTool)
                     }
-                }
-            } ?: reBreakBlock?.apply {
-                if (player.eyePos.distanceTo(this.pos.toCenterPos()) > 6) {
-                    reBreakBlock = null
-                    return@listener
-                }
-                this.mineTicks++
-
-                val state = world.getBlockState(this.pos)
-
-                if (state != this.state) this.state = state
-
-                val bestTool = getBestTool(this.state, this.pos)
-
-                if (this.mineTicks * calcBreakDelta(this.state, this.pos, bestTool) > 0.7) {
-                    if ((!state.isAir && (state.fluidState.isEmpty || state.properties.contains(Properties.WATERLOGGED)))
-                        || fastReBreak) {
-                        swapStopBreak(this.pos, bestTool)
+                } else if (this.breakState == BreakState.REBREAKING) {
+                    if (player.eyePos.distanceTo(this.pos.toCenterPos()) > 6) {
+                        currentMiningBlock = null
+                        return@listener
+                    }
+                    if (this.mineTicks * calcBreakDelta(this.state, this.pos, bestTool) > 0.7) {
                         if (fastReBreak) {
+                            swapStopBreak(this.pos, bestTool)
                             interaction.breakBlock(this.pos)
+                        } else if (!state.isAir && (state.fluidState.isEmpty || state.properties.contains(Properties.WATERLOGGED))) {
+                            swapStopBreak(this.pos, bestTool)
                         }
                     }
                 }
@@ -102,63 +86,74 @@ object PacketMine : Module(
 
                 if (calcBreakDelta(world.getBlockState(it.packet.pos), it.packet.pos, bestTool) > 0.7) {
                     swapStartBreak(it.packet.pos, bestTool)
-                    currentMiningBlock = null
-                    if (reBreak) {
-                        reBreakBlock = BlockData(it.packet.pos, state)
+                    swapStartPacketBreak(it.packet.pos, bestTool)
+                    currentMiningBlock = if (reBreak) {
+                        BlockData(it.packet.pos, state, BreakState.REBREAKING)
+                    } else {
+                        null
                     }
-                    state.block.onBreak(world, it.packet.pos, state, player)
+                    currentMiningBlock?.instaBroken = true
+                    interaction.breakBlock(it.packet.pos)
                 } else {
                     swapStartPacketBreak(it.packet.pos, bestTool)
-                    reBreakBlock = null
-                    currentMiningBlock = BlockData(it.packet.pos, state)
+                    currentMiningBlock = BlockData(it.packet.pos, state, BreakState.BREAKING)
                 }
             }
         }
 
         listener<PacketEvent.Receive.Pre> {
-            currentMiningBlock?.let { miningBlock ->
+            currentMiningBlock?.apply {
                 if (it.packet is BlockUpdateS2CPacket
-                    && it.packet.pos.equals(miningBlock.pos)
-                    && (if (miningBlock.state.properties.contains(Properties.WATERLOGGED))
+                    && it.packet.pos.equals(this.pos)
+                    && (if (this.state.properties.contains(Properties.WATERLOGGED))
                         it.packet.state.fluidState.fluid.equals(Fluids.WATER)
                         else it.packet.state.isAir)) {
-                    if (reBreak
-                        && player.eyePos.distanceTo(miningBlock.pos.toCenterPos()) < 6) {
-                        reBreakBlock = miningBlock
-                    }
-                    miningBlock.state.block.onBreak(world, miningBlock.pos, miningBlock.state, player)
-                    currentMiningBlock = null
-                } else if (it.packet is ChunkDeltaUpdateS2CPacket) {
-                    it.packet.visitUpdates(BiConsumer { pos: BlockPos, state: BlockState ->
-                        currentMiningBlock?.let { miningBlock ->
-                            if (pos == miningBlock.pos
-                                && (if (miningBlock.state.properties.contains(Properties.WATERLOGGED))
-                                    state.fluidState.fluid.equals(Fluids.WATER)
-                                    else state.isAir)) {
-                                if (reBreak
-                                    && player.eyePos.distanceTo(miningBlock.pos.toCenterPos()) < 6) {
-                                    reBreakBlock = miningBlock
-                                }
-                                miningBlock.state.block.onBreak(world, miningBlock.pos, miningBlock.state, player)
-                                currentMiningBlock = null
+
+                    if (this.breakState == BreakState.BREAKING || this.breakState == BreakState.AWAITING_RESPONSE) {
+                        this.state.block.onBreak(world, this.pos, this.state, player)
+                        if (reBreak
+                            && player.eyePos.distanceTo(this.pos.toCenterPos()) < 6) {
+                            this.breakState = BreakState.REBREAKING
+                        } else {
+                            currentMiningBlock = null
+                        }
+
+                    } else if (this.breakState == BreakState.REBREAKING) {
+                        if (!fastReBreak) {
+                            if (!this.instaBroken) {
+                                this.state.block.onBreak(world, this.pos, this.state, player)
+                            } else {
+                                this.instaBroken = false
                             }
                         }
-                    })
-                }
-            } ?: reBreakBlock?.let { reBlock ->
-                if (it.packet is BlockUpdateS2CPacket
-                    && it.packet.pos.equals(reBlock.pos)
-                    && (if (reBlock.state.properties.contains(Properties.WATERLOGGED))
-                        it.packet.state.fluidState.fluid.equals(Fluids.WATER)
-                    else it.packet.state.isAir)) {
-                    if (!fastReBreak) reBlock.state.block.onBreak(world, reBlock.pos, reBlock.state, player)
+                    }
                 } else if (it.packet is ChunkDeltaUpdateS2CPacket) {
                     it.packet.visitUpdates(BiConsumer { pos: BlockPos, state: BlockState ->
-                        if (pos == reBlock.pos
-                            && (if (reBlock.state.properties.contains(Properties.WATERLOGGED))
-                                state.fluidState.fluid.equals(Fluids.WATER)
-                                else state.isAir)) {
-                            if (!fastReBreak) reBlock.state.block.onBreak(world, reBlock.pos, reBlock.state, player)
+                        currentMiningBlock?.apply {
+                            if (pos == this.pos
+                                && (if (this.state.properties.contains(Properties.WATERLOGGED))
+                                    state.fluidState.fluid.equals(Fluids.WATER)
+                                    else state.isAir)) {
+
+                                if (this.breakState == BreakState.BREAKING || this.breakState == BreakState.AWAITING_RESPONSE) {
+                                    this.state.block.onBreak(world, this.pos, this.state, player)
+                                    if (reBreak
+                                        && player.eyePos.distanceTo(this.pos.toCenterPos()) < 6) {
+                                        this.breakState = BreakState.REBREAKING
+                                    } else {
+                                        currentMiningBlock = null
+                                    }
+
+                                } else if (this.breakState == BreakState.REBREAKING) {
+                                    if (!fastReBreak) {
+                                        if (!this.instaBroken) {
+                                            this.state.block.onBreak(world, this.pos, this.state, player)
+                                        } else {
+                                            this.instaBroken = false
+                                        }
+                                    }
+                                }
+                            }
                         }
                     })
                 }
@@ -269,8 +264,11 @@ object PacketMine : Module(
         return f
     }
 
-    private class BlockData(var pos: BlockPos, var state: BlockState) {
-        var mineTicks: Int = 0
-        var awaitingResponse: Boolean = false
+    private class BlockData(var pos: BlockPos, var state: BlockState, var breakState: BreakState) {
+        var mineTicks = 0
+        var instaBroken = false
+    }
+    private enum class BreakState {
+        BREAKING, REBREAKING, AWAITING_RESPONSE
     }
 }
