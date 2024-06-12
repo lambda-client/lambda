@@ -40,6 +40,9 @@ import kotlin.math.ceil
  * @see <a href="https://www.ibm.com/docs/no/aix/7.2?topic=monitoring-garbage-collection-impacts-java-performance">IBM - Garbage Collection Impacts on Java Performance</a>
  * @see <a href="https://devdiaries.medium.com/gc-and-its-effect-on-java-performance-9cba51ffb196">Medium - GC and Its Effect on Java Performance</a>
  *
+ * Many functions uses a branching approach to avoid trolling the speculative execution of the CPU.
+ * @see <a href="https://en.wikipedia.org/wiki/Branch_predictor for more information.">Branch Predictor</a>
+ * @see <a href="https://en.wikipedia.org/wiki/Speculative_execution">Speculative Execution</a>
  */
 object WorldUtils {
     /**
@@ -163,13 +166,13 @@ object WorldUtils {
     }
 
     /**
-     * Returns all the position within the range where the predicate is true.
+     * Returns all the blocks and positions within the range where the predicate is true.
      *
      * @param pos The position to search from.
      * @param rangeX The maximum distance to search for entities in the x-axis.
      * @param rangeY The maximum distance to search for entities in the y-axis.
      * @param rangeZ The maximum distance to search for entities in the z-axis.
-     * @param pointer The mutable list to store the positions in.
+     * @param pointer The mutable map to store the positions to blocks in.
      * @param predicate Predicate to filter the blocks.
      * @param iterator Iterator to perform operations on each block.
      */
@@ -178,32 +181,38 @@ object WorldUtils {
         rangeX: Int,
         rangeY: Int,
         rangeZ: Int,
-        pointer: MutableList<Block>? = null,
+        pointer: MutableMap<BlockPos, Block>? = null,
         predicate: (BlockState, BlockPos) -> Boolean = { _, _ -> true },
         iterator: (BlockState, BlockPos, Int) -> Unit = { _, _, _ -> },
     ) = searchBlocks(pos, Vec3i(rangeX, rangeY, rangeZ), pointer, predicate, iterator)
 
     /**
-     * Returns all the position within the range where the predicate is true.
+     * Returns all the blocks and positions within the range where the predicate is true.
      *
      * @param pos The position to search from.
      * @param range The maximum distance to search for entities in each axis.
-     * @param pointer The mutable list to store the positions in.
+     * @param pointer The mutable map to store the positions to blocks in.
      * @param iterator Iterator to perform operations on each block.
      * @param predicate Predicate to filter the blocks.
      */
     inline fun SafeContext.searchBlocks(
         pos: Vec3i,
         range: Vec3i,
-        pointer: MutableList<Block>? = null,
+        pointer: MutableMap<BlockPos, Block>? = null,
         predicate: (BlockState, BlockPos) -> Boolean = { _, _ -> true },
         iterator: (BlockState, BlockPos, Int) -> Unit = { _, _, _ -> },
     ) {
         iteratePositions(pos, range) { blockPos, index ->
             val state = blockPos.blockState(world)
-            if (predicate(state, blockPos)) {
-                pointer?.add(state.block)
-                iterator(state, blockPos, index)
+            when {
+                predicate(state, blockPos) && pointer != null -> {
+                    pointer[blockPos] = state.block
+                    iterator(state, blockPos, index)
+                }
+
+                predicate(state, blockPos) && pointer == null -> {
+                    iterator(state, blockPos, index)
+                }
             }
         }
     }
@@ -213,22 +222,28 @@ object WorldUtils {
      *
      * @param pos The position to search from.
      * @param range The maximum distance to search for fluids in each axis.
-     * @param collector The mutable list to store the positions in.
+     * @param pointer The mutable list to store the positions in.
      * @param iterator Iterator to perform operations on each fluid.
      * @param predicate Predicate to filter the fluids.
      */
     inline fun <reified T : Fluid> SafeContext.searchFluids(
         pos: Vec3i,
         range: Vec3i,
-        collector: MutableList<T>? = null,
+        pointer: MutableMap<BlockPos, T>? = null,
         iterator: (FluidState, BlockPos, Int) -> Unit = { _, _, _ -> },
         predicate: (FluidState, BlockPos) -> Boolean = { _, _ -> true },
     ) {
         iteratePositions(pos, range) { blockPos, index ->
             val state = world.getFluidState(blockPos)
-            if (predicate(state, blockPos)) {
-                collector?.add(state.fluid as? T ?: return@iteratePositions)
-                iterator(state, blockPos, index)
+            when {
+                predicate(state, blockPos) && pointer != null -> {
+                    iterator(state, blockPos, index)
+                    pointer[blockPos] = state.fluid as T
+                }
+
+                predicate(state, blockPos) && pointer == null -> {
+                    iterator(state, blockPos, index)
+                }
             }
         }
     }
