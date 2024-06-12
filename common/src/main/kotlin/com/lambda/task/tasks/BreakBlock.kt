@@ -1,24 +1,19 @@
 package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
+import com.lambda.config.groups.IRotationConfig
+import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.config.groups.InteractionConfig
 import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.config.groups.IRotationConfig
 import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
-import com.lambda.task.tasks.GoalTask.Companion.moveToBlock
-import com.lambda.task.tasks.GoalTask.Companion.moveToBlockUntil
-import com.lambda.task.tasks.GoalTask.Companion.moveToGoal
-import com.lambda.task.tasks.GoalTask.Companion.moveToGoalUntil
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.BlockUtils.item
 import com.lambda.util.item.ItemUtils.defaultDisposables
 import com.lambda.util.player.SlotUtils.clickSlot
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
@@ -103,12 +98,11 @@ class BreakBlock @Ta5kBuilder constructor(
             if (finish()) success(null)
         }
 
-        listener<WorldEvent.EntitySpawn> {
+        listener<WorldEvent.EntityUpdate> {
             if (collectDrop
-                && drop == null
                 && it.entity is ItemEntity
-                && it.entity.pos.isInRange(blockPos.toCenterPos(), 1.0)
-//                && it.entity.stack.item == beginState?.block?.item // ToDo: The item entities are all air??
+                && it.entity.pos.isInRange(blockPos.toCenterPos(), 0.5)
+
             ) {
                 drop = it.entity
             }
