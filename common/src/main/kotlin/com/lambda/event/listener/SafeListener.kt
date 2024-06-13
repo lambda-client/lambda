@@ -126,7 +126,7 @@ class SafeListener(
             noinline function: SafeContext.(T) -> Unit,
         ): SafeListener {
             val listener = SafeListener(priority, this, alwaysListen) { event ->
-                function(event as T)
+                function(event as T) // ToDo: run function always on game thread
             }
 
             syncListeners.subscribe<T>(listener)

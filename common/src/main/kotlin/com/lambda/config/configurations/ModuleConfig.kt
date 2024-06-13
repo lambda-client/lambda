@@ -15,6 +15,6 @@ import com.lambda.util.FolderRegister
  * @property primary The primary file where the configuration is saved.
  */
 object ModuleConfig : Configuration() {
-    override val configName = "modules"
+    override val configName get() = "modules"
     override val primary = FolderRegister.config.resolve("$configName.json")
 }

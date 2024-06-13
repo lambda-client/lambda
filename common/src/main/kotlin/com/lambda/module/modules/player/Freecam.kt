@@ -2,7 +2,7 @@ package com.lambda.module.modules.player
 
 import baritone.utils.PlayerMovementInput
 import com.lambda.Lambda.mc
-import com.lambda.config.RotationSettings
+import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RenderEvent
@@ -22,6 +22,7 @@ import com.lambda.util.primitives.extension.rotation
 import com.lambda.util.world.raycast.RayCastUtils.orMiss
 import com.lambda.util.world.raycast.RayCastUtils.orNull
 import net.minecraft.client.input.KeyboardInput
+import net.minecraft.client.option.Perspective
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d
 
@@ -32,18 +33,20 @@ object Freecam : Module(
 ) {
     private val speed by setting("Speed", 0.5f, 0.1f..1.0f, 0.1f)
     private val sprint by setting("Sprint Multiplier", 3.0f, 0.1f..10.0f, 0.1f, description = "Set below 1.0 to fly slower on sprint.")
+    private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
     private val rotateToTarget by setting("Rotate to target", true)
-    private val reach by setting("Reach", 4.0, 1.0..100.0, 0.1)
 
-    private val rotationConfig = RotationSettings(this).apply {
+    private val rotationConfig = RotationSettings(this) {
+        rotateToTarget
+    }.apply {
         rotationMode = RotationMode.LOCK
     }
 
+    private var lastPerspective = Perspective.FIRST_PERSON
     private var prevPosition: Vec3d = Vec3d.ZERO
     private var position: Vec3d = Vec3d.ZERO
     private val interpolatedPosition: Vec3d
-        get() =
-            prevPosition.interpolate(position, mc.partialTicks)
+        get() = prevPosition.interpolate(position, mc.partialTicks)
 
     private var rotation: Rotation = Rotation.ZERO
     private var velocity: Vec3d = Vec3d.ZERO
@@ -68,9 +71,15 @@ object Freecam : Module(
 
     init {
         onEnable {
+            lastPerspective = mc.options.perspective
+            mc.options.perspective = Perspective.FIRST_PERSON
             position = player.eyePos
             rotation = player.rotation
             velocity = Vec3d.ZERO
+        }
+
+        onDisable {
+            mc.options.perspective = lastPerspective
         }
 
         listener<RotationEvent.Pre>(Int.MAX_VALUE) {

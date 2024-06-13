@@ -20,7 +20,8 @@ import com.lambda.graphics.gl.VaoUtils.bufferData
 import com.lambda.graphics.gl.VaoUtils.unbindIndexBuffer
 import com.lambda.graphics.gl.VaoUtils.unbindVertexArray
 import com.lambda.graphics.gl.VaoUtils.unbindVertexBuffer
-import com.lambda.threading.runOnGameThread
+import com.lambda.threading.runGameScheduled
+import com.mojang.blaze3d.systems.RenderSystem.drawElements
 import org.lwjgl.opengl.GL30C.*
 import java.awt.Color
 import java.nio.ByteBuffer
@@ -51,7 +52,7 @@ class VAO(
         val stride = attribGroup.stride
         objectSize = stride * vertexMode.indicesCount
 
-        runOnGameThread {
+        runGameScheduled {
             vertices = byteBuffer(objectSize * 256 * 4)
             verticesPointer = address(vertices)
             verticesPosition = verticesPointer
@@ -202,7 +203,7 @@ class VAO(
     }
 
     protected fun finalize() {
-        runOnGameThread {
+        runGameScheduled {
             glDeleteBuffers(ibo)
             glDeleteBuffers(vbo)
             glDeleteVertexArrays(vao)

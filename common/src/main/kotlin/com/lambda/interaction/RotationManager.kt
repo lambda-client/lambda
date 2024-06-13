@@ -2,9 +2,9 @@ package com.lambda.interaction
 
 import baritone.utils.PlayerMovementInput
 import com.lambda.Lambda.mc
-import com.lambda.config.RotationSettings
-import com.lambda.context.SafeContext
+import com.lambda.config.groups.RotationSettings
 import com.lambda.core.Loadable
+import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listener
@@ -15,7 +15,7 @@ import com.lambda.interaction.rotation.Rotation.Companion.slerp
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.modules.client.Baritone
-import com.lambda.threading.runOnGameThread
+import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.toRadian
@@ -50,7 +50,7 @@ object RotationManager : Loadable {
             val packet = event.packet
             if (packet !is PlayerPositionLookS2CPacket) return@listener
 
-            runOnGameThread {
+            runGameScheduled {
                 reset(Rotation(packet.yaw, packet.pitch))
             }
         }
@@ -79,6 +79,10 @@ object RotationManager : Loadable {
 
         currentRotation = currentContext?.let { context ->
             val rotationTo = if (keepTicks >= 0) context.rotation else player.rotation
+
+            if (context.config.instant) {
+                return@let rotationTo
+            }
 
             var speedMultiplier = (context.config as? RotationSettings)?.speedMultiplier ?: 1.0
             if (keepTicks < 0) speedMultiplier = 1.0
