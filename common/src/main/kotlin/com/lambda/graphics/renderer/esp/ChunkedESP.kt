@@ -2,10 +2,12 @@ package com.lambda.graphics.renderer.esp
 
 import com.lambda.event.Muteable
 import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.graphics.renderer.esp.DirectionMask.mask
+import com.lambda.module.modules.client.RenderSettings
 import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 import kotlinx.coroutines.*
 import net.minecraft.util.math.BlockPos
@@ -15,21 +17,27 @@ import net.minecraft.world.BlockView
 import net.minecraft.world.chunk.WorldChunk
 import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.Executors.newSingleThreadExecutor
 
-class BlockEspRenderer private constructor(
+class ChunkedESP private constructor(
     private val owner: Any,
     private val filter: (BlockView, BlockPos) -> Boolean,
     private val painter: (BlockView, BlockPos) -> Pair<Color, Color>
 ) {
     private val rendererMap = ConcurrentHashMap<WorldChunk, EspChunk>()
     private val WorldChunk.renderer get() = rendererMap.getOrPut(this) {
-        EspChunk(this, this@BlockEspRenderer)
+        EspChunk(this, this@ChunkedESP)
     }
+
+    private val uploadPool = ConcurrentLinkedDeque<() -> Unit>()
 
     init {
         listener<WorldEvent.BlockUpdate> { event ->
-            world.getWorldChunk(event.pos).renderer.update = true
+            world.getWorldChunk(event.pos).renderer.apply {
+                update = true
+                updateNeighbors()
+            }
         }
 
         listener<WorldEvent.ChunkEvent.Load> { event ->
@@ -38,6 +46,12 @@ class BlockEspRenderer private constructor(
 
         listener<WorldEvent.ChunkEvent.Unload> { event ->
             rendererMap.remove(event.chunk)?.updateNeighbors()
+        }
+
+        owner.listener<TickEvent.Pre> {
+            repeat(RenderSettings.chunksPerTick) {
+                uploadPool.poll()?.invoke()
+            }
         }
 
         owner.listener<RenderEvent.World> {
@@ -53,20 +67,19 @@ class BlockEspRenderer private constructor(
                 if ((owner as? Muteable)?.isMuted == true) continue
                 rendererMap.values.forEach {
                     it.tick()
-                    delay(1)
                 }
             }
         }
     }
 
     companion object {
-        fun Any.newEspRenderer(
+        fun Any.newChunkedESP(
             filter: (BlockView, BlockPos) -> Boolean,
             painter: (BlockView, BlockPos) -> Pair<Color, Color>
-        ) = BlockEspRenderer(this, filter, painter)
+        ) = ChunkedESP(this, filter, painter)
     }
 
-    private class EspChunk(val chunk: WorldChunk, val owner: BlockEspRenderer) {
+    private class EspChunk(val chunk: WorldChunk, val owner: ChunkedESP) {
         private val scope = CoroutineScope(newSingleThreadExecutor().asCoroutineDispatcher())
 
         var renderer: EspRenderer? = null
@@ -107,9 +120,18 @@ class BlockEspRenderer private constructor(
                     checkAndDraw(newRenderer, BlockPos(x, y, z))
                 }
 
-                runOnMainThreadAndWait {
+                val upload = {
                     newRenderer.upload()
                     renderer = newRenderer
+                }
+
+                when (RenderSettings.uploadScheduler) {
+                    RenderSettings.UploadScheduler.Instant -> {
+                        runOnMainThreadAndWait(upload)
+                    }
+                    RenderSettings.UploadScheduler.Delayed -> {
+                        owner.uploadPool.add(upload)
+                    }
                 }
             }
         }

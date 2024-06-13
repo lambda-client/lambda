@@ -1,6 +1,7 @@
 package com.lambda.graphics.renderer.esp
 
 import com.lambda.Lambda.mc
+import com.lambda.graphics.buffer.vao.IRenderContext
 import com.lambda.graphics.buffer.vao.VAO
 import com.lambda.graphics.buffer.vao.vertex.BufferUsage
 import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
@@ -15,16 +16,21 @@ import com.lambda.graphics.renderer.esp.DirectionMask.UP
 import com.lambda.graphics.renderer.esp.DirectionMask.WEST
 import com.lambda.graphics.renderer.esp.DirectionMask.hasDirection
 import com.lambda.graphics.shader.Shader
+import com.lambda.module.modules.client.RenderSettings
 import com.lambda.util.primitives.extension.max
 import com.lambda.util.primitives.extension.min
 import net.minecraft.util.math.Box
 import java.awt.Color
+import java.util.concurrent.ConcurrentHashMap
 
-class EspRenderer {
-    private val filled = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.STATIC_RENDERER, BufferUsage.STATIC)
+class EspRenderer(usage: BufferUsage = BufferUsage.STATIC) {
+    private val filled = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.STATIC_RENDERER, usage)
+    private val filledVertices = ConcurrentHashMap<Vertex, Int>()
+
+    private val outline = VAO(VertexMode.LINES, VertexAttrib.Group.STATIC_RENDERER, usage)
+    private val outlineVertices = ConcurrentHashMap<Vertex, Int>()
+
     private var updateFilled = false
-
-    private val outline = VAO(VertexMode.LINES, VertexAttrib.Group.STATIC_RENDERER, BufferUsage.STATIC)
     private var updateOutline = false
 
     var outlineWidth = 1.0
@@ -41,14 +47,14 @@ class EspRenderer {
 
         grow(8)
 
-        val blb by lazy { vec3(pos1.x, pos1.y, pos1.z).color(color).end() }
-        val blf by lazy { vec3(pos1.x, pos1.y, pos2.z).color(color).end() }
-        val brb by lazy { vec3(pos2.x, pos1.y, pos1.z).color(color).end() }
-        val brf by lazy { vec3(pos2.x, pos1.y, pos2.z).color(color).end() }
-        val tlb by lazy { vec3(pos1.x, pos2.y, pos1.z).color(color).end() }
-        val tlf by lazy { vec3(pos1.x, pos2.y, pos2.z).color(color).end() }
-        val trb by lazy { vec3(pos2.x, pos2.y, pos1.z).color(color).end() }
-        val trf by lazy { vec3(pos2.x, pos2.y, pos2.z).color(color).end() }
+        val blb by vertex(filledVertices, pos1.x, pos1.y, pos1.z, color)
+        val blf by vertex(filledVertices, pos1.x, pos1.y, pos2.z, color)
+        val brb by vertex(filledVertices, pos2.x, pos1.y, pos1.z, color)
+        val brf by vertex(filledVertices, pos2.x, pos1.y, pos2.z, color)
+        val tlb by vertex(filledVertices, pos1.x, pos2.y, pos1.z, color)
+        val tlf by vertex(filledVertices, pos1.x, pos2.y, pos2.z, color)
+        val trb by vertex(filledVertices, pos2.x, pos2.y, pos1.z, color)
+        val trf by vertex(filledVertices, pos2.x, pos2.y, pos2.z, color)
 
         if (sides.hasDirection(EAST))  putQuad(brb, trb, trf, brf)
         if (sides.hasDirection(WEST))  putQuad(blb, blf, tlf, tlb)
@@ -65,14 +71,14 @@ class EspRenderer {
 
         grow(8)
 
-        val blb by lazy { vec3(pos1.x, pos1.y, pos1.z).color(color).end() }
-        val blf by lazy { vec3(pos1.x, pos1.y, pos2.z).color(color).end() }
-        val brb by lazy { vec3(pos2.x, pos1.y, pos1.z).color(color).end() }
-        val brf by lazy { vec3(pos2.x, pos1.y, pos2.z).color(color).end() }
-        val tlb by lazy { vec3(pos1.x, pos2.y, pos1.z).color(color).end() }
-        val tlf by lazy { vec3(pos1.x, pos2.y, pos2.z).color(color).end() }
-        val trb by lazy { vec3(pos2.x, pos2.y, pos1.z).color(color).end() }
-        val trf by lazy { vec3(pos2.x, pos2.y, pos2.z).color(color).end() }
+        val blb by vertex(outlineVertices, pos1.x, pos1.y, pos1.z, color)
+        val blf by vertex(outlineVertices, pos1.x, pos1.y, pos2.z, color)
+        val brb by vertex(outlineVertices, pos2.x, pos1.y, pos1.z, color)
+        val brf by vertex(outlineVertices, pos2.x, pos1.y, pos2.z, color)
+        val tlb by vertex(outlineVertices, pos1.x, pos2.y, pos1.z, color)
+        val tlf by vertex(outlineVertices, pos1.x, pos2.y, pos2.z, color)
+        val trb by vertex(outlineVertices, pos2.x, pos2.y, pos1.z, color)
+        val trf by vertex(outlineVertices, pos2.x, pos2.y, pos2.z, color)
 
         val hasEast  = sides.hasDirection(EAST)
         val hasWest  = sides.hasDirection(WEST)
@@ -118,9 +124,28 @@ class EspRenderer {
     }
 
     fun clear() {
+        filledVertices.clear()
+        outlineVertices.clear()
+
         filled.clear()
         outline.clear()
     }
+
+    private fun IRenderContext.vertex(
+        storage: MutableMap<Vertex, Int>,
+        x: Double, y: Double, z: Double,
+        color: Color
+    ) = lazy {
+        val newVertex = {
+            vec3(x, y, z).color(color).end()
+        }
+
+        if (RenderSettings.vertexMapping) {
+            storage.getOrPut(Vertex(x, y, z, color), newVertex)
+        } else newVertex()
+    }
+
+    private data class Vertex(val x: Double, val y: Double, val z: Double, val color: Color)
 
     companion object {
         private val shader = Shader("renderer/pos_color", "renderer/box_static")

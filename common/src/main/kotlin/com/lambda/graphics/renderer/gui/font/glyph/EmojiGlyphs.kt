@@ -3,7 +3,7 @@ package com.lambda.graphics.renderer.gui.font.glyph
 import com.google.common.math.IntMath.pow
 import com.lambda.Lambda.LOG
 import com.lambda.graphics.texture.MipmapTexture
-import com.lambda.module.modules.client.FontSettings
+import com.lambda.module.modules.client.RenderSettings
 import com.lambda.util.math.Vec2d
 import java.awt.Color
 import java.awt.Graphics2D
@@ -89,7 +89,7 @@ class EmojiGlyphs(zipUrl: String) {
     fun bind() {
         with(fontTexture) {
             bind(GL_TEXTURE_SLOT)
-            setLOD(FontSettings.lodBias.toFloat())
+            setLOD(RenderSettings.lodBias.toFloat())
         }
     }
 

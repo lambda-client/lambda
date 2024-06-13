@@ -3,7 +3,7 @@ package com.lambda.graphics.renderer.gui.font.glyph
 import com.lambda.Lambda
 import com.lambda.graphics.texture.MipmapTexture
 import com.lambda.graphics.texture.TextureUtils.getCharImage
-import com.lambda.module.modules.client.FontSettings
+import com.lambda.module.modules.client.RenderSettings
 import com.lambda.util.math.Vec2d
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import java.awt.Color
@@ -64,7 +64,7 @@ class FontGlyphs(font: Font) {
     fun bind() {
         with(fontTexture) {
             bind(GL_TEXTURE_SLOT)
-            setLOD(FontSettings.lodBias.toFloat())
+            setLOD(RenderSettings.lodBias.toFloat())
         }
     }
 

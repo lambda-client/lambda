@@ -1,7 +1,7 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
-import com.lambda.graphics.renderer.esp.BlockEspRenderer.Companion.newEspRenderer
+import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.ColorUtils.setAlpha
@@ -32,7 +32,7 @@ object BlockESP : Module(
         val outlineColor = Color(100, 150, 255).setAlpha(0.5)
         val filledColor = outlineColor.setAlpha(0.2)
 
-        newEspRenderer(
+        newChunkedESP(
             { view, pos -> view.getBlockState(pos).block.defaultState == Blocks.GRASS_BLOCK.defaultState },
             { _, _ -> filledColor to outlineColor }
         )

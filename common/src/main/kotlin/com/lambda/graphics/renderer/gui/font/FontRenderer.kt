@@ -5,7 +5,7 @@ import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.buffer.vao.vertex.VertexMode
 import com.lambda.graphics.renderer.gui.font.glyph.GlyphInfo
 import com.lambda.graphics.shader.Shader
-import com.lambda.module.modules.client.FontSettings
+import com.lambda.module.modules.client.RenderSettings
 import com.lambda.util.math.ColorUtils.a
 import com.lambda.util.math.ColorUtils.setAlpha
 import com.lambda.util.math.Vec2d
@@ -125,7 +125,7 @@ class FontRenderer(
             // Render chars
             font[text[index]]?.let { info ->
                 // Draw a shadow before
-                if (shadow && FontSettings.shadow && shadowShift > 0.0) {
+                if (shadow && RenderSettings.shadow && shadowShift > 0.0) {
                     draw(info, shadowColor, shadowShift)
                 }
 
@@ -139,9 +139,9 @@ class FontRenderer(
 
     private fun getShadowColor(color: Color): Color {
         return Color(
-            (color.red * FontSettings.shadowBrightness).toInt(),
-            (color.green * FontSettings.shadowBrightness).toInt(),
-            (color.blue * FontSettings.shadowBrightness).toInt(),
+            (color.red * RenderSettings.shadowBrightness).toInt(),
+            (color.green * RenderSettings.shadowBrightness).toInt(),
+            (color.blue * RenderSettings.shadowBrightness).toInt(),
             color.alpha
         )
     }
@@ -161,8 +161,8 @@ class FontRenderer(
     companion object {
         private val shader = Shader("renderer/font")
 
-        private val shadowShift get() = FontSettings.shadowShift * 5.0
-        private val baselineOffset get() = FontSettings.baselineOffset * 2.0f - 10f
-        private val gap get() = FontSettings.gapSetting * 0.5f - 0.8f
+        private val shadowShift get() = RenderSettings.shadowShift * 5.0
+        private val baselineOffset get() = RenderSettings.baselineOffset * 2.0f - 10f
+        private val gap get() = RenderSettings.gap * 0.5f - 0.8f
     }
 }
