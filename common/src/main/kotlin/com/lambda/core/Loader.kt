@@ -5,7 +5,7 @@ import com.lambda.Lambda.LOG
 import com.lambda.command.CommandRegistry
 import com.lambda.friend.FriendRegistry
 import com.lambda.graphics.renderer.gui.font.LambdaFont
-import com.lambda.graphics.renderer.gui.font.LambdaMoji
+import com.lambda.graphics.renderer.gui.font.LambdaEmoji
 import com.lambda.gui.GuiConfigurable
 import com.lambda.gui.HudGuiConfigurable
 import com.lambda.interaction.PlayerPacketManager
@@ -23,7 +23,7 @@ object Loader {
         RotationManager,
         PlayerPacketManager,
         LambdaFont.Loader,
-        LambdaMoji.Loader,
+        LambdaEmoji.Loader,
         GuiConfigurable,
         HudGuiConfigurable,
         FriendRegistry,

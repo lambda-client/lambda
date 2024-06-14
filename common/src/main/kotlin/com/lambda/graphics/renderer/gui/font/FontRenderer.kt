@@ -5,6 +5,7 @@ import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.buffer.vao.vertex.VertexMode
 import com.lambda.graphics.renderer.gui.font.glyph.GlyphInfo
 import com.lambda.graphics.shader.Shader
+import com.lambda.module.modules.client.LambdaMoji
 import com.lambda.module.modules.client.RenderSettings
 import com.lambda.util.math.ColorUtils.a
 import com.lambda.util.math.ColorUtils.setAlpha
@@ -13,7 +14,7 @@ import java.awt.Color
 
 class FontRenderer(
     private val font: LambdaFont,
-    private val emojis: LambdaMoji
+    private val emojis: LambdaEmoji
 ) {
     private val vao = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.FONT)
 
@@ -24,7 +25,7 @@ class FontRenderer(
      * Parses the emojis in the given text.
      *
      * @param text The text to parse.
-     * @return A list of pairs containing the glyph info and the range of the emoji in the text.    
+     * @return A list of pairs containing the glyph info and the range of the emoji in the text.
      */
     fun parseEmojis(text: String) =
         mutableListOf<Pair<GlyphInfo, IntRange>>().apply {
@@ -102,36 +103,44 @@ class FontRenderer(
 
         val emojis = parseEmojis(text)
 
-        repeat(text.length) { index ->
-            fun draw(info: GlyphInfo, color: Color, offset: Double = 0.0) {
-                val scaledSize = info.size * actualScale
-                val pos1 = Vec2d(posX, posY) + offset * actualScale
-                val pos2 = pos1 + scaledSize
+        fun draw(info: GlyphInfo, color: Color, offset: Double = 0.0) {
+            val scaledSize = info.size * actualScale
+            val pos1 = Vec2d(posX, posY) + offset * actualScale
+            val pos2 = pos1 + scaledSize
 
-                block(info, pos1, pos2, color)
-                if (offset == 0.0) posX += scaledSize.x + scaledGap
-            }
+            block(info, pos1, pos2, color)
+            if (offset == 0.0) posX += scaledSize.x + scaledGap
+        }
 
-            // Check if there's an emoji
-            emojis.firstOrNull { index in it.second }?.let { emoji ->
-                // Replace first emoji char by an emoji glyph and skip the other ones
-                if (index == emoji.second.first) {
-                    draw(emoji.first, emojiColor)
+        var index = 0
+        textProcessor@ while (index < text.length) {
+            var innerLoopContact = false // Instead of using BreakContinueInInlineLambdas, we use this
+
+            if (LambdaMoji.isEnabled) {
+                // Check if there are emojis to render
+                emojis.firstOrNull { index in it.second }?.let { emoji ->
+                    if (index == emoji.second.first) draw(emoji.first, emojiColor)
+
+                    // Skip the emoji
+                    index = emoji.second.last + 1
+                    innerLoopContact = true
                 }
-
-                return@repeat
             }
+
+            if (innerLoopContact) continue@textProcessor
 
             // Render chars
-            font[text[index]]?.let { info ->
-                // Draw a shadow before
-                if (shadow && RenderSettings.shadow && shadowShift > 0.0) {
-                    draw(info, shadowColor, shadowShift)
-                }
+            val charInfo = font[text[index]] ?: continue@textProcessor
 
-                // Draw actual char over the shadow
-                draw(info, color)
+            // Draw a shadow before
+            if (shadow && RenderSettings.shadow && shadowShift > 0.0) {
+                draw(charInfo, shadowColor, shadowShift)
             }
+
+            // Draw actual char over the shadow
+            draw(charInfo, color)
+
+            index++
         }
     }
 
