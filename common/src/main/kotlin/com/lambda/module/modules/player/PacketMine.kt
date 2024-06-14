@@ -14,6 +14,7 @@ import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.fluid.Fluids
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
+import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ChunkDeltaUpdateS2CPacket
@@ -31,134 +32,188 @@ object PacketMine : Module(
 
     private val reBreak by setting("Re-Break", true, "Automatically re-breaks the last mined block if it gets replaced")
     private val fastReBreak by setting("Speedy Re-Break", false, "Re-breaks blocks instantly however could potentially cause ghost blocks", visibility = ::reBreak)
+    private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking").apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
+    private val doubleBreakQueue by setting("Double Break Queue", false, "Queues any blocks you click for breaking", visibility = ::queueBlocks)
 
-    private var currentMiningBlock: BlockData? = null
+    private var currentMiningBlock: BreakingContext? = null
     private var ignorePacketSend = false
+    private val blockQueue: ArrayDeque<BlockPos> = ArrayDeque()
+
+    private val validActions = setOf(Action.START_DESTROY_BLOCK, Action.STOP_DESTROY_BLOCK, Action.ABORT_DESTROY_BLOCK)
 
     init {
         listener<TickEvent.Pre> {
             currentMiningBlock?.apply {
+                mineTicks++
+                val activeState = world.getBlockState(pos)
+                if (activeState != state) state = activeState
+                val bestTool = getBestTool(activeState, pos)
 
-                this.mineTicks++
-                val state = world.getBlockState(this.pos)
-                if (state != this.state) this.state = state
-                val bestTool = getBestTool(state, this.pos)
+                when (breakState) {
+                    BreakState.BREAKING -> {
+                        if (mineTicks * calcBreakDelta(state, pos, bestTool) < 0.7) return@listener
 
-                if (this.breakState == BreakState.BREAKING) {
-                    if (this.mineTicks * calcBreakDelta(this.state, this.pos, bestTool) > 0.7) {
-                        this.breakState = BreakState.AWAITING_RESPONSE
-                        swapStopBreak(this.pos, bestTool)
+                        swapStopBreak(pos, bestTool)
+                        breakState = BreakState.AWAITING_RESPONSE
                     }
-                } else if (this.breakState == BreakState.REBREAKING) {
-                    if (player.eyePos.distanceTo(this.pos.toCenterPos()) > 6) {
-                        currentMiningBlock = null
-                        return@listener
-                    }
-                    if (this.mineTicks * calcBreakDelta(this.state, this.pos, bestTool) > 0.7) {
-                        if (fastReBreak) {
-                            swapStopBreak(this.pos, bestTool)
-                            interaction.breakBlock(this.pos)
-                        } else if (!state.isAir && (state.fluidState.isEmpty || state.properties.contains(Properties.WATERLOGGED))) {
-                            swapStopBreak(this.pos, bestTool)
+                    BreakState.REBREAKING -> {
+                        if (breakNextQueueBlock()) return@listener
+
+                        if (player.eyePos.distanceTo(pos.toCenterPos()) > 6) {
+                            currentMiningBlock = null
+                            return@listener
                         }
+
+                        if (mineTicks * calcBreakDelta(state, pos, bestTool) < 0.7) return@listener
+
+                        swapStopBreak(pos, bestTool)
+
+                        if (!fastReBreak) return@listener
+
+                        interaction.breakBlock(pos)
+                    }
+                    BreakState.AWAITING_RESPONSE -> {
+                        if (mineTicks * calcBreakDelta(state, pos, getBestTool(state, pos)) < 1) return@listener
+
+                        if (breakNextQueueBlock()) return@listener
+
+                        currentMiningBlock = null
                     }
                 }
+            } ?: run {
+                breakNextQueueBlock()
             }
         }
 
         listener<PacketEvent.Send.Pre> {
-            if (it.packet is PlayerActionC2SPacket
-                && (it.packet.action.equals(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK)
-                        || it.packet.action.equals(PlayerActionC2SPacket.Action.ABORT_DESTROY_BLOCK)
-                        || it.packet.action.equals(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK)
-                        )) {
-                if (ignorePacketSend) return@listener
+            if (it.packet !is PlayerActionC2SPacket || !validActions.contains(it.packet.action) || ignorePacketSend) return@listener
+            it.cancel()
 
-                it.cancel()
+            val packetPos = it.packet.pos
 
-                val state = world.getBlockState(it.packet.pos)
-
-                currentMiningBlock?.let {miningBlock ->
-                    if (it.packet.pos.equals(miningBlock.pos)) return@listener
-                }
-
-                val bestTool = getBestTool(state, it.packet.pos)
-
-                if (calcBreakDelta(world.getBlockState(it.packet.pos), it.packet.pos, bestTool) > 0.7) {
-                    swapStartBreak(it.packet.pos, bestTool)
-                    swapStartPacketBreak(it.packet.pos, bestTool)
-                    currentMiningBlock = if (reBreak) {
-                        BlockData(it.packet.pos, state, BreakState.REBREAKING)
-                    } else {
-                        null
-                    }
-                    currentMiningBlock?.instaBroken = true
-                    interaction.breakBlock(it.packet.pos)
-                } else {
-                    swapStartPacketBreak(it.packet.pos, bestTool)
-                    currentMiningBlock = BlockData(it.packet.pos, state, BreakState.BREAKING)
-                }
+            if (queueBlocks
+                && (currentMiningBlock != null
+                        && currentMiningBlock?.breakState != BreakState.REBREAKING
+                        && currentMiningBlock?.pos != packetPos)
+                || (!blockQueue.isEmpty()
+                        && !blockQueue.contains(packetPos))
+                ) {
+                blockQueue.add(packetPos)
+                return@listener
             }
+
+            startBreaking(packetPos)
         }
 
         listener<PacketEvent.Receive.Pre> {
             currentMiningBlock?.apply {
                 if (it.packet is BlockUpdateS2CPacket
-                    && it.packet.pos.equals(this.pos)
-                    && (if (this.state.properties.contains(Properties.WATERLOGGED))
-                        it.packet.state.fluidState.fluid.equals(Fluids.WATER)
+                    && it.packet.pos.equals(pos)
+                    && (if (state.properties.contains(Properties.WATERLOGGED)) it.packet.state.fluidState.fluid.equals(Fluids.WATER)
                         else it.packet.state.isAir)) {
 
-                    if (this.breakState == BreakState.BREAKING || this.breakState == BreakState.AWAITING_RESPONSE) {
-                        this.state.block.onBreak(world, this.pos, this.state, player)
-                        if (reBreak
-                            && player.eyePos.distanceTo(this.pos.toCenterPos()) < 6) {
-                            this.breakState = BreakState.REBREAKING
-                        } else {
-                            currentMiningBlock = null
+                    if (breakState == BreakState.REBREAKING) {
+                        if (fastReBreak) return@listener
+
+                        if (instaBroken) {
+                            instaBroken = false
+                            return@listener
                         }
 
-                    } else if (this.breakState == BreakState.REBREAKING) {
-                        if (!fastReBreak) {
-                            if (!this.instaBroken) {
-                                this.state.block.onBreak(world, this.pos, this.state, player)
-                            } else {
-                                this.instaBroken = false
-                            }
-                        }
+                        state.block.onBreak(world, pos, state, player)
+                        return@listener
                     }
-                } else if (it.packet is ChunkDeltaUpdateS2CPacket) {
-                    it.packet.visitUpdates(BiConsumer { pos: BlockPos, state: BlockState ->
-                        currentMiningBlock?.apply {
-                            if (pos == this.pos
-                                && (if (this.state.properties.contains(Properties.WATERLOGGED))
-                                    state.fluidState.fluid.equals(Fluids.WATER)
-                                    else state.isAir)) {
 
-                                if (this.breakState == BreakState.BREAKING || this.breakState == BreakState.AWAITING_RESPONSE) {
-                                    this.state.block.onBreak(world, this.pos, this.state, player)
-                                    if (reBreak
-                                        && player.eyePos.distanceTo(this.pos.toCenterPos()) < 6) {
-                                        this.breakState = BreakState.REBREAKING
-                                    } else {
-                                        currentMiningBlock = null
-                                    }
+                    state.block.onBreak(world, pos, state, player)
 
-                                } else if (this.breakState == BreakState.REBREAKING) {
-                                    if (!fastReBreak) {
-                                        if (!this.instaBroken) {
-                                            this.state.block.onBreak(world, this.pos, this.state, player)
-                                        } else {
-                                            this.instaBroken = false
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    })
+                    if (reBreak
+                        && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
+                        breakState = BreakState.REBREAKING
+                        return@listener
+                    }
+
+                    currentMiningBlock = null
+                    return@listener
                 }
+
+                if (it.packet !is ChunkDeltaUpdateS2CPacket) return@listener
+
+                it.packet.visitUpdates(BiConsumer { changedPos: BlockPos, changedState: BlockState ->
+                    currentMiningBlock?.apply {
+                        if (changedPos != pos
+                            || !(if (state.properties.contains(Properties.WATERLOGGED)) changedState.fluidState.fluid.equals(Fluids.WATER)
+                            else changedState.isAir)) return@BiConsumer
+
+                        if (breakState == BreakState.REBREAKING) {
+                            if (fastReBreak) return@BiConsumer
+
+                            if (instaBroken) {
+                                instaBroken = false
+                                return@BiConsumer
+                            }
+
+                            state.block.onBreak(world, pos, state, player)
+                            return@BiConsumer
+                        }
+
+                        state.block.onBreak(world, pos, state, player)
+
+                        if (reBreak
+                            && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
+                            breakState = BreakState.REBREAKING
+                            return@BiConsumer
+                        }
+
+                        currentMiningBlock = null
+                    }
+                })
             }
         }
+    }
+
+    private fun SafeContext.startBreaking(pos: BlockPos) {
+        if (currentMiningBlock?.pos == pos) return
+
+        val state = world.getBlockState(pos)
+
+        val bestTool = getBestTool(state, pos)
+
+        if (calcBreakDelta(world.getBlockState(pos), pos, bestTool) > 0.7) {
+            swapStartBreak(pos, bestTool)
+            swapStartPacketBreak(pos, bestTool)
+            currentMiningBlock = if (reBreak) {
+                BreakingContext(pos, state, BreakState.REBREAKING)
+            } else {
+                null
+            }
+            currentMiningBlock?.instaBroken = true
+            state.block.onBreak(world, pos, state, player)
+            return
+        }
+
+        swapStartPacketBreak(pos, bestTool)
+        currentMiningBlock = BreakingContext(pos, state, BreakState.BREAKING)
+    }
+
+    private fun SafeContext.breakNextQueueBlock(): Boolean {
+        if (!queueBlocks) return false
+
+        while (true) {
+            val block = blockQueue.firstOrNull() ?: run { return false }
+
+            if (player.eyePos.distanceTo(block.toCenterPos()) > 6) {
+                blockQueue.removeFirst()
+                continue
+            }
+
+            break
+        }
+
+        if (blockQueue.isEmpty()) return false
+
+        startBreaking(blockQueue.first())
+        blockQueue.removeFirst()
+        return true
     }
 
     private fun SafeContext.swapStartPacketBreak(pos: BlockPos, toolSlot: Int) {
@@ -188,15 +243,15 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.startBreak(pos: BlockPos) {
-        connection.sendPacket(PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, pos, Direction.UP, 0))
+        connection.sendPacket(PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, pos, Direction.UP, 0))
     }
 
     private fun SafeContext.abortBreak(pos: BlockPos) {
-        connection.sendPacket(PlayerActionC2SPacket(PlayerActionC2SPacket.Action.ABORT_DESTROY_BLOCK, pos, Direction.UP, 0))
+        connection.sendPacket(PlayerActionC2SPacket(Action.ABORT_DESTROY_BLOCK, pos, Direction.UP, 0))
     }
 
     private fun SafeContext.stopBreak(pos: BlockPos) {
-        connection.sendPacket(PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, pos, Direction.UP, 0))
+        connection.sendPacket(PlayerActionC2SPacket(Action.STOP_DESTROY_BLOCK, pos, Direction.UP, 0))
     }
 
     /*
@@ -264,7 +319,7 @@ object PacketMine : Module(
         return f
     }
 
-    private class BlockData(var pos: BlockPos, var state: BlockState, var breakState: BreakState) {
+    private data class BreakingContext(var pos: BlockPos, var state: BlockState, var breakState: BreakState) {
         var mineTicks = 0
         var instaBroken = false
     }
