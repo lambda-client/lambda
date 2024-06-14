@@ -7,8 +7,6 @@ import com.lambda.event.listener.SafeListener.Companion.concurrentListener
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.modules.client.RenderSettings
 import com.lambda.threading.runGameBlocking
-import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
-import kotlinx.coroutines.*
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.world.BlockView
@@ -39,7 +37,7 @@ class ChunkedESP private constructor(
     init {
         owner.concurrentListener<WorldEvent.BlockUpdate> { event ->
             world.getWorldChunk(event.pos).renderer.apply {
-                markOutdated()
+                queueRebuild()
                 notifyNeighbors()
             }
         }
@@ -55,7 +53,7 @@ class ChunkedESP private constructor(
         owner.concurrentListener<TickEvent.Pre> {
             if (++ticks % RenderSettings.updateFrequency == 0) {
                 rendererMap.values
-                    .filter { it.outdated && it.neighborsLoaded }
+                    .filter { it.neighborsLoaded }
                     .forEach { it.rebuild() }
                 ticks = 0
             }
@@ -95,13 +93,13 @@ class ChunkedESP private constructor(
 
         fun ChunkPos.isLoaded() = chunk.world.chunkManager.isChunkLoaded(x, z)
 
-        fun markOutdated() {
-            outdated = true
+        fun queueRebuild() {
+            owner.rebuildPool.add(this)
         }
 
         fun notifyNeighbors() {
             neighbors.forEach {
-                owner.rendererMap[it]?.markOutdated()
+                owner.rendererMap[it]?.queueRebuild()
             }
         }
 
@@ -132,17 +130,6 @@ class ChunkedESP private constructor(
                 }
             }
         }
-
-        private suspend fun <R: Any> runOnMainThreadAndWait(block: () -> R): R {
-            var result: R? = null
-
-            recordRenderCall {
-                result = block()
-            }
-
-            while (result == null) delay(1)
-            return result as R
-            }
 
         private fun draw(renderer: EspRenderer, x: Int, y: Int, z: Int) {
             if (!owner.update(chunk, blockPos)) return false
