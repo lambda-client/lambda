@@ -5,16 +5,12 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.concurrentListener
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.graphics.renderer.esp.DirectionMask.exclude
-import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.module.modules.client.RenderSettings
 import com.lambda.threading.runGameBlocking
 import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 import kotlinx.coroutines.*
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Box
 import net.minecraft.util.math.ChunkPos
-import net.minecraft.util.math.Direction
 import net.minecraft.world.BlockView
 import net.minecraft.world.chunk.WorldChunk
 import java.awt.Color
@@ -23,8 +19,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 
 class ChunkedESP private constructor(
     owner: Any,
-    private val filter: (BlockView, BlockPos) -> Boolean,
-    private val painter: (BlockView, BlockPos) -> Pair<Color, Color>
+    private val update: EspRenderer.(BlockView, BlockPos) -> Boolean
 ) {
     private val rendererMap = ConcurrentHashMap<ChunkPos, EspChunk>()
     private val WorldChunk.renderer get() = rendererMap.getOrPut(pos) {
@@ -33,7 +28,9 @@ class ChunkedESP private constructor(
     private var ticks = 0
 
     private val uploadPool = ConcurrentLinkedDeque<() -> Unit>()
-    private val rebuildPool = ConcurrentLinkedDeque<() -> Unit>()
+    private val rebuildPool = ConcurrentLinkedDeque<EspChunk>()
+
+    // i completely dont like to listen to enable events
 
     fun clear() {
         rendererMap.clear()
@@ -116,7 +113,7 @@ class ChunkedESP private constructor(
             }
 
             iterateChunk { x, y, z ->
-                checkAndDraw(newRenderer, BlockPos(x, y, z))
+                draw(newRenderer, BlockPos(x, y, z))
             }
 
             val upload = {
@@ -147,19 +144,8 @@ class ChunkedESP private constructor(
             return result as R
             }
 
-        private fun checkAndDraw(renderer: EspRenderer, blockPos: BlockPos): Boolean {
-            if (!owner.filter(chunk, blockPos)) return false
-
-            var sides = DirectionMask.ALL
-
-            Direction.entries.forEach {
-                if (!owner.filter(chunk.world, blockPos.add(it.vector))) return@forEach
-                sides = sides.exclude(it.mask)
-            }
-
-            val (filledColor, outlineColor) = owner.painter(chunk, blockPos)
-            renderer.build(Box(blockPos), filledColor, outlineColor, sides, DirectionMask.OutlineMode.AND)
-            return true
+        private fun draw(renderer: EspRenderer, x: Int, y: Int, z: Int) {
+            if (!owner.update(chunk, blockPos)) return false
         }
 
         private fun iterateChunk(block: (Int, Int, Int) -> Unit) = chunk.apply {
