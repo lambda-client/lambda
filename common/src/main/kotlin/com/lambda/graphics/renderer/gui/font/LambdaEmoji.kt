@@ -6,7 +6,7 @@ import com.lambda.graphics.renderer.gui.font.glyph.EmojiGlyphs
 enum class LambdaEmoji(private val zipUrl: String) {
     Twemoji("https://github.com/Edouard127/emoji-generator/releases/latest/download/emojis.zip");
 
-    lateinit var glyphs: EmojiGlyphs // TODO: Support multiple emoji pools
+    lateinit var glyphs: EmojiGlyphs
 
     operator fun get(emoji: String) = glyphs.getEmoji(emoji)
 

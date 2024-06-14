@@ -19,22 +19,6 @@ class FontRenderer(
     private val vao = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.FONT)
 
     private val scaleMultiplier = 1.0
-    private val emojiRegex = Regex(":[a-zA-Z0-9_]+:")
-
-    /**
-     * Parses the emojis in the given text.
-     *
-     * @param text The text to parse.
-     * @return A list of pairs containing the glyph info and the range of the emoji in the text.
-     */
-    fun parseEmojis(text: String) =
-        mutableListOf<Pair<GlyphInfo, IntRange>>().apply {
-            emojiRegex.findAll(text).forEach { match ->
-                val emojiKey = match.value.substring(1, match.value.length - 1)
-                val charInfo = emojis[emojiKey] ?: return@forEach
-                add(charInfo to match.range)
-            }
-        }
 
     /**
      * Builds the vertex array for rendering the text.
@@ -101,7 +85,7 @@ class FontRenderer(
         var posX = 0.0
         val posY = getHeight(scale) * -0.5 + baselineOffset * actualScale
 
-        val emojis = parseEmojis(text)
+        val emojis = parseEmojis(text, emojis)
 
         fun draw(info: GlyphInfo, color: Color, offset: Double = 0.0) {
             val scaledSize = info.size * actualScale
@@ -170,8 +154,25 @@ class FontRenderer(
     companion object {
         private val shader = Shader("renderer/font")
 
-        private val shadowShift get() = RenderSettings.shadowShift * 5.0
-        private val baselineOffset get() = RenderSettings.baselineOffset * 2.0f - 10f
-        private val gap get() = RenderSettings.gap * 0.5f - 0.8f
+        val shadowShift get() = RenderSettings.shadowShift * 5.0
+        val baselineOffset get() = RenderSettings.baselineOffset * 2.0f - 10f
+        val gap get() = RenderSettings.gap * 0.5f - 0.8f
+
+        private val emojiRegex = Regex(":[a-zA-Z0-9_]+:")
+
+        /**
+         * Parses the emojis in the given text.
+         *
+         * @param text The text to parse.
+         * @return A list of pairs containing the glyph info and the range of the emoji in the text.
+         */
+        fun parseEmojis(text: String, emojis: LambdaEmoji) =
+            mutableListOf<Pair<GlyphInfo, IntRange>>().apply {
+                emojiRegex.findAll(text).forEach { match ->
+                    val emojiKey = match.value.substring(1, match.value.length - 1)
+                    val charInfo = emojis[emojiKey] ?: return@forEach
+                    add(charInfo to match.range)
+                }
+            }
     }
 }
