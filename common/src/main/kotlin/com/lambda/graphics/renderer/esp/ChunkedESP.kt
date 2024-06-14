@@ -7,17 +7,15 @@ import com.lambda.event.listener.SafeListener.Companion.concurrentListener
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.modules.client.RenderSettings
 import com.lambda.threading.runGameBlocking
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.world.BlockView
 import net.minecraft.world.chunk.WorldChunk
-import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 
 class ChunkedESP private constructor(
     owner: Any,
-    private val update: EspRenderer.(BlockView, BlockPos) -> Boolean
+    private val update: EspRenderer.(BlockView, Int, Int, Int) -> Unit
 ) {
     private val rendererMap = ConcurrentHashMap<ChunkPos, EspChunk>()
     private val WorldChunk.renderer get() = rendererMap.getOrPut(pos) {
@@ -52,9 +50,11 @@ class ChunkedESP private constructor(
 
         owner.concurrentListener<TickEvent.Pre> {
             if (++ticks % RenderSettings.updateFrequency == 0) {
-                rendererMap.values
-                    .filter { it.neighborsLoaded }
-                    .forEach { it.rebuild() }
+                val polls = minOf(RenderSettings.rebuildsPerTick, rebuildPool.size)
+
+                repeat(polls) {
+                    rebuildPool.poll()?.rebuild()
+                }
                 ticks = 0
             }
         }
@@ -62,9 +62,11 @@ class ChunkedESP private constructor(
         owner.listener<TickEvent.Pre> {
             if (uploadPool.isEmpty()) return@listener
 
-            uploadPool
-                .take(RenderSettings.uploadsPerTick)
-                .forEach { it() }
+            val polls = minOf(RenderSettings.uploadsPerTick, uploadPool.size)
+
+            repeat(polls) {
+                uploadPool.poll()?.invoke()
+            }
         }
 
         owner.listener<RenderEvent.World> {
@@ -76,14 +78,12 @@ class ChunkedESP private constructor(
 
     companion object {
         fun Any.newChunkedESP(
-            filter: (BlockView, BlockPos) -> Boolean,
-            painter: (BlockView, BlockPos) -> Pair<Color, Color>
-        ) = ChunkedESP(this, filter, painter)
+            update: EspRenderer.(BlockView, Int, Int, Int) -> Unit
+        ) = ChunkedESP(this, update)
     }
 
     private class EspChunk(val chunk: WorldChunk, val owner: ChunkedESP) {
         var renderer: EspRenderer? = null
-        var outdated = true
 
         private val chunkOffsets = listOf(1 to 0, 0 to 1, -1 to 0, 0 to -1)
         val neighbors = chunkOffsets.map {
@@ -104,14 +104,12 @@ class ChunkedESP private constructor(
         }
 
         suspend fun rebuild() {
-            outdated = false
-
             val newRenderer = runGameBlocking {
                 EspRenderer()
             }
 
             iterateChunk { x, y, z ->
-                draw(newRenderer, BlockPos(x, y, z))
+                owner.update(newRenderer, chunk.world, x, y, z)
             }
 
             val upload = {
@@ -129,10 +127,6 @@ class ChunkedESP private constructor(
                     owner.uploadPool.add(upload)
                 }
             }
-        }
-
-        private fun draw(renderer: EspRenderer, x: Int, y: Int, z: Int) {
-            if (!owner.update(chunk, blockPos)) return false
         }
 
         private fun iterateChunk(block: (Int, Int, Int) -> Unit) = chunk.apply {
