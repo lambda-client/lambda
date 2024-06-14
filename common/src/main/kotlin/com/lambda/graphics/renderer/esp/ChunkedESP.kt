@@ -1,73 +1,80 @@
 package com.lambda.graphics.renderer.esp
 
-import com.lambda.event.Muteable
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
+import com.lambda.event.listener.SafeListener.Companion.concurrentListener
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.module.modules.client.RenderSettings
+import com.lambda.threading.runGameBlocking
 import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 import kotlinx.coroutines.*
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
+import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Direction
 import net.minecraft.world.BlockView
 import net.minecraft.world.chunk.WorldChunk
 import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
-import java.util.concurrent.Executors.newSingleThreadExecutor
 
 class ChunkedESP private constructor(
-    private val owner: Any,
+    owner: Any,
     private val filter: (BlockView, BlockPos) -> Boolean,
     private val painter: (BlockView, BlockPos) -> Pair<Color, Color>
 ) {
-    private val rendererMap = ConcurrentHashMap<WorldChunk, EspChunk>()
-    private val WorldChunk.renderer get() = rendererMap.getOrPut(this) {
+    private val rendererMap = ConcurrentHashMap<ChunkPos, EspChunk>()
+    private val WorldChunk.renderer get() = rendererMap.getOrPut(pos) {
         EspChunk(this, this@ChunkedESP)
     }
+    private var ticks = 0
 
     private val uploadPool = ConcurrentLinkedDeque<() -> Unit>()
+    private val rebuildPool = ConcurrentLinkedDeque<() -> Unit>()
+
+    fun clear() {
+        rendererMap.clear()
+    }
 
     init {
-        listener<WorldEvent.BlockUpdate> { event ->
+        owner.concurrentListener<WorldEvent.BlockUpdate> { event ->
             world.getWorldChunk(event.pos).renderer.apply {
-                update = true
-                updateNeighbors()
+                markOutdated()
+                notifyNeighbors()
             }
         }
 
-        listener<WorldEvent.ChunkEvent.Load> { event ->
-            event.chunk.renderer.updateNeighbors()
+        owner.concurrentListener<WorldEvent.ChunkEvent.Load> { event ->
+            event.chunk.renderer.notifyNeighbors()
         }
 
-        listener<WorldEvent.ChunkEvent.Unload> { event ->
-            rendererMap.remove(event.chunk)?.updateNeighbors()
+        owner.concurrentListener<WorldEvent.ChunkEvent.Unload> { event ->
+            rendererMap.remove(event.chunk.pos)?.notifyNeighbors()
+        }
+
+        owner.concurrentListener<TickEvent.Pre> {
+            if (++ticks % RenderSettings.updateFrequency == 0) {
+                rendererMap.values
+                    .filter { it.outdated && it.neighborsLoaded }
+                    .forEach { it.rebuild() }
+                ticks = 0
+            }
         }
 
         owner.listener<TickEvent.Pre> {
-            repeat(RenderSettings.chunksPerTick) {
-                uploadPool.poll()?.invoke()
-            }
+            if (uploadPool.isEmpty()) return@listener
+
+            uploadPool
+                .take(RenderSettings.uploadsPerTick)
+                .forEach { it() }
         }
 
         owner.listener<RenderEvent.World> {
             rendererMap.values.forEach {
                 it.renderer?.render()
-            }
-        }
-
-        CoroutineScope(newSingleThreadExecutor().asCoroutineDispatcher()).launch {
-            while (true) {
-                delay(100)
-
-                if ((owner as? Muteable)?.isMuted == true) continue
-                rendererMap.values.forEach {
-                    it.tick()
-                }
             }
         }
     }
@@ -80,58 +87,51 @@ class ChunkedESP private constructor(
     }
 
     private class EspChunk(val chunk: WorldChunk, val owner: ChunkedESP) {
-        private val scope = CoroutineScope(newSingleThreadExecutor().asCoroutineDispatcher())
-
         var renderer: EspRenderer? = null
+        var outdated = true
 
-        var update = true
         private val chunkOffsets = listOf(1 to 0, 0 to 1, -1 to 0, 0 to -1)
+        val neighbors = chunkOffsets.map {
+            ChunkPos(chunk.pos.x + it.first, chunk.pos.z + it.second)
+        }.toTypedArray()
+        val neighborsLoaded get() = neighbors.all { it.isLoaded() }
 
-        fun updateNeighbors() {
-            scope.launch {
-                chunkOffsets.forEach { ofs ->
-                    chunk.world.chunkManager.getWorldChunk(
-                        chunk.pos.x + ofs.first,
-                        chunk.pos.z + ofs.second
-                    )?.let {
-                        owner.rendererMap[it]?.update = true
-                    }
-                }
+        fun ChunkPos.isLoaded() = chunk.world.chunkManager.isChunkLoaded(x, z)
+
+        fun markOutdated() {
+            outdated = true
+        }
+
+        fun notifyNeighbors() {
+            neighbors.forEach {
+                owner.rendererMap[it]?.markOutdated()
             }
         }
 
-        fun tick() {
-            if (!update) return
+        suspend fun rebuild() {
+            outdated = false
 
-            // Chunk could only be drawn when all neighbors are loaded
-            if (chunkOffsets.count {
-                    chunk.world.isChunkLoaded(
-                        chunk.pos.x + it.first,
-                        chunk.pos.z + it.second
-                    )
-                } < 4) return
+            val newRenderer = runGameBlocking {
+                EspRenderer()
+            }
 
-            update = false
+            iterateChunk { x, y, z ->
+                checkAndDraw(newRenderer, BlockPos(x, y, z))
+            }
 
-            scope.launch {
-                val newRenderer = runOnMainThreadAndWait(::EspRenderer)
+            val upload = {
+                newRenderer.upload()
+                renderer = newRenderer
+            }
 
-                iterateChunk { x, y, z ->
-                    checkAndDraw(newRenderer, BlockPos(x, y, z))
-                }
-
-                val upload = {
-                    newRenderer.upload()
-                    renderer = newRenderer
-                }
-
-                when (RenderSettings.uploadScheduler) {
-                    RenderSettings.UploadScheduler.Instant -> {
-                        runOnMainThreadAndWait(upload)
+            when (RenderSettings.uploadScheduler) {
+                RenderSettings.UploadScheduler.Instant -> {
+                    runGameBlocking {
+                        upload()
                     }
-                    RenderSettings.UploadScheduler.Delayed -> {
-                        owner.uploadPool.add(upload)
-                    }
+                }
+                RenderSettings.UploadScheduler.Delayed -> {
+                    owner.uploadPool.add(upload)
                 }
             }
         }
@@ -145,7 +145,7 @@ class ChunkedESP private constructor(
 
             while (result == null) delay(1)
             return result as R
-        }
+            }
 
         private fun checkAndDraw(renderer: EspRenderer, blockPos: BlockPos): Boolean {
             if (!owner.filter(chunk, blockPos)) return false

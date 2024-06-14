@@ -6,8 +6,10 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.graphics.renderer.esp.EspRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.mainThread
 import com.lambda.util.math.ColorUtils.setAlpha
 import com.lambda.util.world.WorldUtils.getClosestEntity
+import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.Box
 import java.awt.Color
@@ -27,7 +29,9 @@ object RenderTest : Module(
     private val outlineColor = Color(100, 150, 255).setAlpha(0.5)
     private val filledColor = outlineColor.setAlpha(0.2)
 
-    private val rendeer = EspRenderer()
+    private val rendeer by mainThread {
+        EspRenderer()
+    }
 
     init {
         listener<RenderEvent.EntityESP> {

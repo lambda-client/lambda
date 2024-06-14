@@ -20,8 +20,10 @@ object RenderSettings : Module(
 
     // ESP
     val uploadScheduler by setting("Upload Scheduler", UploadScheduler.Instant) { page == Page.ESP }
-    val chunksPerTick by setting("Chunks", 8, 1..32, 1, unit = " / tick") { page == Page.ESP && uploadScheduler == UploadScheduler.Delayed }
+    val uploadsPerTick by setting("Uploads", 8, 1..32, 1, unit = " chunk/tick") { page == Page.ESP && uploadScheduler == UploadScheduler.Delayed }
     val vertexMapping by setting("Vertex Mapping", true) { page == Page.ESP }
+    val updateFrequency by setting("Update Frequency", 2, 1..10, 1, "Frequency of block updates", unit = " ticks") { page == Page.ESP }
+    val outlineWidth by setting("Outline Width", 1.0, 0.1..5.0, 0.1, "Width of block outlines", unit = "px") { page == Page.ESP }
 
     val lodBias get() = lodBiasSetting * 0.25f - 0.75f
 

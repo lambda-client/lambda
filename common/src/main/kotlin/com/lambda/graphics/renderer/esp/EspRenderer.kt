@@ -23,17 +23,17 @@ import net.minecraft.util.math.Box
 import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
 
-class EspRenderer(usage: BufferUsage = BufferUsage.STATIC) {
-    private val filled = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.STATIC_RENDERER, usage)
+class EspRenderer(
+    usage: BufferUsage = BufferUsage.STATIC
+) {
+    private val filled = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.STATIC_RENDERER, usage, true)
     private val filledVertices = ConcurrentHashMap<Vertex, Int>()
 
-    private val outline = VAO(VertexMode.LINES, VertexAttrib.Group.STATIC_RENDERER, usage)
+    private val outline = VAO(VertexMode.LINES, VertexAttrib.Group.STATIC_RENDERER, usage, true)
     private val outlineVertices = ConcurrentHashMap<Vertex, Int>()
 
     private var updateFilled = false
     private var updateOutline = false
-
-    var outlineWidth = 1.0
 
     fun build(box: Box, filledColor: Color, outlineColor: Color, sides: Int = DirectionMask.ALL, outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR) {
         buildFilled(box, filledColor, sides)
@@ -120,7 +120,7 @@ class EspRenderer(usage: BufferUsage = BufferUsage.STATIC) {
         shader["u_CameraPosition"] = mc.gameRenderer.camera.pos
 
         withFaceCulling(filled::render)
-        withLineWidth(outlineWidth, outline::render)
+        withLineWidth(RenderSettings.outlineWidth, outline::render)
     }
 
     fun clear() {

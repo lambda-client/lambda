@@ -21,7 +21,6 @@ import com.lambda.graphics.gl.VaoUtils.unbindIndexBuffer
 import com.lambda.graphics.gl.VaoUtils.unbindVertexArray
 import com.lambda.graphics.gl.VaoUtils.unbindVertexBuffer
 import com.lambda.threading.runGameScheduled
-import com.mojang.blaze3d.systems.RenderSystem.drawElements
 import org.lwjgl.opengl.GL30C.*
 import java.awt.Color
 import java.nio.ByteBuffer
@@ -29,7 +28,8 @@ import java.nio.ByteBuffer
 class VAO(
     private val vertexMode: VertexMode,
     attribGroup: VertexAttrib.Group,
-    private val bufferUsage: BufferUsage = BufferUsage.DYNAMIC
+    private val bufferUsage: BufferUsage = BufferUsage.DYNAMIC,
+    initializeInstantly: Boolean = false
 ) : IRenderContext {
     private var vao = 0
     private var vbo = 0
@@ -52,34 +52,42 @@ class VAO(
         val stride = attribGroup.stride
         objectSize = stride * vertexMode.indicesCount
 
-        runGameScheduled {
-            vertices = byteBuffer(objectSize * 256 * 4)
-            verticesPointer = address(vertices)
-            verticesPosition = verticesPointer
-
-            indices = byteBuffer(vertexMode.indicesCount * 512 * 4)
-            indicesPointer = address(indices)
-
-            vao = glGenVertexArrays()
-            bindVertexArray(vao)
-
-            vbo = glGenBuffers()
-            bindVertexBuffer(vbo)
-
-            ibo = glGenBuffers()
-            bindIndexBuffer(ibo)
-
-            var pointer = 0L
-            attribGroup.attributes.forEachIndexed { index, attrib ->
-                VaoUtils.enableVertexAttribute(index)
-                VaoUtils.vertexAttribute(index, attrib.componentCount, attrib.gl, attrib.normalized, stride, pointer)
-                pointer += attrib.size
+        if (initializeInstantly) {
+            initialize(attribGroup, stride)
+        } else {
+            runGameScheduled {
+                initialize(attribGroup, stride)
             }
-
-            unbindVertexArray()
-            unbindVertexBuffer()
-            unbindIndexBuffer()
         }
+    }
+
+    private fun initialize(attribGroup: VertexAttrib.Group, stride: Int) {
+        vertices = byteBuffer(objectSize * 256 * 4)
+        verticesPointer = address(vertices)
+        verticesPosition = verticesPointer
+
+        indices = byteBuffer(vertexMode.indicesCount * 512 * 4)
+        indicesPointer = address(indices)
+
+        vao = glGenVertexArrays()
+        bindVertexArray(vao)
+
+        vbo = glGenBuffers()
+        bindVertexBuffer(vbo)
+
+        ibo = glGenBuffers()
+        bindIndexBuffer(ibo)
+
+        var pointer = 0L
+        attribGroup.attributes.forEachIndexed { index, attrib ->
+            VaoUtils.enableVertexAttribute(index)
+            VaoUtils.vertexAttribute(index, attrib.componentCount, attrib.gl, attrib.normalized, stride, pointer)
+            pointer += attrib.size
+        }
+
+        unbindVertexArray()
+        unbindVertexBuffer()
+        unbindIndexBuffer()
     }
 
     override fun vec3(x: Double, y: Double, z: Double): VAO {
