@@ -20,21 +20,20 @@ import com.lambda.module.modules.client.RenderSettings
 import com.lambda.util.primitives.extension.max
 import com.lambda.util.primitives.extension.min
 import net.minecraft.util.math.Box
+import net.minecraft.util.math.Vec3d
 import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.math.abs
-import kotlin.math.hypot
 
 class EspRenderer(
     usage: BufferUsage = BufferUsage.STATIC
 ) {
-    private val filled = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.STATIC_RENDERER, usage, true)
-    private val filledVertices = ConcurrentHashMap<Vertex, Int>()
+    private val faces = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.STATIC_RENDERER, usage, true)
+    private val faceVertices = ConcurrentHashMap<Vertex, Int>()
 
-    private val outline = VAO(VertexMode.LINES, VertexAttrib.Group.STATIC_RENDERER, usage, true)
+    private val outlines = VAO(VertexMode.LINES, VertexAttrib.Group.STATIC_RENDERER, usage, true)
     private val outlineVertices = ConcurrentHashMap<Vertex, Int>()
 
-    private var updateFilled = false
+    private var updateFaces = false
     private var updateOutline = false
 
     fun build(
@@ -48,93 +47,8 @@ class EspRenderer(
         buildOutline(box, outlineColor, sides, outlineMode)
     }
 
-    fun buildConvexHull(
-        boxes: Set<Box>,
-        color: Color
-    ) = outline.use {
-        updateOutline = true
-
-        // Step 1: Collect all vertices
-        val vertices = mutableSetOf<Vertex>()
-        boxes.forEach { box ->
-            val pos1 = box.min
-            val pos2 = box.max
-
-            vertices.add(Vertex(pos1.x, pos1.y, pos1.z, color))
-            vertices.add(Vertex(pos1.x, pos1.y, pos2.z, color))
-            vertices.add(Vertex(pos2.x, pos1.y, pos1.z, color))
-            vertices.add(Vertex(pos2.x, pos1.y, pos2.z, color))
-            vertices.add(Vertex(pos1.x, pos2.y, pos1.z, color))
-            vertices.add(Vertex(pos1.x, pos2.y, pos2.z, color))
-            vertices.add(Vertex(pos2.x, pos2.y, pos1.z, color))
-            vertices.add(Vertex(pos2.x, pos2.y, pos2.z, color))
-        }
-
-        // Step 2: Find the convex hull
-        val convexHull = findConvexHull(vertices)
-
-        // Step 3: Build outline of convex hull
-        for (i in convexHull.indices) {
-            val v1 = convexHull[i]
-            val v2 = convexHull[(i + 1) % convexHull.size]
-            val intV1 = vec3(v1.x, v1.y, v1.z).color(v1.color).end()
-            val intV2 = vec3(v2.x, v2.y, v2.z).color(v2.color).end()
-            putLine(intV1, intV2)
-        }
-    }
-
-    // Utility function to find the convex hull using the QuickHull algorithm
-    private fun findConvexHull(vertices: Set<Vertex>): List<Vertex> {
-        if (vertices.size <= 1) return vertices.toList()
-
-        val points = vertices.toMutableList()
-        points.sortWith(compareBy({ it.x }, { it.y }))
-        val left = points.first()
-        val right = points.last()
-
-        val (leftSet, rightSet) = points.partition { isLeft(left, right, it) }
-
-        val hull = mutableListOf<Vertex>()
-        hull.add(left)
-        hull.addAll(findHull(left, right, leftSet))
-        hull.add(right)
-        hull.addAll(findHull(right, left, rightSet))
-
-        return hull
-    }
-
-    // Check if the point is on the left side of the line from start to end
-    private fun isLeft(start: Vertex, end: Vertex, point: Vertex): Boolean {
-        return (end.x - start.x) * (point.y - start.y) - (end.y - start.y) * (point.x - start.x) > 0
-    }
-
-    // Recursively find the hull points
-    private fun findHull(start: Vertex, end: Vertex, points: List<Vertex>): List<Vertex> {
-        if (points.isEmpty()) return emptyList()
-
-        val farthest = points.maxByOrNull { distanceFromLine(start, end, it) } ?: return emptyList()
-
-        // Partition points into two sets: those to the left of the line (start, farthest) and those to the left of (farthest, end)
-        val (leftSetStartFarthest, _) = points.partition { isLeft(start, farthest, it) }
-        val (leftSetFarthestEnd, _) = points.partition { isLeft(farthest, end, it) }
-
-        val hull = mutableListOf<Vertex>()
-        hull.addAll(findHull(start, farthest, leftSetStartFarthest))
-        hull.add(farthest)
-        hull.addAll(findHull(farthest, end, leftSetFarthestEnd))
-
-        return hull
-    }
-
-    // Calculate the distance from the line
-    private fun distanceFromLine(start: Vertex, end: Vertex, point: Vertex): Double {
-        val area = abs((end.x - start.x) * (point.y - start.y) - (end.y - start.y) * (point.x - start.x))
-        val base = Math.hypot((end.x - start.x), (end.y - start.y))
-        return area / base
-    }
-
-    fun buildFilled(box: Box, color: Color, sides: Int = DirectionMask.ALL) = filled.use {
-        updateFilled = true
+    fun buildFilled(box: Box, color: Color, sides: Int = DirectionMask.ALL) = faces.use {
+        updateFaces = true
         val pos1 = box.min
         val pos2 = box.max
 
@@ -157,7 +71,12 @@ class EspRenderer(
         if (sides.hasDirection(NORTH)) putQuad(blb, tlb, trb, brb)
     }
 
-    fun buildOutline(box: Box, color: Color, sides: Int = DirectionMask.ALL, outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR) = outline.use {
+    fun buildOutline(
+        box: Box,
+        color: Color,
+        sides: Int = DirectionMask.ALL,
+        outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
+    ) = outlines.use {
         updateOutline = true
         val pos1 = box.min
         val pos2 = box.max
@@ -196,15 +115,95 @@ class EspRenderer(
         if (outlineMode.check(hasSouth, hasWest)) putLine(tlf, blf)
     }
 
+    infix operator fun Vec3d.compareTo(other: Vec3d) =
+        lengthSquared().compareTo(other.lengthSquared())
+
+    fun buildMesh(boxes: Set<Box>, color: Color) {
+        val edges = hashMapOf<Edge, Int>()
+        val faces = hashMapOf<Face, Int>()
+
+        fun addFace(v1: Vec3d, v2: Vec3d, v3: Vec3d, v4: Vec3d) {
+            val face = Face(v1, v2, v3, v4)
+            faces[face] = faces.getOrDefault(face, 0) + 1
+        }
+
+        fun addEdge(v1: Vec3d, v2: Vec3d) {
+            val edge = if (v1 < v2) Edge(v1, v2) else Edge(v2, v1)
+            edges[edge] = edges.getOrDefault(edge, 0) + 1
+        }
+
+        boxes.forEach { box ->
+            val pos1 = box.min
+            val pos2 = box.max
+
+            val blb = Vec3d(pos1.x, pos1.y, pos1.z)
+            val blf = Vec3d(pos1.x, pos1.y, pos2.z)
+            val brb = Vec3d(pos2.x, pos1.y, pos1.z)
+            val brf = Vec3d(pos2.x, pos1.y, pos2.z)
+            val tlb = Vec3d(pos1.x, pos2.y, pos1.z)
+            val tlf = Vec3d(pos1.x, pos2.y, pos2.z)
+            val trb = Vec3d(pos2.x, pos2.y, pos1.z)
+            val trf = Vec3d(pos2.x, pos2.y, pos2.z)
+
+            addFace(blb, blf, brf, brb)
+            addFace(tlb, tlf, trf, trb)
+            addFace(blb, brb, trb, tlb)
+            addFace(blf, brf, trf, tlf)
+            addFace(blb, blf, tlf, tlb)
+            addFace(brb, brf, trf, trb)
+
+            addEdge(tlb, trb)
+            addEdge(tlf, trf)
+            addEdge(tlb, tlf)
+            addEdge(trf, trb)
+
+            addEdge(blb, brb)
+            addEdge(blf, brf)
+            addEdge(blb, blf)
+            addEdge(brb, brf)
+
+            addEdge(tlb, blb)
+            addEdge(trb, brb)
+            addEdge(trf, brf)
+            addEdge(tlf, blf)
+        }
+
+        this.faces.use {
+            updateFaces = true
+            faces.forEach { (face, count) ->
+                if (count % 2 == 0) return@forEach
+                grow(1)
+                putQuad(
+                    vec3(face.v1.x, face.v1.y, face.v1.z).color(color).end(),
+                    vec3(face.v2.x, face.v2.y, face.v2.z).color(color).end(),
+                    vec3(face.v3.x, face.v3.y, face.v3.z).color(color).end(),
+                    vec3(face.v4.x, face.v4.y, face.v4.z).color(color).end()
+                )
+            }
+        }
+
+        outlines.use {
+            updateOutline = true
+            edges.forEach { (edge, count) ->
+                if (count % 2 == 0) return@forEach
+                grow(1)
+                putLine(
+                    vec3(edge.start.x, edge.start.y, edge.start.z).color(color).end(),
+                    vec3(edge.end.x, edge.end.y, edge.end.z).color(color).end()
+                )
+            }
+        }
+    }
+
     fun upload() {
-        if (updateFilled) {
-            updateFilled = false
-            filled.upload()
+        if (updateFaces) {
+            updateFaces = false
+            faces.upload()
         }
 
         if (updateOutline) {
             updateOutline = false
-            outline.upload()
+            outlines.upload()
         }
     }
 
@@ -212,16 +211,16 @@ class EspRenderer(
         shader.use()
         shader["u_CameraPosition"] = mc.gameRenderer.camera.pos
 
-        withFaceCulling(filled::render)
-        withLineWidth(RenderSettings.outlineWidth, outline::render)
+        withFaceCulling(faces::render)
+        withLineWidth(RenderSettings.outlineWidth, outlines::render)
     }
 
     fun clear() {
-        filledVertices.clear()
+        faceVertices.clear()
         outlineVertices.clear()
 
-        filled.clear()
-        outline.clear()
+        faces.clear()
+        outlines.clear()
     }
 
     private fun IRenderContext.vertex(
@@ -233,12 +232,13 @@ class EspRenderer(
         }
 
         if (RenderSettings.vertexMapping) {
-            filledVertices.getOrPut(Vertex(x, y, z, color), newVertex)
+            faceVertices.getOrPut(Vertex(x, y, z, color), newVertex)
         } else newVertex()
     }
 
-    private data class Vertex(val x: Double, val y: Double, val z: Double, val color: Color)
-    private data class Edge(val vertex1: Vertex, val vertex2: Vertex)
+    data class Vertex(val x: Double, val y: Double, val z: Double, val color: Color)
+    data class Edge(val start: Vec3d, val end: Vec3d)
+    data class Face(val v1: Vec3d, val v2: Vec3d, val v3: Vec3d, val v4: Vec3d)
 
     companion object {
         private val shader = Shader("renderer/pos_color", "renderer/box_static")

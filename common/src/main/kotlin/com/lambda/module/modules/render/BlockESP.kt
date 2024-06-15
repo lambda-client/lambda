@@ -54,7 +54,7 @@ object BlockESP : Module(
     private val shaped: Boolean by setting("Shaped", false, "Render outline shape").apply {
         onValueSet { _, _ -> esp.rebuild() }
     }
-    private val blocks: Set<Block> by setting("Blocks", setOf(Blocks.ANVIL), "Render blocks").apply {
+    private val blocks: Set<Block> by setting("Blocks", setOf(Blocks.BEDROCK), "Render blocks").apply {
         onValueSet { _, _ -> esp.rebuild() }
     }
 
@@ -79,14 +79,6 @@ object BlockESP : Module(
         val state = view.getBlockState(blockPos)
         if (state.block !in blocks) return@newChunkedESP
 
-        var sides = DirectionMask.ALL
-
-        if (mesh) {
-            Direction.entries
-                .filter { blockPos.offset(it).blockState(view).block in blocks }
-                .forEach { sides = sides.exclude(it.mask) }
-        }
-
         if (shaped) {
             val shape = state.getOutlineShape(view, blockPos)
             if (shape.isEmpty) return@newChunkedESP
@@ -94,8 +86,16 @@ object BlockESP : Module(
                 .map { it.offset(blockPos) }
                 .toSet()
 
-            buildConvexHull(boxes, outlineColor)
+            buildMesh(boxes, outlineColor)
             return@newChunkedESP
+        }
+
+        var sides = DirectionMask.ALL
+
+        if (mesh) {
+            Direction.entries
+                .filter { blockPos.offset(it).blockState(view).block in blocks }
+                .forEach { sides = sides.exclude(it.mask) }
         }
 
         build(Box(blockPos), sides)
