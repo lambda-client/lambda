@@ -3,6 +3,7 @@ package com.lambda.module.modules.player
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
+import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -16,24 +17,26 @@ import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
-import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
-import net.minecraft.network.packet.s2c.play.ChunkDeltaUpdateS2CPacket
 import net.minecraft.registry.tag.FluidTags
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
-import java.util.function.BiConsumer
 
 object PacketMine : Module(
     name = "Packet Mine",
     description = "Mines blocks semi-automatically at a faster rate",
     defaultTags = setOf(ModuleTag.PLAYER)
 ) {
+    private val page by setting("Page", Page.General)
 
-    private val reBreak by setting("Re-Break", true, "Automatically re-breaks the last mined block if it gets replaced")
-    private val fastReBreak by setting("Speedy Re-Break", false, "Re-breaks blocks instantly however could potentially cause ghost blocks", visibility = ::reBreak)
-    private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking").apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
-    private val doubleBreakQueue by setting("Double Break Queue", false, "Queues any blocks you click for breaking", visibility = ::queueBlocks)
+    private val breakSpeed by setting("Break Speed", 1.0, 0.0..1.0, 0.1, "Breaks the selected block at the time to break of the block multiplied by this value", visibility = { page == Page.General})
+    private val clientSideBreak by setting("Client Side Break", true, "Breaks blocks client side rather than waiting for a response from the server", visibility = { page == Page.General })
+    private val timeoutDelay by setting("Timeout Delay", 0.20, 0.00..1.00, 0.1, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", visibility = { page == Page.General && !clientSideBreak })
+    private val alternativePackets by setting("Alternative Packets", false, "Uses a different set of packets which tend to work better on servers using an anti-cheat like grim", visibility = { page == Page.General })
+    private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue }).apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
+    private val doubleBreakQueue by setting("Double Break Queue", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue && queueBlocks })
+    private val reBreak by setting("Re-Break", true, "Automatically re-breaks the last mined block if it gets replaced", visibility = { page == Page.ReBreak})
+    private val fastReBreak by setting("Fast Re-Break", false, "Re-breaks blocks instantly however could potentially cause ghost blocks", visibility = { page == Page.ReBreak && reBreak })
 
     private var currentMiningBlock: BreakingContext? = null
     private var ignorePacketSend = false
@@ -50,13 +53,30 @@ object PacketMine : Module(
                 val bestTool = getBestTool(activeState, pos)
 
                 when (breakState) {
-                    BreakState.BREAKING -> {
-                        if (mineTicks * calcBreakDelta(state, pos, bestTool) < 0.7) return@listener
+                    BreakState.Breaking -> {
+                        if (mineTicks * calcBreakDelta(state, pos, bestTool) < breakSpeed) return@listener
 
+                        timeCompleted = System.currentTimeMillis()
                         swapStopBreak(pos, bestTool)
-                        breakState = BreakState.AWAITING_RESPONSE
+
+                        if (!clientSideBreak) {
+                            breakState = BreakState.AwaitingResponse
+                            return@listener
+                        }
+
+                        interaction.breakBlock(pos)
+
+                        if (breakNextQueueBlock()) return@listener
+
+                        if (reBreak
+                            && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
+                            breakState = BreakState.ReBreaking
+                            return@listener
+                        }
+
+                        currentMiningBlock = null
                     }
-                    BreakState.REBREAKING -> {
+                    BreakState.ReBreaking -> {
                         if (breakNextQueueBlock()) return@listener
 
                         if (player.eyePos.distanceTo(pos.toCenterPos()) > 6) {
@@ -64,24 +84,32 @@ object PacketMine : Module(
                             return@listener
                         }
 
-                        if (mineTicks * calcBreakDelta(state, pos, bestTool) < 0.7) return@listener
+                        if (mineTicks * calcBreakDelta(state, pos, bestTool) < breakSpeed) return@listener
+
+                        if (!fastReBreak
+                            && (activeState.isAir
+                            || (!activeState.fluidState.isEmpty && !activeState.properties.contains(Properties.WATERLOGGED)))
+                            ) return@listener
 
                         swapStopBreak(pos, bestTool)
-
-                        if (!fastReBreak) return@listener
-
-                        interaction.breakBlock(pos)
+                        if (clientSideBreak) interaction.breakBlock(pos)
                     }
-                    BreakState.AWAITING_RESPONSE -> {
-                        if (mineTicks * calcBreakDelta(state, pos, getBestTool(state, pos)) < 1) return@listener
+                    BreakState.AwaitingResponse -> {
+                        if (clientSideBreak) return@listener
+
+                        if (System.currentTimeMillis() - timeCompleted < timeoutDelay) return@listener
 
                         if (breakNextQueueBlock()) return@listener
+
+                        if (reBreak
+                            && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
+                            breakState = BreakState.ReBreaking
+                            return@listener
+                        }
 
                         currentMiningBlock = null
                     }
                 }
-            } ?: run {
-                breakNextQueueBlock()
             }
         }
 
@@ -93,10 +121,9 @@ object PacketMine : Module(
 
             if (queueBlocks
                 && (currentMiningBlock != null
-                        && currentMiningBlock?.breakState != BreakState.REBREAKING
+                        && currentMiningBlock?.breakState != BreakState.ReBreaking
                         && currentMiningBlock?.pos != packetPos)
-                || (!blockQueue.isEmpty()
-                        && !blockQueue.contains(packetPos))
+                || (!blockQueue.isEmpty() && !blockQueue.contains(packetPos))
                 ) {
                 blockQueue.add(packetPos)
                 return@listener
@@ -105,68 +132,25 @@ object PacketMine : Module(
             startBreaking(packetPos)
         }
 
-        listener<PacketEvent.Receive.Pre> {
+        listener<WorldEvent.BlockUpdate> {
             currentMiningBlock?.apply {
-                if (it.packet is BlockUpdateS2CPacket
-                    && it.packet.pos.equals(pos)
-                    && (if (state.properties.contains(Properties.WATERLOGGED)) it.packet.state.fluidState.fluid.equals(Fluids.WATER)
-                        else it.packet.state.isAir)) {
+                if (it.pos != pos
+                    || !(if (state.properties.contains(Properties.WATERLOGGED)) it.state.fluidState.fluid.equals(Fluids.WATER)
+                    else it.state.isAir)) return@listener
+                if (!clientSideBreak) state.block.onBreak(world, pos, world.getBlockState(pos), player)
 
-                    if (breakState == BreakState.REBREAKING) {
-                        if (fastReBreak) return@listener
+                if (breakState == BreakState.ReBreaking) return@listener
 
-                        if (instaBroken) {
-                            instaBroken = false
-                            return@listener
-                        }
+                if (breakNextQueueBlock()) return@listener
 
-                        state.block.onBreak(world, pos, state, player)
-                        return@listener
-                    }
-
-                    state.block.onBreak(world, pos, state, player)
-
-                    if (reBreak
-                        && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
-                        breakState = BreakState.REBREAKING
-                        return@listener
-                    }
-
-                    currentMiningBlock = null
+                if (reBreak
+                    && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
+                    breakState = BreakState.ReBreaking
                     return@listener
                 }
 
-                if (it.packet !is ChunkDeltaUpdateS2CPacket) return@listener
-
-                it.packet.visitUpdates(BiConsumer { changedPos: BlockPos, changedState: BlockState ->
-                    currentMiningBlock?.apply {
-                        if (changedPos != pos
-                            || !(if (state.properties.contains(Properties.WATERLOGGED)) changedState.fluidState.fluid.equals(Fluids.WATER)
-                            else changedState.isAir)) return@BiConsumer
-
-                        if (breakState == BreakState.REBREAKING) {
-                            if (fastReBreak) return@BiConsumer
-
-                            if (instaBroken) {
-                                instaBroken = false
-                                return@BiConsumer
-                            }
-
-                            state.block.onBreak(world, pos, state, player)
-                            return@BiConsumer
-                        }
-
-                        state.block.onBreak(world, pos, state, player)
-
-                        if (reBreak
-                            && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
-                            breakState = BreakState.REBREAKING
-                            return@BiConsumer
-                        }
-
-                        currentMiningBlock = null
-                    }
-                })
+                currentMiningBlock = null
+                return@listener
             }
         }
     }
@@ -178,21 +162,28 @@ object PacketMine : Module(
 
         val bestTool = getBestTool(state, pos)
 
-        if (calcBreakDelta(world.getBlockState(pos), pos, bestTool) > 0.7) {
-            swapStartBreak(pos, bestTool)
-            swapStartPacketBreak(pos, bestTool)
-            currentMiningBlock = if (reBreak) {
-                BreakingContext(pos, state, BreakState.REBREAKING)
+        swapStartPacketBreak(pos, bestTool)
+
+        if (calcBreakDelta(world.getBlockState(pos), pos, bestTool) > breakSpeed) {
+            if (reBreak) {
+                swapStartPacketBreak(pos, bestTool)
+                currentMiningBlock = BreakingContext(pos, state, BreakState.ReBreaking)
             } else {
-                null
+                currentMiningBlock = if (clientSideBreak) {
+                    null
+                } else {
+                    BreakingContext(pos, state, BreakState.AwaitingResponse)
+                }
             }
-            currentMiningBlock?.instaBroken = true
+
+            if (!clientSideBreak) return
+
             state.block.onBreak(world, pos, state, player)
+
             return
         }
 
-        swapStartPacketBreak(pos, bestTool)
-        currentMiningBlock = BreakingContext(pos, state, BreakState.BREAKING)
+        currentMiningBlock = BreakingContext(pos, state, BreakState.Breaking)
     }
 
     private fun SafeContext.breakNextQueueBlock(): Boolean {
@@ -220,8 +211,10 @@ object PacketMine : Module(
         connection.sendPacket(UpdateSelectedSlotC2SPacket(toolSlot))
         ignorePacketSend = true
         startBreak(pos)
-        abortBreak(pos)
-        stopBreak(pos)
+        if (alternativePackets) {
+            abortBreak(pos)
+            stopBreak(pos)
+        }
         ignorePacketSend = false
         connection.sendPacket(UpdateSelectedSlotC2SPacket(player.inventory.selectedSlot))
     }
@@ -234,24 +227,16 @@ object PacketMine : Module(
         connection.sendPacket(UpdateSelectedSlotC2SPacket(player.inventory.selectedSlot))
     }
 
-    private fun SafeContext.swapStartBreak(pos: BlockPos, toolSlot: Int) {
-        connection.sendPacket(UpdateSelectedSlotC2SPacket(toolSlot))
-        ignorePacketSend = true
-        startBreak(pos)
-        ignorePacketSend = false
-        connection.sendPacket(UpdateSelectedSlotC2SPacket(player.inventory.selectedSlot))
-    }
-
     private fun SafeContext.startBreak(pos: BlockPos) {
         connection.sendPacket(PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, pos, Direction.UP, 0))
     }
 
-    private fun SafeContext.abortBreak(pos: BlockPos) {
-        connection.sendPacket(PlayerActionC2SPacket(Action.ABORT_DESTROY_BLOCK, pos, Direction.UP, 0))
-    }
-
     private fun SafeContext.stopBreak(pos: BlockPos) {
         connection.sendPacket(PlayerActionC2SPacket(Action.STOP_DESTROY_BLOCK, pos, Direction.UP, 0))
+    }
+
+    private fun SafeContext.abortBreak(pos: BlockPos) {
+        connection.sendPacket(PlayerActionC2SPacket(Action.ABORT_DESTROY_BLOCK, pos, Direction.UP, 0))
     }
 
     /*
@@ -321,9 +306,14 @@ object PacketMine : Module(
 
     private data class BreakingContext(var pos: BlockPos, var state: BlockState, var breakState: BreakState) {
         var mineTicks = 0
-        var instaBroken = false
+        var timeCompleted: Long = -1
     }
+
     private enum class BreakState {
-        BREAKING, REBREAKING, AWAITING_RESPONSE
+        Breaking, ReBreaking, AwaitingResponse
+    }
+
+    private enum class Page {
+        General, Queue, ReBreak
     }
 }
