@@ -1,5 +1,6 @@
 package com.lambda.config.settings.comparable
 
+import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
 
 class EnumSetting<T : Enum<T>>(
@@ -9,6 +10,7 @@ class EnumSetting<T : Enum<T>>(
     visibility: () -> Boolean,
 ) : AbstractSetting<T>(
     defaultValue,
+    TypeToken.get(defaultValue.declaringJavaClass).type,
     description,
     visibility,
 ) {

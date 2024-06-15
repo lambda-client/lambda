@@ -28,8 +28,7 @@ class Shader(fragmentPath: String, vertexPath: String) {
 
     fun use() {
         glUseProgram(id)
-        set("u_Projection", RenderMain.projectionMatrix)
-        set("u_ModelView", RenderMain.modelViewMatrix)
+        set("u_ProjModel", Matrix4f(RenderMain.projectionMatrix).mul(RenderMain.modelViewMatrix))
     }
 
     private fun loc(name: String) =

@@ -1,6 +1,6 @@
 package com.lambda.gui.impl.clickgui.windows.tag
 
-import com.lambda.gui.impl.clickgui.AbstractClickGui
+import com.lambda.gui.impl.AbstractClickGui
 import com.lambda.gui.impl.clickgui.windows.ModuleWindow
 import com.lambda.module.Module
 

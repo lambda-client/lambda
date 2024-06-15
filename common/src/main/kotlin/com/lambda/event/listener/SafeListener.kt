@@ -5,6 +5,7 @@ import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Muteable
 import com.lambda.task.Task
+import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
 
 
@@ -162,10 +163,12 @@ class SafeListener(
         inline fun <reified T : Event> Any.concurrentListener(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: SafeContext.(T) -> Unit,
+            noinline function: suspend SafeContext.(T) -> Unit,
         ): SafeListener {
             val listener = SafeListener(priority, this, alwaysListen) { event ->
-                function(event as T)
+                runConcurrent {
+                    function(event as T)
+                }
             }
 
             EventFlow.concurrentListeners.subscribe<T>(listener)

@@ -131,6 +131,7 @@ abstract class Configuration : Jsonable {
                 }
                 .onFailure {
                     val message = "Failed to save ${configName.capitalize()} config"
+                    LOG.error(message, it)
                     logError(message)
                 }
         }

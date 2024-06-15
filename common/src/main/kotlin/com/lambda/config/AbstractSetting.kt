@@ -5,6 +5,7 @@ import com.lambda.Lambda.gson
 import com.lambda.context.SafeContext
 import com.lambda.threading.runSafe
 import com.lambda.util.Nameable
+import java.lang.reflect.Type
 import kotlin.properties.Delegates
 import kotlin.reflect.KProperty
 
@@ -49,10 +50,12 @@ import kotlin.reflect.KProperty
  *
  * @property defaultValue The default value of the setting.
  * @property description A description of the setting.
+ * @property type The type reflection of the setting.
  * @property visibility A function that determines whether the setting is visible.
  */
 abstract class AbstractSetting<T : Any>(
     private val defaultValue: T,
+    private val type: Type,
     val description: String,
     val visibility: () -> Boolean,
 ) : Jsonable, Nameable {
@@ -74,10 +77,10 @@ abstract class AbstractSetting<T : Any>(
     }
 
     override fun toJson(): JsonElement =
-        gson.toJsonTree(value)
+        gson.toJsonTree(value, type)
 
     override fun loadFromJson(serialized: JsonElement) {
-        value = gson.fromJson(serialized, value::class.java)
+        value = gson.fromJson(serialized, type)
     }
 
     fun onValueChange(block: SafeContext.(from: T, to: T) -> Unit) {
