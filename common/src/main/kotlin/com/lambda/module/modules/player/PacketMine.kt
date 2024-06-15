@@ -101,12 +101,6 @@ object PacketMine : Module(
 
                         if (breakNextQueueBlock()) return@listener
 
-                        if (reBreak
-                            && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
-                            breakState = BreakState.ReBreaking
-                            return@listener
-                        }
-
                         currentMiningBlock = null
                     }
                 }
