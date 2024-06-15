@@ -8,64 +8,65 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.modules.client.RenderSettings
 import com.lambda.threading.runGameBlocking
 import net.minecraft.util.math.ChunkPos
-import net.minecraft.world.BlockView
+import net.minecraft.world.WorldView
 import net.minecraft.world.chunk.WorldChunk
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 
 class ChunkedESP private constructor(
     owner: Any,
-    private val update: EspRenderer.(BlockView, Int, Int, Int) -> Unit
+    private val update: EspRenderer.(WorldView, Int, Int, Int) -> Unit
 ) {
-    private val rendererMap = ConcurrentHashMap<ChunkPos, EspChunk>()
-    private val WorldChunk.renderer get() = rendererMap.getOrPut(pos) {
+    private val rendererMap = ConcurrentHashMap<Long, EspChunk>()
+    private val WorldChunk.renderer get() = rendererMap.getOrPut(pos.toLong()) {
         EspChunk(this, this@ChunkedESP)
     }
     private var ticks = 0
 
-    private val uploadPool = ConcurrentLinkedDeque<() -> Unit>()
-    private val rebuildPool = ConcurrentLinkedDeque<EspChunk>()
+    private val uploadQueue = ConcurrentLinkedDeque<() -> Unit>()
+    private val rebuildQueue = ConcurrentLinkedDeque<EspChunk>()
 
     // i completely dont like to listen to enable events
 
-    fun clear() {
-        rendererMap.clear()
+    fun rebuild() {
+        rebuildQueue.clear()
+        rebuildQueue.addAll(rendererMap.values)
     }
 
     init {
-        owner.concurrentListener<WorldEvent.BlockUpdate> { event ->
+        concurrentListener<WorldEvent.BlockUpdate> { event ->
             world.getWorldChunk(event.pos).renderer.apply {
                 queueRebuild()
                 notifyNeighbors()
             }
         }
 
-        owner.concurrentListener<WorldEvent.ChunkEvent.Load> { event ->
+        concurrentListener<WorldEvent.ChunkEvent.Load> { event ->
             event.chunk.renderer.notifyNeighbors()
         }
 
-        owner.concurrentListener<WorldEvent.ChunkEvent.Unload> { event ->
-            rendererMap.remove(event.chunk.pos)?.notifyNeighbors()
+        concurrentListener<WorldEvent.ChunkEvent.Unload> { event ->
+            rendererMap.remove(event.chunk.pos.toLong())?.notifyNeighbors()
         }
 
         owner.concurrentListener<TickEvent.Pre> {
             if (++ticks % RenderSettings.updateFrequency == 0) {
-                val polls = minOf(RenderSettings.rebuildsPerTick, rebuildPool.size)
+                val polls = minOf(RenderSettings.rebuildsPerTick, rebuildQueue.size)
 
                 repeat(polls) {
-                    rebuildPool.poll()?.rebuild()
+                    rebuildQueue.poll()?.rebuild()
                 }
                 ticks = 0
             }
         }
 
         owner.listener<TickEvent.Pre> {
-            if (uploadPool.isEmpty()) return@listener
+            if (uploadQueue.isEmpty()) return@listener
 
-            val polls = minOf(RenderSettings.uploadsPerTick, uploadPool.size)
+            val polls = minOf(RenderSettings.uploadsPerTick, uploadQueue.size)
 
             repeat(polls) {
-                uploadPool.poll()?.invoke()
+                uploadQueue.poll()?.invoke()
             }
         }
 
@@ -78,7 +79,7 @@ class ChunkedESP private constructor(
 
     companion object {
         fun Any.newChunkedESP(
-            update: EspRenderer.(BlockView, Int, Int, Int) -> Unit
+            update: EspRenderer.(WorldView, Int, Int, Int) -> Unit
         ) = ChunkedESP(this, update)
     }
 
@@ -94,12 +95,13 @@ class ChunkedESP private constructor(
         fun ChunkPos.isLoaded() = chunk.world.chunkManager.isChunkLoaded(x, z)
 
         fun queueRebuild() {
-            owner.rebuildPool.add(this)
+            if (owner.rebuildQueue.contains(this)) return
+            owner.rebuildQueue.add(this)
         }
 
         fun notifyNeighbors() {
             neighbors.forEach {
-                owner.rendererMap[it]?.queueRebuild()
+                owner.rendererMap[it.toLong()]?.queueRebuild()
             }
         }
 
@@ -114,6 +116,7 @@ class ChunkedESP private constructor(
 
             val upload = {
                 newRenderer.upload()
+                renderer?.clear()
                 renderer = newRenderer
             }
 
@@ -124,7 +127,7 @@ class ChunkedESP private constructor(
                     }
                 }
                 RenderSettings.UploadScheduler.Delayed -> {
-                    owner.uploadPool.add(upload)
+                    owner.uploadQueue.add(upload)
                 }
             }
         }

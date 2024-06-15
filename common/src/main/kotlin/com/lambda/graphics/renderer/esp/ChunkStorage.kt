@@ -13,11 +13,11 @@ object ChunkStorage : Loadable {
 
     init {
         concurrentListener<WorldEvent.ChunkEvent.Load> { event ->
-            chunkMap[event.chunk.pos] = event.chunk
+            chunkMap[event.chunk.pos.toLong()] = event.chunk
         }
 
         concurrentListener<WorldEvent.ChunkEvent.Unload> { event ->
-            chunkMap.remove(event.chunk.pos)
+            chunkMap.remove(event.chunk.pos.toLong())
         }
 
         concurrentListener<ConnectionEvent.Disconnect> {
@@ -26,4 +26,4 @@ object ChunkStorage : Loadable {
     }
 }
 
-typealias ChunkMap = ConcurrentHashMap<ChunkPos, WorldChunk>
+typealias ChunkMap = ConcurrentHashMap<Long, WorldChunk>

@@ -20,8 +20,8 @@ object RenderSettings : Module(
 
     // ESP
     val uploadScheduler by setting("Upload Scheduler", UploadScheduler.Instant) { page == Page.ESP }
-    val uploadsPerTick by setting("Uploads", 8, 1..32, 1, unit = " chunk/tick") { page == Page.ESP && uploadScheduler == UploadScheduler.Delayed }
-    val rebuildsPerTick by setting("Rebuilds", 8, 1..32, 1, unit = " chunk/tick") { page == Page.ESP }
+    val uploadsPerTick by setting("Uploads", 16, 1..256, 1, unit = " chunk/tick") { page == Page.ESP && uploadScheduler == UploadScheduler.Delayed }
+    val rebuildsPerTick by setting("Rebuilds", 64, 1..256, 1, unit = " chunk/tick") { page == Page.ESP }
     val vertexMapping by setting("Vertex Mapping", true) { page == Page.ESP }
     val updateFrequency by setting("Update Frequency", 2, 1..10, 1, "Frequency of block updates", unit = " ticks") { page == Page.ESP }
     val outlineWidth by setting("Outline Width", 1.0, 0.1..5.0, 0.1, "Width of block outlines", unit = "px") { page == Page.ESP }

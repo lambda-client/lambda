@@ -1,11 +1,11 @@
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
-import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.graphics.renderer.esp.DirectionMask.mask
+import com.lambda.graphics.renderer.esp.EspRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
@@ -13,7 +13,9 @@ import net.minecraft.block.Block
 import net.minecraft.block.Blocks
 import net.minecraft.client.render.model.BakedModel
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
+import net.minecraft.world.WorldView
 import java.awt.Color
 
 object BlockESP : Module(
@@ -23,29 +25,38 @@ object BlockESP : Module(
 ) {
     private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks").apply {
         onValueSet { _, to ->
+            esp.rebuild()
             if (!to) drawOutlines = true
         }
     }
-    val faceColor by setting("Face Color", Color(100, 150, 255, 128), "Color of the surfaces") {
+    private val faceColor: Color by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") {
         drawFaces
+    }.apply {
+        onValueSet { _, _ -> esp.rebuild() }
     }
-    private var drawOutlines by setting("Draw Outlines", true, "Draw outlines of blocks").apply {
+    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks").apply {
         onValueSet { _, to ->
+            esp.rebuild()
             if (!to) drawFaces = true
         }
     }
-    private val outlineColor by setting("Outline Color", Color(100, 150, 255), "Color of the outlines") {
+    private val outlineColor: Color by setting("Outline Color", Color(100, 150, 255, 128), "Color of the outlines") {
         drawOutlines
+    }.apply {
+        onValueSet { _, _ -> esp.rebuild() }
     }
-    private var clearRender: Boolean by setting("Clear Render", false, "Clear render after rendering blocks").apply {
-        onValueSet { _, to ->
-            if (to) {
-                esp.clear()
-                clearRender = false
-            }
-        }
+    private val outlineMode: DirectionMask.OutlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode").apply {
+        onValueSet { _, _ -> esp.rebuild() }
     }
-    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), "Render blocks")
+    private val mesh: Boolean by setting("Mesh", true, "Connect similar adjacent blocks").apply {
+        onValueSet { _, _ -> esp.rebuild() }
+    }
+    private val shaped: Boolean by setting("Shaped", false, "Render outline shape").apply {
+        onValueSet { _, _ -> esp.rebuild() }
+    }
+    private val blocks: Set<Block> by setting("Blocks", setOf(Blocks.ANVIL), "Render blocks").apply {
+        onValueSet { _, _ -> esp.rebuild() }
+    }
 
     @JvmStatic
     val barrier by setting("Solid Barrier Block", true, "Render barrier blocks")
@@ -57,37 +68,48 @@ object BlockESP : Module(
     @JvmStatic
     val model: BakedModel get() = mc.bakedModelManager.missingModel
 
-    private val esp = newChunkedESP { view, x, y, z ->
-        val blockPos = BlockPos(x, y, z)
-        val state = view.getBlockState(blockPos)
-        if (state.isAir) return@newChunkedESP
-        if (state.block !in blocks) return@newChunkedESP
-
-        val shape = state.getOutlineShape(view, blockPos)
-        if (shape.isEmpty) return@newChunkedESP
-
-        var sides = DirectionMask.ALL
-
-        Direction.entries
-            .filter { blockPos.offset(it).blockState(view).block in blocks }
-            .forEach { sides = sides.exclude(it.mask) }
-
-        shape.boundingBoxes.forEach { box ->
-            val offsetBox = box.offset(blockPos)
-            if (drawFaces) build(offsetBox, faceColor, outlineColor, sides, DirectionMask.OutlineMode.AND)
-            if (drawOutlines) buildOutline(offsetBox, outlineColor, sides, DirectionMask.OutlineMode.AND)
-        }
-    }
-
-    fun SafeContext.getBlock(x: Int, y: Int, z: Int): Block {
-        val chunk = world.getChunk(x shr 4, z shr 4)
-        val section = chunk.getSection(y shr 4)
-        return section.getBlockState(x and 15, y and 15, z and 15).block
-    }
-
     init {
         onToggle {
             if (barrier) mc.worldRenderer.reload()
+        }
+    }
+
+    private val esp = newChunkedESP { view, x, y, z ->
+        val blockPos = BlockPos(x, y, z)
+        val state = view.getBlockState(blockPos)
+        if (state.block !in blocks) return@newChunkedESP
+
+        var sides = DirectionMask.ALL
+
+        if (mesh) {
+            Direction.entries
+                .filter { blockPos.offset(it).blockState(view).block in blocks }
+                .forEach { sides = sides.exclude(it.mask) }
+        }
+
+        if (shaped) {
+            val shape = state.getOutlineShape(view, blockPos)
+            if (shape.isEmpty) return@newChunkedESP
+            val boxes = shape.boundingBoxes
+                .map { it.offset(blockPos) }
+                .toSet()
+
+            buildConvexHull(boxes, outlineColor)
+            return@newChunkedESP
+        }
+
+        build(Box(blockPos), sides)
+    }
+
+    private fun EspRenderer.build(
+        box: Box,
+        sides: Int,
+    ) {
+        if (drawFaces) {
+            buildFilled(box, faceColor, sides)
+        }
+        if (drawOutlines) {
+            buildOutline(box, outlineColor, sides, outlineMode)
         }
     }
 }
