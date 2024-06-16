@@ -3,8 +3,11 @@ package com.lambda.module.modules.client
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.RotationSettings
+import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
+import com.lambda.graphics.renderer.esp.EspRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.mainThread
 import com.lambda.util.BlockUtils.allSigns
 import com.lambda.util.item.ItemUtils
 
@@ -32,4 +35,8 @@ object TaskFlow : Module(
     }
     val disposables by setting("Disposables", ItemUtils.defaultDisposables)
     val ignoredBlocks by setting("Ignored Blocks", allSigns)
+
+    val esp by mainThread {
+        EspRenderer()
+    }
 }
