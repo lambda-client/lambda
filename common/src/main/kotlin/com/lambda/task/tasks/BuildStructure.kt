@@ -32,9 +32,7 @@ class BuildStructure @Ta5kBuilder constructor(
     private val cancelOnUnsolvable: Boolean = true,
 ) : Task<Unit>() {
 
-    abstract class PathingStrategy {
-
-    }
+    abstract class PathingStrategy
 
     override fun SafeContext.onStart() {
         (blueprint as? DynamicBlueprint)?.create(this)
@@ -52,8 +50,6 @@ class BuildStructure @Ta5kBuilder constructor(
             val results = blueprint.simulate(player.getCameraPosVec(mc.tickDelta))
             val resBlock = results.associateBy { it.blockPos }
 
-            TaskFlow.esp.clear()
-
             var sides = DirectionMask.ALL
 
             resBlock.forEach { (pos, res) ->
@@ -69,7 +65,6 @@ class BuildStructure @Ta5kBuilder constructor(
                     DirectionMask.OutlineMode.AND
                 )
             }
-            TaskFlow.esp.upload()
 
             val instantResults = results.filterIsInstance<BreakResult.Success>()
                 .filter { it.context.instantBreak }
@@ -103,10 +98,6 @@ class BuildStructure @Ta5kBuilder constructor(
                     }
                 }
             }
-        }
-
-        listener<RenderEvent.World> {
-            TaskFlow.esp.render()
         }
     }
 

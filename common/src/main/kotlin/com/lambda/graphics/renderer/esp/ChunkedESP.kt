@@ -33,15 +33,15 @@ class ChunkedESP private constructor(
 
     init {
         concurrentListener<WorldEvent.BlockUpdate> { event ->
-            world.getWorldChunk(event.pos).renderer.notify()
+            world.getWorldChunk(event.pos).renderer.notifyChunks()
         }
 
         concurrentListener<WorldEvent.ChunkEvent.Load> { event ->
-            event.chunk.renderer.notify()
+            event.chunk.renderer.notifyChunks()
         }
 
         concurrentListener<WorldEvent.ChunkEvent.Unload> { event ->
-            rendererMap.remove(event.chunk.pos.toLong())?.notify()
+            rendererMap.remove(event.chunk.pos.toLong())?.notifyChunks()
         }
 
         owner.concurrentListener<TickEvent.Pre> {
@@ -86,7 +86,7 @@ class ChunkedESP private constructor(
             ChunkPos(chunk.pos.x + it.first, chunk.pos.z + it.second)
         }.toTypedArray()
 
-        fun notify() {
+        fun notifyChunks() {
             neighbors.forEach {
                 owner.rendererMap[it.toLong()]?.let {
                     owner.rebuildQueue.apply {

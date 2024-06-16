@@ -227,13 +227,9 @@ class EspRenderer(
         x: Double, y: Double, z: Double,
         color: Color
     ) = lazy {
-        val newVertex = {
+        faceVertices.getOrPut(Vertex(x, y, z, color)) {
             vec3(x, y, z).color(color).end()
         }
-
-        if (RenderSettings.vertexMapping) {
-            faceVertices.getOrPut(Vertex(x, y, z, color), newVertex)
-        } else newVertex()
     }
 
     data class Vertex(val x: Double, val y: Double, val z: Double, val color: Color)

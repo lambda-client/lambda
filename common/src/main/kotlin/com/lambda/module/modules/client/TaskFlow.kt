@@ -3,7 +3,9 @@ package com.lambda.module.modules.client
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.RotationSettings
-import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
+import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.graphics.renderer.esp.EspRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -38,5 +40,19 @@ object TaskFlow : Module(
 
     val esp by mainThread {
         EspRenderer()
+    }
+
+    init {
+        listener<TickEvent.Pre>(Int.MAX_VALUE) {
+            esp.clear()
+        }
+
+        listener<TickEvent.Post> {
+            esp.upload()
+        }
+
+        listener<RenderEvent.World> {
+            esp.render()
+        }
     }
 }
