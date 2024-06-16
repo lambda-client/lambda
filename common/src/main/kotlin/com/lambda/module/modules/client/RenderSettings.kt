@@ -19,8 +19,7 @@ object RenderSettings : Module(
     private val lodBiasSetting by setting("Smoothing", 0.0, -10.0..10.0, 0.5) { page == Page.Font }
 
     // ESP
-    val uploadScheduler by setting("Upload Scheduler", UploadScheduler.Instant) { page == Page.ESP }
-    val uploadsPerTick by setting("Uploads", 16, 1..256, 1, unit = " chunk/tick") { page == Page.ESP && uploadScheduler == UploadScheduler.Delayed }
+    val uploadsPerTick by setting("Uploads", 16, 1..256, 1, unit = " chunk/tick") { page == Page.ESP }
     val rebuildsPerTick by setting("Rebuilds", 64, 1..256, 1, unit = " chunk/tick") { page == Page.ESP }
     val vertexMapping by setting("Vertex Mapping", true) { page == Page.ESP }
     val updateFrequency by setting("Update Frequency", 2, 1..10, 1, "Frequency of block updates", unit = " ticks") { page == Page.ESP }
@@ -31,10 +30,5 @@ object RenderSettings : Module(
     private enum class Page {
         Font,
         ESP
-    }
-
-    enum class UploadScheduler {
-        Instant,
-        Delayed
     }
 }

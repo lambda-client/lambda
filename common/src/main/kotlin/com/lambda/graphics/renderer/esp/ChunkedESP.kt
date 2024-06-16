@@ -26,8 +26,6 @@ class ChunkedESP private constructor(
     private val uploadQueue = ConcurrentLinkedDeque<() -> Unit>()
     private val rebuildQueue = ConcurrentLinkedDeque<EspChunk>()
 
-    // i completely dont like to listen to enable events
-
     fun rebuild() {
         rebuildQueue.clear()
         rebuildQueue.addAll(rendererMap.values)
@@ -35,18 +33,15 @@ class ChunkedESP private constructor(
 
     init {
         concurrentListener<WorldEvent.BlockUpdate> { event ->
-            world.getWorldChunk(event.pos).renderer.apply {
-                queueRebuild()
-                notifyNeighbors()
-            }
+            world.getWorldChunk(event.pos).renderer.notify()
         }
 
         concurrentListener<WorldEvent.ChunkEvent.Load> { event ->
-            event.chunk.renderer.notifyNeighbors()
+            event.chunk.renderer.notify()
         }
 
         concurrentListener<WorldEvent.ChunkEvent.Unload> { event ->
-            rendererMap.remove(event.chunk.pos.toLong())?.notifyNeighbors()
+            rendererMap.remove(event.chunk.pos.toLong())?.notify()
         }
 
         owner.concurrentListener<TickEvent.Pre> {
@@ -90,18 +85,14 @@ class ChunkedESP private constructor(
         val neighbors = chunkOffsets.map {
             ChunkPos(chunk.pos.x + it.first, chunk.pos.z + it.second)
         }.toTypedArray()
-        val neighborsLoaded get() = neighbors.all { it.isLoaded() }
 
-        fun ChunkPos.isLoaded() = chunk.world.chunkManager.isChunkLoaded(x, z)
-
-        fun queueRebuild() {
-            if (owner.rebuildQueue.contains(this)) return
-            owner.rebuildQueue.add(this)
-        }
-
-        fun notifyNeighbors() {
+        fun notify() {
             neighbors.forEach {
-                owner.rendererMap[it.toLong()]?.queueRebuild()
+                owner.rendererMap[it.toLong()]?.let {
+                    owner.rebuildQueue.apply {
+                        if (!contains(it)) add(it)
+                    }
+                }
             }
         }
 
@@ -114,21 +105,9 @@ class ChunkedESP private constructor(
                 owner.update(newRenderer, chunk.world, x, y, z)
             }
 
-            val upload = {
+            owner.uploadQueue.add {
                 newRenderer.upload()
-                renderer?.clear()
                 renderer = newRenderer
-            }
-
-            when (RenderSettings.uploadScheduler) {
-                RenderSettings.UploadScheduler.Instant -> {
-                    runGameBlocking {
-                        upload()
-                    }
-                }
-                RenderSettings.UploadScheduler.Delayed -> {
-                    owner.uploadQueue.add(upload)
-                }
             }
         }
 
