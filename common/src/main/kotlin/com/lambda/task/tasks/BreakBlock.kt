@@ -19,6 +19,7 @@ import com.lambda.task.tasks.GoalTask.Companion.moveToGoalUntil
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.item
+import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.item.ItemUtils.defaultDisposables
 import com.lambda.util.player.SlotUtils.clickSlot
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
@@ -83,7 +84,7 @@ class BreakBlock @Ta5kBuilder constructor(
 
                 if (player.hotbarAndStorage.none { it.isEmpty }) {
                     player.currentScreenHandler.inventorySlots.firstOrNull {
-                        it.stack.item in defaultDisposables
+                        it.stack.item.block in TaskFlow.disposables
                     }?.let {
                         clickSlot(it.index, 1, SlotActionType.THROW)
                     }
