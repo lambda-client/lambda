@@ -3,13 +3,8 @@ package com.lambda.module.modules.client
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.RotationSettings
-import com.lambda.event.events.RenderEvent
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.graphics.renderer.esp.EspRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.mainThread
 import com.lambda.util.BlockUtils.allSigns
 import com.lambda.util.item.ItemUtils
 
@@ -37,22 +32,4 @@ object TaskFlow : Module(
     }
     val disposables by setting("Disposables", ItemUtils.defaultDisposables)
     val ignoredBlocks by setting("Ignored Blocks", allSigns)
-
-    val esp by mainThread {
-        EspRenderer()
-    }
-
-    init {
-        listener<TickEvent.Pre>(Int.MAX_VALUE) {
-            esp.clear()
-        }
-
-        listener<TickEvent.Post> {
-            esp.upload()
-        }
-
-        listener<RenderEvent.World> {
-            esp.render()
-        }
-    }
 }

@@ -6,10 +6,11 @@ import com.lambda.graphics.texture.TextureUtils.upload
 import org.lwjgl.opengl.GL14.*
 import java.awt.image.BufferedImage
 
-class MipmapTexture(private val image: BufferedImage, private val levels: Int = 4) : Texture() {
+class MipmapTexture(image: BufferedImage, levels: Int = 4) : Texture() {
     private var lastLod: Float? = null
 
-    override fun init() {
+    init {
+        bind()
         setupLOD(levels)
 
         // Upload base image

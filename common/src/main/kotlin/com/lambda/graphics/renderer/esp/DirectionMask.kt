@@ -1,6 +1,10 @@
 package com.lambda.graphics.renderer.esp
 
+import com.lambda.util.BlockUtils.blockState
+import net.minecraft.block.BlockState
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
+import net.minecraft.world.BlockView
 
 object DirectionMask {
     const val EAST  = 1 // X +
@@ -17,6 +21,16 @@ object DirectionMask {
 
     fun Int.exclude(dir: Int) = this xor dir
     fun Int.hasDirection(dir: Int) = (this and dir) != 0
+
+    fun buildSideMesh(blockPos: BlockPos, filter: (BlockPos) -> Boolean): Int {
+        var sides = ALL
+
+        Direction.entries
+            .filter { filter(blockPos.offset(it)) }
+            .forEach { sides = sides.exclude(it.mask) }
+
+        return sides
+    }
 
     val Direction.mask get() = when (this) {
         Direction.DOWN -> DOWN

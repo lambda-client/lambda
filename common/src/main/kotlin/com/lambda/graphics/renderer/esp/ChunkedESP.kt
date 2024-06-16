@@ -5,8 +5,9 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.concurrentListener
 import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.graphics.buffer.vao.vertex.BufferUsage
 import com.lambda.module.modules.client.RenderSettings
-import com.lambda.threading.runGameBlocking
+import com.lambda.threading.awaitMainThread
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.world.WorldView
 import net.minecraft.world.chunk.WorldChunk
@@ -15,16 +16,17 @@ import java.util.concurrent.ConcurrentLinkedDeque
 
 class ChunkedESP private constructor(
     owner: Any,
-    private val update: EspRenderer.(WorldView, Int, Int, Int) -> Unit
+    private val update: ESPRenderer.(WorldView, Int, Int, Int) -> Unit
 ) {
     private val rendererMap = ConcurrentHashMap<Long, EspChunk>()
     private val WorldChunk.renderer get() = rendererMap.getOrPut(pos.toLong()) {
         EspChunk(this, this@ChunkedESP)
     }
-    private var ticks = 0
 
     private val uploadQueue = ConcurrentLinkedDeque<() -> Unit>()
     private val rebuildQueue = ConcurrentLinkedDeque<EspChunk>()
+
+    private var ticks = 0
 
     fun rebuild() {
         rebuildQueue.clear()
@@ -74,14 +76,15 @@ class ChunkedESP private constructor(
 
     companion object {
         fun Any.newChunkedESP(
-            update: EspRenderer.(WorldView, Int, Int, Int) -> Unit
+            update: ESPRenderer.(WorldView, Int, Int, Int) -> Unit
         ) = ChunkedESP(this, update)
     }
 
     private class EspChunk(val chunk: WorldChunk, val owner: ChunkedESP) {
-        var renderer: EspRenderer? = null
+        var renderer: ESPRenderer? = null
 
         private val chunkOffsets = listOf(1 to 0, 0 to 1, -1 to 0, 0 to -1)
+
         val neighbors = chunkOffsets.map {
             ChunkPos(chunk.pos.x + it.first, chunk.pos.z + it.second)
         }.toTypedArray()
@@ -97,8 +100,8 @@ class ChunkedESP private constructor(
         }
 
         suspend fun rebuild() {
-            val newRenderer = runGameBlocking {
-                EspRenderer()
+            val newRenderer = awaitMainThread {
+                ESPRenderer(BufferUsage.STATIC)
             }
 
             iterateChunk { x, y, z ->
