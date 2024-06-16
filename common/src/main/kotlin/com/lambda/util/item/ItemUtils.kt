@@ -1,6 +1,7 @@
 package com.lambda.util.item
 
 import net.minecraft.block.Block
+import net.minecraft.block.Blocks
 import net.minecraft.item.Item
 import net.minecraft.item.Items
 
@@ -84,19 +85,19 @@ object ItemUtils {
     )
 
     val defaultDisposables = setOf(
-        Items.DIRT,
-        Items.COBBLESTONE,
-        Items.GRANITE,
-        Items.DIORITE,
-        Items.ANDESITE,
-        Items.SANDSTONE,
-        Items.RED_SANDSTONE,
-        Items.NETHERRACK,
-        Items.END_STONE,
-        Items.STONE,
-        Items.BASALT,
-        Items.BLACKSTONE,
-        Items.COBBLED_DEEPSLATE
+        Blocks.DIRT,
+        Blocks.COBBLESTONE,
+        Blocks.GRANITE,
+        Blocks.DIORITE,
+        Blocks.ANDESITE,
+        Blocks.SANDSTONE,
+        Blocks.RED_SANDSTONE,
+        Blocks.NETHERRACK,
+        Blocks.END_STONE,
+        Blocks.STONE,
+        Blocks.BASALT,
+        Blocks.BLACKSTONE,
+        Blocks.COBBLED_DEEPSLATE
     )
 
     val Item.block: Block get() = Block.getBlockFromItem(this)
