@@ -122,12 +122,12 @@ object PacketMine : Module(
 
             val packetPos = it.packet.pos
 
-            if (!shouldBePlacedInBlockQueue(packetPos)) {
-                startBreaking(packetPos)
+            if (shouldBePlacedInBlockQueue(packetPos)) {
+                blockQueue.add(packetPos)
                 return@listener
             }
 
-            blockQueue.add(packetPos)
+            startBreaking(packetPos)
         }
 
         //Todo: Change the onBreak checks to save awaiting positions to a list with a timeout rather than just the
@@ -188,7 +188,8 @@ object PacketMine : Module(
     }
 
     private fun shouldBePlacedInBlockQueue(pos: BlockPos): Boolean {
-        return !(currentMiningBlock == null
+        return !(!queueBlocks
+                || currentMiningBlock == null
                 || currentMiningBlock?.breakState == BreakState.ReBreaking
                 || currentMiningBlock?.pos == pos
                 || blockQueue.contains(pos))
