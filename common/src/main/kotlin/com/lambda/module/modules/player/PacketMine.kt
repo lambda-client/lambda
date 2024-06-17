@@ -45,7 +45,7 @@ object PacketMine : Module(
 
     private var currentMiningBlock: BreakingContext? = null
     private var ignorePacketSend = false
-    private val blockQueue: ArrayDeque<BlockPos> = ArrayDeque()
+    private val blockQueue = ArrayDeque<BlockPos>()
 
     init {
         listener<TickEvent.Pre> {
@@ -74,8 +74,7 @@ object PacketMine : Module(
 
                         if (breakNextQueueBlock()) return@listener
 
-                        if (reBreak
-                            && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
+                        if (reBreak && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
                             breakState = BreakState.ReBreaking
                             return@listener
                         }
@@ -92,9 +91,7 @@ object PacketMine : Module(
 
                         if (mineTicks * calcBreakDelta(state, pos, bestTool) < breakSpeed) return@listener
 
-                        if (!fastReBreak
-                            && (activeState.isAir
-                            || (!activeState.fluidState.isEmpty && !activeState.properties.contains(Properties.WATERLOGGED)))
+                        if (!fastReBreak && (activeState.isAir || (!activeState.fluidState.isEmpty && !activeState.properties.contains(Properties.WATERLOGGED)))
                             ) return@listener
 
                         swapStopBreak(pos, bestTool)
@@ -117,14 +114,12 @@ object PacketMine : Module(
             it.cancel()
             player.swingHand(Hand.MAIN_HAND)
 
-            val pos = it.pos
-
-            if (shouldBePlacedInBlockQueue(pos)) {
-                blockQueue.add(pos)
+            if (shouldBePlacedInBlockQueue(it.pos)) {
+                blockQueue.add(it.pos)
                 return@listener
             }
 
-            startBreaking(pos)
+            startBreaking(it.pos)
         }
 
         //Todo: Change the onBreak checks to save awaiting positions to a list with a timeout rather than just the
@@ -142,8 +137,7 @@ object PacketMine : Module(
 
                 if (breakNextQueueBlock()) return@listener
 
-                if (reBreak
-                    && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
+                if (reBreak && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
                     breakState = BreakState.ReBreaking
                     return@listener
                 }
