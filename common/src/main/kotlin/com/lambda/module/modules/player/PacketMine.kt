@@ -1,7 +1,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.context.SafeContext
-import com.lambda.event.events.PacketEvent
+import com.lambda.event.events.InteractionEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
@@ -19,6 +19,7 @@ import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.registry.tag.FluidTags
 import net.minecraft.state.property.Properties
+import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
@@ -45,9 +46,6 @@ object PacketMine : Module(
     private var currentMiningBlock: BreakingContext? = null
     private var ignorePacketSend = false
     private val blockQueue: ArrayDeque<BlockPos> = ArrayDeque()
-
-    //ToDo: Replace this with mixin
-    private val validActions = setOf(Action.START_DESTROY_BLOCK, Action.STOP_DESTROY_BLOCK, Action.ABORT_DESTROY_BLOCK)
 
     init {
         listener<TickEvent.Pre> {
@@ -115,19 +113,18 @@ object PacketMine : Module(
             }
         }
 
-        listener<PacketEvent.Send.Pre> {
-            if (it.packet !is PlayerActionC2SPacket || !validActions.contains(it.packet.action) || ignorePacketSend) return@listener
-
+        listener<InteractionEvent.AttackBlock> {
             it.cancel()
+            player.swingHand(Hand.MAIN_HAND)
 
-            val packetPos = it.packet.pos
+            val pos = it.pos
 
-            if (shouldBePlacedInBlockQueue(packetPos)) {
-                blockQueue.add(packetPos)
+            if (shouldBePlacedInBlockQueue(pos)) {
+                blockQueue.add(pos)
                 return@listener
             }
 
-            startBreaking(packetPos)
+            startBreaking(pos)
         }
 
         //Todo: Change the onBreak checks to save awaiting positions to a list with a timeout rather than just the
