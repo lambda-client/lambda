@@ -30,11 +30,15 @@ object PacketMine : Module(
     private val page by setting("Page", Page.General)
 
     private val breakSpeed by setting("Break Speed", 1.0, 0.0..1.0, 0.1, "Breaks the selected block at the time to break of the block multiplied by this value", visibility = { page == Page.General})
+    private val pauseWhileUsingItems by setting("Pause While Using Items", true, "Will prevent breaking while using items like eating or aiming a bow", visibility = { page == Page.General })
+    //ToDo: Implement these settings
+//    private val rotate by setting("Rotate", false, "Rotates the player to look at the current mining block", visibility = { page == Page.General })
+//    private val autoSwap by setting("Auto Force Swap", false, "Hard swaps to the best tool rather than silent swapping. This is often used on servers with a stricter anti-cheat system", visibility = { page == Page.General})
     private val clientSideBreak by setting("Client Side Break", true, "Breaks blocks client side rather than waiting for a response from the server", visibility = { page == Page.General })
     private val timeoutDelay by setting("Timeout Delay", 0.20, 0.00..1.00, 0.1, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", visibility = { page == Page.General && !clientSideBreak })
     private val alternativePackets by setting("Alternative Packets", false, "Uses a different set of packets which tend to work better on servers using an anti-cheat like grim", visibility = { page == Page.General })
     private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue }).apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
-    private val doubleBreakQueue by setting("Double Break Queue", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue && queueBlocks })
+    private val reverseQueueOrder by setting("Reverse Queue Order", false, "Breaks the latest addition to the queue first", visibility = { page == Page.Queue && queueBlocks})
     private val reBreak by setting("Re-Break", true, "Automatically re-breaks the last mined block if it gets replaced", visibility = { page == Page.ReBreak})
     private val fastReBreak by setting("Fast Re-Break", false, "Re-breaks blocks instantly however could potentially cause ghost blocks", visibility = { page == Page.ReBreak && reBreak })
 
@@ -42,12 +46,16 @@ object PacketMine : Module(
     private var ignorePacketSend = false
     private val blockQueue: ArrayDeque<BlockPos> = ArrayDeque()
 
+    //ToDo: Replace this with mixin
     private val validActions = setOf(Action.START_DESTROY_BLOCK, Action.STOP_DESTROY_BLOCK, Action.ABORT_DESTROY_BLOCK)
 
     init {
         listener<TickEvent.Pre> {
             currentMiningBlock?.apply {
                 mineTicks++
+
+                if (pauseWhileUsingItems && player.isUsingItem) return@listener
+
                 val activeState = world.getBlockState(pos)
                 if (activeState != state) state = activeState
                 val bestTool = getBestTool(activeState, pos)
@@ -97,7 +105,7 @@ object PacketMine : Module(
                     BreakState.AwaitingResponse -> {
                         if (clientSideBreak) return@listener
 
-                        if (System.currentTimeMillis() - timeCompleted < timeoutDelay) return@listener
+                        if (System.currentTimeMillis() - timeCompleted < timeoutDelay * 1000) return@listener
 
                         if (breakNextQueueBlock()) return@listener
 
@@ -109,29 +117,29 @@ object PacketMine : Module(
 
         listener<PacketEvent.Send.Pre> {
             if (it.packet !is PlayerActionC2SPacket || !validActions.contains(it.packet.action) || ignorePacketSend) return@listener
+
             it.cancel()
 
             val packetPos = it.packet.pos
 
-            if (queueBlocks
-                && (currentMiningBlock != null
-                        && currentMiningBlock?.breakState != BreakState.ReBreaking
-                        && currentMiningBlock?.pos != packetPos)
-                || (!blockQueue.isEmpty() && !blockQueue.contains(packetPos))
-                ) {
-                blockQueue.add(packetPos)
+            if (!shouldBePlacedInBlockQueue(packetPos)) {
+                startBreaking(packetPos)
                 return@listener
             }
 
-            startBreaking(packetPos)
+            blockQueue.add(packetPos)
         }
 
+        //Todo: Change the onBreak checks to save awaiting positions to a list with a timeout rather than just the
+        // current mining block to allow for old block break attempts that arent active anymore to still get block break particle renders and sounds
         listener<WorldEvent.BlockUpdate> {
             currentMiningBlock?.apply {
                 if (it.pos != pos
                     || !(if (state.properties.contains(Properties.WATERLOGGED)) it.state.fluidState.fluid.equals(Fluids.WATER)
-                    else it.state.isAir)) return@listener
-                if (!clientSideBreak) state.block.onBreak(world, pos, world.getBlockState(pos), player)
+                    else it.state.isAir)
+                    ) return@listener
+
+                if (!clientSideBreak) interaction.breakBlock(pos)
 
                 if (breakState == BreakState.ReBreaking) return@listener
 
@@ -150,10 +158,9 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.startBreaking(pos: BlockPos) {
-        if (currentMiningBlock?.pos == pos) return
+        if (currentMiningBlock?.pos == pos || blockQueue.contains(pos)) return
 
         val state = world.getBlockState(pos)
-
         val bestTool = getBestTool(state, pos)
 
         swapStartPacketBreak(pos, bestTool)
@@ -169,36 +176,55 @@ object PacketMine : Module(
                     BreakingContext(pos, state, BreakState.AwaitingResponse)
                 }
             }
+            currentMiningBlock?.timeCompleted = System.currentTimeMillis()
 
             if (!clientSideBreak) return
 
-            state.block.onBreak(world, pos, state, player)
-
+            interaction.breakBlock(pos)
             return
         }
 
         currentMiningBlock = BreakingContext(pos, state, BreakState.Breaking)
     }
 
+    private fun shouldBePlacedInBlockQueue(pos: BlockPos): Boolean {
+        return !(currentMiningBlock == null
+                || currentMiningBlock?.breakState == BreakState.ReBreaking
+                || currentMiningBlock?.pos == pos
+                || blockQueue.contains(pos))
+    }
+
     private fun SafeContext.breakNextQueueBlock(): Boolean {
         if (!queueBlocks) return false
 
+        filterBlockQueueUntilNextPossible()?.apply {
+            blockQueue.remove(this)
+            startBreaking(this)
+            return true
+        }
+
+        return false
+    }
+
+    private fun getNextUncheckedQueueBlock(): BlockPos? {
+        return if (reverseQueueOrder) {
+            blockQueue.lastOrNull()
+        } else {
+            blockQueue.firstOrNull()
+        }
+    }
+
+    private fun SafeContext.filterBlockQueueUntilNextPossible(): BlockPos? {
         while (true) {
-            val block = blockQueue.firstOrNull() ?: run { return false }
+            val block = getNextUncheckedQueueBlock() ?: return null
 
             if (player.eyePos.distanceTo(block.toCenterPos()) > 6) {
-                blockQueue.removeFirst()
+                blockQueue.remove(block)
                 continue
             }
 
-            break
+            return block
         }
-
-        if (blockQueue.isEmpty()) return false
-
-        startBreaking(blockQueue.first())
-        blockQueue.removeFirst()
-        return true
     }
 
     private fun SafeContext.swapStartPacketBreak(pos: BlockPos, toolSlot: Int) {
@@ -233,9 +259,7 @@ object PacketMine : Module(
         connection.sendPacket(PlayerActionC2SPacket(Action.ABORT_DESTROY_BLOCK, pos, Direction.UP, 0))
     }
 
-    /*
-    Still unsure on how the task system works so im using these methods for now
-     */
+    //Todo: Replace with task system
 
     private fun SafeContext.getBestTool(state: BlockState, pos: BlockPos): Int {
         var bestTool = -1
