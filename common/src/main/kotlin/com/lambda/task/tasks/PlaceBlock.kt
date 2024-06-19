@@ -2,6 +2,7 @@ package com.lambda.task.tasks
 
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
+import com.lambda.core.PingManager
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
@@ -21,8 +22,8 @@ class PlaceBlock @Ta5kBuilder constructor(
     private var beginState: BlockState? = null
     override var cooldown = Int.MAX_VALUE
         get() = maxOf(TaskFlow.build.placeCooldown, TaskFlow.taskCooldown)
-    override var timeout = 20
-    private var placed = false
+    override var timeout = 50
+    private var inScope = 0
 
     private val SafeContext.resultingState: BlockState get() =
         ctx.resultingPos.blockState(world)
@@ -41,15 +42,22 @@ class PlaceBlock @Ta5kBuilder constructor(
 
     init {
         listener<RotationEvent.Pre> { event ->
-            if (placed) return@listener
             if (!rotate) return@listener
             event.context = ctx.rotation
         }
 
         listener<RotationEvent.Post> {
-            if (placed) return@listener
             if (!rotate) return@listener
             if (!it.context.isValid) return@listener
+
+            if (TaskFlow.build.pingTimeout) {
+                val threshold = PingManager.lastPing / 50L
+                if (++inScope >= threshold) {
+                    inScope = 0
+                    placeBlock()
+                }
+                return@listener
+            }
 
             placeBlock()
         }
@@ -80,7 +88,6 @@ class PlaceBlock @Ta5kBuilder constructor(
             }
 
             if (matches) {
-                placed = true
                 if (!waitForConfirmation) finish()
             }
         } else {

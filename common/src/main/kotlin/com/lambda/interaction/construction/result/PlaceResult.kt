@@ -1,20 +1,18 @@
 package com.lambda.interaction.construction.result
 
-import baritone.api.pathing.goals.Goal
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
+import com.lambda.context.SafeContext
+import com.lambda.graphics.renderer.esp.global.buildOutline
 import com.lambda.interaction.construction.context.PlaceContext
-import com.lambda.task.Task
 import com.lambda.task.tasks.BuildStructure.Companion.breakBlock
-import com.lambda.task.tasks.GoalTask.Companion.moveToGoal
-import com.lambda.task.tasks.GoalTask.Companion.moveToGoalUntil
 import com.lambda.task.tasks.PlaceBlock.Companion.placeBlock
+import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Box
-import net.minecraft.util.shape.VoxelShape
+import java.awt.Color
 
 /**
  * [PlaceResult] represents the result of a placement simulation.
@@ -31,10 +29,19 @@ sealed class PlaceResult : BuildResult() {
     data class Success(
         override val blockPos: BlockPos,
         val context: PlaceContext,
-    ) : Resolvable, PlaceResult() {
+    ) : Resolvable, Drawable, PlaceResult() {
         override val rank = Rank.PLACE_SUCCESS
+        private val color = Color(35, 188, 254, 100)
 
         override val resolve get() = placeBlock(context)
+
+        override fun SafeContext.buildRenderer() {
+            val hitPos = context.result.blockPos
+            withPos(hitPos, color, context.result.side)
+
+            val light = Color(35, 188, 254, 20)
+            withState(context.expectedState, context.resultingPos, light)
+        }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -54,8 +61,13 @@ sealed class PlaceResult : BuildResult() {
         override val blockPos: BlockPos,
         val expected: BlockState,
         val simulated: ItemPlacementContext
-    ) : PlaceResult() {
+    ) : Drawable, PlaceResult() {
         override val rank = Rank.PLACE_NO_INTEGRITY
+        private val color = Color(252, 3, 3, 100)
+
+        override fun SafeContext.buildRenderer() {
+            withState(expected, blockPos, color)
+        }
     }
 
     data class BlockedByPlayer(

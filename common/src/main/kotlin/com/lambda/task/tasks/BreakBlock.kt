@@ -36,7 +36,7 @@ class BreakBlock @Ta5kBuilder constructor(
     private val rotationConfig: IRotationConfig,
     private val interactionConfig: InteractionConfig,
     private val sides: Set<Direction>,
-    private var collectDrop: Boolean,
+    private val collectDrop: Boolean,
     private val rotate: Boolean,
     private val swingHand: Boolean,
 ) : Task<ItemEntity?>() {
@@ -48,12 +48,6 @@ class BreakBlock @Ta5kBuilder constructor(
     private var drop: ItemEntity? = null
 
     override fun SafeContext.onStart() {
-        parent?.let {
-            if (it is BuildStructure) {
-                collectDrop = it.collectDrops
-            }
-        }
-
         if (state.isAir && !collectDrop) {
             success(null)
             return

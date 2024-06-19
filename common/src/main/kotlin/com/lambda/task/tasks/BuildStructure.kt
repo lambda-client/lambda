@@ -6,11 +6,6 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.graphics.renderer.esp.DirectionMask
-import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
-import com.lambda.graphics.renderer.esp.DirectionMask.exclude
-import com.lambda.graphics.renderer.esp.DirectionMask.mask
-import com.lambda.graphics.renderer.esp.global.build
 import com.lambda.interaction.construction.Blueprint
 import com.lambda.interaction.construction.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.DynamicBlueprint
@@ -21,12 +16,8 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
-import com.lambda.util.BlockUtils.blockPos
-import net.minecraft.block.Block
+import com.lambda.util.Communication.info
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Box
-import net.minecraft.util.math.Direction
-import java.awt.Color
 
 class BuildStructure @Ta5kBuilder constructor(
     private val blueprint: Blueprint,
@@ -35,6 +26,9 @@ class BuildStructure @Ta5kBuilder constructor(
     val collectDrops: Boolean = TaskFlow.build.collectDrops,
     private val cancelOnUnsolvable: Boolean = true,
 ) : Task<Unit>() {
+    private var previousResults = setOf<BuildResult>()
+    private var lastResult: BuildResult? = null
+    private var lastTask: Task<*>? = null
 
     abstract class PathingStrategy
 
@@ -42,22 +36,12 @@ class BuildStructure @Ta5kBuilder constructor(
         (blueprint as? DynamicBlueprint)?.create(this)
     }
 
-    private val blocksToRender = mutableSetOf<BlockPos>()
-
     init {
-        listener<RenderEvent.BlockESP> { event ->
-            blocksToRender.forEach { pos ->
-                val sides = buildSideMesh(pos) { offsetPos ->
-                    offsetPos in blocksToRender
+        listener<RenderEvent.BlockESP> {
+            previousResults.filterIsInstance<Drawable>().forEach { res ->
+                with(res) {
+                    buildRenderer()
                 }
-
-                event.renderer.build(
-                    Box(pos),
-                    Color(0, 255, 0, 70),
-                    Color(0, 255, 0, 20),
-                    sides,
-                    DirectionMask.OutlineMode.AND
-                )
             }
         }
 
@@ -70,9 +54,19 @@ class BuildStructure @Ta5kBuilder constructor(
             }
 
             val results = blueprint.simulate(player.getCameraPosVec(mc.tickDelta))
+            previousResults = results
+            val result = results.minOrNull() ?: return@listener
 
-            blocksToRender.clear()
-            blocksToRender.addAll(results.map { it.blockPos })
+            lastResult?.let {
+                if (it.compareTo(result) == 0) return@listener
+//                if (it.pausesParent && lastTask?.isCompleted != true) return@listener
+                if (collectDrops && it is BreakResult.Success && lastTask?.isCompleted != true) {
+                    return@listener
+                }
+                info("${it.rank.name}${if (it.pausesParent) " pauses" else ""} -> ${result.rank.name} (${lastTask?.identifier})")
+
+                lastTask?.cancel()
+            }
 
             val instantResults = results.filterIsInstance<BreakResult.Success>()
                 .filter { it.context.instantBreak }
@@ -81,38 +75,40 @@ class BuildStructure @Ta5kBuilder constructor(
 
             if (TaskFlow.build.breaksPerTick > 1 && instantResults.isNotEmpty()) {
                 instantResults.forEach {
-                    it.resolve.start(this@BuildStructure, pauseParent = false)
+                    lastResult = it
+                    lastTask = it.resolve.start(this@BuildStructure, pauseParent = false)
                 }
                 return@listener
             }
 
-            results.minOrNull()?.let { result ->
-                when (result) {
-                    is BuildResult.Done -> checkDone()
-                    is Resolvable -> {
-                        LOG.info("Resolving: $result")
-                        result.resolve.start(this@BuildStructure)
-                        if (pathing) {
-                            BaritoneUtils.setGoalAndPath(GoalNear(result.blockPos, 2))
-                        }
-                    }
-                    is Navigable -> {
-                        if (pathing) BaritoneUtils.setGoalAndPath(result.goal)
-                    }
-                    else -> {
-                        if (!cancelOnUnsolvable) return@listener
+            when (result) {
+                is BuildResult.Done, is BuildResult.Unbreakable -> {
+                    if (!finishOnDone) return@listener
+                    success(Unit)
+                }
+                is Resolvable -> {
+                    LOG.info("Resolving: $result")
 
-                        failure("Failed to resolve build result: $result")
+                    if (result is BreakResult.Success) {
+                        result.collectDrop = collectDrops
                     }
+
+                    lastResult = result
+                    lastTask = result.resolve.start(this@BuildStructure, pauseParent = result.pausesParent)
+                    if (pathing) {
+                        BaritoneUtils.setGoalAndPath(GoalNear(result.blockPos, 3))
+                    }
+                }
+                is Navigable -> {
+                    if (pathing) BaritoneUtils.setGoalAndPath(result.goal)
+                }
+                else -> {
+                    if (!cancelOnUnsolvable) return@listener
+
+                    failure("Failed to resolve build result: $result")
                 }
             }
         }
-    }
-
-    private fun SafeContext.checkDone() {
-        if (!finishOnDone) return
-        success(Unit)
-        return
     }
 
     companion object {

@@ -3,6 +3,7 @@ package com.lambda.interaction.construction.result
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalNear
 import baritone.process.BuilderProcess.GoalPlace
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
@@ -12,11 +13,14 @@ import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
+import java.awt.Color
 
 abstract class BuildResult : ComparableResult<Rank> {
     abstract val blockPos: BlockPos
+    open val pausesParent = false
 
     /**
      * The build action is done.
@@ -42,10 +46,15 @@ abstract class BuildResult : ComparableResult<Rank> {
      */
     data class ChunkNotLoaded(
         override val blockPos: BlockPos
-    ) : Navigable, BuildResult() {
+    ) : Navigable, Drawable, BuildResult() {
         override val rank = Rank.CHUNK_NOT_LOADED
+        private val color = Color(252, 165, 3, 100)
 
         override val goal = GoalBlock(blockPos)
+
+        override fun SafeContext.buildRenderer() {
+            withBox(Box(blockPos), color)
+        }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -61,8 +70,13 @@ abstract class BuildResult : ComparableResult<Rank> {
      */
     data class Restricted(
         override val blockPos: BlockPos
-    ) : BuildResult() {
+    ) : Drawable, BuildResult() {
         override val rank = Rank.BREAK_RESTRICTED
+        private val color = Color(255, 0, 0, 100)
+
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color)
+        }
     }
 
     /**
@@ -73,8 +87,13 @@ abstract class BuildResult : ComparableResult<Rank> {
     data class NoPermission(
         override val blockPos: BlockPos,
         val blockState: BlockState
-    ) : BuildResult() {
+    ) : Drawable, BuildResult() {
         override val rank get() = Rank.BREAK_NO_PERMISSION
+        private val color = Color(255, 0, 0, 100)
+
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color)
+        }
     }
 
     /**
@@ -83,8 +102,13 @@ abstract class BuildResult : ComparableResult<Rank> {
      */
     data class OutOfWorld(
         override val blockPos: BlockPos
-    ) : BuildResult() {
+    ) : Drawable, BuildResult() {
         override val rank = Rank.OUT_OF_WORLD
+        private val color = Color(3, 148, 252, 100)
+
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color)
+        }
     }
 
     /**
@@ -95,8 +119,13 @@ abstract class BuildResult : ComparableResult<Rank> {
     data class Unbreakable(
         override val blockPos: BlockPos,
         val blockState: BlockState
-    ) : BuildResult() {
+    ) : Drawable, BuildResult() {
         override val rank = Rank.UNBREAKABLE
+        private val color = Color(11, 11, 11, 100)
+        
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color)
+        }
     }
 
     /**
@@ -109,10 +138,15 @@ abstract class BuildResult : ComparableResult<Rank> {
         val hitPos: BlockPos,
         val side: Direction,
         val distance: Double
-    ) : Navigable, BuildResult() {
+    ) : Navigable, Drawable, BuildResult() {
         override val rank = Rank.NOT_VISIBLE
+        private val color = Color(46, 0, 0, 30)
 
         override val goal = GoalPlace(blockPos)
+
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color, side)
+        }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -130,11 +164,18 @@ abstract class BuildResult : ComparableResult<Rank> {
         override val blockPos: BlockPos,
         val context: BuildContext,
         val neededItem: Item
-    ) : Resolvable, BuildResult() {
+    ) : Resolvable, Drawable, BuildResult() {
         override val rank = Rank.WRONG_ITEM
+        private val color = Color(3, 252, 169, 100)
+
+        override val pausesParent get() = true
 
         override val resolve get() =
             neededItem.select().transfer(MainHandContainer)?.solve ?: failTask("Item ${neededItem.name.string} not found")
+
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color)
+        }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -153,11 +194,18 @@ abstract class BuildResult : ComparableResult<Rank> {
         override val blockPos: BlockPos,
         val context: BuildContext,
         val neededStack: ItemStack
-    ) : Resolvable, BuildResult() {
+    ) : Resolvable, Drawable, BuildResult() {
         override val rank = Rank.WRONG_ITEM
+        private val color = Color(3, 252, 169, 100)
+
+        override val pausesParent get() = true
 
         override val resolve get() =
             neededStack.select().transfer(MainHandContainer)?.solve ?: failTask("Stack ${neededStack.name.string} not found")
+
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color)
+        }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -181,14 +229,19 @@ abstract class BuildResult : ComparableResult<Rank> {
         val hitVec: Vec3d,
         val reach: Double,
         val side: Direction,
-    ) : Navigable, BuildResult() {
+    ) : Navigable, Drawable, BuildResult() {
         override val rank = Rank.OUT_OF_REACH
+        private val color = Color(252, 3, 207, 100)
 
         val distance: Double by lazy {
             startVec.distanceTo(hitVec)
         }
 
         override val goal = GoalNear(blockPos, 2)
+
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color)
+        }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
