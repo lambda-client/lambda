@@ -91,7 +91,7 @@ object PacketMine : Module(
 
                         if (mineTicks * calcBreakDelta(state, pos, bestTool) < breakSpeed) return@listener
 
-                        if (!fastReBreak && (activeState.isAir || (!activeState.fluidState.isEmpty && !activeState.properties.contains(Properties.WATERLOGGED)))
+                        if (!fastReBreak && (activeState.isAir || (!activeState.fluidState.isEmpty && !(activeState.properties.contains(Properties.WATERLOGGED) && activeState.get(Properties.WATERLOGGED))))
                             ) return@listener
 
                         swapStopBreak(pos, bestTool)
@@ -127,7 +127,7 @@ object PacketMine : Module(
         listener<WorldEvent.BlockUpdate> {
             currentMiningBlock?.apply {
                 if (it.pos != pos
-                    || !(if (state.properties.contains(Properties.WATERLOGGED)) it.state.fluidState.fluid.equals(Fluids.WATER)
+                    || !(if (state.properties.contains(Properties.WATERLOGGED) && state.get(Properties.WATERLOGGED)) it.state.fluidState.fluid.equals(Fluids.WATER)
                     else it.state.isAir)
                     ) return@listener
 
