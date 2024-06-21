@@ -42,7 +42,7 @@ public abstract class CameraMixin {
 
     @Inject(method = "clipToSpace", at = @At("HEAD"), cancellable = true)
     private void onClipToSpace(double desiredCameraDistance, CallbackInfoReturnable<Double> info) {
-        if (CameraTweaks.getNoClipCam()) {
+        if (CameraTweaks.INSTANCE.isEnabled() && CameraTweaks.getNoClipCam()) {
             info.setReturnValue(desiredCameraDistance);
         }
     }

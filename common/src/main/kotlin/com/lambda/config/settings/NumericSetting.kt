@@ -1,5 +1,6 @@
 package com.lambda.config.settings
 
+import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
 import java.text.NumberFormat
 import java.util.*
@@ -26,6 +27,7 @@ abstract class NumericSetting<T>(
     val unit: String,
 ) : AbstractSetting<T>(
     value,
+    TypeToken.get(value::class.java).type,
     description,
     visibility
 ) where T : Number, T : Comparable<T> {

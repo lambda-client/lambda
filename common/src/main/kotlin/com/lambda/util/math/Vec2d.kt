@@ -4,10 +4,12 @@ data class Vec2d(val x: Double, val y: Double) {
     constructor(x: Int, y: Int) : this(x.toDouble(), y.toDouble())
     constructor(x: Float, y: Float) : this(x.toDouble(), y.toDouble())
 
+    operator fun unaryPlus() = this
     operator fun plus(vec2d: Vec2d) = plus(vec2d.x, vec2d.y)
     operator fun plus(add: Double) = plus(add, add)
     fun plus(x: Double, y: Double) = Vec2d(this.x + x, this.y + y)
 
+    operator fun unaryMinus() = Vec2d(-x, -y)
     operator fun minus(vec2d: Vec2d) = minus(vec2d.x, vec2d.y)
     operator fun minus(sub: Double) = minus(sub, sub)
     fun minus(x: Double, y: Double) = plus(-x, -y)

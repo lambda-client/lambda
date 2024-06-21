@@ -19,7 +19,6 @@ object GlStateUtils {
         blend(true)
         cull(false)
 
-
         block()
 
         glDepthMask(true)
@@ -34,6 +33,18 @@ object GlStateUtils {
         depthTest(true)
         block()
         depthTest(false)
+    }
+
+    fun withFaceCulling(block: () -> Unit) {
+        cull(true)
+        block()
+        cull(false)
+    }
+
+    fun withLineWidth(width: Double, block: () -> Unit) {
+        glLineWidth(width.toFloat())
+        block()
+        glLineWidth(1f)
     }
 
     @JvmStatic

@@ -159,9 +159,7 @@ object EventFlow {
     private fun Event.executeListenerConcurrently() {
         concurrentListeners[this::class]?.forEach { listener ->
             if (shouldNotNotify(listener, this)) return@forEach
-            runConcurrent {
-                listener.execute(this)
-            }
+            listener.execute(this)
         }
     }
 

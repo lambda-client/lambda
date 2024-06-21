@@ -1,5 +1,6 @@
 package com.lambda.graphics.buffer.vao
 
+import com.lambda.graphics.buffer.vao.vertex.BufferUsage
 import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.buffer.vao.vertex.VertexMode
 import com.lambda.graphics.gl.Memory.address
@@ -20,14 +21,15 @@ import com.lambda.graphics.gl.VaoUtils.unbindIndexBuffer
 import com.lambda.graphics.gl.VaoUtils.unbindVertexArray
 import com.lambda.graphics.gl.VaoUtils.unbindVertexBuffer
 import com.lambda.threading.runGameScheduled
-import com.mojang.blaze3d.systems.RenderSystem.drawElements
 import org.lwjgl.opengl.GL30C.*
 import java.awt.Color
 import java.nio.ByteBuffer
 
 class VAO(
-    private val drawMode: VertexMode,
+    private val vertexMode: VertexMode,
     attribGroup: VertexAttrib.Group,
+    private val bufferUsage: BufferUsage = BufferUsage.DYNAMIC,
+    initializeInstantly: Boolean = false
 ) : IRenderContext {
     private var vao = 0
     private var vbo = 0
@@ -42,41 +44,50 @@ class VAO(
     private lateinit var indices: ByteBuffer
     private var indicesPointer = 0L
     private var indicesCount = 0
+    private var uploadedIndices = 0
 
     private var vertexIndex = 0
 
     init {
         val stride = attribGroup.stride
-        objectSize = stride * drawMode.indicesCount
+        objectSize = stride * vertexMode.indicesCount
 
-        runGameScheduled {
-            vertices = byteBuffer(objectSize * 256 * 4)
-            verticesPointer = address(vertices)
-            verticesPosition = verticesPointer
-
-            indices = byteBuffer(drawMode.indicesCount * 512 * 4)
-            indicesPointer = address(indices)
-
-            vao = glGenVertexArrays()
-            bindVertexArray(vao)
-
-            vbo = glGenBuffers()
-            bindVertexBuffer(vbo)
-
-            ibo = glGenBuffers()
-            bindIndexBuffer(ibo)
-
-            var pointer = 0L
-            attribGroup.attributes.forEachIndexed { index, attrib ->
-                VaoUtils.enableVertexAttribute(index)
-                VaoUtils.vertexAttribute(index, attrib.componentCount, attrib.gl, attrib.normalized, stride, pointer)
-                pointer += attrib.size
+        if (initializeInstantly) {
+            initialize(attribGroup, stride)
+        } else {
+            runGameScheduled {
+                initialize(attribGroup, stride)
             }
-
-            unbindVertexArray()
-            unbindVertexBuffer()
-            unbindIndexBuffer()
         }
+    }
+
+    private fun initialize(attribGroup: VertexAttrib.Group, stride: Int) {
+        vertices = byteBuffer(objectSize * 256 * 4)
+        verticesPointer = address(vertices)
+        verticesPosition = verticesPointer
+
+        indices = byteBuffer(vertexMode.indicesCount * 512 * 4)
+        indicesPointer = address(indices)
+
+        vao = glGenVertexArrays()
+        bindVertexArray(vao)
+
+        vbo = glGenBuffers()
+        bindVertexBuffer(vbo)
+
+        ibo = glGenBuffers()
+        bindIndexBuffer(ibo)
+
+        var pointer = 0L
+        attribGroup.attributes.forEachIndexed { index, attrib ->
+            VaoUtils.enableVertexAttribute(index)
+            VaoUtils.vertexAttribute(index, attrib.componentCount, attrib.gl, attrib.normalized, stride, pointer)
+            pointer += attrib.size
+        }
+
+        unbindVertexArray()
+        unbindVertexBuffer()
+        unbindIndexBuffer()
     }
 
     override fun vec3(x: Double, y: Double, z: Double): VAO {
@@ -156,7 +167,7 @@ class VAO(
         if ((indicesCount + amount) * 4 < cap) return
 
         var newSize = cap * 2
-        if (newSize % drawMode.indicesCount != 0) newSize += newSize % (drawMode.indicesCount * 4)
+        if (newSize % vertexMode.indicesCount != 0) newSize += newSize % (vertexMode.indicesCount * 4)
         val newIndices = byteBuffer(newSize)
 
         val from = address(indices)
@@ -168,10 +179,10 @@ class VAO(
     }
 
     override fun render() {
-        if (indicesCount <= 0) return
+        if (uploadedIndices <= 0) return
 
         bindVertexArray(vao)
-        drawElements(drawMode.gl, indicesCount, GL_UNSIGNED_INT)
+        glDrawElements(vertexMode.gl, uploadedIndices, GL_UNSIGNED_INT, 0)
         unbindVertexArray()
     }
 
@@ -182,18 +193,21 @@ class VAO(
         val iboData = indices.limit(indicesCount * 4)
 
         bindVertexBuffer(vbo)
-        bufferData(GL_ARRAY_BUFFER, vboData, GL_DYNAMIC_DRAW)
+        bufferData(GL_ARRAY_BUFFER, vboData, bufferUsage.gl)
         unbindVertexBuffer()
 
         bindIndexBuffer(ibo)
-        bufferData(GL_ELEMENT_ARRAY_BUFFER, iboData, GL_DYNAMIC_DRAW)
+        bufferData(GL_ELEMENT_ARRAY_BUFFER, iboData, bufferUsage.gl)
         unbindIndexBuffer()
+
+        uploadedIndices = indicesCount
     }
 
     override fun clear() {
         verticesPosition = verticesPointer
         vertexIndex = 0
         indicesCount = 0
+        uploadedIndices = 0
     }
 
     protected fun finalize() {
