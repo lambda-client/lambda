@@ -5,8 +5,18 @@ exclude:
   - name: ConstantValue
   - name: KotlinConstantConditions
   - name: KDocUnresolvedReference
+
   - name: UnusedSymbol
   - name: UnusedImport
+  - name: KotlinUnusedImport
+
+  - name: UnusedReceiverParameter
+  - name: MemberVisibilityCanBePrivate
+  - name: RedundantNullableReturnType
+
+  - name: DuplicatedCode
+  - name: RemoveEmptyClassBody
+
   - name: All
     paths:
       - common/src/main/java/
