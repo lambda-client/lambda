@@ -30,7 +30,7 @@ import com.mojang.brigadier.arguments.*
 
 /**
  * Reads the boolean value from the argument in
- * the receiver [ArgumentReader].
+ * the receiver [DefaultArgumentReader].
  *
  * @see BoolArgumentType.getBool
  */
@@ -42,7 +42,7 @@ fun DefaultArgumentReader<BoolArgumentType>.value(): Boolean {
 
 /**
  * Reads the boolean value from the argument in
- * the receiver [ArgumentReader].
+ * the receiver [DefaultArgumentReader].
  *
  * @see BoolArgumentType.getBool
  */
@@ -54,7 +54,7 @@ fun DefaultArgumentReader<DoubleArgumentType>.value(): Double {
 
 /**
  * Reads the float value from the argument in
- * the receiver [ArgumentReader].
+ * the receiver [DefaultArgumentReader].
  *
  * @see FloatArgumentType.getFloat
  */
@@ -66,7 +66,7 @@ fun DefaultArgumentReader<FloatArgumentType>.value(): Float {
 
 /**
  * Reads the integer value from the argument in
- * the receiver [ArgumentReader].
+ * the receiver [DefaultArgumentReader].
  *
  * @see IntegerArgumentType.getInteger
  */
@@ -78,7 +78,7 @@ fun DefaultArgumentReader<IntegerArgumentType>.value(): Int {
 
 /**
  * Reads the long value from the argument in
- * the receiver [ArgumentReader].
+ * the receiver [DefaultArgumentReader].
  *
  * @see LongArgumentType.getLong
  */

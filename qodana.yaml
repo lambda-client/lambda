@@ -1,0 +1,8 @@
+version: "1.0"
+profile:
+  name: qodana.starter
+exclude:
+  - name: ConstantValue
+  - name: All
+    paths:
+      - common/src/main/java/
