@@ -55,12 +55,12 @@ abstract class Task<Result> : Nameable {
     open var tries: Int = 0
     open var repeats: Int = 0
     open var cooldown: Int = TaskFlow.taskCooldown
-    open val onStart: SafeContext.(Task<Result>) -> Unit = {}
-    open val onSuccess: SafeContext.(Task<Result>, Result) -> Unit = { _, _ -> }
-    open val onRetry: SafeContext.(Task<Result>) -> Unit = {}
-    open val onTimeout: SafeContext.(Task<Result>) -> Unit = {}
-    open val onRepeat: SafeContext.(Task<Result>, Result, Int) -> Unit = { _, _, _ -> }
-    open val onException: SafeContext.(Task<Result>, Throwable) -> Unit = { _, _ -> }
+    open var onStart: SafeContext.(Task<Result>) -> Unit = {}
+    open var onSuccess: SafeContext.(Task<Result>, Result) -> Unit = { _, _ -> }
+    open var onRetry: SafeContext.(Task<Result>) -> Unit = {}
+    open var onTimeout: SafeContext.(Task<Result>) -> Unit = {}
+    open var onRepeat: SafeContext.(Task<Result>, Result, Int) -> Unit = { _, _, _ -> }
+    open var onException: SafeContext.(Task<Result>, Throwable) -> Unit = { _, _ -> }
 
     open var pausable = true
 
