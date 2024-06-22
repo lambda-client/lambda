@@ -54,7 +54,7 @@ abstract class Task<Result> : Nameable {
     open var timeout: Int = Int.MAX_VALUE
     open var tries: Int = 0
     open var repeats: Int = 0
-    open val cooldown: Int = TaskFlow.taskCooldown
+    open var cooldown: Int = TaskFlow.taskCooldown
     open val onStart: SafeContext.(Task<Result>) -> Unit = {}
     open val onSuccess: SafeContext.(Task<Result>, Result) -> Unit = { _, _ -> }
     open val onRetry: SafeContext.(Task<Result>) -> Unit = {}

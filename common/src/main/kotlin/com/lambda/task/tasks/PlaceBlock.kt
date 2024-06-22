@@ -19,7 +19,7 @@ class PlaceBlock @Ta5kBuilder constructor(
     private val waitForConfirmation: Boolean,
 ) : Task<Unit>() {
     private var beginState: BlockState? = null
-    override val cooldown
+    override var cooldown = Int.MAX_VALUE
         get() = maxOf(TaskFlow.build.placeCooldown, TaskFlow.taskCooldown)
     override var timeout = 20
     private var placed = false

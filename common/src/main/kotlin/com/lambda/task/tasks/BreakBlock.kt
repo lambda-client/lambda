@@ -37,7 +37,7 @@ class BreakBlock @Ta5kBuilder constructor(
     val blockPos: BlockPos get() = ctx.result.blockPos
     private var beginState: BlockState? = null
     val SafeContext.state: BlockState get() = blockPos.blockState(world)
-    override val cooldown
+    override var cooldown = Int.MAX_VALUE
         get() = maxOf(TaskFlow.build.breakCoolDown, TaskFlow.taskCooldown)
     private var drop: ItemEntity? = null
 
