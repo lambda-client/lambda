@@ -2,6 +2,8 @@ package com.lambda.gui.impl
 
 import com.lambda.Lambda.mc
 import com.lambda.graphics.animation.Animation.Companion.exp
+import com.lambda.graphics.buffer.FrameBuffer
+import com.lambda.graphics.shader.Shader
 import com.lambda.gui.AbstractGuiConfigurable
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.LambdaGui
@@ -29,6 +31,9 @@ abstract class AbstractClickGui(name: String, owner: Module? = null) : LambdaGui
         child == hoveredWindow && !closing
     }
 
+    private val frameBuffer = FrameBuffer()
+    private val shader = Shader("post/cgui_animation", "renderer/pos_tex")
+
     abstract val moduleFilter: (Module) -> Boolean
     abstract val configurable: AbstractGuiConfigurable
 
@@ -41,6 +46,16 @@ abstract class AbstractClickGui(name: String, owner: Module? = null) : LambdaGui
         while (actionPool.isNotEmpty()) actionPool.removeLast().invoke()
 
         when (e) {
+            is GuiEvent.Render -> {
+                frameBuffer.write {
+                    windows.onEvent(e)
+                }.read(shader) {
+                    it["u_Progress"] = childShowAnimation
+                }
+
+                return
+            }
+
             is GuiEvent.Show -> {
                 hoveredWindow = null
                 closing = false

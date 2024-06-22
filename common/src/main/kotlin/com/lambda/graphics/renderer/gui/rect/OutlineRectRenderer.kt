@@ -93,11 +93,6 @@ class OutlineRectRenderer : AbstractRectRenderer(
         if (drawOuter) drawStripWith(genVertices(outerGlow, true))
     }
 
-    override fun render() {
-        shader.use()
-        super.render()
-    }
-
     companion object {
         private val shader = Shader("renderer/rect_outline")
     }
