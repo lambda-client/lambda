@@ -23,8 +23,8 @@ object ClickGui : Module(
     val buttonStep by setting("Button Step", 0.0, 0.0..5.0, 0.1)
 
     // Animation
-    val openSpeed by setting("Open Speed", 0.6, 0.1..1.0, 0.01)
-    val closeSpeed by setting("Close Speed", 0.7, 0.1..1.0, 0.01)
+    val openSpeed by setting("Open Speed", 0.5, 0.1..1.0, 0.01)
+    val closeSpeed by setting("Close Speed", 0.5, 0.1..1.0, 0.01)
 
     init {
         onEnable {
