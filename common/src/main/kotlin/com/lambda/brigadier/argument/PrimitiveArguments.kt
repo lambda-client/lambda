@@ -22,15 +22,12 @@
 
 package com.lambda.brigadier.argument
 
-import com.lambda.brigadier.BrigadierDsl
-import com.lambda.brigadier.DefaultArgumentConstructor
-import com.lambda.brigadier.DefaultArgumentReader
-import com.lambda.brigadier.argument
+import com.lambda.brigadier.*
 import com.mojang.brigadier.arguments.*
 
 /**
  * Reads the boolean value from the argument in
- * the receiver [DefaultArgumentReader].
+ * the receiver [ArgumentReader].
  *
  * @see BoolArgumentType.getBool
  */
@@ -42,7 +39,7 @@ fun DefaultArgumentReader<BoolArgumentType>.value(): Boolean {
 
 /**
  * Reads the boolean value from the argument in
- * the receiver [DefaultArgumentReader].
+ * the receiver [ArgumentReader].
  *
  * @see BoolArgumentType.getBool
  */
@@ -54,7 +51,7 @@ fun DefaultArgumentReader<DoubleArgumentType>.value(): Double {
 
 /**
  * Reads the float value from the argument in
- * the receiver [DefaultArgumentReader].
+ * the receiver [ArgumentReader].
  *
  * @see FloatArgumentType.getFloat
  */
@@ -66,7 +63,7 @@ fun DefaultArgumentReader<FloatArgumentType>.value(): Float {
 
 /**
  * Reads the integer value from the argument in
- * the receiver [DefaultArgumentReader].
+ * the receiver [ArgumentReader].
  *
  * @see IntegerArgumentType.getInteger
  */
@@ -78,7 +75,7 @@ fun DefaultArgumentReader<IntegerArgumentType>.value(): Int {
 
 /**
  * Reads the long value from the argument in
- * the receiver [DefaultArgumentReader].
+ * the receiver [ArgumentReader].
  *
  * @see LongArgumentType.getLong
  */

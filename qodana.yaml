@@ -1,8 +1,12 @@
 version: "1.0"
 profile:
-  name: qodana.starter
+  name: qodana.recommended
 exclude:
   - name: ConstantValue
+  - name: KotlinConstantConditions
+  - name: KDocUnresolvedReference
+  - name: UnusedSymbol
+  - name: UnusedImport
   - name: All
     paths:
       - common/src/main/java/

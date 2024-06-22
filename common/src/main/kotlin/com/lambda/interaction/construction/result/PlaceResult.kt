@@ -1,20 +1,14 @@
 package com.lambda.interaction.construction.result
 
-import baritone.api.pathing.goals.Goal
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import com.lambda.interaction.construction.context.PlaceContext
-import com.lambda.task.Task
 import com.lambda.task.tasks.BuildStructure.Companion.breakBlock
-import com.lambda.task.tasks.GoalTask.Companion.moveToGoal
-import com.lambda.task.tasks.GoalTask.Companion.moveToGoalUntil
 import com.lambda.task.tasks.PlaceBlock.Companion.placeBlock
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Box
-import net.minecraft.util.shape.VoxelShape
 
 /**
  * [PlaceResult] represents the result of a placement simulation.

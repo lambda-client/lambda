@@ -57,7 +57,8 @@ fun DefaultArgumentReader<BlockStateArgumentType>.value(): BlockStateArgument {
 /**
  * Creates a block predicate argument with [name] as the parameter name.
  *
- * @param context The command build context
+ * @param name The name of the argument
+ * @param registryAccess The command registry access
  */
 @BrigadierDsl
 fun <S> blockPredicate(
@@ -70,7 +71,8 @@ fun <S> blockPredicate(
 /**
  * Creates a block state argument with [name] as the parameter name.
  *
- * @param context The command build context
+ * @param name The name of the argument
+ * @param registryAccess The command registry access
  */
 @BrigadierDsl
 fun <S> blockState(
