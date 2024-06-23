@@ -26,13 +26,13 @@ object GuiSettings : Module(
 
     // Colors
     val primaryColor by setting("Primary Color", Color(130, 200, 255), visibility = { page == Page.Colors })
-    val secondaryColor by setting("Secondary Color", Color(225, 130, 225), visibility = { page == Page.Colors && (shade || shadeBackground) })
+    val secondaryColor by setting("Secondary Color", Color(225, 130, 225), visibility = { page == Page.Colors })
     val backgroundColor by setting("Background Color", Color(50, 50, 50, 150), visibility = { page == Page.Colors })
     val shade by setting("Shade", true, visibility = { page == Page.Colors })
     val shadeBackground by setting("Shade Background", true, visibility = { page == Page.Colors })
-    val colorWidth by setting("Color Width", 400.0, 10.0..1000.0, 10.0, visibility = { page == Page.Colors && (shade || shadeBackground) })
-    val colorHeight by setting("Color Height", 400.0, 10.0..1000.0, 10.0, visibility = { page == Page.Colors && (shade || shadeBackground) })
-    val colorSpeed by setting("Color Speed", 1.0, 0.1..10.0, 0.1, visibility = { page == Page.Colors && (shade || shadeBackground) })
+    val colorWidth by setting("Shade Width", 400.0, 10.0..1000.0, 10.0, visibility = { page == Page.Colors })
+    val colorHeight by setting("Shade Height", 400.0, 10.0..1000.0, 10.0, visibility = { page == Page.Colors })
+    val colorSpeed by setting("Color Speed", 1.0, 0.1..10.0, 0.1, visibility = { page == Page.Colors })
 
     val mainColor: Color get() = if (shade) Color.WHITE else primaryColor
 

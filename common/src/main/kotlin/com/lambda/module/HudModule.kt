@@ -23,27 +23,32 @@ abstract class HudModule(
 
     private var relativePosX by setting("Position X", 0.0, -10000.0..10000.0, 0.1) { false }
     private var relativePosY by setting("Position Y", 0.0, -10000.0..10000.0, 0.1) { false }
-    private var relativePos get() = Vec2d(relativePosX, relativePosY); set(value) {
-        val vec = absToRelative(relativeToAbs(value))
-        relativePosX = vec.x; relativePosY = vec.y
-    }
+
+    private var relativePos get() = Vec2d(relativePosX, relativePosY)
+        set(value) { relativePosX = value.x; relativePosY = value.y }
 
     var position get() = relativeToAbs(relativePos).let {
         val x = it.x.coerceIn(0.0, screenSize.x - width)
         val y = it.y.coerceIn(0.0, screenSize.y - height)
         Vec2d(x, y)
-    }; set(value) { relativePos = absToRelative(value) }
+    }; set(value) {
+        relativePos = absToRelative(value)
+        autoDocking()
+    }
 
     private fun relativeToAbs(posIn: Vec2d) = posIn + (screenSize - size) * dockingMultiplier
     private fun absToRelative(posIn: Vec2d) = posIn - (screenSize - size) * dockingMultiplier
 
-    private val dockingH by setting("Docking H", HAlign.LEFT).apply {
+    private val autoDocking by setting("Auto Docking", true)
+
+    private var dockingH by setting("Docking H", HAlign.LEFT).apply {
         onValueChange { from, to ->
             val delta = to.multiplier - from.multiplier
             relativePosX += delta * (size.x - screenSize.x)
         }
     }
-    private val dockingV by setting("Docking V", VAlign.TOP).apply {
+
+    private var dockingV by setting("Docking V", VAlign.TOP).apply {
         onValueChange { from, to ->
             val delta = to.multiplier - from.multiplier
             relativePosY += delta * (size.y - screenSize.y)
@@ -72,14 +77,33 @@ abstract class HudModule(
         }
     }
 
-    @Suppress("UNUSED")
+    private fun autoDocking() {
+        if (!autoDocking) return
+
+        val screenCenterX = (screenSize.x * 0.3333)..(screenSize.x * 0.6666)
+        val screenCenterY = (screenSize.y * 0.3333)..(screenSize.y * 0.6666)
+
+        val drawableCenter = rect.center
+
+        dockingH = when {
+            drawableCenter.x < screenCenterX.start -> HAlign.LEFT
+            drawableCenter.x > screenCenterX.endInclusive -> HAlign.RIGHT
+            else -> HAlign.CENTER
+        }
+
+        dockingV = when {
+            drawableCenter.y < screenCenterY.start -> VAlign.TOP
+            drawableCenter.y > screenCenterY.endInclusive -> VAlign.BOTTOM
+            else -> VAlign.CENTER
+        }
+    }
+
     enum class HAlign(val multiplier: Float) {
         LEFT(0.0f),
         CENTER(0.5f),
         RIGHT(1.0f)
     }
 
-    @Suppress("UNUSED")
     enum class VAlign(val multiplier: Float) {
         TOP(0.0f),
         CENTER(0.5f),

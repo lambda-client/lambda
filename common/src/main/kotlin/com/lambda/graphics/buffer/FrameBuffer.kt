@@ -47,6 +47,8 @@ class FrameBuffer {
         shaderBlock(shader)
 
         vao.use {
+            grow(4)
+
             val uv1 = pos1 / RenderMain.screenSize
             val uv2 = pos2 / RenderMain.screenSize
 
