@@ -16,6 +16,7 @@ import com.lambda.util.Nameable
  * @param name The name of the tag.
  */
 data class ModuleTag(override val name: String) : Nameable {
+    // Totally needs to be reworked
     companion object {
         val COMBAT = ModuleTag("Combat")
         val MOVEMENT = ModuleTag("Movement")
@@ -26,8 +27,8 @@ data class ModuleTag(override val name: String) : Nameable {
         val DEBUG = ModuleTag("Debug")
         val defaults = setOf(COMBAT, MOVEMENT, RENDER, PLAYER, NETWORK, DEBUG, CLIENT)
 
-        val HUD = ModuleTag("Hud") // omg
-        val hudDefaults = setOf(HUD)
+        val HUD_CLIENT = ModuleTag("Client") // omg
+        val hudDefaults = setOf(HUD_CLIENT)
 
         // currently secondary tags
         val WORLD = ModuleTag("World")

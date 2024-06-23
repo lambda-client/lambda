@@ -4,9 +4,11 @@ import com.lambda.graphics.renderer.gui.TextureRenderer.drawTexture
 import com.lambda.graphics.renderer.gui.TextureRenderer.drawTextureShaded
 import com.lambda.graphics.texture.MipmapTexture
 import com.lambda.module.HudModule
+import com.lambda.module.tag.ModuleTag
 
 object Watermark : HudModule(
-    "Watermark"
+    name = "Watermark",
+    defaultTags = setOf(ModuleTag.HUD_CLIENT),
 ) {
     private val shade by setting("Shade", true)
 

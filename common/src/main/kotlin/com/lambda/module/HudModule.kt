@@ -11,10 +11,11 @@ import com.lambda.util.math.Vec2d
 abstract class HudModule(
     name: String,
     description: String = "",
+    defaultTags: Set<ModuleTag> = setOf(),
     alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.UNBOUND,
-) : Module(name, description, setOf(ModuleTag.HUD), alwaysListening, enabledByDefault, defaultKeybind) {
+) : Module(name, description, defaultTags, alwaysListening, enabledByDefault, defaultKeybind) {
     private val renderCallables = mutableListOf<RenderLayer.() -> Unit>()
 
     protected abstract val width: Double
