@@ -22,7 +22,7 @@ vec4 shade() {
 }
 
 vec4 glow() {
-    float newAlpha = min(1.0, (v_Alpha * v_Alpha));
+    float newAlpha = min(1.0, v_Alpha * v_Alpha * v_Alpha);
     return vec4(1.0, 1.0, 1.0, newAlpha);
 }
 

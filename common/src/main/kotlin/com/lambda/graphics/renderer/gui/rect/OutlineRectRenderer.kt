@@ -22,29 +22,24 @@ class OutlineRectRenderer : AbstractRectRenderer(
     fun build(
         rect: Rect,
         roundRadius: Double = 0.0,
-        innerGlow: Double = 1.0,
-        outerGlow: Double = 1.0,
+        glowRadius: Double = 1.0,
         color: Color = Color.WHITE,
         shade: Boolean = false,
-    ) = build(rect, roundRadius, innerGlow, outerGlow, color, color, color, color, shade)
+    ) = build(rect, roundRadius, glowRadius, color, color, color, color, shade)
 
     fun build(
         rect: Rect,
         roundRadius: Double = 0.0,
-        innerGlow: Double = 1.0,
-        outerGlow: Double = 1.0,
+        glowRadius: Double = 1.0,
         leftTop: Color = Color.WHITE,
         rightTop: Color = Color.WHITE,
         rightBottom: Color = Color.WHITE,
         leftBottom: Color = Color.WHITE,
         shade: Boolean = false,
     ) = vao.use {
-        val drawInner = innerGlow >= 1
-        val drawOuter = outerGlow >= 1
+        if (glowRadius < 1) return@use
 
-        if (!drawInner && !drawOuter) return@use
-
-        grow(verticesCount * (1 + drawInner.toInt() + drawOuter.toInt()))
+        grow(verticesCount * 3)
 
         fun IRenderContext.genVertices(size: Double, isGlow: Boolean): MutableList<Int> {
             val r = rect.expand(size)
@@ -89,8 +84,8 @@ class OutlineRectRenderer : AbstractRectRenderer(
             }
         }
 
-        if (drawInner) drawStripWith(genVertices(-innerGlow, true))
-        if (drawOuter) drawStripWith(genVertices(outerGlow, true))
+        drawStripWith(genVertices(-(glowRadius.coerceAtMost(1.0)), true))
+        drawStripWith(genVertices(glowRadius, true))
     }
 
     companion object {

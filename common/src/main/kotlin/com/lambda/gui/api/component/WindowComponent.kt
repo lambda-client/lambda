@@ -9,6 +9,7 @@ import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.impl.AbstractClickGui
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.module.modules.client.GuiSettings.primaryColor
 import com.lambda.util.Mouse
 import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.ColorUtils.setAlpha
@@ -81,9 +82,8 @@ abstract class WindowComponent<T : ChildComponent>(
                 renderer.outline.build(
                     rect = rect,
                     roundRadius = ClickGui.windowRadius,
-                    innerGlow = ClickGui.windowRadius.coerceAtMost(1.0),
-                    outerGlow = ClickGui.windowRadius,
-                    color = GuiSettings.mainColor.multAlpha(alpha),
+                    glowRadius = ClickGui.glowRadius,
+                    color = (if (GuiSettings.shadeBackground) Color.WHITE else primaryColor).multAlpha(alpha),
                     shade = GuiSettings.shadeBackground
                 )
 
@@ -123,7 +123,7 @@ abstract class WindowComponent<T : ChildComponent>(
 
                             isOpen = !isOpen
 
-                            if (isOpen) onEvent(GuiEvent.Show())
+                            if (isOpen) contentComponents.onEvent(GuiEvent.Show())
                         }
                     }
                 }
