@@ -47,6 +47,8 @@ object PacketMine : Module(
     private var ignorePacketSend = false
     private val blockQueue = ArrayDeque<BlockPos>()
 
+    //ToDo: Make work on CC
+
     init {
         listener<TickEvent.Pre> {
             currentMiningBlock?.apply {
@@ -72,14 +74,7 @@ object PacketMine : Module(
 
                         interaction.breakBlock(pos)
 
-                        if (breakNextQueueBlock()) return@listener
-
-                        if (reBreak && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
-                            breakState = BreakState.ReBreaking
-                            return@listener
-                        }
-
-                        currentMiningBlock = null
+                        onBlockBreak()
                     }
                     BreakState.ReBreaking -> {
                         if (breakNextQueueBlock()) return@listener
@@ -91,11 +86,13 @@ object PacketMine : Module(
 
                         if (mineTicks * calcBreakDelta(state, pos, bestTool) < breakSpeed) return@listener
 
-                        if (!fastReBreak && (activeState.isAir || (!activeState.fluidState.isEmpty && !(activeState.properties.contains(Properties.WATERLOGGED) && activeState.get(Properties.WATERLOGGED))))
+                        if (!fastReBreak
+                            && (activeState.isAir || (!activeState.fluidState.isEmpty && !(activeState.properties.contains(Properties.WATERLOGGED) && activeState.get(Properties.WATERLOGGED))))
                             ) return@listener
 
                         swapStopBreak(pos, bestTool)
-                        if (clientSideBreak) interaction.breakBlock(pos)
+
+                        checkClientBreak(false, pos)
                     }
                     BreakState.AwaitingResponse -> {
                         if (clientSideBreak) return@listener
@@ -122,8 +119,6 @@ object PacketMine : Module(
             startBreaking(it.pos)
         }
 
-        //Todo: Change the onBreak checks to save awaiting positions to a list with a timeout rather than just the
-        // current mining block to allow for old block break attempts that arent active anymore to still get block break particle renders and sounds
         listener<WorldEvent.BlockUpdate> {
             currentMiningBlock?.apply {
                 if (it.pos != pos
@@ -131,19 +126,11 @@ object PacketMine : Module(
                     else it.state.isAir)
                     ) return@listener
 
-                if (!clientSideBreak) interaction.breakBlock(pos)
+                checkClientBreak(true, pos)
 
                 if (breakState == BreakState.ReBreaking) return@listener
 
-                if (breakNextQueueBlock()) return@listener
-
-                if (reBreak && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
-                    breakState = BreakState.ReBreaking
-                    return@listener
-                }
-
-                currentMiningBlock = null
-                return@listener
+                onBlockBreak()
             }
         }
     }
@@ -169,13 +156,30 @@ object PacketMine : Module(
             }
             currentMiningBlock?.timeCompleted = System.currentTimeMillis()
 
-            if (!clientSideBreak) return
-
-            interaction.breakBlock(pos)
-            return
+            checkClientBreak(false, pos)
         }
 
         currentMiningBlock = BreakingContext(pos, state, BreakState.Breaking)
+    }
+
+    private fun SafeContext.onBlockBreak() {
+        currentMiningBlock?.apply {
+            if (breakNextQueueBlock()) return
+
+            if (reBreak && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
+                breakState = BreakState.ReBreaking
+                return
+            }
+
+            currentMiningBlock = null
+        }
+    }
+
+    private fun SafeContext.checkClientBreak(packetReceiveBreak: Boolean, pos: BlockPos) {
+        if ((packetReceiveBreak && !clientSideBreak)
+            || (!packetReceiveBreak && clientSideBreak)) {
+            interaction.breakBlock(pos)
+        }
     }
 
     private fun shouldBePlacedInBlockQueue(pos: BlockPos): Boolean {
