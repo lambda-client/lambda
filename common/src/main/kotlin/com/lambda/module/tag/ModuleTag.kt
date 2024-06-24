@@ -27,8 +27,7 @@ data class ModuleTag(override val name: String) : Nameable {
         val DEBUG = ModuleTag("Debug")
         val defaults = setOf(COMBAT, MOVEMENT, RENDER, PLAYER, NETWORK, DEBUG, CLIENT)
 
-        val HUD_CLIENT = ModuleTag("Client") // omg
-        val hudDefaults = setOf(HUD_CLIENT)
+        val hudDefaults = setOf(CLIENT)
 
         // currently secondary tags
         val WORLD = ModuleTag("World")

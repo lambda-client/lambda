@@ -47,13 +47,15 @@ abstract class AbstractClickGui(name: String, owner: Module? = null) : LambdaGui
 
         when (e) {
             is GuiEvent.Render -> {
-                frameBuffer.write {
-                    windows.onEvent(e)
-                }.read(shader) {
-                    it["u_Progress"] = childShowAnimation
-                }
+                if (childShowAnimation < 0.99) {
+                    frameBuffer.write {
+                        windows.onEvent(e)
+                    }.read(shader) {
+                        it["u_Progress"] = childShowAnimation
+                    }
 
-                return
+                    return
+                }
             }
 
             is GuiEvent.Show -> {

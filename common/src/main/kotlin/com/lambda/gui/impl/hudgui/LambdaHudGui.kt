@@ -46,7 +46,7 @@ object LambdaHudGui : AbstractClickGui("HudGui") {
                 if (hoveredWindow == null &&
                     e.action == Mouse.Action.Click &&
                     e.button == Mouse.Button.Left
-                ) hudModules.firstOrNull { e.mouse in it.rect }?.let {
+                ) hudModules.filter(Module::isEnabled).firstOrNull { e.mouse in it.rect }?.let {
                     dragInfo = e.mouse - it.position to it
                 }
             }

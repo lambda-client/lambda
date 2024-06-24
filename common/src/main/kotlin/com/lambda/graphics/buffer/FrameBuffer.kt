@@ -12,11 +12,14 @@ import com.lambda.util.math.Vec2d
 import org.lwjgl.opengl.GL30.*
 import java.nio.IntBuffer
 
-class FrameBuffer {
+class FrameBuffer(private val depth: Boolean = false) {
     private val fbo = glGenFramebuffers()
 
     private val colorAttachment = glGenTextures()
-    private val depthAttachment = glGenTextures()
+    private val depthAttachment by lazy(::glGenTextures)
+
+    private val clearMask = if (!depth) GL_COLOR_BUFFER_BIT
+    else GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT
 
     private var width = 0
     private var height = 0
@@ -75,6 +78,10 @@ class FrameBuffer {
     }
 
     fun bindDepthTexture(slot: Int = 0): FrameBuffer {
+        check(depth) {
+            "Cannot bind depth texture of a non-depth framebuffer"
+        }
+
         bindTexture(depthAttachment, slot)
         return this
     }
@@ -91,12 +98,17 @@ class FrameBuffer {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, null as IntBuffer?)
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorAttachment, 0)
 
-            setupBufferTexture(depthAttachment)
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, null as IntBuffer?)
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthAttachment, 0)
+            if (depth) {
+                setupBufferTexture(depthAttachment)
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, null as IntBuffer?)
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthAttachment, 0)
+            }
+
+            glClearColor(0f, 0f, 0f, 0f)
+            glClearDepth(1.0)
         }
 
-        clear()
+        glClear(clearMask)
     }
 
     private fun setupBufferTexture(id: Int) {
@@ -106,12 +118,6 @@ class FrameBuffer {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
-    }
-
-    private fun clear() {
-        glClearColor(0f, 0f, 0f, 0f)
-        glClearDepth(1.0)
-        glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
     }
 
     companion object {

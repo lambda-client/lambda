@@ -8,7 +8,7 @@ import com.lambda.module.tag.ModuleTag
 
 object Watermark : HudModule(
     name = "Watermark",
-    defaultTags = setOf(ModuleTag.HUD_CLIENT),
+    defaultTags = setOf(ModuleTag.CLIENT),
 ) {
     private val shade by setting("Shade", true)
 

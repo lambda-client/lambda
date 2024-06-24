@@ -5,6 +5,7 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.gui.api.RenderLayer
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
+import com.lambda.util.math.MathUtils.coerceIn
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 
@@ -24,39 +25,37 @@ abstract class HudModule(
 
     private var relativePosX by setting("Position X", 0.0, -10000.0..10000.0, 0.1) { false }
     private var relativePosY by setting("Position Y", 0.0, -10000.0..10000.0, 0.1) { false }
-
     private var relativePos get() = Vec2d(relativePosX, relativePosY)
         set(value) { relativePosX = value.x; relativePosY = value.y }
 
-    var position get() = relativeToAbs(relativePos).let {
-        val x = it.x.coerceIn(0.0, screenSize.x - width)
-        val y = it.y.coerceIn(0.0, screenSize.y - height)
-        Vec2d(x, y)
-    }; set(value) {
-        relativePos = absToRelative(value)
-        autoDocking()
+    var position
+        get() = relativeToAbs(relativePos).coerceIn(0.0, screenSize.x - width, 0.0, screenSize.y - height)
+        set(value) { relativePos = absToRelative(value); if (autoDocking) autoDocking() }
+
+    private val dockingOffset get() = (screenSize - size) * Vec2d(dockingH.multiplier, dockingV.multiplier)
+
+    private fun relativeToAbs(posIn: Vec2d) = posIn + dockingOffset
+    private fun absToRelative(posIn: Vec2d) = posIn - dockingOffset
+
+    private val autoDocking by setting("Auto Docking", true).apply {
+        onValueChange { _, _ ->
+            autoDocking()
+        }
     }
 
-    private fun relativeToAbs(posIn: Vec2d) = posIn + (screenSize - size) * dockingMultiplier
-    private fun absToRelative(posIn: Vec2d) = posIn - (screenSize - size) * dockingMultiplier
-
-    private val autoDocking by setting("Auto Docking", true)
-
-    private var dockingH by setting("Docking H", HAlign.LEFT).apply {
+    private var dockingH by setting("Docking H", HAlign.LEFT) { !autoDocking }.apply {
         onValueChange { from, to ->
             val delta = to.multiplier - from.multiplier
             relativePosX += delta * (size.x - screenSize.x)
         }
     }
 
-    private var dockingV by setting("Docking V", VAlign.TOP).apply {
+    private var dockingV by setting("Docking V", VAlign.TOP) { !autoDocking }.apply {
         onValueChange { from, to ->
             val delta = to.multiplier - from.multiplier
             relativePosY += delta * (size.y - screenSize.y)
         }
     }
-
-    private val dockingMultiplier get() = Vec2d(dockingH.multiplier, dockingV.multiplier)
 
     val rect get() = Rect.basedOn(position, width, height)
 
@@ -79,8 +78,6 @@ abstract class HudModule(
     }
 
     private fun autoDocking() {
-        if (!autoDocking) return
-
         val screenCenterX = (screenSize.x * 0.3333)..(screenSize.x * 0.6666)
         val screenCenterY = (screenSize.y * 0.3333)..(screenSize.y * 0.6666)
 

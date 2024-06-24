@@ -145,4 +145,10 @@ object MathUtils {
             lerp(c1.b, c2.b, p).toFloat(),
             lerp(c1.a, c2.a, p).toFloat()
         )
+
+    fun Vec2d.coerceIn(minX: Double, maxX: Double, minY: Double, maxY: Double) =
+        Vec2d(
+            max(minX, min(x, maxX)),
+            max(minY, min(y, maxY))
+        )
 }
