@@ -25,7 +25,7 @@ object Speed : Module(
     @JvmStatic val mode by setting("Mode", Mode.GRIM_STRAFE)
 
     // Grim
-    private val rotation = RotationSettings(this)
+    private val rotation = RotationSettings(this) { mode == Mode.GRIM_STRAFE }
 
     // NCP
     private val ncpBaseSpeed by setting("Base Speed", 0.2873, 0.1..0.3, 0.0001, visibility = { mode == Mode.NCP_STRAFE })
