@@ -13,11 +13,12 @@ enum class VertexAttrib(val componentCount: Int, componentSize: Int, val normali
     val size = componentCount * componentSize
 
     enum class Group(vararg val attributes: VertexAttrib) {
+        POS_UV(Vec2, Vec2),
+
         // GUI
         FONT(Vec2, Vec2, Color), // pos, uv, color
         RECT_FILLED(Vec2, Vec2, Vec2, Float, Float, Color), // pos, uv, size, roundRadius, shade, color
         RECT_OUTLINE(Vec2, Float, Float, Color), // pos, alpha, shade, color
-        BLUR(Vec2, Vec2), // pos, uv
 
         // WORLD
         DYNAMIC_RENDERER(Vec3, Vec3, Color), // prev pos, pos, color

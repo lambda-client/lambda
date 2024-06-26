@@ -2,6 +2,7 @@ package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.material.ContainerManager.findBestAvailableTool
 import com.lambda.interaction.material.ContainerManager.transfer
@@ -14,6 +15,7 @@ import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
+import java.awt.Color
 
 sealed class BreakResult : BuildResult() {
 
@@ -24,10 +26,17 @@ sealed class BreakResult : BuildResult() {
     data class Success(
         override val blockPos: BlockPos,
         val context: BreakContext
-    ) : Resolvable, BreakResult() {
+    ) : Resolvable, Drawable, BreakResult() {
         override val rank = Rank.BREAK_SUCCESS
+        private val color = Color(222, 0, 0, 100)
 
-        override val resolve get() = breakBlock(context)
+        var collectDrop = false
+
+        override val resolve get() = breakBlock(context, collectDrop = collectDrop)
+
+        override fun SafeContext.buildRenderer() {
+            withPos(context.resultingPos, color, context.result.side)
+        }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -45,10 +54,15 @@ sealed class BreakResult : BuildResult() {
     data class NotExposed(
         override val blockPos: BlockPos,
         val side: Direction
-    ) : Resolvable, BreakResult() {
+    ) : Resolvable, Drawable, BreakResult() {
         override val rank = Rank.BREAK_NOT_EXPOSED
+        private val color = Color(46, 0, 0, 30)
 
         override val resolve get() = failTask("Block is not exposed to air.")
+
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color, side)
+        }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -67,8 +81,12 @@ sealed class BreakResult : BuildResult() {
         override val blockPos: BlockPos,
         val blockState: BlockState,
         val badItem: Item
-    ) : Resolvable, BreakResult() {
+    ) : Resolvable, Drawable, BreakResult() {
         override val rank = Rank.BREAK_ITEM_CANT_MINE
+        private val color = Color(255, 0, 0, 100)
+
+        override val pausesParent get() = true
+
         override val resolve get() = findBestAvailableTool(blockState)
                     ?.select()
                     ?.transfer(MainHandContainer)
@@ -77,6 +95,10 @@ sealed class BreakResult : BuildResult() {
                             isItem(badItem).not()
                         }.transfer(MainHandContainer)?.solve ?: failTask("No item found or space")
                     }
+
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color)
+        }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -94,8 +116,13 @@ sealed class BreakResult : BuildResult() {
         override val blockPos: BlockPos,
         val blockState: BlockState,
         val submerge: Set<BuildResult>
-    ) : BreakResult() {
+    ) : Drawable, BreakResult() {
         override val rank = Rank.BREAK_SUBMERGE
+        private val color = Color(114, 27, 255, 100)
+
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color)
+        }
     }
 
     /**
@@ -104,8 +131,13 @@ sealed class BreakResult : BuildResult() {
     data class BlockedByLiquid(
         override val blockPos: BlockPos,
         val blockState: BlockState
-    ) : BreakResult() {
+    ) : Drawable, BreakResult() {
         override val rank = Rank.BREAK_IS_BLOCKED_BY_LIQUID
+        private val color = Color(50, 12, 112, 100)
+
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color)
+        }
     }
 
     /**
@@ -114,9 +146,14 @@ sealed class BreakResult : BuildResult() {
     data class PlayerOnTop(
         override val blockPos: BlockPos,
         val blockState: BlockState
-    ) : Navigable, BreakResult() {
+    ) : Navigable, Drawable, BreakResult() {
         override val rank = Rank.BREAK_PLAYER_ON_TOP
+        private val color = Color(252, 3, 207, 100)
 
         override val goal = GoalInverted(GoalBlock(blockPos))
+        
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color)
+        }
     }
 }

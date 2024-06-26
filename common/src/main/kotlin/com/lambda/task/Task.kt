@@ -70,8 +70,8 @@ abstract class Task<Result> : Nameable {
 
     private var executions = 0
     private var attempted = 0
-    private val subTasks = mutableListOf<Task<*>>()
-    protected var state = State.IDLE
+    val subTasks = mutableListOf<Task<*>>()
+    private var state = State.IDLE
     var age = 0
 
     private val isDeactivated get() = state == State.DEACTIVATED
@@ -197,6 +197,7 @@ abstract class Task<Result> : Nameable {
 
     @Ta5kBuilder
     fun cancel() {
+        if (state == State.COMPLETED) return
         if (state == State.CANCELLED) return
 
         cancelSubTasks()
@@ -208,7 +209,9 @@ abstract class Task<Result> : Nameable {
 
     @Ta5kBuilder
     fun cancelSubTasks() {
-        subTasks.forEach { it.cancel() }
+        subTasks.forEach {
+            it.cancel()
+        }
     }
 
     @Ta5kBuilder

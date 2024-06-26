@@ -14,6 +14,7 @@ import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.item.ItemUtils.defaultDisposables
 import com.lambda.util.player.SlotUtils.clickSlot
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
@@ -30,7 +31,7 @@ class BreakBlock @Ta5kBuilder constructor(
     private val rotationConfig: IRotationConfig,
     private val interactionConfig: InteractionConfig,
     private val sides: Set<Direction>,
-    private var collectDrop: Boolean,
+    private val collectDrop: Boolean,
     private val rotate: Boolean,
     private val swingHand: Boolean,
 ) : Task<ItemEntity?>() {
@@ -43,12 +44,6 @@ class BreakBlock @Ta5kBuilder constructor(
     private var drop: ItemEntity? = null
 
     override fun SafeContext.onStart() {
-        parent?.let {
-            if (it is BuildStructure) {
-                collectDrop = it.collectDrops
-            }
-        }
-
         if (state.isAir && !collectDrop) {
             success(null)
             return

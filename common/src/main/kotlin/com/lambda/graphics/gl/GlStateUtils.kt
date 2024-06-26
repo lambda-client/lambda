@@ -47,6 +47,16 @@ object GlStateUtils {
         glLineWidth(1f)
     }
 
+    fun withBlendFunc(
+        sfactorRGB: Int, dfactorRGB: Int,
+        sfactorAlpha: Int = sfactorRGB, dfactorAlpha: Int = dfactorRGB,
+        block: () -> Unit
+    ) {
+        glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha)
+        block()
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    }
+
     @JvmStatic
     fun capSet(id: Int, flag: Boolean) {
         val field = when (id) {

@@ -54,7 +54,7 @@ object BuildSimulator {
                     return@flatMap it
                 }
                 emptySet()
-            }
+            }.toSet()
         } ?: emptySet()
 
     private fun SafeContext.checkRequirements(pos: BlockPos, target: TargetState): BuildResult? {
@@ -134,7 +134,6 @@ object BuildSimulator {
                 val res = if (TaskFlow.interact.useRayCast) interact.resolution else 2
                 scanVisibleSurfaces(eye, box, setOf(hitSide), res) { side, vec ->
                     if (eye distSq vec > reachSq) {
-//                        acc.add(BuildResult.OutOfReach(pos, eye, vec, interact.reach, side))
                         return@scanVisibleSurfaces
                     }
 
@@ -214,7 +213,7 @@ object BuildSimulator {
                 }
 
                 val resultState = blockItem.getPlacementState(context) ?: run {
-                    acc.add(PlaceResult.CantReplace(pos, context))
+                    acc.add(PlaceResult.BlockedByPlayer(pos))
                     return@forEach
                 }
 
@@ -234,17 +233,11 @@ object BuildSimulator {
                     eye.distanceTo(blockHit.pos),
                     resultState,
                     blockHit.blockPos.blockState(world),
-                    target,
                     Hand.MAIN_HAND,
+                    target,
                     shouldSneak,
                     false
                 )
-
-                /* player is colliding with the place box */
-                if (world.canCollide(player, Box(pos))) {
-                    acc.add(PlaceResult.BlockedByPlayer(pos))
-                    return@forEach
-                }
 
                 val currentHandStack = player.getStackInHand(Hand.MAIN_HAND)
                 if (target is TargetState.Stack && !target.itemStack.equal(currentHandStack)) {
@@ -355,7 +348,6 @@ object BuildSimulator {
             val res = if (TaskFlow.interact.useRayCast) interact.resolution else 2
             scanVisibleSurfaces(eye, box, emptySet(), res) { side, vec ->
                 if (eye distSq vec > reachSq) {
-//                    acc.add(BuildResult.OutOfReach(pos, eye, vec, interact.reach, side))
                     return@scanVisibleSurfaces
                 }
 

@@ -5,16 +5,18 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.gui.api.RenderLayer
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
+import com.lambda.util.math.MathUtils.coerceIn
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 
 abstract class HudModule(
     name: String,
     description: String = "",
+    defaultTags: Set<ModuleTag> = setOf(),
     alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.UNBOUND,
-) : Module(name, description, setOf(ModuleTag.HUD), alwaysListening, enabledByDefault, defaultKeybind) {
+) : Module(name, description, defaultTags, alwaysListening, enabledByDefault, defaultKeybind) {
     private val renderCallables = mutableListOf<RenderLayer.() -> Unit>()
 
     protected abstract val width: Double
@@ -23,34 +25,37 @@ abstract class HudModule(
 
     private var relativePosX by setting("Position X", 0.0, -10000.0..10000.0, 0.1) { false }
     private var relativePosY by setting("Position Y", 0.0, -10000.0..10000.0, 0.1) { false }
-    private var relativePos get() = Vec2d(relativePosX, relativePosY); set(value) {
-        val vec = absToRelative(relativeToAbs(value))
-        relativePosX = vec.x; relativePosY = vec.y
+    private var relativePos get() = Vec2d(relativePosX, relativePosY)
+        set(value) { relativePosX = value.x; relativePosY = value.y }
+
+    var position
+        get() = relativeToAbs(relativePos).coerceIn(0.0, screenSize.x - width, 0.0, screenSize.y - height)
+        set(value) { relativePos = absToRelative(value); if (autoDocking) autoDocking() }
+
+    private val dockingOffset get() = (screenSize - size) * Vec2d(dockingH.multiplier, dockingV.multiplier)
+
+    private fun relativeToAbs(posIn: Vec2d) = posIn + dockingOffset
+    private fun absToRelative(posIn: Vec2d) = posIn - dockingOffset
+
+    private val autoDocking by setting("Auto Docking", true).apply {
+        onValueChange { _, _ ->
+            autoDocking()
+        }
     }
 
-    var position get() = relativeToAbs(relativePos).let {
-        val x = it.x.coerceIn(0.0, screenSize.x - width)
-        val y = it.y.coerceIn(0.0, screenSize.y - height)
-        Vec2d(x, y)
-    }; set(value) { relativePos = absToRelative(value) }
-
-    private fun relativeToAbs(posIn: Vec2d) = posIn + (screenSize - size) * dockingMultiplier
-    private fun absToRelative(posIn: Vec2d) = posIn - (screenSize - size) * dockingMultiplier
-
-    private val dockingH by setting("Docking H", HAlign.LEFT).apply {
+    private var dockingH by setting("Docking H", HAlign.LEFT) { !autoDocking }.apply {
         onValueChange { from, to ->
             val delta = to.multiplier - from.multiplier
             relativePosX += delta * (size.x - screenSize.x)
         }
     }
-    private val dockingV by setting("Docking V", VAlign.TOP).apply {
+
+    private var dockingV by setting("Docking V", VAlign.TOP) { !autoDocking }.apply {
         onValueChange { from, to ->
             val delta = to.multiplier - from.multiplier
             relativePosY += delta * (size.y - screenSize.y)
         }
     }
-
-    private val dockingMultiplier get() = Vec2d(dockingH.multiplier, dockingV.multiplier)
 
     val rect get() = Rect.basedOn(position, width, height)
 
@@ -72,14 +77,31 @@ abstract class HudModule(
         }
     }
 
-    @Suppress("UNUSED")
+    private fun autoDocking() {
+        val screenCenterX = (screenSize.x * 0.3333)..(screenSize.x * 0.6666)
+        val screenCenterY = (screenSize.y * 0.3333)..(screenSize.y * 0.6666)
+
+        val drawableCenter = rect.center
+
+        dockingH = when {
+            drawableCenter.x < screenCenterX.start -> HAlign.LEFT
+            drawableCenter.x > screenCenterX.endInclusive -> HAlign.RIGHT
+            else -> HAlign.CENTER
+        }
+
+        dockingV = when {
+            drawableCenter.y < screenCenterY.start -> VAlign.TOP
+            drawableCenter.y > screenCenterY.endInclusive -> VAlign.BOTTOM
+            else -> VAlign.CENTER
+        }
+    }
+
     enum class HAlign(val multiplier: Float) {
         LEFT(0.0f),
         CENTER(0.5f),
         RIGHT(1.0f)
     }
 
-    @Suppress("UNUSED")
     enum class VAlign(val multiplier: Float) {
         TOP(0.0f),
         CENTER(0.5f),
