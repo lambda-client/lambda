@@ -52,12 +52,6 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         this.autoJump(currX - prevX, currZ - prevZ);
     }
 
-    @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isUsingItem()Z"))
-    boolean onSlowDown(ClientPlayerEntity entity) {
-        if (EventFlow.post(new MovementEvent.SlowDown()).isCanceled()) return false;
-        return isUsingItem();
-    }
-
     @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick(ZF)V"))
     void processMovement(Input input, boolean slowDown, float slowDownFactor) {
         input.tick(slowDown, slowDownFactor);

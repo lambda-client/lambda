@@ -39,6 +39,7 @@ class BreakBlock @Ta5kBuilder constructor(
     val SafeContext.state: BlockState get() = blockPos.blockState(world)
     override var cooldown = Int.MAX_VALUE
         get() = maxOf(TaskFlow.build.breakCoolDown, TaskFlow.taskCooldown)
+        set(value) = run { field = value }
     private var drop: ItemEntity? = null
 
     override fun SafeContext.onStart() {
@@ -78,7 +79,7 @@ class BreakBlock @Ta5kBuilder constructor(
 
                 if (player.hotbarAndStorage.none { it.isEmpty }) {
                     player.currentScreenHandler.inventorySlots.firstOrNull {
-                        it.stack.item in defaultDisposables
+                        it.stack.item.block in TaskFlow.disposables
                     }?.let {
                         clickSlot(it.index, 1, SlotActionType.THROW)
                     }

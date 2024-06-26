@@ -22,10 +22,9 @@ abstract class ButtonComponent(
     abstract val size: Vec2d
 
     abstract val text: String
-    protected open val textColor
-        get() = lerp(Color.WHITE, GuiSettings.mainColor, activeAnimation).multAlpha(
-            showAnimation
-        )
+    protected open val textColor get() = lerp(Color.WHITE, GuiSettings.mainColor, activeAnimation).multAlpha(showAnimation)
+    protected open val centerText = false
+
     protected abstract var activeAnimation: Double
 
     private val actualSize get() = Vec2d(if (size.x == FILL_PARENT) owner.rect.size.x else size.x, size.y)
@@ -72,12 +71,14 @@ abstract class ButtonComponent(
                 )
 
                 // Text
+                val textScale = 1.0 - pressAnimation * 0.08
                 val textX = ClickGui.windowPadding + interactAnimation + hoverFontAnimation
+                val textXCentered = rect.size.x * 0.5 - renderer.font.getWidth(text, textScale) * 0.5
                 renderer.font.build(
                     text = text,
-                    position = Vec2d(rect.left + textX, rect.center.y),
+                    position = Vec2d(rect.left + if (!centerText) textX else textXCentered, rect.center.y),
                     color = textColor,
-                    scale = 1.0 - pressAnimation * 0.08
+                    scale = textScale
                 )
             }
 

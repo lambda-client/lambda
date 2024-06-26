@@ -6,7 +6,7 @@ import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.RenderLayer
 import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
-import com.lambda.gui.impl.clickgui.AbstractClickGui
+import com.lambda.gui.impl.AbstractClickGui
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.Mouse
@@ -142,14 +142,6 @@ abstract class WindowComponent<T : ChildComponent>(
                         .apply(::remove)
                         .apply(::add)
                 }
-            }
-        }
-    }
-
-    fun destroy() {
-        gui.apply {
-            scheduleAction {
-                windows.children.remove(this@WindowComponent)
             }
         }
     }

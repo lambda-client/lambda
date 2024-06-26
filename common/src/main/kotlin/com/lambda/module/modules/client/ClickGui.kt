@@ -1,8 +1,11 @@
 package com.lambda.module.modules.client
 
 import com.lambda.event.events.ClientEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.gui.impl.clickgui.LambdaClickGui
+import com.lambda.gui.impl.hudgui.LambdaHudGui
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
@@ -30,6 +33,7 @@ object ClickGui : Module(
 
         onDisable {
             LambdaClickGui.close()
+            LambdaHudGui.close()
         }
 
         unsafeListener<ClientEvent.Shutdown> {

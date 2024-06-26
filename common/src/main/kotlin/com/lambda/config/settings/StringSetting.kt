@@ -1,5 +1,6 @@
 package com.lambda.config.settings
 
+import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
 
 /**
@@ -17,6 +18,7 @@ class StringSetting(
     visibility: () -> Boolean,
 ) : AbstractSetting<String>(
     defaultValue,
+    TypeToken.get(String::class.java).type,
     description,
     visibility
 )

@@ -29,8 +29,6 @@ dependencies {
     // Baritone
 //    modImplementation("baritone-api:baritone-api:1.10.2")
     modImplementation("baritone-api:baritone-unoptimized-fabric:1.10.2")
-
-    testImplementation(kotlin("test"))
 }
 
 tasks.test {

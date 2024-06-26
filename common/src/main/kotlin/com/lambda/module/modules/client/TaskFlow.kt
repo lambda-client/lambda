@@ -3,10 +3,13 @@ package com.lambda.module.modules.client
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.RotationSettings
+import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
+import com.lambda.graphics.renderer.esp.EspRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.mainThread
 import com.lambda.util.BlockUtils.allSigns
-import net.minecraft.block.Block
+import com.lambda.util.item.ItemUtils
 
 object TaskFlow : Module(
     name = "TaskFlow",
@@ -30,6 +33,10 @@ object TaskFlow : Module(
     val taskCooldown by setting("Task Cooldown", 0, 0..10000, 10, unit = " ms") {
         page == Page.TASKS
     }
-//    val disposables by setting("Disposables", ItemUtils.defaultDisposables)
-    val ignoredBlocks = mutableSetOf<Block>().apply { addAll(allSigns) }
+    val disposables by setting("Disposables", ItemUtils.defaultDisposables)
+    val ignoredBlocks by setting("Ignored Blocks", allSigns)
+
+    val esp by mainThread {
+        EspRenderer()
+    }
 }

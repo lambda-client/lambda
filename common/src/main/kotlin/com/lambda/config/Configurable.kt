@@ -17,6 +17,7 @@ import com.lambda.config.settings.complex.BlockSetting
 import com.lambda.config.settings.complex.ColorSetting
 import com.lambda.config.settings.complex.KeyBindSetting
 import com.lambda.config.settings.numeric.*
+import com.lambda.util.Communication.logError
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 import net.minecraft.block.Block
@@ -45,7 +46,11 @@ abstract class Configurable(
     override fun toJson() =
         JsonObject().apply {
             settings.forEach { setting ->
-                add(setting.name, setting.toJson())
+                try {
+                    add(setting.name, setting.toJson())
+                } catch (e: Exception) {
+                    logError("Failed to serialize $setting in ${this::class.simpleName}", e)
+                }
             }
         }
 

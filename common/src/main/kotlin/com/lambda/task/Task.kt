@@ -11,10 +11,8 @@ import com.lambda.module.modules.client.TaskFlow
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
-import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
-import com.lambda.util.DynamicReflectionSerializer.dynamicString
 import com.lambda.util.Nameable
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
@@ -439,7 +437,7 @@ abstract class Task<Result> : Nameable {
         this.onRepeat = action
         return this
     }
-    
+
     @Ta5kBuilder
     inline fun <reified T : Event> withListener(
         crossinline action: SafeContext.(Task<Result>) -> Unit
@@ -469,7 +467,7 @@ abstract class Task<Result> : Nameable {
             init { this.name = name }
             override fun SafeContext.onStart() { success(Unit) }
         }
-        
+
         @Ta5kBuilder
         fun failTask(
             message: String

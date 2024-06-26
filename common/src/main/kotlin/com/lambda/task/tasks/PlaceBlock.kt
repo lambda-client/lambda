@@ -21,6 +21,7 @@ class PlaceBlock @Ta5kBuilder constructor(
     private var beginState: BlockState? = null
     override var cooldown = Int.MAX_VALUE
         get() = maxOf(TaskFlow.build.placeCooldown, TaskFlow.taskCooldown)
+        set(value) = run { field = value }
     override var timeout = 20
     private var placed = false
 

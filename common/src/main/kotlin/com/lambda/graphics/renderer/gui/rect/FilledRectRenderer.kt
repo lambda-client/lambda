@@ -59,7 +59,6 @@ class FilledRectRenderer : AbstractRectRenderer(
 
     override fun render() {
         shader.use()
-
         super.render()
     }
 

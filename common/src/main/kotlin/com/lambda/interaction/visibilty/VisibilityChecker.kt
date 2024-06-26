@@ -1,9 +1,9 @@
 package com.lambda.interaction.visibilty
 
-import com.lambda.context.SafeContext
-import com.lambda.config.groups.InteractionConfig
-import com.lambda.interaction.RotationManager
 import com.lambda.config.groups.IRotationConfig
+import com.lambda.config.groups.InteractionConfig
+import com.lambda.context.SafeContext
+import com.lambda.interaction.RotationManager
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.module.modules.client.TaskFlow

@@ -36,6 +36,7 @@ object Communication {
     fun Any.warn(message: Text, source: Text = Text.empty()) = log(message, LogLevel.WARN, textSource = source)
     fun Any.logError(message: String, source: String = "") = log(LogLevel.ERROR.text(message), LogLevel.ERROR, source)
     fun Any.logError(message: Text, source: Text = Text.empty()) = log(message, LogLevel.ERROR, textSource = source)
+    fun Any.logError(message: String, throwable: Throwable) = logError(message, throwable.message ?: "")
 
     fun Any.toast(message: String, logLevel: LogLevel = LogLevel.INFO) {
         toast(logLevel.text(message), logLevel)

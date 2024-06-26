@@ -4,10 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.client.texture.NativeImage
 import org.lwjgl.BufferUtils
 import org.lwjgl.opengl.GL13C.*
-import java.awt.Color
-import java.awt.Font
-import java.awt.RenderingHints
-import java.awt.Transparency
+import java.awt.*
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
@@ -15,6 +12,9 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 object TextureUtils {
+    private val metricCache = mutableMapOf<Font, FontMetrics>()
+
+
     fun bindTexture(id: Int, slot: Int = 0) {
         RenderSystem.activeTexture(GL_TEXTURE0 + slot)
         RenderSystem.bindTexture(id)
@@ -85,24 +85,31 @@ object TextureUtils {
         return NativeImage.read(buffer).pointer
     }
 
-    fun getCharImage(font: Font, char: Char): BufferedImage? {
-        if (!font.canDisplay(char)) return null
+    fun getCharImage(font: Font, codePoint: Char): BufferedImage? {
+        if (!font.canDisplay(codePoint)) return null
 
-        val tempGraphics2D = BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB).createGraphics()
-        tempGraphics2D.font = font
-        val fontMetrics = tempGraphics2D.fontMetrics
-        tempGraphics2D.dispose()
+        val fontMetrics = metricCache.getOrPut(font) {
+            val image = BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB)
+            val graphics2D = image.createGraphics()
 
-        val charWidth = if (fontMetrics.charWidth(char) > 0) fontMetrics.charWidth(char) else 8
+            graphics2D.font = font
+            graphics2D.dispose()
+
+            image.graphics.getFontMetrics(font)
+        }
+
+        val charWidth = if (fontMetrics.charWidth(codePoint) > 0) fontMetrics.charWidth(codePoint) else 8
         val charHeight = if (fontMetrics.height > 0) fontMetrics.height else font.size
 
         val charImage = BufferedImage(charWidth, charHeight, BufferedImage.TYPE_INT_ARGB)
         val graphics2D = charImage.createGraphics()
 
         graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        graphics2D.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_DEFAULT)
+
         graphics2D.font = font
         graphics2D.color = Color.WHITE
-        graphics2D.drawString(char.toString(), 0, fontMetrics.ascent)
+        graphics2D.drawString(codePoint.toString(), 0, fontMetrics.ascent)
         graphics2D.dispose()
 
         return charImage

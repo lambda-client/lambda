@@ -4,7 +4,9 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.material.StackSelection
+import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
+import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.item.ItemUtils.defaultDisposables
 import com.lambda.util.player.SlotUtils.clickSlot
 import com.lambda.util.primitives.extension.containerSlots
@@ -41,7 +43,7 @@ class InventoryTask(
                 // ToDo: SWAP triangle
                 val handler = player.currentScreenHandler
                 handler.inventorySlots.firstOrNull {
-                    it.stack.item in defaultDisposables || it.stack.isEmpty
+                    it.stack.item.block in TaskFlow.disposables || it.stack.isEmpty
                 }?.let { emptySlot ->
                     clickSlot(emptySlot.id, 0, SlotActionType.SWAP)
                     clickSlot(from.id, 0, SlotActionType.SWAP)

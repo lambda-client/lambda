@@ -4,7 +4,7 @@ import com.lambda.config.settings.complex.KeyBindSetting
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.button.InputBarOverlay
 import com.lambda.gui.api.component.core.list.ChildLayer
-import com.lambda.gui.impl.clickgui.AbstractClickGui
+import com.lambda.gui.impl.AbstractClickGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.buttons.SettingButton
 import com.lambda.util.KeyCode

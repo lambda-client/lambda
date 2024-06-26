@@ -23,7 +23,6 @@ import com.lambda.util.BlockUtils.vecOf
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
-import net.minecraft.block.Block
 import net.minecraft.block.OperatorBlock
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.item.BlockItem
@@ -37,9 +36,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
-import net.minecraft.util.shape.VoxelShape
 import kotlin.math.pow
-import kotlin.time.measureTime
 
 object BuildSimulator {
     fun Blueprint.simulate(eye: Vec3d) =
