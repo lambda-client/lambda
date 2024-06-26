@@ -12,8 +12,8 @@ object SafeWalk : Module(
     defaultTags = setOf(ModuleTag.MOVEMENT, ModuleTag.GRIM)
 ) {
     private val sneakOnLedge by setting("Sneak On Ledge", true)
-    private val ledgeDistance by setting("Ledge Distance", 0.25, 0.0..0.5, 0.05, unit = " blocks")
-    private val stepHeight by setting("Minimum Step Height", 1.0, 0.0..4.0, 0.1, unit = " blocks")
+    private val ledgeDistance by setting("Ledge Distance", 0.2, 0.0..0.5, 0.01, unit = " blocks")
+    private val stepHeight by setting("Step Height", 1.1, 0.0..4.0, 0.05, unit = " blocks")
 
     init {
         listener<MovementEvent.InputUpdate> {
