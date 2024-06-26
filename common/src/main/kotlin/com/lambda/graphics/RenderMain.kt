@@ -7,7 +7,8 @@ import com.lambda.graphics.gl.GlStateUtils.setupGL
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.resetMatrix
 import com.lambda.graphics.gl.Matrices.translate
-import com.lambda.graphics.renderer.esp.EntityEspRenderer
+import com.lambda.graphics.renderer.esp.global.BlockESPRenderer
+import com.lambda.graphics.renderer.esp.global.EntityESPRenderer
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.math.Vec2d
 import com.mojang.blaze3d.systems.RenderSystem.getProjectionMatrix
@@ -41,7 +42,8 @@ object RenderMain {
 
         setupGL {
             RenderEvent.World().post()
-            EntityEspRenderer.render()
+            BlockESPRenderer.render()
+            EntityESPRenderer.render()
         }
     }
 

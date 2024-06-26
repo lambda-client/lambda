@@ -56,7 +56,7 @@ class FontRenderer(
      * The values are hardcoded
      * We do not need to ask the emoji font since the height is smaller
      */
-    private fun getHeight(scale: Double = 1.0) = font.glyphs.fontHeight * getScaleFactor(scale) * 0.7
+    fun getHeight(scale: Double = 1.0) = font.glyphs.fontHeight * getScaleFactor(scale) * 0.7
 
     /**
      * Iterates over each character and emoji in the text.

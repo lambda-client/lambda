@@ -4,7 +4,6 @@ import com.lambda.graphics.RenderMain
 import com.lambda.graphics.shader.ShaderUtils.createShaderProgram
 import com.lambda.graphics.shader.ShaderUtils.loadShader
 import com.lambda.graphics.shader.ShaderUtils.uniformMatrix
-import com.lambda.threading.mainThread
 import com.lambda.util.LambdaResource
 import com.lambda.util.math.Vec2d
 import it.unimi.dsi.fastutil.objects.Object2IntMap
@@ -17,12 +16,10 @@ import java.awt.Color
 class Shader(fragmentPath: String, vertexPath: String) {
     private val uniformCache: Object2IntMap<String> = Object2IntOpenHashMap()
 
-    private val id by mainThread {
-        createShaderProgram(
-            loadShader(ShaderType.VERTEX_SHADER, LambdaResource("shaders/vertex/$vertexPath.vert")),
-            loadShader(ShaderType.FRAGMENT_SHADER, LambdaResource("shaders/fragment/$fragmentPath.frag"))
-        )
-    }
+    private val id = createShaderProgram(
+        loadShader(ShaderType.VERTEX_SHADER, LambdaResource("shaders/vertex/$vertexPath.vert")),
+        loadShader(ShaderType.FRAGMENT_SHADER, LambdaResource("shaders/fragment/$fragmentPath.frag"))
+    )
 
     constructor(path: String) : this(path, path)
 

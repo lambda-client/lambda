@@ -9,6 +9,7 @@ import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.impl.AbstractClickGui
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.module.modules.client.GuiSettings.primaryColor
 import com.lambda.util.Mouse
 import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.ColorUtils.setAlpha
@@ -35,7 +36,7 @@ abstract class WindowComponent<T : ChildComponent>(
     private var dragOffset: Vec2d? = null
     private val padding get() = ClickGui.windowPadding
 
-    final override val rect get() = Rect.basedOn(position, width, renderHeight + titleBarHeight)
+    final override val rect get() = Rect.basedOn(position, width, renderHeightAnimation + titleBarHeight)
     private val contentRect get() = rect.shrink(padding).moveFirst(Vec2d(0.0, titleBarHeight - padding))
 
     private val titleBar get() = Rect.basedOn(rect.leftTop, rect.size.x, titleBarHeight)
@@ -51,7 +52,6 @@ abstract class WindowComponent<T : ChildComponent>(
 
     private val actualHeight get() = height + padding * 2 * isOpen.toInt()
     private var renderHeightAnimation by animation.exp({ 0.0 }, ::actualHeight, 0.6, ::isOpen)
-    private val renderHeight get() = lerp(0.0, renderHeightAnimation, childShowAnimation)
 
     open val contentComponents = ChildLayer.Drawable<T, WindowComponent<T>>(gui, this, contentRenderer, ::contentRect)
 
@@ -61,6 +61,7 @@ abstract class WindowComponent<T : ChildComponent>(
         when (e) {
             is GuiEvent.Show -> {
                 dragOffset = null
+                renderHeightAnimation = if (isOpen) actualHeight else 0.0
             }
 
             is GuiEvent.Render -> {
@@ -81,9 +82,8 @@ abstract class WindowComponent<T : ChildComponent>(
                 renderer.outline.build(
                     rect = rect,
                     roundRadius = ClickGui.windowRadius,
-                    innerGlow = ClickGui.windowRadius.coerceAtMost(1.0),
-                    outerGlow = ClickGui.windowRadius,
-                    color = GuiSettings.mainColor.multAlpha(alpha),
+                    glowRadius = ClickGui.glowRadius,
+                    color = (if (GuiSettings.shadeBackground) Color.WHITE else primaryColor).multAlpha(alpha),
                     shade = GuiSettings.shadeBackground
                 )
 
@@ -119,11 +119,11 @@ abstract class WindowComponent<T : ChildComponent>(
                         Mouse.Button.Right -> {
                             // Don't let user spam
                             val targetHeight = if (isOpen) actualHeight else 0.0
-                            if (abs(targetHeight - renderHeight) > 1) return
+                            if (abs(targetHeight - renderHeightAnimation) > 1) return
 
                             isOpen = !isOpen
 
-                            if (isOpen) onEvent(GuiEvent.Show())
+                            if (isOpen) contentComponents.onEvent(GuiEvent.Show())
                         }
                     }
                 }

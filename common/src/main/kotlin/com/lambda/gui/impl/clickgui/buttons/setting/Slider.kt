@@ -6,6 +6,7 @@ import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.buttons.SettingButton
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.playSound
@@ -41,7 +42,7 @@ abstract class Slider<V : Any, T : AbstractSetting<V>>(
                 // Slider rect
                 renderer.filled.build(
                     rect = rect.moveSecond(Vec2d(-rect.size.x * (1.0 - renderProgress), 0.0)).shrink(shrinkAnimation),
-                    roundRadius = 0.0,
+                    roundRadius = ClickGui.buttonRadius,
                     color = GuiSettings.mainColor.multAlpha(showAnimation * 0.3),
                     shade = GuiSettings.shade
                 )

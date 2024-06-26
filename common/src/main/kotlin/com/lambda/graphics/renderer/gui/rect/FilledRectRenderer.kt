@@ -57,11 +57,6 @@ class FilledRectRenderer : AbstractRectRenderer(
         )
     }
 
-    override fun render() {
-        shader.use()
-        super.render()
-    }
-
     companion object {
         private const val MIN_SIZE = 0.5
         private const val MIN_ALPHA = 3

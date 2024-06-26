@@ -1,5 +1,6 @@
 package com.lambda.graphics.renderer.esp
 
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
 object DirectionMask {
@@ -15,8 +16,21 @@ object DirectionMask {
     const val ALL = EAST or WEST or UP or DOWN or SOUTH or NORTH
     const val NONE = 0
 
+    fun Int.include(dir: Int) = this or dir
+    fun Int.include(direction: Direction) = include(direction.mask)
     fun Int.exclude(dir: Int) = this xor dir
+    fun Int.exclude(direction: Direction) = exclude(direction.mask)
     fun Int.hasDirection(dir: Int) = (this and dir) != 0
+
+    fun buildSideMesh(blockPos: BlockPos, filter: (BlockPos) -> Boolean): Int {
+        var sides = ALL
+
+        Direction.entries
+            .filter { filter(blockPos.offset(it)) }
+            .forEach { sides = sides.exclude(it.mask) }
+
+        return sides
+    }
 
     val Direction.mask get() = when (this) {
         Direction.DOWN -> DOWN
