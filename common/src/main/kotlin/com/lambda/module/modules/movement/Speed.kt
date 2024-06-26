@@ -17,10 +17,9 @@ import com.lambda.util.player.MovementUtils.moveDelta
 import com.lambda.util.player.MovementUtils.setSpeed
 import kotlin.math.atan2
 
-// ToDo: Revisit and implement grim strafing
 object Speed : Module(
     name = "Speed",
-    description = "Fastest module",
+    description = "Accelerates your walking speed",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
     @JvmStatic val mode by setting("Mode", Mode.GRIM_STRAFE)
