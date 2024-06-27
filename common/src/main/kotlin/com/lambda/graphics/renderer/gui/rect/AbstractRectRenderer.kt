@@ -15,13 +15,13 @@ abstract class AbstractRectRenderer(
 ) {
     protected val vao = VAO(VertexMode.TRIANGLES, attribGroup)
 
-    open fun render() {
+    fun render() {
         shader.use()
         shader["u_Time"] = glfwGetTime() * GuiSettings.colorSpeed * 5.0
         shader["u_Color1"] = GuiSettings.shadeColor1
         shader["u_Color2"] = GuiSettings.shadeColor2
 
-        shader["u_Size"] = RenderMain.screenSize /Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
+        shader["u_Size"] = RenderMain.screenSize / Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
 
         vao.upload()
         vao.render()

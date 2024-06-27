@@ -70,7 +70,7 @@ abstract class Task<Result> : Nameable {
 
     private var executions = 0
     private var attempted = 0
-    private val subTasks = mutableListOf<Task<*>>()
+    val subTasks = mutableListOf<Task<*>>()
     private var state = State.IDLE
     var age = 0
 
@@ -197,6 +197,7 @@ abstract class Task<Result> : Nameable {
 
     @Ta5kBuilder
     fun cancel() {
+        if (state == State.COMPLETED) return
         if (state == State.CANCELLED) return
 
         cancelSubTasks()
@@ -208,7 +209,9 @@ abstract class Task<Result> : Nameable {
 
     @Ta5kBuilder
     fun cancelSubTasks() {
-        subTasks.forEach { it.cancel() }
+        subTasks.forEach {
+            it.cancel()
+        }
     }
 
     @Ta5kBuilder
@@ -437,7 +440,7 @@ abstract class Task<Result> : Nameable {
         this.onRepeat = action
         return this
     }
-    
+
     @Ta5kBuilder
     inline fun <reified T : Event> withListener(
         crossinline action: SafeContext.(Task<Result>) -> Unit
@@ -467,7 +470,7 @@ abstract class Task<Result> : Nameable {
             init { this.name = name }
             override fun SafeContext.onStart() { success(Unit) }
         }
-        
+
         @Ta5kBuilder
         fun failTask(
             message: String

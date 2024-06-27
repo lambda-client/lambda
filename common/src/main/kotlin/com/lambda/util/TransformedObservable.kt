@@ -8,10 +8,10 @@ abstract class TransformedObservable<T>(initialValue: T) : ReadWriteProperty<Any
 
     override fun getValue(thisRef: Any?, property: KProperty<*>) = value
 
-    override fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: T) {
+    override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
         val oldValue = this.value
-        this.value = transform(valueIn)
-        if (oldValue != value) onChange(oldValue, value)
+        this.value = transform(value)
+        if (oldValue != this.value) onChange(oldValue, this.value)
     }
 
     protected open fun transform(value: T): T = value

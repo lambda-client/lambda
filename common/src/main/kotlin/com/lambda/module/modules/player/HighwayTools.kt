@@ -147,7 +147,7 @@ object HighwayTools : Module(
             1,
             -center + width - 1,
             -1,
-        ).associateWith { TargetState.Solid }
+        ).associateWith { TargetState.Support(Direction.UP) }
 
         // Support for the right corner
         structure += generateDirectionalTube(
@@ -156,7 +156,7 @@ object HighwayTools : Module(
             1,
             -center,
             -1,
-        ).associateWith { TargetState.Solid }
+        ).associateWith { TargetState.Support(Direction.UP) }
 
         return structure
     }

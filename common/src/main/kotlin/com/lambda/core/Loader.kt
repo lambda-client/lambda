@@ -28,6 +28,8 @@ object Loader {
         HudGuiConfigurable,
         FriendRegistry,
         SoundRegistry,
+        TimerManager,
+        PingManager,
         ContainerManager
     )
 

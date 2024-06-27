@@ -3,9 +3,12 @@ package com.lambda.module.modules.render
 import com.lambda.Lambda.mc
 import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
 import com.lambda.graphics.renderer.esp.DirectionMask
+import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.graphics.renderer.esp.DirectionMask.mask
-import com.lambda.graphics.renderer.esp.EspRenderer
+import com.lambda.graphics.renderer.esp.ESPRenderer
+import com.lambda.graphics.renderer.esp.global.buildFilled
+import com.lambda.graphics.renderer.esp.global.buildOutline
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
@@ -15,7 +18,6 @@ import net.minecraft.client.render.model.BakedModel
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
-import net.minecraft.world.WorldView
 import java.awt.Color
 
 object BlockESP : Module(
@@ -51,9 +53,6 @@ object BlockESP : Module(
     private val mesh: Boolean by setting("Mesh", true, "Connect similar adjacent blocks").apply {
         onValueSet { _, _ -> esp.rebuild() }
     }
-    private val shaped: Boolean by setting("Shaped", false, "Render outline shape").apply {
-        onValueSet { _, _ -> esp.rebuild() }
-    }
     private val blocks: Set<Block> by setting("Blocks", setOf(Blocks.BEDROCK), "Render blocks").apply {
         onValueSet { _, _ -> esp.rebuild() }
     }
@@ -79,29 +78,16 @@ object BlockESP : Module(
         val state = view.getBlockState(blockPos)
         if (state.block !in blocks) return@newChunkedESP
 
-        if (shaped) {
-            val shape = state.getOutlineShape(view, blockPos)
-            if (shape.isEmpty) return@newChunkedESP
-            val boxes = shape.boundingBoxes
-                .map { it.offset(blockPos) }
-                .toSet()
-
-            buildMesh(boxes, outlineColor)
-            return@newChunkedESP
-        }
-
-        var sides = DirectionMask.ALL
-
-        if (mesh) {
-            Direction.entries
-                .filter { blockPos.offset(it).blockState(view).block in blocks }
-                .forEach { sides = sides.exclude(it.mask) }
-        }
+        val sides = if (mesh) {
+            buildSideMesh(blockPos) {
+                it.blockState(view).block in blocks
+            }
+        } else DirectionMask.ALL
 
         build(Box(blockPos), sides)
     }
 
-    private fun EspRenderer.build(
+    private fun ESPRenderer.build(
         box: Box,
         sides: Int,
     ) {

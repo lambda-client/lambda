@@ -11,8 +11,10 @@ import com.lambda.module.HudModule
 import com.lambda.module.Module
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.module.modules.client.GuiSettings.primaryColor
 import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.Vec2d
+import java.awt.Color
 
 object LambdaClickGui : AbstractClickGui("ClickGui", ClickGui) {
     override val moduleFilter: (Module) -> Boolean = {
@@ -39,6 +41,7 @@ object LambdaClickGui : AbstractClickGui("ClickGui", ClickGui) {
             override val size = Vec2d(30.0, 15.0)
             override val text = "HUD"
             override val centerText = true
+            override val roundRadius = ClickGui.windowRadius
 
             override var activeAnimation; get() = pressAnimation; set(_) {}
 
@@ -60,9 +63,8 @@ object LambdaClickGui : AbstractClickGui("ClickGui", ClickGui) {
                     renderer.outline.build(
                         rect = rect,
                         roundRadius = ClickGui.windowRadius,
-                        innerGlow = ClickGui.windowRadius.coerceAtMost(1.0),
-                        outerGlow = ClickGui.windowRadius,
-                        color = GuiSettings.mainColor.multAlpha(childShowAnimation),
+                        glowRadius = ClickGui.glowRadius,
+                        color = (if (GuiSettings.shadeBackground) Color.WHITE else primaryColor).multAlpha(childShowAnimation),
                         shade = GuiSettings.shadeBackground
                     )
                 }

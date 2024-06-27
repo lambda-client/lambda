@@ -11,9 +11,9 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 
 data class BreakContext(
-    val pov: Vec3d,
-    val result: BlockHitResult,
-    val rotation: RotationContext,
+    override val pov: Vec3d,
+    override val result: BlockHitResult,
+    override val rotation: RotationContext,
     override val checkedState: BlockState,
     override var hand: Hand,
     val instantBreak: Boolean,
@@ -30,9 +30,9 @@ data class BreakContext(
             ctx.world.isAir(result.blockPos.offset(it))
         }
 
-    override val expectedState = checkedState.fluidState.blockState
+    override val expectedState: BlockState = checkedState.fluidState.blockState
 
-    override fun compareTo(other: ComparableContext): Int {
+    override fun compareTo(other: BuildContext): Int {
         return when (other) {
             is BreakContext -> compareBy<BreakContext> {
                 it.distance

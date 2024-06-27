@@ -1,5 +1,6 @@
 package com.lambda.mixin.input;
 
+import com.lambda.module.modules.movement.Speed;
 import com.lambda.module.modules.movement.Sprint;
 import net.minecraft.client.option.KeyBinding;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,5 +18,6 @@ public class KeyBindingMixin {
         if (!Objects.equals(instance.getTranslationKey(), "key.sprint")) return;
 
         if (Sprint.INSTANCE.isEnabled()) cir.setReturnValue(true);
+        if (Speed.INSTANCE.isEnabled() && Speed.getMode() == Speed.Mode.GRIM_STRAFE) cir.setReturnValue(true);
     }
 }

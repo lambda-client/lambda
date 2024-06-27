@@ -14,6 +14,7 @@ import com.lambda.gui.api.component.button.ListButton
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.impl.clickgui.buttons.setting.*
 import com.lambda.module.Module
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.playSoundRandomly
@@ -143,7 +144,7 @@ class ModuleButton(
                     val leftColor = color.multAlpha(1.0 - toggleFxDirection)
                     val rightColor = color.multAlpha(toggleFxDirection)
 
-                    build(rect, 0.0, leftColor, rightColor, rightColor, leftColor, GuiSettings.shade)
+                    build(rect, roundRadius, leftColor, rightColor, rightColor, leftColor, GuiSettings.shade)
                 }
 
                 if (renderHeight > 0.5) {
@@ -166,7 +167,7 @@ class ModuleButton(
             var lastStep = 0.0
             settingsLayer.children
                 .filter(SettingButton<*, *>::visible)
-                .sumOf { lastStep = it.listStep; it.size.y + it.listStep } - lastStep + super.listStep * 2.0
+                .sumOf { lastStep = it.listStep; it.size.y + it.listStep } - lastStep + super.listStep
         } else 0.0
     }
 

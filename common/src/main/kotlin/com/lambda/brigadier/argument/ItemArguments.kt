@@ -24,7 +24,6 @@ package com.lambda.brigadier.argument
 
 
 import com.lambda.brigadier.*
-import com.lambda.brigadier.assumeSourceNotUsed
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.command.argument.ItemPredicateArgumentType
 import net.minecraft.command.argument.ItemSlotArgumentType
@@ -37,7 +36,7 @@ import java.util.function.Predicate
  * Reads the [ItemStack] predicate value from the
  * argument in the receiver [ArgumentReader].
  *
- * @see ItemPredicateArgumentType.getItemPredicate
+ * @see ItemPredicateArgumentType.getItemStackPredicate
  */
 @JvmName("valueItemPredicateArg")
 @BrigadierDsl

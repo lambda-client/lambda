@@ -97,9 +97,6 @@ class SafeListener(
          * - [SafeContext.interaction]
          * - [SafeContext.connection]
          *
-         * This listener is special for tasks, as its behavior is
-         * to only listen while the [Task.onAction] function is active / while the task is running.
-         *
          * Usage:
          * ```kotlin
          * myTask.listener<MyEvent> { event ->

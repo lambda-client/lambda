@@ -1,14 +1,13 @@
 package com.lambda.config.settings.collections
 
 import com.google.gson.JsonElement
-import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda.gson
 import com.lambda.config.AbstractSetting
 import java.lang.reflect.Type
 
 class ListSetting<T : Any>(
     override val name: String,
-    private val defaultValue: MutableList<T>,
+    defaultValue: MutableList<T>,
     private val type: Type,
     description: String,
     visibility: () -> Boolean,
