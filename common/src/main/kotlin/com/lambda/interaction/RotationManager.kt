@@ -46,7 +46,7 @@ object RotationManager : Loadable {
         }
 
     init {
-        listener<PacketEvent.Send.Post> { event ->
+        listener<PacketEvent.Receive.Post> { event ->
             val packet = event.packet
             if (packet !is PlayerPositionLookS2CPacket) return@listener
 
