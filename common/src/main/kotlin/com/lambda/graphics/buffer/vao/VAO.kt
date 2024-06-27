@@ -28,8 +28,7 @@ import java.nio.ByteBuffer
 class VAO(
     private val vertexMode: VertexMode,
     attribGroup: VertexAttrib.Group,
-    private val bufferUsage: BufferUsage = BufferUsage.DYNAMIC,
-    initializeInstantly: Boolean = false
+    private val bufferUsage: BufferUsage = BufferUsage.DYNAMIC
 ) : IRenderContext {
     private var vao = 0
     private var vbo = 0
@@ -37,12 +36,12 @@ class VAO(
 
     private val objectSize: Int
 
-    private lateinit var vertices: ByteBuffer
-    private var verticesPointer = 0L
-    private var verticesPosition = 0L
+    private var vertices: ByteBuffer
+    private var verticesPointer: Long
+    private var verticesPosition: Long
 
-    private lateinit var indices: ByteBuffer
-    private var indicesPointer = 0L
+    private var indices: ByteBuffer
+    private var indicesPointer: Long
     private var indicesCount = 0
     private var uploadedIndices = 0
 
@@ -52,20 +51,9 @@ class VAO(
         val stride = attribGroup.stride
         objectSize = stride * vertexMode.indicesCount
 
-        if (initializeInstantly) {
-            initialize(attribGroup, stride)
-        } else {
-            runGameScheduled {
-                initialize(attribGroup, stride)
-            }
-        }
-    }
-
-    private fun initialize(attribGroup: VertexAttrib.Group, stride: Int) {
         vertices = byteBuffer(objectSize * 256 * 4)
         verticesPointer = address(vertices)
         verticesPosition = verticesPointer
-
         indices = byteBuffer(vertexMode.indicesCount * 512 * 4)
         indicesPointer = address(indices)
 

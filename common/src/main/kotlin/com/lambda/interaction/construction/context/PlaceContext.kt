@@ -10,21 +10,21 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 
 data class PlaceContext(
-    val pov: Vec3d,
-    val result: BlockHitResult,
-    val rotation: RotationContext,
+    override val pov: Vec3d,
+    override val result: BlockHitResult,
+    override val rotation: RotationContext,
     override val distance: Double,
     override val expectedState: BlockState,
     override val checkedState: BlockState,
-    val targetState: TargetState,
     override val hand: Hand,
+    val targetState: TargetState,
     val sneak: Boolean,
     val insideBlock: Boolean,
 ) : BuildContext {
     override val resultingPos: BlockPos
         get() = result.blockPos.offset(result.side)
 
-    override fun compareTo(other: ComparableContext): Int {
+    override fun compareTo(other: BuildContext): Int {
         return when (other) {
             is PlaceContext -> compareBy<PlaceContext> {
                 BlockUtils.fluids.indexOf(it.checkedState.fluidState.fluid)

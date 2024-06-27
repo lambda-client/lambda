@@ -24,8 +24,9 @@ class BooleanButton(
     private val zoomAnimation get() = lerp(2.0, 0.0, showAnimation)
 
     private val checkboxRect
-        get() = Rect(rect.rightTop - Vec2d(rect.size.y * 1.75, 0.0), rect.rightBottom)
+        get() = Rect(rect.rightTop - Vec2d(rect.size.y * 1.65, 0.0), rect.rightBottom)
             .shrink(1.0 + zoomAnimation)
+            .moveFirst(Vec2d(0.0, 0.5)).moveSecond(Vec2d(0.0, -0.5))
 
     private val knobStart get() = Rect.basedOn(checkboxRect.leftTop, Vec2d.ONE * checkboxRect.size.y)
     private val knobEnd get() = Rect.basedOn(checkboxRect.rightBottom, Vec2d.ONE * checkboxRect.size.y * -1.0).inv()

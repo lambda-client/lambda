@@ -42,5 +42,9 @@ object Lambda {
         .registerTypeAdapter(GameProfile::class.java, GameProfileSerializer)
         .create()
 
-    fun initialize() = Loader.initialize()
+    fun initialize() {
+        recordRenderCall {
+            Loader.initialize()
+        }
+    }
 }

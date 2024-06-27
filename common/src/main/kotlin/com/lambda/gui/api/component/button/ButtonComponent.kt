@@ -26,6 +26,7 @@ abstract class ButtonComponent(
     protected open val centerText = false
 
     protected abstract var activeAnimation: Double
+    protected open val roundRadius get() = ClickGui.buttonRadius
 
     private val actualSize get() = Vec2d(if (size.x == FILL_PARENT) owner.rect.size.x else size.x, size.y)
     final override val rect get() = Rect.basedOn(position, actualSize) + owner.rect.leftTop
@@ -58,6 +59,7 @@ abstract class ButtonComponent(
                 // Active color
                 renderer.filled.build(
                     rect = rect.shrink(shrinkAnimation),
+                    roundRadius = roundRadius,
                     color = GuiSettings.mainColor.multAlpha(activeAnimation * 0.3 * showAnimation),
                     shade = GuiSettings.shade
                 )
@@ -66,6 +68,7 @@ abstract class ButtonComponent(
                 val hoverRect = Rect.basedOn(rect.leftTop, rect.size.x * hoverRectAnimation, rect.size.y)
                 renderer.filled.build(
                     rect = hoverRect.shrink(shrinkAnimation),
+                    roundRadius = roundRadius,
                     color = GuiSettings.mainColor.multAlpha(interactAnimation * 0.2 * showAnimation),
                     shade = GuiSettings.shade
                 )

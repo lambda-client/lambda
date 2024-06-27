@@ -4,6 +4,8 @@ import com.lambda.Lambda.mc
 import com.lambda.context.ClientContext
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
+import com.mojang.blaze3d.systems.RenderSystem.isOnRenderThread
+import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
@@ -79,7 +81,14 @@ inline fun runSafeConcurrent(crossinline block: SafeContext.() -> Unit) {
  * @param block The task to be executed on the game's main thread.
  */
 inline fun runGameScheduled(crossinline block: () -> Unit) {
-    mc.executeSync { block() }
+    if (isOnRenderThread()) {
+        block()
+        return
+    }
+
+    recordRenderCall {
+        block()
+    }
 }
 
 /**
@@ -121,5 +130,5 @@ inline fun runSafeGameConcurrent(crossinline block: SafeContext.() -> Unit) {
  *
  * @param block The task to be executed on the game's main thread within a safe context.
  */
-suspend inline fun <T> runGameBlocking(noinline block: SafeContext.() -> T) =
+suspend inline fun <T> awaitMainThread(noinline block: SafeContext.() -> T) =
     CompletableFuture.supplyAsync({ runSafe { block() } }, mc).await() ?: throw IllegalStateException("Unsafe")

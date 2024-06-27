@@ -3,13 +3,11 @@ package com.lambda.module.modules.debug
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.graphics.renderer.esp.EspRenderer
+import com.lambda.graphics.renderer.esp.global.build
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.mainThread
 import com.lambda.util.math.ColorUtils.setAlpha
 import com.lambda.util.world.WorldUtils.getClosestEntity
-import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.Box
 import java.awt.Color
@@ -29,26 +27,14 @@ object RenderTest : Module(
     private val outlineColor = Color(100, 150, 255).setAlpha(0.5)
     private val filledColor = outlineColor.setAlpha(0.2)
 
-    private val rendeer by mainThread {
-        EspRenderer()
-    }
-
     init {
         listener<RenderEvent.EntityESP> {
             val entity = getClosestEntity<LivingEntity>(player.pos, 8.0) ?: return@listener
-            it.build(entity, filledColor, outlineColor)
+            it.renderer.build(entity, filledColor, outlineColor)
         }
 
-        listener<TickEvent.Pre> {
-            rendeer.build(Box.of(player.pos, 0.3, 0.3, 0.3), filledColor, outlineColor)
-        }
-
-        listener<RenderEvent.World> {
-            rendeer.render()
-        }
-
-        onEnable {
-            rendeer.clear()
+        listener<RenderEvent.BlockESP> {
+            it.renderer.build(Box.of(player.pos, 0.3, 0.3, 0.3), filledColor, outlineColor)
         }
     }
 }

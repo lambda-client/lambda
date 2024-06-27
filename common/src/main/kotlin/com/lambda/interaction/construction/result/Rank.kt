@@ -28,7 +28,6 @@ enum class Rank {
     PLACE_ILLEGAL_USAGE,
 
     // not an issue
-    PLACE_IGNORED,
     DONE,
     IGNORED,
 }
