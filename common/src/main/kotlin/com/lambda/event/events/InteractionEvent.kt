@@ -17,5 +17,22 @@ sealed class InteractionEvent : Event {
     class AttackBlock(
         val pos: BlockPos,
         val side: Direction
-    ): InteractionEvent(), ICancellable by Cancellable()
+    ) : InteractionEvent(), ICancellable by Cancellable()
+
+    abstract class UpdateBlockBreakingProgress : InteractionEvent() {
+
+        class Pre(
+            val pos: BlockPos,
+            val side: Direction,
+        ) : UpdateBlockBreakingProgress()
+
+        class Post(
+            val pos: BlockPos,
+            val side: Direction,
+        ) : UpdateBlockBreakingProgress()
+    }
+
+    class GetBlockBreakingProgress(
+        var value: Int
+    ) : InteractionEvent()
 }

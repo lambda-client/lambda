@@ -8,9 +8,6 @@ accessible field net/minecraft/client/MinecraftClient thread Ljava/lang/Thread;
 
 # World
 accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minecraft/client/world/ClientEntityManager;
-accessible field net/minecraft/client/network/ClientPlayerInteractionManager currentBreakingProgress F
-accessible field net/minecraft/client/network/ClientPlayerInteractionManager blockBreakingCooldown I
-accessible field net/minecraft/client/network/ClientPlayerInteractionManager currentBreakingPos Lnet/minecraft/util/math/BlockPos;
 accessible field net/minecraft/client/world/ClientEntityManager cache Lnet/minecraft/world/entity/SectionedEntityCache;
 accessible field net/minecraft/world/entity/EntityTrackingSection collection Lnet/minecraft/util/collection/TypeFilterableList;
 accessible field net/minecraft/client/world/ClientChunkManager chunks Lnet/minecraft/client/world/ClientChunkManager$ClientChunkMap;
@@ -52,6 +49,9 @@ accessible field net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPa
 accessible field net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket type Lnet/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler;
 accessible class net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler
 accessible class net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractAtHandler
+accessible method net/minecraft/network/ClientConnection handlePacket (Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;)V
+accessible field net/minecraft/network/ClientConnection packetsSentCounter I
+accessible field net/minecraft/network/ClientConnection packetsReceivedCounter I
 
 # Other
 accessible field net/minecraft/world/explosion/Explosion behavior Lnet/minecraft/world/explosion/ExplosionBehavior;
