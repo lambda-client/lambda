@@ -8,4 +8,8 @@ object LoaderInfoImpl {
         FabricLoader.getInstance()
             .getModContainer("lambda").orElseThrow()
             .metadata.version.friendlyString
+
+    @JvmStatic
+    fun isDevelopment(): Boolean =
+        FabricLoader.getInstance().isDevelopmentEnvironment
 }
