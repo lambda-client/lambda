@@ -129,7 +129,7 @@ object PacketMine : Module(
             }
         }
 
-        listener<InteractionEvent.AttackBlock> {
+        listener<InteractionEvent.BlockAttack.Pre> {
             it.cancel()
             player.swingHand(Hand.MAIN_HAND)
 

@@ -33,7 +33,7 @@ public class ClientPlayInteractionManagerMixin {
         EventFlow.post(new InteractionEvent.Block(client.world, hitResult));
     }
 
-    @Inject(method = "attackBlock", at = @At("HEAD"))
+    @Inject(method = "attackBlock", at = @At("HEAD"), cancellable = true)
     public void onAttackBlock(BlockPos pos, Direction side, CallbackInfoReturnable<Boolean> cir) {
         if (EventFlow.post(new InteractionEvent.BlockAttack.Pre(pos, side)).isCanceled()) cir.cancel();
     }
@@ -43,7 +43,7 @@ public class ClientPlayInteractionManagerMixin {
         EventFlow.post(new InteractionEvent.BlockAttack.Post(pos, side));
     }
 
-    @Inject(method = "updateBlockBreakingProgress", at = @At("HEAD"))
+    @Inject(method = "updateBlockBreakingProgress", at = @At("HEAD"), cancellable = true)
     private void updateBlockBreakingProgressPre(BlockPos pos, Direction side, CallbackInfoReturnable<Boolean> cir) {
         var event = EventFlow.post(new InteractionEvent.BreakingProgress.Pre(pos, side, currentBreakingProgress));
         if (event.isCanceled()) cir.cancel();
