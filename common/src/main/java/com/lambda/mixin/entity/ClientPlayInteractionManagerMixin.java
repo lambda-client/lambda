@@ -2,7 +2,6 @@ package com.lambda.mixin.entity;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.InteractionEvent;
-import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
@@ -25,29 +24,35 @@ public class ClientPlayInteractionManagerMixin {
     @Shadow
     private MinecraftClient client;
 
+    @Shadow
+    public float currentBreakingProgress;
+
     @Inject(method = "interactBlock", at = @At("HEAD"))
     public void interactBlockHead(final ClientPlayerEntity player, final Hand hand, final BlockHitResult hitResult, final CallbackInfoReturnable<ActionResult> cir) {
         if (client.world == null) return;
         EventFlow.post(new InteractionEvent.Block(client.world, hitResult));
     }
 
-    @Inject(method = "attackBlock", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "attackBlock", at = @At("HEAD"))
     public void onAttackBlock(BlockPos pos, Direction side, CallbackInfoReturnable<Boolean> cir) {
-        if (EventFlow.post(new InteractionEvent.AttackBlock(pos, side)).isCanceled()) cir.cancel();
+        if (EventFlow.post(new InteractionEvent.BlockAttack.Pre(pos, side)).isCanceled()) cir.cancel();
+    }
+
+    @Inject(method = "attackBlock", at = @At("TAIL"))
+    public void onAttackBlockPost(BlockPos pos, Direction side, CallbackInfoReturnable<Boolean> cir) {
+        EventFlow.post(new InteractionEvent.BlockAttack.Post(pos, side));
     }
 
     @Inject(method = "updateBlockBreakingProgress", at = @At("HEAD"))
     private void updateBlockBreakingProgressPre(BlockPos pos, Direction side, CallbackInfoReturnable<Boolean> cir) {
-        EventFlow.post(new InteractionEvent.UpdateBlockBreakingProgress.Pre(pos, side));
+        var event = EventFlow.post(new InteractionEvent.BreakingProgress.Pre(pos, side, currentBreakingProgress));
+        if (event.isCanceled()) cir.cancel();
+
+        currentBreakingProgress = event.getProgress();
     }
 
     @Inject(method = "updateBlockBreakingProgress", at = @At("TAIL"))
     private void updateBlockBreakingProgressPost(BlockPos pos, Direction side, CallbackInfoReturnable<Boolean> cir) {
-        EventFlow.post(new InteractionEvent.UpdateBlockBreakingProgress.Post(pos, side));
-    }
-
-    @ModifyReturnValue(method = "getBlockBreakingProgress", at = @At("RETURN"))
-    private int onGetBlockBreakingProgressReturn(int original) {
-        return EventFlow.post(new InteractionEvent.GetBlockBreakingProgress(original)).getValue();
+        EventFlow.post(new InteractionEvent.BreakingProgress.Post(pos, side, currentBreakingProgress));
     }
 }
