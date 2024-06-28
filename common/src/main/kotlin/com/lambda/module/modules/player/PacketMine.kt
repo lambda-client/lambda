@@ -1,12 +1,16 @@
 package com.lambda.module.modules.player
 
+import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.event.events.InteractionEvent
+import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.interaction.construction.result.Drawable
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.math.MathUtils.lerp
 import net.minecraft.block.BlockState
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.enchantment.Enchantments
@@ -21,7 +25,9 @@ import net.minecraft.registry.tag.FluidTags
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
+import java.awt.Color
 
 object PacketMine : Module(
     name = "Packet Mine",
@@ -46,6 +52,8 @@ object PacketMine : Module(
     private val fastReBreak by setting("Fast Re-Break", false, "Re-breaks blocks instantly however could potentially cause ghost blocks", visibility = { page == Page.ReBreak && reBreak })
 
     private val breakingAnimation by setting("Breaking Animation", false, "Renders the block breaking animation like vanilla would to show progress", visibility = { page == Page.Render })
+    private val renderMode by setting("Render Mode", RenderMode.InOut, "Renders a box with size corresponding to amount broken", visibility = { page == Page.Render })
+    private val renderColor by setting("Render Colour", Color.RED, "The colour used to render the breaking box", visibility = { page == Page.Render })
 
 
     private var currentMiningBlock: BreakingContext? = null
@@ -64,13 +72,18 @@ object PacketMine : Module(
                 val activeState = world.getBlockState(pos)
                 if (activeState != state) state = activeState
                 val bestTool = getBestTool(activeState, pos)
-                val blockBreakAmount = mineTicks * calcBreakDelta(state, pos, bestTool)
 
-                if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, (blockBreakAmount * (2 - breakSpeed) * 10).toInt().coerceAtMost(9))
+                currentBreakDelta = calcBreakDelta(state, pos, bestTool)
+
+                if (renderMode.isEnabled()) updateBoxList(currentBreakDelta)
+
+                val miningProgress = mineTicks * currentBreakDelta
+
+                if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, (miningProgress * (2 - breakSpeed) * 10).toInt().coerceAtMost(9))
 
                 when (breakState) {
                     BreakState.Breaking -> {
-                        if (mineTicks * calcBreakDelta(state, pos, bestTool) < breakSpeed) return@listener
+                        if (miningProgress < breakSpeed) return@listener
 
                         timeCompleted = System.currentTimeMillis()
                         swapStopBreak(pos, bestTool)
@@ -92,7 +105,7 @@ object PacketMine : Module(
                             return@listener
                         }
 
-                        if (mineTicks * calcBreakDelta(state, pos, bestTool) < breakSpeed) return@listener
+                        if (miningProgress < breakSpeed) return@listener
 
                         if (!fastReBreak
                             && (activeState.isAir || (!activeState.fluidState.isEmpty && !(activeState.properties.contains(Properties.WATERLOGGED) && activeState.get(Properties.WATERLOGGED))))) {
@@ -143,6 +156,12 @@ object PacketMine : Module(
                 onBlockBreak()
             }
         }
+
+        listener<RenderEvent.BlockESP> {
+            currentMiningBlock?.apply {
+                buildRenderer()
+            }
+        }
     }
 
     private fun SafeContext.startBreaking(pos: BlockPos) {
@@ -153,15 +172,17 @@ object PacketMine : Module(
 
         swapStartPacketBreak(pos, bestTool)
 
-        if (calcBreakDelta(world.getBlockState(pos), pos, bestTool) > breakSpeed) {
+        val breakDelta = calcBreakDelta(world.getBlockState(pos), pos, bestTool)
+
+        if (breakDelta > breakSpeed) {
             if (reBreak) {
                 swapStartPacketBreak(pos, bestTool)
-                currentMiningBlock = BreakingContext(pos, state, BreakState.ReBreaking)
+                currentMiningBlock = BreakingContext(pos, state, BreakState.ReBreaking, breakDelta)
             } else {
                 currentMiningBlock = if (!validateBreak) {
                     null
                 } else {
-                    BreakingContext(pos, state, BreakState.AwaitingResponse)
+                    BreakingContext(pos, state, BreakState.AwaitingResponse, breakDelta)
                 }
             }
             currentMiningBlock?.timeCompleted = System.currentTimeMillis()
@@ -169,7 +190,7 @@ object PacketMine : Module(
             checkClientBreak(false, pos)
         }
 
-        currentMiningBlock = BreakingContext(pos, state, BreakState.Breaking)
+        currentMiningBlock = BreakingContext(pos, state, BreakState.Breaking, breakDelta)
     }
 
     private fun SafeContext.onBlockBreak() {
@@ -239,6 +260,14 @@ object PacketMine : Module(
         }
     }
 
+    private fun getLerp(box: Box, factor: Float): Box {
+        return if (renderMode == RenderMode.InOut) {
+            lerp(Box(box.center, box.center), box, factor.toDouble())
+        } else {
+            lerp(box, Box(box.center, box.center), factor.toDouble())
+        }
+    }
+
     private fun SafeContext.swapStartPacketBreak(pos: BlockPos, toolSlot: Int) {
         connection.sendPacket(UpdateSelectedSlotC2SPacket(toolSlot))
         ignorePacketSend = true
@@ -269,6 +298,55 @@ object PacketMine : Module(
 
     private fun SafeContext.abortBreak(pos: BlockPos) {
         connection.sendPacket(PlayerActionC2SPacket(Action.ABORT_DESTROY_BLOCK, pos, Direction.UP, 0))
+    }
+
+    private data class BreakingContext(
+        val pos: BlockPos,
+        var state: BlockState,
+        var breakState: BreakState,
+        var currentBreakDelta: Float
+    ) : Drawable {
+        var mineTicks = 0
+        var timeCompleted: Long = -1
+
+        var previousBreakDelta = 0f
+
+        var boxList = if (renderMode.isEnabled()) {
+            state.getCollisionShape(mc.world, pos).boundingBoxes.toSet()
+        } else {
+            null
+        }
+
+        fun updateBoxList(newBreakDelta: Float) {
+            previousBreakDelta = currentBreakDelta
+            currentBreakDelta = newBreakDelta
+            if (renderMode.isEnabled())
+                boxList = state.getCollisionShape(mc.world, pos).boundingBoxes.toSet()
+        }
+
+        override fun SafeContext.buildRenderer() {
+            boxList?.forEach { box ->
+                withBox(lerp(
+                    getLerp(box, (mineTicks - 1) * previousBreakDelta * (2 - breakSpeed.toFloat())).offset(pos)
+                    , getLerp(box, mineTicks * currentBreakDelta * (2 - breakSpeed.toFloat())).offset(pos)
+                    , mc.tickDelta.toDouble())
+                    , renderColor)
+            }
+        }
+    }
+
+    private enum class RenderMode {
+        InOut, OutIn, None;
+        fun isEnabled(): Boolean =
+            this != None
+    }
+
+    private enum class BreakState {
+        Breaking, ReBreaking, AwaitingResponse
+    }
+
+    private enum class Page {
+        General, Queue, ReBreak, Render
     }
 
     //Todo: Replace with task system
@@ -332,18 +410,5 @@ object PacketMine : Module(
         }
 
         return f
-    }
-
-    private data class BreakingContext(var pos: BlockPos, var state: BlockState, var breakState: BreakState) {
-        var mineTicks = 0
-        var timeCompleted: Long = -1
-    }
-
-    private enum class BreakState {
-        Breaking, ReBreaking, AwaitingResponse
-    }
-
-    private enum class Page {
-        General, Queue, ReBreak, Render
     }
 }
