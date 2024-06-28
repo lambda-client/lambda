@@ -50,10 +50,7 @@ object FastBreak : Module(
         }
 
         listener<TickEvent.Pre> {
-            if (interaction.blockBreakingCooldown != 5 || breakDelay == 5)
-                return@listener
-
-            interaction.blockBreakingCooldown = breakDelay
+            interaction.blockBreakingCooldown = interaction.blockBreakingCooldown.coerceAtMost(breakDelay)
         }
 
         listener<InteractionEvent.UpdateBlockBreakingProgress.Post> {
