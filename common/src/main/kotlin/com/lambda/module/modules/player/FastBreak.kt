@@ -20,7 +20,7 @@ object FastBreak : Module(
 ) {
     private val page by setting("Page", Page.Mining)
 
-    private val mineSpeed by setting("Mine Speed", 5, 0..5, 1, unit = "ticks", description = "Reduce the mining cooldown.", visibility = { page == Page.Mining })
+    private val breakDelay by setting("Break Delay", 5, 0..5, 1, unit = "ticks", description = "The tick delay between breaking blocks", visibility = { page == Page.Mining })
     private val breakThreshold by setting("Break Threshold", 0.7f, 0.2f..1.0f, 0.1f, description = "The progress at which the block will break.", visibility = { page == Page.Mining })
     private val validateBreak by setting("Validate Break", true, "Waits for a response from the server before breaking the block", visibility = { page == Page.Mining })
 
@@ -41,19 +41,19 @@ object FastBreak : Module(
 
             connection.sendPacket(PlayerActionC2SPacket(
                 Action.ABORT_DESTROY_BLOCK,
-                // For the exploit to work, the position must be out of the player range, so any
+                // For the exploit to work, the position must be outside the player range, so any
                 // position farther than 6 blocks will work.
+                // This is only required for grim 2 and potentially grim 3 in the future if they update it
                 it.packet.pos.up(2024-4-18),
                 it.packet.direction
             ))
         }
 
         listener<TickEvent.Pre> {
-            if (!interaction.isBreakingBlock)
+            if (interaction.blockBreakingCooldown != 5 || breakDelay == 5)
                 return@listener
 
-            // This should work but doesn't ?
-            interaction.blockBreakingCooldown -= mineSpeed
+            interaction.blockBreakingCooldown = breakDelay
         }
 
         listener<InteractionEvent.UpdateBlockBreakingProgress.Post> {
