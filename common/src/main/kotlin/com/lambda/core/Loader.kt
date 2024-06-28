@@ -5,9 +5,12 @@ import com.lambda.Lambda.LOG
 import com.lambda.command.CommandRegistry
 import com.lambda.friend.FriendRegistry
 import com.lambda.graphics.renderer.gui.font.LambdaFont
+import com.lambda.graphics.renderer.gui.font.LambdaEmoji
 import com.lambda.gui.GuiConfigurable
+import com.lambda.gui.HudGuiConfigurable
 import com.lambda.interaction.PlayerPacketManager
 import com.lambda.interaction.RotationManager
+import com.lambda.interaction.material.ContainerManager
 import com.lambda.module.ModuleRegistry
 import com.lambda.sound.SoundRegistry
 import com.lambda.util.Communication.ascii
@@ -20,9 +23,14 @@ object Loader {
         RotationManager,
         PlayerPacketManager,
         LambdaFont.Loader,
+        LambdaEmoji.Loader,
         GuiConfigurable,
+        HudGuiConfigurable,
         FriendRegistry,
         SoundRegistry,
+        TimerManager,
+        PingManager,
+        ContainerManager
     )
 
     fun initialize() {

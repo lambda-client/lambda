@@ -5,6 +5,7 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.Communication.info
 import com.lambda.util.DynamicReflectionSerializer.dynamicString
 import net.minecraft.network.packet.c2s.play.*
 import net.minecraft.network.packet.s2c.play.InventoryS2CPacket
@@ -19,7 +20,7 @@ object InventoryDebug : Module(
         listener<PacketEvent.Receive.Pre> {
             when (val packet = it.packet) {
                 is UpdateSelectedSlotS2CPacket, is InventoryS2CPacket -> {
-                    LOG.info(packet.dynamicString())
+                    this@InventoryDebug.info(packet.dynamicString())
                 }
             }
         }
@@ -32,9 +33,8 @@ object InventoryDebug : Module(
                 is CraftRequestC2SPacket,
                 is CreativeInventoryActionC2SPacket,
                 is PickFromInventoryC2SPacket,
-                is UpdateSelectedSlotC2SPacket -> {
-                    LOG.info(it.packet.dynamicString())
-                }
+                is UpdateSelectedSlotC2SPacket,
+                -> LOG.info(it.packet.dynamicString())
             }
         }
     }

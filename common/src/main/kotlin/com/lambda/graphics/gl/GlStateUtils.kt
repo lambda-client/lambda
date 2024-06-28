@@ -19,7 +19,6 @@ object GlStateUtils {
         blend(true)
         cull(false)
 
-
         block()
 
         glDepthMask(true)
@@ -34,6 +33,28 @@ object GlStateUtils {
         depthTest(true)
         block()
         depthTest(false)
+    }
+
+    fun withFaceCulling(block: () -> Unit) {
+        cull(true)
+        block()
+        cull(false)
+    }
+
+    fun withLineWidth(width: Double, block: () -> Unit) {
+        glLineWidth(width.toFloat())
+        block()
+        glLineWidth(1f)
+    }
+
+    fun withBlendFunc(
+        sfactorRGB: Int, dfactorRGB: Int,
+        sfactorAlpha: Int = sfactorRGB, dfactorAlpha: Int = dfactorRGB,
+        block: () -> Unit
+    ) {
+        glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha)
+        block()
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     }
 
     @JvmStatic

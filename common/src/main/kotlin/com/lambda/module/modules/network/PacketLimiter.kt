@@ -7,10 +7,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
 import com.lambda.util.collections.LimitedDecayQueue
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.LookAndOnGround
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.Full
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.OnGroundOnly
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.PositionAndOnGround
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.*
 import net.minecraft.network.packet.c2s.play.TeleportConfirmC2SPacket
 
 // ToDo: HUD info
@@ -20,12 +17,12 @@ object PacketLimiter : Module(
     defaultTags = setOf(ModuleTag.NETWORK)
 ) {
     private var packetQueue = LimitedDecayQueue<PacketEvent.Send.Pre>(99, 1000)
-    private val limit by setting("Limit", 99, 1..100, 1, "The maximum amount of packets to send per given time interval").apply {
+    private val limit by setting("Limit", 99, 1..100, 1, "The maximum amount of packets to send per given time interval", unit = " packets").apply {
         onValueChange { _, to ->
             packetQueue.setMaxSize(to)
         }
     }
-    private val interval by setting("Duration", 1000L, 1L..1000L, 50L, "The interval / duration in milliseconds to limit packets for").apply {
+    private val interval by setting("Duration", 1000L, 1L..1000L, 50L, "The interval / duration in milliseconds to limit packets for", unit = " ms").apply {
         onValueChange { _, to ->
             packetQueue.setInterval(to)
         }

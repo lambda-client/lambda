@@ -1,7 +1,9 @@
 package com.lambda.config.settings
 
+import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
-import com.lambda.util.math.MathUtils.roundToStep
+import java.text.NumberFormat
+import java.util.*
 import kotlin.reflect.KProperty
 
 /**
@@ -25,10 +27,13 @@ abstract class NumericSetting<T>(
     val unit: String,
 ) : AbstractSetting<T>(
     value,
+    TypeToken.get(value::class.java).type,
     description,
     visibility
 ) where T : Number, T : Comparable<T> {
-    override fun toString() = "$value$unit"
+    private val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
+
+    override fun toString() = "${formatter.format(value)}$unit"
 
     override operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: T) {
         value = valueIn.coerceIn(range)

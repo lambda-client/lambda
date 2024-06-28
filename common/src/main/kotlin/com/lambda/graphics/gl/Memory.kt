@@ -27,9 +27,9 @@ object Memory {
     }
 
     fun color(address: Long, color: Color): Int {
-        byte(address + 0, color.red  .toByte())
+        byte(address + 0, color.red.toByte())
         byte(address + 1, color.green.toByte())
-        byte(address + 2, color.blue .toByte())
+        byte(address + 2, color.blue.toByte())
         byte(address + 3, color.alpha.toByte())
         return colorSize
     }

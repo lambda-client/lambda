@@ -2,12 +2,12 @@ package com.lambda.util.math
 
 import java.awt.Color
 
-val Color.hsb get() = Color.RGBtoHSB(red, green, blue, null)
-    .map(Float::toDouble)
-    .toDoubleArray()
+val Color.hsb
+    get() = Color.RGBtoHSB(red, green, blue, null)
+        .map(Float::toDouble)
+        .toDoubleArray()
 
-fun DoubleArray.readHSB() =
-    Color.getHSBColor(this[0].toFloat(), this[1].toFloat(), this[2].toFloat())
+fun DoubleArray.readHSB(): Color = Color.getHSBColor(this[0].toFloat(), this[1].toFloat(), this[2].toFloat())
 
 val Color.hue get() = hsb[0]
 val Color.saturation get() = hsb[1]

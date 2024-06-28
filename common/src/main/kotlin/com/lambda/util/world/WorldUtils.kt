@@ -1,6 +1,8 @@
 package com.lambda.util.world
 
 import com.lambda.context.SafeContext
+import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.collections.filterPointer
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
@@ -38,20 +40,11 @@ import kotlin.math.ceil
  * @see <a href="https://www.ibm.com/docs/no/aix/7.2?topic=monitoring-garbage-collection-impacts-java-performance">IBM - Garbage Collection Impacts on Java Performance</a>
  * @see <a href="https://devdiaries.medium.com/gc-and-its-effect-on-java-performance-9cba51ffb196">Medium - GC and Its Effect on Java Performance</a>
  *
+ * Many functions uses a branching approach to avoid trolling the speculative execution of the CPU.
+ * @see <a href="https://en.wikipedia.org/wiki/Branch_predictor for more information.">Branch Predictor</a>
+ * @see <a href="https://en.wikipedia.org/wiki/Speculative_execution">Speculative Execution</a>
  */
 object WorldUtils {
-    /**
-    * Gets the closest entity of type [T] within a specified range.
-    */
-    inline fun <reified T : Entity> SafeContext.getClosestEntity(
-        type: Class<out T>, // This is a class reference, not an instance of the class.
-        pos: Vec3d,
-        range: Double,
-        predicate: (T) -> Boolean = { true },
-    ): T? {
-        return getClosestEntity(pos, range, predicate)
-    }
-
     /**
      * Gets the closest entity of type [T] within a specified range.
      *
@@ -67,6 +60,7 @@ object WorldUtils {
         pos: Vec3d,
         range: Double,
         predicate: (T) -> Boolean = { true },
+        type: Class<out T> = T::class.java,
     ): T? {
         var closest: T? = null
         var closestDistance = Double.MAX_VALUE
@@ -82,20 +76,6 @@ object WorldUtils {
         getFastEntities(pos, range, null, comparator, predicate)
 
         return closest
-    }
-
-    /**
-     * Gets all entities of type [T] within a specified distance from a position.
-     */
-    inline fun <T : Entity> SafeContext.getFastEntities(
-        type: Class<out T>, // This is a class reference, not an instance of the class.
-        pos: Vec3d,
-        distance: Double,
-        pointer: MutableList<Entity>? = null,
-        iterator: (Entity, Int) -> Unit = { _, _ -> },
-        predicate: (Entity) -> Boolean = { true },
-    ) {
-        return getFastEntities(pos, distance, pointer, iterator, predicate)
     }
 
     /**
@@ -132,6 +112,7 @@ object WorldUtils {
         pointer: MutableList<T>? = null,
         iterator: (T, Int) -> Unit = { _, _ -> },
         predicate: (T) -> Boolean = { true },
+        type: Class<out T> = T::class.java,
     ) {
         val chunks = ceil(distance / 16).toInt()
         val sectionX = pos.x.toInt() shr 4
@@ -144,8 +125,10 @@ object WorldUtils {
         for (x in sectionX - chunks..sectionX + chunks) {
             for (y in sectionY - chunks..sectionY + chunks) {
                 for (z in sectionZ - chunks..sectionZ + chunks) {
-                    val section =
-                        world.entityManager.cache.findTrackingSection(ChunkSectionPos.asLong(x, y, z)) ?: continue
+                    val section = world
+                        .entityManager
+                        .cache
+                        .findTrackingSection(ChunkSectionPos.asLong(x, y, z)) ?: continue
 
                     section.collection.filterPointer(pointer, iterator) { entity ->
                         entity != player &&
@@ -155,20 +138,6 @@ object WorldUtils {
                 }
             }
         }
-    }
-
-    /**
-     * Gets all entities of type [T] within a specified distance from a position.
-     */
-    inline fun <reified T : Entity> SafeContext.getEntities(
-        type: Class<out T>, // This is a class reference, not an instance of the class.
-        pos: Vec3d,
-        distance: Double,
-        pointer: MutableList<Entity>? = null,
-        iterator: (Entity, Int) -> Unit = { _, _ -> },
-        predicate: (Entity) -> Boolean = { true },
-    ) {
-        return getEntities(pos, distance, pointer, iterator, predicate)
     }
 
     /**
@@ -187,6 +156,7 @@ object WorldUtils {
         pointer: MutableList<T>? = null,
         iterator: (T, Int) -> Unit = { _, _ -> },
         predicate: (T) -> Boolean = { true },
+        type: Class<out T> = T::class.java,
     ) {
         world.entities.filterPointer(pointer, iterator) { entity ->
             entity != player &&
@@ -196,47 +166,53 @@ object WorldUtils {
     }
 
     /**
-     * Returns all the position within the range where the predicate is true.
+     * Returns all the blocks and positions within the range where the predicate is true.
      *
      * @param pos The position to search from.
      * @param rangeX The maximum distance to search for entities in the x-axis.
      * @param rangeY The maximum distance to search for entities in the y-axis.
      * @param rangeZ The maximum distance to search for entities in the z-axis.
-     * @param pointer The mutable list to store the positions in.
-     * @param iterator Iterator to perform operations on each block.
+     * @param pointer The mutable map to store the positions to blocks in.
      * @param predicate Predicate to filter the blocks.
+     * @param iterator Iterator to perform operations on each block.
      */
     inline fun SafeContext.searchBlocks(
         pos: Vec3i,
         rangeX: Int,
         rangeY: Int,
         rangeZ: Int,
-        pointer: MutableList<Block>? = null,
-        iterator: (BlockState, BlockPos, Int) -> Unit = { _, _, _ -> },
+        pointer: MutableMap<BlockPos, Block>? = null,
         predicate: (BlockState, BlockPos) -> Boolean = { _, _ -> true },
-    ) = searchBlocks(pos, Vec3i(rangeX, rangeY, rangeZ), pointer, iterator, predicate)
+        iterator: (BlockState, BlockPos, Int) -> Unit = { _, _, _ -> },
+    ) = searchBlocks(pos, Vec3i(rangeX, rangeY, rangeZ), pointer, predicate, iterator)
 
     /**
-     * Returns all the position within the range where the predicate is true.
+     * Returns all the blocks and positions within the range where the predicate is true.
      *
      * @param pos The position to search from.
      * @param range The maximum distance to search for entities in each axis.
-     * @param pointer The mutable list to store the positions in.
+     * @param pointer The mutable map to store the positions to blocks in.
      * @param iterator Iterator to perform operations on each block.
      * @param predicate Predicate to filter the blocks.
      */
     inline fun SafeContext.searchBlocks(
         pos: Vec3i,
         range: Vec3i,
-        pointer: MutableList<Block>? = null,
-        iterator: (BlockState, BlockPos, Int) -> Unit = { _, _, _ -> },
+        pointer: MutableMap<BlockPos, Block>? = null,
         predicate: (BlockState, BlockPos) -> Boolean = { _, _ -> true },
+        iterator: (BlockState, BlockPos, Int) -> Unit = { _, _, _ -> },
     ) {
         iteratePositions(pos, range) { blockPos, index ->
-            val state = world.getBlockState(blockPos)
-            if (predicate(state, blockPos)) {
-                pointer?.add(state.block)
-                iterator(state, blockPos, index)
+            val state = blockPos.blockState(world)
+            when {
+                predicate(state, blockPos) && pointer != null -> {
+                    pointer[blockPos] = state.block
+                    iterator(state, blockPos, index)
+                }
+
+                predicate(state, blockPos) && pointer == null -> {
+                    iterator(state, blockPos, index)
+                }
             }
         }
     }
@@ -253,15 +229,21 @@ object WorldUtils {
     inline fun <reified T : Fluid> SafeContext.searchFluids(
         pos: Vec3i,
         range: Vec3i,
-        pointer: MutableList<T>? = null,
+        pointer: MutableMap<BlockPos, T>? = null,
         iterator: (FluidState, BlockPos, Int) -> Unit = { _, _, _ -> },
         predicate: (FluidState, BlockPos) -> Boolean = { _, _ -> true },
     ) {
         iteratePositions(pos, range) { blockPos, index ->
             val state = world.getFluidState(blockPos)
-            if (predicate(state, blockPos)) {
-                pointer?.add(state.fluid as? T ?: return@iteratePositions)
-                iterator(state, blockPos, index)
+            when {
+                predicate(state, blockPos) && pointer != null -> {
+                    iterator(state, blockPos, index)
+                    pointer[blockPos] = state.fluid as T
+                }
+
+                predicate(state, blockPos) && pointer == null -> {
+                    iterator(state, blockPos, index)
+                }
             }
         }
     }
@@ -272,12 +254,12 @@ object WorldUtils {
      * @param range The maximum distance to search for entities in each axis.
      * @param iterator Iterator to perform operations on each position.
      */
-    inline fun SafeContext.iteratePositions(
+    inline fun iteratePositions(
         pos: Vec3i,
         range: Vec3i,
         iterator: (BlockPos, Int) -> Unit,
     ) {
-        BlockPos.iterateOutwards(BlockPos(pos), range.x, range.y, range.z)
+        BlockPos.iterateOutwards(pos.blockPos, range.x, range.y, range.z)
             .forEachIndexed { index, blockPos ->
                 iterator(blockPos, index)
             }

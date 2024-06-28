@@ -1,6 +1,8 @@
 package com.lambda.util.combat
 
 import com.lambda.context.SafeContext
+import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.fluidState
 import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.math.VecUtils.times
 import com.lambda.util.world.WorldUtils.getFastEntities
@@ -18,8 +20,8 @@ object Explosion {
      * @param entity The entity to calculate the damage for.
      * @return The damage dealt by the explosion.
      */
-    fun SafeContext.damage(source: Explosion, entity: LivingEntity) =
-        damage(source.position, entity, source.power.toDouble())
+    fun SafeContext.explosionDamage(source: Explosion, entity: LivingEntity) =
+        explosionDamage(source.position, entity, source.power.toDouble())
 
     /**
      * Calculates the damage dealt by an explosion to a living entity.
@@ -28,7 +30,7 @@ object Explosion {
      * @param power The strength of the explosion above 0.
      * @return The damage dealt by the explosion.
      */
-    fun SafeContext.damage(position: Vec3d, entity: LivingEntity, power: Double): Double {
+    fun SafeContext.explosionDamage(position: Vec3d, entity: LivingEntity, power: Double): Double {
         val distance = entity.pos.distanceTo(position)
 
         val impact = (1.0 - distance / (power * 2.0)) *
@@ -47,10 +49,10 @@ object Explosion {
      * @param explosion The explosion to calculate the velocity for.
      * @return The velocity of the entities.
      */
-    fun SafeContext.velocity(explosion: Explosion): Map<LivingEntity, Vec3d> {
+    fun SafeContext.explosionVelocity(explosion: Explosion): Map<LivingEntity, Vec3d> {
         val ref = ArrayList<LivingEntity>()
-        getFastEntities<LivingEntity>(explosion.position, explosion.power * 2.0, ref)
-        return ref.associateWith { entity -> velocity(entity, explosion) }
+        getFastEntities(explosion.position, explosion.power * 2.0, ref)
+        return ref.associateWith { entity -> explosionVelocity(entity, explosion) }
     }
 
     /**
@@ -59,8 +61,8 @@ object Explosion {
      * @param explosion The explosion to calculate the velocity for.
      * @return The velocity of the entity.
      */
-    fun SafeContext.velocity(entity: LivingEntity, explosion: Explosion) =
-        velocity(entity, explosion.position, explosion.power.toDouble())
+    fun SafeContext.explosionVelocity(entity: LivingEntity, explosion: Explosion) =
+        explosionVelocity(entity, explosion.position, explosion.power.toDouble())
 
     /**
      * Calculates the velocity of a living entity affected by an explosion.
@@ -69,7 +71,7 @@ object Explosion {
      * @param power The strength of the explosion.
      * @return The velocity of the entity.
      */
-    fun SafeContext.velocity(entity: LivingEntity, position: Vec3d, power: Double): Vec3d {
+    fun SafeContext.explosionVelocity(entity: LivingEntity, position: Vec3d, power: Double): Vec3d {
         val distance = entity.pos.distanceTo(position)
 
         val size = power * 2.0
@@ -82,7 +84,7 @@ object Explosion {
         return diff.normalize() * vel
     }
 
-    fun SafeContext.destruction(source: Explosion): List<Vec3d> {
+    fun SafeContext.explosionDestruction(source: Explosion): List<Vec3d> {
         val affected = mutableListOf<Vec3d>()
 
         repeat(16) { x ->
@@ -104,8 +106,8 @@ object Explosion {
 
                         while (intensity > 0) {
                             val blockPos = BlockPos.ofFloored(explosionX, explosionY, explosionZ)
-                            val block = world.getBlockState(blockPos)
-                            val fluid = world.getFluidState(blockPos)
+                            val block = blockPos.blockState(world)
+                            val fluid = blockPos.fluidState(world)
                             if (!world.isInBuildLimit(blockPos)) {
                                 break
                             }

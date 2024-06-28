@@ -2,8 +2,8 @@ package com.lambda.interaction
 
 import baritone.utils.PlayerMovementInput
 import com.lambda.Lambda.mc
+import com.lambda.config.groups.RotationSettings
 import com.lambda.core.Loadable
-import com.lambda.config.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.*
@@ -15,7 +15,7 @@ import com.lambda.interaction.rotation.Rotation.Companion.slerp
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.modules.client.Baritone
-import com.lambda.threading.runOnGameThread
+import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.toRadian
@@ -50,7 +50,7 @@ object RotationManager : Loadable {
             val packet = event.packet
             if (packet !is PlayerPositionLookS2CPacket) return@listener
 
-            runOnGameThread {
+            runGameScheduled {
                 reset(Rotation(packet.yaw, packet.pitch))
             }
         }
@@ -80,6 +80,10 @@ object RotationManager : Loadable {
         currentRotation = currentContext?.let { context ->
             val rotationTo = if (keepTicks >= 0) context.rotation else player.rotation
 
+            if (context.config.instant) {
+                return@let rotationTo
+            }
+
             var speedMultiplier = (context.config as? RotationSettings)?.speedMultiplier ?: 1.0
             if (keepTicks < 0) speedMultiplier = 1.0
 
@@ -103,37 +107,53 @@ object RotationManager : Loadable {
         pauseTicks = 3
     }
 
-    private val smoothRotation get() =
-        lerp(prevRotation, currentRotation, mc.partialTicks)
+    private val smoothRotation
+        get() =
+            lerp(prevRotation, currentRotation, mc.partialTicks)
 
-    @JvmStatic val lockRotation get() =
-        if (currentContext?.config?.rotationMode == RotationMode.LOCK) smoothRotation else null
+    @JvmStatic
+    val lockRotation
+        get() =
+            if (currentContext?.config?.rotationMode == RotationMode.LOCK) smoothRotation else null
 
-    @JvmStatic val renderYaw get() =
-        if (currentContext?.config == null) null else smoothRotation.yaw.toFloat()
+    @JvmStatic
+    val renderYaw
+        get() =
+            if (currentContext?.config == null) null else smoothRotation.yaw.toFloat()
 
-    @JvmStatic val renderPitch get() =
-        if (currentContext?.config == null) null else smoothRotation.pitch.toFloat()
+    @JvmStatic
+    val renderPitch
+        get() =
+            if (currentContext?.config == null) null else smoothRotation.pitch.toFloat()
 
-    @JvmStatic val handYaw get() =
-        if (currentContext?.config?.rotationMode == RotationMode.LOCK) currentRotation.yaw.toFloat() else null
+    @JvmStatic
+    val handYaw
+        get() =
+            if (currentContext?.config?.rotationMode == RotationMode.LOCK) currentRotation.yaw.toFloat() else null
 
-    @JvmStatic val handPitch get() =
-        if (currentContext?.config?.rotationMode == RotationMode.LOCK) currentRotation.pitch.toFloat() else null
+    @JvmStatic
+    val handPitch
+        get() =
+            if (currentContext?.config?.rotationMode == RotationMode.LOCK) currentRotation.pitch.toFloat() else null
 
-    @JvmStatic val movementYaw: Float? get() {
-        val config = currentContext?.config ?: return null
-        if (config.rotationMode == RotationMode.SILENT) return null
-        return currentRotation.yaw.toFloat()
-    }
+    @JvmStatic
+    val movementYaw: Float?
+        get() {
+            val config = currentContext?.config ?: return null
+            if (config.rotationMode == RotationMode.SILENT) return null
+            return currentRotation.yaw.toFloat()
+        }
 
-    @JvmStatic val movementPitch: Float? get() {
-        val config = currentContext?.config ?: return null
-        if (config.rotationMode == RotationMode.SILENT) return null
-        return currentRotation.pitch.toFloat()
-    }
+    @JvmStatic
+    val movementPitch: Float?
+        get() {
+            val config = currentContext?.config ?: return null
+            if (config.rotationMode == RotationMode.SILENT) return null
+            return currentRotation.pitch.toFloat()
+        }
 
-    @JvmStatic fun getRotationForVector(deltaTime: Double): Vec2d? {
+    @JvmStatic
+    fun getRotationForVector(deltaTime: Double): Vec2d? {
         val config = currentContext?.config ?: return null
         if (config.rotationMode == RotationMode.SILENT) return null
 

@@ -5,6 +5,7 @@ import com.lambda.Lambda.gson
 import com.lambda.context.SafeContext
 import com.lambda.threading.runSafe
 import com.lambda.util.Nameable
+import java.lang.reflect.Type
 import kotlin.properties.Delegates
 import kotlin.reflect.KProperty
 
@@ -49,18 +50,22 @@ import kotlin.reflect.KProperty
  *
  * @property defaultValue The default value of the setting.
  * @property description A description of the setting.
+ * @property type The type reflection of the setting.
  * @property visibility A function that determines whether the setting is visible.
  */
 abstract class AbstractSetting<T : Any>(
     private val defaultValue: T,
+    private val type: Type,
     val description: String,
     val visibility: () -> Boolean,
 ) : Jsonable, Nameable {
-    private val listeners = mutableListOf<(from: T, to: T) -> Unit>()
+    private val listeners = mutableListOf<ValueListener<T>>()
 
     var value: T by Delegates.observable(defaultValue) { _, from, to ->
-        if (from == to) return@observable
-        listeners.forEach { it(from, to) }
+        listeners.forEach {
+            if (it.requiresValueChange && from == to) return@forEach
+            it.execute(from, to)
+        }
     }
 
     private val isVisible get() = visibility()
@@ -72,25 +77,33 @@ abstract class AbstractSetting<T : Any>(
     }
 
     override fun toJson(): JsonElement =
-        gson.toJsonTree(value)
+        gson.toJsonTree(value, type)
 
     override fun loadFromJson(serialized: JsonElement) {
-        value = gson.fromJson(serialized, value::class.java)
+        value = gson.fromJson(serialized, type)
     }
 
     fun onValueChange(block: SafeContext.(from: T, to: T) -> Unit) {
-        listeners.add { from, to ->
+        listeners.add(ValueListener(true) { from, to ->
             runSafe {
                 block(from, to)
             }
-        }
+        })
     }
 
     fun onValueChangeUnsafe(block: (from: T, to: T) -> Unit) {
-        listeners.add(block)
+        listeners.add(ValueListener(true, block))
+    }
+
+    fun onValueSet(block: (from: T, to: T) -> Unit) {
+        listeners.add(ValueListener(false, block))
     }
 
     private fun reset() {
         value = defaultValue
     }
+
+    class ValueListener<T>(val requiresValueChange: Boolean, val execute: (from: T, to: T) -> Unit)
+
+    override fun toString() = "Setting $name: $value of type ${type.typeName}"
 }

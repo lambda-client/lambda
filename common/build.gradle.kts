@@ -29,6 +29,10 @@ dependencies {
     implementation(kotlin("reflect"))
 
     // Baritone
-    modImplementation("baritone-api:baritone-api:1.10.2")
+//    modImplementation("baritone-api:baritone-api:1.10.2")
     modImplementation("baritone-api:baritone-unoptimized-fabric:1.10.2")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

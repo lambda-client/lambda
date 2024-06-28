@@ -10,8 +10,10 @@ import com.lambda.core.Loader
 import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
 import com.lambda.gui.impl.clickgui.windows.tag.TagWindow
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runGameScheduled
 import com.lambda.util.KeyCode
 import com.mojang.authlib.GameProfile
+import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
 import net.minecraft.util.math.BlockPos
@@ -26,7 +28,8 @@ object Lambda {
     const val APP_ID = "1221289599427416127"
     val VERSION: String = LoaderInfo.getVersion()
     val LOG: Logger = LogManager.getLogger(SYMBOL)
-    @JvmStatic val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
+    @JvmStatic
+    val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
 
     val gson: Gson = GsonBuilder()
         .setPrettyPrinting()
@@ -40,5 +43,9 @@ object Lambda {
         .registerTypeAdapter(GameProfile::class.java, GameProfileSerializer)
         .create()
 
-    fun initialize() = Loader.initialize()
+    fun initialize() {
+        recordRenderCall {
+            Loader.initialize()
+        }
+    }
 }

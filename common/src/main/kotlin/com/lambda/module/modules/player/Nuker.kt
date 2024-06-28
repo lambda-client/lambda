@@ -1,42 +1,68 @@
 package com.lambda.module.modules.player
 
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.construction.DynamicBlueprint.Companion.blueprintOnTick
+import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
-import com.lambda.util.Communication.info
-import com.lambda.util.KeyCode
-import com.lambda.util.math.VecUtils.dist
-import com.lambda.util.world.WorldUtils.searchBlocks
-import net.minecraft.util.math.Vec3i
+import com.lambda.module.tag.ModuleTag
+import com.lambda.task.Task.Companion.emptyTask
+import com.lambda.task.tasks.BuildStructure.Companion.buildStructure
+import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.BlockUtils.blockState
+import net.minecraft.util.math.BlockPos
 
 object Nuker : Module(
     name = "Nuker",
     description = "Breaks blocks around you",
-    defaultKeybind = KeyCode.Comma
+    defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
 ) {
+    private val height by setting("Height", 4, 1..8, 1)
+    private val width by setting("Width", 4, 1..8, 1)
     private val flatten by setting("Flatten", true)
+    private val onlyBreakInstant by setting("Only Break Instant", true)
+    private val fillFloor by setting("Fill Floor", false)
 
-    private val range = Vec3i(4, 4, 4) // TODO: Customizable
+    private var task = emptyTask()
 
     init {
-        listener<TickEvent.Pre> {
-            searchBlocks(player.blockPos, range, null,
-                iterator = { state, pos, _ ->
-                    state.getCollisionShape(world, pos).boundingBox
-                        .getVisibleSurfaces(player.eyePos).firstOrNull()?.let {
-                            interaction.updateBlockBreakingProgress(pos, it) // Crashes if the time to mine is not instant ??
-                        }
-                    this@Nuker.info("Breaking ${state.block.name.string} at $pos with hardness ${state.getHardness(world, pos)}")
-                },
-            ) { state, pos ->
-                state.isSolidBlock(world, pos)
-                        && !state.isAir
-                        && (!flatten || pos.y >= player.y)
-                        //&& state.getHardness(world, pos) <= 1.0f
-                        && state.getHardness(world, pos) > 0.0f
-                        && player.eyePos dist pos.toCenterPos() <= interaction.reachDistance - 1
+        onEnable {
+            task = buildStructure(
+                pathing = false,
+                finishOnDone = false,
+                cancelOnUnsolvable = false
+            ) {
+                blueprintOnTick { _ ->
+                    val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
+                        .asSequence()
+                        .map { it.blockPos }
+                        .filter { !world.isAir(it) }
+                        .filter { !flatten || it.y >= player.blockPos.y }
+                        .filter { !onlyBreakInstant || it.blockState(world).getHardness(world, it) <= 1 }
+                        .filter { it.blockState(world).getHardness(world, it) >= 0 }
+                        .associateWith { TargetState.Air }
+
+                    if (fillFloor) {
+                        val floor = BlockPos.iterateOutwards(player.blockPos.down(), width, 0, width)
+                            .map { it.blockPos }
+                            .associateWith { TargetState.Solid }
+                        return@blueprintOnTick selection + floor
+                    }
+
+                    selection
+                }
             }
+            task.start(null)
         }
+
+        onDisable {
+            task.cancel()
+        }
+
+//        listener<TickEvent.Pre> {
+//            task?.let {
+//                if (!it.isRunning) return@listener
+//
+//                info(it.info)
+//            }
+//        }
     }
 }

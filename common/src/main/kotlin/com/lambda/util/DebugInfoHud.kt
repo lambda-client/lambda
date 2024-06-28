@@ -5,6 +5,7 @@ import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
 import com.lambda.event.EventFlow
 import com.lambda.module.ModuleRegistry
+import com.lambda.util.Formatting.asString
 import net.minecraft.util.Formatting
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.EntityHitResult
@@ -35,6 +36,8 @@ object DebugInfoHud {
 
             null -> add("Crosshair Target: None")
         }
+
+        add("Eye Pos: ${mc.cameraEntity?.getCameraPosVec(mc.tickDelta)?.asString(3)}")
 
         return
     }

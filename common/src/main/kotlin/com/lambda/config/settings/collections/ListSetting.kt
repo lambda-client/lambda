@@ -7,12 +7,13 @@ import java.lang.reflect.Type
 
 class ListSetting<T : Any>(
     override val name: String,
-    private val defaultValue: MutableList<T>,
+    defaultValue: MutableList<T>,
     private val type: Type,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<MutableList<T>>(
     defaultValue,
+    type,
     description,
     visibility
 ) {
@@ -21,7 +22,6 @@ class ListSetting<T : Any>(
     }
 
     override fun toJson(): JsonElement {
-        value = defaultValue // Hack the Delegates.observable
         return gson.toJsonTree(value)
     }
 }

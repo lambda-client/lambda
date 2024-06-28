@@ -53,24 +53,29 @@ object RayCastUtils {
     // ToDo: Should rather move player hitbox down and check collision
     fun distanceToGround(maxDist: Double = 100.0) = runSafe {
         val pos = player.pos.add(0.0, 0.1, 0.0)
-        val cast = Rotation.DOWN.rayCast(maxDist, RayCastMask.BLOCK, pos, false) ?: return@runSafe maxDist
+        val cast = Rotation.DOWN.rayCast(maxDist, pos, false, RayCastMask.BLOCK) ?: return@runSafe maxDist
 
         return@runSafe max(0.0, pos.y - cast.pos.y)
     }
 
-    val HitResult.entityResult: EntityHitResult? get() {
-        if (type == HitResult.Type.MISS) return null
-        return this as? EntityHitResult
-    }
+    val HitResult.entityResult: EntityHitResult?
+        get() {
+            if (type == HitResult.Type.MISS) return null
+            return this as? EntityHitResult
+        }
 
-    val HitResult.blockResult: BlockHitResult? get() {
-        if (type == HitResult.Type.MISS) return null
-        return this as? BlockHitResult
-    }
+    val HitResult.blockResult: BlockHitResult?
+        get() {
+            if (type == HitResult.Type.MISS) return null
+            return this as? BlockHitResult
+        }
+
+    fun HitResult.distanceTo(pos: Vec3d) = this.pos.distanceTo(pos)
 
     val HitResult.orNull get() = entityResult ?: blockResult
 
-    val HitResult?.orMiss get() = this ?: object : HitResult(mc.player?.eyePos ?: Vec3d.ZERO) {
-        override fun getType() = Type.MISS
-    }
+    val HitResult?.orMiss
+        get() = this ?: object : HitResult(mc.player?.eyePos ?: Vec3d.ZERO) {
+            override fun getType() = Type.MISS
+        }
 }

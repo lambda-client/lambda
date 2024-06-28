@@ -20,5 +20,16 @@ inline fun <reified R, C : MutableCollection<in R>> Iterable<*>.filterPointer(
     predicate: (R) -> Boolean,
 ) {
     var index = 0
-    for (element in this) if (element is R && predicate(element)) { iterator(element, index++); destination?.add(element) }
+    for (element in this) {
+        when {
+            element is R && predicate(element) && destination != null -> {
+                iterator(element, index++)
+                destination.add(element)
+            }
+
+            element is R && predicate(element) && destination == null -> {
+                iterator(element, index++)
+            }
+        }
+    }
 }

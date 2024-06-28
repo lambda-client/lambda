@@ -2,10 +2,9 @@ package com.lambda.graphics.gl
 
 import org.joml.Matrix4f
 import org.joml.Quaternionf
-import kotlin.collections.ArrayDeque
 
 object Matrices {
-    private val stack = ArrayDeque(listOf(Matrix4f()))
+    private val stack = ArrayDeque<Matrix4f>(1)
 
     fun translate(x: Double, y: Double, z: Double) {
         translate(x.toFloat(), y.toFloat(), z.toFloat())
@@ -13,6 +12,10 @@ object Matrices {
 
     fun translate(x: Float, y: Float, z: Float) {
         stack.last().translate(x, y, z)
+    }
+
+    fun scale(x: Double, y: Double, z: Double) {
+        stack.last().scale(x.toFloat(), y.toFloat(), z.toFloat())
     }
 
     fun scale(x: Float, y: Float, z: Float) {
@@ -30,6 +33,12 @@ object Matrices {
     fun push() {
         val entry = stack.last()
         stack.addLast(Matrix4f(entry))
+    }
+
+    fun push(block: Matrices.() -> Unit) {
+        push()
+        this.block()
+        pop()
     }
 
     fun pop() {

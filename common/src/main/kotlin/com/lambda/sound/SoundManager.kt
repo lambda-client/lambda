@@ -2,11 +2,8 @@ package com.lambda.sound
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
-import com.lambda.core.Loadable
 import com.lambda.util.math.random
 import net.minecraft.client.sound.PositionedSoundInstance
-import net.minecraft.registry.Registries
-import net.minecraft.registry.Registry
 import net.minecraft.sound.SoundEvent
 import net.minecraft.util.Identifier
 

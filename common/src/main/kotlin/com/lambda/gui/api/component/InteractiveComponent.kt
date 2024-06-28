@@ -29,7 +29,8 @@ abstract class InteractiveComponent : IComponent {
                 lastMouse = e.mouse
 
                 val prevPressed = activeButton != null
-                activeButton = if (hovered && e.button.isMainButton && e.action == Mouse.Action.Click) e.button else null
+                activeButton =
+                    if (hovered && e.button.isMainButton && e.action == Mouse.Action.Click) e.button else null
                 val pressed = activeButton != null
 
                 if (prevPressed == pressed) return

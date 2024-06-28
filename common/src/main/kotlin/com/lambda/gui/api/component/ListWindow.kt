@@ -2,10 +2,10 @@ package com.lambda.gui.api.component
 
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.button.ListButton
-import com.lambda.gui.impl.clickgui.AbstractClickGui
+import com.lambda.gui.impl.AbstractClickGui
 
-abstract class ListWindow <T : ListButton> (
-    owner: AbstractClickGui
+abstract class ListWindow<T : ListButton>(
+    owner: AbstractClickGui,
 ) : WindowComponent<T>(owner) {
     override fun onEvent(e: GuiEvent) {
         if (e is GuiEvent.Tick) {

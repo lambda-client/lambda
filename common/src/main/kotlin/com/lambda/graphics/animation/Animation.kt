@@ -13,7 +13,9 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
     operator fun getValue(thisRef: Any?, property: KProperty<*>) =
         lerp(prevValue, currValue, mc.partialTicks)
 
-    operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: Double) {
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: Double) = setValue(valueIn)
+
+    fun setValue(valueIn: Double) {
         prevValue = valueIn
         currValue = valueIn
     }
@@ -39,7 +41,8 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
         @Suppress("NAME_SHADOWING")
         fun AnimationTicker.exp(min: () -> Double, max: () -> Double, speed: () -> Double, flag: () -> Boolean) =
             Animation(min()) {
-                val min = min(); val max = max()
+                val min = min()
+                val max = max()
                 val target = if (flag()) max else min
 
                 if (abs(target - it) < CLAMP * abs(max - min)) target

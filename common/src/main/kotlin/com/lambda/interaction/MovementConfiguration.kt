@@ -8,5 +8,5 @@ data class MovementConfiguration(
     var rotation: Rotation,
     var onGround: Boolean,
     var sprinting: Boolean,
-    var sneaking: Boolean
+    var sneaking: Boolean,
 )

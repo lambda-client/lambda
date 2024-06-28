@@ -6,14 +6,13 @@ import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.Rect
 import com.mojang.blaze3d.systems.RenderSystem
-import org.lwjgl.opengl.GL30C.*
 import kotlin.math.max
 
 object Scissor {
     private var stack = ArrayDeque<Rect>()
 
     fun scissor(rect: Rect, block: () -> Unit) {
-        // clamp corners so children scissor box can't overlap parent
+        // clamp corners so children scissor boxes can't overlap parent
         val processed = stack.lastOrNull()?.let(rect::clamp) ?: rect
         registerScissor(processed, block)
     }
@@ -25,7 +24,7 @@ object Scissor {
         block()
 
         stack.removeLast()
-        stack.lastOrNull().apply(::scissor)
+        scissor(stack.lastOrNull())
     }
 
     private fun scissor(entry: Rect?) {

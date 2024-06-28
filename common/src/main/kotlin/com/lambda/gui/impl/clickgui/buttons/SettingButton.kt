@@ -7,10 +7,10 @@ import com.lambda.gui.api.component.button.ListButton
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.util.math.MathUtils.lerp
 
-abstract class SettingButton <V : Any, T : AbstractSetting<V>> (
+abstract class SettingButton<V : Any, T : AbstractSetting<V>>(
     val setting: T,
-    final override val owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
-): ListButton(owner) {
+    final override val owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>,
+) : ListButton(owner) {
     override val text = setting.name
     protected var value by setting
 

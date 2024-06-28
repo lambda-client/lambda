@@ -1,0 +1,159 @@
+package com.lambda.interaction.construction.result
+
+import baritone.api.pathing.goals.GoalBlock
+import baritone.api.pathing.goals.GoalInverted
+import com.lambda.context.SafeContext
+import com.lambda.interaction.construction.context.BreakContext
+import com.lambda.interaction.material.ContainerManager.findBestAvailableTool
+import com.lambda.interaction.material.ContainerManager.transfer
+import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.material.container.MainHandContainer
+import com.lambda.task.Task.Companion.failTask
+import com.lambda.task.tasks.BreakBlock.Companion.breakBlock
+import net.minecraft.block.BlockState
+import net.minecraft.item.Item
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
+import java.awt.Color
+
+sealed class BreakResult : BuildResult() {
+
+    /**
+     * Represents a successful break. All checks have been passed.
+     * @param context The context of the break.
+     */
+    data class Success(
+        override val blockPos: BlockPos,
+        val context: BreakContext
+    ) : Resolvable, Drawable, BreakResult() {
+        override val rank = Rank.BREAK_SUCCESS
+        private val color = Color(222, 0, 0, 100)
+
+        var collectDrop = false
+
+        override val resolve get() = breakBlock(context, collectDrop = collectDrop)
+
+        override fun SafeContext.buildRenderer() {
+            withPos(context.resultingPos, color, context.result.side)
+        }
+
+        override fun compareTo(other: ComparableResult<Rank>): Int {
+            return when (other) {
+                is Success -> context.compareTo(other.context)
+                else -> super.compareTo(other)
+            }
+        }
+    }
+
+    /**
+     * Represents a break configuration where the hit side is not exposed to air.
+     * @param blockPos The position of the block that is not exposed.
+     * @param side The side that is not exposed.
+     */
+    data class NotExposed(
+        override val blockPos: BlockPos,
+        val side: Direction
+    ) : Resolvable, Drawable, BreakResult() {
+        override val rank = Rank.BREAK_NOT_EXPOSED
+        private val color = Color(46, 0, 0, 30)
+
+        override val resolve get() = failTask("Block is not exposed to air.")
+
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color, side)
+        }
+
+        override fun compareTo(other: ComparableResult<Rank>): Int {
+            return when (other) {
+                is NotExposed -> blockPos.compareTo(other.blockPos)
+                else -> super.compareTo(other)
+            }
+        }
+    }
+
+    /**
+     * The equipped item is not suitable for breaking blocks.
+     * @param blockState The block state that is being broken.
+     * @param badItem The item that is being used.
+     */
+    data class ItemCantMine(
+        override val blockPos: BlockPos,
+        val blockState: BlockState,
+        val badItem: Item
+    ) : Resolvable, Drawable, BreakResult() {
+        override val rank = Rank.BREAK_ITEM_CANT_MINE
+        private val color = Color(255, 0, 0, 100)
+
+        override val pausesParent get() = true
+
+        override val resolve get() = findBestAvailableTool(blockState)
+                    ?.select()
+                    ?.transfer(MainHandContainer)
+                    ?.solve ?: run {
+                        selectStack {
+                            isItem(badItem).not()
+                        }.transfer(MainHandContainer)?.solve ?: failTask("No item found or space")
+                    }
+
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color)
+        }
+
+        override fun compareTo(other: ComparableResult<Rank>): Int {
+            return when (other) {
+                is ItemCantMine -> badItem.name.string.compareTo(other.badItem.name.string)
+                else -> super.compareTo(other)
+            }
+        }
+    }
+
+    /**
+     * The block is a liquid and first has to be submerged.
+     * @param blockPos The position of the block that is a liquid.
+     */
+    data class Submerge(
+        override val blockPos: BlockPos,
+        val blockState: BlockState,
+        val submerge: Set<BuildResult>
+    ) : Drawable, BreakResult() {
+        override val rank = Rank.BREAK_SUBMERGE
+        private val color = Color(114, 27, 255, 100)
+
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color)
+        }
+    }
+
+    /**
+     * The block is blocked by another liquid block that first has to be submerged.
+     */
+    data class BlockedByLiquid(
+        override val blockPos: BlockPos,
+        val blockState: BlockState
+    ) : Drawable, BreakResult() {
+        override val rank = Rank.BREAK_IS_BLOCKED_BY_LIQUID
+        private val color = Color(50, 12, 112, 100)
+
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color)
+        }
+    }
+
+    /**
+     * The player is standing on the block.
+     */
+    data class PlayerOnTop(
+        override val blockPos: BlockPos,
+        val blockState: BlockState
+    ) : Navigable, Drawable, BreakResult() {
+        override val rank = Rank.BREAK_PLAYER_ON_TOP
+        private val color = Color(252, 3, 207, 100)
+
+        override val goal = GoalInverted(GoalBlock(blockPos))
+        
+        override fun SafeContext.buildRenderer() {
+            withPos(blockPos, color)
+        }
+    }
+}

@@ -14,29 +14,30 @@ import kotlin.math.*
 
 data class Rotation(val yaw: Double, val pitch: Double) {
     constructor(yaw: Float, pitch: Float) : this(yaw.toDouble(), pitch.toDouble())
-    
+
     val yawF get() = yaw.toFloat()
     val pitchF get() = pitch.toFloat()
     val float get() = floatArrayOf(yawF, pitchF)
-    
+
     fun equalFloat(other: Rotation): Boolean = yawF == other.yawF && pitchF == other.pitchF
 
-    val vector: Vec3d get() {
-        val yawRad = -yaw.toRadian()
-        val pitchRad = pitch.toRadian()
+    val vector: Vec3d
+        get() {
+            val yawRad = -yaw.toRadian()
+            val pitchRad = pitch.toRadian()
 
-        return Vec3d(sin(yawRad), -1.0, cos(yawRad))
-            .multiply(Vec3d(cos(pitchRad), sin(pitchRad), cos(pitchRad)))
-    }
+            return Vec3d(sin(yawRad), -1.0, cos(yawRad))
+                .multiply(Vec3d(cos(pitchRad), sin(pitchRad), cos(pitchRad)))
+        }
 
     fun withDelta(yaw: Double = 0.0, pitch: Double = 0.0) =
         Rotation(this.yaw + yaw, (this.pitch + pitch).coerceIn(-90.0, 90.0))
 
     fun rayCast(
         reach: Double,
-        mask: RayCastMask = RayCastMask.BOTH,
         eye: Vec3d? = null,
         fluids: Boolean = false,
+        mask: RayCastMask = RayCastMask.BOTH,
     ) = runSafe {
         rayCast(eye ?: player.eyePos, vector, reach, mask, fluids)
     }

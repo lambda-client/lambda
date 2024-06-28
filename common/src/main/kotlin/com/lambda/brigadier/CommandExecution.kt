@@ -55,6 +55,11 @@ sealed class CommandResult {
             return Failure(Communication.LogLevel.ERROR.text(message))
         }
 
+        /** Creates a [CommandResult.Failure] with the given throwable [t]. */
+        fun failure(t: Throwable): Failure {
+            return failure(t.message ?: "An error occurred")
+        }
+
         /**
          * Creates a [CommandResult.Failure] with the given error [message].
          */

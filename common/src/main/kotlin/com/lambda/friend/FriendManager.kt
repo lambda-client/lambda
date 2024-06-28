@@ -3,7 +3,7 @@ package com.lambda.friend
 import com.lambda.friend.FriendRegistry.friends
 import com.mojang.authlib.GameProfile
 import net.minecraft.server.network.ServerPlayerEntity
-import java.util.UUID
+import java.util.*
 
 object FriendManager {
     fun add(profile: GameProfile) = friends.add(profile)

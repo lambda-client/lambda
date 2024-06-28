@@ -8,6 +8,7 @@ import com.lambda.util.math.MathUtils.toRadian
 import net.minecraft.client.input.Input
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity
+import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3d
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -31,11 +32,13 @@ object MovementUtils {
         sneaking = false
     }
 
-    val SafeContext.isInputting: Boolean get() =
-        roundedForward != 0f || roundedStrafing != 0f
+    val SafeContext.isInputting: Boolean
+        get() =
+            roundedForward != 0f || roundedStrafing != 0f
 
-    val Input.verticalMovement get() =
-        jumping.toInt() - sneaking.toInt()
+    val Input.verticalMovement
+        get() =
+            jumping.toInt() - sneaking.toInt()
 
     fun SafeContext.calcMoveYaw(
         yawIn: Float = player.moveYaw,
@@ -82,4 +85,17 @@ object MovementUtils {
     val Entity.moveDiff get() = Vec3d(this.pos.x - this.prevX, this.pos.y - this.prevY, this.pos.z - this.prevZ)
     val Entity.moveDelta get() = moveDiff.let { hypot(it.x, it.z) }
     val Entity.motionDelta get() = hypot(this.velocity.x, this.velocity.z)
+
+    val Entity.octant: EightWayDirection
+        get() {
+            // Normalize the yaw to be within the range of -180 to 179 degrees
+            var normalizedYaw = (yaw + 180.0) % 360.0
+            if (normalizedYaw < 0) {
+                normalizedYaw += 360.0
+            }
+
+            // Calculate the index of the closest direction
+            val directionIndex = ((normalizedYaw + 22.5) / 45.0).toInt() % 8
+            return EightWayDirection.entries[directionIndex]
+        }
 }

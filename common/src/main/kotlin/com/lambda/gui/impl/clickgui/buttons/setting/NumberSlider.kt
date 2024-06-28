@@ -4,7 +4,7 @@ import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.button.InputBarOverlay
 import com.lambda.gui.api.component.core.list.ChildLayer
-import com.lambda.gui.impl.clickgui.AbstractClickGui
+import com.lambda.gui.impl.AbstractClickGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.buttons.SettingButton
 import com.lambda.util.Mouse
@@ -12,12 +12,11 @@ import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.MathUtils.typeConvert
-import com.lambda.util.math.Vec2d
 import com.lambda.util.math.normalize
 
-class NumberSlider <N>(
+class NumberSlider<N>(
     setting: NumericSetting<N>,
-    owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>
+    owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>,
 ) : Slider<N, NumericSetting<N>>(
     setting, owner
 ) where N : Number, N : Comparable<N> {
@@ -26,16 +25,24 @@ class NumberSlider <N>(
 
     private val layer = ChildLayer.Drawable(owner.gui, this, owner.renderer, ::rect, InputBarOverlay::isActive)
     private val inputBar: InputBarOverlay = object : InputBarOverlay(renderer, layer) {
-        override val pressAnimation     get() = this@NumberSlider.pressAnimation
-        override val interactAnimation  get() = this@NumberSlider.interactAnimation
+        override val pressAnimation get() = this@NumberSlider.pressAnimation
+        override val interactAnimation get() = this@NumberSlider.interactAnimation
         override val hoverFontAnimation get() = this@NumberSlider.hoverFontAnimation
-        override val showAnimation      get() = this@NumberSlider.showAnimation
+        override val showAnimation get() = this@NumberSlider.showAnimation
 
-        override fun getText() = value.let(Number::toString)
-        override fun setValue(string: String) {
+        override fun isCharAllowed(string: String, char: Char): Boolean {
+            return when (char) {
+                '.' -> char !in string
+                '-' -> string.isEmpty()
+                else -> char.isDigit()
+            }
+        }
+
+        override fun getText() = "$setting"
+        override fun setStringValue(string: String) {
             string.toDoubleOrNull()?.let(::setValue)
         }
-    }.apply(layer::addChild)
+    }.apply(layer.children::add)
 
     override val textColor get() = super.textColor.multAlpha(1.0 - inputBar.activeAnimation)
 
@@ -54,16 +61,18 @@ class NumberSlider <N>(
         inputBar.toggle()
     }
 
-    override fun slide(mouse: Vec2d) {
-        if (!inputBar.isActive) super.slide(mouse)
+    override fun slide() {
+        if (!inputBar.isActive) super.slide()
     }
 
     override fun setValueByProgress(progress: Double) {
-        setValue(lerp(
-            setting.range.start.toDouble(),
-            setting.range.endInclusive.toDouble(),
-            progress
-        ))
+        setValue(
+            lerp(
+                setting.range.start.toDouble(),
+                setting.range.endInclusive.toDouble(),
+                progress
+            )
+        )
     }
 
     private fun setValue(valueIn: Double) {

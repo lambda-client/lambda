@@ -2,14 +2,14 @@ package com.lambda.gui.api.component
 
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
-import com.lambda.graphics.renderer.gui.font.IFontEntry
 import com.lambda.gui.api.GuiEvent
+import com.lambda.gui.api.RenderLayer
 import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
-import com.lambda.gui.api.layer.RenderLayer
-import com.lambda.gui.impl.clickgui.AbstractClickGui
+import com.lambda.gui.impl.AbstractClickGui
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.module.modules.client.GuiSettings.primaryColor
 import com.lambda.util.Mouse
 import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.ColorUtils.setAlpha
@@ -20,8 +20,8 @@ import com.lambda.util.math.Vec2d
 import java.awt.Color
 import kotlin.math.abs
 
-abstract class WindowComponent <T : ChildComponent> (
-    val gui: AbstractClickGui
+abstract class WindowComponent<T : ChildComponent>(
+    val gui: AbstractClickGui,
 ) : ChildComponent(gui.windows) {
     abstract val title: String
 
@@ -36,16 +36,14 @@ abstract class WindowComponent <T : ChildComponent> (
     private var dragOffset: Vec2d? = null
     private val padding get() = ClickGui.windowPadding
 
-    final override val rect get() = Rect.basedOn(position, width, renderHeight + titleBarHeight)
+    final override val rect get() = Rect.basedOn(position, width, renderHeightAnimation + titleBarHeight)
     private val contentRect get() = rect.shrink(padding).moveFirst(Vec2d(0.0, titleBarHeight - padding))
 
     private val titleBar get() = Rect.basedOn(rect.leftTop, rect.size.x, titleBarHeight)
     private val titleBarHeight get() = ClickGui.buttonHeight * 1.25
-    private val titleFont: IFontEntry
 
-    private val layer = RenderLayer()
-    private val renderer = layer.entry()
-    private val contentLayer = RenderLayer()
+    private val renderer = RenderLayer()
+    private val contentRenderer = RenderLayer()
 
     private val animation = gui.animation
 
@@ -54,42 +52,8 @@ abstract class WindowComponent <T : ChildComponent> (
 
     private val actualHeight get() = height + padding * 2 * isOpen.toInt()
     private var renderHeightAnimation by animation.exp({ 0.0 }, ::actualHeight, 0.6, ::isOpen)
-    private val renderHeight get() = lerp(0.0, renderHeightAnimation, childShowAnimation)
 
-    open val contentComponents = ChildLayer.Drawable<T, WindowComponent<T>>(gui, this, contentLayer, ::contentRect)
-
-    /*val titleBarComponents = ChildLayer<ButtonComponent> { child ->
-        child.rect in titleBar && accessible
-    }*/ // TODO: window close button
-
-    init {
-        // Background
-        renderer.filled {
-            position = rect
-            roundRadius = ClickGui.windowRadius
-            shade = GuiSettings.shadeBackground
-
-            val alpha = (gui.childShowAnimation * 2.0).coerceIn(0.0, 1.0)
-            color(GuiSettings.backgroundColor.multAlpha(alpha))
-        }
-
-        renderer.outline {
-            position = rect
-            roundRadius = ClickGui.windowRadius
-            outerGlow = ClickGui.windowRadius
-            shade = GuiSettings.shade
-
-            val alpha = (gui.childShowAnimation * 2.0).coerceIn(0.0, 1.0)
-            color(GuiSettings.mainColor.multAlpha(alpha))
-        }
-
-        // Title
-        titleFont = renderer.font {
-            text = title
-            position = titleBar.center - widthVec * 0.5
-            color = Color.WHITE.setAlpha(gui.childShowAnimation)
-        }
-    }
+    open val contentComponents = ChildLayer.Drawable<T, WindowComponent<T>>(gui, this, contentRenderer, ::contentRect)
 
     override fun onEvent(e: GuiEvent) {
         super.onEvent(e)
@@ -97,20 +61,44 @@ abstract class WindowComponent <T : ChildComponent> (
         when (e) {
             is GuiEvent.Show -> {
                 dragOffset = null
+                renderHeightAnimation = if (isOpen) actualHeight else 0.0
             }
 
             is GuiEvent.Render -> {
-                layer.assignOffset(position)
-                contentLayer.assignOffset(position)
-
                 // TODO: fix blur
                 // BlurPostProcessor.render(rect, ClickGui.windowBlur, guiAnimation)
 
-                layer.render()
+                val alpha = (gui.childShowAnimation * 2.0).coerceIn(0.0, 1.0)
+
+                // Background
+                renderer.filled.build(
+                    rect = rect,
+                    roundRadius = ClickGui.windowRadius,
+                    color = GuiSettings.backgroundColor.multAlpha(alpha),
+                    shade = GuiSettings.shadeBackground
+                )
+
+                // Outline
+                renderer.outline.build(
+                    rect = rect,
+                    roundRadius = ClickGui.windowRadius,
+                    glowRadius = ClickGui.glowRadius,
+                    color = (if (GuiSettings.shadeBackground) Color.WHITE else primaryColor).multAlpha(alpha),
+                    shade = GuiSettings.shadeBackground
+                )
+
+                // Title
+                renderer.font.build(
+                    text = title,
+                    position = titleBar.center - Vec2d(renderer.font.getWidth(title) * 0.5, 0.0),
+                    color = Color.WHITE.setAlpha(gui.childShowAnimation)
+                )
+
+                renderer.render()
 
                 scissor(contentRect) {
-                    contentLayer.render()
                     contentComponents.onEvent(e)
+                    contentRenderer.render()
                 }
 
                 return
@@ -131,11 +119,11 @@ abstract class WindowComponent <T : ChildComponent> (
                         Mouse.Button.Right -> {
                             // Don't let user spam
                             val targetHeight = if (isOpen) actualHeight else 0.0
-                            if (abs(targetHeight - renderHeight) > 1) return
+                            if (abs(targetHeight - renderHeightAnimation) > 1) return
 
                             isOpen = !isOpen
 
-                            if (isOpen) onEvent(GuiEvent.Show())
+                            if (isOpen) contentComponents.onEvent(GuiEvent.Show())
                         }
                     }
                 }
@@ -143,7 +131,6 @@ abstract class WindowComponent <T : ChildComponent> (
         }
 
         contentComponents.onEvent(e)
-        //titleBarComponents.onEvent(e)
     }
 
     fun focus() {
@@ -157,18 +144,5 @@ abstract class WindowComponent <T : ChildComponent> (
                 }
             }
         }
-    }
-
-    fun destroy() {
-        gui.apply {
-            scheduleAction {
-                windows.removeChild(this@WindowComponent)
-            }
-        }
-    }
-
-    override fun onRemove() {
-        layer.destroy()
-        contentLayer.destroy()
     }
 }

@@ -1,5 +1,6 @@
 package com.lambda.module
 
+import com.lambda.command.LambdaCommand
 import com.lambda.config.AbstractSetting
 import com.lambda.config.Configurable
 import com.lambda.config.Configuration
@@ -14,6 +15,8 @@ import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener
 import com.lambda.gui.impl.clickgui.LambdaClickGui
+import com.lambda.gui.impl.clickgui.buttons.ModuleButton
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
@@ -25,15 +28,15 @@ import com.lambda.util.Nameable
  *
  * Each [Module] has a [name], which is displayed in-game.
  * The [description] of the module is shown when hovering over
- * the [ModuleButton] in the GUI and in [Command]s.
+ * the [ModuleButton] in the GUI and in [LambdaCommand]s.
  * The [Module] can be associated with a [Set] of [ModuleTag]s to allow for
  * easier filtering and searching in the GUI.
  *
  * A [Module] can be activated by a [keybind], represented by a [KeyCode].
  * The default [keybind] is the key on which
  * the module will be activated by default.
- * If a module does not need to be activated by a key (like [ClickGUI]),
- * the default [keybind] should not be set (using [KeyCode.Unbound]).
+ * If a module does not need to be activated by a key (like [ClickGui]),
+ * the default [keybind] should not be set (using [KeyCode.UNBOUND]).
  *
  * [Module]s are [Configurable]s with [settings] (see [AbstractSetting] for all setting types).
  * For example, a [BooleanSetting] and a [DoubleSetting] can be defined like this:
@@ -77,9 +80,8 @@ import com.lambda.util.Nameable
  * See [SafeListener] and [UnsafeListener] for more details.
  *
  * @property name The name of the module, displayed in-game.
- * @property description The description of the module,
- * shown on hover over the module button in the GUI and in commands.
- * @property tag The leading module tag associated with the module.
+ * @property description The description of the module shown on hover over the module button in the GUI and in commands.
+ * @property defaultTags The default [ModuleTag]s associated with the module.
  * @property alwaysListening If true, the module's listeners will be triggered even if the module is not enabled.
  * @property isEnabledSetting The setting that determines if the module is enabled.
  * @property keybindSetting The setting that determines the keybind for the module.
@@ -93,7 +95,7 @@ abstract class Module(
     val defaultTags: Set<ModuleTag> = setOf(),
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
-    defaultKeybind: KeyCode = KeyCode.Unbound,
+    defaultKeybind: KeyCode = KeyCode.UNBOUND,
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
     private val isEnabledSetting = setting("Enabled", enabledByDefault, visibility = { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)
@@ -108,11 +110,13 @@ abstract class Module(
 
     init {
         listener<KeyPressEvent>(alwaysListen = true) { event ->
+            if (keybind == KeyCode.UNBOUND) return@listener
+
             val screen = mc.currentScreen
-            if (event.key == keybind.key
+            if (event.translated == keybind
                 && !mc.options.commandKey.isPressed
                 && (screen == null
-                || screen is LambdaClickGui)
+                        || screen is LambdaClickGui)
             ) toggle()
         }
     }

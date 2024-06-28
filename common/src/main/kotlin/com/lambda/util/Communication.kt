@@ -10,7 +10,7 @@ import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.threading.runSafe
-import com.lambda.threading.runSafeOnGameThread
+import com.lambda.threading.runSafeGameConcurrent
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.text.*
 import net.minecraft.client.toast.SystemToast
@@ -36,6 +36,7 @@ object Communication {
     fun Any.warn(message: Text, source: Text = Text.empty()) = log(message, LogLevel.WARN, textSource = source)
     fun Any.logError(message: String, source: String = "") = log(LogLevel.ERROR.text(message), LogLevel.ERROR, source)
     fun Any.logError(message: Text, source: Text = Text.empty()) = log(message, LogLevel.ERROR, textSource = source)
+    fun Any.logError(message: String, throwable: Throwable) = logError(message, throwable.message ?: "")
 
     fun Any.toast(message: String, logLevel: LogLevel = LogLevel.INFO) {
         toast(logLevel.text(message), logLevel)
@@ -45,7 +46,7 @@ object Communication {
         buildText {
             text(this@toast.source(logLevel, color = Color.YELLOW))
         }.let { title ->
-            runSafeOnGameThread {
+            runSafeGameConcurrent {
                 mc.toastManager.add(logLevel.toast(title, message))
             }
         }
@@ -60,12 +61,17 @@ object Communication {
         }
     }
 
-    fun Any.log(message: Text, logLevel: LogLevel = LogLevel.INFO, source: String = "", textSource: Text = Text.empty()) {
+    fun Any.log(
+        message: Text,
+        logLevel: LogLevel = LogLevel.INFO,
+        source: String = "",
+        textSource: Text = Text.empty(),
+    ) {
         buildText {
             text(this@log.source(logLevel, source, textSource))
             text(message)
         }.let { log ->
-            runSafeOnGameThread {
+            runSafeGameConcurrent {
                 player.sendMessage(log)
             }
         }
@@ -75,7 +81,7 @@ object Communication {
         logLevel: LogLevel,
         source: String = "",
         textSource: Text = Text.empty(),
-        color: Color = Color.GRAY
+        color: Color = Color.GRAY,
     ) = buildText {
         text(logLevel.prefix())
 
@@ -127,7 +133,7 @@ object Communication {
             literal("\n")
             literal("Keybind: ")
             color(GuiSettings.primaryColor) {
-                literal(module.keybind.key.toString())
+                literal(module.keybind.keyCode.toString())
             }
             literal("\n")
             literal("Default tags: ")
@@ -162,9 +168,13 @@ object Communication {
                 literal(" v${Lambda.VERSION}\n")
                 literal("Modules: ${ModuleRegistry.modules.size}\n")
                 literal("Commands: ${CommandRegistry.commands.size}\n")
-                literal("Settings: ${Configuration.configurations.sumOf { config ->
-                    config.configurables.sumOf { it.settings.size }
-                }}")
+                literal(
+                    "Settings: ${
+                        Configuration.configurations.sumOf { config ->
+                            config.configurables.sumOf { it.settings.size }
+                        }
+                    }"
+                )
                 literal("\n")
                 literal("Synchronous listeners: ${EventFlow.syncListeners.size}\n")
                 literal("Concurrent listeners: ${EventFlow.concurrentListeners.size}")
@@ -181,7 +191,7 @@ object Communication {
     fun <T> TextBuilder.joinToText(
         elements: Collection<T>,
         separator: String = ", ",
-        action: TextBuilder.(T) -> Unit
+        action: TextBuilder.(T) -> Unit,
     ) {
         elements.forEachIndexed { index, element ->
             if (index != 0) {

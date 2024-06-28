@@ -22,10 +22,7 @@
 
 package com.lambda.brigadier.argument
 
-import com.lambda.brigadier.BrigadierDsl
-import com.lambda.brigadier.DefaultArgumentConstructor
-import com.lambda.brigadier.DefaultArgumentReader
-import com.lambda.brigadier.argument
+import com.lambda.brigadier.*
 import com.mojang.brigadier.arguments.*
 
 /**

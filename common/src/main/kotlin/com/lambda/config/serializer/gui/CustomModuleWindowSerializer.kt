@@ -34,7 +34,7 @@ object CustomModuleWindowSerializer : JsonSerializer<CustomModuleWindow>, JsonDe
         json: JsonElement?,
         typeOfT: Type?,
         context: JsonDeserializationContext?,
-    )  = json?.asJsonObject?.let {
+    ) = json?.asJsonObject?.let {
         CustomModuleWindow(
             it["title"].asString,
             it["modules"].asJsonArray.mapNotNull { name ->
