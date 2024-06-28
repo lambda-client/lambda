@@ -21,7 +21,7 @@ fun login(
     hash: String
 ) =
     Request(
-        "$endpoint/api/$version/party/login",
+        "$endpoint/api/$version/login",
         Method.POST,
         parameters =
             mapOf(

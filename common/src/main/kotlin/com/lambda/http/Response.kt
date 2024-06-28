@@ -1,26 +1,25 @@
 package com.lambda.http
 
-import java.io.BufferedReader
 import java.net.HttpURLConnection
 
 /**
  * Represents an HTTP response.
  */
-class Response(
+class Response<Success : Any>(
+    /**
+     * The response
+     */
+    var data: Success? = null,
+
+    /**
+     * The error
+     */
+    var error: Throwable? = null,
+
     /**
      * The HTTP connection associated with the response.
      */
     var connection: HttpURLConnection? = null,
-
-    /**
-     * The buffered reader for reading the response body.
-     */
-    var body: BufferedReader? = null,
-
-    /**
-     * The exception that occurred during the request, if any.
-     */
-    var exception: Throwable? = null,
 ) {
     /**
      * Indicates whether the request was successful (HTTP status code 2xx).

@@ -22,8 +22,13 @@ fun Map<String, Any>.toJson(): String = Lambda.gson.toJson(this)
 /**
  * Try-catch block wrapped with a default value.
  */
-fun <T> tryOrDefault(default: T, block: () -> T) = try {
+fun <T> tryOrDefault(default: T, block: () -> T): T = try {
     block()
 } catch (e: Exception) {
     default
 }
+
+/**
+ * Try-catch block wrapped with null
+ */
+fun <T> tryOrNull(block: () -> T): T? = tryOrDefault(null, block)

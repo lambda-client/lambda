@@ -7,10 +7,7 @@ import com.lambda.event.EventFlow.ioScope
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
-import com.lambda.http.api.rpc.v1.endpoints.createParty
-import com.lambda.http.api.rpc.v1.endpoints.editParty
-import com.lambda.http.api.rpc.v1.endpoints.joinParty
-import com.lambda.http.api.rpc.v1.endpoints.login
+import com.lambda.http.api.rpc.v1.endpoints.*
 import com.lambda.http.api.rpc.v1.models.Authentication
 import com.lambda.http.api.rpc.v1.models.Party
 import com.lambda.module.Module
@@ -36,7 +33,6 @@ import dev.cbyrne.kdiscordipc.core.event.impl.ReadyEvent
 import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.AuthenticatePacket
 import dev.cbyrne.kdiscordipc.data.activity.*
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import net.minecraft.network.encryption.NetworkEncryptionUtils
 import net.minecraft.network.packet.s2c.login.LoginHelloS2CPacket
 import java.math.BigInteger
@@ -56,8 +52,8 @@ object DiscordRPC : Module(
     private val line2Left by setting("Line 2 Left", LineInfo.DIMENSION) { page == Page.General }
     private val line2Right by setting("Line 2 Right", LineInfo.FPS) { page == Page.General }
 
-    private val confirmCoordinates by setting("Show Coordinates", false) { page == Page.General }
-    private val confirmServer by setting("Expose server", false, description = "Allow to show what server you are on and allow to join parties.") { page == Page.General }
+    private val confirmCoordinates by setting("Show Coordinates", false, description = "Confirm display the player coordinates") { page == Page.General }
+    private val confirmServer by setting("Expose server", false, description = "Confirm display the server IP") { page == Page.General }
     private val showTime by setting("Show Time", true, description = "Show how long you have been playing for.") { page == Page.General }
 
     /* Technical settings */
@@ -72,7 +68,8 @@ object DiscordRPC : Module(
     private val public by setting("Public Party", false, description = "Allow anyone to join your party.") { page == Page.Party }.apply { onValueChange { _, _ -> edit() } }
 
     private val rpc = KDiscordIPC(Lambda.APP_ID, scope = ioScope)
-    private val startup = System.currentTimeMillis()
+    private var startup = System.currentTimeMillis()
+    private val dimensionRegex = Regex("""\b\w+_\w+\b""")
 
     private var discordAuth: AuthenticatePacket.Data? = null
     private var rpcAuth: Authentication? = null
@@ -105,20 +102,18 @@ object DiscordRPC : Module(
         USERNAME({ mc.session.username }),
         HEALTH({ "${mc.player?.health ?: 0} HP" }),
         HUNGER({ "${mc.player?.hungerManager?.foodLevel ?: 0} Hunger" }),
-        DIMENSION({ mc.world?.dimensionKey?.value?.path?.capitalize() ?: "Unknown" }),
+        DIMENSION({
+            mc.world?.registryKey?.value?.path?.replace(dimensionRegex) {
+                it.value.split("_").joinToString(" ") { it.capitalize() }
+            } ?: "Unknown"
+        }),
         COORDINATES({
-            if (confirmCoordinates) {
-                "Coords: ${mc.player?.blockPos?.toShortString()}"
-            } else {
-                "[Redacted]"
-            }
+            if (confirmCoordinates) "Coords: ${mc.player?.blockPos?.toShortString()}"
+            else "[Redacted]"
         }),
         SERVER({
-            if (confirmServer) {
-                mc.currentServerEntry?.address ?: "Not Connected"
-            } else {
-                "[Redacted]"
-            }
+            if (confirmServer) mc.currentServerEntry?.address ?: "Not Connected"
+            else "[Redacted]"
         }),
         FPS({ "${mc.currentFps} FPS" });
     }
@@ -135,7 +130,8 @@ object DiscordRPC : Module(
             serverId = it.packet.serverId
         }
 
-        // Will not work in single player or cracked servers
+        // Will not work if the player doesn't have a valid key pair
+        // from Mojang's authentication server.
         unsafeListener<ConnectionEvent.Connect.Login.Key> { event ->
             runConcurrent {
                 connect(event)
@@ -153,8 +149,9 @@ object DiscordRPC : Module(
     }
 
     private suspend fun connect(event: ConnectionEvent.Connect.Login.Key? = null) {
-        if (event != null) rpc.register(event)
+        startup = System.currentTimeMillis()
 
+        if (event != null) rpc.register(event)
         if (!rpc.connected) runConcurrent { rpc.connect() }
 
         while (true) {
@@ -167,49 +164,35 @@ object DiscordRPC : Module(
         if (rpc.connected) {
             LOG.info("Gracefully disconnecting from Discord RPC.")
             rpc.disconnect()
+            leaveParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return)
         }
     }
 
-    fun join(id: String) {
+    fun join(id: String = lastInvite?.activity?.party?.id ?: "") {
         if (!allowed) return
 
-        ioScope.launch {
-            joinParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, id)
-                .also { currentParty.lazySet(it) }
-        }
-    }
-
-    fun accept() {
-        if (!allowed) return
-
-        ioScope.launch {
-            lastInvite?.let {
-                join(it.activity.party.id)
+        joinParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return, id)
+            .also { response ->
+                if (response.error != null) warn("Failed to join the party: ${response.error}")
+                currentParty.lazySet(response.data)
             }
-        }
-    }
-
-    fun create() {
-        if (!allowed) return
-
-        ioScope.launch {
-            createParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, maxPlayers, public)
-                .also { currentParty.lazySet(it) }
-        }
     }
 
     private fun edit() {
         if (!allowed) return
 
-        ioScope.launch {
-            currentParty.acquire?.let {
-                editParty(rpcServer, apiVersion.value, rpcAuth!!.accessToken, maxPlayers, public)
-                    .also { currentParty.lazySet(it) }
-            }
+        currentParty.acquire?.let {
+            editParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return, maxPlayers, public)
+                .also { response ->
+                    if (response.error != null) warn("Failed to edit the party: ${response.error}")
+                    currentParty.lazySet(response.data)
+                }
         }
     }
 
     private suspend fun update() {
+        val party = currentParty.acquire
+
         rpc.activityManager.setActivity {
             details = "${line1Left.value()} | ${line1Right.value()}".take(128)
             state = "${line2Left.value()} | ${line2Right.value()}".take(128)
@@ -217,13 +200,11 @@ object DiscordRPC : Module(
             largeImage("lambda", Lambda.VERSION)
             smallImage("https://mc-heads.net/avatar/${mc.gameProfile.id}/nohelm", mc.gameProfile.name)
 
-            val party = currentParty.acquire
-
             if (allowed && party != null) {
                 party(party.id, party.players.size, party.settings.maxPlayers)
                 secrets(party.joinSecret)
             } else {
-                button("Download", "https://modrinth.com/") // ToDo: Add real link
+                button("Download", "https://github.com/lambda-client/lambda")
             }
 
             if (showTime) timestamps(startup)
@@ -236,15 +217,15 @@ object DiscordRPC : Module(
             subscribe(DiscordEvent.ActivityJoinRequest)
             subscribe(DiscordEvent.ActivityJoin)
             subscribe(DiscordEvent.ActivityInvite)
-            //subscribe(DiscordEvent.LobbyUpdate) // Invalid Event ?
-            //subscribe(DiscordEvent.LobbyDelete) // Invalid Event ?
+            //subscribe(DiscordEvent.LobbyUpdate)
+            //subscribe(DiscordEvent.LobbyDelete)
             //subscribe(DiscordEvent.LobbyMemberConnect)
             //subscribe(DiscordEvent.LobbyMemberDisconnect)
             //subscribe(DiscordEvent.LobbyMemberUpdate)
 
             // QOL features
-            subscribe(DiscordEvent.SpeakingStart)
-            subscribe(DiscordEvent.SpeakingStop)
+            //subscribe(DiscordEvent.SpeakingStart)
+            //subscribe(DiscordEvent.SpeakingStop)
 
             if (System.currentTimeMillis() - connectionTime > 300000) {
                 warn("The authentication hash has expired, reconnect to the server.")
@@ -257,14 +238,18 @@ object DiscordRPC : Module(
 
             // Prompt the user to authorize
             discordAuth = rpc.applicationManager.authenticate()
-            rpcAuth = login(rpcServer, apiVersion.value, discordAuth?.accessToken ?: "", mc.session.username, hash)
 
-            if (rpcAuth != null) {
-                info("Successfully authenticated with the RPC server.")
-                if (createByDefault) create()
-            } else {
-                warn("Failed to authenticate with the RPC server.")
-            }
+            login(rpcServer, apiVersion.value, discordAuth?.accessToken ?: "", mc.session.username, hash)
+                .also { response ->
+                    if (response.error != null) warn("Failed to authenticate with the RPC server: ${response.error}")
+                    rpcAuth = response.data
+                }
+
+            if (createByDefault) createParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return@on, maxPlayers, public)
+                .also { response ->
+                    if (response.error != null) warn("Failed to create a party: ${response.error}")
+                    currentParty.lazySet(response.data)
+                }
         }
 
         on<ActivityInviteEvent> {

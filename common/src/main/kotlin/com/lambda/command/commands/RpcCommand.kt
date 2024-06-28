@@ -24,7 +24,7 @@ object RpcCommand : LambdaCommand(
 
         required(literal("accept")) {
             execute {
-                DiscordRPC.accept()
+                DiscordRPC.join()
             }
         }
     }
