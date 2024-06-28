@@ -12,7 +12,7 @@ import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.enchantment.Enchantments
 import net.minecraft.entity.effect.StatusEffectUtil
 import net.minecraft.entity.effect.StatusEffects
-import net.minecraft.fluid.Fluids
+import net.minecraft.fluid.WaterFluid
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
@@ -35,8 +35,8 @@ object PacketMine : Module(
     //ToDo: Implement these settings
 //    private val rotate by setting("Rotate", false, "Rotates the player to look at the current mining block", visibility = { page == Page.General })
 //    private val autoSwap by setting("Auto Force Swap", false, "Hard swaps to the best tool rather than silent swapping. This is often used on servers with a stricter anti-cheat system", visibility = { page == Page.General})
-    private val clientSideBreak by setting("Client Side Break", true, "Breaks blocks client side rather than waiting for a response from the server", visibility = { page == Page.General })
-    private val timeoutDelay by setting("Timeout Delay", 0.20, 0.00..1.00, 0.1, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", visibility = { page == Page.General && !clientSideBreak })
+    private val validateBreak by setting("Validate Break", true, "Breaks blocks client side rather than waiting for a response from the server", visibility = { page == Page.General })
+    private val timeoutDelay by setting("Timeout Delay", 0.20, 0.00..1.00, 0.1, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", visibility = { page == Page.General && validateBreak })
     private val alternativePackets by setting("Alternative Packets", false, "Uses a different set of packets which tend to work better on servers using an anti-cheat like grim", visibility = { page == Page.General })
     private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue }).apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
     private val reverseQueueOrder by setting("Reverse Queue Order", false, "Breaks the latest addition to the queue first", visibility = { page == Page.Queue && queueBlocks})
@@ -67,7 +67,7 @@ object PacketMine : Module(
                         timeCompleted = System.currentTimeMillis()
                         swapStopBreak(pos, bestTool)
 
-                        if (!clientSideBreak) {
+                        if (validateBreak) {
                             breakState = BreakState.AwaitingResponse
                             return@listener
                         }
@@ -95,7 +95,7 @@ object PacketMine : Module(
                         checkClientBreak(false, pos)
                     }
                     BreakState.AwaitingResponse -> {
-                        if (clientSideBreak) return@listener
+                        if (!validateBreak) return@listener
 
                         if (System.currentTimeMillis() - timeCompleted < timeoutDelay * 1000) return@listener
 
@@ -122,9 +122,10 @@ object PacketMine : Module(
         listener<WorldEvent.BlockUpdate> {
             currentMiningBlock?.apply {
                 if (it.pos != pos
-                    || !(if (state.properties.contains(Properties.WATERLOGGED) && state.get(Properties.WATERLOGGED)) it.state.fluidState.fluid.equals(Fluids.WATER)
-                    else it.state.isAir)
-                    ) return@listener
+                    || if (state.properties.contains(Properties.WATERLOGGED) && state.get(Properties.WATERLOGGED)) it.state.fluidState.fluid !is WaterFluid
+                    else !it.state.isAir) {
+                    return@listener
+                }
 
                 checkClientBreak(true, pos)
 
@@ -148,7 +149,7 @@ object PacketMine : Module(
                 swapStartPacketBreak(pos, bestTool)
                 currentMiningBlock = BreakingContext(pos, state, BreakState.ReBreaking)
             } else {
-                currentMiningBlock = if (clientSideBreak) {
+                currentMiningBlock = if (!validateBreak) {
                     null
                 } else {
                     BreakingContext(pos, state, BreakState.AwaitingResponse)
@@ -176,8 +177,7 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.checkClientBreak(packetReceiveBreak: Boolean, pos: BlockPos) {
-        if ((packetReceiveBreak && !clientSideBreak)
-            || (!packetReceiveBreak && clientSideBreak)) {
+        if (packetReceiveBreak == validateBreak) {
             interaction.breakBlock(pos)
         }
     }
