@@ -38,10 +38,15 @@ object PacketMine : Module(
     private val validateBreak by setting("Validate Break", true, "Breaks blocks client side rather than waiting for a response from the server", visibility = { page == Page.General })
     private val timeoutDelay by setting("Timeout Delay", 0.20, 0.00..1.00, 0.1, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", visibility = { page == Page.General && validateBreak })
     private val alternativePackets by setting("Alternative Packets", false, "Uses a different set of packets which tend to work better on servers using an anti-cheat like grim", visibility = { page == Page.General })
+
     private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue }).apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
     private val reverseQueueOrder by setting("Reverse Queue Order", false, "Breaks the latest addition to the queue first", visibility = { page == Page.Queue && queueBlocks})
+
     private val reBreak by setting("Re-Break", true, "Automatically re-breaks the last mined block if it gets replaced", visibility = { page == Page.ReBreak})
     private val fastReBreak by setting("Fast Re-Break", false, "Re-breaks blocks instantly however could potentially cause ghost blocks", visibility = { page == Page.ReBreak && reBreak })
+
+    private val breakingAnimation by setting("Breaking Animation", false, "Renders the block breaking animation like vanilla would to show progress", visibility = { page == Page.Render })
+
 
     private var currentMiningBlock: BreakingContext? = null
     private var ignorePacketSend = false
@@ -59,6 +64,9 @@ object PacketMine : Module(
                 val activeState = world.getBlockState(pos)
                 if (activeState != state) state = activeState
                 val bestTool = getBestTool(activeState, pos)
+                val blockBreakAmount = mineTicks * calcBreakDelta(state, pos, bestTool)
+
+                if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, (blockBreakAmount * (2 - breakSpeed) * 10).toInt().coerceAtMost(9))
 
                 when (breakState) {
                     BreakState.Breaking -> {
@@ -80,15 +88,16 @@ object PacketMine : Module(
                         if (breakNextQueueBlock()) return@listener
 
                         if (player.eyePos.distanceTo(pos.toCenterPos()) > 6) {
-                            currentMiningBlock = null
+                            nullifyCurrentBreakingBlock()
                             return@listener
                         }
 
                         if (mineTicks * calcBreakDelta(state, pos, bestTool) < breakSpeed) return@listener
 
                         if (!fastReBreak
-                            && (activeState.isAir || (!activeState.fluidState.isEmpty && !(activeState.properties.contains(Properties.WATERLOGGED) && activeState.get(Properties.WATERLOGGED))))
-                            ) return@listener
+                            && (activeState.isAir || (!activeState.fluidState.isEmpty && !(activeState.properties.contains(Properties.WATERLOGGED) && activeState.get(Properties.WATERLOGGED))))) {
+                            return@listener
+                        }
 
                         swapStopBreak(pos, bestTool)
 
@@ -101,7 +110,7 @@ object PacketMine : Module(
 
                         if (breakNextQueueBlock()) return@listener
 
-                        currentMiningBlock = null
+                        nullifyCurrentBreakingBlock()
                     }
                 }
             }
@@ -172,8 +181,15 @@ object PacketMine : Module(
                 return
             }
 
-            currentMiningBlock = null
+            nullifyCurrentBreakingBlock()
         }
+    }
+
+    private fun SafeContext.nullifyCurrentBreakingBlock() {
+        currentMiningBlock?.apply {
+            if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, 0)
+        }
+        currentMiningBlock = null
     }
 
     private fun SafeContext.checkClientBreak(packetReceiveBreak: Boolean, pos: BlockPos) {
@@ -328,6 +344,6 @@ object PacketMine : Module(
     }
 
     private enum class Page {
-        General, Queue, ReBreak
+        General, Queue, ReBreak, Render
     }
 }
