@@ -15,7 +15,6 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener
 import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.Task
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 
@@ -99,7 +98,7 @@ abstract class Module(
     private val isEnabledSetting = setting("Enabled", enabledByDefault, visibility = { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)
     private val isVisible = setting("Visible", true)
-    val customTags = setting("Tags", emptySet<ModuleTag>(), visibility = { false })
+    val customTags = setting("Tags", setOf<ModuleTag>(), visibility = { false })
 
     var isEnabled by isEnabledSetting
     val isDisabled get() = !isEnabled
