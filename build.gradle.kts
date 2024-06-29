@@ -1,5 +1,6 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import net.fabricmc.loom.task.RemapJarTask
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.*
 
 val targets = listOf("META-INF/*.toml", "fabric.mod.json")
@@ -103,5 +104,13 @@ allprojects {
 
         sourceCompatibility = JavaVersion.VERSION_22
         targetCompatibility = JavaVersion.VERSION_22
+    }
+
+    tasks {
+        compileKotlin {
+            compilerOptions {
+                jvmTarget.set(JvmTarget.JVM_22)
+            }
+        }
     }
 }
