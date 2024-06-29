@@ -8,9 +8,4 @@ object LoaderInfo {
     @ExpectPlatform
     @JvmStatic
     fun getVersion(): String = "DEV"
-
-    @Contract(pure = true)
-    @ExpectPlatform
-    @JvmStatic
-    fun isDevelopment(): Boolean = true
 }

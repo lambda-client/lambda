@@ -7,8 +7,4 @@ object LoaderInfoImpl {
     @JvmStatic
     fun getVersion(): String =
         FMLLoader.getLoadingModList().getModFileById("lambda").versionString()
-
-    @JvmStatic
-    fun isDevelopment(): Boolean =
-        !FMLLoader.isProduction()
 }
