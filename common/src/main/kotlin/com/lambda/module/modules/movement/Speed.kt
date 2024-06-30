@@ -31,7 +31,7 @@ object Speed : Module(
 
     // Grim
     private val grimEntityBoost by setting("Entity Boost", 1.0, 0.0..2.0, 0.01) { mode == Mode.GRIM_STRAFE }
-    private val grimCollideMultiplier by setting("Entity Collide Multiplier", 0.75, 0.0..1.0, 0.01)  { mode == Mode.GRIM_STRAFE && grimEntityBoost > 0.0}
+    private val grimCollideMultiplier by setting("Entity Collide Multiplier", 0.5, 0.0..1.0, 0.01)  { mode == Mode.GRIM_STRAFE && grimEntityBoost > 0.0}
     private val grimBoatBoost by setting("Boat Boost", 0.4, 0.0..1.0, 0.01) { mode == Mode.GRIM_STRAFE }
 
     // NCP
