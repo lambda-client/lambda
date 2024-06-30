@@ -80,10 +80,6 @@ object RotationManager : Loadable {
         currentRotation = currentContext?.let { context ->
             val rotationTo = if (keepTicks >= 0) context.rotation else player.rotation
 
-            if (context.config.instant) {
-                return@let rotationTo
-            }
-
             var speedMultiplier = (context.config as? RotationSettings)?.speedMultiplier ?: 1.0
             if (keepTicks < 0) speedMultiplier = 1.0
 
