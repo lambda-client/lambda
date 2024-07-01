@@ -159,8 +159,9 @@ abstract class Configurable(
      * The type parameter [T] must either be a primitive type or a type with a registered type adapter in [Lambda.gson].
      *
      * @param name The unique identifier for the setting.
-     * @param defaultValue The default [ArrayList] value of type [T] for the setting.
+     * @param defaultValue The default [List] value of type [T] for the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param hackDelegates A flag that determines whether the setting should be serialized with the default value.
      * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
@@ -175,12 +176,14 @@ abstract class Configurable(
         defaultValue: List<T>,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
+        hackDelegates: Boolean = false,
     ) = ListSetting(
         name,
         defaultValue.toMutableList(),
         TypeToken.getParameterized(MutableList::class.java, T::class.java).type,
         description,
-        visibility
+        hackDelegates,
+        visibility,
     ).also {
         settings.add(it)
     }
@@ -193,6 +196,7 @@ abstract class Configurable(
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Map] value of type [K] and [V] for the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param hackDelegates A flag that determines whether the setting should be serialized with the default value.
      * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
@@ -206,12 +210,14 @@ abstract class Configurable(
         name: String,
         defaultValue: Map<K, V>,
         description: String = "",
+        hackDelegates: Boolean,
         noinline visibility: () -> Boolean = { true },
     ) = MapSetting(
         name,
         defaultValue.toMutableMap(),
-        TypeToken.getParameterized(Map::class.java, K::class.java, V::class.java).type,
+        TypeToken.getParameterized(MutableMap::class.java, K::class.java, V::class.java).type,
         description,
+        hackDelegates,
         visibility
     ).also {
         settings.add(it)
@@ -225,6 +231,7 @@ abstract class Configurable(
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Set] value of type [T] for the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
+     * @param hackDelegates A flag that determines whether the setting should be serialized with the default value.
      * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
@@ -238,13 +245,15 @@ abstract class Configurable(
         name: String,
         defaultValue: Set<T>,
         description: String = "",
+        hackDelegates: Boolean = false,
         noinline visibility: () -> Boolean = { true },
     ) = SetSetting(
         name,
         defaultValue.toMutableSet(),
-        TypeToken.getParameterized(Set::class.java, T::class.java).type,
+        TypeToken.getParameterized(MutableSet::class.java, T::class.java).type,
         description,
-        visibility
+        hackDelegates,
+        visibility,
     ).also {
         settings.add(it)
     }
