@@ -16,7 +16,7 @@ class RotationSettings(
     override var mean by c.setting("Mean", 20.0, 1.0..80.0, 0.1, "Average rotation speed", unit = "°") { vis() && !instant }
     override var derivation by c.setting("Standard Deviation", 5.0, 0.0..20.0, 0.1, "Spread of rotation speeds", unit = "°") { vis() && !instant }
 
-    override val turnSpeed get() = abs(nextGaussian(mean, derivation))
+    override val turnSpeed get() = if (instant) 360.0 else abs(nextGaussian(mean, derivation))
 
     var speedMultiplier = 1.0
 

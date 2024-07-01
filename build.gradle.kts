@@ -1,5 +1,7 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import net.fabricmc.loom.api.LoomGradleExtensionAPI
 import net.fabricmc.loom.task.RemapJarTask
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.*
 
 val targets = listOf("META-INF/*.toml", "fabric.mod.json")
@@ -14,6 +16,8 @@ val minecraftVersion: String by project
 val yarnMappings: String by project
 
 val libs = file("libs")
+val Project.loom: LoomGradleExtensionAPI
+    get() = (this as ExtensionAware).extensions.getByName("loom") as LoomGradleExtensionAPI
 
 plugins {
     kotlin("jvm") version "2.0.0"
@@ -101,7 +105,15 @@ allprojects {
     java {
         withSourcesJar()
 
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    tasks {
+        compileKotlin {
+            compilerOptions {
+                jvmTarget.set(JvmTarget.JVM_21)
+            }
+        }
     }
 }

@@ -10,7 +10,6 @@ import com.lambda.core.Loader
 import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
 import com.lambda.gui.impl.clickgui.windows.tag.TagWindow
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runGameScheduled
 import com.lambda.util.KeyCode
 import com.mojang.authlib.GameProfile
 import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
@@ -21,12 +20,14 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.awt.Color
 
+
 object Lambda {
     const val MOD_NAME = "Lambda"
     const val MOD_ID = "lambda"
     const val SYMBOL = "λ"
     val VERSION: String = LoaderInfo.getVersion()
     val LOG: Logger = LogManager.getLogger(SYMBOL)
+
     @JvmStatic
     val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
 
