@@ -36,13 +36,13 @@ object PacketMine : Module(
 ) {
     private val page by setting("Page", Page.General)
 
-    private val breakSpeed by setting("Break Speed", 1.0, 0.0..1.0, 0.1, "Breaks the selected block at the time to break of the block multiplied by this value", visibility = { page == Page.General})
+    private val breakThreshold by setting("Break Threshold", 0.7f, 0.0f..1.0f, 0.1f, "Breaks the selected block once the block breaking progress passes this value, 1 being 100%", visibility = { page == Page.General})
     private val pauseWhileUsingItems by setting("Pause While Using Items", true, "Will prevent breaking while using items like eating or aiming a bow", visibility = { page == Page.General })
     //ToDo: Implement these settings
 //    private val rotate by setting("Rotate", false, "Rotates the player to look at the current mining block", visibility = { page == Page.General })
 //    private val autoSwap by setting("Auto Force Swap", false, "Hard swaps to the best tool rather than silent swapping. This is often used on servers with a stricter anti-cheat system", visibility = { page == Page.General})
     private val validateBreak by setting("Validate Break", true, "Breaks blocks client side rather than waiting for a response from the server", visibility = { page == Page.General })
-    private val timeoutDelay by setting("Timeout Delay", 0.20, 0.00..1.00, 0.1, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", visibility = { page == Page.General && validateBreak })
+    private val timeoutDelay by setting("Timeout Delay", 0.20f, 0.00f..1.00f, 0.1f, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", visibility = { page == Page.General && validateBreak })
     private val alternativePackets by setting("Alternative Packets", false, "Uses a different set of packets which tend to work better on servers using an anti-cheat like grim", visibility = { page == Page.General })
 
     private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue }).apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
@@ -53,8 +53,29 @@ object PacketMine : Module(
 
     private val breakingAnimation by setting("Breaking Animation", false, "Renders the block breaking animation like vanilla would to show progress", visibility = { page == Page.Render })
     private val renderMode by setting("Render Mode", RenderMode.InOut, "Renders a box with size corresponding to amount broken", visibility = { page == Page.Render })
-    private val renderColor by setting("Render Colour", Color.RED, "The colour used to render the breaking box", visibility = { page == Page.Render })
+    private val renderSetting by setting("Render Setting", RenderSetting.Both, "The different ways to draw the renders", visibility = { page == Page.Render && renderMode.isEnabled() })
+    private val fillColor by setting("Fill Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline })
+    private val outlineColor by setting("Outline Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
+    private val outlineWidth by setting("Outline Width", 1f, 0f..3f, 0.1f, "the thickness of the outline", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
 
+    private enum class RenderMode {
+        InOut, OutIn, None;
+        
+        fun isEnabled(): Boolean =
+            this != None
+    }
+
+    private enum class RenderSetting {
+        Both, Fill, Outline
+    }
+
+    private enum class BreakState {
+        Breaking, ReBreaking, AwaitingResponse
+    }
+
+    private enum class Page {
+        General, Queue, ReBreak, Render
+    }
 
     private var currentMiningBlock: BreakingContext? = null
     private var ignorePacketSend = false
@@ -79,11 +100,11 @@ object PacketMine : Module(
 
                 val miningProgress = mineTicks * currentBreakDelta
 
-                if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, (miningProgress * (2 - breakSpeed) * 10).toInt().coerceAtMost(9))
+                if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, (miningProgress * (2 - breakThreshold) * 10).toInt().coerceAtMost(9))
 
                 when (breakState) {
                     BreakState.Breaking -> {
-                        if (miningProgress < breakSpeed) return@listener
+                        if (miningProgress < breakThreshold) return@listener
 
                         timeCompleted = System.currentTimeMillis()
                         swapStopBreak(pos, bestTool)
@@ -105,7 +126,7 @@ object PacketMine : Module(
                             return@listener
                         }
 
-                        if (miningProgress < breakSpeed) return@listener
+                        if (miningProgress < breakThreshold) return@listener
 
                         if (!fastReBreak
                             && (activeState.isAir || (!activeState.fluidState.isEmpty && !(activeState.properties.contains(Properties.WATERLOGGED) && activeState.get(Properties.WATERLOGGED))))) {
@@ -157,9 +178,11 @@ object PacketMine : Module(
             }
         }
 
-        listener<RenderEvent.BlockESP> {
+        listener<RenderEvent.World> {
             currentMiningBlock?.apply {
+                renderer.clear()
                 buildRenderer()
+                renderer.upload()
             }
         }
     }
@@ -174,7 +197,7 @@ object PacketMine : Module(
 
         val breakDelta = calcBreakDelta(world.getBlockState(pos), pos, bestTool)
 
-        if (breakDelta > breakSpeed) {
+        if (breakDelta > breakThreshold) {
             if (reBreak) {
                 swapStartPacketBreak(pos, bestTool)
                 currentMiningBlock = BreakingContext(pos, state, BreakState.ReBreaking, breakDelta)
@@ -308,11 +331,9 @@ object PacketMine : Module(
     ) : Drawable {
         var mineTicks = 0
         var timeCompleted: Long = -1
-
         var previousBreakDelta = 0f
-
         var boxList = if (renderMode.isEnabled()) {
-            state.getCollisionShape(mc.world, pos).boundingBoxes.toSet()
+            state.getOutlineShape(mc.world, pos).boundingBoxes.toSet()
         } else {
             null
         }
@@ -321,32 +342,27 @@ object PacketMine : Module(
             previousBreakDelta = currentBreakDelta
             currentBreakDelta = newBreakDelta
             if (renderMode.isEnabled())
-                boxList = state.getCollisionShape(mc.world, pos).boundingBoxes.toSet()
+                boxList = state.getOutlineShape(mc.world, pos).boundingBoxes.toSet()
         }
 
         override fun SafeContext.buildRenderer() {
             boxList?.forEach { box ->
-                withBox(lerp(
-                    getLerp(box, (mineTicks - 1) * previousBreakDelta * (2 - breakSpeed.toFloat())).offset(pos)
-                    , getLerp(box, mineTicks * currentBreakDelta * (2 - breakSpeed.toFloat())).offset(pos)
-                    , mc.tickDelta.toDouble())
-                    , renderColor)
+                val lerpBox = lerp(
+                    getLerp(box, (mineTicks - 1) * previousBreakDelta * (2 - breakThreshold)).offset(pos)
+                    , getLerp(box, mineTicks * currentBreakDelta * (2 - breakThreshold)).offset(pos)
+                    , mc.tickDelta.toDouble()
+                )
+
+                if (renderSetting != RenderSetting.Outline) {
+                    withBox(lerpBox, fillColor)
+                }
+
+                if (renderSetting != RenderSetting.Fill) {
+                    // Currently there isn't an outline method and I don't want to mess with anything that might have different plans
+                    withBox(lerpBox, outlineColor)
+                }
             }
         }
-    }
-
-    private enum class RenderMode {
-        InOut, OutIn, None;
-        fun isEnabled(): Boolean =
-            this != None
-    }
-
-    private enum class BreakState {
-        Breaking, ReBreaking, AwaitingResponse
-    }
-
-    private enum class Page {
-        General, Queue, ReBreak, Render
     }
 
     //Todo: Replace with task system
