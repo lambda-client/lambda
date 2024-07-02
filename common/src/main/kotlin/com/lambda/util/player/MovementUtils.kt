@@ -1,25 +1,61 @@
 package com.lambda.util.player
 
+import baritone.utils.PlayerMovementInput
 import com.lambda.context.SafeContext
 import com.lambda.interaction.RotationManager
 import com.lambda.util.math.MathUtils.random
+import com.lambda.util.math.MathUtils.toDegree
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.MathUtils.toRadian
+import com.lambda.util.math.VecUtils.plus
+import com.lambda.util.math.VecUtils.times
 import net.minecraft.client.input.Input
+import net.minecraft.client.input.KeyboardInput
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.enchantment.EnchantmentHelper.getSwiftSneakSpeedBoost
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3d
-import kotlin.math.cos
-import kotlin.math.hypot
-import kotlin.math.sign
-import kotlin.math.sin
+import kotlin.math.*
 
 object MovementUtils {
-    private val SafeContext.roundedForward get() = sign(player.input.movementForward)
-    private val SafeContext.roundedStrafing get() = sign(player.input.movementSideways)
+    val Input.roundedForward get() = sign(movementForward).toDouble()
+    val Input.roundedStrafing get() = sign(movementSideways).toDouble()
 
-    fun Input.cancel() {
+    val Input.isInputting get() = roundedForward != 0.0 || roundedStrafing != 0.0
+    val SafeContext.isInputting get() = player.input.isInputting
+
+    fun SafeContext.newMovementInput(assumeBaritoneUsage: Boolean = true): Input {
+        val input = if (assumeBaritoneUsage && player.input is PlayerMovementInput) {
+            player.input
+        } else {
+            val multiplier = if (!player.shouldSlowDown()) 1f
+            else (0.3f + getSwiftSneakSpeedBoost(player)).coerceIn(0f, 1f)
+
+            KeyboardInput(mc.options).apply {
+                tick(true, multiplier)
+            }
+        }
+
+        return input
+    }
+
+    fun Input.mergeFrom(source: Input): Input {
+        movementForward = source.movementForward
+        movementSideways = source.movementSideways
+
+        pressingForward = source.pressingForward
+        pressingBack = source.pressingBack
+        pressingLeft = source.pressingLeft
+        pressingRight = source.pressingRight
+
+        jumping = source.jumping
+        sneaking = source.sneaking
+
+        return this
+    }
+
+    fun Input.cancel(cancelVertical: Boolean = true) {
         movementForward = 0f
         movementSideways = 0f
 
@@ -28,63 +64,61 @@ object MovementUtils {
         pressingLeft = false
         pressingRight = false
 
-        jumping = false
-        sneaking = false
+        if (cancelVertical) {
+            jumping = false
+            sneaking = false
+        }
     }
-
-    val SafeContext.isInputting: Boolean
-        get() =
-            roundedForward != 0f || roundedStrafing != 0f
 
     val Input.verticalMovement
         get() =
             jumping.toInt() - sneaking.toInt()
 
+    private fun inputMoveOffset(
+        moveForward: Double,
+        moveStrafe: Double
+    ) = atan2(-moveStrafe, moveForward)
+
     fun SafeContext.calcMoveYaw(
         yawIn: Float = player.moveYaw,
-        moveForward: Float = roundedForward,
-        moveStrafe: Float = roundedStrafing,
-    ): Double {
-        var strafe = 90 * moveStrafe
-        strafe *= if (moveForward != 0F) moveForward * 0.5F else 1F
+        moveForward: Double = player.input.roundedForward,
+        moveStrafe: Double = player.input.roundedStrafing
+    ) = yawIn + inputMoveOffset(moveForward, moveStrafe).toDegree()
 
-        var yaw = yawIn - strafe
-        yaw -= if (moveForward < 0F) 180 else 0
-
-        return yaw.toDouble()
-    }
-
-    fun SafeContext.calcMoveRad() = calcMoveYaw().toRadian()
+    fun SafeContext.calcMoveRad(
+        yawIn: Float = player.moveYaw,
+        moveForward: Double = player.input.roundedForward,
+        moveStrafe: Double = player.input.roundedStrafing
+    ) = yawIn.toRadian() + inputMoveOffset(moveForward, moveStrafe)
 
     fun randomDirection() = random(-180.0, 180.0).toRadian()
 
-    fun SafeContext.movementDirection(radDir: Double = calcMoveRad()) =
-        Vec3d(-sin(radDir), 0.0, cos(radDir))
+    fun SafeContext.movementVector(radDir: Double = calcMoveRad(), y: Double = 0.0) =
+        Vec3d(-sin(radDir), y, cos(radDir))
 
+    var Entity.motion  get() = velocity;   set(value) { velocity = value }
     var Entity.motionX get() = velocity.x; set(value) = setVelocity(value, velocity.y, velocity.z)
     var Entity.motionY get() = velocity.y; set(value) = setVelocity(velocity.x, value, velocity.z)
     var Entity.motionZ get() = velocity.z; set(value) = setVelocity(velocity.x, velocity.y, value)
 
     fun SafeContext.setSpeed(speed: Double, direction: Double = calcMoveRad()) {
-        player.motionX = -sin(direction) * speed
-        player.motionZ = cos(direction) * speed
+        player.motion = movementVector(direction, player.motionY)
+        mulSpeed(speed)
     }
 
     fun SafeContext.addSpeed(speed: Double, direction: Double = calcMoveRad()) {
-        player.motionX -= sin(direction) * speed
-        player.motionZ += cos(direction) * speed
+        player.motion += movementVector(direction) * speed
     }
 
     fun SafeContext.mulSpeed(modifier: Double) {
-        player.motionX *= modifier
-        player.motionZ *= modifier
+        player.motion *= Vec3d(modifier, 1.0, modifier)
     }
 
     val ClientPlayerEntity.moveYaw get() = RotationManager.movementYaw ?: yaw
 
     val Entity.moveDiff get() = Vec3d(this.pos.x - this.prevX, this.pos.y - this.prevY, this.pos.z - this.prevZ)
     val Entity.moveDelta get() = moveDiff.let { hypot(it.x, it.z) }
-    val Entity.motionDelta get() = hypot(this.velocity.x, this.velocity.z)
+    val Entity.velocityDelta get() = hypot(this.velocity.x, this.velocity.z)
 
     val Entity.octant: EightWayDirection
         get() {
