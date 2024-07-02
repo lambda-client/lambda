@@ -82,7 +82,7 @@ object Freecam : Module(
             mc.options.perspective = lastPerspective
         }
 
-        listener<RotationEvent.Pre>(Int.MAX_VALUE) {
+        listener<RotationEvent.Update>(Int.MAX_VALUE) {
             if (!rotateToTarget) return@listener
             val target = mc.crosshairTarget?.orNull ?: return@listener
 

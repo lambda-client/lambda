@@ -36,16 +36,14 @@ object RotationManager : Loadable {
     private var keepTicks = 0
     private var pauseTicks = 0
 
-    @JvmStatic
-    fun update() =
-        runSafe {
-            RotationEvent.Pre().post {
+    init {
+        listener<TickEvent.Pre> {
+            RotationEvent.Update().post {
                 rotate(context)
                 currentContext?.let { RotationEvent.Post(it).post() }
             }
         }
 
-    init {
         listener<PacketEvent.Send.Post> { event ->
             val packet = event.packet
             if (packet !is PlayerPositionLookS2CPacket) return@listener
@@ -208,7 +206,8 @@ object RotationManager : Loadable {
             val baritoneYaw = if (handledByBaritone) baritoneContext?.rotation?.yaw else null
 
             // The yaw relative to which the movement was constructed
-            val movementYaw = baritoneYaw ?: playerYaw
+            val strafeEvent = RotationEvent.Strafe(baritoneYaw ?: playerYaw)
+            val movementYaw = strafeEvent.post().strafeYaw
 
             // Actual yaw used to move the player
             val actualYaw = currentRotation.yaw

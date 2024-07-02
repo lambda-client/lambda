@@ -51,7 +51,7 @@ class BreakBlock @Ta5kBuilder constructor(
     }
 
     init {
-        listener<RotationEvent.Pre> { event ->
+        listener<RotationEvent.Update> { event ->
             if (!rotate) return@listener
             event.context = lookAtBlock(blockPos, rotationConfig, interactionConfig, sides)
         }
