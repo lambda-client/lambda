@@ -42,7 +42,7 @@ object FolderRegister {
         val path = resolve(
             hostName.sanitizeForFilename()
         ).resolve(
-            mc.world?.dimensionKey?.value?.path?.sanitizeForFilename() ?: "unknown"
+            mc.world?.dimensionEntry?.value()?.toString()?.sanitizeForFilename() ?: "unknown"
         )
         path.createIfNotExists()
         return path

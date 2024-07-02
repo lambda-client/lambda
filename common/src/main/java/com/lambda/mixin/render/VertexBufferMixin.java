@@ -3,7 +3,7 @@ package com.lambda.mixin.render;
 import com.lambda.graphics.gl.VaoUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gl.VertexBuffer;
-import net.minecraft.client.render.BufferBuilder;
+import net.minecraft.client.render.BuiltBuffer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -17,8 +17,8 @@ public class VertexBufferMixin {
     @Shadow
     private int indexBufferId;
 
-    @Inject(method = "uploadIndexBuffer", at = @At("RETURN"))
-    private void onConfigureIndexBuffer(BufferBuilder.DrawParameters parameters, ByteBuffer vertexBuffer, CallbackInfoReturnable<RenderSystem.ShapeIndexBuffer> cir) {
+    @Inject(method = "uploadIndexBuffer(Lnet/minecraft/client/render/BuiltBuffer$DrawParameters;Ljava/nio/ByteBuffer;)Lcom/mojang/blaze3d/systems/RenderSystem$ShapeIndexBuffer;", at = @At("RETURN"))
+    private void onConfigureIndexBuffer(BuiltBuffer.DrawParameters parameters, ByteBuffer indexBuffer, CallbackInfoReturnable<RenderSystem.ShapeIndexBuffer> cir) {
         RenderSystem.ShapeIndexBuffer value = cir.getReturnValue();
         VaoUtils.lastIbo = value == null ? this.indexBufferId : value.id;
     }

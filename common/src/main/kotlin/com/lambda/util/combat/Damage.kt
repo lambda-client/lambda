@@ -1,12 +1,10 @@
 package com.lambda.util.combat
 
-import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.registry.tag.DamageTypeTags
 import kotlin.math.max
-import kotlin.math.min
 
 object Damage {
     /**
@@ -24,9 +22,9 @@ object Damage {
 
         if (source.isIn(DamageTypeTags.BYPASSES_ENCHANTMENTS)) return damage
 
-        val protectionAmount = EnchantmentHelper.getProtectionAmount(entity.armorItems, source)
+        //val protectionAmount = EnchantmentHelper.getProtectionAmount(entity.armorItems, source)
 
-        if (protectionAmount > 0) return damage * (1.0 - min(protectionAmount, 20) / 25.0)
+        //if (protectionAmount > 0) return damage * (1.0 - min(protectionAmount, 20) / 25.0)
 
         return damage
     }

@@ -19,7 +19,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.screen.GenericContainerScreenHandler
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
-import java.util.TreeSet
+import java.util.*
 
 // ToDo: Make this a Configurable to save container caches. Should use a cached region based storage system.
 object ContainerManager : Loadable {
@@ -109,10 +109,10 @@ object ContainerManager : Loadable {
         blockState: BlockState,
         availableTools: Set<Item> = ItemUtils.tools,
     ) = availableTools.map {
-            it to it.getMiningSpeedMultiplier(it.defaultStack, blockState)
+            it to it.getMiningSpeed(it.defaultStack, blockState)
         }.filter { (item, speed) ->
             speed > 1.0
-                && item.isSuitableFor(blockState)
+                && item.isCorrectForDrops(item.defaultStack, blockState)
                 && findContainerWithSelection(item.select()) != null
         }.maxByOrNull {
             it.second

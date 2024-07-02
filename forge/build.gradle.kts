@@ -1,9 +1,14 @@
+val modVersion: String by project
 val minecraftVersion: String by project
 val forgeVersion: String by project
 val mixinExtrasVersion: String by project
 val kotlinForgeVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-forge"
+
+plugins {
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+}
 
 architectury {
     platformSetupLoomIde()
@@ -62,11 +67,6 @@ fun DependencyHandlerScope.setupConfigurations() {
         forgeRuntimeLibrary(it)
         include(it)
     }
-
-    shadowBundle.dependencies.forEach {
-        shadowCommon(it)
-        shadow(it)
-    }
 }
 
 dependencies {
@@ -85,9 +85,6 @@ dependencies {
     implementation("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
 
-    // Fix KFF
-    compileOnly(kotlin("stdlib"))
-
     // Disable reflections logging
     include("org.slf4j:slf4j-nop:2.0.13")
 
@@ -104,5 +101,16 @@ tasks {
         val dir = layout.buildDirectory.dir("sourcesSets/${it.name}")
         it.output.setResourcesDir(dir)
         it.java.destinationDirectory.set(dir)
+    }
+
+    shadowJar {
+        archiveVersion = "$modVersion+$minecraftVersion"
+        configurations = listOf(shadowBundle)
+        archiveClassifier = "dev-shadow"
+    }
+
+    remapJar {
+        dependsOn(processResources, shadowJar)
+        inputFile = shadowJar.get().archiveFile
     }
 }

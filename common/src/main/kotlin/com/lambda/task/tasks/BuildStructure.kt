@@ -17,6 +17,7 @@ import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.info
+import com.lambda.util.primitives.extension.tickDelta
 import net.minecraft.util.math.BlockPos
 
 class BuildStructure @Ta5kBuilder constructor(

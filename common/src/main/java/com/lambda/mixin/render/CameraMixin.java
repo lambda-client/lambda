@@ -41,18 +41,14 @@ public abstract class CameraMixin {
     }
 
     @Inject(method = "clipToSpace", at = @At("HEAD"), cancellable = true)
-    private void onClipToSpace(double desiredCameraDistance, CallbackInfoReturnable<Double> info) {
-        if (CameraTweaks.INSTANCE.isEnabled() && CameraTweaks.getNoClipCam()) {
-            info.setReturnValue(desiredCameraDistance);
-        }
+    private void onClipToSpace(float f, CallbackInfoReturnable<Float> cir) {
+        if (CameraTweaks.INSTANCE.isEnabled() && CameraTweaks.getNoClipCam()) cir.setReturnValue(f);
     }
 
-    @ModifyArg(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;clipToSpace(D)D"))
-    private double onDistanceUpdate(double desiredCameraDistance) {
-        if (CameraTweaks.INSTANCE.isEnabled()) {
-            return CameraTweaks.getCamDistance();
-        }
+    @ModifyArg(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;clipToSpace(F)F"))
+    private float onDistanceUpdate(float f) {
+        if (CameraTweaks.INSTANCE.isEnabled()) return CameraTweaks.getCamDistance();
 
-        return desiredCameraDistance;
+        return f;
     }
 }

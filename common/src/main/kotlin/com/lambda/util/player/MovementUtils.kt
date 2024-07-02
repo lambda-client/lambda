@@ -12,7 +12,6 @@ import com.lambda.util.math.VecUtils.times
 import net.minecraft.client.input.Input
 import net.minecraft.client.input.KeyboardInput
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.enchantment.EnchantmentHelper.getSwiftSneakSpeedBoost
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3d
@@ -30,7 +29,7 @@ object MovementUtils {
             player.input
         } else {
             val multiplier = if (!player.shouldSlowDown()) 1f
-            else (0.3f + getSwiftSneakSpeedBoost(player)).coerceIn(0f, 1f)
+            else (0.3f + /*getSwiftSneakSpeedBoost(player)*/0).coerceIn(0f, 1f)
 
             KeyboardInput(mc.options).apply {
                 tick(true, multiplier)

@@ -3,10 +3,7 @@ package com.lambda.util.combat
 import com.lambda.context.SafeContext
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.fluidState
-import com.lambda.util.math.VecUtils.minus
-import com.lambda.util.math.VecUtils.times
 import com.lambda.util.world.WorldUtils.getFastEntities
-import net.minecraft.enchantment.ProtectionEnchantment
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
@@ -75,13 +72,14 @@ object Explosion {
         val distance = entity.pos.distanceTo(position)
 
         val size = power * 2.0
-        val vel = ProtectionEnchantment.transformExplosionKnockback(
+        /*val vel = ProtectionEnchantment.transformExplosionKnockback(
             entity,
             (1.0 - distance / size) * Explosion.getExposure(position, entity)
         )
 
         val diff = entity.eyePos - position
-        return diff.normalize() * vel
+        return diff.normalize() * vel*/
+        return Vec3d.ZERO
     }
 
     fun SafeContext.explosionDestruction(source: Explosion): List<Vec3d> {

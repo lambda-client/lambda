@@ -18,9 +18,7 @@ package com.lambda.util.text
 
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityType
-import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NbtCompound
 import net.minecraft.text.ClickEvent
 import net.minecraft.text.HoverEvent
 import net.minecraft.text.Text
@@ -102,25 +100,6 @@ object HoverEvents {
      */
     fun showItem(itemStack: ItemStack): HoverEvent {
         return HoverEvent(HoverEvent.Action.SHOW_ITEM, HoverEvent.ItemStackContent(itemStack))
-    }
-
-    /**
-     * Creates a [HoverEvent] showing an [ItemStack] created from the given [NBT Compound][nbt].
-     *
-     * @see HoverEvent.Action.SHOW_ITEM
-     */
-    fun showItem(nbt: NbtCompound): HoverEvent {
-        return showItem(ItemStack.fromNbt(nbt))
-    }
-
-    /**
-     * Creates a [HoverEvent] showing an [ItemStack] created from the given [item]
-     * with an optional [NBT tag][nbt].
-     *
-     * @see HoverEvent.Action.SHOW_ITEM
-     */
-    fun showItem(item: Item, nbt: NbtCompound? = null): HoverEvent {
-        return showItem(item.defaultStack.also { it.nbt = nbt })
     }
 
     /**

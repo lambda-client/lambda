@@ -6,6 +6,7 @@ import com.lambda.command.CommandRegistry
 import com.lambda.event.EventFlow
 import com.lambda.module.ModuleRegistry
 import com.lambda.util.Formatting.asString
+import com.lambda.util.primitives.extension.tickDelta
 import net.minecraft.util.Formatting
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.EntityHitResult

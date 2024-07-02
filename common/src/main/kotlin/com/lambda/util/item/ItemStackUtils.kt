@@ -1,11 +1,8 @@
 package com.lambda.util.item
 
 import com.lambda.util.collections.Cacheable.Companion.cacheable
-import net.minecraft.inventory.Inventories
-import net.minecraft.item.BlockItem
+import net.minecraft.component.DataComponentTypes
 import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NbtElement
-import net.minecraft.util.collection.DefaultedList
 
 object ItemStackUtils {
     val ItemStack.spaceLeft get() = maxCount - count
@@ -41,13 +38,8 @@ object ItemStackUtils {
     }
 
     val ItemStack.shulkerBoxContents: List<ItemStack> by cacheable { stack ->
-        BlockItem.getBlockEntityNbt(stack)?.takeIf {
-            it.contains("Items", NbtElement.LIST_TYPE.toInt())
-        }?.let {
-            val list = DefaultedList.ofSize(27, ItemStack.EMPTY)
-            Inventories.readNbt(it, list)
-            list
-        } ?: emptyList()
+        stack.components.get(DataComponentTypes.CONTAINER)?.stream()?.toList()
+            ?: emptyList()
     }
 
     /**
@@ -60,5 +52,6 @@ object ItemStackUtils {
      */
     fun ItemStack?.equal(other: ItemStack?) = ItemStack.areEqual(this, other)
 
-    fun ItemStack.combines(other: ItemStack) = ItemStack.canCombine(this, other)
+    // TODO: Find the new method for this
+    //fun ItemStack.combines(other: ItemStack) = ItemStack.canCombine(this, other)
 }

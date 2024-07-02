@@ -32,7 +32,7 @@ object ServerSpoof : Module(
             if (packet !is CustomPayloadC2SPacket) return@unsafeListener
             val payload = packet.payload
             if (payload !is BrandCustomPayload) return@unsafeListener
-            if (!spoofClientBrand || payload.id() != BrandCustomPayload.ID) return@unsafeListener
+            if (!spoofClientBrand || payload.id != BrandCustomPayload.ID) return@unsafeListener
 
             payload.write(PacketByteBuf(Unpooled.buffer()).writeString(spoofName))
         }

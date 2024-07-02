@@ -28,7 +28,6 @@ import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemUsageContext
-import net.minecraft.registry.RegistryKeys
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.HitResult
@@ -178,10 +177,8 @@ object BuildSimulator {
                     usageContext.blockPos,
                     false
                 )
-                val canBePlacedOn = optimalStack.canPlaceOn(
-                    usageContext.world.registryManager.get(RegistryKeys.BLOCK),
-                    cachePos,
-                )
+                val canBePlacedOn = optimalStack.canPlaceOn(cachePos)
+                
                 if (!player.abilities.allowModifyWorld && !canBePlacedOn) {
                     acc.add(PlaceResult.IllegalUsage(pos))
                     return@forEach
@@ -244,7 +241,7 @@ object BuildSimulator {
                     acc.add(BuildResult.WrongStack(pos, placeContext, target.copy))
                     return@forEach
                 }
-                
+
                 if (optimalStack.item != currentHandStack.item) {
                     acc.add(BuildResult.WrongItem(pos, placeContext, optimalStack.item))
                     return@forEach

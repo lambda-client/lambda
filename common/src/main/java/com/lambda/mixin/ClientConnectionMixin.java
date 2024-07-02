@@ -6,7 +6,7 @@ import com.lambda.event.events.PacketEvent;
 import io.netty.channel.ChannelHandlerContext;
 import net.minecraft.network.ClientConnection;
 import net.minecraft.network.NetworkSide;
-import net.minecraft.network.listener.PacketListener;
+import net.minecraft.network.listener.ClientLoginPacketListener;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.handshake.ConnectionIntent;
 import net.minecraft.text.Text;
@@ -58,15 +58,11 @@ public class ClientConnectionMixin {
         EventFlow.post(new PacketEvent.Receive.Post(packet));
     }
 
-    @Inject(method = "connect(Ljava/lang/String;ILnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/packet/c2s/handshake/ConnectionIntent;)V", at = @At("HEAD"))
+    @Inject(method = "connect(Ljava/lang/String;ILnet/minecraft/network/listener/ClientLoginPacketListener;)V", at = @At("HEAD"))
     private void onConnect(
-            String address,
-            int port,
-            PacketListener listener,
-            ConnectionIntent intent,
-            CallbackInfo ci
+            String address, int port, ClientLoginPacketListener listener, CallbackInfo ci
     ) {
-        EventFlow.post(new ConnectionEvent.Connect(address, port, listener, intent));
+        EventFlow.post(new ConnectionEvent.Connect(address, port, listener, ConnectionIntent.LOGIN));
     }
 
     @Inject(method = "disconnect(Lnet/minecraft/text/Text;)V", at = @At("HEAD"))

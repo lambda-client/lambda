@@ -20,7 +20,7 @@ object EntityControl : Module(
     /* General */
     private val forceMount by setting("Force Mount", true, description = "Attempts to force mount chested entities.", visibility = { page == Page.GENERAL }).apply {
         onValueChange { _, _ ->
-            horses.forEach { horse -> horse.updateSaddle() }
+            horses.forEach { horse -> horse.updateSaddledFlag() }
         }
     }
 

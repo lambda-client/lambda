@@ -22,5 +22,5 @@ object SoundManager {
         )
     }
 
-    fun String.toIdentifier() = Identifier(Lambda.MOD_ID, this)
+    fun String.toIdentifier(): Identifier = Identifier.of(Lambda.MOD_ID, this)
 }

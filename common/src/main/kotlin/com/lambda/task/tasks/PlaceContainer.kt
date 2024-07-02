@@ -5,12 +5,12 @@ import com.lambda.interaction.construction.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.PlaceResult
-import com.lambda.interaction.construction.result.Resolvable
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildStructure.Companion.buildStructure
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.primitives.extension.tickDelta
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
 
