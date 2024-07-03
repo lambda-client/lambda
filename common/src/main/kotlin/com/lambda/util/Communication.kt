@@ -5,6 +5,7 @@ import com.lambda.Lambda.mc
 import com.lambda.command.CommandRegistry
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Configuration
+import com.lambda.core.Loader
 import com.lambda.event.EventFlow
 import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
@@ -166,6 +167,7 @@ object Communication {
                     literal(Lambda.SYMBOL)
                 }
                 literal(" v${Lambda.VERSION}\n")
+                literal("Runtime: ${Loader.runtime}\n")
                 literal("Modules: ${ModuleRegistry.modules.size}\n")
                 literal("Commands: ${CommandRegistry.commands.size}\n")
                 literal(
