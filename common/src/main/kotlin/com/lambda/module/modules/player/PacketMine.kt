@@ -52,7 +52,7 @@ object PacketMine : Module(
     private val fastReBreak by setting("Fast Re-Break", false, "Re-breaks blocks instantly however could potentially cause ghost blocks", visibility = { page == Page.ReBreak && reBreak })
 
     private val breakingAnimation by setting("Breaking Animation", false, "Renders the block breaking animation like vanilla would to show progress", visibility = { page == Page.Render })
-    private val renderMode by setting("Render Mode", RenderMode.InOut, "Renders a box with size corresponding to amount broken", visibility = { page == Page.Render })
+    private val renderMode by setting("Render Mode", RenderMode.InOut, "The animation style of the renders", visibility = { page == Page.Render })
     private val renderSetting by setting("Render Setting", RenderSetting.Both, "The different ways to draw the renders", visibility = { page == Page.Render && renderMode.isEnabled() })
     private val fillColor by setting("Fill Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline })
     private val outlineColor by setting("Outline Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
