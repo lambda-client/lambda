@@ -43,7 +43,7 @@ class OpenContainer(
             }
         }
 
-        listener<RotationEvent.Pre> { event ->
+        listener<RotationEvent.Update> { event ->
             if (screenHandler != null) return@listener
             event.context = lookAtBlock(blockPos, rotationConfig, interactionConfig, sides)
         }

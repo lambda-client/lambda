@@ -2,6 +2,7 @@ package com.lambda.mixin.entity;
 
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
+import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.WorldEvent;
 import com.lambda.interaction.RotationManager;
 import com.lambda.util.math.Vec2d;
@@ -65,6 +66,11 @@ public abstract class EntityMixin {
         if (entity != Lambda.getMc().player || rot == null) return entity.getPitch();
 
         return (float) rot.getY();
+    }
+
+    @Inject(method = "changeLookDirection", at = @At("HEAD"), cancellable = true)
+    private void changeLookDirection(double cursorDeltaX, double cursorDeltaY, CallbackInfo ci) {
+        if (EventFlow.post(new EntityEvent.ChangeLookDirection(cursorDeltaX, cursorDeltaY)).isCanceled()) ci.cancel();
     }
 
     @Inject(method = "onTrackedDataSet(Lnet/minecraft/entity/data/TrackedData;)V", at = @At("TAIL"))

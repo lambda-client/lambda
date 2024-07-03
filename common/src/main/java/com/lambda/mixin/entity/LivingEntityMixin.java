@@ -45,14 +45,6 @@ public abstract class LivingEntityMixin extends EntityMixin {
         self.velocityDirty = true;
     }
 
-    @Inject(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;isImmobile()Z"))
-    void onTravelH(CallbackInfo ci) {
-        Entity self = (Entity) (Object) this;
-        if (self != Lambda.getMc().player) return;
-
-        RotationManager.update();
-    }
-
     @Redirect(method = "travel", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getPitch()F"))
     private float hookModifyFallFlyingPitch(LivingEntity entity) {
         Float pitch = RotationManager.getMovementPitch();

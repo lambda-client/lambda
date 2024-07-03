@@ -2,7 +2,7 @@ package com.lambda.module.modules.player
 
 import com.google.gson.*
 import com.lambda.brigadier.CommandResult
-import com.lambda.config.groups.RotationSettings
+import com.lambda.config.groups.IRotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
@@ -60,10 +60,10 @@ object Replay : Module(
     private val velocityCheck by setting("Velocity check", true, description = "Check if the player is moving before starting a recording.")
     private val cancelOnDeviation by setting("Cancel on deviation", true)
     private val deviationThreshold by setting("Deviation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the deviation to cancel the replay.") { cancelOnDeviation }
+    private val lockCamera by setting("Lock Camera", true)
 
-    private val rotationConfig = RotationSettings(this).apply {
-        rotationMode = RotationMode.LOCK
-        instant = true
+    private val rotationConfig = object : IRotationConfig.Instant {
+        override val rotationMode = if (lockCamera) RotationMode.LOCK else RotationMode.SYNC
     }
 
     enum class State {
@@ -140,7 +140,7 @@ object Replay : Module(
             }
         }
 
-        listener<RotationEvent.Pre> { event ->
+        listener<RotationEvent.Update> { event ->
             when (state) {
                 State.RECORDING -> {
                     buffer?.rotation?.add(player.rotation)

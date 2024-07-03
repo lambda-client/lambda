@@ -61,6 +61,9 @@ dependencies {
     includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion")
     includeMod("baritone-api:baritone-unoptimized-fabric:1.10.2")
 
+    // Disable reflections logging
+    include("org.slf4j:slf4j-nop:2.0.13")
+
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
     shadowBundle(project(":common", configuration = "transformProductionFabric"))
