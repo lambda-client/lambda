@@ -6,7 +6,6 @@ import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.interaction.RotationManager
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
@@ -15,6 +14,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Nameable
 import com.lambda.util.player.MovementUtils.addSpeed
 import com.lambda.util.player.MovementUtils.calcMoveYaw
+import com.lambda.util.player.MovementUtils.handledByBaritone
 import com.lambda.util.player.MovementUtils.isInputting
 import com.lambda.util.player.MovementUtils.motionY
 import com.lambda.util.player.MovementUtils.moveDelta
@@ -110,10 +110,10 @@ object Speed : Module(
         listener<RotationEvent.Update> { event ->
             if (mode != Mode.GRIM_STRAFE) return@listener
             if (!shouldWork() || !isInputting) return@listener
+            if (player.input.handledByBaritone) return@listener
 
             val input = newMovementInput()
-            val moveYaw = RotationManager.BaritoneProcessor.baritoneContext?.rotation?.yawF ?: player.yaw
-            val yaw = calcMoveYaw(moveYaw, input.roundedForward, input.roundedStrafing)
+            val yaw = calcMoveYaw(player.yaw, input.roundedForward, input.roundedStrafing)
             val rotation = Rotation(yaw, event.context?.rotation?.pitch ?: player.pitch.toDouble())
 
             event.context = RotationContext(rotation, rotationConfig)

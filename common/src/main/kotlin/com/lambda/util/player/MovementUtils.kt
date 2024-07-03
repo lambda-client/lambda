@@ -1,6 +1,5 @@
 package com.lambda.util.player
 
-import baritone.utils.PlayerMovementInput
 import com.lambda.context.SafeContext
 import com.lambda.interaction.RotationManager
 import com.lambda.util.math.MathUtils.random
