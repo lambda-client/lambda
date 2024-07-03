@@ -3,10 +3,7 @@ package com.lambda.module.modules.player
 import baritone.utils.PlayerMovementInput
 import com.lambda.Lambda.mc
 import com.lambda.config.groups.RotationSettings
-import com.lambda.event.events.ConnectionEvent
-import com.lambda.event.events.MovementEvent
-import com.lambda.event.events.RenderEvent
-import com.lambda.event.events.RotationEvent
+import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
@@ -59,11 +56,6 @@ object Freecam : Module(
         }
     }
 
-    @JvmStatic
-    fun updateRotation(deltaYaw: Double, deltaPitch: Double) {
-        rotation = rotation.withDelta(deltaYaw * SENSITIVITY_FACTOR, deltaPitch * SENSITIVITY_FACTOR)
-    }
-
     /**
      * @see net.minecraft.entity.Entity.changeLookDirection
      */
@@ -88,6 +80,14 @@ object Freecam : Module(
 
             val rotation = player.eyePos.rotationTo(target.pos)
             it.context = RotationContext(rotation, rotationConfig)
+        }
+
+        listener<EntityEvent.ChangeLookDirection> {
+            rotation = rotation.withDelta(
+                it.deltaYaw * SENSITIVITY_FACTOR,
+                it.deltaPitch * SENSITIVITY_FACTOR
+            )
+            it.cancel()
         }
 
         listener<MovementEvent.InputUpdate> { event ->
