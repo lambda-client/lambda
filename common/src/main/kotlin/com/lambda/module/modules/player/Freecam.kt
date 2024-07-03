@@ -1,8 +1,7 @@
 package com.lambda.module.modules.player
 
-import baritone.utils.PlayerMovementInput
 import com.lambda.Lambda.mc
-import com.lambda.config.groups.RotationSettings
+import com.lambda.config.groups.IRotationConfig
 import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.rotation.Rotation
@@ -11,16 +10,23 @@ import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.math.VecUtils.plus
+import com.lambda.util.math.VecUtils.times
+import com.lambda.util.player.MovementUtils.calcMoveRad
 import com.lambda.util.player.MovementUtils.cancel
+import com.lambda.util.player.MovementUtils.handledByBaritone
+import com.lambda.util.player.MovementUtils.isInputting
+import com.lambda.util.player.MovementUtils.movementVector
+import com.lambda.util.player.MovementUtils.newMovementInput
+import com.lambda.util.player.MovementUtils.roundedForward
+import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.verticalMovement
 import com.lambda.util.primitives.extension.interpolate
 import com.lambda.util.primitives.extension.partialTicks
 import com.lambda.util.primitives.extension.rotation
 import com.lambda.util.world.raycast.RayCastUtils.orMiss
 import com.lambda.util.world.raycast.RayCastUtils.orNull
-import net.minecraft.client.input.KeyboardInput
 import net.minecraft.client.option.Perspective
-import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d
 
 object Freecam : Module(
@@ -28,15 +34,13 @@ object Freecam : Module(
     description = "Move your camera freely",
     defaultTags = setOf(ModuleTag.PLAYER)
 ) {
-    private val speed by setting("Speed", 0.5f, 0.1f..1.0f, 0.1f)
-    private val sprint by setting("Sprint Multiplier", 3.0f, 0.1f..10.0f, 0.1f, description = "Set below 1.0 to fly slower on sprint.")
+    private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1)
+    private val sprint by setting("Sprint Multiplier", 3.0, 0.1..10.0, 0.1, description = "Set below 1.0 to fly slower on sprint.")
     private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
     private val rotateToTarget by setting("Rotate to target", true)
 
-    private val rotationConfig = RotationSettings(this) {
-        rotateToTarget
-    }.apply {
-        rotationMode = RotationMode.LOCK
+    private val rotationConfig = object : IRotationConfig.Instant {
+        override val rotationMode = RotationMode.LOCK
     }
 
     private var lastPerspective = Perspective.FIRST_PERSON
@@ -64,7 +68,6 @@ object Freecam : Module(
     init {
         onEnable {
             lastPerspective = mc.options.perspective
-            mc.options.perspective = Perspective.FIRST_PERSON
             position = player.eyePos
             rotation = player.rotation
             velocity = Vec3d.ZERO
@@ -74,12 +77,12 @@ object Freecam : Module(
             mc.options.perspective = lastPerspective
         }
 
-        listener<RotationEvent.Update>(Int.MAX_VALUE) {
+        listener<RotationEvent.Update>(Int.MAX_VALUE) { event ->
             if (!rotateToTarget) return@listener
             val target = mc.crosshairTarget?.orNull ?: return@listener
 
             val rotation = player.eyePos.rotationTo(target.pos)
-            it.context = RotationContext(rotation, rotationConfig)
+            event.context = RotationContext(rotation, rotationConfig)
         }
 
         listener<EntityEvent.ChangeLookDirection> {
@@ -91,37 +94,35 @@ object Freecam : Module(
         }
 
         listener<MovementEvent.InputUpdate> { event ->
+            mc.options.perspective = Perspective.FIRST_PERSON
+
             // Don't block baritone from working
-            if (event.input !is PlayerMovementInput) {
+            if (!event.input.handledByBaritone) {
                 // Reset actual input
                 event.input.cancel()
             }
 
             // Create new input for freecam
-            val input = KeyboardInput(mc.options).apply {
-                tick(false, 1f)
-            }
+            val input = newMovementInput(assumeBaritoneUsage = false, slowDownCheck = false)
+            val sprintModifier = if (mc.options.sprintKey.isPressed) sprint else 1.0
+            val moveDir = calcMoveRad(rotation.yawF, input.roundedForward, input.roundedStrafing)
+            var moveVec = movementVector(moveDir, input.verticalMovement) * speed * sprintModifier
+            if (!input.isInputting) moveVec *= Vec3d(0.0, 1.0, 0.0)
 
-            val inputVec = Vec3d(
-                input.movementSideways.toDouble(),
-                input.verticalMovement.toDouble(),
-                input.movementForward.toDouble()
-            )
+            // Apply movement
+            velocity += moveVec
+            velocity *= 0.6
 
-            val endSpeed = speed * if (mc.options.sprintKey.isPressed) sprint else 1.0f
-            val velocityDelta = Entity.movementInputToVelocity(inputVec, endSpeed, rotation.yawF)
-
-            // Move freecam
-            velocity = velocity.add(velocityDelta).multiply(0.6)
+            // Update position
             prevPosition = position
-            position = position.add(velocity)
+            position += velocity
         }
 
         listener<RenderEvent.UpdateTarget> {
             it.cancel()
 
             mc.crosshairTarget = rotation
-                .rayCast(reach, eye = interpolatedPosition)
+                .rayCast(reach, interpolatedPosition)
                 .orMiss // Can't be null (otherwise mc will spam "Null returned as 'hitResult', this shouldn't happen!")
         }
 

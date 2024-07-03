@@ -21,19 +21,22 @@ import kotlin.math.*
 object MovementUtils {
     val Input.roundedForward get() = sign(movementForward).toDouble()
     val Input.roundedStrafing get() = sign(movementSideways).toDouble()
+    val Input.handledByBaritone get() = this !is KeyboardInput
 
     val Input.isInputting get() = roundedForward != 0.0 || roundedStrafing != 0.0
     val SafeContext.isInputting get() = player.input.isInputting
 
-    fun SafeContext.newMovementInput(assumeBaritoneUsage: Boolean = true): Input {
-        val input = if (assumeBaritoneUsage && player.input is PlayerMovementInput) {
+    fun SafeContext.newMovementInput(assumeBaritoneUsage: Boolean = true, slowDownCheck: Boolean = true): Input {
+        val input = if (assumeBaritoneUsage && player.input.handledByBaritone) {
             player.input
         } else {
-            val multiplier = if (!player.shouldSlowDown()) 1f
-            else (0.3f + getSwiftSneakSpeedBoost(player)).coerceIn(0f, 1f)
+            var multiplier = 1f
+
+            if (slowDownCheck && player.shouldSlowDown()) multiplier =
+                0.3f + getSwiftSneakSpeedBoost(player)
 
             KeyboardInput(mc.options).apply {
-                tick(true, multiplier)
+                tick(true, multiplier.coerceIn(0f, 1f))
             }
         }
 
@@ -72,7 +75,7 @@ object MovementUtils {
 
     val Input.verticalMovement
         get() =
-            jumping.toInt() - sneaking.toInt()
+            (jumping.toInt() - sneaking.toInt()).toDouble()
 
     private fun inputMoveOffset(
         moveForward: Double,
