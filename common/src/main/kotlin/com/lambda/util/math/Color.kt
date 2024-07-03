@@ -7,8 +7,7 @@ val Color.hsb
         .map(Float::toDouble)
         .toDoubleArray()
 
-fun DoubleArray.readHSB() =
-    Color.getHSBColor(this[0].toFloat(), this[1].toFloat(), this[2].toFloat())
+fun DoubleArray.readHSB(): Color = Color.getHSBColor(this[0].toFloat(), this[1].toFloat(), this[2].toFloat())
 
 val Color.hue get() = hsb[0]
 val Color.saturation get() = hsb[1]

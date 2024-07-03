@@ -10,7 +10,7 @@ class BuildSettings(
         BREAK, PLACE, GENERAL
     }
 
-    val page by c.setting("Build Page", Page.BREAK, "Current page", vis)
+    private val page by c.setting("Build Page", Page.BREAK, "Current page", vis)
 
     override val breakCoolDown by c.setting("Break Cooldown", 0, 0..1000, 1, "Delay between breaking blocks", " ms") { vis() && page == Page.BREAK }
     override val breakConfirmation by c.setting("Break Confirmation", false, "Wait for block break confirmation") { vis() && page == Page.BREAK }

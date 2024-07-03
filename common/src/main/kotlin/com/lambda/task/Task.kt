@@ -440,7 +440,7 @@ abstract class Task<Result> : Nameable {
         this.onRepeat = action
         return this
     }
-    
+
     @Ta5kBuilder
     inline fun <reified T : Event> withListener(
         crossinline action: SafeContext.(Task<Result>) -> Unit
@@ -470,7 +470,7 @@ abstract class Task<Result> : Nameable {
             init { this.name = name }
             override fun SafeContext.onStart() { success(Unit) }
         }
-        
+
         @Ta5kBuilder
         fun failTask(
             message: String

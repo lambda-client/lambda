@@ -4,7 +4,6 @@ import com.lambda.interaction.rotation.RotationMode
 
 interface IRotationConfig {
     /**
-     * - [RotationMode.NONE] No rotation.
      * - [RotationMode.SILENT] Spoofing server-side rotation.
      * - [RotationMode.SYNC] Spoofing server-side rotation and adjusting client-side movement based on reported rotation (for Grim).
      * - [RotationMode.LOCK] Locks the camera client-side.
@@ -26,20 +25,9 @@ interface IRotationConfig {
      */
     val resetTicks: Int
 
-    /**
-     * If true, rotation will be instant without any transition. If false, rotation will transition over time.
-     */
-    val instant: Boolean
-
-    /**
-     * The mean (average) value for the Gaussian distribution used to calculate rotation speed.
-     * This value represents the center of the distribution.
-     */
-    val mean: Double
-
-    /**
-     * The standard deviation for the Gaussian distribution used to calculate rotation speed.
-     * This value represents the spread or dispersion of the distribution.
-     */
-    val derivation: Double
+    interface Instant : IRotationConfig {
+        override val turnSpeed get() = 360.0
+        override val keepTicks get() = 1
+        override val resetTicks get() = 1
+    }
 }

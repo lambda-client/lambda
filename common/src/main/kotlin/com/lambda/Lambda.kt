@@ -21,12 +21,14 @@ import org.apache.logging.log4j.Logger
 import java.awt.Color
 import java.util.*
 
+
 object Lambda {
     const val MOD_NAME = "Lambda"
     const val MOD_ID = "lambda"
     const val SYMBOL = "λ"
     val VERSION: String = LoaderInfo.getVersion()
     val LOG: Logger = LogManager.getLogger(SYMBOL)
+
     @JvmStatic
     val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
 
