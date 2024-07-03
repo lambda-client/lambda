@@ -2,7 +2,6 @@ package com.lambda.module.modules.network
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
-import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeConcurrentListener
@@ -16,10 +15,8 @@ import com.lambda.util.DynamicReflectionSerializer.dynamicString
 import com.lambda.util.FolderRegister
 import com.lambda.util.Formatting.getTime
 import com.lambda.util.text.*
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.launch
 import net.minecraft.network.packet.Packet
 import java.awt.Color
 import java.io.File
@@ -38,8 +35,8 @@ object PacketLogger : Module(
     private val networkSide by setting("Network Side", NetworkSide.ANY, "Side of the network to log packets from")
     private val logTicks by setting("Log Ticks", true, "Show game ticks in the log")
     private val scope by setting("Scope", Scope.ANY, "Scope of packets to log")
-    private val whitelist by setting("Whitelist Packets", arrayListOf<String>(), "Packets to whitelist") { scope == Scope.WHITELIST }
-    private val blacklist by setting("Blacklist Packets", arrayListOf<String>(), "Packets to blacklist") { scope == Scope.BLACKLIST }
+    private val whitelist by setting("Whitelist Packets", emptyList<String>(), "Packets to whitelist", visibility = { scope == Scope.WHITELIST })
+    private val blacklist by setting("Blacklist Packets", emptyList<String>(), "Packets to blacklist", visibility = { scope == Scope.BLACKLIST })
     private val maxRecursionDepth by setting("Max Recursion Depth", 6, 1..10, 1, "Maximum recursion depth for packet serialization")
     private val logConcurrent by setting("Build Data Concurrent", false, "Whether to serialize packets concurrently. Will not save packets in chronological order but wont lag the game.")
 

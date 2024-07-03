@@ -6,7 +6,6 @@ import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
-import net.minecraft.client.world.ClientWorld
 import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
 import net.minecraft.item.Item
