@@ -5,7 +5,10 @@ on:
   pull_request:
     types: [opened, edited]
 
-permissions: write-all
+permissions:
+  issues: write
+  contents: read
+  pull-requests: write
 
 jobs:
   triage:
