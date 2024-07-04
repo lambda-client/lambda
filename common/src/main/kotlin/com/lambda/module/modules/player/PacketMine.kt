@@ -7,7 +7,9 @@ import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.interaction.construction.result.Drawable
+import com.lambda.graphics.renderer.esp.global.BlockESPRenderer
+import com.lambda.graphics.renderer.esp.global.buildFilled
+import com.lambda.graphics.renderer.esp.global.buildOutline
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.MathUtils.lerp
@@ -51,22 +53,35 @@ object PacketMine : Module(
     private val reBreak by setting("Re-Break", true, "Automatically re-breaks the last mined block if it gets replaced", visibility = { page == Page.ReBreak})
     private val fastReBreak by setting("Fast Re-Break", false, "Re-breaks blocks instantly however could potentially cause ghost blocks", visibility = { page == Page.ReBreak && reBreak })
 
+
     private val breakingAnimation by setting("Breaking Animation", false, "Renders the block breaking animation like vanilla would to show progress", visibility = { page == Page.Render })
-    private val renderMode by setting("Render Mode", RenderMode.InOut, "The animation style of the renders", visibility = { page == Page.Render })
+    private val renderMode by setting("Render Mode", RenderMode.Out, "The animation style of the renders", visibility = { page == Page.Render })
     private val renderSetting by setting("Render Setting", RenderSetting.Both, "The different ways to draw the renders", visibility = { page == Page.Render && renderMode.isEnabled() })
-    private val fillColor by setting("Fill Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline })
-    private val outlineColor by setting("Outline Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
+
+    private val fillColourMode by setting("Fill Mode", FillColourMode.Dynamic, visibility = { page == Page.Render && renderSetting != RenderSetting.Outline })
+    private val staticFillColour by setting("Static Fill Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the static fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline && fillColourMode == FillColourMode.Static })
+    private val startFillColour by setting("Start Fill Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the start fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline && fillColourMode == FillColourMode.Dynamic })
+    private val endFillColour by setting("End Fill Colour", Color(0f, 1f, 0f, 0.3f), "The colour used to render the end fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline && fillColourMode == FillColourMode.Dynamic  })
+
+    private val outlineColourMode by setting("Outline Mode", FillColourMode.Dynamic, visibility = { page == Page.Render && renderSetting != RenderSetting.Fill })
+    private val staticOutlineColour by setting("Static Outline Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the static outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == FillColourMode.Static })
+    private val startOutlineColour by setting("Start Outline Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the start outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == FillColourMode.Dynamic })
+    private val endOutlineColour by setting("End Outline Colour", Color(0f, 1f, 0f, 0.3f), "The colour used to render the end outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == FillColourMode.Dynamic  })
     private val outlineWidth by setting("Outline Width", 1f, 0f..3f, 0.1f, "the thickness of the outline", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
 
     private enum class RenderMode {
-        InOut, OutIn, None;
-        
+        Out, In, Static, None;
+
         fun isEnabled(): Boolean =
             this != None
     }
 
     private enum class RenderSetting {
         Both, Fill, Outline
+    }
+
+    private enum class FillColourMode {
+        Static, Dynamic
     }
 
     private enum class BreakState {
@@ -96,11 +111,16 @@ object PacketMine : Module(
 
                 currentBreakDelta = calcBreakDelta(state, pos, bestTool)
 
-                if (renderMode.isEnabled()) updateBoxList(currentBreakDelta)
+                if (renderMode.isEnabled()) updateRenders(currentBreakDelta)
 
                 val miningProgress = mineTicks * currentBreakDelta
 
-                if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, (miningProgress * (2 - breakThreshold) * 10).toInt().coerceAtMost(9))
+                if (breakingAnimation)
+                    world.setBlockBreakingInfo(
+                        player.id,
+                        pos,
+                        (miningProgress * (2 - breakThreshold) * 10).toInt().coerceAtMost(9)
+                )
 
                 when (breakState) {
                     BreakState.Breaking -> {
@@ -118,6 +138,7 @@ object PacketMine : Module(
 
                         onBlockBreak()
                     }
+
                     BreakState.ReBreaking -> {
                         if (breakNextQueueBlock()) return@listener
 
@@ -129,7 +150,10 @@ object PacketMine : Module(
                         if (miningProgress < breakThreshold) return@listener
 
                         if (!fastReBreak
-                            && (activeState.isAir || (!activeState.fluidState.isEmpty && !(activeState.properties.contains(Properties.WATERLOGGED) && activeState.get(Properties.WATERLOGGED))))) {
+                            && (activeState.isAir || (!activeState.fluidState.isEmpty
+                                    && !(activeState.properties.contains(Properties.WATERLOGGED)
+                                    && activeState.get(Properties.WATERLOGGED))))
+                        ) {
                             return@listener
                         }
 
@@ -137,6 +161,7 @@ object PacketMine : Module(
 
                         checkClientBreak(false, pos)
                     }
+
                     BreakState.AwaitingResponse -> {
                         if (!validateBreak) return@listener
 
@@ -166,7 +191,8 @@ object PacketMine : Module(
             currentMiningBlock?.apply {
                 if (it.pos != pos
                     || if (state.properties.contains(Properties.WATERLOGGED) && state.get(Properties.WATERLOGGED)) it.state.fluidState.fluid !is WaterFluid
-                    else !it.state.isAir) {
+                    else !it.state.isAir
+                ) {
                     return@listener
                 }
 
@@ -181,7 +207,7 @@ object PacketMine : Module(
         listener<RenderEvent.World> {
             currentMiningBlock?.apply {
                 renderer.clear()
-                buildRenderer()
+                buildRenders()
                 renderer.upload()
             }
         }
@@ -197,23 +223,24 @@ object PacketMine : Module(
 
         val breakDelta = calcBreakDelta(world.getBlockState(pos), pos, bestTool)
 
-        if (breakDelta > breakThreshold) {
-            if (reBreak) {
-                swapStartPacketBreak(pos, bestTool)
-                currentMiningBlock = BreakingContext(pos, state, BreakState.ReBreaking, breakDelta)
-            } else {
-                currentMiningBlock = if (!validateBreak) {
-                    null
-                } else {
-                    BreakingContext(pos, state, BreakState.AwaitingResponse, breakDelta)
-                }
-            }
-            currentMiningBlock?.timeCompleted = System.currentTimeMillis()
-
-            checkClientBreak(false, pos)
+        if (breakDelta < breakThreshold) {
+            currentMiningBlock = BreakingContext(pos, state, BreakState.Breaking, breakDelta)
+            return
         }
 
-        currentMiningBlock = BreakingContext(pos, state, BreakState.Breaking, breakDelta)
+        if (reBreak) {
+            swapStartPacketBreak(pos, bestTool)
+            currentMiningBlock = BreakingContext(pos, state, BreakState.ReBreaking, breakDelta)
+        } else {
+            currentMiningBlock = if (!validateBreak) {
+                null
+            } else {
+                BreakingContext(pos, state, BreakState.AwaitingResponse, breakDelta)
+            }
+        }
+        currentMiningBlock?.timeCompleted = System.currentTimeMillis()
+
+        checkClientBreak(false, pos)
     }
 
     private fun SafeContext.onBlockBreak() {
@@ -283,11 +310,70 @@ object PacketMine : Module(
         }
     }
 
-    private fun getLerp(box: Box, factor: Float): Box {
-        return if (renderMode == RenderMode.InOut) {
+    private fun getLerpBox(box: Box, factor: Float): Box {
+        return if (renderMode == RenderMode.Out) {
             lerp(Box(box.center, box.center), box, factor.toDouble())
         } else {
             lerp(box, Box(box.center, box.center), factor.toDouble())
+        }
+    }
+
+    private data class BreakingContext(
+        val pos: BlockPos,
+        var state: BlockState,
+        var breakState: BreakState,
+        var currentBreakDelta: Float
+    ) {
+        val renderer = BlockESPRenderer
+        var mineTicks = 0
+        var timeCompleted: Long = -1
+        var previousBreakDelta = 0f
+
+        var boxList = if (renderMode.isEnabled()) {
+            state.getOutlineShape(mc.world, pos).boundingBoxes.toSet()
+        } else {
+            null
+        }
+
+        fun updateRenders(newBreakDelta: Float) {
+            previousBreakDelta = currentBreakDelta
+            currentBreakDelta = newBreakDelta
+            if (renderMode.isEnabled())
+                boxList = state.getOutlineShape(mc.world, pos).boundingBoxes.toSet()
+        }
+
+        fun SafeContext.buildRenders() {
+            boxList?.forEach { box ->
+                val previousFactor = (mineTicks - 1) * previousBreakDelta * (2 - breakThreshold)
+                val nextFactor = mineTicks * currentBreakDelta * (2 - breakThreshold)
+                val currentFactor = lerp(previousFactor, nextFactor, mc.tickDelta)
+
+                val fillColour = if (fillColourMode == FillColourMode.Dynamic) {
+                    lerp(startFillColour, endFillColour, currentFactor.toDouble())
+                } else {
+                    staticFillColour
+                }
+
+                val outlineColour = if (outlineColourMode == FillColourMode.Dynamic) {
+                    lerp(startOutlineColour, endOutlineColour, currentFactor.toDouble())
+                } else {
+                    staticOutlineColour
+                }
+
+                val renderBox = if (renderMode != RenderMode.Static) {
+                    getLerpBox(box, currentFactor).offset(pos)
+                } else {
+                    box.offset(pos)
+                }
+
+                if (renderSetting != RenderSetting.Outline) {
+                    renderer.buildFilled(renderBox, fillColour)
+                }
+
+                if (renderSetting != RenderSetting.Fill) {
+                    renderer.buildOutline(renderBox, outlineColour)
+                }
+            }
         }
     }
 
@@ -321,48 +407,6 @@ object PacketMine : Module(
 
     private fun SafeContext.abortBreak(pos: BlockPos) {
         connection.sendPacket(PlayerActionC2SPacket(Action.ABORT_DESTROY_BLOCK, pos, Direction.UP, 0))
-    }
-
-    private data class BreakingContext(
-        val pos: BlockPos,
-        var state: BlockState,
-        var breakState: BreakState,
-        var currentBreakDelta: Float
-    ) : Drawable {
-        var mineTicks = 0
-        var timeCompleted: Long = -1
-        var previousBreakDelta = 0f
-        var boxList = if (renderMode.isEnabled()) {
-            state.getOutlineShape(mc.world, pos).boundingBoxes.toSet()
-        } else {
-            null
-        }
-
-        fun updateBoxList(newBreakDelta: Float) {
-            previousBreakDelta = currentBreakDelta
-            currentBreakDelta = newBreakDelta
-            if (renderMode.isEnabled())
-                boxList = state.getOutlineShape(mc.world, pos).boundingBoxes.toSet()
-        }
-
-        override fun SafeContext.buildRenderer() {
-            boxList?.forEach { box ->
-                val lerpBox = lerp(
-                    getLerp(box, (mineTicks - 1) * previousBreakDelta * (2 - breakThreshold)).offset(pos)
-                    , getLerp(box, mineTicks * currentBreakDelta * (2 - breakThreshold)).offset(pos)
-                    , mc.tickDelta.toDouble()
-                )
-
-                if (renderSetting != RenderSetting.Outline) {
-                    withBox(lerpBox, fillColor)
-                }
-
-                if (renderSetting != RenderSetting.Fill) {
-                    // Currently there isn't an outline method and I don't want to mess with anything that might have different plans
-                    withBox(lerpBox, outlineColor)
-                }
-            }
-        }
     }
 
     //Todo: Replace with task system
