@@ -11,13 +11,13 @@ triage:
   - '/.*/'
 
 fabric:
-  - '\b(fabric)\b/i'
+  - '\b(fabric)\b'
 
 forge:
-  - '\b(forge)\b/i'
+  - '\b(forge)\b'
 
 neoforge:
-  - '\b(neoforge)\b/i'
+  - '\b(neoforge)\b'
 
 "1.20":
   - '1\.20(\.\d+|\.x)?'
