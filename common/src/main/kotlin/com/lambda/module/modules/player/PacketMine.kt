@@ -93,7 +93,6 @@ object PacketMine : Module(
     }
 
     private var currentMiningBlock: BreakingContext? = null
-    private var ignorePacketSend = false
     private val blockQueue = ArrayDeque<BlockPos>()
 
     //ToDo: Make work on CC
@@ -404,21 +403,17 @@ object PacketMine : Module(
 
     private fun SafeContext.swapStartPacketBreak(pos: BlockPos, toolSlot: Int) {
         connection.sendPacket(UpdateSelectedSlotC2SPacket(toolSlot))
-        ignorePacketSend = true
         startBreak(pos)
         if (alternativePackets) {
             abortBreak(pos)
             stopBreak(pos)
         }
-        ignorePacketSend = false
         connection.sendPacket(UpdateSelectedSlotC2SPacket(player.inventory.selectedSlot))
     }
 
     private fun SafeContext.swapStopBreak(pos: BlockPos, toolSlot: Int) {
         connection.sendPacket(UpdateSelectedSlotC2SPacket(toolSlot))
-        ignorePacketSend = true
         stopBreak(pos)
-        ignorePacketSend = false
         connection.sendPacket(UpdateSelectedSlotC2SPacket(player.inventory.selectedSlot))
     }
 
