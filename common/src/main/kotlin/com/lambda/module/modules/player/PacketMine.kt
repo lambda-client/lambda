@@ -227,11 +227,12 @@ object PacketMine : Module(
             return
         }
 
-        if (reBreak) {
-            swapStartPacketBreak(pos, bestTool)
-            currentMiningBlock = BreakingContext(pos, state, BreakState.ReBreaking, breakDelta)
+        swapStopBreak(pos, bestTool)
+
+        currentMiningBlock = if (reBreak) {
+            BreakingContext(pos, state, BreakState.ReBreaking, breakDelta)
         } else {
-            currentMiningBlock = if (!validateBreak) {
+            if (!validateBreak) {
                 null
             } else {
                 BreakingContext(pos, state, BreakState.AwaitingResponse, breakDelta)
