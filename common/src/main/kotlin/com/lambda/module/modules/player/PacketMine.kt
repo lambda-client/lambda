@@ -70,7 +70,7 @@ object PacketMine : Module(
     private val outlineWidth by setting("Outline Width", 1f, 0f..3f, 0.1f, "the thickness of the outline", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
 
     private enum class RenderMode {
-        Out, In, Static, None;
+        Out, In, InOut, OutIn, Static, None;
 
         fun isEnabled(): Boolean =
             this != None
@@ -311,10 +311,35 @@ object PacketMine : Module(
     }
 
     private fun getLerpBox(box: Box, factor: Float): Box {
-        return if (renderMode == RenderMode.Out) {
-            lerp(Box(box.center, box.center), box, factor.toDouble())
-        } else {
-            lerp(box, Box(box.center, box.center), factor.toDouble())
+        val boxCenter = Box(box.center, box.center)
+        when (renderMode) {
+            RenderMode.Out -> {
+                return lerp(boxCenter, box, factor.toDouble())
+            }
+
+            RenderMode.In -> {
+                return lerp(box, boxCenter, factor.toDouble())
+            }
+
+            RenderMode.InOut -> {
+                return if (factor >= 0.5f) {
+                    lerp(boxCenter, box, (factor.toDouble() - 0.5) * 2)
+                } else {
+                    lerp(box, boxCenter, factor.toDouble() * 2)
+                }
+            }
+
+            RenderMode.OutIn -> {
+                return if (factor >= 0.5f) {
+                    lerp(box, boxCenter, (factor.toDouble() - 0.5) * 2)
+                } else {
+                    lerp(boxCenter, box, factor.toDouble() * 2)
+                }
+            }
+
+            else -> {
+                return box
+            }
         }
     }
 
