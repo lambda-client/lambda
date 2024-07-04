@@ -19,6 +19,7 @@ import net.minecraft.util.math.BlockPos
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.awt.Color
+import java.util.*
 
 
 object Lambda {
@@ -41,6 +42,7 @@ object Lambda {
         .registerTypeAdapter(BlockPos::class.java, BlockPosSerializer)
         .registerTypeAdapter(Block::class.java, BlockSerializer)
         .registerTypeAdapter(GameProfile::class.java, GameProfileSerializer)
+        .registerTypeAdapter(Optional::class.java, OptionalSerializer)
         .create()
 
     fun initialize() {

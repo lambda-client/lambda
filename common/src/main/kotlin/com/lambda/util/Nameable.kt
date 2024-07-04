@@ -5,4 +5,8 @@ package com.lambda.util
  */
 interface Nameable {
     val name: String
+
+    interface NamedEnum {
+        val displayName: String
+    }
 }

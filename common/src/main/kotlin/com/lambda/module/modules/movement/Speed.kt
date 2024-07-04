@@ -11,23 +11,32 @@ import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.Nameable
 import com.lambda.util.player.MovementUtils.addSpeed
+import com.lambda.util.player.MovementUtils.calcMoveYaw
+import com.lambda.util.player.MovementUtils.handledByBaritone
 import com.lambda.util.player.MovementUtils.isInputting
 import com.lambda.util.player.MovementUtils.motionY
 import com.lambda.util.player.MovementUtils.moveDelta
+import com.lambda.util.player.MovementUtils.newMovementInput
+import com.lambda.util.player.MovementUtils.roundedForward
+import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.setSpeed
 import com.lambda.util.primitives.extension.contains
 import com.lambda.util.world.WorldUtils.getFastEntities
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.vehicle.BoatEntity
-import kotlin.math.atan2
 
 object Speed : Module(
     name = "Speed",
     description = "Accelerates your walking speed",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
-    @JvmStatic val mode by setting("Mode", Mode.GRIM_STRAFE)
+    @JvmStatic val mode by setting("Mode", Mode.GRIM_STRAFE).apply {
+        onValueChange { _, _ ->
+            reset()
+        }
+    }
 
     // Grim
     private val grimEntityBoost by setting("Entity Boost", 1.0, 0.0..2.0, 0.01) { mode == Mode.GRIM_STRAFE }
@@ -41,28 +50,21 @@ object Speed : Module(
     private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01) { mode == Mode.NCP_STRAFE }
 
     // Grim
-    private var desiredRotation: Rotation? = null
-    private val rotationConfig = object : IRotationConfig {
+    private val rotationConfig = object : IRotationConfig.Instant {
         override val rotationMode = RotationMode.SYNC
-        override val turnSpeed = 360.0
-        override val keepTicks = 1
-        override val resetTicks = 1
-        override val instant = true
-        override val mean = 180.0
-        override val derivation = 1.0
     }
 
     // NCP
     private const val NCP_BASE_SPEED = 0.2873
     private const val NCP_AIR_DECAY = 0.9937
 
-    private var ncpPhase = NCPPhase.JUMP
+    private var ncpPhase = NCPPhase.SLOWDOWN
     private var ncpSpeed = NCP_BASE_SPEED
     private var lastDistance = 0.0
 
-    enum class Mode {
-        GRIM_STRAFE,
-        NCP_STRAFE,
+    enum class Mode(override val displayName: String) : Nameable.NamedEnum {
+        GRIM_STRAFE("Grim Strafe"),
+        NCP_STRAFE("NCP Strafe"),
     }
 
     private enum class NCPPhase {
@@ -72,33 +74,9 @@ object Speed : Module(
     }
 
     init {
-        listener<MovementEvent.InputUpdate> {
-            it.input.let { input ->
-                val dx = if (input.pressingForward) 1 else if (input.pressingBack) -1 else 0
-                val dy = if (input.pressingRight) 1 else if (input.pressingLeft) -1 else 0
-
-                desiredRotation = if (dx != 0 || dy != 0) {
-                    val angle = Math.toDegrees(atan2(dy.toDouble(), dx.toDouble()))
-                    Rotation(player.yaw + angle.toFloat(), player.pitch)
-                } else null
-            }
-        }
-
-        listener<RotationEvent.Pre> { event ->
-            if (!shouldWork()) return@listener
-            if (mode != Mode.GRIM_STRAFE) return@listener
-
-            desiredRotation?.let { rot ->
-                event.context = RotationContext(
-                    rot,
-                    rotationConfig
-                )
-            }
-        }
-
         listener<MovementEvent.Pre> {
             if (!shouldWork()) {
-                ncpSpeed = NCP_BASE_SPEED
+                reset()
                 return@listener
             }
 
@@ -113,8 +91,8 @@ object Speed : Module(
         }
 
         listener<ClientEvent.Timer> {
-            if (!shouldWork() || !isInputting) return@listener
             if (mode != Mode.NCP_STRAFE) return@listener
+            if (!shouldWork() || !isInputting) return@listener
             it.speed = ncpTimerBoost
         }
 
@@ -127,9 +105,22 @@ object Speed : Module(
             }
         }
 
+        // TODO: Diagonal movement when not jumping
+        // needs movement prediction engine or a workaround to detect jumping 1 tick before
+        listener<RotationEvent.Update> { event ->
+            if (mode != Mode.GRIM_STRAFE) return@listener
+            if (!shouldWork() || !isInputting) return@listener
+            if (player.input.handledByBaritone) return@listener
+
+            val input = newMovementInput()
+            val yaw = calcMoveYaw(player.yaw, input.roundedForward, input.roundedStrafing)
+            val rotation = Rotation(yaw, event.context?.rotation?.pitch ?: player.pitch.toDouble())
+
+            event.context = RotationContext(rotation, rotationConfig)
+        }
+
         onEnable {
-            ncpPhase = NCPPhase.SLOWDOWN
-            ncpSpeed = NCP_BASE_SPEED
+            reset()
         }
     }
 
@@ -208,4 +199,9 @@ object Speed : Module(
                 && !player.input.sneaking
                 && !player.isTouchingWater
                 && !player.isInLava
+
+    private fun reset() {
+        ncpPhase = NCPPhase.SLOWDOWN
+        ncpSpeed = NCP_BASE_SPEED
+    }
 }

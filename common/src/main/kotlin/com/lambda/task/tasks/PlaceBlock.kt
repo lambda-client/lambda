@@ -41,7 +41,7 @@ class PlaceBlock @Ta5kBuilder constructor(
     }
 
     init {
-        listener<RotationEvent.Pre> { event ->
+        listener<RotationEvent.Update> { event ->
             if (!rotate) return@listener
             event.context = ctx.rotation
         }

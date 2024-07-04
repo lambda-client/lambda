@@ -15,8 +15,15 @@ import com.lambda.module.ModuleRegistry
 import com.lambda.sound.SoundRegistry
 import com.lambda.util.Communication.ascii
 import kotlin.system.measureTimeMillis
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 object Loader {
+    private val started = System.currentTimeMillis()
+
+    val runtime: String
+        get() = "${(System.currentTimeMillis() - started).toDuration(DurationUnit.MILLISECONDS)}"
+
     private val loadables = listOf(
         ModuleRegistry,
         CommandRegistry,

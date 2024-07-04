@@ -7,7 +7,6 @@ import com.lambda.Lambda.VERSION
 import net.neoforged.fml.common.Mod
 
 @Mod(Lambda.MOD_ID)
-@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
 object LambdaNeoForge {
     init {
         Lambda.initialize()
