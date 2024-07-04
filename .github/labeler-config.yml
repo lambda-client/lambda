@@ -4,13 +4,7 @@ critical:
 
 # Add/remove 'bug' label if issue contains the word 'bug'
 bug:
-  - 'bug'
-  - 'fix'
-  - 'broken'
-  - 'error'
-  - 'issue'
-  - 'problem'
-  - 'crash'
+  - '(bug|error|issue|problem|crash|fix|broken)'
 
 # Add the triage label to all issues/PRs
 triage:
