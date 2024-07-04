@@ -81,6 +81,8 @@ tasks {
 
     remapJar {
         dependsOn(shadowJar)
+
+        archiveVersion = "$modVersion+$minecraftVersion"
         inputFile = shadowJar.get().archiveFile
 
         // Access wideners are the successor of the mixins accessor

@@ -118,6 +118,8 @@ tasks {
 
     remapJar {
         dependsOn(processResources, shadowJar)
+
+        archiveVersion = "$modVersion+$minecraftVersion"
         inputFile = shadowJar.get().archiveFile
     }
 }
