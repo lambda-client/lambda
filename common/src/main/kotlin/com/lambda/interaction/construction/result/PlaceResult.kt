@@ -3,11 +3,9 @@ package com.lambda.interaction.construction.result
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.SafeContext
-import com.lambda.graphics.renderer.esp.global.buildOutline
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.task.tasks.BuildStructure.Companion.breakBlock
 import com.lambda.task.tasks.PlaceBlock.Companion.placeBlock
-import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
