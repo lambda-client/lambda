@@ -2,8 +2,12 @@ name: "Issue Labeler"
 on:
   issues:
     types: [opened, edited]
+    branches:
+      - master
   pull_request:
     types: [opened, edited]
+    branches:
+      - master
 
 permissions:
   issues: write
