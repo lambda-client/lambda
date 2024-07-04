@@ -5,13 +5,13 @@ import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.graphics.buffer.vao.vertex.BufferUsage
-import com.lambda.graphics.renderer.esp.ESPRenderer
+import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 
-object BlockESPRenderer : ESPRenderer(BufferUsage.DYNAMIC) {
+object StaticESP : StaticESPRenderer(BufferUsage.DYNAMIC) {
     init {
         listener<TickEvent.Post> {
             clear()
-            RenderEvent.BlockESP().post()
+            RenderEvent.StaticESP().post()
             upload()
         }
     }
