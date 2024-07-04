@@ -1,0 +1,17 @@
+# Add/remove 'critical' label if issue contains the words 'urgent' or 'critical'
+critical:
+  - '(critical|urgent)'
+
+# Add/remove 'bug' label if issue contains the word 'bug'
+bug:
+  - 'bug'
+  - 'fix'
+  - 'broken'
+  - 'error'
+  - 'issue'
+  - 'problem'
+  - 'crash'
+
+# Add the triage label to all issues/PRs
+triage:
+  - '/.*/'
