@@ -79,18 +79,15 @@ abstract class Configuration : Jsonable {
 
     private fun save() {
         with(primary) {
-            if (exists()) {
-                copyTo(backup, true)
-            }
+            if (exists()) copyTo(backup, true)
+
             parentFile.mkdirs()
             writeText(gson.toJson(toJson()))
         }
     }
 
     private fun load(file: File) {
-        check(file.exists()) {
-            "No configuration file found for ${configName.capitalize()}"
-        }
+        check(file.exists()) { "No configuration file found for ${configName.capitalize()}" }
 
         loadFromJson(JsonParser.parseReader(file.reader()).asJsonObject)
     }

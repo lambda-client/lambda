@@ -4,8 +4,6 @@ import com.lambda.Lambda.mc
 import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
-import com.lambda.graphics.renderer.esp.DirectionMask.exclude
-import com.lambda.graphics.renderer.esp.DirectionMask.mask
 import com.lambda.graphics.renderer.esp.ESPRenderer
 import com.lambda.graphics.renderer.esp.global.buildFilled
 import com.lambda.graphics.renderer.esp.global.buildOutline
@@ -17,7 +15,6 @@ import net.minecraft.block.Blocks
 import net.minecraft.client.render.model.BakedModel
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
-import net.minecraft.util.math.Direction
 import java.awt.Color
 
 object BlockESP : Module(
