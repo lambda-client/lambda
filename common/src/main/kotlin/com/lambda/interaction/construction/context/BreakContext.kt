@@ -30,7 +30,7 @@ data class BreakContext(
             ctx.world.isAir(result.blockPos.offset(it))
         }
 
-    override val expectedState = checkedState.fluidState.blockState
+    override val expectedState: BlockState = checkedState.fluidState.blockState
 
     override fun compareTo(other: BuildContext): Int {
         return when (other) {

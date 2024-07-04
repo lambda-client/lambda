@@ -88,6 +88,9 @@ dependencies {
     // Fix KFF
     compileOnly(kotlin("stdlib"))
 
+    // Disable reflections logging
+    include("org.slf4j:slf4j-nop:2.0.13")
+
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
     shadowBundle(project(path = ":common", configuration = "transformProductionForge"))

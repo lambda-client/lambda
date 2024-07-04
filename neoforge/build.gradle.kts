@@ -61,6 +61,9 @@ dependencies {
     includeMod("thedarkcolour:kotlinforforge-neoforge:$kotlinForgeVersion")
     includeMod("baritone-api:baritone-unoptimized-neoforge:1.10.2")
 
+    // Disable reflections logging
+    include("org.slf4j:slf4j-nop:2.0.13")
+
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
     shadowBundle(project(path = ":common", configuration = "transformProductionNeoForge"))

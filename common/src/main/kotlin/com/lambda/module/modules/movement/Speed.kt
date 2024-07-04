@@ -1,43 +1,70 @@
 package com.lambda.module.modules.movement
 
+import com.lambda.config.groups.IRotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.RotationEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.interaction.rotation.Rotation
+import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.Nameable
+import com.lambda.util.player.MovementUtils.addSpeed
+import com.lambda.util.player.MovementUtils.calcMoveYaw
+import com.lambda.util.player.MovementUtils.handledByBaritone
 import com.lambda.util.player.MovementUtils.isInputting
 import com.lambda.util.player.MovementUtils.motionY
 import com.lambda.util.player.MovementUtils.moveDelta
+import com.lambda.util.player.MovementUtils.newMovementInput
+import com.lambda.util.player.MovementUtils.roundedForward
+import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.setSpeed
+import com.lambda.util.primitives.extension.contains
+import com.lambda.util.world.WorldUtils.getFastEntities
+import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.vehicle.BoatEntity
 
-// ToDo: Revisit and implement grim strafing
 object Speed : Module(
     name = "Speed",
-    description = "Fastest module",
+    description = "Accelerates your walking speed",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
-    private val mode by setting("Mode", Mode.NCP_STRAFE)
+    @JvmStatic val mode by setting("Mode", Mode.GRIM_STRAFE).apply {
+        onValueChange { _, _ ->
+            reset()
+        }
+    }
+
+    // Grim
+    private val grimEntityBoost by setting("Entity Boost", 1.0, 0.0..2.0, 0.01) { mode == Mode.GRIM_STRAFE }
+    private val grimCollideMultiplier by setting("Entity Collide Multiplier", 0.5, 0.0..1.0, 0.01)  { mode == Mode.GRIM_STRAFE && grimEntityBoost > 0.0}
+    private val grimBoatBoost by setting("Boat Boost", 0.4, 0.0..1.0, 0.01) { mode == Mode.GRIM_STRAFE }
 
     // NCP
-    private val ncpBaseSpeed by setting("Base Speed", 0.2873, 0.1..0.3, 0.0001, visibility = { mode == Mode.NCP_STRAFE })
-    private val ncpMaxSpeed by setting("Max Speed", 1.0, 0.3..1.0, 0.0001, visibility = { mode == Mode.NCP_STRAFE })
-    private val ncpDecay by setting("Decay", 0.9937, 0.98..1.0, 0.0001, visibility = { mode == Mode.NCP_STRAFE })
-    private val ncpJumpSpeed by setting("Jump Speed", 0.3, 0.0..0.5, 0.001, visibility = { mode == Mode.NCP_STRAFE })
-    private val ncpJumpDecay by setting("Jump Decay", 0.59, 0.1..1.0, 0.0001, visibility = { mode == Mode.NCP_STRAFE })
-    private val ncpJumpHeight by setting("Jump Height", 0.4, 0.1..0.5, 0.00001, visibility = { mode == Mode.NCP_STRAFE })
-    private val ncpResetOnJump by setting("Reset On Jump", true, visibility = { mode == Mode.NCP_STRAFE })
-    private val ncpAutoJump by setting("Auto Jump", false, visibility = { mode == Mode.NCP_STRAFE })
-    private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01, visibility = { mode == Mode.NCP_STRAFE })
+    private val strict by setting("Strict", true) { mode == Mode.NCP_STRAFE }
+    private val lowerJump by setting("Lower Jump", true) { mode == Mode.NCP_STRAFE }
+    private val ncpAutoJump by setting("Auto Jump", false) { mode == Mode.NCP_STRAFE }
+    private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01) { mode == Mode.NCP_STRAFE }
+
+    // Grim
+    private val rotationConfig = object : IRotationConfig.Instant {
+        override val rotationMode = RotationMode.SYNC
+    }
 
     // NCP
-    private var ncpPhase = NCPPhase.JUMP
-    private var ncpSpeed = ncpBaseSpeed
+    private const val NCP_BASE_SPEED = 0.2873
+    private const val NCP_AIR_DECAY = 0.9937
+
+    private var ncpPhase = NCPPhase.SLOWDOWN
+    private var ncpSpeed = NCP_BASE_SPEED
     private var lastDistance = 0.0
 
-    private enum class Mode {
-        NCP_STRAFE,
-        GRIM_STRAFE,
+    enum class Mode(override val displayName: String) : Nameable.NamedEnum {
+        GRIM_STRAFE("Grim Strafe"),
+        NCP_STRAFE("NCP Strafe"),
     }
 
     private enum class NCPPhase {
@@ -49,59 +76,13 @@ object Speed : Module(
     init {
         listener<MovementEvent.Pre> {
             if (!shouldWork()) {
-                ncpSpeed = ncpBaseSpeed
+                reset()
                 return@listener
             }
 
             when (mode) {
-                Mode.NCP_STRAFE -> {
-                    val shouldJump = player.input.jumping || (ncpAutoJump && isInputting)
-
-                    if (player.isOnGround && shouldJump) {
-                        ncpPhase = NCPPhase.JUMP
-                    }
-
-                    ncpPhase = when (ncpPhase) {
-                        NCPPhase.JUMP -> {
-                            if (player.isOnGround) {
-                                if (ncpResetOnJump) ncpSpeed = ncpBaseSpeed
-
-                                player.motionY = ncpJumpHeight
-                                ncpSpeed += ncpJumpSpeed
-                                NCPPhase.JUMP_POST
-                            } else NCPPhase.SLOWDOWN
-                        }
-
-                        NCPPhase.JUMP_POST -> {
-                            ncpSpeed *= ncpJumpDecay
-                            NCPPhase.SLOWDOWN
-                        }
-
-                        NCPPhase.SLOWDOWN -> {
-                            ncpSpeed = lastDistance * ncpDecay
-                            NCPPhase.SLOWDOWN
-                        }
-                    }
-
-                    if (player.isOnGround && !shouldJump) {
-                        ncpSpeed = ncpBaseSpeed
-                    }
-
-                    ncpSpeed = ncpSpeed
-                        .coerceAtMost(ncpMaxSpeed)
-                        .coerceAtLeast(ncpBaseSpeed)
-
-                    val moveSpeed = if (isInputting) ncpSpeed else {
-                        ncpSpeed = ncpBaseSpeed
-                        0.0
-                    }
-
-                    setSpeed(moveSpeed)
-                }
-
-                Mode.GRIM_STRAFE -> {
-                    // ToDo: Implement
-                }
+                Mode.GRIM_STRAFE -> handleGrim()
+                Mode.NCP_STRAFE -> handleStrafe()
             }
         }
 
@@ -110,8 +91,8 @@ object Speed : Module(
         }
 
         listener<ClientEvent.Timer> {
-            if (!shouldWork() || !isInputting) return@listener
             if (mode != Mode.NCP_STRAFE) return@listener
+            if (!shouldWork() || !isInputting) return@listener
             it.speed = ncpTimerBoost
         }
 
@@ -120,14 +101,96 @@ object Speed : Module(
 
             when (mode) {
                 Mode.NCP_STRAFE -> it.cancel()
-                Mode.GRIM_STRAFE -> {}
+                else -> {}
             }
         }
 
-        onEnable {
-            ncpPhase = NCPPhase.SLOWDOWN
-            ncpSpeed = ncpBaseSpeed
+        // TODO: Diagonal movement when not jumping
+        // needs movement prediction engine or a workaround to detect jumping 1 tick before
+        listener<RotationEvent.Update> { event ->
+            if (mode != Mode.GRIM_STRAFE) return@listener
+            if (!shouldWork() || !isInputting) return@listener
+            if (player.input.handledByBaritone) return@listener
+
+            val input = newMovementInput()
+            val yaw = calcMoveYaw(player.yaw, input.roundedForward, input.roundedStrafing)
+            val rotation = Rotation(yaw, event.context?.rotation?.pitch ?: player.pitch.toDouble())
+
+            event.context = RotationContext(rotation, rotationConfig)
         }
+
+        onEnable {
+            reset()
+        }
+    }
+
+    private fun SafeContext.handleGrim() {
+        if (!isInputting) return
+
+        var boostAmount = 0.0
+
+        getFastEntities<LivingEntity>(
+            player.pos, 3.0,
+            predicate = { player.boundingBox.expand(1.0) in it.boundingBox },
+            iterator = { e, _ ->
+                val colliding = player.boundingBox in e.boundingBox
+                val multiplier = if (colliding) grimCollideMultiplier else 1.0
+                boostAmount += 0.08 * grimEntityBoost * multiplier
+            }
+        )
+
+        if (grimBoatBoost > 0.0) {
+            getFastEntities<BoatEntity>(
+                player.pos, 4.0,
+                predicate = { player.boundingBox in it.boundingBox.expand(0.01) },
+                iterator = { _, _ -> boostAmount += grimBoatBoost }
+            )
+        }
+
+        addSpeed(boostAmount)
+    }
+
+    private fun SafeContext.handleStrafe() {
+        val shouldJump = player.input.jumping || (ncpAutoJump && isInputting)
+
+        if (player.isOnGround && shouldJump) {
+            ncpPhase = NCPPhase.JUMP
+        }
+
+        ncpPhase = when (ncpPhase) {
+            NCPPhase.JUMP -> {
+                if (player.isOnGround) {
+                    player.motionY = if (lowerJump) 0.4 else 0.42
+                    ncpSpeed = NCP_BASE_SPEED + 0.3
+                    NCPPhase.JUMP_POST
+                } else NCPPhase.SLOWDOWN
+            }
+
+            NCPPhase.JUMP_POST -> {
+                ncpSpeed *= if (strict) 0.59 else 0.62
+                NCPPhase.SLOWDOWN
+            }
+
+            NCPPhase.SLOWDOWN -> {
+                ncpSpeed = lastDistance * NCP_AIR_DECAY
+                NCPPhase.SLOWDOWN
+            }
+        }
+
+        if (player.isOnGround && !shouldJump) {
+            ncpSpeed = NCP_BASE_SPEED
+        }
+
+        ncpSpeed = ncpSpeed
+            .coerceAtMost(1.0)
+            .coerceAtLeast(NCP_BASE_SPEED)
+
+        val moveSpeed = if (isInputting) ncpSpeed else {
+            ncpSpeed = NCP_BASE_SPEED
+            0.0
+        }
+
+        setSpeed(moveSpeed)
     }
 
     private fun SafeContext.shouldWork() =
@@ -136,4 +199,9 @@ object Speed : Module(
                 && !player.input.sneaking
                 && !player.isTouchingWater
                 && !player.isInLava
+
+    private fun reset() {
+        ncpPhase = NCPPhase.SLOWDOWN
+        ncpSpeed = NCP_BASE_SPEED
+    }
 }
