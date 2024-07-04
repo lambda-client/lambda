@@ -27,10 +27,18 @@ object FastBreak : Module(
     private val breakDelay by setting("Break Delay", 5, 0..5, 1, unit = "ticks", description = "The tick delay between breaking blocks", visibility = { page == Page.Mining })
     private val breakThreshold by setting("Break Threshold", 0.7f, 0.2f..1.0f, 0.1f, description = "The progress at which the block will break.", visibility = { page == Page.Mining })
 
-    private val renderMode by setting("Render Mode", RenderMode.InOut, "The animation style of the renders", visibility = { page == Page.Render })
+    private val renderMode by setting("Render Mode", RenderMode.Out, "The animation style of the renders", visibility = { page == Page.Render })
     private val renderSetting by setting("Render Setting", RenderSetting.Both, "The different ways to draw the renders", visibility = { page == Page.Render && renderMode.isEnabled() })
-    private val fillColor by setting("Fill Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline })
-    private val outlineColor by setting("Outline Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
+
+    private val fillColourMode by setting("Fill Mode", ColourMode.Dynamic, visibility = { page == Page.Render && renderSetting != RenderSetting.Outline })
+    private val staticFillColour by setting("Static Fill Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the static fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline && fillColourMode == ColourMode.Static })
+    private val startFillColour by setting("Start Fill Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the start fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline && fillColourMode == ColourMode.Dynamic })
+    private val endFillColour by setting("End Fill Colour", Color(0f, 1f, 0f, 0.3f), "The colour used to render the end fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline && fillColourMode == ColourMode.Dynamic  })
+
+    private val outlineColourMode by setting("Outline Mode", ColourMode.Dynamic, visibility = { page == Page.Render && renderSetting != RenderSetting.Fill })
+    private val staticOutlineColour by setting("Static Outline Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the static outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Static })
+    private val startOutlineColour by setting("Start Outline Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the start outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Dynamic })
+    private val endOutlineColour by setting("End Outline Colour", Color(0f, 1f, 0f, 0.3f), "The colour used to render the end outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Dynamic  })
     private val outlineWidth by setting("Outline Width", 1f, 0f..3f, 0.1f, "the thickness of the outline", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
 
 
@@ -42,10 +50,14 @@ object FastBreak : Module(
     }
 
     private enum class RenderMode {
-        InOut, OutIn, None;
+        Out, In, InOut, OutIn, Static, None;
 
         fun isEnabled(): Boolean =
             this != None
+    }
+
+    private enum class ColourMode {
+        Static, Dynamic
     }
 
     private enum class RenderSetting {
@@ -94,30 +106,70 @@ object FastBreak : Module(
 
             renderer.clear()
             boxSet.forEach { box ->
-                val lerpBox = lerp(
-                    getLerp(box, interaction.currentBreakingProgress - breakDelta).offset(pos)
-                    , getLerp(box, interaction.currentBreakingProgress).offset(pos)
-                    , mc.tickDelta.toDouble()
-                )
+                val previousFactor = interaction.currentBreakingProgress - breakDelta
+                val nextFactor = interaction.currentBreakingProgress
+                val currentFactor = lerp(previousFactor, nextFactor, mc.tickDelta)
+
+                val fillColour = if (fillColourMode == ColourMode.Dynamic) {
+                    lerp(startFillColour, endFillColour, currentFactor.toDouble())
+                } else {
+                    staticFillColour
+                }
+
+                val outlineColour = if (outlineColourMode == ColourMode.Dynamic) {
+                    lerp(startOutlineColour, endOutlineColour, currentFactor.toDouble())
+                } else {
+                    staticOutlineColour
+                }
+
+                val renderBox = if (renderMode != RenderMode.Static) {
+                    getLerpBox(box, currentFactor).offset(pos)
+                } else {
+                    box.offset(pos)
+                }
 
                 if (renderSetting != RenderSetting.Outline) {
-                    renderer.buildFilled(lerpBox, fillColor)
+                    renderer.buildFilled(renderBox, fillColour)
                 }
 
                 if (renderSetting != RenderSetting.Fill) {
-                    // Currently there isn't an outline method and I don't want to mess with anything that might have different plans
-                    renderer.buildOutline(lerpBox, outlineColor)
+                    renderer.buildOutline(renderBox, outlineColour)
                 }
             }
             renderer.upload()
         }
     }
 
-    private fun getLerp(box: Box, factor: Float): Box {
-        return if (renderMode == RenderMode.InOut) {
-            lerp(Box(box.center, box.center), box, factor.toDouble())
-        } else {
-            lerp(box, Box(box.center, box.center), factor.toDouble())
+    private fun getLerpBox(box: Box, factor: Float): Box {
+        val boxCenter = Box(box.center, box.center)
+        when (renderMode) {
+            RenderMode.Out -> {
+                return lerp(boxCenter, box, factor.toDouble())
+            }
+
+            RenderMode.In -> {
+                return lerp(box, boxCenter, factor.toDouble())
+            }
+
+            RenderMode.InOut -> {
+                return if (factor >= 0.5f) {
+                    lerp(boxCenter, box, (factor.toDouble() - 0.5) * 2)
+                } else {
+                    lerp(box, boxCenter, factor.toDouble() * 2)
+                }
+            }
+
+            RenderMode.OutIn -> {
+                return if (factor >= 0.5f) {
+                    lerp(box, boxCenter, (factor.toDouble() - 0.5) * 2)
+                } else {
+                    lerp(boxCenter, box, factor.toDouble() * 2)
+                }
+            }
+
+            else -> {
+                return box
+            }
         }
     }
 
