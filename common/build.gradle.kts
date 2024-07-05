@@ -22,7 +22,7 @@ dependencies {
 
     // Add dependencies on the required Kotlin modules.
     implementation("org.reflections:reflections:0.10.2")
-    implementation("com.github.caoimhebyrne:KDiscordIPC:$discordIPCVersion")
+    implementation("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
 
     // Add Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")

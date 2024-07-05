@@ -14,20 +14,13 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.onShutdown
 import com.lambda.threading.runConcurrent
-import com.lambda.util.Communication.info
-import com.lambda.util.Communication.toast
 import com.lambda.util.Communication.warn
 import com.lambda.util.Nameable
 import com.lambda.util.StringUtils.capitalize
-import com.lambda.util.text.ClickEvents
-import com.lambda.util.text.buildText
-import com.lambda.util.text.clickEvent
-import com.lambda.util.text.literal
 import dev.cbyrne.kdiscordipc.KDiscordIPC
 import dev.cbyrne.kdiscordipc.core.event.DiscordEvent
-import dev.cbyrne.kdiscordipc.core.event.data.ActivityInviteEventData
-import dev.cbyrne.kdiscordipc.core.event.impl.ActivityInviteEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ActivityJoinEvent
+import dev.cbyrne.kdiscordipc.core.event.impl.ActivityJoinRequestEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ErrorEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ReadyEvent
 import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.AuthenticatePacket
@@ -74,8 +67,6 @@ object DiscordRPC : Module(
     private var discordAuth: AuthenticatePacket.Data? = null
     private var rpcAuth: Authentication? = null
     private var currentParty: AtomicReference<Party?> = AtomicReference(null)
-
-    private var lastInvite: ActivityInviteEventData? = null
 
     private var connectionTime: Long = 0
     private var serverId: String? = null
@@ -168,7 +159,7 @@ object DiscordRPC : Module(
         }
     }
 
-    fun join(id: String = lastInvite?.activity?.party?.id ?: "") {
+    fun join(id: String = rpc.activityManager.activity?.party?.id ?: "") {
         if (!allowed) return
 
         joinParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return, id)
@@ -216,7 +207,6 @@ object DiscordRPC : Module(
             // Party features
             subscribe(DiscordEvent.ActivityJoinRequest)
             subscribe(DiscordEvent.ActivityJoin)
-            subscribe(DiscordEvent.ActivityInvite)
             //subscribe(DiscordEvent.LobbyUpdate)
             //subscribe(DiscordEvent.LobbyDelete)
             //subscribe(DiscordEvent.LobbyMemberConnect)
@@ -252,21 +242,13 @@ object DiscordRPC : Module(
                 }
         }
 
-        on<ActivityInviteEvent> {
-            lastInvite = data
-
-            info(buildText {
-                clickEvent(ClickEvents.runCommand(";rpc accept")) { // TODO: Custom click events
-                    literal("Click to join ${data.user.username}'s party.")
-                }
-            })
-
-            toast("You have been invited to play by ${lastInvite?.user?.username}")
+        // Event when someone would like to join your party
+        on<ActivityJoinRequestEvent> {
+            // TODO: Implement a GUI for this
         }
 
-        on<ActivityJoinEvent> {
-            info("Joined ${lastInvite?.user?.username}'s party.")
-        }
+        // Event when someone joins your party
+        on<ActivityJoinEvent> {}
 
         on<ErrorEvent> {
             LOG.error("Discord RPC error: ${data.message}")

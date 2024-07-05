@@ -35,10 +35,12 @@ loom {
 repositories {
     // You can add more repositories here if you plan
     // on using environment-specific dependencies.
-    // If you simply want to add a global repository,
+    // If you want to add a plugin-specific repository,
     // you can add it to the `settings.gradle.kts` file
     // in the base of the project and gradle will do the
     // rest for you.
+    // If you want to add more global repositories, you can
+    // add them to the root build.gradle.kts file.
     maven("https://thedarkcolour.github.io/KotlinForForge/")
 }
 
@@ -81,7 +83,7 @@ dependencies {
 
     // Temporary, only works for production
     // See https://github.com/MinecraftForge/MinecraftForge/issues/8878
-    shadowBundle("com.github.caoimhebyrne:KDiscordIPC:$discordIPCVersion") {
+    shadowBundle("com.github.Edouard127:KDiscordIPC:$discordIPCVersion") {
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.jetbrains.kotlinx")
         exclude(group = "org.slf4j")

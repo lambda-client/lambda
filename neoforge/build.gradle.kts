@@ -20,8 +20,16 @@ loom {
 }
 
 repositories {
-    maven("https://maven.neoforged.net/releases/")
+    // You can add more repositories here if you plan
+    // on using environment-specific dependencies.
+    // If you want to add a plugin-specific repository,
+    // you can add it to the `settings.gradle.kts` file
+    // in the base of the project and gradle will do the
+    // rest for you.
+    // If you want to add more global repositories, you can
+    // add them to the root build.gradle.kts file.
     maven("https://thedarkcolour.github.io/KotlinForForge/")
+    maven("https://maven.neoforged.net/releases/")
 }
 
 val common: Configuration by configurations.creating {
@@ -59,7 +67,7 @@ dependencies {
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
     includeLib("dev.babbaj:nether-pathfinder:1.5")
-    includeLib("com.github.caoimhebyrne:KDiscordIPC:$discordIPCVersion")
+    includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge-neoforge:$kotlinForgeVersion")
