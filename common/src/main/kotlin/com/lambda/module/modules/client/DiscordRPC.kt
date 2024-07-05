@@ -29,7 +29,6 @@ import kotlinx.coroutines.delay
 import net.minecraft.network.encryption.NetworkEncryptionUtils
 import net.minecraft.network.packet.s2c.login.LoginHelloS2CPacket
 import java.math.BigInteger
-import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 
 object DiscordRPC : Module(
@@ -148,7 +147,7 @@ object DiscordRPC : Module(
 
         while (true) {
             if (rpc.connected) update()
-            delay(delay * 1000L)
+            delay(delay.toLong())
         }
     }
 
@@ -192,21 +191,19 @@ object DiscordRPC : Module(
             largeImage("lambda", Lambda.VERSION)
             smallImage("https://mc-heads.net/avatar/${mc.gameProfile.id}/nohelm", mc.gameProfile.name)
 
-            /*if (allowed && party != null) {
+            if (allowed && party != null) {
                 party(party.id, party.players.size, party.settings.maxPlayers)
                 secrets(party.joinSecret)
             } else {
                 button("Download", "https://github.com/lambda-client/lambda")
-            }*/
-
-            party(UUID.randomUUID().toString(), 1, 2)
-            secrets(UUID.randomUUID().toString())
+            }
 
             if (showTime) timestamps(startup)
         }
     }
 
     private suspend fun KDiscordIPC.register(auth: ConnectionEvent.Connect.Login.Key) {
+        // TODO: Check if the rpc is already ready
         on<ReadyEvent> {
             // Party features
             subscribe(DiscordEvent.ActivityJoinRequest)
