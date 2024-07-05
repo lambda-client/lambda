@@ -1,7 +1,13 @@
+val modVersion: String by project
+val minecraftVersion: String by project
 val neoVersion: String by project
 val kotlinForgeVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-neoforge"
+
+plugins {
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+}
 
 architectury {
     platformSetupLoomIde()
@@ -42,11 +48,6 @@ fun DependencyHandlerScope.setupConfigurations() {
         implementation(it)
         include(it)
     }
-
-    shadowBundle.dependencies.forEach {
-        shadowCommon(it)
-        shadow(it)
-    }
 }
 
 dependencies {
@@ -79,8 +80,16 @@ tasks {
         }
     }
 
+    shadowJar {
+        archiveVersion = "$modVersion+$minecraftVersion"
+        configurations = listOf(shadowBundle)
+        archiveClassifier = "dev-shadow"
+    }
+
     remapJar {
-        dependsOn(processResources)
-        atAccessWideners.add("lambda.accesswidener") // Add the access widener to the remapper
+        dependsOn(processResources, shadowJar)
+
+        archiveVersion = "$modVersion+$minecraftVersion"
+        inputFile = shadowJar.get().archiveFile
     }
 }

@@ -39,7 +39,7 @@ class BuildStructure @Ta5kBuilder constructor(
     }
 
     init {
-        listener<RenderEvent.BlockESP> {
+        listener<RenderEvent.StaticESP> {
             previousResults.filterIsInstance<Drawable>().forEach { res ->
                 with(res) {
                     buildRenderer()

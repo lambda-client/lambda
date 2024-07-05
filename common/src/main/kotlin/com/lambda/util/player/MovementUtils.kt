@@ -25,36 +25,20 @@ object MovementUtils {
     val Input.isInputting get() = roundedForward != 0.0 || roundedStrafing != 0.0
     val SafeContext.isInputting get() = player.input.isInputting
 
-    fun SafeContext.newMovementInput(assumeBaritoneUsage: Boolean = true, slowDownCheck: Boolean = true): Input {
-        val input = if (assumeBaritoneUsage && player.input.handledByBaritone) {
-            player.input
-        } else {
-            var multiplier = 1f
+    fun SafeContext.newMovementInput(
+        assumeBaritoneUsage: Boolean = true,
+        slowDownCheck: Boolean = true
+    ): Input = if (assumeBaritoneUsage && player.input.handledByBaritone) {
+        player.input
+    } else {
+        var multiplier = 1f
 
-            if (slowDownCheck && player.shouldSlowDown()) multiplier =
-                0.3f + getSwiftSneakSpeedBoost(player)
+        if (slowDownCheck && player.shouldSlowDown()) multiplier =
+            0.3f + getSwiftSneakSpeedBoost(player)
 
-            KeyboardInput(mc.options).apply {
-                tick(true, multiplier.coerceIn(0f, 1f))
-            }
+        KeyboardInput(mc.options).apply {
+            tick(true, multiplier.coerceIn(0f, 1f))
         }
-
-        return input
-    }
-
-    fun Input.mergeFrom(source: Input): Input {
-        movementForward = source.movementForward
-        movementSideways = source.movementSideways
-
-        pressingForward = source.pressingForward
-        pressingBack = source.pressingBack
-        pressingLeft = source.pressingLeft
-        pressingRight = source.pressingRight
-
-        jumping = source.jumping
-        sneaking = source.sneaking
-
-        return this
     }
 
     fun Input.cancel(cancelVertical: Boolean = true) {
