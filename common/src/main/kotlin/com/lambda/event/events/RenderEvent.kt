@@ -4,19 +4,19 @@ import com.lambda.Lambda.mc
 import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import com.lambda.graphics.renderer.esp.global.BlockESPRenderer
-import com.lambda.graphics.renderer.esp.global.EntityESPRenderer
+import com.lambda.graphics.renderer.esp.global.StaticESP
+import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.util.math.Vec2d
 
 abstract class RenderEvent : Event {
     class World : RenderEvent()
 
-    class BlockESP : RenderEvent() {
-        val renderer = BlockESPRenderer
+    class StaticESP : RenderEvent() {
+        val renderer = StaticESP
     }
 
-    class EntityESP : RenderEvent() {
-        val renderer = EntityESPRenderer
+    class DynamicESP : RenderEvent() {
+        val renderer = DynamicESP
     }
 
     abstract class GUI(val scale: Double) : RenderEvent() {

@@ -1,3 +1,4 @@
+val modVersion: String by project
 val minecraftVersion: String by project
 val fabricLoaderVersion: String by project
 val fabricApiVersion: String by project
@@ -5,6 +6,10 @@ val kotlinFabricVersion: String by project
 val discordIPCVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-fabric"
+
+plugins {
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+}
 
 architectury {
     platformSetupLoomIde()
@@ -41,11 +46,6 @@ fun DependencyHandlerScope.setupConfigurations() {
         modImplementation(it)
         include(it)
     }
-
-    shadowBundle.dependencies.forEach {
-        shadowCommon(it)
-        shadow(it)
-    }
 }
 
 dependencies {
@@ -63,6 +63,9 @@ dependencies {
     includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion")
     includeMod("baritone-api:baritone-unoptimized-fabric:1.10.2")
 
+    // Disable reflections logging
+    include("org.slf4j:slf4j-nop:2.0.13")
+
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
     shadowBundle(project(":common", configuration = "transformProductionFabric"))
@@ -72,10 +75,21 @@ dependencies {
 }
 
 tasks {
-    // Access wideners are the successor of the mixins accessor
-    // that were used in the past to access private fields and methods.
-    // They allow you to make field, method, and class access public.
+    shadowJar {
+        archiveVersion = "$modVersion+$minecraftVersion"
+        configurations = listOf(shadowBundle)
+        archiveClassifier = "dev-shadow"
+    }
+
     remapJar {
+        dependsOn(shadowJar)
+
+        archiveVersion = "$modVersion+$minecraftVersion"
+        inputFile = shadowJar.get().archiveFile
+
+        // Access wideners are the successor of the mixins accessor
+        // that were used in the past to access private fields and methods.
+        // They allow you to make field, method, and class access public.
         injectAccessWidener = true
     }
 }

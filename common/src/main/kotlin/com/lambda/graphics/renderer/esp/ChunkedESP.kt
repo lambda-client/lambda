@@ -6,6 +6,8 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.concurrentListener
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.graphics.buffer.vao.vertex.BufferUsage
+import com.lambda.graphics.renderer.esp.impl.ESPRenderer
+import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 import com.lambda.module.modules.client.RenderSettings
 import com.lambda.threading.awaitMainThread
 import net.minecraft.util.math.ChunkPos
@@ -16,7 +18,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 
 class ChunkedESP private constructor(
     owner: Any,
-    private val update: ESPRenderer.(WorldView, Int, Int, Int) -> Unit
+    private val update: StaticESPRenderer.(WorldView, Int, Int, Int) -> Unit
 ) {
     private val rendererMap = ConcurrentHashMap<Long, EspChunk>()
     private val WorldChunk.renderer get() = rendererMap.getOrPut(pos.toLong()) {
@@ -76,7 +78,7 @@ class ChunkedESP private constructor(
 
     companion object {
         fun Any.newChunkedESP(
-            update: ESPRenderer.(WorldView, Int, Int, Int) -> Unit
+            update: StaticESPRenderer.(WorldView, Int, Int, Int) -> Unit
         ) = ChunkedESP(this, update)
     }
 
@@ -101,7 +103,7 @@ class ChunkedESP private constructor(
 
         suspend fun rebuild() {
             val newRenderer = awaitMainThread {
-                ESPRenderer(BufferUsage.STATIC)
+                StaticESPRenderer(BufferUsage.STATIC)
             }
 
             iterateChunk { x, y, z ->

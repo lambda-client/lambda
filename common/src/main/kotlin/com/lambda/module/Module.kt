@@ -100,7 +100,7 @@ abstract class Module(
     private val isEnabledSetting = setting("Enabled", enabledByDefault, visibility = { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)
     private val isVisible = setting("Visible", true)
-    val customTags = setting("Tags", emptySet<ModuleTag>(), visibility = { false })
+    val customTags = setting("Tags", setOf<ModuleTag>(), visibility = { false })
 
     var isEnabled by isEnabledSetting
     val isDisabled get() = !isEnabled

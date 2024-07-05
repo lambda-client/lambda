@@ -1,0 +1,26 @@
+# Add/remove 'critical' label if issue contains the words 'urgent' or 'critical'
+critical:
+  - '(critical|urgent)'
+
+# Add/remove 'bug' label if issue contains the word 'bug'
+bug:
+  - '(bug|error|issue|problem|crash|fix|broken|cannot|unable|wrong|fail|fault|flaw|defect)'
+
+# Add the triage label to all issues/PRs
+triage:
+  - '/.*/'
+
+fabric:
+  - '\b([Ff][Aa][Bb][Rr][Ii][Cc])\b'
+
+forge:
+  - '\b([Ff][Oo][Rr][Gg][Ee])\b'
+
+neoforge:
+  - '\b([Nn][Ee][Oo][Ff][Oo][Rr][Gg][Ee])\b'
+
+"1.20":
+  - '1\.20(\.\d+|\.x)?'
+
+"1.21":
+  - '1\.21(\.\d+|\.x)?'

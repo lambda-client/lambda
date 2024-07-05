@@ -1,14 +1,15 @@
-package com.lambda.graphics.renderer.esp.global
+package com.lambda.graphics.renderer.esp.builders
 
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.hasDirection
-import com.lambda.graphics.renderer.esp.ESPRenderer
+import com.lambda.graphics.renderer.esp.impl.ESPRenderer
+import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 import com.lambda.util.primitives.extension.max
 import com.lambda.util.primitives.extension.min
 import net.minecraft.util.math.Box
 import java.awt.Color
 
-fun ESPRenderer.build(
+fun StaticESPRenderer.build(
     box: Box,
     filledColor: Color,
     outlineColor: Color,
@@ -19,20 +20,20 @@ fun ESPRenderer.build(
     buildOutline(box, outlineColor, sides, outlineMode)
 }
 
-fun ESPRenderer.buildFilled(
+fun StaticESPRenderer.buildFilled(
     box: Box,
     color: Color,
     sides: Int = DirectionMask.ALL
 ) = buildFilled(box, color, color, sides)
 
-fun ESPRenderer.buildOutline(
+fun StaticESPRenderer.buildOutline(
     box: Box,
     color: Color,
     sides: Int = DirectionMask.ALL,
     outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
 ) = buildOutline(box, color, color, sides, outlineMode)
 
-fun ESPRenderer.buildFilled(
+fun StaticESPRenderer.buildFilled(
     box: Box,
     colorBottom: Color,
     colorTop: Color = colorBottom,
@@ -42,7 +43,6 @@ fun ESPRenderer.buildFilled(
     val pos2 = box.max
 
     grow(8)
-    updateFaces = true
 
     val blb by vertex(faceVertices, pos1.x, pos1.y, pos1.z, colorBottom)
     val blf by vertex(faceVertices, pos1.x, pos1.y, pos2.z, colorBottom)
@@ -59,9 +59,11 @@ fun ESPRenderer.buildFilled(
     if (sides.hasDirection(DirectionMask.DOWN))  putQuad(blb, brb, brf, blf)
     if (sides.hasDirection(DirectionMask.SOUTH)) putQuad(blf, brf, trf, tlf)
     if (sides.hasDirection(DirectionMask.NORTH)) putQuad(blb, tlb, trb, brb)
+
+    updateFaces = true
 }
 
-fun ESPRenderer.buildOutline(
+fun StaticESPRenderer.buildOutline(
     box: Box,
     colorBottom: Color,
     colorTop: Color = colorBottom,
@@ -72,7 +74,6 @@ fun ESPRenderer.buildOutline(
     val pos2 = box.max
 
     grow(8)
-    updateOutlines = true
 
     val blb by vertex(outlineVertices, pos1.x, pos1.y, pos1.z, colorBottom)
     val blf by vertex(outlineVertices, pos1.x, pos1.y, pos2.z, colorBottom)
@@ -104,4 +105,6 @@ fun ESPRenderer.buildOutline(
     if (outlineMode.check(hasNorth, hasEast)) putLine(trb, brb)
     if (outlineMode.check(hasEast, hasSouth)) putLine(trf, brf)
     if (outlineMode.check(hasSouth, hasWest)) putLine(tlf, blf)
+
+    updateOutlines = true
 }

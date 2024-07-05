@@ -1,8 +1,14 @@
+val modVersion: String by project
+val minecraftVersion: String by project
 val neoVersion: String by project
 val kotlinForgeVersion: String by project
 val discordIPCVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-neoforge"
+
+plugins {
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+}
 
 architectury {
     platformSetupLoomIde()
@@ -43,11 +49,6 @@ fun DependencyHandlerScope.setupConfigurations() {
         implementation(it)
         include(it)
     }
-
-    shadowBundle.dependencies.forEach {
-        shadowCommon(it)
-        shadow(it)
-    }
 }
 
 dependencies {
@@ -64,6 +65,9 @@ dependencies {
     includeMod("thedarkcolour:kotlinforforge-neoforge:$kotlinForgeVersion")
     includeMod("baritone-api:baritone-unoptimized-neoforge:1.10.2")
 
+    // Disable reflections logging
+    include("org.slf4j:slf4j-nop:2.0.13")
+
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
     shadowBundle(project(path = ":common", configuration = "transformProductionNeoForge"))
@@ -79,8 +83,16 @@ tasks {
         }
     }
 
+    shadowJar {
+        archiveVersion = "$modVersion+$minecraftVersion"
+        configurations = listOf(shadowBundle)
+        archiveClassifier = "dev-shadow"
+    }
+
     remapJar {
-        dependsOn(processResources)
-        atAccessWideners.add("lambda.accesswidener") // Add the access widener to the remapper
+        dependsOn(processResources, shadowJar)
+
+        archiveVersion = "$modVersion+$minecraftVersion"
+        inputFile = shadowJar.get().archiveFile
     }
 }

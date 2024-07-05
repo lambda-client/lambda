@@ -10,7 +10,6 @@ import com.lambda.core.Loader
 import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
 import com.lambda.gui.impl.clickgui.windows.tag.TagWindow
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runGameScheduled
 import com.lambda.util.KeyCode
 import com.mojang.authlib.GameProfile
 import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
@@ -20,6 +19,8 @@ import net.minecraft.util.math.BlockPos
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.awt.Color
+import java.util.*
+
 
 object Lambda {
     const val MOD_NAME = "Lambda"
@@ -28,6 +29,7 @@ object Lambda {
     const val APP_ID = "1221289599427416127"
     val VERSION: String = LoaderInfo.getVersion()
     val LOG: Logger = LogManager.getLogger(SYMBOL)
+
     @JvmStatic
     val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
 
@@ -41,6 +43,7 @@ object Lambda {
         .registerTypeAdapter(BlockPos::class.java, BlockPosSerializer)
         .registerTypeAdapter(Block::class.java, BlockSerializer)
         .registerTypeAdapter(GameProfile::class.java, GameProfileSerializer)
+        .registerTypeAdapter(Optional::class.java, OptionalSerializer)
         .create()
 
     fun initialize() {

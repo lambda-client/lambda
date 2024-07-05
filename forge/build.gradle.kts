@@ -1,3 +1,4 @@
+val modVersion: String by project
 val minecraftVersion: String by project
 val forgeVersion: String by project
 val mixinExtrasVersion: String by project
@@ -5,6 +6,10 @@ val kotlinForgeVersion: String by project
 val discordIPCVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-forge"
+
+plugins {
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+}
 
 architectury {
     platformSetupLoomIde()
@@ -64,11 +69,6 @@ fun DependencyHandlerScope.setupConfigurations() {
         implementation(it)
         include(it)
     }
-
-    shadowBundle.dependencies.forEach {
-        shadowCommon(it)
-        shadow(it)
-    }
 }
 
 dependencies {
@@ -91,12 +91,15 @@ dependencies {
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
     includeMod("baritone-api:baritone-unoptimized-forge:1.10.2")
 
+    // Fix KFF
+    compileOnly(kotlin("stdlib"))
+
     // MixinExtras
     implementation("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
 
-    // Fix KFF
-    compileOnly(kotlin("stdlib"))
+    // Disable reflections logging
+    include("org.slf4j:slf4j-nop:2.0.13")
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
@@ -107,9 +110,26 @@ dependencies {
 }
 
 tasks {
+    // Merge the resources and classes into the same directory.
+    // This is done because java expects modules to be in a single directory.
+    // And if we have it in multiple we have to do performance intensive hacks like having the UnionFileSystem
+    // This will eventually be migrated to ForgeGradle so modders don't need to manually do it. But that is later.
     sourceSets.forEach {
         val dir = layout.buildDirectory.dir("sourcesSets/${it.name}")
         it.output.setResourcesDir(dir)
         it.java.destinationDirectory.set(dir)
+    }
+
+    shadowJar {
+        archiveVersion = "$modVersion+$minecraftVersion"
+        configurations = listOf(shadowBundle)
+        archiveClassifier = "dev-shadow"
+    }
+
+    remapJar {
+        dependsOn(processResources, shadowJar)
+
+        archiveVersion = "$modVersion+$minecraftVersion"
+        inputFile = shadowJar.get().archiveFile
     }
 }

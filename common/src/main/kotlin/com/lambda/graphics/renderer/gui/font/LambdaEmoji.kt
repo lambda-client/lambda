@@ -8,7 +8,7 @@ enum class LambdaEmoji(private val zipUrl: String) {
 
     lateinit var glyphs: EmojiGlyphs
 
-    operator fun get(emoji: String) = glyphs.getEmoji(emoji)
+    operator fun get(emoji: String) = glyphs.emojiFromString(emoji)
 
     fun loadGlyphs() {
         glyphs = EmojiGlyphs(zipUrl)
