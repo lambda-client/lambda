@@ -244,11 +244,15 @@ object DiscordRPC : Module(
 
         // Event when someone would like to join your party
         on<ActivityJoinRequestEvent> {
+            LOG.info("Received a party join request from ${data.userId}.")
+            rpc.activityManager.acceptJoinRequest(data.userId)
             // TODO: Implement a GUI for this
         }
 
         // Event when someone joins your party
-        on<ActivityJoinEvent> {}
+        on<ActivityJoinEvent> {
+            LOG.info("TEst invite join")
+        }
 
         on<ErrorEvent> {
             LOG.error("Discord RPC error: ${data.message}")
