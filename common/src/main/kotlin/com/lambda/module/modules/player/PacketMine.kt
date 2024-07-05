@@ -7,9 +7,10 @@ import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.graphics.renderer.esp.global.BlockESPRenderer
-import com.lambda.graphics.renderer.esp.global.buildFilled
-import com.lambda.graphics.renderer.esp.global.buildOutline
+import com.lambda.graphics.renderer.esp.DynamicAABB
+import com.lambda.graphics.renderer.esp.builders.buildFilled
+import com.lambda.graphics.renderer.esp.builders.buildOutline
+import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.MathUtils.lerp
@@ -349,7 +350,7 @@ object PacketMine : Module(
         var breakState: BreakState,
         var currentBreakDelta: Float
     ) {
-        val renderer = BlockESPRenderer
+        val renderer = DynamicESP
         var mineTicks = 0
         var timeCompleted: Long = -1
         var previousBreakDelta = 0f
@@ -391,12 +392,15 @@ object PacketMine : Module(
                     box.offset(pos)
                 }
 
+                val dynamicAABB = DynamicAABB()
+                dynamicAABB.update(renderBox)
+
                 if (renderSetting != RenderSetting.Outline) {
-                    renderer.buildFilled(renderBox, fillColour)
+                    renderer.buildFilled(dynamicAABB, fillColour)
                 }
 
                 if (renderSetting != RenderSetting.Fill) {
-                    renderer.buildOutline(renderBox, outlineColour)
+                    renderer.buildOutline(dynamicAABB, outlineColour)
                 }
             }
         }

@@ -3,9 +3,10 @@ package com.lambda.module.modules.player
 import com.lambda.context.SafeContext
 import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.graphics.renderer.esp.global.BlockESPRenderer
-import com.lambda.graphics.renderer.esp.global.buildFilled
-import com.lambda.graphics.renderer.esp.global.buildOutline
+import com.lambda.graphics.renderer.esp.DynamicAABB
+import com.lambda.graphics.renderer.esp.builders.buildFilled
+import com.lambda.graphics.renderer.esp.builders.buildOutline
+import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.transform
@@ -42,7 +43,7 @@ object FastBreak : Module(
     private val outlineWidth by setting("Outline Width", 1f, 0f..3f, 0.1f, "the thickness of the outline", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
 
 
-    private val renderer = BlockESPRenderer
+    private val renderer = DynamicESP
     private var boxSet = emptySet<Box>()
 
     private enum class Page {
@@ -128,12 +129,15 @@ object FastBreak : Module(
                     box.offset(pos)
                 }
 
+                val dynamicAABB = DynamicAABB()
+                dynamicAABB.update(renderBox)
+
                 if (renderSetting != RenderSetting.Outline) {
-                    renderer.buildFilled(renderBox, fillColour)
+                    renderer.buildFilled(dynamicAABB, fillColour)
                 }
 
                 if (renderSetting != RenderSetting.Fill) {
-                    renderer.buildOutline(renderBox, outlineColour)
+                    renderer.buildOutline(dynamicAABB, outlineColour)
                 }
             }
             renderer.upload()
