@@ -30,7 +30,6 @@ object RenderMain {
             RenderEvent.GUI.Fixed().post()
 
             rescale(GuiSettings.scale)
-            RenderEvent.GUI.HUD(GuiSettings.scale).post()
             RenderEvent.GUI.Scaled(GuiSettings.scale).post()
         }
     }

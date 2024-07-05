@@ -20,8 +20,6 @@ abstract class RenderEvent : Event {
     }
 
     abstract class GUI(val scale: Double) : RenderEvent() {
-        class HUD(scaleFactor: Double) : GUI(scaleFactor)
-
         class Scaled(scaleFactor: Double) : GUI(scaleFactor)
         class Fixed : GUI(1.0)
 
