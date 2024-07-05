@@ -4,7 +4,6 @@
   "package": "com.lambda.mixin",
   "compatibilityLevel": "JAVA_17",
   "client": [
-    "ClientConnectionMixin",
     "MinecraftClientMixin",
     "baritone.MixinBaritonePlayerContext",
     "baritone.MixinLookBehavior",
@@ -17,6 +16,7 @@
     "input.KeyboardMixin",
     "items.BarrierBlockMixin",
     "items.TridentMixin",
+    "network.ClientConnectionMixin",
     "render.BlockRenderManagerMixin",
     "render.CameraMixin",
     "render.ChatInputSuggestorMixin",
