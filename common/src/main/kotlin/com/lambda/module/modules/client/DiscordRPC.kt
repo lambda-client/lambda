@@ -29,6 +29,7 @@ import kotlinx.coroutines.delay
 import net.minecraft.network.encryption.NetworkEncryptionUtils
 import net.minecraft.network.packet.s2c.login.LoginHelloS2CPacket
 import java.math.BigInteger
+import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 
 object DiscordRPC : Module(
@@ -75,7 +76,7 @@ object DiscordRPC : Module(
      * If the player can interact with the party system.
      */
     private val allowed: Boolean
-        get() = true //rpcAuth != null && discordAuth != null && enableParty
+        get() = rpcAuth != null && discordAuth != null && enableParty
 
     private enum class Page {
         General, Settings, Party
@@ -191,12 +192,15 @@ object DiscordRPC : Module(
             largeImage("lambda", Lambda.VERSION)
             smallImage("https://mc-heads.net/avatar/${mc.gameProfile.id}/nohelm", mc.gameProfile.name)
 
-            if (allowed && party != null) {
+            /*if (allowed && party != null) {
                 party(party.id, party.players.size, party.settings.maxPlayers)
                 secrets(party.joinSecret)
             } else {
                 button("Download", "https://github.com/lambda-client/lambda")
-            }
+            }*/
+
+            party(UUID.randomUUID().toString(), 1, 2)
+            secrets(UUID.randomUUID().toString())
 
             if (showTime) timestamps(startup)
         }
