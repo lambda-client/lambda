@@ -52,7 +52,7 @@ object DiscordRPC : Module(
     /* Technical settings */
     private var rpcServer by setting("RPC Server", "http://127.0.0.1:8080") { page == Page.Settings } // TODO: Change this in production
     private var apiVersion by setting("API Version", ApiVersion.V1) { page == Page.Settings }
-    private val delay by setting("Update Delay", 4, 4..60, 1, unit = "ms", visibility = { page == Page.Settings })
+    private val delay by setting("Update Delay", 5000, 5000..10000, 1, unit = "ms", visibility = { page == Page.Settings })
 
     /* Party settings */
     private val enableParty by setting("Enable Party", true, description = "Allows you to create parties.") { page == Page.Party }
@@ -75,7 +75,7 @@ object DiscordRPC : Module(
      * If the player can interact with the party system.
      */
     private val allowed: Boolean
-        get() = rpcAuth != null && discordAuth != null && enableParty
+        get() = true //rpcAuth != null && discordAuth != null && enableParty
 
     private enum class Page {
         General, Settings, Party
