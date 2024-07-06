@@ -61,12 +61,12 @@ object PacketMine : Module(
     private val renderMode by setting("Render Mode", RenderMode.Out, "The animation style of the renders", visibility = { page == Page.Render })
     private val renderSetting by setting("Render Setting", RenderSetting.Both, "The different ways to draw the renders", visibility = { page == Page.Render && renderMode.isEnabled() })
 
-    private val fillColourMode by setting("Fill Mode", ColourMode.Dynamic, visibility = { page == Page.Render && renderSetting != RenderSetting.Outline })
+    private val fillColourMode by setting("Fill Mode", ColourMode.Dynamic, visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline })
     private val staticFillColour by setting("Static Fill Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the static fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline && fillColourMode == ColourMode.Static })
     private val startFillColour by setting("Start Fill Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the start fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline && fillColourMode == ColourMode.Dynamic })
     private val endFillColour by setting("End Fill Colour", Color(0f, 1f, 0f, 0.3f), "The colour used to render the end fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline && fillColourMode == ColourMode.Dynamic  })
 
-    private val outlineColourMode by setting("Outline Mode", ColourMode.Dynamic, visibility = { page == Page.Render && renderSetting != RenderSetting.Fill })
+    private val outlineColourMode by setting("Outline Mode", ColourMode.Dynamic, visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
     private val staticOutlineColour by setting("Static Outline Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the static outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Static })
     private val startOutlineColour by setting("Start Outline Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the start outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Dynamic })
     private val endOutlineColour by setting("End Outline Colour", Color(0f, 1f, 0f, 0.3f), "The colour used to render the end outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Dynamic  })
