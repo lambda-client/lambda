@@ -18,7 +18,7 @@ class FontRenderer(
 ) {
     private val vao = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.FONT)
 
-    private val scaleMultiplier = 1.0
+    var scaleMultiplier = 1.0
 
     /**
      * Builds the vertex array for rendering the text.
