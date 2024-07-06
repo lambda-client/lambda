@@ -30,6 +30,7 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
 object PacketMine : Module(
@@ -124,6 +125,11 @@ object PacketMine : Module(
 
                 when (breakState) {
                     BreakState.Breaking -> {
+                        if (isOutOfRange()) {
+                            nullifyCurrentBreakingBlock()
+                            return@listener
+                        }
+
                         if (miningProgress < breakThreshold) return@listener
 
                         timeCompleted = System.currentTimeMillis()
@@ -142,7 +148,7 @@ object PacketMine : Module(
                     BreakState.ReBreaking -> {
                         if (breakNextQueueBlock()) return@listener
 
-                        if (player.eyePos.distanceTo(pos.toCenterPos()) > 6) {
+                        if (!reBreak || isOutOfRange()) {
                             nullifyCurrentBreakingBlock()
                             return@listener
                         }
@@ -163,7 +169,11 @@ object PacketMine : Module(
                     }
 
                     BreakState.AwaitingResponse -> {
-                        if (!validateBreak) return@listener
+                        if (!validateBreak) {
+                            checkClientBreak(false, pos)
+                            nullifyCurrentBreakingBlock()
+                            return@listener
+                        }
 
                         if (System.currentTimeMillis() - timeCompleted < timeoutDelay * 1000) return@listener
 
@@ -244,11 +254,17 @@ object PacketMine : Module(
         checkClientBreak(false, pos)
     }
 
+    private fun SafeContext.isOutOfRange() =
+        player.eyePos.distanceTo(currentMiningBlock?.pos?.toCenterPos()) > 6
+
+    private fun SafeContext.isOutOfRange(vec: Vec3d) =
+        player.eyePos.distanceTo(vec) > 6
+
     private fun SafeContext.onBlockBreak() {
         currentMiningBlock?.apply {
             if (breakNextQueueBlock()) return
 
-            if (reBreak && player.eyePos.distanceTo(pos.toCenterPos()) < 6) {
+            if (reBreak && !isOutOfRange()) {
                 breakState = BreakState.ReBreaking
                 return
             }
@@ -302,7 +318,7 @@ object PacketMine : Module(
         while (true) {
             val block = getNextUncheckedQueueBlock() ?: return null
 
-            if (player.eyePos.distanceTo(block.toCenterPos()) > 6) {
+            if (isOutOfRange(block.toCenterPos())) {
                 blockQueue.remove(block)
                 continue
             }
