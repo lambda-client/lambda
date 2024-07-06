@@ -126,11 +126,6 @@ object PacketMine : Module(
 
                 when (breakState) {
                     BreakState.Breaking -> {
-                        if (isOutOfRange()) {
-                            nullifyCurrentBreakingBlock()
-                            return@listener
-                        }
-
                         if (miningProgress < breakThreshold) return@listener
 
                         timeCompleted = System.currentTimeMillis()
