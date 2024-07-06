@@ -6,7 +6,8 @@ import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
 
 open class StaticESPRenderer(
-    usage: BufferUsage = BufferUsage.STATIC
+    usage: BufferUsage = BufferUsage.STATIC,
+    private val useVertexCaching: Boolean = true,
 ) : ESPRenderer(usage, false) {
     val faceVertices = ConcurrentHashMap<Vertex, Int>()
     val outlineVertices = ConcurrentHashMap<Vertex, Int>()
@@ -37,9 +38,10 @@ open class StaticESPRenderer(
         x: Double, y: Double, z: Double,
         color: Color
     ) = lazy {
-        storage.getOrPut(Vertex(x, y, z, color)) {
-            vec3(x, y, z).color(color).end()
-        }
+        val vtx = { vec3(x, y, z).color(color).end() }
+        if (!useVertexCaching) return@lazy vtx()
+
+        storage.getOrPut(Vertex(x, y, z, color), vtx)
     }
 
     data class Vertex(val x: Double, val y: Double, val z: Double, val color: Color)
