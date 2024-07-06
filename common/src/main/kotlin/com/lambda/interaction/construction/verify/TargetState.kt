@@ -25,7 +25,7 @@ sealed class TargetState : StateMatcher {
     data class Support(val direction: Direction) : TargetState() {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
             pos.offset(direction).blockState(world).isSolidBlock(world, pos.offset(direction))
-                    || pos.blockState(world).isSolidBlock(world, pos)
+                    || state.isSolidBlock(world, pos)
 
         override fun getStack(world: ClientWorld, pos: BlockPos) =
             ItemStack(Items.NETHERRACK) // ToDo: Find any disposable block

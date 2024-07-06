@@ -18,7 +18,6 @@ import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.SlotUtils.clickSlot
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import com.lambda.util.primitives.extension.inventorySlots
-import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.BlockState
 import net.minecraft.entity.ItemEntity
 import net.minecraft.screen.slot.SlotActionType
@@ -27,8 +26,8 @@ import net.minecraft.util.math.Direction
 
 class BreakBlock @Ta5kBuilder constructor(
     private val ctx: BreakContext,
-    private val rotationConfig: IRotationConfig,
-    private val interactionConfig: InteractionConfig,
+    private val rotation: IRotationConfig,
+    private val interact: InteractionConfig,
     private val sides: Set<Direction>,
     private val collectDrop: Boolean,
     private val rotate: Boolean,
@@ -42,33 +41,38 @@ class BreakBlock @Ta5kBuilder constructor(
 
     private var drop: ItemEntity? = null
     private var state = State.BREAKING
+    private var inScope = 0
 
     enum class State {
-        BREAKING, CONFIRMING, COLLECTING
+        BREAKING, COLLECTING
     }
 
     override fun SafeContext.onStart() {
-        if (blockState.isAir && !collectDrop) {
+        if (done()) {
             success(null)
             return
         }
         beginState = blockState
+
+        if (!rotate) {
+            breakBlock(ctx.result.side)
+        }
     }
 
     init {
         listener<RotationEvent.Update> { event ->
             if (!rotate) return@listener
-            event.context = lookAtBlock(blockPos, rotationConfig, interactionConfig, sides)
+            event.context = lookAtBlock(blockPos, rotation, interact, sides)
         }
 
         listener<RotationEvent.Post> {
             if (!rotate) return@listener
             if (state != State.BREAKING) return@listener
-
             if (!it.context.isValid) return@listener
-            val hitResult = it.context.hitResult?.blockResult ?: return@listener
 
-            breakBlock(hitResult.side)
+            if (inScope++ >= interact.inScopeThreshold) {
+                breakBlock(ctx.result.side)
+            }
         }
 
         listener<TickEvent.Pre> {
@@ -93,7 +97,12 @@ class BreakBlock @Ta5kBuilder constructor(
                 breakBlock(ctx.result.side)
             }
 
-            if (finish()) success(null)
+            if (done()) {
+                state = State.COLLECTING
+                if (!collectDrop) {
+                    success(null)
+                }
+            }
         }
 
         listener<WorldEvent.EntityUpdate> {
@@ -107,7 +116,7 @@ class BreakBlock @Ta5kBuilder constructor(
         }
     }
 
-    private fun SafeContext.finish() = blockState.isAir && !collectDrop
+    private fun SafeContext.done() = blockState.isAir && !collectDrop
 
     private fun SafeContext.breakBlock(side: Direction) {
         if (interaction.updateBlockBreakingProgress(blockPos, side)) {

@@ -140,12 +140,12 @@ abstract class BuildResult : ComparableResult<Rank> {
         val distance: Double
     ) : Navigable, Drawable, BuildResult() {
         override val rank = Rank.NOT_VISIBLE
-        private val color = Color(46, 0, 0, 30)
+        private val color = Color(46, 0, 0, 80)
 
         override val goal = GoalPlace(blockPos)
 
         override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color, side)
+            withBox(Box(blockPos), color)
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
@@ -174,7 +174,7 @@ abstract class BuildResult : ComparableResult<Rank> {
             neededItem.select().transfer(MainHandContainer)?.solve ?: failTask("Item ${neededItem.name.string} not found")
 
         override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color)
+            withBox(Box(blockPos), color)
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {

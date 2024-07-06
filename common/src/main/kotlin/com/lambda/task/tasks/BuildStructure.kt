@@ -1,5 +1,6 @@
 package com.lambda.task.tasks
 
+import baritone.api.pathing.goals.GoalNear
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
@@ -54,12 +55,13 @@ class BuildStructure @Ta5kBuilder constructor(
             val result = results.minOrNull() ?: return@listener
 
             lastResult?.let {
-                if (it.compareTo(result) == 0) return@listener
+                if (lastTask?.isCompleted == false && result.rank == it.rank) return@listener
+//                if (lastTask?.isCompleted == true || it.rank.compareTo(result.rank) == 0) return@listener
 //                if (it.pausesParent && lastTask?.isCompleted != true) return@listener
-                if (/*collectDrops && it is BreakResult.Success && */lastTask?.isCompleted != true) {
-                    return@listener
-                }
-                LOG.info("${it.rank.name}${if (it.pausesParent) " pauses" else ""} -> ${result.rank.name} (${lastTask?.identifier})")
+//                if (/*collectDrops && it is BreakResult.Success && */lastTask?.isCompleted == false && lastTask?.isFailed == false) {
+//                    return@listener
+//                }
+                LOG.info("${it.rank.name}${if (it.pausesParent) " (paused)" else ""} -> ${result.rank.name} (${lastTask?.identifier})")
 
                 lastTask?.cancel()
             }
@@ -90,7 +92,8 @@ class BuildStructure @Ta5kBuilder constructor(
                     }
 
                     lastResult = result
-                    lastTask = result.resolve.start(this@BuildStructure, pauseParent = result.pausesParent)
+                    lastTask = result.resolve
+                        .start(this@BuildStructure, pauseParent = result.pausesParent)
 //                    if (pathing) {
 //                        BaritoneUtils.setGoalAndPath(GoalNear(result.blockPos, 3))
 //                    }

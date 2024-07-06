@@ -19,7 +19,6 @@ class PlaceBlock @Ta5kBuilder constructor(
     private val waitForConfirmation: Boolean,
 ) : Task<Unit>() {
     private var beginState: BlockState? = null
-    override var timeout = 50
     private var state = State.PLACING
     private var inScope = 0
 
@@ -39,7 +38,9 @@ class PlaceBlock @Ta5kBuilder constructor(
         }
         beginState = resultingState
 
-        if (!rotate) placeBlock()
+        if (!rotate) {
+            placeBlock()
+        }
     }
 
     init {
@@ -50,9 +51,10 @@ class PlaceBlock @Ta5kBuilder constructor(
 
         listener<RotationEvent.Post> {
             if (!rotate) return@listener
+            if (state != State.PLACING) return@listener
             if (!it.context.isValid) return@listener
 
-            if (state == State.PLACING && inScope++ >= interact.scopeThreshold) {
+            if (inScope++ >= interact.scopeThreshold) {
                 placeBlock()
             }
         }
