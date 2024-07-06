@@ -4,6 +4,7 @@ import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.RenderLayer
+import com.lambda.gui.api.component.core.DockingRect
 import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.impl.AbstractClickGui
@@ -28,18 +29,33 @@ abstract class WindowComponent<T : ChildComponent>(
     abstract var width: Double
     abstract var height: Double
 
-    var position = Vec2d.ZERO
-
     var isOpen = true
     override val isActive get() = isOpen
 
     private var dragOffset: Vec2d? = null
     private val padding get() = ClickGui.windowPadding
 
-    final override val rect get() = Rect.basedOn(position, width, renderHeightAnimation + titleBarHeight)
+    private val rectHandler = object : DockingRect() {
+        override var relativePos = Vec2d.ZERO
+        override val width get() = this@WindowComponent.width
+        override val height get() = renderHeightAnimation + titleBarHeight
+
+        override val dockingBase get() = titleBar.center
+
+        override var allowHAlign = ClickGui.allowHAlign
+        override var allowVAlign = ClickGui.allowVAlign
+    }
+
+    var serializedPosition by rectHandler::relativePos
+    var position by rectHandler::position
+    final override val rect by rectHandler::rect
+
+    var dockingH by rectHandler::dockingH
+    var dockingV by rectHandler::dockingV
+
     private val contentRect get() = rect.shrink(padding).moveFirst(Vec2d(0.0, titleBarHeight - padding))
 
-    private val titleBar get() = Rect.basedOn(rect.leftTop, rect.size.x, titleBarHeight)
+    private val titleBar: Rect get() = Rect.basedOn(rect.leftTop, rect.size.x, titleBarHeight)
     private val titleBarHeight get() = ClickGui.buttonHeight * 1.25
 
     private val renderer = RenderLayer()
@@ -65,6 +81,8 @@ abstract class WindowComponent<T : ChildComponent>(
             }
 
             is GuiEvent.Render -> {
+                updateRect()
+
                 // TODO: fix blur
                 // BlurPostProcessor.render(rect, ClickGui.windowBlur, guiAnimation)
 
@@ -105,8 +123,14 @@ abstract class WindowComponent<T : ChildComponent>(
             }
 
             is GuiEvent.MouseMove -> {
+                val prevPos = position
+
                 dragOffset?.let {
                     position = e.mouse - it
+
+                    if (prevPos != position) {
+                        rectHandler.autoDocking()
+                    }
                 }
             }
 
@@ -131,6 +155,24 @@ abstract class WindowComponent<T : ChildComponent>(
         }
 
         contentComponents.onEvent(e)
+    }
+
+    private fun updateRect() = rectHandler.apply {
+        screenSize = gui.screenSize
+
+        var updateDocking = false
+
+        if (allowHAlign != ClickGui.allowHAlign) {
+            allowHAlign = ClickGui.allowHAlign
+            updateDocking = true
+        }
+
+        if (allowVAlign != ClickGui.allowVAlign) {
+            allowVAlign = ClickGui.allowVAlign
+            updateDocking = true
+        }
+
+        if (updateDocking) autoDocking()
     }
 
     fun focus() {

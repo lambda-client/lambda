@@ -28,7 +28,7 @@ data class Vec2d(val x: Double, val y: Double) {
 
         val LEFT = Vec2d(-1.0, 0.0)
         val RIGHT = Vec2d(1.0, 0.0)
-        val TOP = Vec2d(0.0, 1.0)
-        val BOTTOM = Vec2d(0.0, -1.0)
+        val TOP = Vec2d(0.0, -1.0)
+        val BOTTOM = Vec2d(0.0, 1.0)
     }
 }
