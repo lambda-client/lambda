@@ -41,6 +41,7 @@ object PacketMine : Module(
     private val page by setting("Page", Page.General)
 
     private val breakThreshold by setting("Break Threshold", 0.7f, 0.0f..1.0f, 0.1f, "Breaks the selected block once the block breaking progress passes this value, 1 being 100%", visibility = { page == Page.General})
+    private val range by setting("Range", 6, 3..6, 1, "The maximum distance between the players eye position and the center of the block", visibility = { page == Page.General })
     private val pauseWhileUsingItems by setting("Pause While Using Items", true, "Will prevent breaking while using items like eating or aiming a bow", visibility = { page == Page.General })
     //ToDo: Implement these settings
 //    private val rotate by setting("Rotate", false, "Rotates the player to look at the current mining block", visibility = { page == Page.General })
@@ -255,10 +256,10 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.isOutOfRange() =
-        player.eyePos.distanceTo(currentMiningBlock?.pos?.toCenterPos()) > 6
+        player.eyePos.distanceTo(currentMiningBlock?.pos?.toCenterPos()) > range
 
     private fun SafeContext.isOutOfRange(vec: Vec3d) =
-        player.eyePos.distanceTo(vec) > 6
+        player.eyePos.distanceTo(vec) > range
 
     private fun SafeContext.onBlockBreak() {
         currentMiningBlock?.apply {
