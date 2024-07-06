@@ -17,26 +17,40 @@ import net.minecraft.util.math.Direction
 class OpenContainer(
     private val blockPos: BlockPos,
     private val waitForSlotLoad: Boolean = true,
-    private val rotationConfig: IRotationConfig = TaskFlow.rotation,
-    private val interactionConfig: InteractionConfig = TaskFlow.interact,
+    private val rotate: Boolean,
+    private val rotation: IRotationConfig = TaskFlow.rotation,
+    private val interact: InteractionConfig = TaskFlow.interact,
     private val sides: Set<Direction> = emptySet(),
 ) : Task<ScreenHandler>() {
     private var screenHandler: ScreenHandler? = null
-    private var slotsLoaded = false
+    private var state = State.SCOPING
+    private var inScope = 0
+
+    override var timeout = 50
+
+    enum class State {
+        SCOPING, OPENING, SLOT_LOADING
+    }
 
     init {
         listener<ScreenHandlerEvent.Open> {
-            screenHandler = it.screenHandler
+            if (state != State.OPENING) return@listener
 
-            if (!waitForSlotLoad || slotsLoaded) success(it.screenHandler)
+            screenHandler = it.screenHandler
+            state = State.SLOT_LOADING
+
+            if (!waitForSlotLoad) success(it.screenHandler)
         }
 
         listener<ScreenHandlerEvent.Close> {
+            if (screenHandler != it.screenHandler) return@listener
+
+            state = State.SCOPING
             screenHandler = null
         }
 
-        listener<ScreenHandlerEvent.Loaded> {
-            slotsLoaded = true
+        listener<ScreenHandlerEvent.Update> {
+            if (state != State.SLOT_LOADING) return@listener
 
             screenHandler?.let {
                 success(it)
@@ -44,15 +58,21 @@ class OpenContainer(
         }
 
         listener<RotationEvent.Update> { event ->
-            if (screenHandler != null) return@listener
-            event.context = lookAtBlock(blockPos, rotationConfig, interactionConfig, sides)
+            if (!rotate) return@listener
+            event.context = lookAtBlock(blockPos, rotation, interact, sides)
         }
 
         listener<RotationEvent.Post> {
-            if (screenHandler != null) return@listener
+            if (!rotate) return@listener
+            if (state != State.SCOPING) return@listener
             if (!it.context.isValid) return@listener
-            val hitResult = it.context.hitResult?.blockResult ?: return@listener
-            interaction.interactBlock(player, Hand.MAIN_HAND, hitResult)
+
+            if (inScope++ >= interact.scopeThreshold) {
+                val hitResult = it.context.hitResult?.blockResult ?: return@listener
+                interaction.interactBlock(player, Hand.MAIN_HAND, hitResult)
+
+                state = State.OPENING
+            }
         }
     }
 
@@ -60,7 +80,8 @@ class OpenContainer(
         @Ta5kBuilder
         fun openContainer(
             blockPos: BlockPos,
-            waitForSlotLoad: Boolean = true
-        ) = OpenContainer(blockPos, waitForSlotLoad)
+            waitForSlotLoad: Boolean = true,
+            rotate: Boolean = true,
+        ) = OpenContainer(blockPos, waitForSlotLoad, rotate)
     }
 }

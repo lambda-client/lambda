@@ -32,8 +32,6 @@ class BuildStructure @Ta5kBuilder constructor(
     private var lastResult: BuildResult? = null
     private var lastTask: Task<*>? = null
 
-    abstract class PathingStrategy
-
     override fun SafeContext.onStart() {
         (blueprint as? DynamicBlueprint)?.create(this)
     }
@@ -41,9 +39,7 @@ class BuildStructure @Ta5kBuilder constructor(
     init {
         listener<RenderEvent.StaticESP> {
             previousResults.filterIsInstance<Drawable>().forEach { res ->
-                with(res) {
-                    buildRenderer()
-                }
+                with(res) { buildRenderer() }
             }
         }
 
@@ -62,10 +58,10 @@ class BuildStructure @Ta5kBuilder constructor(
             lastResult?.let {
                 if (it.compareTo(result) == 0) return@listener
 //                if (it.pausesParent && lastTask?.isCompleted != true) return@listener
-                if (collectDrops && it is BreakResult.Success && lastTask?.isCompleted != true) {
+                if (/*collectDrops && it is BreakResult.Success && */lastTask?.isCompleted != true) {
                     return@listener
                 }
-                info("${it.rank.name}${if (it.pausesParent) " pauses" else ""} -> ${result.rank.name} (${lastTask?.identifier})")
+                LOG.info("${it.rank.name}${if (it.pausesParent) " pauses" else ""} -> ${result.rank.name} (${lastTask?.identifier})")
 
                 lastTask?.cancel()
             }
@@ -97,9 +93,9 @@ class BuildStructure @Ta5kBuilder constructor(
 
                     lastResult = result
                     lastTask = result.resolve.start(this@BuildStructure, pauseParent = result.pausesParent)
-                    if (pathing) {
-                        BaritoneUtils.setGoalAndPath(GoalNear(result.blockPos, 3))
-                    }
+//                    if (pathing) {
+//                        BaritoneUtils.setGoalAndPath(GoalNear(result.blockPos, 3))
+//                    }
                 }
                 is Navigable -> {
                     if (pathing) BaritoneUtils.setGoalAndPath(result.goal)

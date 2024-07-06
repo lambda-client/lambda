@@ -11,5 +11,4 @@ interface BuildConfig {
     val breaksPerTick: Int
     val rotateForBreak: Boolean
     val rotateForPlace: Boolean
-    val pingTimeout: Boolean
 }

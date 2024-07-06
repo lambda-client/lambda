@@ -8,7 +8,7 @@ sealed class ScreenHandlerEvent : Event {
     class Open(val screenHandler: ScreenHandler) : ScreenHandlerEvent()
     class Close(val screenHandler: ScreenHandler) : ScreenHandlerEvent()
 
-    data class Loaded(
+    data class Update(
         val revision: Int,
         val stacks: List<ItemStack>,
         val cursorStack: ItemStack,

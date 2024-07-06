@@ -81,7 +81,7 @@ class BreakBlock @Ta5kBuilder constructor(
                 }
 
                 BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
-            }
+            } ?: BaritoneUtils.cancel()
 
             if (finish()) {
                 success(null)

@@ -64,13 +64,13 @@ abstract class Task<Result> : Nameable {
 
     open var pausable = true
 
-    var parent: Task<*>? = null
+    private var parent: Task<*>? = null
     private val root: Task<*> get() = parent?.root ?: this
     private val depth: Int get() = parent?.depth?.plus(1) ?: 0
 
     private var executions = 0
     private var attempted = 0
-    val subTasks = mutableListOf<Task<*>>()
+    private val subTasks = mutableListOf<Task<*>>()
     private var state = State.IDLE
     var age = 0
 
