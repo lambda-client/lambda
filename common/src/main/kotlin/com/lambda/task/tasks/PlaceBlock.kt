@@ -1,10 +1,8 @@
 package com.lambda.task.tasks
 
 import com.lambda.Lambda.LOG
-import com.lambda.config.groups.IRotationConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
-import com.lambda.core.PingManager
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
@@ -12,7 +10,6 @@ import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.Communication.info
 import net.minecraft.block.BlockState
 
 class PlaceBlock @Ta5kBuilder constructor(
@@ -22,8 +19,6 @@ class PlaceBlock @Ta5kBuilder constructor(
     private val waitForConfirmation: Boolean,
 ) : Task<Unit>() {
     private var beginState: BlockState? = null
-    override var cooldown = Int.MAX_VALUE
-        get() = maxOf(TaskFlow.build.placeCooldown, TaskFlow.taskCooldown)
     override var timeout = 50
     private var state = State.PLACING
     private var inScope = 0
@@ -34,7 +29,7 @@ class PlaceBlock @Ta5kBuilder constructor(
         ctx.targetState.matches(ctx.resultingPos.blockState(world), ctx.resultingPos, world)
 
     enum class State {
-        PLACING, WAITING
+        PLACING, CONFIRMING
     }
 
     override fun SafeContext.onStart() {
@@ -63,7 +58,7 @@ class PlaceBlock @Ta5kBuilder constructor(
         }
 
         listener<WorldEvent.BlockUpdate> {
-            if (state != State.WAITING) return@listener
+            if (state != State.CONFIRMING) return@listener
             if (it.pos != ctx.resultingPos) return@listener
 
             if (ctx.targetState.matches(it.state, it.pos, world)) {
@@ -88,7 +83,7 @@ class PlaceBlock @Ta5kBuilder constructor(
                 mc.gameRenderer.firstPersonRenderer.resetEquipProgress(ctx.hand)
             }
 
-            state = State.WAITING
+            state = State.CONFIRMING
 
             if (matches) {
                 if (!waitForConfirmation) finish()

@@ -15,7 +15,6 @@ import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.item.ItemUtils.block
-import com.lambda.util.item.ItemUtils.defaultDisposables
 import com.lambda.util.player.SlotUtils.clickSlot
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import com.lambda.util.primitives.extension.inventorySlots
@@ -36,19 +35,24 @@ class BreakBlock @Ta5kBuilder constructor(
     private val swingHand: Boolean,
 ) : Task<ItemEntity?>() {
     val blockPos: BlockPos get() = ctx.result.blockPos
+
     private var beginState: BlockState? = null
-    val SafeContext.state: BlockState get() = blockPos.blockState(world)
-    override var cooldown = Int.MAX_VALUE
-        get() = maxOf(TaskFlow.build.breakCoolDown, TaskFlow.taskCooldown)
-        set(value) = run { field = value }
+    val SafeContext.blockState: BlockState get() =
+        blockPos.blockState(world)
+
     private var drop: ItemEntity? = null
+    private var state = State.BREAKING
+
+    enum class State {
+        BREAKING, CONFIRMING, COLLECTING
+    }
 
     override fun SafeContext.onStart() {
-        if (state.isAir && !collectDrop) {
+        if (blockState.isAir && !collectDrop) {
             success(null)
             return
         }
-        beginState = state
+        beginState = blockState
     }
 
     init {
@@ -59,6 +63,8 @@ class BreakBlock @Ta5kBuilder constructor(
 
         listener<RotationEvent.Post> {
             if (!rotate) return@listener
+            if (state != State.BREAKING) return@listener
+
             if (!it.context.isValid) return@listener
             val hitResult = it.context.hitResult?.blockResult ?: return@listener
 
@@ -83,14 +89,10 @@ class BreakBlock @Ta5kBuilder constructor(
                 BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
             } ?: BaritoneUtils.cancel()
 
-            if (finish()) {
-                success(null)
-                return@listener
+            if (!rotate) {
+                breakBlock(ctx.result.side)
             }
 
-            if (rotate) return@listener
-
-            breakBlock(ctx.result.side)
             if (finish()) success(null)
         }
 
@@ -105,7 +107,7 @@ class BreakBlock @Ta5kBuilder constructor(
         }
     }
 
-    private fun SafeContext.finish() = state.isAir && !collectDrop
+    private fun SafeContext.finish() = blockState.isAir && !collectDrop
 
     private fun SafeContext.breakBlock(side: Direction) {
         if (interaction.updateBlockBreakingProgress(blockPos, side)) {

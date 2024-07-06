@@ -1,6 +1,5 @@
 package com.lambda.task.tasks
 
-import baritone.api.pathing.goals.GoalNear
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
@@ -16,7 +15,6 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
-import com.lambda.util.Communication.info
 import net.minecraft.util.math.BlockPos
 
 class BuildStructure @Ta5kBuilder constructor(
@@ -113,9 +111,10 @@ class BuildStructure @Ta5kBuilder constructor(
         @Ta5kBuilder
         fun buildStructure(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = TaskFlow.build.collectDrops,
             pathing: Boolean = TaskFlow.build.pathing,
             stayInRange: Boolean = true,
+            forceSilkTouch: Boolean = false,
+            collectDrops: Boolean = TaskFlow.build.collectDrops,
             cancelOnUnsolvable: Boolean = true,
             blueprint: () -> Blueprint,
         ) = BuildStructure(
@@ -123,6 +122,7 @@ class BuildStructure @Ta5kBuilder constructor(
                 finishOnDone,
                 pathing,
                 stayInRange,
+                forceSilkTouch,
                 collectDrops,
                 cancelOnUnsolvable
             )
