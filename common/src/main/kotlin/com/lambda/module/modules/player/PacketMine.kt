@@ -129,7 +129,7 @@ object PacketMine : Module(
                         player.id,
                         pos,
                         (miningProgress * (2 - breakThreshold) * 10).toInt().coerceAtMost(9)
-                )
+                    )
 
                 when (breakState) {
                     BreakState.Breaking -> {
@@ -137,7 +137,10 @@ object PacketMine : Module(
 
                         timeCompleted = System.currentTimeMillis()
 
-                        if (swapped) {
+                        if (autoSwap) {
+                            if (!swapped) {
+                                swapTo(bestTool)
+                            }
                             stopBreak(pos)
                         } else {
                             swapStopBreak(pos, bestTool)
@@ -508,16 +511,6 @@ object PacketMine : Module(
                 }
             }
         }
-    }
-
-    private fun SafeContext.swapStartPacketBreak(pos: BlockPos, toolSlot: Int) {
-        connection.sendPacket(UpdateSelectedSlotC2SPacket(toolSlot))
-        startBreak(pos)
-        if (alternativePackets) {
-            abortBreak(pos)
-            stopBreak(pos)
-        }
-        connection.sendPacket(UpdateSelectedSlotC2SPacket(player.inventory.selectedSlot))
     }
 
     private fun SafeContext.swapStopBreak(pos: BlockPos, toolSlot: Int) {
