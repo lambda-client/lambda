@@ -45,7 +45,7 @@ object PacketMine : Module(
     private val pauseWhileUsingItems by setting("Pause While Using Items", true, "Will prevent breaking while using items like eating or aiming a bow", visibility = { page == Page.General })
     //ToDo: Implement these settings
 //    private val rotate by setting("Rotate", false, "Rotates the player to look at the current mining block", visibility = { page == Page.General })
-//    private val autoSwap by setting("Auto Force Swap", false, "Hard swaps to the best tool rather than silent swapping. This is often used on servers with a stricter anti-cheat system", visibility = { page == Page.General})
+    private val autoSwap by setting("Auto Force Swap", false, "Hard swaps to the best tool rather than silent swapping. This is often used on servers with a stricter anti-cheat system", visibility = { page == Page.General})
     private val validateBreak by setting("Validate Break", true, "Breaks blocks client side rather than waiting for a response from the server", visibility = { page == Page.General })
     private val timeoutDelay by setting("Timeout Delay", 0.20f, 0.00f..1.00f, 0.1f, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", visibility = { page == Page.General && validateBreak })
     private val alternativePackets by setting("Alternative Packets", false, "Uses a different set of packets which tend to work better on servers using an anti-cheat like grim", visibility = { page == Page.General })
@@ -97,6 +97,9 @@ object PacketMine : Module(
 
     private var currentMiningBlock: BreakingContext? = null
     private val blockQueue = ArrayDeque<BlockPos>()
+    private var returnSlot = -1
+    private var swappedSlot = -1
+    private var swapped = false
 
     //ToDo: Make work on CC
 
@@ -109,7 +112,11 @@ object PacketMine : Module(
 
                 val activeState = world.getBlockState(pos)
                 if (activeState != state) state = activeState
+
+                val empty = isStateEmpty(activeState)
+
                 val bestTool = getBestTool(activeState, pos)
+                if (!empty) lastValidBestTool = bestTool
 
                 currentBreakDelta = calcBreakDelta(state, pos, bestTool)
 
@@ -129,7 +136,12 @@ object PacketMine : Module(
                         if (miningProgress < breakThreshold) return@listener
 
                         timeCompleted = System.currentTimeMillis()
-                        swapStopBreak(pos, bestTool)
+
+                        if (swapped) {
+                            stopBreak(pos)
+                        } else {
+                            swapStopBreak(pos, bestTool)
+                        }
 
                         if (validateBreak) {
                             breakState = BreakState.AwaitingResponse
@@ -152,14 +164,20 @@ object PacketMine : Module(
                         if (miningProgress < breakThreshold) return@listener
 
                         if (!fastReBreak
-                            && (activeState.isAir || (!activeState.fluidState.isEmpty
-                                    && !(activeState.properties.contains(Properties.WATERLOGGED)
-                                    && activeState.get(Properties.WATERLOGGED))))
+                            && empty
                         ) {
                             return@listener
                         }
 
-                        swapStopBreak(pos, bestTool)
+                        if (autoSwap) {
+                            if (!swapped) {
+                                swapTo(lastValidBestTool)
+                            }
+                            stopBreak(pos)
+                            if ((!validateBreak || empty) && swapped) swapToReturnSlot()
+                        } else {
+                            swapStopBreak(pos, lastValidBestTool)
+                        }
 
                         checkClientBreak(false, pos)
                     }
@@ -196,15 +214,19 @@ object PacketMine : Module(
         listener<WorldEvent.BlockUpdate> {
             currentMiningBlock?.apply {
                 if (it.pos != pos
-                    || if (state.properties.contains(Properties.WATERLOGGED) && state.get(Properties.WATERLOGGED)) it.state.fluidState.fluid !is WaterFluid
-                    else !it.state.isAir
+                    || !isStateBroken(state, it.state)
                 ) {
                     return@listener
                 }
 
                 checkClientBreak(true, pos)
 
-                if (breakState == BreakState.ReBreaking) return@listener
+                if (breakState == BreakState.ReBreaking) {
+                    if (swapped) {
+                        swapToReturnSlot()
+                    }
+                    return@listener
+                }
 
                 onBlockBreak()
             }
@@ -225,16 +247,27 @@ object PacketMine : Module(
         val state = world.getBlockState(pos)
         val bestTool = getBestTool(state, pos)
 
-        swapStartPacketBreak(pos, bestTool)
-
         val breakDelta = calcBreakDelta(world.getBlockState(pos), pos, bestTool)
 
+        if (autoSwap) {
+            swapTo(bestTool)
+        } else {
+            silentSwapTo(bestTool)
+        }
+        startBreak(pos)
+        if (alternativePackets) {
+            abortBreak(pos)
+            stopBreak(pos)
+        }
+
         if (breakDelta < breakThreshold) {
+            if (!swapped) silentSwapTo(player.inventory.selectedSlot)
             currentMiningBlock = BreakingContext(pos, state, BreakState.Breaking, breakDelta)
             return
         }
 
-        swapStopBreak(pos, bestTool)
+        stopBreak(pos)
+        if (!swapped) silentSwapTo(player.inventory.selectedSlot)
 
         currentMiningBlock = if (reBreak) {
             BreakingContext(pos, state, BreakState.ReBreaking, breakDelta)
@@ -245,9 +278,49 @@ object PacketMine : Module(
                 BreakingContext(pos, state, BreakState.AwaitingResponse, breakDelta)
             }
         }
-        currentMiningBlock?.timeCompleted = System.currentTimeMillis()
+
+        currentMiningBlock?.apply {
+            timeCompleted = System.currentTimeMillis()
+            lastValidBestTool = bestTool
+
+            if (!validateBreak && swapped) {
+                swapToReturnSlot()
+            }
+        }
 
         checkClientBreak(false, pos)
+    }
+
+    private fun SafeContext.swapToReturnSlot() {
+        if (!swapped || returnSlot == -1) return
+
+        player.inventory.selectedSlot = returnSlot
+        connection.sendPacket(UpdateSelectedSlotC2SPacket(returnSlot))
+        returnSlot = -1
+        swappedSlot = -1
+        swapped = false
+
+        return
+    }
+
+    private fun SafeContext.swapTo(slot: Int) {
+        if (returnSlot == -1) {
+            returnSlot = player.inventory.selectedSlot
+        }
+        player.inventory.selectedSlot = slot
+        connection.sendPacket(UpdateSelectedSlotC2SPacket(slot))
+        swappedSlot = slot
+        swapped = true
+    }
+
+    private fun SafeContext.cancelSwap() {
+        returnSlot = -1
+        swappedSlot = -1
+        swapped = false
+    }
+
+    private fun SafeContext.silentSwapTo(slot: Int) {
+        connection.sendPacket(UpdateSelectedSlotC2SPacket(slot))
     }
 
     private fun SafeContext.isOutOfRange() =
@@ -261,6 +334,7 @@ object PacketMine : Module(
             if (breakNextQueueBlock()) return
 
             if (reBreak && !isOutOfRange()) {
+                if (swapped) swapToReturnSlot()
                 breakState = BreakState.ReBreaking
                 return
             }
@@ -269,10 +343,29 @@ object PacketMine : Module(
         }
     }
 
+    private fun isStateBroken(previousState: BlockState, activeState: BlockState) =
+        activeState.isAir || (
+                activeState.fluidState.fluid is WaterFluid
+                        && previousState.properties.contains(Properties.WATERLOGGED)
+                        && previousState.get(Properties.WATERLOGGED)
+                )
+
+    private fun isStateEmpty(state: BlockState) =
+        state.isAir || (
+                (!state.properties.contains(Properties.WATERLOGGED)
+                        || !state.get(Properties.WATERLOGGED))
+                        && state.fluidState.fluid is WaterFluid
+                )
+
     private fun SafeContext.nullifyCurrentBreakingBlock() {
         currentMiningBlock?.apply {
             if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, 0)
         }
+
+        if (swapped) {
+            swapToReturnSlot()
+        }
+
         currentMiningBlock = null
     }
 
@@ -282,13 +375,11 @@ object PacketMine : Module(
         }
     }
 
-    private fun shouldBePlacedInBlockQueue(pos: BlockPos): Boolean {
-        return !(!queueBlocks
-                || currentMiningBlock == null
-                || currentMiningBlock?.breakState == BreakState.ReBreaking
-                || currentMiningBlock?.pos == pos
-                || blockQueue.contains(pos))
-    }
+    private fun shouldBePlacedInBlockQueue(pos: BlockPos): Boolean = queueBlocks
+            && currentMiningBlock != null
+            && currentMiningBlock?.breakState != BreakState.ReBreaking
+            && currentMiningBlock?.pos != pos
+            && !blockQueue.contains(pos)
 
     private fun SafeContext.breakNextQueueBlock(): Boolean {
         if (!queueBlocks) return false
@@ -366,6 +457,7 @@ object PacketMine : Module(
         var mineTicks = 0
         var timeCompleted: Long = -1
         var previousBreakDelta = 0f
+        var lastValidBestTool = -1
 
         var boxList = if (renderMode.isEnabled()) {
             state.getOutlineShape(mc.world, pos).boundingBoxes.toSet()
