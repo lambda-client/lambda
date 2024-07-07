@@ -115,10 +115,17 @@ object PacketMine : Module(
 
                 val empty = isStateEmpty(activeState)
 
-                val bestTool = getBestTool(activeState, pos)
-                if (!empty) lastValidBestTool = bestTool
+                if (!empty) lastValidBestTool = getBestTool(activeState, pos)
 
-                currentBreakDelta = calcBreakDelta(state, pos, bestTool)
+                if (autoSwap) {
+                    if (player.inventory.selectedSlot != swappedSlot) {
+                        cancelSwap()
+                    } else if (swappedSlot != lastValidBestTool) {
+                        swapTo(lastValidBestTool)
+                    }
+                }
+
+                currentBreakDelta = calcBreakDelta(state, pos, lastValidBestTool)
 
                 if (renderMode.isEnabled()) updateRenders(currentBreakDelta)
 
@@ -139,11 +146,11 @@ object PacketMine : Module(
 
                         if (autoSwap) {
                             if (!swapped) {
-                                swapTo(bestTool)
+                                swapTo(lastValidBestTool)
                             }
                             stopBreak(pos)
                         } else {
-                            swapStopBreak(pos, bestTool)
+                            swapStopBreak(pos, lastValidBestTool)
                         }
 
                         if (validateBreak) {
@@ -164,11 +171,13 @@ object PacketMine : Module(
                             return@listener
                         }
 
-                        if (miningProgress < breakThreshold) return@listener
+                        if (miningProgress < breakThreshold) {
+                            if (autoSwap) swapTo(lastValidBestTool)
+                            breakState = BreakState.Breaking
+                            return@listener
+                        }
 
-                        if (!fastReBreak
-                            && empty
-                        ) {
+                        if (!fastReBreak && empty) {
                             return@listener
                         }
 
@@ -316,7 +325,7 @@ object PacketMine : Module(
         swapped = true
     }
 
-    private fun SafeContext.cancelSwap() {
+    private fun cancelSwap() {
         returnSlot = -1
         swappedSlot = -1
         swapped = false
@@ -357,7 +366,7 @@ object PacketMine : Module(
         state.isAir || (
                 (!state.properties.contains(Properties.WATERLOGGED)
                         || !state.get(Properties.WATERLOGGED))
-                        && state.fluidState.fluid is WaterFluid
+                        && !state.fluidState.isEmpty
                 )
 
     private fun SafeContext.nullifyCurrentBreakingBlock() {
@@ -365,9 +374,7 @@ object PacketMine : Module(
             if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, 0)
         }
 
-        if (swapped) {
-            swapToReturnSlot()
-        }
+        if (swapped) swapToReturnSlot()
 
         currentMiningBlock = null
     }
@@ -534,9 +541,11 @@ object PacketMine : Module(
     //Todo: Replace with task system
 
     private fun SafeContext.getBestTool(state: BlockState, pos: BlockPos): Int {
-        var bestTool = -1
-        var bestTimeToMine = 0f
+        val selectedSlot = player.inventory.selectedSlot
+        var bestTool = selectedSlot
+        var bestTimeToMine = calcBreakDelta(state, pos, selectedSlot)
         for (i in 0..8) {
+            if (i == selectedSlot) continue
             val currentToolsTimeToMine = calcBreakDelta(state, pos, i)
             if (currentToolsTimeToMine > bestTimeToMine) {
                 bestTimeToMine = currentToolsTimeToMine
