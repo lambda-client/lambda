@@ -3,7 +3,7 @@ package com.lambda.interaction
 import com.lambda.Lambda.mc
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
-import com.lambda.core.lifecycle.Loadable
+import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listener

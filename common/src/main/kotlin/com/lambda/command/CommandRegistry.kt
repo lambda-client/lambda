@@ -2,7 +2,7 @@ package com.lambda.command
 
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.LambdaConfig
-import com.lambda.core.lifecycle.Loadable
+import com.lambda.core.Loadable
 import org.reflections.Reflections
 import org.reflections.scanners.Scanners
 import org.reflections.util.ConfigurationBuilder

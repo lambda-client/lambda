@@ -2,7 +2,7 @@ package com.lambda.gui
 
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.GuiConfig
-import com.lambda.core.lifecycle.Loadable
+import com.lambda.core.Loadable
 import com.lambda.gui.impl.AbstractClickGui
 import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
 import com.lambda.gui.impl.clickgui.windows.tag.TagWindow
@@ -17,11 +17,12 @@ abstract class AbstractGuiConfigurable(
     var mainWindows by setting("windows", defaultWindows)
     open var customWindows = mutableListOf<CustomModuleWindow>()
 
-    private val defaultWindows get() =
-        tags.mapIndexed { index, tag ->
-            TagWindow(tag, ownerGui).apply {
-                val step = 5.0
-                position = Vec2d((width + step) * index, 0.0) + step
+    private val defaultWindows
+        get() =
+            tags.mapIndexed { index, tag ->
+                TagWindow(tag, ownerGui).apply {
+                    val step = 5.0
+                    position = Vec2d((width + step) * index, 0.0) + step
+                }
             }
-        }
 }

@@ -9,10 +9,9 @@ import com.lambda.core.registry.RegistryWrapper
 import net.minecraft.registry.Registry
 import net.minecraft.registry.entry.RegistryEntry
 import net.minecraft.util.Identifier
+import net.minecraftforge.eventbus.api.SubscribeEvent
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
-import net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent
 import net.minecraftforge.registries.RegisterEvent
 
 
@@ -24,33 +23,12 @@ object LambdaForge {
         LOG.info("$MOD_NAME Forge $VERSION initialized.")
     }
 
-    private fun onConstructMod(event: FMLConstructModEvent) {
-        LOG.info("Construct mod event.")
-    }
-
-    private fun onRegistrySetup(event: RegisterEvent) {
-        LOG.info("Register event for ${event.registryKey}.")
-
+    @SubscribeEvent
+    fun onRegistrySetup(event: RegisterEvent) {
         RegistryController.register(event.registryKey, object : RegistryWrapper<Any> {
             override fun <T> registerForHolder(id: Identifier?, value: T): RegistryEntry<T> {
                 return Registry.registerReference(event.getVanillaRegistry(), id, value)
             }
         })
-    }
-
-    private fun onClientSetup(event: FMLClientSetupEvent) {
-        LOG.info("Client setup event.")
-    }
-
-    private fun onSidedSetup(event: FMLClientSetupEvent) {
-        LOG.info("Sided setup event.")
-    }
-
-    private fun onInterModComms(event: FMLClientSetupEvent) {
-        LOG.info("Inter-mod comms event.")
-    }
-
-    private fun onComplete(event: FMLClientSetupEvent) {
-        LOG.info("Complete event.")
     }
 }

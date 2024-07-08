@@ -1,6 +1,5 @@
 package com.lambda.core
 
-import com.lambda.core.lifecycle.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.TickEvent

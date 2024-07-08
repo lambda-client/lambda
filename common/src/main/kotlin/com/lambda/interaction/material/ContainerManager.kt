@@ -1,6 +1,6 @@
 package com.lambda.interaction.material
 
-import com.lambda.core.lifecycle.Loadable
+import com.lambda.core.Loadable
 import com.lambda.event.events.InteractionEvent
 import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
