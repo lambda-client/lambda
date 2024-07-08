@@ -17,11 +17,12 @@ abstract class AbstractGuiConfigurable(
     var mainWindows by setting("windows", defaultWindows)
     open var customWindows = mutableListOf<CustomModuleWindow>()
 
-    private val defaultWindows get() =
-        tags.mapIndexed { index, tag ->
-            TagWindow(tag, ownerGui).apply {
-                val step = 5.0
-                position = Vec2d((width + step) * index, 0.0) + step
+    private val defaultWindows
+        get() =
+            tags.mapIndexed { index, tag ->
+                TagWindow(tag, ownerGui).apply {
+                    val step = 5.0
+                    position = Vec2d((width + step) * index, 0.0) + step
+                }
             }
-        }
 }
