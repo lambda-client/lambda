@@ -2,15 +2,14 @@ package com.lambda.module.modules.player
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.event.events.InteractionEvent
-import com.lambda.event.events.RenderEvent
-import com.lambda.event.events.TickEvent
-import com.lambda.event.events.WorldEvent
+import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.global.DynamicESP
+import com.lambda.interaction.rotation.Rotation
+import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.MathUtils.lerp
@@ -32,6 +31,7 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
+import kotlin.math.exp
 
 object PacketMine : Module(
     name = "Packet Mine",
@@ -43,8 +43,7 @@ object PacketMine : Module(
     private val breakThreshold by setting("Break Threshold", 0.7f, 0.0f..1.0f, 0.1f, "Breaks the selected block once the block breaking progress passes this value, 1 being 100%", visibility = { page == Page.General})
     private val range by setting("Range", 6, 3..6, 1, "The maximum distance between the players eye position and the center of the block", visibility = { page == Page.General })
     private val pauseWhileUsingItems by setting("Pause While Using Items", true, "Will prevent breaking while using items like eating or aiming a bow", visibility = { page == Page.General })
-    //ToDo: Implement these settings
-//    private val rotate by setting("Rotate", false, "Rotates the player to look at the current mining block", visibility = { page == Page.General })
+    private val rotate by setting("Rotate", false, "Rotates the player to look at the current mining block", visibility = { page == Page.General })
     private val autoSwap by setting("Auto Force Swap", false, "Hard swaps to the best tool rather than silent swapping. This is often used on servers with a stricter anti-cheat system", visibility = { page == Page.General})
     private val validateBreak by setting("Validate Break", true, "Breaks blocks client side rather than waiting for a response from the server", visibility = { page == Page.General })
     private val timeoutDelay by setting("Timeout Delay", 0.20f, 0.00f..1.00f, 0.1f, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", visibility = { page == Page.General && validateBreak })
@@ -100,6 +99,8 @@ object PacketMine : Module(
     private var returnSlot = -1
     private var swappedSlot = -1
     private var swapped = false
+    private var expectedRotation: Rotation? = null
+    private var pauseForRotation = false
 
     //ToDo: Make work on CC
 
@@ -108,7 +109,8 @@ object PacketMine : Module(
             currentMiningBlock?.apply {
                 mineTicks++
 
-                if (pauseWhileUsingItems && player.isUsingItem) return@listener
+                if ((pauseWhileUsingItems && player.isUsingItem) || pauseForRotation)
+                    return@listener
 
                 val activeState = world.getBlockState(pos)
                 if (activeState != state) state = activeState
@@ -241,6 +243,25 @@ object PacketMine : Module(
                 }
 
                 onBlockBreak()
+            }
+        }
+
+        listener<RotationEvent.Update> {
+            if (!rotate) return@listener
+
+            currentMiningBlock?.apply {
+                val rotationContext = lookAtBlock(pos)
+                it.context = rotationContext
+                expectedRotation = rotationContext?.rotation
+            }
+        }
+
+        listener<RotationEvent.Post> {
+            expectedRotation?.apply {
+                if (it.context.rotation != expectedRotation)
+                    pauseForRotation = true
+            } ?: run {
+                pauseForRotation = false
             }
         }
 
