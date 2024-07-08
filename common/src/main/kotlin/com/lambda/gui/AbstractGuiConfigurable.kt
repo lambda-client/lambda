@@ -2,7 +2,7 @@ package com.lambda.gui
 
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.GuiConfig
-import com.lambda.core.Loadable
+import com.lambda.core.lifecycle.Loadable
 import com.lambda.gui.impl.AbstractClickGui
 import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
 import com.lambda.gui.impl.clickgui.windows.tag.TagWindow

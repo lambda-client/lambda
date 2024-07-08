@@ -1,13 +1,13 @@
 package com.lambda.sound
 
-import com.lambda.core.Loadable
+import com.lambda.core.lifecycle.Lifecycle
+import com.lambda.core.registry.RegistryController
 import net.minecraft.registry.Registries
-import net.minecraft.registry.Registry
 
-object SoundRegistry : Loadable {
+object SoundRegistry : Lifecycle.Registry {
     override fun load(): String {
         LambdaSound.entries.forEach {
-            Registry.register(Registries.SOUND_EVENT, it.id, it.event)
+            RegistryController.register(Registries.SOUND_EVENT, it.id, it.event)
         }
 
         return "Loaded ${LambdaSound.entries.size} sounds"

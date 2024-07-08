@@ -1,7 +1,7 @@
 package com.lambda.interaction
 
 import com.lambda.context.SafeContext
-import com.lambda.core.Loadable
+import com.lambda.core.lifecycle.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.EventFlow.postChecked
 import com.lambda.event.events.PlayerPacketEvent

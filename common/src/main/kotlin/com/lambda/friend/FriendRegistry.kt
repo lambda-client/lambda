@@ -2,7 +2,7 @@ package com.lambda.friend
 
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.FriendConfig
-import com.lambda.core.Loadable
+import com.lambda.core.lifecycle.Loadable
 import com.mojang.authlib.GameProfile
 
 object FriendRegistry : Configurable(FriendConfig), Loadable {

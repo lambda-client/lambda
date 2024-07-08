@@ -1,6 +1,6 @@
 package com.lambda.interaction.material
 
-import com.lambda.core.Loadable
+import com.lambda.core.lifecycle.Loadable
 import com.lambda.event.events.InteractionEvent
 import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
@@ -19,7 +19,7 @@ import net.minecraft.item.ItemStack
 import net.minecraft.screen.GenericContainerScreenHandler
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
-import java.util.TreeSet
+import java.util.*
 
 // ToDo: Make this a Configurable to save container caches. Should use a cached region based storage system.
 object ContainerManager : Loadable {

@@ -1,6 +1,6 @@
 package com.lambda.graphics.renderer.gui.font
 
-import com.lambda.core.Loadable
+import com.lambda.core.lifecycle.Loadable
 import com.lambda.graphics.renderer.gui.font.glyph.EmojiGlyphs
 
 enum class LambdaEmoji(private val zipUrl: String) {
