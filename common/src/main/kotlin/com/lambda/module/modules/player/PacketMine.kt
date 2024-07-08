@@ -72,6 +72,10 @@ object PacketMine : Module(
     private val endOutlineColour by setting("End Outline Colour", Color(0f, 1f, 0f, 0.3f), "The colour used to render the end outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Dynamic  })
     private val outlineWidth by setting("Outline Width", 1f, 0f..3f, 0.1f, "the thickness of the outline", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
 
+    private enum class Page {
+        General, Queue, ReBreak, Render
+    }
+
     private enum class RenderMode {
         Out, In, InOut, OutIn, Static, None;
 
@@ -89,10 +93,6 @@ object PacketMine : Module(
 
     private enum class BreakState {
         Breaking, ReBreaking, AwaitingResponse
-    }
-
-    private enum class Page {
-        General, Queue, ReBreak, Render
     }
 
     private var currentMiningBlock: BreakingContext? = null
@@ -325,14 +325,14 @@ object PacketMine : Module(
         swapped = true
     }
 
+    private fun SafeContext.silentSwapTo(slot: Int) {
+        connection.sendPacket(UpdateSelectedSlotC2SPacket(slot))
+    }
+
     private fun cancelSwap() {
         returnSlot = -1
         swappedSlot = -1
         swapped = false
-    }
-
-    private fun SafeContext.silentSwapTo(slot: Int) {
-        connection.sendPacket(UpdateSelectedSlotC2SPacket(slot))
     }
 
     private fun SafeContext.isOutOfRange() =
@@ -355,6 +355,16 @@ object PacketMine : Module(
         }
     }
 
+    private fun SafeContext.nullifyCurrentBreakingBlock() {
+        currentMiningBlock?.apply {
+            if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, 0)
+        }
+
+        if (swapped) swapToReturnSlot()
+
+        currentMiningBlock = null
+    }
+
     private fun isStateBroken(previousState: BlockState, activeState: BlockState) =
         activeState.isAir || (
                 activeState.fluidState.fluid is WaterFluid
@@ -368,16 +378,6 @@ object PacketMine : Module(
                         || !state.get(Properties.WATERLOGGED))
                         && !state.fluidState.isEmpty
                 )
-
-    private fun SafeContext.nullifyCurrentBreakingBlock() {
-        currentMiningBlock?.apply {
-            if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, 0)
-        }
-
-        if (swapped) swapToReturnSlot()
-
-        currentMiningBlock = null
-    }
 
     private fun SafeContext.checkClientBreak(packetReceiveBreak: Boolean, pos: BlockPos) {
         if (packetReceiveBreak == validateBreak) {
@@ -403,14 +403,6 @@ object PacketMine : Module(
         return false
     }
 
-    private fun getNextUncheckedQueueBlock(): BlockPos? {
-        return if (reverseQueueOrder) {
-            blockQueue.lastOrNull()
-        } else {
-            blockQueue.firstOrNull()
-        }
-    }
-
     private fun SafeContext.filterBlockQueueUntilNextPossible(): BlockPos? {
         while (true) {
             val block = getNextUncheckedQueueBlock() ?: return null
@@ -421,6 +413,14 @@ object PacketMine : Module(
             }
 
             return block
+        }
+    }
+
+    private fun getNextUncheckedQueueBlock(): BlockPos? {
+        return if (reverseQueueOrder) {
+            blockQueue.lastOrNull()
+        } else {
+            blockQueue.firstOrNull()
         }
     }
 
