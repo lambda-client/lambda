@@ -24,7 +24,7 @@ object Loader {
     val runtime: String
         get() = "${(System.currentTimeMillis() - started).toDuration(DurationUnit.MILLISECONDS)}"
 
-    val loadables = listOf(
+    private val loadables = listOf(
         ModuleRegistry,
         CommandRegistry,
         RotationManager,
