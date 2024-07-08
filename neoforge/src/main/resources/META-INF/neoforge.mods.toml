@@ -28,7 +28,7 @@ side = "CLIENT"
 modId = "minecraft"
 mandatory = true
 type = "required"
-versionRange = "[${minecraftVersion},)"
+versionRange = "[${minecraftVersionMin},${minecraftVersionMax}]"
 ordering = "NONE"
 side = "CLIENT"
 
