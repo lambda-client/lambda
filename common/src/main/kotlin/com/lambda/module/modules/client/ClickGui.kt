@@ -30,6 +30,7 @@ object ClickGui : Module(
     // Alignment
     val allowHAlign by setting("Allow H Docking", false)
     val allowVAlign by setting("Allow V Docking", true)
+    val dockingGridSize by setting("Docking Grid Size", 1.0, 0.0..20.0, 0.5)
 
     init {
         onEnable {

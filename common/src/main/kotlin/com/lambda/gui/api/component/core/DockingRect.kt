@@ -1,6 +1,8 @@
 package com.lambda.gui.api.component.core
 
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.math.MathUtils.coerceIn
+import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 
@@ -35,9 +37,9 @@ abstract class DockingRect {
 
     var screenSize: Vec2d = Vec2d.ZERO
 
-    var position
+    var position: Vec2d
         get() = relativeToAbs(relativePos).coerceIn(0.0, screenSize.x - size.x, 0.0, screenSize.y - size.y)
-        set(value) { relativePos = absToRelative(value); if (autoDocking) autoDocking() }
+        set(value) { relativePos = absToRelative(value.roundToStep(ClickGui.dockingGridSize)); if (autoDocking) autoDocking() }
 
     private val dockingOffset get() = (screenSize - size) * Vec2d(dockingH.multiplier, dockingV.multiplier)
 
