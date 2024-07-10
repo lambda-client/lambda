@@ -21,6 +21,7 @@ import com.lambda.graphics.gl.VaoUtils.unbindIndexBuffer
 import com.lambda.graphics.gl.VaoUtils.unbindVertexArray
 import com.lambda.graphics.gl.VaoUtils.unbindVertexBuffer
 import com.lambda.threading.runGameScheduled
+import org.joml.*
 import org.lwjgl.opengl.GL30C.*
 import java.awt.Color
 import java.nio.ByteBuffer
@@ -85,6 +86,19 @@ class VAO(
 
     override fun vec2(x: Double, y: Double): VAO {
         verticesPosition += vec2(verticesPosition, x, y)
+        return this
+    }
+
+    override fun vec3m(x: Double, y: Double, z: Double, matrix4f: Matrix4f): IRenderContext {
+        // ToDo: optimize at runtime
+        val vec = Vector4d(x, y, z, 1.0).apply(Matrix4d(matrix4f)::transform)
+        verticesPosition += vec3(verticesPosition, vec.x, vec.y, vec.z)
+        return this
+    }
+
+    override fun vec2m(x: Double, y: Double, matrix4f: Matrix4f): IRenderContext {
+        val vec = Vector4d(x, y, 0.0, 1.0).apply(Matrix4d(matrix4f)::transform)
+        verticesPosition += vec2(verticesPosition, vec.x, vec.y)
         return this
     }
 
