@@ -91,5 +91,7 @@ tasks {
 
         archiveVersion = "$modVersion+$minecraftVersion"
         inputFile = shadowJar.get().archiveFile
+
+        atAccessWideners.add("lambda.accesswidener")
     }
 }
