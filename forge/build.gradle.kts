@@ -95,7 +95,7 @@ dependencies {
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
-    shadowBundle(project(path = ":common", configuration = "transformProductionForge"))
+    shadowBundle(project(path = ":common", configuration = "transformProductionForge")) { isTransitive = false }
 
     // Finish the configuration
     setupConfigurations()
