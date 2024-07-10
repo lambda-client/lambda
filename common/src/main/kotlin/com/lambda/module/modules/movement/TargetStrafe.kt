@@ -23,8 +23,8 @@ object TargetStrafe : Module(
     description = "Automatically strafes around entities",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
-    private val range by setting("Range", 6.0, 2.0..10.0, 0.5)
-    private val targetDistance by setting("Target Distance", 1.0, 0.0..5.0, 0.5)
+    private val range by setting("Range", 6.0, 2.0..10.0, 0.1)
+    private val targetDistance by setting("Target Distance", 1.0, 0.0..5.0, 0.1)
     private val jitterCompensation by setting("Jitter Compensation", 0.0, 0.0..1.0, 0.1)
     private val stabilize by setting("Stabilize", StabilizationMode.NORMAL)
 
@@ -85,15 +85,18 @@ object TargetStrafe : Module(
                     else -> forwardDirection
                 }
 
-                val shouldStabilize = when (stabilize) {
+                // Premium code, do not touch it bites
+                var shouldStabilize = when (stabilize) {
                     StabilizationMode.NONE -> false
-                    StabilizationMode.WEAK -> player.age % 3 == 0
-                    StabilizationMode.NORMAL -> player.age % 2 == 0
-                    StabilizationMode.STRONG -> true
+                    StabilizationMode.WEAK -> player.age % 4 == 0   // 1/4
+                    StabilizationMode.NORMAL -> player.age % 2 == 0 // 2/4
+                    StabilizationMode.STRONG -> player.age % 4 != 0 // 3/4
                 }
 
+                shouldStabilize = shouldStabilize && distSq > (targetDistance + 0.5).pow(2)
+
                 var strafe = strafeDirection.toDouble()
-                if (shouldStabilize && distSq > (targetDistance + 0.5).pow(2)) strafe = 0.0
+                if (shouldStabilize) strafe = 0.0
 
                 event.input.mergeFrom(
                     buildMovementInput(
