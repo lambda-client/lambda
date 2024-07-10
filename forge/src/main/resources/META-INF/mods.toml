@@ -15,7 +15,7 @@ displayTest = "IGNORE_ALL_VERSION"
 [[dependencies.${modId}]]
 modId = "forge"
 mandatory = true
-versionRange = "[${forgeVersion},)"
+versionRange = "[${forgeVersionMin},${forgeVersionMax}]"
 ordering = "NONE"
 side = "CLIENT"
 
@@ -29,6 +29,6 @@ side = "CLIENT"
 [[dependencies.${modId}]]
 modId = "kotlinforforge"
 mandatory = true
-versionRange = "[${kotlinForgeVersion},)"
+versionRange = "[${kotlinForgeVersionMin},${kotlinForgeVersionMax}]"
 ordering = "NONE"
 side = "CLIENT"

@@ -20,7 +20,7 @@ config = "lambda.mixins.common.json"
 modId = "neoforge"
 mandatory = true
 type = "required"
-versionRange = "[${neoVersion},)"
+versionRange = "[${neoVersionMin},${neoVersionMax}]"
 ordering = "NONE"
 side = "CLIENT"
 
@@ -36,6 +36,6 @@ side = "CLIENT"
 modId = "kotlinforforge"
 mandatory = true
 type = "required"
-versionRange = "[${kotlinForgeVersion},)"
+versionRange = "[${kotlinForgeVersionMin},${kotlinForgeVersionMax}]"
 ordering = "NONE"
 side = "CLIENT"
