@@ -4,23 +4,28 @@ critical:
 
 # Add/remove 'bug' label if issue contains the word 'bug'
 bug:
-  - '(bug|error|issue|problem|crash|fix|broken|cannot|unable|wrong|fail|fault|flaw|defect)'
+  - '(bug|error|issue|problem|crash|fix|broken|cannot|unable|wrong|fail|fault|flaw|defect|does not|not|prevent|prevents|unexpected|)'
 
 # Add the triage label to all issues/PRs
 triage:
   - '/.*/'
 
 fabric:
+  - 'all'
   - '\b([Ff][Aa][Bb][Rr][Ii][Cc])\b'
 
 forge:
+  - 'all'
   - '\b([Ff][Oo][Rr][Gg][Ee])\b'
 
 neoforge:
+  - 'all'
   - '\b([Nn][Ee][Oo][Ff][Oo][Rr][Gg][Ee])\b'
 
 "1.20":
+  - 'any'
   - '1\.20(\.\d+|\.x)?'
 
 "1.21":
+  - 'any'
   - '1\.21(\.\d+|\.x)?'
