@@ -14,6 +14,7 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.MathUtils.lerp
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import net.minecraft.block.BlockState
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.enchantment.Enchantments
@@ -21,10 +22,12 @@ import net.minecraft.entity.effect.StatusEffectUtil
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.fluid.WaterFluid
 import net.minecraft.item.ItemStack
+import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.registry.tag.FluidTags
+import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
@@ -43,7 +46,7 @@ object PacketMine : Module(
     private val breakThreshold by setting("Break Threshold", 0.7f, 0.0f..1.0f, 0.1f, "Breaks the selected block once the block breaking progress passes this value, 1 being 100%", visibility = { page == Page.General})
     private val range by setting("Range", 6, 3..6, 1, "The maximum distance between the players eye position and the center of the block", visibility = { page == Page.General })
     private val pauseWhileUsingItems by setting("Pause While Using Items", true, "Will prevent breaking while using items like eating or aiming a bow", visibility = { page == Page.General })
-    private val autoSwap by setting("Auto Swap", SwapMode.Silent, "Changes the swap method used. For example, silent swaps once at the beginning, and once at the end without updating client side, and constant swaps for the whole break", visibility = { page == Page.General})
+    private val autoSwap by setting("Auto Swap", SwapMode.StandardSilent, "Changes the swap method used. For example, silent swaps once at the beginning, and once at the end without updating client side, and constant swaps for the whole break", visibility = { page == Page.General})
     private val rotate by setting("Rotation Mode", RotationMode.None, "Changes the method used to make the player look at the current mining block", visibility = { page == Page.General })
     private val rotateReleaseDelay by setting("Rotation Release Delay", 2, 0..50, 1, "The number of ticks to wait before releasing the rotation", visibility = { page == Page.General && rotate.isEnabled() })
     private val packets by setting("Packets", PacketMode.Vanilla, "Chooses different packets to send for each mode", visibility = { page == Page.General })
@@ -94,19 +97,29 @@ object PacketMine : Module(
     }
 
     private enum class SwapMode {
-        None, Silent, Constant, StartAndEnd;
+        None, StandardSilent, NCPSilent, Constant, StartAndEnd;
 
         fun isEnabled() =
             this != None
 
         fun isSilent() =
-            this == Silent
+            this == StandardSilent || this == NCPSilent
+
+        fun isStandardSilent() =
+            this == StandardSilent
+
+        fun isNCPSilent() =
+            this == NCPSilent
 
         fun isConstant() =
             this == Constant
 
         fun isStartAndEnd() =
             this == StartAndEnd
+    }
+
+    private enum class ProgressStage {
+        StartPre, StartPost, PreTick, During, EndPre, EndPost, PacketReceiveBreak, TimedOut
     }
 
     private enum class RenderMode {
@@ -144,6 +157,18 @@ object PacketMine : Module(
     //ToDo: Make silent swap work on cc
 
     init {
+        listener<InteractionEvent.BlockAttack.Pre> {
+            it.cancel()
+            player.swingHand(Hand.MAIN_HAND)
+
+            if (shouldBePlacedInBlockQueue(it.pos)) {
+                blockQueue.add(it.pos)
+                return@listener
+            }
+
+            startBreaking(it.pos)
+        }
+
         listener<TickEvent.Pre> {
             if (rotated && waitingToReleaseRotation) {
                 if (releaseRotateDelayCounter <= 0) {
@@ -162,35 +187,16 @@ object PacketMine : Module(
                 if (activeState != state) state = activeState
 
                 val empty = isStateEmpty(activeState)
-                if (!empty) {
-                    lastNonEmptyState = state
-                }
+                if (!empty) lastNonEmptyState = state
+
                 lastNonEmptyState?.let {
                     lastValidBestTool = getBestTool(it, pos)
                 }
 
-                if (rotate.isEnabled() && rotate.isStartAndEnd()) checkReleaseRotation()
+                runHandlers(ProgressStage.PreTick, pos, lastValidBestTool)
 
                 if ((pauseWhileUsingItems && player.isUsingItem) || pauseForRotation)
                     return@listener
-
-                if (swapped) {
-                    when {
-                        player.inventory.selectedSlot != swappedSlot -> {
-                            cancelSwap()
-                        }
-
-                        autoSwap.isConstant() -> {
-                            if (swappedSlot != lastValidBestTool) {
-                                swapTo(lastValidBestTool)
-                            }
-                        }
-
-                        autoSwap.isStartAndEnd() -> {
-                            swapToReturnSlot()
-                        }
-                    }
-                }
 
                 currentBreakDelta = if (autoSwap.isEnabled()) {
                     calcBreakDelta(state, pos, lastValidBestTool)
@@ -215,18 +221,7 @@ object PacketMine : Module(
 
                         timeCompleted = System.currentTimeMillis()
 
-                        if (rotate.isEnabled() && !rotated) rotateTo(pos)
-
-                        if (autoSwap.isEnabled()) {
-                            if (autoSwap.isConstant() || autoSwap.isStartAndEnd()) {
-                                if (!swapped) {
-                                    swapTo(lastValidBestTool)
-                                }
-                                packetStopBreak(pos)
-                            } else {
-                                swapStopBreak(pos, lastValidBestTool)
-                            }
-                        } else {
+                        runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, lastValidBestTool) {
                             packetStopBreak(pos)
                         }
 
@@ -235,22 +230,12 @@ object PacketMine : Module(
                             return@listener
                         }
 
-                        interaction.breakBlock(pos)
-
-                        onBlockBreak()
+                        onBlockBreak(false)
                     }
 
                     BreakState.ReBreaking -> {
-                        if (breakNextQueueBlock()) return@listener
-
-                        if (!reBreak || isOutOfRange()) {
-                            nullifyCurrentBreakingBlock()
-                            return@listener
-                        }
-
                         if (miningProgress < breakThreshold) {
-                            if (autoSwap.isConstant()) swapTo(lastValidBestTool)
-                            if (rotate.isConstant()) rotateTo(pos)
+                            runHandlers(ProgressStage.During, pos, lastValidBestTool)
                             breakState = BreakState.Breaking
                             return@listener
                         }
@@ -259,33 +244,17 @@ object PacketMine : Module(
                             return@listener
                         }
 
-                        if (rotate.isEnabled() && !rotated) rotateTo(pos)
-
-                        if (autoSwap.isEnabled()) {
-                            if (autoSwap.isConstant() || autoSwap.isStartAndEnd()) {
-                                if (!swapped) {
-                                    swapTo(lastValidBestTool)
-                                }
-                                packetStopBreak(pos)
-                            } else  {
-                                swapStopBreak(pos, lastValidBestTool)
-                            }
-                        } else {
+                        runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, lastValidBestTool, empty) {
                             packetStopBreak(pos)
                         }
 
-                        if (!validateBreak || empty) {
-                            if (swapped) swapToReturnSlot()
-                            checkReleaseRotation()
-                        }
-
-                        checkClientBreak(false, pos)
+                        onBlockBreak(false)
                     }
 
                     BreakState.AwaitingResponse -> {
                         if (!validateBreak) {
-                            checkClientBreak(false, pos)
-                            nullifyCurrentBreakingBlock()
+                            runHandlers(ProgressStage.EndPost, pos, lastValidBestTool)
+                            onBlockBreak(false)
                             return@listener
                         }
 
@@ -293,22 +262,12 @@ object PacketMine : Module(
 
                         if (breakNextQueueBlock()) return@listener
 
+                        runHandlers(ProgressStage.TimedOut, pos, lastValidBestTool)
+
                         nullifyCurrentBreakingBlock()
                     }
                 }
             }
-        }
-
-        listener<InteractionEvent.BlockAttack.Pre> {
-            it.cancel()
-            player.swingHand(Hand.MAIN_HAND)
-
-            if (shouldBePlacedInBlockQueue(it.pos)) {
-                blockQueue.add(it.pos)
-                return@listener
-            }
-
-            startBreaking(it.pos)
         }
 
         listener<WorldEvent.BlockUpdate> {
@@ -317,17 +276,9 @@ object PacketMine : Module(
                     return@listener
                 }
 
-                checkClientBreak(true, pos)
+                runHandlers(ProgressStage.PacketReceiveBreak, pos, lastValidBestTool)
 
-                if (breakState == BreakState.ReBreaking) {
-                    if (swapped) {
-                        swapToReturnSlot()
-                    }
-                    checkReleaseRotation()
-                    return@listener
-                }
-
-                onBlockBreak()
+                onBlockBreak(true)
             }
         }
 
@@ -373,58 +324,130 @@ object PacketMine : Module(
 
         val state = world.getBlockState(pos)
         val bestTool = getBestTool(state, pos)
-
         lastNonEmptyState = state
 
         val breakDelta = calcBreakDelta(world.getBlockState(pos), pos, bestTool)
+        val instaBreak = breakDelta >= breakThreshold
 
-        if (rotate.isEnabled()) rotateTo(pos)
+        runBetweenHandlers(ProgressStage.StartPre, ProgressStage.StartPost, pos, bestTool, instaBreak) {
+            packetStartBreak(pos)
 
-        if (autoSwap.isEnabled()) {
-            if (autoSwap.isConstant() || autoSwap.isStartAndEnd()) {
-                swapTo(bestTool)
-            } else {
-                silentSwapTo(bestTool)
+            if (!instaBreak) {
+                currentMiningBlock = BreakingContext(pos, state, BreakState.Breaking, breakDelta, bestTool)
+                return@runBetweenHandlers
             }
-        }
 
-        startBreak(pos)
-        if (packets != PacketMode.Vanilla) {
-            abortBreak(pos)
-        }
-        if (packets == PacketMode.Grim) {
             packetStopBreak(pos)
-        }
 
-        if (breakDelta < breakThreshold) {
-            if (!swapped) silentSwapTo(player.inventory.selectedSlot)
-            currentMiningBlock = BreakingContext(pos, state, BreakState.Breaking, breakDelta, bestTool)
-            return
-        }
-
-        packetStopBreak(pos)
-        if (!swapped) silentSwapTo(player.inventory.selectedSlot)
-
-        currentMiningBlock = if (reBreak) {
-            BreakingContext(pos, state, BreakState.ReBreaking, breakDelta, bestTool)
-        } else {
-            if (!validateBreak) {
-                null
+            currentMiningBlock = if (reBreak) {
+                BreakingContext(pos, state, BreakState.ReBreaking, breakDelta, bestTool)
             } else {
-                BreakingContext(pos, state, BreakState.AwaitingResponse, breakDelta, bestTool)
+                if (!validateBreak) {
+                    null
+                } else {
+                    BreakingContext(pos, state, BreakState.AwaitingResponse, breakDelta, bestTool)
+                }
             }
-        }
-
-        currentMiningBlock?.apply {
-            timeCompleted = System.currentTimeMillis()
-
-            if (!validateBreak) {
-                if (swapped) swapToReturnSlot()
-                checkReleaseRotation()
+            currentMiningBlock?.apply {
+                timeCompleted = System.currentTimeMillis()
             }
-        }
 
-        checkClientBreak(false, pos)
+            checkClientSideBreak(false, pos)
+        }
+    }
+
+    private fun SafeContext.runBetweenHandlers(
+        preStage: ProgressStage,
+        postStage: ProgressStage,
+        pos: BlockPos,
+        bestTool: Int,
+        empty: Boolean = false,
+        instaBroken: Boolean = false,
+        task: Runnable
+    ) {
+        runHandlers(preStage, pos, bestTool, empty, instaBroken)
+        task.run()
+        runHandlers(postStage, pos, bestTool, empty, instaBroken)
+    }
+
+    private fun SafeContext.runHandlers(
+        progressStage: ProgressStage,
+        pos: BlockPos,
+        bestTool: Int,
+        empty: Boolean = false,
+        instaBroken: Boolean = false
+    ) {
+        handleRotations(progressStage, pos, empty, instaBroken)
+        handleAutoSwap(progressStage, bestTool, empty, instaBroken)
+    }
+
+    private fun handleRotations(progressStage: ProgressStage, pos: BlockPos, empty: Boolean = false, instaBroken: Boolean = false) {
+        when (progressStage) {
+            ProgressStage.PreTick -> if (rotated && rotate.isStartAndEnd()) checkReleaseRotation()
+
+            ProgressStage.StartPre,
+            ProgressStage.EndPre -> if (rotate.isEnabled() && !rotated) rotateTo(pos)
+
+            ProgressStage.StartPost -> if (instaBroken && !validateBreak) checkReleaseRotation()
+
+            ProgressStage.EndPost -> if (!validateBreak || empty) checkReleaseRotation()
+
+            ProgressStage.During -> if (rotate.isConstant()) rotateTo(pos)
+
+            ProgressStage.PacketReceiveBreak -> if (rotated) checkReleaseRotation()
+
+            ProgressStage.TimedOut -> checkReleaseRotation()
+        }
+    }
+
+    private fun SafeContext.handleAutoSwap(progressStage: ProgressStage, bestTool: Int, empty: Boolean = false, instaBroken: Boolean = false) {
+        if (!autoSwap.isEnabled()) return
+
+        when (progressStage) {
+            ProgressStage.PreTick -> {
+                if (!swapped || autoSwap.isSilent()) return
+                when {
+                    player.inventory.selectedSlot != swappedSlot -> cancelSwap()
+
+                    autoSwap.isConstant() -> {
+                        if (swappedSlot != bestTool) swapTo(bestTool)
+                    }
+
+                    autoSwap.isStartAndEnd() -> returnToOriginalSlot()
+                }
+            }
+
+            ProgressStage.StartPre,
+            ProgressStage.EndPre -> {
+                if (!swapped) swapTo(bestTool)
+            }
+
+            ProgressStage.StartPost -> {
+                if (!swapped) return
+
+                if ((instaBroken && !validateBreak)
+                    || autoSwap.isSilent()
+                    ) {
+                    returnToOriginalSlot()
+                }
+            }
+
+            ProgressStage.EndPost -> {
+                if (!swapped) return
+
+                if ((!validateBreak || empty)
+                    || autoSwap.isSilent()
+                    ) {
+                    returnToOriginalSlot()
+                }
+            }
+
+            ProgressStage.During -> if (autoSwap.isConstant()) swapTo(bestTool)
+
+            ProgressStage.PacketReceiveBreak -> if (swapped && !autoSwap.isSilent()) returnToOriginalSlot()
+
+            ProgressStage.TimedOut -> if (swapped) returnToOriginalSlot()
+        }
     }
 
     private fun rotateTo(pos: BlockPos) {
@@ -435,7 +458,7 @@ object PacketMine : Module(
     }
 
     private fun checkReleaseRotation() {
-        if (!rotated || waitingToReleaseRotation) return
+        if (waitingToReleaseRotation || !rotated) return
 
         if (releaseRotateDelayCounter <= 0) {
             rotationPosition = null
@@ -445,30 +468,61 @@ object PacketMine : Module(
         }
     }
 
-    private fun SafeContext.swapToReturnSlot() {
+    private fun SafeContext.swapTo(slot: Int) {
+        if (returnSlot == -1) {
+            returnSlot = player.inventory.selectedSlot
+        }
+        if (autoSwap.isSilent()) {
+            silentSwapTo(slot, false)
+        } else {
+            player.inventory.selectedSlot = slot
+            connection.sendPacket(UpdateSelectedSlotC2SPacket(slot))
+        }
+        swappedSlot = slot
+        swapped = true
+    }
+
+    private fun SafeContext.silentSwapTo(slot: Int, returningToOriginalSlot: Boolean) {
+        if (autoSwap.isStandardSilent()) {
+            connection.sendPacket(UpdateSelectedSlotC2SPacket(slot))
+        } else {
+            //ToDo: Make this work
+            val screenHandler = player.playerScreenHandler
+            val stack = if (returningToOriginalSlot) {
+                player.mainHandStack
+            } else {
+                player.inventory.getStack(slot)
+            }
+            connection.sendPacket(ClickSlotC2SPacket(
+                screenHandler.syncId,
+                screenHandler.revision,
+                player.inventory.selectedSlot,
+                0,
+                SlotActionType.SWAP,
+                stack,
+                Int2ObjectOpenHashMap())
+            )
+        }
+    }
+
+    private fun SafeContext.returnToOriginalSlot() {
         if (!swapped || returnSlot == -1) return
 
-        player.inventory.selectedSlot = returnSlot
-        connection.sendPacket(UpdateSelectedSlotC2SPacket(returnSlot))
+        if (!autoSwap.isSilent()) {
+            player.inventory.selectedSlot = returnSlot
+            connection.sendPacket(UpdateSelectedSlotC2SPacket(returnSlot))
+        } else {
+            if (autoSwap.isStandardSilent()) {
+                connection.sendPacket(UpdateSelectedSlotC2SPacket(returnSlot))
+            } else {
+                silentSwapTo(swappedSlot, true)
+            }
+        }
         returnSlot = -1
         swappedSlot = -1
         swapped = false
 
         return
-    }
-
-    private fun SafeContext.swapTo(slot: Int) {
-        if (returnSlot == -1) {
-            returnSlot = player.inventory.selectedSlot
-        }
-        player.inventory.selectedSlot = slot
-        connection.sendPacket(UpdateSelectedSlotC2SPacket(slot))
-        swappedSlot = slot
-        swapped = true
-    }
-
-    private fun SafeContext.silentSwapTo(slot: Int) {
-        connection.sendPacket(UpdateSelectedSlotC2SPacket(slot))
     }
 
     private fun cancelSwap() {
@@ -483,14 +537,16 @@ object PacketMine : Module(
     private fun SafeContext.isOutOfRange(vec: Vec3d) =
         player.eyePos.distanceTo(vec) > range
 
-    private fun SafeContext.onBlockBreak() {
+    private fun SafeContext.onBlockBreak(packetReceiveBreak: Boolean) {
         currentMiningBlock?.apply {
+            checkClientSideBreak(packetReceiveBreak, pos)
+
             if (breakNextQueueBlock()) return
 
             if (reBreak && !isOutOfRange()) {
-                if (swapped) swapToReturnSlot()
-                checkReleaseRotation()
-                breakState = BreakState.ReBreaking
+                if (breakState != BreakState.ReBreaking) {
+                    breakState = BreakState.ReBreaking
+                }
                 return
             }
 
@@ -502,9 +558,6 @@ object PacketMine : Module(
         currentMiningBlock?.apply {
             if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, 0)
         }
-
-        if (swapped) swapToReturnSlot()
-        checkReleaseRotation()
 
         currentMiningBlock = null
     }
@@ -523,13 +576,12 @@ object PacketMine : Module(
                         && !state.fluidState.isEmpty
                 )
 
-    private fun SafeContext.checkClientBreak(packetReceiveBreak: Boolean, pos: BlockPos) {
-        if (packetReceiveBreak == validateBreak) {
-            interaction.breakBlock(pos)
-        }
+    private fun SafeContext.checkClientSideBreak(packetReceiveBreak: Boolean, pos: BlockPos) {
+        if (packetReceiveBreak == validateBreak) interaction.breakBlock(pos)
     }
 
-    private fun shouldBePlacedInBlockQueue(pos: BlockPos): Boolean = queueBlocks
+    private fun shouldBePlacedInBlockQueue(pos: BlockPos): Boolean =
+        queueBlocks
             && currentMiningBlock != null
             && currentMiningBlock?.breakState != BreakState.ReBreaking
             && currentMiningBlock?.pos != pos
@@ -565,39 +617,6 @@ object PacketMine : Module(
             blockQueue.lastOrNull()
         } else {
             blockQueue.firstOrNull()
-        }
-    }
-
-    private fun getLerpBox(box: Box, factor: Float): Box {
-        val boxCenter = Box(box.center, box.center)
-        when (renderMode) {
-            RenderMode.Out -> {
-                return lerp(boxCenter, box, factor.toDouble())
-            }
-
-            RenderMode.In -> {
-                return lerp(box, boxCenter, factor.toDouble())
-            }
-
-            RenderMode.InOut -> {
-                return if (factor >= 0.5f) {
-                    lerp(boxCenter, box, (factor.toDouble() - 0.5) * 2)
-                } else {
-                    lerp(box, boxCenter, factor.toDouble() * 2)
-                }
-            }
-
-            RenderMode.OutIn -> {
-                return if (factor >= 0.5f) {
-                    lerp(box, boxCenter, (factor.toDouble() - 0.5) * 2)
-                } else {
-                    lerp(boxCenter, box, factor.toDouble() * 2)
-                }
-            }
-
-            else -> {
-                return box
-            }
         }
     }
 
@@ -662,34 +681,71 @@ object PacketMine : Module(
                 }
             }
         }
+
+        private fun getLerpBox(box: Box, factor: Float): Box {
+            val boxCenter = Box(box.center, box.center)
+            when (renderMode) {
+                RenderMode.Out -> {
+                    return lerp(boxCenter, box, factor.toDouble())
+                }
+
+                RenderMode.In -> {
+                    return lerp(box, boxCenter, factor.toDouble())
+                }
+
+                RenderMode.InOut -> {
+                    return if (factor >= 0.5f) {
+                        lerp(boxCenter, box, (factor.toDouble() - 0.5) * 2)
+                    } else {
+                        lerp(box, boxCenter, factor.toDouble() * 2)
+                    }
+                }
+
+                RenderMode.OutIn -> {
+                    return if (factor >= 0.5f) {
+                        lerp(box, boxCenter, (factor.toDouble() - 0.5) * 2)
+                    } else {
+                        lerp(boxCenter, box, factor.toDouble() * 2)
+                    }
+                }
+
+                else -> {
+                    return box
+                }
+            }
+        }
     }
 
-    private fun SafeContext.swapStopBreak(pos: BlockPos, toolSlot: Int) {
-        connection.sendPacket(UpdateSelectedSlotC2SPacket(toolSlot))
-        packetStopBreak(pos)
-        connection.sendPacket(UpdateSelectedSlotC2SPacket(player.inventory.selectedSlot))
+    private fun SafeContext.packetStartBreak(pos: BlockPos) {
+        startBreak(pos)
+        if (packets != PacketMode.Vanilla) {
+            abortBreak(pos)
+        }
+        if (packets == PacketMode.Grim) {
+            packetStopBreak(pos)
+        }
     }
 
     private fun SafeContext.packetStopBreak(pos: BlockPos) {
         stopBreak(pos)
-        //ToDo: Try and improve these packets
+        //ToDo: maybe improve these packets? Idk what the best ones are for ncp
         if (packets == PacketMode.NCP) {
             abortBreak(pos)
             startBreak(pos)
             stopBreak(pos)
         }
     }
-    //ToDo: Get the correct sequence number for the packets
+
     private fun SafeContext.startBreak(pos: BlockPos) {
-        connection.sendPacket(PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, pos, Direction.UP, 0))
+        connection.sendPacket(PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, pos, Direction.UP))
     }
 
     private fun SafeContext.stopBreak(pos: BlockPos) {
-        connection.sendPacket(PlayerActionC2SPacket(Action.STOP_DESTROY_BLOCK, pos, Direction.UP, 0))
+        connection.sendPacket(PlayerActionC2SPacket(Action.STOP_DESTROY_BLOCK, pos, Direction.UP))
     }
 
     private fun SafeContext.abortBreak(pos: BlockPos) {
-        connection.sendPacket(PlayerActionC2SPacket(Action.ABORT_DESTROY_BLOCK, pos, Direction.UP, 0))
+        connection.sendPacket(PlayerActionC2SPacket(Action.ABORT_DESTROY_BLOCK, pos, Direction.UP))
     }
 
     //Todo: Replace with task system
