@@ -3,6 +3,7 @@ package com.lambda.graphics.buffer.vao
 import com.lambda.graphics.buffer.vao.vertex.BufferUsage
 import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.buffer.vao.vertex.VertexMode
+import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Memory.address
 import com.lambda.graphics.gl.Memory.byteBuffer
 import com.lambda.graphics.gl.Memory.capacity
@@ -89,16 +90,20 @@ class VAO(
         return this
     }
 
-    override fun vec3m(x: Double, y: Double, z: Double, matrix4f: Matrix4f): IRenderContext {
-        // ToDo: optimize at runtime
-        val vec = Vector4d(x, y, z, 1.0).apply(Matrix4d(matrix4f)::transform)
-        verticesPosition += vec3(verticesPosition, vec.x, vec.y, vec.z)
+    override fun vec3m(x: Double, y: Double, z: Double): IRenderContext {
+        Matrices.vertexTransformer?.let { mat ->
+            val vec = Vector4d(x, y, z, 1.0).apply(mat::transform)
+            vec3(vec.x, vec.y, vec.z)
+        } ?: vec3(x, y, z)
+
         return this
     }
 
-    override fun vec2m(x: Double, y: Double, matrix4f: Matrix4f): IRenderContext {
-        val vec = Vector4d(x, y, 0.0, 1.0).apply(Matrix4d(matrix4f)::transform)
-        verticesPosition += vec2(verticesPosition, vec.x, vec.y)
+    override fun vec2m(x: Double, y: Double): IRenderContext {
+        Matrices.vertexTransformer?.let { mat ->
+            val vec = Vector4d(x, y, 0.0, 1.0).apply(mat::transform)
+            vec2(vec.x, vec.y)
+        } ?: vec2(x, y)
         return this
     }
 

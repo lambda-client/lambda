@@ -41,7 +41,7 @@ object TargetStrafe : Module(
         override val rotationMode = RotationMode.SYNC
     }
 
-    @JvmStatic val isActive get() = targetEntity != null
+    @JvmStatic val isActive get() = isEnabled && targetEntity != null
 
     init {
         listener<TickEvent.Post> {

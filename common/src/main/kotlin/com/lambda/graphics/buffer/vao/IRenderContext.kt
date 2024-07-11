@@ -1,15 +1,13 @@
 package com.lambda.graphics.buffer.vao
 
-import com.lambda.graphics.gl.Matrices
-import org.joml.Matrix4f
 import java.awt.Color
 
 interface IRenderContext {
     fun vec3(x: Double, y: Double, z: Double): IRenderContext
     fun vec2(x: Double, y: Double): IRenderContext
 
-    fun vec3m(x: Double, y: Double, z: Double, matrix4f: Matrix4f = Matrices.peek()): IRenderContext
-    fun vec2m(x: Double, y: Double, matrix4f: Matrix4f = Matrices.peek()): IRenderContext
+    fun vec3m(x: Double, y: Double, z: Double): IRenderContext
+    fun vec2m(x: Double, y: Double): IRenderContext
 
     fun float(v: Double): IRenderContext
     fun color(color: Color): IRenderContext

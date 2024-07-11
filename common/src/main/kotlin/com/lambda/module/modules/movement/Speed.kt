@@ -123,18 +123,6 @@ object Speed : Module(
             event.context = RotationContext(rotation, rotationConfig)
         }
 
-        listener<MovementEvent.InputUpdate> { event ->
-            if (mode != Mode.GRIM_STRAFE) return@listener
-            if (!shouldWork() || !isInputting) return@listener
-            if (player.input.handledByBaritone || TargetStrafe.isActive) return@listener
-
-            event.input.mergeFrom(
-                buildMovementInput(
-                    1.0, 0.0, event.input.jumping, event.input.sneaking
-                )
-            )
-        }
-
         onEnable {
             reset()
         }

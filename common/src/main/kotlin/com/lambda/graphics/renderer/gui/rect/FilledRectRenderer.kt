@@ -50,10 +50,10 @@ class FilledRectRenderer : AbstractRectRenderer(
         grow(4)
 
         putQuad(
-            vec2(p1.x, p1.y).vec2(0.0, 0.0).vec2(size.x, size.y).float(round).float(s).color(leftTop).end(),
-            vec2(p1.x, p2.y).vec2(0.0, 1.0).vec2(size.x, size.y).float(round).float(s).color(leftBottom).end(),
-            vec2(p2.x, p2.y).vec2(1.0, 1.0).vec2(size.x, size.y).float(round).float(s).color(rightBottom).end(),
-            vec2(p2.x, p1.y).vec2(1.0, 0.0).vec2(size.x, size.y).float(round).float(s).color(rightTop).end()
+            vec2m(p1.x, p1.y).vec2(0.0, 0.0).vec2(size.x, size.y).float(round).float(s).color(leftTop).end(),
+            vec2m(p1.x, p2.y).vec2(0.0, 1.0).vec2(size.x, size.y).float(round).float(s).color(leftBottom).end(),
+            vec2m(p2.x, p2.y).vec2(1.0, 1.0).vec2(size.x, size.y).float(round).float(s).color(rightBottom).end(),
+            vec2m(p2.x, p1.y).vec2(1.0, 0.0).vec2(size.x, size.y).float(round).float(s).color(rightTop).end()
         )
     }
 

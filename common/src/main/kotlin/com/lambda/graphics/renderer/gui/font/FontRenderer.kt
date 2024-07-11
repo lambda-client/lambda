@@ -33,10 +33,10 @@ class FontRenderer(
         iterateText(text, scale, shadow, color) { char, pos1, pos2, color ->
             grow(4)
             putQuad(
-                vec2(pos1.x + position.x, pos1.y + position.y).vec2(char.uv1.x, char.uv1.y).color(color).end(),
-                vec2(pos1.x + position.x, pos2.y + position.y).vec2(char.uv1.x, char.uv2.y).color(color).end(),
-                vec2(pos2.x + position.x, pos2.y + position.y).vec2(char.uv2.x, char.uv2.y).color(color).end(),
-                vec2(pos2.x + position.x, pos1.y + position.y).vec2(char.uv2.x, char.uv1.y).color(color).end()
+                vec3m(pos1.x + position.x, pos1.y + position.y, 0.0).vec2(char.uv1.x, char.uv1.y).color(color).end(),
+                vec3m(pos1.x + position.x, pos2.y + position.y, 0.0).vec2(char.uv1.x, char.uv2.y).color(color).end(),
+                vec3m(pos2.x + position.x, pos2.y + position.y, 0.0).vec2(char.uv2.x, char.uv2.y).color(color).end(),
+                vec3m(pos2.x + position.x, pos1.y + position.y, 0.0).vec2(char.uv2.x, char.uv1.y).color(color).end()
             )
         }
     }

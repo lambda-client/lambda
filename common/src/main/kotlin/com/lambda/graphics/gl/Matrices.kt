@@ -1,10 +1,15 @@
 package com.lambda.graphics.gl
 
+import com.lambda.Lambda.mc
+import net.minecraft.util.math.Vec3d
+import org.joml.Matrix4d
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 
 object Matrices {
     private val stack = ArrayDeque<Matrix4f>(1)
+
+    var vertexTransformer: Matrix4d? = null
 
     fun translate(x: Double, y: Double, z: Double) {
         translate(x.toFloat(), y.toFloat(), z.toFloat())
@@ -50,5 +55,19 @@ object Matrices {
     fun resetMatrix(entry: Matrix4f = Matrix4f()) {
         stack.clear()
         stack.add(entry)
+    }
+
+    fun withVertexTransform(matrix: Matrix4f, block: () -> Unit) {
+        vertexTransformer = Matrix4d(matrix)
+        block()
+        vertexTransformer = null
+    }
+
+    fun buildWorldProjection(pos: Vec3d, scale: Double = 1.0) = Matrix4f().apply {
+        val s = 0.025f * scale.toFloat()
+
+        translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+        rotate(mc.gameRenderer.camera.rotation)
+        scale(-s, -s, s)
     }
 }
