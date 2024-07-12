@@ -55,6 +55,7 @@ object PacketMine : Module(
 
     private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue }).apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
     private val reverseQueueOrder by setting("Reverse Queue Order", false, "Breaks the latest addition to the queue first", visibility = { page == Page.Queue && queueBlocks})
+    private val queueBreakDelay by setting("Break Delay", 0, 0..5, 1, "The delay (in ticks) after breaking a block to break the next queue block", visibility = { page == Page.Queue && queueBlocks })
 
     private val reBreak by setting("Re-Break", ReBreakMode.Standard, "The different modes for re-breaking the current block", visibility = { page == Page.ReBreak})
     private val reBreakDelay by setting("Re-Break Delay", 0, 0..10, 1, "The delay (in ticks) between attempting to re-breaking the block", visibility = { page == Page.ReBreak && (reBreak.isAutomatic() || reBreak.isFastAutomatic()) })
@@ -161,6 +162,8 @@ object PacketMine : Module(
     private var currentMiningBlock: BreakingContext? = null
     private var lastNonEmptyState: BlockState? = null
     private val blockQueue = ArrayDeque<BlockPos>()
+    private var queueBreakStartCounter = 0
+    private var awaitingQueueBreakStartPos: BlockPos? = null
     private var returnSlot = -1
     private var swappedSlot = -1
     private var swapped = false
@@ -217,6 +220,25 @@ object PacketMine : Module(
             }
             if (emptyReBreakDelayCounter > 0) {
                 emptyReBreakDelayCounter--
+            }
+            if (queueBreakStartCounter > 0) {
+                queueBreakStartCounter--
+            }
+
+            awaitingQueueBreakStartPos?.apply {
+                if (queueBreakStartCounter <= 0) {
+                    if (isOutOfRange(this.toCenterPos())) {
+                        if (breakNextQueueBlock()) return@listener
+                        awaitingQueueBreakStartPos = null
+                        return@apply
+                    }
+
+                    blockQueue.remove(this)
+                    startBreaking(this)
+                    awaitingQueueBreakStartPos = null
+                } else {
+                    return@listener
+                }
             }
 
             currentMiningBlock?.apply {
@@ -289,7 +311,7 @@ object PacketMine : Module(
                             reBreakDelayCounter = reBreakDelay
                         }
 
-                        if (isOutOfRange() || !reBreak.isEnabled()) {
+                        if (isOutOfRange(pos.toCenterPos()) || !reBreak.isEnabled()) {
                             nullifyCurrentBreakingBlock()
                             return@listener
                         }
@@ -585,9 +607,6 @@ object PacketMine : Module(
         swapped = false
     }
 
-    private fun SafeContext.isOutOfRange() =
-        player.eyePos.distanceTo(currentMiningBlock?.pos?.toCenterPos()) > range
-
     private fun SafeContext.isOutOfRange(vec: Vec3d) =
         player.eyePos.distanceTo(vec) > range
 
@@ -600,7 +619,7 @@ object PacketMine : Module(
             } else {
                 if (breakNextQueueBlock()) return
 
-                if (reBreak.isEnabled() && !isOutOfRange()) {
+                if (reBreak.isEnabled() && !isOutOfRange(pos.toCenterPos())) {
                     if (breakState != BreakState.ReBreaking) {
                         breakState = BreakState.ReBreaking
                     }
@@ -649,8 +668,13 @@ object PacketMine : Module(
         if (!queueBlocks) return false
 
         filterBlockQueueUntilNextPossible()?.apply {
-            blockQueue.remove(this)
-            startBreaking(this)
+            if (queueBreakDelay <= 0) {
+                blockQueue.remove(this)
+                startBreaking(this)
+            } else {
+                queueBreakStartCounter = queueBreakDelay
+                awaitingQueueBreakStartPos = this
+            }
             return true
         }
 
