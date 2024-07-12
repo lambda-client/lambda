@@ -56,10 +56,9 @@ object PacketMine : Module(
     private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue }).apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
     private val reverseQueueOrder by setting("Reverse Queue Order", false, "Breaks the latest addition to the queue first", visibility = { page == Page.Queue && queueBlocks})
 
-    private val reBreak by setting("Re-Break", true, "Automatically re-breaks the last mined block if it gets replaced", visibility = { page == Page.ReBreak})
-    private val reBreakDelay by setting("Re-Break Delay", 0, 0..10, 1, "The delay (in ticks) between attempting to re-breaking the block", visibility = { page == Page.ReBreak && reBreak })
-    private val fastReBreak by setting("Fast Re-Break", false, "Re-breaks blocks instantly however could potentially cause ghost blocks", visibility = { page == Page.ReBreak && reBreak })
-    private val emptyReBreakDelay by setting("Empty Re-Break Delay", 0, 0..10, 1, "The delay (in ticks) between attempting to re-break the block if the block is currently empty", visibility = { page == Page.ReBreak && reBreak && fastReBreak})
+    private val reBreak by setting("Re-Break", ReBreakMode.Standard, "The different modes for re-breaking the current block", visibility = { page == Page.ReBreak})
+    private val reBreakDelay by setting("Re-Break Delay", 0, 0..10, 1, "The delay (in ticks) between attempting to re-breaking the block", visibility = { page == Page.ReBreak && (reBreak.isAutomatic() || reBreak.isFastAutomatic()) })
+    private val emptyReBreakDelay by setting("Empty Re-Break Delay", 0, 0..10, 1, "The delay (in ticks) between attempting to re-break the block if the block is currently empty", visibility = { page == Page.ReBreak && reBreak.isFastAutomatic()})
 
 
     private val breakingAnimation by setting("Breaking Animation", false, "Renders the block breaking animation like vanilla would to show progress", visibility = { page == Page.Render })
@@ -120,12 +119,28 @@ object PacketMine : Module(
             this == StartAndEnd
     }
 
+    private enum class ReBreakMode {
+        None, Standard, Automatic, FastAutomatic;
+
+        fun isEnabled() =
+            this != None
+
+        fun isStandard() =
+            this == Standard
+
+        fun isAutomatic() =
+            this == Automatic
+
+        fun isFastAutomatic() =
+            this == FastAutomatic
+    }
+
     private enum class ProgressStage {
         StartPre, StartPost, PreTick, During, EndPre, EndPost, PacketReceiveBreak, TimedOut
     }
 
     private enum class RenderMode {
-        Out, In, InOut, OutIn, Static, None;
+        None, Out, In, InOut, OutIn, Static;
 
         fun isEnabled() =
             this != None
@@ -162,6 +177,23 @@ object PacketMine : Module(
         listener<InteractionEvent.BlockAttack.Pre> {
             it.cancel()
             player.swingHand(Hand.MAIN_HAND)
+
+            currentMiningBlock?.apply {
+                if (it.pos == pos && breakState == BreakState.ReBreaking && reBreak.isStandard()) {
+                    if (!reBreak.isEnabled()) {
+                        nullifyCurrentBreakingBlock()
+                        return@listener
+                    }
+
+                    runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, lastValidBestTool) {
+                        packetStopBreak(pos)
+                    }
+
+                    onBlockBreak(false)
+
+                    return@listener
+                }
+            }
 
             if (shouldBePlacedInBlockQueue(it.pos)) {
                 blockQueue.add(it.pos)
@@ -248,6 +280,8 @@ object PacketMine : Module(
                             return@listener
                         }
 
+                        if (reBreak.isStandard()) return@listener
+
                         if (empty) {
                             if (emptyReBreakDelayCounter > 0) return@listener
                             emptyReBreakDelayCounter = emptyReBreakDelay
@@ -256,7 +290,12 @@ object PacketMine : Module(
                             reBreakDelayCounter = reBreakDelay
                         }
 
-                        if (!fastReBreak && empty) {
+                        if (isOutOfRange() || !reBreak.isEnabled()) {
+                            nullifyCurrentBreakingBlock()
+                            return@listener
+                        }
+
+                        if (!reBreak.isFastAutomatic() && empty) {
                             return@listener
                         }
 
@@ -355,7 +394,7 @@ object PacketMine : Module(
 
             packetStopBreak(pos)
 
-            currentMiningBlock = if (reBreak) {
+            currentMiningBlock = if (reBreak.isEnabled()) {
                 BreakingContext(pos, state, BreakState.ReBreaking, breakDelta, bestTool)
             } else {
                 if (!validateBreak) {
@@ -557,13 +596,17 @@ object PacketMine : Module(
         currentMiningBlock?.apply {
             checkClientSideBreak(packetReceiveBreak, pos)
 
-            if (breakNextQueueBlock()) return
+            if (breakState == BreakState.ReBreaking) {
+                if (reBreak.isEnabled()) return
+            } else {
+                if (breakNextQueueBlock()) return
 
-            if (reBreak && !isOutOfRange()) {
-                if (breakState != BreakState.ReBreaking) {
-                    breakState = BreakState.ReBreaking
+                if (reBreak.isEnabled() && !isOutOfRange()) {
+                    if (breakState != BreakState.ReBreaking) {
+                        breakState = BreakState.ReBreaking
+                    }
+                    return
                 }
-                return
             }
 
             nullifyCurrentBreakingBlock()
