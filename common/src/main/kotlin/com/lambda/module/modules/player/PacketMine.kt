@@ -57,7 +57,9 @@ object PacketMine : Module(
     private val reverseQueueOrder by setting("Reverse Queue Order", false, "Breaks the latest addition to the queue first", visibility = { page == Page.Queue && queueBlocks})
 
     private val reBreak by setting("Re-Break", true, "Automatically re-breaks the last mined block if it gets replaced", visibility = { page == Page.ReBreak})
+    private val reBreakDelay by setting("Re-Break Delay", 0, 0..10, 1, "The delay (in ticks) between attempting to re-breaking the block", visibility = { page == Page.ReBreak && reBreak })
     private val fastReBreak by setting("Fast Re-Break", false, "Re-breaks blocks instantly however could potentially cause ghost blocks", visibility = { page == Page.ReBreak && reBreak })
+    private val emptyReBreakDelay by setting("Empty Re-Break Delay", 0, 0..10, 1, "The delay (in ticks) between attempting to re-break the block if the block is currently empty", visibility = { page == Page.ReBreak && reBreak && fastReBreak})
 
 
     private val breakingAnimation by setting("Breaking Animation", false, "Renders the block breaking animation like vanilla would to show progress", visibility = { page == Page.Render })
@@ -151,6 +153,8 @@ object PacketMine : Module(
     private var rotationPosition: BlockPos? = null
     private var pauseForRotation = false
     private var releaseRotateDelayCounter = 0
+    private var reBreakDelayCounter = 0
+    private var emptyReBreakDelayCounter = 0
     private var rotated = false
     private var waitingToReleaseRotation = false
 
@@ -169,13 +173,19 @@ object PacketMine : Module(
 
         listener<TickEvent.Pre> {
             if (rotated && waitingToReleaseRotation) {
+                releaseRotateDelayCounter--
+
                 if (releaseRotateDelayCounter <= 0) {
                     waitingToReleaseRotation = false
                     rotationPosition = null
                     rotated = false
-                } else {
-                    releaseRotateDelayCounter--
                 }
+            }
+            if (reBreakDelayCounter > 0) {
+                reBreakDelayCounter--
+            }
+            if (emptyReBreakDelayCounter > 0) {
+                emptyReBreakDelayCounter--
             }
 
             currentMiningBlock?.apply {
@@ -236,6 +246,14 @@ object PacketMine : Module(
                             runHandlers(ProgressStage.During, pos, lastValidBestTool)
                             breakState = BreakState.Breaking
                             return@listener
+                        }
+
+                        if (empty) {
+                            if (emptyReBreakDelayCounter > 0) return@listener
+                            emptyReBreakDelayCounter = emptyReBreakDelay
+                        } else {
+                            if (reBreakDelayCounter > 0) return@listener
+                            reBreakDelayCounter = reBreakDelay
                         }
 
                         if (!fastReBreak && empty) {
