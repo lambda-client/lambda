@@ -43,7 +43,7 @@ object PacketMine : Module(
 ) {
     private val page by setting("Page", Page.General)
 
-    private val breakThreshold by setting("Break Threshold", 0.7f, 0.0f..1.0f, 0.1f, "Breaks the selected block once the block breaking progress passes this value, 1 being 100%", visibility = { page == Page.General})
+    private val breakThreshold by setting("Break Threshold", 0.70f, 0.00f..1.00f, 0.01f, "Breaks the selected block once the block breaking progress passes this value, 1 being 100%", visibility = { page == Page.General})
     private val range by setting("Range", 6, 3..6, 1, "The maximum distance between the players eye position and the center of the block", visibility = { page == Page.General })
     private val pauseWhileUsingItems by setting("Pause While Using Items", true, "Will prevent breaking while using items like eating or aiming a bow", visibility = { page == Page.General })
     private val autoSwap by setting("Auto Swap", SwapMode.StandardSilent, "Changes the swap method used. For example, silent swaps once at the beginning, and once at the end without updating client side, and constant swaps for the whole break", visibility = { page == Page.General})
@@ -179,20 +179,19 @@ object PacketMine : Module(
             player.swingHand(Hand.MAIN_HAND)
 
             currentMiningBlock?.apply {
-                if (it.pos == pos && breakState == BreakState.ReBreaking && reBreak.isStandard()) {
-                    if (!reBreak.isEnabled()) {
-                        nullifyCurrentBreakingBlock()
-                        return@listener
-                    }
+                if (it.pos != pos || breakState != BreakState.ReBreaking || !reBreak.isStandard()) return@apply
 
-                    runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, lastValidBestTool) {
-                        packetStopBreak(pos)
-                    }
-
-                    onBlockBreak(false)
-
+                if (!reBreak.isEnabled()) {
+                    nullifyCurrentBreakingBlock()
                     return@listener
                 }
+
+                runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, lastValidBestTool) {
+                    packetStopBreak(pos)
+                }
+
+                onBlockBreak(false)
+                return@listener
             }
 
             if (shouldBePlacedInBlockQueue(it.pos)) {
