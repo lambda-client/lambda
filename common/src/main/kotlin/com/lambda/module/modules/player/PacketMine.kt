@@ -14,7 +14,7 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.MathUtils.lerp
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
+import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap
 import net.minecraft.block.BlockState
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.enchantment.Enchantments
@@ -153,8 +153,6 @@ object PacketMine : Module(
     private var releaseRotateDelayCounter = 0
     private var rotated = false
     private var waitingToReleaseRotation = false
-
-    //ToDo: Make silent swap work on cc
 
     init {
         listener<InteractionEvent.BlockAttack.Pre> {
@@ -486,21 +484,25 @@ object PacketMine : Module(
         if (autoSwap.isStandardSilent()) {
             connection.sendPacket(UpdateSelectedSlotC2SPacket(slot))
         } else {
-            //ToDo: Make this work
             val screenHandler = player.playerScreenHandler
-            val stack = if (returningToOriginalSlot) {
-                player.mainHandStack
-            } else {
-                player.inventory.getStack(slot)
+            var itemStack = player.mainHandStack
+            var newSlot = slot
+
+            if (returningToOriginalSlot) {
+                newSlot = swappedSlot
+                itemStack = player.inventory.getStack(swappedSlot)
             }
-            connection.sendPacket(ClickSlotC2SPacket(
-                screenHandler.syncId,
-                screenHandler.revision,
-                player.inventory.selectedSlot,
-                0,
-                SlotActionType.SWAP,
-                stack,
-                Int2ObjectOpenHashMap())
+
+            connection.sendPacket(
+                ClickSlotC2SPacket(
+                    screenHandler.syncId,
+                    screenHandler.revision,
+                    newSlot + 36,
+                    player.inventory.selectedSlot,
+                    SlotActionType.SWAP,
+                    itemStack,
+                    Int2ObjectArrayMap()
+                )
             )
         }
     }
@@ -512,11 +514,7 @@ object PacketMine : Module(
             player.inventory.selectedSlot = returnSlot
             connection.sendPacket(UpdateSelectedSlotC2SPacket(returnSlot))
         } else {
-            if (autoSwap.isStandardSilent()) {
-                connection.sendPacket(UpdateSelectedSlotC2SPacket(returnSlot))
-            } else {
-                silentSwapTo(swappedSlot, true)
-            }
+            silentSwapTo(returnSlot, true)
         }
         returnSlot = -1
         swappedSlot = -1
@@ -556,7 +554,7 @@ object PacketMine : Module(
 
     private fun SafeContext.nullifyCurrentBreakingBlock() {
         currentMiningBlock?.apply {
-            if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, 0)
+            if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, -1)
         }
 
         currentMiningBlock = null
@@ -728,7 +726,6 @@ object PacketMine : Module(
 
     private fun SafeContext.packetStopBreak(pos: BlockPos) {
         stopBreak(pos)
-        //ToDo: maybe improve these packets? Idk what the best ones are for ncp
         if (packets == PacketMode.NCP) {
             abortBreak(pos)
             startBreak(pos)
