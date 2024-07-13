@@ -428,6 +428,7 @@ object PacketMine : Module(
             if (!instaBreak) return@runBetweenHandlers
 
             packetStopBreak(pos)
+            if (reBreak.isEnabled()) packetStartBreak(pos)
 
             onBlockBreak(false)
         }
