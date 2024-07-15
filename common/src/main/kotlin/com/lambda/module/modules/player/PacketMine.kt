@@ -46,6 +46,7 @@ object PacketMine : Module(
     private val breakThreshold by setting("Break Threshold", 0.70f, 0.00f..1.00f, 0.01f, "Breaks the selected block once the block breaking progress passes this value, 1 being 100%", visibility = { page == Page.General})
     private val range by setting("Range", 6, 3..6, 1, "The maximum distance between the players eye position and the center of the block", visibility = { page == Page.General })
     private val pauseWhileUsingItems by setting("Pause While Using Items", true, "Will prevent breaking while using items like eating or aiming a bow", visibility = { page == Page.General })
+    private val resetOnManualSwap by setting("Reset On Manual Swap", false, "Resets the current breaking progress if you manual swap slot", visibility = { page == Page.General })
     private val validateBreak by setting("Validate Break", true, "Breaks blocks client side rather than waiting for a response from the server", visibility = { page == Page.General })
     private val timeoutDelay by setting("Timeout Delay", 0.20f, 0.00f..1.00f, 0.1f, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", visibility = { page == Page.General && validateBreak })
     private val swingMode by setting("Swing Mode", SwingMode.None, "Swings the players hand to simulate vanilla breaking, usually used on stricter anticheats", visibility = { page == Page.General })
@@ -186,6 +187,7 @@ object PacketMine : Module(
     private var returnSlot = -1
     private var swappedSlot = -1
     private var swapped = false
+    private var previousSelectedSlot = -1
     private var expectedRotation: Rotation? = null
     private var rotationPosition: BlockPos? = null
     private var pauseForRotation = false
@@ -198,7 +200,6 @@ object PacketMine : Module(
 
     init {
         listener<InteractionEvent.BlockAttack.Pre> {
-            //ToDo: Sometimes swinging here when shouldnt
             it.cancel()
             if (swingOnManual) swingMainHand()
             if (!swingMode.isEnabled()) cancelNextSwing = true
@@ -253,6 +254,14 @@ object PacketMine : Module(
                 }
 
                 runHandlers(ProgressStage.PreTick, pos, lastValidBestTool, empty)
+
+                if (resetOnManualSwap
+                    && !swapped
+                    && player.inventory.selectedSlot != previousSelectedSlot
+                    ) {
+                    mineTicks = 0
+                }
+                previousSelectedSlot = player.inventory.selectedSlot
 
                 if ((pauseWhileUsingItems && player.isUsingItem) || pauseForRotation)
                     return@listener
@@ -393,6 +402,8 @@ object PacketMine : Module(
 
         val breakDelta = calcBreakDelta(world.getBlockState(pos), pos, bestTool)
         val instaBreak = breakDelta >= breakThreshold
+
+        previousSelectedSlot = player.inventory.selectedSlot
 
         runBetweenHandlers(ProgressStage.StartPre, ProgressStage.StartPost, pos, bestTool, instaBreak) {
             packetStartBreak(pos)
