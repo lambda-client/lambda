@@ -223,6 +223,7 @@ object PacketMine : Module(
         listener<TickEvent.Pre> {
             updateCounters()
 
+            //ToDo: Fix and improve this, idk why i did it this way :/
             awaitingQueueBreakStartPos?.apply {
                 if (queueBreakStartCounter > 0) return@listener
 
