@@ -46,14 +46,14 @@ object PacketMine : Module(
     private val breakThreshold by setting("Break Threshold", 0.70f, 0.00f..1.00f, 0.01f, "Breaks the selected block once the block breaking progress passes this value, 1 being 100%", visibility = { page == Page.General})
     private val range by setting("Range", 6, 3..6, 1, "The maximum distance between the players eye position and the center of the block", visibility = { page == Page.General })
     private val pauseWhileUsingItems by setting("Pause While Using Items", true, "Will prevent breaking while using items like eating or aiming a bow", visibility = { page == Page.General })
+    private val validateBreak by setting("Validate Break", true, "Breaks blocks client side rather than waiting for a response from the server", visibility = { page == Page.General })
+    private val timeoutDelay by setting("Timeout Delay", 0.20f, 0.00f..1.00f, 0.1f, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", visibility = { page == Page.General && validateBreak })
     private val swingMode by setting("Swing Mode", SwingMode.None, "Swings the players hand to simulate vanilla breaking, usually used on stricter anticheats", visibility = { page == Page.General })
     private val swingOnManual by setting("Swing On Hit", true, "Swings when the player attacks a block", visibility = { page == Page.General })
     private val rotate by setting("Rotation Mode", RotationMode.None, "Changes the method used to make the player look at the current mining block", visibility = { page == Page.General })
     private val rotateReleaseDelay by setting("Rotation Release Delay", 2, 0..50, 1, "The number of ticks to wait before releasing the rotation", visibility = { page == Page.General && rotate.isEnabled() })
     private val autoSwap by setting("Swap Mode", SwapMode.StandardSilent, "Changes the swap method used. For example, silent swaps once at the beginning, and once at the end without updating client side, and constant swaps for the whole break", visibility = { page == Page.General})
     private val packets by setting("Packet Mode", PacketMode.Vanilla, "Chooses different packets to send for each mode", visibility = { page == Page.General })
-    private val validateBreak by setting("Validate Break", true, "Breaks blocks client side rather than waiting for a response from the server", visibility = { page == Page.General })
-    private val timeoutDelay by setting("Timeout Delay", 0.20f, 0.00f..1.00f, 0.1f, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", visibility = { page == Page.General && validateBreak })
 
     private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue }).apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
     private val reverseQueueOrder by setting("Reverse Queue Order", false, "Breaks the latest addition to the queue first", visibility = { page == Page.Queue && queueBlocks})
@@ -221,39 +221,20 @@ object PacketMine : Module(
         }
 
         listener<TickEvent.Pre> {
-            if (rotated && waitingToReleaseRotation) {
-                releaseRotateDelayCounter--
-
-                if (releaseRotateDelayCounter <= 0) {
-                    waitingToReleaseRotation = false
-                    rotationPosition = null
-                    rotated = false
-                }
-            }
-            if (reBreakDelayCounter > 0) {
-                reBreakDelayCounter--
-            }
-            if (emptyReBreakDelayCounter > 0) {
-                emptyReBreakDelayCounter--
-            }
-            if (queueBreakStartCounter > 0) {
-                queueBreakStartCounter--
-            }
+            updateCounters()
 
             awaitingQueueBreakStartPos?.apply {
-                if (queueBreakStartCounter <= 0) {
-                    if (isOutOfRange(this.toCenterPos())) {
-                        if (breakNextQueueBlock()) return@listener
-                        awaitingQueueBreakStartPos = null
-                        return@apply
-                    }
+                if (queueBreakStartCounter > 0) return@listener
 
-                    blockQueue.remove(this)
-                    startBreaking(this)
-                    awaitingQueueBreakStartPos = null
-                } else {
-                    return@listener
+                awaitingQueueBreakStartPos = null
+
+                if (isOutOfRange(this.toCenterPos())) {
+                    if (breakNextQueueBlock()) return@listener
+                    return@apply
                 }
+
+                startBreaking(this)
+                blockQueue.remove(this)
             }
 
             currentMiningBlock?.apply {
@@ -297,11 +278,6 @@ object PacketMine : Module(
 
                         timeCompleted = System.currentTimeMillis()
 
-                        if (hasBeenBrokenOnce && reBreak.isStandard()) {
-                            breakState = BreakState.ReBreaking
-                            return@listener
-                        }
-
                         runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, lastValidBestTool) {
                             packetStopBreak(pos)
                         }
@@ -310,11 +286,7 @@ object PacketMine : Module(
                     }
 
                     BreakState.ReBreaking -> {
-                        if (miningProgress < breakThreshold) {
-                            runHandlers(ProgressStage.During, pos, lastValidBestTool)
-                            breakState = BreakState.Breaking
-                            return@listener
-                        }
+                        if (miningProgress < breakThreshold) return@listener
 
                         if (isOutOfRange(pos.toCenterPos()) || !reBreak.isEnabled()) {
                             nullifyCurrentBreakingBlock()
@@ -557,6 +529,27 @@ object PacketMine : Module(
     private fun SafeContext.swingMainHand() =
         player.swingHand(Hand.MAIN_HAND)
 
+    private fun updateCounters() {
+        if (rotated && waitingToReleaseRotation) {
+            releaseRotateDelayCounter--
+
+            if (releaseRotateDelayCounter <= 0) {
+                waitingToReleaseRotation = false
+                rotationPosition = null
+                rotated = false
+            }
+        }
+        if (reBreakDelayCounter > 0) {
+            reBreakDelayCounter--
+        }
+        if (emptyReBreakDelayCounter > 0) {
+            emptyReBreakDelayCounter--
+        }
+        if (queueBreakStartCounter > 0) {
+            queueBreakStartCounter--
+        }
+    }
+
     private fun rotateTo(pos: BlockPos) {
         waitingToReleaseRotation = false
         releaseRotateDelayCounter = rotateReleaseDelay
@@ -645,7 +638,6 @@ object PacketMine : Module(
         currentMiningBlock?.apply {
             checkClientSideBreak(packetReceiveBreak, pos)
 
-            hasBeenBrokenOnce = true
             timeCompleted = System.currentTimeMillis()
 
             if (validateBreak && breakState == BreakState.Breaking) {
@@ -749,7 +741,6 @@ object PacketMine : Module(
         val renderer = DynamicESP
         var mineTicks = 0
         var timeCompleted: Long = -1
-        var hasBeenBrokenOnce = false
         var previousBreakDelta = 0f
 
         var boxList = if (renderMode.isEnabled()) {
