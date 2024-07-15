@@ -391,6 +391,27 @@ object PacketMine : Module(
                 renderer.upload()
             }
         }
+
+        onDisable {
+            currentMiningBlock = null
+            lastNonEmptyState = null
+            blockQueue.clear()
+            queueBreakStartCounter = 0
+            awaitingQueueBreak = false
+            returnSlot = -1
+            swappedSlot = -1
+            swapped = false
+            previousSelectedSlot = -1
+            expectedRotation = null
+            rotationPosition = null
+            pauseForRotation = false
+            releaseRotateDelayCounter = 0
+            reBreakDelayCounter = 0
+            emptyReBreakDelayCounter = 0
+            rotated = false
+            waitingToReleaseRotation = false
+            cancelNextSwing = false
+        }
     }
 
     private fun SafeContext.startBreaking(pos: BlockPos) {
