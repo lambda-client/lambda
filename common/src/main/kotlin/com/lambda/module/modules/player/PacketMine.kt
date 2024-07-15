@@ -182,7 +182,7 @@ object PacketMine : Module(
     private var lastNonEmptyState: BlockState? = null
     private val blockQueue = ArrayDeque<BlockPos>()
     private var queueBreakStartCounter = 0
-    private var awaitingQueueBreakStartPos: BlockPos? = null
+    private var awaitingQueueBreak = false
     private var returnSlot = -1
     private var swappedSlot = -1
     private var swapped = false
@@ -223,19 +223,11 @@ object PacketMine : Module(
         listener<TickEvent.Pre> {
             updateCounters()
 
-            //ToDo: Fix and improve this, idk why i did it this way :/
-            awaitingQueueBreakStartPos?.apply {
+            if (awaitingQueueBreak) {
                 if (queueBreakStartCounter > 0) return@listener
 
-                awaitingQueueBreakStartPos = null
-
-                if (isOutOfRange(this.toCenterPos())) {
-                    if (breakNextQueueBlock()) return@listener
-                    return@apply
-                }
-
-                startBreaking(this)
-                blockQueue.remove(this)
+                awaitingQueueBreak = false
+                if (breakNextQueueBlock()) return@listener
             }
 
             currentMiningBlock?.apply {
@@ -646,6 +638,7 @@ object PacketMine : Module(
                 return
             }
 
+            queueBreakStartCounter = queueBreakDelay
             if (breakNextQueueBlock()) return
 
             if (reBreak.isEnabled() && !isOutOfRange(pos.toCenterPos())) {
@@ -698,12 +691,12 @@ object PacketMine : Module(
         if (!queueBlocks) return false
 
         filterBlockQueueUntilNextPossible()?.apply {
-            if (queueBreakDelay <= 0) {
+            if (queueBreakStartCounter <= 0) {
                 blockQueue.remove(this)
                 startBreaking(this)
             } else {
-                queueBreakStartCounter = queueBreakDelay
-                awaitingQueueBreakStartPos = this
+                currentMiningBlock = null
+                awaitingQueueBreak = true
             }
             return true
         }
