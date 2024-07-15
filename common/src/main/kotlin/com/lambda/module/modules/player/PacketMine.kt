@@ -29,6 +29,7 @@ import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.registry.tag.FluidTags
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.state.property.Properties
+import net.minecraft.text.Text
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -230,7 +231,7 @@ object PacketMine : Module(
             it.cancel()
         }
 
-        listener<TickEvent.Pre> {
+        listener<TickEvent.Pre>(1) {
             updateCounters()
 
             if (awaitingQueueBreak) {
@@ -649,7 +650,9 @@ object PacketMine : Module(
 
     private fun SafeContext.onBlockBreak(packetReceiveBreak: Boolean) {
         currentMiningBlock?.apply {
-            checkClientSideBreak(packetReceiveBreak, pos)
+            if (!isOutOfRange(pos.toCenterPos()) || packetReceiveBreak) {
+                checkClientSideBreak(packetReceiveBreak, pos)
+            }
 
             timeCompleted = System.currentTimeMillis()
 
