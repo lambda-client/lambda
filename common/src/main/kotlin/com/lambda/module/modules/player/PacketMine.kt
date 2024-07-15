@@ -194,12 +194,14 @@ object PacketMine : Module(
     private var emptyReBreakDelayCounter = 0
     private var rotated = false
     private var waitingToReleaseRotation = false
+    private var cancelNextSwing = false
 
     init {
         listener<InteractionEvent.BlockAttack.Pre> {
             //ToDo: Sometimes swinging here when shouldnt
             it.cancel()
             if (swingOnManual) swingMainHand()
+            if (!swingMode.isEnabled()) cancelNextSwing = true
 
             currentMiningBlock?.apply {
                 if (it.pos != pos || breakState != BreakState.ReBreaking || !reBreak.isStandard()) return@apply
@@ -218,6 +220,13 @@ object PacketMine : Module(
             }
 
             startBreaking(it.pos)
+        }
+
+        listener<EntityEvent.SwingHand> {
+            if (!cancelNextSwing)  return@listener
+
+            cancelNextSwing = false
+            it.cancel()
         }
 
         listener<TickEvent.Pre> {
