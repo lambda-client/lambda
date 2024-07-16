@@ -297,7 +297,10 @@ object PacketMine : Module(
                     }
 
                     BreakState.ReBreaking -> {
-                        if (miningProgress < breakThreshold) return@listener
+                        if (miningProgress < breakThreshold) {
+                            runHandlers(ProgressStage.During, pos, lastValidBestTool)
+                            return@listener
+                        }
 
                         if (isOutOfRange(pos.toCenterPos()) || !reBreak.isEnabled()) {
                             nullifyCurrentBreakingBlock()
