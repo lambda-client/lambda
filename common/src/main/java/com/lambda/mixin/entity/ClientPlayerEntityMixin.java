@@ -55,6 +55,7 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
     @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick(ZF)V"))
     void processMovement(Input input, boolean slowDown, float slowDownFactor) {
         input.tick(slowDown, slowDownFactor);
+        RotationManager.BaritoneProcessor.processPlayerMovement(input, slowDown, slowDownFactor);
         EventFlow.post(new MovementEvent.InputUpdate(input, slowDown, slowDownFactor));
     }
 

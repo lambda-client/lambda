@@ -1,7 +1,6 @@
 package com.lambda.module.modules.movement
 
 import com.lambda.config.groups.IRotationConfig
-import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
@@ -59,23 +58,10 @@ object TargetStrafe : Module(
             }
         }
 
-        listener<RotationEvent.Strafe> { event ->
-            targetEntity?.let {
-                event.strafeYaw = player.eyePos.rotationTo(it.boundingBox.center).yaw
-            }
-        }
-
-        listener<RotationEvent.Update> { event ->
-            targetEntity?.let {
-                event.context = RotationContext(
-                    player.eyePos.rotationTo(it.boundingBox.center),
-                    rotationConfig
-                )
-            }
-        }
-
-        listener<MovementEvent.InputUpdate> { event ->
+        listener<RotationEvent.StrafeInput> { event ->
             targetEntity?.let { target ->
+                event.strafeYaw = player.eyePos.rotationTo(target.boundingBox.center).yaw
+
                 val distSq = player.pos distSq target.pos
                 val keepRange = 0.5 * jitterCompensation
 
@@ -104,6 +90,15 @@ object TargetStrafe : Module(
                         strafe,
                         true
                     )
+                )
+            }
+        }
+
+        listener<RotationEvent.Update> { event ->
+            targetEntity?.let {
+                event.context = RotationContext(
+                    player.eyePos.rotationTo(it.boundingBox.center),
+                    rotationConfig
                 )
             }
         }
