@@ -8,12 +8,13 @@ import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.global.DynamicESP
-import com.lambda.interaction.rotation.Rotation
+import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.visibilty.VisibilityChecker.findRotation
 import com.lambda.module.Module
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap
 import net.minecraft.block.BlockState
 import net.minecraft.enchantment.EnchantmentHelper
@@ -35,6 +36,7 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
+import java.util.function.Supplier
 
 object PacketMine : Module(
     name = "Packet Mine",
@@ -188,13 +190,14 @@ object PacketMine : Module(
     private var swappedSlot = -1
     private var swapped = false
     private var previousSelectedSlot = -1
-    private var expectedRotation: Rotation? = null
+    private var expectedRotation: RotationContext? = null
     private var rotationPosition: BlockPos? = null
     private var pauseForRotation = false
     private var releaseRotateDelayCounter = 0
     private var reBreakDelayCounter = 0
     private var emptyReBreakDelayCounter = 0
     private var rotated = false
+    private var onRotationComplete: Runnable? = null
     private var waitingToReleaseRotation = false
     private var cancelNextSwing = false
 
@@ -207,11 +210,11 @@ object PacketMine : Module(
             currentMiningBlock?.apply {
                 if (it.pos != pos || breakState != BreakState.ReBreaking || !reBreak.isStandard()) return@apply
 
-                runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, lastValidBestTool) {
+                runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, { lastValidBestTool }) {
                     packetStopBreak(pos)
-                }
 
-                onBlockBreak(false)
+                    onBlockBreak(false)
+                }
                 return@listener
             }
 
@@ -289,11 +292,11 @@ object PacketMine : Module(
 
                         timeCompleted = System.currentTimeMillis()
 
-                        runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, lastValidBestTool) {
+                        runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, { lastValidBestTool }) {
                             packetStopBreak(pos)
-                        }
 
-                        onBlockBreak(false)
+                            onBlockBreak(false)
+                        }
                     }
 
                     BreakState.ReBreaking -> {
@@ -321,11 +324,11 @@ object PacketMine : Module(
                             return@listener
                         }
 
-                        runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, lastValidBestTool, empty) {
+                        runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, { lastValidBestTool }, empty) {
                             packetStopBreak(pos)
-                        }
 
-                        onBlockBreak(false)
+                            onBlockBreak(false)
+                        }
                     }
 
                     BreakState.AwaitingResponse -> {
@@ -362,27 +365,45 @@ object PacketMine : Module(
         listener<RotationEvent.Update> {
             if (!rotate.isEnabled()) return@listener
 
-            lastNonEmptyState?.let { state ->
-                rotationPosition?.let { pos ->
+            rotationPosition?.let { pos ->
+                lastNonEmptyState?.let { state ->
                     val boxList = state.getOutlineShape(world, pos).boundingBoxes.map { it.offset(pos) }
-                    val rotationContext = findRotation(boxList, TaskFlow.rotation, TaskFlow.interact, emptySet(), verify = { true })
+                    val rotationContext = findRotation(boxList, TaskFlow.rotation, TaskFlow.interact, emptySet()) {
+                        blockResult?.blockPos == pos
+                    }
                     rotationContext?.let { context ->
                         it.context = context
-                        expectedRotation = context.rotation
+                        expectedRotation = context
                     }
-                } ?: run {
-                    expectedRotation = null
                 }
+            } ?: run {
+                expectedRotation = null
+            }
+
+            if (!rotated || !waitingToReleaseRotation) return@listener
+
+            releaseRotateDelayCounter--
+
+            if (releaseRotateDelayCounter <= 0) {
+                waitingToReleaseRotation = false
+                rotationPosition = null
+                rotated = false
             }
         }
 
         listener<RotationEvent.Post> {
             if (!rotate.isEnabled()) return@listener
 
+            //ToDo: Fix findRotation method to return the correct rotation even if its blocked by another block or something. Also improve raycasting stuff and add a setting
             expectedRotation?.apply {
-                if (it.context.rotation != expectedRotation)
+                if (this.isValid) {
+                    onRotationComplete?.run()
+                    onRotationComplete = null
+                } else {
                     pauseForRotation = true
+                }
             } ?: run {
+                onRotationComplete = null
                 pauseForRotation = false
             }
         }
@@ -429,7 +450,7 @@ object PacketMine : Module(
 
         previousSelectedSlot = player.inventory.selectedSlot
 
-        runBetweenHandlers(ProgressStage.StartPre, ProgressStage.StartPost, pos, bestTool, instaBreak) {
+        runBetweenHandlers(ProgressStage.StartPre, ProgressStage.StartPost, pos, { bestTool }, instaBreak) {
             packetStartBreak(pos)
 
             currentMiningBlock = BreakingContext(pos, state, BreakState.Breaking, breakDelta, bestTool)
@@ -447,14 +468,25 @@ object PacketMine : Module(
         preStage: ProgressStage,
         postStage: ProgressStage,
         pos: BlockPos,
-        bestTool: Int,
+        bestTool: Supplier<Int>,
         empty: Boolean = false,
         instaBroken: Boolean = false,
         task: Runnable
     ) {
-        runHandlers(preStage, pos, bestTool, empty, instaBroken)
-        task.run()
-        runHandlers(postStage, pos, bestTool, empty, instaBroken)
+        handleRotations(preStage, pos, empty, instaBroken)
+
+        val postRotationTask = Runnable {
+            handleAutoSwap(preStage, bestTool.get(), empty, instaBroken)
+            handleSwing(preStage)
+            task.run()
+            runHandlers(postStage, pos, bestTool.get(), empty, instaBroken)
+        }
+
+        if (pauseForRotation) {
+            onRotationComplete = postRotationTask
+        } else {
+            postRotationTask.run()
+        }
     }
 
     private fun SafeContext.runHandlers(
@@ -471,18 +503,27 @@ object PacketMine : Module(
 
     private fun handleRotations(progressStage: ProgressStage, pos: BlockPos, empty: Boolean = false, instaBroken: Boolean = false) {
         when (progressStage) {
-            ProgressStage.PreTick -> if (rotated && rotate.isStartAndEnd()) checkReleaseRotation()
+            ProgressStage.PreTick -> {
+                if (rotate.isConstant()
+                    && !empty
+                    && (currentMiningBlock?.breakState != BreakState.ReBreaking
+                            || !reBreak.isStandard()
+                            )
+                    ) {
+                    rotateTo(pos)
+                }
+            }
 
             ProgressStage.StartPre,
-            ProgressStage.EndPre -> if (rotate.isEnabled() && !rotated) rotateTo(pos)
+            ProgressStage.EndPre -> if (rotate.isEnabled() && (validateBreak || !instaBroken)) rotateTo(pos)
 
-            ProgressStage.During -> if (rotate.isConstant()) rotateTo(pos)
+            ProgressStage.During -> if (rotate.isConstant() && !empty) rotateTo(pos)
 
-            ProgressStage.StartPost -> if (instaBroken && !validateBreak) checkReleaseRotation()
+            ProgressStage.StartPost -> if ((instaBroken && !validateBreak) || rotate.isStartAndEnd()) checkReleaseRotation()
 
-            ProgressStage.EndPost -> if (!validateBreak || empty) checkReleaseRotation()
+            ProgressStage.EndPost -> if ((!validateBreak || empty) || rotate.isStartAndEnd()) checkReleaseRotation()
 
-            ProgressStage.PacketReceiveBreak -> if (rotated) checkReleaseRotation()
+            ProgressStage.PacketReceiveBreak -> checkReleaseRotation()
 
             ProgressStage.TimedOut -> checkReleaseRotation()
         }
@@ -532,9 +573,9 @@ object PacketMine : Module(
                 }
             }
 
-            ProgressStage.PacketReceiveBreak -> if (swapped && !autoSwap.isSilent()) returnToOriginalSlot()
+            ProgressStage.PacketReceiveBreak -> if (!autoSwap.isSilent()) returnToOriginalSlot()
 
-            ProgressStage.TimedOut -> if (swapped) returnToOriginalSlot()
+            ProgressStage.TimedOut -> returnToOriginalSlot()
         }
     }
 
@@ -567,15 +608,6 @@ object PacketMine : Module(
         player.swingHand(Hand.MAIN_HAND)
 
     private fun updateCounters() {
-        if (rotated && waitingToReleaseRotation) {
-            releaseRotateDelayCounter--
-
-            if (releaseRotateDelayCounter <= 0) {
-                waitingToReleaseRotation = false
-                rotationPosition = null
-                rotated = false
-            }
-        }
         if (reBreakDelayCounter > 0) {
             reBreakDelayCounter--
         }
@@ -595,7 +627,7 @@ object PacketMine : Module(
     }
 
     private fun checkReleaseRotation() {
-        if (waitingToReleaseRotation || !rotated) return
+        if (!rotated || waitingToReleaseRotation) return
 
         if (releaseRotateDelayCounter <= 0) {
             rotationPosition = null
@@ -703,6 +735,7 @@ object PacketMine : Module(
     private fun SafeContext.nullifyCurrentBreakingBlock() {
         currentMiningBlock?.apply {
             if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, -1)
+            runHandlers(ProgressStage.TimedOut, pos, lastValidBestTool)
         }
 
         currentMiningBlock = null
