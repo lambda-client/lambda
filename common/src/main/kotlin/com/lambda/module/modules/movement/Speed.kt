@@ -59,7 +59,7 @@ object Speed : Module(
     }
 
     // NCP
-    private const val NCP_BASE_SPEED = 0.2873
+    const val NCP_BASE_SPEED = 0.2873
     private const val NCP_AIR_DECAY = 0.9937
 
     private var ncpPhase = NCPPhase.SLOWDOWN
