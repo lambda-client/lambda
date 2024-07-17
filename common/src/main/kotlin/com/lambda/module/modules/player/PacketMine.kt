@@ -583,9 +583,7 @@ object PacketMine : Module(
         when (progressStage) {
             ProgressStage.PreTick -> {
                 currentMiningBlock?.apply {
-                    if (breakState != BreakState.ReBreaking
-                        && swingMode.isConstant()
-                        ) {
+                    if (breakState != BreakState.ReBreaking && swingMode.isConstant()) {
                         swingMainHand()
                     }
                 }
@@ -654,38 +652,39 @@ object PacketMine : Module(
     private fun SafeContext.silentSwapTo(slot: Int, returningToOriginalSlot: Boolean) {
         if (autoSwap.isStandardSilent()) {
             connection.sendPacket(UpdateSelectedSlotC2SPacket(slot))
-        } else {
-            val screenHandler = player.playerScreenHandler
-            var itemStack = player.mainHandStack
-            var newSlot = slot
-
-            if (returningToOriginalSlot) {
-                newSlot = swappedSlot
-                itemStack = player.inventory.getStack(swappedSlot)
-            }
-
-            connection.sendPacket(
-                ClickSlotC2SPacket(
-                    screenHandler.syncId,
-                    screenHandler.revision,
-                    newSlot + 36,
-                    player.inventory.selectedSlot,
-                    SlotActionType.SWAP,
-                    itemStack,
-                    Int2ObjectArrayMap()
-                )
-            )
+            return
         }
+
+        val screenHandler = player.playerScreenHandler
+        var itemStack = player.mainHandStack
+        var newSlot = slot
+
+        if (returningToOriginalSlot) {
+            newSlot = swappedSlot
+            itemStack = player.inventory.getStack(swappedSlot)
+        }
+
+        connection.sendPacket(
+            ClickSlotC2SPacket(
+                screenHandler.syncId,
+                screenHandler.revision,
+                newSlot + 36,
+                player.inventory.selectedSlot,
+                SlotActionType.SWAP,
+                itemStack,
+                Int2ObjectArrayMap()
+            )
+        )
     }
 
     private fun SafeContext.returnToOriginalSlot() {
         if (!swapped || returnSlot == -1) return
 
-        if (!autoSwap.isSilent()) {
+        if (autoSwap.isSilent()) {
+            silentSwapTo(returnSlot, true)
+        } else {
             player.inventory.selectedSlot = returnSlot
             connection.sendPacket(UpdateSelectedSlotC2SPacket(returnSlot))
-        } else {
-            silentSwapTo(returnSlot, true)
         }
         returnSlot = -1
         swappedSlot = -1
