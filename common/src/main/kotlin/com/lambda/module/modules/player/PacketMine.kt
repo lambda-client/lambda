@@ -13,6 +13,7 @@ import com.lambda.interaction.visibilty.VisibilityChecker.findRotation
 import com.lambda.module.Module
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap
@@ -68,23 +69,39 @@ object PacketMine : Module(
     private val resetProgressOnBreak by setting("Reset Progress", false, "Resets the mining progress after breaking a block, mostly used on stricter servers", visibility = { page == Page.ReBreak && reBreak.isEnabled() })
 
 
-    private val breakingAnimation by setting("Breaking Animation", false, "Renders the block breaking animation like vanilla would to show progress", visibility = { page == Page.Render })
-    private val renderMode by setting("Render Mode", RenderMode.Out, "The animation style of the renders", visibility = { page == Page.Render })
-    private val renderSetting by setting("Render Setting", RenderSetting.Both, "The different ways to draw the renders", visibility = { page == Page.Render && renderMode.isEnabled() })
+    private val breakingAnimation by setting("Breaking Animation", false, "Renders the block breaking animation like vanilla would to show progress", visibility = { page == Page.BlockRender })
+    private val renderMode by setting("BlockRender Mode", RenderMode.Out, "The animation style of the renders", visibility = { page == Page.BlockRender })
+    private val renderSetting by setting("BlockRender Setting", RenderSetting.Both, "The different ways to draw the renders", visibility = { page == Page.BlockRender && renderMode.isEnabled() })
 
-    private val fillColourMode by setting("Fill Mode", ColourMode.Dynamic, visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline })
-    private val staticFillColour by setting("Static Fill Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the static fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline && fillColourMode == ColourMode.Static })
-    private val startFillColour by setting("Start Fill Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the start fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline && fillColourMode == ColourMode.Dynamic })
-    private val endFillColour by setting("End Fill Colour", Color(0f, 1f, 0f, 0.3f), "The colour used to render the end fill of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Outline && fillColourMode == ColourMode.Dynamic  })
+    private val fillColourMode by setting("Fill Mode", ColourMode.Dynamic, visibility = { page == Page.BlockRender && renderMode.isEnabled() && renderSetting != RenderSetting.Outline })
+    private val staticFillColour by setting("Static Fill Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the static fill of the box faces", visibility = { page == Page.BlockRender && renderMode.isEnabled() && renderSetting != RenderSetting.Outline && fillColourMode == ColourMode.Static })
+    private val startFillColour by setting("Start Fill Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the start fill of the box faces", visibility = { page == Page.BlockRender && renderMode.isEnabled() && renderSetting != RenderSetting.Outline && fillColourMode == ColourMode.Dynamic })
+    private val endFillColour by setting("End Fill Colour", Color(0f, 1f, 0f, 0.3f), "The colour used to render the end fill of the box faces", visibility = { page == Page.BlockRender && renderMode.isEnabled() && renderSetting != RenderSetting.Outline && fillColourMode == ColourMode.Dynamic  })
 
-    private val outlineColourMode by setting("Outline Mode", ColourMode.Dynamic, visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
-    private val staticOutlineColour by setting("Static Outline Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the static outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Static })
-    private val startOutlineColour by setting("Start Outline Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the start outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Dynamic })
-    private val endOutlineColour by setting("End Outline Colour", Color(0f, 1f, 0f, 0.3f), "The colour used to render the end outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Dynamic  })
-    private val outlineWidth by setting("Outline Width", 1f, 0f..3f, 0.1f, "the thickness of the outline", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
+    private val outlineColourMode by setting("Outline Mode", ColourMode.Dynamic, visibility = { page == Page.BlockRender && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
+    private val staticOutlineColour by setting("Static Outline Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the outline of the box", visibility = { page == Page.BlockRender && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Static })
+    private val startOutlineColour by setting("Start Outline Colour", Color(1f, 0f, 0f, 0.3f), "The colour used to render the start outline of the box", visibility = { page == Page.BlockRender && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Dynamic })
+    private val endOutlineColour by setting("End Outline Colour", Color(0f, 1f, 0f, 0.3f), "The colour used to render the end outline of the box", visibility = { page == Page.BlockRender && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Dynamic  })
+    private val outlineWidth by setting("Outline Width", 1f, 0f..3f, 0.1f, "the thickness of the outline", visibility = { page == Page.BlockRender && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
+
+    private val renderQueueMode by setting("Render mode", RenderQueueMode.Shape, "The render type for queue blocks", visibility = { page == Page.QueueRender })
+    private val renderQueueSetting by setting("Render Setting", RenderSetting.Both, "The style to render queue blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() })
+    private val renderQueueSize by setting("Render Size", 0.3f, 0f..1f, 0.01f, "The scale of the queue render blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() })
+
+    private val queueFillColourMode by setting("Fill Mode", ColourMode.Static, "The fill colour mode", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline })
+    private val queueStaticFillColour by setting("Static Fill Colour", Color(1f, 0f, 0f, 0.2f), "The colour used to render the faces for queue blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline && queueFillColourMode == ColourMode.Static })
+    private val queueStartFillColour by setting("Start Fill Colour", Color(1f, 0f, 0f, 0.2f), "The colour to render the faces for queue blocks closer to being broken next", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline && queueFillColourMode == ColourMode.Dynamic })
+    private val queueEndFillColour by setting("End Fill Colour", Color(1f, 1f, 0f, 0.2f), "the colour to render the faces for queue blocks closer to the end of the queue", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline && queueFillColourMode == ColourMode.Dynamic })
+
+    private val queueOutlineColourMode by setting("Outline Mode", ColourMode.Static, "The outline colour mode", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill })
+    private val queueStaticOutlineColour by setting("Static Outline Colour", Color(1f, 0f, 0f), "The colour used to render the outline for queue blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill && queueOutlineColourMode == ColourMode.Static })
+    private val queueStartOutlineColour by setting("Start Outline Colour", Color(1f, 0f, 0f), "The colour to render the outline for queue blocks closer to being broken next", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill && queueOutlineColourMode == ColourMode.Dynamic })
+    private val queueEndOutlineColour by setting("End Outline Colour", Color(1f, 1f, 0f), "the colour to render the outline for queue blocks closer to the end of the queue", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill && queueOutlineColourMode == ColourMode.Dynamic })
+    private val queueOutlineWidth by setting("Outline Width", 1f, 0f..3f, 0.1f, "The thickness of the outline used on queue blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderSetting != RenderSetting.Fill } )
+
 
     private enum class Page {
-        General, Queue, ReBreak, Render
+        General, Queue, ReBreak, BlockRender, QueueRender
     }
 
     private enum class PacketMode {
@@ -169,6 +186,13 @@ object PacketMine : Module(
             this != None
     }
 
+    private enum class RenderQueueMode {
+        None, Cube, Shape;
+
+        fun isEnabled() =
+            this != None
+    }
+
     private enum class RenderSetting {
         Both, Fill, Outline
     }
@@ -181,6 +205,7 @@ object PacketMine : Module(
         Breaking, ReBreaking, AwaitingResponse
     }
 
+    val renderer = DynamicESP
     private var currentMiningBlock: BreakingContext? = null
     private var lastNonEmptyState: BlockState? = null
     private val blockQueue = ArrayDeque<BlockPos>()
@@ -219,7 +244,11 @@ object PacketMine : Module(
             }
 
             if (shouldBePlacedInBlockQueue(it.pos)) {
-                blockQueue.add(it.pos)
+                if (reverseQueueOrder) {
+                    blockQueue.addFirst(it.pos)
+                } else {
+                    blockQueue.add(it.pos)
+                }
                 return@listener
             }
 
@@ -246,7 +275,7 @@ object PacketMine : Module(
             currentMiningBlock?.apply {
                 mineTicks++
 
-                val activeState = world.getBlockState(pos)
+                val activeState = pos.blockState(world)
                 if (activeState != state) state = activeState
 
                 val empty = isStateEmpty(activeState)
@@ -409,11 +438,51 @@ object PacketMine : Module(
         }
 
         listener<RenderEvent.World> {
+            renderer.clear()
+
             currentMiningBlock?.apply {
-                renderer.clear()
                 buildRenders()
-                renderer.upload()
             }
+
+            if (renderQueueMode.isEnabled()) {
+                blockQueue.forEach { pos ->
+                    var boxes = if (renderQueueMode == RenderQueueMode.Shape) {
+                        pos.blockState(world).getOutlineShape(world, pos).boundingBoxes
+                    } else {
+                        listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
+                    }
+                    boxes = boxes.map { val reSized = lerp(Box(it.center, it.center), it, renderQueueSize.toDouble()); reSized.offset(pos) }
+
+                    val indexFactor = blockQueue.indexOf(pos).toDouble() / blockQueue.size.toDouble()
+
+                    val fillColour = if (queueFillColourMode == ColourMode.Static) {
+                        queueStaticFillColour
+                    } else {
+                        lerp(queueStartFillColour, queueEndFillColour, indexFactor)
+                    }
+
+                    val outlineColour = if (queueOutlineColourMode == ColourMode.Static) {
+                        queueStaticOutlineColour
+                    } else {
+                        lerp(queueStartOutlineColour, queueEndOutlineColour, indexFactor)
+                    }
+
+                    boxes.forEach { box ->
+                        val dynamicAABB = DynamicAABB()
+                        dynamicAABB.update(box)
+
+                        if (renderQueueSetting != RenderSetting.Outline) {
+                            renderer.buildFilled(dynamicAABB, fillColour)
+                        }
+
+                        if (renderQueueSetting != RenderSetting.Fill) {
+                            renderer.buildOutline(dynamicAABB, outlineColour)
+                        }
+                    }
+                }
+            }
+
+            renderer.upload()
         }
 
         onDisable {
@@ -441,11 +510,11 @@ object PacketMine : Module(
     private fun SafeContext.startBreaking(pos: BlockPos) {
         if (currentMiningBlock?.pos == pos || blockQueue.contains(pos)) return
 
-        val state = world.getBlockState(pos)
+        val state = pos.blockState(world)
         val bestTool = getBestTool(state, pos)
         lastNonEmptyState = state
 
-        val breakDelta = calcBreakDelta(world.getBlockState(pos), pos, bestTool)
+        val breakDelta = calcBreakDelta(state, pos, bestTool)
         val instaBreak = breakDelta >= breakThreshold
 
         previousSelectedSlot = player.inventory.selectedSlot
@@ -784,7 +853,7 @@ object PacketMine : Module(
 
     private fun SafeContext.filterBlockQueueUntilNextPossible(): BlockPos? {
         while (true) {
-            val block = getNextUncheckedQueueBlock() ?: return null
+            val block = blockQueue.firstOrNull() ?: return null
 
             if (isOutOfRange(block.toCenterPos())) {
                 blockQueue.remove(block)
@@ -795,14 +864,6 @@ object PacketMine : Module(
         }
     }
 
-    private fun getNextUncheckedQueueBlock(): BlockPos? {
-        return if (reverseQueueOrder) {
-            blockQueue.lastOrNull()
-        } else {
-            blockQueue.firstOrNull()
-        }
-    }
-
     private data class BreakingContext(
         val pos: BlockPos,
         var state: BlockState,
@@ -810,7 +871,6 @@ object PacketMine : Module(
         var currentBreakDelta: Float,
         var lastValidBestTool: Int
     ) {
-        val renderer = DynamicESP
         var mineTicks = 0
         var timeCompleted: Long = -1
         var previousBreakDelta = 0f
