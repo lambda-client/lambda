@@ -31,6 +31,7 @@ import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.registry.tag.FluidTags
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.state.property.Properties
+import net.minecraft.text.Text
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -59,14 +60,14 @@ object PacketMine : Module(
     private val autoSwap by setting("Swap Mode", SwapMode.StandardSilent, "Changes the swap method used. For example, silent swaps once at the beginning, and once at the end without updating client side, and constant swaps for the whole break", visibility = { page == Page.General})
     private val packets by setting("Packet Mode", PacketMode.Vanilla, "Chooses different packets to send for each mode", visibility = { page == Page.General })
 
-    private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue }).apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
-    private val reverseQueueOrder by setting("Reverse Queue Order", false, "Breaks the latest addition to the queue first", visibility = { page == Page.Queue && queueBlocks})
-    private val queueBreakDelay by setting("Break Delay", 0, 0..5, 1, "The delay (in ticks) after breaking a block to break the next queue block", visibility = { page == Page.Queue && queueBlocks })
-
     private val reBreak by setting("Re-Break", ReBreakMode.Standard, "The different modes for re-breaking the current block", visibility = { page == Page.ReBreak})
     private val reBreakDelay by setting("Re-Break Delay", 0, 0..10, 1, "The delay (in ticks) between attempting to re-breaking the block", visibility = { page == Page.ReBreak && (reBreak.isAutomatic() || reBreak.isFastAutomatic()) })
     private val emptyReBreakDelay by setting("Empty Re-Break Delay", 0, 0..10, 1, "The delay (in ticks) between attempting to re-break the block if the block is currently empty", visibility = { page == Page.ReBreak && reBreak.isFastAutomatic()})
     private val resetProgressOnBreak by setting("Reset Progress", false, "Resets the mining progress after breaking a block, mostly used on stricter servers", visibility = { page == Page.ReBreak && reBreak.isEnabled() })
+
+    private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue }).apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
+    private val reverseQueueOrder by setting("Reverse Queue Order", false, "Breaks the latest addition to the queue first", visibility = { page == Page.Queue && queueBlocks})
+    private val queueBreakDelay by setting("Break Delay", 0, 0..5, 1, "The delay (in ticks) after breaking a block to break the next queue block", visibility = { page == Page.Queue && queueBlocks })
 
 
     private val breakingAnimation by setting("Breaking Animation", false, "Renders the block breaking animation like vanilla would to show progress", visibility = { page == Page.BlockRender })
@@ -88,12 +89,12 @@ object PacketMine : Module(
     private val renderQueueSetting by setting("Render Setting", RenderSetting.Both, "The style to render queue blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() })
     private val renderQueueSize by setting("Render Size", 0.3f, 0f..1f, 0.01f, "The scale of the queue render blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() })
 
-    private val queueFillColourMode by setting("Fill Mode", ColourMode.Static, "The fill colour mode", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline })
+    private val queueFillColourMode by setting("Fill Mode", ColourMode.Dynamic, visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline })
     private val queueStaticFillColour by setting("Static Fill Colour", Color(1f, 0f, 0f, 0.2f), "The colour used to render the faces for queue blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline && queueFillColourMode == ColourMode.Static })
     private val queueStartFillColour by setting("Start Fill Colour", Color(1f, 0f, 0f, 0.2f), "The colour to render the faces for queue blocks closer to being broken next", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline && queueFillColourMode == ColourMode.Dynamic })
     private val queueEndFillColour by setting("End Fill Colour", Color(1f, 1f, 0f, 0.2f), "the colour to render the faces for queue blocks closer to the end of the queue", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline && queueFillColourMode == ColourMode.Dynamic })
 
-    private val queueOutlineColourMode by setting("Outline Mode", ColourMode.Static, "The outline colour mode", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill })
+    private val queueOutlineColourMode by setting("Outline Mode", ColourMode.Dynamic, visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill })
     private val queueStaticOutlineColour by setting("Static Outline Colour", Color(1f, 0f, 0f), "The colour used to render the outline for queue blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill && queueOutlineColourMode == ColourMode.Static })
     private val queueStartOutlineColour by setting("Start Outline Colour", Color(1f, 0f, 0f), "The colour to render the outline for queue blocks closer to being broken next", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill && queueOutlineColourMode == ColourMode.Dynamic })
     private val queueEndOutlineColour by setting("End Outline Colour", Color(1f, 1f, 0f), "the colour to render the outline for queue blocks closer to the end of the queue", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill && queueOutlineColourMode == ColourMode.Dynamic })
@@ -101,7 +102,7 @@ object PacketMine : Module(
 
 
     private enum class Page {
-        General, Queue, ReBreak, BlockRender, QueueRender
+        General, ReBreak, Queue, BlockRender, QueueRender
     }
 
     private enum class PacketMode {
@@ -276,10 +277,9 @@ object PacketMine : Module(
                 mineTicks++
 
                 val activeState = pos.blockState(world)
-                if (activeState != state) state = activeState
 
                 val empty = isStateEmpty(activeState)
-                if (!empty) lastNonEmptyState = state
+                if (!empty) lastNonEmptyState = activeState
 
                 lastNonEmptyState?.let {
                     lastValidBestTool = getBestTool(it, pos)
@@ -298,11 +298,13 @@ object PacketMine : Module(
                 if ((pauseWhileUsingItems && player.isUsingItem) || pauseForRotation)
                     return@listener
 
-                currentBreakDelta = if (autoSwap.isEnabled()) {
-                    calcBreakDelta(state, pos, lastValidBestTool)
-                } else {
-                    calcBreakDelta(state, pos, player.inventory.selectedSlot)
-                }
+                currentBreakDelta = lastNonEmptyState?.let { lastNonEmptyState ->
+                    if (autoSwap.isEnabled()) {
+                        calcBreakDelta(lastNonEmptyState, pos, lastValidBestTool)
+                    } else {
+                        calcBreakDelta(lastNonEmptyState, pos, player.inventory.selectedSlot)
+                    }
+                } ?: 0f
 
                 if (renderMode.isEnabled()) updateRenders(currentBreakDelta)
 
@@ -381,7 +383,7 @@ object PacketMine : Module(
 
         listener<WorldEvent.BlockUpdate> {
             currentMiningBlock?.apply {
-                if (it.pos != pos || !isStateBroken(state, it.state)) {
+                if (it.pos != pos || !isStateBroken(lastNonEmptyState, it.state)) {
                     return@listener
                 }
 
@@ -512,7 +514,7 @@ object PacketMine : Module(
 
         val state = pos.blockState(world)
         val bestTool = getBestTool(state, pos)
-        lastNonEmptyState = state
+        if (!isStateEmpty(state)) lastNonEmptyState = state
 
         val breakDelta = calcBreakDelta(state, pos, bestTool)
         val instaBreak = breakDelta >= breakThreshold
@@ -809,12 +811,14 @@ object PacketMine : Module(
         currentMiningBlock = null
     }
 
-    private fun isStateBroken(previousState: BlockState, activeState: BlockState) =
-        activeState.isAir || (
-                activeState.fluidState.fluid is WaterFluid
-                        && previousState.properties.contains(Properties.WATERLOGGED)
-                        && previousState.get(Properties.WATERLOGGED)
-                )
+    private fun isStateBroken(previousState: BlockState?, activeState: BlockState) =
+        previousState?.let { previous ->
+            activeState.isAir || (
+                    activeState.fluidState.fluid is WaterFluid
+                            && previous.properties.contains(Properties.WATERLOGGED)
+                            && previous.get(Properties.WATERLOGGED)
+                    )
+        } ?: false
 
     private fun isStateEmpty(state: BlockState) =
         state.isAir || (
@@ -884,8 +888,7 @@ object PacketMine : Module(
         fun updateRenders(newBreakDelta: Float) {
             previousBreakDelta = currentBreakDelta
             currentBreakDelta = newBreakDelta
-            if (renderMode.isEnabled())
-                boxList = state.getOutlineShape(mc.world, pos).boundingBoxes.toSet()
+            boxList = lastNonEmptyState?.getOutlineShape(mc.world, pos)?.boundingBoxes?.toSet()
         }
 
         fun SafeContext.buildRenders() {
