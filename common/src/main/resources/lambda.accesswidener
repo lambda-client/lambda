@@ -49,6 +49,8 @@ accessible class net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPa
 accessible method net/minecraft/network/ClientConnection handlePacket (Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;)V
 accessible field net/minecraft/network/ClientConnection packetsReceivedCounter I
 accessible field net/minecraft/network/ClientConnection packetsSentCounter I
+accessible field net/minecraft/network/packet/c2s/play/PlayerMoveC2SPacket onGround Z
+mutable field net/minecraft/network/packet/c2s/play/PlayerMoveC2SPacket onGround Z
 
 # Other
 accessible field net/minecraft/world/explosion/Explosion behavior Lnet/minecraft/world/explosion/ExplosionBehavior;
