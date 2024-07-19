@@ -1,5 +1,7 @@
 package com.lambda.module.modules.render
 
+import com.lambda.Lambda.mc
+import com.lambda.context.SafeContext
 import com.lambda.event.events.AttackEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RenderEvent
@@ -10,22 +12,25 @@ import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.buffer.vao.vertex.VertexMode
 import com.lambda.graphics.gl.GlStateUtils.withBlendFunc
 import com.lambda.graphics.gl.GlStateUtils.withDepth
+import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.buildWorldProjection
 import com.lambda.graphics.gl.Matrices.withVertexTransform
 import com.lambda.graphics.shader.Shader
+import com.lambda.interaction.rotation.Rotation
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.GuiSettings.colorSpeed
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runSafe
 import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.random
+import com.lambda.util.math.VecUtils
+import com.lambda.util.math.VecUtils.plus
+import com.lambda.util.math.VecUtils.times
 import com.lambda.util.math.transform
 import com.lambda.util.player.MovementUtils.moveDelta
-import com.lambda.util.player.MovementUtils.movementVector
-import com.lambda.util.player.MovementUtils.randomDirection
 import com.lambda.util.primitives.extension.partialTicks
+import com.lambda.util.world.raycast.RayCastMask
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d
 
@@ -38,17 +43,24 @@ object Particles : Module(
     description = "Spawns fancy particles",
     defaultTags = setOf(ModuleTag.RENDER)
 ) {
+    // ToDo: resort, cleanup settings
     private val duration by setting("Duration", 5.0, 1.0..500.0, 1.0)
     private val fadeDuration by setting("Fade Ticks", 5.0, 1.0..30.0, 1.0)
-    private val spawnAmount by setting("Spawn Amount", 30.0, 3.0..500.0, 1.0)
-    private val size by setting("Size", 2.0, 0.1..50.0, 0.1)
+    private val spawnAmount by setting("Spawn Amount", 20, 3..500, 1)
+    private val sizeSetting by setting("Size", 2.0, 0.1..50.0, 0.1)
     private val alphaSetting by setting("Alpha", 1.5, 0.01..2.0, 0.01)
     private val speedH by setting("Speed H", 1.0, 0.0..10.0, 0.1)
     private val speedV by setting("Speed V", 1.0, 0.0..10.0, 0.1)
     private val inertia by setting("Inertia", 0.0, 0.0..1.0, 0.01)
     private val gravity by setting("Gravity", 0.2, 0.0..1.0, 0.01)
+    private val onMove by setting("On Move", false)
 
-    private val onMove by setting("On Move", true)
+    private val environment by setting("Environment", true)
+    private val environmentSpawnAmount by setting("E Spawn Amount", 10, 3..100, 1) { environment }
+    private val environmentSize by setting("E Size", 2.0, 0.1..50.0, 0.1) { environment }
+    private val environmentRange by setting("E Spread", 5.0, 1.0..20.0, 0.1) { environment }
+    private val environmentSpeedH by setting("E Speed H", 0.0, 0.0..10.0, 0.1) { environment }
+    private val environmentSpeedV by setting("E Speed V", 0.1, 0.0..10.0, 0.1) { environment }
 
     private var particles = mutableListOf<Particle>()
     private val vao = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.PARTICLE)
@@ -56,8 +68,8 @@ object Particles : Module(
 
     init {
         listener<TickEvent.Pre> {
-            particles.forEach(Particle::tick)
-            particles.removeIf(Particle::shouldRemove)
+            if (environment) spawnForEnvironment()
+            particles.removeIf(Particle::update)
         }
 
         listener<RenderEvent.World> {
@@ -85,77 +97,91 @@ object Particles : Module(
     }
 
     private fun spawnForEntity(entity: Entity) {
-        repeat(spawnAmount.toInt()) {
-            val i = (it + 1) / spawnAmount
+        repeat(spawnAmount) {
+            val i = (it + 1) / spawnAmount.toDouble()
 
             val pos = entity.pos
             val height = entity.boundingBox.lengthY
             val spawnHeight = height * transform(i, 0.0, 1.0, 0.2, 0.8)
             val particlePos = pos.add(0.0, spawnHeight, 0.0)
+            val particleMotion = Rotation(
+                random(-180.0, 180.0),
+                random(-90.0, 90.0)
+            ).vector * Vec3d(speedH, speedV, speedH) * 0.1
 
-            particles.add(Particle(particlePos))
+            particles += Particle(particlePos, particleMotion, false)
         }
     }
 
-    private class Particle(posIn: Vec3d) {
-        var initTick = 0
-        var maxAge = 0
-        var fadeTicks = fadeDuration
+    private fun SafeContext.spawnForEnvironment() {
+        if (mc.paused) return
+        repeat(environmentSpawnAmount) {
+            var particlePos = player.pos + Rotation(random(-180.0, 180.0), 0.0).vector * random(0.0, environmentRange)
 
-        var shouldRemove = false
+            Rotation.DOWN.rayCast(6.0, particlePos + VecUtils.UP * 2.0, true, RayCastMask.BLOCK)?.pos?.let {
+                particlePos = it + VecUtils.UP * 0.03
+            } ?: return@repeat
 
-        var prevPos = posIn
-        var pos = posIn
+            val particleMotion = Rotation(
+                random(-180.0, 180.0),
+                random(-90.0, 90.0)
+            ).vector * Vec3d(environmentSpeedH, environmentSpeedV, environmentSpeedH) * 0.1
 
-        var motion: Vec3d = Vec3d.ZERO
+            particles += Particle(particlePos, particleMotion, true)
+        }
+    }
 
-        init {
-            runSafe {
-                initTick = player.age
-                maxAge = (duration + random(0.0, 20.0)).toInt()
+    private class Particle(
+        initialPosition: Vec3d,
+        initialMotion: Vec3d,
+        val lay: Boolean
+    ) {
+        private val fadeTicks = fadeDuration
 
+        private var age = 0
+        private val maxAge = (duration + random(0.0, 20.0)).toInt()
 
-                motion = movementVector(randomDirection(), sin(random(0.0, Math.PI)))
-                    .multiply(random(0.0, 1.0), random(0.0, 1.0), random(0.0, 1.0))
-                    .multiply(
-                        speedH * random(0.9, 1.1),
-                        speedV * random(0.9, 1.1),
-                        speedH * random(0.9, 1.1)
-                    ).multiply(0.1)
-            }
+        private var prevPos = initialPosition
+        private var position = initialPosition
+        private var motion = initialMotion
+
+        private val projRotation = if (lay) Matrices.ProjRotationMode.UP else Matrices.ProjRotationMode.TO_CAMERA
+
+        fun update(): Boolean {
+            if (mc.paused) return false
+            age++
+
+            prevPos = position
+
+            if (!lay) motion += VecUtils.DOWN * gravity * 0.01
+            motion *= 0.9 + inertia * 0.1
+
+            position += motion
+
+            return age > maxAge + fadeTicks * 2 + 5
         }
 
-        fun tick() = runSafe {
-            prevPos = pos
-            pos = pos.add(motion)
-
-            motion = motion
-                .subtract(0.0, gravity * 0.01, 0.0)
-                .multiply(0.9 + inertia * 0.1)
-
-            shouldRemove = player.age - initTick > 5.0 + maxAge + fadeTicks * 2
-        }
-
-        fun build() = runSafe {
-            val age = player.age - initTick + mc.partialTicks
-            val colorTicks = age * 0.1 / colorSpeed
+        fun build() {
+            val smoothAge = age + mc.partialTicks
+            val colorTicks = smoothAge * 0.1 / colorSpeed
 
             val alpha = when {
-                age < fadeTicks -> age / fadeTicks
-                age in fadeTicks..fadeTicks + maxAge -> 1.0
+                smoothAge < fadeTicks -> smoothAge / fadeTicks
+                smoothAge in fadeTicks..fadeTicks + maxAge -> 1.0
                 else -> {
                     val min = fadeTicks + maxAge
                     val max = fadeTicks * 2 + maxAge
-                    transform(age, min, max, 1.0, 0.0)
+                    transform(smoothAge, min, max, 1.0, 0.0)
                 }
-            } * alphaSetting
+            }
 
             val (c1, c2) = GuiSettings.primaryColor to GuiSettings.secondaryColor
-            val color = lerp(c1, c2, sin(colorTicks) * 0.5 + 0.5).multAlpha(alpha)
+            val color = lerp(c1, c2, sin(colorTicks) * 0.5 + 0.5).multAlpha(alpha * alphaSetting)
 
-            val position = lerp(prevPos, pos, mc.partialTicks)
+            val position = lerp(prevPos, position, mc.partialTicks)
+            val size = if (lay) environmentSize else sizeSetting * lerp(0.5, 1.0, alpha)
 
-            withVertexTransform(buildWorldProjection(position, size)) {
+            withVertexTransform(buildWorldProjection(position, size, projRotation)) {
                 vao.use {
                     grow(4) // DO NOT FUCKING FORGOTEOIJTOWKET TO GROW (cost me an hour)
                     putQuad(

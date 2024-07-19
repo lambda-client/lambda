@@ -5,8 +5,7 @@ import com.lambda.event.EventFlow.post
 import com.lambda.event.events.RenderEvent
 import com.lambda.graphics.gl.GlStateUtils.setupGL
 import com.lambda.graphics.gl.Matrices
-import com.lambda.graphics.gl.Matrices.resetMatrix
-import com.lambda.graphics.gl.Matrices.translate
+import com.lambda.graphics.gl.Matrices.resetMatrices
 import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.module.modules.client.GuiSettings
@@ -22,8 +21,7 @@ object RenderMain {
 
     @JvmStatic
     fun render2D() {
-        resetMatrix()
-        translate(0.0, 0.0, -3000.0)
+        resetMatrices(Matrix4f().translate(0f, 0f, -3000f))
 
         setupGL {
             rescale(1.0)
@@ -36,7 +34,7 @@ object RenderMain {
 
     @JvmStatic
     fun render3D(matrix: Matrix4f) {
-        resetMatrix(matrix)
+        resetMatrices(matrix)
         projectionMatrix.set(getProjectionMatrix())
 
         setupGL {
