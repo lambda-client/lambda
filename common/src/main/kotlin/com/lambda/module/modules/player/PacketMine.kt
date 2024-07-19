@@ -31,7 +31,6 @@ import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.registry.tag.FluidTags
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.state.property.Properties
-import net.minecraft.text.Text
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -504,6 +503,7 @@ object PacketMine : Module(
             reBreakDelayCounter = 0
             emptyReBreakDelayCounter = 0
             rotated = false
+            onRotationComplete = null
             waitingToReleaseRotation = false
             cancelNextSwing = false
         }
