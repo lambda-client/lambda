@@ -7,14 +7,14 @@ feature:
 triage:
   - '/.*/'
 
-Fabric:
+fabric:
   - 'all'
   - '\b([Ff][Aa][Bb][Rr][Ii][Cc])\b'
 
-Forge:
+forge:
   - '\b([Ff][Oo][Rr][Gg][Ee])\b'
 
-NeoForge:
+neoforge:
   - '\b([Nn][Ee][Oo][Ff][Oo][Rr][Gg][Ee])\b'
 
 "1.20":
