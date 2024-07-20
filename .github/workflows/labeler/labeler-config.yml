@@ -1,6 +1,9 @@
 bug:
   - 'bug'
 
+feature:
+  - 'feature'
+
 triage:
   - '/.*/'
 
@@ -9,13 +12,10 @@ fabric:
   - '\b([Ff][Aa][Bb][Rr][Ii][Cc])\b'
 
 forge:
-  - 'all'
   - '\b([Ff][Oo][Rr][Gg][Ee])\b'
 
 neoforge:
-  - 'all'
   - '\b([Nn][Ee][Oo][Ff][Oo][Rr][Gg][Ee])\b'
 
 "1.20":
-  - 'any'
   - '1\.20(\.\d+|\.x)?'
