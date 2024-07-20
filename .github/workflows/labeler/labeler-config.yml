@@ -8,7 +8,6 @@ triage:
   - '/.*/'
 
 fabric:
-  - 'all'
   - '\b([Ff][Aa][Bb][Rr][Ii][Cc])\b'
 
 forge:
