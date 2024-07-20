@@ -1,11 +1,11 @@
 name: Pull Request Labeler
 on:
   issues:
-    types: [opened]
+    types: [opened, edited]
     branches:
       - master
   pull_request:
-    types: [opened]
+    types: [opened, edited]
     branches:
       - master
 
