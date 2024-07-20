@@ -225,6 +225,7 @@ object PacketMine : Module(
     private var onRotationComplete: Runnable? = null
     private var waitingToReleaseRotation = false
     private var cancelNextSwing = false
+    private var instaBreaksPerTickCounter = 0
 
     init {
         listener<InteractionEvent.BlockAttack.Pre> {
@@ -506,6 +507,7 @@ object PacketMine : Module(
             onRotationComplete = null
             waitingToReleaseRotation = false
             cancelNextSwing = false
+            instaBreaksPerTickCounter = 0
         }
     }
 
@@ -527,6 +529,8 @@ object PacketMine : Module(
             currentMiningBlock = BreakingContext(pos, state, BreakState.Breaking, breakDelta, bestTool)
 
             if (!instaBreak) return@runBetweenHandlers
+
+            instaBreaksPerTickCounter++
 
             packetStopBreak(pos)
             if (reBreak.isEnabled()) packetStartBreak(pos)
@@ -677,6 +681,8 @@ object PacketMine : Module(
         player.swingHand(Hand.MAIN_HAND)
 
     private fun updateCounters() {
+        instaBreaksPerTickCounter = 0
+
         if (reBreakDelayCounter > 0) {
             reBreakDelayCounter--
         }
@@ -842,7 +848,7 @@ object PacketMine : Module(
         if (!queueBlocks) return false
 
         filterBlockQueueUntilNextPossible()?.apply {
-            if (queueBreakStartCounter <= 0) {
+            if (queueBreakStartCounter <= 0 && instaBreaksPerTickCounter <= 0) {
                 blockQueue.remove(this)
                 startBreaking(this)
             } else {
