@@ -35,12 +35,11 @@ body:
       default: 0
     validations:
       required: true
-  - type: textarea
+  - type: input
     id: logs
     attributes:
       label: Log Output
       description: Please copy the entire log file located in `.minecraft/logs/latest.log` to [MCLogs](https://mclo.gs) and provide the link here.
-      render: shell
   - type: checkboxes
     id: terms
     attributes:
