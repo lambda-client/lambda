@@ -109,7 +109,7 @@ data class Rotation(val yaw: Double, val pitch: Double) {
             return Rotation(yaw, pitch)
         }
 
-        fun Rotation.distance(b: Rotation) =
+        infix fun Rotation.dist(b: Rotation) =
             hypot(
                 wrap(yaw - b.yaw),
                 wrap(pitch - b.pitch)
