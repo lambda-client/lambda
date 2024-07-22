@@ -250,8 +250,6 @@ object PacketMine : Module(
     private var breaksPerTickCounter = 0
     private var swingingNextAttack = true
 
-    //ToDo: Fix swing on mode start, tbh just find a better way to implement swing cancelling, maybe a different place to listen for block attacks?
-
     init {
         listener<InteractionEvent.BreakingProgress.Pre> {
             swingingNextAttack = false
