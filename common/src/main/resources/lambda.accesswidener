@@ -18,6 +18,7 @@ accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Ln
 accessible method net/minecraft/entity/Entity movementInputToVelocity (Lnet/minecraft/util/math/Vec3d;FF)Lnet/minecraft/util/math/Vec3d;
 accessible method net/minecraft/entity/passive/AbstractHorseEntity setHorseFlag (IZ)V
 accessible method net/minecraft/entity/passive/AbstractHorseEntity updateSaddle ()V
+accessible field net/minecraft/entity/LivingEntity lastAttackedTicks I
 
 # Camera
 accessible method net/minecraft/client/render/Camera setPos (DDD)V

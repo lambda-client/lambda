@@ -4,9 +4,13 @@ import com.lambda.Lambda.mc
 import com.lambda.threading.runSafe
 import com.lambda.util.math.MathUtils.toDegree
 import com.lambda.util.math.MathUtils.toRadian
+import com.lambda.util.math.Vec2d
+import com.lambda.util.math.VecUtils.plus
+import com.lambda.util.math.VecUtils.times
 import com.lambda.util.world.raycast.RayCastMask
 import com.lambda.util.world.raycast.RayCastUtils.rayCast
 import net.minecraft.entity.Entity
+import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
@@ -40,6 +44,15 @@ data class Rotation(val yaw: Double, val pitch: Double) {
         mask: RayCastMask = RayCastMask.BOTH,
     ) = runSafe {
         rayCast(eye ?: player.eyePos, vector, reach, mask, fluids)
+    }
+
+    fun castBox(
+        box: Box,
+        reach: Double,
+        eye: Vec3d? = null
+    ) = runSafe {
+        val eyeVec = eye ?: player.eyePos
+        box.raycast(eyeVec, eyeVec + vector * reach).orElse(null)
     }
 
     val Direction.yaw: Float
@@ -79,20 +92,16 @@ data class Rotation(val yaw: Double, val pitch: Double) {
             return Rotation(yaw, pitch)
         }
 
-        fun Rotation.fixSensitivity(last: Rotation): Rotation {
+        fun Rotation.fixSensitivity(prev: Rotation): Rotation {
             val f = mc.options.mouseSensitivity.value * 0.6 + 0.2
-            val step = f * f * f * 8.0 * 0.15F
+            val gcd = f * f * f * 8.0 * 0.15F
 
-            val deltaYaw = yaw - last.yaw
-            var fixedYaw = (deltaYaw / step).roundToInt() * step
-            fixedYaw += last.yaw
+            val r1 = Vec2d(prev.yaw, prev.pitch)
+            val r2 = Vec2d(this.yaw, this.pitch)
+            val delta = ((r2 - r1) / gcd).roundToInt() * gcd
+            val fixed = r1 + delta
 
-            val deltaPitch = pitch - last.pitch
-            var fixedPitch = (deltaPitch / step).roundToInt() * step
-            fixedPitch += last.pitch
-            fixedPitch = fixedPitch.coerceIn(-90.0, 90.0)
-
-            return Rotation(fixedYaw, fixedPitch)
+            return Rotation(fixed.x, fixed.y.coerceIn(-90.0, 90.0))
         }
 
         fun Vec3d.rotationTo(vec: Vec3d): Rotation {

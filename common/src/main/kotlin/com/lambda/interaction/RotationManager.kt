@@ -2,6 +2,7 @@ package com.lambda.interaction
 
 import com.lambda.Lambda.mc
 import com.lambda.config.groups.RotationSettings
+import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.*
@@ -9,6 +10,7 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.angleDifference
+import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
 import com.lambda.interaction.rotation.Rotation.Companion.slerp
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
@@ -33,17 +35,43 @@ object RotationManager : Loadable {
     private var keepTicks = 0
     private var pauseTicks = 0
 
-    init {
-        listener<TickEvent.Pre> {
-            RotationEvent.Update(BaritoneProcessor.poolContext()).post {
-                rotate(context)
+    fun Any.requestRotation(
+        priority: Int = 0,
+        alwaysListen: Boolean = false,
+        onUpdate: SafeContext.() -> RotationContext?,
+        onReceive: SafeContext.() -> Unit
+    ) {
+        var lastCtx: RotationContext? = null
 
-                currentContext?.let {
-                    RotationEvent.Post(it).post()
-                }
+        this.listener<RotationEvent.Update>(priority, alwaysListen) { event ->
+            val rotationContext = onUpdate()
+
+            rotationContext?.let {
+                event.context = it
             }
+
+            lastCtx = rotationContext
         }
 
+        this.listener<RotationEvent.Post> { event ->
+            if (event.context == lastCtx && event.context.isValid) {
+                onReceive()
+            }
+        }
+    }
+
+    @JvmStatic
+    fun update() = runSafe {
+        RotationEvent.Update(BaritoneProcessor.poolContext()).post {
+            rotate(context)
+
+            currentContext?.let {
+                RotationEvent.Post(it).post()
+            }
+        }
+    }
+
+    init {
         listener<PacketEvent.Send.Post> { event ->
             val packet = event.packet
             if (packet !is PlayerPositionLookS2CPacket) return@listener
@@ -85,6 +113,7 @@ object RotationManager : Loadable {
 
             currentRotation
                 .slerp(rotationTo, turnSpeed)
+                .fixSensitivity(prevRotation)
                 .apply {
                     if (context.config.rotationMode != RotationMode.LOCK) return@apply
                     player.yaw = this.yawF

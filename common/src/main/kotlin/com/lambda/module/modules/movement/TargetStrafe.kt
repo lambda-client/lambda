@@ -1,20 +1,15 @@
 package com.lambda.module.modules.movement
 
-import com.lambda.config.groups.IRotationConfig
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.rotation.RotationContext
-import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
+import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.player.MovementUtils.buildMovementInput
 import com.lambda.util.player.MovementUtils.mergeFrom
-import com.lambda.util.world.WorldUtils.getClosestEntity
-import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.decoration.ArmorStandEntity
 import kotlin.math.pow
 
 object TargetStrafe : Module(
@@ -22,8 +17,7 @@ object TargetStrafe : Module(
     description = "Automatically strafes around entities",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
-    private val range by setting("Range", 6.0, 2.0..10.0, 0.1)
-    private val targetDistance by setting("Target Distance", 1.0, 0.0..5.0, 0.1)
+    private val targetDistance by setting("Strafe Distance", 1.0, 0.0..5.0, 0.1)
     private val jitterCompensation by setting("Jitter Compensation", 0.0, 0.0..1.0, 0.1)
     private val stabilize by setting("Stabilize", StabilizationMode.NORMAL)
 
@@ -31,35 +25,23 @@ object TargetStrafe : Module(
         NONE, WEAK, NORMAL, STRONG
     }
 
-    private var targetEntity: LivingEntity? = null
-
     private var forwardDirection = 1
     private var strafeDirection = 1
 
-    private val rotationConfig = object : IRotationConfig.Instant {
-        override val rotationMode = RotationMode.SYNC
-    }
-
-    @JvmStatic val isActive get() = isEnabled && targetEntity != null
+    @JvmStatic val isActive get() = isEnabled && KillAura.isEnabled && KillAura.target != null
 
     init {
         listener<TickEvent.Post> {
-            // ToDo: Use KillAura.target instead
-            targetEntity = getClosestEntity<LivingEntity>(
-                player.pos, range,
-                predicate = { e -> e !is ArmorStandEntity }
-            )
-
             if (player.horizontalCollision) strafeDirection *= -1
 
-            if (targetEntity == null) {
+            if (KillAura.target == null) {
                 forwardDirection = 1
                 strafeDirection = 1
             }
         }
 
         listener<RotationEvent.StrafeInput> { event ->
-            targetEntity?.let { target ->
+            KillAura.target?.let { target ->
                 event.strafeYaw = player.eyePos.rotationTo(target.boundingBox.center).yaw
 
                 val distSq = player.pos distSq target.pos
@@ -94,17 +76,7 @@ object TargetStrafe : Module(
             }
         }
 
-        listener<RotationEvent.Update> { event ->
-            targetEntity?.let {
-                event.context = RotationContext(
-                    player.eyePos.rotationTo(it.boundingBox.center),
-                    rotationConfig
-                )
-            }
-        }
-
         onEnable {
-            targetEntity = null
             forwardDirection = 1
             strafeDirection = 1
         }
