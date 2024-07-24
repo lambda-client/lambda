@@ -781,10 +781,12 @@ object PacketMine : Module(
         val screenHandler = player.playerScreenHandler
         var itemStack = player.mainHandStack
         var newSlot = slot
+        var fromSlot = player.inventory.selectedSlot
 
         if (returningToOriginalSlot) {
             newSlot = swappedSlot
-            itemStack = player.inventory.getStack(swappedSlot)
+            itemStack = player.inventory.getStack(returnSlot)
+            fromSlot = returnSlot
         }
 
         connection.sendPacket(
@@ -792,7 +794,7 @@ object PacketMine : Module(
                 screenHandler.syncId,
                 screenHandler.revision,
                 newSlot + 36,
-                player.inventory.selectedSlot,
+                fromSlot,
                 SlotActionType.SWAP,
                 itemStack,
                 Int2ObjectArrayMap()
