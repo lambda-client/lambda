@@ -758,6 +758,7 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.swapTo(slot: Int) {
+        if (swapped && swapMethod.isNCPSilent()) returnToOriginalSlot()
         if (returnSlot == -1) {
             returnSlot = player.inventory.selectedSlot
         }
