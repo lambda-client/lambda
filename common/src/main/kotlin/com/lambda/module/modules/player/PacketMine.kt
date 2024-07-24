@@ -549,6 +549,7 @@ object PacketMine : Module(
             waitingToReleaseRotation = false
             cancelNextSwing = false
             breaksPerTickCounter = 0
+            swingingNextAttack = true
         }
     }
 
