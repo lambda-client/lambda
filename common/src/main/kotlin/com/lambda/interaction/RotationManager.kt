@@ -226,8 +226,12 @@ object RotationManager : Loadable {
             // No changes are needed when no inputs are pressed
             if (signForward == 0f && signStrafe == 0f) return@runSafe
 
-            // Actual yaw used to move the player
-            val actualYaw = currentRotation.yaw
+            // Actual yaw used by the physics engine
+            var actualYaw = currentRotation.yaw
+
+            if (currentContext?.config?.rotationMode == RotationMode.SILENT) {
+                actualYaw = player.yaw.toDouble()
+            }
 
             val yawRad = (movementYaw - actualYaw).toRadian()
 
