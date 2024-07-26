@@ -225,8 +225,8 @@ object WorldUtils {
     inline fun iteratePositions(
         pos: FastVector,
         range: FastVector,
-        step: FastVector,
-        iterator: (FastVector, Int) -> Unit,
+        step: FastVector = 274945015809L,
+        iterator: (FastVector, Int) -> Unit = { _, _ -> },
     ) {
         var index = 0
 
