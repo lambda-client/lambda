@@ -1,18 +1,15 @@
 package com.lambda.util.world
 
 import com.lambda.context.SafeContext
-import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.collections.filterPointer
-import net.minecraft.block.Block
+import com.lambda.util.primitives.extension.getBlockState
+import com.lambda.util.primitives.extension.getFluidState
 import net.minecraft.block.BlockState
 import net.minecraft.entity.Entity
 import net.minecraft.fluid.Fluid
 import net.minecraft.fluid.FluidState
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.Vec3i
 import kotlin.math.ceil
 
 /**
@@ -33,16 +30,14 @@ import kotlin.math.ceil
  * When you create a new object, the JVM allocates memory for it on the heap.
  * When it is no longer needed, the garbage collector frees up the memory.
  * This process **IS** expensive, especially if you are creating and discarding many objects
- * in a short period of time, for example, when retrieving all the 200 pigs in your farm every game tick.
+ *
+ * Please note that the author of this code currently does not have any certifications in the field of computer science.
+ * Simply plain old experience and knowledge.
  *
  * @see <a href="https://www.ibm.com/docs/en/i/7.4?topic=calls-pass-by-reference">IBM - Pass By Reference</a>
  * @see <a href="https://www.cs.fsu.edu/~myers/c++/notes/references.html">Florida State University - Pass By Reference vs. Pass By Value</a>
  * @see <a href="https://www.ibm.com/docs/no/aix/7.2?topic=monitoring-garbage-collection-impacts-java-performance">IBM - Garbage Collection Impacts on Java Performance</a>
  * @see <a href="https://devdiaries.medium.com/gc-and-its-effect-on-java-performance-9cba51ffb196">Medium - GC and Its Effect on Java Performance</a>
- *
- * Many functions uses a branching approach to avoid trolling the speculative execution of the CPU.
- * @see <a href="https://en.wikipedia.org/wiki/Branch_predictor for more information.">Branch Predictor</a>
- * @see <a href="https://en.wikipedia.org/wiki/Speculative_execution">Speculative Execution</a>
  */
 object WorldUtils {
     /**
@@ -60,7 +55,6 @@ object WorldUtils {
         pos: Vec3d,
         range: Double,
         predicate: (T) -> Boolean = { true },
-        type: Class<out T> = T::class.java,
     ): T? {
         var closest: T? = null
         var closestDistance = Double.MAX_VALUE
@@ -112,7 +106,6 @@ object WorldUtils {
         pointer: MutableList<T>? = null,
         iterator: (T, Int) -> Unit = { _, _ -> },
         predicate: (T) -> Boolean = { true },
-        type: Class<out T> = T::class.java,
     ) {
         val chunks = ceil(distance / 16).toInt()
         val sectionX = pos.x.toInt() shr 4
@@ -156,7 +149,6 @@ object WorldUtils {
         pointer: MutableList<T>? = null,
         iterator: (T, Int) -> Unit = { _, _ -> },
         predicate: (T) -> Boolean = { true },
-        type: Class<out T> = T::class.java,
     ) {
         world.entities.filterPointer(pointer, iterator) { entity ->
             entity != player &&
@@ -169,49 +161,26 @@ object WorldUtils {
      * Returns all the blocks and positions within the range where the predicate is true.
      *
      * @param pos The position to search from.
-     * @param rangeX The maximum distance to search for entities in the x-axis.
-     * @param rangeY The maximum distance to search for entities in the y-axis.
-     * @param rangeZ The maximum distance to search for entities in the z-axis.
-     * @param pointer The mutable map to store the positions to blocks in.
-     * @param predicate Predicate to filter the blocks.
-     * @param iterator Iterator to perform operations on each block.
-     */
-    inline fun SafeContext.searchBlocks(
-        pos: Vec3i,
-        rangeX: Int,
-        rangeY: Int,
-        rangeZ: Int,
-        pointer: MutableMap<BlockPos, Block>? = null,
-        predicate: (BlockState, BlockPos) -> Boolean = { _, _ -> true },
-        iterator: (BlockState, BlockPos, Int) -> Unit = { _, _, _ -> },
-    ) = searchBlocks(pos, Vec3i(rangeX, rangeY, rangeZ), pointer, predicate, iterator)
-
-    /**
-     * Returns all the blocks and positions within the range where the predicate is true.
-     *
-     * @param pos The position to search from.
      * @param range The maximum distance to search for entities in each axis.
      * @param pointer The mutable map to store the positions to blocks in.
      * @param iterator Iterator to perform operations on each block.
      * @param predicate Predicate to filter the blocks.
      */
     inline fun SafeContext.searchBlocks(
-        pos: Vec3i,
-        range: Vec3i,
-        pointer: MutableMap<BlockPos, Block>? = null,
-        predicate: (BlockState, BlockPos) -> Boolean = { _, _ -> true },
-        iterator: (BlockState, BlockPos, Int) -> Unit = { _, _, _ -> },
+        pos: FastVector,
+        range: FastVector,
+        step: FastVector = 274945015809L,
+        pointer: MutableMap<FastVector, BlockState>? = null,
+        predicate: (FastVector, BlockState, Int) -> Boolean = { _, _, _ -> true },
+        iterator: (FastVector, BlockState, Int) -> Unit = { _, _, _ -> },
     ) {
-        iteratePositions(pos, range) { blockPos, index ->
-            val state = blockPos.blockState(world)
-            when {
-                predicate(state, blockPos) && pointer != null -> {
-                    pointer[blockPos] = state.block
-                    iterator(state, blockPos, index)
-                }
+        iteratePositions(pos, range, step) { position, index ->
+            world.getBlockState(position.xInt, position.yInt, position.zInt).let { state ->
+                val fulfilled = predicate(position, state, index)
 
-                predicate(state, blockPos) && pointer == null -> {
-                    iterator(state, blockPos, index)
+                if (fulfilled && pointer != null) {
+                    pointer[position] = state
+                    iterator(position, state, index)
                 }
             }
         }
@@ -227,22 +196,20 @@ object WorldUtils {
      * @param predicate Predicate to filter the fluids.
      */
     inline fun <reified T : Fluid> SafeContext.searchFluids(
-        pos: Vec3i,
-        range: Vec3i,
-        pointer: MutableMap<BlockPos, T>? = null,
-        iterator: (FluidState, BlockPos, Int) -> Unit = { _, _, _ -> },
-        predicate: (FluidState, BlockPos) -> Boolean = { _, _ -> true },
+        pos: FastVector,
+        range: FastVector,
+        step: FastVector = 274945015809L,
+        pointer: MutableMap<FastVector, T>? = null,
+        predicate: (FastVector, FluidState, Int) -> Boolean = { _, _, _ -> true },
+        iterator: (FastVector, FluidState, Int) -> Unit = { _, _, _ -> },
     ) {
-        iteratePositions(pos, range) { blockPos, index ->
-            val state = world.getFluidState(blockPos)
-            when {
-                predicate(state, blockPos) && pointer != null -> {
-                    iterator(state, blockPos, index)
-                    pointer[blockPos] = state.fluid as T
-                }
+        iteratePositions(pos, range, step) { position, index ->
+            world.getFluidState(position.xInt, position.yInt, position.zInt).let { state ->
+                val fulfilled = predicate(position, state, index)
 
-                predicate(state, blockPos) && pointer == null -> {
-                    iterator(state, blockPos, index)
+                if (fulfilled && pointer != null) {
+                    pointer[position] = state.fluid as T
+                    iterator(position, state, index)
                 }
             }
         }
@@ -252,16 +219,27 @@ object WorldUtils {
      * Iterates over all positions within the specified range.
      * @param pos The position to start from.
      * @param range The maximum distance to search for entities in each axis.
+     * @param step The step to increment the position by.
      * @param iterator Iterator to perform operations on each position.
      */
     inline fun iteratePositions(
-        pos: Vec3i,
-        range: Vec3i,
-        iterator: (BlockPos, Int) -> Unit,
+        pos: FastVector,
+        range: FastVector,
+        step: FastVector,
+        iterator: (FastVector, Int) -> Unit,
     ) {
-        BlockPos.iterateOutwards(pos.blockPos, range.x, range.y, range.z)
-            .forEachIndexed { index, blockPos ->
-                iterator(blockPos, index)
+        var index = 0
+
+        for (x in -range.x..range.x step step.x) {
+            for (y in -range.y..range.y step step.y) {
+                for (z in -range.z..range.z step step.z) {
+                    iterator(
+                        pos.add(fastVectorOf(x, y, z)),
+                        index++
+                    )
+                }
             }
+        }
     }
 }
+
