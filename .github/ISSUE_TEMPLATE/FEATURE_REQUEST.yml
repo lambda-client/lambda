@@ -28,7 +28,8 @@ body:
       label: Pull Request
       description: Will you be submitting a pull request for this feature?
       options:
-        - label: Yes
+        - label: I will be submitting a pull request
+          required: true
   - type: checkboxes
     id: terms
     attributes:
