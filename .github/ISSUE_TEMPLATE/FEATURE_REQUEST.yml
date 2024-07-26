@@ -1,5 +1,5 @@
-name: Feature Request
-description: Request a new feature.
+name: Feature
+description: Request or implement a feature.
 title: "[Version] [Mod Loader] [Feature]: "
 assignees:
   - Edouard127
@@ -7,14 +7,12 @@ body:
   - type: markdown
     attributes:
       value: |
-        We appreciate you taking the time to request a feature. Please fill out the information below to the best of your ability.
-        Before submitting your issue, please check to see if it has already been requested.
+        Before submitting your feature, please check to see if it has already been requested.
   - type: textarea
     id: feature-idea
     attributes:
-      label: Feature Idea
-      placeholder: Tell us what feature you would like to see
-      value: "I would like to see a new feature that allows me to do X"
+      label: Feature
+      value: "I would like to implement a feature that..."
     validations:
       required: true
   - type: textarea
@@ -28,7 +26,6 @@ body:
       label: Pull Request
       options:
         - label: I will be submitting a pull request
-          required: true
   - type: checkboxes
     id: terms
     attributes:
