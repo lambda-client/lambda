@@ -101,6 +101,11 @@ fun fastVectorOf(x: Long, y: Long, z: Long): FastVector =
 fun fastVectorOf(x: Int, y: Int, z: Int): FastVector = fastVectorOf(x.toLong(), y.toLong(), z.toLong())
 
 /**
+ * Creates a new position from the given Vec3d.
+ */
+fun fastVectorOf(pos: Vec3d): FastVector = fastVectorOf(pos.x.toLong(), pos.y.toLong(), pos.z.toLong())
+
+/**
  * Encodes the vector as a position.
  * @return The encoded position.
  */
