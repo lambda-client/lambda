@@ -1,0 +1,39 @@
+name: Feature Request
+description: Request a new feature.
+title: "[Version] [Mod Loader] [Feature]: "
+assignees:
+  - Edouard127
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We appreciate you taking the time to request a feature. Please fill out the information below to the best of your ability.
+        Before submitting your issue, please check to see if it has already been requested.
+  - type: textarea
+    id: feature-idea
+    attributes:
+      label: Feature Idea
+      placeholder: Tell us what feature you would like to see
+      value: "I would like to see a new feature that allows me to do X"
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional Information
+      description: Is there anything else you would like to add?
+  - type: checkboxes
+    id: pr
+    attributes:
+      label: Pull Request
+      description: Will you be submitting a pull request for this feature?
+      options:
+        - label: Yes
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/lambda-client/lambda/blob/master/.github/CODE_OF_CONDUCT.md).
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
