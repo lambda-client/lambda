@@ -55,6 +55,7 @@ object Blink : Module(
 
         listener<PacketEvent.Send.Pre> { event ->
             if (!isActive) return@listener
+            if (!connection.connection.isOpen) return@listener
 
             packetPool.add(event.packet)
             event.cancel()
@@ -63,6 +64,8 @@ object Blink : Module(
 
         listener<PacketEvent.Receive.Pre> { event ->
             if (!isActive || !shiftVelocity) return@listener
+            if (!connection.connection.isOpen) return@listener
+            if (connection.connection.packetListener?.accepts(event.packet) == false) return@listener
 
             if (event.packet !is EntityVelocityUpdateS2CPacket) return@listener
             if (event.packet.id != player.id) return@listener
@@ -81,6 +84,7 @@ object Blink : Module(
         while (packetPool.isNotEmpty()) {
             packetPool.poll().let { packet ->
                 connection.sendPacketSilently(packet)
+                connection.connection.packetsSentCounter++
 
                 if (packet is PlayerMoveC2SPacket && packet.changesPosition()) {
                     lastBox = player.boundingBox
@@ -92,6 +96,7 @@ object Blink : Module(
 
         lastVelocity?.let { velocity ->
             ClientConnection.handlePacket(velocity, connection.connection.packetListener)
+            connection.connection.packetsReceivedCounter++
             lastVelocity = null
         }
     }
