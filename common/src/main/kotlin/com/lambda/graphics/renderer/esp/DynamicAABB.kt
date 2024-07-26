@@ -12,13 +12,15 @@ class DynamicAABB {
     private var prev: Box? = null
     private var curr: Box? = null
 
-    fun update(box: Box) {
+    fun update(box: Box): DynamicAABB {
         prev = curr
         curr = box
 
         if (prev == null) {
             prev = box
         }
+
+        return this
     }
 
     fun reset() {

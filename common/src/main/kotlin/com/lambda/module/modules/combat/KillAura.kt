@@ -61,13 +61,14 @@ object KillAura : Module(
     private val targeting = Targeting.Combat(this) { page == Page.Targeting }
 
     // Aiming
-    private val rotation = RotationSettings(this) { page == Page.Aiming }
-    private val stabilize by setting("Stabilize", true) { page == Page.Aiming && !rotation.instant }
-    private val centerFactor by setting("Center Factor", 0.4, 0.0..1.0, 0.01) { page == Page.Aiming }
-    private val shakeFactor by setting("Shake Factor", 0.4, 0.0..1.0, 0.01) { page == Page.Aiming }
-    private val shakeChance by setting("Shake Chance", 0.2, 0.05..1.0, 0.01) { page == Page.Aiming && shakeFactor > 0.0 }
-    private val selfPredict by setting("Self Predict", 1.0, 0.0..2.0, 0.1) { page == Page.Aiming }
-    private val targetPredict by setting("Target Predict", 0.0, 0.0..2.0, 0.1) { page == Page.Aiming }
+    private val rotate by setting("Rotate", true) { page == Page.Aiming }
+    private val rotation = RotationSettings(this) { page == Page.Aiming && rotate }
+    private val stabilize by setting("Stabilize", true) { page == Page.Aiming && !rotation.instant && rotate }
+    private val centerFactor by setting("Center Factor", 0.4, 0.0..1.0, 0.01) { page == Page.Aiming && rotate }
+    private val shakeFactor by setting("Shake Factor", 0.4, 0.0..1.0, 0.01) { page == Page.Aiming && rotate }
+    private val shakeChance by setting("Shake Chance", 0.2, 0.05..1.0, 0.01) { page == Page.Aiming && shakeFactor > 0.0 && rotate }
+    private val selfPredict by setting("Self Predict", 1.0, 0.0..2.0, 0.1) { page == Page.Aiming && rotate }
+    private val targetPredict by setting("Target Predict", 0.0, 0.0..2.0, 0.1) { page == Page.Aiming && rotate }
 
     var target: LivingEntity? = null; private set
 
@@ -96,6 +97,8 @@ object KillAura : Module(
     init {
         requestRotation(
             onUpdate = {
+                if (!rotate) return@requestRotation null
+
                 target?.let { target ->
                     buildRotation(target)
                 }
@@ -116,6 +119,12 @@ object KillAura : Module(
         listener<TickEvent.Pre> {
             target = targeting.getTarget()
             if (!timerSync) attackTicks++
+
+            if (!rotate) {
+                target?.let { entity ->
+                    runAttack(entity)
+                }
+            }
         }
 
         runConcurrent {
@@ -252,6 +261,7 @@ object KillAura : Module(
 
         // Rotation check
         run {
+            if (!rotate) return@run
             val angle = RotationManager.currentRotation
 
             if (interactionSettings.useRayCast) {

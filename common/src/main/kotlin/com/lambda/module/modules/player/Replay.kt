@@ -548,7 +548,7 @@ object Replay : Module(
         val size: Int
             get() = minOf(input.size, rotation.size, sprint.size, position.size)
         val duration: Duration
-            get() = (size * TimerManager.tickLength * 1.0).toDuration(DurationUnit.MILLISECONDS)
+            get() = (size * TimerManager.lastTickLength * 1.0).toDuration(DurationUnit.MILLISECONDS)
         val startPos: Vec3d
             get() = position.firstOrNull() ?: Vec3d.ZERO
         val endPos: Vec3d
