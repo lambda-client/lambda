@@ -10,9 +10,10 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.math.ColorUtils.setAlpha
-import net.minecraft.network.ClientConnection
+import net.minecraft.network.listener.ServerPacketListener
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
@@ -31,7 +32,7 @@ object Blink : Module(
 
     private val isActive get() = (KillAura.isEnabled && KillAura.target != null) || !requiresAura
 
-    private var packetPool = ConcurrentLinkedDeque<Packet<*>>()
+    private var packetPool = ConcurrentLinkedDeque<Packet<out ServerPacketListener>>()
     private var lastVelocity: EntityVelocityUpdateS2CPacket? = null
     private var lastUpdate = 0L
 
@@ -64,8 +65,6 @@ object Blink : Module(
 
         listener<PacketEvent.Receive.Pre> { event ->
             if (!isActive || !shiftVelocity) return@listener
-            if (!connection.connection.isOpen) return@listener
-            if (connection.connection.packetListener?.accepts(event.packet) == false) return@listener
 
             if (event.packet !is EntityVelocityUpdateS2CPacket) return@listener
             if (event.packet.id != player.id) return@listener
@@ -84,7 +83,6 @@ object Blink : Module(
         while (packetPool.isNotEmpty()) {
             packetPool.poll().let { packet ->
                 connection.sendPacketSilently(packet)
-                connection.connection.packetsSentCounter++
 
                 if (packet is PlayerMoveC2SPacket && packet.changesPosition()) {
                     lastBox = player.boundingBox
@@ -95,8 +93,7 @@ object Blink : Module(
         }
 
         lastVelocity?.let { velocity ->
-            ClientConnection.handlePacket(velocity, connection.connection.packetListener)
-            connection.connection.packetsReceivedCounter++
+            connection.handlePacketSilently(velocity)
             lastVelocity = null
         }
     }
