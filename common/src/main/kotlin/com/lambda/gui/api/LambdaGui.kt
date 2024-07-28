@@ -131,6 +131,16 @@ abstract class LambdaGui(
         onEvent(GuiEvent.MouseMove(rescaleMouse(mouseX, mouseY)))
     }
 
+    override fun mouseScrolled(
+        mouseX: Double,
+        mouseY: Double,
+        horizontalAmount: Double,
+        verticalAmount: Double
+    ): Boolean {
+        onEvent(GuiEvent.MouseScroll(rescaleMouse(mouseX, mouseY), verticalAmount))
+        return true
+    }
+
     final override fun shouldPause() = false
 
     private fun rescaleMouse(mouseX: Double, mouseY: Double): Vec2d {

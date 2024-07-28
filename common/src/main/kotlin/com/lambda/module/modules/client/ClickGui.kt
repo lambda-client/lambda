@@ -26,6 +26,7 @@ object ClickGui : Module(
     // Animation
     val openSpeed by setting("Open Speed", 0.5, 0.1..1.0, 0.01)
     val closeSpeed by setting("Close Speed", 0.5, 0.1..1.0, 0.01)
+    val scrollSpeed by setting("Scroll Speed", 1.0, 0.1..10.0, 0.01)
 
     // Alignment
     val allowHAlign by setting("Allow H Docking", false)
