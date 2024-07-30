@@ -14,7 +14,7 @@ object PacketUtils {
      *
      * @param packet The packet to send.
      */
-    fun ClientPlayNetworkHandler.sendPacketSilently(packet: Packet<out ServerPacketListener>) {
+    fun ClientPlayNetworkHandler.sendPacketSilently(packet: ClientPacket) {
         if (!connection.isOpen) return
         connection.send(packet, null, true)
         connection.packetsSentCounter++
@@ -27,7 +27,7 @@ object PacketUtils {
      *
      * @param packet The packet to handle.
      */
-    fun ClientPlayNetworkHandler.handlePacketSilently(packet: Packet<out ClientPacketListener>) {
+    fun ClientPlayNetworkHandler.handlePacketSilently(packet: ServerPacket) {
         if (!connection.isOpen) return
         if (connection.packetListener?.accepts(packet) == false) return
 
@@ -35,3 +35,6 @@ object PacketUtils {
         connection.packetsReceivedCounter++
     }
 }
+
+typealias ClientPacket = Packet<out ServerPacketListener>
+typealias ServerPacket = Packet<out ClientPacketListener>

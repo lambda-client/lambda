@@ -47,7 +47,7 @@ class OutlineRectRenderer : AbstractRectRenderer(
 
             val halfSize = r.size * 0.5
             val maxRadius = min(halfSize.x, halfSize.y) - 0.5
-            val round = (roundRadius + size).coerceAtMost(maxRadius)
+            val round = (roundRadius + size).coerceAtMost(maxRadius).coerceAtLeast(0.0)
 
             fun MutableList<Int>.buildCorners(base: Vec2d, c: Color, angleRange: IntRange) = repeat(quality) {
                 val min = angleRange.first.toDouble()

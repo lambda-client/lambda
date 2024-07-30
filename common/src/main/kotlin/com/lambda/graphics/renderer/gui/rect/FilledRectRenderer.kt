@@ -41,7 +41,7 @@ class FilledRectRenderer : AbstractRectRenderer(
         val halfSize = size * 0.5
         val maxRadius = min(halfSize.x, halfSize.y)
 
-        val round = min(roundRadius, maxRadius)
+        val round = roundRadius.coerceAtMost(maxRadius).coerceAtLeast(0.0)
 
         val p1 = pos1 - 0.25
         val p2 = pos2 + 0.25

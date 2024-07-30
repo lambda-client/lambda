@@ -6,6 +6,8 @@ import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import com.lambda.event.events.PacketEvent.Receive
 import com.lambda.event.events.PacketEvent.Send
+import com.lambda.util.ClientPacket
+import com.lambda.util.ServerPacket
 import net.minecraft.network.listener.ClientPacketListener
 import net.minecraft.network.listener.ServerPacketListener
 import net.minecraft.network.packet.Packet
@@ -36,14 +38,14 @@ abstract class PacketEvent : Event {
          *
          * @param packet the packet that is about to be sent.
          */
-        class Pre(val packet: Packet<out ServerPacketListener>) : Send(), ICancellable by Cancellable()
+        class Pre(val packet: ClientPacket) : Send(), ICancellable by Cancellable()
 
         /**
          * Represents the event triggered after a packet is sent.
          *
          * @param packet the packet that has been sent.
          */
-        class Post(val packet: Packet<out ServerPacketListener>) : Send()
+        class Post(val packet: ClientPacket) : Send()
     }
 
     /**
@@ -56,13 +58,13 @@ abstract class PacketEvent : Event {
          *
          * @param packet the packet that is about to be received.
          */
-        class Pre(val packet: Packet<out ClientPacketListener>) : Receive(), ICancellable by Cancellable()
+        class Pre(val packet: ServerPacket) : Receive(), ICancellable by Cancellable()
 
         /**
          * Represents the event triggered after a packet is received.
          *
          * @param packet the packet that has been received.
          */
-        class Post(val packet: Packet<out ClientPacketListener>) : Receive()
+        class Post(val packet: ServerPacket) : Receive()
     }
 }
