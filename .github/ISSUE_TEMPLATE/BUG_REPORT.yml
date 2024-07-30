@@ -1,0 +1,50 @@
+name: Bug Report
+description: File a bug report.
+title: "[Version] [Mod Loader] [Bug]: "
+assignees:
+  - Edouard127
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We appreciate you taking the time to report a bug. Please fill out the information below to the best of your ability.
+        Before submitting your issue, please check to see if it has already been reported.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      placeholder: Tell us what happened
+      value: "My game crashed!"
+    validations:
+      required: true
+  - type: textarea
+    id: what-should-happen
+    attributes:
+      label: What should have happened?
+      placeholder: Tell us what should have happened
+      value: "The game should have loaded"
+    validations:
+      required: true
+  - type: dropdown
+    id: version
+    attributes:
+      label: Version
+      description: What version of Lambda are you using?
+      options:
+        - 1.0.0
+      default: 0
+    validations:
+      required: true
+  - type: input
+    id: logs
+    attributes:
+      label: Log Output
+      description: Please copy the entire log file located in `.minecraft/logs/latest.log` to [MCLogs](https://mclo.gs) and provide the link here.
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/lambda-client/lambda/blob/master/.github/CODE_OF_CONDUCT.md).
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true

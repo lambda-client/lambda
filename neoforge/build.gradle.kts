@@ -11,7 +11,9 @@ plugins {
 
 architectury {
     platformSetupLoomIde()
-    neoForge()
+    neoForge {
+        platformPackage = "forge"
+    }
 }
 
 loom {
@@ -67,19 +69,13 @@ dependencies {
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
-    shadowBundle(project(path = ":common", configuration = "transformProductionNeoForge"))
+    shadowBundle(project(path = ":common", configuration = "transformProductionNeoForge")) { isTransitive = false }
 
     // Finish the configuration
     setupConfigurations()
 }
 
 tasks {
-    processResources {
-        from(project(":common").file("src/main/resources/lambda.accesswidener")) {
-            into("/assets/") // Copy the access wideners because the API was not included for NeoForge
-        }
-    }
-
     shadowJar {
         archiveVersion = "$modVersion+$minecraftVersion"
         configurations = listOf(shadowBundle)
@@ -87,9 +83,11 @@ tasks {
     }
 
     remapJar {
-        dependsOn(processResources, shadowJar)
+        dependsOn(shadowJar)
 
         archiveVersion = "$modVersion+$minecraftVersion"
         inputFile = shadowJar.get().archiveFile
+
+        atAccessWideners.add("lambda.accesswidener")
     }
 }

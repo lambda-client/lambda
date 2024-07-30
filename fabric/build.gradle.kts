@@ -66,7 +66,7 @@ dependencies {
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
-    shadowBundle(project(":common", configuration = "transformProductionFabric"))
+    shadowBundle(project(":common", configuration = "transformProductionFabric")) { isTransitive = false }
 
     // Finish the configuration
     setupConfigurations()

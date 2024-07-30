@@ -59,11 +59,13 @@ val shadowBundle: Configuration by configurations.creating {
 
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
+        implementation(it)
         forgeRuntimeLibrary(it)
         include(it)
     }
 
     includeMod.dependencies.forEach {
+        modImplementation(it)
         forgeRuntimeLibrary(it)
         include(it)
     }
@@ -93,7 +95,7 @@ dependencies {
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
-    shadowBundle(project(path = ":common", configuration = "transformProductionForge"))
+    shadowBundle(project(path = ":common", configuration = "transformProductionForge")) { isTransitive = false }
 
     // Finish the configuration
     setupConfigurations()
