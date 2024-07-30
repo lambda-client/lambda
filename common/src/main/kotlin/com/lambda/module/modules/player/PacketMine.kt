@@ -572,7 +572,6 @@ object PacketMine : Module(
 
         previousSelectedSlot = player.inventory.selectedSlot
 
-        rotationPosition = pos
         runBetweenHandlers(ProgressStage.StartPre, ProgressStage.StartPost, pos, { bestTool }, instaBroken = instaBreak) {
             packetStartBreak(pos)
 
@@ -760,7 +759,7 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.verifyRotation(boxes: Collection<Box>?, lookVec: Vec3d, hitResult: HitResult?): Boolean {
-        if (rayCast && (hitResult as BlockHitResult?)?.blockPos != rotationPosition) {
+        if (rayCast && (hitResult?.type == HitResult.Type.ENTITY || (hitResult as BlockHitResult?)?.blockPos != rotationPosition)) {
             return false
         }
 
