@@ -979,6 +979,8 @@ object PacketMine : Module(
         var timeCompleted: Long = -1
         var previousBreakDelta = 0f
         var lastLerpBox: Box? = null
+        var lastLerpFillColour: Color? = null
+        var lastLerpOutlineColour: Color? = null
 
         var boxList = if (renderMode.isEnabled()) {
             state.getOutlineShape(mc.world, pos).boundingBoxes.toSet()
@@ -1026,13 +1028,25 @@ object PacketMine : Module(
                 val currentFactor = lerp(previousFactor, nextFactor, mc.tickDelta)
 
                 val fillColour = if (fillColourMode == ColourMode.Dynamic) {
-                    lerp(startFillColour, endFillColour, currentFactor.toDouble())
+                    val lerpColour = lerp(startFillColour, endFillColour, currentFactor.toDouble())
+                    if ((!pauseWhileUsingItems || !player.isUsingItem) && !pausedForRotation) {
+                        lastLerpFillColour = lerpColour
+                        lerpColour
+                    } else {
+                        lastLerpFillColour ?: startFillColour
+                    }
                 } else {
                     staticFillColour
                 }
 
                 val outlineColour = if (outlineColourMode == ColourMode.Dynamic) {
-                    lerp(startOutlineColour, endOutlineColour, currentFactor.toDouble())
+                    val lerpColour = lerp(startOutlineColour, endOutlineColour, currentFactor.toDouble())
+                    if ((!pauseWhileUsingItems || !player.isUsingItem) && !pausedForRotation) {
+                        lastLerpOutlineColour = lerpColour
+                        lerpColour
+                    } else {
+                        lastLerpOutlineColour ?: startOutlineColour
+                    }
                 } else {
                     staticOutlineColour
                 }
