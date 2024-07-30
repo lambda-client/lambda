@@ -8,6 +8,7 @@ import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.global.DynamicESP
+import com.lambda.interaction.RotationManager
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.visibilty.VisibilityChecker.findRotation
 import com.lambda.module.Module
@@ -15,7 +16,6 @@ import com.lambda.module.modules.client.TaskFlow
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.MathUtils.lerp
-import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap
 import net.minecraft.block.BlockState
 import net.minecraft.enchantment.EnchantmentHelper
@@ -33,6 +33,8 @@ import net.minecraft.registry.tag.FluidTags
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
+import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
@@ -54,9 +56,10 @@ object PacketMine : Module(
     private val pauseWhileUsingItems by setting("Pause While Using Items", true, "Will prevent breaking while using items like eating or aiming a bow", visibility = { page == Page.General })
     private val validateBreak by setting("Validate Break", true, "Breaks blocks client side rather than waiting for a response from the server", visibility = { page == Page.General })
     private val timeoutDelay by setting("Timeout Delay", 0.20f, 0.00f..1.00f, 0.1f, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", visibility = { page == Page.General && validateBreak })
-    private val swingMode by setting("Swing Mode", SwingMode.None, "Swings the players hand to simulate vanilla breaking, usually used on stricter anti-cheats", visibility = { page == Page.General })
+    private val swingMode by setting("Swing Mode", ModeOptions.None, "Swings the players hand to simulate vanilla breaking, usually used on stricter anti-cheats", visibility = { page == Page.General })
     private val swingOnManual by setting("Manual Swing", true, "Swings when the player attacks a block", visibility = { page == Page.General })
-    private val rotate by setting("Rotation Mode", RotationMode.None, "Changes the method used to make the player look at the current mining block", visibility = { page == Page.General })
+    private val rotate by setting("Rotation Mode", ModeOptions.None, "Changes the method used to make the player look at the current mining block", visibility = { page == Page.General })
+    private val rayCast by setting("Raycast", false, "Checks if the player is directly looking at the block rather than allowing through walls", visibility = { page == Page.General && rotate.isEnabled() })
     private val rotateReleaseDelay by setting("Rotation Release Delay", 2, 0..50, 1, "The number of ticks to wait before releasing the rotation", visibility = { page == Page.General && rotate.isEnabled() })
     private val swapMethod by setting("Swap Method", SwapMethod.StandardSilent, "Changes the swap method used. For example, silent swaps once at the beginning, and once at the end without updating client side, and constant swaps for the whole break", visibility = { page == Page.General})
     private val swapMode by setting("Swap Mode", SwapMode.StartAndEnd, "The different times to swap to the best tool", visibility = { page == Page.General && swapMethod.isEnabled()})
@@ -117,38 +120,6 @@ object PacketMine : Module(
         Vanilla, Grim, NCP
     }
 
-    private enum class SwingMode {
-        None, Constant, Start, End, StartAndEnd;
-
-        fun isEnabled() =
-            this != None
-
-        fun isConstant() =
-            this == Constant
-
-        fun isStart() =
-            this == Start
-
-        fun isEnd() =
-            this == End
-
-        fun isStartAndEnd() =
-            this == StartAndEnd
-    }
-    //ToDo: Add start and end settings
-    private enum class RotationMode {
-        None, Constant, StartAndEnd;
-
-        fun isEnabled() =
-            this != None
-
-        fun isConstant() =
-            this == Constant
-
-        fun isStartAndEnd() =
-            this == StartAndEnd
-    }
-
     private enum class SwapMethod {
         None, StandardSilent, NCPSilent, Vanilla;
 
@@ -195,6 +166,25 @@ object PacketMine : Module(
 
         fun isFastAutomatic() =
             this == FastAutomatic
+    }
+
+    private enum class ModeOptions {
+        None, StartAndEnd, Start, End, Constant;
+
+        fun isEnabled() =
+            this != None
+
+        fun isStartAndEnd() =
+            this == StartAndEnd
+
+        fun isStart() =
+            this == Start
+
+        fun isEnd() =
+            this == End
+
+        fun isConstant() =
+            this == Constant
     }
 
     private enum class ProgressStage {
@@ -440,9 +430,7 @@ object PacketMine : Module(
             rotationPosition?.let { pos ->
                 lastNonEmptyState?.let { state ->
                     val boxList = state.getOutlineShape(world, pos).boundingBoxes.map { it.offset(pos) }
-                    val rotationContext = findRotation(boxList, TaskFlow.rotation, TaskFlow.interact, emptySet()) {
-                        blockResult?.blockPos == pos
-                    }
+                    val rotationContext = findRotation(boxList, TaskFlow.rotation, TaskFlow.interact, emptySet()) { true }
                     rotationContext?.let { context ->
                         it.context = context
                         expectedRotation = context
@@ -466,18 +454,28 @@ object PacketMine : Module(
         listener<RotationEvent.Post> {
             if (!rotate.isEnabled()) return@listener
 
-            //ToDo: Fix findRotation method to return the correct rotation even if its blocked by another block or something. Also improve raycasting stuff and add a setting
-            expectedRotation?.apply {
-                if (this.isValid) {
-                    onRotationComplete?.run()
-                    onRotationComplete = null
-                } else {
-                    pausedForRotation = true
+            expectedRotation?.let { expectedRot ->
+                rotationPosition?.let { pos ->
+                    if (it.context != expectedRot) {
+                        pausedForRotation = true
+                        return@listener
+                    }
+
+                    val boxList = lastNonEmptyState?.getOutlineShape(world, pos)?.boundingBoxes?.map { it.offset(pos) }
+                    if (verifyRotation(boxList, RotationManager.currentRotation.vector, it.context.hitResult)) {
+                        onRotationComplete?.run()
+                        onRotationComplete = null
+                        pausedForRotation = false
+                    } else {
+                        pausedForRotation = true
+                    }
+
+                    return@listener
                 }
-            } ?: run {
-                onRotationComplete = null
-                pausedForRotation = false
             }
+
+            onRotationComplete = null
+            pausedForRotation = false
         }
 
         listener<RenderEvent.World> {
@@ -620,7 +618,7 @@ object PacketMine : Module(
         handleSwing(progressStage, empty = empty, instaBroken = instaBroken)
     }
 
-    private fun handleRotations(progressStage: ProgressStage, pos: BlockPos, empty: Boolean = false, instaBroken: Boolean = false) {
+    private fun SafeContext.handleRotations(progressStage: ProgressStage, pos: BlockPos, empty: Boolean = false, instaBroken: Boolean = false) {
         when (progressStage) {
             ProgressStage.PreTick -> {
                 if (rotate.isConstant()
@@ -633,14 +631,15 @@ object PacketMine : Module(
                 }
             }
 
-            ProgressStage.StartPre,
-            ProgressStage.EndPre -> if (rotate.isEnabled() && (validateBreak || !instaBroken)) rotateTo(pos)
+            ProgressStage.StartPre -> if (rotate.isEnabled() && (!rotate.isEnd() || instaBroken)) rotateTo(pos)
 
-            ProgressStage.During -> if (rotate.isConstant() && !empty) rotateTo(pos)
+            ProgressStage.EndPre -> if (rotate.isEnabled() && !rotate.isStart()) rotateTo(pos)
 
-            ProgressStage.StartPost -> if ((instaBroken && !validateBreak) || rotate.isStartAndEnd()) checkReleaseRotation()
+            ProgressStage.During -> if (rotate.isConstant() && !empty && !reBreak.isStandard()) rotateTo(pos)
 
-            ProgressStage.EndPost -> if ((!validateBreak || empty) || rotate.isStartAndEnd()) checkReleaseRotation()
+            ProgressStage.StartPost -> if ((instaBroken && !validateBreak) || (!instaBroken && (rotate.isStart() || rotate.isStartAndEnd()))) checkReleaseRotation()
+
+            ProgressStage.EndPost -> if (!validateBreak || empty) checkReleaseRotation()
 
             ProgressStage.PacketReceiveBreak,
             ProgressStage.TimedOut -> checkReleaseRotation()
@@ -740,11 +739,50 @@ object PacketMine : Module(
         }
     }
 
-    private fun rotateTo(pos: BlockPos) {
+    private fun SafeContext.rotateTo(pos: BlockPos) {
         waitingToReleaseRotation = false
         releaseRotateDelayCounter = rotateReleaseDelay
         rotationPosition = pos
         rotated = true
+        if (!verifyRotation(
+                lastNonEmptyState?.getOutlineShape(world, pos)?.boundingBoxes?.map { it.offset(pos) },
+                RotationManager.currentRotation.vector,
+                RotationManager.currentContext?.hitResult)
+            ) {
+            pausedForRotation = true
+        }
+    }
+
+    private fun SafeContext.verifyRotation(boxes: Collection<Box>?, lookVec: Vec3d, hitResult: HitResult?): Boolean {
+        if (rayCast && (hitResult as BlockHitResult?)?.blockPos != rotationPosition) {
+            return false
+        }
+
+        boxes?.let {
+            return it.any { box ->
+                lookIntersectsBox(player.eyePos, lookVec, box)
+            }
+        } ?: return false
+    }
+
+    private fun lookIntersectsBox(start: Vec3d, direction: Vec3d, box: Box): Boolean {
+        val invDirX = 1.0 / direction.x
+        val invDirY = 1.0 / direction.y
+        val invDirZ = 1.0 / direction.z
+
+        val tMinX = if (invDirX >= 0) (box.minX - start.x) * invDirX else (box.maxX - start.x) * invDirX
+        val tMaxX = if (invDirX >= 0) (box.maxX - start.x) * invDirX else (box.minX - start.x) * invDirX
+
+        val tMinY = if (invDirY >= 0) (box.minY - start.y) * invDirY else (box.maxY - start.y) * invDirY
+        val tMaxY = if (invDirY >= 0) (box.maxY - start.y) * invDirY else (box.minY - start.y) * invDirY
+
+        val tMinZ = if (invDirZ >= 0) (box.minZ - start.z) * invDirZ else (box.maxZ - start.z) * invDirZ
+        val tMaxZ = if (invDirZ >= 0) (box.maxZ - start.z) * invDirZ else (box.minZ - start.z) * invDirZ
+
+        val tMin = maxOf(tMinX, tMinY, tMinZ)
+        val tMax = minOf(tMaxX, tMaxY, tMaxZ)
+
+        return tMax >= tMin && tMax > 0
     }
 
     private fun checkReleaseRotation() {
