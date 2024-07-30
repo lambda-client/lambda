@@ -68,6 +68,7 @@ object PacketMine : Module(
     private val reBreak by setting("Re-Break", ReBreakMode.Standard, "The different modes for re-breaking the current block", visibility = { page == Page.ReBreak})
     private val reBreakDelay by setting("Re-Break Delay", 0, 0..10, 1, "The delay (in ticks) between attempting to re-breaking the block", visibility = { page == Page.ReBreak && (reBreak.isAutomatic() || reBreak.isFastAutomatic()) })
     private val emptyReBreakDelay by setting("Empty Re-Break Delay", 0, 0..10, 1, "The delay (in ticks) between attempting to re-break the block if the block is currently empty", visibility = { page == Page.ReBreak && reBreak.isFastAutomatic()})
+    private val renderIfEmpty by setting("Render If Empty", false, "Draws the renders even if the re-break position is empty in the world", visibility = { page == Page.ReBreak && reBreak.isEnabled() })
 
     private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue }).apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
     private val reverseQueueOrder by setting("Reverse Queue Order", false, "Breaks the latest addition to the queue first", visibility = { page == Page.Queue && queueBlocks})
@@ -304,6 +305,7 @@ object PacketMine : Module(
                 mineTicks++
 
                 val activeState = pos.blockState(world)
+                state = activeState
 
                 val empty = isStateEmpty(activeState)
                 if (!empty) {
@@ -1026,6 +1028,8 @@ object PacketMine : Module(
         }
 
         fun SafeContext.buildRenders() {
+            if (!renderIfEmpty && isStateEmpty(state)) return
+
             boxList?.forEach { box ->
                 val previousFactor = previousMiningProgress * (2 - breakThreshold)
                 val nextFactor = miningProgress * (2 - breakThreshold)
