@@ -109,6 +109,7 @@ object PacketMine : Module(
         General, ReBreak, Queue, BlockRender, QueueRender
     }
 
+    @Suppress("UNUSED")
     private enum class BreakMode {
         Total, Additive;
 
@@ -120,6 +121,7 @@ object PacketMine : Module(
         Vanilla, Grim, NCP
     }
 
+    @Suppress("UNUSED")
     private enum class SwapMethod {
         None, StandardSilent, NCPSilent, Vanilla;
 
@@ -198,6 +200,7 @@ object PacketMine : Module(
             this != None
     }
 
+    @Suppress("UNUSED")
     private enum class RenderQueueMode {
         None, Cube, Shape;
 
@@ -567,6 +570,7 @@ object PacketMine : Module(
 
         previousSelectedSlot = player.inventory.selectedSlot
 
+        rotationPosition = pos
         runBetweenHandlers(ProgressStage.StartPre, ProgressStage.StartPost, pos, { bestTool }, instaBroken = instaBreak) {
             packetStartBreak(pos)
 
