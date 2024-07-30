@@ -462,7 +462,7 @@ object PacketMine : Module(
                     }
 
                     val boxList = lastNonEmptyState?.getOutlineShape(world, pos)?.boundingBoxes?.map { it.offset(pos) }
-                    if (verifyRotation(boxList, RotationManager.currentRotation.vector, it.context.hitResult)) {
+                    if (verifyRotation(boxList, RotationManager.currentRotation.vector, RotationManager.currentContext?.hitResult)) {
                         onRotationComplete?.run()
                         onRotationComplete = null
                         pausedForRotation = false
