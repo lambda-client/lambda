@@ -627,6 +627,7 @@ object PacketMine : Module(
         when (progressStage) {
             ProgressStage.PreTick -> {
                 if (rotate.isConstant()
+                    && !rotated
                     && !empty
                     && (currentMiningBlock?.breakState != BreakState.ReBreaking
                             || !reBreak.isStandard()
