@@ -104,12 +104,10 @@ class SafeListener(
          *
          * Usage:
          * ```kotlin
-         * listenerOnce<MyEvent> { event ->
-         *     player.sendMessage("Event received: $event")
-         * }
-         *
-         * listenerOnce<MyEvent>(priority = 1) { event ->
-         *     player.sendMessage("Event received before the previous listener: $event")
+         * private val event by listenOnce<MyEvent> { event ->
+         *     player.sendMessage("Event received only once: $event")
+         *     // event is stored in the value
+         *     // event is unsubscribed after execution
          * }
          * ```
          *
@@ -122,18 +120,23 @@ class SafeListener(
         inline fun <reified T : Event> Any.listenOnce(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: SafeContext.(T) -> Unit,
-        ): SafeListener {
+            noinline function: SafeContext.(T) -> Unit = {},
+        ): Lazy<T?> {
+            // This doesn't leak memory because the owner still has a reference to the listener
+            var value: T? = null
+
             val destroyable by selfReference<SafeListener> {
                 SafeListener(priority, this@listenOnce, alwaysListen) { event ->
                     function(event as T)
+                    value = event
+
                     EventFlow.syncListeners.unsubscribe(self)
                 }
             }
 
             EventFlow.syncListeners.subscribe<T>(destroyable)
 
-            return destroyable
+            return lazy { value }
         }
 
         /**

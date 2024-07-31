@@ -91,12 +91,11 @@ class UnsafeListener(
          *
          * Usage:
          * ```kotlin
-         * unsafeListenOnce<MyEvent> { event ->
+         * private val event by unsafeListenOnce<MyEvent> { event ->
          *     println("Unsafe event received only once: $event")
-         * }
-         *
-         * unsafeListenOnce<MyEvent>(priority = 1) { event ->
-         *     println("Unsafe event received only once before the previous listener: $event")
+         *     // no safe access to player or world
+         *     // event is stored in the value
+         *     // event is unsubscribed after execution
          * }
          * ```
          *
@@ -112,17 +111,22 @@ class UnsafeListener(
             priority: Int = 0,
             alwaysListen: Boolean = false,
             noinline function: (T) -> Unit,
-        ): UnsafeListener {
+        ): Lazy<T?> {
+            // This doesn't leak memory because the owner still has a reference to the listener
+            var value: T? = null
+
             val destroyable by selfReference<UnsafeListener> {
                 UnsafeListener(priority, this@unsafeListenOnce, alwaysListen) { event ->
                     function(event as T)
+                    value = event
+
                     EventFlow.syncListeners.unsubscribe(self)
                 }
             }
 
             EventFlow.syncListeners.subscribe<T>(destroyable)
 
-            return destroyable
+            return lazy { value }
         }
 
         /**
