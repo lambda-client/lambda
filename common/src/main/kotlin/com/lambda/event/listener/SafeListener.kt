@@ -119,12 +119,10 @@ class SafeListener<T : Event>(
          *
          * Usage:
          * ```kotlin
-         * listenerOnce<MyEvent> { event ->
-         *     player.sendMessage("Event received: $event")
-         * }
-         *
-         * listenerOnce<MyEvent>(priority = 1) { event ->
-         *     player.sendMessage("Event received before the previous listener: $event")
+         * private val event by receiveNext<MyEvent> { event ->
+         *     player.sendMessage("Event received only once: $event")
+         *     // event is stored in the value
+         *     // event is unsubscribed after execution
          * }
          * ```
          *

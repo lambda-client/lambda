@@ -103,17 +103,14 @@ class UnsafeListener<T : Event>(
          * The [function] is executed only once when the [Event] is dispatched.
          * This function should only be used when the [function] performs read actions on the game data.
          * For only in-game related contexts, use the [SafeListener.receiveNext] function instead.
-         * The listener will be automatically unsubscribed after the first execution.
-         * This function is useful for one-time event handling.
          *
          * Usage:
          * ```kotlin
-         * unsafeListenOnce<MyEvent> { event ->
+         * private val event by unsafeReceiveNext<MyEvent> { event ->
          *     println("Unsafe event received only once: $event")
-         * }
-         *
-         * unsafeListenOnce<MyEvent>(priority = 1) { event ->
-         *     println("Unsafe event received only once before the previous listener: $event")
+         *     // no safe access to player or world
+         *     // event is stored in the value
+         *     // event is unsubscribed after execution
          * }
          * ```
          *
