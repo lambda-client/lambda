@@ -16,6 +16,9 @@ object PacketUtils {
      */
     fun ClientPlayNetworkHandler.sendPacketSilently(packet: ClientPacket) {
         if (!connection.isOpen) return
+        if (connection.packetListener?.accepts(packet) == true)
+            return // LOG.debug("Client tried to send client-bound packet {} to server ", packet)
+
         connection.send(packet, null, true)
         connection.packetsSentCounter++
     }
@@ -29,7 +32,8 @@ object PacketUtils {
      */
     fun ClientPlayNetworkHandler.handlePacketSilently(packet: ServerPacket) {
         if (!connection.isOpen) return
-        if (connection.packetListener?.accepts(packet) == false) return
+        if (connection.packetListener?.accepts(packet) == false)
+            return // LOG.debug("Client tried to handle server-bound packet {}", packet)
 
         ClientConnection.handlePacket(packet, connection.packetListener)
         connection.packetsReceivedCounter++

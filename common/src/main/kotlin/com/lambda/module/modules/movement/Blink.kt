@@ -10,11 +10,10 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.ClientPacket
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.math.ColorUtils.setAlpha
-import net.minecraft.network.listener.ServerPacketListener
-import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.util.math.BlockPos
@@ -32,7 +31,7 @@ object Blink : Module(
 
     private val isActive get() = (KillAura.isEnabled && KillAura.target != null) || !requiresAura
 
-    private var packetPool = ConcurrentLinkedDeque<Packet<out ServerPacketListener>>()
+    private var packetPool = ConcurrentLinkedDeque<ClientPacket>()
     private var lastVelocity: EntityVelocityUpdateS2CPacket? = null
     private var lastUpdate = 0L
 
@@ -56,7 +55,6 @@ object Blink : Module(
 
         listener<PacketEvent.Send.Pre> { event ->
             if (!isActive) return@listener
-            if (!connection.connection.isOpen) return@listener
 
             packetPool.add(event.packet)
             event.cancel()
