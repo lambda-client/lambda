@@ -126,11 +126,14 @@ class UnsafeListener<T : Event>(
             priority: Int = 0,
             alwaysListen: Boolean = false,
             noinline function: (T) -> Unit = {},
+            noinline predicate: (T) -> Boolean = { true },
         ): UnsafeListener<T> {
             val destroyable by selfReference<UnsafeListener<T>> {
                 UnsafeListener(priority, this@unsafeReceiveNext, alwaysListen) { event ->
-                    function(event)
-                    EventFlow.syncListeners.unsubscribe(self)
+                    if (predicate(event)) {
+                        function(event)
+                        EventFlow.syncListeners.unsubscribe(self)
+                    }
                 }
             }
 
