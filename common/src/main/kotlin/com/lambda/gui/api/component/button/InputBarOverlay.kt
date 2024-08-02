@@ -123,6 +123,6 @@ abstract class InputBarOverlay (val renderer: RenderLayer, owner: ChildLayer.Dra
 
     fun toggle() {
         isActive = !isActive
-        if (isActive) typed = getText()
+        if (isActive) typed = getText().filter { isCharAllowed("", it) }
     }
 }
