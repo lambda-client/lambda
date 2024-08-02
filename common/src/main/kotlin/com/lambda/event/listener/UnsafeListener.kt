@@ -5,8 +5,8 @@ import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Muteable
 import com.lambda.event.listener.SafeListener.Companion.concurrentListener
-import com.lambda.event.listener.SafeListener.Companion.listenOnce
 import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.receiveNext
 import com.lambda.util.selfReference
 
 /**
@@ -19,18 +19,33 @@ import com.lambda.util.selfReference
  * The [UnsafeListener] class is used to create [Listener]s that execute a given [function] without a [SafeContext].
  * This means that the [function] is executed in a context where certain safety conditions may not be met.
  *
+ * The [SafeListener] will keep a reference to the last signal processed by the listener.
+ * Allowing use cases where the last signal is needed.
+ * ```kotlin
+ * val lastPacketReceived by unsafeListener<PacketEvent.Receive.Pre>()
+ *
+ * unsafeListener<PacketEvent.Send.Pre> { event ->
+ *     println("Last packet received: ${lastPacketReceived?.packet}")
+ *     // prints the last packet received
+ *     // prints null if no packet was received
+ * }
+ * ```
+ *
  * @property priority The priority of the listener. Listeners with higher priority are executed first.
  * @property owner The owner of the listener. This is typically the object that created the listener.
  * @property alwaysListen If true, the listener will always be triggered, even if the owner is not enabled.
  * @property function The function to be executed when the event occurs. This function operates without a [SafeContext].
  */
-class UnsafeListener(
+class UnsafeListener<T : Event>(
     override val priority: Int,
     override val owner: Any,
     override val alwaysListen: Boolean = false,
-    val function: (Event) -> Unit,
-) : Listener() {
-    override fun execute(event: Event) {
+    val function: (T) -> Unit,
+) : Listener<T>() {
+    private var lastSignal: T? = null
+    operator fun getValue(thisRef: Any?, property: Any?): T? = lastSignal
+
+    override fun execute(event: T) {
 //        if (!mc.isOnThread) {
 //            LOG.warn("""
 //                    Event ${this::class.simpleName} executed outside the game thread.
@@ -38,6 +53,8 @@ class UnsafeListener(
 //                    Consider moving the execution to the game thread using runSafeOnGameThread { ... } or runOnGameThread { ... }.
 //                """.trimIndent())
 //        }
+
+        lastSignal = event
         function(event)
     }
 
@@ -70,10 +87,10 @@ class UnsafeListener(
         inline fun <reified T : Event> Any.unsafeListener(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: (T) -> Unit,
-        ): UnsafeListener {
-            val listener = UnsafeListener(priority, this, alwaysListen) { event ->
-                function(event as T)
+            noinline function: (T) -> Unit = {},
+        ): UnsafeListener<T> {
+            val listener = UnsafeListener<T>(priority, this, alwaysListen) { event ->
+                function(event)
             }
 
             EventFlow.syncListeners.subscribe<T>(listener)
@@ -85,7 +102,7 @@ class UnsafeListener(
          * Registers a new [UnsafeListener] for a generic [Event] type [T].
          * The [function] is executed only once when the [Event] is dispatched.
          * This function should only be used when the [function] performs read actions on the game data.
-         * For only in-game related contexts, use the [SafeListener.listenOnce] function instead.
+         * For only in-game related contexts, use the [SafeListener.receiveNext] function instead.
          * The listener will be automatically unsubscribed after the first execution.
          * This function is useful for one-time event handling.
          *
@@ -108,14 +125,14 @@ class UnsafeListener(
          * @param function The function to be executed when the event is posted. This function should take an event of type T as a parameter.
          * @return The newly created and registered [UnsafeListener].
          */
-        inline fun <reified T : Event> Any.unsafeListenOnce(
+        inline fun <reified T : Event> Any.unsafeReceiveNext(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: (T) -> Unit,
-        ): UnsafeListener {
-            val destroyable by selfReference<UnsafeListener> {
-                UnsafeListener(priority, this@unsafeListenOnce, alwaysListen) { event ->
-                    function(event as T)
+            noinline function: (T) -> Unit = {},
+        ): UnsafeListener<T> {
+            val destroyable by selfReference<UnsafeListener<T>> {
+                UnsafeListener(priority, this@unsafeReceiveNext, alwaysListen) { event ->
+                    function(event)
                     EventFlow.syncListeners.unsubscribe(self)
                 }
             }
@@ -154,11 +171,9 @@ class UnsafeListener(
         inline fun <reified T : Event> Any.unsafeConcurrentListener(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: (T) -> Unit,
-        ): UnsafeListener {
-            val listener = UnsafeListener(priority, this, alwaysListen) { event ->
-                function(event as T)
-            }
+            noinline function: (T) -> Unit = {},
+        ): UnsafeListener<T> {
+            val listener = UnsafeListener<T>(priority, this, alwaysListen) { event -> function(event) }
 
             EventFlow.concurrentListeners.subscribe<T>(listener)
 
