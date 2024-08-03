@@ -229,7 +229,7 @@ object KillAura : Module(
             vec = validHits.minByOrNull { vecRotation dist it.value }?.key ?: return null
         }
 
-        val predictOffset = target.velocity * targetPredict - player.moveDiff * Vec3d(1.0, -0.5, 1.0) * selfPredict
+        val predictOffset = target.moveDiff * targetPredict - player.moveDiff * Vec3d(1.0, -0.5, 1.0) * selfPredict
         return RotationContext(eye.rotationTo(vec + predictOffset), rotation)
     }
 

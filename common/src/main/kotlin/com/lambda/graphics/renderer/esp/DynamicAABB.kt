@@ -13,12 +13,8 @@ class DynamicAABB {
     private var curr: Box? = null
 
     fun update(box: Box): DynamicAABB {
-        prev = curr
+        prev = curr ?: box
         curr = box
-
-        if (prev == null) {
-            prev = box
-        }
 
         return this
     }
@@ -40,13 +36,8 @@ class DynamicAABB {
 
     companion object {
         val Entity.dynamicBox get() = DynamicAABB().apply {
-            val box = boundingBox
-
-            val delta = prevPos - pos
-            val prevBox = Box(box.min + delta, box.max + delta)
-
-            update(prevBox)
-            update(box)
+            update(boundingBox.offset(prevPos - pos))
+            update(boundingBox)
         }
     }
 }
