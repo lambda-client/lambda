@@ -21,6 +21,7 @@ abstract class RenderEvent : Event {
 
     abstract class GUI(val scale: Double) : RenderEvent() {
         class Scaled(scaleFactor: Double) : GUI(scaleFactor)
+        class HUD(scaleFactor: Double) : GUI(scaleFactor)
         class Fixed : GUI(1.0)
 
         val screenSize = Vec2d(mc.window.framebufferWidth, mc.window.framebufferHeight) / scale

@@ -63,7 +63,7 @@ abstract class HudModule(
         renderCallables.add(block)
 
     init {
-        listener<RenderEvent.GUI.Scaled> { event ->
+        listener<RenderEvent.GUI.HUD> { event ->
             rectHandler.screenSize = event.screenSize
 
             renderCallables.forEach { function ->
