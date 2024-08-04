@@ -1,0 +1,36 @@
+name: Feature
+description: Request or implement a feature.
+title: "[Version] [Mod Loader] [Feature]: "
+assignees:
+  - Edouard127
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before submitting your feature, please check to see if it has already been requested.
+  - type: textarea
+    id: feature-idea
+    attributes:
+      label: Feature
+      value: "I would like to implement a feature that..."
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional Information
+      description: Is there anything else you would like to add?
+  - type: checkboxes
+    id: pr
+    attributes:
+      label: Pull Request
+      options:
+        - label: I will be submitting a pull request
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/lambda-client/lambda/blob/master/.github/CODE_OF_CONDUCT.md).
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
