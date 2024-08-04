@@ -15,20 +15,20 @@ displayTest = "IGNORE_ALL_VERSION"
 [[dependencies.${modId}]]
 modId = "forge"
 mandatory = true
-versionRange = "[${forgeVersion},)"
+versionRange = "[${forgeVersionMin},${forgeVersionMax}]"
 ordering = "NONE"
 side = "CLIENT"
 
 [[dependencies.${modId}]]
 modId = "minecraft"
 mandatory = true
-versionRange = "[${minecraftVersion},)"
+versionRange = "[${minecraftVersionMin},${minecraftVersionMax}]"
 ordering = "NONE"
 side = "CLIENT"
 
 [[dependencies.${modId}]]
 modId = "kotlinforforge"
 mandatory = true
-versionRange = "[${kotlinForgeVersion},)"
+versionRange = "[${kotlinForgeVersionMin},${kotlinForgeVersionMax}]"
 ordering = "NONE"
 side = "CLIENT"

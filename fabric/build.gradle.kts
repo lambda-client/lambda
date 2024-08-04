@@ -20,6 +20,16 @@ loom {
     enableTransitiveAccessWideners = true
 }
 
+repositories {
+    // You can add more repositories here if you plan
+    // on using environment-specific dependencies.
+    // If you simply want to add a global plugin repository,
+    // you can add it to the `settings.gradle.kts` file
+    // in the base of the project and gradle will do the
+    // rest for you.
+    // maven(...)
+}
+
 val common: Configuration by configurations.creating {
     configurations.compileClasspath.get().extendsFrom(this)
     configurations.runtimeClasspath.get().extendsFrom(this)
@@ -61,12 +71,9 @@ dependencies {
     includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion")
     includeMod("baritone-api:baritone-unoptimized-fabric:1.10.2")
 
-    // Disable reflections logging
-    include("org.slf4j:slf4j-nop:2.0.13")
-
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
-    shadowBundle(project(":common", configuration = "transformProductionFabric"))
+    shadowBundle(project(":common", configuration = "transformProductionFabric")) { isTransitive = false }
 
     // Finish the configuration
     setupConfigurations()

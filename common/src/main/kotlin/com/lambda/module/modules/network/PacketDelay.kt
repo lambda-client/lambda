@@ -13,7 +13,7 @@ import net.minecraft.network.packet.c2s.common.KeepAliveC2SPacket
 
 object PacketDelay : Module(
     name = "PacketDelay",
-    description = "Delays packets client-side & server-side.",
+    description = "Delays packets client-bound & server-bound",
     defaultTags = setOf(ModuleTag.NETWORK),
 ) {
     private val networkScope by setting("Network Scope", Direction.BOTH)
