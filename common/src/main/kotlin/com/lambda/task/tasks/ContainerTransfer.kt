@@ -5,7 +5,7 @@ import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
 
-class ContainerTransfer(
+class ContainerTransfer @Ta5kBuilder constructor(
     val selection: StackSelection,
     val from: MaterialContainer,
     val to: MaterialContainer

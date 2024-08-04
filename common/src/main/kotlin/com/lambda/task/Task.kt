@@ -99,8 +99,6 @@ abstract class Task<Result> : Nameable {
         COMPLETED,
     }
 
-    operator fun plus(other: Task<*>) = subTasks.add(other)
-
     init {
         listener<TickEvent.Pre> {
             parent?.let {

@@ -13,13 +13,10 @@ import com.lambda.task.tasks.BuildStructure.Companion.buildStructure
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.block.ChestBlock
-import net.minecraft.block.ShulkerBoxBlock
-import net.minecraft.block.entity.ShulkerBoxBlockEntity
 import net.minecraft.entity.mob.ShulkerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 
 class PlaceContainer @Ta5kBuilder constructor(
@@ -38,7 +35,7 @@ class PlaceContainer @Ta5kBuilder constructor(
 //        val res = results.sorted()
 //        res
 
-        val succeeds = results.filterIsInstance<PlaceResult.Success>().filter {
+        val succeeds = results.filterIsInstance<PlaceResult.Place>().filter {
             canBeOpened(stack, it.blockPos, it.context.result.side)
         }
         val wrongStacks = results.filterIsInstance<BuildResult.WrongStack>().filter {

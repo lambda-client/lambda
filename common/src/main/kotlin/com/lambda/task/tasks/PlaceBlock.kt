@@ -19,6 +19,7 @@ class PlaceBlock @Ta5kBuilder constructor(
     private val waitForConfirmation: Boolean,
 ) : Task<Unit>() {
     private var beginState: BlockState? = null
+    override var timeout = 20
     private var state = State.PLACING
     private var inScope = 0
 

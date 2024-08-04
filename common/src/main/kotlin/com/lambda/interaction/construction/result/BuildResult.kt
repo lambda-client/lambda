@@ -8,6 +8,7 @@ import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.MainHandContainer
+import com.lambda.task.Task
 import com.lambda.task.Task.Companion.failTask
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
@@ -18,7 +19,7 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
-abstract class BuildResult : ComparableResult<Rank> {
+abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
     abstract val blockPos: BlockPos
     open val pausesParent = false
 
@@ -164,14 +165,19 @@ abstract class BuildResult : ComparableResult<Rank> {
         override val blockPos: BlockPos,
         val context: BuildContext,
         val neededItem: Item
-    ) : Resolvable, Drawable, BuildResult() {
+    ) : Drawable, BuildResult() {
         override val rank = Rank.WRONG_ITEM
         private val color = Color(3, 252, 169, 100)
 
         override val pausesParent get() = true
 
-        override val resolve get() =
-            neededItem.select().transfer(MainHandContainer)?.solve ?: failTask("Item ${neededItem.name.string} not found")
+        override fun SafeContext.onStart() {
+            neededItem.select()
+                .transfer(MainHandContainer)
+                ?.onSuccess { _, _ ->
+                    success(Unit)
+                }?.start(this@WrongItem) ?: failure("Item ${neededItem.name.string} not found")
+        }
 
         override fun SafeContext.buildRenderer() {
             withBox(Box(blockPos), color)
@@ -194,14 +200,19 @@ abstract class BuildResult : ComparableResult<Rank> {
         override val blockPos: BlockPos,
         val context: BuildContext,
         val neededStack: ItemStack
-    ) : Resolvable, Drawable, BuildResult() {
+    ) : Drawable, BuildResult() {
         override val rank = Rank.WRONG_ITEM
         private val color = Color(3, 252, 169, 100)
 
         override val pausesParent get() = true
 
-        override val resolve get() =
-            neededStack.select().transfer(MainHandContainer)?.solve ?: failTask("Stack ${neededStack.name.string} not found")
+        override fun SafeContext.onStart() {
+            neededStack.select()
+                .transfer(MainHandContainer)
+                ?.onSuccess { _, _ ->
+                    success(Unit)
+                }?.start(this@WrongStack) ?: failTask("Stack ${neededStack.name.string} not found")
+        }
 
         override fun SafeContext.buildRenderer() {
             withPos(blockPos, color)

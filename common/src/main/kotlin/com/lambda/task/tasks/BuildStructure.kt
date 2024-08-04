@@ -1,6 +1,5 @@
 package com.lambda.task.tasks
 
-import baritone.api.pathing.goals.GoalNear
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
@@ -25,11 +24,10 @@ class BuildStructure @Ta5kBuilder constructor(
     private val stayInRange: Boolean = true,
     private val forceSilkTouch: Boolean = false,
     val collectDrops: Boolean = TaskFlow.build.collectDrops,
-    private val cancelOnUnsolvable: Boolean = true,
+    private val cancelOnUnsolvable: Boolean = false,
 ) : Task<Unit>() {
     private var previousResults = setOf<BuildResult>()
     private var lastResult: BuildResult? = null
-    private var lastTask: Task<*>? = null
 
     override fun SafeContext.onStart() {
         (blueprint as? DynamicBlueprint)?.create(this)
@@ -54,19 +52,7 @@ class BuildStructure @Ta5kBuilder constructor(
             previousResults = results
             val result = results.minOrNull() ?: return@listener
 
-            lastResult?.let {
-                if (lastTask?.isCompleted == false && result.rank == it.rank) return@listener
-//                if (lastTask?.isCompleted == true || it.rank.compareTo(result.rank) == 0) return@listener
-//                if (it.pausesParent && lastTask?.isCompleted != true) return@listener
-//                if (/*collectDrops && it is BreakResult.Success && */lastTask?.isCompleted == false && lastTask?.isFailed == false) {
-//                    return@listener
-//                }
-                LOG.info("${it.rank.name}${if (it.pausesParent) " (paused)" else ""} -> ${result.rank.name} (${lastTask?.identifier})")
-
-                lastTask?.cancel()
-            }
-
-            val instantResults = results.filterIsInstance<BreakResult.Success>()
+            val instantResults = results.filterIsInstance<BreakResult.Break>()
                 .filter { it.context.instantBreak }
                 .sorted()
                 .take(TaskFlow.build.breaksPerTick)
@@ -74,7 +60,7 @@ class BuildStructure @Ta5kBuilder constructor(
             if (TaskFlow.build.breaksPerTick > 1 && instantResults.isNotEmpty()) {
                 instantResults.forEach {
                     lastResult = it
-                    lastTask = it.resolve.start(this@BuildStructure, pauseParent = false)
+                    it.start(this@BuildStructure, pauseParent = false)
                 }
                 return@listener
             }
@@ -84,27 +70,20 @@ class BuildStructure @Ta5kBuilder constructor(
                     if (!finishOnDone) return@listener
                     success(Unit)
                 }
-                is Resolvable -> {
-                    LOG.info("Resolving: $result")
-
-                    if (result is BreakResult.Success) {
-                        result.collectDrop = collectDrops
-                    }
-
-                    lastResult = result
-                    lastTask = result.resolve
-                        .start(this@BuildStructure, pauseParent = result.pausesParent)
-//                    if (pathing) {
-//                        BaritoneUtils.setGoalAndPath(GoalNear(result.blockPos, 3))
-//                    }
-                }
                 is Navigable -> {
                     if (pathing) BaritoneUtils.setGoalAndPath(result.goal)
                 }
                 else -> {
-                    if (!cancelOnUnsolvable) return@listener
+                    if (lastResult?.isCompleted == false) return@listener
 
-                    failure("Failed to resolve build result: $result")
+                    LOG.info("Resolving: $result")
+
+                    if (result is BreakResult.Break) {
+                        result.collectDrop = collectDrops
+                    }
+
+                    lastResult = result
+                    result.start(this@BuildStructure, pauseParent = result.pausesParent)
                 }
             }
         }
