@@ -26,10 +26,10 @@
     "lambda.mixins.common.json"
   ],
   "depends": {
-    "fabricloader": ">=0.15.1",
-    "fabric-api": ">=0.91.3+1.20.4",
-    "minecraft": "1.20.4",
+    "fabricloader": ">=${fabricLoaderVersion}",
+    "fabric-api": ">=${fabricApiVersion}+${minecraftVersion}",
+    "minecraft": "~${minecraftVersion}",
     "fabric-language-kotlin": ">=${kotlinFabricVersion}",
-    "java": ">=17"
+    "java": ">=${javaVersion}"
   }
 }

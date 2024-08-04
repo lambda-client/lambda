@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 
 object PacketDelay : Module(
     name = "PacketDelay",
-    description = "Delays packets client-side & server-side.",
+    description = "Delays packets client-bound & server-bound",
     defaultTags = setOf(ModuleTag.NETWORK),
 ) {
     private val mode by setting("Mode", Mode.STATIC)

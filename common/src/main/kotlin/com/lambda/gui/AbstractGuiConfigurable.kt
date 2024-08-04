@@ -15,11 +15,12 @@ abstract class AbstractGuiConfigurable(
 ) : Configurable(GuiConfig), Loadable {
     var mainWindows by setting("windows", defaultWindows)
 
-    private val defaultWindows get() =
-        tags.mapIndexed { index, tag ->
-            TagWindow(tag, ownerGui).apply {
-                val step = 5.0
-                position = Vec2d((width + step) * index, 0.0) + step
+    private val defaultWindows
+        get() =
+            tags.mapIndexed { index, tag ->
+                TagWindow(tag, ownerGui).apply {
+                    val step = 5.0
+                    position = Vec2d((width + step) * index, 0.0) + step
+                }
             }
-        }
 }
