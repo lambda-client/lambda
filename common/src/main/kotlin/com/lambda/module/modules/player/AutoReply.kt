@@ -14,18 +14,14 @@ object AutoReply : Module(
     defaultTags = setOf(ModuleTag.PLAYER)
 ){
     init{
-        listener<PacketEvent.Receive.Post>{ event ->
-              val packet = event.packet;
+        listener<PacketEvent.Receive.Pre>{ event ->
+            val packet = event.packet
             if (packet !is GameMessageS2CPacket) return@listener
-            if (!packet.content.string.contains("Coords", true)) return@listener
-            if (!packet.content.string.contains(" whispers: ", true)) return@listener
-            var msg = packet.content.string
+            val msg = packet.content.string
+            if (!msg.contains("Coords", true)) return@listener
+            if (!msg.contains(" whispers: ")) return@listener
             val sender = msg.split(" whispers: ").first()
-            connection.sendChatCommand("w $sender ${player.pos.string} [${world.dimension.toString()}]")
-
-
-
+            connection.sendChatCommand("w $sender ${player.pos.string} [${world.dimension}]")
         }
     }
-
 }
