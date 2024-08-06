@@ -5,7 +5,9 @@ import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Muteable
 import com.lambda.event.listener.SafeListener.Companion.concurrentListener
+import com.lambda.event.listener.SafeListener.Companion.listenOnce
 import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.util.selfReference
 
 /**
  * An [UnsafeListener] is a specialized type of [Listener] that operates without a [SafeContext].
@@ -77,6 +79,54 @@ class UnsafeListener(
             EventFlow.syncListeners.subscribe<T>(listener)
 
             return listener
+        }
+
+        /**
+         * Registers a new [UnsafeListener] for a generic [Event] type [T].
+         * The [function] is executed only once when the [Event] is dispatched.
+         * This function should only be used when the [function] performs read actions on the game data.
+         * For only in-game related contexts, use the [SafeListener.listenOnce] function instead.
+         * The listener will be automatically unsubscribed after the first execution.
+         * This function is useful for one-time event handling.
+         *
+         * Usage:
+         * ```kotlin
+         * private val event by unsafeListenOnce<MyEvent> { event ->
+         *     println("Unsafe event received only once: $event")
+         *     // no safe access to player or world
+         *     // event is stored in the value
+         *     // event is unsubscribed after execution
+         * }
+         * ```
+         *
+         * After the [function] is executed once, the [SafeListener] will be automatically unsubscribed.
+         *
+         * @param T The type of the event to listen for. This should be a subclass of Event.
+         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is 0.
+         * @param alwaysListen If true, the listener will be executed even if it is muted. The Default value is false.
+         * @param function The function to be executed when the event is posted. This function should take an event of type T as a parameter.
+         * @return The newly created and registered [UnsafeListener].
+         */
+        inline fun <reified T : Event> Any.unsafeListenOnce(
+            priority: Int = 0,
+            alwaysListen: Boolean = false,
+            noinline function: (T) -> Unit,
+        ): Lazy<T?> {
+            // This doesn't leak memory because the owner still has a reference to the listener
+            var value: T? = null
+
+            val destroyable by selfReference<UnsafeListener> {
+                UnsafeListener(priority, this@unsafeListenOnce, alwaysListen) { event ->
+                    function(event as T)
+                    value = event
+
+                    EventFlow.syncListeners.unsubscribe(self)
+                }
+            }
+
+            EventFlow.syncListeners.subscribe<T>(destroyable)
+
+            return lazy { value }
         }
 
         /**

@@ -1,10 +1,12 @@
 package com.lambda.mixin.entity;
 
 import com.lambda.event.EventFlow;
+import com.lambda.event.events.AttackEvent;
 import com.lambda.event.events.InteractionEvent;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.ActionResult;
@@ -36,5 +38,15 @@ public class ClientPlayInteractionManagerMixin {
         if (syncId != player.currentScreenHandler.syncId) return;
         var click = new InteractionEvent.SlotClick(syncId, slotId, button, actionType, player.currentScreenHandler);
         if (EventFlow.post(click).isCanceled()) ci.cancel();
+    }
+
+    @Inject(method = "attackEntity", at = @At("HEAD"), cancellable = true)
+    void onAttackPre(PlayerEntity player, Entity target, CallbackInfo ci) {
+        if (EventFlow.post(new AttackEvent.Pre(target)).isCanceled()) ci.cancel();
+    }
+
+    @Inject(method = "attackEntity", at = @At("TAIL"))
+    void onAttackPost(PlayerEntity player, Entity target, CallbackInfo ci) {
+        EventFlow.post(new AttackEvent.Post(target));
     }
 }

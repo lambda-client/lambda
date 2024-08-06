@@ -3,6 +3,7 @@ package com.lambda.mixin.entity;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
+import com.lambda.event.events.TickEvent;
 import com.lambda.interaction.PlayerPacketManager;
 import com.lambda.interaction.RotationManager;
 import net.minecraft.client.input.Input;
@@ -55,6 +56,7 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
     @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick(ZF)V"))
     void processMovement(Input input, boolean slowDown, float slowDownFactor) {
         input.tick(slowDown, slowDownFactor);
+        RotationManager.BaritoneProcessor.processPlayerMovement(input, slowDown, slowDownFactor);
         EventFlow.post(new MovementEvent.InputUpdate(input, slowDown, slowDownFactor));
     }
 
@@ -68,6 +70,16 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         ci.cancel();
         PlayerPacketManager.sendPlayerPackets();
         autoJumpEnabled = Lambda.getMc().options.getAutoJump().getValue();
+    }
+
+    @Inject(method = "tick", at = @At(value = "HEAD"))
+    void onTickPre(CallbackInfo ci) {
+        EventFlow.post(new TickEvent.Player.Pre());
+    }
+
+    @Inject(method = "tick", at = @At(value = "RETURN"))
+    void onTickPost(CallbackInfo ci) {
+        EventFlow.post(new TickEvent.Player.Post());
     }
 
     @Redirect(method = "tickNewAi", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))

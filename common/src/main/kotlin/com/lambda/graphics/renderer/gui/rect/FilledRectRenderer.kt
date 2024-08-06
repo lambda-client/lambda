@@ -41,7 +41,7 @@ class FilledRectRenderer : AbstractRectRenderer(
         val halfSize = size * 0.5
         val maxRadius = min(halfSize.x, halfSize.y)
 
-        val round = min(roundRadius, maxRadius)
+        val round = roundRadius.coerceAtMost(maxRadius).coerceAtLeast(0.0)
 
         val p1 = pos1 - 0.25
         val p2 = pos2 + 0.25
@@ -50,10 +50,10 @@ class FilledRectRenderer : AbstractRectRenderer(
         grow(4)
 
         putQuad(
-            vec2(p1.x, p1.y).vec2(0.0, 0.0).vec2(size.x, size.y).float(round).float(s).color(leftTop).end(),
-            vec2(p1.x, p2.y).vec2(0.0, 1.0).vec2(size.x, size.y).float(round).float(s).color(leftBottom).end(),
-            vec2(p2.x, p2.y).vec2(1.0, 1.0).vec2(size.x, size.y).float(round).float(s).color(rightBottom).end(),
-            vec2(p2.x, p1.y).vec2(1.0, 0.0).vec2(size.x, size.y).float(round).float(s).color(rightTop).end()
+            vec2m(p1.x, p1.y).vec2(0.0, 0.0).vec2(size.x, size.y).float(round).float(s).color(leftTop).end(),
+            vec2m(p1.x, p2.y).vec2(0.0, 1.0).vec2(size.x, size.y).float(round).float(s).color(leftBottom).end(),
+            vec2m(p2.x, p2.y).vec2(1.0, 1.0).vec2(size.x, size.y).float(round).float(s).color(rightBottom).end(),
+            vec2m(p2.x, p1.y).vec2(1.0, 0.0).vec2(size.x, size.y).float(round).float(s).color(rightTop).end()
         )
     }
 

@@ -7,5 +7,5 @@ import com.lambda.module.tag.ModuleTag
 object GuiConfigurable : AbstractGuiConfigurable(
     LambdaClickGui, ModuleTag.defaults, "gui"
 ) {
-    override var customWindows by setting("custom windows", listOf<CustomModuleWindow>())
+    var customWindows by setting("custom windows", listOf<CustomModuleWindow>())
 }

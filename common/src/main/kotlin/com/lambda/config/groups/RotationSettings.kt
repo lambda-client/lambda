@@ -22,7 +22,7 @@ class RotationSettings(
     /**
      * If true, rotation will be instant without any transition. If false, rotation will transition over time.
      */
-    private var instant by c.setting("Instant Rotation", true, "Instantly rotate", vis)
+    var instant by c.setting("Instant Rotation", true, "Instantly rotate", vis)
 
     /**
      * The mean (average/base) value used to calculate rotation speed.

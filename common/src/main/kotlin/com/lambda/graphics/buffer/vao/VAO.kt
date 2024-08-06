@@ -3,6 +3,7 @@ package com.lambda.graphics.buffer.vao
 import com.lambda.graphics.buffer.vao.vertex.BufferUsage
 import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.buffer.vao.vertex.VertexMode
+import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Memory.address
 import com.lambda.graphics.gl.Memory.byteBuffer
 import com.lambda.graphics.gl.Memory.capacity
@@ -21,6 +22,7 @@ import com.lambda.graphics.gl.VaoUtils.unbindIndexBuffer
 import com.lambda.graphics.gl.VaoUtils.unbindVertexArray
 import com.lambda.graphics.gl.VaoUtils.unbindVertexBuffer
 import com.lambda.threading.runGameScheduled
+import org.joml.*
 import org.lwjgl.opengl.GL30C.*
 import java.awt.Color
 import java.nio.ByteBuffer
@@ -85,6 +87,23 @@ class VAO(
 
     override fun vec2(x: Double, y: Double): VAO {
         verticesPosition += vec2(verticesPosition, x, y)
+        return this
+    }
+
+    override fun vec3m(x: Double, y: Double, z: Double): IRenderContext {
+        Matrices.vertexTransformer?.let { mat ->
+            val vec = Vector4d(x, y, z, 1.0).apply(mat::transform)
+            vec3(vec.x, vec.y, vec.z)
+        } ?: vec3(x, y, z)
+
+        return this
+    }
+
+    override fun vec2m(x: Double, y: Double): IRenderContext {
+        Matrices.vertexTransformer?.let { mat ->
+            val vec = Vector4d(x, y, 0.0, 1.0).apply(mat::transform)
+            vec2(vec.x, vec.y)
+        } ?: vec2(x, y)
         return this
     }
 

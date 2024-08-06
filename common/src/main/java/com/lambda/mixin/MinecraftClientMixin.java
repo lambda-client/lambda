@@ -6,10 +6,10 @@ import com.lambda.event.events.ClientEvent;
 import com.lambda.event.events.ScreenEvent;
 import com.lambda.event.events.ScreenHandlerEvent;
 import com.lambda.event.events.TickEvent;
+import com.lambda.interaction.RotationManager;
 import com.lambda.module.modules.player.Interact;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.gui.screen.ingame.ScreenHandlerProvider;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
 import org.jetbrains.annotations.Nullable;
@@ -27,6 +27,7 @@ public class MinecraftClientMixin {
     @Inject(method = "tick", at = @At("HEAD"))
     void onTickPre(CallbackInfo ci) {
         EventFlow.post(new TickEvent.Pre());
+        RotationManager.update();
     }
 
     @Inject(method = "tick", at = @At("RETURN"))

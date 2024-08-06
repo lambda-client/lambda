@@ -32,4 +32,7 @@ object VecUtils {
     infix operator fun Vec3d.times(other: Double): Vec3d = this.multiply(other)
 
     infix operator fun Vec3d.div(other: Double): Vec3d = this.multiply(1.0 / other)
+
+    val UP = Vec3d(0.0, 1.0, 0.0)
+    val DOWN = Vec3d(0.0, -1.0, 0.0)
 }

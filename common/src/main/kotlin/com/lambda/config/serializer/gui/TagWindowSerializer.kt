@@ -1,6 +1,7 @@
 package com.lambda.config.serializer.gui
 
 import com.google.gson.*
+import com.lambda.gui.api.component.core.DockingRect
 import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.gui.impl.clickgui.windows.tag.TagWindow
 import com.lambda.gui.impl.hudgui.LambdaHudGui
@@ -20,9 +21,14 @@ object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWind
             addProperty("height", it.height)
             addProperty("isOpen", it.isOpen)
             add("position", JsonArray().apply {
-                add(it.position.x)
-                add(it.position.y)
+                add(it.serializedPosition.x)
+                add(it.serializedPosition.y)
             })
+            add("docking", JsonArray().apply {
+                add(it.dockingH.ordinal)
+                add(it.dockingV.ordinal)
+            })
+            addProperty("group", if (it.isHudWindow) "hud" else "main")
         }
     } ?: JsonNull.INSTANCE
 
@@ -33,9 +39,9 @@ object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWind
     )  = json?.asJsonObject?.let {
         val tag = ModuleTag(it["tag"].asString)
 
-        val gui = when (tag) {
-            in ModuleTag.defaults -> LambdaClickGui
-            in ModuleTag.hudDefaults -> LambdaHudGui
+        val gui = when (it["group"].asString) {
+            "main"-> LambdaClickGui
+            "hud" -> LambdaHudGui
             else -> return@let null
         }
 
@@ -43,10 +49,12 @@ object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWind
             width = it["width"].asDouble
             height = it["height"].asDouble
             isOpen = it["isOpen"].asBoolean
-            position = Vec2d(
+            serializedPosition = Vec2d(
                 it["position"].asJsonArray[0].asDouble,
                 it["position"].asJsonArray[1].asDouble
             )
+            dockingH = DockingRect.HAlign.entries[it["docking"].asJsonArray[0].asInt]
+            dockingV = DockingRect.VAlign.entries[it["docking"].asJsonArray[1].asInt]
         }
     } ?: throw JsonParseException("Invalid window data")
 }

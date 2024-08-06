@@ -50,9 +50,6 @@ object PlayerPacketManager : Loadable {
         val (yaw, pitch) = rotation.float
         val onGround = new.onGround
 
-        // Fix sensitivity for absolutely any outgoing angle
-        RotationManager.currentRotation = rotation.fixSensitivity(RotationManager.prevRotation)
-
         if (player.hasVehicle()) {
             connection.sendPacket(
                 Full(
