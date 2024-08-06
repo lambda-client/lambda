@@ -4,7 +4,7 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildStructure.Companion.breakAndCollectBlock
+import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.InventoryTask.Companion.deposit
 import com.lambda.task.tasks.InventoryTask.Companion.withdraw
 import com.lambda.task.tasks.OpenContainer.Companion.openContainer

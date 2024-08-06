@@ -4,7 +4,7 @@ import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.PlaceContext
-import com.lambda.task.tasks.BuildStructure.Companion.breakBlock
+import com.lambda.task.tasks.BuildTask.Companion.breakBlock
 import com.lambda.task.tasks.PlaceBlock.Companion.placeBlock
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemPlacementContext

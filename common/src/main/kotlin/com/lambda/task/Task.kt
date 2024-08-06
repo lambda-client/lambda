@@ -74,12 +74,11 @@ abstract class Task<Result> : Nameable {
     private var state = State.IDLE
     var age = 0
 
-    private val isDeactivated get() = state == State.DEACTIVATED
-    val isActivated get() = state == State.ACTIVATED
-    val isRunning get() = state == State.ACTIVATED || state == State.DEACTIVATED
+    private val isWaiting get() = state == State.WAITING
+    private val isRunning get() = state == State.RUNNING
     val isFailed get() = state == State.FAILED
     val isCompleted get() = state == State.COMPLETED || state == State.COOLDOWN
-    val isRoot get() = parent == null
+    private val isRoot get() = parent == null
     override var name = this::class.simpleName ?: "Task"
     val identifier get() = "$name@${hashCode()}"
 
@@ -91,8 +90,8 @@ abstract class Task<Result> : Nameable {
 
     enum class State {
         IDLE,
-        ACTIVATED,
-        DEACTIVATED,
+        RUNNING,
+        WAITING,
         CANCELLED,
         FAILED,
         COOLDOWN,
@@ -129,7 +128,7 @@ abstract class Task<Result> : Nameable {
 
         LOG.info("${owner.identifier} started $identifier")
         this.parent = owner
-        if (pauseParent && owner.isActivated && !owner.isRoot) {
+        if (pauseParent && owner.isRunning && !owner.isRoot) {
             LOG.info("$identifier deactivating parent ${owner.identifier}")
             owner.deactivate()
         }
@@ -144,15 +143,15 @@ abstract class Task<Result> : Nameable {
 
     @Ta5kBuilder
     fun activate() {
-        if (isActivated) return
-        state = State.ACTIVATED
+        if (isRunning) return
+        state = State.RUNNING
         startListening()
     }
 
     @Ta5kBuilder
     fun deactivate() {
-        if (isDeactivated) return
-        state = State.DEACTIVATED
+        if (isWaiting) return
+        state = State.WAITING
         stopListening()
     }
 
@@ -266,7 +265,7 @@ abstract class Task<Result> : Nameable {
                     LOG.info("$identifier completed parent ${par.identifier}")
                     par.notifyParent()
                 }
-                !par.isActivated -> {
+                !par.isRunning -> {
                     LOG.info("$identifier reactivated parent ${par.identifier}")
                     par.activate()
                 }

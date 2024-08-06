@@ -17,7 +17,7 @@ import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
 import net.minecraft.util.math.BlockPos
 
-class BuildStructure @Ta5kBuilder constructor(
+class BuildTask @Ta5kBuilder constructor(
     private val blueprint: Blueprint,
     private val finishOnDone: Boolean = true,
     private val pathing: Boolean = TaskFlow.build.pathing,
@@ -60,7 +60,7 @@ class BuildStructure @Ta5kBuilder constructor(
             if (TaskFlow.build.breaksPerTick > 1 && instantResults.isNotEmpty()) {
                 instantResults.forEach {
                     lastResult = it
-                    it.start(this@BuildStructure, pauseParent = false)
+                    it.start(this@BuildTask, pauseParent = false)
                 }
                 return@listener
             }
@@ -71,6 +71,8 @@ class BuildStructure @Ta5kBuilder constructor(
                     success(Unit)
                 }
                 is Navigable -> {
+                    if (lastResult?.isCompleted == false) return@listener
+
                     if (pathing) BaritoneUtils.setGoalAndPath(result.goal)
                 }
                 else -> {
@@ -83,7 +85,7 @@ class BuildStructure @Ta5kBuilder constructor(
                     }
 
                     lastResult = result
-                    result.start(this@BuildStructure, pauseParent = result.pausesParent)
+                    result.start(this@BuildTask, pauseParent = result.pausesParent)
                 }
             }
         }
@@ -91,7 +93,7 @@ class BuildStructure @Ta5kBuilder constructor(
 
     companion object {
         @Ta5kBuilder
-        fun buildStructure(
+        fun build(
             finishOnDone: Boolean = true,
             pathing: Boolean = TaskFlow.build.pathing,
             stayInRange: Boolean = true,
@@ -99,7 +101,7 @@ class BuildStructure @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlow.build.collectDrops,
             cancelOnUnsolvable: Boolean = true,
             blueprint: () -> Blueprint,
-        ) = BuildStructure(
+        ) = BuildTask(
                 blueprint(),
                 finishOnDone,
                 pathing,
@@ -114,7 +116,7 @@ class BuildStructure @Ta5kBuilder constructor(
             blockPos: BlockPos,
             withSilkTouch: Boolean = false,
             stayInRange: Boolean = false,
-        ) = BuildStructure(
+        ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
             forceSilkTouch = withSilkTouch,
             stayInRange = stayInRange,
@@ -124,7 +126,7 @@ class BuildStructure @Ta5kBuilder constructor(
         @Ta5kBuilder
         fun breakBlock(
             blockPos: BlockPos,
-        ) = BuildStructure(
+        ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint()
         )
     }

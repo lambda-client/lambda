@@ -7,7 +7,7 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildStructure.Companion.breakAndCollectBlock
+import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainer.Companion.openContainer
 import com.lambda.task.tasks.PlaceContainer.Companion.placeContainer
 import com.lambda.util.item.ItemUtils.shulkerBoxes

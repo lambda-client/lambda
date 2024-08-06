@@ -9,7 +9,7 @@ import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildStructure.Companion.buildStructure
+import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.block.ChestBlock
@@ -43,7 +43,7 @@ class PlaceContainer @Ta5kBuilder constructor(
             canBeOpened(stack, it.blockPos, result.side)
         }
         (succeeds + wrongStacks).minOrNull()?.let { result ->
-            buildStructure {
+            build {
                 result.blockPos
                     .toStructure(TargetState.Stack(stack))
                     .toBlueprint()

@@ -4,7 +4,6 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
-import com.lambda.task.tasks.ContainerTransfer
 
 abstract class TransferResult : Task<Unit>() {
     data class Transfer(
@@ -13,8 +12,10 @@ abstract class TransferResult : Task<Unit>() {
         val to: MaterialContainer
     ) : TransferResult() {
         override fun SafeContext.onStart() {
-            ContainerTransfer(selection, from, to).onSuccess { _, _ ->
-                success(Unit)
+            from.withdraw(selection).thenRun(this@Transfer) { _, _ ->
+                to.deposit(selection).onSuccess { _, _ ->
+                    success(Unit)
+                }
             }.start(this@Transfer)
         }
 

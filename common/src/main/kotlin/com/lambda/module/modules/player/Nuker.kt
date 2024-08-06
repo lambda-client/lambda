@@ -5,7 +5,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task.Companion.emptyTask
-import com.lambda.task.tasks.BuildStructure.Companion.buildStructure
+import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.util.math.BlockPos
@@ -25,7 +25,7 @@ object Nuker : Module(
 
     init {
         onEnable {
-            task = buildStructure(
+            task = build(
                 pathing = false,
                 finishOnDone = false,
                 cancelOnUnsolvable = false
