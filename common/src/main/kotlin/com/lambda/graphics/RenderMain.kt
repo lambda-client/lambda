@@ -14,6 +14,7 @@ import com.lambda.graphics.gl.Matrices.resetMatrices
 import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.graphics.shader.Shader
+import com.lambda.gui.impl.hudgui.LambdaHudGui
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.math.Vec2d
@@ -25,14 +26,16 @@ object RenderMain {
     val modelViewMatrix: Matrix4f get() = Matrices.peek()
     var screenSize = Vec2d.ZERO
 
+    private val showHud get() = mc.currentScreen == null || LambdaHudGui.isOpen
+
     private val hudAnimation0 = with(AnimationTicker()) {
         listener<TickEvent.Pre> {
             tick()
         }
 
         exp(0.0, 1.0, {
-            if (mc.currentScreen == null) ClickGui.closeSpeed else ClickGui.openSpeed
-        }) { mc.currentScreen == null }
+            if (showHud) ClickGui.closeSpeed else ClickGui.openSpeed
+        }) { showHud }
     }
 
     private val frameBuffer = FrameBuffer()
