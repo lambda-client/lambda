@@ -18,14 +18,29 @@ import com.lambda.event.events.TickEvent.Pre
  */
 abstract class TickEvent : Event {
     /**
-     * A class representing a [TickEvent] that is triggered before each tick of the game loop.
+     * A class representing a [TickEvent] that is triggered before each tick of the tick loop.
      */
     class Pre : TickEvent()
 
     /**
-     * A class representing a [TickEvent] that is triggered after each tick of the game loop.
+     * A class representing a [TickEvent] that is triggered after each tick of the tick loop.
      */
     class Post : TickEvent()
+
+    /**
+     * A class representing a [TickEvent] that is triggered on each tick of the game loop.
+     */
+    abstract class GameLoop : TickEvent() {
+        /**
+         * A class representing a [TickEvent.Player] that is triggered before each tick of the game loop.
+         */
+        class Pre : TickEvent()
+
+        /**
+         * A class representing a [TickEvent.Player] that is triggered after each tick of the game loop.
+         */
+        class Post : TickEvent()
+    }
 
     /**
      * A class representing a [TickEvent] that is triggered when the player gets ticked.

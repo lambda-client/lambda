@@ -35,6 +35,16 @@ public class MinecraftClientMixin {
         EventFlow.post(new TickEvent.Post());
     }
 
+    @Inject(method = "render", at = @At("HEAD"))
+    void onLoopTickPre(CallbackInfo ci) {
+        EventFlow.post(new TickEvent.GameLoop.Pre());
+    }
+
+    @Inject(method = "render", at = @At("RETURN"))
+    void onLoopTickPost(CallbackInfo ci) {
+        EventFlow.post(new TickEvent.GameLoop.Post());
+    }
+
     @Inject(at = @At(value = "INVOKE", target = "Lorg/slf4j/Logger;info(Ljava/lang/String;)V", shift = At.Shift.AFTER, remap = false), method = "stop")
     private void onShutdown(CallbackInfo ci) {
         EventFlow.post(new ClientEvent.Shutdown());
