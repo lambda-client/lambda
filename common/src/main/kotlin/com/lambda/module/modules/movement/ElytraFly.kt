@@ -17,7 +17,7 @@ object ElytraFly : Module(
     // private val page by setting("Page", Page.GENERAL) // Uncomment when needed
     private val mode by setting("Mode", Mode.BOOST)
 
-    private val speed by setting("Speed", 0.0, 0.0..0.5, 0.005, description = "Speed to add when flying") { mode == Mode.BOOST }
+    private val speed by setting("Speed", 0.02, 0.0..0.5, 0.005, description = "Speed to add when flying") { mode == Mode.BOOST }
     private val elytraMute by setting("Mute Elytra", false, "Mutes elytra sound")
 
     init {
