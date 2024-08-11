@@ -32,6 +32,7 @@ import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.registry.tag.FluidTags
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.state.property.Properties
+import net.minecraft.text.Text
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.HitResult
@@ -53,6 +54,7 @@ object PacketMine : Module(
     private val breakMode by setting("Break Mode", BreakMode.Total, "Changes the way break amount is added up. Total will choose the best tool and act as if its been using it the whole time while additive will add progress throughout the break", visibility = { page == Page.General })
     private val strict by setting("Strict", false, "Resets the breaking progress at various stages to bypass generally stricter anti-cheats", visibility = { page == Page.General })
     private val range by setting("Range", 6.0f, 3.0f..6.0f, 0.1f, "The maximum distance between the players eye position and the center of the block", visibility = { page == Page.General })
+    private val doubleBreak by setting("Double Break", false, "This exploit only works on non strict servers or servers that run grim. It breaks two blocks at once", visibility = { page == Page.General })
     private val pauseWhileUsingItems by setting("Pause While Using Items", true, "Will prevent breaking while using items like eating or aiming a bow", visibility = { page == Page.General })
     private val validateBreak by setting("Validate Break", true, "Breaks blocks client side rather than waiting for a response from the server", visibility = { page == Page.General })
     private val timeoutDelay by setting("Timeout Delay", 0.20f, 0.00f..1.00f, 0.1f, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", visibility = { page == Page.General && validateBreak })
@@ -221,6 +223,13 @@ object PacketMine : Module(
         Breaking, ReBreaking, AwaitingResponse
     }
 
+    private enum class BreakType {
+        Primary, Double;
+
+        fun isPrimary() =
+            this == Primary
+    }
+
     val renderer = DynamicESP
     private var currentMiningBlock = Array<BreakingContext?>(2) { null }
     private var lastNonEmptyState: BlockState? = null
@@ -243,6 +252,9 @@ object PacketMine : Module(
     private var cancelNextSwing = false
     private var breaksPerTickCounter = 0
     private var swingingNextAttack = true
+    private var doubleBreakSwapped = false
+    private var doubleBreakSwappedCounter = 0
+    private var doubleBreakReturnSlot = 0
 
     init {
         listener<InteractionEvent.BreakingProgress.Pre> {
@@ -259,26 +271,46 @@ object PacketMine : Module(
                 swingingNextAttack = true
             }
 
-            if (shouldBePlacedInBlockQueue(it.pos)) {
-                if (reverseQueueOrder) {
-                    blockQueue.addFirst(it.pos)
-                } else {
-                    blockQueue.add(it.pos)
+            if (queueBlocks) {
+                if (shouldBePlacedInBlockQueue(it.pos)) {
+                    if (reverseQueueOrder) {
+                        blockQueue.addFirst(it.pos)
+                    } else {
+                        blockQueue.add(it.pos)
+                    }
+                    return@listener
                 }
-                return@listener
+
+                if (blockQueue.contains(it.pos)) return@listener
+            }
+
+            currentMiningBlock.forEach { ctx ->
+                ctx?.apply {
+                    if (it.pos != pos) return@forEach
+
+                    val primary = breakType.isPrimary()
+
+                    if (!primary || (breakState == BreakState.ReBreaking && !reBreak.isStandard())) return@listener
+
+                    if (miningProgress < breakThreshold) return@listener
+
+                    runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, { lastValidBestTool }) {
+                        packetStopBreak(pos)
+
+                        onBlockBreak()
+                    }
+
+                    return@listener
+                }
             }
 
             currentMiningBlock[0]?.apply {
-                if (it.pos != pos || breakState != BreakState.ReBreaking || !reBreak.isStandard()) return@apply
 
-                if (miningProgress < breakThreshold) return@listener
+                currentMiningBlock[1]?.run { return@apply }
 
-                runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, { lastValidBestTool }) {
-                    packetStopBreak(pos)
-
-                    onBlockBreak(false)
+                if (doubleBreak && breakState != BreakState.ReBreaking) {
+                    switchCurrentMiningBlockToDouble()
                 }
-                return@listener
             }
 
             startBreaking(it.pos)
@@ -294,138 +326,182 @@ object PacketMine : Module(
         listener<TickEvent.Pre>(1) {
             updateCounters()
 
-            if (awaitingQueueBreak) {
-                if (queueBreakStartCounter > 0) return@listener
+            if (shouldWaitForQueuePause()) return@listener
 
-                awaitingQueueBreak = false
-                if (breakNextQueueBlock()) return@listener
-            }
+            currentMiningBlock.forEach { ctx ->
+                ctx?.apply {
 
-            currentMiningBlock[0]?.apply {
-                mineTicks++
+                    mineTicks++
 
-                val activeState = pos.blockState(world)
-                state = activeState
+                    val activeState = pos.blockState(world)
+                    state = activeState
 
-                val empty = isStateEmpty(activeState)
-                if (!empty) {
-                    if (activeState != lastNonEmptyState?.block) {
-                        lastNonEmptyState?.apply {
-                            transformProgress(block.hardness / activeState.block.hardness)
-                        }
-                    }
+                    val empty = isStateEmpty(activeState)
 
-                    lastNonEmptyState = activeState
-                }
-
-                lastNonEmptyState?.let {
-                    lastValidBestTool = getBestTool(it, pos)
-                }
-
-                runHandlers(ProgressStage.PreTick, pos, lastValidBestTool, empty)
-
-                if (strict
-                    && !swapped
-                    && player.inventory.selectedSlot != previousSelectedSlot
-                    ) {
-                    resetProgress()
-                }
-                previousSelectedSlot = player.inventory.selectedSlot
-
-                if ((pauseWhileUsingItems && player.isUsingItem) || pausedForRotation) {
-                    return@listener
-                }
-
-                currentBreakDelta = lastNonEmptyState?.let { lastNonEmptyState ->
-                    if (swapMethod.isEnabled()) {
-                        calcBreakDelta(lastNonEmptyState, pos, lastValidBestTool)
+                    val bestTool = if (breakType.isPrimary()) {
+                        lastNonEmptyState?.run {
+                            getBestTool(this, pos)
+                        } ?: player.inventory.selectedSlot
                     } else {
-                        calcBreakDelta(lastNonEmptyState, pos, player.inventory.selectedSlot)
-                    }
-                } ?: 0f
-
-                updateBreakDeltas(currentBreakDelta)
-
-                if (renderMode.isEnabled()) updateRenders()
-
-                if (breakingAnimation)
-                    world.setBlockBreakingInfo(
-                        player.id,
-                        pos,
-                        (miningProgress * (2 - breakThreshold) * 10).toInt().coerceAtMost(9)
-                    )
-
-                when (breakState) {
-                    BreakState.Breaking -> {
-                        if (miningProgress < breakThreshold) return@listener
-
-                        timeCompleted = System.currentTimeMillis()
-
-                        runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, { lastValidBestTool }) {
-                            packetStopBreak(pos)
-
-                            onBlockBreak(false)
-                        }
+                        getBestTool(state, pos)
                     }
 
-                    BreakState.ReBreaking -> {
-                        if (miningProgress < breakThreshold) {
-                            runHandlers(ProgressStage.During, pos, lastValidBestTool, empty = empty)
-                            return@listener
+                    if (breakType.isPrimary()) {
+                        if (!empty) {
+                            if (activeState != lastNonEmptyState?.block) {
+                                lastNonEmptyState?.apply {
+                                    transformProgress(block.hardness / activeState.block.hardness)
+                                }
+                            }
+
+                            lastNonEmptyState = activeState
                         }
 
-                        if (isOutOfRange(pos.toCenterPos()) || !reBreak.isEnabled()) {
-                            nullifyCurrentBreakingBlock()
-                            return@listener
+                        lastNonEmptyState?.let {
+                            lastValidBestTool = bestTool
                         }
 
-                        if (breakNextQueueBlock() || reBreak.isStandard()) return@listener
+                        runHandlers(ProgressStage.PreTick, pos, lastValidBestTool, empty)
 
-                        if (empty) {
-                            if (emptyReBreakDelayCounter > 0) return@listener
-                            emptyReBreakDelayCounter = emptyReBreakDelay
+                        if (strict
+                            && !swapped
+                            && player.inventory.selectedSlot != previousSelectedSlot
+                        ) {
+                            resetProgress()
+                            currentMiningBlock[1]?.apply {
+                                resetProgress()
+                            }
+                        }
+                        previousSelectedSlot = player.inventory.selectedSlot
+                    }
+
+                    if ((pauseWhileUsingItems && player.isUsingItem) || pausedForRotation) {
+                        return@forEach
+                    }
+
+                    currentBreakDelta = if (swapMethod.isEnabled()) {
+                        if (breakType.isPrimary()) {
+                            calcBreakDelta(state, pos, lastValidBestTool)
                         } else {
-                            if (reBreakDelayCounter > 0) return@listener
-                            reBreakDelayCounter = reBreakDelay
+                            calcBreakDelta(state, pos, bestTool)
                         }
-
-                        if (!reBreak.isFastAutomatic() && empty) {
-                            return@listener
-                        }
-
-                        runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, { lastValidBestTool }, empty = empty) {
-                            packetStopBreak(pos)
-
-                            onBlockBreak(false)
-                        }
+                    } else {
+                        calcBreakDelta(state, pos, player.inventory.selectedSlot)
                     }
 
-                    BreakState.AwaitingResponse -> {
-                        if (!validateBreak) {
-                            runHandlers(ProgressStage.EndPost, pos, lastValidBestTool)
-                            onBlockBreak(false)
-                            return@listener
+                    updateBreakDeltas(currentBreakDelta)
+
+                    if (renderMode.isEnabled()) updateRenders()
+
+                    if (breakingAnimation
+                        && breakType.isPrimary())
+                        world.setBlockBreakingInfo(
+                            player.id,
+                            pos,
+                            (miningProgress * (2 - breakThreshold) * 10).toInt().coerceAtMost(9)
+                        )
+
+                    when (breakState) {
+                        BreakState.Breaking -> {
+                            val threshold = if (breakType.isPrimary()) breakThreshold else 1f
+
+                            if (miningProgress < threshold) return@forEach
+
+                            timeCompleted = System.currentTimeMillis()
+
+                            if (breakType.isPrimary()) {
+                                runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, { lastValidBestTool }) {
+                                    packetStopBreak(pos)
+
+                                    onBlockBreak(doubleBreakBlock = false)
+                                }
+                                return@forEach
+                            }
+
+                            doubleBreakSwapTo(bestTool)
+                            onBlockBreak(doubleBreakBlock = true)
                         }
 
-                        if (System.currentTimeMillis() - timeCompleted < timeoutDelay * 1000) return@listener
+                        BreakState.ReBreaking -> {
+                            if (miningProgress < breakThreshold) {
+                                runHandlers(ProgressStage.During, pos, lastValidBestTool, empty = empty)
+                                return@forEach
+                            }
 
-                        if (breakNextQueueBlock()) return@listener
+                            if (isOutOfRange(pos.toCenterPos()) || !reBreak.isEnabled()) {
+                                nullifyCurrentBreakingBlock(false)
+                                return@forEach
+                            }
 
-                        runHandlers(ProgressStage.TimedOut, pos, lastValidBestTool)
+                            if (breakNextQueueBlock() || reBreak.isStandard()) return@forEach
 
-                        nullifyCurrentBreakingBlock()
+                            if (empty) {
+                                if (emptyReBreakDelayCounter > 0) return@forEach
+                                emptyReBreakDelayCounter = emptyReBreakDelay
+                            } else {
+                                if (reBreakDelayCounter > 0) return@forEach
+                                reBreakDelayCounter = reBreakDelay
+                            }
+
+                            if (!reBreak.isFastAutomatic() && empty) {
+                                return@forEach
+                            }
+
+                            runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, { lastValidBestTool }, empty = empty) {
+                                packetStopBreak(pos)
+
+                                onBlockBreak()
+                            }
+                        }
+
+                        BreakState.AwaitingResponse -> {
+                            if (!validateBreak) {
+                                if (breakType.isPrimary()) {
+                                    runHandlers(ProgressStage.EndPost, pos, lastValidBestTool)
+                                }
+                                onBlockBreak(doubleBreakBlock = !breakType.isPrimary())
+                                return@forEach
+                            }
+
+                            if (System.currentTimeMillis() - timeCompleted < timeoutDelay * 1000) return@forEach
+
+                            val primary = breakType.isPrimary()
+
+                            if (!primary) nullifyCurrentBreakingBlock(true)
+                            if (breakNextQueueBlock()) return@forEach
+
+                            if (primary) {
+                                runHandlers(ProgressStage.TimedOut, pos, lastValidBestTool)
+                            }
+
+                            nullifyCurrentBreakingBlock(!breakType.isPrimary())
+                        }
                     }
                 }
             }
         }
 
+        listener<TickEvent.Post> {
+            if (doubleBreakSwapped && doubleBreakSwappedCounter >= 1) {
+                returnToOriginalDoubleBreakSlot()
+            }
+        }
+
         listener<WorldEvent.BlockUpdate> {
-            currentMiningBlock[0]?.apply {
-                if (it.pos != pos || !isStateBroken(pos.blockState(world), it.state)) return@listener
+            currentMiningBlock.forEach { ctx ->
+                ctx?.apply {
+                    if (it.pos != pos || !isStateBroken(pos.blockState(world), it.state)) return@forEach
 
-                runHandlers(ProgressStage.PacketReceiveBreak, pos, lastValidBestTool)
+                    if (breakType.isPrimary()) {
+                        runHandlers(ProgressStage.PacketReceiveBreak, pos, lastValidBestTool)
+                    } else {
+                        if (doubleBreakSwapped) {
+                            returnToOriginalDoubleBreakSlot()
+                        }
+                    }
 
-                onBlockBreak(true)
+                    onBlockBreak(packetReceiveBreak = true, doubleBreakBlock = !breakType.isPrimary())
+                }
             }
         }
 
@@ -486,8 +562,8 @@ object PacketMine : Module(
         listener<RenderEvent.World> {
             renderer.clear()
 
-            currentMiningBlock[0]?.apply {
-                buildRenders()
+            currentMiningBlock.forEach { ctx ->
+                ctx?.run { buildRenders() }
             }
 
             if (renderQueueMode.isEnabled()) {
@@ -554,12 +630,13 @@ object PacketMine : Module(
             cancelNextSwing = false
             breaksPerTickCounter = 0
             swingingNextAttack = true
+            doubleBreakSwapped = false
+            doubleBreakSwappedCounter = 0
+            doubleBreakReturnSlot = 0
         }
     }
 
     private fun SafeContext.startBreaking(pos: BlockPos) {
-        if (currentMiningBlock[0]?.pos == pos || blockQueue.contains(pos)) return
-
         val state = pos.blockState(world)
         val bestTool = getBestTool(state, pos)
         if (!isStateEmpty(state)) lastNonEmptyState = state
@@ -582,7 +659,7 @@ object PacketMine : Module(
 
             packetStopBreak(pos)
 
-            onBlockBreak(false)
+            onBlockBreak()
         }
     }
 
@@ -743,6 +820,15 @@ object PacketMine : Module(
         if (queueBreakStartCounter > 0) {
             queueBreakStartCounter--
         }
+        if (doubleBreakSwapped) {
+            doubleBreakSwappedCounter++
+        }
+    }
+
+    private fun switchCurrentMiningBlockToDouble() {
+        currentMiningBlock[1] = currentMiningBlock[0]
+        currentMiningBlock[0] = null
+        currentMiningBlock[1]?.breakType = BreakType.Double
     }
 
     private fun SafeContext.rotateTo(pos: BlockPos) {
@@ -856,11 +942,42 @@ object PacketMine : Module(
             player.inventory.selectedSlot = returnSlot
             connection.sendPacket(UpdateSelectedSlotC2SPacket(returnSlot))
         }
+
+        if (doubleBreakSwapped && (!swapMethod.isSilent() || swapMode.isConstant())) {
+            doubleBreakSwapped = false
+            doubleBreakReturnSlot = 0
+        }
+
         returnSlot = -1
         swappedSlot = -1
         swapped = false
 
         return
+    }
+
+    private fun SafeContext.doubleBreakSwapTo(slot: Int) {
+        val currentSelectedSlot = player.inventory.selectedSlot
+
+        if (slot != currentSelectedSlot) {
+            doubleBreakReturnSlot = currentSelectedSlot
+            player.inventory.selectedSlot = slot
+            connection.sendPacket(UpdateSelectedSlotC2SPacket(slot))
+        }
+
+        doubleBreakSwappedCounter = 0
+        doubleBreakSwapped = true
+    }
+
+    private fun SafeContext.returnToOriginalDoubleBreakSlot() {
+        if (!doubleBreakSwapped) return
+
+        if (doubleBreakReturnSlot != player.inventory.selectedSlot) {
+            player.inventory.selectedSlot = doubleBreakReturnSlot
+            connection.sendPacket(UpdateSelectedSlotC2SPacket(doubleBreakReturnSlot))
+        }
+
+        doubleBreakReturnSlot = 0
+        doubleBreakSwapped = false
     }
 
     private fun cancelSwap() {
@@ -872,25 +989,35 @@ object PacketMine : Module(
     private fun SafeContext.isOutOfRange(vec: Vec3d) =
         player.eyePos.distanceTo(vec) > range
 
-    private fun SafeContext.onBlockBreak(packetReceiveBreak: Boolean) {
-        currentMiningBlock[0]?.apply {
+    private fun SafeContext.onBlockBreak(packetReceiveBreak: Boolean = false, doubleBreakBlock: Boolean = false) {
+        val block = if (doubleBreakBlock) 1 else 0
+
+        currentMiningBlock[block]?.apply {
             if (!isOutOfRange(pos.toCenterPos()) || packetReceiveBreak) {
-                checkClientSideBreak(packetReceiveBreak, pos)
+                if (breakType.isPrimary() || packetReceiveBreak) {
+                    checkClientSideBreak(packetReceiveBreak, pos, doubleBreakBlock = doubleBreakBlock)
+                }
             }
 
-            timeCompleted = System.currentTimeMillis()
+            if (timeCompleted == -1L) {
+                timeCompleted = System.currentTimeMillis()
+            }
 
             if (validateBreak && breakState == BreakState.Breaking) {
                 breakState = BreakState.AwaitingResponse
                 return
             }
 
+            if (!breakType.isPrimary() && (breakState == BreakState.AwaitingResponse || !validateBreak)) {
+                nullifyCurrentBreakingBlock(true)
+            }
+
             breaksPerTickCounter++
 
             queueBreakStartCounter = queueBreakDelay
-            if (breakNextQueueBlock()) return
+            if (breakNextQueueBlock(doubleBreakBlock = doubleBreakBlock)) return
 
-            if (reBreak.isEnabled() && !isOutOfRange(pos.toCenterPos())) {
+            if (reBreak.isEnabled() && !isOutOfRange(pos.toCenterPos()) && breakType.isPrimary()) {
                 if (breakState != BreakState.ReBreaking) {
                     breakState = BreakState.ReBreaking
                 }
@@ -899,17 +1026,21 @@ object PacketMine : Module(
                 return
             }
 
-            nullifyCurrentBreakingBlock()
+            nullifyCurrentBreakingBlock(doubleBreakBlock)
         }
     }
 
-    private fun SafeContext.nullifyCurrentBreakingBlock() {
-        currentMiningBlock[0]?.apply {
-            if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, -1)
-            runHandlers(ProgressStage.TimedOut, pos, lastValidBestTool)
+    private fun SafeContext.nullifyCurrentBreakingBlock(doubleBreakBlock: Boolean) {
+        val block = if (doubleBreakBlock) 1 else 0
+
+        if (!doubleBreakBlock) {
+            currentMiningBlock[block]?.apply {
+                if (breakingAnimation) world.setBlockBreakingInfo(player.id, pos, -1)
+                runHandlers(ProgressStage.TimedOut, pos, lastValidBestTool)
+            }
         }
 
-        currentMiningBlock[0] = null
+        currentMiningBlock[block] = null
     }
 
     private fun isStateBroken(previousState: BlockState?, activeState: BlockState): Boolean {
@@ -932,32 +1063,57 @@ object PacketMine : Module(
                         && !state.fluidState.isEmpty
                 )
 
-    private fun SafeContext.checkClientSideBreak(packetReceiveBreak: Boolean, pos: BlockPos) {
-        if (packetReceiveBreak == validateBreak) interaction.breakBlock(pos)
+    private fun SafeContext.checkClientSideBreak(packetReceiveBreak: Boolean, pos: BlockPos, doubleBreakBlock: Boolean = false) {
+        if (packetReceiveBreak == validateBreak || doubleBreakBlock && packetReceiveBreak) {
+            interaction.breakBlock(pos)
+        }
     }
 
+    //ToDo: Fix this shit
     private fun shouldBePlacedInBlockQueue(pos: BlockPos): Boolean =
-        queueBlocks
-            && currentMiningBlock[0] != null
-            && currentMiningBlock[0]?.breakState != BreakState.ReBreaking
-            && currentMiningBlock[0]?.pos != pos
-            && !blockQueue.contains(pos)
+        (((currentMiningBlock[0] != null && !doubleBreak) || currentMiningBlock[1] != null) || !blockQueue.isEmpty())
+                && (currentMiningBlock[0]?.breakState != BreakState.ReBreaking || !blockQueue.isEmpty())
+                && currentMiningBlock[0]?.pos != pos
+                && currentMiningBlock[1]?.pos != pos
+                && !blockQueue.contains(pos)
 
-    private fun SafeContext.breakNextQueueBlock(): Boolean {
-        if (!queueBlocks) return false
+    private fun SafeContext.breakNextQueueBlock(doubleBreakBlock: Boolean = false): Boolean {
+        if (!queueBlocks || currentMiningBlock.any { it?.timeCompleted == -1L }) return false
 
-        filterBlockQueueUntilNextPossible()?.apply {
-            if (queueBreakStartCounter <= 0 && breaksPerTickCounter <= 0) {
-                blockQueue.remove(this)
-                startBreaking(this)
-            } else {
-                currentMiningBlock[0] = null
-                awaitingQueueBreak = true
-            }
-            return true
+        var startedBreakingAtLeastOne = false
+
+        while (true) {
+            filterBlockQueueUntilNextPossible()?.let { block ->
+                currentMiningBlock[1]?.run {
+                    return startedBreakingAtLeastOne
+                }
+
+                val requiresAnotherTickDelay = doubleBreakBlock && !validateBreak && queueBreakDelay <= 0 && doubleBreak
+
+                if (queueBreakStartCounter > 0 || breaksPerTickCounter >= 1 || requiresAnotherTickDelay) {
+                    if (requiresAnotherTickDelay) queueBreakStartCounter++
+                    awaitingQueueBreak = true
+                    return true
+                }
+
+                currentMiningBlock[0]?.apply {
+                    if (timeCompleted != -1L || breakState == BreakState.ReBreaking) return@apply
+
+                    if (!doubleBreak) return startedBreakingAtLeastOne
+
+                    switchCurrentMiningBlockToDouble()
+                }
+
+                blockQueue.remove(block)
+                startBreaking(block)
+
+                if (!doubleBreak || startedBreakingAtLeastOne) {
+                    return true
+                }
+
+                startedBreakingAtLeastOne = true
+            } ?: return startedBreakingAtLeastOne
         }
-
-        return false
     }
 
     private fun SafeContext.filterBlockQueueUntilNextPossible(): BlockPos? {
@@ -973,14 +1129,26 @@ object PacketMine : Module(
         }
     }
 
-    private data class BreakingContext(
+    private fun SafeContext.shouldWaitForQueuePause(): Boolean {
+        if (awaitingQueueBreak) {
+            if (queueBreakStartCounter > 0) return true
+
+            awaitingQueueBreak = false
+            if (breakNextQueueBlock()) return true
+        }
+
+        return false
+    }
+
+    private class BreakingContext(
         val pos: BlockPos,
         var state: BlockState,
         var breakState: BreakState,
         var currentBreakDelta: Float,
-        var lastValidBestTool: Int
+        var lastValidBestTool: Int,
     ) {
         var mineTicks = 0
+        var breakType = BreakType.Primary
         var additiveBreakDelta = currentBreakDelta
         var timeCompleted: Long = -1
         var previousBreakDelta = 0f
@@ -1031,13 +1199,20 @@ object PacketMine : Module(
             if (!renderIfEmpty && isStateEmpty(state)) return
 
             boxList?.forEach { box ->
-                val previousFactor = previousMiningProgress * (2 - breakThreshold)
-                val nextFactor = miningProgress * (2 - breakThreshold)
+                val threshold = if (breakType.isPrimary()) {
+                    2f - breakThreshold
+                } else {
+                    1f
+                }
+                val previousFactor = previousMiningProgress * threshold
+                val nextFactor = miningProgress * threshold
                 val currentFactor = lerp(previousFactor, nextFactor, mc.tickDelta)
+
+                val paused = (pauseWhileUsingItems && player.isUsingItem) || pausedForRotation || awaitingQueueBreak
 
                 val fillColour = if (fillColourMode == ColourMode.Dynamic) {
                     val lerpColour = lerp(startFillColour, endFillColour, currentFactor.toDouble())
-                    if ((!pauseWhileUsingItems || !player.isUsingItem) && !pausedForRotation) {
+                    if (!paused) {
                         lastLerpFillColour = lerpColour
                         lerpColour
                     } else {
@@ -1049,7 +1224,7 @@ object PacketMine : Module(
 
                 val outlineColour = if (outlineColourMode == ColourMode.Dynamic) {
                     val lerpColour = lerp(startOutlineColour, endOutlineColour, currentFactor.toDouble())
-                    if ((!pauseWhileUsingItems || !player.isUsingItem) && !pausedForRotation) {
+                    if (!paused) {
                         lastLerpOutlineColour = lerpColour
                         lerpColour
                     } else {
@@ -1061,7 +1236,7 @@ object PacketMine : Module(
 
                 val renderBox = if (renderMode != RenderMode.Static) {
                     val lerpBox = getLerpBox(box, currentFactor).offset(pos)
-                    if ((!pauseWhileUsingItems || !player.isUsingItem) && !pausedForRotation) {
+                    if (!paused) {
                         lastLerpBox = lerpBox
                         lerpBox
                     } else {
@@ -1122,10 +1297,10 @@ object PacketMine : Module(
 
     private fun SafeContext.packetStartBreak(pos: BlockPos) {
         startBreak(pos)
-        if (packets != PacketMode.Vanilla) {
+        if (packets != PacketMode.Vanilla || doubleBreak) {
             abortBreak(pos)
         }
-        if (packets == PacketMode.Grim) {
+        if (packets == PacketMode.Grim || doubleBreak) {
             stopBreak(pos)
         }
     }
