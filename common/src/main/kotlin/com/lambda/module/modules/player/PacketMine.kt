@@ -993,9 +993,7 @@ object PacketMine : Module(
 
         currentMiningBlock[block]?.apply {
             if (!isOutOfRange(pos.toCenterPos()) || packetReceiveBreak) {
-                if (breakType.isPrimary() || packetReceiveBreak) {
-                    checkClientSideBreak(packetReceiveBreak, pos, doubleBreakBlock = doubleBreakBlock)
-                }
+                checkClientSideBreak(packetReceiveBreak, pos, doubleBreakBlock = doubleBreakBlock)
             }
 
             if (timeCompleted == -1L) {
@@ -1063,12 +1061,11 @@ object PacketMine : Module(
                 )
 
     private fun SafeContext.checkClientSideBreak(packetReceiveBreak: Boolean, pos: BlockPos, doubleBreakBlock: Boolean = false) {
-        if (packetReceiveBreak == validateBreak || doubleBreakBlock && packetReceiveBreak) {
+        if (packetReceiveBreak || (!validateBreak && !doubleBreakBlock)) {
             interaction.breakBlock(pos)
         }
     }
 
-    //ToDo: Fix this shit
     private fun shouldBePlacedInBlockQueue(pos: BlockPos): Boolean =
         (((currentMiningBlock[0] != null && !doubleBreak) || currentMiningBlock[1] != null) || !blockQueue.isEmpty())
                 && (currentMiningBlock[0]?.breakState != BreakState.ReBreaking || !blockQueue.isEmpty())
