@@ -889,15 +889,22 @@ object PacketMine : Module(
 
     private fun SafeContext.swapTo(slot: Int) {
         if (swapped && swapMethod.isNCPSilent()) returnToOriginalSlot()
+
         if (returnSlot == -1) {
-            returnSlot = player.inventory.selectedSlot
+            returnSlot = if (!doubleBreakSwapped) {
+                player.inventory.selectedSlot
+            } else {
+                doubleBreakReturnSlot
+            }
         }
+
         if (swapMethod.isSilent()) {
             silentSwapTo(slot, false)
         } else {
             player.inventory.selectedSlot = slot
             connection.sendPacket(UpdateSelectedSlotC2SPacket(slot))
         }
+
         swappedSlot = slot
         swapped = true
     }
