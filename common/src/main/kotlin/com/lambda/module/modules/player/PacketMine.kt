@@ -52,28 +52,28 @@ object PacketMine : Module(
     private val breakThreshold by setting("Break Threshold", 0.70f, 0.00f..1.00f, 0.01f, "Breaks the selected block once the block breaking progress passes this value, 1 being 100%", visibility = { page == Page.General})
     private val breakMode by setting("Break Mode", BreakMode.Total, "Changes the way break amount is added up. Total will choose the best tool and act as if its been using it the whole time while additive will add progress throughout the break", visibility = { page == Page.General })
     private val strict by setting("Strict", false, "Resets the breaking progress at various stages to bypass generally stricter anti-cheats", visibility = { page == Page.General })
-    private val range by setting("Range", 6.0f, 3.0f..6.0f, 0.1f, "The maximum distance between the players eye position and the center of the block", visibility = { page == Page.General })
+    private val range by setting("Range", 6.0f, 3.0f..6.0f, 0.1f, "The maximum distance between the players eye position and the center of the block", " blocks", visibility = { page == Page.General })
     private val doubleBreak by setting("Double Break", false, "This exploit only works on non strict servers or servers that run grim. It breaks two blocks at once", visibility = { page == Page.General })
     private val pauseWhileUsingItems by setting("Pause While Using Items", true, "Will prevent breaking while using items like eating or aiming a bow", visibility = { page == Page.General })
     private val validateBreak by setting("Validate Break", true, "Breaks blocks client side rather than waiting for a response from the server", visibility = { page == Page.General })
-    private val timeoutDelay by setting("Timeout Delay", 0.20f, 0.00f..1.00f, 0.1f, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", visibility = { page == Page.General && validateBreak })
+    private val timeoutDelay by setting("Timeout Delay", 0.20f, 0.00f..1.00f, 0.1f, "Will wait this amount of time (seconds) after the time to break for the block is complete before moving on", " seconds", visibility = { page == Page.General && validateBreak })
     private val swingMode by setting("Swing Mode", ModeOptions.None, "Swings the players hand to simulate vanilla breaking, usually used on stricter anti-cheats", visibility = { page == Page.General })
     private val swingOnManual by setting("Manual Swing", true, "Swings when the player attacks a block", visibility = { page == Page.General })
     private val rotate by setting("Rotation Mode", ModeOptions.None, "Changes the method used to make the player look at the current mining block", visibility = { page == Page.General })
     private val rayCast by setting("Raycast", false, "Checks if the player is directly looking at the block rather than allowing through walls", visibility = { page == Page.General && rotate.isEnabled() })
-    private val rotateReleaseDelay by setting("Rotation Release Delay", 2, 0..50, 1, "The number of ticks to wait before releasing the rotation", visibility = { page == Page.General && rotate.isEnabled() })
+    private val rotateReleaseDelay by setting("Rotation Release Delay", 1, 0..5, 1, "The number of ticks to wait before releasing the rotation", " ticks", visibility = { page == Page.General && rotate.isEnabled() })
     private val swapMethod by setting("Swap Method", SwapMethod.StandardSilent, "Changes the swap method used. For example, silent swaps once at the beginning, and once at the end without updating client side, and constant swaps for the whole break", visibility = { page == Page.General})
     private val swapMode by setting("Swap Mode", SwapMode.StartAndEnd, "The different times to swap to the best tool", visibility = { page == Page.General && swapMethod.isEnabled()})
     private val packets by setting("Packet Mode", PacketMode.Vanilla, "Chooses different packets to send for each mode", visibility = { page == Page.General })
 
     private val reBreak by setting("Re-Break", ReBreakMode.Standard, "The different modes for re-breaking the current block", visibility = { page == Page.ReBreak})
-    private val reBreakDelay by setting("Re-Break Delay", 0, 0..10, 1, "The delay (in ticks) between attempting to re-breaking the block", visibility = { page == Page.ReBreak && (reBreak.isAutomatic() || reBreak.isFastAutomatic()) })
-    private val emptyReBreakDelay by setting("Empty Re-Break Delay", 0, 0..10, 1, "The delay (in ticks) between attempting to re-break the block if the block is currently empty", visibility = { page == Page.ReBreak && reBreak.isFastAutomatic()})
+    private val reBreakDelay by setting("Re-Break Delay", 0, 0..10, 1, "The delay between attempting to re-breaking the block", "ticks", visibility = { page == Page.ReBreak && (reBreak.isAutomatic() || reBreak.isFastAutomatic()) })
+    private val emptyReBreakDelay by setting("Empty Re-Break Delay", 0, 0..10, 1, "The delay between attempting to re-break the block if the block is currently empty", " ticks", visibility = { page == Page.ReBreak && reBreak.isFastAutomatic()})
     private val renderIfEmpty by setting("Render If Empty", false, "Draws the renders even if the re-break position is empty in the world", visibility = { page == Page.ReBreak && reBreak.isEnabled() })
 
     private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue }).apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
     private val reverseQueueOrder by setting("Reverse Queue Order", false, "Breaks the latest addition to the queue first", visibility = { page == Page.Queue && queueBlocks})
-    private val queueBreakDelay by setting("Break Delay", 0, 0..5, 1, "The delay (in ticks) after breaking a block to break the next queue block", visibility = { page == Page.Queue && queueBlocks })
+    private val queueBreakDelay by setting("Break Delay", 0, 0..5, 1, "The delay after breaking a block to break the next queue block", " ticks", visibility = { page == Page.Queue && queueBlocks })
 
 
     private val breakingAnimation by setting("Breaking Animation", false, "Renders the block breaking animation like vanilla would to show progress", visibility = { page == Page.BlockRender })
@@ -91,7 +91,7 @@ object PacketMine : Module(
     private val endOutlineColour by setting("End Outline Colour", Color(0f, 1f, 0f, 0.3f), "The colour used to render the end outline of the box", visibility = { page == Page.BlockRender && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Dynamic  })
     private val outlineWidth by setting("Outline Width", 1f, 0f..3f, 0.1f, "the thickness of the outline", visibility = { page == Page.BlockRender && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
 
-    private val renderQueueMode by setting("Render mode", RenderQueueMode.Shape, "The render type for queue blocks", visibility = { page == Page.QueueRender })
+    private val renderQueueMode by setting("Render mode", RenderQueueMode.Cube, "The render type for queue blocks", visibility = { page == Page.QueueRender })
     private val renderQueueSetting by setting("Render Setting", RenderSetting.Both, "The style to render queue blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() })
     private val renderQueueSize by setting("Render Size", 0.3f, 0f..1f, 0.01f, "The scale of the queue render blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() })
 
