@@ -736,7 +736,7 @@ object PacketMine : Module(
                 if (!swapped) return
 
                 when {
-                    player.inventory.selectedSlot != swappedSlot -> cancelSwap()
+                    player.inventory.selectedSlot != swappedSlot -> resetSwap()
 
                     swapMode.isConstant() -> {
                         if (swappedSlot != bestTool) swapTo(bestTool)
@@ -947,9 +947,7 @@ object PacketMine : Module(
             doubleBreakReturnSlot = 0
         }
 
-        returnSlot = -1
-        swappedSlot = -1
-        swapped = false
+        resetSwap()
 
         return
     }
@@ -957,8 +955,11 @@ object PacketMine : Module(
     private fun SafeContext.doubleBreakSwapTo(slot: Int) {
         val currentSelectedSlot = player.inventory.selectedSlot
 
-        if (slot != currentSelectedSlot) {
+        if (!doubleBreakSwapped) {
             doubleBreakReturnSlot = currentSelectedSlot
+        }
+
+        if (slot != currentSelectedSlot) {
             player.inventory.selectedSlot = slot
             connection.sendPacket(UpdateSelectedSlotC2SPacket(slot))
         }
@@ -975,11 +976,10 @@ object PacketMine : Module(
             connection.sendPacket(UpdateSelectedSlotC2SPacket(doubleBreakReturnSlot))
         }
 
-        doubleBreakReturnSlot = 0
         doubleBreakSwapped = false
     }
 
-    private fun cancelSwap() {
+    private fun resetSwap() {
         returnSlot = -1
         swappedSlot = -1
         swapped = false
