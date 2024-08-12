@@ -32,7 +32,6 @@ import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.registry.tag.FluidTags
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.state.property.Properties
-import net.minecraft.text.Text
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.HitResult
@@ -1152,7 +1151,7 @@ object PacketMine : Module(
         var additiveBreakDelta = currentBreakDelta
         var timeCompleted: Long = -1
         var previousBreakDelta = 0f
-        var lastLerpBox: Box? = null
+        var lastLerpedBoxes: HashSet<Box> = hashSetOf()
         var lastLerpFillColour: Color? = null
         var lastLerpOutlineColour: Color? = null
 
@@ -1192,64 +1191,83 @@ object PacketMine : Module(
         }
 
         fun updateRenders() {
-            boxList = lastNonEmptyState?.getOutlineShape(mc.world, pos)?.boundingBoxes?.toSet()
+            boxList = if (breakType.isPrimary()) {
+                lastNonEmptyState?.getOutlineShape(mc.world, pos)?.boundingBoxes?.toSet()
+            } else {
+                state.getOutlineShape(mc.world, pos)?.boundingBoxes?.toSet()
+            }
         }
 
         fun SafeContext.buildRenders() {
             if (!renderIfEmpty && isStateEmpty(state)) return
 
+            val threshold = if (breakType.isPrimary()) {
+                2f - breakThreshold
+            } else {
+                1f
+            }
+            val previousFactor = previousMiningProgress * threshold
+            val nextFactor = miningProgress * threshold
+            val currentFactor = lerp(previousFactor, nextFactor, mc.tickDelta)
+
+            val paused = (pauseWhileUsingItems && player.isUsingItem) || pausedForRotation || awaitingQueueBreak
+
+            val fillColour = if (fillColourMode == ColourMode.Dynamic) {
+                val lerpColour = lerp(startFillColour, endFillColour, currentFactor.toDouble())
+                if (!paused) {
+                    lastLerpFillColour = lerpColour
+                    lerpColour
+                } else {
+                    lastLerpFillColour ?: startFillColour
+                }
+            } else {
+                staticFillColour
+            }
+
+            val outlineColour = if (outlineColourMode == ColourMode.Dynamic) {
+                val lerpColour = lerp(startOutlineColour, endOutlineColour, currentFactor.toDouble())
+                if (!paused) {
+                    lastLerpOutlineColour = lerpColour
+                    lerpColour
+                } else {
+                    lastLerpOutlineColour ?: startOutlineColour
+                }
+            } else {
+                staticOutlineColour
+            }
+
+            if (paused) {
+                lastLerpedBoxes.forEach { box ->
+                    val dynamicAABB = DynamicAABB()
+                    dynamicAABB.update(box)
+
+                    if (renderSetting != RenderSetting.Outline) {
+                        renderer.buildFilled(dynamicAABB, fillColour)
+                    }
+
+                    if (renderSetting != RenderSetting.Fill) {
+                        renderer.buildOutline(dynamicAABB, outlineColour)
+                    }
+                }
+
+                return
+            }
+
+            lastLerpedBoxes.clear()
+
             boxList?.forEach { box ->
-                val threshold = if (breakType.isPrimary()) {
-                    2f - breakThreshold
-                } else {
-                    1f
-                }
-                val previousFactor = previousMiningProgress * threshold
-                val nextFactor = miningProgress * threshold
-                val currentFactor = lerp(previousFactor, nextFactor, mc.tickDelta)
+                val positionedBox = box.offset(pos)
 
-                val paused = (pauseWhileUsingItems && player.isUsingItem) || pausedForRotation || awaitingQueueBreak
-
-                val fillColour = if (fillColourMode == ColourMode.Dynamic) {
-                    val lerpColour = lerp(startFillColour, endFillColour, currentFactor.toDouble())
-                    if (!paused) {
-                        lastLerpFillColour = lerpColour
-                        lerpColour
-                    } else {
-                        lastLerpFillColour ?: startFillColour
-                    }
+                val renderBox = if (renderMode == RenderMode.Static) {
+                    positionedBox
                 } else {
-                    staticFillColour
+                    getLerpBox(positionedBox, currentFactor)
                 }
 
-                val outlineColour = if (outlineColourMode == ColourMode.Dynamic) {
-                    val lerpColour = lerp(startOutlineColour, endOutlineColour, currentFactor.toDouble())
-                    if (!paused) {
-                        lastLerpOutlineColour = lerpColour
-                        lerpColour
-                    } else {
-                        lastLerpOutlineColour ?: startOutlineColour
-                    }
-                } else {
-                    staticOutlineColour
-                }
-
-                val renderBox = if (renderMode != RenderMode.Static) {
-                    val lerpBox = getLerpBox(box, currentFactor).offset(pos)
-                    if (!paused) {
-                        lastLerpBox = lerpBox
-                        lerpBox
-                    } else {
-                        lastLerpBox
-                    }
-                } else {
-                    box.offset(pos)
-                }
+                lastLerpedBoxes.add(renderBox)
 
                 val dynamicAABB = DynamicAABB()
-                renderBox?.apply {
-                    dynamicAABB.update(this)
-                }
+                dynamicAABB.update(renderBox)
 
                 if (renderSetting != RenderSetting.Outline) {
                     renderer.buildFilled(dynamicAABB, fillColour)
