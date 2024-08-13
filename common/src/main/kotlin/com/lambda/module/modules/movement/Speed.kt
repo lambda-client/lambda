@@ -111,7 +111,7 @@ object Speed : Module(
 
         // TODO: Diagonal movement when not jumping
         // needs movement prediction engine or a workaround to detect jumping 1 tick before
-        listener<RotationEvent.Update> { event ->
+        listener<RotationEvent.Update>(100) { event ->
             if (mode != Mode.GRIM_STRAFE) return@listener
             if (!shouldWork() || !isInputting) return@listener
             if (player.input.handledByBaritone || TargetStrafe.isActive) return@listener
