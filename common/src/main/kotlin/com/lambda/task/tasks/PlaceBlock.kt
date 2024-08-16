@@ -6,11 +6,11 @@ import com.lambda.core.PingManager
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.interaction.blockplace.PlaceInteraction.placeBlock
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.Communication.info
 import net.minecraft.block.BlockState
 
 class PlaceBlock @Ta5kBuilder constructor(
@@ -72,27 +72,7 @@ class PlaceBlock @Ta5kBuilder constructor(
     }
 
     private fun SafeContext.placeBlock() {
-        val actionResult = interaction.interactBlock(
-            player,
-            ctx.hand,
-            ctx.result
-        )
-
-        if (actionResult.isAccepted) {
-            if (actionResult.shouldSwingHand() && swingHand) {
-                player.swingHand(ctx.hand)
-            }
-
-            if (!player.getStackInHand(ctx.hand).isEmpty && interaction.hasCreativeInventory()) {
-                mc.gameRenderer.firstPersonRenderer.resetEquipProgress(ctx.hand)
-            }
-
-            if (matches) {
-                if (!waitForConfirmation) finish()
-            }
-        } else {
-            info("Internal interaction failed with $actionResult")
-        }
+        placeBlock(ctx.result, ctx.hand, swingHand)
     }
 
     private fun SafeContext.finish() {

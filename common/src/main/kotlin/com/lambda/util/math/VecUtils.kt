@@ -2,6 +2,7 @@ package com.lambda.util.math
 
 import com.lambda.util.math.MathUtils.sq
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 import kotlin.math.pow
@@ -10,6 +11,14 @@ import kotlin.math.roundToInt
 object VecUtils {
     val Vec3d.blockPos: BlockPos
         get() = BlockPos(x.roundToInt(), y.roundToInt(), z.roundToInt())
+
+    val Vec3i.vec3d get() = Vec3d.of(this)
+
+    fun BlockPos.getHitVec(side: Direction) =
+        vec3d + side.hitVecOffset
+
+    val Direction.hitVecOffset get() =
+        CENTER + vector.vec3d * 0.5
 
     infix fun Vec3d.dist(other: Vec3d): Double = this.distanceTo(other)
 
@@ -35,4 +44,5 @@ object VecUtils {
 
     val UP = Vec3d(0.0, 1.0, 0.0)
     val DOWN = Vec3d(0.0, -1.0, 0.0)
+    val CENTER = Vec3d(0.5, 0.5, 0.5)
 }
