@@ -16,7 +16,9 @@ abstract class PlayerPacketEvent : Event {
         var isSneaking: Boolean,
     ) : PlayerPacketEvent(), ICancellable by Cancellable()
 
-    class Post(
+    class Post : PlayerPacketEvent()
+
+    class Send(
         val packet: PlayerMoveC2SPacket,
     ) : PlayerPacketEvent(), ICancellable by Cancellable()
 }
