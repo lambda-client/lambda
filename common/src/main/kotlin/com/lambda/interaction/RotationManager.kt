@@ -38,13 +38,13 @@ object RotationManager : Loadable {
     fun Any.requestRotation(
         priority: Int = 0,
         alwaysListen: Boolean = false,
-        onUpdate: SafeContext.() -> RotationContext?,
-        onReceive: SafeContext.() -> Unit
+        onUpdate: SafeContext.(lastContext: RotationContext?) -> RotationContext?,
+        onReceive: SafeContext.() -> Unit = {}
     ) {
         var lastCtx: RotationContext? = null
 
         this.listener<RotationEvent.Update>(priority, alwaysListen) { event ->
-            val rotationContext = onUpdate()
+            val rotationContext = onUpdate(event.context)
 
             rotationContext?.let {
                 event.context = it

@@ -6,6 +6,7 @@ import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.interaction.RotationManager.requestRotation
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
@@ -111,17 +112,19 @@ object Speed : Module(
 
         // TODO: Diagonal movement when not jumping
         // needs movement prediction engine or a workaround to detect jumping 1 tick before
-        listener<RotationEvent.Update>(100) { event ->
-            if (mode != Mode.GRIM_STRAFE) return@listener
-            if (!shouldWork() || !isInputting) return@listener
-            if (player.input.handledByBaritone || TargetStrafe.isActive) return@listener
+        requestRotation(100, false,
+            onUpdate = { lastContext ->
+                if (mode != Mode.GRIM_STRAFE) return@requestRotation null
+                if (!shouldWork() || !isInputting) return@requestRotation null
+                if (player.input.handledByBaritone || TargetStrafe.isActive) return@requestRotation null
 
-            val input = newMovementInput()
-            val yaw = calcMoveYaw(player.yaw, input.roundedForward, input.roundedStrafing)
-            val rotation = Rotation(yaw, event.context?.rotation?.pitch ?: player.pitch.toDouble())
+                val input = newMovementInput()
+                val yaw = calcMoveYaw(player.yaw, input.roundedForward, input.roundedStrafing)
+                val rotation = Rotation(yaw, lastContext?.rotation?.pitch ?: player.pitch.toDouble())
 
-            event.context = RotationContext(rotation, rotationConfig)
-        }
+                RotationContext(rotation, rotationConfig)
+            }, {}
+        )
 
         onEnable {
             reset()

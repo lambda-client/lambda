@@ -138,9 +138,12 @@ object MovementUtils {
     val Entity.velocityDelta get() = hypot(this.velocity.x, this.velocity.z)
 
     val Entity.octant: EightWayDirection
+        get() = yaw.octant
+
+    val Float.octant: EightWayDirection
         get() {
             // Normalize the yaw to be within the range of -180 to 179 degrees
-            var normalizedYaw = (yaw + 180.0) % 360.0
+            var normalizedYaw = (this + 180.0) % 360.0
             if (normalizedYaw < 0) {
                 normalizedYaw += 360.0
             }
