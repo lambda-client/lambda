@@ -21,6 +21,9 @@ object ViewModel : Module(
     //ToDo: implement the rest of the settings and maybe add a couple more
 
     private val ignoreHand by setting("Ignore Hand", false, "Prevents adjusting the players hand", visibility = { page == Page.General })
+    val swingMode by setting("Swing Mode", SwingMode.MainHand, "Changes which hands swing", visibility = { page == Page.General })
+    val swingSpeed by setting("Swing Speed", 6, 0..20, 1, "Adjusts how fast the player swings", visibility = { page == Page.General })
+    val swingProgress by setting("Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the player was this progress through the swing animation", visibility = { page == Page.General })
     val oldSwingAnimation by setting("Old Swing Animation", false, "Adjusts the swing animation to what it looked like in 1.8", visibility = { page == Page.General })
     val swapAnimation by setting("Swap Animation", true, "If disabled, it removes the drop down animation when swapping item", visibility = { page == Page.General })
     val shadow by setting("Shadows", true, "If disabled, it removes shadows on the model", visibility = { page == Page.General })
@@ -70,6 +73,10 @@ object ViewModel : Module(
 
     private enum class Side {
         Left, Right
+    }
+
+    enum class SwingMode {
+        MainHand, OffHand, Both, None
     }
 
     fun transform(itemStack: ItemStack, hand: Hand, matrices: MatrixStack) {
