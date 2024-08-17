@@ -2,19 +2,19 @@ version: 1
 
 labels:
   - label: 'bug'
-    title: '\[?bug[:\]]'
+    title: '(?i)\[?bug[:\]]'
 
   - label: 'feature'
-    title: '\[?(feature|feat)[:\]]'
+    title: '(?i)\[?(feature|feat)[:\]]'
 
   - label: 'forge'
-    title: '\[?(forge|all)[:\]]'
+    title: '(?i)\[?(forge|all)[:\]]'
 
   - label: 'neoforge'
-    title: '\[?(neoforge|all)[:\]]'
+    title: '(?i)\[?(neoforge|all)[:\]]'
 
   - label: 'fabric'
-    title: '\[?(fabric|all)[:\]]'
+    title: '(?i)\[?(fabric|all)[:\]]'
 
   - label: '1.20'
     title: '\[?1\.20(\.\d+|\.x)?[:\]]?'
