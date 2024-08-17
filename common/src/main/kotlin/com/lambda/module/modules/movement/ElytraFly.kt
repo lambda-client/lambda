@@ -2,7 +2,6 @@ package com.lambda.module.modules.movement
 
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -18,7 +17,7 @@ object ElytraFly : Module(
     private val mode by setting("Mode", Mode.BOOST)
 
     private val speed by setting("Speed", 0.02, 0.0..0.5, 0.005, description = "Speed to add when flying") { mode == Mode.BOOST }
-    private val elytraMute by setting("Mute Elytra", false, "Mutes elytra sound")
+    private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
 
     init {
         listener<MovementEvent.Pre> {
@@ -32,7 +31,7 @@ object ElytraFly : Module(
         }
 
         listener<ClientEvent.Sound> { event ->
-            if (!elytraMute) return@listener
+            if (!mute) return@listener
             if (event.sound.id != SoundEvents.ITEM_ELYTRA_FLYING.id) return@listener
             event.cancel()
         }
