@@ -1,7 +1,9 @@
 package com.lambda.util.world
 
+import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.util.world.WorldUtils.getClosestEntity
+import com.lambda.util.world.WorldUtils.getEntities
 import com.lambda.util.world.WorldUtils.getFastEntities
 import com.lambda.util.world.WorldUtils.searchBlocks
 import com.lambda.util.world.WorldUtils.searchFluids
@@ -16,19 +18,21 @@ import net.minecraft.util.math.Vec3i
 annotation class WorldDsl
 
 /**
- * Represents a search context in the world.
- * These functions are meant for high-level interactions with the world
- * at the cost of generally lower performances.
+ * A context for performing various high-level search operations within the world.
+ * These functions prioritize ease of use and flexibility, potentially at the cost
+ * of performance.
  *
- * @param safeContext The safe context to use.
- * @param pos The position to search from.
+ * @property safeContext The context that ensures safe operations within the world.
+ * @property pos The position from which searches are conducted.
  */
 @WorldDsl
 class SearchContext(val safeContext: SafeContext, val pos: Vec3d) {
     /**
-     * Get the closest entity to the specified position.
-     * @param range The range to search in.
-     * @param predicate The predicate to filter the entities.
+     * Finds the closest entity of type [T] to the specified position within a given range.
+     *
+     * @param range The maximum distance from the position to search for entities.
+     * @param predicate A filter to determine which entities to include in the search.
+     * @return The closest entity of type [T] that matches the predicate, or null if no entity is found.
      */
     inline fun <reified T : Entity> closestEntity(
         range: Double,
@@ -36,26 +40,53 @@ class SearchContext(val safeContext: SafeContext, val pos: Vec3d) {
     ): T? = safeContext.getClosestEntity(pos, range, predicate)
 
     /**
-     * Get all entities in the specified range.
-     * @param range The range to search in.
-     * @param predicate The predicate to filter the entities.
-     * @return A list of entities found.
+     * Retrieves a list of nearby entities of type [T] within the specified range.
+     *
+     * @param range The radius around the position to search for entities.
+     * @param predicate A filter to determine which entities to include in the search.
+     * @return A list of entities of type [T]
+     */
+    inline fun <reified T : Entity> nearbyEntities(
+        range: Double,
+        predicate: (T) -> Boolean = { true },
+    ): List<T> {
+        val entities = mutableListOf<T>()
+
+        if (range >= 64) {
+            LOG.warn("Searching nearby entities with a range of $range may be slow. " +
+                    "Consider reducing the range to improve performance or using a linear search instead.")
+        }
+
+        safeContext.getFastEntities(pos, range, entities, predicate = predicate)
+
+        return entities
+    }
+
+    /**
+     * Retrieves a list of entities of type [T] within the specified range.
+     *
+     * @param range The radius around the position to search for entities.
+     * @param predicate A filter to determine which entities to include in the search.
+     * @return A list of entities of type [T].
      */
     inline fun <reified T : Entity> entities(
         range: Double,
         predicate: (T) -> Boolean = { true },
     ): List<T> {
         val entities = mutableListOf<T>()
-        safeContext.getFastEntities(pos, range, entities, predicate = predicate)
+
+        safeContext.getEntities(pos, range, entities, predicate = predicate)
+
         return entities
     }
 
     /**
-     * Search for blocks in the specified range.
-     * @param range The range to search in.
-     * @param step The step to search with.
-     * @param predicate The predicate to filter the blocks.
-     * @return A map of the blocks found to positions.
+     * Searches for blocks within the specified range and step size.
+     *
+     * @param range The maximum distance from the position to search for blocks.
+     * @param step The interval at which to check for blocks. Defaults to 1.
+     * @param predicate A filter to determine which blocks to include in the search. Defaults to always true.
+     * @return A map of positions to block states.
      */
     inline fun blocks(
         range: Int,
@@ -68,26 +99,31 @@ class SearchContext(val safeContext: SafeContext, val pos: Vec3d) {
     )
 
     /**
-     * Search for blocks in the specified range.
-     * @param range The range to search in.
-     * @param step The step to search with.
-     * @param predicate The predicate to filter the blocks.
-     * @return A map of the blocks found to positions.
+     * Searches for blocks within the specified 3D range and step size.
+     *
+     * @param range The vector representing the maximum distances from the position to search for blocks.
+     * @param step The vector representing the intervals at which to check for blocks.
+     * @param predicate A filter to determine which blocks to include in the search.
+     * @return A map of positions to block states.
      */
     inline fun blocks(
         range: Vec3d,
         step: Vec3i = Vec3i(1, 1, 1),
         crossinline predicate: (Vec3d, BlockState) -> Boolean = { _, _ -> true }
-    ): Map<Vec3d, BlockState> = blocks(range, Vec3d(step.x.toDouble(), step.y.toDouble(), step.z.toDouble()), predicate)
+    ): Map<Vec3d, BlockState> = blocks(
+        range,
+        Vec3d(step.x.toDouble(), step.y.toDouble(), step.z.toDouble()),
+        predicate
+    )
 
     /**
-     * Search for blocks in the specified range.
+     * Searches for blocks within the specified 3D range and step size, with an optional iterator function.
      *
-     * @param range The range to search in.
-     * @param step The step to search with.
-     * @param predicate The predicate to filter the blocks.
-     * @param iterator The iterator to call for each block found.
-     * @return A map of the blocks found to positions.
+     * @param range The 3D vector representing the maximum distances from the position to search for blocks.
+     * @param step The 3D vector representing the intervals at which to check for blocks.
+     * @param predicate A filter to determine which blocks to include in the search.
+     * @param iterator A function to be called for each block found, allowing additional processing
+     * @return A map of positions to block states.
      */
     inline fun blocks(
         range: Vec3d,
@@ -107,11 +143,12 @@ class SearchContext(val safeContext: SafeContext, val pos: Vec3d) {
     }
 
     /**
-     * Search for fluids in the specified range.
-     * @param range The range to search in.
-     * @param step The step to search with.
-     * @param predicate The predicate to filter the fluids.
-     * @return A map of the fluids found to positions.
+     * Searches for fluids within the specified range and step size.
+     *
+     * @param range The maximum distance from the position to search for fluids.
+     * @param step The interval at which to check for fluids.
+     * @param predicate A filter to determine which fluids to include in the search.
+     * @return A map of positions to fluids.
      */
     inline fun fluids(
         range: Int,
@@ -124,25 +161,31 @@ class SearchContext(val safeContext: SafeContext, val pos: Vec3d) {
     )
 
     /**
-     * Search for fluids in the specified range.
-     * @param range The range to search in.
-     * @param step The step to search with.
-     * @param predicate The predicate to filter the fluids.
-     * @return A map of the fluids found to positions.
+     * Searches for fluids within the specified 3D range and step size.
+     *
+     * @param range The vector representing the maximum distances from the position to search for fluids.
+     * @param step The vector representing the intervals at which to check for fluids. Defaults to (1, 1, 1).
+     * @param predicate A filter to determine which fluids to include in the search.
+     * @return A map of positions to fluids.
      */
     inline fun fluids(
         range: Vec3d,
         step: Vec3i = Vec3i(1, 1, 1),
         crossinline predicate: (Vec3d, FluidState) -> Boolean = { _, _ -> true },
-    ): Map<Vec3d, Fluid> = fluids(range, Vec3d(step.x.toDouble(), step.y.toDouble(), step.z.toDouble()), predicate)
+    ): Map<Vec3d, Fluid> = fluids(
+        range,
+        Vec3d(step.x.toDouble(), step.y.toDouble(), step.z.toDouble()),
+        predicate
+    )
 
     /**
-     * Search for fluids in the specified range.
-     * @param range The range to search in.
-     * @param step The step to search with.
-     * @param predicate The predicate to filter the fluids.
-     * @param iterator The iterator to call for each fluid found.
-     * @return A map of the fluids found to positions.
+     * Searches for fluids within the specified 3D range and step size, with an optional iterator function.
+     *
+     * @param range The vector representing the maximum distances from the position to search for fluids.
+     * @param step The vector representing the intervals at which to check for fluids.
+     * @param predicate A filter to determine which fluids to include in the search.
+     * @param iterator A function to be called for each fluid found, allowing additional processing.
+     * @return A map of positions to fluids.
      */
     inline fun <reified T : Fluid> fluids(
         range: Vec3d,
@@ -162,5 +205,11 @@ class SearchContext(val safeContext: SafeContext, val pos: Vec3d) {
     }
 }
 
+/**
+ * Initiates a search operation in the world at the specified position using a [SearchContext].
+ *
+ * @param pos The position to start the search from. Defaults to the player's current position.
+ * @param block The block of code that performs the search using the [SearchContext].
+ */
 fun SafeContext.search(pos: Vec3d = player.pos, block: SearchContext.() -> Unit) =
     SearchContext(this, pos).apply(block)

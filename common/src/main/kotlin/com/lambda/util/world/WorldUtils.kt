@@ -43,8 +43,6 @@ object WorldUtils {
     /**
      * Gets the closest entity of type [T] within a specified range.
      *
-     * Because we don't want to troll the CPU speculative execution, we only use the [getFastEntities] function.
-     * This should not be an issue as the performance of this function is optimized for small distances.
      *
      * @param pos The position to search from.
      * @param range The maximum distance to search for entities.
@@ -67,6 +65,7 @@ object WorldUtils {
             }
         }
 
+        // We use this function to find the closest entity because it is optimized for small distances.
         getFastEntities(pos, range, null, comparator, predicate)
 
         return closest
@@ -78,21 +77,16 @@ object WorldUtils {
      * This function retrieves entities of type [T] within a specified distance from a given position. It efficiently
      * queries nearby chunks based on the distance and returns a list of matching entities, excluding the player entity.
      *
+     * Examples:
+     * - Getting all hostile entities within a certain distance:
+     * ```
+     * val hostileEntities = mutableListOf<HostileEntity>()
+     * getFastEntities<HostileEntity>(player.pos, 30.0, hostileEntities)
+     * ```
      *
-     * Getting all Zombie entities within a certain distance:
-     * ```
-     * val nearbyZombies = getFastEntities<ZombieEntity>(playerPos, 20.0)
-     * ```
-     *
-     * Getting all hostile entities within a certain distance:
-     * ```
-     * val hostileEntities = getFastEntities<HostileEntity>(playerPos, 30.0)
-     * ```
-     * This fetches all hostile entities (e.g., Monsters) within a 30-block radius from the player's position.
-     *
-     * Please note that this implementation is optimized for performance at small distances. For larger distances, it is
-     * recommended to use the [getEntities] function instead.
-     * With the time complexity, we can determine that after 64 blocks, the performance of this function will degrade.
+     * Please note that this implementation is optimized for performance at small distances.
+     * For larger distances, it is recommended to use the [getEntities] function instead.
+     * With the time complexity, we can determine that the performance of this function will degrade after 64 blocks.
      *
      * @param pos The position to search from.
      * @param distance The maximum distance to search for entities.
