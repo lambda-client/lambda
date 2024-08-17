@@ -15,6 +15,14 @@ import net.minecraft.util.math.Vec3i
 @DslMarker
 annotation class WorldDsl
 
+/**
+ * Represents a search context in the world.
+ * These functions are meant for high-level interactions with the world
+ * at the cost of generally lower performances.
+ *
+ * @param safeContext The safe context to use.
+ * @param pos The position to search from.
+ */
 @WorldDsl
 class SearchContext(val safeContext: SafeContext, val pos: Vec3d) {
     /**
@@ -74,6 +82,7 @@ class SearchContext(val safeContext: SafeContext, val pos: Vec3d) {
 
     /**
      * Search for blocks in the specified range.
+     *
      * @param range The range to search in.
      * @param step The step to search with.
      * @param predicate The predicate to filter the blocks.

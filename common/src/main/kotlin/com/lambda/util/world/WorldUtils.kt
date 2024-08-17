@@ -175,7 +175,7 @@ object WorldUtils {
         iterator: (FastVector, BlockState, Int) -> Unit = { _, _, _ -> },
     ) {
         iteratePositions(pos, range, step) { position, index ->
-            world.getBlockState(position.xInt, position.yInt, position.zInt).let { state ->
+            world.getBlockState(position.x, position.y, position.z).let { state ->
                 val fulfilled = predicate(position, state, index)
 
                 if (fulfilled && pointer != null) {
@@ -204,7 +204,7 @@ object WorldUtils {
         iterator: (FastVector, FluidState, Int) -> Unit = { _, _, _ -> },
     ) {
         iteratePositions(pos, range, step) { position, index ->
-            world.getFluidState(position.xInt, position.yInt, position.zInt).let { state ->
+            world.getFluidState(position.x, position.y, position.z).let { state ->
                 val fulfilled = predicate(position, state, index)
 
                 if (fulfilled && pointer != null) {
@@ -234,7 +234,7 @@ object WorldUtils {
             for (y in -range.y..range.y step step.y) {
                 for (z in -range.z..range.z step step.z) {
                     iterator(
-                        pos.add(fastVectorOf(x, y, z)),
+                        pos plus fastVectorOf(x, y, z),
                         index++
                     )
                 }
