@@ -41,6 +41,37 @@ object MovementUtils {
         }
     }
 
+    fun buildMovementInput(
+        forward: Double,
+        strafe: Double,
+        jump: Boolean = false,
+        sneak: Boolean = false
+    ) = Input().apply {
+        movementForward = forward.toFloat()
+        movementSideways = strafe.toFloat()
+
+        pressingForward = forward > 0.0
+        pressingBack = forward < 0.0
+        pressingLeft = strafe < 0.0
+        pressingRight = strafe > 0.0
+
+        jumping = jump
+        sneaking = sneak
+    }
+
+    fun Input.mergeFrom(input: Input) {
+        movementForward = input.movementForward
+        movementSideways = input.movementSideways
+
+        pressingForward = input.pressingForward
+        pressingBack = input.pressingBack
+        pressingLeft = input.pressingLeft
+        pressingRight = input.pressingRight
+
+        jumping = input.jumping
+        sneaking = input.sneaking
+    }
+
     fun Input.cancel(cancelVertical: Boolean = true) {
         movementForward = 0f
         movementSideways = 0f

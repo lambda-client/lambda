@@ -7,7 +7,7 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.graphics.buffer.vao.vertex.BufferUsage
 import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 
-object StaticESP : StaticESPRenderer(BufferUsage.DYNAMIC) {
+object StaticESP : StaticESPRenderer(BufferUsage.DYNAMIC, false) {
     init {
         listener<TickEvent.Post> {
             clear()

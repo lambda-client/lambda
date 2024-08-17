@@ -13,9 +13,11 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Nameable
 import com.lambda.util.player.MovementUtils.addSpeed
+import com.lambda.util.player.MovementUtils.buildMovementInput
 import com.lambda.util.player.MovementUtils.calcMoveYaw
 import com.lambda.util.player.MovementUtils.handledByBaritone
 import com.lambda.util.player.MovementUtils.isInputting
+import com.lambda.util.player.MovementUtils.mergeFrom
 import com.lambda.util.player.MovementUtils.motionY
 import com.lambda.util.player.MovementUtils.moveDelta
 import com.lambda.util.player.MovementUtils.newMovementInput
@@ -25,6 +27,7 @@ import com.lambda.util.player.MovementUtils.setSpeed
 import com.lambda.util.primitives.extension.contains
 import com.lambda.util.world.WorldUtils.getFastEntities
 import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.decoration.ArmorStandEntity
 import net.minecraft.entity.vehicle.BoatEntity
 
 object Speed : Module(
@@ -42,6 +45,7 @@ object Speed : Module(
     private val grimEntityBoost by setting("Entity Boost", 1.0, 0.0..2.0, 0.01) { mode == Mode.GRIM_STRAFE }
     private val grimCollideMultiplier by setting("Entity Collide Multiplier", 0.5, 0.0..1.0, 0.01)  { mode == Mode.GRIM_STRAFE && grimEntityBoost > 0.0}
     private val grimBoatBoost by setting("Boat Boost", 0.4, 0.0..1.0, 0.01) { mode == Mode.GRIM_STRAFE }
+    private val grimMaxSpeed by setting("Max Speed", 1.0, 0.2..1.0, 0.01)  { mode == Mode.GRIM_STRAFE }
 
     // NCP
     private val strict by setting("Strict", true) { mode == Mode.NCP_STRAFE }
@@ -55,7 +59,7 @@ object Speed : Module(
     }
 
     // NCP
-    private const val NCP_BASE_SPEED = 0.2873
+    const val NCP_BASE_SPEED = 0.2873
     private const val NCP_AIR_DECAY = 0.9937
 
     private var ncpPhase = NCPPhase.SLOWDOWN
@@ -110,7 +114,7 @@ object Speed : Module(
         listener<RotationEvent.Update> { event ->
             if (mode != Mode.GRIM_STRAFE) return@listener
             if (!shouldWork() || !isInputting) return@listener
-            if (player.input.handledByBaritone) return@listener
+            if (player.input.handledByBaritone || TargetStrafe.isActive) return@listener
 
             val input = newMovementInput()
             val yaw = calcMoveYaw(player.yaw, input.roundedForward, input.roundedStrafing)
@@ -126,12 +130,13 @@ object Speed : Module(
 
     private fun SafeContext.handleGrim() {
         if (!isInputting) return
+        if (player.moveDelta > grimMaxSpeed) return
 
         var boostAmount = 0.0
 
         getFastEntities<LivingEntity>(
             player.pos, 3.0,
-            predicate = { player.boundingBox.expand(1.0) in it.boundingBox },
+            predicate = { player.boundingBox.expand(1.0) in it.boundingBox && it !is ArmorStandEntity },
             iterator = { e, _ ->
                 val colliding = player.boundingBox in e.boundingBox
                 val multiplier = if (colliding) grimCollideMultiplier else 1.0

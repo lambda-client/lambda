@@ -35,6 +35,7 @@ class EmojiGlyphs(zipUrl: String) {
             LOG.info("Loaded ${emojiMap.size} emojis in $time ms")
         }.onFailure {
             LOG.error("Failed to load emojis: ${it.message}", it)
+            fontTexture = MipmapTexture(BufferedImage(1024, 1024, BufferedImage.TYPE_INT_ARGB))
         }
     }
 

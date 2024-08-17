@@ -20,7 +20,7 @@ public class RenderTickCounterMixin {
 
     @Inject(method = "beginRenderTick", at = @At("HEAD"), cancellable = true)
     private void beginRenderTick(long timeMillis, CallbackInfoReturnable<Integer> ci) {
-        lastFrameDuration = (timeMillis - prevTimeMillis) / TimerManager.getTickLength();
+        lastFrameDuration = (timeMillis - prevTimeMillis) / TimerManager.INSTANCE.getLength();
         prevTimeMillis = timeMillis;
         tickDelta += lastFrameDuration;
         int i = (int) tickDelta;

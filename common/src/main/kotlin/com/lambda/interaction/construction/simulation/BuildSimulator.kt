@@ -12,7 +12,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerManager.findBestAvailableTool
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationContext
-import com.lambda.interaction.visibilty.VisibilityChecker.mostCenter
+import com.lambda.interaction.visibilty.VisibilityChecker.optimum
 import com.lambda.interaction.visibilty.VisibilityChecker.scanVisibleSurfaces
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.threading.runSafe
@@ -160,7 +160,7 @@ object BuildSimulator {
                 return@forEach
             }
 
-            validHits.keys.mostCenter?.let { optimum ->
+            validHits.keys.optimum?.let { optimum ->
                 validHits.minByOrNull { optimum distSq it.key }?.let { closest ->
                     val optimumRotation = eye.rotationTo(closest.key)
                     RotationContext(optimumRotation, rotation, closest.value, verify)
@@ -368,7 +368,7 @@ object BuildSimulator {
             }
         }
 
-        validHits.keys.mostCenter?.let { optimum ->
+        validHits.keys.optimum?.let { optimum ->
             validHits.minByOrNull { optimum distSq it.key }?.let { closest ->
                 val optimumRotation = eye.rotationTo(closest.key)
                 RotationContext(optimumRotation, rotation, closest.value, verify)

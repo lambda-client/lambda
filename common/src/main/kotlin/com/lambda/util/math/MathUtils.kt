@@ -1,11 +1,14 @@
 package com.lambda.util.math
 
 import com.lambda.interaction.rotation.Rotation
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.math.ColorUtils.a
 import com.lambda.util.math.ColorUtils.b
 import com.lambda.util.math.ColorUtils.g
 import com.lambda.util.math.ColorUtils.r
 import net.minecraft.util.math.Box
+import com.lambda.util.math.MathUtils.roundToStep
+import net.fabricmc.loader.impl.lib.sat4j.core.Vec
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 import java.math.BigDecimal
@@ -34,12 +37,17 @@ object MathUtils {
 
     fun <T : Number> T.roundToStep(step: T): T {
         val stepD = step.toDouble()
+        if (stepD == 0.0) return this
+
         var value = round(toDouble() / stepD) * stepD
         value = value.roundToPlaces(decimalPlaces(stepD))
         if (abs(value) == 0.0) value = 0.0
 
         return typeConvert(value)
     }
+
+    fun Vec2d.roundToStep(step: Double): Vec2d =
+        Vec2d(x.roundToStep(step), y.roundToStep(step))
 
     fun Double.roundToPlaces(places: Int) =
         BigDecimal(this).setScale(places, RoundingMode.HALF_EVEN).toDouble()
