@@ -16,11 +16,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class HeldItemRendererMixin {
     @Inject(method = "renderFirstPersonItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/item/HeldItemRenderer;renderArmHoldingItem(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;IFFLnet/minecraft/util/Arm;)V"))
     private void onRenderArmHoldingItem(AbstractClientPlayerEntity player, float tickDelta, float pitch, Hand hand, float swingProgress, ItemStack itemStack, float equipProgress, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, CallbackInfo ci) {
-        if (ViewModel.INSTANCE.isEnabled()) ViewModel.INSTANCE.transform(itemStack, hand, matrices);
+        if (!ViewModel.INSTANCE.isEnabled()) return;
+
+        ViewModel.INSTANCE.transform(itemStack, hand, matrices);
     }
 
     @Inject(method = "renderFirstPersonItem", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/item/HeldItemRenderer;renderItem(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/item/ItemStack;Lnet/minecraft/client/render/model/json/ModelTransformationMode;ZLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V"))
     private void onRenderFirstPersonItem(AbstractClientPlayerEntity player, float tickDelta, float pitch, Hand hand, float swingProgress, ItemStack itemStack, float equipProgress, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, CallbackInfo ci) {
-        if (ViewModel.INSTANCE.isEnabled()) ViewModel.INSTANCE.transform(itemStack, hand, matrices);
+        if (!ViewModel.INSTANCE.isEnabled()) return;
+
+        ViewModel.INSTANCE.transform(itemStack, hand, matrices);
     }
 }

@@ -6,9 +6,12 @@ import com.lambda.event.events.MovementEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.interaction.PlayerPacketManager;
 import com.lambda.interaction.RotationManager;
+import com.lambda.module.modules.render.ViewModel;
 import net.minecraft.client.input.Input;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.MovementType;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -90,5 +93,17 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
     @Redirect(method = "tickNewAi", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getPitch()F"))
     float fixHeldItemPitch(ClientPlayerEntity instance) {
         return Objects.requireNonNullElse(RotationManager.getHandPitch(), instance.getPitch());
+    }
+
+    @Redirect(method = "swingHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/AbstractClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
+    private void adjustSwing(AbstractClientPlayerEntity instance, Hand hand) {
+        ViewModel viewModel = ViewModel.INSTANCE;
+
+        if (!viewModel.isEnabled()) {
+            instance.swingHand(hand);
+            return;
+        }
+
+        viewModel.adjustSwing(hand, instance);
     }
 }

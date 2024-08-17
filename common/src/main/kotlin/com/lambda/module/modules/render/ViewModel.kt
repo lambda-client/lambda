@@ -3,6 +3,7 @@ package com.lambda.module.modules.render
 import com.lambda.Lambda.mc
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import net.minecraft.client.network.AbstractClientPlayerEntity
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.item.ItemStack
 import net.minecraft.util.Arm
@@ -21,7 +22,7 @@ object ViewModel : Module(
     //ToDo: implement the rest of the settings and maybe add a couple more
 
     private val ignoreHand by setting("Ignore Hand", false, "Prevents adjusting the players hand", visibility = { page == Page.General })
-    val swingMode by setting("Swing Mode", SwingMode.MainHand, "Changes which hands swing", visibility = { page == Page.General })
+    private val swingMode by setting("Swing Mode", SwingMode.Standard, "Changes which hands swing", visibility = { page == Page.General })
     val swingSpeed by setting("Swing Speed", 6, 0..20, 1, "Adjusts how fast the player swings", visibility = { page == Page.General })
     val swingProgress by setting("Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the player was this progress through the swing animation", visibility = { page == Page.General })
     val oldSwingAnimation by setting("Old Swing Animation", false, "Adjusts the swing animation to what it looked like in 1.8", visibility = { page == Page.General })
@@ -76,7 +77,7 @@ object ViewModel : Module(
     }
 
     enum class SwingMode {
-        MainHand, OffHand, Both, None
+        Standard, Opposites, MainHand, OffHand, None
     }
 
     fun transform(itemStack: ItemStack, hand: Hand, matrices: MatrixStack) {
@@ -206,6 +207,29 @@ object ViewModel : Module(
                     )
                 }
             }
+        }
+    }
+
+    fun adjustSwing(hand: Hand, player: AbstractClientPlayerEntity) {
+        when (swingMode) {
+            SwingMode.Standard -> swingHand(hand, player)
+            SwingMode.Opposites -> {
+                if (hand == Hand.MAIN_HAND)
+                    swingHand(Hand.OFF_HAND, player)
+                else
+                    swingHand(Hand.MAIN_HAND, player)
+            }
+            SwingMode.MainHand -> swingHand(Hand.MAIN_HAND, player)
+            SwingMode.OffHand -> swingHand(Hand.OFF_HAND, player)
+            SwingMode.None -> {}
+        }
+    }
+
+    private fun swingHand(hand: Hand, player: AbstractClientPlayerEntity) {
+        if ((!player.handSwinging || player.handSwingTicks >= player.handSwingDuration / 2) || player.handSwingTicks < 0) {
+            player.handSwingTicks = -1
+            player.handSwinging = true
+            player.preferredHand = hand
         }
     }
 }
