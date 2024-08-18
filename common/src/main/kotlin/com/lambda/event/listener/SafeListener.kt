@@ -7,7 +7,9 @@ import com.lambda.event.Muteable
 import com.lambda.task.Task
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
+import com.lambda.util.Pointer
 import com.lambda.util.selfReference
+import kotlin.properties.ReadWriteProperty
 
 
 /**
@@ -105,8 +107,8 @@ class SafeListener<T : Event>(
 
         /**
          * This function registers a new [SafeListener] for a generic [Event] type [T].
-         * The [function] is executed on the same thread where the [Event] was dispatched.
-         * The [function] will only be executed when the context satisfies certain safety conditions.
+         * The [transform] is executed on the same thread where the [Event] was dispatched.
+         * The [transform] will only be executed when the context satisfies certain safety conditions.
          * These conditions are met when none of the following [SafeContext] properties are null:
          * - [SafeContext.world]
          * - [SafeContext.player]
@@ -115,7 +117,7 @@ class SafeListener<T : Event>(
          *
          * This typically occurs when the user is in-game.
          *
-         * After the [function] is executed once, the [SafeListener] will be automatically unsubscribed.
+         * After the [transform] is executed once, the [SafeListener] will be automatically unsubscribed.
          *
          * Usage:
          * ```kotlin
@@ -129,19 +131,25 @@ class SafeListener<T : Event>(
          * @param T The type of the event to listen for. This should be a subclass of Event.
          * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is 0.
          * @param alwaysListen If true, the listener will be executed even if it is muted. The Default value is false.
-         * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
+         * @param transform The function used to transform the event into a value.
          * @return The newly created and registered [SafeListener].
          */
-        inline fun <reified T : Event> Any.receiveNext(
+        inline fun <reified T : Event, reified E> Any.receiveNext(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: SafeContext.(T) -> Unit = {},
+            noinline transform: SafeContext.(T) -> E? = { null },
             noinline predicate: SafeContext.(T) -> Boolean = { true },
-        ): SafeListener<T> {
+        ): ReadWriteProperty<Any?, E?> {
+            val ptr = Pointer<E>()
+
             val destroyable by selfReference<SafeListener<T>> {
                 SafeListener(priority, this@receiveNext, alwaysListen) { event ->
-                    if (predicate(event)) {
-                        function(event)
+                    ptr.value = transform(event)
+
+                    if (predicate(event) &&
+                        ptr.value != null
+                    ) {
+                        val self by this@selfReference
                         EventFlow.syncListeners.unsubscribe(self)
                     }
                 }
@@ -149,7 +157,7 @@ class SafeListener<T : Event>(
 
             EventFlow.syncListeners.subscribe<T>(destroyable)
 
-            return destroyable
+            return ptr
         }
 
         /**
