@@ -2,7 +2,11 @@ package com.lambda.config.groups
 
 import com.lambda.config.Configurable
 import com.lambda.interaction.rotation.RotationMode
-import kotlin.math.*
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.ln
+import kotlin.math.sqrt
 import kotlin.random.Random
 
 class RotationSettings(
@@ -16,8 +20,9 @@ class RotationSettings(
         vis
     )
 
-    override val keepTicks by c.setting("Keep Rotation", 3, 0..10, 1, "Ticks to keep rotation", " ticks", vis)
-    override val resetTicks by c.setting("Reset Rotation", 3, 1..10, 1, "Ticks before rotation is reset", " ticks", vis)
+    override val keepTicks by c.setting("Keep Rotation", 3, 0..10, 1, description = "Ticks to keep rotation", " ticks", vis)
+    override val resetTicks by c.setting("Reset Rotation", 3, 1..10, 1, description = "Ticks before rotation is reset", " ticks", vis)
+    override val pauseWhileInteracting by c.setting("Pause While Interacting", true, description = "Pause rotation while interacting with the world", vis)
 
     /**
      * If true, rotation will be instant without any transition. If false, rotation will transition over time.

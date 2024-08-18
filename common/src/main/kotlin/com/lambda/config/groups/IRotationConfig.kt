@@ -16,18 +16,24 @@ interface IRotationConfig {
     val turnSpeed: Double
 
     /**
-     * Ticks the rotation should not be changed.
+     * How long to keep the rotation.
      */
     val keepTicks: Int
 
     /**
-     * Ticks to rotate back to the actual rotation.
+     * How long to reset the rotation.
      */
     val resetTicks: Int
+
+    /**
+     * Whether to pause the rotation while interacting with the world.
+     */
+    val pauseWhileInteracting: Boolean
 
     interface Instant : IRotationConfig {
         override val turnSpeed get() = 360.0
         override val keepTicks get() = 1
         override val resetTicks get() = 1
+        override val pauseWhileInteracting get() = false
     }
 }
