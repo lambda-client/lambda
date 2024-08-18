@@ -24,7 +24,7 @@ abstract class RotationEvent : Event {
      * @property strafeYaw The angle at which the player will move when pressing W
      * Changing this value will never force the anti cheat to flag you because RotationManager is designed to modify the key input instead
      */
-    class Strafe(var strafeYaw: Double, val input: Input) : RotationEvent()
+    class StrafeInput(var strafeYaw: Double, val input: Input) : RotationEvent()
 
     class Post(val context: RotationContext) : RotationEvent()
 }

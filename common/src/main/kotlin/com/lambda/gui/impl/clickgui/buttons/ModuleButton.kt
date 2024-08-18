@@ -96,6 +96,8 @@ class ModuleButton(
             is GuiEvent.Render -> {
                 super.onEvent(e)
 
+                settingsRenderer.font.scaleMultiplier = ClickGui.settingsFontScale
+
                 // Shadow
                 renderer.filled.apply {
                     val rect = Rect(

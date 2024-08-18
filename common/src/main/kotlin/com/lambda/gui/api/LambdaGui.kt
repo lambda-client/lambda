@@ -24,7 +24,7 @@ abstract class LambdaGui(
     override val name: String,
     private val owner: Module? = null
 ) : Screen(Text.of(name)), IComponent, Nameable, Muteable {
-    protected var screenSize = Vec2d.ZERO
+    var screenSize = Vec2d.ZERO
     override val rect get() = Rect(Vec2d.ZERO, screenSize)
 
     val isOpen get() = mc.currentScreen == this
@@ -129,6 +129,16 @@ abstract class LambdaGui(
 
     final override fun mouseMoved(mouseX: Double, mouseY: Double) {
         onEvent(GuiEvent.MouseMove(rescaleMouse(mouseX, mouseY)))
+    }
+
+    override fun mouseScrolled(
+        mouseX: Double,
+        mouseY: Double,
+        horizontalAmount: Double,
+        verticalAmount: Double
+    ): Boolean {
+        onEvent(GuiEvent.MouseScroll(rescaleMouse(mouseX, mouseY), verticalAmount))
+        return true
     }
 
     final override fun shouldPause() = false

@@ -5,11 +5,11 @@ import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Muteable
 import com.lambda.event.listener.SafeListener.Companion.concurrentListener
+import com.lambda.event.listener.SafeListener.Companion.listenOnce
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.SafeListener.Companion.receiveNext
 import com.lambda.util.Pointer
 import com.lambda.util.selfReference
-import net.minecraft.advancement.AdvancementRewards.Builder.function
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty

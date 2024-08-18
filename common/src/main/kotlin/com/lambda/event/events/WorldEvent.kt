@@ -7,6 +7,7 @@ import net.minecraft.block.BlockState
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.shape.VoxelShape
 import net.minecraft.world.chunk.WorldChunk
 
 abstract class WorldEvent : Event {
@@ -34,4 +35,6 @@ abstract class WorldEvent : Event {
     class EntitySpawn(
         val entity: Entity
     ) : WorldEvent(), ICancellable by Cancellable()
+
+    class Collision(val pos: BlockPos, val state: BlockState, var shape: VoxelShape) : WorldEvent()
 }
