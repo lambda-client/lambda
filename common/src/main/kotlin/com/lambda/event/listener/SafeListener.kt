@@ -9,7 +9,9 @@ import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
 import com.lambda.util.Pointer
 import com.lambda.util.selfReference
+import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KProperty
 
 
 /**
@@ -44,20 +46,22 @@ class SafeListener<T : Event>(
     override val owner: Any,
     override val alwaysListen: Boolean = false,
     val function: SafeContext.(T) -> Unit,
-) : Listener<T>() {
+) : Listener<T>(), ReadOnlyProperty<Any?, T?> {
+    /**
+     * The last processed event signal.
+     */
     private var lastSignal: T? = null
-    operator fun getValue(thisRef: Any?, property: Any?): T? = lastSignal
 
+    override fun getValue(thisRef: Any?, property: KProperty<*>): T? = lastSignal
+
+    /**
+     * Executes the actions defined by this listener when the event occurs.
+     *
+     * Note that running this function outside the game thread can
+     * lead to race conditions when manipulating shared data.
+     */
     override fun execute(event: T) {
         runSafe {
-//            if (!mc.isOnThread) {
-//                LOG.warn("""
-//                    Event ${this::class.simpleName} executed outside the game thread.
-//                    This can lead to race conditions when manipulating shared data.
-//                    Consider moving the execution to the game thread using runSafeOnGameThread { ... } or runOnGameThread { ... }.
-//                """.trimIndent())
-//            }
-
             lastSignal = event
             function(event)
         }
