@@ -40,10 +40,14 @@ abstract class Listener<T : Event> : Comparable<Listener<T>> {
     abstract fun execute(event: T)
 
     override fun compareTo(other: Listener<T>) =
-        compareBy<Listener<T>> {
+        comparator.compare(this, other)
+
+    companion object {
+        val comparator = compareBy<Listener<out Event>> {
             it.priority
         }.thenBy {
-            // Needed because ConcurrentSkipListSet handles insertion based on compareTo
+            // Hashcode is needed because ConcurrentSkipListSet handles insertion based on compareTo
             it.hashCode()
-        }.compare(this, other)
+        }
+    }
 }

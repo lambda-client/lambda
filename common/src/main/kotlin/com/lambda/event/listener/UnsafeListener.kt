@@ -6,7 +6,7 @@ import com.lambda.event.EventFlow
 import com.lambda.event.Muteable
 import com.lambda.event.listener.SafeListener.Companion.concurrentListener
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.event.listener.SafeListener.Companion.receiveNext
+import com.lambda.event.listener.SafeListener.Companion.listenOnce
 import com.lambda.util.Pointer
 import com.lambda.util.selfReference
 import kotlin.properties.ReadOnlyProperty
@@ -105,11 +105,11 @@ class UnsafeListener<T : Event>(
          * Registers a new [UnsafeListener] for a generic [Event] type [T].
          * The [function] is executed only once when the [Event] is dispatched.
          * This function should only be used when the [function] performs read actions on the game data.
-         * For only in-game related contexts, use the [SafeListener.receiveNext] function instead.
+         * For only in-game related contexts, use the [SafeListener.listenOnce] function instead.
          *
          * Usage:
          * ```kotlin
-         * private val event by unsafeReceiveNext<MyEvent> { event ->
+         * private val event by unsafeListenOnce<MyEvent> { event ->
          *     println("Unsafe event received only once: $event")
          *     // no safe access to player or world
          *     // event is stored in the value
@@ -125,20 +125,20 @@ class UnsafeListener<T : Event>(
          * @param transform The function used to transform the event into a value.
          * @return The newly created and registered [UnsafeListener].
          */
-        inline fun <reified T : Event, reified E> Any.unsafeReceiveNext(
+        inline fun <reified T : Event, reified E> Any.unsafeListenOnce(
             priority: Int = 0,
             alwaysListen: Boolean = false,
             noinline transform: (T) -> E? = { null },
             noinline predicate: (T) -> Boolean = { true },
         ): ReadWriteProperty<Any?, E?> {
-            val ptr = Pointer<E>()
+            val pointer = Pointer<E>()
 
             val destroyable by selfReference<UnsafeListener<T>> {
-                UnsafeListener(priority, this@unsafeReceiveNext, alwaysListen) { event ->
-                    ptr.value = transform(event)
+                UnsafeListener(priority, this@unsafeListenOnce, alwaysListen) { event ->
+                    pointer.value = transform(event)
 
                     if (predicate(event) &&
-                        ptr.value != null)
+                        pointer.value != null)
                     {
                         val self by this@selfReference
                         EventFlow.syncListeners.unsubscribe(self)
@@ -148,7 +148,7 @@ class UnsafeListener<T : Event>(
 
             EventFlow.syncListeners.subscribe<T>(destroyable)
 
-            return ptr
+            return pointer
         }
 
         /**

@@ -125,7 +125,7 @@ class SafeListener<T : Event>(
          *
          * Usage:
          * ```kotlin
-         * private val event by receiveNext<MyEvent> { event ->
+         * private val event by listenNext<MyEvent> { event ->
          *     player.sendMessage("Event received only once: $event")
          *     // event is stored in the value
          *     // event is unsubscribed after execution
@@ -138,20 +138,20 @@ class SafeListener<T : Event>(
          * @param transform The function used to transform the event into a value.
          * @return The newly created and registered [SafeListener].
          */
-        inline fun <reified T : Event, reified E> Any.receiveNext(
+        inline fun <reified T : Event, reified E> Any.listenOnce(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline transform: SafeContext.(T) -> E? = { null },
             noinline predicate: SafeContext.(T) -> Boolean = { true },
+            noinline transform: SafeContext.(T) -> E? = { null },
         ): ReadWriteProperty<Any?, E?> {
-            val ptr = Pointer<E>()
+            val pointer = Pointer<E>()
 
             val destroyable by selfReference<SafeListener<T>> {
-                SafeListener(priority, this@receiveNext, alwaysListen) { event ->
-                    ptr.value = transform(event)
+                SafeListener(priority, this@listenOnce, alwaysListen) { event ->
+                    pointer.value = transform(event)
 
                     if (predicate(event) &&
-                        ptr.value != null
+                        pointer.value != null
                     ) {
                         val self by this@selfReference
                         EventFlow.syncListeners.unsubscribe(self)
@@ -161,7 +161,7 @@ class SafeListener<T : Event>(
 
             EventFlow.syncListeners.subscribe<T>(destroyable)
 
-            return ptr
+            return pointer
         }
 
         /**

@@ -16,7 +16,7 @@ import kotlin.reflect.KClass
  */
 class Subscriber : ConcurrentHashMap<KClass<out Event>, ConcurrentSkipListSet<Listener<out Event>>>() {
     val defaultListenerSet: ConcurrentSkipListSet<Listener<out Event>>
-        get() = ConcurrentSkipListSet(compareByDescending<Listener<out Event>> { it.priority }.thenBy { it.hashCode() }) // TODO: Fix this
+        get() = ConcurrentSkipListSet(Listener.comparator.reversed())
 
 
     /** Allows a [Listener] to start receiving a specific type of [Event] */
