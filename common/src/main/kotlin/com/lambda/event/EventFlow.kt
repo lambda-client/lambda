@@ -225,9 +225,9 @@ object EventFlow {
      * @param T The type of the event being handled.
      */
     private fun <T : Event> T.executeListenerSynchronous() {
-        syncListeners[this::class]?.forEach { listener ->
+        syncListeners[this::class]?.forEach {
             @Suppress("UNCHECKED_CAST")
-            listener as? Listener<T> ?: return@forEach
+            val listener = it as? Listener<T> ?: return@forEach
             if (shouldNotNotify(listener, this)) return@forEach
             listener.execute(this)
         }
@@ -244,9 +244,9 @@ object EventFlow {
      * @param T The type of the event being handled.
      */
     private fun <T : Event> T.executeListenerConcurrently() {
-        concurrentListeners[this::class]?.forEach { listener ->
+        concurrentListeners[this::class]?.forEach {
             @Suppress("UNCHECKED_CAST")
-            listener as? Listener<T> ?: return@forEach
+            val listener = it as? Listener<T> ?: return@forEach
             if (shouldNotNotify(listener, this)) return@forEach
             listener.execute(this)
         }
