@@ -3,6 +3,7 @@ package com.lambda.http.api.rpc.v1.endpoints
 import com.lambda.http.Method
 import com.lambda.http.Request
 import com.lambda.http.api.rpc.v1.models.Party
+import com.lambda.http.request
 
 fun editParty(
     endpoint: String,
@@ -17,16 +18,18 @@ fun editParty(
     // If false can only be joined by invite.
     // example: true
     public: Boolean = true,
-) = Request(
-    "$endpoint/api/$version/party/edit",
-    Method.PATCH,
-    parameters =
-        mapOf(
-            "max_players" to maxPlayers,
-            "public" to public,
-        ),
-    headers =
-        mapOf(
-            "Authorization" to "Bearer $accessToken"
+) =
+    request("$endpoint/api/$version/party/edit") {
+        method(Method.PATCH)
+
+        parameters(
+            mapOf(
+                "max_players" to maxPlayers,
+                "public" to public,
+            )
         )
-    ).json<Party>()
+
+        headers(
+            mapOf("Authorization" to "Bearer $accessToken")
+        )
+    }.json<Party>()

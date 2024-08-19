@@ -3,6 +3,7 @@ package com.lambda.http.api.rpc.v1.endpoints
 import com.lambda.http.Method
 import com.lambda.http.Request
 import com.lambda.http.api.rpc.v1.models.Authentication
+import com.lambda.http.request
 
 fun login(
     endpoint: String,
@@ -20,13 +21,14 @@ fun login(
     // example: 069a79f444e94726a5befca90e38aaf5
     hash: String
 ) =
-    Request(
-        "$endpoint/api/$version/login",
-        Method.POST,
-        parameters =
+    request("$endpoint/api/$version/login") {
+        method(Method.POST)
+
+        parameters(
             mapOf(
                 "token" to discordToken,
                 "username" to username,
                 "hash" to hash
             )
-    ).json<Authentication>()
+        )
+    }.json<Authentication>()

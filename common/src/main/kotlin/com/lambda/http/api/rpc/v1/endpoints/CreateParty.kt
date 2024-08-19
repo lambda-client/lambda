@@ -3,6 +3,7 @@ package com.lambda.http.api.rpc.v1.endpoints
 import com.lambda.http.Method
 import com.lambda.http.Request
 import com.lambda.http.api.rpc.v1.models.Party
+import com.lambda.http.request
 
 fun createParty(
     endpoint: String,
@@ -18,16 +19,17 @@ fun createParty(
     // example: true
     public: Boolean = true,
 ) =
-    Request(
-        "$endpoint/api/$version/party/create",
-        Method.POST,
-        parameters =
+    request("$endpoint/api/$version/party/create") {
+        method(Method.POST)
+
+        parameters(
             mapOf(
                 "max_players" to maxPlayers,
                 "public" to public,
-            ),
-        headers =
-            mapOf(
-                "Authorization" to "Bearer $accessToken"
             )
-    ).json<Party>()
+        )
+
+        headers(
+            mapOf("Authorization" to "Bearer $accessToken")
+        )
+    }.json<Party>()

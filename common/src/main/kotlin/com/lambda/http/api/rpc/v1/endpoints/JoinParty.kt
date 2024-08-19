@@ -3,6 +3,7 @@ package com.lambda.http.api.rpc.v1.endpoints
 import com.lambda.http.Request
 import com.lambda.http.Method
 import com.lambda.http.api.rpc.v1.models.Party
+import com.lambda.http.request
 
 fun joinParty(
     endpoint: String,
@@ -13,15 +14,16 @@ fun joinParty(
     // example: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
     partyId: String,
 ) =
-    Request(
-        "$endpoint/api/$version/party/join",
-        Method.PUT,
-        parameters =
+    request("$endpoint/api/$version/party/join") {
+        method(Method.PUT)
+
+        parameters(
             mapOf(
-                "id" to partyId
-            ),
-        headers =
-            mapOf(
-                "Authorization" to "Bearer $accessToken"
+                "id" to partyId,
             )
-    ).json<Party>()
+        )
+
+        headers(
+            mapOf("Authorization" to "Bearer $accessToken")
+        )
+    }.json<Party>()
