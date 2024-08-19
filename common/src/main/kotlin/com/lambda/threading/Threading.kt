@@ -41,7 +41,7 @@ inline fun runConcurrent(crossinline block: suspend () -> Unit) =
     }
 
 inline fun runIO(crossinline block: suspend () -> Unit) =
-    EventFlow.ioScope.launch {
+    EventFlow.lambdaScope.launch(Dispatchers.IO) {
         block()
     }
 

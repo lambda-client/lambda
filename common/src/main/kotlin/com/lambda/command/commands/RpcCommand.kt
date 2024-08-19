@@ -6,7 +6,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.argument.word
 import com.lambda.command.LambdaCommand
 import com.lambda.module.modules.client.DiscordRPC
-import com.lambda.util.primitives.extension.CommandBuilder
+import com.lambda.util.extension.CommandBuilder
 
 object RpcCommand : LambdaCommand(
     name = "rpc",

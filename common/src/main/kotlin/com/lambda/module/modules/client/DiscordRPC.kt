@@ -3,7 +3,7 @@ package com.lambda.module.modules.client
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
-import com.lambda.event.EventFlow.ioScope
+import com.lambda.event.EventFlow
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
@@ -60,7 +60,7 @@ object DiscordRPC : Module(
     private val maxPlayers by setting("Max Players", 10, 2..20, visibility = { page == Page.Party }).apply { onValueChange { _, _ -> edit() } }
     private val public by setting("Public Party", false, description = "Allow anyone to join your party.") { page == Page.Party }.apply { onValueChange { _, _ -> edit() } }
 
-    private val rpc = KDiscordIPC(Lambda.APP_ID, scope = ioScope)
+    private val rpc = KDiscordIPC(Lambda.APP_ID, scope = EventFlow.lambdaScope)
     private var startup = System.currentTimeMillis()
     private val dimensionRegex = Regex("""\b\w+_\w+\b""")
 
