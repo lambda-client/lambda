@@ -12,7 +12,7 @@ import com.lambda.command.LambdaCommand
 import com.lambda.module.modules.player.Replay
 import com.lambda.util.FolderRegister
 import com.lambda.util.FolderRegister.listRecursive
-import com.lambda.util.primitives.extension.CommandBuilder
+import com.lambda.util.extension.CommandBuilder
 
 object ReplayCommand : LambdaCommand(
     name = "replay",

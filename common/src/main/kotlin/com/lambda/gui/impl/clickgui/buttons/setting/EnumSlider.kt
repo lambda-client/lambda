@@ -11,7 +11,7 @@ import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.transform
-import com.lambda.util.primitives.extension.displayValue
+import com.lambda.util.extension.displayValue
 import java.awt.Color
 
 class EnumSlider<T : Enum<T>>(

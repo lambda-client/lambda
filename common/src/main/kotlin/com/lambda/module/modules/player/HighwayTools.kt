@@ -9,7 +9,7 @@ import com.lambda.task.tasks.BuildStructure.Companion.buildStructure
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.info
 import com.lambda.util.player.MovementUtils.octant
-import com.lambda.util.primitives.extension.Structure
+import com.lambda.util.extension.Structure
 import com.lambda.util.world.StructureUtils.generateDirectionalTube
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
