@@ -134,12 +134,12 @@ class SearchContext(val safeContext: SafeContext, val pos: Vec3d) {
         val blocks = mutableMapOf<FastVector, BlockState>()
 
         val transformedPredicate: (FastVector, BlockState, Int) -> Boolean =
-            { fast, state, _ -> predicate(fast.decoded(), state) }
+            { fast, state, _ -> predicate(fast.toVec3d(), state) }
         val transformedIterator: (FastVector, BlockState, Int) -> Unit =
-            { fast, state, _ -> iterator(fast.decoded(), state) }
+            { fast, state, _ -> iterator(fast.toVec3d(), state) }
 
-        safeContext.searchBlocks(pos.encoded(), range.encoded(), step.encoded(), blocks, transformedPredicate, transformedIterator)
-        return blocks.mapKeys { it.key.decoded() }
+        safeContext.searchBlocks(pos.toFastVec(), range.toFastVec(), step.toFastVec(), blocks, transformedPredicate, transformedIterator)
+        return blocks.mapKeys { it.key.toVec3d() }
     }
 
     /**
@@ -196,12 +196,12 @@ class SearchContext(val safeContext: SafeContext, val pos: Vec3d) {
         val fluids = mutableMapOf<FastVector, T>()
 
         val transformedPredicate: (FastVector, FluidState, Int) -> Boolean =
-            { fast, state, _ -> predicate(fast.decoded(), state) }
+            { fast, state, _ -> predicate(fast.toVec3d(), state) }
         val transformedIterator: (FastVector, FluidState, Int) -> Unit =
-            { fast, state, _ -> iterator(fast.decoded(), state) }
+            { fast, state, _ -> iterator(fast.toVec3d(), state) }
 
-        safeContext.searchFluids(pos.encoded(), range.encoded(), step.encoded(), fluids, transformedPredicate, transformedIterator)
-        return fluids.mapKeys { it.key.decoded() }
+        safeContext.searchFluids(pos.toFastVec(), range.toFastVec(), step.toFastVec(), fluids, transformedPredicate, transformedIterator)
+        return fluids.mapKeys { it.key.toVec3d() }
     }
 }
 

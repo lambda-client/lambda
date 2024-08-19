@@ -5,6 +5,7 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.graphics.renderer.esp.builders.build
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.math.VecUtils.blockPos
 import com.lambda.util.world.search
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.Box
@@ -33,8 +34,10 @@ object BlockTest : Module(
                 blocks(
                     range = Vec3d(rangeX, rangeY, rangeZ),
                     step = Vec3i(stepX, stepY, stepZ),
-                ) { _, block -> block.isOf(Blocks.DIAMOND_BLOCK) }.forEach { (pos, _) ->
-                    it.renderer.build(Box.of(pos, 1.0, 1.0, 1.0), filledColor, outlineColor)
+                ) { _, block -> block.isOf(Blocks.DIAMOND_BLOCK) }.forEach { (pos, state) ->
+                    state.getOutlineShape(world, pos.blockPos).boundingBoxes.forEach { box ->
+                        it.renderer.build(box.offset(pos), filledColor, outlineColor)
+                    }
                 }
             }
         }

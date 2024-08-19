@@ -1,5 +1,6 @@
 package com.lambda.util.world
 
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 
@@ -8,10 +9,10 @@ import net.minecraft.util.math.Vec3i
  *
  * [ X (26 bits) | Z (26 bits) | Y (12 bits) ]
  *
- * The position is encoded as a 64-bit long where the X and Z coordinates are stored in the most significant 26 bits
- * and the Y coordinate is stored in the middle 12 bits. This encoding allows for a maximum world size of
- * ±33,554,432 blocks in the X and Z directions and ±2,048 blocks in the Y direction, which is more than
- * needed.
+ * The position is encoded as a 64-bit long where the X and Z coordinates are stored in the 26 most significant bits,
+ * and the Y coordinate is stored in the 12 least significant bits.
+ * This encoding allows for a maximum world size of ±33,554,432 blocks
+ * in the X and Z directions and ±2,048 blocks in the Y direction, which is more than needed.
  */
 typealias FastVector = Long
 
@@ -123,18 +124,28 @@ infix fun FastVector.plus(vec: FastVector): FastVector = fastVectorOf(x + vec.x,
 infix fun FastVector.plus(vec: Vec3i): FastVector = fastVectorOf(x + vec.x, y + vec.y, z + vec.z)
 
 /**
- * Encodes the vector as a position.
+ * Converts a [Vec3i] to a [FastVector].
  * @return The encoded position.
  */
-fun Vec3i.encoded(): FastVector = fastVectorOf(x.toLong(), y.toLong(), z.toLong())
+fun Vec3i.toFastVec(): FastVector = fastVectorOf(x.toLong(), y.toLong(), z.toLong())
 
 /**
- * Encodes the vector as a position.
+ * Converts a [Vec3d] to a [FastVector].
  * @return The encoded position.
  */
-fun Vec3d.encoded(): FastVector = fastVectorOf(x.toLong(), y.toLong(), z.toLong())
+fun Vec3d.toFastVec(): FastVector = fastVectorOf(x.toLong(), y.toLong(), z.toLong())
 
 /**
- * Decodes the position into a vector.
+ * Converts the [FastVector] into a [Vec3d].
  */
-fun FastVector.decoded(): Vec3d = Vec3d(x.toDouble(), y.toDouble(), z.toDouble())
+fun FastVector.toVec3d(): Vec3d = Vec3d(x.toDouble(), y.toDouble(), z.toDouble())
+
+/**
+ * Converts the [FastVector] into a [Vec3i].
+ */
+fun FastVector.toVec3i(): Vec3i = Vec3i(x, y, z)
+
+/**
+ * Converts the [FastVector] into a [BlockPos].
+ */
+fun FastVector.toBlockPos(): BlockPos = BlockPos(x, y, z)

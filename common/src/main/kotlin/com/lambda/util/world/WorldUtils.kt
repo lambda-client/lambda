@@ -40,6 +40,9 @@ import kotlin.math.ceil
  * @see <a href="https://devdiaries.medium.com/gc-and-its-effect-on-java-performance-9cba51ffb196">Medium - GC and Its Effect on Java Performance</a>
  */
 object WorldUtils {
+    // ToDo: Rename and add explanation
+    const val MAGIC = 274945015809L
+
     /**
      * Gets the closest entity of type [T] within a specified range.
      *
@@ -163,7 +166,7 @@ object WorldUtils {
     inline fun SafeContext.searchBlocks(
         pos: FastVector,
         range: FastVector,
-        step: FastVector = 274945015809L,
+        step: FastVector = MAGIC,
         pointer: MutableMap<FastVector, BlockState>? = null,
         predicate: (FastVector, BlockState, Int) -> Boolean = { _, _, _ -> true },
         iterator: (FastVector, BlockState, Int) -> Unit = { _, _, _ -> },
@@ -192,7 +195,7 @@ object WorldUtils {
     inline fun <reified T : Fluid> SafeContext.searchFluids(
         pos: FastVector,
         range: FastVector,
-        step: FastVector = 274945015809L,
+        step: FastVector = MAGIC,
         pointer: MutableMap<FastVector, T>? = null,
         predicate: (FastVector, FluidState, Int) -> Boolean = { _, _, _ -> true },
         iterator: (FastVector, FluidState, Int) -> Unit = { _, _, _ -> },
@@ -219,7 +222,7 @@ object WorldUtils {
     inline fun iteratePositions(
         pos: FastVector,
         range: FastVector,
-        step: FastVector = 274945015809L,
+        step: FastVector = MAGIC,
         iterator: (FastVector, Int) -> Unit = { _, _ -> },
     ) {
         var index = 0
