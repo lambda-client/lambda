@@ -6,8 +6,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.world.WorldUtils.getEntities
-import com.lambda.util.world.search
+import com.lambda.util.world.entitySearch
 import net.minecraft.entity.passive.AbstractHorseEntity
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 
@@ -26,8 +25,9 @@ object EntityControl : Module(
     init {
         listener<TickEvent.Pre> {
             if (forceMount) {
-                search {
-                    nearbyEntities<AbstractHorseEntity>(8.0) { it.setHorseFlag(4, true) }
+                entitySearch<AbstractHorseEntity> {
+                    range(8)
+                    iterator { it.setHorseFlag(4, true) }
                 }
             }
         }
@@ -49,8 +49,9 @@ object EntityControl : Module(
     }
 
     fun SafeContext.resetHorseFlags() {
-        search {
-            entities<AbstractHorseEntity>(500) { it.updateSaddle() }
+        entitySearch<AbstractHorseEntity> {
+            range(8)
+            iterator { it.updateSaddle() }
         }
     }
 }

@@ -7,10 +7,7 @@ import com.lambda.interaction.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.threading.runSafe
 import com.lambda.util.math.VecUtils.distSq
-import com.lambda.util.world.SearchContext
-import com.lambda.util.world.WorldUtils.getFastEntities
-import com.lambda.util.world.search
-import com.lambda.util.world.toFastVec
+import com.lambda.util.world.entitySearch
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.mob.MobEntity
@@ -58,17 +55,15 @@ abstract class Targeting(
         }
 
         fun getTarget(): LivingEntity? = runSafe {
-            var best: LivingEntity? = null
-
             val predicate = { entity: LivingEntity ->
                 validate(player, entity)
             }
 
-            search {
-                best = minEntityBy<LivingEntity>(targetingRange, predicate, priority.factor)
-            }
-
-            return@runSafe best
+            return@runSafe entitySearch<LivingEntity> {
+                range(targetingRange)
+                filter(predicate)
+                comparator { priority.factor(this, it) }
+            }.minBy()
         }
     }
 

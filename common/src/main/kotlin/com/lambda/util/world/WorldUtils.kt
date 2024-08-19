@@ -11,6 +11,7 @@ import net.minecraft.fluid.Fluid
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.ChunkSectionPos
 import kotlin.math.ceil
+import kotlin.reflect.KClass
 
 /**
  * Utility functions for working with the Minecraft world.
@@ -39,12 +40,12 @@ import kotlin.math.ceil
  * @see <a href="https://www.ibm.com/docs/no/aix/7.2?topic=monitoring-garbage-collection-impacts-java-performance">IBM - Garbage Collection Impacts on Java Performance</a>
  * @see <a href="https://devdiaries.medium.com/gc-and-its-effect-on-java-performance-9cba51ffb196">Medium - GC and Its Effect on Java Performance</a>
  */
-@InternalApi
 object WorldUtils {
     /**
      * A magic vector that can be used to represent a single block.
      * It is the same as `fastVectorOf(1, 1, 1)`.
      */
+    @InternalApi
     const val MAGICVECTOR = 274945015809L
 
     /**
@@ -61,7 +62,7 @@ object WorldUtils {
      * ```
      *
      * Please note that this implementation is optimized for performance at small distances.
-     * For larger distances, it is recommended to use the [getEntities] function instead.
+     * For larger distances, it is recommended to use the [internalGetEntities] function instead.
      * With the time complexity, we can determine that the performance of this function will degrade after 64 blocks.
      *
      * @param pos The position to search from.
@@ -70,12 +71,23 @@ object WorldUtils {
      * @param iterator Iterator to perform operations on each entity. The second parameter is the index of the iteration.
      * @param predicate Predicate to filter entities.
      */
-    inline fun <reified T : Entity> SafeContext.getFastEntities(
+    @InternalApi
+    inline fun <reified T : Entity> SafeContext.internalGetFastEntities(
         pos: FastVector,
         distance: Double,
         pointer: MutableList<T>? = null,
         predicate: (T) -> Boolean = { true },
-        iterator: (T, Int) -> Unit = { _, _ -> },
+        iterator: (T) -> Unit = { _ -> },
+    ) = internalGetFastEntities(T::class, pos, distance, pointer, predicate, iterator)
+
+    @InternalApi
+    inline fun <T : Entity> SafeContext.internalGetFastEntities(
+        kClass: KClass<out T>,
+        pos: FastVector,
+        distance: Double,
+        pointer: MutableList<T>? = null,
+        predicate: (T) -> Boolean = { true },
+        iterator: (T) -> Unit = { _ -> },
     ) {
         val chunks = ceil(distance / 16.0).toInt()
         val sectionX = pos.x shr 4
@@ -93,7 +105,7 @@ object WorldUtils {
                         .cache
                         .findTrackingSection(ChunkSectionPos.asLong(x, y, z)) ?: continue
 
-                    section.collection.filterPointer(pointer, iterator) { entity ->
+                    section.collection.filterPointer(kClass, pointer, iterator) { entity ->
                         entity != player &&
                                 pos distSq entity.pos <= distance * distance &&
                                 predicate(entity)
@@ -107,7 +119,7 @@ object WorldUtils {
      * Gets all entities of type [T] within a specified distance from a position.
      *
      * This function retrieves entities of type [T] within a specified distance from a given position. Unlike
-     * [getFastEntities], it traverses all entities in the world to find matches, while also excluding the player entity.
+     * [internalGetFastEntities], it traverses all entities in the world to find matches, while also excluding the player entity.
      *
      * @param pos The block position to search from.
      * @param distance The maximum distance to search for entities.
@@ -115,14 +127,25 @@ object WorldUtils {
      * @param iterator Iterator to perform operations on each entity. The second parameter is the index of the iteration.
      * @param predicate Predicate to filter entities.
      */
-    inline fun <reified T : Entity> SafeContext.getEntities(
+    @InternalApi
+    inline fun <reified T : Entity> SafeContext.internalGetEntities(
         pos: FastVector,
         distance: Double,
         pointer: MutableList<T>? = null,
         predicate: (T) -> Boolean = { true },
-        iterator: (T, Int) -> Unit = { _, _ -> },
+        iterator: (T) -> Unit = { _ -> },
+    ) = internalGetEntities(T::class, pos, distance, pointer, predicate, iterator)
+
+    @InternalApi
+    inline fun <T : Entity> SafeContext.internalGetEntities(
+        kClass: KClass<out T>,
+        pos: FastVector,
+        distance: Double,
+        pointer: MutableList<T>? = null,
+        predicate: (T) -> Boolean = { true },
+        iterator: (T) -> Unit = { _ -> },
     ) {
-        world.entities.filterPointer(pointer, iterator) { entity ->
+        world.entities.filterPointer(kClass, pointer, iterator) { entity ->
             entity != player &&
                     pos distSq entity.pos <= distance * distance &&
                     predicate(entity)
@@ -138,21 +161,22 @@ object WorldUtils {
      * @param iterator Iterator to perform operations on each block.
      * @param predicate Predicate to filter the blocks.
      */
-    inline fun SafeContext.searchBlocks(
+    @InternalApi
+    inline fun SafeContext.internalSearchBlocks(
         pos: FastVector,
         range: FastVector = MAGICVECTOR times 7,
         step: FastVector = MAGICVECTOR,
         pointer: MutableMap<FastVector, BlockState>? = null,
-        predicate: (FastVector, BlockState, Int) -> Boolean = { _, _, _ -> true },
-        iterator: (FastVector, BlockState, Int) -> Unit = { _, _, _ -> },
+        predicate: (FastVector, BlockState) -> Boolean = { _, _ -> true },
+        iterator: (FastVector, BlockState) -> Unit = { _, _ -> },
     ) {
-        iteratePositions(pos, range, step) { position, index ->
+        internalIteratePositions(pos, range, step) { position ->
             world.getBlockState(position.x, position.y, position.z).let { state ->
-                val fulfilled = predicate(position, state, index)
+                val fulfilled = predicate(position, state)
 
                 if (fulfilled && pointer != null) {
                     pointer[position] = state
-                    iterator(position, state, index)
+                    iterator(position, state)
                 }
             }
         }
@@ -167,21 +191,34 @@ object WorldUtils {
      * @param iterator Iterator to perform operations on each fluid.
      * @param predicate Predicate to filter the fluids.
      */
-    inline fun <reified T : Fluid> SafeContext.searchFluids(
+    @InternalApi
+    inline fun <reified T : Fluid> SafeContext.internalSearchFluids(
         pos: FastVector,
         range: FastVector = MAGICVECTOR times 7,
         step: FastVector = MAGICVECTOR,
         pointer: MutableMap<FastVector, T>? = null,
-        predicate: (FastVector, FluidState, Int) -> Boolean = { _, _, _ -> true },
-        iterator: (FastVector, FluidState, Int) -> Unit = { _, _, _ -> },
+        predicate: (FastVector, FluidState) -> Boolean = { _, _ -> true },
+        iterator: (FastVector, FluidState) -> Unit = { _, _ -> },
+    ) = internalSearchFluids(T::class, pos, range, step, pointer, predicate, iterator)
+
+    @InternalApi
+    inline fun <T : Fluid> SafeContext.internalSearchFluids(
+        kClass: KClass<out T>,
+        pos: FastVector,
+        range: FastVector = MAGICVECTOR times 7,
+        step: FastVector = MAGICVECTOR,
+        pointer: MutableMap<FastVector, T>? = null,
+        predicate: (FastVector, FluidState) -> Boolean = { _, _ -> true },
+        iterator: (FastVector, FluidState) -> Unit = { _, _ -> },
     ) {
-        iteratePositions(pos, range, step) { position, index ->
+        internalIteratePositions(pos, range, step) { position ->
             world.getFluidState(position.x, position.y, position.z).let { state ->
-                val fulfilled = predicate(position, state, index)
+                val fulfilled = kClass.isInstance(state.fluid) && predicate(position, state)
 
                 if (fulfilled && pointer != null) {
                     pointer[position] = state.fluid as T
-                    iterator(position, state, index)
+
+                    iterator(position, state)
                 }
             }
         }
@@ -194,20 +231,18 @@ object WorldUtils {
      * @param step The step to increment the position by.
      * @param iterator Iterator to perform operations on each position.
      */
-    inline fun iteratePositions(
+    @InternalApi
+    inline fun internalIteratePositions(
         pos: FastVector,
         range: FastVector,
         step: FastVector,
-        iterator: (FastVector, Int) -> Unit = { _, _ -> },
+        iterator: (FastVector) -> Unit = { _ -> },
     ) {
-        var index = 0
-
         for (x in -range.x..range.x step step.x) {
             for (y in -range.y..range.y step step.y) {
                 for (z in -range.z..range.z step step.z) {
                     iterator(
                         pos plus fastVectorOf(x, y, z),
-                        index++
                     )
                 }
             }

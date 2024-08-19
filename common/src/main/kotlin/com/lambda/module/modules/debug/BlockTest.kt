@@ -5,12 +5,8 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.graphics.renderer.esp.builders.build
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.math.VecUtils.blockPos
-import com.lambda.util.world.search
+import com.lambda.util.world.blockSearch
 import net.minecraft.block.Blocks
-import net.minecraft.util.math.Box
-import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 import java.awt.Color
 
@@ -37,16 +33,17 @@ object BlockTest : Module(
 
     init {
         listener<RenderEvent.StaticESP> {
-            search {
-                blocks(
-                    range,
-                    step
-                ) { _, block -> block.isOf(Blocks.DIAMOND_BLOCK) }.forEach { (pos, state) ->
+            blockSearch {
+                range(range)
+                step(step)
+
+                filter { _, block -> block.isOf(Blocks.DIAMOND_BLOCK) }
+                iterator { pos, state ->
                     state.getOutlineShape(world, pos).boundingBoxes.forEach { box ->
                         it.renderer.build(box.offset(pos), filledColor, outlineColor)
                     }
                 }
-            }
+            }.build()
         }
     }
 }

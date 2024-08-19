@@ -7,7 +7,7 @@ import com.lambda.graphics.renderer.esp.builders.build
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.ColorUtils.setAlpha
-import com.lambda.util.world.search
+import com.lambda.util.world.entitySearch
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.Box
 import java.awt.Color
@@ -29,10 +29,13 @@ object RenderTest : Module(
 
     init {
         listener<RenderEvent.DynamicESP> {
-            search {
-                val entity = closestEntity<LivingEntity>(8.0) ?: return@search
-                it.renderer.build(entity.dynamicBox, filledColor, outlineColor)
-            }
+            entitySearch<LivingEntity> {
+                range(8)
+
+                iterator { entity ->
+                    it.renderer.build(entity.dynamicBox, filledColor, outlineColor)
+                }
+            }.build()
         }
 
         listener<RenderEvent.StaticESP> {

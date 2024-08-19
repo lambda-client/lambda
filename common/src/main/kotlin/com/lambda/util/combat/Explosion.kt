@@ -8,7 +8,7 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.fluidState
 import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.math.VecUtils.times
-import com.lambda.util.world.WorldUtils.getFastEntities
+import com.lambda.util.world.WorldUtils.internalGetFastEntities
 import com.lambda.util.world.toFastVec
 import net.minecraft.enchantment.ProtectionEnchantment
 import net.minecraft.entity.LivingEntity
@@ -55,7 +55,7 @@ object Explosion {
      */
     fun SafeContext.explosionVelocity(explosion: Explosion): Map<LivingEntity, Vec3d> {
         val ref = ArrayList<LivingEntity>()
-        getFastEntities(explosion.position.toFastVec(), explosion.power * 2.0, ref)
+        internalGetFastEntities(explosion.position.toFastVec(), explosion.power * 2.0, ref)
         return ref.associateWith { entity -> explosionVelocity(entity, explosion) }
     }
 

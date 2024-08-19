@@ -1,5 +1,7 @@
 package com.lambda.util.collections
 
+import kotlin.reflect.KClass
+
 /**
  * Filters elements of the iterable by their runtime type and a predicate, and adds the matching elements to the specified mutable collection.
  *
@@ -22,7 +24,7 @@ inline fun <reified R, C : MutableCollection<in R>> Iterable<*>.filterPointer(
     var index = 0
 
     for (element in this) {
-        val fulfilled = predicate(element as? R ?: continue)
+        val fulfilled = predicate(element as R ?: continue)
 
         if (fulfilled && destination != null) {
             destination.add(element)
@@ -30,5 +32,35 @@ inline fun <reified R, C : MutableCollection<in R>> Iterable<*>.filterPointer(
         }
 
         index++
+    }
+}
+
+/**
+ * Filters elements of the iterable by their runtime type and a predicate, and adds the matching elements to the specified mutable collection.
+ *
+ * This function allows filtering elements of an iterable based on their runtime type and a provided predicate function.
+ * The elements that match both the type constraint and the predicate are added to the destination mutable collection.
+ * Because we do not want additional overhead, this function acts as pointer receiver to a collection.
+ * The predicate function determines whether an element should be included based on its type and any additional criteria.
+ *
+ * @param R The target type to filter elements to.
+ * @param C The type of the destination mutable collection.
+ * @param destination The mutable collection to which the filtered elements will be added.
+ * @param iterator The iterator function that processes the filtered elements and their index.
+ * @param predicate The predicate function that determines whether an element should be included based on its type and other criteria.
+ */
+inline fun <R : Any, C : MutableCollection<in R>> Iterable<*>.filterPointer(
+    kclass: KClass<out R>,
+    destination: C?,
+    iterator: (R) -> Unit,
+    predicate: (R) -> Boolean,
+) {
+    for (element in this) {
+        val fulfilled = kclass.isInstance(element) && predicate(element as R)
+
+        if (fulfilled && destination != null) {
+            destination.add(element as R)
+            iterator(element)
+        }
     }
 }
