@@ -1,8 +1,7 @@
-package com.lambda.util.primitives.extension
+package com.lambda.util.extension
 
 import com.mojang.authlib.GameProfile
 import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.util.Uuids
 
 val PlayerEntity.isOffline
     get() = gameProfile.isOffline
