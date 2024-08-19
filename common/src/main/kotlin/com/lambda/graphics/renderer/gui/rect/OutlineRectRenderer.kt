@@ -47,7 +47,7 @@ class OutlineRectRenderer : AbstractRectRenderer(
 
             val halfSize = r.size * 0.5
             val maxRadius = min(halfSize.x, halfSize.y) - 0.5
-            val round = (roundRadius + size).coerceAtMost(maxRadius)
+            val round = (roundRadius + size).coerceAtMost(maxRadius).coerceAtLeast(0.0)
 
             fun MutableList<Int>.buildCorners(base: Vec2d, c: Color, angleRange: IntRange) = repeat(quality) {
                 val min = angleRange.first.toDouble()
@@ -57,7 +57,7 @@ class OutlineRectRenderer : AbstractRectRenderer(
 
                 val pos = base + Vec2d(cos(angle), -sin(angle)) * round
                 val s = shade.toInt().toDouble()
-                add(vec2(pos.x, pos.y).float(a).float(s).color(c).end())
+                add(vec2m(pos.x, pos.y).float(a).float(s).color(c).end())
             }
 
             val rt = r.rightTop + Vec2d(-round, round)

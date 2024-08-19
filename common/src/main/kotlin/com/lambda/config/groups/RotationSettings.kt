@@ -16,13 +16,13 @@ class RotationSettings(
         vis
     )
 
-    override val keepTicks by c.setting("Keep Rotation", 3, 1..10, 1, "Ticks to keep rotation", " ticks", vis)
+    override val keepTicks by c.setting("Keep Rotation", 3, 0..10, 1, "Ticks to keep rotation", " ticks", vis)
     override val resetTicks by c.setting("Reset Rotation", 3, 1..10, 1, "Ticks before rotation is reset", " ticks", vis)
 
     /**
      * If true, rotation will be instant without any transition. If false, rotation will transition over time.
      */
-    private var instant by c.setting("Instant Rotation", true, "Instantly rotate", vis)
+    var instant by c.setting("Instant Rotation", true, "Instantly rotate", vis)
 
     /**
      * The mean (average/base) value used to calculate rotation speed.

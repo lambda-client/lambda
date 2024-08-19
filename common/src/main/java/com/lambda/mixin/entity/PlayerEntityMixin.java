@@ -28,4 +28,14 @@ public class PlayerEntityMixin {
         Float yaw = RotationManager.getRenderYaw();
         return (yaw != null) ? yaw : instance.getYaw();
     }
+
+    @Redirect(method = "attack", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;getYaw()F"))
+    private float injectAttackFix(PlayerEntity instance) {
+        if ((Object) this != MinecraftClient.getInstance().player) {
+            return instance.getYaw();
+        }
+
+        Float yaw = RotationManager.getMovementYaw();
+        return (yaw != null) ? yaw : instance.getYaw();
+    }
 }

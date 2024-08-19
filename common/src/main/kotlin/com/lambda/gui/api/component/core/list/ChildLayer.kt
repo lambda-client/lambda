@@ -28,7 +28,7 @@ open class ChildLayer<T : ChildComponent, R : IComponent>(
                         childAccessible(child) && child.rect in rect && ownerAccessible && ownerComponent.isActive
                 }
 
-                is GuiEvent.KeyPress, is GuiEvent.CharTyped -> {
+                is GuiEvent.KeyPress, is GuiEvent.CharTyped, is GuiEvent.MouseScroll -> {
                     if (!child.accessible) return@forEach
                 }
 

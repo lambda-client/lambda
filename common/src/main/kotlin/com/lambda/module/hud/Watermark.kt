@@ -20,7 +20,7 @@ object Watermark : HudModule(
 
     init {
         onRender {
-            if (shade) drawTextureShaded(monoTexture, rect, 0.1)
+            if (shade) drawTextureShaded(monoTexture, rect)
             else drawTexture(normalTexture, rect)
         }
     }

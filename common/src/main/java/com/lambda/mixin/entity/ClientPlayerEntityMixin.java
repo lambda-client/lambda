@@ -2,12 +2,15 @@ package com.lambda.mixin.entity;
 
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
+import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.MovementEvent;
+import com.lambda.event.events.TickEvent;
 import com.lambda.interaction.PlayerPacketManager;
 import com.lambda.interaction.RotationManager;
 import net.minecraft.client.input.Input;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.MovementType;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -55,6 +58,7 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
     @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/input/Input;tick(ZF)V"))
     void processMovement(Input input, boolean slowDown, float slowDownFactor) {
         input.tick(slowDown, slowDownFactor);
+        RotationManager.BaritoneProcessor.processPlayerMovement(input, slowDown, slowDownFactor);
         EventFlow.post(new MovementEvent.InputUpdate(input, slowDown, slowDownFactor));
     }
 
@@ -70,6 +74,16 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         autoJumpEnabled = Lambda.getMc().options.getAutoJump().getValue();
     }
 
+    @Inject(method = "tick", at = @At(value = "HEAD"))
+    void onTickPre(CallbackInfo ci) {
+        EventFlow.post(new TickEvent.Player.Pre());
+    }
+
+    @Inject(method = "tick", at = @At(value = "RETURN"))
+    void onTickPost(CallbackInfo ci) {
+        EventFlow.post(new TickEvent.Player.Post());
+    }
+
     @Redirect(method = "tickNewAi", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))
     float fixHeldItemYaw(ClientPlayerEntity instance) {
         return Objects.requireNonNullElse(RotationManager.getHandYaw(), instance.getYaw());
@@ -78,5 +92,10 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
     @Redirect(method = "tickNewAi", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getPitch()F"))
     float fixHeldItemPitch(ClientPlayerEntity instance) {
         return Objects.requireNonNullElse(RotationManager.getHandPitch(), instance.getPitch());
+    }
+
+    @Inject(method = "swingHand", at = @At("HEAD"), cancellable = true)
+    void onSwingHandPre(Hand hand, CallbackInfo ci) {
+        if (EventFlow.post(new EntityEvent.SwingHand(hand)).isCanceled()) ci.cancel();
     }
 }

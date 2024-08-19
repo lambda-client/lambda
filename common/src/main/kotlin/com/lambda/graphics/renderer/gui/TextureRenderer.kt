@@ -23,14 +23,14 @@ object TextureRenderer {
         drawInternal(rect)
     }
 
-    fun drawTextureShaded(texture: Texture, rect: Rect, shadeWidthScale: Double = 1.0) {
+    fun drawTextureShaded(texture: Texture, rect: Rect) {
         texture.bind()
         shaderColored.use()
 
         shaderColored["u_Time"] = glfwGetTime() * GuiSettings.colorSpeed * 5.0
         shaderColored["u_Color1"] = GuiSettings.shadeColor1
         shaderColored["u_Color2"] = GuiSettings.shadeColor2
-        shaderColored["u_Size"] = RenderMain.screenSize / Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight) / shadeWidthScale
+        shaderColored["u_Size"] = RenderMain.screenSize / Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
 
         drawInternal(rect)
     }

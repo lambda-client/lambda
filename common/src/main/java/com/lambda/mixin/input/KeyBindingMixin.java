@@ -2,6 +2,7 @@ package com.lambda.mixin.input;
 
 import com.lambda.module.modules.movement.Speed;
 import com.lambda.module.modules.movement.Sprint;
+import com.lambda.module.modules.movement.TargetStrafe;
 import net.minecraft.client.option.KeyBinding;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -19,5 +20,6 @@ public class KeyBindingMixin {
 
         if (Sprint.INSTANCE.isEnabled()) cir.setReturnValue(true);
         if (Speed.INSTANCE.isEnabled() && Speed.getMode() == Speed.Mode.GRIM_STRAFE) cir.setReturnValue(true);
+        if (TargetStrafe.INSTANCE.isEnabled() && TargetStrafe.isActive()) cir.setReturnValue(true);
     }
 }
