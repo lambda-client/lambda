@@ -1,6 +1,8 @@
 package com.lambda.event.events
 
 import com.lambda.event.Event
+import com.lambda.event.callback.Cancellable
+import com.lambda.event.callback.ICancellable
 import com.mojang.authlib.GameProfile
 import net.minecraft.network.listener.PacketListener
 import net.minecraft.network.packet.c2s.handshake.ConnectionIntent
@@ -29,7 +31,7 @@ sealed class ConnectionEvent : Event {
             val port: Int,
             val listener: PacketListener,
             val intent: ConnectionIntent,
-        ) : ConnectionEvent()
+        ) : ConnectionEvent(), ICancellable by Cancellable()
 
         /**
          * Event representing a handshake during connection.
