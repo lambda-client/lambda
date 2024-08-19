@@ -1,20 +1,28 @@
-bug:
-  - 'bug'
+version: 1
 
-feature:
-  - 'feature'
+labels:
+  - label: 'bug'
+    title: '(?i)\[?bug[:\]]'
 
-triage:
-  - '/.*/'
+  - label: 'feature'
+    title: '(?i)\[?(feature|feat)[:\]]'
 
-fabric:
-  - '\b([Ff][Aa][Bb][Rr][Ii][Cc])\b'
+  - label: 'forge'
+    title: '(?i)\[?(forge|all)[:\]]'
 
-forge:
-  - '\b([Ff][Oo][Rr][Gg][Ee])\b'
+  - label: 'neoforge'
+    title: '(?i)\[?(neoforge|all)[:\]]'
 
-neoforge:
-  - '\b([Nn][Ee][Oo][Ff][Oo][Rr][Gg][Ee])\b'
+  - label: 'fabric'
+    title: '(?i)\[?(fabric|all)[:\]]'
 
-"1.20":
-  - '1\.20(\.\d+|\.x)?'
+  - label: '1.20'
+    title: '\[?1\.20(\.\d+|\.x)?[:\]]?'
+
+  - label: 'wip'
+    type: "pull_request"
+    mergeable: false
+
+  - label: 'triage'
+    title: '.*'
+    mergeable: false

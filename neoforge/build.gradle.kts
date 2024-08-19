@@ -83,6 +83,8 @@ tasks {
         archiveVersion = "$modVersion+$minecraftVersion"
         configurations = listOf(shadowBundle)
         archiveClassifier = "dev-shadow"
+
+        minimize() // Remove unused classes
     }
 
     remapJar {

@@ -30,7 +30,7 @@ object RotationManager : Loadable {
     var currentRotation = Rotation.ZERO
     var prevRotation = Rotation.ZERO
 
-    private var currentContext: RotationContext? = null
+    var currentContext: RotationContext? = null
 
     private var keepTicks = 0
     private var pauseTicks = 0
