@@ -4,8 +4,8 @@ import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.hasDirection
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.impl.DynamicESPRenderer
-import com.lambda.util.primitives.extension.max
-import com.lambda.util.primitives.extension.min
+import com.lambda.util.extension.max
+import com.lambda.util.extension.min
 import java.awt.Color
 
 fun DynamicESPRenderer.build(
