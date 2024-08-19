@@ -1,4 +1,4 @@
-package com.lambda.mixin;
+package com.lambda.mixin.network;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.ConnectionEvent;
@@ -73,7 +73,7 @@ public class ClientConnectionMixin {
             ConnectionIntent intent,
             CallbackInfo ci
     ) {
-        EventFlow.post(new ConnectionEvent.Connect(address, port, listener, intent));
+        EventFlow.post(new ConnectionEvent.Connect.Pre(address, port, listener, intent));
     }
 
     @Inject(method = "disconnect(Lnet/minecraft/text/Text;)V", at = @At("HEAD"))

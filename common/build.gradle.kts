@@ -2,6 +2,7 @@ val modId: String by project
 val fabricLoaderVersion: String by project
 val kotlinVersion: String by project
 val kotlinxCoroutinesVersion: String by project
+val discordIPCVersion: String by project
 
 architectury { common("fabric", "forge", "neoforge") }
 
@@ -21,6 +22,7 @@ dependencies {
 
     // Add dependencies on the required Kotlin modules.
     implementation("org.reflections:reflections:0.10.2")
+    implementation("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
 
     // Add Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
