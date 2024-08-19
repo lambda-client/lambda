@@ -13,12 +13,10 @@ import javax.crypto.SecretKey
  * Sealed class representing connection events.
  */
 sealed class ConnectionEvent : Event {
-
     /**
      * Sealed class representing various stages of connection establishment.
      */
     sealed class Connect {
-
         /**
          * Event representing a pre-connection attempt.
          * @property address The address of the connection attempt.
@@ -51,7 +49,6 @@ sealed class ConnectionEvent : Event {
          * Sealed class representing login-related connection events.
          */
         sealed class Login : ConnectionEvent() {
-
             /**
              * Event representing a hello message during login.
              * @property name The name associated with the login.
