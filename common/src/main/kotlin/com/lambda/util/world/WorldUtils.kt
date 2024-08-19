@@ -1,6 +1,7 @@
 package com.lambda.util.world
 
 import com.lambda.context.SafeContext
+import com.lambda.core.annotations.InternalApi
 import com.lambda.util.collections.filterPointer
 import com.lambda.util.primitives.extension.getBlockState
 import com.lambda.util.primitives.extension.getFluidState
@@ -9,7 +10,6 @@ import net.minecraft.entity.Entity
 import net.minecraft.fluid.Fluid
 import net.minecraft.fluid.FluidState
 import net.minecraft.util.math.ChunkSectionPos
-import net.minecraft.util.math.Vec3d
 import kotlin.math.ceil
 
 /**
@@ -39,40 +39,13 @@ import kotlin.math.ceil
  * @see <a href="https://www.ibm.com/docs/no/aix/7.2?topic=monitoring-garbage-collection-impacts-java-performance">IBM - Garbage Collection Impacts on Java Performance</a>
  * @see <a href="https://devdiaries.medium.com/gc-and-its-effect-on-java-performance-9cba51ffb196">Medium - GC and Its Effect on Java Performance</a>
  */
+@InternalApi
 object WorldUtils {
-    // ToDo: Rename and add explanation
-    const val MAGIC = 274945015809L
-
     /**
-     * Gets the closest entity of type [T] within a specified range.
-     *
-     *
-     * @param pos The position to search from.
-     * @param range The maximum distance to search for entities.
-     * @param predicate Predicate to filter entities.
-     * @return The first entity of type [T] that is closest to the position within the specified range.
+     * A magic vector that can be used to represent a single block.
+     * It is the same as `fastVectorOf(1, 1, 1)`.
      */
-    inline fun <reified T : Entity> SafeContext.getClosestEntity(
-        pos: Vec3d,
-        range: Double,
-        predicate: (T) -> Boolean = { true },
-    ): T? {
-        var closest: T? = null
-        var closestDistance = Double.MAX_VALUE
-
-        val comparator = { entity: T, _: Int ->
-            val distance = pos.squaredDistanceTo(entity.pos)
-            if (distance < closestDistance) {
-                closest = entity
-                closestDistance = distance
-            }
-        }
-
-        // We use this function to find the closest entity because it is optimized for small distances.
-        getFastEntities(pos, range, null, comparator, predicate)
-
-        return closest
-    }
+    const val MAGICVECTOR = 274945015809L
 
     /**
      * Gets all entities of type [T] within a specified distance from a position.
@@ -94,20 +67,20 @@ object WorldUtils {
      * @param pos The position to search from.
      * @param distance The maximum distance to search for entities.
      * @param pointer The mutable list to store the entities in.
-     * @param iterator Iterator to perform operations on each entity.
+     * @param iterator Iterator to perform operations on each entity. The second parameter is the index of the iteration.
      * @param predicate Predicate to filter entities.
      */
     inline fun <reified T : Entity> SafeContext.getFastEntities(
-        pos: Vec3d,
+        pos: FastVector,
         distance: Double,
         pointer: MutableList<T>? = null,
-        iterator: (T, Int) -> Unit = { _, _ -> },
         predicate: (T) -> Boolean = { true },
+        iterator: (T, Int) -> Unit = { _, _ -> },
     ) {
-        val chunks = ceil(distance / 16).toInt()
-        val sectionX = pos.x.toInt() shr 4
-        val sectionY = pos.y.toInt() shr 4
-        val sectionZ = pos.z.toInt() shr 4
+        val chunks = ceil(distance / 16.0).toInt()
+        val sectionX = pos.x shr 4
+        val sectionY = pos.y shr 4
+        val sectionZ = pos.z shr 4
 
         // Here we iterate over all sections within the specified distance and add all entities of type [T] to the list.
         // We do not have to worry about performance here, as the number of sections is very limited.
@@ -122,7 +95,7 @@ object WorldUtils {
 
                     section.collection.filterPointer(pointer, iterator) { entity ->
                         entity != player &&
-                                entity.squaredDistanceTo(pos) <= distance * distance &&
+                                pos distSq entity.pos <= distance * distance &&
                                 predicate(entity)
                     }
                 }
@@ -136,20 +109,22 @@ object WorldUtils {
      * This function retrieves entities of type [T] within a specified distance from a given position. Unlike
      * [getFastEntities], it traverses all entities in the world to find matches, while also excluding the player entity.
      *
+     * @param pos The block position to search from.
+     * @param distance The maximum distance to search for entities.
      * @param pointer The mutable list to store the entities in.
-     * @param iterator Iterator to perform operations on each entity.
+     * @param iterator Iterator to perform operations on each entity. The second parameter is the index of the iteration.
      * @param predicate Predicate to filter entities.
      */
     inline fun <reified T : Entity> SafeContext.getEntities(
-        pos: Vec3d,
+        pos: FastVector,
         distance: Double,
         pointer: MutableList<T>? = null,
-        iterator: (T, Int) -> Unit = { _, _ -> },
         predicate: (T) -> Boolean = { true },
+        iterator: (T, Int) -> Unit = { _, _ -> },
     ) {
         world.entities.filterPointer(pointer, iterator) { entity ->
             entity != player &&
-                    entity.squaredDistanceTo(pos) <= distance * distance &&
+                    pos distSq entity.pos <= distance * distance &&
                     predicate(entity)
         }
     }
@@ -165,8 +140,8 @@ object WorldUtils {
      */
     inline fun SafeContext.searchBlocks(
         pos: FastVector,
-        range: FastVector,
-        step: FastVector = MAGIC,
+        range: FastVector = MAGICVECTOR times 7,
+        step: FastVector = MAGICVECTOR,
         pointer: MutableMap<FastVector, BlockState>? = null,
         predicate: (FastVector, BlockState, Int) -> Boolean = { _, _, _ -> true },
         iterator: (FastVector, BlockState, Int) -> Unit = { _, _, _ -> },
@@ -194,8 +169,8 @@ object WorldUtils {
      */
     inline fun <reified T : Fluid> SafeContext.searchFluids(
         pos: FastVector,
-        range: FastVector,
-        step: FastVector = MAGIC,
+        range: FastVector = MAGICVECTOR times 7,
+        step: FastVector = MAGICVECTOR,
         pointer: MutableMap<FastVector, T>? = null,
         predicate: (FastVector, FluidState, Int) -> Boolean = { _, _, _ -> true },
         iterator: (FastVector, FluidState, Int) -> Unit = { _, _, _ -> },
@@ -222,7 +197,7 @@ object WorldUtils {
     inline fun iteratePositions(
         pos: FastVector,
         range: FastVector,
-        step: FastVector = MAGIC,
+        step: FastVector,
         iterator: (FastVector, Int) -> Unit = { _, _ -> },
     ) {
         var index = 0

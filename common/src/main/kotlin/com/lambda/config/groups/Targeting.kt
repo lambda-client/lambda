@@ -7,7 +7,10 @@ import com.lambda.interaction.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.threading.runSafe
 import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.world.SearchContext
 import com.lambda.util.world.WorldUtils.getFastEntities
+import com.lambda.util.world.search
+import com.lambda.util.world.toFastVec
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.mob.MobEntity
@@ -30,16 +33,6 @@ abstract class Targeting(
 
     override val invisible by c.setting("Invisible", true) { vis() }
     override val dead by c.setting("Dead", false) { vis() }
-
-    fun getEntities(): List<LivingEntity> =
-        mutableListOf<LivingEntity>().apply {
-            runSafe {
-                getFastEntities(
-                    player.pos, targetingRange, this@apply,
-                    predicate = { entity -> validate(player, entity) }
-                )
-            }
-        }
 
     open fun validate(player: ClientPlayerEntity, entity: LivingEntity) = when {
         !players && entity.isPlayer -> false
@@ -66,21 +59,14 @@ abstract class Targeting(
 
         fun getTarget(): LivingEntity? = runSafe {
             var best: LivingEntity? = null
-            var bestFactor = Double.MAX_VALUE
-
-            val comparator = { entity: LivingEntity, _: Int ->
-                val factor = priority.factor(this, entity)
-                if (factor < bestFactor) {
-                    best = entity
-                    bestFactor = factor
-                }
-            }
 
             val predicate = { entity: LivingEntity ->
                 validate(player, entity)
             }
 
-            getFastEntities<LivingEntity>(player.pos, targetingRange, null, comparator, predicate)
+            search {
+                best = minEntityBy<LivingEntity>(targetingRange, predicate, priority.factor)
+            }
 
             return@runSafe best
         }

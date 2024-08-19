@@ -1,11 +1,13 @@
 package com.lambda.module.modules.movement
 
+import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.world.WorldUtils.getEntities
+import com.lambda.util.world.search
 import net.minecraft.entity.passive.AbstractHorseEntity
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 
@@ -15,38 +17,20 @@ object EntityControl : Module(
     description = "Control mountable entities",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
-    private val page by setting("Page", Page.GENERAL)
-
-    /* General */
-    private val forceMount by setting("Force Mount", true, description = "Attempts to force mount chested entities.", visibility = { page == Page.GENERAL }).apply {
+    private val forceMount by setting("Force Mount", true, description = "Attempts to force mount chested entities.").apply {
         onValueChange { _, _ ->
-            horses.forEach { horse -> horse.updateSaddle() }
+            resetHorseFlags()
         }
     }
-
-    /* Movement */
-    private val speed by setting("Entity Speed", 2.0, 0.1..10.0, 0.1, description = "Speed for entities.", visibility = { page == Page.MOVEMENT })
-
-    private enum class Page {
-        GENERAL, MOVEMENT
-    }
-
-    private val horses = mutableListOf<AbstractHorseEntity>()
 
     init {
         listener<TickEvent.Pre> {
             if (forceMount) {
-                getEntities(player.pos, 8.0, horses, { horse, _ -> horse.setHorseFlag(4, true) })
+                search {
+                    nearbyEntities<AbstractHorseEntity>(8.0) { it.setHorseFlag(4, true) }
+                }
             }
         }
-
-        /*listener<MovementEvent.Pre> {
-            if (!player.isRiding) return@listener
-
-            // We can do this because the player movement depends on the entity movement
-            player.vehicle?.motionX = speed
-            player.vehicle?.motionZ = speed
-        }*/
 
         listener<PacketEvent.Send.Pre> { event ->
             if (!forceMount) return@listener
@@ -60,7 +44,13 @@ object EntityControl : Module(
         }
 
         onDisable {
-            horses.clear()
+            resetHorseFlags()
+        }
+    }
+
+    fun SafeContext.resetHorseFlags() {
+        search {
+            entities<AbstractHorseEntity>(500) { it.updateSaddle() }
         }
     }
 }

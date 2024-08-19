@@ -3,6 +3,7 @@ package com.lambda.util.world
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
+import kotlin.math.sqrt
 
 /**
  * Represents a position in the world encoded as a long.
@@ -33,11 +34,6 @@ internal const val MIN_Y = -(1L shl Y_BITS - 1)
 internal const val MAX_X = (1L shl X_BITS - 1) - 1L
 internal const val MAX_Z = (1L shl Z_BITS - 1) - 1L
 internal const val MAX_Y = (1L shl Y_BITS - 1) - 1L
-
-internal fun Long.bitSetTo(value: Long, position: Int, length: Int): Long {
-    val mask = (1L shl length) - 1L
-    return this and (mask shl position).inv() or (value and mask shl position)
-}
 
 /**
  * Creates a new position from the given coordinates.
@@ -85,32 +81,32 @@ val FastVector.y: Int
 /**
  * Sets the X coordinate of the position.
  */
-infix fun FastVector.withX(x: Int): FastVector = bitSetTo(x.toLong(), X_SHIFT, X_BITS)
-
-/**
- * Sets the Z coordinate of the position.
- */
-infix fun FastVector.withZ(z: Int): FastVector = bitSetTo(z.toLong(), Z_SHIFT, Z_BITS)
+infix fun FastVector.setX(x: Int): FastVector = bitSetTo(x.toLong(), X_SHIFT, X_BITS)
 
 /**
  * Sets the Y coordinate of the position.
  */
-infix fun FastVector.withY(y: Int): FastVector = bitSetTo(y.toLong(), 0, Y_BITS)
+infix fun FastVector.setY(y: Int): FastVector = bitSetTo(y.toLong(), 0, Y_BITS)
+
+/**
+ * Sets the Z coordinate of the position.
+ */
+infix fun FastVector.setZ(z: Int): FastVector = bitSetTo(z.toLong(), Z_SHIFT, Z_BITS)
 
 /**
  * Adds the given value to the X coordinate.
  */
-infix fun FastVector.addX(value: Int): FastVector = withX(x + value)
-
-/**
- * Adds the given value to the Z coordinate.
- */
-infix fun FastVector.addZ(value: Int): FastVector = withZ(z + value)
+infix fun FastVector.addX(value: Int): FastVector = setX(x + value)
 
 /**
  * Adds the given value to the Y coordinate.
  */
-infix fun FastVector.addY(value: Int): FastVector = withY(y + value)
+infix fun FastVector.addY(value: Int): FastVector = setY(y + value)
+
+/**
+ * Adds the given value to the Z coordinate.
+ */
+infix fun FastVector.addZ(value: Int): FastVector = setZ(z + value)
 
 /**
  * Adds the given vector to the position.
@@ -122,6 +118,89 @@ infix fun FastVector.plus(vec: FastVector): FastVector = fastVectorOf(x + vec.x,
  * @return The new position.
  */
 infix fun FastVector.plus(vec: Vec3i): FastVector = fastVectorOf(x + vec.x, y + vec.y, z + vec.z)
+
+/**
+ * Adds the given vector to the position.
+ * @return The new position.
+ */
+infix fun FastVector.plus(vec: Vec3d): FastVector = fastVectorOf(x + vec.x.toLong(), y + vec.y.toLong(), z + vec.z.toLong())
+
+/**
+ * Subtracts the given vector from the position.
+ */
+infix fun FastVector.minus(vec: FastVector): FastVector = fastVectorOf(x - vec.x, y - vec.y, z - vec.z)
+
+/**
+ * Subtracts the given vector from the position.
+ * @return The new position.
+ */
+infix fun FastVector.minus(vec: Vec3i): FastVector = fastVectorOf(x - vec.x, y - vec.y, z - vec.z)
+
+/**
+ * Subtracts the given vector from the position.
+ * @return The new position.
+ */
+infix fun FastVector.minus(vec: Vec3d): FastVector = fastVectorOf(x - vec.x.toLong(), y - vec.y.toLong(), z - vec.z.toLong())
+
+/**
+ * Multiplies the position by the given scalar.
+ */
+infix fun FastVector.times(scalar: Int): FastVector = fastVectorOf(x * scalar, y * scalar, z * scalar)
+
+/**
+ * Multiplies the position by the given scalar.
+ */
+infix fun FastVector.times(scalar: Double): FastVector = fastVectorOf((x * scalar).toLong(), (y * scalar).toLong(), (z * scalar).toLong())
+
+/**
+ * Divides the position by the given scalar.
+ */
+infix fun FastVector.div(scalar: Int): FastVector = fastVectorOf(x / scalar, y / scalar, z / scalar)
+
+/**
+ * Divides the position by the given scalar.
+ */
+infix fun FastVector.div(scalar: Double): FastVector = fastVectorOf((x / scalar).toLong(), (y / scalar).toLong(), (z / scalar).toLong())
+
+/**
+ * Modulo the position by the given scalar.
+ */
+infix fun FastVector.mod(scalar: Int): FastVector = fastVectorOf(x % scalar, y % scalar, z % scalar)
+
+/**
+ * Modulo the position by the given scalar.
+ */
+infix fun FastVector.mod(scalar: Double): FastVector = fastVectorOf((x % scalar).toLong(), (y % scalar).toLong(), (z % scalar).toLong())
+
+/**
+ * Returns the squared distance between this position and the other.
+ */
+infix fun FastVector.distSq(other: FastVector): Double {
+    val dx = x - other.x
+    val dy = y - other.y
+    val dz = z - other.z
+    return (dx * dx + dy * dy + dz * dz).toDouble()
+}
+
+/**
+ * Returns the squared distance between this position and the Vec3i.
+ */
+infix fun FastVector.distSq(other: Vec3i): Double {
+    val dx = x - other.x
+    val dy = y - other.y
+    val dz = z - other.z
+    return (dx * dx + dy * dy + dz * dz).toDouble()
+}
+
+/**
+ * Returns the squared distance between this position and the Vec3d.
+ */
+infix fun FastVector.distSq(other: Vec3d): Double {
+    val dx = x - other.x.toLong()
+    val dy = y - other.y.toLong()
+    val dz = z - other.z.toLong()
+    return (dx * dx + dy * dy + dz * dz).toDouble()
+}
 
 /**
  * Converts a [Vec3i] to a [FastVector].
@@ -141,11 +220,14 @@ fun Vec3d.toFastVec(): FastVector = fastVectorOf(x.toLong(), y.toLong(), z.toLon
 fun FastVector.toVec3d(): Vec3d = Vec3d(x.toDouble(), y.toDouble(), z.toDouble())
 
 /**
- * Converts the [FastVector] into a [Vec3i].
- */
-fun FastVector.toVec3i(): Vec3i = Vec3i(x, y, z)
-
-/**
  * Converts the [FastVector] into a [BlockPos].
  */
 fun FastVector.toBlockPos(): BlockPos = BlockPos(x, y, z)
+
+/**
+ * Sets n bits to a value at a given position.
+ */
+internal fun Long.bitSetTo(value: Long, position: Int, length: Int): Long {
+    val mask = (1L shl length) - 1L
+    return this and (mask shl position).inv() or (value and mask shl position)
+}

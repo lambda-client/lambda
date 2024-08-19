@@ -1,11 +1,15 @@
+@file:OptIn(InternalApi::class)
+
 package com.lambda.util.combat
 
 import com.lambda.context.SafeContext
+import com.lambda.core.annotations.InternalApi
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.fluidState
 import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.math.VecUtils.times
 import com.lambda.util.world.WorldUtils.getFastEntities
+import com.lambda.util.world.toFastVec
 import net.minecraft.enchantment.ProtectionEnchantment
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.BlockPos
@@ -51,7 +55,7 @@ object Explosion {
      */
     fun SafeContext.explosionVelocity(explosion: Explosion): Map<LivingEntity, Vec3d> {
         val ref = ArrayList<LivingEntity>()
-        getFastEntities(explosion.position, explosion.power * 2.0, ref)
+        getFastEntities(explosion.position.toFastVec(), explosion.power * 2.0, ref)
         return ref.associateWith { entity -> explosionVelocity(entity, explosion) }
     }
 
