@@ -1,7 +1,7 @@
 package com.lambda.interaction.construction
 
 import com.lambda.context.SafeContext
-import com.lambda.util.primitives.extension.Structure
+import com.lambda.util.extension.Structure
 import net.minecraft.util.math.Vec3i
 
 data class DynamicBlueprint(

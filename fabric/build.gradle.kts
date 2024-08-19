@@ -24,12 +24,11 @@ loom {
 repositories {
     // You can add more repositories here if you plan
     // on using environment-specific dependencies.
-    // If you want to add a plugin-specific repository,
+    // If you simply want to add a global plugin repository,
     // you can add it to the `settings.gradle.kts` file
     // in the base of the project and gradle will do the
     // rest for you.
-    // If you want to add more global repositories, you can
-    // add them to the root build.gradle.kts file.
+    // maven(...)
 }
 
 val common: Configuration by configurations.creating {
@@ -74,12 +73,9 @@ dependencies {
     includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion")
     includeMod("baritone-api:baritone-unoptimized-fabric:1.10.2")
 
-    // Disable reflections logging
-    include("org.slf4j:slf4j-nop:2.0.13")
-
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
-    shadowBundle(project(":common", configuration = "transformProductionFabric"))
+    shadowBundle(project(":common", configuration = "transformProductionFabric")) { isTransitive = false }
 
     // Finish the configuration
     setupConfigurations()
@@ -90,6 +86,8 @@ tasks {
         archiveVersion = "$modVersion+$minecraftVersion"
         configurations = listOf(shadowBundle)
         archiveClassifier = "dev-shadow"
+
+        minimize() // Remove unused classes
     }
 
     remapJar {

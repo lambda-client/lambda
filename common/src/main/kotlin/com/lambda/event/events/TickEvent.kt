@@ -26,4 +26,19 @@ abstract class TickEvent : Event {
      * A class representing a [TickEvent] that is triggered after each tick of the game loop.
      */
     class Post : TickEvent()
+
+    /**
+     * A class representing a [TickEvent] that is triggered when the player gets ticked.
+     */
+    abstract class Player : TickEvent() {
+        /**
+         * A class representing a [TickEvent.Player] that is triggered before each player tick.
+         */
+        class Pre : Player()
+
+        /**
+         * A class representing a [TickEvent.Player] that is triggered after each player tick.
+         */
+        class Post : Player()
+    }
 }

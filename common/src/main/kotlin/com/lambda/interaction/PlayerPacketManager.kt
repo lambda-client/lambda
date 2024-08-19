@@ -11,9 +11,9 @@ import com.lambda.util.collections.LimitedOrderedSet
 import com.lambda.util.math.VecUtils.approximate
 import com.lambda.util.player.MovementUtils.motionX
 import com.lambda.util.player.MovementUtils.motionZ
-import com.lambda.util.primitives.extension.component1
-import com.lambda.util.primitives.extension.component2
-import com.lambda.util.primitives.extension.component3
+import com.lambda.util.extension.component1
+import com.lambda.util.extension.component2
+import com.lambda.util.extension.component3
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.*
 
@@ -49,9 +49,6 @@ object PlayerPacketManager : Loadable {
         val position = new.position
         val (yaw, pitch) = rotation.float
         val onGround = new.onGround
-
-        // Fix sensitivity for absolutely any outgoing angle
-        RotationManager.currentRotation = rotation.fixSensitivity(RotationManager.prevRotation)
 
         if (player.hasVehicle()) {
             connection.sendPacket(

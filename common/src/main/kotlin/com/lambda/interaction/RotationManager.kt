@@ -10,6 +10,7 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.angleDifference
+import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
 import com.lambda.interaction.rotation.Rotation.Companion.slerp
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
@@ -19,13 +20,11 @@ import com.lambda.threading.runSafe
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
-import com.lambda.util.player.MovementUtils.handledByBaritone
-import com.lambda.util.primitives.extension.partialTicks
-import com.lambda.util.primitives.extension.rotation
+import com.lambda.util.extension.partialTicks
+import com.lambda.util.extension.rotation
+import net.minecraft.client.input.Input
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
-import net.minecraft.util.math.MathHelper
-import kotlin.math.roundToInt
-import kotlin.math.sign
+import kotlin.math.*
 
 object RotationManager : Loadable {
     var currentRotation = Rotation.ZERO
@@ -36,17 +35,43 @@ object RotationManager : Loadable {
     private var keepTicks = 0
     private var pauseTicks = 0
 
-    init {
-        listener<TickEvent.Pre> {
-            RotationEvent.Update(BaritoneProcessor.poolContext()).post {
-                rotate(context)
+    fun Any.requestRotation(
+        priority: Int = 0,
+        alwaysListen: Boolean = false,
+        onUpdate: SafeContext.() -> RotationContext?,
+        onReceive: SafeContext.() -> Unit
+    ) {
+        var lastCtx: RotationContext? = null
 
-                currentContext?.let {
-                    RotationEvent.Post(it).post()
-                }
+        this.listener<RotationEvent.Update>(priority, alwaysListen) { event ->
+            val rotationContext = onUpdate()
+
+            rotationContext?.let {
+                event.context = it
             }
+
+            lastCtx = rotationContext
         }
 
+        this.listener<RotationEvent.Post> { event ->
+            if (event.context == lastCtx && event.context.isValid) {
+                onReceive()
+            }
+        }
+    }
+
+    @JvmStatic
+    fun update() = runSafe {
+        RotationEvent.Update(BaritoneProcessor.poolContext()).post {
+            rotate(context)
+
+            currentContext?.let {
+                RotationEvent.Post(it).post()
+            }
+        }
+    }
+
+    init {
         listener<PacketEvent.Send.Post> { event ->
             val packet = event.packet
             if (packet !is PlayerPositionLookS2CPacket) return@listener
@@ -88,6 +113,7 @@ object RotationManager : Loadable {
 
             currentRotation
                 .slerp(rotationTo, turnSpeed)
+                .fixSensitivity(prevRotation)
                 .apply {
                     if (context.config.rotationMode != RotationMode.LOCK) return@apply
                     player.yaw = this.yawF
@@ -174,12 +200,6 @@ object RotationManager : Loadable {
             270.0, 315.0,
         )
 
-        init {
-            listener<MovementEvent.InputUpdate>(Int.MAX_VALUE) {
-                processPlayerMovement(it)
-            }
-        }
-
         @JvmStatic
         fun handleBaritoneRotation(yaw: Float, pitch: Float) {
             baritoneContext = RotationContext(Rotation(yaw, pitch), Baritone.rotation.apply {
@@ -188,47 +208,49 @@ object RotationManager : Loadable {
             })
         }
 
-        private fun SafeContext.processPlayerMovement(event: MovementEvent.InputUpdate) {
-            val config = currentContext?.config ?: return
+        @JvmStatic
+        fun processPlayerMovement(input: Input, slowDown: Boolean, slowDownFactor: Float) = runSafe {
+            // The yaw relative to which the movement was constructed
+            val baritoneYaw = baritoneContext?.rotation?.yaw
+            val strafeEvent = RotationEvent.StrafeInput(baritoneYaw ?: player.yaw.toDouble(), input)
+            val movementYaw = strafeEvent.post().strafeYaw
 
-            val input = event.input
+            // No changes are needed, when we don't modify the yaw used to move the player
+            // val config = currentContext?.config ?: return@runSafe
+            // if (config.rotationMode == RotationMode.SILENT && !input.handledByBaritone && baritoneContext == null) return@runSafe
 
             // Sign it to remove previous speed modifier
             val signForward = sign(input.movementForward)
             val signStrafe = sign(input.movementSideways)
 
             // No changes are needed when no inputs are pressed
-            if (signForward == 0f && signStrafe == 0f) return
+            if (signForward == 0f && signStrafe == 0f) return@runSafe
 
-            // Movement speed modifier
-            val multiplier = if (event.slowDown) event.slowDownFactor else 1f
+            // Actual yaw used by the physics engine
+            var actualYaw = currentRotation.yaw
 
-            // No changes are needed, when we don't modify the yaw used to move the player
-            if (config.rotationMode == RotationMode.SILENT && !input.handledByBaritone && baritoneContext == null) return
+            if (currentContext?.config?.rotationMode == RotationMode.SILENT) {
+                actualYaw = player.yaw.toDouble()
+            }
 
-            // The yaw relative to which the movement was constructed
-            val baritoneYaw = baritoneContext?.rotation?.yaw
-            val strafeEvent = RotationEvent.Strafe(baritoneYaw ?: player.yaw.toDouble(), input)
-            val movementYaw = strafeEvent.post().strafeYaw
+            val yawRad = (movementYaw - actualYaw).toRadian()
 
-            // Actual yaw used to move the player
-            val actualYaw = currentRotation.yaw
-
-            val yawRad = (movementYaw - actualYaw).toRadian().toFloat()
-
-            val cosDelta = MathHelper.cos(yawRad)
-            val sinDelta = MathHelper.sin(yawRad)
+            val cosDelta = cos(yawRad)
+            val sinDelta = sin(yawRad)
 
             val newX = signStrafe * cosDelta - signForward * sinDelta
             val newZ = signForward * cosDelta + signStrafe * sinDelta
 
             // Apply new movement
             input.apply {
-                movementSideways = newX.roundToInt().toFloat() * multiplier
-                movementForward = newZ.roundToInt().toFloat() * multiplier
+                // Movement speed modifier
+                val multiplier = if (slowDown) slowDownFactor else 1f
+
+                movementSideways = round(newX).toFloat() * multiplier
+                movementForward  = round(newZ).toFloat() * multiplier
             }
 
-            baritoneYaw ?: return
+            baritoneYaw ?: return@runSafe
 
             // Makes baritone movement safe
             // when yaw difference is too big to compensate it by modifying keyboard input

@@ -7,6 +7,11 @@ import com.lambda.event.Muteable
 import com.lambda.task.Task
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
+import com.lambda.util.Pointer
+import com.lambda.util.selfReference
+import kotlin.properties.ReadOnlyProperty
+import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KProperty
 
 
 /**
@@ -19,26 +24,45 @@ import com.lambda.threading.runSafe
  * The [SafeListener] class is used to create [Listener]s that execute a given [function] within a [SafeContext].
  * This ensures that the [function] is executed in a context where certain safety conditions are met.
  *
+ * The [SafeListener] will keep a reference to the last signal processed by the listener.
+ * Allowing use cases where the last signal is needed.
+ * ```kotlin
+ * val lastPacketReceived by listener<PacketEvent.Receive.Pre>()
+ *
+ * listener<PacketEvent.Send.Pre> { event ->
+ *     println("Last packet received: ${lastPacketReceived?.packet}")
+ *     // prints the last packet received
+ *     // prints null if no packet was received
+ * }
+ * ```
+ *
  * @property priority The priority of the listener. Listeners with higher priority are executed first.
  * @property owner The owner of the listener. This is typically the object that created the listener.
  * @property alwaysListen If true, the listener will always be triggered, even if the owner is not enabled.
  * @property function The function to be executed when the event occurs. This function operates within a [SafeContext].
  */
-class SafeListener(
+class SafeListener<T : Event>(
     override val priority: Int = 0,
     override val owner: Any,
     override val alwaysListen: Boolean = false,
-    val function: SafeContext.(Event) -> Unit,
-) : Listener() {
-    override fun execute(event: Event) {
+    val function: SafeContext.(T) -> Unit,
+) : Listener<T>(), ReadOnlyProperty<Any?, T?> {
+    /**
+     * The last processed event signal.
+     */
+    private var lastSignal: T? = null
+
+    override fun getValue(thisRef: Any?, property: KProperty<*>): T? = lastSignal
+
+    /**
+     * Executes the actions defined by this listener when the event occurs.
+     *
+     * Note that running this function outside the game thread can
+     * lead to race conditions when manipulating shared data.
+     */
+    override fun execute(event: T) {
         runSafe {
-//            if (!mc.isOnThread) {
-//                LOG.warn("""
-//                    Event ${this::class.simpleName} executed outside the game thread.
-//                    This can lead to race conditions when manipulating shared data.
-//                    Consider moving the execution to the game thread using runSafeOnGameThread { ... } or runOnGameThread { ... }.
-//                """.trimIndent())
-//            }
+            lastSignal = event
             function(event)
         }
     }
@@ -76,15 +100,68 @@ class SafeListener(
         inline fun <reified T : Event> Any.listener(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: SafeContext.(T) -> Unit,
-        ): SafeListener {
-            val listener = SafeListener(priority, this, alwaysListen) { event ->
-                function(event as T)
-            }
+            noinline function: SafeContext.(T) -> Unit = {},
+        ): SafeListener<T> {
+            val listener = SafeListener<T>(priority, this, alwaysListen) { event -> function(event) }
 
-            EventFlow.syncListeners.subscribe<T>(listener)
+            EventFlow.syncListeners.subscribe(listener)
 
             return listener
+        }
+
+        /**
+         * This function registers a new [SafeListener] for a generic [Event] type [T].
+         * The [transform] is executed on the same thread where the [Event] was dispatched.
+         * The [transform] will only be executed when the context satisfies certain safety conditions.
+         * These conditions are met when none of the following [SafeContext] properties are null:
+         * - [SafeContext.world]
+         * - [SafeContext.player]
+         * - [SafeContext.interaction]
+         * - [SafeContext.connection]
+         *
+         * This typically occurs when the user is in-game.
+         *
+         * After the [transform] is executed once, the [SafeListener] will be automatically unsubscribed.
+         *
+         * Usage:
+         * ```kotlin
+         * private val event by listenNext<MyEvent> { event ->
+         *     player.sendMessage("Event received only once: $event")
+         *     // event is stored in the value
+         *     // event is unsubscribed after execution
+         * }
+         * ```
+         *
+         * @param T The type of the event to listen for. This should be a subclass of Event.
+         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is 0.
+         * @param alwaysListen If true, the listener will be executed even if it is muted. The Default value is false.
+         * @param transform The function used to transform the event into a value.
+         * @return The newly created and registered [SafeListener].
+         */
+        inline fun <reified T : Event, reified E> Any.listenOnce(
+            priority: Int = 0,
+            alwaysListen: Boolean = false,
+            noinline predicate: SafeContext.(T) -> Boolean = { true },
+            noinline transform: SafeContext.(T) -> E? = { null },
+        ): ReadWriteProperty<Any?, E?> {
+            val pointer = Pointer<E>()
+
+            val destroyable by selfReference<SafeListener<T>> {
+                SafeListener(priority, this@listenOnce, alwaysListen) { event ->
+                    pointer.value = transform(event)
+
+                    if (predicate(event) &&
+                        pointer.value != null
+                    ) {
+                        val self by this@selfReference
+                        EventFlow.syncListeners.unsubscribe(self)
+                    }
+                }
+            }
+
+            EventFlow.syncListeners.subscribe<T>(destroyable)
+
+            return pointer
         }
 
         /**
@@ -121,10 +198,10 @@ class SafeListener(
         inline fun <reified T : Event> Task<*>.listener(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: SafeContext.(T) -> Unit,
-        ): SafeListener {
-            val listener = SafeListener(priority, this, alwaysListen) { event ->
-                function(event as T) // ToDo: run function always on game thread
+            noinline function: SafeContext.(T) -> Unit = {},
+        ): SafeListener<T> {
+            val listener = SafeListener<T>(priority, this, alwaysListen) { event ->
+                function(event) // ToDo: run function always on game thread
             }
 
             syncListeners.subscribe<T>(listener)
@@ -160,11 +237,11 @@ class SafeListener(
         inline fun <reified T : Event> Any.concurrentListener(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: suspend SafeContext.(T) -> Unit,
-        ): SafeListener {
-            val listener = SafeListener(priority, this, alwaysListen) { event ->
+            noinline function: suspend SafeContext.(T) -> Unit = {},
+        ): SafeListener<T> {
+            val listener = SafeListener<T>(priority, this, alwaysListen) { event ->
                 runConcurrent {
-                    function(event as T)
+                    function(event)
                 }
             }
 

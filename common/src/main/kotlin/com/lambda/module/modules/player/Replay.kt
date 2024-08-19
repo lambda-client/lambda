@@ -27,7 +27,7 @@ import com.lambda.util.Formatting.asString
 import com.lambda.util.Formatting.getTime
 import com.lambda.util.KeyCode
 import com.lambda.util.StringUtils.sanitizeForFilename
-import com.lambda.util.primitives.extension.rotation
+import com.lambda.util.extension.rotation
 import com.lambda.util.text.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -548,7 +548,7 @@ object Replay : Module(
         val size: Int
             get() = minOf(input.size, rotation.size, sprint.size, position.size)
         val duration: Duration
-            get() = (size * TimerManager.tickLength * 1.0).toDuration(DurationUnit.MILLISECONDS)
+            get() = (size * TimerManager.lastTickLength * 1.0).toDuration(DurationUnit.MILLISECONDS)
         val startPos: Vec3d
             get() = position.firstOrNull() ?: Vec3d.ZERO
         val endPos: Vec3d

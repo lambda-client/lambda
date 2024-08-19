@@ -1,6 +1,7 @@
 package com.lambda.config.serializer.gui
 
 import com.google.gson.*
+import com.lambda.gui.api.component.core.DockingRect
 import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
 import com.lambda.module.ModuleRegistry
@@ -24,8 +25,12 @@ object CustomModuleWindowSerializer : JsonSerializer<CustomModuleWindow>, JsonDe
             addProperty("height", it.height)
             addProperty("isOpen", it.isOpen)
             add("position", JsonArray().apply {
-                add(it.position.x)
-                add(it.position.y)
+                add(it.serializedPosition.x)
+                add(it.serializedPosition.y)
+            })
+            add("docking", JsonArray().apply {
+                add(it.dockingH.ordinal)
+                add(it.dockingV.ordinal)
             })
         }
     } ?: JsonNull.INSTANCE
@@ -47,10 +52,12 @@ object CustomModuleWindowSerializer : JsonSerializer<CustomModuleWindow>, JsonDe
             width = it["width"].asDouble
             height = it["height"].asDouble
             isOpen = it["isOpen"].asBoolean
-            position = Vec2d(
+            serializedPosition = Vec2d(
                 it["position"].asJsonArray[0].asDouble,
                 it["position"].asJsonArray[1].asDouble
             )
+            dockingH = DockingRect.HAlign.entries[it["docking"].asJsonArray[0].asInt]
+            dockingV = DockingRect.VAlign.entries[it["docking"].asJsonArray[1].asInt]
         }
     } ?: throw JsonParseException("Invalid window data")
 }

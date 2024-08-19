@@ -16,13 +16,15 @@ enum class VertexAttrib(val componentCount: Int, componentSize: Int, val normali
         POS_UV(Vec2, Vec2),
 
         // GUI
-        FONT(Vec2, Vec2, Color), // pos, uv, color
+        FONT(Vec3, Vec2, Color), // pos, uv, color
         RECT_FILLED(Vec2, Vec2, Vec2, Float, Float, Color), // pos, uv, size, roundRadius, shade, color
         RECT_OUTLINE(Vec2, Float, Float, Color), // pos, alpha, shade, color
 
         // WORLD
         DYNAMIC_RENDERER(Vec3, Vec3, Color), // prev pos, pos, color
-        STATIC_RENDERER(Vec3, Color); // pos, color
+        STATIC_RENDERER(Vec3, Color), // pos, color
+
+        PARTICLE(Vec3, Vec2, Color); // pos, uv, color
 
         val stride = attributes.sumOf { attribute -> attribute.size }
     }

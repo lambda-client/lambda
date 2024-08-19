@@ -4,7 +4,7 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.primitives.extension.Structure
+import com.lambda.util.extension.Structure
 import net.minecraft.structure.StructureTemplate
 import net.minecraft.util.math.BlockBox
 import net.minecraft.util.math.BlockPos

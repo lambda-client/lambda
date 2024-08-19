@@ -2,7 +2,7 @@ package com.lambda.graphics.animation
 
 import com.lambda.Lambda.mc
 import com.lambda.util.math.MathUtils.lerp
-import com.lambda.util.primitives.extension.partialTicks
+import com.lambda.util.extension.partialTicks
 import kotlin.math.abs
 import kotlin.reflect.KProperty
 

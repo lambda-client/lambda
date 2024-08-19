@@ -9,6 +9,11 @@ abstract class MovementEvent : Event {
     class Pre : MovementEvent()
     class Post : MovementEvent()
 
+    abstract class Travel : MovementEvent() {
+        class Pre : MovementEvent(), ICancellable by Cancellable()
+        class Post : MovementEvent()
+    }
+
     class InputUpdate(
         val input: Input,
         var slowDown: Boolean,

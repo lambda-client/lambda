@@ -1,5 +1,7 @@
 package com.lambda.util.math
 
+import kotlin.math.roundToInt
+
 data class Vec2d(val x: Double, val y: Double) {
     constructor(x: Int, y: Int) : this(x.toDouble(), y.toDouble())
     constructor(x: Float, y: Float) : this(x.toDouble(), y.toDouble())
@@ -22,13 +24,15 @@ data class Vec2d(val x: Double, val y: Double) {
     operator fun div(divider: Double) = div(divider, divider)
     fun div(x: Double, y: Double) = Vec2d(this.x / x, this.y / y)
 
+    fun roundToInt(): Vec2d = Vec2d(this.x.roundToInt(), this.y.roundToInt())
+
     companion object {
         val ZERO = Vec2d(0.0, 0.0)
         val ONE = Vec2d(1.0, 1.0)
 
         val LEFT = Vec2d(-1.0, 0.0)
         val RIGHT = Vec2d(1.0, 0.0)
-        val TOP = Vec2d(0.0, 1.0)
-        val BOTTOM = Vec2d(0.0, -1.0)
+        val TOP = Vec2d(0.0, -1.0)
+        val BOTTOM = Vec2d(0.0, 1.0)
     }
 }

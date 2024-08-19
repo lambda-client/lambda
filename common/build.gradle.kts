@@ -26,7 +26,6 @@ dependencies {
 
     // Add Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
-    implementation(kotlin("reflect"))
 
     // Baritone
     // modImplementation("baritone-api:baritone-api:1.10.2")

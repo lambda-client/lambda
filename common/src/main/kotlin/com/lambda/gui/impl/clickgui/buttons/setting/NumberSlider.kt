@@ -38,7 +38,7 @@ class NumberSlider<N>(
             }
         }
 
-        override fun getText() = "$setting"
+        override fun getText() = "$setting".replace(',', '.') // "0,0".toDouble() is null
         override fun setStringValue(string: String) {
             string.toDoubleOrNull()?.let(::setValue)
         }

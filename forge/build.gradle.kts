@@ -35,7 +35,7 @@ loom {
 repositories {
     // You can add more repositories here if you plan
     // on using environment-specific dependencies.
-    // If you want to add a plugin-specific repository,
+    // If you simply want to add a global plugin repository,
     // you can add it to the `settings.gradle.kts` file
     // in the base of the project and gradle will do the
     // rest for you.
@@ -102,12 +102,9 @@ dependencies {
     implementation("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
 
-    // Disable reflections logging
-    include("org.slf4j:slf4j-nop:2.0.13")
-
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
-    shadowBundle(project(path = ":common", configuration = "transformProductionForge"))
+    shadowBundle(project(path = ":common", configuration = "transformProductionForge")) { isTransitive = false }
 
     // Finish the configuration
     setupConfigurations()
@@ -128,6 +125,8 @@ tasks {
         archiveVersion = "$modVersion+$minecraftVersion"
         configurations = listOf(shadowBundle)
         archiveClassifier = "dev-shadow"
+
+        minimize() // Remove unused classes
     }
 
     remapJar {
