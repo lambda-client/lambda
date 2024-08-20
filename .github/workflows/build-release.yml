@@ -88,13 +88,19 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Read Gradle Properties
+        uses: BrycensRanch/read-properties-action@v1.0.4
+        id: all
+        with:
+          file: gradle.properties
+          all: true
+
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.all.outputs.modVersion }}
         run: |
           gh release create "${{ steps.all.outputs.modVersion }}" \
-              --repo="$GITHUB_REPOSITORY" \
               --title="Lambda ${{ steps.all.outputs.modVersion }} ${{ github.event.inputs.title }}" \
               --notes="${{ github.event.inputs.description }}" \
               $( [ "${{ github.event.inputs.prerelease }}" = "true" ] && echo "--prerelease" )
