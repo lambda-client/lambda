@@ -3,6 +3,10 @@ name: Build and release Lambda
 on:
   workflow_dispatch:
     inputs:
+      title:
+        description: 'Title of the release'
+        required: true
+        default: 'New Update'
       description:
         description: 'Description of the release'
         required: true
@@ -11,6 +15,10 @@ on:
         description: 'Is this a prerelease?'
         required: true
         default: false
+      target:
+        description: 'Target branch'
+        required: true
+        default: 'master'
 
 
 concurrency:
@@ -85,9 +93,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.all.outputs.modVersion }}
         run: |
-          gh release create "$tag" \
+          gh release create "${{ steps.all.outputs.modVersion }}" \
               --repo="$GITHUB_REPOSITORY" \
-              --title="${GITHUB_REPOSITORY##*/} $tag" \
+              --title="Lambda ${{ steps.all.outputs.modVersion }} ${{ github.event.inputs.title }}" \
               --notes="${{ github.event.inputs.description }}" \
               $( [ "${{ github.event.inputs.prerelease }}" = "true" ] && echo "--prerelease" )
           
