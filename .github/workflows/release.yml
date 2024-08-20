@@ -8,8 +8,6 @@ on:
 jobs:
   call_build:
     uses: ./.github/workflows/build.yml
-    with:
-      ref: ${{ github.ref }}
 
   release:
     name: Create release
