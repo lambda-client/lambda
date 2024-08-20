@@ -83,7 +83,6 @@ jobs:
 
       - name: Create release
         uses: softprops/action-gh-release@v2.0.8
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           name: Lambda ${{ steps.all.outputs.modVersion }} - ${{ github.event.inputs.title }}
           tag_name: ${{ steps.all.outputs.modVersion }}
