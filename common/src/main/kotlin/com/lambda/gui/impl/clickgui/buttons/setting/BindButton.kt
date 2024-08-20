@@ -9,7 +9,7 @@ import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.buttons.SettingButton
 import com.lambda.util.KeyCode
 import com.lambda.util.math.ColorUtils.multAlpha
-import com.lambda.util.primitives.extension.displayValue
+import com.lambda.util.extension.displayValue
 
 class BindButton(
     setting: KeyBindSetting,

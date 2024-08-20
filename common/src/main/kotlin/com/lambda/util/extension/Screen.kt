@@ -1,4 +1,4 @@
-package com.lambda.util.primitives.extension
+package com.lambda.util.extension
 
 import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.item.ItemStack

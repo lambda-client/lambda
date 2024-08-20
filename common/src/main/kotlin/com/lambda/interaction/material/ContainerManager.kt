@@ -9,7 +9,8 @@ import com.lambda.interaction.material.container.*
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.Communication.info
 import com.lambda.util.item.ItemUtils
-import com.lambda.util.primitives.extension.containerStacks
+import com.lambda.util.extension.containerStacks
+import com.lambda.util.reflections.getInstances
 import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.entity.ChestBlockEntity
@@ -19,19 +20,16 @@ import net.minecraft.item.ItemStack
 import net.minecraft.screen.GenericContainerScreenHandler
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
+import org.reflections.util.ClasspathHelper.forPackage
 import java.util.*
 
 // ToDo: Make this a Configurable to save container caches. Should use a cached region based storage system.
 object ContainerManager : Loadable {
-    // ToDo: Maybe use reflection to get all containers?
-    private val container = TreeSet<MaterialContainer>().apply {
-        add(CreativeContainer)
-        add(EnderChestContainer)
-        add(HotbarContainer)
-        add(InventoryContainer)
-        add(MainHandContainer)
-        add(OffHandContainer)
-    }
+    private val container: List<MaterialContainer>
+        get() = compileContainers + runtimeContainers
+
+    private val compileContainers = getInstances<MaterialContainer> { forPackages("com.lambda.interaction.material.container") }
+    private val runtimeContainers = mutableSetOf<MaterialContainer>()
 
     private var lastInteractedBlockEntity: BlockEntity? = null
 
@@ -62,7 +60,7 @@ object ContainerManager : Loadable {
                         .filterIsInstance<ChestContainer>()
                         .find {
                              it.blockPos == block.pos
-                        }?.update(stacks) ?: container.add(ChestContainer(stacks, block.pos))
+                        }?.update(stacks) ?: runtimeContainers.add(ChestContainer(stacks, block.pos))
                 }
             }
             lastInteractedBlockEntity = null

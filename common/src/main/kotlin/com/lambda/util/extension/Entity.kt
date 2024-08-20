@@ -1,4 +1,4 @@
-package com.lambda.util.primitives.extension
+package com.lambda.util.extension
 
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.util.math.MathUtils.lerp

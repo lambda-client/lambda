@@ -2,7 +2,7 @@ package com.lambda.command
 
 import com.lambda.command.CommandManager.dispatcher
 import com.lambda.util.Nameable
-import com.lambda.util.primitives.extension.CommandBuilder
+import com.lambda.util.extension.CommandBuilder
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.command.CommandSource
