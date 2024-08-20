@@ -21,9 +21,9 @@ import com.lambda.util.player.MovementUtils.newMovementInput
 import com.lambda.util.player.MovementUtils.roundedForward
 import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.verticalMovement
-import com.lambda.util.primitives.extension.interpolate
-import com.lambda.util.primitives.extension.partialTicks
-import com.lambda.util.primitives.extension.rotation
+import com.lambda.util.extension.interpolate
+import com.lambda.util.extension.partialTicks
+import com.lambda.util.extension.rotation
 import com.lambda.util.world.raycast.RayCastUtils.orMiss
 import com.lambda.util.world.raycast.RayCastUtils.orNull
 import net.minecraft.client.option.Perspective

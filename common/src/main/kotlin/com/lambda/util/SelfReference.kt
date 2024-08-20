@@ -1,10 +1,9 @@
 package com.lambda.util
 
-class SelfReference<T>(initializer: SelfReference<T>.() -> T)  {
-    val self: T by lazy { inner }
+import kotlin.properties.ReadOnlyProperty
 
-    private val inner = initializer()
-    operator fun getValue(thisRef: Any?, property: Any?) = self
+inline fun <reified T> selfReference(noinline initializer: ReadOnlyProperty<Any?, T>.() -> T) = object : ReadOnlyProperty<Any?, T> {
+    val value: T by lazy { initializer() }
+
+    override fun getValue(thisRef: Any?, property: kotlin.reflect.KProperty<*>) = value
 }
-
-fun <T> selfReference(initializer: SelfReference<T>.() -> T): SelfReference<T> = SelfReference(initializer)

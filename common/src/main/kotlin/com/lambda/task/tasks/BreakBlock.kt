@@ -17,7 +17,7 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.SlotUtils.clickSlot
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
-import com.lambda.util.primitives.extension.inventorySlots
+import com.lambda.util.extension.inventorySlots
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.BlockState
 import net.minecraft.entity.ItemEntity

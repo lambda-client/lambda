@@ -3,6 +3,7 @@ val minecraftVersion: String by project
 val fabricLoaderVersion: String by project
 val fabricApiVersion: String by project
 val kotlinFabricVersion: String by project
+val discordIPCVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-fabric"
 
@@ -65,6 +66,7 @@ dependencies {
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
     includeLib("dev.babbaj:nether-pathfinder:1.5")
+    includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
 
     // Add mods to the mod jar
     includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion+$minecraftVersion")

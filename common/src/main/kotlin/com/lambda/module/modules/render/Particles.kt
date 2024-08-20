@@ -29,7 +29,7 @@ import com.lambda.util.math.VecUtils.plus
 import com.lambda.util.math.VecUtils.times
 import com.lambda.util.math.transform
 import com.lambda.util.player.MovementUtils.moveDelta
-import com.lambda.util.primitives.extension.partialTicks
+import com.lambda.util.extension.partialTicks
 import com.lambda.util.world.raycast.RayCastMask
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d

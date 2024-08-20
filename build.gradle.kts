@@ -62,11 +62,11 @@ allprojects {
     base.archivesName = modId
 
     repositories {
-        maven("https://api.modrinth.com/maven")
-        maven("https://jitpack.io")
-        maven("https://maven.shedaniel.me/") { name = "Architectury" }
+        maven("https://maven.shedaniel.me/") // Architectury
         maven("https://maven.terraformersmc.com/releases/")
-        maven("https://babbaj.github.io/maven/")
+        maven("https://babbaj.github.io/maven/") // Baritone
+        maven("https://jitpack.io") // KDiscordIPC
+        mavenCentral()
 
         // Allow the use of local libraries
         flatDir {

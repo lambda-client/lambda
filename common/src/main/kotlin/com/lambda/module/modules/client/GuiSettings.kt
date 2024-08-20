@@ -56,7 +56,7 @@ object GuiSettings : Module(
         }
 
         exp({ targetScale }, 0.5).apply {
-            unsafeListener<ConnectionEvent.Connect>(alwaysListen = true) {
+            unsafeListener<ConnectionEvent.Connect.Pre>(alwaysListen = true) {
                 setValue(targetScale)
             }
         }
