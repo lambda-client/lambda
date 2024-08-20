@@ -1,20 +1,15 @@
 package com.lambda.task.tasks
 
 import com.lambda.context.SafeContext
-import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.material.StackSelection
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
-import com.lambda.threading.runConcurrent
-import com.lambda.threading.runGameScheduled
+import com.lambda.util.extension.containerSlots
+import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.SlotUtils.clickSlot
-import com.lambda.util.primitives.extension.containerSlots
-import com.lambda.util.primitives.extension.inventorySlots
-import kotlinx.coroutines.delay
-import net.minecraft.item.ItemStack
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
