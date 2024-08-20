@@ -49,3 +49,7 @@ logs/
 
 ### Architectury ###
 .architectury-transformer/
+
+### Kotlin ###
+*.kotlin_module
+.kotlin/

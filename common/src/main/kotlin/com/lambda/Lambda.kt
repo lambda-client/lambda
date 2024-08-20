@@ -26,6 +26,7 @@ object Lambda {
     const val MOD_NAME = "Lambda"
     const val MOD_ID = "lambda"
     const val SYMBOL = "λ"
+    const val APP_ID = "1221289599427416127"
     val VERSION: String = LoaderInfo.getVersion()
     val LOG: Logger = LogManager.getLogger(SYMBOL)
 

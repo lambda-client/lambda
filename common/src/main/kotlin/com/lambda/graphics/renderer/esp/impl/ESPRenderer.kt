@@ -9,7 +9,7 @@ import com.lambda.graphics.gl.GlStateUtils.withFaceCulling
 import com.lambda.graphics.gl.GlStateUtils.withLineWidth
 import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.RenderSettings
-import com.lambda.util.primitives.extension.partialTicks
+import com.lambda.util.extension.partialTicks
 
 abstract class ESPRenderer(
     usage: BufferUsage,

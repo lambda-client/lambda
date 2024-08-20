@@ -19,10 +19,6 @@ labels:
   - label: '1.20'
     title: '\[?1\.20(\.\d+|\.x)?[:\]]?'
 
-  - label: 'wip'
-    type: "pull_request"
-    mergeable: false
-
   - label: 'triage'
     title: '.*'
     mergeable: false

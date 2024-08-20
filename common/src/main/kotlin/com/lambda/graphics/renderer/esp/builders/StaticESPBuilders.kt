@@ -4,8 +4,8 @@ import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.hasDirection
 import com.lambda.graphics.renderer.esp.impl.ESPRenderer
 import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
-import com.lambda.util.primitives.extension.max
-import com.lambda.util.primitives.extension.min
+import com.lambda.util.extension.max
+import com.lambda.util.extension.min
 import net.minecraft.util.math.Box
 import java.awt.Color
 
