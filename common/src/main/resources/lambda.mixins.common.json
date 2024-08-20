@@ -30,6 +30,7 @@
     "render.LightmapTextureManagerMixin",
     "render.LivingEntityRendererMixin",
     "render.RenderLayersMixin",
+    "render.RenderSystemMixin",
     "render.RenderTickCounterMixin",
     "render.ScreenHandlerMixin",
     "render.VertexBufferMixin",
