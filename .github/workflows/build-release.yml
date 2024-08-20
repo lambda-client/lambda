@@ -37,8 +37,7 @@ jobs:
           architecture: x64
           cache: 'gradle'
           cache-dependency-path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
+            build.gradle.kts
 
       - name: Read Gradle Properties
         uses: BrycensRanch/read-properties-action@v1.0.4
