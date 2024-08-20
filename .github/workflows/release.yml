@@ -21,6 +21,10 @@ jobs:
       - name: Checkout Main
         uses: actions/checkout@v4.1.1
 
+      - name: Get Short Commit Hash
+        id: vars
+        run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
@@ -44,25 +48,25 @@ jobs:
       - name: Upload Lambda Fabric
         uses: actions/upload-artifact@v4.3.6
         with:
-          name: lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
+          name: lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}
           path: fabric/build/libs/
 
       - name: Upload Lambda Forge
         uses: actions/upload-artifact@v4.3.6
         with:
-          name: lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
+          name: lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}
           path: forge/build/libs/
 
       - name: Upload Lambda NeoForge
         uses: actions/upload-artifact@v4.3.6
         with:
-          name: lambda-neoforge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
+          name: lambda-neoforge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}
           path: neoforge/build/libs/
 
       - name: Upload Lambda API
         uses: actions/upload-artifact@v4.3.6
         with:
-          name: lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
+          name: lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}
           path: common/build/libs/
 
       - name: Generate Changelog
