@@ -1,20 +1,6 @@
-name: Build and release Lambda
+name: Build Lambda
 
 on:
-  workflow_dispatch:
-    inputs:
-      title:
-        description: 'Title of the release'
-        required: true
-        default: 'New Update'
-      description:
-        description: 'Description of the release'
-        required: true
-        default: 'Release'
-      prerelease:
-        description: 'Is this a prerelease?'
-        required: true
-        default: false
   push:
     branches:
       - '**'
@@ -78,25 +64,3 @@ jobs:
         with:
           name: lambda-${{ steps.all.outputs.modVersion }}.jar
           path: common/build/libs/
-
-  release:
-    name: Create release
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Checkout Main
-        uses: actions/checkout@v4.1.1
-
-      - name: Create release
-        uses: softprops/action-gh-release@v2.0.8
-        with:
-          name: Lambda ${{ steps.all.outputs.modVersion }} - ${{ github.event.inputs.title }}
-          tag_name: ${{ steps.all.outputs.modVersion }}
-          body: ${{ github.event.inputs.description }}
-          prerelease: ${{ github.event.inputs.prerelease }}
-          files: |
-            fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
-            forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
-            neoforge/build/libs/lambda-neoforge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
-            common/build/libs/lambda-${{ steps.all.outputs.modVersion }}.jar

@@ -1,0 +1,43 @@
+name: Release Lambda
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  call_build:
+    uses: ./.github/workflows/build.yml
+    with:
+      ref: ${{ github.ref }}
+
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+    needs: call_build
+    steps:
+      - name: Checkout Main
+        uses: actions/checkout@v4.1.1
+
+      - name: Generate Changelog
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v4.1.1
+        with:
+          commitMode: true
+          configurationJson: |
+            {
+              "pr_template": "- #{{TITLE}} [#{{AUTHOR}}](#{{URL}})"
+            }
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2.0.8
+        with:
+          name: Lambda ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          prerelease: false
+          files: |
+            fabric/build/libs/lambda-fabric-*.jar
+            forge/build/libs/lambda-forge-*.jar
+            neoforge/build/libs/lambda-neoforge-*.jar
+            common/build/libs/lambda-*.jar
