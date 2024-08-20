@@ -89,7 +89,7 @@ jobs:
           body: ${{ github.event.inputs.description }}
           prerelease: ${{ github.event.inputs.prerelease }}
           files: |
-            fabric/build/libs/lambda-neoforge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+            fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
             forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
-            fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
+            neoforge/build/libs/lambda-neoforge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
             common/build/libs/lambda-${{ steps.all.outputs.modVersion }}.jar
