@@ -1,0 +1,96 @@
+name: Build and release Lambda
+
+on:
+  workflow_dispatch:
+    inputs:
+      description:
+        description: 'Description of the release'
+        required: true
+        default: 'Release'
+      prerelease:
+        description: 'Is this a prerelease?'
+        required: true
+        default: false
+
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Lambda
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      SEGMENT_DOWNLOAD_TIMEOUT_MINS: '5'
+    steps:
+      - name: Checkout Main
+        uses: actions/checkout@v4.1.1
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'oracle'
+          java-version: '17'
+          architecture: x64
+          cache: 'gradle'
+          cache-dependency-path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+
+      - name: Read Gradle Properties
+        uses: BrycensRanch/read-properties-action@v1.0.4
+        id: all
+        with:
+          file: gradle.properties
+          all: true
+
+      - name: Build Lambda
+        run: ./gradlew --build-cache build
+
+      - name: Upload Lambda Fabric
+        uses: actions/upload-artifact@v4.3.6
+        with:
+          name: lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
+          path: fabric/build/libs/
+
+      - name: Upload Lambda Forge
+        uses: actions/upload-artifact@v4.3.6
+        with:
+          name: lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
+          path: forge/build/libs/
+
+      - name: Upload Lambda NeoForge
+        uses: actions/upload-artifact@v4.3.6
+        with:
+          name: lambda-neoforge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+          path: fabric/build/libs/
+
+      - name: Upload Lambda API
+        uses: actions/upload-artifact@v4.3.6
+        with:
+          name: lambda-${{ steps.all.outputs.modVersion }}.jar
+          path: build/libs/
+
+  release:
+    name: Release Lambda
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    steps:
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.all.outputs.modVersion }}
+        run: |
+          gh release create "$tag" \
+              --repo="$GITHUB_REPOSITORY" \
+              --title="${GITHUB_REPOSITORY##*/} $tag" \
+              --notes="${{ github.event.inputs.description }}" \
+              if ${{ github.event.inputs.prerelease }}; then
+                --prerelease
+              fi
+          
