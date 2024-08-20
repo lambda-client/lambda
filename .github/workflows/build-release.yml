@@ -90,7 +90,7 @@ jobs:
     steps:
       - name: Checkout Main
         uses: actions/checkout@v4.1.1
-        
+
       - name: Read Gradle Properties
         uses: BrycensRanch/read-properties-action@v1.0.4
         id: all
@@ -106,5 +106,8 @@ jobs:
           gh release create "${{ steps.all.outputs.modVersion }}" \
               --title="Lambda ${{ steps.all.outputs.modVersion }} ${{ github.event.inputs.title }}" \
               --notes="${{ github.event.inputs.description }}" \
-              $( [ "${{ github.event.inputs.prerelease }}" = "true" ] && echo "--prerelease" )
-          
+              $( [ "${{ github.event.inputs.prerelease }}" = "true" ] && echo "--prerelease" ) \
+              fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar \
+              forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar \
+              fabric/build/libs/lambda-neoforge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar \
+              common/build/libs/lambda-${{ steps.all.outputs.modVersion }}.jar \
