@@ -88,6 +88,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout Main
+        uses: actions/checkout@v4.1.1
+        
       - name: Read Gradle Properties
         uses: BrycensRanch/read-properties-action@v1.0.4
         id: all
