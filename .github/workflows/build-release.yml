@@ -104,7 +104,7 @@ jobs:
           tag: ${{ steps.all.outputs.modVersion }}
         run: |
           gh release create "${{ steps.all.outputs.modVersion }}" \
-              --title="Lambda ${{ steps.all.outputs.modVersion }} ${{ github.event.inputs.title }}" \
+              --title="Lambda ${{ steps.all.outputs.modVersion }} - ${{ github.event.inputs.title }}" \
               --notes="${{ github.event.inputs.description }}" \
               $( [ "${{ github.event.inputs.prerelease }}" = "true" ] && echo "--prerelease" ) \
               fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar \
