@@ -58,7 +58,7 @@ jobs:
         uses: actions/upload-artifact@v4.3.6
         with:
           name: lambda-neoforge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
-          path: fabric/build/libs/
+          path: neoforge/build/libs/
 
       - name: Upload Lambda API
         uses: actions/upload-artifact@v4.3.6
