@@ -63,14 +63,12 @@ fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
         implementation(it)
         forgeRuntimeLibrary(it)
-        implementation(it)
         include(it)
     }
 
     includeMod.dependencies.forEach {
         modImplementation(it)
         forgeRuntimeLibrary(it)
-        implementation(it)
         include(it)
     }
 }
@@ -85,7 +83,7 @@ dependencies {
 
     // Temporary, only works for production
     // See https://github.com/MinecraftForge/MinecraftForge/issues/8878
-    shadowBundle("com.github.Edouard127:KDiscordIPC:$discordIPCVersion") {
+    includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion") {
         exclude(group = "org.jetbrains.kotlin")
         exclude(group = "org.jetbrains.kotlinx")
         exclude(group = "org.slf4j")
