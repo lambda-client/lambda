@@ -103,7 +103,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ steps.all.outputs.modVersion }}
         run: |
-          gh release create "${{ steps.all.outputs.modVersion }}" \
+          gh release create "${{ steps.all.outputs.modVersion }}2" \
               --title="Lambda ${{ steps.all.outputs.modVersion }} - ${{ github.event.inputs.title }}" \
               --notes="${{ github.event.inputs.description }}" \
               $( [ "${{ github.event.inputs.prerelease }}" = "true" ] && echo "--prerelease" ) \
