@@ -15,10 +15,6 @@ on:
         description: 'Is this a prerelease?'
         required: true
         default: false
-      target:
-        description: 'Target branch'
-        required: true
-        default: 'master'
   push:
     branches:
       - '**'
