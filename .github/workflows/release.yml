@@ -5,10 +5,18 @@ on:
     tags:
       - '*'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build_and_release:
     name: Build and Release Lambda
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      SEGMENT_DOWNLOAD_TIMEOUT_MINS: '5'
     steps:
       - name: Checkout Main
         uses: actions/checkout@v4.1.1
@@ -36,25 +44,25 @@ jobs:
       - name: Upload Lambda Fabric
         uses: actions/upload-artifact@v4.3.6
         with:
-          name: lambda-fabric
+          name: lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
           path: fabric/build/libs/
 
       - name: Upload Lambda Forge
         uses: actions/upload-artifact@v4.3.6
         with:
-          name: lambda-forge
+          name: lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
           path: forge/build/libs/
 
       - name: Upload Lambda NeoForge
         uses: actions/upload-artifact@v4.3.6
         with:
-          name: lambda-neoforge
+          name: lambda-neoforge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
           path: neoforge/build/libs/
 
       - name: Upload Lambda API
         uses: actions/upload-artifact@v4.3.6
         with:
-          name: lambda-api
+          name: lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
           path: common/build/libs/
 
       - name: Generate Changelog
@@ -75,7 +83,11 @@ jobs:
           body: ${{ steps.changelog.outputs.changelog }}
           prerelease: false
           files: |
-            fabric/build/libs/lambda-fabric-*.jar
-            forge/build/libs/lambda-forge-*.jar
-            neoforge/build/libs/lambda-neoforge-*.jar
-            common/build/libs/lambda-*.jar
+            fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+            forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+            neoforge/build/libs/lambda-neoforge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+            fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-sources.jar
+            forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-sources.jar
+            neoforge/build/libs/lambda-neoforge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-sources.jar
+            common/build/libs/lambda-${{ steps.all.outputs.modVersion }}.jar
+            common/build/libs/lambda-${{ steps.all.outputs.modVersion }}-sources.jar

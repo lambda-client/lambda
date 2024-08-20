@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - '**'
-  workflow_call:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -57,11 +56,11 @@ jobs:
       - name: Upload Lambda NeoForge
         uses: actions/upload-artifact@v4.3.6
         with:
-          name: lambda-neoforge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+          name: lambda-neoforge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
           path: neoforge/build/libs/
 
       - name: Upload Lambda API
         uses: actions/upload-artifact@v4.3.6
         with:
-          name: lambda-${{ steps.all.outputs.modVersion }}.jar
+          name: lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
           path: common/build/libs/
