@@ -22,10 +22,10 @@ import com.lambda.threading.runSafe
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.random
 import com.lambda.util.math.VecUtils.distSq
-import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.math.VecUtils.plus
 import com.lambda.util.math.VecUtils.times
 import com.lambda.util.player.MovementUtils.moveDiff
+import com.lambda.util.player.predictPlayerMovement
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import kotlinx.coroutines.delay
 import net.minecraft.entity.EquipmentSlot
@@ -64,6 +64,7 @@ object KillAura : Module(
     private val rotate by setting("Rotate", true) { page == Page.Aiming }
     private val rotation = RotationSettings(this) { page == Page.Aiming && rotate }
     private val stabilize by setting("Stabilize", true) { page == Page.Aiming && !rotation.instant && rotate }
+    private val stabilizationSpeed by setting("Stabilization Speed", 1.0, 0.1..3.0, 0.01) { page == Page.Aiming && !rotation.instant && rotate && stabilize }
     private val centerFactor by setting("Center Factor", 0.4, 0.0..1.0, 0.01) { page == Page.Aiming && rotate }
     private val shakeFactor by setting("Shake Factor", 0.4, 0.0..1.0, 0.01) { page == Page.Aiming && rotate }
     private val shakeChance by setting("Shake Chance", 0.2, 0.05..1.0, 0.01) { page == Page.Aiming && shakeFactor > 0.0 && rotate }
@@ -153,7 +154,27 @@ object KillAura : Module(
     private fun SafeContext.buildRotation(target: LivingEntity): RotationContext? {
         val currentRotation = RotationManager.currentRotation
 
-        val eye = player.getCameraPosVec(1f)
+        val prediction = predictPlayerMovement(1)
+
+        val eye = when {
+            selfPredict < 1 -> {
+                lerp(player.eyePos, prediction.eyePos, selfPredict)
+            }
+
+            selfPredict < 2 -> {
+                val pos1 = prediction.eyePos
+                prediction.tickMovement(this)
+                val pos2 = prediction.eyePos
+
+                lerp(pos1, pos2, selfPredict - 1)
+            }
+
+            else -> {
+                prediction.tickMovement(this)
+                prediction.eyePos
+            }
+        }
+
         val box = target.boundingBox
 
         val reach = targeting.targetingRange + 2.0
@@ -170,7 +191,7 @@ object KillAura : Module(
 
             with(rotation) {
                 val targetSpeed = if (slowDown) 0.0 else 1.0
-                val acceleration = if (slowDown) 0.2 else 0.1
+                val acceleration = if (slowDown) 0.2 * stabilizationSpeed else 0.1 / stabilizationSpeed
 
                 targetSpeed.coerceIn(
                     speedMultiplier - acceleration,
@@ -229,7 +250,7 @@ object KillAura : Module(
             vec = validHits.minByOrNull { vecRotation dist it.value }?.key ?: return null
         }
 
-        val predictOffset = target.moveDiff * targetPredict - player.moveDiff * Vec3d(1.0, -0.5, 1.0) * selfPredict
+        val predictOffset = target.moveDiff * targetPredict
         return RotationContext(eye.rotationTo(vec + predictOffset), rotation)
     }
 
