@@ -35,7 +35,7 @@ object DiscordRPC : Module(
     name = "DiscordRPC",
     description = "Discord Rich Presence configuration",
     defaultTags = setOf(ModuleTag.CLIENT),
-    enabledByDefault = true,
+//    enabledByDefault = true, // ToDo: Bring this back on beta release
 ) {
     private val page by setting("Page", Page.General)
 
