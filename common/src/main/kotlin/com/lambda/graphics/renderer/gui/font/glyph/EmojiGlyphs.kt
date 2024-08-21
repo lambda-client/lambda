@@ -3,23 +3,22 @@ package com.lambda.graphics.renderer.gui.font.glyph
 import com.google.common.math.IntMath.pow
 import com.lambda.Lambda.LOG
 import com.lambda.graphics.texture.MipmapTexture
+import com.lambda.http.Method
+import com.lambda.http.request
 import com.lambda.module.modules.client.RenderSettings
-import com.lambda.threading.runGameScheduled
-import com.lambda.threading.runIO
 import com.lambda.util.math.Vec2d
 import java.awt.Color
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import java.io.File
-import java.net.URL
 import java.util.zip.ZipFile
 import javax.imageio.ImageIO
 import kotlin.math.ceil
 import kotlin.math.log2
 import kotlin.math.sqrt
 import kotlin.system.measureTimeMillis
+import kotlin.time.Duration.Companion.days
 
-// TODO: AbstractGlyphs to use for both Font & Emoji glyphs?
 class EmojiGlyphs(zipUrl: String) {
     private val emojiMap = mutableMapOf<String, GlyphInfo>()
     private lateinit var fontTexture: MipmapTexture
@@ -29,9 +28,7 @@ class EmojiGlyphs(zipUrl: String) {
 
     init {
         runCatching {
-            val time = measureTimeMillis {
-                downloadAndProcessZip(zipUrl)
-            }
+            val time = measureTimeMillis { downloadAndProcessZip(zipUrl) }
             LOG.info("Loaded ${emojiMap.size} emojis in $time ms")
         }.onFailure {
             LOG.error("Failed to load emojis: ${it.message}", it)
@@ -40,14 +37,20 @@ class EmojiGlyphs(zipUrl: String) {
     }
 
     private fun downloadAndProcessZip(zipUrl: String) {
-        val file = File.createTempFile("emoji", ".zip").apply { deleteOnExit() }
+        val file = request(zipUrl) {
+            method(Method.GET)
+        }.maybeDownload("emojis.zip", maxAge = 30.days)
 
-        URL(zipUrl).openStream().use { input ->
-            file.outputStream().use { output ->
-                input.copyTo(output)
-            }
-        }
+        fontTexture = MipmapTexture(processZip(file))
+    }
 
+    /**
+     * Processes the given zip file and loads the emojis into the texture.
+     *
+     * @param file The zip file containing the emojis.
+     * @return The texture containing the emojis.
+     */
+    private fun processZip(file: File): BufferedImage {
         ZipFile(file).use { zip ->
             val firstImage = ImageIO.read(zip.getInputStream(zip.entries().nextElement()))
             val length = zip.size().toDouble()
@@ -90,7 +93,7 @@ class EmojiGlyphs(zipUrl: String) {
             }
         }
 
-        fontTexture = MipmapTexture(image)
+        return image
     }
 
     fun bind() {

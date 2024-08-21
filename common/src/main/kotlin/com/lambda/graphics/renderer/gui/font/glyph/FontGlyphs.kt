@@ -1,6 +1,6 @@
 package com.lambda.graphics.renderer.gui.font.glyph
 
-import com.lambda.Lambda
+import com.lambda.Lambda.LOG
 import com.lambda.graphics.texture.MipmapTexture
 import com.lambda.graphics.texture.TextureUtils.getCharImage
 import com.lambda.module.modules.client.RenderSettings
@@ -13,52 +13,60 @@ import java.awt.image.BufferedImage
 import kotlin.math.max
 import kotlin.system.measureTimeMillis
 
-class FontGlyphs(font: Font) {
+class FontGlyphs(
+    private val font: Font
+) {
     private val charMap = Int2ObjectOpenHashMap<GlyphInfo>()
-    private val fontTexture: MipmapTexture
+    private lateinit var fontTexture: MipmapTexture
 
     var fontHeight = 0.0; private set
 
     init {
-        val time = measureTimeMillis {
-            val image = BufferedImage(TEXTURE_SIZE, TEXTURE_SIZE, BufferedImage.TYPE_INT_ARGB)
+        runCatching {
+            val time = measureTimeMillis { processGlyphs() }
+            LOG.info("Font ${font.fontName} loaded with ${charMap.size} characters in $time ms")
+        }.onFailure {
+            LOG.error("Failed to load font glyphs: ${it.message}", it)
+            fontTexture = MipmapTexture(BufferedImage(1024, 1024, BufferedImage.TYPE_INT_ARGB))
+        }
+    }
 
-            val graphics = image.graphics as Graphics2D
-            graphics.background = Color(0, 0, 0, 0)
+    private fun processGlyphs() {
+        val image = BufferedImage(TEXTURE_SIZE, TEXTURE_SIZE, BufferedImage.TYPE_INT_ARGB)
 
-            var x = 0
-            var y = 0
-            var rowHeight = 0
+        val graphics = image.graphics as Graphics2D
+        graphics.background = Color(0, 0, 0, 0)
 
-            (Char.MIN_VALUE..<CHAR_AMOUNT.toChar()).forEach { char ->
-                val charImage = getCharImage(font, char) ?: return@forEach
+        var x = 0
+        var y = 0
+        var rowHeight = 0
 
-                rowHeight = max(rowHeight, charImage.height + STEP)
+        (Char.MIN_VALUE..<CHAR_AMOUNT.toChar()).forEach { char ->
+            val charImage = getCharImage(font, char) ?: return@forEach
 
-                if (x + charImage.width >= TEXTURE_SIZE) {
-                    y += rowHeight
-                    x = 0
-                    rowHeight = 0
-                }
+            rowHeight = max(rowHeight, charImage.height + STEP)
 
-                check(y + charImage.height <= TEXTURE_SIZE) { "Can't load font glyphs. Texture size is too small" }
-
-                graphics.drawImage(charImage, x, y, null)
-
-                val size = Vec2d(charImage.width, charImage.height)
-                val uv1 = Vec2d(x, y) * ONE_TEXEL_SIZE
-                val uv2 = Vec2d(x, y).plus(size) * ONE_TEXEL_SIZE
-
-                charMap[char.code] = GlyphInfo(size, uv1, uv2)
-                fontHeight = max(fontHeight, size.y)
-
-                x += charImage.width + STEP
+            if (x + charImage.width >= TEXTURE_SIZE) {
+                y += rowHeight
+                x = 0
+                rowHeight = 0
             }
 
-            fontTexture = MipmapTexture(image)
+            check(y + charImage.height <= TEXTURE_SIZE) { "Can't load font glyphs. Texture size is too small" }
+
+            graphics.drawImage(charImage, x, y, null)
+
+            val size = Vec2d(charImage.width, charImage.height)
+            val uv1 = Vec2d(x, y) * ONE_TEXEL_SIZE
+            val uv2 = Vec2d(x, y).plus(size) * ONE_TEXEL_SIZE
+
+            charMap[char.code] = GlyphInfo(size, uv1, uv2)
+            fontHeight = max(fontHeight, size.y)
+
+            x += charImage.width + STEP
         }
 
-        Lambda.LOG.info("Font ${font.fontName} loaded with ${charMap.size} characters in $time ms")
+        fontTexture = MipmapTexture(image)
     }
 
     fun bind() {
