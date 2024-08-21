@@ -52,7 +52,7 @@ object DiscordRPC : Module(
     /* Technical settings */
     private var rpcServer by setting("RPC Server", "http://127.0.0.1:8080") { page == Page.Settings } // TODO: Change this in production
     private var apiVersion by setting("API Version", ApiVersion.V1) { page == Page.Settings }
-    private val delay by setting("Update Delay", 5000, 5000..10000, 1, unit = "ms", visibility = { page == Page.Settings })
+    private val delay by setting("Update Delay", 15000, 15000..30000, 100, unit = "ms", visibility = { page == Page.Settings })
 
     /* Party settings */
     private val enableParty by setting("Enable Party", true, description = "Allows you to create parties.") { page == Page.Party }
@@ -64,6 +64,7 @@ object DiscordRPC : Module(
     private var startup = System.currentTimeMillis()
     private val dimensionRegex = Regex("""\b\w+_\w+\b""")
 
+    private var ready: ReadyEvent? = null
     private var discordAuth: AuthenticatePacket.Data? = null
     private var rpcAuth: Authentication? = null
     private var currentParty: AtomicReference<Party?> = AtomicReference(null)
@@ -157,6 +158,21 @@ object DiscordRPC : Module(
             rpc.disconnect()
             leaveParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return)
         }
+
+        ready = null
+        discordAuth = null
+        rpcAuth = null
+        currentParty.lazySet(null)
+    }
+
+    fun createParty() {
+        if (!allowed) return
+
+        createParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return, maxPlayers, public)
+            .also { response ->
+                if (response.error != null) warn("Failed to create a party: ${response.error}")
+                currentParty.lazySet(response.data)
+            }
     }
 
     fun join(id: String = rpc.activityManager.activity?.party?.id ?: "") {
@@ -203,20 +219,14 @@ object DiscordRPC : Module(
     }
 
     private suspend fun KDiscordIPC.register(auth: ConnectionEvent.Connect.Login.Key) {
-        // TODO: Check if the rpc is already ready
+        if (rpc.connected && ready != null) return
+
         on<ReadyEvent> {
+            ready = this
+
             // Party features
             subscribe(DiscordEvent.ActivityJoinRequest)
             subscribe(DiscordEvent.ActivityJoin)
-            //subscribe(DiscordEvent.LobbyUpdate)
-            //subscribe(DiscordEvent.LobbyDelete)
-            //subscribe(DiscordEvent.LobbyMemberConnect)
-            //subscribe(DiscordEvent.LobbyMemberDisconnect)
-            //subscribe(DiscordEvent.LobbyMemberUpdate)
-
-            // QOL features
-            //subscribe(DiscordEvent.SpeakingStart)
-            //subscribe(DiscordEvent.SpeakingStop)
 
             if (System.currentTimeMillis() - connectionTime > 300000) {
                 warn("The authentication hash has expired, reconnect to the server.")
@@ -236,11 +246,7 @@ object DiscordRPC : Module(
                     rpcAuth = response.data
                 }
 
-            if (createByDefault) createParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return@on, maxPlayers, public)
-                .also { response ->
-                    if (response.error != null) warn("Failed to create a party: ${response.error}")
-                    currentParty.lazySet(response.data)
-                }
+            if (createByDefault) createParty()
         }
 
         // Event when someone would like to join your party

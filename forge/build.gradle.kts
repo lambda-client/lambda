@@ -63,14 +63,12 @@ fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
         implementation(it)
         forgeRuntimeLibrary(it)
-        implementation(it)
         include(it)
     }
 
     includeMod.dependencies.forEach {
         modImplementation(it)
         forgeRuntimeLibrary(it)
-        implementation(it)
         include(it)
     }
 }
@@ -82,14 +80,7 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
-
-    // Temporary, only works for production
-    // See https://github.com/MinecraftForge/MinecraftForge/issues/8878
-    shadowBundle("com.github.Edouard127:KDiscordIPC:$discordIPCVersion") {
-        exclude(group = "org.jetbrains.kotlin")
-        exclude(group = "org.jetbrains.kotlinx")
-        exclude(group = "org.slf4j")
-    }
+    includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
@@ -125,8 +116,6 @@ tasks {
         archiveVersion = "$modVersion+$minecraftVersion"
         configurations = listOf(shadowBundle)
         archiveClassifier = "dev-shadow"
-
-        minimize() // Remove unused classes
     }
 
     remapJar {
