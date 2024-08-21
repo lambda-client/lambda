@@ -20,5 +20,6 @@ object WorldColors : Module(
     @JvmStatic
     val customClouds by setting("Custom Clouds", false)
     @JvmStatic
-    val cloudsColor by setting("Clouds Color", Color(255, 24, 75)) { customClouds }
+    val cloudColor by setting("Cloud Color", Color(255, 24, 75)) { customClouds }
+
 }
