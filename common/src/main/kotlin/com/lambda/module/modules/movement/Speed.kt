@@ -4,7 +4,6 @@ import com.lambda.config.groups.IRotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.events.RotationEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.RotationManager.requestRotation
 import com.lambda.interaction.rotation.Rotation
@@ -14,11 +13,9 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Nameable
 import com.lambda.util.player.MovementUtils.addSpeed
-import com.lambda.util.player.MovementUtils.buildMovementInput
 import com.lambda.util.player.MovementUtils.calcMoveYaw
 import com.lambda.util.player.MovementUtils.handledByBaritone
 import com.lambda.util.player.MovementUtils.isInputting
-import com.lambda.util.player.MovementUtils.mergeFrom
 import com.lambda.util.player.MovementUtils.motionY
 import com.lambda.util.player.MovementUtils.moveDelta
 import com.lambda.util.player.MovementUtils.newMovementInput
@@ -43,8 +40,9 @@ object Speed : Module(
     }
 
     // Grim
+    private val diagonal by setting("Diagonal", true) { mode == Mode.GRIM_STRAFE }
     private val grimEntityBoost by setting("Entity Boost", 1.0, 0.0..2.0, 0.01) { mode == Mode.GRIM_STRAFE }
-    private val grimCollideMultiplier by setting("Entity Collide Multiplier", 0.5, 0.0..1.0, 0.01)  { mode == Mode.GRIM_STRAFE && grimEntityBoost > 0.0}
+    private val grimCollideMultiplier by setting("Entity Collide Multiplier", 0.5, 0.0..1.0, 0.01)  { mode == Mode.GRIM_STRAFE && grimEntityBoost > 0.0 }
     private val grimBoatBoost by setting("Boat Boost", 0.4, 0.0..1.0, 0.01) { mode == Mode.GRIM_STRAFE }
     private val grimMaxSpeed by setting("Max Speed", 1.0, 0.2..1.0, 0.01)  { mode == Mode.GRIM_STRAFE }
 
@@ -110,17 +108,33 @@ object Speed : Module(
             }
         }
 
-        // TODO: Diagonal movement when not jumping
-        // needs movement prediction engine or a workaround to detect jumping 1 tick before
-        requestRotation(100, false,
+        requestRotation(100, alwaysListen = false,
             onUpdate = { lastContext ->
                 if (mode != Mode.GRIM_STRAFE) return@requestRotation null
-                if (!shouldWork() || !isInputting) return@requestRotation null
+                if (!shouldWork()) return@requestRotation null
                 if (player.input.handledByBaritone || TargetStrafe.isActive) return@requestRotation null
 
+                var yaw = player.yaw
                 val input = newMovementInput()
-                val yaw = calcMoveYaw(player.yaw, input.roundedForward, input.roundedStrafing)
-                val rotation = Rotation(yaw, lastContext?.rotation?.pitch ?: player.pitch.toDouble())
+
+                if (!input.isInputting) return@requestRotation null
+
+                run {
+                    if (!diagonal) return@run
+
+                    if (player.isOnGround && input.jumping) return@run
+
+                    val forward = input.roundedForward.toFloat()
+                    var strafe = input.roundedStrafing.toFloat()
+
+                    if (strafe == 0f) strafe = -1f
+                    if (forward == 0f) strafe *= -1
+
+                    yaw -= 45 * strafe
+                }
+
+                val moveYaw = calcMoveYaw(yaw, input.roundedForward, input.roundedStrafing)
+                val rotation = Rotation(moveYaw, lastContext?.rotation?.pitch ?: player.pitch.toDouble())
 
                 RotationContext(rotation, rotationConfig)
             }, {}
