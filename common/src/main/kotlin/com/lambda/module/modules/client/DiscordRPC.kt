@@ -227,15 +227,6 @@ object DiscordRPC : Module(
             // Party features
             subscribe(DiscordEvent.ActivityJoinRequest)
             subscribe(DiscordEvent.ActivityJoin)
-            //subscribe(DiscordEvent.LobbyUpdate)
-            //subscribe(DiscordEvent.LobbyDelete)
-            //subscribe(DiscordEvent.LobbyMemberConnect)
-            //subscribe(DiscordEvent.LobbyMemberDisconnect)
-            //subscribe(DiscordEvent.LobbyMemberUpdate)
-
-            // QOL features
-            //subscribe(DiscordEvent.SpeakingStart)
-            //subscribe(DiscordEvent.SpeakingStop)
 
             if (System.currentTimeMillis() - connectionTime > 300000) {
                 warn("The authentication hash has expired, reconnect to the server.")
