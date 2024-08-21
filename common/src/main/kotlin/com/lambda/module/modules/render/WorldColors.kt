@@ -2,6 +2,8 @@ package com.lambda.module.modules.render
 
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.math.ColorUtils.vec3d
+import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
 object WorldColors : Module(
@@ -22,4 +24,7 @@ object WorldColors : Module(
     @JvmStatic
     val cloudColor by setting("Cloud Color", Color(255, 24, 75)) { customClouds }
 
+    @JvmStatic
+    fun backgroundColor(base: Vec3d) =
+        if (customFog && isEnabled) fogColor.vec3d else base
 }
