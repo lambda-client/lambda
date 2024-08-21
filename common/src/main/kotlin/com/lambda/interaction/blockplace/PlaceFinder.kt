@@ -10,6 +10,7 @@ import com.lambda.util.math.VecUtils.getHitVec
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3d
 import java.util.*
 import kotlin.collections.Collection
 
@@ -17,6 +18,7 @@ class PlaceFinder(
     private val basePos: BlockPos,
     private val maxAttempts: Int,
     range: Double,
+    private val eyes: Vec3d,
     private val visibleCheck: Boolean,
     private val sides: Set<Direction>
 ) {
@@ -34,9 +36,10 @@ class PlaceFinder(
             basePos: BlockPos,
             maxAttempts: Int = 4,
             range: Double = 3.25,
+            eyes: Vec3d = player.eyePos,
             visibleCheck: Boolean = true,
             sides: Set<Direction> = EnumSet.allOf(Direction::class.java)
-        ) = PlaceFinder(basePos, maxAttempts, range, visibleCheck, sides).build(this)
+        ) = PlaceFinder(basePos, maxAttempts, range, eyes, visibleCheck, sides).build(this)
     }
 
     private fun build(
@@ -59,20 +62,18 @@ class PlaceFinder(
     }
 
     private fun SafeContext.checkSide(pos: BlockPos, side: Direction, attempts: Int): PlaceInfo? {
-        val eye = player.eyePos
-
         val clickPos = pos.offset(side)
         val clickSide = side.opposite
 
         val hitVec = clickPos.getHitVec(clickSide)
-        val distSq = eye distSq hitVec
+        val distSq = eyes distSq hitVec
 
         if (distSq > rangeSq) return null
         if (clickPos.blockState(world).isClickable) return null
 
         if (visibleCheck) {
             val box = Box(clickPos)
-            val visible = box.getVisibleSurfaces(eye)
+            val visible = box.getVisibleSurfaces(eyes)
             if (clickSide !in visible) return null
         }
 
