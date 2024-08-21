@@ -25,7 +25,7 @@ import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.math.VecUtils.plus
 import com.lambda.util.math.VecUtils.times
 import com.lambda.util.player.MovementUtils.moveDiff
-import com.lambda.util.player.predictPlayerMovement
+import com.lambda.util.player.prediction.buildPlayerPrediction
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import kotlinx.coroutines.delay
 import net.minecraft.entity.EquipmentSlot
@@ -154,24 +154,22 @@ object KillAura : Module(
     private fun SafeContext.buildRotation(target: LivingEntity): RotationContext? {
         val currentRotation = RotationManager.currentRotation
 
-        val prediction = predictPlayerMovement(1)
+        val prediction = buildPlayerPrediction()
 
         val eye = when {
             selfPredict < 1 -> {
-                lerp(player.eyePos, prediction.eyePos, selfPredict)
+                lerp(player.eyePos, prediction.next().eyePos, selfPredict)
             }
 
             selfPredict < 2 -> {
-                val pos1 = prediction.eyePos
-                prediction.tickMovement(this)
-                val pos2 = prediction.eyePos
+                val pos1 = prediction.next().eyePos
+                val pos2 = prediction.next().eyePos
 
                 lerp(pos1, pos2, selfPredict - 1)
             }
 
             else -> {
-                prediction.tickMovement(this)
-                prediction.eyePos
+                prediction.next().eyePos
             }
         }
 

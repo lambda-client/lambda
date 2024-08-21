@@ -108,8 +108,6 @@ object MovementUtils {
         moveStrafe: Double = player.input.roundedStrafing
     ) = yawIn.toRadian() + inputMoveOffset(moveForward, moveStrafe)
 
-    fun randomDirection() = random(-180.0, 180.0).toRadian()
-
     fun SafeContext.movementVector(radDir: Double = calcMoveRad(), y: Double = 0.0) =
         Vec3d(-sin(radDir), y, cos(radDir))
 
@@ -135,7 +133,6 @@ object MovementUtils {
 
     val Entity.moveDiff get() = Vec3d(this.pos.x - this.prevX, this.pos.y - this.prevY, this.pos.z - this.prevZ)
     val Entity.moveDelta get() = moveDiff.let { hypot(it.x, it.z) }
-    val Entity.velocityDelta get() = hypot(this.velocity.x, this.velocity.z)
 
     val Entity.octant: EightWayDirection
         get() = yaw.octant

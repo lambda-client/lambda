@@ -1,7 +1,8 @@
-package com.lambda.util.player
+package com.lambda.util.player.prediction
 
 import com.lambda.context.SafeContext
 import com.lambda.interaction.rotation.Rotation
+import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.flooredPos
 import com.lambda.util.math.MathUtils.floorToInt
@@ -24,34 +25,23 @@ import net.minecraft.util.math.Vec3d
 import kotlin.math.abs
 import kotlin.math.floor
 
-/**
- * Predicts players movement based on minecraft physics logic
- *
- * Currently not implemented:
- * - Elytra movement
- * - Movement in liquids
- * - Ladder climbing
- * - Movement in webs
- * - Sneaking safewalk
- *
- * And im fucking tired of merging all shit from minecraft
- */
-fun SafeContext.predictPlayerMovement(ticks: Int): PredictionEntity {
-    val simulated = PredictionEntity(player)
-
-    repeat(ticks) {
-        simulated.tickMovement(this)
-    }
-
-    return simulated
-}
-
 // Todo: any player entity support
 class PredictionEntity(val player: ClientPlayerEntity) {
+    val lastTick get() = PredictionTick(
+        position,
+        rotation,
+        motion,
+        boundingBox,
+        eyePos,
+        isOnGround,
+        isJumping,
+        this
+    )
+
     // Basics
-    var position = player.pos
-    var motion = player.motion
-    var boundingBox = player.boundingBox
+    private var position = player.pos
+    private var motion = player.motion
+    private var boundingBox = player.boundingBox
 
     val eyePos get() = position + Vec3d(0.0, player.standingEyeHeight.toDouble(), 0.0)
     private var rotation = Rotation(player.moveYaw, player.pitch)
@@ -60,6 +50,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
     private var isOnGround = player.isOnGround
     private val isSprinting = player.isSprinting
     private val isSneaking = player.isSneaking
+    private var isJumping = false
 
     // Movement input
     private val pressingJump = player.input.jumping
@@ -78,7 +69,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
     private var verticalCollision = player.verticalCollision
 
     /** @see net.minecraft.client.network.ClientPlayerEntity.tickMovement */
-    fun tickMovement(ctx: SafeContext) = ctx.apply {
+    fun tickMovement() = runSafe {
         forwardSpeed = forwardMovement
         strafeSpeed = strafeMovement
 
@@ -109,8 +100,11 @@ class PredictionEntity(val player: ClientPlayerEntity) {
             )
         }
 
+        isJumping = false
+
         if (pressingJump && isOnGround && jumpingCooldown == 0) {
             jumpingCooldown = 10
+            isJumping = true
             jump()
         }
 
@@ -211,6 +205,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
             motion += movementVector(yawRad, 0.0) * 0.2
         }
 
+        /** @see net.minecraft.entity.Entity.getJumpVelocityMultiplier */
         /** @see net.minecraft.entity.Entity.getJumpVelocityMultiplier */
         val jumpHeight = run {
             val f = position.flooredPos.blockState(world).block.jumpVelocityMultiplier.toDouble()
