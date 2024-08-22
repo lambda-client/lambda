@@ -1,16 +1,30 @@
 package com.lambda.graphics.buffer
 
+import net.minecraft.client.texture.NativeImage
 import org.lwjgl.opengl.GL45C.*
 import java.nio.ByteBuffer
 
-// NOT TESTED
 class PixelBuffer(
-    width: Int,
-    height: Int,
-    buffers: Int = 2
+    private val width: Int,
+    private val height: Int,
+    private val buffers: Int = 2
 ) {
     private val pboIds = IntArray(buffers) { 0 }
     private var index = 0
+
+    fun mapTexture(id: Int, buffer: ByteBuffer) {
+        upload(buffer) {
+            // Bind the texture
+            glBindTexture(GL_TEXTURE_2D, id)
+
+            if (buffers > 0)
+                // Copy the data from the PBO to the texture
+                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, 0)
+            else
+                // Copy the data from the buffer to the texture
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NativeImage.read(buffer).pointer)
+        }
+    }
 
     fun upload(data: ByteBuffer, block: () -> Unit) {
         // Bind the current PBO for writing
@@ -28,7 +42,7 @@ class PixelBuffer(
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
 
         // Switch to the other PBO
-        index = (index + 1) % pboIds.size
+        if (buffers > 0) index = (index + 1) % buffers
     }
 
     fun download(): ByteBuffer {
