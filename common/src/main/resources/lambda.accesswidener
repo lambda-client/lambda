@@ -23,6 +23,7 @@ accessible method net/minecraft/entity/passive/AbstractHorseEntity setHorseFlag 
 accessible method net/minecraft/entity/passive/AbstractHorseEntity updateSaddle ()V
 accessible field net/minecraft/entity/LivingEntity lastAttackedTicks I
 accessible method net/minecraft/entity/Entity setFlag (IZ)V
+accessible field net/minecraft/client/network/AbstractClientPlayerEntity playerListEntry Lnet/minecraft/client/network/PlayerListEntry;
 
 # Camera
 accessible method net/minecraft/client/render/Camera setPos (DDD)V
@@ -62,3 +63,4 @@ accessible field net/minecraft/network/packet/c2s/login/LoginKeyC2SPacket nonce 
 accessible field net/minecraft/world/explosion/Explosion behavior Lnet/minecraft/world/explosion/ExplosionBehavior;
 accessible field net/minecraft/structure/StructureTemplate blockInfoLists Ljava/util/List;
 accessible method net/minecraft/item/BlockItem getPlacementState (Lnet/minecraft/item/ItemPlacementContext;)Lnet/minecraft/block/BlockState;
+accessible method net/minecraft/client/texture/PlayerSkinProvider fetchSkinTextures (Ljava/util/UUID;Lcom/mojang/authlib/minecraft/MinecraftProfileTextures;)Ljava/util/concurrent/CompletableFuture;

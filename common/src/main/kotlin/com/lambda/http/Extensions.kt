@@ -27,8 +27,3 @@ fun <T> tryOrDefault(default: T, block: () -> T): T = try {
 } catch (e: Exception) {
     default
 }
-
-/**
- * Try-catch block wrapped with null
- */
-fun <T> tryOrNull(block: () -> T): T? = tryOrDefault(null, block)
