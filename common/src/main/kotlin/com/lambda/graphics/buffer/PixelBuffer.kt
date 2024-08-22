@@ -6,9 +6,10 @@ import java.nio.ByteBuffer
 // NOT TESTED
 class PixelBuffer(
     width: Int,
-    height: Int
+    height: Int,
+    buffers: Int = 2
 ) {
-    private val pboIds = IntArray(2) { 0 }
+    private val pboIds = IntArray(buffers) { 0 }
     private var index = 0
 
     fun upload(data: ByteBuffer, block: () -> Unit) {
@@ -27,7 +28,7 @@ class PixelBuffer(
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
 
         // Switch to the other PBO
-        index = (index + 1) % 2
+        index = (index + 1) % pboIds.size
     }
 
     fun download(): ByteBuffer {
@@ -55,10 +56,10 @@ class PixelBuffer(
         glGenBuffers(pboIds)
 
         // Fill the buffers with null data to allocate the memory spaces
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, pboIds[0])
-        glBufferData(GL_PIXEL_PACK_BUFFER, width * height * 4L, GL_DYNAMIC_READ)
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, pboIds[1])
-        glBufferData(GL_PIXEL_PACK_BUFFER, width * height * 4L, GL_DYNAMIC_READ)
+        repeat(buffers) {
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, pboIds[it])
+            glBufferData(GL_PIXEL_PACK_BUFFER, width * height * 4L, GL_DYNAMIC_READ)
+        }
 
         // Unbind the buffer
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0)
