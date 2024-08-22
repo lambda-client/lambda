@@ -1,6 +1,6 @@
 package com.lambda.interaction.construction
 
-import com.lambda.util.primitives.extension.Structure
+import com.lambda.util.extension.Structure
 
 data class StaticBlueprint(
     override val structure: Structure

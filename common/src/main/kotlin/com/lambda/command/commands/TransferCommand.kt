@@ -11,7 +11,7 @@ import com.lambda.interaction.material.ContainerManager.containerMatchSelection
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.transfer.TransferResult
 import com.lambda.util.Communication.info
-import com.lambda.util.primitives.extension.CommandBuilder
+import com.lambda.util.extension.CommandBuilder
 
 object TransferCommand : LambdaCommand(
     name = "transfer",

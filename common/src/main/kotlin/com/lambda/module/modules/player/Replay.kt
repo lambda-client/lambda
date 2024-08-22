@@ -27,7 +27,7 @@ import com.lambda.util.Formatting.asString
 import com.lambda.util.Formatting.getTime
 import com.lambda.util.KeyCode
 import com.lambda.util.StringUtils.sanitizeForFilename
-import com.lambda.util.primitives.extension.rotation
+import com.lambda.util.extension.rotation
 import com.lambda.util.text.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
