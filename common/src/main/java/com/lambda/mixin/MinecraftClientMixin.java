@@ -27,12 +27,16 @@ public class MinecraftClientMixin {
     @Inject(method = "tick", at = @At("HEAD"))
     void onTickPre(CallbackInfo ci) {
         EventFlow.post(new TickEvent.Pre());
-        RotationManager.update();
     }
 
     @Inject(method = "tick", at = @At("RETURN"))
     void onTickPost(CallbackInfo ci) {
         EventFlow.post(new TickEvent.Post());
+    }
+
+    @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/DebugHud;shouldShowDebugHud()Z"))
+    void onInteractionPostEvent(CallbackInfo ci) {
+        RotationManager.update();
     }
 
     @Inject(method = "render", at = @At("HEAD"))
