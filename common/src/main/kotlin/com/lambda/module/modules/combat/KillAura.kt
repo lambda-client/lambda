@@ -169,7 +169,7 @@ object KillAura : Module(
             }
 
             else -> {
-                prediction.next().eyePos
+                prediction.next().next().eyePos
             }
         }
 
@@ -185,7 +185,7 @@ object KillAura : Module(
 
         // Rotation stabilizer
         rotation.speedMultiplier = if (stabilize && !rotation.instant) {
-            val slowDown = currentRotation.castBox(box, reach) != null
+            val slowDown = currentRotation.castBox(box, reach, eye) != null
 
             with(rotation) {
                 val targetSpeed = if (slowDown) 0.0 else 1.0

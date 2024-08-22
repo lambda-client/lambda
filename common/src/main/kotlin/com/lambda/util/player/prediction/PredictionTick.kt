@@ -25,8 +25,13 @@ data class PredictionTick(
     val isJumping: Boolean,
     val predictionEntity: PredictionEntity
 ) {
-    fun next() = with(predictionEntity) {
-        tickMovement()
+    fun next() = skipTicks(1)
+
+    fun skipTicks(amount: Int) = with(predictionEntity) {
+        repeat(amount) {
+            tickMovement()
+        }
+
         lastTick
     }
 }
