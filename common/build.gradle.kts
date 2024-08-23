@@ -24,6 +24,7 @@ dependencies {
     implementation("org.reflections:reflections:0.10.2")
     implementation("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
     implementation("com.pngencoder:pngencoder:0.15.0")
+    implementation("org.jcodec:jcodec:0.2.3")
 
     // Add Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")

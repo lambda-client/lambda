@@ -5,7 +5,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.concurrentListener
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.graphics.buffer.vao.vertex.BufferUsage
+import com.lambda.graphics.buffer.BufferUsage
 import com.lambda.graphics.renderer.esp.impl.ESPRenderer
 import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 import com.lambda.module.modules.client.RenderSettings

@@ -2,7 +2,7 @@ package com.lambda.gui.impl
 
 import com.lambda.Lambda.mc
 import com.lambda.graphics.animation.Animation.Companion.exp
-import com.lambda.graphics.buffer.FrameBuffer
+import com.lambda.graphics.buffer.fbo.FrameBuffer
 import com.lambda.graphics.shader.Shader
 import com.lambda.gui.AbstractGuiConfigurable
 import com.lambda.gui.GuiConfigurable
@@ -10,17 +10,13 @@ import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.LambdaGui
 import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
-import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.gui.impl.clickgui.buttons.SettingButton
 import com.lambda.gui.impl.clickgui.windows.ModuleWindow
 import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
 import com.lambda.gui.impl.clickgui.windows.tag.TagWindow
-import com.lambda.gui.impl.hudgui.LambdaHudGui
 import com.lambda.module.Module
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.Mouse
-import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
-import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KMutableProperty0
 
 abstract class AbstractClickGui(name: String, owner: Module? = null) : LambdaGui(name, owner) {

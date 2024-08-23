@@ -1,3 +1,5 @@
+import org.gradle.internal.jvm.Jvm
+
 val modVersion: String by project
 val minecraftVersion: String by project
 val fabricLoaderVersion: String by project
@@ -68,6 +70,7 @@ dependencies {
     includeLib("dev.babbaj:nether-pathfinder:1.5")
     includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:0.15.0")
+    includeLib("org.jcodec:jcodec:0.2.3")
 
     // Add mods to the mod jar
     includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion+$minecraftVersion")
@@ -99,5 +102,30 @@ tasks {
         // that were used in the past to access private fields and methods.
         // They allow you to make field, method, and class access public.
         injectAccessWidener = true
+    }
+
+    register<Exec>("run + RenderDoc") {
+        val javaHome = Jvm.current().javaHome
+
+        commandLine = listOf(
+            "C:\\Program Files\\RenderDoc\\renderdoccmd.exe",
+            "capture",
+            "--opt-api-validation",
+            "--opt-api-validation-unmute",
+            "--opt-hook-children",
+            "--wait-for-exit",
+            "--working-dir",
+            ".",
+            "$javaHome/bin/java.exe",
+            "-Xmx64m",
+            "-Xms64m",
+            //"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005",
+            "-Dorg.gradle.appname=gradlew",
+            "-Dorg.gradle.java.home=$javaHome",
+            "-classpath",
+            "C:\\Users\\Kamigen\\Desktop\\BetterElytraBot\\NeoLambda\\gradle\\wrapper\\gradle-wrapper.jar",
+            "org.gradle.wrapper.GradleWrapperMain",
+            ":fabric:runClient",
+        )
     }
 }

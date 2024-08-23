@@ -1,7 +1,7 @@
 package com.lambda.graphics.renderer.esp.impl
 
 import com.lambda.graphics.buffer.vao.IRenderContext
-import com.lambda.graphics.buffer.vao.vertex.BufferUsage
+import com.lambda.graphics.buffer.BufferUsage
 import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
 

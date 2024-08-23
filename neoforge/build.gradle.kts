@@ -69,6 +69,7 @@ dependencies {
     includeLib("dev.babbaj:nether-pathfinder:1.5")
     includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:0.15.0")
+    includeLib("org.jcodec:jcodec:0.2.3")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge-neoforge:$kotlinForgeVersion")
