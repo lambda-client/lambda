@@ -17,14 +17,24 @@ class PixelBuffer(
     private var uploadIdx = 0 // Used to upload data to the PBO
 
     private val queryId = glGenQueries() // Used to measure the time taken to upload data to the PBO
-    val uploadTime get() = IntArray(1).also { glGetQueryObjectiv(queryId, GL_QUERY_RESULT, it) }[0]
-    var transferRate = 0L // The transfer rate in bytes per second
-        private set
+    private val uploadTime get() = IntArray(1).also { glGetQueryObjectiv(queryId, GL_QUERY_RESULT, it) }[0]
+    private var transferRate = 0L // The transfer rate in bytes per second
 
-    var pboSupported = false
-        private set
+    private val pboSupported = GL.getCapabilities().OpenGL30 || GL.getCapabilities().GL_ARB_pixel_buffer_object
 
-    fun mapTexture(id: Int, buffer: ByteBuffer) =
+    private var initialDataSent: Boolean = false
+
+    fun mapTexture(id: Int, buffer: ByteBuffer) {
+        if (!initialDataSent) {
+            glBindTexture(GL_TEXTURE_2D, id)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0)
+            glBindTexture(GL_TEXTURE_2D, 0)
+
+            initialDataSent = true
+
+            return
+        }
+
         upload(buffer) {
             // Bind the texture
             glBindTexture(GL_TEXTURE_2D, id)
@@ -34,13 +44,20 @@ class PixelBuffer(
                 glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[writeIdx])
 
                 // Perform the actual data transfer to the GPU
-                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, 0)
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0)
             }
             else {
                 // Perform the actual data transfer to the GPU
-                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buffer)
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer)
             }
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+
+            // Unbind the texture
+            glBindTexture(GL_TEXTURE_2D, 0)
         }
+    }
 
     fun upload(data: ByteBuffer, process: () -> Unit) =
         recordTransfer {
@@ -49,8 +66,6 @@ class PixelBuffer(
 
             // Copy the pixel values from the PBO to the texture
             process()
-
-            if (!pboSupported) return@recordTransfer
 
             // Bind the current PBO for writing
             glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[uploadIdx])
@@ -81,11 +96,6 @@ class PixelBuffer(
         }
 
     private fun recordTransfer(block: () -> Unit) {
-        if (!pboSupported) {
-            block()
-            return
-        }
-
         // Start the timer
         glBeginQuery(GL_TIME_ELAPSED, queryId)
 
@@ -97,9 +107,7 @@ class PixelBuffer(
 
         // Calculate the transfer rate
         val time = uploadTime
-        if (time > 0) {
-            transferRate = (width * height * 4L * 1_000_000_000) / time
-        }
+        if (time > 0) transferRate = (width * height * 4L * 1_000_000_000) / time
     }
 
     // Called when no references to the object exist
@@ -109,13 +117,10 @@ class PixelBuffer(
     }
 
     init {
-        // Check if the PBO is supported
-        GL.getCapabilities().let { pboSupported = it.OpenGL30 || it.GL_ARB_pixel_buffer_object }
+        if (buffers < 0) throw IllegalArgumentException("Buffers must be greater than or equal to 0")
 
         if (!pboSupported && buffers > 0)
             LOG.warn("Client tried to utilize PBOs, but they are not supported on the machine, falling back to direct buffer upload")
-
-        if (buffers < 0) throw IllegalArgumentException("Buffers must be greater than or equal to 0")
 
         // Generate the PBOs
         glGenBuffers(pboIds)

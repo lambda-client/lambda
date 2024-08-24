@@ -15,8 +15,8 @@ object VideoTest : HudModule(
 
     init {
         onRender {
-            video.upload()
-            drawTexture(video.texture, rect)
+            //video.upload()
+            //drawTexture(video.texture, rect)
         }
     }
 }
