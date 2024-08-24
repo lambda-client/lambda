@@ -10,6 +10,10 @@ import net.minecraft.entity.Entity
 import net.minecraft.util.math.BlockPos
 import kotlin.reflect.KClass
 
+@Target(AnnotationTarget.CLASS, AnnotationTarget.TYPE)
+@DslMarker
+annotation class EntityDslMarker
+
 /**
  * The `EntityDsl` class provides a DSLfor performing entity search operations
  * within a specified range in a Minecraft world. It allows for filtering, iterating, and comparing entities
@@ -41,6 +45,7 @@ import kotlin.reflect.KClass
  * println("Closest entity to FOV: ${closestEntityToFOV}")
  * ```
  */
+@EntityDslMarker
 class EntityDsl<T : Entity>(
     private val safeContext: SafeContext,
     private val kClass: KClass<out T>,
@@ -140,4 +145,4 @@ class EntityDsl<T : Entity>(
  * @param pos The position to start the search from. Defaults to the player's current position.
  * @param block The block of code that performs the search using the [EntityDsl].
  */
-inline fun <reified T : Entity> SafeContext.entitySearch(pos: BlockPos = player.blockPos, block: EntityDsl<T>.() -> Unit) = EntityDsl(this, T::class, pos).apply(block)
+inline fun <reified T : Entity> SafeContext.entitySearch(pos: BlockPos = player.blockPos, block: (@EntityDslMarker EntityDsl<T>).() -> Unit) = EntityDsl(this, T::class, pos).apply(block)

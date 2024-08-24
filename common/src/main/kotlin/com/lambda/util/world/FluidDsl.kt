@@ -13,6 +13,10 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 import kotlin.reflect.KClass
 
+@Target(AnnotationTarget.CLASS, AnnotationTarget.TYPE)
+@DslMarker
+annotation class FluidDslMarker
+
 /**
  * The `FluidDsl` class provides a DSL for performing fluid search operations
  * within a specified range in a Minecraft world. It allows for filtering and iterating fluids
@@ -33,6 +37,7 @@ import kotlin.reflect.KClass
  * println("Found ${fluids.size} immobile lava fluids.")
  * ```
  */
+@FluidDslMarker
 class FluidDsl<T : Fluid>(
     private val safeContext: SafeContext,
     private val kClass: KClass<out T>,
@@ -143,4 +148,4 @@ class FluidDsl<T : Fluid>(
  * @param pos The position to start the search from. Defaults to the player's current position.
  * @param block The block of code that performs the search using the [FluidDsl].
  */
-inline fun <reified T : Fluid> SafeContext.fluidSearch(pos: BlockPos = player.blockPos, block: FluidDsl<T>.() -> Unit) = FluidDsl(this, T::class, pos).apply(block)
+inline fun <reified T : Fluid> SafeContext.fluidSearch(pos: BlockPos = player.blockPos, block: (@FluidDslMarker FluidDsl<T>).() -> Unit) = FluidDsl(this, T::class, pos).apply(block)

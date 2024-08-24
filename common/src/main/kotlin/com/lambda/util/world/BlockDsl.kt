@@ -11,6 +11,10 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 
+@Target(AnnotationTarget.CLASS, AnnotationTarget.TYPE)
+@DslMarker
+annotation class BlockDslMarker
+
 /**
  * The `BlockDsl` class provides a DSL for performing block search operations
  * within a specified range in a Minecraft world. It allows for filtering and iterating blocks
@@ -32,6 +36,7 @@ import net.minecraft.util.math.Vec3i
  * println("Found ${blocks.size} diamond blocks.")
  * ```
  */
+@BlockDslMarker
 class BlockDsl(
     private val safeContext: SafeContext,
     pos: BlockPos,
@@ -137,5 +142,5 @@ class BlockDsl(
  * @param pos The position around which to search for blocks.
  * @param block The block operations to apply.
  */
-fun SafeContext.blockSearch(pos: BlockPos = player.blockPos, block: BlockDsl.() -> Unit) = BlockDsl(this, pos).apply(block)
+fun SafeContext.blockSearch(pos: BlockPos = player.blockPos, block: (@BlockDslMarker BlockDsl).() -> Unit) = BlockDsl(this, pos).apply(block)
 
