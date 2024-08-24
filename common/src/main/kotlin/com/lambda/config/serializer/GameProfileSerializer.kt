@@ -18,7 +18,7 @@ object GameProfileSerializer : JsonSerializer<GameProfile>, JsonDeserializer<Gam
         src?.let {
             JsonObject().apply {
                 addProperty("name", it.name)
-                addProperty("uuid", it.id.toString())
+                addProperty("id", it.id.toString())
             }
         } ?: JsonNull.INSTANCE
 
@@ -26,9 +26,15 @@ object GameProfileSerializer : JsonSerializer<GameProfile>, JsonDeserializer<Gam
         json: JsonElement?,
         typeOfT: Type?,
         context: JsonDeserializationContext?,
-    ): GameProfile =
-        GameProfile(
-            UUID.fromString(json?.asJsonObject?.get("uuid")?.asString),
+    ): GameProfile {
+        val id = json?.asJsonObject?.get("id")?.asString
+        val parsedId =
+            if (id?.length == 32) id.replaceFirst("(\\w{8})(\\w{4})(\\w{4})(\\w{4})(\\w{12})".toRegex(), "$1-$2-$3-$4-$5")
+            else id
+
+        return GameProfile(
+            UUID.fromString(parsedId),
             json?.asJsonObject?.get("name")?.asString
         )
+    }
 }

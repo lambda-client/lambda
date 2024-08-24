@@ -92,10 +92,9 @@ data class Request(
                 connection.outputStream.use {
                     it.write(parameters.toJson().toByteArray())
                 }
-            } else {
-                connection.connect()
-            }
+            } else connection.connect()
         }.onFailure {
+            println("Failed to execute HTTP request: $it")
             return Response(
                 connection = connection,
                 data = null,
@@ -121,9 +120,15 @@ data class Request(
             )
         }
 
+        var error: Throwable? = null
+        val data = runCatching { Lambda.gson.fromJson(connection.inputStream.bufferedReader().readText(), Success::class.java) }
+            .onFailure { error = it }
+            .getOrNull()
+
         return Response(
             connection = connection,
-            data = tryOrNull { Lambda.gson.fromJson(connection.inputStream.bufferedReader().readText(), Success::class.java) },
+            data = data,
+            error = error,
         )
     }
 }
