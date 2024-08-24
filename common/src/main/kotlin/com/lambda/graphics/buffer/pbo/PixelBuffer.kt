@@ -2,6 +2,7 @@ package com.lambda.graphics.buffer.pbo
 
 import com.lambda.graphics.buffer.BufferUsage
 import org.lwjgl.opengl.GL45C.*
+import org.lwjgl.opengl.GREMEDYStringMarker
 import java.nio.ByteBuffer
 
 class PixelBuffer(
@@ -30,6 +31,8 @@ class PixelBuffer(
         recordTransfer {
             uploadIdx = (writeIdx + 1) % buffers
 
+            GREMEDYStringMarker.glStringMarkerGREMEDY("Data transfer to buffer")
+
             // Bind the next PBO to update pixel values
             glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[writeIdx])
 
@@ -46,6 +49,8 @@ class PixelBuffer(
 
             // Bind the current PBO for writing
             glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[uploadIdx])
+
+            GREMEDYStringMarker.glStringMarkerGREMEDY("Data transfer to GPU")
 
             // Copy the pixel values from the PBO to the texture
             process()
