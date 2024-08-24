@@ -29,7 +29,7 @@ object FakePlayer : Module(
                 return@onEnable spawnPlayer(fakePlayer!!.gameProfile)
 
             runSafeConcurrent {
-                var profile = GameProfile(UUID.randomUUID(), playerName)
+                var profile = GameProfile(UUID(0, 0), playerName)
 
                 profile =
                     request("https://api.mojang.com/users/profiles/minecraft/$playerName") {
