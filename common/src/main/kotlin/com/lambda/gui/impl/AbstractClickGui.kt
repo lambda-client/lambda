@@ -2,7 +2,7 @@ package com.lambda.gui.impl
 
 import com.lambda.Lambda.mc
 import com.lambda.graphics.animation.Animation.Companion.exp
-import com.lambda.graphics.buffer.fbo.FrameBuffer
+import com.lambda.graphics.buffer.FrameBuffer
 import com.lambda.graphics.shader.Shader
 import com.lambda.gui.AbstractGuiConfigurable
 import com.lambda.gui.GuiConfigurable

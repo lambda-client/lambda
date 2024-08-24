@@ -7,7 +7,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.animation.AnimationTicker
-import com.lambda.graphics.buffer.fbo.FrameBuffer
+import com.lambda.graphics.buffer.FrameBuffer
 import com.lambda.graphics.gl.GlStateUtils.setupGL
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.resetMatrices
