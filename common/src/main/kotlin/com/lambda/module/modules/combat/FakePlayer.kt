@@ -28,24 +28,20 @@ object FakePlayer : Module(
                 return@onEnable spawnPlayer(fakePlayer!!.gameProfile)
 
             runSafeConcurrent {
-                var profile = GameProfile(UUID(0, 0), playerName)
-
-                profile =
+                val uuid =
                     request("https://api.mojang.com/users/profiles/minecraft/$playerName") {
                         method(Method.GET)
-                    }.json<GameProfile>()
-                        .data ?: profile
+                    }.json<GameProfile>().data?.id ?: UUID(0, 0)
 
-                profile = mc.sessionService.fetchProfile(profile.id, true)?.profile ?: profile
+                val fetchedProperties = mc.sessionService.fetchProfile(uuid, true)?.profile?.properties
 
-                val safeUUIDProfile = GameProfile(UUID(0, 0), profile.name)
-                profile.properties.entries().forEach {
-                    safeUUIDProfile.properties.put(it.key, it.value)
+                val profile = GameProfile(UUID(0, 0), playerName).apply {
+                    fetchedProperties?.forEach { key, value -> properties.put(key, value) }
                 }
 
                 // This is the cache that mc pulls profile data from when it fetches skins.
-                mc.networkHandler?.playerListEntries?.put(safeUUIDProfile.id, PlayerListEntry(safeUUIDProfile, false))
-                spawnPlayer(safeUUIDProfile)
+                mc.networkHandler?.playerListEntries?.put(profile.id, PlayerListEntry(profile, false))
+                spawnPlayer(profile)
             }
         }
 
