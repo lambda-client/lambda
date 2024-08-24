@@ -22,7 +22,7 @@ import com.lambda.util.player.MovementUtils.newMovementInput
 import com.lambda.util.player.MovementUtils.roundedForward
 import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.setSpeed
-import com.lambda.util.primitives.extension.contains
+import com.lambda.util.extension.contains
 import com.lambda.util.world.entitySearch
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.ArmorStandEntity
