@@ -6,6 +6,7 @@ import com.lambda.http.request
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeConcurrent
+import com.lambda.util.Communication.warn
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.client.network.PlayerListEntry
@@ -37,6 +38,11 @@ object FakePlayer : Module(
                         .data ?: profile
 
                 profile = mc.sessionService.fetchProfile(profile.id, true)?.profile ?: profile
+
+                if (mc.networkHandler?.playerListEntries?.get(profile.id) != null) {
+                    warn("A player with the name $playerName is already in the world.")
+                    return@runSafeConcurrent
+                }
 
                 // This is the cache that mc pulls profile data from when it fetches skins.
                 mc.networkHandler?.playerListEntries?.put(profile.id, PlayerListEntry(profile, false))
