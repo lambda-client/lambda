@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout your code
+      - name: Check Out Repository
         uses: actions/checkout@v3
       - name: Labeler
         uses: srvaroa/labeler@master
