@@ -6,6 +6,15 @@ import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL45C.*
 import java.nio.ByteBuffer
 
+/**
+ * Represents a Pixel Buffer Object (PBO) that facilitates asynchronous data transfer to the GPU.
+ * This class manages the creation, usage, and cleanup of PBOs and provides methods to map textures and upload data efficiently.
+ *
+ * @property width The width of the texture in pixels.
+ * @property height The height of the texture in pixels.
+ * @property buffers The number of PBOs to be used. Default is 2, which allows double buffering.
+ * @property bufferUsage The usage pattern of the buffer, indicating how the buffer will be used (static, dynamic, etc.).
+ */
 class PixelBuffer(
     private val width: Int,
     private val height: Int,
@@ -24,6 +33,12 @@ class PixelBuffer(
 
     private var initialDataSent: Boolean = false
 
+    /**
+     * Maps the given texture ID to the buffer and performs the necessary operations to upload the texture data.
+     *
+     * @param id The texture ID to which the buffer will be mapped.
+     * @param buffer The [ByteBuffer] containing the pixel data to be uploaded to the texture.
+     */
     fun mapTexture(id: Int, buffer: ByteBuffer) {
         if (!initialDataSent) {
             glBindTexture(GL_TEXTURE_2D, id)
@@ -59,6 +74,12 @@ class PixelBuffer(
         }
     }
 
+    /**
+     * Uploads the given pixel data to the PBO and executes the provided processing function to manage the PBO's data transfer.
+     *
+     * @param data The [ByteBuffer] containing the pixel data to be uploaded.
+     * @param process A lambda function to execute after uploading the data to manage the PBO's data transfer.
+     */
     fun upload(data: ByteBuffer, process: () -> Unit) =
         recordTransfer {
             if (buffers >= 2)
@@ -95,6 +116,11 @@ class PixelBuffer(
             writeIdx = uploadIdx
         }
 
+    /**
+     * Measures and records the time taken to transfer data to the PBO, calculating the transfer rate in bytes per second.
+     *
+     * @param block A lambda function representing the block of code where the transfer occurs.
+     */
     private fun recordTransfer(block: () -> Unit) {
         // Start the timer
         glBeginQuery(GL_TIME_ELAPSED, queryId)
@@ -110,12 +136,19 @@ class PixelBuffer(
         if (time > 0) transferRate = (width * height * 4L * 1_000_000_000) / time
     }
 
-    // Called when no references to the object exist
+    /**
+     * Cleans up resources by deleting the PBOs when the object is no longer in use.
+     */
     fun finalize() {
         // Delete the PBOs
         glDeleteBuffers(pboIds)
     }
 
+    /**
+     * Initializes the PBOs, allocates memory for them, and handles unsupported PBO scenarios.
+     *
+     * @throws IllegalArgumentException If the number of buffers is less than 0.
+     */
     init {
         if (buffers < 0) throw IllegalArgumentException("Buffers must be greater than or equal to 0")
 
