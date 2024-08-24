@@ -36,7 +36,7 @@ object FakePlayer : Module(
                     }.json<GameProfile>()
                         .data ?: profile
 
-                 profile = mc.sessionService.fetchProfile(profile.id, true)?.profile ?: profile
+                profile = mc.sessionService.fetchProfile(profile.id, true)?.profile ?: profile
 
                 // This is the cache that mc pulls profile data from when it fetches skins.
                 mc.networkHandler?.playerListEntries?.put(profile.id, PlayerListEntry(profile, false))
