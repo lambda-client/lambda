@@ -1,4 +1,4 @@
-package com.lambda.mixin;
+package com.lambda.mixin.network;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.ConnectionEvent;
@@ -65,7 +65,7 @@ public class ClientConnectionMixin {
         EventFlow.post(new PacketEvent.Receive.Post((Packet<ClientPacketListener>) packet));
     }
 
-    @Inject(method = "connect(Ljava/lang/String;ILnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/packet/c2s/handshake/ConnectionIntent;)V", at = @At("HEAD"))
+    @Inject(method = "connect(Ljava/lang/String;ILnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/packet/c2s/handshake/ConnectionIntent;)V", at = @At("HEAD"), cancellable = true)
     private void onConnect(
             String address,
             int port,
@@ -73,7 +73,7 @@ public class ClientConnectionMixin {
             ConnectionIntent intent,
             CallbackInfo ci
     ) {
-        EventFlow.post(new ConnectionEvent.Connect(address, port, listener, intent));
+        if (EventFlow.post(new ConnectionEvent.Connect.Pre(address, port, listener, intent)).isCanceled()) ci.cancel();
     }
 
     @Inject(method = "disconnect(Lnet/minecraft/text/Text;)V", at = @At("HEAD"))

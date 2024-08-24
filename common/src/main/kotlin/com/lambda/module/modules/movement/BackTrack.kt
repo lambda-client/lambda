@@ -146,7 +146,7 @@ object BackTrack : Module(
             event.cancel()
         }
 
-        listener<ConnectionEvent.Connect> {
+        listener<ConnectionEvent.Connect.Pre> {
             receivePool.clear()
             sendPool.clear()
         }

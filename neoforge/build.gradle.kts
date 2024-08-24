@@ -2,6 +2,7 @@ val modVersion: String by project
 val minecraftVersion: String by project
 val neoVersion: String by project
 val kotlinForgeVersion: String by project
+val discordIPCVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-neoforge"
 
@@ -27,8 +28,8 @@ repositories {
     // you can add it to the `settings.gradle.kts` file
     // in the base of the project and gradle will do the
     // rest for you.
-    maven("https://maven.neoforged.net/releases/")
     maven("https://thedarkcolour.github.io/KotlinForForge/")
+    maven("https://maven.neoforged.net/releases/")
 }
 
 val common: Configuration by configurations.creating {
@@ -65,6 +66,8 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
+    includeLib("dev.babbaj:nether-pathfinder:1.5")
+    includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge-neoforge:$kotlinForgeVersion")
@@ -83,8 +86,6 @@ tasks {
         archiveVersion = "$modVersion+$minecraftVersion"
         configurations = listOf(shadowBundle)
         archiveClassifier = "dev-shadow"
-
-        minimize() // Remove unused classes
     }
 
     remapJar {

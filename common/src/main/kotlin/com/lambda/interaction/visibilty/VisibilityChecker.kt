@@ -10,7 +10,7 @@ import com.lambda.interaction.rotation.RotationContext
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.VecUtils.distSq
-import com.lambda.util.primitives.extension.component6
+import com.lambda.util.extension.component6
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.entity.Entity

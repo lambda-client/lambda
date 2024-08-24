@@ -3,6 +3,7 @@ val minecraftVersion: String by project
 val forgeVersion: String by project
 val mixinExtrasVersion: String by project
 val kotlinForgeVersion: String by project
+val discordIPCVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-forge"
 
@@ -17,7 +18,6 @@ architectury {
 
 loom {
     accessWidenerPath.set(project(":common").loom.accessWidenerPath)
-
     forge {
         // This is required to convert the access wideners to the forge
         // format, access transformers.
@@ -39,6 +39,8 @@ repositories {
     // you can add it to the `settings.gradle.kts` file
     // in the base of the project and gradle will do the
     // rest for you.
+    // If you want to add more global repositories, you can
+    // add them to the root build.gradle.kts file.
     maven("https://thedarkcolour.github.io/KotlinForForge/")
 }
 
@@ -78,6 +80,7 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
+    includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
@@ -113,8 +116,6 @@ tasks {
         archiveVersion = "$modVersion+$minecraftVersion"
         configurations = listOf(shadowBundle)
         archiveClassifier = "dev-shadow"
-
-        minimize() // Remove unused classes
     }
 
     remapJar {

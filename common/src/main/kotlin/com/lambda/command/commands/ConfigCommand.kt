@@ -7,7 +7,7 @@ import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Configuration
 import com.lambda.util.Communication.info
-import com.lambda.util.primitives.extension.CommandBuilder
+import com.lambda.util.extension.CommandBuilder
 
 object ConfigCommand : LambdaCommand(
     name = "config",

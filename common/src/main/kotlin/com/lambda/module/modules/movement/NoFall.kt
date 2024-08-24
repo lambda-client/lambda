@@ -6,9 +6,9 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.player.MovementUtils.motion
 import com.lambda.util.player.MovementUtils.motionY
-import com.lambda.util.primitives.extension.component1
-import com.lambda.util.primitives.extension.component2
-import com.lambda.util.primitives.extension.component3
+import com.lambda.util.extension.component1
+import com.lambda.util.extension.component2
+import com.lambda.util.extension.component3
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
