@@ -1,5 +1,3 @@
-import org.gradle.internal.jvm.Jvm
-
 val modVersion: String by project
 val minecraftVersion: String by project
 val fabricLoaderVersion: String by project
