@@ -45,14 +45,7 @@ object Loader {
         LOG.info("Initializing ${Lambda.MOD_NAME} ${Lambda.VERSION}")
 
         val initTime = measureTimeMillis {
-            loadables.forEach { loadable ->
-                val info: String
-                val phaseTime = measureTimeMillis {
-                    info = loadable.load()
-                }
-
-                LOG.info("$info in ${phaseTime}ms")
-            }
+            loadables.forEach { LOG.info(it.load()) }
         }
 
         LOG.info("${Lambda.MOD_NAME} ${Lambda.VERSION} was successfully initialized (${initTime}ms)")

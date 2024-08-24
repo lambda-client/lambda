@@ -16,7 +16,6 @@ import javax.imageio.ImageIO
 import kotlin.math.ceil
 import kotlin.math.log2
 import kotlin.math.sqrt
-import kotlin.system.measureTimeMillis
 import kotlin.time.Duration.Companion.days
 
 class EmojiGlyphs(zipUrl: String) {
@@ -28,8 +27,8 @@ class EmojiGlyphs(zipUrl: String) {
 
     init {
         runCatching {
-            val time = measureTimeMillis { downloadAndProcessZip(zipUrl) }
-            LOG.info("Loaded ${emojiMap.size} emojis in $time ms")
+            downloadAndProcessZip(zipUrl)
+            LOG.info("Loaded ${emojiMap.size} emojis")
         }.onFailure {
             LOG.error("Failed to load emojis: ${it.message}", it)
             fontTexture = MipmapTexture(BufferedImage(1024, 1024, BufferedImage.TYPE_INT_ARGB))

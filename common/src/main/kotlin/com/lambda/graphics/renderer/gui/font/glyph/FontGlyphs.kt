@@ -11,7 +11,6 @@ import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
 import kotlin.math.max
-import kotlin.system.measureTimeMillis
 
 class FontGlyphs(
     private val font: Font
@@ -23,8 +22,8 @@ class FontGlyphs(
 
     init {
         runCatching {
-            val time = measureTimeMillis { processGlyphs() }
-            LOG.info("Font ${font.fontName} loaded with ${charMap.size} characters in $time ms")
+            processGlyphs()
+            LOG.info("Font ${font.fontName} loaded with ${charMap.size} characters")
         }.onFailure {
             LOG.error("Failed to load font glyphs: ${it.message}", it)
             fontTexture = MipmapTexture(BufferedImage(1024, 1024, BufferedImage.TYPE_INT_ARGB))
