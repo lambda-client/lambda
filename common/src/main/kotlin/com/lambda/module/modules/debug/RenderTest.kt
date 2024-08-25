@@ -7,7 +7,7 @@ import com.lambda.graphics.renderer.esp.builders.build
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.ColorUtils.setAlpha
-import com.lambda.util.world.WorldUtils.getClosestEntity
+import com.lambda.util.world.entitySearch
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.Box
 import java.awt.Color
@@ -29,8 +29,10 @@ object RenderTest : Module(
 
     init {
         listener<RenderEvent.DynamicESP> {
-            val entity = getClosestEntity<LivingEntity>(player.pos, 8.0) ?: return@listener
-            it.renderer.build(entity.dynamicBox, filledColor, outlineColor)
+            entitySearch<LivingEntity>(8.0)
+                .forEach { entity ->
+                    it.renderer.build(entity.dynamicBox, filledColor, outlineColor)
+                }
         }
 
         listener<RenderEvent.StaticESP> {
