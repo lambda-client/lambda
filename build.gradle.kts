@@ -46,6 +46,9 @@ subprojects {
             filesMatching(targets) {
                 expand(replacements)
             }
+
+            // Forces the task to always run
+            outputs.upToDateWhen { false }
         }
     }
 }

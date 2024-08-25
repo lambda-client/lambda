@@ -17,6 +17,7 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 .kotlin/
+java_pid*.hprof
 
 ### Eclipse ###
 .apt_generated

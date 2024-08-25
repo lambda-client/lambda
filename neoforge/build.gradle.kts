@@ -13,7 +13,7 @@ plugins {
 architectury {
     platformSetupLoomIde()
     neoForge {
-        platformPackage = "forge"
+        platformPackage = "neoforge"
     }
 }
 
@@ -55,7 +55,7 @@ fun DependencyHandlerScope.setupConfigurations() {
 
     includeMod.dependencies.forEach {
         implementation(it)
-        include(it)
+        // include(it)
     }
 }
 
@@ -66,8 +66,8 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
-    includeLib("dev.babbaj:nether-pathfinder:1.5")
     includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
+    includeLib("com.pngencoder:pngencoder:0.15.0")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge-neoforge:$kotlinForgeVersion")

@@ -2,7 +2,7 @@ package com.lambda.graphics.renderer.esp.impl
 
 import com.lambda.Lambda.mc
 import com.lambda.graphics.buffer.vao.VAO
-import com.lambda.graphics.buffer.vao.vertex.BufferUsage
+import com.lambda.graphics.buffer.BufferUsage
 import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.buffer.vao.vertex.VertexMode
 import com.lambda.graphics.gl.GlStateUtils.withFaceCulling
