@@ -1,6 +1,6 @@
 package com.lambda.graphics.buffer.vao
 
-import com.lambda.graphics.buffer.vao.vertex.BufferUsage
+import com.lambda.graphics.buffer.BufferUsage
 import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.buffer.vao.vertex.VertexMode
 import com.lambda.graphics.gl.Matrices

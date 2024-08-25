@@ -18,6 +18,8 @@ import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.tag.ModuleTag
+import com.lambda.sound.LambdaSound
+import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 
@@ -118,6 +120,14 @@ abstract class Module(
                 && (screen == null
                         || screen is LambdaClickGui)
             ) toggle()
+        }
+
+        onEnable {
+            playSoundRandomly(LambdaSound.MODULE_ON.event)
+        }
+
+        onDisable {
+            playSoundRandomly(LambdaSound.MODULE_OFF.event)
         }
     }
 

@@ -5,7 +5,6 @@ import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.EventFlow.postChecked
 import com.lambda.event.events.PlayerPacketEvent
-import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
 import com.lambda.threading.runSafe
 import com.lambda.util.collections.LimitedOrderedSet
 import com.lambda.util.math.VecUtils.approximate
