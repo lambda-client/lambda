@@ -26,7 +26,8 @@ class PixelBuffer(
     private var uploadIdx = 0 // Used to upload data to the PBO
 
     private val queryId = glGenQueries() // Used to measure the time taken to upload data to the PBO
-    private val uploadTime get() = IntArray(1).also { glGetQueryObjectiv(queryId, GL_QUERY_RESULT, it) }[0]
+    private val uploadTime get() =
+        IntArray(1).also { glGetQueryObjectiv(queryId, GL_QUERY_RESULT, it) }.first()
     private var transferRate = 0L // The transfer rate in bytes per second
 
     private val pboSupported = GL.getCapabilities().OpenGL30 || GL.getCapabilities().GL_ARB_pixel_buffer_object
@@ -60,8 +61,7 @@ class PixelBuffer(
 
                 // Perform the actual data transfer to the GPU
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0)
-            }
-            else {
+            } else {
                 // Perform the actual data transfer to the GPU
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer)
             }
