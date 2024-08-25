@@ -39,6 +39,8 @@ val common: Configuration by configurations.creating {
     isCanBeConsumed = false
 }
 
+val toRelocate = mutableMapOf<String, String>()
+
 val includeLib: Configuration by configurations.creating
 val includeMod: Configuration by configurations.creating
 val shadowBundle: Configuration by configurations.creating {
@@ -49,7 +51,7 @@ val shadowBundle: Configuration by configurations.creating {
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
         implementation(it)
-        include(it)
+        shadowBundle(it)
     }
 
     includeMod.dependencies.forEach {

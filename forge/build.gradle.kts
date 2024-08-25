@@ -62,7 +62,7 @@ val shadowBundle: Configuration by configurations.creating {
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
         implementation(it)
-        include(it)
+        shadowBundle(it)
     }
 
     includeMod.dependencies.forEach {
