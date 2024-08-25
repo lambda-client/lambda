@@ -33,17 +33,13 @@ object BlockTest : Module(
 
     init {
         listener<RenderEvent.StaticESP> {
-            blockSearch {
-                range(range)
-                step(step)
-
-                filter { _, block -> block.isOf(Blocks.DIAMOND_BLOCK) }
-                iterator { pos, state ->
-                    state.getOutlineShape(world, pos).boundingBoxes.forEach { box ->
-                        it.renderer.build(box.offset(pos), filledColor, outlineColor)
-                    }
+            blockSearch(range, step) { _, state ->
+                state.isOf(Blocks.DIAMOND_BLOCK)
+            }.forEach { (pos, state) ->
+                state.getOutlineShape(world, pos).boundingBoxes.forEach { box ->
+                    it.renderer.build(box.offset(pos), filledColor, outlineColor)
                 }
-            }.build()
+            }
         }
     }
 }

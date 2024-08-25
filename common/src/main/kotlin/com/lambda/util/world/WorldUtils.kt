@@ -18,7 +18,7 @@ import kotlin.reflect.KClass
  *
  * This object employs a pass-by-reference model, allowing functions to modify
  * data structures passed to them rather than creating new ones. This approach
- * offers 2 main benefits:
+ * offers two main benefits:
  *
  * - **Performance**: Pass-by-reference avoids unnecessary memory allocations
  * and reallocations that can occur when creating new data structures.
@@ -29,7 +29,7 @@ import kotlin.reflect.KClass
  * temporary objects.
  *
  * When you create a new object, the JVM allocates memory for it on the heap.
- * When it is no longer needed, the garbage collector frees up the memory.
+ * When it is no longer necessary, the garbage collector frees up the memory.
  * This process **IS** expensive, especially if you are creating and discarding many objects
  *
  * Please note that the author of this code currently does not have any certifications in the field of computer science.
@@ -171,7 +171,7 @@ object WorldUtils {
         iterator: (FastVector, BlockState) -> Unit = { _, _ -> },
     ) {
         internalIteratePositions(pos, range, step) { position ->
-            world.getBlockState(position.x, position.y, position.z).let { state ->
+            world.getBlockState(position).let { state ->
                 val fulfilled = predicate(position, state)
 
                 if (fulfilled && pointer != null) {

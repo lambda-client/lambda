@@ -59,11 +59,11 @@ abstract class Targeting(
                 validate(player, entity)
             }
 
-            return@runSafe entitySearch<LivingEntity> {
-                range(targetingRange)
-                filter(predicate)
-                comparator { priority.factor(this, it) }
-            }.minBy()
+            return@runSafe entitySearch<LivingEntity>(targetingRange) {
+                predicate(it)
+            }.minBy {
+                priority.factor(this, it)
+            }
         }
     }
 

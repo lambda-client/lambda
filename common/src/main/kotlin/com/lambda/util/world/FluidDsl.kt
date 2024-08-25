@@ -18,23 +18,27 @@ import kotlin.reflect.KClass
 annotation class FluidDslMarker
 
 /**
- * The `FluidDsl` class provides a DSL for performing fluid search operations
- * within a specified range in a Minecraft world. It allows for filtering and iterating fluids
- * of a specific type [T] around a given position.
+ * The [FluidDsl] class provides a DSL for performing fluid search operations
+ * within a specified range in a Minecraft world. It allows for filtering fluids
+ * around a given position.
  *
  * @param safeContext The context in which the fluid search is performed, providing safe access to world data.
  * @param kClass The class of the fluid type [T].
  * @param pos The position from which to start the fluid search.
+ * @param range The range around the position to search for fluids.
+ * @param step The step intervals at which to check for fluids.
+ * @param predicate The predicate to filter fluids.
  *
  * ### Usage Example:
  *
  * ```kotlin
- * val fluids = fluidSearch<LavaFluid.Still> {
- *     range(8) // Search for fluids within an 8 block radius
- *     iterator { pos, state -> println("Found immobile lava at $pos with state $state") }
- * }.build() // Finalize the fluid search
+ * val fluids = fluidSearch<LavaFluid.Still>(range = 8) { // Search for fluids within an 8 block radius
+ *     it.isOf(Fluids.LAVA) // Filter out fluids that are not lava
+ * }
  *
- * println("Found ${fluids.size} immobile lava fluids.")
+ * fluids.forEach { (pos, state) ->
+ *     println("Found still lava at $pos with state $state")
+ * }
  * ```
  */
 @FluidDslMarker
@@ -42,110 +46,47 @@ class FluidDsl<T : Fluid>(
     private val safeContext: SafeContext,
     private val kClass: KClass<out T>,
     pos: BlockPos,
+    private val range: Vec3i,
+    private val step: Vec3i,
+    private val predicate: (BlockPos, FluidState) -> Boolean
 ) {
     private val fastVector = pos.toFastVec()
     private val receiver: MutableMap<FastVector, T> = mutableMapOf()
 
-    private var range: FastVector = MAGICVECTOR times 8
-    private var step: FastVector = MAGICVECTOR
-    private var predicate: (FastVector, FluidState) -> Boolean = { _, _ -> true }
-    private var iterator: (FastVector, FluidState) -> Unit = { _, _ -> }
-
-    /**
-     * Sets the range around the position to search for fluids.
-     */
-    fun range(range: Double): FluidDsl<T> {
-        this.range = fastVectorOf(range.toInt(), range.toInt(), range.toInt())
-        return this
-    }
-
-    /**
-     * Sets the range around the position to search for fluids.
-     */
-    fun range(range: Int): FluidDsl<T> {
-        this.range = fastVectorOf(range, range, range)
-        return this
-    }
-
-    /**
-     * Sets the range around the position to search for fluids.
-     */
-    fun range(range: Vec3i): FluidDsl<T> {
-        this.range = range.toFastVec()
-        return this
-    }
-
-    /**
-     * Sets the range around the position to search for fluids.
-     */
-    fun range(range: Vec3d): FluidDsl<T> {
-        this.range = range.toFastVec()
-        return this
-    }
-
-    /**
-     * Sets the vector representing the intervals at which to check for blocks.
-     */
-    fun step(step: Int): FluidDsl<T> {
-        this.step = fastVectorOf(step, step, step)
-        return this
-    }
-
-    /**
-     * Sets the vector representing the intervals at which to check for blocks.
-     */
-    fun step(step: Double): FluidDsl<T> {
-        this.step = fastVectorOf(step.toInt(), step.toInt(), step.toInt())
-        return this
-    }
-
-    /**
-     * Sets the vector representing the intervals at which to check for blocks.
-     */
-    fun step(step: Vec3i): FluidDsl<T> {
-        this.step = step.toFastVec()
-        return this
-    }
-
-    /**
-     * Sets the vector representing the intervals at which to check for blocks.
-     */
-    fun step(step: Vec3d): FluidDsl<T> {
-        this.step = step.toFastVec()
-        return this
-    }
-
-    /**
-     * Sets a predicate to filter fluids.
-     */
-    fun filter(predicate: (BlockPos, FluidState) -> Boolean): FluidDsl<T> {
-        this.predicate = { pos, state -> predicate(pos.toBlockPos(), state) }
-        return this
-    }
-
-    /**
-     * Sets an iterator to perform operations on each fluid.
-     */
-    fun iterator(iterator: (BlockPos, FluidState) -> Unit): FluidDsl<T> {
-        this.iterator = { pos, state -> iterator(pos.toBlockPos(), state) }
-        return this
-    }
-
-    /**
-     * Builds the map of fluids found in the world.
-     */
     fun build(): Map<BlockPos, T> {
-        safeContext.internalSearchFluids(kClass, fastVector, range, step, receiver, predicate, iterator)
-
+        safeContext.internalSearchFluids(kClass, fastVector, range.toFastVec(), step.toFastVec(), receiver, { pos, state -> predicate(pos.toBlockPos(), state) }, { _, _ -> })
         return receiver.mapKeys { it.key.toBlockPos() }
     }
 }
 
 /**
- * Initiates a fluid search operation in the world at the specified position using a [FluidDsl].
- * The fluid search operation is performed using the specified block of code.
+ * Searches for fluids around the player's position and applies the specified fluid operations.
  *
- * @param pos The position to start the search from. Defaults to the player's current position.
- * @param block The block of code that performs the search using the [FluidDsl].
+ * @param pos The position around which to search for fluids. Defaults to the player's current position.
+ * @param range The `x`, `y`, `z` range around the position to search for fluids.
+ * @param step The `x`, `y`, `z` step intervals at which to check for fluids.
+ * @param predicate The predicate to filter fluids.
+ * @return A map of fluid positions and their states matching the predicate within the specified range.
  */
-inline fun <reified T : Fluid> SafeContext.fluidSearch(pos: BlockPos = player.blockPos, block: (@FluidDslMarker FluidDsl<T>).() -> Unit) = FluidDsl(this, T::class, pos).apply(block)
+inline fun <reified T : Fluid> SafeContext.fluidSearch(
+    range: Vec3i,
+    step: Vec3i,
+    pos: BlockPos = player.blockPos,
+    noinline predicate: (BlockPos, FluidState) -> Boolean
+): Map<BlockPos, T> = FluidDsl(this, T::class, pos, range, step, predicate).build()
+
+/**
+ * Searches for fluids around the player's position and applies the specified fluid operations.
+ *
+ * @param pos The position around which to search for fluids. Defaults to the player's current position.
+ * @param range The range around the position to search for fluids.
+ * @param step The step intervals at which to check for fluids.
+ * @param predicate The predicate to filter fluids.
+ * @return A map of fluid positions and their states matching the predicate within the specified range.
+ */
+inline fun <reified T : Fluid> SafeContext.fluidSearch(
+    range: Int,
+    step: Int,
+    pos: BlockPos = player.blockPos,
+    noinline predicate: (BlockPos, FluidState) -> Boolean
+): Map<BlockPos, T> = fluidSearch(Vec3i(range, range, range), Vec3i(step, step, step), pos, predicate)

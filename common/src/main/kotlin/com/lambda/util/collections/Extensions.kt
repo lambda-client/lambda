@@ -23,8 +23,8 @@ inline fun <reified R, C : MutableCollection<in R>> Iterable<*>.filterPointer(
 ) {
     var index = 0
 
-    for (element in this) {
-        val fulfilled = predicate(element as R ?: continue)
+    forEach { element ->
+        val fulfilled = predicate(element as R)
 
         if (fulfilled && destination != null) {
             destination.add(element)
@@ -50,16 +50,18 @@ inline fun <reified R, C : MutableCollection<in R>> Iterable<*>.filterPointer(
  * @param predicate The predicate function that determines whether an element should be included based on its type and other criteria.
  */
 inline fun <R : Any, C : MutableCollection<in R>> Iterable<*>.filterPointer(
-    kclass: KClass<out R>,
+    kClass: KClass<out R>,
     destination: C?,
     iterator: (R) -> Unit,
     predicate: (R) -> Boolean,
 ) {
-    for (element in this) {
-        val fulfilled = kclass.isInstance(element) && predicate(element as R)
+    forEach { element ->
+        // Cannot be replaced with reified type due to type erasure
+        (element as? R) ?: return@forEach
+        val fulfilled = kClass.isInstance(element) && predicate(element)
 
         if (fulfilled && destination != null) {
-            destination.add(element as R)
+            destination.add(element)
             iterator(element)
         }
     }

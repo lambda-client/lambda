@@ -29,13 +29,10 @@ object RenderTest : Module(
 
     init {
         listener<RenderEvent.DynamicESP> {
-            entitySearch<LivingEntity> {
-                range(8)
-
-                iterator { entity ->
+            entitySearch<LivingEntity>(8.0)
+                .forEach { entity ->
                     it.renderer.build(entity.dynamicBox, filledColor, outlineColor)
                 }
-            }.build()
         }
 
         listener<RenderEvent.StaticESP> {

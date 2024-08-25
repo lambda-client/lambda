@@ -132,18 +132,14 @@ object Speed : Module(
 
         var boostAmount = 0.0
 
-        entitySearch<LivingEntity> {
-            range(3.0)
-            filter { player.boundingBox.expand(1.0) in it.boundingBox && it !is ArmorStandEntity }
-            iterator { boostAmount += 0.08 * grimEntityBoost }
-        }
+        boostAmount += entitySearch<LivingEntity>(3.0) {
+            player.boundingBox.expand(1.0) in it.boundingBox && it !is ArmorStandEntity
+        }.sumOf { 0.08 * grimEntityBoost }
 
         if (grimBoatBoost > 0.0) {
-            entitySearch<BoatEntity> {
-                range(4.0)
-                filter { player.boundingBox in it.boundingBox.expand(0.01) }
-                iterator { boostAmount += grimBoatBoost }
-            }
+            boostAmount += entitySearch<BoatEntity>(4.0) {
+                player.boundingBox in it.boundingBox.expand(0.01)
+            }.sumOf { grimBoatBoost }
         }
 
         addSpeed(boostAmount)

@@ -1,6 +1,5 @@
 package com.lambda.module.modules.movement
 
-import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
@@ -18,18 +17,20 @@ object EntityControl : Module(
 ) {
     private val forceMount by setting("Force Mount", true, description = "Attempts to force mount chested entities.").apply {
         onValueChange { _, _ ->
-            resetHorseFlags()
+            resetMounts()
         }
     }
+    private val modified = mutableSetOf<AbstractHorseEntity>()
 
     init {
         listener<TickEvent.Pre> {
-            if (forceMount) {
-                entitySearch<AbstractHorseEntity> {
-                    range(8)
-                    iterator { it.setHorseFlag(4, true) }
+            if (!forceMount) return@listener
+
+            entitySearch<AbstractHorseEntity>(8.0)
+                .forEach {
+                    it.setHorseFlag(4, true)
+                    modified.add(it)
                 }
-            }
         }
 
         listener<PacketEvent.Send.Pre> { event ->
@@ -44,14 +45,11 @@ object EntityControl : Module(
         }
 
         onDisable {
-            resetHorseFlags()
+            resetMounts()
         }
     }
 
-    fun SafeContext.resetHorseFlags() {
-        entitySearch<AbstractHorseEntity> {
-            range(8)
-            iterator { it.updateSaddle() }
-        }
+    private fun resetMounts() {
+        modified.forEach { it.updateSaddle() }
     }
 }
