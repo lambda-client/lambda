@@ -13,7 +13,7 @@ plugins {
 architectury {
     platformSetupLoomIde()
     neoForge {
-        platformPackage = "forge"
+        platformPackage = "neoforge"
     }
 }
 
