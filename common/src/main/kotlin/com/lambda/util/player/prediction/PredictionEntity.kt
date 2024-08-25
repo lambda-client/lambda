@@ -1,5 +1,6 @@
 package com.lambda.util.player.prediction
 
+import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.threading.runSafe
@@ -15,8 +16,10 @@ import com.lambda.util.math.VecUtils.times
 import com.lambda.util.player.MovementUtils.motion
 import com.lambda.util.player.MovementUtils.moveYaw
 import com.lambda.util.player.MovementUtils.movementVector
+import net.minecraft.client.input.KeyboardInput
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.enchantment.EnchantmentHelper
+import net.minecraft.enchantment.EnchantmentHelper.getSwiftSneakSpeedBoost
 import net.minecraft.entity.Entity
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.util.math.BlockPos
@@ -53,11 +56,15 @@ class PredictionEntity(val player: ClientPlayerEntity) {
     private var isJumping = false
 
     // Movement input
-    private val pressingJump = player.input.jumping
-    private val forwardMovement = player.input.movementForward.toDouble()
-    private val strafeMovement = player.input.movementSideways.toDouble()
+    private val input = KeyboardInput(mc.options).apply {
+        tick(true, 1f)
+    }
 
-    private var verticalSpeed = pressingJump.toIntSign().toDouble()
+    private val pressingJump = input.jumping
+    private val forwardMovement = input.movementForward.toDouble()
+    private val strafeMovement = input.movementSideways.toDouble()
+    private val verticalMovement = pressingJump.toIntSign().toDouble()
+
     private var forwardSpeed = forwardMovement
     private var strafeSpeed = strafeMovement
 
@@ -79,7 +86,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
         }
 
         if (isSneaking) {
-            val mod = 0.3f + EnchantmentHelper.getSwiftSneakSpeedBoost(player)
+            val mod = 0.3f + getSwiftSneakSpeedBoost(player)
             forwardSpeed *= mod
             strafeSpeed *= mod
         }
@@ -116,7 +123,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
 
     /** @see net.minecraft.entity.LivingEntity.travel */
     private fun SafeContext.travel() {
-        val travelVec = Vec3d(strafeSpeed, verticalSpeed, forwardSpeed)
+        val travelVec = Vec3d(strafeSpeed, verticalMovement, forwardSpeed)
 
         val gravity = when {
             motion.y < 0.0 && player.hasStatusEffect(StatusEffects.SLOW_FALLING) -> 0.01
