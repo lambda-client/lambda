@@ -1,6 +1,5 @@
 package com.lambda.graphics.texture
 
-import com.lambda.module.modules.client.RenderSettings
 import com.mojang.blaze3d.systems.RenderSystem
 import com.pngencoder.PngEncoder
 import net.minecraft.client.texture.NativeImage
@@ -8,15 +7,17 @@ import org.lwjgl.BufferUtils
 import org.lwjgl.opengl.GL45C.*
 import java.awt.*
 import java.awt.image.BufferedImage
-import java.io.ByteArrayOutputStream
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 object TextureUtils {
+    private const val COMPRESSION_LEVEL = 1
+    private const val THREADED_COMPRESSION = false
+
     private val metricCache = mutableMapOf<Font, FontMetrics>()
     private val encoderPreset = PngEncoder()
-        .withCompressionLevel(RenderSettings.textureCompression)
-        .withMultiThreadedCompressionEnabled(RenderSettings.threadedCompression)
+        .withCompressionLevel(COMPRESSION_LEVEL)
+        .withMultiThreadedCompressionEnabled(THREADED_COMPRESSION)
 
     fun bindTexture(id: Int, slot: Int = 0) {
         RenderSystem.activeTexture(GL_TEXTURE0 + slot)
@@ -77,7 +78,7 @@ object TextureUtils {
         if (!font.canDisplay(codePoint)) return null
 
         val fontMetrics = metricCache.getOrPut(font) {
-            val image = BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB)
+            val image = BufferedImage(COMPRESSION_LEVEL, COMPRESSION_LEVEL, BufferedImage.TYPE_INT_ARGB)
             val graphics2D = image.createGraphics()
 
             graphics2D.font = font
