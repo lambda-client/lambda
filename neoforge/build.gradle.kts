@@ -49,13 +49,13 @@ val shadowBundle: Configuration by configurations.creating {
 
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
-        forgeRuntimeLibrary(it)
+        implementation(it)
         include(it)
     }
 
     includeMod.dependencies.forEach {
-        forgeRuntimeLibrary(it)
-        include(it)
+        implementation(it)
+        // include(it)
     }
 }
 
@@ -66,7 +66,6 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
-    includeLib("dev.babbaj:nether-pathfinder:1.5")
     includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:0.15.0")
 

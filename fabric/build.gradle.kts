@@ -54,7 +54,7 @@ fun DependencyHandlerScope.setupConfigurations() {
 
     includeMod.dependencies.forEach {
         modImplementation(it)
-        include(it)
+        // include(it)
     }
 }
 
