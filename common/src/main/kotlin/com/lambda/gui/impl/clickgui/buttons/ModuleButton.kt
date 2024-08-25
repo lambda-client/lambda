@@ -174,12 +174,11 @@ class ModuleButton(
     }
 
     override fun performClickAction(e: GuiEvent.MouseClick) {
-        val sound = when (e.button) {
+        when (e.button) {
             Mouse.Button.Left -> {
                 module.toggle()
-                if (module.isEnabled) LambdaSound.MODULE_ON else LambdaSound.MODULE_OFF
-            }
 
+            }
             Mouse.Button.Right -> {
                 // Don't let user spam
                 val targetHeight = if (isOpen) settingsHeight else 0.0
@@ -189,13 +188,10 @@ class ModuleButton(
                 if (isOpen) settingsLayer.onEvent(GuiEvent.Show())
                 updateHeight()
 
-                if (isOpen) LambdaSound.SETTINGS_OPEN else LambdaSound.SETTINGS_CLOSE
+                val sound = if (isOpen) LambdaSound.SETTINGS_OPEN else LambdaSound.SETTINGS_CLOSE
+                playSoundRandomly(sound.event)
             }
-
-            else -> return
         }
-
-        playSoundRandomly(sound.event)
     }
 
     override fun equals(other: Any?) =

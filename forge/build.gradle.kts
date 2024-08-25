@@ -81,6 +81,7 @@ dependencies {
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
     includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
+    includeLib("com.pngencoder:pngencoder:0.15.0")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")

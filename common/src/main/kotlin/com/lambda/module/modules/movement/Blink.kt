@@ -14,10 +14,12 @@ import com.lambda.util.ClientPacket
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.math.ColorUtils.setAlpha
+import com.lambda.util.math.VecUtils.minus
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
+import net.minecraft.util.math.Vec3d
 import java.util.concurrent.ConcurrentLinkedDeque
 
 object Blink : Module(
@@ -61,6 +63,16 @@ object Blink : Module(
             return@listener
         }
 
+        listener<PacketEvent.Send.Post> { event ->
+            val packet = event.packet
+            if (packet !is PlayerMoveC2SPacket) return@listener
+
+            val vec = Vec3d(packet.getX(0.0), packet.getY(0.0), packet.getZ(0.0))
+            if (vec == Vec3d.ZERO) return@listener
+
+            lastBox = player.boundingBox.offset(vec - player.pos)
+        }
+
         listener<PacketEvent.Receive.Pre> { event ->
             if (!isActive || !shiftVelocity) return@listener
 
@@ -81,12 +93,6 @@ object Blink : Module(
         while (packetPool.isNotEmpty()) {
             packetPool.poll().let { packet ->
                 connection.sendPacketSilently(packet)
-
-                if (packet is PlayerMoveC2SPacket && packet.changesPosition()) {
-                    lastBox = player.boundingBox
-                        .offset(player.pos.negate())
-                        .offset(packet.getX(0.0), packet.getY(0.0), packet.getZ(0.0))
-                }
             }
         }
 

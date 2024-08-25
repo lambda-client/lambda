@@ -2,10 +2,12 @@ package com.lambda.http
 
 import com.lambda.Lambda
 import com.lambda.util.FolderRegister.cache
+import com.lambda.util.FolderRegister.createFileIfNotExists
+import com.lambda.util.FolderRegister.createIfNotExists
 import java.io.File
+import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
-import java.time.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 
@@ -33,14 +35,21 @@ data class Request(
     /**
      * Downloads the resource at the specified path and caches it for future use.
      *
-     * @param path The path to the resource.
+     * @param name The full name of the file to be cached.
      * @param maxAge The maximum age of the cached resource. Default is 4 days.
+     *
+     * @return A pair containing the cached file and a boolean indicating whether the file was downloaded.
      */
-    fun maybeDownload(path: String, maxAge: Duration = 4.days): ByteArray {
-        val file = File("${cache}/${path.substringAfterLast("/").hashCode()}")
+    fun maybeDownload(
+        name: String,
+        maxAge: Duration = 7.days,
+    ): File {
+        val (file, wasCreated) = createFileIfNotExists(name, cache, true)
 
-        if (file.exists() && Instant.now().toEpochMilli() - file.lastModified() < maxAge.inWholeMilliseconds)
-            return file.readBytes()
+        if (System.currentTimeMillis() - file.lastModified() < maxAge.inWholeMilliseconds
+            && file.length() > 0
+            && !wasCreated)
+            return file
 
         file.writeText("") // Clear the file before writing to it.
 
@@ -64,7 +73,7 @@ data class Request(
             }
         }
 
-        return file.readBytes()
+        return file
     }
 
     /**

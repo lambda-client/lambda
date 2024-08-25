@@ -26,9 +26,12 @@ object TickShift : Module(
     private val boostAmount by setting("Boost", 3.0, 1.1..20.0, 0.01)
     private val slowdown by setting("Slowdown", 0.35, 0.01..0.9, 0.01)
     private val delaySetting by setting("Delay", 0, 0..2000, 10)
-    private val strict by setting("Strict", true)
-    private val shiftVelocity by setting("Shift velocity", true)
+    private val grim by setting("Grim", true)
+    private val strictSetting by setting("Strict", true) { !grim }
+    private val shiftVelocity by setting("Shift velocity", true) { grim }
     private val requiresAura by setting("Requires Aura", false)
+
+    private val strict get() = grim || strictSetting
 
     val isActive: Boolean get() {
         if (requiresAura && (!KillAura.isEnabled || KillAura.target == null)) return false
@@ -90,7 +93,7 @@ object TickShift : Module(
         }
 
         listener<PacketEvent.Send.Pre> { event ->
-            if (!isActive) return@listener
+            if (!isActive || !grim || event.isCanceled()) return@listener
             if (event.packet !is CommonPongC2SPacket) return@listener
 
             pingPool.add(event.packet)
@@ -99,7 +102,7 @@ object TickShift : Module(
         }
 
         listener<PacketEvent.Receive.Pre> { event ->
-            if (!isActive || !shiftVelocity) return@listener
+            if (!isActive || !grim || !shiftVelocity || event.isCanceled()) return@listener
 
             if (event.packet !is EntityVelocityUpdateS2CPacket) return@listener
             if (event.packet.id != player.id) return@listener

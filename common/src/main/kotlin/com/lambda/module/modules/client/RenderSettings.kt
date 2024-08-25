@@ -28,6 +28,6 @@ object RenderSettings : Module(
 
     private enum class Page {
         Font,
-        ESP
+        ESP,
     }
 }
