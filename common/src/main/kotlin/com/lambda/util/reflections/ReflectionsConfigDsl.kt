@@ -18,6 +18,7 @@ class ReflectionConfigDsl {
     private val packages = mutableListOf<String>()
     private val scanners = mutableListOf<Scanners>()
     private val urls = mutableListOf<URL>()
+    private var inputsFilter: (String) -> Boolean = { true }
     private val classLoaders = mutableListOf<ClassLoader>()
     private var parallel = false
     private var shouldExpandSuperTypes = true
@@ -56,6 +57,17 @@ class ReflectionConfigDsl {
     }
 
     /**
+     * Sets a filter for input names.
+     *
+     * @param filter A lambda function that takes a [String] and returns a [Boolean], indicating whether the input should be included.
+     * @return The current instance of [ReflectionConfigDsl] for method chaining.
+     */
+    fun filterInputsBy(filter: (String) -> Boolean): ReflectionConfigDsl {
+        inputsFilter = filter
+        return this
+    }
+
+    /**
      * Adds class loaders to the configuration.
      *
      * @param classLoaders A vararg of [ClassLoader] to be used in the scanning process.
@@ -89,11 +101,13 @@ class ReflectionConfigDsl {
 
     /**
      * Builds a [ConfigurationBuilder] based on the current configuration.
+     *
+     * @return A [ConfigurationBuilder] configured with the specified packages, scanners, URLs, filters, and class loaders.
      */
     fun build(): ConfigurationBuilder = ConfigurationBuilder()
         .forPackages(*packages.toTypedArray())
         .addUrls(*urls.toTypedArray())
-        .filterInputsBy { it.contains("com.lambda") }
+        .filterInputsBy(inputsFilter)
         .addClassLoaders(*classLoaders.toTypedArray())
         .setExpandSuperTypes(shouldExpandSuperTypes)
 }
