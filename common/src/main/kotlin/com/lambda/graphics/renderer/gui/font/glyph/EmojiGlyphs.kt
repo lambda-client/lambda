@@ -25,10 +25,11 @@ class EmojiGlyphs(zipUrl: String) {
     private lateinit var image: BufferedImage
     private lateinit var graphics: Graphics2D
 
+    val count get() = emojiMap.size
+
     init {
         runCatching {
             downloadAndProcessZip(zipUrl)
-            LOG.info("Loaded ${emojiMap.size} emojis")
         }.onFailure {
             LOG.error("Failed to load emojis: ${it.message}", it)
             fontTexture = MipmapTexture(BufferedImage(1024, 1024, BufferedImage.TYPE_INT_ARGB))

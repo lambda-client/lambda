@@ -18,10 +18,6 @@ object RenderSettings : Module(
     val baselineOffset by setting("Vertical Offset", 0.0, -10.0..10.0, 0.5) { page == Page.Font }
     private val lodBiasSetting by setting("Smoothing", 0.0, -10.0..10.0, 0.5) { page == Page.Font }
 
-    // Texture
-    val textureCompression by setting("Compression", 1, 1..9, 1, description = "Texture compression level, higher is slower") { page == Page.TEXTURE }
-    val threadedCompression by setting("Threaded Compression", false, description = "Use multiple threads for texture compression") { page == Page.TEXTURE }
-
     // ESP
     val uploadsPerTick by setting("Uploads", 16, 1..256, 1, unit = " chunk/tick") { page == Page.ESP }
     val rebuildsPerTick by setting("Rebuilds", 64, 1..256, 1, unit = " chunk/tick") { page == Page.ESP }
@@ -32,7 +28,6 @@ object RenderSettings : Module(
 
     private enum class Page {
         Font,
-        TEXTURE,
         ESP,
     }
 }
