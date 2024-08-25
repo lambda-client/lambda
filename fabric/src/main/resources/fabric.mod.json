@@ -30,6 +30,7 @@
     "fabric-api": ">=${fabricApiVersion}+${minecraftVersion}",
     "minecraft": "~${minecraftVersion}",
     "fabric-language-kotlin": ">=${kotlinFabricVersion}",
-    "java": ">=${javaVersion}"
+    "java": ">=${javaVersion}",
+    "baritone": ">=${baritoneVersion}"
   }
 }

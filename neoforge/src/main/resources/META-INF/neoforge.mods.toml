@@ -39,3 +39,10 @@ type = "required"
 versionRange = "[${kotlinForgeVersionMin},${kotlinForgeVersionMax}]"
 ordering = "NONE"
 side = "CLIENT"
+
+[[dependencies.${modId}]]
+modId = "baritoe" # Baritone decided to do this, jesus fucking christ
+mandatory = true
+versionRange = "[${baritoneVersion},]"
+ordering = "NONE"
+side = "CLIENT"
