@@ -12,12 +12,14 @@ import net.minecraft.util.Identifier
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.common.Mod.EventBusSubscriber
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
 import net.neoforged.neoforge.registries.RegisterEvent
 
 @Mod(Lambda.MOD_ID)
 @EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD)
 object LambdaNeoForge {
-    init {
+    @SubscribeEvent
+    fun onClient(event: FMLClientSetupEvent) {
         Lambda.initialize()
         LOG.info("$MOD_NAME Forge $VERSION initialized.")
     }
