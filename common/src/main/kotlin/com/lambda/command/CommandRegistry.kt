@@ -14,9 +14,17 @@ import org.reflections.util.ConfigurationBuilder
  */
 object CommandRegistry : Configurable(LambdaConfig), Loadable {
     override val name = "command"
-
     val prefix by setting("prefix", ';')
-    val commands = getInstances<LambdaCommand> { forPackages("com.lambda.command.commands") }
+
+    private val extraPackages = mutableSetOf<String>()
+    val commands = getInstances<LambdaCommand> { forPackages("com.lambda.command.commands", *extraPackages.toTypedArray()) }
+
+    /**
+     * Injects a package into the [CommandRegistry] for scanning.
+     *
+     * @param packageName The package to inject into the [CommandRegistry].
+     */
+    fun injectPath(packageName: String) = extraPackages.add(packageName)
 
     override fun load(): String {
         return "Registered ${commands.size} commands"
