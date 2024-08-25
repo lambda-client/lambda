@@ -7,7 +7,7 @@ val discordIPCVersion: String by project
 base.archivesName = "${base.archivesName.get()}-neoforge"
 
 plugins {
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.github.johnrengelman.shadow") version "8.3.0"
 }
 
 architectury {
