@@ -14,7 +14,7 @@ import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener
-import com.lambda.gui.impl.clickgui.LambdaClickGui
+import com.lambda.gui.api.LambdaGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.tag.ModuleTag
@@ -118,7 +118,7 @@ abstract class Module(
             if (event.translated == keybind
                 && !mc.options.commandKey.isPressed
                 && (screen == null
-                        || screen is LambdaClickGui)
+                        || screen !is LambdaGui)
             ) toggle()
         }
 
