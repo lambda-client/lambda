@@ -34,7 +34,7 @@ ordering = "NONE"
 side = "CLIENT"
 
 [[dependencies.${modId}]]
-modId = "baritoe" # Baritone decided to do this, jesus fucking christ
+modId = "baritoe"
 mandatory = true
 versionRange = "[${baritoneVersion},]"
 ordering = "NONE"
