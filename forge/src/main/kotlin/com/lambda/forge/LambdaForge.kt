@@ -9,15 +9,16 @@ import com.lambda.core.registry.RegistryWrapper
 import net.minecraft.registry.Registry
 import net.minecraft.registry.entry.RegistryEntry
 import net.minecraft.util.Identifier
+import net.minecraftforge.common.ForgeConfig
 import net.minecraftforge.eventbus.api.SubscribeEvent
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
 import net.minecraftforge.registries.RegisterEvent
+import thedarkcolour.kotlinforforge.forge.MOD_BUS
 
 
 @Mod(Lambda.MOD_ID)
-@EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD)
 object LambdaForge {
     @SubscribeEvent
     fun onClient(event: FMLClientSetupEvent) {
@@ -32,5 +33,9 @@ object LambdaForge {
                 return Registry.registerReference(event.getVanillaRegistry(), id, value)
             }
         })
+    }
+
+    init {
+        MOD_BUS.register(this)
     }
 }
