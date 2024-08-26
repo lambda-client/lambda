@@ -57,12 +57,6 @@ jobs:
           name: lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}
           path: forge/build/libs/
 
-      - name: Upload Lambda NeoForge
-        uses: actions/upload-artifact@v4.3.6
-        with:
-          name: lambda-neoforge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}
-          path: neoforge/build/libs/
-
       - name: Upload Lambda API
         uses: actions/upload-artifact@v4.3.6
         with:
@@ -89,4 +83,3 @@ jobs:
           files: |
             fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
             forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
-            neoforge/build/libs/lambda-neoforge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
