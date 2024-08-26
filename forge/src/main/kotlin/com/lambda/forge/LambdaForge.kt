@@ -9,7 +9,8 @@ import com.lambda.core.registry.RegistryWrapper
 import net.minecraft.registry.Registry
 import net.minecraft.registry.entry.RegistryEntry
 import net.minecraft.util.Identifier
-import net.minecraftforge.common.ForgeConfig
+import net.minecraftforge.api.distmarker.Dist
+import net.minecraftforge.api.distmarker.OnlyIn
 import net.minecraftforge.eventbus.api.SubscribeEvent
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber
@@ -19,6 +20,7 @@ import thedarkcolour.kotlinforforge.forge.MOD_BUS
 
 
 @Mod(Lambda.MOD_ID)
+@OnlyIn(Dist.CLIENT)
 object LambdaForge {
     @SubscribeEvent
     fun onClient(event: FMLClientSetupEvent) {
