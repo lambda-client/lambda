@@ -4,7 +4,7 @@ val kotlinVersion: String by project
 val kotlinxCoroutinesVersion: String by project
 val discordIPCVersion: String by project
 
-architectury { common("fabric", "forge", "neoforge") }
+architectury { common("fabric", "forge") }
 
 loom {
     silentMojangMappingsLicense()
