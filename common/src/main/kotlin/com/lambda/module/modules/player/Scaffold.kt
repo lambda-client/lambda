@@ -116,12 +116,6 @@ object Scaffold : Module(
         }
 
         listener<TickEvent.Pre> {
-            currentRotation.rayCast(interactionConfig.reach)?.blockResult?.let {
-                if (player.age % 2 == 0) return@let
-                val pos = BlockPos.ofFloored(player.pos.x, (floor(player.pos.y) - 0.00001), player.pos.z)
-                if (it.pos == pos && it.side == Direction.UP) interaction.interactBlock(player, Hand.MAIN_HAND, it)
-            }
-
             placeInfo?.let { info ->
                 tickPlacement(info)
             }
