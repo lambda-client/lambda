@@ -20,8 +20,8 @@ import com.lambda.threading.runSafe
 import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
-import com.lambda.util.primitives.extension.partialTicks
-import com.lambda.util.primitives.extension.rotation
+import com.lambda.util.extension.partialTicks
+import com.lambda.util.extension.rotation
 import net.minecraft.client.input.Input
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import kotlin.math.*
@@ -30,7 +30,7 @@ object RotationManager : Loadable {
     var currentRotation = Rotation.ZERO
     var prevRotation = Rotation.ZERO
 
-    private var currentContext: RotationContext? = null
+    var currentContext: RotationContext? = null
 
     private var keepTicks = 0
     private var pauseTicks = 0

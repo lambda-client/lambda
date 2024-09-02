@@ -1,4 +1,4 @@
-package com.lambda.util.primitives.extension
+package com.lambda.util.extension
 
 import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d

@@ -1,11 +1,11 @@
 name: Pull Request Labeler
 on:
   issues:
-    types: [opened, edited]
+    types: [opened]
     branches:
       - master
   pull_request:
-    types: [opened, edited]
+    types: [opened]
     branches:
       - master
 
@@ -15,14 +15,16 @@ permissions:
   pull-requests: write
 
 jobs:
-  triage:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: github/issue-labeler@v3.4
+      - name: Check Out Repository
+        uses: actions/checkout@v3
+      - name: Labeler
+        uses: srvaroa/labeler@master
         with:
-          configuration-path: .github/workflows/labeler/labeler-config.yml
-          enable-versioned-regex: 0
-          sync-labels: 0
-          include-title: 1
-          include-body: 0
-          repo-token: ${{ github.token }}
+          config_path: .github/workflows/labeler/labeler-config.yml
+          use_local_config: false
+          fail_on_error: true
+        env:
+          GITHUB_TOKEN: "${{ github.token }}"

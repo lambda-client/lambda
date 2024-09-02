@@ -2,9 +2,9 @@ package com.lambda.graphics.renderer.esp
 
 import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.math.VecUtils.plus
-import com.lambda.util.primitives.extension.max
-import com.lambda.util.primitives.extension.min
-import com.lambda.util.primitives.extension.prevPos
+import com.lambda.util.extension.max
+import com.lambda.util.extension.min
+import com.lambda.util.extension.prevPos
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Box
 

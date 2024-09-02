@@ -1,5 +1,6 @@
 package com.lambda.util.math
 
+import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
 object ColorUtils {
@@ -13,4 +14,7 @@ object ColorUtils {
     val Color.g get() = green.toDouble() / 255.0
     val Color.b get() = blue.toDouble() / 255.0
     val Color.a get() = alpha.toDouble() / 255.0
+
+    @JvmStatic
+    val Color.vec3d get() = Vec3d(r, g, b)
 }
