@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Objects;
 
@@ -65,11 +66,22 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         return EventFlow.post(new MovementEvent.Sprint(entity.isSprinting())).getSprint();
     }
 
+    @Inject(method = "isSneaking", at = @At(value = "HEAD"), cancellable = true)
+    void redirectSneaking(CallbackInfoReturnable<Boolean> cir) {
+        ClientPlayerEntity self = (ClientPlayerEntity) (Object) this;
+        if (self != Lambda.getMc().player) return;
+
+        if (self.input == null) return;
+        cir.setReturnValue(EventFlow.post(new MovementEvent.Sneak(self.input.sneaking)).getSneak());
+    }
+
     @Inject(method = "sendMovementPackets", at = @At(value = "HEAD"), cancellable = true)
     void sendBegin(CallbackInfo ci) {
         ci.cancel();
         PlayerPacketManager.sendPlayerPackets();
         autoJumpEnabled = Lambda.getMc().options.getAutoJump().getValue();
+
+        RotationManager.update();
     }
 
     @Inject(method = "tick", at = @At(value = "HEAD"))

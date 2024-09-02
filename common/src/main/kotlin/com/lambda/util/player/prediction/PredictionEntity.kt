@@ -6,11 +6,9 @@ import com.lambda.interaction.rotation.Rotation
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.flooredPos
-import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.MathUtils.toIntSign
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.VecUtils
-import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.math.VecUtils.plus
 import com.lambda.util.math.VecUtils.times
 import com.lambda.util.player.MovementUtils.motion
@@ -18,15 +16,12 @@ import com.lambda.util.player.MovementUtils.moveYaw
 import com.lambda.util.player.MovementUtils.movementVector
 import net.minecraft.client.input.KeyboardInput
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.enchantment.EnchantmentHelper.getSwiftSneakSpeedBoost
 import net.minecraft.entity.Entity
 import net.minecraft.entity.effect.StatusEffects
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import kotlin.math.abs
-import kotlin.math.floor
 
 // Todo: any player entity support
 class PredictionEntity(val player: ClientPlayerEntity) {
@@ -70,7 +65,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
 
     // Other shit
     private var jumpingCooldown = player.jumpingCooldown
-    private var velocityAffectingPos = (player.pos - VecUtils.DOWN * 0.001).flooredPos
+    private var velocityAffectingPos = player.supportingBlockPos.orElse((position + VecUtils.DOWN * 0.001).flooredPos)
 
     private var horizontalCollision = player.horizontalCollision
     private var verticalCollision = player.verticalCollision
@@ -201,8 +196,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
             boundingBox = normalized.offset(position)
         }
 
-        val y = (floor(position.y) - 0.00001).floorToInt()
-        velocityAffectingPos = BlockPos(position.x.floorToInt(), y, position.z.floorToInt())
+        velocityAffectingPos = (position + VecUtils.DOWN * 0.001).flooredPos
     }
 
     /** @see net.minecraft.entity.LivingEntity.jump */
@@ -212,7 +206,6 @@ class PredictionEntity(val player: ClientPlayerEntity) {
             motion += movementVector(yawRad, 0.0) * 0.2
         }
 
-        /** @see net.minecraft.entity.Entity.getJumpVelocityMultiplier */
         /** @see net.minecraft.entity.Entity.getJumpVelocityMultiplier */
         val jumpHeight = run {
             val f = position.flooredPos.blockState(world).block.jumpVelocityMultiplier.toDouble()

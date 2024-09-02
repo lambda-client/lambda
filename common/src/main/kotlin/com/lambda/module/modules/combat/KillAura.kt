@@ -103,11 +103,6 @@ object KillAura : Module(
                 target?.let { target ->
                     buildRotation(target)
                 }
-            },
-            onReceive = {
-                target?.let { entity ->
-                    runAttack(entity)
-                }
             }
         )
 
@@ -121,10 +116,8 @@ object KillAura : Module(
             target = targeting.getTarget()
             if (!timerSync) attackTicks++
 
-            if (!rotate) {
-                target?.let { entity ->
-                    runAttack(entity)
-                }
+            target?.let { entity ->
+                runAttack(entity)
             }
         }
 
@@ -233,7 +226,7 @@ object KillAura : Module(
             // Get visible point set
             val validHits = mutableMapOf<Vec3d, Rotation>()
 
-            scanVisibleSurfaces(eye, box, emptySet(), interactionSettings.resolution) { _, vec ->
+            scanVisibleSurfaces(eye, box, resolution = interactionSettings.resolution) { _, vec ->
                 if (eye distSq vec > reachSq) return@scanVisibleSurfaces
 
                 val newRotation = eye.rotationTo(vec)

@@ -21,6 +21,7 @@ abstract class MovementEvent : Event {
     ) : MovementEvent()
 
     class Sprint(var sprint: Boolean) : MovementEvent()
+    class Sneak(var sneak: Boolean) : MovementEvent()
 
     class ClipAtLedge(
         var clip: Boolean,

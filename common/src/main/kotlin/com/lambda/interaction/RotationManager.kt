@@ -162,23 +162,20 @@ object RotationManager : Loadable {
     @JvmStatic
     val movementYaw: Float?
         get() {
-            val config = currentContext?.config ?: return null
-            if (config.rotationMode == RotationMode.SILENT) return null
+            if (currentContext?.config?.rotationMode == RotationMode.SILENT) return null
             return currentRotation.yaw.toFloat()
         }
 
     @JvmStatic
     val movementPitch: Float?
         get() {
-            val config = currentContext?.config ?: return null
-            if (config.rotationMode == RotationMode.SILENT) return null
+            if (currentContext?.config?.rotationMode == RotationMode.SILENT) return null
             return currentRotation.pitch.toFloat()
         }
 
     @JvmStatic
     fun getRotationForVector(deltaTime: Double): Vec2d? {
-        val config = currentContext?.config ?: return null
-        if (config.rotationMode == RotationMode.SILENT) return null
+        if (currentContext?.config?.rotationMode == RotationMode.SILENT) return null
 
         val rot = lerp(prevRotation, currentRotation, deltaTime)
         return Vec2d(rot.yaw, rot.pitch)

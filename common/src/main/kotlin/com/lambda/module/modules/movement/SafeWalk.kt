@@ -32,7 +32,7 @@ object SafeWalk : Module(
             var dx = deltaX
             var dz = deltaZ
             while (dx != 0.0 || dz != 0.0) {
-                if (world.isSpaceEmpty(this, boundingBox.offset(dx, -stepHeight, dz))) {
+                if (world.isBlockSpaceEmpty(this, boundingBox.offset(dx, -stepHeight, dz))) {
                     return true
                 }
                 if (dx != 0.0) dx = adjustDelta(dx)

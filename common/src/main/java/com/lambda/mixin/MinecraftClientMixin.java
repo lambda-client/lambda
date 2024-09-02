@@ -2,11 +2,7 @@ package com.lambda.mixin;
 
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
-import com.lambda.event.events.ClientEvent;
-import com.lambda.event.events.ScreenEvent;
-import com.lambda.event.events.ScreenHandlerEvent;
-import com.lambda.event.events.TickEvent;
-import com.lambda.interaction.RotationManager;
+import com.lambda.event.events.*;
 import com.lambda.module.modules.player.Interact;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
@@ -32,11 +28,6 @@ public class MinecraftClientMixin {
     @Inject(method = "tick", at = @At("RETURN"))
     void onTickPost(CallbackInfo ci) {
         EventFlow.post(new TickEvent.Post());
-    }
-
-    @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/DebugHud;shouldShowDebugHud()Z"))
-    void onInteractionPostEvent(CallbackInfo ci) {
-        RotationManager.update();
     }
 
     @Inject(method = "render", at = @At("HEAD"))

@@ -3,6 +3,7 @@ package com.lambda.interaction.blockplace
 import com.lambda.context.SafeContext
 import com.lambda.util.Communication.info
 import net.minecraft.block.*
+import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
@@ -12,9 +13,10 @@ object PlaceInteraction {
     fun SafeContext.placeBlock(result: BlockHitResult, hand: Hand, swing: Boolean) {
         val actionResult = interaction.interactBlock(player, hand, result)
 
-        if (!actionResult.isAccepted) {
-            info("Internal interaction failed with $actionResult")
-            return
+        when (actionResult) {
+            ActionResult.PASS -> info("Internal interaction skipped")
+            ActionResult.FAIL -> info("Internal interaction failed")
+            else -> {}
         }
 
         if (!swing) return

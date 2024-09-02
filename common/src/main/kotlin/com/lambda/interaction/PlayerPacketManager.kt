@@ -97,15 +97,12 @@ object PlayerPacketManager : Loadable {
             else -> null
         }
 
-        if (updatePosition) {
-            sendTicks = 0
-        }
-
         packet?.let {
             PlayerPacketEvent.Send(it).postChecked {
                 connection.sendPacket(this.packet)
 
                 if (updatePosition) {
+                    sendTicks = 0
                     lastPosition = position
                 }
 
