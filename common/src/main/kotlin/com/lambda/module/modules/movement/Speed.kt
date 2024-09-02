@@ -12,6 +12,7 @@ import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Nameable
+import com.lambda.util.extension.contains
 import com.lambda.util.player.MovementUtils.addSpeed
 import com.lambda.util.player.MovementUtils.calcMoveYaw
 import com.lambda.util.player.MovementUtils.handledByBaritone
@@ -22,7 +23,6 @@ import com.lambda.util.player.MovementUtils.newMovementInput
 import com.lambda.util.player.MovementUtils.roundedForward
 import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.setSpeed
-import com.lambda.util.extension.contains
 import com.lambda.util.world.WorldUtils.getFastEntities
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.ArmorStandEntity
@@ -56,6 +56,8 @@ object Speed : Module(
     private val rotationConfig = object : IRotationConfig.Instant {
         override val rotationMode = RotationMode.SYNC
     }
+
+    private var prevTickJumping = false
 
     // NCP
     const val NCP_BASE_SPEED = 0.2873
@@ -100,11 +102,17 @@ object Speed : Module(
         }
 
         listener<MovementEvent.Jump> {
-            if (!shouldWork()) return@listener
+            if (mode == Mode.NCP_STRAFE && shouldWork()) it.cancel()
+        }
 
-            when (mode) {
-                Mode.NCP_STRAFE -> it.cancel()
-                else -> {}
+        listener<MovementEvent.InputUpdate>(Int.MIN_VALUE) {
+            if (mode != Mode.GRIM_STRAFE || !shouldWork()) return@listener
+
+            // Delay jumping key state by 1 tick to let the rotation predict jump timing
+            it.input.apply {
+                val jump = jumping
+                jumping = prevTickJumping
+                prevTickJumping = jump
             }
         }
 
@@ -112,7 +120,6 @@ object Speed : Module(
             onUpdate = { lastContext ->
                 if (mode != Mode.GRIM_STRAFE) return@requestRotation null
                 if (!shouldWork()) return@requestRotation null
-                if (player.input.handledByBaritone || TargetStrafe.isActive) return@requestRotation null
 
                 var yaw = player.yaw
                 val input = newMovementInput()
@@ -121,7 +128,6 @@ object Speed : Module(
 
                 run {
                     if (!diagonal) return@run
-
                     if (player.isOnGround && input.jumping) return@run
 
                     val forward = input.roundedForward.toFloat()
@@ -215,12 +221,18 @@ object Speed : Module(
         setSpeed(moveSpeed)
     }
 
-    private fun SafeContext.shouldWork() =
-        !player.abilities.flying
-                && !player.isFallFlying
-                && !player.input.sneaking
-                && !player.isTouchingWater
-                && !player.isInLava
+    private fun SafeContext.shouldWork(): Boolean {
+        if (player.abilities.flying || player.isFallFlying || player.isTouchingWater || player.isInLava) return false
+
+        return when (mode) {
+            Mode.GRIM_STRAFE -> {
+                !player.input.handledByBaritone && !TargetStrafe.isActive
+            }
+            Mode.NCP_STRAFE -> {
+                !player.isSneaking
+            }
+        }
+    }
 
     private fun reset() {
         ncpPhase = NCPPhase.SLOWDOWN
