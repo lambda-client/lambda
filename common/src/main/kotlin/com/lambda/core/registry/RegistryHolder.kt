@@ -15,11 +15,11 @@ class RegistryHolder<T> internal constructor(
         with(holder) {
             checkNotNull(this) { "RegistryHolder not populated" }
 
-            return this.value()
+            return value()
         }
     }
 
     fun handleRegister(registry: RegistryWrapper<*>) {
-        this.holder = registry.registerForHolder(id, value)
+        holder = registry.registerForHolder(id, value)
     }
 }

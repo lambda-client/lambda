@@ -4,12 +4,8 @@ import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.MOD_NAME
 import com.lambda.Lambda.VERSION
-import com.lambda.core.registry.RegistryController
-import com.lambda.core.registry.RegistryWrapper
+import com.lambda.core.registry.AgnosticRegistries
 import com.lambda.graphics.RenderMain
-import net.minecraft.registry.Registry
-import net.minecraft.registry.entry.RegistryEntry
-import net.minecraft.util.Identifier
 import net.minecraftforge.api.distmarker.Dist
 import net.minecraftforge.api.distmarker.OnlyIn
 import net.minecraftforge.client.event.RenderGuiEvent
@@ -30,14 +26,9 @@ object LambdaForge {
         LOG.info("$MOD_NAME Forge $VERSION initialized.")
     }
 
+    // Forge forces the user to user their event in order to interact with registries.
     @SubscribeEvent
-    fun onRegistrySetup(event: RegisterEvent) {
-        RegistryController.register(event.registryKey, object : RegistryWrapper<Any> {
-            override fun <T> registerForHolder(id: Identifier?, value: T): RegistryEntry<T> {
-                return Registry.registerReference(event.getVanillaRegistry(), id, value)
-            }
-        })
-    }
+    fun onRegistrySetup(event: RegisterEvent) = AgnosticRegistries.dump(event.getVanillaRegistry<Any>())
 
     // Most events here are hooked due to forge not caring about others
     // and directly patching the minecraft classes.
