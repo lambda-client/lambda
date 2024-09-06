@@ -65,6 +65,7 @@ allprojects {
     base.archivesName = modId
 
     repositories {
+        mavenLocal() // Allow the use of local repositories
         maven("https://maven.shedaniel.me/") // Architectury
         maven("https://maven.terraformersmc.com/releases/")
         maven("https://babbaj.github.io/maven/") // Baritone
