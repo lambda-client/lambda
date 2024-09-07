@@ -19,7 +19,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.math.MathUtils.random
 import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.math.VecUtils.minus
@@ -196,13 +196,13 @@ object KillAura : Module(
         )
 
         val random = Vec3d(
-            lerp(box.minX, box.maxX, shakeRandom.x),
-            lerp(box.minY, box.maxY, shakeRandom.x),
-            lerp(box.minZ, box.maxZ, shakeRandom.x)
+            lerp(shakeRandom.x, box.minX, box.maxX),
+            lerp(shakeRandom.x, box.minY, box.maxY),
+            lerp(shakeRandom.x, box.minZ, box.maxZ)
         )
 
-        vec = lerp(vec, box.center, centerFactor) // Mix with center
-        vec = lerp(vec, random, shakeFactor) // Apply shaking
+        vec = lerp(centerFactor, vec, box.center) // Mix with center
+        vec = lerp(shakeFactor, vec, random) // Apply shaking
 
         // Raycast
         run {

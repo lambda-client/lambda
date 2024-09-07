@@ -1,7 +1,7 @@
 package com.lambda.graphics.animation
 
 import com.lambda.Lambda.mc
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.extension.partialTicks
 import kotlin.math.abs
 import kotlin.reflect.KProperty
@@ -11,7 +11,7 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
     private var currValue = initialValue
 
     operator fun getValue(thisRef: Any?, property: KProperty<*>) =
-        lerp(prevValue, currValue, mc.partialTicks)
+        lerp(mc.partialTicks, prevValue, currValue)
 
     operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: Double) = setValue(valueIn)
 
@@ -38,7 +38,6 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
         fun AnimationTicker.exp(target: () -> Double, speed: Double) =
             exp(target, target, { speed }, { true })
 
-        @Suppress("NAME_SHADOWING")
         fun AnimationTicker.exp(min: () -> Double, max: () -> Double, speed: () -> Double, flag: () -> Boolean) =
             Animation(min()) {
                 val min = min()
@@ -46,7 +45,7 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
                 val target = if (flag()) max else min
 
                 if (abs(target - it) < CLAMP * abs(max - min)) target
-                else lerp(it, target, speed())
+                else lerp(speed(), it, target)
             }.apply(::register)
 
         // Exponent animation never reaches target value
