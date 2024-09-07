@@ -151,34 +151,34 @@ fun lerp(value: Double, start: Color, end: Color) =
  * Performs linear interpolation between two Double values.
  *
  * This function calculates the value at a specific point
- * between [start] and [end] based on the interpolation factor [factor].
- * The interpolation factor [factor] is clamped between zero
+ * between [start] and [end] based on the interpolation factor [value].
+ * The interpolation factor [value] is clamped between zero
  * and one to ensure the result stays within the range of [start] and [end].
  *
  * @param start The start value.
  * @param end The end value.
- * @param factor The interpolation factor, typically between 0 (representing [start]) and 1 (representing [end]).
+ * @param value The interpolation factor, typically between 0 (representing [start]) and 1 (representing [end]).
  * @return The interpolated value between [start] and [end].
  */
-fun lerp(factor: Double, start: Double, end: Double) =
-    start + (end - start) * factor.coerceIn(0.0, 1.0)
+fun lerp(value: Double, start: Double, end: Double) =
+    transform(value.coerceIn(0.0, 1.0), 0.0, 1.0, start, end)
 
 /**
  * Performs linear interpolation between two Float values.
  *
  * This function calculates the value at a specific point
- * between [start] and [end] based on the interpolation factor [factor].
- * The interpolation factor [factor] is clamped between zero
+ * between [start] and [end] based on the interpolation factor [value].
+ * The interpolation factor [value] is clamped between zero
  * and one to ensure the result stays within the range of [start] and [end].
  *
  * @param start The start value.
  * @param end The end value.
- * @param factor The interpolation factor, typically between 0 (representing [start]) and 1 (representing [end]).
+ * @param value The interpolation factor, typically between 0 (representing [start]) and 1 (representing [end]).
  *
  * @return The interpolated value between [start] and [end].
  */
-fun lerp(factor: Float, start: Float, end: Float) =
-    start + (end - start) * factor.coerceIn(0f, 1f)
+fun lerp(value: Float, start: Float, end: Float) =
+    transform(value.coerceIn(0f, 1f), 0f, 1f, start, end)
 
 /**
  * Converts a value from one range to another while keeping the ratio using linear map.
