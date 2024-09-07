@@ -1,7 +1,6 @@
 package com.lambda.core.registry
 
 import com.lambda.util.Communication.warn
-import jdk.internal.org.jline.keymap.KeyMap.key
 import net.minecraft.registry.Registry
 import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.entry.RegistryEntry

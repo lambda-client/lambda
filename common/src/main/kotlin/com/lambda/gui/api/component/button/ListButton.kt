@@ -4,11 +4,11 @@ import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.module.modules.client.ClickGui
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.math.Vec2d
 
 abstract class ListButton(owner: ChildLayer.Drawable<*, *>) : ButtonComponent(owner) {
-    override val position get() = Vec2d(0.0, lerp(0.0, renderHeightOffset, owner.childShowAnimation))
+    override val position get() = Vec2d(0.0, lerp(owner.childShowAnimation, 0.0, renderHeightOffset))
     override val size get() = Vec2d(FILL_PARENT, ClickGui.buttonHeight)
 
     open val listStep get() = ClickGui.buttonStep

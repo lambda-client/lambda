@@ -2,7 +2,7 @@ package com.lambda.module.modules.render
 
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.ColorUtils.vec3d
+import com.lambda.util.math.asVec3d
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
@@ -26,5 +26,5 @@ object WorldColors : Module(
 
     @JvmStatic
     fun backgroundColor(base: Vec3d) =
-        if (customFog && isEnabled) fogColor.vec3d else base
+        if (customFog && isEnabled) fogColor.asVec3d else base
 }

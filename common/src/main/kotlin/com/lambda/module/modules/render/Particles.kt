@@ -21,8 +21,7 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.GuiSettings.colorSpeed
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.ColorUtils.multAlpha
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.math.MathUtils.random
 import com.lambda.util.math.VecUtils
 import com.lambda.util.math.VecUtils.plus
@@ -30,6 +29,7 @@ import com.lambda.util.math.VecUtils.times
 import com.lambda.util.math.transform
 import com.lambda.util.player.MovementUtils.moveDelta
 import com.lambda.util.extension.partialTicks
+import com.lambda.util.math.multAlpha
 import com.lambda.util.world.raycast.RayCastMask
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d
@@ -176,10 +176,10 @@ object Particles : Module(
             }
 
             val (c1, c2) = GuiSettings.primaryColor to GuiSettings.secondaryColor
-            val color = lerp(c1, c2, sin(colorTicks) * 0.5 + 0.5).multAlpha(alpha * alphaSetting)
+            val color = lerp(sin(colorTicks) * 0.5 + 0.5, c1, c2).multAlpha(alpha * alphaSetting)
 
-            val position = lerp(prevPos, position, mc.partialTicks)
-            val size = if (lay) environmentSize else sizeSetting * lerp(0.5, 1.0, alpha)
+            val position = lerp(mc.partialTicks, prevPos, position)
+            val size = if (lay) environmentSize else sizeSetting * lerp(alpha, 0.5, 1.0)
 
             withVertexTransform(buildWorldProjection(position, size, projRotation)) {
                 vao.use {

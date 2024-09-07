@@ -1,7 +1,7 @@
 package com.lambda.gui.api.component.core
 
 import com.lambda.module.modules.client.ClickGui
-import com.lambda.util.math.MathUtils.coerceIn
+import com.lambda.util.math.coerceIn
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d

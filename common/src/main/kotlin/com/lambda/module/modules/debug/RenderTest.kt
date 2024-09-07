@@ -6,7 +6,7 @@ import com.lambda.graphics.renderer.esp.DynamicAABB.Companion.dynamicBox
 import com.lambda.graphics.renderer.esp.builders.build
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.ColorUtils.setAlpha
+import com.lambda.util.math.setAlpha
 import com.lambda.util.world.entitySearch
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.Box

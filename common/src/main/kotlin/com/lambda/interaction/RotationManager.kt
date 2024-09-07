@@ -17,7 +17,7 @@ import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
 import com.lambda.util.extension.partialTicks
@@ -132,7 +132,7 @@ object RotationManager : Loadable {
 
     private val smoothRotation
         get() =
-            lerp(prevRotation, currentRotation, mc.partialTicks)
+            lerp(mc.partialTicks, prevRotation, currentRotation)
 
     @JvmStatic
     val lockRotation
@@ -180,7 +180,7 @@ object RotationManager : Loadable {
         val config = currentContext?.config ?: return null
         if (config.rotationMode == RotationMode.SILENT) return null
 
-        val rot = lerp(prevRotation, currentRotation, deltaTime)
+        val rot = lerp(deltaTime, prevRotation, currentRotation)
         return Vec2d(rot.yaw, rot.pitch)
     }
 
