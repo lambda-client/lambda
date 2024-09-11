@@ -22,8 +22,9 @@ import thedarkcolour.kotlinforforge.forge.MOD_BUS
 object LambdaForge {
     @SubscribeEvent
     fun onClient(event: FMLClientSetupEvent) {
-        Lambda.initialize()
-        LOG.info("$MOD_NAME Forge $VERSION initialized.")
+        Lambda.initialize {
+            LOG.info("$MOD_NAME Forge $VERSION initialized.")
+        }
     }
 
     // Forge forces the user to user their event in order to interact with registries.
