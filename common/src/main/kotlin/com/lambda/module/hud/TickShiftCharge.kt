@@ -7,7 +7,7 @@ import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.GuiSettings.primaryColor
 import com.lambda.module.modules.movement.TickShift
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.ColorUtils.multAlpha
+import com.lambda.util.math.multAlpha
 import com.lambda.util.math.Rect
 import java.awt.Color
 

@@ -1,6 +1,11 @@
 package com.lambda.util.math
 
 import com.lambda.util.math.MathUtils.sq
+import com.lambda.util.world.FastVector
+import com.lambda.util.world.x
+import com.lambda.util.world.y
+import com.lambda.util.world.z
+import net.minecraft.entity.Entity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
@@ -29,6 +34,10 @@ object VecUtils {
     infix fun Vec3i.distSq(other: Vec3d): Double = Vec3d.of(this) distSq other
 
     infix fun Vec3i.distSq(other: Vec3i): Int = (this.x - other.x).sq + (this.y - other.y).sq + (this.z - other.z).sq
+
+    infix fun Entity.distSq(other: Vec3d): Double = this.pos distSq other
+
+    infix fun Entity.distSq(other: Vec3i): Int = this.blockPos distSq other
 
     infix operator fun Vec3d.plus(other: Vec3d): Vec3d = this.add(other)
 

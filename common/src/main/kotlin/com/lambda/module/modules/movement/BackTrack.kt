@@ -16,11 +16,11 @@ import com.lambda.util.ClientPacket
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.ServerPacket
-import com.lambda.util.math.ColorUtils.multAlpha
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.math.VecUtils.dist
 import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.math.VecUtils.plus
+import com.lambda.util.math.multAlpha
 import net.minecraft.entity.LivingEntity
 import net.minecraft.network.packet.s2c.play.EntityAnimationS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket
@@ -100,7 +100,7 @@ object BackTrack : Module(
             val c1 = GuiSettings.primaryColor
             val c2 = Color.RED
             val p = target.hurtTime / 10.0
-            val c = lerp(c1, c2, p)
+            val c = lerp(p, c1, c2)
 
             it.renderer.build(box, c.multAlpha(0.3), c.multAlpha(0.8))
         }

@@ -23,7 +23,8 @@ import com.lambda.util.player.MovementUtils.newMovementInput
 import com.lambda.util.player.MovementUtils.roundedForward
 import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.setSpeed
-import com.lambda.util.world.WorldUtils.getFastEntities
+import com.lambda.util.extension.contains
+import com.lambda.util.world.entitySearch
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.ArmorStandEntity
 import net.minecraft.entity.vehicle.BoatEntity
@@ -157,22 +158,14 @@ object Speed : Module(
 
         var boostAmount = 0.0
 
-        getFastEntities<LivingEntity>(
-            player.pos, 3.0,
-            predicate = { player.boundingBox.expand(1.0) in it.boundingBox && it !is ArmorStandEntity },
-            iterator = { e, _ ->
-                val colliding = player.boundingBox in e.boundingBox
-                val multiplier = if (colliding) grimCollideMultiplier else 1.0
-                boostAmount += 0.08 * grimEntityBoost * multiplier
-            }
-        )
+        boostAmount += entitySearch<LivingEntity>(3.0) {
+            player.boundingBox.expand(1.0) in it.boundingBox && it !is ArmorStandEntity
+        }.sumOf { 0.08 * grimEntityBoost }
 
         if (grimBoatBoost > 0.0) {
-            getFastEntities<BoatEntity>(
-                player.pos, 4.0,
-                predicate = { player.boundingBox in it.boundingBox.expand(0.01) },
-                iterator = { _, _ -> boostAmount += grimBoatBoost }
-            )
+            boostAmount += entitySearch<BoatEntity>(4.0) {
+                player.boundingBox in it.boundingBox.expand(0.01)
+            }.sumOf { grimBoatBoost }
         }
 
         addSpeed(boostAmount)

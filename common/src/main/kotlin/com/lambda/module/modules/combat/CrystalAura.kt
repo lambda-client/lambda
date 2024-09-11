@@ -4,11 +4,8 @@ import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.concurrentListener
-import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.world.WorldUtils.getClosestEntity
-import net.minecraft.entity.LivingEntity
 import net.minecraft.util.Hand
 
 object CrystalAura : Module(
@@ -56,9 +53,5 @@ object CrystalAura : Module(
         /*listener<RotationEvent.Pre> { event ->
             event.lookAtEntity(rotation, interac, getClosestEntity<LivingEntity>(player.eyePos, placeRange) ?: return@listener)
         }*/
-
-        listener<TickEvent.Pre> {
-            getClosestEntity<LivingEntity>(player.eyePos, 64.0)
-        }
     }
 }

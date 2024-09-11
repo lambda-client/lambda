@@ -23,10 +23,10 @@ import com.lambda.interaction.visibilty.VisibilityChecker.scanVisibleSurfaces
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.ColorUtils.multAlpha
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.VecUtils.dist
 import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.multAlpha
 import com.lambda.util.math.step
 import com.lambda.util.math.transform
 import com.lambda.util.player.MovementUtils.calcMoveYaw

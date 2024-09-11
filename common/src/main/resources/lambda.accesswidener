@@ -23,6 +23,7 @@ accessible method net/minecraft/entity/passive/AbstractHorseEntity setHorseFlag 
 accessible method net/minecraft/entity/passive/AbstractHorseEntity updateSaddle ()V
 accessible field net/minecraft/entity/LivingEntity lastAttackedTicks I
 accessible method net/minecraft/entity/Entity setFlag (IZ)V
+accessible field net/minecraft/client/network/AbstractClientPlayerEntity playerListEntry Lnet/minecraft/client/network/PlayerListEntry;
 accessible field net/minecraft/entity/LivingEntity jumpingCooldown I
 accessible field net/minecraft/entity/Entity pos Lnet/minecraft/util/math/Vec3d;
 
@@ -49,6 +50,7 @@ accessible field net/minecraft/text/Style font Lnet/minecraft/util/Identifier;
 accessible method net/minecraft/text/Style <init> (Lnet/minecraft/text/TextColor;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Lnet/minecraft/text/ClickEvent;Lnet/minecraft/text/HoverEvent;Ljava/lang/String;Lnet/minecraft/util/Identifier;)V
 
 # Network
+accessible field net/minecraft/client/network/ClientPlayNetworkHandler playerListEntries Ljava/util/Map;
 accessible field net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket entityId I
 accessible field net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket type Lnet/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler;
 accessible class net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler
