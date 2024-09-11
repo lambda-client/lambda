@@ -19,6 +19,7 @@ import net.minecraft.util.math.BlockPos
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.awt.Color
+import java.lang.Thread.sleep
 import java.util.*
 
 
@@ -46,9 +47,10 @@ object Lambda {
         .registerTypeAdapter(Optional::class.java, OptionalSerializer)
         .create()
 
-    fun initialize() {
+    fun initialize(onRender: () -> Unit = {}) {
         recordRenderCall {
             Loader.initialize()
+            onRender()
         }
     }
 }

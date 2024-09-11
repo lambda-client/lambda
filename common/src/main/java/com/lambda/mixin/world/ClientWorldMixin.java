@@ -3,7 +3,7 @@ package com.lambda.mixin.world;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.WorldEvent;
 import com.lambda.module.modules.render.WorldColors;
-import com.lambda.util.math.ColorUtils;
+import com.lambda.util.math.ColorKt;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
@@ -32,14 +32,14 @@ public class ClientWorldMixin {
     @Inject(method = "getCloudsColor", at = @At("HEAD"), cancellable = true)
     private void getCloudsColorInject(float tickDelta, CallbackInfoReturnable<Vec3d> cir) {
         if (WorldColors.INSTANCE.isEnabled() && WorldColors.getCustomClouds()) {
-            cir.setReturnValue(ColorUtils.getVec3d(WorldColors.getCloudColor()));
+            cir.setReturnValue(ColorKt.getVec3d(WorldColors.getCloudColor()));
         }
     }
 
     @Inject(method = "getSkyColor", at = @At("HEAD"), cancellable = true)
     private void getSkyColorInject(Vec3d cameraPos, float tickDelta, CallbackInfoReturnable<Vec3d> cir) {
         if (WorldColors.INSTANCE.isEnabled() && WorldColors.getCustomSky()) {
-            cir.setReturnValue(ColorUtils.getVec3d(WorldColors.getSkyColor()));
+            cir.setReturnValue(ColorKt.getVec3d(WorldColors.getSkyColor()));
         }
     }
 }
