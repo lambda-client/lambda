@@ -7,11 +7,11 @@ import com.lambda.gui.api.component.core.list.ChildComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.KeyCode
-import com.lambda.util.math.ColorUtils.multAlpha
-import com.lambda.util.math.ColorUtils.setAlpha
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.multAlpha
+import com.lambda.util.math.setAlpha
 import java.awt.Color
 import kotlin.math.abs
 
@@ -51,19 +51,19 @@ abstract class InputBarOverlay (val renderer: RenderLayer, owner: ChildLayer.Dra
                 // Value text
                 renderer.font.apply {
                     val text = getText()
-                    val scale = lerp(0.5, 1.0, 1.0 - activeAnimation)
+                    val scale = lerp(1.0 - activeAnimation, 0.5, 1.0)
                     val position = Vec2d(rect.right, rect.center.y) - Vec2d(ClickGui.windowPadding + getWidth(text, scale), 0.0)
-                    val color = Color.WHITE.setAlpha(lerp(0.0, 1.0 - activeAnimation, showAnimation))
+                    val color = Color.WHITE.setAlpha(lerp(showAnimation, 0.0, 1.0 - activeAnimation))
 
                     build(text, position, color, scale)
                 }
 
                 val textStartX = rect.left + ClickGui.windowPadding + interactAnimation + hoverFontAnimation
-                val textColor = Color.WHITE.setAlpha(lerp(0.0, activeAnimation, showAnimation))
+                val textColor = Color.WHITE.setAlpha(lerp(showAnimation, 0.0, activeAnimation))
 
                 // Typing field
                 renderer.font.apply {
-                    val scale = lerp(0.5, 1.0, activeAnimation) - pressAnimation * 0.08
+                    val scale = lerp(activeAnimation, 0.5, 1.0) - pressAnimation * 0.08
                     val position = Vec2d(textStartX, rect.center.y)
 
                     targetOffset = getWidth(typed, scale)
@@ -72,12 +72,12 @@ abstract class InputBarOverlay (val renderer: RenderLayer, owner: ChildLayer.Dra
 
                 // Separator
                 renderer.filled.apply {
-                    val shrink = lerp(rect.size.y * 0.5, 2 + abs(typeAnimation), activeAnimation)
+                    val shrink = lerp(activeAnimation, rect.size.y * 0.5, 2 + abs(typeAnimation))
 
                     val rect = Rect(
                         Vec2d(0.0, rect.top + shrink),
                         Vec2d(1.0, rect.bottom - shrink)
-                    ) + Vec2d(lerp(rect.right, textStartX + offset + 2, activeAnimation), 0.0)
+                    ) + Vec2d(lerp(activeAnimation, rect.right, textStartX + offset + 2), 0.0)
 
                     build(rect, color = textColor.multAlpha(0.8))
                 }

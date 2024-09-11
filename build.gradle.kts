@@ -18,7 +18,7 @@ val Project.loom: LoomGradleExtensionAPI
     get() = (this as ExtensionAware).extensions.getByName("loom") as LoomGradleExtensionAPI
 
 plugins {
-    kotlin("jvm") version "2.0.0"
+    kotlin("jvm") version "2.0.20"
     id("org.jetbrains.dokka") version "1.9.20"
     id("architectury-plugin") version "3.4-SNAPSHOT"
     id("dev.architectury.loom") version "1.7-SNAPSHOT" apply false
@@ -46,6 +46,9 @@ subprojects {
             filesMatching(targets) {
                 expand(replacements)
             }
+
+            // Forces the task to always run
+            outputs.upToDateWhen { false }
         }
     }
 }
@@ -62,6 +65,7 @@ allprojects {
     base.archivesName = modId
 
     repositories {
+        mavenLocal() // Allow the use of local repositories
         maven("https://maven.shedaniel.me/") // Architectury
         maven("https://maven.terraformersmc.com/releases/")
         maven("https://babbaj.github.io/maven/") // Baritone

@@ -7,9 +7,9 @@ import com.lambda.graphics.renderer.gui.font.glyph.GlyphInfo
 import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.LambdaMoji
 import com.lambda.module.modules.client.RenderSettings
-import com.lambda.util.math.ColorUtils.a
-import com.lambda.util.math.ColorUtils.setAlpha
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.a
+import com.lambda.util.math.setAlpha
 import java.awt.Color
 
 class FontRenderer(

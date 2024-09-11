@@ -12,7 +12,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.transform
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import net.minecraft.util.math.Box
 import java.awt.Color
 
@@ -109,16 +109,16 @@ object FastBreak : Module(
             boxSet.forEach { box ->
                 val previousFactor = interaction.currentBreakingProgress - breakDelta
                 val nextFactor = interaction.currentBreakingProgress
-                val currentFactor = lerp(previousFactor, nextFactor, mc.tickDelta)
+                val currentFactor = lerp(mc.tickDelta, previousFactor, nextFactor)
 
                 val fillColour = if (fillColourMode == ColourMode.Dynamic) {
-                    lerp(startFillColour, endFillColour, currentFactor.toDouble())
+                    lerp(currentFactor.toDouble(), startFillColour, endFillColour)
                 } else {
                     staticFillColour
                 }
 
                 val outlineColour = if (outlineColourMode == ColourMode.Dynamic) {
-                    lerp(startOutlineColour, endOutlineColour, currentFactor.toDouble())
+                    lerp(currentFactor.toDouble(), startOutlineColour, endOutlineColour)
                 } else {
                     staticOutlineColour
                 }
@@ -148,26 +148,26 @@ object FastBreak : Module(
         val boxCenter = Box(box.center, box.center)
         when (renderMode) {
             RenderMode.Out -> {
-                return lerp(boxCenter, box, factor.toDouble())
+                return lerp(factor.toDouble(), boxCenter, box)
             }
 
             RenderMode.In -> {
-                return lerp(box, boxCenter, factor.toDouble())
+                return lerp(factor.toDouble(), box, boxCenter)
             }
 
             RenderMode.InOut -> {
                 return if (factor >= 0.5f) {
-                    lerp(boxCenter, box, (factor.toDouble() - 0.5) * 2)
+                    lerp((factor.toDouble() - 0.5) * 2, boxCenter, box)
                 } else {
-                    lerp(box, boxCenter, factor.toDouble() * 2)
+                    lerp(factor.toDouble() * 2, box, boxCenter)
                 }
             }
 
             RenderMode.OutIn -> {
                 return if (factor >= 0.5f) {
-                    lerp(box, boxCenter, (factor.toDouble() - 0.5) * 2)
+                    lerp((factor.toDouble() - 0.5) * 2, box, boxCenter)
                 } else {
-                    lerp(boxCenter, box, factor.toDouble() * 2)
+                    lerp(factor.toDouble() * 2, boxCenter, box)
                 }
             }
 

@@ -19,12 +19,12 @@ import com.lambda.module.modules.client.GuiSettings
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.util.Mouse
-import com.lambda.util.math.ColorUtils.multAlpha
-import com.lambda.util.math.ColorUtils.setAlpha
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.multAlpha
+import com.lambda.util.math.setAlpha
 import com.lambda.util.math.transform
 import java.awt.Color
 import kotlin.math.abs
@@ -45,7 +45,7 @@ class ModuleButton(
     override val isActive get() = isOpen
 
     private val openAnimation by animation.exp(0.0, 1.0, 0.7, ::isOpen)
-    override val childShowAnimation get() = lerp(0.0, openAnimation, owner.childShowAnimation)
+    override val childShowAnimation get() = lerp(owner.childShowAnimation, 0.0, openAnimation)
 
     private var settingsHeight = 0.0
     private var renderHeight by animation.exp(::settingsHeight, 0.6)
@@ -134,7 +134,7 @@ class ModuleButton(
                     val left = rect - Vec2d(rect.size.x, 0.0)
                     val right = rect + Vec2d(rect.size.x, 0.0)
 
-                    val rect = lerp(left, right, activeAnimation)
+                    val rect = lerp(activeAnimation, left, right)
                         .clamp(rect)
                         .shrink(shrinkAnimation)
 
@@ -174,12 +174,11 @@ class ModuleButton(
     }
 
     override fun performClickAction(e: GuiEvent.MouseClick) {
-        val sound = when (e.button) {
+        when (e.button) {
             Mouse.Button.Left -> {
                 module.toggle()
-                if (module.isEnabled) LambdaSound.MODULE_ON else LambdaSound.MODULE_OFF
-            }
 
+            }
             Mouse.Button.Right -> {
                 // Don't let user spam
                 val targetHeight = if (isOpen) settingsHeight else 0.0
@@ -189,13 +188,10 @@ class ModuleButton(
                 if (isOpen) settingsLayer.onEvent(GuiEvent.Show())
                 updateHeight()
 
-                if (isOpen) LambdaSound.SETTINGS_OPEN else LambdaSound.SETTINGS_CLOSE
+                val sound = if (isOpen) LambdaSound.SETTINGS_OPEN else LambdaSound.SETTINGS_CLOSE
+                playSoundRandomly(sound.event)
             }
-
-            else -> return
         }
-
-        playSoundRandomly(sound.event)
     }
 
     override fun equals(other: Any?) =
