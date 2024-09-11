@@ -1,6 +1,7 @@
 val modVersion: String by project
 val minecraftVersion: String by project
 val fabricLoaderVersion: String by project
+val fabricApiVersion: String by project
 val kotlinFabricVersion: String by project
 val discordIPCVersion: String by project
 val kotlinVersion: String by project
@@ -39,8 +40,6 @@ val common: Configuration by configurations.creating {
     isCanBeConsumed = false
 }
 
-val toRelocate = mutableMapOf<String, String>()
-
 val includeLib: Configuration by configurations.creating
 val includeMod: Configuration by configurations.creating
 val shadowBundle: Configuration by configurations.creating {
@@ -73,6 +72,7 @@ dependencies {
     includeLib("com.pngencoder:pngencoder:0.15.0")
 
     // Add mods to the mod jar
+    includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion+$minecraftVersion")
     includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion.$kotlinVersion")
     includeMod("baritone-api:baritone-unoptimized-fabric:1.10.2")
 
