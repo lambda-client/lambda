@@ -10,9 +10,7 @@ import org.reflections.util.ConfigurationBuilder
  * The [ModuleRegistry] object is responsible for managing all [Module] instances in the system.
  */
 object ModuleRegistry : Loadable {
-    val modules = getInstances<Module> {
-        forPackages("com.lambda.module.modules"); filterInputsBy { it.contains("com.lambda") }
-    }.toMutableList()
+    val modules = getInstances<Module> { forPackages("com.lambda.module.modules") }.toMutableList()
 
     val moduleNames: Set<String>
         get() = modules.map { it.name }.toSet()
