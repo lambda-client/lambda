@@ -24,4 +24,4 @@ val Color.g get() = green / 255.0
 val Color.b get() = blue / 255.0
 val Color.a get() = alpha / 255.0
 
-val Color.asVec3d get() = Vec3d(r, g, b)
+val Color.vec3d get() = Vec3d(r, g, b)
