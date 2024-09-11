@@ -1,6 +1,5 @@
 val modId: String by project
 val fabricLoaderVersion: String by project
-val kotlinVersion: String by project
 val kotlinxCoroutinesVersion: String by project
 val discordIPCVersion: String by project
 
