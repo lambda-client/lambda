@@ -10,9 +10,9 @@ import net.minecraft.registry.Registries
 
 object LambdaFabric : ClientModInitializer {
     override fun onInitializeClient() {
-        Lambda.initialize()
-        LOG.info("$MOD_NAME Fabric $VERSION initialized.")
-
-        Registries.REGISTRIES.forEach(AgnosticRegistries::dump)
+        Lambda.initialize {
+            Registries.REGISTRIES.forEach(AgnosticRegistries::dump)
+            LOG.info("$MOD_NAME Fabric $VERSION initialized.")
+        }
     }
 }

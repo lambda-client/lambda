@@ -1,6 +1,5 @@
 package com.lambda.core.registry
 
-import com.lambda.util.Communication.warn
 import net.minecraft.registry.Registry
 import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.entry.RegistryEntry
@@ -49,12 +48,14 @@ object AgnosticRegistries {
      *
      * @param registry The registry to dump into.
      * @param wrapper The registry wrapper to use to determine how to register the entry.
+     *
+     * @return Whether there were temporary registries or not.
      */
-    fun dump(registry: Registry<*>?, wrapper: RegistryWrapper<*>?) {
-        val key = registry?.key ?: return warn("Tried to dump into a null registry.")
+    fun dump(registry: Registry<*>?, wrapper: RegistryWrapper<*>?): Boolean {
+        val key = registry?.key
 
         registries[key]?.forEach { it.handleRegister(wrapper ?: defaultWrapper(registry)) }
-        registries.remove(key)
+        return registries.remove(key) != null
     }
 
     /**
@@ -63,6 +64,7 @@ object AgnosticRegistries {
     private fun defaultWrapper(registry: Registry<*>?): RegistryWrapper<*> {
         return object : RegistryWrapper<Any> {
             override fun <T> registerForHolder(id: Identifier?, value: T): RegistryEntry<T> {
+                @Suppress("UNCHECKED_CAST")
                 return Registry.registerReference(registry as Registry<T>, id, value)
             }
         }
