@@ -5,6 +5,7 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.threading.runSafe
 import com.lambda.util.math.VecUtils.distSq
+import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.projectile.ProjectileUtil
 import net.minecraft.util.hit.BlockHitResult
@@ -16,7 +17,9 @@ import kotlin.math.max
 import kotlin.math.pow
 
 object RayCastUtils {
-    private val entityPredicate = { entity: Entity -> !entity.isSpectator && entity.canHit() }
+    private val entityPredicate = { entity: Entity ->
+        !entity.isSpectator && entity.canHit() && entity !is ClientPlayerEntity
+    }
 
     fun SafeContext.rayCast(
         start: Vec3d,

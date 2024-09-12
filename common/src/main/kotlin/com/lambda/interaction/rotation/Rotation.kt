@@ -69,7 +69,7 @@ data class Rotation(val yaw: Double, val pitch: Double) {
         val DOWN = Rotation(0.0, 90.0)
         val Entity.rotation get() = Rotation(yaw, pitch)
 
-        private fun wrap(deg: Double) = MathHelper.wrapDegrees(deg)
+        fun wrap(deg: Double) = MathHelper.wrapDegrees(deg)
 
         fun Rotation.lerp(other: Rotation, delta: Double): Rotation {
             val yaw = this.yaw + delta * (other.yaw - this.yaw)
