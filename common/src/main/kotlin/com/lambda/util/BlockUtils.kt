@@ -3,6 +3,7 @@ package com.lambda.util
 import com.lambda.context.SafeContext
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.item.ItemUtils.shulkerBoxes
+import com.lambda.util.math.MathUtils.floorToInt
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
@@ -11,7 +12,6 @@ import net.minecraft.fluid.Fluids
 import net.minecraft.item.Item
 import net.minecraft.util.math.*
 import net.minecraft.world.BlockView
-import kotlin.math.floor
 
 object BlockUtils {
     val shulkerBlocks = shulkerBoxes.map { it.block }
@@ -106,7 +106,7 @@ object BlockUtils {
     }
     val Vec3i.blockPos: BlockPos get() = BlockPos(this)
     val Block.item: Item get() = asItem()
-    val Vec3d.flooredPos: BlockPos get() = BlockPos(floor(x).toInt(), floor(y).toInt(), floor(z).toInt())
+    val Vec3d.flooredPos: BlockPos get() = BlockPos(x.floorToInt(), y.floorToInt(), z.floorToInt())
     fun BlockPos.vecOf(direction: Direction): Vec3d = toCenterPos().add(Vec3d.of(direction.vector).multiply(0.5))
     fun BlockPos.offset(eightWayDirection: EightWayDirection, amount: Int): BlockPos =
         add(eightWayDirection.offsetX * amount, 0, eightWayDirection.offsetZ * amount)

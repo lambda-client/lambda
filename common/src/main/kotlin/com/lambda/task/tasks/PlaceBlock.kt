@@ -6,6 +6,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.interaction.blockplace.PlaceInteraction.placeBlock
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task

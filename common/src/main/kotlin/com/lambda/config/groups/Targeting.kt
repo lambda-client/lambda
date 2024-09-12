@@ -10,6 +10,7 @@ import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.world.entitySearch
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.decoration.ArmorStandEntity
 import net.minecraft.entity.mob.MobEntity
 import net.minecraft.entity.passive.PassiveEntity
 
@@ -89,6 +90,7 @@ abstract class Targeting(
         !players && entity.isPlayer -> false
         !animals && entity is PassiveEntity -> false
         !hostiles && entity is MobEntity -> false
+        entity is ArmorStandEntity -> false
 
         !invisible && entity.isInvisibleTo(player) -> false
         !dead && entity.isDead -> false

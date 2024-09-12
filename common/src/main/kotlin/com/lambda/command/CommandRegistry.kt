@@ -12,9 +12,7 @@ object CommandRegistry : Configurable(LambdaConfig), Loadable {
     override val name = "command"
     val prefix by setting("prefix", ';')
 
-    val commands = getInstances<LambdaCommand> {
-        forPackages("com.lambda.command.commands"); filterInputsBy { it.contains("com.lambda") }
-    }.toMutableList()
+    val commands = getInstances<LambdaCommand> { forPackages("com.lambda.command.commands") }.toMutableList()
 
     override fun load(): String {
         return "Registered ${commands.size} commands"
