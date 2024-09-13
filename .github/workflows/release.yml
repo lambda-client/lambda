@@ -63,23 +63,11 @@ jobs:
           name: lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}
           path: common/build/libs/
 
-      - name: Generate Changelog
-        id: changelog
-        uses: mikepenz/release-changelog-builder-action@v4.1.1
-        with:
-          commitMode: true
-          configurationJson: |
-            {
-              "pr_template": "- #{{TITLE}} [#{{AUTHOR}}](#{{URL}})"
-            }
-
       - name: Create Release
         uses: softprops/action-gh-release@v2.0.8
         with:
           name: Lambda ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
-          body: ${{ steps.changelog.outputs.changelog }}
-          prerelease: false
           files: |
             fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
             forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
