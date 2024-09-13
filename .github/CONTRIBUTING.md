@@ -102,25 +102,25 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/lambda
 - **Explain why this enhancement would be useful** to most Lambda users. You may also want to point out the other projects that solved it better and which could serve as inspiration.
 
 ### Your First Code Contribution
-TODO
-<!-- TODO
-include Setup of env, IDE and typical getting started instructions?
+First of all, make sure to read or simply check the [Official Kotlin Coding Convention](https://kotlinlang.org/docs/coding-conventions.html#control-flow-statements)
 
--->
+This is required for pull requests to be accepted, or even reviewed.
+
+You will need the following before contributing:
+- GitHub CLI / Desktop
+- IntelliJ IDEA
+- Java 17 SDK
+- [Minecraft Development Plugin](https://plugins.jetbrains.com/plugin/8327-minecraft-development)
+
+After you have everything you can do the following:
+- Clone the repository `git clone https://github.com/lambda-client/lambda`
+- Open the project, **inside the project folder**, in IntelliJ IDEA
+- Set the java runtime in `File > Project Structure > SDK > JDK 17`
+- Wait for Gradle to resolve dependencies and to set up the project.
+- And you should now be able to run the project using the [run configurations](https://www.jetbrains.com/help/idea/run-debug-configuration.html)
 
 ### Improving The Documentation
-TODO
-<!-- TODO
-Updating, improving and correcting the documentation
-
--->
-
-## Styleguides
-### Commit Messages
-TODO
-<!-- TODO
-
--->
+If you believe that some documentation can be improved or added, please discuss with us on our [Discord](https://discord.gg/QjfBxJzE5x)
 
 ## Join The Project Team
 Most communication happens on our [Discord](https://discord.gg/QjfBxJzE5x). You can join the project team by contributing to the project. The project team is responsible for reviewing and merging pull requests, and they will help you at every step of the way.
