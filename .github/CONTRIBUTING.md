@@ -1,4 +1,3 @@
-<!-- omit in toc -->
 # Contributing to Lambda
 
 First off, thanks for taking the time to contribute! ❤️
@@ -9,7 +8,6 @@ All types of contributions are encouraged and valued. See the [Table of Contents
 > - Star the project
 > - Donate to the project
 
-<!-- omit in toc -->
 ## Table of Contents
 
 - [I Have a Question](#i-have-a-question)
@@ -18,8 +16,7 @@ All types of contributions are encouraged and valued. See the [Table of Contents
     - [Suggesting Enhancements](#suggesting-enhancements)
     - [Your First Code Contribution](#your-first-code-contribution)
     - [Improving The Documentation](#improving-the-documentation)
-- [Styleguides](#styleguides)
-    - [Commit Messages](#commit-messages)
+    - [Naming Convention](#naming-convention)
 - [Join The Project Team](#join-the-project-team)
 
 
@@ -98,7 +95,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/lambda
 - Use a **clear and descriptive title** for the issue to identify the suggestion.
 - Provide a **step-by-step description of the suggested enhancement** in as many details as possible.
 - **Describe the current behavior** and **explain which behavior you expected to see instead** and why. At this point you can also tell which alternatives do not work for you.
-- You may want to **include screenshots and animated GIFs** which help you demonstrate the steps or point out the part which the suggestion is related to. You can use [this tool](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows, and [this tool](https://github.com/colinkeenan/silentcast) or [this tool](https://github.com/GNOME/byzanz) on Linux. <!-- this should only be included if the project has a GUI -->
+- You may want to **include screenshots or screen recordings** which help you demonstrate the steps or point out the part which the suggestion is related to. You can use [LICEcap](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows, and the built-in [screen recorder in GNOME](https://help.gnome.org/users/gnome-help/stable/screen-shot-record.html.en) or [SimpleScreenRecorder](https://github.com/MaartenBaert/ssr) on Linux.
 - **Explain why this enhancement would be useful** to most Lambda users. You may also want to point out the other projects that solved it better and which could serve as inspiration.
 
 ### Your First Code Contribution
@@ -121,6 +118,11 @@ After you have everything you can do the following:
 
 ### Improving The Documentation
 If you believe that some documentation can be improved or added, please discuss with us on our [Discord](https://discord.gg/QjfBxJzE5x)
+
+### Naming Convention
+We follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) for the Lambda project.
+
+Feel free to propose additional compatible naming conventions.
 
 ## Join The Project Team
 Most communication happens on our [Discord](https://discord.gg/QjfBxJzE5x). You can join the project team by contributing to the project. The project team is responsible for reviewing and merging pull requests, and they will help you at every step of the way.
