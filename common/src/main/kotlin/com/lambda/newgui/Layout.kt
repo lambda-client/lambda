@@ -61,7 +61,7 @@ open class Layout(
     }
 
     private var owningRenderer = false
-    protected open val passInteractions = false
+    protected open val interactionPassthrough = false
 
     // Actions
     private var showActions = mutableListOf<() -> Unit>()
@@ -165,8 +165,8 @@ open class Layout(
 
     fun onEvent(e: GuiEvent) {
         // Select an element that's on foreground
-        selectedChild = if (mousePosition in rect) children.lastOrNull {
-            !it.passInteractions && mousePosition in it.rect
+        selectedChild = if (isHovered) children.lastOrNull {
+            !it.interactionPassthrough && mousePosition in it.rect
         } else null
 
         // Update children
@@ -174,7 +174,9 @@ open class Layout(
             if (e is GuiEvent.Render) return@forEach
 
             if (e is GuiEvent.MouseClick) {
-                val newAction = if (child == selectedChild || (child.passInteractions)) e.action else Mouse.Action.Release
+                val hovered = child == selectedChild || (child.isHovered && child.interactionPassthrough)
+                val newAction = if (hovered) e.action else Mouse.Action.Release
+
                 val newEvent = GuiEvent.MouseClick(e.button, newAction, e.mouse)
                 child.onEvent(newEvent)
                 return@forEach

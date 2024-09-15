@@ -26,7 +26,7 @@ class TextField(
     var offset = initialOffset
 
     // Let user interact through the text
-    override val passInteractions = true
+    override val interactionPassthrough = true
 
     init {
         rect {
