@@ -10,7 +10,24 @@ import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 
 /**
- * Represents a component for creating complex ui structures
+ * Represents a component for creating complex ui structures.
+ *
+ * @param useBatching Increases performance by using parent's renderer instead of creating a new one.
+ *
+ * @param batchChildren Whether allow children to use the renderer of this layout.
+ *
+ * Warning: use batching if you know what you're doing.
+ * Batched elements are always drawn first:
+ * ```kotlin
+ * // 1st
+ * layout(useBatching = true) {}
+ *
+ * // 3rd
+ * layout {}
+ *
+ * // 2nd
+ * layout(useBatching = true) {}
+ * ```
  */
 open class Layout(
     private val owner: Layout?,
@@ -25,36 +42,37 @@ open class Layout(
     private var selectedChild: Layout? = null
 
     // Inputs
-    private var lastMouse = Vec2d.ZERO
-    private val isHovered: Boolean get() = lastMouse in rect && (owner?.isHovered ?: true)
+    protected var mousePosition = Vec2d.ZERO
+    private val isHovered: Boolean get() = mousePosition in rect && (owner?.isHovered ?: true)
 
     // Graphics
     val animation = AnimationTicker()
-    val renderer: RenderLayer
-    private var owningRenderer = false
+    val renderer: RenderLayer = run {
+        owner?.let { owner ->
+            if (!useBatching || !owner.batchChildren) {
+                return@let null
+            }
 
-    init {
-        val parentRenderer = owner?.renderer
-        val parentAcceptsBatching = owner?.batchChildren ?: false
-
-        renderer = if (!useBatching || !parentAcceptsBatching || parentRenderer == null) {
+            owner.renderer
+        } ?: run {
             owningRenderer = true
             RenderLayer()
-        } else {
-            parentRenderer
         }
     }
 
+    private var owningRenderer = false
+    protected open val passInteractions = false
+
     // Actions
-    private var showAction = {}
-    private var hideAction = {}
-    private var tickAction = {}
-    private var renderAction: RenderLayer.() -> Unit = {}
-    private var keyPressAction: (key: KeyCode) -> Unit = {}
-    private var charTypedAction: (char: Char) -> Unit = {}
-    private var mouseClickAction: (button: Mouse.Button, action: Mouse.Action) -> Unit = { _, _ -> }
-    private var mouseMoveAction: (mouse: Vec2d) -> Unit = {}
-    private var mouseScrollAction: (delta: Double) -> Unit = {}
+    private var showActions = mutableListOf<() -> Unit>()
+    private var hideActions = mutableListOf<() -> Unit>()
+    private var tickActions = mutableListOf<() -> Unit>()
+    private var renderActions = mutableListOf<RenderLayer.() -> Unit>()
+    private var keyPressActions = mutableListOf<(key: KeyCode) -> Unit>()
+    private var charTypedActions = mutableListOf<(char: Char) -> Unit>()
+    private var mouseClickActions = mutableListOf<(button: Mouse.Button, action: Mouse.Action) -> Unit>()
+    private var mouseMoveActions = mutableListOf<(mouse: Vec2d) -> Unit>()
+    private var mouseScrollActions = mutableListOf<(delta: Double) -> Unit>()
     private var rectUpdate = { Rect.ZERO }
 
     /**
@@ -63,7 +81,7 @@ open class Layout(
      * @param action The action to be performed.
      */
     fun onShow(action: () -> Unit) {
-        showAction = action
+        showActions += action
     }
 
     /**
@@ -72,7 +90,7 @@ open class Layout(
      * @param action The action to be performed.
      */
     fun onHide(action: () -> Unit) {
-        hideAction = action
+        hideActions += action
     }
 
     /**
@@ -81,7 +99,7 @@ open class Layout(
      * @param action The action to be performed.
      */
     fun onTick(action: () -> Unit) {
-        tickAction = action
+        tickActions += action
     }
 
     /**
@@ -90,7 +108,7 @@ open class Layout(
      * @param action The action to be performed.
      */
     fun onRender(action: RenderLayer.() -> Unit) {
-        renderAction = action
+        renderActions += action
     }
 
     /**
@@ -99,7 +117,7 @@ open class Layout(
      * @param action The action to be performed.
      */
     fun onKeyPress(action: (key: KeyCode) -> Unit) {
-        keyPressAction = action
+        keyPressActions += action
     }
 
     /**
@@ -108,7 +126,7 @@ open class Layout(
      * @param action The action to be performed.
      */
     fun onCharTyped(action: (char: Char) -> Unit) {
-        charTypedAction = action
+        charTypedActions += action
     }
 
     /**
@@ -117,7 +135,7 @@ open class Layout(
      * @param action The action to be performed.
      */
     fun onMouseClick(action: (button: Mouse.Button, action: Mouse.Action) -> Unit) {
-        mouseClickAction = action
+        mouseClickActions += action
     }
 
     /**
@@ -126,7 +144,7 @@ open class Layout(
      * @param action The action to be performed.
      */
     fun onMouseMove(action: (mouse: Vec2d) -> Unit) {
-        mouseMoveAction = action
+        mouseMoveActions += action
     }
 
     /**
@@ -135,7 +153,7 @@ open class Layout(
      * @param action The action to be performed.
      */
     fun onMouseScroll(action: (delta: Double) -> Unit) {
-        mouseScrollAction = action
+        mouseScrollActions += action
     }
 
     /**
@@ -147,8 +165,8 @@ open class Layout(
 
     fun onEvent(e: GuiEvent) {
         // Select an element that's on foreground
-        selectedChild = if (lastMouse in rect) children.lastOrNull {
-            lastMouse in it.rect
+        selectedChild = if (mousePosition in rect) children.lastOrNull {
+            !it.passInteractions && mousePosition in it.rect
         } else null
 
         // Update children
@@ -156,7 +174,7 @@ open class Layout(
             if (e is GuiEvent.Render) return@forEach
 
             if (e is GuiEvent.MouseClick) {
-                val newAction = if (child.isHovered) e.action else Mouse.Action.Release
+                val newAction = if (child == selectedChild || (child.passInteractions)) e.action else Mouse.Action.Release
                 val newEvent = GuiEvent.MouseClick(e.button, newAction, e.mouse)
                 child.onEvent(newEvent)
                 return@forEach
@@ -166,37 +184,52 @@ open class Layout(
         }
 
         when (e) {
-            is GuiEvent.Show -> { lastMouse = Vec2d.ONE * -1000.0; showAction() }
-            is GuiEvent.Hide -> { hideAction() }
-            is GuiEvent.Tick -> { animation.tick(); tickAction() }
-            is GuiEvent.KeyPress -> { keyPressAction(e.key) }
-            is GuiEvent.CharTyped -> { charTypedAction(e.char) }
-            is GuiEvent.MouseMove -> { lastMouse = e.mouse; mouseMoveAction(e.mouse) }
-            is GuiEvent.MouseScroll -> { lastMouse = e.mouse; mouseScrollAction(e.delta) }
+            is GuiEvent.Show -> { mousePosition = Vec2d.ONE * -1000.0; showActions.forEach { it() } }
+            is GuiEvent.Hide -> { hideActions.forEach { it() } }
+            is GuiEvent.Tick -> { animation.tick(); tickActions.forEach { it() } }
+            is GuiEvent.KeyPress -> { keyPressActions.forEach { it(e.key) } }
+            is GuiEvent.CharTyped -> { charTypedActions.forEach { it((e.char)) } }
+            is GuiEvent.MouseMove -> { mousePosition = e.mouse; mouseMoveActions.forEach { it(e.mouse) } }
+            is GuiEvent.MouseScroll -> { mousePosition = e.mouse; mouseScrollActions.forEach { it(e.delta) } }
             is GuiEvent.MouseClick -> {
-                lastMouse = e.mouse
-                val action = if (selectedChild == null) e.action else Mouse.Action.Release
-                mouseClickAction(e.button, action)
+                mousePosition = e.mouse
+                val action = if (isHovered) e.action else Mouse.Action.Release
+                mouseClickActions.forEach { it(e.button, action) }
             }
-            is GuiEvent.Render -> {
+            is GuiEvent.Render -> scissor(rect) {
                 val (pre, post) = children.partition { !it.owningRenderer }
 
-                // Add drawables from this layout
-                renderAction(renderer)
-
-                // Add children's drawables over
                 pre.forEach { it.onEvent(e) }
+                renderActions.forEach { it(renderer) }
 
-                scissor(rect) {
-                    // Perform a drawcall
-                    if (owningRenderer) {
-                        renderer.render()
-                    }
-
-                    // Draw children with custom renderers
-                    post.forEach { it.onEvent(e) }
+                if (owningRenderer) {
+                    scissor(rect, renderer::render)
                 }
+
+                post.forEach { it.onEvent(e) }
             }
         }
     }
+
+    companion object {
+        /**
+         * Creates an empty [Layout]
+         *
+         * @param useBatching Increases performance by using parent's renderer instead of creating a new one.
+         *
+         * @param batchChildren Whether allow children to use the renderer of this layout
+         *
+         * Check [Layout] description for more info about batching
+         */
+        @UIBuilder
+        fun Layout.layout(
+            useBatching: Boolean = false,
+            batchChildren: Boolean = false,
+            block: Layout.() -> Unit,
+        ) = Layout(this, useBatching, batchChildren)
+            .apply(children::add).apply(block)
+    }
 }
+
+@DslMarker
+annotation class UIBuilder

@@ -6,6 +6,8 @@ import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.gui.impl.clickgui.windows.tag.TagWindow
 import com.lambda.gui.impl.hudgui.LambdaHudGui
 import com.lambda.module.tag.ModuleTag
+import com.lambda.newgui.component.HAlign
+import com.lambda.newgui.component.VAlign
 import com.lambda.util.math.Vec2d
 import java.lang.reflect.Type
 
@@ -53,8 +55,8 @@ object TagWindowSerializer : JsonSerializer<TagWindow>, JsonDeserializer<TagWind
                 it["position"].asJsonArray[0].asDouble,
                 it["position"].asJsonArray[1].asDouble
             )
-            dockingH = DockingRect.HAlign.entries[it["docking"].asJsonArray[0].asInt]
-            dockingV = DockingRect.VAlign.entries[it["docking"].asJsonArray[1].asInt]
+            dockingH = HAlign.entries[it["docking"].asJsonArray[0].asInt]
+            dockingV = VAlign.entries[it["docking"].asJsonArray[1].asInt]
         }
     } ?: throw JsonParseException("Invalid window data")
 }

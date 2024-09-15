@@ -8,6 +8,8 @@ import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.RenderLayer
 import com.lambda.gui.api.component.core.DockingRect
 import com.lambda.module.tag.ModuleTag
+import com.lambda.newgui.component.HAlign
+import com.lambda.newgui.component.VAlign
 import com.lambda.util.KeyCode
 import com.lambda.util.math.Vec2d
 

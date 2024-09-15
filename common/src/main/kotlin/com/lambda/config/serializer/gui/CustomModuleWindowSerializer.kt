@@ -5,6 +5,8 @@ import com.lambda.gui.api.component.core.DockingRect
 import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
 import com.lambda.module.ModuleRegistry
+import com.lambda.newgui.component.HAlign
+import com.lambda.newgui.component.VAlign
 import com.lambda.util.math.Vec2d
 import java.lang.reflect.Type
 
@@ -56,8 +58,8 @@ object CustomModuleWindowSerializer : JsonSerializer<CustomModuleWindow>, JsonDe
                 it["position"].asJsonArray[0].asDouble,
                 it["position"].asJsonArray[1].asDouble
             )
-            dockingH = DockingRect.HAlign.entries[it["docking"].asJsonArray[0].asInt]
-            dockingV = DockingRect.VAlign.entries[it["docking"].asJsonArray[1].asInt]
+            dockingH = HAlign.entries[it["docking"].asJsonArray[0].asInt]
+            dockingV = VAlign.entries[it["docking"].asJsonArray[1].asInt]
         }
     } ?: throw JsonParseException("Invalid window data")
 }

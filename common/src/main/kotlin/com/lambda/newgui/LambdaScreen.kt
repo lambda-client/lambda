@@ -5,16 +5,21 @@ import com.lambda.event.Muteable
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.graphics.RenderMain
 import com.lambda.gui.api.GuiEvent
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.Nameable
+import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.text.Text
 
+/**
+ * Represents a "tunnel" between the [Layout] system and minecraft's [Screen]
+ */
 class LambdaScreen(
     override val name: String,
     val layout: Layout
@@ -106,6 +111,26 @@ class LambdaScreen(
     }
 
     companion object {
+        /**
+         * Creates gui layout
+         */
+        @UIBuilder
+        fun gui(block: Layout.() -> Unit) =
+            Layout(owner = null, useBatching = false, batchChildren = true).apply {
+                var screenSize = Vec2d.ONE * 10000.0
+
+                rect {
+                    Rect(Vec2d.ZERO, screenSize)
+                }
+
+                onRender {
+                    screenSize = RenderMain.screenSize
+                }
+            }.apply(block)
+
+        /**
+         * Converts this [Layout] to a minecraft-typed [Screen] represented by the [LambdaScreen] class
+         */
         fun Layout.toScreen(name: String) = LambdaScreen(name, this)
     }
 }

@@ -1,12 +1,13 @@
 package com.lambda.module.modules.client
 
+import com.lambda.Lambda.mc
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.newgui.LambdaScreen.Companion.gui
 import com.lambda.newgui.LambdaScreen.Companion.toScreen
-import com.lambda.newgui.gui
-import com.lambda.newgui.layout
-import com.lambda.util.math.ColorUtils.setAlpha
-import com.lambda.util.math.Rect
+import com.lambda.newgui.component.HAlign
+import com.lambda.newgui.component.core.TextField.Companion.textField
+import com.lambda.newgui.component.window.Window.Companion.window
 import com.lambda.util.math.Vec2d
 import java.awt.Color
 
@@ -15,36 +16,28 @@ object NewCGui : Module(
     description = "ggs",
     defaultTags = setOf(ModuleTag.CLIENT)
 ) {
+    val titleBarHeight by setting("Title Bar Height", 4.0, 0.0..10.0, 0.1)
+
     private val clickGuiLayout =
         gui {
-            layout {
-                rect { Rect(Vec2d.ONE * 10.0, Vec2d.ONE * 200.0) }
+            window(position = Vec2d.ONE * 20.0, title = "Test window") {
+                titleBar.textField.apply {
+                    text = "Overriding the title"
 
-                onRender {
-                    filled.build(rect, color = Color.WHITE.setAlpha(0.5))
+                    // Making it align the left corner and have 3px offset from the left side
+                    alignment = HAlign.LEFT
+                    offset = 3.0
                 }
 
-                layout(true) {
-                    rect { Rect(Vec2d.ONE * 10.0, Vec2d.ONE * 200.0) }
+                textField("Text field over the window")
 
-                    onRender {
-                        filled.build(rect, color = Color.BLACK)
-                    }
+                content.textField("Text field inside of the content region") {
+                    alignment = HAlign.CENTER
+                    scale = 0.5
 
-                    layout(true) {
-                        rect { Rect(Vec2d.ONE * 10.0, Vec2d.ONE * 200.0) }
-
-                        onRender {
-                            filled.build(rect, color = Color.WHITE.setAlpha(0.5))
-                        }
-
-                        layout(true) {
-                            rect { Rect(Vec2d.ONE * 10.0, Vec2d.ONE * 200.0) }
-
-                            onRender {
-                                filled.build(rect, color = Color.BLACK)
-                            }
-                        }
+                    onTick {
+                        // Dynamically updating states
+                        color = if (mc.player?.isDead == true) Color.RED else Color.GREEN
                     }
                 }
             }

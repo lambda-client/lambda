@@ -1,6 +1,8 @@
 package com.lambda.gui.api.component.core
 
 import com.lambda.module.modules.client.ClickGui
+import com.lambda.newgui.component.HAlign
+import com.lambda.newgui.component.VAlign
 import com.lambda.util.math.MathUtils.coerceIn
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.Rect
@@ -67,17 +69,5 @@ abstract class DockingRect {
                 else -> VAlign.CENTER
             }
         } else VAlign.TOP
-    }
-
-    enum class HAlign(val multiplier: Double) {
-        LEFT(0.0),
-        CENTER(0.5),
-        RIGHT(1.0)
-    }
-
-    enum class VAlign(val multiplier: Double) {
-        TOP(0.0),
-        CENTER(0.5),
-        BOTTOM(1.0)
     }
 }
