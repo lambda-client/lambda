@@ -112,14 +112,11 @@ abstract class Module(
 
     init {
         listener<KeyPressEvent>(alwaysListen = true) { event ->
+            if (mc.options.commandKey.isPressed) return@listener
             if (keybind == KeyCode.UNBOUND) return@listener
+            if (event.translated != keybind) return@listener
 
-            val screen = mc.currentScreen
-            if (event.translated == keybind
-                && !mc.options.commandKey.isPressed
-                && (screen == null
-                        || screen !is LambdaGui)
-            ) toggle()
+            if (mc.currentScreen == null || this@Module is ClickGui) toggle()
         }
 
         onEnable {
