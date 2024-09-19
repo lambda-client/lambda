@@ -14,10 +14,12 @@ object ElytraFly : Module(
     defaultTags = setOf(ModuleTag.MOVEMENT, ModuleTag.GRIM)
 ) {
     // private val page by setting("Page", Page.GENERAL) // Uncomment when needed
-    private val mode by setting("Mode", Mode.BOOST)
+    val mode by setting("Mode", Mode.BOOST)
 
     private val speed by setting("Speed", 0.02, 0.0..0.5, 0.005, description = "Speed to add when flying") { mode == Mode.BOOST }
     private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
+
+    val rocketSpeed by setting("Rocket Speed", 2.0, 0.0 ..5.0, description = "Speed multiplier that the rocket gives you") { mode == Mode.ROCKET_BOOST }
 
     init {
         listener<MovementEvent.Pre> {
@@ -27,8 +29,14 @@ object ElytraFly : Module(
                         addSpeed(speed)
                     }
                 }
+
+                Mode.ROCKET_BOOST -> {
+
+
+                }
             }
         }
+
 
         listener<ClientEvent.Sound> { event ->
             if (!mute) return@listener
@@ -44,6 +52,7 @@ object ElytraFly : Module(
 
     enum class Mode {
         BOOST,
+        ROCKET_BOOST,
         // Add more when needed
     }
 }
