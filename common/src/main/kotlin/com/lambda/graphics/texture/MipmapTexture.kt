@@ -36,6 +36,12 @@ class MipmapTexture(image: BufferedImage, levels: Int = 4) : Texture() {
     }
 
     companion object {
+        /**
+         * Retrieves an image from the resources folder and generates a mipmap texture.
+         *
+         * @param path The path to the image.
+         * @param levels The number of mipmap levels.
+         */
         fun fromResource(path: String, levels: Int = 4): MipmapTexture =
             MipmapTexture(ImageIO.read(LambdaResource(path).stream), levels)
     }

@@ -8,10 +8,10 @@ import com.lambda.gui.impl.AbstractClickGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.buttons.SettingButton
 import com.lambda.util.Mouse
-import com.lambda.util.math.ColorUtils.multAlpha
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.MathUtils.typeConvert
+import com.lambda.util.math.multAlpha
 import com.lambda.util.math.normalize
 
 class NumberSlider<N>(
@@ -68,9 +68,9 @@ class NumberSlider<N>(
     override fun setValueByProgress(progress: Double) {
         setValue(
             lerp(
+                progress,
                 setting.range.start.toDouble(),
-                setting.range.endInclusive.toDouble(),
-                progress
+                setting.range.endInclusive.toDouble()
             )
         )
     }

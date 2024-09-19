@@ -1,19 +1,23 @@
 package com.lambda.graphics.texture
 
 import com.mojang.blaze3d.systems.RenderSystem
+import com.pngencoder.PngEncoder
 import net.minecraft.client.texture.NativeImage
 import org.lwjgl.BufferUtils
-import org.lwjgl.opengl.GL13C.*
+import org.lwjgl.opengl.GL45C.*
 import java.awt.*
 import java.awt.image.BufferedImage
-import java.io.ByteArrayOutputStream
-import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 object TextureUtils {
-    private val metricCache = mutableMapOf<Font, FontMetrics>()
+    private const val COMPRESSION_LEVEL = 1
+    private const val THREADED_COMPRESSION = false
 
+    private val metricCache = mutableMapOf<Font, FontMetrics>()
+    private val encoderPreset = PngEncoder()
+        .withCompressionLevel(COMPRESSION_LEVEL)
+        .withMultiThreadedCompressionEnabled(THREADED_COMPRESSION)
 
     fun bindTexture(id: Int, slot: Int = 0) {
         RenderSystem.activeTexture(GL_TEXTURE0 + slot)
@@ -34,21 +38,6 @@ object TextureUtils {
         // GL_UNSIGNED_BYTE -> [RR, GG, BB, AA]
         // Array of floats normalized to [0.0, 1.0] -> [R, G, B, A]
         glTexImage2D(GL_TEXTURE_2D, lod, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, readImage(bufferedImage))
-
-        // I'd also like to use glTexSubImage2D, but we have an issue where the function
-        // would return an error about an invalid texture format.
-        //
-        // It would allow us to upload texture data asynchronously and is more efficient
-        // from testing we gain approximately 20% runtime performance.
-        // If someone with advanced OpenGL knowledge could help us out, that would be great.
-        // (Very unlikely to happen, but I can hope)
-        //
-        // I've also read online that glTexStorage2D can be used for the same purpose as
-        // glTexImage2D with NULL data.
-        // However, some users may have ancient hardware that does not support this function.
-        // as it was implemented in OpenGL 4.2 and ES 3.0.
-        //
-        // glTexSubImage2D(GL_TEXTURE_2D, lod, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, readImage(bufferedImage))
 
         setupTexture(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
     }
@@ -73,10 +62,10 @@ object TextureUtils {
     }
 
     private fun readImage(bufferedImage: BufferedImage): Long {
-        val stream = ByteArrayOutputStream()
-        ImageIO.write(bufferedImage, "png", stream)
+        val bytes = encoderPreset
+            .withBufferedImage(bufferedImage)
+            .toBytes()
 
-        val bytes = stream.toByteArray()
         val buffer = BufferUtils
             .createByteBuffer(bytes.size)
             .put(bytes)
@@ -89,7 +78,7 @@ object TextureUtils {
         if (!font.canDisplay(codePoint)) return null
 
         val fontMetrics = metricCache.getOrPut(font) {
-            val image = BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB)
+            val image = BufferedImage(COMPRESSION_LEVEL, COMPRESSION_LEVEL, BufferedImage.TYPE_INT_ARGB)
             val graphics2D = image.createGraphics()
 
             graphics2D.font = font

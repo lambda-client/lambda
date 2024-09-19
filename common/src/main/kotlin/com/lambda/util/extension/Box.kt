@@ -1,0 +1,10 @@
+package com.lambda.util.extension
+
+import net.minecraft.util.math.Box
+import net.minecraft.util.math.Vec3d
+
+val Box.min get() = Vec3d(minX, minY, minZ)
+
+val Box.max get() = Vec3d(maxX, maxY, maxZ)
+
+operator fun Box.contains(boundingBox: Box) = this.intersects(boundingBox)

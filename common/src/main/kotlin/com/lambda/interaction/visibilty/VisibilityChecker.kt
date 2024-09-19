@@ -10,7 +10,7 @@ import com.lambda.interaction.rotation.RotationContext
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.VecUtils.distSq
-import com.lambda.util.primitives.extension.component6
+import com.lambda.util.extension.component6
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.entity.Entity
@@ -95,8 +95,8 @@ object VisibilityChecker {
     inline fun scanVisibleSurfaces(
         eyes: Vec3d,
         box: Box,
-        sides: Set<Direction>,
-        resolution: Int,
+        sides: Set<Direction> = emptySet(),
+        resolution: Int = 30,
         check: (Direction, Vec3d) -> Unit,
     ) {
         box.getVisibleSurfaces(eyes)

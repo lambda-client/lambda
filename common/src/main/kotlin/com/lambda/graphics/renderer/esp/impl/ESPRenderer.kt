@@ -2,14 +2,14 @@ package com.lambda.graphics.renderer.esp.impl
 
 import com.lambda.Lambda.mc
 import com.lambda.graphics.buffer.vao.VAO
-import com.lambda.graphics.buffer.vao.vertex.BufferUsage
+import com.lambda.graphics.buffer.BufferUsage
 import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.buffer.vao.vertex.VertexMode
 import com.lambda.graphics.gl.GlStateUtils.withFaceCulling
 import com.lambda.graphics.gl.GlStateUtils.withLineWidth
 import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.RenderSettings
-import com.lambda.util.primitives.extension.partialTicks
+import com.lambda.util.extension.partialTicks
 
 abstract class ESPRenderer(
     usage: BufferUsage,

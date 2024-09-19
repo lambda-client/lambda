@@ -3,7 +3,7 @@ package com.lambda.graphics.renderer.gui.rect
 import com.lambda.graphics.buffer.vao.IRenderContext
 import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.shader.Shader
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Rect
@@ -53,7 +53,7 @@ class OutlineRectRenderer : AbstractRectRenderer(
                 val min = angleRange.first.toDouble()
                 val max = angleRange.last.toDouble()
                 val p = it.toDouble() / quality
-                val angle = lerp(min, max, p).toRadian()
+                val angle = lerp(p, min, max).toRadian()
 
                 val pos = base + Vec2d(cos(angle), -sin(angle)) * round
                 val s = shade.toInt().toDouble()

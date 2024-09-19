@@ -2,11 +2,7 @@ package com.lambda.mixin;
 
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
-import com.lambda.event.events.ClientEvent;
-import com.lambda.event.events.ScreenEvent;
-import com.lambda.event.events.ScreenHandlerEvent;
-import com.lambda.event.events.TickEvent;
-import com.lambda.interaction.RotationManager;
+import com.lambda.event.events.*;
 import com.lambda.module.modules.player.Interact;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
@@ -27,12 +23,21 @@ public class MinecraftClientMixin {
     @Inject(method = "tick", at = @At("HEAD"))
     void onTickPre(CallbackInfo ci) {
         EventFlow.post(new TickEvent.Pre());
-        RotationManager.update();
     }
 
     @Inject(method = "tick", at = @At("RETURN"))
     void onTickPost(CallbackInfo ci) {
         EventFlow.post(new TickEvent.Post());
+    }
+
+    @Inject(method = "render", at = @At("HEAD"))
+    void onLoopTickPre(CallbackInfo ci) {
+        EventFlow.post(new TickEvent.Render.Pre());
+    }
+
+    @Inject(method = "render", at = @At("RETURN"))
+    void onLoopTickPost(CallbackInfo ci) {
+        EventFlow.post(new TickEvent.Render.Post());
     }
 
     @Inject(at = @At(value = "INVOKE", target = "Lorg/slf4j/Logger;info(Ljava/lang/String;)V", shift = At.Shift.AFTER, remap = false), method = "stop")

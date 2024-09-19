@@ -3,6 +3,8 @@ val minecraftVersion: String by project
 val fabricLoaderVersion: String by project
 val fabricApiVersion: String by project
 val kotlinFabricVersion: String by project
+val discordIPCVersion: String by project
+val kotlinVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-fabric"
 
@@ -49,11 +51,12 @@ fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
         implementation(it)
         include(it)
+        // shadowBundle(it)
     }
 
     includeMod.dependencies.forEach {
         modImplementation(it)
-        include(it)
+        // include(it)
     }
 }
 
@@ -65,10 +68,12 @@ dependencies {
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
     includeLib("dev.babbaj:nether-pathfinder:1.5")
+    includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
+    includeLib("com.pngencoder:pngencoder:0.15.0")
 
     // Add mods to the mod jar
     includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion+$minecraftVersion")
-    includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion")
+    includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion.$kotlinVersion")
     includeMod("baritone-api:baritone-unoptimized-fabric:1.10.2")
 
     // Common (Do not touch)

@@ -6,12 +6,12 @@ import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.buttons.SettingButton
 import com.lambda.module.modules.client.ClickGui
-import com.lambda.util.math.ColorUtils.setAlpha
 import com.lambda.util.math.MathUtils.floorToInt
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.transform
-import com.lambda.util.primitives.extension.displayValue
+import com.lambda.util.extension.displayValue
+import com.lambda.util.math.setAlpha
 import java.awt.Color
 
 class EnumSlider<T : Enum<T>>(
@@ -32,10 +32,10 @@ class EnumSlider<T : Enum<T>>(
             renderer.font.apply {
                 val text = value.displayValue
                 val progress = 1.0 - activeAnimation
-                val scale = lerp(0.5, 1.0, progress)
+                val scale = lerp(progress, 0.5, 1.0)
                 val width = getWidth(text, scale)
                 val position = Vec2d(rect.right, rect.center.y) - Vec2d(ClickGui.windowPadding + width, 0.0)
-                val color = Color.WHITE.setAlpha(lerp(0.0, progress, showAnimation))
+                val color = Color.WHITE.setAlpha(lerp(showAnimation, 0.0, progress))
 
                 build(text, position, color, scale)
             }
