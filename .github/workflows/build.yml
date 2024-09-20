@@ -70,8 +70,6 @@ jobs:
           java-version: '17'
           architecture: x64
           cache: 'gradle'
-          cache-dependency-path: |
-            build.gradle.kts
 
       - name: Read Gradle Properties
         uses: BrycensRanch/read-properties-action@v1.0.4
@@ -91,7 +89,7 @@ jobs:
           r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
           r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
           source-dir: |
-            fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
-            forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
-            common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}
+            fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+            forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+            common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
           destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
