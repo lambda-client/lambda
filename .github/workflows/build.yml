@@ -79,7 +79,7 @@ jobs:
           all: true
 
       - name: Build Lambda
-        run: ./gradlew --build-cache build
+        run: ./gradlew build --no-daemon
 
       - name: Upload Lambda
         uses: ryand56/r2-upload-action@latest
