@@ -39,7 +39,7 @@ jobs:
           fi
     
           if [ -n "$available" ]; then
-            echo "runner-label=self-hosted" >> $GITHUB_OUTPUT
+            echo "runner-label=lambda-linux-runner" >> $GITHUB_OUTPUT
           else
             echo "runner-label=ubuntu-latest" >> $GITHUB_OUTPUT
           fi
