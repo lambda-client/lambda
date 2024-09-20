@@ -21,6 +21,12 @@ jobs:
           runners=$(curl -v -s -H "Accept: application/vnd.github+json" -H "Authorization: token ${{ secrets.REPO_ACCESS_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/actions/runners" --http1.1)
           if [ $? -ne 0 ]; then
             echo "Error: Failed to fetch runners from GitHub API" >&2
+            exit 1
+          fi
+
+          runners_count=$(echo "$runners" | jq '.runners | length')
+          if [ "$runners_count" -eq 0 ]; then
+            echo "No runners available or failed to retrieve runners." >&2
             echo "runner-label=ubuntu-latest" >> $GITHUB_OUTPUT
             exit 0
           fi
@@ -28,11 +34,9 @@ jobs:
           available=$(echo "$runners" | jq '.runners[] | select(.status == "online" and .busy == false and .labels[] .name == "self-hosted")')
           if [ $? -ne 0 ]; then
             echo "Error: Failed to parse JSON response" >&2
-            echo "runner-label=ubuntu-latest" >> $GITHUB_OUTPUT
-            exit 0
+            exit 1
           fi
     
-          # Decide the runner label based on availability
           if [ -n "$available" ]; then
             echo "runner-label=self-hosted" >> $GITHUB_OUTPUT
           else
