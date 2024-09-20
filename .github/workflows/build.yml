@@ -11,6 +11,7 @@ concurrency:
 jobs:
   check-runner:
     runs-on: ubuntu-latest
+    
     outputs:
       runner-label: ${{ steps.set-runner.outputs.runner-label }}
     
