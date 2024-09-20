@@ -10,9 +10,45 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_and_release:
-    name: Build and Release Lambda
+  check-runner:
     runs-on: ubuntu-latest
+    
+    outputs:
+      runner-label: ${{ steps.set-runner.outputs.runner-label }}
+    
+    steps:
+      - name: Set runner
+        id: set-runner
+        run: |
+          runners=$(curl -v -s -H "Accept: application/vnd.github+json" -H "Authorization: token ${{ secrets.REPO_ACCESS_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/actions/runners" --http1.1)
+          if [ $? -ne 0 ]; then
+            echo "Error: Failed to fetch runners from GitHub API" >&2
+            exit 1
+          fi
+
+          runners_count=$(echo "$runners" | jq '.runners | length')
+          if [ "$runners_count" -eq 0 ]; then
+            echo "No runners available or failed to retrieve runners." >&2
+            echo "runner-label=ubuntu-latest" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+    
+          available=$(echo "$runners" | jq '.runners[] | select(.status == "online" and .busy == false and .labels[] .name == "self-hosted")')
+          if [ $? -ne 0 ]; then
+            echo "Error: Failed to parse JSON response" >&2
+            exit 1
+          fi
+    
+          if [ -n "$available" ]; then
+            echo "runner-label=lambda-linux-runner" >> $GITHUB_OUTPUT
+          else
+            echo "runner-label=ubuntu-latest" >> $GITHUB_OUTPUT
+          fi
+  build:
+    needs: check-runner
+    runs-on: ${{ needs.check-runner.outputs.runner-label }}
+    
+    name: Build and Release Lambda
     permissions:
       contents: write
     env:
@@ -20,6 +56,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4.1.1
+
+      - name: Set current date as env variable
+        run: echo "DATE=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
 
       - name: Get Short Commit Hash
         id: vars
@@ -32,8 +71,6 @@ jobs:
           java-version: '17'
           architecture: x64
           cache: 'gradle'
-          cache-dependency-path: |
-            build.gradle.kts
 
       - name: Read Gradle Properties
         uses: BrycensRanch/read-properties-action@v1.0.4
@@ -43,25 +80,37 @@ jobs:
           all: true
 
       - name: Build Lambda
-        run: ./gradlew --build-cache build
-
+        run: ./gradlew build --no-daemon
+        
       - name: Upload Lambda Fabric
-        uses: actions/upload-artifact@v4.3.6
+        uses: ryand56/r2-upload-action@latest
         with:
-          name: lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}
-          path: fabric/build/libs/
-
+          r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
+          r2-access-key-id: ${{ secrets.R2_ACCESS_KEY }}
+          r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
+          r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
+          source-dir: 'fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
+          destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
+          
       - name: Upload Lambda Forge
-        uses: actions/upload-artifact@v4.3.6
+        uses: ryand56/r2-upload-action@latest
         with:
-          name: lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}
-          path: forge/build/libs/
+          r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
+          r2-access-key-id: ${{ secrets.R2_ACCESS_KEY }}
+          r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
+          r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
+          source-dir: 'forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
+          destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
 
       - name: Upload Lambda API
-        uses: actions/upload-artifact@v4.3.6
+        uses: ryand56/r2-upload-action@latest
         with:
-          name: lambda-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}
-          path: common/build/libs/
+          r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
+          r2-access-key-id: ${{ secrets.R2_ACCESS_KEY }}
+          r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
+          r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
+          source-dir: 'common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
+          destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v2.0.8
