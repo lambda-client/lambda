@@ -1,7 +1,11 @@
+val modVersion: String by project
+val minecraftVersion: String by project
 val modId: String by project
 val fabricLoaderVersion: String by project
 val kotlinxCoroutinesVersion: String by project
 val discordIPCVersion: String by project
+
+base.archivesName = "${base.archivesName.get()}-api"
 
 architectury { common("fabric", "forge") }
 
@@ -31,6 +35,12 @@ dependencies {
     modImplementation("baritone-api:baritone-unoptimized-fabric:1.10.2")
 }
 
-tasks.test {
-    useJUnitPlatform()
+tasks {
+    remapJar {
+        archiveVersion = "$modVersion+$minecraftVersion"
+    }
+
+    test {
+        useJUnitPlatform()
+    }
 }
