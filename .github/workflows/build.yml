@@ -79,7 +79,7 @@ jobs:
           all: true
 
       - name: Build Lambda
-        run: ./gradlew build --no-daemon
+        run: ./gradlew build
         
       - name: Upload Lambda Fabric
         uses: ryand56/r2-upload-action@latest
@@ -88,7 +88,7 @@ jobs:
           r2-access-key-id: ${{ secrets.R2_ACCESS_KEY }}
           r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
           r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
-          source-dir: 'fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
+          source-dir: './fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
           destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
           
       - name: Upload Lambda Forge
@@ -98,7 +98,7 @@ jobs:
           r2-access-key-id: ${{ secrets.R2_ACCESS_KEY }}
           r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
           r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
-          source-dir: 'forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
+          source-dir: './forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
           destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
 
       - name: Upload Lambda API
@@ -108,5 +108,5 @@ jobs:
           r2-access-key-id: ${{ secrets.R2_ACCESS_KEY }}
           r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
           r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
-          source-dir: 'common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
+          source-dir: './common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
           destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
