@@ -19,13 +19,13 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.math.MathUtils.random
 import com.lambda.util.math.VecUtils.distSq
-import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.math.VecUtils.plus
 import com.lambda.util.math.VecUtils.times
 import com.lambda.util.player.MovementUtils.moveDiff
+import com.lambda.util.player.prediction.buildPlayerPrediction
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import kotlinx.coroutines.delay
 import net.minecraft.entity.EquipmentSlot
@@ -64,6 +64,7 @@ object KillAura : Module(
     private val rotate by setting("Rotate", true) { page == Page.Aiming }
     private val rotation = RotationSettings(this) { page == Page.Aiming && rotate }
     private val stabilize by setting("Stabilize", true) { page == Page.Aiming && !rotation.instant && rotate }
+    private val stabilizationSpeed by setting("Stabilization Speed", 1.0, 0.1..3.0, 0.01) { page == Page.Aiming && !rotation.instant && rotate && stabilize }
     private val centerFactor by setting("Center Factor", 0.4, 0.0..1.0, 0.01) { page == Page.Aiming && rotate }
     private val shakeFactor by setting("Shake Factor", 0.4, 0.0..1.0, 0.01) { page == Page.Aiming && rotate }
     private val shakeChance by setting("Shake Chance", 0.2, 0.05..1.0, 0.01) { page == Page.Aiming && shakeFactor > 0.0 && rotate }
@@ -102,11 +103,6 @@ object KillAura : Module(
                 target?.let { target ->
                     buildRotation(target)
                 }
-            },
-            onReceive = {
-                target?.let { entity ->
-                    runAttack(entity)
-                }
             }
         )
 
@@ -120,10 +116,8 @@ object KillAura : Module(
             target = targeting.getTarget()
             if (!timerSync) attackTicks++
 
-            if (!rotate) {
-                target?.let { entity ->
-                    runAttack(entity)
-                }
+            target?.let { entity ->
+                runAttack(entity)
             }
         }
 
@@ -153,7 +147,25 @@ object KillAura : Module(
     private fun SafeContext.buildRotation(target: LivingEntity): RotationContext? {
         val currentRotation = RotationManager.currentRotation
 
-        val eye = player.getCameraPosVec(1f)
+        val prediction = buildPlayerPrediction()
+
+        val eye = when {
+            selfPredict < 1 -> {
+                lerp(selfPredict, player.eyePos, prediction.next().eyePos)
+            }
+
+            selfPredict < 2 -> {
+                val pos1 = prediction.next().eyePos
+                val pos2 = prediction.next().eyePos
+
+                lerp(selfPredict - 1, pos1, pos2)
+            }
+
+            else -> {
+                prediction.next().next().eyePos
+            }
+        }
+
         val box = target.boundingBox
 
         val reach = targeting.targetingRange + 2.0
@@ -166,11 +178,11 @@ object KillAura : Module(
 
         // Rotation stabilizer
         rotation.speedMultiplier = if (stabilize && !rotation.instant) {
-            val slowDown = currentRotation.castBox(box, reach) != null
+            val slowDown = currentRotation.castBox(box, reach, eye) != null
 
             with(rotation) {
                 val targetSpeed = if (slowDown) 0.0 else 1.0
-                val acceleration = if (slowDown) 0.2 else 0.1
+                val acceleration = if (slowDown) 0.2 * stabilizationSpeed else 0.1 / stabilizationSpeed
 
                 targetSpeed.coerceIn(
                     speedMultiplier - acceleration,
@@ -196,13 +208,13 @@ object KillAura : Module(
         )
 
         val random = Vec3d(
-            lerp(box.minX, box.maxX, shakeRandom.x),
-            lerp(box.minY, box.maxY, shakeRandom.x),
-            lerp(box.minZ, box.maxZ, shakeRandom.x)
+            lerp(shakeRandom.x, box.minX, box.maxX),
+            lerp(shakeRandom.x, box.minY, box.maxY),
+            lerp(shakeRandom.x, box.minZ, box.maxZ)
         )
 
-        vec = lerp(vec, box.center, centerFactor) // Mix with center
-        vec = lerp(vec, random, shakeFactor) // Apply shaking
+        vec = lerp(centerFactor, vec, box.center) // Mix with center
+        vec = lerp(shakeFactor, vec, random) // Apply shaking
 
         // Raycast
         run {
@@ -214,7 +226,7 @@ object KillAura : Module(
             // Get visible point set
             val validHits = mutableMapOf<Vec3d, Rotation>()
 
-            scanVisibleSurfaces(eye, box, emptySet(), interactionSettings.resolution) { _, vec ->
+            scanVisibleSurfaces(eye, box, resolution = interactionSettings.resolution) { _, vec ->
                 if (eye distSq vec > reachSq) return@scanVisibleSurfaces
 
                 val newRotation = eye.rotationTo(vec)
@@ -229,7 +241,7 @@ object KillAura : Module(
             vec = validHits.minByOrNull { vecRotation dist it.value }?.key ?: return null
         }
 
-        val predictOffset = target.moveDiff * targetPredict - player.moveDiff * Vec3d(1.0, -0.5, 1.0) * selfPredict
+        val predictOffset = target.moveDiff * targetPredict
         return RotationContext(eye.rotationTo(vec + predictOffset), rotation)
     }
 

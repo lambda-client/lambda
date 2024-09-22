@@ -95,8 +95,8 @@ object VisibilityChecker {
     inline fun scanVisibleSurfaces(
         eyes: Vec3d,
         box: Box,
-        sides: Set<Direction>,
-        resolution: Int,
+        sides: Set<Direction> = emptySet(),
+        resolution: Int = 30,
         check: (Direction, Vec3d) -> Unit,
     ) {
         box.getVisibleSurfaces(eyes)

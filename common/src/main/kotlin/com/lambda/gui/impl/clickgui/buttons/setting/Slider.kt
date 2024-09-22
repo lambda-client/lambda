@@ -11,9 +11,9 @@ import com.lambda.module.modules.client.GuiSettings
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.playSound
 import com.lambda.util.Mouse
-import com.lambda.util.math.ColorUtils.multAlpha
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.multAlpha
 import com.lambda.util.math.transform
 
 abstract class Slider<V : Any, T : AbstractSetting<V>>(
@@ -23,7 +23,7 @@ abstract class Slider<V : Any, T : AbstractSetting<V>>(
 
     // Force this slider to follow mouse when dragging instead of rounding to the closest setting value
     private val progressAnimation by animation.exp({ mouseX?.let(::getProgressByMouse) ?: progress }, 0.6)
-    private val renderProgress get() = lerp(0.0, progressAnimation, showAnimation)
+    private val renderProgress get() = lerp(showAnimation, 0.0, progressAnimation)
 
     protected abstract fun setValueByProgress(progress: Double)
     private var lastPlayedValue = value
@@ -73,7 +73,7 @@ abstract class Slider<V : Any, T : AbstractSetting<V>>(
         lastPlayedValue = value
         lastPlayedTiming = time
 
-        playSound(LambdaSound.BUTTON_CLICK.event, lerp(0.9, 1.2, progress))
+        playSound(LambdaSound.BUTTON_CLICK.event, lerp(progress, 0.9, 1.2))
     }
 
     private fun getProgressByMouse(mouseX: Double) =

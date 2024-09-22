@@ -10,9 +10,6 @@ labels:
   - label: 'forge'
     title: '(?i)\[?(forge|all)[:\]]'
 
-  - label: 'neoforge'
-    title: '(?i)\[?(neoforge|all)[:\]]'
-
   - label: 'fabric'
     title: '(?i)\[?(fabric|all)[:\]]'
 

@@ -2,7 +2,7 @@ package com.lambda.module.modules.render
 
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.ColorUtils.vec3d
+import com.lambda.util.math.vec3d
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
