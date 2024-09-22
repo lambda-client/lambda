@@ -1,11 +1,16 @@
-package com.lambda.newgui
+package com.lambda.newgui.component.layout
 
+import com.lambda.graphics.RenderMain
 import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.graphics.gl.Scissor.scissor
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.RenderLayer
+import com.lambda.newgui.component.HAlign
+import com.lambda.newgui.component.VAlign
+import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
+import com.lambda.util.math.MathUtils.coerceIn
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 
@@ -30,12 +35,65 @@ import com.lambda.util.math.Vec2d
  * ```
  */
 open class Layout(
-    private val owner: Layout?,
+    val owner: Layout?,
     useBatching: Boolean,
-    private val batchChildren: Boolean
+    private val batchChildren: Boolean,
 ) {
-    // Rectangle of the component
-    open val rect: Rect get() = rectUpdate() + (owner?.rect?.leftTop ?: Vec2d.ZERO)
+    /**
+     * The rectangle of this component
+     */
+    val rect get() = Rect.basedOn(position, size)
+
+    /**
+     * The size of this component
+     */
+    open var size = Vec2d.ZERO
+
+    /**
+     * Horizontal alignment
+     */
+    var horizontalAlignment = HAlign.LEFT; set(to) {
+        val from = field
+        field = to
+
+        val delta = to.multiplier - from.multiplier
+        relativePos += Vec2d.RIGHT * delta * (size.x - ownerRect.size.x)
+    }
+
+    /**
+     * Vertical alignment
+     */
+    var verticalAlignment = VAlign.TOP; set(to) {
+        val from = field
+        field = to
+
+        val delta = to.multiplier - from.multiplier
+        relativePos += Vec2d.BOTTOM * delta * (size.y - ownerRect.size.y)
+    }
+
+    /**
+     * Relative position of the component
+     */
+    var relativePos = Vec2d.ZERO
+
+    /**
+     * Absolute(drawn) position of the component
+     */
+    var position: Vec2d
+        get() = ownerRect.leftTop + relativeToAbs(relativePos).let {
+            if (!clampPosition) it
+            else it.coerceIn(
+                0.0, ownerRect.size.x - size.x,
+                0.0, ownerRect.size.y - size.y
+            )
+        }; set(value) { relativePos = absToRelative(value - ownerRect.leftTop) }
+
+    // Rect-related properties
+    private var screenSize = Vec2d.ZERO
+    private val ownerRect get() = owner?.rect ?: Rect(Vec2d.ZERO, screenSize)
+    private val dockingOffset get() = (ownerRect.size - size) * Vec2d(horizontalAlignment.multiplier, verticalAlignment.multiplier)
+    private fun relativeToAbs(posIn: Vec2d) = posIn + dockingOffset
+    private fun absToRelative(posIn: Vec2d) = posIn - dockingOffset
 
     // Structure
     val children = mutableListOf<Layout>()
@@ -61,7 +119,9 @@ open class Layout(
     }
 
     private var owningRenderer = false
+
     protected open val interactionPassthrough = false
+    protected open val clampPosition = false
 
     // Actions
     private var showActions = mutableListOf<() -> Unit>()
@@ -73,7 +133,7 @@ open class Layout(
     private var mouseClickActions = mutableListOf<(button: Mouse.Button, action: Mouse.Action) -> Unit>()
     private var mouseMoveActions = mutableListOf<(mouse: Vec2d) -> Unit>()
     private var mouseScrollActions = mutableListOf<(delta: Double) -> Unit>()
-    private var rectUpdate = { Rect.ZERO }
+    private var rectUpdate: (() -> Rect)? = null
 
     /**
      * Sets the action to be performed when the element gets shown.
@@ -157,13 +217,22 @@ open class Layout(
     }
 
     /**
-     * Sets the rectangle of this component.
+     * Sets the rect of the element
      */
-    fun rect(block: () -> Rect) {
+    fun rectUpdate(block: () -> Rect) {
         rectUpdate = block
     }
 
     fun onEvent(e: GuiEvent) {
+        if (e is GuiEvent.Render) {
+            screenSize = RenderMain.screenSize
+
+            rectUpdate?.invoke()?.let {
+                position = it.leftTop
+                size = it.size
+            }
+        }
+
         // Select an element that's on foreground
         selectedChild = if (isHovered) children.lastOrNull {
             !it.interactionPassthrough && mousePosition in it.rect
@@ -192,23 +261,31 @@ open class Layout(
             is GuiEvent.KeyPress -> { keyPressActions.forEach { it(e.key) } }
             is GuiEvent.CharTyped -> { charTypedActions.forEach { it((e.char)) } }
             is GuiEvent.MouseMove -> { mousePosition = e.mouse; mouseMoveActions.forEach { it(e.mouse) } }
-            is GuiEvent.MouseScroll -> { mousePosition = e.mouse; mouseScrollActions.forEach { it(e.delta) } }
+            is GuiEvent.MouseScroll -> {
+                mousePosition = e.mouse
+
+                if (isHovered) {
+                    mouseScrollActions.forEach { it(e.delta) }
+                }
+            }
             is GuiEvent.MouseClick -> {
                 mousePosition = e.mouse
                 val action = if (isHovered) e.action else Mouse.Action.Release
                 mouseClickActions.forEach { it(e.button, action) }
             }
-            is GuiEvent.Render -> scissor(rect) {
+            is GuiEvent.Render -> {
                 val (pre, post) = children.partition { !it.owningRenderer }
 
                 pre.forEach { it.onEvent(e) }
                 renderActions.forEach { it(renderer) }
 
                 if (owningRenderer) {
-                    scissor(rect, renderer::render)
+                    renderer.render()
                 }
 
-                post.forEach { it.onEvent(e) }
+                scissor(rect) { // ToDo: merge to ListLayout
+                    post.forEach { it.onEvent(e) }
+                }
             }
         }
     }
@@ -217,9 +294,11 @@ open class Layout(
         /**
          * Creates an empty [Layout]
          *
-         * @param useBatching Increases performance by using parent's renderer instead of creating a new one.
+         * @param useBatching Whether to use parent's renderer
          *
          * @param batchChildren Whether allow children to use the renderer of this layout
+         *
+         * @param block Actions to perform within this component
          *
          * Check [Layout] description for more info about batching
          */
@@ -227,11 +306,8 @@ open class Layout(
         fun Layout.layout(
             useBatching: Boolean = false,
             batchChildren: Boolean = false,
-            block: Layout.() -> Unit,
+            block: Layout.() -> Unit = {},
         ) = Layout(this, useBatching, batchChildren)
             .apply(children::add).apply(block)
     }
 }
-
-@DslMarker
-annotation class UIBuilder

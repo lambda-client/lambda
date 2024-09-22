@@ -7,6 +7,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.graphics.RenderMain
 import com.lambda.gui.api.GuiEvent
+import com.lambda.newgui.component.layout.Layout
+import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.Nameable
@@ -119,7 +121,7 @@ class LambdaScreen(
             Layout(owner = null, useBatching = false, batchChildren = true).apply {
                 var screenSize = Vec2d.ONE * 10000.0
 
-                rect {
+                rectUpdate {
                     Rect(Vec2d.ZERO, screenSize)
                 }
 

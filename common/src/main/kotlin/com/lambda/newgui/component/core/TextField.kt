@@ -1,10 +1,8 @@
 package com.lambda.newgui.component.core
 
-import com.lambda.newgui.Layout
-import com.lambda.newgui.UIBuilder
-import com.lambda.newgui.component.HAlign
+import com.lambda.newgui.component.VAlign
+import com.lambda.newgui.component.layout.Layout
 import com.lambda.util.math.MathUtils.lerp
-import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 import java.awt.Color
 
@@ -14,7 +12,6 @@ class TextField(
     initialColor: Color = Color.WHITE,
     initialScale: Double = 1.0,
     initialShadow: Boolean = true,
-    initialAlignment: HAlign = HAlign.LEFT,
     initialOffset: Double = 0.0,
 ) : Layout(owner, true, true) {
     var text = initialText
@@ -22,26 +19,35 @@ class TextField(
     var scale = initialScale
     var shadow = initialShadow
 
-    var alignment = initialAlignment
     var offset = initialOffset
 
     // Let user interact through the text
     override val interactionPassthrough = true
 
     init {
-        rect {
-            // Completely fill parent component by default
-            Rect(Vec2d.ZERO, owner.rect.size)
-        }
+        verticalAlignment = VAlign.CENTER
+        rectUpdate(owner::rect)
 
         onRender {
+            val w = font.getWidth(text, scale)
+            val h = font.getHeight(scale)
+
             val x = lerp(
                 rect.left,
-                rect.right - font.getWidth(text, scale),
-                alignment.multiplier
-            ) - offset * alignment.offset
+                rect.right - w,
+                horizontalAlignment.multiplier
+            ) - offset * horizontalAlignment.offset
 
-            font.build(text, Vec2d(x, rect.center.y), color, scale, shadow)
+            val y = when {
+                verticalAlignment == VAlign.CENTER || rect.size.y <= h -> rect.center.y
+                else -> lerp(
+                    rect.top + h * 0.5,
+                    rect.bottom - h * 0.5,
+                    verticalAlignment.multiplier
+                )
+            }
+
+            font.build(text, Vec2d(x, y), color, scale, shadow)
         }
     }
 
@@ -52,9 +58,8 @@ class TextField(
             color: Color = Color.WHITE,
             scale: Double = 1.0,
             shadow: Boolean = true,
-            alignment: HAlign = HAlign.LEFT,
             offset: Double = 0.0,
             block: TextField.() -> Unit = {}
-        ) = TextField(this, text, color, scale, shadow, alignment, offset).apply(children::add).apply(block)
+        ) = TextField(this, text, color, scale, shadow, offset).apply(children::add).apply(block)
     }
 }
