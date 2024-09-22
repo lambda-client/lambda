@@ -4,9 +4,9 @@ import com.lambda.Lambda.LOG
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RotationEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.interaction.blockplace.PlaceInteraction.placeBlock
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
@@ -20,8 +20,8 @@ class PlaceBlock @Ta5kBuilder constructor(
     private val waitForConfirmation: Boolean,
 ) : Task<Unit>() {
     private var beginState: BlockState? = null
-    private var state = State.PLACING
-    private var inScope = 0
+    private var state = State.ROTATING
+    private var t = false
 
     private val SafeContext.resultingState: BlockState get() =
         ctx.resultingPos.blockState(world)
@@ -29,7 +29,7 @@ class PlaceBlock @Ta5kBuilder constructor(
         ctx.targetState.matches(ctx.resultingPos.blockState(world), ctx.resultingPos, world)
 
     enum class State {
-        PLACING, CONFIRMING
+        ROTATING, PLACING, CONFIRMING
     }
 
     override fun SafeContext.onStart() {
@@ -46,22 +46,28 @@ class PlaceBlock @Ta5kBuilder constructor(
 
     init {
         listener<RotationEvent.Update> { event ->
+            if (state != State.ROTATING) return@listener
             if (!rotate) return@listener
             event.context = ctx.rotation
         }
 
-        listener<RotationEvent.Post> {
+        listener<RotationEvent.Post> { event ->
+            if (state != State.ROTATING) return@listener
             if (!rotate) return@listener
-            if (state != State.PLACING) return@listener
-            if (!it.context.isValid) return@listener
+            if (event.context != ctx.rotation) return@listener
+            if (!event.context.isValid) return@listener
 
-            if (inScope++ >= interact.scopeThreshold) {
-                placeBlock()
-            }
+            state = State.PLACING
+        }
+
+        listener<TickEvent.Pre> {
+            if (state != State.PLACING) return@listener
+
+            if (t) placeBlock()
+            t = true
         }
 
         listener<WorldEvent.BlockUpdate> {
-            if (state != State.CONFIRMING) return@listener
             if (it.pos != ctx.resultingPos) return@listener
 
             if (ctx.targetState.matches(it.state, it.pos, world)) {

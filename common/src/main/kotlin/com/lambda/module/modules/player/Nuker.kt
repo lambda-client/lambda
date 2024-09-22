@@ -1,6 +1,7 @@
 package com.lambda.module.modules.player
 
-import com.lambda.interaction.construction.DynamicBlueprint.Companion.blueprintOnTick
+import com.lambda.interaction.construction.Blueprint.Companion.emptyStructure
+import com.lambda.interaction.construction.DynamicBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -25,12 +26,8 @@ object Nuker : Module(
 
     init {
         onEnable {
-            task = build(
-                pathing = false,
-                finishOnDone = false,
-                cancelOnUnsolvable = false
-            ) {
-                blueprintOnTick { _ ->
+            task = emptyStructure()
+                .toBlueprint {
                     val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
                         .asSequence()
                         .map { it.blockPos }
@@ -44,12 +41,16 @@ object Nuker : Module(
                         val floor = BlockPos.iterateOutwards(player.blockPos.down(), width, 0, width)
                             .map { it.blockPos }
                             .associateWith { TargetState.Solid }
-                        return@blueprintOnTick selection + floor
+                        return@toBlueprint selection + floor
                     }
 
                     selection
                 }
-            }
+                .build(
+                    pathing = false,
+                    finishOnDone = false,
+                    cancelOnUnsolvable = false
+                )
             task.start(null)
         }
 

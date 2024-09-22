@@ -15,6 +15,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
+import com.lambda.util.extension.Structure
 import net.minecraft.util.math.BlockPos
 
 class BuildTask @Ta5kBuilder constructor(
@@ -27,7 +28,9 @@ class BuildTask @Ta5kBuilder constructor(
     private val cancelOnUnsolvable: Boolean = false,
 ) : Task<Unit>() {
     private var previousResults = setOf<BuildResult>()
-    private var lastResult: BuildResult? = null
+    private val placeTimeout = 15
+    private val breakTimeout = 15
+    private val pending = mutableListOf<BuildResult>()
 
     override fun SafeContext.onStart() {
         (blueprint as? DynamicBlueprint)?.create(this)
@@ -41,6 +44,15 @@ class BuildTask @Ta5kBuilder constructor(
         }
 
         listener<TickEvent.Pre> {
+            pending.removeIf {
+                if (it.age > placeTimeout) {
+                    it.cancel()
+                    true
+                } else {
+                    it.isCompleted
+                }
+            }
+
             (blueprint as? DynamicBlueprint)?.update(this)
 
             if (finishOnDone && blueprint.structure.isEmpty()) {
@@ -59,9 +71,13 @@ class BuildTask @Ta5kBuilder constructor(
 
             if (TaskFlow.build.breaksPerTick > 1 && instantResults.isNotEmpty()) {
                 instantResults.forEach {
-                    lastResult = it
+                    pending.add(it)
                     it.start(this@BuildTask, pauseParent = false)
                 }
+                return@listener
+            }
+
+            if (pending.isNotEmpty()) {
                 return@listener
             }
 
@@ -71,20 +87,16 @@ class BuildTask @Ta5kBuilder constructor(
                     success(Unit)
                 }
                 is Navigable -> {
-                    if (lastResult?.isCompleted == false) return@listener
-
                     if (pathing) BaritoneUtils.setGoalAndPath(result.goal)
                 }
                 else -> {
-                    if (lastResult?.isCompleted == false) return@listener
-
                     LOG.info("Resolving: $result")
 
                     if (result is BreakResult.Break) {
                         result.collectDrop = collectDrops
                     }
 
-                    lastResult = result
+                    pending.add(result)
                     result.start(this@BuildTask, pauseParent = result.pausesParent)
                 }
             }
@@ -110,6 +122,42 @@ class BuildTask @Ta5kBuilder constructor(
                 collectDrops,
                 cancelOnUnsolvable
             )
+
+        @Ta5kBuilder
+        fun Structure.build(
+            finishOnDone: Boolean = true,
+            pathing: Boolean = TaskFlow.build.pathing,
+            stayInRange: Boolean = true,
+            forceSilkTouch: Boolean = false,
+            collectDrops: Boolean = TaskFlow.build.collectDrops,
+            cancelOnUnsolvable: Boolean = true,
+        ) = BuildTask(
+            toBlueprint(),
+            finishOnDone,
+            pathing,
+            stayInRange,
+            forceSilkTouch,
+            collectDrops,
+            cancelOnUnsolvable
+        )
+
+        @Ta5kBuilder
+        fun Blueprint.build(
+            finishOnDone: Boolean = true,
+            pathing: Boolean = TaskFlow.build.pathing,
+            stayInRange: Boolean = true,
+            forceSilkTouch: Boolean = false,
+            collectDrops: Boolean = TaskFlow.build.collectDrops,
+            cancelOnUnsolvable: Boolean = true,
+        ) = BuildTask(
+            this,
+            finishOnDone,
+            pathing,
+            stayInRange,
+            forceSilkTouch,
+            collectDrops,
+            cancelOnUnsolvable
+        )
 
         @Ta5kBuilder
         fun breakAndCollectBlock(

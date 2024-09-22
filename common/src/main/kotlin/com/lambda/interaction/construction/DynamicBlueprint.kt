@@ -26,13 +26,9 @@ data class DynamicBlueprint(
             }.toMap()
         }
 
-        fun blueprintOnTick(
-            init: SafeContext.(Structure) -> Structure = { emptyMap() },
+        fun Structure.toBlueprint(
+            init: SafeContext.(Structure) -> Structure = { this@toBlueprint },
             onTick: SafeContext.(Structure) -> Structure
         ) = DynamicBlueprint(init = init, update = onTick)
-
-        fun Structure.toBlueprint(
-            onTick: SafeContext.(Structure) -> Structure
-        ) = DynamicBlueprint(init = { emptyMap() }, update = onTick)
     }
 }
