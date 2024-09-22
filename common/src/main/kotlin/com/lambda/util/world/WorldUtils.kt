@@ -1,26 +1,24 @@
 package com.lambda.util.world
 
 import com.lambda.context.SafeContext
-import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.BlockUtils.blockState
+import com.lambda.core.annotations.InternalApi
 import com.lambda.util.collections.filterPointer
-import net.minecraft.block.Block
+import com.lambda.util.primitives.extension.getBlockState
+import com.lambda.util.primitives.extension.getFluidState
 import net.minecraft.block.BlockState
 import net.minecraft.entity.Entity
 import net.minecraft.fluid.Fluid
 import net.minecraft.fluid.FluidState
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
-import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.Vec3i
 import kotlin.math.ceil
+import kotlin.reflect.KClass
 
 /**
  * Utility functions for working with the Minecraft world.
  *
  * This object employs a pass-by-reference model, allowing functions to modify
  * data structures passed to them rather than creating new ones. This approach
- * offers 2 main benefits:
+ * offers two main benefits:
  *
  * - **Performance**: Pass-by-reference avoids unnecessary memory allocations
  * and reallocations that can occur when creating new data structures.
@@ -31,52 +29,24 @@ import kotlin.math.ceil
  * temporary objects.
  *
  * When you create a new object, the JVM allocates memory for it on the heap.
- * When it is no longer needed, the garbage collector frees up the memory.
+ * When it is no longer necessary, the garbage collector frees up the memory.
  * This process **IS** expensive, especially if you are creating and discarding many objects
- * in a short period of time, for example, when retrieving all the 200 pigs in your farm every game tick.
+ *
+ * Please note that the author of this code currently does not have any certifications in the field of computer science.
+ * Simply plain old experience and knowledge.
  *
  * @see <a href="https://www.ibm.com/docs/en/i/7.4?topic=calls-pass-by-reference">IBM - Pass By Reference</a>
  * @see <a href="https://www.cs.fsu.edu/~myers/c++/notes/references.html">Florida State University - Pass By Reference vs. Pass By Value</a>
  * @see <a href="https://www.ibm.com/docs/no/aix/7.2?topic=monitoring-garbage-collection-impacts-java-performance">IBM - Garbage Collection Impacts on Java Performance</a>
  * @see <a href="https://devdiaries.medium.com/gc-and-its-effect-on-java-performance-9cba51ffb196">Medium - GC and Its Effect on Java Performance</a>
- *
- * Many functions uses a branching approach to avoid trolling the speculative execution of the CPU.
- * @see <a href="https://en.wikipedia.org/wiki/Branch_predictor for more information.">Branch Predictor</a>
- * @see <a href="https://en.wikipedia.org/wiki/Speculative_execution">Speculative Execution</a>
  */
 object WorldUtils {
     /**
-     * Gets the closest entity of type [T] within a specified range.
-     *
-     * Because we don't want to troll the CPU speculative execution, we only use the [getFastEntities] function.
-     * This should not be an issue as the performance of this function is optimized for small distances.
-     *
-     * @param pos The position to search from.
-     * @param range The maximum distance to search for entities.
-     * @param predicate Predicate to filter entities.
-     * @return The first entity of type [T] that is closest to the position within the specified range.
+     * A magic vector that can be used to represent a single block.
+     * It is the same as `fastVectorOf(1, 1, 1)`.
      */
-    inline fun <reified T : Entity> SafeContext.getClosestEntity(
-        pos: Vec3d,
-        range: Double,
-        predicate: (T) -> Boolean = { true },
-        type: Class<out T> = T::class.java,
-    ): T? {
-        var closest: T? = null
-        var closestDistance = Double.MAX_VALUE
-
-        val comparator = { entity: T, _: Int ->
-            val distance = pos.squaredDistanceTo(entity.pos)
-            if (distance < closestDistance) {
-                closest = entity
-                closestDistance = distance
-            }
-        }
-
-        getFastEntities(pos, range, null, comparator, predicate)
-
-        return closest
-    }
+    @InternalApi
+    const val MAGICVECTOR = 274945015809L
 
     /**
      * Gets all entities of type [T] within a specified distance from a position.
@@ -84,40 +54,45 @@ object WorldUtils {
      * This function retrieves entities of type [T] within a specified distance from a given position. It efficiently
      * queries nearby chunks based on the distance and returns a list of matching entities, excluding the player entity.
      *
+     * Examples:
+     * - Getting all hostile entities within a certain distance:
+     * ```
+     * val hostileEntities = mutableListOf<HostileEntity>()
+     * getFastEntities<HostileEntity>(player.pos, 30.0, hostileEntities)
+     * ```
      *
-     * Getting all Zombie entities within a certain distance:
-     * ```
-     * val nearbyZombies = getFastEntities<ZombieEntity>(playerPos, 20.0)
-     * ```
-     *
-     * Getting all hostile entities within a certain distance:
-     * ```
-     * val hostileEntities = getFastEntities<HostileEntity>(playerPos, 30.0)
-     * ```
-     * This fetches all hostile entities (e.g., Monsters) within a 30-block radius from the player's position.
-     *
-     * Please note that this implementation is optimized for performance at small distances. For larger distances, it is
-     * recommended to use the [getEntities] function instead.
-     * With the time complexity, we can determine that after 64 blocks, the performance of this function will degrade.
+     * Please note that this implementation is optimized for performance at small distances.
+     * For larger distances, it is recommended to use the [internalGetEntities] function instead.
+     * With the time complexity, we can determine that the performance of this function will degrade after 64 blocks.
      *
      * @param pos The position to search from.
      * @param distance The maximum distance to search for entities.
      * @param pointer The mutable list to store the entities in.
-     * @param iterator Iterator to perform operations on each entity.
+     * @param iterator Iterator to perform operations on each entity. The second parameter is the index of the iteration.
      * @param predicate Predicate to filter entities.
      */
-    inline fun <reified T : Entity> SafeContext.getFastEntities(
-        pos: Vec3d,
+    @InternalApi
+    inline fun <reified T : Entity> SafeContext.internalGetFastEntities(
+        pos: FastVector,
         distance: Double,
         pointer: MutableList<T>? = null,
-        iterator: (T, Int) -> Unit = { _, _ -> },
         predicate: (T) -> Boolean = { true },
-        type: Class<out T> = T::class.java,
+        iterator: (T) -> Unit = { _ -> },
+    ) = internalGetFastEntities(T::class, pos, distance, pointer, predicate, iterator)
+
+    @InternalApi
+    inline fun <T : Entity> SafeContext.internalGetFastEntities(
+        kClass: KClass<out T>,
+        pos: FastVector,
+        distance: Double,
+        pointer: MutableList<T>? = null,
+        predicate: (T) -> Boolean = { true },
+        iterator: (T) -> Unit = { _ -> },
     ) {
-        val chunks = ceil(distance / 16).toInt()
-        val sectionX = pos.x.toInt() shr 4
-        val sectionY = pos.y.toInt() shr 4
-        val sectionZ = pos.z.toInt() shr 4
+        val chunks = ceil(distance / 16.0).toInt()
+        val sectionX = pos.x shr 4
+        val sectionY = pos.y shr 4
+        val sectionZ = pos.z shr 4
 
         // Here we iterate over all sections within the specified distance and add all entities of type [T] to the list.
         // We do not have to worry about performance here, as the number of sections is very limited.
@@ -130,9 +105,9 @@ object WorldUtils {
                         .cache
                         .findTrackingSection(ChunkSectionPos.asLong(x, y, z)) ?: continue
 
-                    section.collection.filterPointer(pointer, iterator) { entity ->
+                    section.collection.filterPointer(kClass, pointer, iterator) { entity ->
                         entity != player &&
-                                entity.squaredDistanceTo(pos) <= distance * distance &&
+                                pos distSq entity.pos <= distance * distance &&
                                 predicate(entity)
                     }
                 }
@@ -144,47 +119,38 @@ object WorldUtils {
      * Gets all entities of type [T] within a specified distance from a position.
      *
      * This function retrieves entities of type [T] within a specified distance from a given position. Unlike
-     * [getFastEntities], it traverses all entities in the world to find matches, while also excluding the player entity.
+     * [internalGetFastEntities], it traverses all entities in the world to find matches, while also excluding the player entity.
      *
+     * @param pos The block position to search from.
+     * @param distance The maximum distance to search for entities.
      * @param pointer The mutable list to store the entities in.
-     * @param iterator Iterator to perform operations on each entity.
+     * @param iterator Iterator to perform operations on each entity. The second parameter is the index of the iteration.
      * @param predicate Predicate to filter entities.
      */
-    inline fun <reified T : Entity> SafeContext.getEntities(
-        pos: Vec3d,
+    @InternalApi
+    inline fun <reified T : Entity> SafeContext.internalGetEntities(
+        pos: FastVector,
         distance: Double,
         pointer: MutableList<T>? = null,
-        iterator: (T, Int) -> Unit = { _, _ -> },
         predicate: (T) -> Boolean = { true },
-        type: Class<out T> = T::class.java,
+        iterator: (T) -> Unit = { _ -> },
+    ) = internalGetEntities(T::class, pos, distance, pointer, predicate, iterator)
+
+    @InternalApi
+    inline fun <T : Entity> SafeContext.internalGetEntities(
+        kClass: KClass<out T>,
+        pos: FastVector,
+        distance: Double,
+        pointer: MutableList<T>? = null,
+        predicate: (T) -> Boolean = { true },
+        iterator: (T) -> Unit = { _ -> },
     ) {
-        world.entities.filterPointer(pointer, iterator) { entity ->
+        world.entities.filterPointer(kClass, pointer, iterator) { entity ->
             entity != player &&
-                    entity.squaredDistanceTo(pos) <= distance * distance &&
+                    pos distSq entity.pos <= distance * distance &&
                     predicate(entity)
         }
     }
-
-    /**
-     * Returns all the blocks and positions within the range where the predicate is true.
-     *
-     * @param pos The position to search from.
-     * @param rangeX The maximum distance to search for entities in the x-axis.
-     * @param rangeY The maximum distance to search for entities in the y-axis.
-     * @param rangeZ The maximum distance to search for entities in the z-axis.
-     * @param pointer The mutable map to store the positions to blocks in.
-     * @param predicate Predicate to filter the blocks.
-     * @param iterator Iterator to perform operations on each block.
-     */
-    inline fun SafeContext.searchBlocks(
-        pos: Vec3i,
-        rangeX: Int,
-        rangeY: Int,
-        rangeZ: Int,
-        pointer: MutableMap<BlockPos, Block>? = null,
-        predicate: (BlockState, BlockPos) -> Boolean = { _, _ -> true },
-        iterator: (BlockState, BlockPos, Int) -> Unit = { _, _, _ -> },
-    ) = searchBlocks(pos, Vec3i(rangeX, rangeY, rangeZ), pointer, predicate, iterator)
 
     /**
      * Returns all the blocks and positions within the range where the predicate is true.
@@ -195,23 +161,22 @@ object WorldUtils {
      * @param iterator Iterator to perform operations on each block.
      * @param predicate Predicate to filter the blocks.
      */
-    inline fun SafeContext.searchBlocks(
-        pos: Vec3i,
-        range: Vec3i,
-        pointer: MutableMap<BlockPos, Block>? = null,
-        predicate: (BlockState, BlockPos) -> Boolean = { _, _ -> true },
-        iterator: (BlockState, BlockPos, Int) -> Unit = { _, _, _ -> },
+    @InternalApi
+    inline fun SafeContext.internalSearchBlocks(
+        pos: FastVector,
+        range: FastVector = MAGICVECTOR times 7,
+        step: FastVector = MAGICVECTOR,
+        pointer: MutableMap<FastVector, BlockState>? = null,
+        predicate: (FastVector, BlockState) -> Boolean = { _, _ -> true },
+        iterator: (FastVector, BlockState) -> Unit = { _, _ -> },
     ) {
-        iteratePositions(pos, range) { blockPos, index ->
-            val state = blockPos.blockState(world)
-            when {
-                predicate(state, blockPos) && pointer != null -> {
-                    pointer[blockPos] = state.block
-                    iterator(state, blockPos, index)
-                }
+        internalIteratePositions(pos, range, step) { position ->
+            world.getBlockState(position).let { state ->
+                val fulfilled = predicate(position, state)
 
-                predicate(state, blockPos) && pointer == null -> {
-                    iterator(state, blockPos, index)
+                if (fulfilled && pointer != null) {
+                    pointer[position] = state
+                    iterator(position, state)
                 }
             }
         }
@@ -226,23 +191,34 @@ object WorldUtils {
      * @param iterator Iterator to perform operations on each fluid.
      * @param predicate Predicate to filter the fluids.
      */
-    inline fun <reified T : Fluid> SafeContext.searchFluids(
-        pos: Vec3i,
-        range: Vec3i,
-        pointer: MutableMap<BlockPos, T>? = null,
-        iterator: (FluidState, BlockPos, Int) -> Unit = { _, _, _ -> },
-        predicate: (FluidState, BlockPos) -> Boolean = { _, _ -> true },
-    ) {
-        iteratePositions(pos, range) { blockPos, index ->
-            val state = world.getFluidState(blockPos)
-            when {
-                predicate(state, blockPos) && pointer != null -> {
-                    iterator(state, blockPos, index)
-                    pointer[blockPos] = state.fluid as T
-                }
+    @InternalApi
+    inline fun <reified T : Fluid> SafeContext.internalSearchFluids(
+        pos: FastVector,
+        range: FastVector = MAGICVECTOR times 7,
+        step: FastVector = MAGICVECTOR,
+        pointer: MutableMap<FastVector, T>? = null,
+        predicate: (FastVector, FluidState) -> Boolean = { _, _ -> true },
+        iterator: (FastVector, FluidState) -> Unit = { _, _ -> },
+    ) = internalSearchFluids(T::class, pos, range, step, pointer, predicate, iterator)
 
-                predicate(state, blockPos) && pointer == null -> {
-                    iterator(state, blockPos, index)
+    @InternalApi
+    inline fun <T : Fluid> SafeContext.internalSearchFluids(
+        kClass: KClass<out T>,
+        pos: FastVector,
+        range: FastVector = MAGICVECTOR times 7,
+        step: FastVector = MAGICVECTOR,
+        pointer: MutableMap<FastVector, T>? = null,
+        predicate: (FastVector, FluidState) -> Boolean = { _, _ -> true },
+        iterator: (FastVector, FluidState) -> Unit = { _, _ -> },
+    ) {
+        internalIteratePositions(pos, range, step) { position ->
+            world.getFluidState(position.x, position.y, position.z).let { state ->
+                val fulfilled = kClass.isInstance(state.fluid) && predicate(position, state)
+
+                if (fulfilled && pointer != null) {
+                    pointer[position] = state.fluid as T
+
+                    iterator(position, state)
                 }
             }
         }
@@ -252,16 +228,25 @@ object WorldUtils {
      * Iterates over all positions within the specified range.
      * @param pos The position to start from.
      * @param range The maximum distance to search for entities in each axis.
+     * @param step The step to increment the position by.
      * @param iterator Iterator to perform operations on each position.
      */
-    inline fun iteratePositions(
-        pos: Vec3i,
-        range: Vec3i,
-        iterator: (BlockPos, Int) -> Unit,
+    @InternalApi
+    inline fun internalIteratePositions(
+        pos: FastVector,
+        range: FastVector,
+        step: FastVector,
+        iterator: (FastVector) -> Unit = { _ -> },
     ) {
-        BlockPos.iterateOutwards(pos.blockPos, range.x, range.y, range.z)
-            .forEachIndexed { index, blockPos ->
-                iterator(blockPos, index)
+        for (x in -range.x..range.x step step.x) {
+            for (y in -range.y..range.y step step.y) {
+                for (z in -range.z..range.z step step.z) {
+                    iterator(
+                        pos plus fastVectorOf(x, y, z),
+                    )
+                }
             }
+        }
     }
 }
+

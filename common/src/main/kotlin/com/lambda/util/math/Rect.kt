@@ -1,6 +1,6 @@
 package com.lambda.util.math
 
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import kotlin.math.max
 import kotlin.math.min
 
@@ -16,7 +16,7 @@ data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
     val leftBottom get() = Vec2d(left, bottom)
 
     val size get() = Vec2d(right - left, bottom - top)
-    val center get() = lerp(pos1, pos2, 0.5)
+    val center get() = lerp(0.5, pos1, pos2)
 
     operator fun plus(vec2d: Vec2d) = Rect(pos1 + vec2d, pos2 + vec2d)
     operator fun minus(vec2d: Vec2d) = Rect(pos1 - vec2d, pos2 - vec2d)

@@ -7,7 +7,7 @@ import com.lambda.gui.api.component.core.list.ChildLayer
 import com.lambda.gui.impl.AbstractClickGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.gui.impl.clickgui.buttons.SettingButton
-import com.lambda.util.math.ColorUtils.multAlpha
+import com.lambda.util.math.multAlpha
 
 class StringButton(
     setting: StringSetting,
