@@ -9,6 +9,7 @@ import com.lambda.task.Task
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
+import com.lambda.util.player.SlotUtils
 import com.lambda.util.player.SlotUtils.clickSlot
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
@@ -22,7 +23,17 @@ class InventoryTask(
     private val closeScreen: Boolean = true
 ) : Task<Unit>() {
     private val selectedFrom get() = selector.filterSlots(from).filter { it.hasStack() }
-    private val selectedTo = to.filter { !it.hasStack() }
+    private val selectedTo = to.filter { it.stack.isEmpty } + to.filter { it.stack.item.block in TaskFlow.disposables }
+    private val transactions = mutableListOf<SlotUtils.Transaction>()
+
+    override fun SafeContext.onStart() {
+        selectedFrom.zip(selectedTo).forEach { (from, to) ->
+            transactions.add(SlotUtils.Transaction(to.id, 0, SlotActionType.SWAP))
+            transactions.add(SlotUtils.Transaction(from.id, 0, SlotActionType.SWAP))
+
+            // ToDo: Handle overflow of cursor for PICKUP
+        }
+    }
 
     init {
         // ToDo: Needs smart code to move as efficient as possible.
@@ -32,31 +43,12 @@ class InventoryTask(
                 .filter { it.hasStack() }
                 .sumOf { it.stack.count } >= selector.count
 
-            if (selectedFrom.isEmpty() || moved) {
+            if (transactions.isEmpty() || moved) {
                 if (closeScreen) player.closeHandledScreen()
                 success(Unit)
             }
 
-            selector.filterSlots(from).firstOrNull { it.hasStack() }?.let { from ->
-//                player.currentScreenHandler
-//                    .inventorySlots
-//                    .firstOrNull {
-//                        it.stack.item.block in TaskFlow.disposables || it.stack.isEmpty
-//                    }?.let { to ->
-//                        clickSlot(from.id, 0, SlotActionType.PICKUP)
-//                        clickSlot(to.id, 0, SlotActionType.PICKUP)
-//                        // ToDo: Handle overflow of cursor
-//                    }
-
-                player.currentScreenHandler
-                    .inventorySlots
-                    .firstOrNull {
-                        it.stack.item.block in TaskFlow.disposables || it.stack.isEmpty
-                    }?.let { emptySlot ->
-                        clickSlot(emptySlot.id, 0, SlotActionType.SWAP)
-                        clickSlot(from.id, 0, SlotActionType.SWAP)
-                    }
-            }
+            transactions.removeFirst().click()
         }
     }
 
