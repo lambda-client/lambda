@@ -25,19 +25,18 @@ object BuildCommand : LambdaCommand(
                     val materials = setOf(
                         TargetState.Block(Blocks.NETHERRACK),
                         TargetState.Block(Blocks.AIR),
-                        TargetState.Block(Blocks.GOLD_BLOCK),
+                        TargetState.Block(Blocks.COBBLESTONE),
                         TargetState.Block(Blocks.AIR),
                     )
                     val facing = player.horizontalFacing
                     val pos = player.blockPos.add(facing.vector.multiply(2))
 
-                    BlockBox.create(pos, pos.add(facing.rotateYClockwise().vector.multiply(4)))
+                    BlockBox.create(pos, pos.add(facing.rotateYClockwise().vector.multiply(3)))
                         .toStructure(TargetState.Block(Blocks.NETHERRACK))
                         .toBlueprint {
-//                            it.mapValues { (_, _) ->
-//                                materials.elementAt((System.currentTimeMillis() / 5000).toInt() % materials.size)
-//                            }
-                            it
+                            it.mapValues { (_, _) ->
+                                materials.elementAt((System.currentTimeMillis() / 5000).toInt() % materials.size)
+                            }
                         }
                         .build(finishOnDone = false)
                         .start(null)

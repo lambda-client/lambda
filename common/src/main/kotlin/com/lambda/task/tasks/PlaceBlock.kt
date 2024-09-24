@@ -21,7 +21,7 @@ class PlaceBlock @Ta5kBuilder constructor(
 ) : Task<Unit>() {
     private var beginState: BlockState? = null
     private var state = State.ROTATING
-    private var t = false
+    private var findOutIfNeeded = false
 
     private val SafeContext.resultingState: BlockState get() =
         ctx.resultingPos.blockState(world)
@@ -63,8 +63,8 @@ class PlaceBlock @Ta5kBuilder constructor(
         listener<TickEvent.Pre> {
             if (state != State.PLACING) return@listener
 
-            if (t) placeBlock()
-            t = true
+            if (findOutIfNeeded) placeBlock()
+            findOutIfNeeded = true
         }
 
         listener<WorldEvent.BlockUpdate> {
