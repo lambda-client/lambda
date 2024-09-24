@@ -28,6 +28,15 @@ class InventoryTask(
         // ToDo: Needs smart code to move as efficient as possible.
         //  Also should handle overflow etc. Should be more generic
         listener<TickEvent.Pre> {
+            val moved = selector.filterSlots(to)
+                .filter { it.hasStack() }
+                .sumOf { it.stack.count } >= selector.count
+
+            if (selectedFrom.isEmpty() || moved) {
+                if (closeScreen) player.closeHandledScreen()
+                success(Unit)
+            }
+
             selector.filterSlots(from).firstOrNull { it.hasStack() }?.let { from ->
 //                player.currentScreenHandler
 //                    .inventorySlots
@@ -47,23 +56,8 @@ class InventoryTask(
                         clickSlot(emptySlot.id, 0, SlotActionType.SWAP)
                         clickSlot(from.id, 0, SlotActionType.SWAP)
                     }
-            } ?: finish()
-        }
-
-        listener<TickEvent.Post> {
-            val moved = selector.filterSlots(to)
-                .filter { it.hasStack() }
-                .sumOf { it.stack.count } >= selector.count
-
-            if (selectedFrom.isEmpty() || moved) {
-                finish()
             }
         }
-    }
-
-    private fun SafeContext.finish() {
-        if (closeScreen) player.closeHandledScreen()
-        success(Unit)
     }
 
     companion object {
