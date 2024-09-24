@@ -6,6 +6,7 @@ import com.lambda.event.callback.ICancellable
 import net.minecraft.block.BlockState
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.Entity
+import net.minecraft.entity.data.TrackedData
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.world.chunk.WorldChunk
@@ -34,6 +35,11 @@ abstract class WorldEvent : Event {
 
     class EntitySpawn(
         val entity: Entity
+    ) : WorldEvent(), ICancellable by Cancellable()
+
+    class EntityUpdate(
+        val entity: Entity,
+        val data: TrackedData<*>,
     ) : WorldEvent(), ICancellable by Cancellable()
 
     class Collision(val pos: BlockPos, val state: BlockState, var shape: VoxelShape) : WorldEvent()

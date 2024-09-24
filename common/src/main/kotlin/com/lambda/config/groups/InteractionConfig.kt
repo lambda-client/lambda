@@ -1,5 +1,7 @@
 package com.lambda.config.groups
 
+import com.lambda.core.PingManager
+
 interface InteractionConfig {
     /**
      * Maximum distance to interact.
@@ -13,4 +15,12 @@ interface InteractionConfig {
 
     val useRayCast: Boolean
     val swingHand: Boolean
+    val inScopeThreshold: Int
+    val pingTimeout: Boolean
+
+    val scopeThreshold: Int get() = if (pingTimeout) {
+        (PingManager.lastPing / 50L).toInt()
+    } else {
+        inScopeThreshold
+    }
 }

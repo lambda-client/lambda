@@ -1,6 +1,7 @@
 package com.lambda.util.player
 
 import com.lambda.context.SafeContext
+import com.lambda.threading.runSafe
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.SlotActionType
@@ -26,5 +27,17 @@ object SlotUtils {
             actionType,
             player,
         )
+    }
+
+    data class Transaction(
+        val slotId: Int,
+        val button: Int,
+        val actionType: SlotActionType,
+    ) {
+        fun click() {
+            runSafe {
+                clickSlot(slotId, button, actionType)
+            }
+        }
     }
 }

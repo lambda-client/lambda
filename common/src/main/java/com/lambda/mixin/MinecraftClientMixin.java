@@ -57,7 +57,7 @@ public class MinecraftClientMixin {
     private void onScreenOpen(@Nullable Screen screen, CallbackInfo ci) {
         if (screen == null) return;
         if (screen instanceof ScreenHandlerProvider<?> handledScreen) {
-            EventFlow.post(new ScreenHandlerEvent.Open<>(handledScreen.getScreenHandler()));
+            EventFlow.post(new ScreenHandlerEvent.Open(handledScreen.getScreenHandler()));
         }
 
         EventFlow.post(new ScreenEvent.Open<>(screen));
@@ -67,7 +67,7 @@ public class MinecraftClientMixin {
     private void onScreenRemove(@Nullable Screen screen, CallbackInfo ci) {
         if (currentScreen == null) return;
         if (currentScreen instanceof ScreenHandlerProvider<?> handledScreen) {
-            EventFlow.post(new ScreenHandlerEvent.Close<>(handledScreen.getScreenHandler()));
+            EventFlow.post(new ScreenHandlerEvent.Close(handledScreen.getScreenHandler()));
         }
 
         EventFlow.post(new ScreenEvent.Close<>(currentScreen));

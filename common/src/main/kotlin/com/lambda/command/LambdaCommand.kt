@@ -22,7 +22,7 @@ abstract class LambdaCommand(
     // ToDo: Include usage and description in the help command
     init {
         (listOf(name) + aliases).forEach {
-            val argument = LiteralArgumentBuilder.literal<CommandSource>(it)
+            val argument = LiteralArgumentBuilder.literal<CommandSource>(it.lowercase())
             argument.create()
             dispatcher.register(argument)
         }

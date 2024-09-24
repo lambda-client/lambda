@@ -241,7 +241,7 @@ object BuildSimulator {
 
                 val currentHandStack = player.getStackInHand(Hand.MAIN_HAND)
                 if (target is TargetState.Stack && !target.itemStack.equal(currentHandStack)) {
-                    acc.add(BuildResult.WrongStack(pos, placeContext, target.copy))
+                    acc.add(BuildResult.WrongStack(pos, placeContext, target.itemStack))
                     return@forEach
                 }
                 
@@ -250,7 +250,7 @@ object BuildSimulator {
                     return@forEach
                 }
 
-                acc.add(PlaceResult.Success(pos, placeContext))
+                acc.add(PlaceResult.Place(pos, placeContext))
             }
         }
 
@@ -336,7 +336,7 @@ object BuildSimulator {
                     player.activeHand,
                     instantBreakable(state, pos)
                 )
-                acc.add(BreakResult.Success(pos, breakContext))
+                acc.add(BreakResult.Break(pos, breakContext))
                 return acc
             }
         }
@@ -392,7 +392,7 @@ object BuildSimulator {
                     stack.item == bestTool
                 }?.let { hand ->
                     breakContext.hand = hand
-                    acc.add(BreakResult.Success(pos, breakContext))
+                    acc.add(BreakResult.Break(pos, breakContext))
                     return acc
                 } ?: run {
                     acc.add(BuildResult.WrongItem(pos, breakContext, bestTool))
@@ -400,7 +400,7 @@ object BuildSimulator {
                 }
             }
 
-            acc.add(BreakResult.Success(pos, breakContext))
+            acc.add(BreakResult.Break(pos, breakContext))
         }
 
         return acc

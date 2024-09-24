@@ -21,6 +21,8 @@ abstract class Blueprint {
         }
 
     companion object {
+        fun emptyStructure(): Structure = emptyMap()
+
         fun Box.toStructure(targetState: TargetState): Structure =
             BlockPos.stream(this)
                 .map { it.blockPos }

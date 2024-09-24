@@ -1,6 +1,5 @@
 package com.lambda.task.tasks
 
-import baritone.api.pathing.goals.GoalNear
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
@@ -16,21 +15,22 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
-import com.lambda.util.Communication.info
+import com.lambda.util.extension.Structure
 import net.minecraft.util.math.BlockPos
 
-class BuildStructure @Ta5kBuilder constructor(
+class BuildTask @Ta5kBuilder constructor(
     private val blueprint: Blueprint,
     private val finishOnDone: Boolean = true,
     private val pathing: Boolean = TaskFlow.build.pathing,
+    private val stayInRange: Boolean = true,
+    private val forceSilkTouch: Boolean = false,
     val collectDrops: Boolean = TaskFlow.build.collectDrops,
-    private val cancelOnUnsolvable: Boolean = true,
+    private val cancelOnUnsolvable: Boolean = false,
 ) : Task<Unit>() {
     private var previousResults = setOf<BuildResult>()
-    private var lastResult: BuildResult? = null
-    private var lastTask: Task<*>? = null
-
-    abstract class PathingStrategy
+    private val placeTimeout = 15
+    private val breakTimeout = 15
+    private val pending = mutableListOf<BuildResult>()
 
     override fun SafeContext.onStart() {
         (blueprint as? DynamicBlueprint)?.create(this)
@@ -39,13 +39,20 @@ class BuildStructure @Ta5kBuilder constructor(
     init {
         listener<RenderEvent.StaticESP> {
             previousResults.filterIsInstance<Drawable>().forEach { res ->
-                with(res) {
-                    buildRenderer()
-                }
+                with(res) { buildRenderer() }
             }
         }
 
         listener<TickEvent.Pre> {
+            pending.removeIf {
+                if (it.age > placeTimeout) {
+                    it.cancel()
+                    true
+                } else {
+                    it.isCompleted
+                }
+            }
+
             (blueprint as? DynamicBlueprint)?.update(this)
 
             if (finishOnDone && blueprint.structure.isEmpty()) {
@@ -57,27 +64,20 @@ class BuildStructure @Ta5kBuilder constructor(
             previousResults = results
             val result = results.minOrNull() ?: return@listener
 
-            lastResult?.let {
-                if (it.compareTo(result) == 0) return@listener
-//                if (it.pausesParent && lastTask?.isCompleted != true) return@listener
-                if (collectDrops && it is BreakResult.Success && lastTask?.isCompleted != true) {
-                    return@listener
-                }
-                info("${it.rank.name}${if (it.pausesParent) " pauses" else ""} -> ${result.rank.name} (${lastTask?.identifier})")
-
-                lastTask?.cancel()
-            }
-
-            val instantResults = results.filterIsInstance<BreakResult.Success>()
+            val instantResults = results.filterIsInstance<BreakResult.Break>()
                 .filter { it.context.instantBreak }
                 .sorted()
                 .take(TaskFlow.build.breaksPerTick)
 
             if (TaskFlow.build.breaksPerTick > 1 && instantResults.isNotEmpty()) {
                 instantResults.forEach {
-                    lastResult = it
-                    lastTask = it.resolve.start(this@BuildStructure, pauseParent = false)
+                    pending.add(it)
+                    it.start(this@BuildTask, pauseParent = false)
                 }
+                return@listener
+            }
+
+            if (pending.isNotEmpty()) {
                 return@listener
             }
 
@@ -86,26 +86,18 @@ class BuildStructure @Ta5kBuilder constructor(
                     if (!finishOnDone) return@listener
                     success(Unit)
                 }
-                is Resolvable -> {
-                    LOG.info("Resolving: $result")
-
-                    if (result is BreakResult.Success) {
-                        result.collectDrop = collectDrops
-                    }
-
-                    lastResult = result
-                    lastTask = result.resolve.start(this@BuildStructure, pauseParent = result.pausesParent)
-                    if (pathing) {
-                        BaritoneUtils.setGoalAndPath(GoalNear(result.blockPos, 3))
-                    }
-                }
                 is Navigable -> {
                     if (pathing) BaritoneUtils.setGoalAndPath(result.goal)
                 }
                 else -> {
-                    if (!cancelOnUnsolvable) return@listener
+                    LOG.info("Resolving: $result")
 
-                    failure("Failed to resolve build result: $result")
+                    if (result is BreakResult.Break) {
+                        result.collectDrop = collectDrops
+                    }
+
+                    pending.add(result)
+                    result.start(this@BuildTask, pauseParent = result.pausesParent)
                 }
             }
         }
@@ -113,32 +105,76 @@ class BuildStructure @Ta5kBuilder constructor(
 
     companion object {
         @Ta5kBuilder
-        fun buildStructure(
+        fun build(
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = TaskFlow.build.collectDrops,
             pathing: Boolean = TaskFlow.build.pathing,
+            stayInRange: Boolean = true,
+            forceSilkTouch: Boolean = false,
+            collectDrops: Boolean = TaskFlow.build.collectDrops,
             cancelOnUnsolvable: Boolean = true,
             blueprint: () -> Blueprint,
-        ) = BuildStructure(
+        ) = BuildTask(
                 blueprint(),
                 finishOnDone,
                 pathing,
+                stayInRange,
+                forceSilkTouch,
                 collectDrops,
                 cancelOnUnsolvable
             )
 
         @Ta5kBuilder
+        fun Structure.build(
+            finishOnDone: Boolean = true,
+            pathing: Boolean = TaskFlow.build.pathing,
+            stayInRange: Boolean = true,
+            forceSilkTouch: Boolean = false,
+            collectDrops: Boolean = TaskFlow.build.collectDrops,
+            cancelOnUnsolvable: Boolean = true,
+        ) = BuildTask(
+            toBlueprint(),
+            finishOnDone,
+            pathing,
+            stayInRange,
+            forceSilkTouch,
+            collectDrops,
+            cancelOnUnsolvable
+        )
+
+        @Ta5kBuilder
+        fun Blueprint.build(
+            finishOnDone: Boolean = true,
+            pathing: Boolean = TaskFlow.build.pathing,
+            stayInRange: Boolean = true,
+            forceSilkTouch: Boolean = false,
+            collectDrops: Boolean = TaskFlow.build.collectDrops,
+            cancelOnUnsolvable: Boolean = true,
+        ) = BuildTask(
+            this,
+            finishOnDone,
+            pathing,
+            stayInRange,
+            forceSilkTouch,
+            collectDrops,
+            cancelOnUnsolvable
+        )
+
+        @Ta5kBuilder
         fun breakAndCollectBlock(
             blockPos: BlockPos,
-        ) = BuildStructure(
+            withSilkTouch: Boolean = false,
+            stayInRange: Boolean = false,
+        ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
+            forceSilkTouch = withSilkTouch,
+            stayInRange = stayInRange,
             collectDrops = true
         )
 
         @Ta5kBuilder
         fun breakBlock(
             blockPos: BlockPos,
-        ) = BuildStructure(
+        ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint()
         )
     }

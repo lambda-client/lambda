@@ -3,10 +3,12 @@ package com.lambda.mixin.entity;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
+import com.lambda.event.events.WorldEvent;
 import com.lambda.interaction.RotationManager;
 import com.lambda.util.math.Vec2d;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.MovementType;
+import net.minecraft.entity.data.TrackedData;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -69,5 +71,12 @@ public abstract class EntityMixin {
     @Inject(method = "changeLookDirection", at = @At("HEAD"), cancellable = true)
     private void changeLookDirection(double cursorDeltaX, double cursorDeltaY, CallbackInfo ci) {
         if (EventFlow.post(new EntityEvent.ChangeLookDirection(cursorDeltaX, cursorDeltaY)).isCanceled()) ci.cancel();
+    }
+
+    @Inject(method = "onTrackedDataSet(Lnet/minecraft/entity/data/TrackedData;)V", at = @At("TAIL"))
+    public void onTrackedDataSet(TrackedData<?> data, CallbackInfo ci) {
+        Entity entity = (Entity) (Object) this;
+
+        EventFlow.post(new WorldEvent.EntityUpdate(entity, data));
     }
 }

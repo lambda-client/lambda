@@ -30,7 +30,7 @@ data class ChestContainer(
 //        }
 
     override fun withdraw(selection: StackSelection) =
-        openContainer<GenericContainerScreenHandler>(blockPos)
+        openContainer(blockPos)
 //            .withMaxAttempts(3)
 //            .withTimeout(20)
             .onSuccess { open, screen ->
@@ -39,7 +39,7 @@ data class ChestContainer(
             }
 
     override fun deposit(selection: StackSelection) =
-        openContainer<GenericContainerScreenHandler>(blockPos)
+        openContainer(blockPos)
 //            .withMaxAttempts(3)
 //            .withTimeout(20)
             .onSuccess { open, screen ->

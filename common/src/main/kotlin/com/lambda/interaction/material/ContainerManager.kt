@@ -6,7 +6,9 @@ import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.*
+import com.lambda.module.modules.client.TaskFlow
 import com.lambda.util.BlockUtils.blockEntity
+import com.lambda.util.BlockUtils.item
 import com.lambda.util.Communication.info
 import com.lambda.util.item.ItemUtils
 import com.lambda.util.extension.containerStacks
@@ -18,10 +20,7 @@ import net.minecraft.block.entity.EnderChestBlockEntity
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.GenericContainerScreenHandler
-import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.ScreenHandlerType
-import org.reflections.util.ClasspathHelper.forPackage
-import java.util.*
 
 // ToDo: Make this a Configurable to save container caches. Should use a cached region based storage system.
 object ContainerManager : Loadable {
@@ -38,9 +37,7 @@ object ContainerManager : Loadable {
             lastInteractedBlockEntity = it.blockHitResult.blockPos.blockEntity(world)
         }
 
-        listener<ScreenHandlerEvent.Close<ScreenHandler>> { event ->
-            // ToDo: ;-; i hate type erasure.
-            //  The listener will be triggered for any H, not just GenericContainerScreenHandler
+        listener<ScreenHandlerEvent.Close> { event ->
             if (event.screenHandler !is GenericContainerScreenHandler) return@listener
 
             val handler = event.screenHandler
@@ -116,7 +113,9 @@ object ContainerManager : Loadable {
             it.second
         }?.first
 
-//    fun SafeContext.nextDisposable() = player.combined.firstOrNull { it.item in TaskFlow.disposables }
+    fun findDisposable() = container().find { container ->
+        TaskFlow.disposables.any { container.available(it.item.select()) >= 0 }
+    }
 
     class NoContainerFound(selection: StackSelection): Exception("No container found matching $selection")
 }

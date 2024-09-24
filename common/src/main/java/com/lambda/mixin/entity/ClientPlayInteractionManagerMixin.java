@@ -8,6 +8,7 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
@@ -35,6 +36,13 @@ public class ClientPlayInteractionManagerMixin {
     public void interactBlockHead(final ClientPlayerEntity player, final Hand hand, final BlockHitResult hitResult, final CallbackInfoReturnable<ActionResult> cir) {
         if (client.world == null) return;
         EventFlow.post(new InteractionEvent.Block(client.world, hitResult));
+    }
+
+    @Inject(method = "clickSlot", at = @At("HEAD"), cancellable = true)
+    public void clickSlotHead(int syncId, int slotId, int button, SlotActionType actionType, PlayerEntity player, CallbackInfo ci) {
+        if (syncId != player.currentScreenHandler.syncId) return;
+        var click = new InteractionEvent.SlotClick(syncId, slotId, button, actionType, player.currentScreenHandler);
+        if (EventFlow.post(click).isCanceled()) ci.cancel();
     }
 
     @Inject(method = "attackEntity", at = @At("HEAD"), cancellable = true)
