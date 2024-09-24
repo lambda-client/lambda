@@ -22,6 +22,7 @@ import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
+import net.minecraft.client.gui.screen.ChatScreen
 
 /**
  * A [Module] is a feature or tool for the utility mod.
@@ -115,6 +116,7 @@ abstract class Module(
             if (mc.options.commandKey.isPressed) return@listener
             if (keybind == KeyCode.UNBOUND) return@listener
             if (event.translated != keybind) return@listener
+            if (mc.currentScreen is ChatScreen) return@listener
 
             if (mc.currentScreen == null || this@Module is ClickGui) toggle()
         }
