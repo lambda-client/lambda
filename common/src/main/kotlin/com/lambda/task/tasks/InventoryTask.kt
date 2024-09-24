@@ -10,7 +10,6 @@ import com.lambda.util.extension.containerSlots
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.SlotUtils
-import com.lambda.util.player.SlotUtils.clickSlot
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType

@@ -11,6 +11,7 @@ import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.Communication.warn
 import net.minecraft.block.BlockState
 
 class PlaceBlock @Ta5kBuilder constructor(
@@ -98,7 +99,7 @@ class PlaceBlock @Ta5kBuilder constructor(
                 if (!waitForConfirmation) finish()
             }
         } else {
-            failure("Internal interaction failed with $actionResult")
+            warn("Internal interaction failed with $actionResult")
         }
     }
 

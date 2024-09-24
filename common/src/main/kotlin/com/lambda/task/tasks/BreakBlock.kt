@@ -42,7 +42,6 @@ class BreakBlock @Ta5kBuilder constructor(
     private var drop: ItemEntity? = null
     private var state = State.BREAKING
     private var isValid = false
-    private var inScope = 0
 
     enum class State {
         BREAKING, COLLECTING
@@ -55,7 +54,7 @@ class BreakBlock @Ta5kBuilder constructor(
         }
         beginState = blockState
 
-        if (!rotate) {
+        if (!rotate || ctx.instantBreak) {
             breakBlock(ctx.result.side)
         }
     }
@@ -63,13 +62,13 @@ class BreakBlock @Ta5kBuilder constructor(
     init {
         listener<RotationEvent.Update> { event ->
             if (state != State.BREAKING) return@listener
-            if (!rotate) return@listener
+            if (!rotate || ctx.instantBreak) return@listener
             event.context = lookAtBlock(blockPos, rotation, interact, sides)
         }
 
         listener<RotationEvent.Post> {
             if (state != State.BREAKING) return@listener
-            if (!rotate) return@listener
+            if (!rotate || ctx.instantBreak) return@listener
 
             isValid = it.context.isValid
         }
@@ -92,7 +91,7 @@ class BreakBlock @Ta5kBuilder constructor(
                 BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
             } ?: BaritoneUtils.cancel()
 
-            if (isValid || !rotate) {
+            if (isValid || !rotate || ctx.instantBreak) {
                 breakBlock(ctx.result.side)
             }
 
