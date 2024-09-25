@@ -11,6 +11,7 @@ concurrency:
 
 jobs:
   check-runner:
+    name: Check Runner Availability
     runs-on: ubuntu-latest
     
     outputs:
