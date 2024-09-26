@@ -140,11 +140,9 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
         val hitPos: BlockPos,
         val side: Direction,
         val distance: Double
-    ) : Navigable, Drawable, BuildResult() {
+    ) : Drawable, BuildResult() {
         override val rank = Rank.NOT_VISIBLE
         private val color = Color(46, 0, 0, 80)
-
-        override val goal = GoalPlace(blockPos)
 
         override fun SafeContext.buildRenderer() {
             withBox(Box(blockPos), color)
