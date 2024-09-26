@@ -46,7 +46,7 @@ object Freecam : Module(
     private var lastPerspective = Perspective.FIRST_PERSON
     private var prevPosition: Vec3d = Vec3d.ZERO
     private var position: Vec3d = Vec3d.ZERO
-    private val interpolatedPosition: Vec3d
+    private val lerpPos: Vec3d
         get() = prevPosition.interpolate(position, mc.partialTicks)
 
     private var rotation: Rotation = Rotation.ZERO
@@ -56,7 +56,7 @@ object Freecam : Module(
     fun updateCam() {
         mc.gameRenderer.apply {
             camera.setRotation(rotation.yawF, rotation.pitchF)
-            camera.setPos(interpolatedPosition.x, interpolatedPosition.y, interpolatedPosition.z)
+            camera.setPos(lerpPos.x, lerpPos.y, lerpPos.z)
         }
     }
 
@@ -122,7 +122,7 @@ object Freecam : Module(
             it.cancel()
 
             mc.crosshairTarget = rotation
-                .rayCast(reach, interpolatedPosition)
+                .rayCast(reach, lerpPos)
                 .orMiss // Can't be null (otherwise mc will spam "Null returned as 'hitResult', this shouldn't happen!")
         }
 
