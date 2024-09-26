@@ -15,7 +15,8 @@ object TextureUtils {
     private const val THREADED_COMPRESSION = false
 
     private val metricCache = mutableMapOf<Font, FontMetrics>()
-    private val encoderPreset = PngEncoder()
+
+    val encoderPreset = PngEncoder()
         .withCompressionLevel(COMPRESSION_LEVEL)
         .withMultiThreadedCompressionEnabled(THREADED_COMPRESSION)
 
@@ -28,15 +29,6 @@ object TextureUtils {
         val width = bufferedImage.width
         val height = bufferedImage.height
 
-        // Here we cannot use GL_UNSIGNED_INT_8_8_8_8_REV or GL_UNSIGNED_INT_8_8_8_8
-        // because the RGBA values are affected by the machine's endianness.
-        // On little-endian machines, you would read the data as
-        // 0xAABBGGRR and on big-endian machines as 0xRRGGBBAA.
-        // The solution is to use GL_UNSIGNED_BYTE and swap the bytes
-        // manually if necessary. (We won't need to)
-        //
-        // GL_UNSIGNED_BYTE -> [RR, GG, BB, AA]
-        // Array of floats normalized to [0.0, 1.0] -> [R, G, B, A]
         glTexImage2D(GL_TEXTURE_2D, lod, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, readImage(bufferedImage))
 
         setupTexture(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)

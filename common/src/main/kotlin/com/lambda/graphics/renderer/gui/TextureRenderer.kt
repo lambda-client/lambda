@@ -6,6 +6,7 @@ import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
 import com.lambda.graphics.buffer.vao.vertex.VertexMode
 import com.lambda.graphics.shader.Shader
 import com.lambda.graphics.texture.Texture
+import com.lambda.graphics.video.Video
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
@@ -16,8 +17,10 @@ object TextureRenderer {
     private val shader = Shader("renderer/pos_tex")
     private val shaderColored = Shader("renderer/pos_tex_shady")
 
-    fun drawTexture(texture: Texture, rect: Rect) {
+    fun drawTexture(texture: Texture, rect: Rect, block: () -> Unit = {}) {
         texture.bind()
+        block()
+
         shader.use()
 
         drawInternal(rect)
