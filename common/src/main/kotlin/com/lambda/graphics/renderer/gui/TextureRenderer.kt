@@ -17,10 +17,8 @@ object TextureRenderer {
     private val shader = Shader("renderer/pos_tex")
     private val shaderColored = Shader("renderer/pos_tex_shady")
 
-    fun drawTexture(texture: Texture, rect: Rect, block: () -> Unit = {}) {
+    fun drawTexture(texture: Texture, rect: Rect) {
         texture.bind()
-        block()
-
         shader.use()
 
         drawInternal(rect)

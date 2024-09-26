@@ -19,9 +19,9 @@ object PBOExample : HudModule(
 
     init {
         onRender {
-            drawTexture(video, rect) {
-                video.transfer()
-            }
+            video.transfer()
+
+            drawTexture(video, rect)
         }
     }
 }

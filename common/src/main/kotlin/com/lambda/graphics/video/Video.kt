@@ -1,12 +1,10 @@
 package com.lambda.graphics.video
 
-import com.lambda.graphics.buffer.BufferUsage
 import com.lambda.graphics.buffer.pbo.PixelBuffer
 import com.lambda.graphics.texture.Texture
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext
 import org.bytedeco.ffmpeg.avutil.AVFrame
 import org.lwjgl.opengl.GL45C.*
-import java.lang.Thread.sleep
 import java.nio.ByteBuffer
 
 class Video(
@@ -20,17 +18,16 @@ class Video(
     private val avFrame: AVFrame? get() = if (iterator.hasNext()) iterator.next() else null
     private val buffer: ByteBuffer? get() = avFrame?.asByteBuffer()
 
-    private val pbo = PixelBuffer(width * height * 4L, buffers = 1, bufferUsage = BufferUsage.DYNAMIC) {
+    private val pbo = PixelBuffer(width * height * 4L, buffers = 2) {
         glBindTexture(GL_TEXTURE_2D, id)
 
         // Allocate texture storage
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0)
 
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
     }
 
     private val startTime = System.nanoTime()
@@ -43,6 +40,7 @@ class Video(
 
             if (delta > frameTime) {
                 upload(buffer ?: return@use) {
+                    glBindTexture(GL_TEXTURE_2D, id)
                     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, 0)
                 }
 

@@ -2,12 +2,9 @@ package com.lambda.graphics.buffer.pbo
 
 import com.lambda.graphics.buffer.BufferUsage
 import com.lambda.threading.runGameScheduled
-import net.minecraft.block.entity.HopperBlockEntity.transfer
-import net.minecraft.structure.StructureTemplate.process
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL45C.*
 import org.lwjgl.system.MemoryUtil
-import org.lwjgl.system.libc.LibCString.memcpy
 import java.nio.ByteBuffer
 
 /**
@@ -31,32 +28,28 @@ import java.nio.ByteBuffer
 class PixelBuffer(
     private val size: Long,
     private val buffers: Int = 2,
-    private val bufferUsage: BufferUsage = BufferUsage.DYNAMIC,
+    private val bufferUsage: BufferUsage = BufferUsage.STATIC,
     private val init: () -> Unit = {},
 ) {
     private val pboIds = IntArray(buffers).apply { glGenBuffers(this) }
-    private var writeIdx = 0 // Buffer being filled by the CPU
-    private var uploadIdx = 0 // Buffer to transfer data to the GPU
+    private val fences = LongArray(buffers) // Synchronization objects
+    private var index = 0
 
-    private val pboSupported = GL.getCapabilities().OpenGL15 || GL.getCapabilities().GL_ARB_pixel_buffer_object
-
-    private val queries = IntArray(2).apply { glGenQueries(this) }
-    private var transferRate = 0L // The transfer rate in bytes per second
-    private val uploadTime get() = IntArray(1).apply { glGetQueryObjectiv(queries[0], GL_QUERY_RESULT, this) }.first()
-    private val downloadTime get() = IntArray(1).apply { glGetQueryObjectiv(queries[1], GL_QUERY_RESULT, this) }.first()
+    private val pboSupported = GL.getCapabilities().OpenGL15
 
     /**
      * Creates a new PBO use context required for everything related in this class.
      */
     fun use(block: PixelBuffer.() -> Unit) {
-        if (buffers >= 2)
-            uploadIdx = (writeIdx + 1) % buffers
+        if (buffers != 2) {
+            index = 0
+        }
 
         // Do the main stuff
         block()
 
-        // Swap the indices
-        writeIdx = uploadIdx
+        // Swap buffers
+        index = (index + 1) % buffers
     }
 
     /**
@@ -64,67 +57,61 @@ class PixelBuffer(
      *
      * @param data The [ByteBuffer] containing the pixel data to be uploaded.
      */
-    fun upload(data: ByteBuffer, transfer: () -> Unit = {}) =
-        recordTransfer(queries[0]) {
-            // Bind the current PBO for uploading
-            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[uploadIdx])
-
-            // Map the buffer into the memory
-            val bufferData = glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY)
-            if (bufferData != null) {
-                MemoryUtil.memCopy(data, bufferData)
-
-                // Release the buffer
-                glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER)
-            } else throw IllegalStateException("Failed to map the buffer")
-
-            // Process
-            transfer()
-
-            // Unbind the PBO
-            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
+    fun upload(data: ByteBuffer, transfer: () -> Unit = {}) {
+        // Wait for the previous PBO to finish if a fence exists
+        if (fences[index] != 0L) {
+            val ret = glClientWaitSync(fences[index], GL_SYNC_FLUSH_COMMANDS_BIT, 50000000) // 50 ms timeout
+            if (ret == GL_ALREADY_SIGNALED || ret == GL_CONDITION_SATISFIED) {
+                glDeleteSync(fences[index])
+                fences[index] = 0L
+            }
         }
+
+        // Bind the current PBO for uploading
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[index])
+
+        // Map the buffer into the client's memory
+        val bufferData = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, size, GL_MAP_WRITE_BIT or GL_MAP_INVALIDATE_BUFFER_BIT)
+        if (bufferData != null) {
+            MemoryUtil.memCopy(data, bufferData)
+
+            // Release the buffer
+            glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER)
+        } else throw IllegalStateException("Failed to map the buffer")
+
+        // Process
+        transfer()
+
+        // Insert a sync object to track when the GPU finishes reading from the PBO
+        fences[index] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0)
+
+        // Unbind the PBO
+        // Once bound with 0, all pixel operations behave normal ways.
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
+    }
 
     /**
      * Downloads the data from the PBO from OpenGL back to the client memory
      */
-    fun download(process: (ByteBuffer) -> Unit) =
-        recordTransfer(queries[1]) {
-            // Bind the current PBO for writing
-            glBindBuffer(GL_PIXEL_PACK_BUFFER, pboIds[writeIdx])
+    fun download(process: (ByteBuffer) -> Unit): Throwable? {
+        // Bind the current PBO for writing
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, pboIds[index])
 
-            // Map the buffer into the memory
-            val bufferData = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY, size, null)
-            if (bufferData != null) {
-                // Do something with the data
-                process(bufferData)
+        // Map the buffer into the memory
+        val bufferData = glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, size, GL_MAP_READ_BIT)
+        return if (bufferData != null) {
+            // Do something with the data
+            process(bufferData)
 
-                // Release the buffer
-                glUnmapBuffer(GL_PIXEL_PACK_BUFFER)
-            } else throw IllegalStateException("Failed to map the buffer")
+            // Release the buffer
+            glUnmapBuffer(GL_PIXEL_PACK_BUFFER)
 
             // Unbind the PBO
             glBindBuffer(GL_PIXEL_PACK_BUFFER, 0)
-        }
 
-    /**
-     * Measures and records the time taken to transfer data to the PBO, calculating the transfer rate in bytes per second.
-     *
-     * @param block A lambda function representing the block of code where the transfer occurs.
-     */
-    private fun recordTransfer(query: Int, block: () -> Unit) {
-        // Start the timer
-        glBeginQuery(GL_TIME_ELAPSED, query)
-
-        // Perform the transfer
-        block()
-
-        // Stop the timer
-        glEndQuery(GL_TIME_ELAPSED)
-
-        // Calculate the transfer rate
-        val time = if (query == 0) uploadTime else downloadTime
-        if (time > 0) transferRate = (size * 1_000_000_000) / time
+            // No errors :)
+            null
+        } else throw IllegalStateException("Failed to download the buffer")
     }
 
     /**
@@ -133,7 +120,6 @@ class PixelBuffer(
     protected fun finalize() {
         runGameScheduled {
             glDeleteBuffers(pboIds)
-            glDeleteQueries(queries)
         }
     }
 
