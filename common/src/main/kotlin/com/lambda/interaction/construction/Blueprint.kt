@@ -2,8 +2,10 @@ package com.lambda.interaction.construction
 
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.module.modules.client.TaskFlow
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.Communication.info
 import com.lambda.util.extension.Structure
 import net.minecraft.structure.StructureTemplate
 import net.minecraft.util.math.BlockBox
@@ -16,7 +18,8 @@ abstract class Blueprint {
     open fun isDone(ctx: SafeContext) =
         structure.all { (pos, targetState) ->
             with(ctx) {
-                targetState.matches(pos.blockState(world), pos, world)
+                val state = pos.blockState(world)
+                targetState.matches(state, pos, world) || state.block in TaskFlow.ignoredBlocks
             }
         }
 

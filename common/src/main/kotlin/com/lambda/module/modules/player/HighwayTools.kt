@@ -63,9 +63,7 @@ object HighwayTools : Module(
             structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
         }
 
-        runningTask = build {
-            structure.toBlueprint()
-        }.onSuccess { _, _ ->
+        runningTask = structure.toBlueprint().build().onSuccess { _, _ ->
             if (distanceMoved < distance || distance < 0) {
                 buildSlice()
             } else {

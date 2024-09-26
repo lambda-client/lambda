@@ -3,8 +3,10 @@ package com.lambda.interaction.material.container
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
+import com.lambda.task.Task.Companion.emptyTask
 import com.lambda.task.Task.Companion.failTask
 import com.lambda.task.tasks.OpenContainer.Companion.openContainer
+import com.lambda.util.Communication.info
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.GenericContainerScreenHandler
 import net.minecraft.util.math.BlockPos
@@ -29,10 +31,12 @@ object EnderChestContainer : MaterialContainer(Rank.ENDER_CHEST) {
 //        }
 
     override fun withdraw(selection: StackSelection): Task<*> {
-        TODO()
+        info("Not yet implemented")
+        return emptyTask()
     }
 
     override fun deposit(selection: StackSelection): Task<*> {
-        TODO()
+        info("Not yet implemented")
+        return emptyTask()
     }
 }

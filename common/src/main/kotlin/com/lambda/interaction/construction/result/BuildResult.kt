@@ -10,6 +10,7 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.MainHandContainer
 import com.lambda.task.Task
 import com.lambda.task.Task.Companion.failTask
+import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
@@ -180,7 +181,11 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
         }
 
         override fun SafeContext.buildRenderer() {
-            withBox(Box(blockPos), color)
+            if (blockPos.blockState(world).isAir) {
+                withBox(Box(blockPos), color)
+            } else {
+                withPos(blockPos, color)
+            }
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
@@ -215,7 +220,11 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
         }
 
         override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color)
+            if (blockPos.blockState(world).isAir) {
+                withBox(Box(blockPos), color)
+            } else {
+                withPos(blockPos, color)
+            }
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {

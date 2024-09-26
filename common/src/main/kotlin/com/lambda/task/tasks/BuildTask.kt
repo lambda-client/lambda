@@ -10,11 +10,14 @@ import com.lambda.interaction.construction.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.DynamicBlueprint
 import com.lambda.interaction.construction.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.result.*
+import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
+import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
+import com.lambda.util.Communication.info
 import com.lambda.util.extension.Structure
 import net.minecraft.util.math.BlockPos
 
@@ -25,11 +28,9 @@ class BuildTask @Ta5kBuilder constructor(
     private val stayInRange: Boolean = true,
     private val forceSilkTouch: Boolean = false,
     val collectDrops: Boolean = TaskFlow.build.collectDrops,
-    private val cancelOnUnsolvable: Boolean = false,
 ) : Task<Unit>() {
     private var previousResults = setOf<BuildResult>()
     private val placeTimeout = 15
-    private val breakTimeout = 15
     private val pending = mutableListOf<BuildResult>()
 
     override fun SafeContext.onStart() {
@@ -62,7 +63,6 @@ class BuildTask @Ta5kBuilder constructor(
 
             val results = blueprint.simulate(player.getCameraPosVec(mc.tickDelta))
             previousResults = results
-            val result = results.minOrNull() ?: return@listener
 
             val instantResults = results.filterIsInstance<BreakResult.Break>()
                 .filter { it.context.instantBreak }
@@ -81,12 +81,19 @@ class BuildTask @Ta5kBuilder constructor(
                 return@listener
             }
 
-            when (result) {
-                is BuildResult.Done, is BuildResult.Unbreakable -> {
-                    if (!finishOnDone) return@listener
+            val result = results.minOrNull() ?: return@listener
+            when {
+                !result.rank.solvable -> {
+//                    info("Unsolvable: $result")
+                    if (!blueprint.isDone(this)) return@listener
                     success(Unit)
                 }
-                is Navigable -> {
+                result is BuildResult.NotVisible -> {
+                    if (pathing) BaritoneUtils.setGoalAndPath(
+                        BuildGoal(blueprint.simulation())
+                    )
+                }
+                result is Navigable -> {
                     if (pathing) BaritoneUtils.setGoalAndPath(result.goal)
                 }
                 else -> {
@@ -119,8 +126,7 @@ class BuildTask @Ta5kBuilder constructor(
                 pathing,
                 stayInRange,
                 forceSilkTouch,
-                collectDrops,
-                cancelOnUnsolvable
+                collectDrops
             )
 
         @Ta5kBuilder
@@ -137,8 +143,7 @@ class BuildTask @Ta5kBuilder constructor(
             pathing,
             stayInRange,
             forceSilkTouch,
-            collectDrops,
-            cancelOnUnsolvable
+            collectDrops
         )
 
         @Ta5kBuilder
@@ -155,8 +160,7 @@ class BuildTask @Ta5kBuilder constructor(
             pathing,
             stayInRange,
             forceSilkTouch,
-            collectDrops,
-            cancelOnUnsolvable
+            collectDrops
         )
 
         @Ta5kBuilder

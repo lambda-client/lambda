@@ -21,11 +21,11 @@ class InventoryTask(
     val to: List<Slot>,
     private val closeScreen: Boolean = true
 ) : Task<Unit>() {
-    private val selectedFrom get() = selector.filterSlots(from).filter { it.hasStack() }
-    private val selectedTo = to.filter { it.stack.isEmpty } + to.filter { it.stack.item.block in TaskFlow.disposables }
     private val transactions = mutableListOf<SlotUtils.Transaction>()
 
     override fun SafeContext.onStart() {
+        val selectedFrom = selector.filterSlots(from).filter { it.hasStack() }
+        val selectedTo = to.filter { it.stack.isEmpty } + to.filter { it.stack.item.block in TaskFlow.disposables }
         selectedFrom.zip(selectedTo).forEach { (from, to) ->
             transactions.add(SlotUtils.Transaction(to.id, 0, SlotActionType.SWAP))
             transactions.add(SlotUtils.Transaction(from.id, 0, SlotActionType.SWAP))
@@ -47,7 +47,7 @@ class InventoryTask(
                 success(Unit)
             }
 
-            transactions.removeFirst().click()
+            transactions.removeFirstOrNull()?.click() ?: success(Unit)
         }
     }
 
