@@ -1,11 +1,18 @@
 package com.lambda.graphics.buffer.pbo
 
+import com.lambda.Lambda.LOG
 import com.lambda.graphics.buffer.BufferUsage
+import com.lambda.graphics.texture.MipmapTexture
+import com.lambda.graphics.texture.TextureUtils
 import com.lambda.threading.runGameScheduled
+import com.lambda.util.LambdaResource
+import io.netty.buffer.ByteBuf
+import org.lwjgl.glfw.GLFW
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL45C.*
 import org.lwjgl.system.MemoryUtil
 import java.nio.ByteBuffer
+import javax.imageio.ImageIO
 
 /**
  * Represents a Pixel Buffer Object (PBO) that facilitates asynchronous data transfer to the GPU.
@@ -57,7 +64,7 @@ class PixelBuffer(
      *
      * @param data The [ByteBuffer] containing the pixel data to be uploaded.
      */
-    fun upload(data: ByteBuffer, transfer: () -> Unit = {}) {
+    fun upload(data: ByteBuffer, transfer: () -> Unit = {}): Throwable? {
         // Wait for the previous PBO to finish if a fence exists
         if (fences[index] != 0L) {
             val ret = glClientWaitSync(fences[index], GL_SYNC_FLUSH_COMMANDS_BIT, 50000000) // 50 ms timeout
@@ -70,24 +77,48 @@ class PixelBuffer(
         // Bind the current PBO for uploading
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[index])
 
+        println("Bind Buffer error ${glGetError()}")
+
         // Map the buffer into the client's memory
-        val bufferData = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, size, GL_MAP_WRITE_BIT or GL_MAP_INVALIDATE_BUFFER_BIT)
-        if (bufferData != null) {
+        val bufferData =
+            glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, size, GL_MAP_WRITE_BIT or GL_MAP_INVALIDATE_BUFFER_BIT)
+
+        println("Map Buffer error ${glGetError()}")
+
+        return if (bufferData != null) {
             MemoryUtil.memCopy(data, bufferData)
 
             // Release the buffer
-            glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER)
-        } else throw IllegalStateException("Failed to map the buffer")
+            if (!glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER))
+                return IllegalStateException("An unknown error occurred due to GPU memory availability.")
+                    .also { LOG.error(it) }
 
-        // Process
-        transfer()
+            println("Unmap error ${glGetError()}")
 
-        // Insert a sync object to track when the GPU finishes reading from the PBO
-        fences[index] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0)
+            // Process
+            transfer()
 
-        // Unbind the PBO
-        // Once bound with 0, all pixel operations behave normal ways.
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
+            println("Transfer error ${glGetError()}")
+
+            // Insert a sync object to track when the GPU finishes reading from the PBO
+            fences[index] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0)
+
+            println("Fence error ${glGetError()}")
+
+            // Unbind the PBO
+            // Once bound with 0, all pixel operations behave normal ways.
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
+
+            println("Unbind error ${glGetError()}")
+
+            // No errors :)
+            null
+        } else IllegalStateException(
+            """
+            Failed to map the buffer\n
+            There is most likely not enough virtual memory for the program to continue or
+            """.trimIndent()
+        )
     }
 
     /**
@@ -111,7 +142,7 @@ class PixelBuffer(
 
             // No errors :)
             null
-        } else throw IllegalStateException("Failed to download the buffer")
+        } else return IllegalStateException("Failed to map the buffer")
     }
 
     /**
