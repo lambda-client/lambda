@@ -144,7 +144,7 @@ object AVUtils {
             return null
         }
 
-        val numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB0, codecContext.width(), codecContext.height(), 1)
+        val numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB24, codecContext.width(), codecContext.height(), 1)
         val buffer = BytePointer(av_malloc(numBytes.toLong()))
 
         val sourcePixFmt = correctForDeprecatedPixelFormat(codecContext.pix_fmt())
@@ -157,7 +157,7 @@ object AVUtils {
             sourcePixFmt,
             codecContext.width(),
             codecContext.height(),
-            AV_PIX_FMT_RGB0,
+            AV_PIX_FMT_RGB24,
             swscale.SWS_BILINEAR,
             null, null, null as DoublePointer?
         )
@@ -171,7 +171,7 @@ object AVUtils {
             pFrameRGB.data(),
             pFrameRGB.linesize(),
             buffer,
-            AV_PIX_FMT_RGB0,
+            AV_PIX_FMT_RGB24,
             codecContext.width(),
             codecContext.height(),
             1

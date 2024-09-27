@@ -18,11 +18,11 @@ class Video(
     private val avFrame: AVFrame? get() = if (iterator.hasNext()) iterator.next() else null
     private val buffer: ByteBuffer? get() = avFrame?.asByteBuffer()
 
-    private val pbo = PixelBuffer(width * height * 4L, buffers = 2) {
+    private val pbo = PixelBuffer(width * height * 3L) {
         glBindTexture(GL_TEXTURE_2D, id)
 
         // Allocate texture storage
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0)
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
@@ -40,8 +40,14 @@ class Video(
 
             if (delta > frameTime) {
                 upload(buffer ?: return@use) {
+                    // Tell OpenGL that we are using tightly packed data
+                    // If we don't do this, the alignment will truncate
+                    // to 16 bytes because we only have 24 bytes and computers
+                    // don't like this
+                    glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+
                     glBindTexture(GL_TEXTURE_2D, id)
-                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, 0)
+                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, 0)
                 }
 
                 lastTime = System.nanoTime()
