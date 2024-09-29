@@ -47,7 +47,7 @@ open class Layout(
     /**
      * The size of this component
      */
-    open var size = Vec2d.ZERO
+    var size = Vec2d.ZERO
 
     /**
      * Horizontal alignment
@@ -81,7 +81,7 @@ open class Layout(
      */
     var position: Vec2d
         get() = ownerRect.leftTop + relativeToAbs(relativePos).let {
-            if (!clampPosition) it
+            if (!properties.clampPosition) it
             else it.coerceIn(
                 0.0, ownerRect.size.x - size.x,
                 0.0, ownerRect.size.y - size.y
@@ -95,6 +95,11 @@ open class Layout(
     private fun relativeToAbs(posIn: Vec2d) = posIn + dockingOffset
     private fun absToRelative(posIn: Vec2d) = posIn - dockingOffset
 
+    /**
+     * Configurable properties of the component
+     */
+    val properties = LayoutProperties()
+
     // Structure
     val children = mutableListOf<Layout>()
     private var selectedChild: Layout? = null
@@ -104,7 +109,6 @@ open class Layout(
     private val isHovered: Boolean get() = mousePosition in rect && (owner?.isHovered ?: true)
 
     // Graphics
-    val animation = AnimationTicker()
     val renderer: RenderLayer = run {
         owner?.let { owner ->
             if (!useBatching || !owner.batchChildren) {
@@ -119,9 +123,6 @@ open class Layout(
     }
 
     private var owningRenderer = false
-
-    protected open val interactionPassthrough = false
-    protected open val clampPosition = false
 
     // Actions
     private var showActions = mutableListOf<() -> Unit>()
@@ -235,7 +236,7 @@ open class Layout(
 
         // Select an element that's on foreground
         selectedChild = if (isHovered) children.lastOrNull {
-            !it.interactionPassthrough && mousePosition in it.rect
+            !it.properties.interactionPassthrough && mousePosition in it.rect
         } else null
 
         // Update children
@@ -243,7 +244,7 @@ open class Layout(
             if (e is GuiEvent.Render) return@forEach
 
             if (e is GuiEvent.MouseClick) {
-                val hovered = child == selectedChild || (child.isHovered && child.interactionPassthrough)
+                val hovered = child == selectedChild || (child.isHovered && child.properties.interactionPassthrough)
                 val newAction = if (hovered) e.action else Mouse.Action.Release
 
                 val newEvent = GuiEvent.MouseClick(e.button, newAction, e.mouse)
@@ -257,7 +258,7 @@ open class Layout(
         when (e) {
             is GuiEvent.Show -> { mousePosition = Vec2d.ONE * -1000.0; showActions.forEach { it() } }
             is GuiEvent.Hide -> { hideActions.forEach { it() } }
-            is GuiEvent.Tick -> { animation.tick(); tickActions.forEach { it() } }
+            is GuiEvent.Tick -> { tickActions.forEach { it() } }
             is GuiEvent.KeyPress -> { keyPressActions.forEach { it(e.key) } }
             is GuiEvent.CharTyped -> { charTypedActions.forEach { it((e.char)) } }
             is GuiEvent.MouseMove -> { mousePosition = e.mouse; mouseMoveActions.forEach { it(e.mouse) } }
@@ -283,9 +284,13 @@ open class Layout(
                     renderer.render()
                 }
 
-                scissor(rect) { // ToDo: merge to ListLayout
+                val postAction = {
                     post.forEach { it.onEvent(e) }
                 }
+
+                if (properties.scissorChildren) {
+                    scissor(rect, postAction)
+                } else postAction()
             }
         }
     }

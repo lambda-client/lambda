@@ -1,0 +1,56 @@
+package com.lambda.newgui.component.window
+
+import com.lambda.newgui.component.HAlign
+import com.lambda.newgui.component.core.TextField.Companion.textField
+import com.lambda.newgui.component.core.UIBuilder
+import com.lambda.newgui.component.layout.Layout
+import com.lambda.util.Mouse
+import com.lambda.util.math.Rect
+import com.lambda.util.math.Vec2d
+
+/**
+ * Represents a titlebar component
+ */
+class TitleBar(
+    owner: Window,
+    title: String,
+    drag: Boolean
+) : Layout(owner, true, true) {
+    val textField = textField(title) {
+        horizontalAlignment = HAlign.CENTER
+    }
+
+    private var dragOffset: Vec2d? = null
+
+    init {
+        rectUpdate {
+            Rect(owner.rect.leftTop, owner.rect.rightTop + Vec2d(0.0, renderer.font.getHeight() * 1.5))
+        }
+
+        if (drag) {
+            onShow {
+                dragOffset = null
+            }
+
+            onMouseClick { button: Mouse.Button, action: Mouse.Action ->
+                dragOffset = if (button == Mouse.Button.Left && action == Mouse.Action.Click) {
+                    mousePosition - owner.position
+                } else null
+            }
+
+            onMouseMove { mouse ->
+                dragOffset?.let { drag ->
+                    owner.position = mouse - drag
+                }
+            }
+        }
+    }
+
+    companion object {
+        @UIBuilder
+        fun Window.titleBar(
+            text: String,
+            drag: Boolean
+        ) = TitleBar(this, text, drag).apply(children::add)
+    }
+}

@@ -21,10 +21,8 @@ class TextField(
 
     var offset = initialOffset
 
-    // Let user interact through the text
-    override val interactionPassthrough = true
-
     init {
+        properties.interactionPassthrough = true
         verticalAlignment = VAlign.CENTER
         rectUpdate(owner::rect)
 
