@@ -1,54 +1,70 @@
 package com.lambda.graphics.video
 
+import com.lambda.Lambda.LOG
 import com.lambda.graphics.buffer.pbo.PixelBuffer
 import com.lambda.graphics.texture.Texture
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext
-import org.bytedeco.ffmpeg.avutil.AVFrame
 import org.lwjgl.opengl.GL45C.*
 import java.nio.ByteBuffer
+import kotlin.random.Random
 
 class Video(
     codecContext: AVCodecContext,
-    private val iterator: Iterator<AVFrame>,
+    private val iterator: Iterator<ByteBuffer>,
 ) : Texture() {
     val width = codecContext.width()
     val height = codecContext.height()
-    private val frameTime = 1 / codecContext.framerate().num()
+    private val frameTime = 1000 / codecContext.framerate().num()
 
-    private val avFrame: AVFrame? get() = if (iterator.hasNext()) iterator.next() else null
-    private val buffer: ByteBuffer? get() = avFrame?.asByteBuffer()
+    private val buffer: ByteBuffer
+        get() = if (iterator.hasNext()) iterator.next() else ByteBuffer.allocate(0)
 
-    private val pbo = PixelBuffer(width * height * 3L) {
+    private val pbo = PixelBuffer(width, height, channels = 3) {
+        // Bind the texture
         glBindTexture(GL_TEXTURE_2D, id)
+
+        // Tell OpenGL that we are using tightly packed data
+        // If we don't do this, the alignment will truncate
+        // to 16 bytes because we only have 24 bytes and computers
+        // don't like this
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
 
         // Allocate texture storage
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0)
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        // Set the texture parameters
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+
+        // Unbind the texture
+        glBindTexture(GL_TEXTURE_2D, 0)
     }
 
-    private val startTime = System.nanoTime()
-    private var lastTime = System.nanoTime()
+    private var lastTime = System.currentTimeMillis()
     private var delta = 0L
 
     fun transfer() {
-        pbo.use {
-            delta = System.nanoTime() - lastTime
+        with(pbo) {
+            delta = System.currentTimeMillis() - lastTime
 
             if (delta > frameTime) {
-                upload(buffer ?: return@use) {
-                    // Tell OpenGL that we are using tightly packed data
-                    // If we don't do this, the alignment will truncate
-                    // to 16 bytes because we only have 24 bytes and computers
-                    // don't like this
-                    glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-
+                upload(buffer) { pbo ->
+                    // Bind the texture and PBO
                     glBindTexture(GL_TEXTURE_2D, id)
-                    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, 0)
-                }
+                    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo)
+
+                    // Copy pixels from PBO to texture object
+                    // Use offset instead of pointer
+                    glTexSubImage2D(
+                        GL_TEXTURE_2D,        // Target
+                        0,                    // Mipmap level
+                        0, 0,                 // x and y offset
+                        width, height,        // width and height of the texture (set to your size)
+                        GL_RGB,               // Format (depends on your data)
+                        GL_UNSIGNED_BYTE,     // Type (depends on your data)
+                        0                     // PBO offset (for asynchronous transfer)
+                    )
+                }?.let(LOG::error)
 
                 lastTime = System.nanoTime()
             }

@@ -7,6 +7,7 @@ import org.lwjgl.BufferUtils
 import org.lwjgl.opengl.GL45C.*
 import java.awt.*
 import java.awt.image.BufferedImage
+import java.nio.ByteBuffer
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
@@ -53,7 +54,10 @@ object TextureUtils {
         glPixelStorei(GL_UNPACK_ALIGNMENT, 4)
     }
 
-    private fun readImage(bufferedImage: BufferedImage): Long {
+    fun readImage(
+        bufferedImage: BufferedImage,
+        format: NativeImage.Format = NativeImage.Format.RGBA,
+    ): Long {
         val bytes = encoderPreset
             .withBufferedImage(bufferedImage)
             .toBytes()
@@ -63,8 +67,13 @@ object TextureUtils {
             .put(bytes)
             .flip()
 
-        return NativeImage.read(buffer).pointer
+        return readImage(buffer, format)
     }
+
+    fun readImage(
+        image: ByteBuffer,
+        format: NativeImage.Format = NativeImage.Format.RGBA,
+    ) = NativeImage.read(format, image).pointer
 
     fun getCharImage(font: Font, codePoint: Char): BufferedImage? {
         if (!font.canDisplay(codePoint)) return null

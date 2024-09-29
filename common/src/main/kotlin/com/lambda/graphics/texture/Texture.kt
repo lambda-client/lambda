@@ -6,5 +6,5 @@ import org.lwjgl.opengl.GL45C.*
 open class Texture {
     val id = glGenTextures()
 
-    open fun bind(slot: Int = 0) = bindTexture(id, slot)
+    fun bind(slot: Int = 0) = bindTexture(id, slot)
 }

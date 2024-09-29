@@ -1,14 +1,11 @@
 package com.lambda.graphics.video
 
 import com.lambda.Lambda.LOG
-import com.lambda.graphics.gl.Memory.int
-import net.minecraft.predicate.entity.DistancePredicate.y
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext
 import org.bytedeco.ffmpeg.avformat.AVFormatContext
 
 import org.bytedeco.javacpp.*
 import org.bytedeco.ffmpeg.avcodec.AVPacket
-import org.bytedeco.ffmpeg.avutil.AVChannelLayout
 import org.bytedeco.ffmpeg.avutil.AVFrame
 import org.bytedeco.ffmpeg.global.avcodec.av_packet_unref
 import org.bytedeco.ffmpeg.global.avcodec.avcodec_alloc_context3
@@ -20,10 +17,8 @@ import org.bytedeco.ffmpeg.global.avcodec.avcodec_send_packet
 import org.bytedeco.ffmpeg.global.avformat.*
 import org.bytedeco.ffmpeg.global.avutil.*
 import org.bytedeco.ffmpeg.global.swscale
-import org.lwjgl.openal.AL10.alBufferData
-import sun.security.krb5.Confounder.bytes
 import java.io.FileOutputStream
-import java.io.OutputStream
+import java.nio.ByteBuffer
 
 /**
  * Utility object for handling audio-visual (AV) operations using the FFmpeg library.
@@ -111,12 +106,11 @@ object AVUtils {
      * and formats the raw frames into RGB using `sws_scale()`. The frames are yielded using a Kotlin iterator.
      *
      * The iterator reads video packets (`av_read_frame()`) and decodes them into frames using `avcodec_send_packet()`
-     * and `avcodec_receive_frame()`. The iterator limits the frame count to 5 as a demonstration, but this can be
-     * adapted for full video playback.
+     * and `avcodec_receive_frame()`.
      */
     fun frameIterator(
         ctx: Triple<AVCodecContext, AVFormatContext, Int>
-    ): Iterator<AVFrame>? {
+    ): Iterator<ByteBuffer>? {
         var err = -1
         val pkt = AVPacket()
 
@@ -174,7 +168,7 @@ object AVUtils {
             AV_PIX_FMT_RGB24,
             codecContext.width(),
             codecContext.height(),
-            1
+            1,
         )
 
         return iterator {
@@ -190,18 +184,19 @@ object AVUtils {
                         frame.data(),
                         frame.linesize(),
                         0,
-                        codecContext.height(),
+                        frame.height(),
                         pFrameRGB.data(),
-                        pFrameRGB.linesize()
+                        pFrameRGB.linesize(),
                     )
 
-                    yield(pFrameRGB)
+                    yield(pFrameRGB.data().asByteBuffer())
                 }
 
                 av_packet_unref(pkt)
             }
 
-            av_frame_free(frame) // Clean up to prevent memory leak
+            // Clean up to prevent memory leak
+            av_frame_free(frame)
         }
     }
 
