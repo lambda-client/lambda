@@ -31,6 +31,7 @@ open class Window(
     val content = windowContent(scrollable)
 
     private val animation = animationTicker()
+    private val cursorController = cursorController()
 
     // Minimizing
     var minimized = true
@@ -38,6 +39,8 @@ open class Window(
     // Resizing
     private var resizeX: Double? = null
     private var resizeY: Double? = null
+    private var resizeXHovered = false
+    private var resizeYHovered = false
 
     init {
         position = initialPosition
@@ -60,6 +63,12 @@ open class Window(
 
             resizeX = null
             resizeY = null
+            resizeXHovered = false
+            resizeYHovered = false
+        }
+
+        onHide {
+            cursorController.reset()
         }
 
         onRender {
@@ -79,40 +88,61 @@ open class Window(
             )
         }
 
+        onTick {
+            val rxh = resizeXHovered || resizeX != null
+            val ryh = resizeYHovered || resizeY != null
+
+            val cursor = when {
+                rxh && ryh -> Mouse.Cursor.ResizeHV
+                rxh -> Mouse.Cursor.ResizeH
+                ryh -> Mouse.Cursor.ResizeV
+                else -> Mouse.Cursor.Arrow
+            }
+
+            cursorController.setCursor(cursor)
+        }
+
         onMouseClick { button: Mouse.Button, action: Mouse.Action ->
             resizeX = null
             resizeY = null
 
-            if (!resizable) return@onMouseClick
-            if (selectedChild != null) return@onMouseClick
             if (button != Mouse.Button.Left || action != Mouse.Action.Click) return@onMouseClick
-
-            val resizeXHovered = mousePosition in Rect(
-                titleBar.rect.rightTop - Vec2d(RESIZE_RANGE, 0.0),
-                rect.rightBottom
-            )
-
-            val resizeYHovered = mousePosition in Rect(
-                rect.leftBottom - Vec2d(0.0, RESIZE_RANGE),
-                rect.rightBottom
-            )
 
             if (resizeXHovered) resizeX = mousePosition.x - size.x
             if (resizeYHovered) resizeY = mousePosition.y - size.y
         }
 
         onMouseMove {
-            if (resizeX == null && resizeY == null) return@onMouseMove
+            resizeXHovered = false
+            resizeYHovered = false
 
-            val x = resizeX?.let { rx ->
-                mousePosition.x - rx
-            } ?: size.x
+            if (!resizable) return@onMouseMove
 
-            val y = resizeY?.let { ry ->
-                mousePosition.y - ry
-            } ?: size.y
+            // Hover state update
+            if (selectedChild == null && isHovered) {
+                resizeXHovered = mousePosition in Rect(
+                    titleBar.rect.rightTop - Vec2d(RESIZE_RANGE, 0.0),
+                    rect.rightBottom
+                )
 
-            size = Vec2d(x, y).coerceIn(10.0, 1000.0, titleBar.size.y, 1000.0)
+                resizeYHovered = mousePosition in Rect(
+                    rect.leftBottom - Vec2d(0.0, RESIZE_RANGE),
+                    rect.rightBottom
+                )
+            }
+
+            // Resize
+            if (resizeX != null || resizeY != null) {
+                val x = resizeX?.let { rx ->
+                    mousePosition.x - rx
+                } ?: size.x
+
+                val y = resizeY?.let { ry ->
+                    mousePosition.y - ry
+                } ?: size.y
+
+                size = Vec2d(x, y).coerceIn(80.0, 1000.0, titleBar.size.y + RESIZE_RANGE, 1000.0)
+            }
         }
     }
 

@@ -21,27 +21,27 @@ class TextField(
 
     var offset = initialOffset
 
+    val textWidth  get() = renderer.font.getWidth(text, scale)
+    val textHeight get() = renderer.font.getHeight(scale)
+
     init {
         properties.interactionPassthrough = true
         verticalAlignment = VAlign.CENTER
         rectUpdate(owner::rect)
 
         onRender {
-            val w = font.getWidth(text, scale)
-            val h = font.getHeight(scale)
-
             val x = lerp(
                 horizontalAlignment.multiplier,
                 rect.left,
-                rect.right - w,
+                rect.right - textWidth,
             ) - offset * horizontalAlignment.offset
 
             val y = when {
-                verticalAlignment == VAlign.CENTER || rect.size.y <= h -> rect.center.y
+                verticalAlignment == VAlign.CENTER || rect.size.y <= textHeight -> rect.center.y
                 else -> lerp(
                     verticalAlignment.multiplier,
-                    rect.top + h * 0.5,
-                    rect.bottom - h * 0.5
+                    rect.top + textHeight * 0.5,
+                    rect.bottom - textHeight * 0.5
                 )
             }
 

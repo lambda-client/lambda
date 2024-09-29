@@ -106,7 +106,7 @@ open class Layout(
 
     // Inputs
     protected var mousePosition = Vec2d.ZERO
-    private val isHovered: Boolean get() = mousePosition in rect && (owner?.isHovered ?: true)
+    protected val isHovered: Boolean get() = mousePosition in rect && (owner?.isHovered ?: true)
 
     // Graphics
     val renderer: RenderLayer = run {
@@ -328,6 +328,18 @@ open class Layout(
         @UIBuilder
         fun Layout.animationTicker(register: Boolean = true) = AnimationTicker().apply {
             if (register) onTick(this::tick)
+        }
+
+        /**
+         * Creates new [Mouse.CursorController].
+         *
+         * Use it to set the mouse cursor type for various conditions: hovering, resizing, typing etc...
+         */
+        @UIBuilder
+        @Suppress("UNUSED_EXPRESSION")
+        fun Layout.cursorController(): Mouse.CursorController {
+            this // hack ide to let me make that ui-related only
+            return Mouse.CursorController()
         }
     }
 }
