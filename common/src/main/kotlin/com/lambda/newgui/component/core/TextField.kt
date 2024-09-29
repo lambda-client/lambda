@@ -2,8 +2,8 @@ package com.lambda.newgui.component.core
 
 import com.lambda.newgui.component.VAlign
 import com.lambda.newgui.component.layout.Layout
-import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.lerp
 import java.awt.Color
 
 class TextField(
@@ -31,17 +31,17 @@ class TextField(
             val h = font.getHeight(scale)
 
             val x = lerp(
+                horizontalAlignment.multiplier,
                 rect.left,
                 rect.right - w,
-                horizontalAlignment.multiplier
             ) - offset * horizontalAlignment.offset
 
             val y = when {
                 verticalAlignment == VAlign.CENTER || rect.size.y <= h -> rect.center.y
                 else -> lerp(
+                    verticalAlignment.multiplier,
                     rect.top + h * 0.5,
-                    rect.bottom - h * 0.5,
-                    verticalAlignment.multiplier
+                    rect.bottom - h * 0.5
                 )
             }
 

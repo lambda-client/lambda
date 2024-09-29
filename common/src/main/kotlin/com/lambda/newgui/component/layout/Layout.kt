@@ -10,9 +10,9 @@ import com.lambda.newgui.component.VAlign
 import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
-import com.lambda.util.math.MathUtils.coerceIn
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.coerceIn
 
 /**
  * Represents a component for creating complex ui structures.
@@ -102,7 +102,7 @@ open class Layout(
 
     // Structure
     val children = mutableListOf<Layout>()
-    private var selectedChild: Layout? = null
+    protected var selectedChild: Layout? = null
 
     // Inputs
     protected var mousePosition = Vec2d.ZERO
@@ -297,15 +297,15 @@ open class Layout(
 
     companion object {
         /**
-         * Creates an empty [Layout]
+         * Creates an empty [Layout].
          *
-         * @param useBatching Whether to use parent's renderer
+         * @param useBatching Whether to use parent's renderer.
          *
-         * @param batchChildren Whether allow children to use the renderer of this layout
+         * @param batchChildren Whether allow children to use the renderer of this layout.
          *
-         * @param block Actions to perform within this component
+         * @param block Actions to perform within this component.
          *
-         * Check [Layout] description for more info about batching
+         * Check [Layout] description for more info about batching.
          */
         @UIBuilder
         fun Layout.layout(
@@ -314,5 +314,20 @@ open class Layout(
             block: Layout.() -> Unit = {},
         ) = Layout(this, useBatching, batchChildren)
             .apply(children::add).apply(block)
+
+        /**
+         * Creates new [AnimationTicker].
+         *
+         * Use it to create and manage animations.
+         *
+         * It's ok to have multiple tickers per component if you need to tick different animations at different timings.
+         *
+         * @param register Whether to tick this [AnimationTicker].
+         * Otherwise, you will have to tick it manually
+         */
+        @UIBuilder
+        fun Layout.animationTicker(register: Boolean = true) = AnimationTicker().apply {
+            if (register) onTick(this::tick)
+        }
     }
 }

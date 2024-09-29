@@ -3,10 +3,10 @@ package com.lambda.gui.api.component.core
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.newgui.component.HAlign
 import com.lambda.newgui.component.VAlign
-import com.lambda.util.math.MathUtils.coerceIn
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.coerceIn
 
 abstract class DockingRect {
     abstract var relativePos: Vec2d

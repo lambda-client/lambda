@@ -13,7 +13,7 @@ class WindowContent(
     owner: Window,
     scrollable: Boolean
 ) : Layout(owner, false, true) {
-    private val animation = AnimationTicker()
+    private val animation = animationTicker(false)
 
     private var dwheel = 0.0
     private var scrollOffset = 0.0
