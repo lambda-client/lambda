@@ -19,9 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check Out Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
       - name: Labeler
-        uses: srvaroa/labeler@master
+        uses: srvaroa/labeler@v1.11.0
         with:
           config_path: .github/workflows/labeler/labeler-config.yml
           use_local_config: false

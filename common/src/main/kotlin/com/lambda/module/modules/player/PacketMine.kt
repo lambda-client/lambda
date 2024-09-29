@@ -15,7 +15,7 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap
 import net.minecraft.block.BlockState
 import net.minecraft.enchantment.EnchantmentHelper
@@ -572,20 +572,20 @@ object PacketMine : Module(
                     } else {
                         listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
                     }
-                    boxes = boxes.map { val reSized = lerp(Box(it.center, it.center), it, renderQueueSize.toDouble()); reSized.offset(pos) }
+                    boxes = boxes.map { val reSized = lerp(renderQueueSize.toDouble(), Box(it.center, it.center), it); reSized.offset(pos) }
 
                     val indexFactor = blockQueue.indexOf(pos).toDouble() / blockQueue.size.toDouble()
 
                     val fillColour = if (queueFillColourMode == ColourMode.Static) {
                         queueStaticFillColour
                     } else {
-                        lerp(queueStartFillColour, queueEndFillColour, indexFactor)
+                        lerp(indexFactor, queueStartFillColour, queueEndFillColour)
                     }
 
                     val outlineColour = if (queueOutlineColourMode == ColourMode.Static) {
                         queueStaticOutlineColour
                     } else {
-                        lerp(queueStartOutlineColour, queueEndOutlineColour, indexFactor)
+                        lerp(indexFactor, queueStartOutlineColour, queueEndOutlineColour)
                     }
 
                     boxes.forEach { box ->
@@ -1212,12 +1212,12 @@ object PacketMine : Module(
             }
             val previousFactor = previousMiningProgress * threshold
             val nextFactor = miningProgress * threshold
-            val currentFactor = lerp(previousFactor, nextFactor, mc.tickDelta)
+            val currentFactor = lerp(mc.tickDelta, previousFactor, nextFactor)
 
             val paused = (pauseWhileUsingItems && player.isUsingItem) || pausedForRotation || awaitingQueueBreak
 
             val fillColour = if (fillColourMode == ColourMode.Dynamic) {
-                val lerpColour = lerp(startFillColour, endFillColour, currentFactor.toDouble())
+                val lerpColour = lerp(currentFactor.toDouble(), startFillColour, endFillColour)
                 if (!paused) {
                     lastLerpFillColour = lerpColour
                     lerpColour
@@ -1229,7 +1229,7 @@ object PacketMine : Module(
             }
 
             val outlineColour = if (outlineColourMode == ColourMode.Dynamic) {
-                val lerpColour = lerp(startOutlineColour, endOutlineColour, currentFactor.toDouble())
+                val lerpColour = lerp(currentFactor.toDouble(), startOutlineColour, endOutlineColour)
                 if (!paused) {
                     lastLerpOutlineColour = lerpColour
                     lerpColour
@@ -1287,26 +1287,26 @@ object PacketMine : Module(
             val boxCenter = Box(box.center, box.center)
             when (renderMode) {
                 RenderMode.Out -> {
-                    return lerp(boxCenter, box, factor.toDouble())
+                    return lerp(factor.toDouble(), boxCenter, box)
                 }
 
                 RenderMode.In -> {
-                    return lerp(box, boxCenter, factor.toDouble())
+                    return lerp(factor.toDouble(), box, boxCenter)
                 }
 
                 RenderMode.InOut -> {
                     return if (factor >= 0.5f) {
-                        lerp(boxCenter, box, (factor.toDouble() - 0.5) * 2)
+                        lerp((factor.toDouble() - 0.5) * 2, boxCenter, box)
                     } else {
-                        lerp(box, boxCenter, factor.toDouble() * 2)
+                        lerp(factor.toDouble() * 2, box, boxCenter)
                     }
                 }
 
                 RenderMode.OutIn -> {
                     return if (factor >= 0.5f) {
-                        lerp(box, boxCenter, (factor.toDouble() - 0.5) * 2)
+                        lerp((factor.toDouble() - 0.5) * 2, box, boxCenter)
                     } else {
-                        lerp(boxCenter, box, factor.toDouble() * 2)
+                        lerp(factor.toDouble() * 2, boxCenter, box)
                     }
                 }
 

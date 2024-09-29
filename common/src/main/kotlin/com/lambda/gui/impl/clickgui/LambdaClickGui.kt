@@ -12,7 +12,7 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.GuiSettings.primaryColor
-import com.lambda.util.math.ColorUtils.multAlpha
+import com.lambda.util.math.multAlpha
 import com.lambda.util.math.Vec2d
 import java.awt.Color
 

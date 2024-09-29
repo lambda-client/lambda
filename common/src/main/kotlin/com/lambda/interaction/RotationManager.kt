@@ -17,7 +17,7 @@ import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
 import com.lambda.util.extension.partialTicks
@@ -38,13 +38,13 @@ object RotationManager : Loadable {
     fun Any.requestRotation(
         priority: Int = 0,
         alwaysListen: Boolean = false,
-        onUpdate: SafeContext.() -> RotationContext?,
-        onReceive: SafeContext.() -> Unit
+        onUpdate: SafeContext.(lastContext: RotationContext?) -> RotationContext?,
+        onReceive: SafeContext.() -> Unit = {}
     ) {
         var lastCtx: RotationContext? = null
 
         this.listener<RotationEvent.Update>(priority, alwaysListen) { event ->
-            val rotationContext = onUpdate()
+            val rotationContext = onUpdate(event.context)
 
             rotationContext?.let {
                 event.context = it
@@ -132,7 +132,7 @@ object RotationManager : Loadable {
 
     private val smoothRotation
         get() =
-            lerp(prevRotation, currentRotation, mc.partialTicks)
+            lerp(mc.partialTicks, prevRotation, currentRotation)
 
     @JvmStatic
     val lockRotation
@@ -162,25 +162,22 @@ object RotationManager : Loadable {
     @JvmStatic
     val movementYaw: Float?
         get() {
-            val config = currentContext?.config ?: return null
-            if (config.rotationMode == RotationMode.SILENT) return null
+            if (currentContext?.config?.rotationMode == RotationMode.SILENT) return null
             return currentRotation.yaw.toFloat()
         }
 
     @JvmStatic
     val movementPitch: Float?
         get() {
-            val config = currentContext?.config ?: return null
-            if (config.rotationMode == RotationMode.SILENT) return null
+            if (currentContext?.config?.rotationMode == RotationMode.SILENT) return null
             return currentRotation.pitch.toFloat()
         }
 
     @JvmStatic
     fun getRotationForVector(deltaTime: Double): Vec2d? {
-        val config = currentContext?.config ?: return null
-        if (config.rotationMode == RotationMode.SILENT) return null
+        if (currentContext?.config?.rotationMode == RotationMode.SILENT) return null
 
-        val rot = lerp(prevRotation, currentRotation, deltaTime)
+        val rot = lerp(deltaTime, prevRotation, currentRotation)
         return Vec2d(rot.yaw, rot.pitch)
     }
 
