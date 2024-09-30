@@ -4,6 +4,8 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.Blueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
+import com.lambda.module.modules.client.TaskFlow
+import com.lambda.task.Task
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
 import com.lambda.util.world.FastVector
@@ -18,35 +20,16 @@ import net.minecraft.util.math.Vec3d
 data class Simulation(val blueprint: Blueprint) {
     private val cache: MutableMap<FastVector, Set<BuildResult>> = mutableMapOf()
     private fun FastVector.toView(): Vec3d = toVec3d().add(0.5, 0.62, 0.5)
-//    private lateinit var player: ClientPlayerEntity
-
-//    init {
-//        runSafe {
-//            this@Simulation.player = player
-//            BlockPos.iterateOutwards(player.blockPos, 5, 5, 5).forEach { pos ->
-//                val vec = pos.toFastVec()
-//                info("Preloading simulation at $vec")
-//                simulate(vec)
-//            }
-//        }
-//    }
-
-//    val best: FastVector? get() = cache.filter { (_, results) ->
-//        results.isNotEmpty() && results.any { it.rank.ordinal < 4 }
-//    }.keys.minByOrNull { it.toVec3d().distanceTo(player.pos) }
-
-//    fun best() = cache.filter { (_, results) ->
-//        results.isNotEmpty() && results.any { it.rank.ordinal < 3 }
-//    }.keys
 
     fun simulate(pos: FastVector): Set<BuildResult> {
         return cache.computeIfAbsent(pos) {
+            val view = pos.toView()
             runSafe {
+                if (blueprint.isOutOfBounds(view) && blueprint.getClosestPointTo(view).distanceTo(view) > 10.0) return@computeIfAbsent emptySet()
                 if (!playerFitsIn(Vec3d.ofBottomCenter(pos.toBlockPos()))) return@computeIfAbsent emptySet()
             }
-            blueprint.simulate(pos.toView(), reach = 3.5)
+            blueprint.simulate(view, reach = TaskFlow.interact.reach - 1)
         }
-//        return blueprint.simulate(pos.toView(), reach = 3.5)
     }
 
     private fun SafeContext.playerFitsIn(pos: Vec3d): Boolean {

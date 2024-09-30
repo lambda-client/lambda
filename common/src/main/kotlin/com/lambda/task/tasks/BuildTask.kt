@@ -83,9 +83,7 @@ class BuildTask @Ta5kBuilder constructor(
 
             val result = results.minOrNull() ?: return@listener
             when {
-                !result.rank.solvable -> {
-                    success(Unit)
-                }
+                !result.rank.solvable -> success(Unit)
                 result is BuildResult.NotVisible -> {
                     if (pathing) BaritoneUtils.setGoalAndPath(
                         BuildGoal(blueprint.simulation())
