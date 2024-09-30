@@ -20,6 +20,8 @@ import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.BlockUtils.vecOf
+import com.lambda.util.Communication.info
+import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -42,7 +44,7 @@ object BuildSimulator {
     fun Blueprint.simulate(eye: Vec3d, reach: Double = TaskFlow.interact.reach) =
         runSafe {
             structure.entries.flatMap { (pos, target) ->
-                checkRequirements(pos, target, reach)?.let {
+                checkRequirements(pos, target)?.let {
                     return@flatMap setOf(it)
                 }
                 checkPlaceResults(pos, target, eye, reach).let {
@@ -53,11 +55,12 @@ object BuildSimulator {
                     if (it.isEmpty()) return@let
                     return@flatMap it
                 }
+                warn("Nothing matched $pos $target")
                 emptySet()
             }.toSet()
         } ?: emptySet()
 
-    private fun SafeContext.checkRequirements(pos: BlockPos, target: TargetState, reach: Double): BuildResult? {
+    private fun SafeContext.checkRequirements(pos: BlockPos, target: TargetState): BuildResult? {
         /* the chunk is not loaded */
         if (!world.isChunkLoaded(pos)) {
             return BuildResult.ChunkNotLoaded(pos)
@@ -119,22 +122,18 @@ object BuildSimulator {
             if (voxelShape.isEmpty) return@forEach
 
             val boxes = voxelShape.boundingBoxes.map { it.offset(hitPos) }
-
-            if (boxes.all { it.center.distanceTo(eye) > reach + 1 }) {
-                acc.add(BuildResult.OutOfReach(pos, eye, hitPos.vecOf(hitSide), reach, hitSide))
-                return@forEach
-            }
-
             val verify: HitResult.() -> Boolean = {
                 blockResult?.blockPos == hitPos && blockResult?.side == hitSide
             }
             val validHits = mutableMapOf<Vec3d, HitResult>()
+            val misses = mutableSetOf<Vec3d>()
             val reachSq = reach.pow(2)
 
             boxes.forEach { box ->
                 val res = if (TaskFlow.interact.useRayCast) interact.resolution else 2
                 scanVisibleSurfaces(eye, box, setOf(hitSide), res) { side, vec ->
                     if (eye distSq vec > reachSq) {
+                        misses.add(vec)
                         return@scanVisibleSurfaces
                     }
 
@@ -152,11 +151,15 @@ object BuildSimulator {
                             false
                         )
                     }
-
                 }
             }
 
             if (validHits.isEmpty()) {
+                if (misses.isNotEmpty()) {
+                    acc.add(BuildResult.OutOfReach(pos, eye, misses))
+                    return@forEach
+                }
+
                 acc.add(BuildResult.NotVisible(pos, hitPos, hitSide, eye.distanceTo(hitPos.vecOf(hitSide))))
                 return@forEach
             }
@@ -258,7 +261,11 @@ object BuildSimulator {
         return acc
     }
 
-    private fun SafeContext.checkBreakResults(pos: BlockPos, eye: Vec3d, reach: Double): Set<BuildResult> {
+    private fun SafeContext.checkBreakResults(
+        pos: BlockPos,
+        eye: Vec3d,
+        reach: Double
+    ): Set<BuildResult> {
         val acc = mutableSetOf<BuildResult>()
         val state = pos.blockState(world)
 
@@ -315,15 +322,10 @@ object BuildSimulator {
 
         val voxelShape = state.getOutlineShape(world, pos)
         voxelShape.getClosestPointTo(eye).ifPresent {
-            // ToDo: Use closest point of shape
+            // ToDo: Use closest point of shape of only visible faces
         }
 
         val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
-        if (boxes.all { it.center.distanceTo(eye) > reach + 1 }) {
-            acc.add(BuildResult.OutOfReach(pos, eye, pos.toCenterPos(), reach, Direction.UP))
-            return acc
-        }
-
         val verify: HitResult.() -> Boolean = { blockResult?.blockPos == pos }
         /* the player is buried inside the block */
         if (boxes.any { it.contains(eye) }) {
@@ -343,12 +345,14 @@ object BuildSimulator {
         }
 
         val validHits = mutableMapOf<Vec3d, HitResult>()
+        val misses = mutableSetOf<Vec3d>()
         val reachSq = reach.pow(2)
 
         boxes.forEach { box ->
             val res = if (TaskFlow.interact.useRayCast) interact.resolution else 2
             scanVisibleSurfaces(eye, box, emptySet(), res) { side, vec ->
                 if (eye distSq vec > reachSq) {
+                    misses.add(vec)
                     return@scanVisibleSurfaces
                 }
 
@@ -367,6 +371,12 @@ object BuildSimulator {
                     )
                 }
             }
+        }
+
+        if (validHits.isEmpty()) {
+            // ToDo: If we can only mine exposed surfaces we need to add not visible result here
+            acc.add(BuildResult.OutOfReach(pos, eye, misses))
+            return acc
         }
 
         validHits.keys.optimum?.let { optimum ->
@@ -403,7 +413,6 @@ object BuildSimulator {
 
             acc.add(BreakResult.Break(pos, breakContext))
         }
-
         return acc
     }
 }

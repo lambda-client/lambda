@@ -18,8 +18,7 @@ abstract class Blueprint {
     open fun isDone(ctx: SafeContext) =
         structure.all { (pos, targetState) ->
             with(ctx) {
-                val state = pos.blockState(world)
-                targetState.matches(state, pos, world) || state.block in TaskFlow.ignoredBlocks
+                targetState.matches(pos.blockState(world), pos, world)
             }
         }
 

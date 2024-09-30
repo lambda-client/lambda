@@ -40,17 +40,13 @@ data class Simulation(val blueprint: Blueprint) {
 //    }.keys
 
     fun simulate(pos: FastVector): Set<BuildResult> {
-//        runSafe {
-//            if (!playerFitsIn(Vec3d.ofBottomCenter(pos.toBlockPos()))) return emptySet()
-//        }
-//        return blueprint.simulate(pos.toView()).also { cache[pos] = it }
-//        return cache.computeIfAbsent(pos) {
-////            runSafe {
-////                if (!playerFitsIn(Vec3d.ofBottomCenter(pos.toBlockPos()))) return@computeIfAbsent emptySet()
-////            }
-//            blueprint.simulate(pos.toView())
-//        }
-        return blueprint.simulate(pos.toView(), reach = 3.5)
+        return cache.computeIfAbsent(pos) {
+            runSafe {
+                if (!playerFitsIn(Vec3d.ofBottomCenter(pos.toBlockPos()))) return@computeIfAbsent emptySet()
+            }
+            blueprint.simulate(pos.toView(), reach = 3.5)
+        }
+//        return blueprint.simulate(pos.toView(), reach = 3.5)
     }
 
     private fun SafeContext.playerFitsIn(pos: Vec3d): Boolean {

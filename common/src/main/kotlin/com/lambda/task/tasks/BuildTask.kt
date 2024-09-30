@@ -84,8 +84,6 @@ class BuildTask @Ta5kBuilder constructor(
             val result = results.minOrNull() ?: return@listener
             when {
                 !result.rank.solvable -> {
-//                    info("Unsolvable: $result")
-                    if (!blueprint.isDone(this)) return@listener
                     success(Unit)
                 }
                 result is BuildResult.NotVisible -> {

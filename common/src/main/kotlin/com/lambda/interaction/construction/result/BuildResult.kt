@@ -4,6 +4,7 @@ import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalNear
 import baritone.process.BuilderProcess.GoalPlace
 import com.lambda.context.SafeContext
+import com.lambda.interaction.construction.Blueprint
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
@@ -28,7 +29,7 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
      * The build action is done.
      */
     data class Done(
-        override val blockPos: BlockPos,
+        override val blockPos: BlockPos
     ) : BuildResult() {
         override val rank = Rank.DONE
     }
@@ -37,7 +38,7 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
      * The build action is ignored.
      */
     data class Ignored(
-        override val blockPos: BlockPos,
+        override val blockPos: BlockPos
     ) : BuildResult() {
         override val rank = Rank.IGNORED
     }
@@ -236,26 +237,22 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
     /**
      * Represents a break out of reach.
      * @param blockPos The position of the block that is out of reach.
-     * @param startVec The start vector of the reach.
-     * @param hitVec The hit vector of the reach.
-     * @param reach The maximum reach distance.
-     * @param side The side that is out of reach.
+     * @param pov The point of view of the player.
+     * @param misses The points that are out of reach.
      */
     data class OutOfReach(
         override val blockPos: BlockPos,
-        val startVec: Vec3d,
-        val hitVec: Vec3d,
-        val reach: Double,
-        val side: Direction,
+        val pov: Vec3d,
+        val misses: Set<Vec3d>
     ) : Navigable, Drawable, BuildResult() {
         override val rank = Rank.OUT_OF_REACH
         private val color = Color(252, 3, 207, 100)
 
         val distance: Double by lazy {
-            startVec.distanceTo(hitVec)
+            misses.minOfOrNull { pov.distanceTo(it) } ?: 0.0
         }
 
-        override val goal = GoalNear(blockPos, 2)
+        override val goal = GoalNear(blockPos, 3)
 
         override fun SafeContext.buildRenderer() {
             withPos(blockPos, color)

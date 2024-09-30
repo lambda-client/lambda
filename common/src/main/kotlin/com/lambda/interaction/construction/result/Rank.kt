@@ -32,5 +32,5 @@ enum class Rank {
     IGNORED;
 
     val solvable: Boolean
-        get() = ordinal < OUT_OF_WORLD.ordinal
+        get() = ordinal < PLACE_NOT_ITEM_BLOCK.ordinal
 }

@@ -27,8 +27,8 @@ class InventoryTask(
         val selectedFrom = selector.filterSlots(from).filter { it.hasStack() }
         val selectedTo = to.filter { it.stack.isEmpty } + to.filter { it.stack.item.block in TaskFlow.disposables }
         selectedFrom.zip(selectedTo).forEach { (from, to) ->
-            transactions.add(SlotUtils.Transaction(to.id, 0, SlotActionType.SWAP))
-            transactions.add(SlotUtils.Transaction(from.id, 0, SlotActionType.SWAP))
+            transactions.add(SlotUtils.Transaction(to.index, 0, SlotActionType.SWAP))
+            transactions.add(SlotUtils.Transaction(from.index, 0, SlotActionType.SWAP))
 
             // ToDo: Handle overflow of cursor for PICKUP
         }
