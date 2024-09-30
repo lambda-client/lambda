@@ -1,12 +1,14 @@
 package com.lambda.newgui.component.window
 
 import com.lambda.graphics.animation.Animation.Companion.exp
-import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.module.modules.client.NewCGui
 import com.lambda.newgui.component.VAlign
 import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.newgui.component.layout.Layout
+import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.setAlpha
+import java.awt.Color
 import kotlin.math.abs
 
 class WindowContent(
@@ -53,6 +55,15 @@ class WindowContent(
         }
 
         onRender {
+            // Shadow
+            val topColor = Color.BLACK.setAlpha(0.2)
+            val bottomColor = Color.BLACK.setAlpha(0.0)
+            filled.build(
+                Rect(rect.leftTop, rect.rightTop + Vec2d.BOTTOM * 10.0), 0.0,
+                topColor, topColor,
+                bottomColor, bottomColor
+            )
+
             reorderChildren()
         }
 
@@ -66,7 +77,7 @@ class WindowContent(
         // Skip for closed windows
         if (size.y < 0.1) return
 
-        var offset = renderScrollOffset
+        var offset = renderScrollOffset + NewCGui.padding
 
         scrollableChildren.forEach { child ->
             child.position = Vec2d(child.position.x, position.y + offset)
@@ -78,7 +89,7 @@ class WindowContent(
         /**
          * Creates an empty [WindowContent] component
          *
-         * @param scrollable Whether to scroll
+         * @param scrollable Whether to let user scroll this layout
          */
         @UIBuilder
         fun Window.windowContent(scrollable: Boolean) =

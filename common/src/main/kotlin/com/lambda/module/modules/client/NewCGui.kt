@@ -12,7 +12,7 @@ object NewCGui : Module(
     description = "ggs",
     defaultTags = setOf(ModuleTag.CLIENT)
 ) {
-    val titleBarHeight by setting("Title Bar Height", 4.0, 0.0..10.0, 0.1)
+    val titleBarHeight by setting("Title Bar Height", 16.0, 0.0..25.0, 0.1)
     val padding by setting("Padding", 2.0, 1.0..6.0, 0.1)
     val listStep by setting("List Step", 2.0, 0.0..6.0, 0.1)
 

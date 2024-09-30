@@ -57,7 +57,7 @@ open class Layout(
     /**
      * The position of the component
      *
-     * Note: actual position could be overridden using [overridePosition], to get actual position [rect].leftTop instead
+     * Note: actual position could be overridden using [overridePosition], to get actual position use [rect].leftTop instead
      */
     var position: Vec2d
         get() = ownerRect.leftTop + relativeToAbs(relativePos).let {
@@ -71,7 +71,7 @@ open class Layout(
     /**
      * The size of this component
      *
-     * Note: actual size could be overridden using [overridePosition], to get actual size [rect].size instead
+     * Note: actual size could be overridden using [overrideSize], to get actual size use [rect].size instead
      */
     var size = Vec2d.ZERO
 

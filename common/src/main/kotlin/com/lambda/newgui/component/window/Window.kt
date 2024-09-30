@@ -70,8 +70,7 @@ open class Window(
         with(titleBar) {
             onRender {
                 // Update title bar position
-                val heightVec = Vec2d(0.0, textField.textHeight * 1.5)
-                rect = Rect(this@Window.rect.leftTop, this@Window.rect.rightTop + heightVec)
+                rect = Rect(this@Window.rect.leftTop, this@Window.rect.rightTop + Vec2d.BOTTOM * NewCGui.titleBarHeight)
             }
 
             onMouseClick { button, action ->
@@ -89,7 +88,7 @@ open class Window(
             onRender {
                 // Update content position
                 rect = Rect(
-                    titleBar.rect.leftBottom + NewCGui.padding,
+                    titleBar.rect.leftBottom + Vec2d.RIGHT * NewCGui.padding,
                     this@Window.rect.rightBottom - NewCGui.padding
                 )
             }

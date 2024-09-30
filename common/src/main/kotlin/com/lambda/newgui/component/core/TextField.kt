@@ -1,5 +1,6 @@
 package com.lambda.newgui.component.core
 
+import com.lambda.newgui.component.HAlign
 import com.lambda.newgui.component.VAlign
 import com.lambda.newgui.component.layout.Layout
 import com.lambda.util.math.Vec2d
@@ -52,6 +53,19 @@ class TextField(
     }
 
     companion object {
+        /**
+         * Creates a [TextField] component
+         *
+         * @param text String to draw
+         *
+         * @param color Color of the font
+         *
+         * @param scale Scale of the font
+         *
+         * @param shadow Whether the font should drop a shadow
+         *
+         * @param offset Offset from the corner(specified by [horizontalAlignment]) of the text (ignored for [HAlign.CENTER])
+         */
         @UIBuilder
         fun Layout.textField(
             text: String,
