@@ -1,5 +1,6 @@
 package com.lambda.newgui.component.window
 
+import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.modules.client.NewCGui
 import com.lambda.newgui.component.VAlign
 import com.lambda.newgui.component.layout.Layout
@@ -33,8 +34,23 @@ open class Window(
     private val animation = animationTicker()
     private val cursorController = cursorController()
 
+    init {
+        position = initialPosition
+        size = initialSize
+    }
+
+    // Position
+    /*private val renderX by animation.exp(position::x, 0.8)
+    private val renderY by animation.exp(position::y, 0.8)
+    private val renderPosition get() = Vec2d(renderX, renderY)*/
+
+    // Size
+    private val renderWidth by animation.exp({ size.x }, 0.8)
+    private val renderHeight by animation.exp(::targetHeight, 0.8)
+    private val targetHeight get() = (if (minimized) 0.0 else size.y).coerceAtLeast(titleBar.size.y)
+
     // Minimizing
-    var minimized = true
+    var minimized = false
 
     // Resizing
     private var resizeX: Double? = null
@@ -43,24 +59,39 @@ open class Window(
     private var resizeYHovered = false
 
     init {
-        position = initialPosition
-        size = initialSize
-
         // Clamp the window only within the screen bounds
         properties.clampPosition = owner.owner == null
 
-        onShow {
-            with(content) {
-                properties.scissorChildren = true
+        overrideSize {
+            Vec2d(renderWidth, renderHeight)
+        }
 
-                rectUpdate {
-                    Rect(
-                        titleBar.rect.leftBottom + NewCGui.padding,
-                        this@Window.rect.rightBottom - NewCGui.padding
-                    )
-                }
+        with(titleBar) {
+            onRender {
+                val heightVec = Vec2d(0.0, textField.textHeight * 1.5)
+                rect = Rect(this@Window.rect.leftTop, this@Window.rect.rightTop + heightVec)
             }
 
+            onMouseClick { button, action ->
+                if (!minimizable) return@onMouseClick
+                if (button != Mouse.Button.Right || action != Mouse.Action.Click) return@onMouseClick
+
+                minimized = !minimized
+            }
+        }
+
+        with(content) {
+            properties.scissorChildren = true
+
+            onRender {
+                rect = Rect(
+                    titleBar.rect.leftBottom + NewCGui.padding,
+                    this@Window.rect.rightBottom - NewCGui.padding
+                )
+            }
+        }
+
+        onShow {
             resizeX = null
             resizeY = null
             resizeXHovered = false
@@ -116,7 +147,7 @@ open class Window(
             resizeXHovered = false
             resizeYHovered = false
 
-            if (!resizable) return@onMouseMove
+            if (!resizable || minimized) return@onMouseMove
 
             // Hover state update
             if (selectedChild == null && isHovered) {
@@ -141,7 +172,10 @@ open class Window(
                     mousePosition.y - ry
                 } ?: size.y
 
-                size = Vec2d(x, y).coerceIn(80.0, 1000.0, titleBar.size.y + RESIZE_RANGE, 1000.0)
+                size = Vec2d(x, y).coerceIn(
+                    80.0, 1000.0,
+                    titleBar.size.y + RESIZE_RANGE, 1000.0
+                )
             }
         }
     }

@@ -42,10 +42,36 @@ open class Layout(
     /**
      * The rectangle of this component
      */
-    val rect get() = Rect.basedOn(position, size)
+    var rect
+        get() = Rect.basedOn(actualPosition, actualSize)
+        set(value) { position = value.leftTop; size = value.size }
+
+    private val actualPosition get() = positionOverride()
+    private val actualSize get() = sizeOverride()
+
+    /**
+     * Relative position of the component
+     */
+    var relativePos = Vec2d.ZERO
+
+    /**
+     * The position of the component
+     *
+     * Note: actual position could be overridden using [overridePosition], to get actual position [rect].leftTop instead
+     */
+    var position: Vec2d
+        get() = ownerRect.leftTop + relativeToAbs(relativePos).let {
+            if (!properties.clampPosition) it
+            else it.coerceIn(
+                0.0, ownerRect.size.x - actualSize.x,
+                0.0, ownerRect.size.y - actualSize.y
+            )
+        }; set(value) { relativePos = absToRelative(value - ownerRect.leftTop) }
 
     /**
      * The size of this component
+     *
+     * Note: actual size could be overridden using [overridePosition], to get actual size [rect].size instead
      */
     var size = Vec2d.ZERO
 
@@ -57,7 +83,7 @@ open class Layout(
         field = to
 
         val delta = to.multiplier - from.multiplier
-        relativePos += Vec2d.RIGHT * delta * (size.x - ownerRect.size.x)
+        relativePos += Vec2d.RIGHT * delta * (actualSize.x - ownerRect.size.x)
     }
 
     /**
@@ -68,30 +94,13 @@ open class Layout(
         field = to
 
         val delta = to.multiplier - from.multiplier
-        relativePos += Vec2d.BOTTOM * delta * (size.y - ownerRect.size.y)
+        relativePos += Vec2d.BOTTOM * delta * (actualSize.y - ownerRect.size.y)
     }
-
-    /**
-     * Relative position of the component
-     */
-    var relativePos = Vec2d.ZERO
-
-    /**
-     * Absolute(drawn) position of the component
-     */
-    var position: Vec2d
-        get() = ownerRect.leftTop + relativeToAbs(relativePos).let {
-            if (!properties.clampPosition) it
-            else it.coerceIn(
-                0.0, ownerRect.size.x - size.x,
-                0.0, ownerRect.size.y - size.y
-            )
-        }; set(value) { relativePos = absToRelative(value - ownerRect.leftTop) }
 
     // Rect-related properties
     private var screenSize = Vec2d.ZERO
     private val ownerRect get() = owner?.rect ?: Rect(Vec2d.ZERO, screenSize)
-    private val dockingOffset get() = (ownerRect.size - size) * Vec2d(horizontalAlignment.multiplier, verticalAlignment.multiplier)
+    private val dockingOffset get() = (ownerRect.size - actualSize) * Vec2d(horizontalAlignment.multiplier, verticalAlignment.multiplier)
     private fun relativeToAbs(posIn: Vec2d) = posIn + dockingOffset
     private fun absToRelative(posIn: Vec2d) = posIn - dockingOffset
 
@@ -134,7 +143,8 @@ open class Layout(
     private var mouseClickActions = mutableListOf<(button: Mouse.Button, action: Mouse.Action) -> Unit>()
     private var mouseMoveActions = mutableListOf<(mouse: Vec2d) -> Unit>()
     private var mouseScrollActions = mutableListOf<(delta: Double) -> Unit>()
-    private var rectUpdate: (() -> Rect)? = null
+    private var positionOverride: (() -> Vec2d) = { position }
+    private var sizeOverride: (() -> Vec2d) = { size }
 
     /**
      * Sets the action to be performed when the element gets shown.
@@ -218,20 +228,22 @@ open class Layout(
     }
 
     /**
-     * Sets the rect of the element
+     * Overrides the drawn position of the component
      */
-    fun rectUpdate(block: () -> Rect) {
-        rectUpdate = block
+    fun overridePosition(transform: () -> Vec2d) {
+        positionOverride = transform
+    }
+
+    /**
+     * Overrides the drawn size of the component
+     */
+    fun overrideSize(transform: () -> Vec2d) {
+        sizeOverride = transform
     }
 
     fun onEvent(e: GuiEvent) {
         if (e is GuiEvent.Render) {
             screenSize = RenderMain.screenSize
-
-            rectUpdate?.invoke()?.let {
-                position = it.leftTop
-                size = it.size
-            }
         }
 
         // Select an element that's on foreground
@@ -275,22 +287,28 @@ open class Layout(
                 mouseClickActions.forEach { it(e.button, action) }
             }
             is GuiEvent.Render -> {
-                val (pre, post) = children.partition { !it.owningRenderer }
+                val drawChildren = rect.size.let { it.x > 0.1 && it.y > 0.1 }
+                val partition by lazy { children.partition { !it.owningRenderer } }
 
-                pre.forEach { it.onEvent(e) }
                 renderActions.forEach { it(renderer) }
+
+                if (drawChildren) {
+                    partition.first.forEach { it.onEvent(e) }
+                }
 
                 if (owningRenderer) {
                     renderer.render()
                 }
 
-                val postAction = {
-                    post.forEach { it.onEvent(e) }
-                }
+                if (drawChildren) {
+                    val postAction = {
+                        partition.second.forEach { it.onEvent(e) }
+                    }
 
-                if (properties.scissorChildren) {
-                    scissor(rect, postAction)
-                } else postAction()
+                    if (properties.scissorChildren) {
+                        scissor(rect, postAction)
+                    } else postAction()
+                }
             }
         }
     }

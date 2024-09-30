@@ -63,6 +63,9 @@ class WindowContent(
     }
 
     private fun reorderChildren() {
+        // Skip for closed windows
+        if (size.y < 0.1) return
+
         var offset = renderScrollOffset
 
         scrollableChildren.forEach { child ->

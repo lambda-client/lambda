@@ -27,9 +27,11 @@ class TextField(
     init {
         properties.interactionPassthrough = true
         verticalAlignment = VAlign.CENTER
-        rectUpdate(owner::rect)
 
         onRender {
+            position = owner.position
+            size = owner.size
+
             val x = lerp(
                 horizontalAlignment.multiplier,
                 rect.left,

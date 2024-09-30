@@ -5,7 +5,6 @@ import com.lambda.newgui.component.core.TextField.Companion.textField
 import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.newgui.component.layout.Layout
 import com.lambda.util.Mouse
-import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 
 /**
@@ -23,10 +22,6 @@ class TitleBar(
     private var dragOffset: Vec2d? = null
 
     init {
-        rectUpdate {
-            Rect(owner.rect.leftTop, owner.rect.rightTop + Vec2d(0.0, renderer.font.getHeight() * 1.5))
-        }
-
         if (drag) {
             onShow {
                 dragOffset = null

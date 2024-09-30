@@ -119,14 +119,8 @@ class LambdaScreen(
         @UIBuilder
         fun gui(block: Layout.() -> Unit) =
             Layout(owner = null, useBatching = false, batchChildren = true).apply {
-                var screenSize = Vec2d.ONE * 10000.0
-
-                rectUpdate {
-                    Rect(Vec2d.ZERO, screenSize)
-                }
-
                 onRender {
-                    screenSize = RenderMain.screenSize
+                    size = RenderMain.screenSize
                 }
             }.apply(block)
 

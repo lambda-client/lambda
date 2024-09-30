@@ -1,6 +1,5 @@
 package com.lambda.util.math
 
-import com.lambda.util.math.lerp
 import kotlin.math.max
 import kotlin.math.min
 
