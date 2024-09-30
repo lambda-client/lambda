@@ -12,7 +12,7 @@ class LayoutProperties {
     var clampPosition = false
 
     /**
-     * If true, children using their own render layer are clipped within this rect.
+     * If true, anything drawn onto this render layer are clipped within this rect.
      */
-    var scissorChildren = false
+    var scissor = false
 }

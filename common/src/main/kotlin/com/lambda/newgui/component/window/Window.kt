@@ -40,6 +40,7 @@ open class Window(
     }
 
     // Position
+    // ToDo find a way to animate this only when dragging
     /*private val renderX by animation.exp(position::x, 0.8)
     private val renderY by animation.exp(position::y, 0.8)
     private val renderPosition get() = Vec2d(renderX, renderY)*/
@@ -68,11 +69,13 @@ open class Window(
 
         with(titleBar) {
             onRender {
+                // Update title bar position
                 val heightVec = Vec2d(0.0, textField.textHeight * 1.5)
                 rect = Rect(this@Window.rect.leftTop, this@Window.rect.rightTop + heightVec)
             }
 
             onMouseClick { button, action ->
+                // Toggle minimizing state when right-clicking title bar
                 if (!minimizable) return@onMouseClick
                 if (button != Mouse.Button.Right || action != Mouse.Action.Click) return@onMouseClick
 
@@ -81,9 +84,10 @@ open class Window(
         }
 
         with(content) {
-            properties.scissorChildren = true
+            properties.scissor = true
 
             onRender {
+                // Update content position
                 rect = Rect(
                     titleBar.rect.leftBottom + NewCGui.padding,
                     this@Window.rect.rightBottom - NewCGui.padding
@@ -103,6 +107,7 @@ open class Window(
         }
 
         onRender {
+            // Render window background
             filled.build(
                 rect,
                 2.0,
@@ -110,6 +115,7 @@ open class Window(
                 shade = true
             )
 
+            // Render outline
             outline.build(
                 rect,
                 2.0,
@@ -120,6 +126,7 @@ open class Window(
         }
 
         onTick {
+            // Update cursor
             val rxh = resizeXHovered || resizeX != null
             val ryh = resizeYHovered || resizeY != null
 
@@ -134,6 +141,7 @@ open class Window(
         }
 
         onMouseClick { button: Mouse.Button, action: Mouse.Action ->
+            // Update resize dragging offsets
             resizeX = null
             resizeY = null
 

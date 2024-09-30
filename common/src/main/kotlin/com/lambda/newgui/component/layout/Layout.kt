@@ -287,28 +287,31 @@ open class Layout(
                 mouseClickActions.forEach { it(e.button, action) }
             }
             is GuiEvent.Render -> {
-                val drawChildren = rect.size.let { it.x > 0.1 && it.y > 0.1 }
-                val partition by lazy { children.partition { !it.owningRenderer } }
+                val drawAction = {
+                    val drawChildren = rect.size.let { it.x > 0.1 && it.y > 0.1 }
 
-                renderActions.forEach { it(renderer) }
+                    // ToDo: clipping filter to increase performance
+                    // filter { it.rect in this.rect }
+                    val partition by lazy { children.partition { !it.owningRenderer } }
 
-                if (drawChildren) {
-                    partition.first.forEach { it.onEvent(e) }
-                }
+                    renderActions.forEach { it(renderer) }
 
-                if (owningRenderer) {
-                    renderer.render()
-                }
-
-                if (drawChildren) {
-                    val postAction = {
-                        partition.second.forEach { it.onEvent(e) }
+                    if (drawChildren) {
+                        partition.first.forEach { it.onEvent(e) }
                     }
 
-                    if (properties.scissorChildren) {
-                        scissor(rect, postAction)
-                    } else postAction()
+                    if (owningRenderer) {
+                        renderer.render()
+                    }
+
+                    if (drawChildren) {
+                        partition.second.forEach { it.onEvent(e) }
+                    }
                 }
+
+                if (properties.scissor) {
+                    scissor(rect, drawAction)
+                } else drawAction()
             }
         }
     }
