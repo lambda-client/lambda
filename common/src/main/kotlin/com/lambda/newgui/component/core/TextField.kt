@@ -9,21 +9,17 @@ import java.awt.Color
 
 class TextField(
     owner: Layout,
-    initialText: String,
-    initialColor: Color = Color.WHITE,
-    initialScale: Double = 1.0,
-    initialShadow: Boolean = true,
-    initialOffset: Double = 0.0,
+    var text: String,
+    var color: Color,
+    var scale: Double,
+    var bold: Boolean,
+    var shadow: Boolean,
+    var offset: Double,
 ) : Layout(owner, true, true) {
-    var text = initialText
-    var color = initialColor
-    var scale = initialScale
-    var shadow = initialShadow
+    val textWidth  get() = fr.getWidth(text, scale)
+    val textHeight get() = fr.getHeight(scale)
 
-    var offset = initialOffset
-
-    val textWidth  get() = renderer.font.getWidth(text, scale)
-    val textHeight get() = renderer.font.getHeight(scale)
+    private val fr get() = if (bold) renderer.boldFont else renderer.font
 
     init {
         properties.interactionPassthrough = true
@@ -48,7 +44,7 @@ class TextField(
                 )
             }
 
-            font.build(text, Vec2d(x, y), color, scale, shadow)
+            fr.build(text, Vec2d(x, y), color, scale, shadow)
         }
     }
 
@@ -62,6 +58,8 @@ class TextField(
          *
          * @param scale Scale of the font
          *
+         * @param bold Whether to use the bold variant of the font
+         *
          * @param shadow Whether the font should drop a shadow
          *
          * @param offset Offset from the corner(specified by [horizontalAlignment]) of the text (ignored for [HAlign.CENTER])
@@ -71,9 +69,10 @@ class TextField(
             text: String,
             color: Color = Color.WHITE,
             scale: Double = 1.0,
+            bold: Boolean = false,
             shadow: Boolean = true,
             offset: Double = 0.0,
             block: TextField.() -> Unit = {}
-        ) = TextField(this, text, color, scale, shadow, offset).apply(children::add).apply(block)
+        ) = TextField(this, text, color, scale, bold, shadow, offset).apply(children::add).apply(block)
     }
 }

@@ -290,9 +290,10 @@ open class Layout(
                 val drawAction = {
                     val drawChildren = rect.size.let { it.x > 0.1 && it.y > 0.1 }
 
-                    // ToDo: clipping filter to increase performance
-                    // filter { it.rect in this.rect }
-                    val partition by lazy { children.partition { !it.owningRenderer } }
+                    val partition by lazy {
+                        children.filter { properties.scissor || it.rect in this.rect }
+                            .partition { !it.owningRenderer }
+                    }
 
                     renderActions.forEach { it(renderer) }
 

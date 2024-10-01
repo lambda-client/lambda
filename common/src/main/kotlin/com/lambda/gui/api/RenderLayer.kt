@@ -10,6 +10,7 @@ import com.lambda.threading.mainThread
 class RenderLayer {
     val filled by mainThread(::FilledRectRenderer)
     val outline by mainThread(::OutlineRectRenderer)
+
     val font by mainThread {
         FontRenderer(
             LambdaFont.FiraSansRegular,
@@ -17,9 +18,20 @@ class RenderLayer {
         )
     }
 
+    private val boldFont0 = lazy {
+        FontRenderer(
+            LambdaFont.FiraSansBold,
+            LambdaEmoji.Twemoji,
+        )
+    }
+
+    val boldFont by boldFont0
+
     fun render() {
         filled.render()
         outline.render()
         font.render()
+
+        if (boldFont0.isInitialized()) boldFont0.value.render()
     }
 }

@@ -11,7 +11,6 @@ import com.lambda.util.Mouse
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.coerceIn
-import java.awt.Color
 
 /**
  * Represents a window component
@@ -26,7 +25,8 @@ open class Window(
     draggable: Boolean,
     scrollable: Boolean,
     private val minimizable: Boolean,
-    private val resizable: Boolean
+    private val resizable: Boolean,
+    clean: Boolean
 ) : Layout(owner, false, true) {
     val titleBar = titleBar(initialTitle, draggable)
     val content = windowContent(scrollable)
@@ -68,6 +68,11 @@ open class Window(
         }
 
         with(titleBar) {
+            textField.apply {
+                bold = true
+                shadow = false
+            }
+
             onRender {
                 // Update title bar position
                 rect = Rect(this@Window.rect.leftTop, this@Window.rect.rightTop + Vec2d.BOTTOM * NewCGui.titleBarHeight)
@@ -105,23 +110,25 @@ open class Window(
             cursorController.reset()
         }
 
-        onRender {
-            // Render window background
-            filled.build(
-                rect,
-                2.0,
-                Color(50, 50, 50),
-                shade = true
-            )
+        if (!clean) {
+            onRender {
+                // Render window background
+                filled.build(rect, NewCGui.roundRadius, NewCGui.backgroundColor, NewCGui.backgroundShade)
 
-            // Render outline
-            outline.build(
-                rect,
-                2.0,
-                1.0,
-                Color.WHITE,
-                true
-            )
+                // Render window outline
+                if (NewCGui.outline) {
+                    outline.build(rect, NewCGui.roundRadius, NewCGui.outlineWidth, NewCGui.outlineColor, NewCGui.outlineShade)
+                }
+
+                // Shadow
+                /*val topColor = Color.BLACK.setAlpha(0.15)
+                val bottomColor = Color.BLACK.setAlpha(0.0)
+                filled.build(
+                    Rect(titleBar.rect.leftBottom, titleBar.rect.rightBottom + Vec2d.BOTTOM * 7.0), 0.0,
+                    topColor, topColor,
+                    bottomColor, bottomColor
+                )*/
+            }
         }
 
         onTick {
@@ -206,6 +213,8 @@ open class Window(
          *
          * @param resizable Whether to allow user to resize the window
          *
+         * @param clean Whether to skip the background rendering
+         *
          * @param block Actions to perform within content space of the window
          */
         @UIBuilder
@@ -217,11 +226,13 @@ open class Window(
             scrollable: Boolean = true,
             minimizable: Boolean = true,
             resizable: Boolean = true,
+            clean: Boolean = false,
             block: WindowContent.() -> Unit = {}
         ) = Window(
             this, title,
             position, size,
-            draggable, scrollable, minimizable, resizable
+            draggable, scrollable, minimizable, resizable,
+            clean
         ).apply(children::add).apply {
             block(this.content)
         }

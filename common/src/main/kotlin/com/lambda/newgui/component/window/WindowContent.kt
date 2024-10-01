@@ -26,9 +26,9 @@ class WindowContent(
 
     init {
         onShow {
+            dwheel = 0.0
             scrollOffset = 0.0
             rubberbandDelta = 0.0
-            dwheel = 0.0
             renderScrollOffset = 0.0
 
             reorderChildren()
@@ -55,15 +55,6 @@ class WindowContent(
         }
 
         onRender {
-            // Shadow
-            val topColor = Color.BLACK.setAlpha(0.2)
-            val bottomColor = Color.BLACK.setAlpha(0.0)
-            filled.build(
-                Rect(rect.leftTop, rect.rightTop + Vec2d.BOTTOM * 10.0), 0.0,
-                topColor, topColor,
-                bottomColor, bottomColor
-            )
-
             reorderChildren()
         }
 

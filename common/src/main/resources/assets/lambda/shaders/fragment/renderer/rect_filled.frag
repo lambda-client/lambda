@@ -9,7 +9,8 @@ in vec2 v_Position;
 in vec2 v_TexCoord;
 in vec4 v_Color;
 in vec2 v_Size;
-in float v_RoundRadius;
+in vec2 v_RoundRadiusL;
+in vec2 v_RoundRadiusR;
 in float v_Shade;
 
 out vec4 color;
@@ -33,10 +34,37 @@ vec4 shade() {
     return mix(u_Color1, u_Color2, p) * v_Color;
 }
 
+float getRoundRadius() {
+    bool xcmp = v_TexCoord.x > 0.5;
+    bool ycmp = v_TexCoord.y > 0.5;
+
+    float r = 0.0;
+
+    if (xcmp) {
+        if (ycmp) {
+            // Right bottom
+            r = v_RoundRadiusR.y;
+        } else {
+            // Right top
+            r = v_RoundRadiusR.x;
+        }
+    } else {
+        if (ycmp) {
+            // Left bottom
+            r = v_RoundRadiusL.y;
+        } else {
+            // Left top
+            r = v_RoundRadiusL.x;
+        }
+    }
+
+    return r;
+}
+
 vec4 round() {
     vec2 halfSize = v_Size * 0.5;
 
-    float radius = max(v_RoundRadius, SMOOTHING);
+    float radius = max(getRoundRadius(), SMOOTHING);
 
     vec2 smoothVec = vec2(SMOOTHING);
     vec2 coord = mix(-smoothVec, v_Size + smoothVec, v_TexCoord);

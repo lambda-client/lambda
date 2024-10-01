@@ -17,7 +17,7 @@ enum class VertexAttrib(val componentCount: Int, componentSize: Int, val normali
 
         // GUI
         FONT(Vec3, Vec2, Color), // pos, uv, color
-        RECT_FILLED(Vec2, Vec2, Vec2, Float, Float, Color), // pos, uv, size, roundRadius, shade, color
+        RECT_FILLED(Vec2, Vec2, Vec2, Vec2, Vec2, Float, Color), // pos, uv, size, roundL, roundR, shade, color
         RECT_OUTLINE(Vec2, Float, Float, Color), // pos, alpha, shade, color
 
         // WORLD

@@ -143,7 +143,7 @@ abstract class Targeting(
 
             return@runSafe entitySearch<LivingEntity>(targetingRange) {
                 predicate(it)
-            }.minBy {
+            }.minByOrNull {
                 priority.factor(this, it)
             }
         }
