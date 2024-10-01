@@ -28,7 +28,7 @@ object HighwayTools : Module(
     private val rimHeight by setting("Rim Height", 1, 0..6, 1)
     private val cornerBlock by setting("Corner Block", false, description = "Include corner blocks in the highway")
     private val ceiling by setting("Ceiling", false, description = "Smooth roof over the highway")
-    private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, description = "Material to build the ceiling with")
+    private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, description = "Material to build the ceiling with") { ceiling }
     private val distance by setting("Distance", -1, -1..1000000, 1, description = "Distance to build the highway (negative for infinite)")
     private val sliceSize by setting("Slice Size", 3, 1..5, 1, description = "Number of slices to build at once")
     private val material by setting("Highway Material", Blocks.OBSIDIAN, description = "Material to build the highway with")

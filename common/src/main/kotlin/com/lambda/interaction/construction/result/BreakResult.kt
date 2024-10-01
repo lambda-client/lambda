@@ -30,6 +30,7 @@ sealed class BreakResult : BuildResult() {
         private val color = Color(222, 0, 0, 100)
 
         var collectDrop = false
+        override val pausesParent get() = collectDrop
 
         override fun SafeContext.onStart() {
             breakBlock(context, collectDrop = collectDrop).onSuccess { _, _ ->

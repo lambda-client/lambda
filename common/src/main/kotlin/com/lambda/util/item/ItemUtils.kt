@@ -53,6 +53,7 @@ object ItemUtils {
 
     val misc = setOf(
         Items.SHEARS,
+        Items.FLINT_AND_STEEL,
     )
 
     val tools = pickaxes + shovels + axes + hoes + swords + misc

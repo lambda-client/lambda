@@ -76,6 +76,7 @@ class BreakBlock @Ta5kBuilder constructor(
         listener<TickEvent.Pre> {
             drop?.let { itemDrop ->
                 if (!world.entities.contains(itemDrop)) {
+                    BaritoneUtils.cancel()
                     success(itemDrop)
                     return@listener
                 }
@@ -86,6 +87,7 @@ class BreakBlock @Ta5kBuilder constructor(
                     }?.let {
                         clickSlot(it.index, 1, SlotActionType.THROW)
                     }
+                    return@listener
                 }
 
                 BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
@@ -98,16 +100,17 @@ class BreakBlock @Ta5kBuilder constructor(
             if (done()) {
                 state = State.COLLECTING
                 if (!collectDrop) {
+                    BaritoneUtils.cancel()
                     success(null)
                 }
             }
         }
 
+        // ToDo: Find out when the stack entity is filled with the item
         listener<WorldEvent.EntityUpdate> {
             if (collectDrop
                 && it.entity is ItemEntity
                 && it.entity.pos.isInRange(blockPos.toCenterPos(), 0.5)
-
             ) {
                 drop = it.entity
             }

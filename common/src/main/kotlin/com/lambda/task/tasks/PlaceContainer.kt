@@ -32,15 +32,11 @@ class PlaceContainer @Ta5kBuilder constructor(
                     .simulate(player.getCameraPosVec(mc.tickDelta))
             }
 
-//        val res = results.sorted()
-//        res
-
         val succeeds = results.filterIsInstance<PlaceResult.Place>().filter {
             canBeOpened(stack, it.blockPos, it.context.result.side)
         }
         val wrongStacks = results.filterIsInstance<BuildResult.WrongStack>().filter {
-            val result = (it.context as? PlaceContext)?.result ?: return@filter false
-            canBeOpened(stack, it.blockPos, result.side)
+            canBeOpened(stack, it.blockPos, it.context.result.side)
         }
         (succeeds + wrongStacks).minOrNull()?.let { result ->
             build {
