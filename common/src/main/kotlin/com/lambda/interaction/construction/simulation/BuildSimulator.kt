@@ -280,6 +280,8 @@ object BuildSimulator {
         val aabb = Box(pBox.minX, pBox.minY - 1.0E-6, pBox.minZ, pBox.maxX, pBox.minY, pBox.maxZ)
         world.findSupportingBlockPos(player, aabb).orElse(null)?.let { support ->
             if (support != pos) return@let
+            val belowSupport = support.down().blockState(world)
+            if (belowSupport.isSolidSurface(world, support, player, Direction.UP)) return@let
             acc.add(BreakResult.PlayerOnTop(pos, state))
             return acc
         }
