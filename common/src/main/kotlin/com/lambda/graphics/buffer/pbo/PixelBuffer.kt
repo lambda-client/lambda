@@ -48,15 +48,14 @@ class PixelBuffer(
      */
     fun upload(
         data: ByteBuffer? = null,
-        transfer: (Int) -> Unit,
+        transfer: () -> Unit,
     ): Throwable? {
+        // Bind PBO to unpack the data into whatever the transfer function does
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[index])
+
         // Copy pixels to whatever this function does
         // Use offset instead of pointer
-        // The buffer MUST be bound, if not, the entire universe breaks apart
-        // I added this to allow buffer binding at any part of the transfer function
-        // For example, you might want to bind the buffer after the texture binding
-        // or other edge cases not handled by the upload function
-        transfer(pboIds[index])
+        transfer()
 
         // Swap buffer
         index = (index + 1) % buffers
@@ -65,14 +64,6 @@ class PixelBuffer(
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[index])
 
         // Map the buffer into the client's memory
-        // Note that glMapBuffer() causes sync issue.
-        // If GPU is working with this buffer, glMapBuffer() will wait(stall)
-        // for GPU to finish its job. To avoid waiting (stall), you can call
-        // first glBufferData() with NULL pointer before glMapBuffer().
-        // If you do that, the previous data in PBO will be discarded and
-        // glMapBuffer() returns a new allocated pointer immediately
-        // even if GPU is still working with the previous data.
-        glBufferData(GL_PIXEL_UNPACK_BUFFER, size, bufferUsage.gl)
         val mappedBuffer = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, size, GL_MAP_WRITE_BIT)
 
         return if (mappedBuffer != null) {
@@ -81,7 +72,7 @@ class PixelBuffer(
                 return IllegalStateException("The mapped buffer doesn't match the size! Mapping out of bounds?")
 
             // Update data directly on the mapped buffer
-            if (data == null) mappedBuffer.put(Random.nextBytes(width)) // Missingno
+            if (data == null || data.limit() == 8) mappedBuffer.put(Random.nextBytes(width)) // Missingno
             else mappedBuffer.put(data)
 
             // Release the buffer
@@ -117,11 +108,11 @@ class PixelBuffer(
 
         // Fill the buffers with null data to allocate the memory spaces
         repeat(buffers) {
-            glBindBuffer(GL_PIXEL_PACK_BUFFER, pboIds[it])
-            glBufferData(GL_PIXEL_PACK_BUFFER, size, bufferUsage.gl)
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[it])
+            glBufferData(GL_PIXEL_UNPACK_BUFFER, size, bufferUsage.gl)
         }
 
         // Unbind the buffer
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0)
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
     }
 }

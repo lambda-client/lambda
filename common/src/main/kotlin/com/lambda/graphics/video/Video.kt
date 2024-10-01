@@ -4,20 +4,24 @@ import com.lambda.Lambda.LOG
 import com.lambda.graphics.buffer.pbo.PixelBuffer
 import com.lambda.graphics.texture.Texture
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext
+import org.bytedeco.ffmpeg.avformat.AVFormatContext
 import org.lwjgl.opengl.GL45C.*
 import java.nio.ByteBuffer
-import kotlin.random.Random
 
 class Video(
-    codecContext: AVCodecContext,
-    private val iterator: Iterator<ByteBuffer>,
+    private val videoInfo: VideoInfo,
+    private val audioInfo: AudioInfo,
+    private val videoIterator: Iterator<ByteBuffer>?,
+    private val audioIterator: Iterator<ByteBuffer>?,
 ) : Texture() {
-    val width = codecContext.width()
-    val height = codecContext.height()
-    private val frameTime = 1000 / codecContext.framerate().num()
+    val width = videoInfo.width
+    val height = videoInfo.height
 
-    private val buffer: ByteBuffer
-        get() = if (iterator.hasNext()) iterator.next() else ByteBuffer.allocate(0)
+    private val videoBuffer: ByteBuffer
+        get() = if (videoIterator?.hasNext() == true) videoIterator.next() else ByteBuffer.allocate(0)
+
+    private val audioBuffer: ByteBuffer
+        get() = if (audioIterator?.hasNext() == true) audioIterator.next() else ByteBuffer.allocate(0)
 
     private val pbo = PixelBuffer(width, height, channels = 3) {
         // Bind the texture
@@ -45,13 +49,12 @@ class Video(
 
     fun transfer() {
         with(pbo) {
-            delta = System.currentTimeMillis() - lastTime
+            delta = System.currentTimeMillis() - lastTime / 1000
 
-            if (delta > frameTime) {
-                upload(buffer) { pbo ->
+            if (delta >= videoInfo.frameDuration()) {
+                upload(videoBuffer) {
                     // Bind the texture and PBO
                     glBindTexture(GL_TEXTURE_2D, id)
-                    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo)
 
                     // Copy pixels from PBO to texture object
                     // Use offset instead of pointer
@@ -64,27 +67,31 @@ class Video(
                         GL_UNSIGNED_BYTE,     // Type (depends on your data)
                         0                     // PBO offset (for asynchronous transfer)
                     )
+
+                    // Unbind the texture
+                    glBindTexture(GL_TEXTURE_2D, 0)
                 }?.let(LOG::error)
 
-                lastTime = System.nanoTime()
+                lastTime = System.currentTimeMillis()
             }
         }
     }
 
     companion object {
         /**
-         * Retrieves a video from the resources folder.
+         * Retrieves a video from the resources' folder.
          *
          * @param path The path to the image.
          */
         fun fromResource(path: String): Video {
-            val ctx = AVUtils.createContext(path) ?:
-                throw IllegalStateException("Could not create context from path: $path")
+            val decoder = AVDecoder(path)
 
-            val iterator = AVUtils.frameIterator(ctx) ?:
-                throw IllegalStateException("Could not create frame iterator: $path")
-
-            return Video(ctx.first, iterator)
+            return Video(
+                decoder.videoInfo(),
+                decoder.audioInfo(),
+                decoder.videoFrameIterator(),
+                decoder.audioFrameIterator(),
+            )
         }
     }
 }
