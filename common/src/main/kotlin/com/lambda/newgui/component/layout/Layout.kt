@@ -12,7 +12,6 @@ import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
-import com.lambda.util.math.coerceIn
 
 /**
  * Represents a component for creating complex ui structures.
@@ -39,70 +38,80 @@ open class Layout(
     useBatching: Boolean,
     private val batchChildren: Boolean,
 ) {
-    /**
-     * The rectangle of this component
-     */
-    var rect
-        get() = Rect.basedOn(actualPosition, actualSize)
-        set(value) { position = value.leftTop; size = value.size }
+    val rect get() = Rect.basedOn(renderPosition, renderSize)
 
-    private val actualPosition get() = positionOverride()
-    private val actualSize get() = sizeOverride()
-
-    /**
-     * Relative position of the component
-     */
-    var relativePos = Vec2d.ZERO
-
-    /**
-     * The position of the component
-     *
-     * Note: actual position could be overridden using [overridePosition], to get actual position use [rect].leftTop instead
-     */
     var position: Vec2d
-        get() = ownerRect.leftTop + relativeToAbs(relativePos).let {
-            if (!properties.clampPosition) it
-            else it.coerceIn(
-                0.0, ownerRect.size.x - actualSize.x,
-                0.0, ownerRect.size.y - actualSize.y
-            )
-        }; set(value) { relativePos = absToRelative(value - ownerRect.leftTop) }
+        get() = Vec2d(positionX, positionY)
+        set(value) { positionX = value.x; positionY = value.y }
 
-    /**
-     * The size of this component
-     *
-     * Note: actual size could be overridden using [overrideSize], to get actual size use [rect].size instead
-     */
-    var size = Vec2d.ZERO
+    var positionX: Double
+        get() = ownerX + (relativePosX + dockingOffsetX).let {
+            if (!properties.clampPosition) return@let it
+            it.coerceAtMost(ownerWidth - renderWidth).coerceAtLeast(0.0)
+        }; set(value) { relativePosX = value - ownerX - dockingOffsetX }
 
-    /**
-     * Horizontal alignment
-     */
+    var positionY: Double
+        get() = ownerY + (relativePosY + dockingOffsetY).let {
+            if (!properties.clampPosition) return@let it
+            it.coerceAtMost(ownerHeight - renderHeight).coerceAtLeast(0.0)
+        }; set(value) { relativePosY = value - ownerY - dockingOffsetY }
+
+    var size: Vec2d
+        get() = Vec2d(width, height)
+        set(value) { width = value.x; height = value.y }
+
+    val leftTop get() = position
+    val rightTop get() = Vec2d(renderPositionX + renderWidth, renderPositionY)
+    val rightBottom get() = Vec2d(renderPositionX + renderWidth, renderPositionY + renderHeight)
+    val leftBottom get() = Vec2d(renderPositionX, renderPositionY + renderHeight)
+
+    var width = 0.0
+    var height = 0.0
+
+    val renderPosition get() = Vec2d(renderPositionX, renderPositionY)
+    val renderPositionX get() = positionXTransform()
+    val renderPositionY get() = positionYTransform()
+    private var positionXTransform = { positionX }
+    private var positionYTransform = { positionY }
+
+    val renderSize get() = Vec2d(renderWidth, renderHeight)
+    val renderWidth get() = widthTransform()
+    val renderHeight get() = heightTransform()
+    private var widthTransform = { width }
+    private var heightTransform = { height }
+
+    private var relativePosX = 0.0
+    private var relativePosY = 0.0
+
     var horizontalAlignment = HAlign.LEFT; set(to) {
         val from = field
         field = to
 
         val delta = to.multiplier - from.multiplier
-        relativePos += Vec2d.RIGHT * delta * (actualSize.x - ownerRect.size.x)
+        relativePosX += delta * (renderWidth - ownerWidth)
     }
 
-    /**
-     * Vertical alignment
-     */
     var verticalAlignment = VAlign.TOP; set(to) {
         val from = field
         field = to
 
         val delta = to.multiplier - from.multiplier
-        relativePos += Vec2d.BOTTOM * delta * (actualSize.y - ownerRect.size.y)
+        relativePosY += delta * (renderHeight - ownerHeight)
     }
 
-    // Rect-related properties
     private var screenSize = Vec2d.ZERO
-    private val ownerRect get() = owner?.rect ?: Rect(Vec2d.ZERO, screenSize)
-    private val dockingOffset get() = (ownerRect.size - actualSize) * Vec2d(horizontalAlignment.multiplier, verticalAlignment.multiplier)
-    private fun relativeToAbs(posIn: Vec2d) = posIn + dockingOffset
-    private fun absToRelative(posIn: Vec2d) = posIn - dockingOffset
+
+    private var ownerX = 0.0
+    private var ownerY = 0.0
+
+    private var ownerWidth = 0.0
+    private var ownerHeight = 0.0
+
+    private val dockingOffsetX get() = if (horizontalAlignment == HAlign.LEFT) 0.0
+    else (ownerWidth - renderWidth) * horizontalAlignment.multiplier
+
+    private val dockingOffsetY get() = if (verticalAlignment == VAlign.TOP) 0.0
+    else (ownerHeight - renderHeight) * verticalAlignment.multiplier
 
     /**
      * Configurable properties of the component
@@ -115,7 +124,7 @@ open class Layout(
 
     // Inputs
     protected var mousePosition = Vec2d.ZERO
-    protected val isHovered: Boolean get() = mousePosition in rect && (owner?.isHovered ?: true)
+    var isHovered = false; get() = field && (owner?.isHovered ?: true)
 
     // Graphics
     val renderer: RenderLayer = run {
@@ -143,8 +152,6 @@ open class Layout(
     private var mouseClickActions = mutableListOf<(button: Mouse.Button, action: Mouse.Action) -> Unit>()
     private var mouseMoveActions = mutableListOf<(mouse: Vec2d) -> Unit>()
     private var mouseScrollActions = mutableListOf<(delta: Double) -> Unit>()
-    private var positionOverride: (() -> Vec2d) = { position }
-    private var sizeOverride: (() -> Vec2d) = { size }
 
     /**
      * Sets the action to be performed when the element gets shown.
@@ -228,22 +235,62 @@ open class Layout(
     }
 
     /**
-     * Overrides the drawn position of the component
+     * Force overrides drawn x position of the layout
      */
-    fun overridePosition(transform: () -> Vec2d) {
-        positionOverride = transform
+    fun overrideX(transform: () -> Double) {
+        positionXTransform = transform
     }
 
     /**
-     * Overrides the drawn size of the component
+     * Force overrides drawn y position of the layout
      */
-    fun overrideSize(transform: () -> Vec2d) {
-        sizeOverride = transform
+    fun overrideY(transform: () -> Double) {
+        positionYTransform = transform
+    }
+
+    /**
+     * Force overrides drawn position of the layout
+     */
+    fun overridePosition(x: () -> Double, y: () -> Double) {
+        positionXTransform = x
+        positionYTransform = y
+    }
+
+    /**
+     * Force overrides drawn width of the layout
+     */
+    fun overrideWidth(transform: () -> Double) {
+        widthTransform = transform
+    }
+
+    /**
+     * Force overrides drawn height of the layout
+     */
+    fun overrideHeight(transform: () -> Double) {
+        heightTransform = transform
+    }
+
+    /**
+     * Force overrides drawn size of the layout
+     */
+    fun overrideSize(width: () -> Double, height: () -> Double) {
+        widthTransform = width
+        heightTransform = height
     }
 
     fun onEvent(e: GuiEvent) {
         if (e is GuiEvent.Render) {
             screenSize = RenderMain.screenSize
+
+            ownerX = owner?.renderPositionX ?: ownerX
+            ownerY = owner?.renderPositionY ?: ownerY
+
+            ownerWidth = owner?.renderWidth ?: screenSize.x
+            ownerHeight = owner?.renderHeight ?: screenSize.y
+
+            val xh = (mousePosition.x - renderPositionX) in 0.0..renderWidth
+            val yh = (mousePosition.y - renderPositionY) in 0.0..renderHeight
+            isHovered = xh && yh
         }
 
         // Select an element that's on foreground
@@ -288,11 +335,10 @@ open class Layout(
             }
             is GuiEvent.Render -> {
                 val drawAction = {
-                    val drawChildren = rect.size.let { it.x > 0.1 && it.y > 0.1 }
+                    val drawChildren = renderWidth > 0.1 && renderHeight > 0.1
 
                     val partition by lazy {
-                        children.filter { properties.scissor || it.rect in this.rect }
-                            .partition { !it.owningRenderer }
+                        children.partition { !it.owningRenderer }
                     }
 
                     renderActions.forEach { it(renderer) }
@@ -360,7 +406,7 @@ open class Layout(
         @UIBuilder
         @Suppress("UNUSED_EXPRESSION")
         fun Layout.cursorController(): Mouse.CursorController {
-            this // hack ide to let me make that ui-related only
+            this // hack ide to let me make this ui-related only
             return Mouse.CursorController()
         }
     }

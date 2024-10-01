@@ -40,7 +40,7 @@ class Mouse {
 
         fun setCursor(cursor: Cursor) {
             // We're doing this to let other controllers be able to set the cursor when this one doesn't change
-            if (lastSetCursor == cursor) return
+            if (lastSetCursor == cursor && cursor == Cursor.Arrow) return
 
             cursor.set()
             lastSetCursor = cursor

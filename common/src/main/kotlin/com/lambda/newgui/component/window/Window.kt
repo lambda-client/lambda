@@ -3,14 +3,17 @@ package com.lambda.newgui.component.window
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.modules.client.NewCGui
 import com.lambda.newgui.component.VAlign
+import com.lambda.newgui.component.core.FilledRect.Companion.rect
+import com.lambda.newgui.component.core.OutlineRect.Companion.outline
 import com.lambda.newgui.component.layout.Layout
 import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.newgui.component.window.TitleBar.Companion.titleBar
 import com.lambda.newgui.component.window.WindowContent.Companion.windowContent
 import com.lambda.util.Mouse
+import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
-import com.lambda.util.math.coerceIn
+import com.lambda.util.math.lerp
 
 /**
  * Represents a window component
@@ -26,17 +29,46 @@ open class Window(
     scrollable: Boolean,
     private val minimizable: Boolean,
     private val resizable: Boolean,
-    clean: Boolean
-) : Layout(owner, false, true) {
-    val titleBar = titleBar(initialTitle, draggable)
-    val content = windowContent(scrollable)
-
+    val autoResize: AutoResize,
+    useBatching: Boolean,
+) : Layout(owner, useBatching, true) {
     private val animation = animationTicker()
     private val cursorController = cursorController()
 
-    init {
-        position = initialPosition
-        size = initialSize
+    val titleBar = titleBar(initialTitle, draggable)
+    val content = windowContent(scrollable)
+
+    protected val titleBarRect = rect {
+        rectangle = titleBar.rect
+        setColor(NewCGui.titleBackgroundColor)
+
+        val radius = NewCGui.roundRadius
+        leftTopRadius = radius
+        rightTopRadius = radius
+        leftBottomRadius = radius * (1 - minimizeAnimation)
+        rightBottomRadius = radius * (1 - minimizeAnimation)
+
+        shade = NewCGui.backgroundShade
+    }
+
+    protected val contentRect = rect {
+        rectangle = Rect(titleBar.leftBottom, this@Window.rightBottom)
+        setColor(NewCGui.backgroundColor)
+
+        leftBottomRadius = NewCGui.roundRadius
+        rightBottomRadius = NewCGui.roundRadius
+
+        shade = NewCGui.backgroundShade
+    }
+
+    protected val outlineRect = outline {
+        rectangle = this@Window.rect
+        setColor(NewCGui.outlineColor)
+
+        roundRadius = NewCGui.roundRadius
+        glowRadius = NewCGui.outlineWidth * NewCGui.outline.toInt().toDouble()
+
+        shade = NewCGui.outlineShade
     }
 
     // Position
@@ -45,13 +77,9 @@ open class Window(
     private val renderY by animation.exp(position::y, 0.8)
     private val renderPosition get() = Vec2d(renderX, renderY)*/
 
-    // Size
-    private val renderWidth by animation.exp({ size.x }, 0.8)
-    private val renderHeight by animation.exp(::targetHeight, 0.8)
-    private val targetHeight get() = (if (minimized) 0.0 else size.y).coerceAtLeast(titleBar.size.y)
-
     // Minimizing
     var minimized = false
+    private val minimizeAnimation by animation.exp(0.0, 1.0, 0.8) { !minimized }
 
     // Resizing
     private var resizeX: Double? = null
@@ -60,23 +88,25 @@ open class Window(
     private var resizeYHovered = false
 
     init {
-        // Clamp the window only within the screen bounds
-        properties.clampPosition = owner.owner == null
+        position = initialPosition
+        size = initialSize
 
-        overrideSize {
-            Vec2d(renderWidth, renderHeight)
+        overrideWidth(animation.exp(::width, 0.8)::value)
+
+        overrideHeight {
+            val rawHeight = if (!autoResize.enabled) height
+            else titleBar.renderHeight + content.getContentHeight()
+            lerp(minimizeAnimation, titleBar.renderHeight, rawHeight)
         }
 
-        with(titleBar) {
-            textField.apply {
-                bold = true
-                shadow = false
-            }
+        properties.clampPosition = owner.owner == null
+        content.properties.scissor = true
 
-            onRender {
-                // Update title bar position
-                rect = Rect(this@Window.rect.leftTop, this@Window.rect.rightTop + Vec2d.BOTTOM * NewCGui.titleBarHeight)
-            }
+        with(titleBar) {
+            overrideSize(
+                this@Window::renderWidth,
+                NewCGui::titleBarHeight
+            )
 
             onMouseClick { button, action ->
                 // Toggle minimizing state when right-clicking title bar
@@ -84,18 +114,6 @@ open class Window(
                 if (button != Mouse.Button.Right || action != Mouse.Action.Click) return@onMouseClick
 
                 minimized = !minimized
-            }
-        }
-
-        with(content) {
-            properties.scissor = true
-
-            onRender {
-                // Update content position
-                rect = Rect(
-                    titleBar.rect.leftBottom + Vec2d.RIGHT * NewCGui.padding,
-                    this@Window.rect.rightBottom - NewCGui.padding
-                )
             }
         }
 
@@ -108,27 +126,6 @@ open class Window(
 
         onHide {
             cursorController.reset()
-        }
-
-        if (!clean) {
-            onRender {
-                // Render window background
-                filled.build(rect, NewCGui.roundRadius, NewCGui.backgroundColor, NewCGui.backgroundShade)
-
-                // Render window outline
-                if (NewCGui.outline) {
-                    outline.build(rect, NewCGui.roundRadius, NewCGui.outlineWidth, NewCGui.outlineColor, NewCGui.outlineShade)
-                }
-
-                // Shadow
-                /*val topColor = Color.BLACK.setAlpha(0.15)
-                val bottomColor = Color.BLACK.setAlpha(0.0)
-                filled.build(
-                    Rect(titleBar.rect.leftBottom, titleBar.rect.rightBottom + Vec2d.BOTTOM * 7.0), 0.0,
-                    topColor, topColor,
-                    bottomColor, bottomColor
-                )*/
-            }
         }
 
         onTick {
@@ -153,8 +150,8 @@ open class Window(
 
             if (button != Mouse.Button.Left || action != Mouse.Action.Click) return@onMouseClick
 
-            if (resizeXHovered) resizeX = mousePosition.x - size.x
-            if (resizeYHovered) resizeY = mousePosition.y - size.y
+            if (resizeXHovered) resizeX = mousePosition.x - width
+            if (resizeYHovered) resizeY = mousePosition.y - height
         }
 
         onMouseMove {
@@ -164,15 +161,15 @@ open class Window(
             if (!resizable || minimized) return@onMouseMove
 
             // Hover state update
-            if (selectedChild == null && isHovered) {
+            if (selectedChild != titleBar && isHovered) {
                 resizeXHovered = mousePosition in Rect(
-                    titleBar.rect.rightTop - Vec2d(RESIZE_RANGE, 0.0),
-                    rect.rightBottom
+                    rightTop - Vec2d(RESIZE_RANGE, 0.0),
+                    rightBottom
                 )
 
                 resizeYHovered = mousePosition in Rect(
-                    rect.leftBottom - Vec2d(0.0, RESIZE_RANGE),
-                    rect.rightBottom
+                    leftBottom - Vec2d(0.0, RESIZE_RANGE),
+                    rightBottom
                 )
             }
 
@@ -180,18 +177,25 @@ open class Window(
             if (resizeX != null || resizeY != null) {
                 val x = resizeX?.let { rx ->
                     mousePosition.x - rx
-                } ?: size.x
+                } ?: width
 
                 val y = resizeY?.let { ry ->
+                    if (autoResize.enabled) return@let null
                     mousePosition.y - ry
-                } ?: size.y
+                } ?: height
 
-                size = Vec2d(x, y).coerceIn(
-                    80.0, 1000.0,
-                    titleBar.size.y + RESIZE_RANGE, 1000.0
-                )
+                width = x.coerceIn(80.0, 1000.0)
+                height = y.coerceIn(titleBar.renderHeight + RESIZE_RANGE, 1000.0)
             }
         }
+    }
+
+    enum class AutoResize(private val isEnabled: () -> Boolean) {
+        Disabled({ false }),
+        ByConfig({ NewCGui.autoResize }),
+        ForceEnabled({ true });
+
+        val enabled get() = isEnabled()
     }
 
     companion object {
@@ -213,26 +217,28 @@ open class Window(
          *
          * @param resizable Whether to allow user to resize the window
          *
-         * @param clean Whether to skip the background rendering
+         * @param autoResize Indicates if this window could be automatically resized based on content height
          *
          * @param block Actions to perform within content space of the window
          */
         @UIBuilder
         fun Layout.window(
             position: Vec2d = Vec2d.ZERO,
-            size: Vec2d = Vec2d(100.0, 300.0),
+            size: Vec2d = Vec2d(115.0, 300.0),
             title: String = "Untitled",
             draggable: Boolean = true,
             scrollable: Boolean = true,
             minimizable: Boolean = true,
             resizable: Boolean = true,
-            clean: Boolean = false,
+            autoResize: AutoResize = AutoResize.Disabled,
+            useBatching: Boolean = false,
             block: WindowContent.() -> Unit = {}
         ) = Window(
             this, title,
             position, size,
             draggable, scrollable, minimizable, resizable,
-            clean
+            autoResize,
+            useBatching
         ).apply(children::add).apply {
             block(this.content)
         }

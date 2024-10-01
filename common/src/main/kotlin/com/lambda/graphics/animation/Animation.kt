@@ -10,10 +10,10 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
     private var prevValue = initialValue
     private var currValue = initialValue
 
-    operator fun getValue(thisRef: Any?, property: KProperty<*>) =
-        lerp(mc.partialTicks, prevValue, currValue)
-
+    operator fun getValue(thisRef: Any?, property: KProperty<*>) = value()
     operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: Double) = setValue(valueIn)
+
+    fun value(): Double = lerp(mc.partialTicks, prevValue, currValue)
 
     fun setValue(valueIn: Double) {
         prevValue = valueIn

@@ -5,10 +5,6 @@ import com.lambda.module.modules.client.NewCGui
 import com.lambda.newgui.component.VAlign
 import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.newgui.component.layout.Layout
-import com.lambda.util.math.Rect
-import com.lambda.util.math.Vec2d
-import com.lambda.util.math.setAlpha
-import java.awt.Color
 import kotlin.math.abs
 
 class WindowContent(
@@ -25,6 +21,11 @@ class WindowContent(
     private val scrollableChildren get() = children.filter { it.verticalAlignment == VAlign.TOP }
 
     init {
+        overrideX { owner.titleBar.renderPositionX }
+        overrideY { owner.titleBar.let { it.renderPositionY + it.renderHeight } }
+        overrideWidth { owner.renderWidth }
+        overrideHeight { owner.renderHeight - owner.titleBar.renderHeight }
+
         onShow {
             dwheel = 0.0
             scrollOffset = 0.0
@@ -35,17 +36,15 @@ class WindowContent(
         }
 
         onTick {
-            scrollOffset += dwheel
+            scrollOffset = if (!owner.autoResize.enabled) {
+                scrollOffset + dwheel
+            } else 0.0
+
             dwheel = 0.0
 
-            val c = scrollableChildren
-            var childHeight = c.sumOf { it.rect.size.y + NewCGui.listStep }
-            if (c.isNotEmpty()) childHeight -= NewCGui.listStep
-
-            val range = rect.size.y - childHeight
-
             val prevOffset = scrollOffset
-            scrollOffset = scrollOffset.coerceAtLeast(range).coerceAtMost(0.0)
+            val maxScroll = renderHeight - getContentHeight() - NewCGui.padding * 2
+            scrollOffset = scrollOffset.coerceAtLeast(maxScroll).coerceAtMost(0.0)
 
             rubberbandDelta += prevOffset - scrollOffset
             rubberbandDelta *= 0.5
@@ -66,14 +65,24 @@ class WindowContent(
 
     private fun reorderChildren() {
         // Skip for closed windows
-        if (size.y < 0.1) return
+        if (renderHeight < 0.1) return
 
         var offset = renderScrollOffset + NewCGui.padding
 
         scrollableChildren.forEach { child ->
-            child.position = Vec2d(child.position.x, position.y + offset)
-            offset += child.rect.size.y + NewCGui.listStep
+            child.positionY = renderPositionY + offset
+            offset += child.renderHeight + NewCGui.listStep
         }
+    }
+
+    fun getContentHeight(): Double {
+        val c = scrollableChildren
+
+        val components = c.sumOf(Layout::renderHeight)
+        val step = NewCGui.listStep * (c.size - 1).coerceAtLeast(0)
+        val padding = NewCGui.padding * 2
+
+        return components + step + padding
     }
 
     companion object {

@@ -4,10 +4,10 @@ import kotlin.math.max
 import kotlin.math.min
 
 data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
-    val left = pos1.x
-    val top = pos1.y
-    val right = pos2.x
-    val bottom = pos2.y
+    val left get() = pos1.x
+    val top get() = pos1.y
+    val right get() = pos2.x
+    val bottom get() = pos2.y
 
     val leftTop get() = Vec2d(left, top)
     val rightTop get() = Vec2d(right, top)

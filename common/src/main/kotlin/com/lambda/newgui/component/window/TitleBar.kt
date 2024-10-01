@@ -1,6 +1,8 @@
 package com.lambda.newgui.component.window
 
+import com.lambda.module.modules.client.NewCGui
 import com.lambda.newgui.component.HAlign
+import com.lambda.newgui.component.VAlign
 import com.lambda.newgui.component.core.TextField.Companion.textField
 import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.newgui.component.layout.Layout
@@ -15,28 +17,36 @@ class TitleBar(
     title: String,
     drag: Boolean
 ) : Layout(owner, true, true) {
-    val textField = textField(title) {
+    val textField = textField {
+        text = title
+        bold = true
+
         horizontalAlignment = HAlign.CENTER
+        verticalAlignment = VAlign.CENTER
+
+        onUpdate {
+            val tb = this@TitleBar
+            positionX = tb.renderPositionX + tb.renderWidth * 0.5 - textWidth * 0.5
+            positionY = tb.renderPositionY + tb.renderHeight * 0.5 - textHeight * 0.5
+        }
     }
 
     private var dragOffset: Vec2d? = null
 
     init {
-        if (drag) {
-            onShow {
-                dragOffset = null
-            }
+        onShow {
+            dragOffset = null
+        }
 
-            onMouseClick { button: Mouse.Button, action: Mouse.Action ->
-                dragOffset = if (button == Mouse.Button.Left && action == Mouse.Action.Click) {
-                    mousePosition - owner.position
-                } else null
-            }
+        onMouseClick { button: Mouse.Button, action: Mouse.Action ->
+            dragOffset = if (drag && button == Mouse.Button.Left && action == Mouse.Action.Click) {
+                mousePosition - owner.position
+            } else null
+        }
 
-            onMouseMove { mouse ->
-                dragOffset?.let { drag ->
-                    owner.position = mouse - drag
-                }
+        onMouseMove { mouse ->
+            dragOffset?.let { drag ->
+                owner.position = mouse - drag
             }
         }
     }
