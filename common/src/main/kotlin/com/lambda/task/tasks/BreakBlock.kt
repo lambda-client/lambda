@@ -91,6 +91,7 @@ class BreakBlock @Ta5kBuilder constructor(
                 }
 
                 BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
+                return@listener
             } ?: BaritoneUtils.cancel()
 
             if (isValid || !rotate || ctx.instantBreak) {
@@ -98,7 +99,6 @@ class BreakBlock @Ta5kBuilder constructor(
             }
 
             if (done()) {
-                state = State.COLLECTING
                 if (!collectDrop) {
                     BaritoneUtils.cancel()
                     success(null)
@@ -113,6 +113,7 @@ class BreakBlock @Ta5kBuilder constructor(
                 && it.entity.pos.isInRange(blockPos.toCenterPos(), 0.5)
             ) {
                 drop = it.entity
+                state = State.COLLECTING
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.lambda.task.tasks
 
+import baritone.api.pathing.goals.GoalNear
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
@@ -97,6 +98,12 @@ class BuildTask @Ta5kBuilder constructor(
 
                     if (result is BreakResult.Break) {
                         result.collectDrop = collectDrops
+                    }
+
+                    if (!(result is BreakResult.Break && result.collectDrop)) {
+                        if (pathing) BaritoneUtils.setGoalAndPath(
+                            GoalNear(result.blockPos, 4)
+                        )
                     }
 
                     pending.add(result)
