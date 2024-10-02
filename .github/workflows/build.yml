@@ -100,7 +100,7 @@ jobs:
         if: ${{ steps.upload.outputs.result == 'success' }}
         run: |
           file_urls="${{ steps.upload.outputs.file-urls }}"
-          file_urls=$(echo "$file_urls" | jq -r 'to_entries | .[] | .value' | sed 's/"/\\"/g')
+          file_urls=$(echo "$file_urls" | jq -r 'to_entries | .[] | .value' | sed 's/"/\\"/g' | tr '\n' ',')
           IFS=',' read -ra urls <<< "$file_urls"
           for url in "${urls[@]}"; do
             echo "### Downloads :rocket: $url" >> $GITHUB_STEP_SUMMARY
