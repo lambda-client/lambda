@@ -19,13 +19,10 @@ object ElytraFly : Module(
 
     private val playerBoost by setting("Player Boost", true, description = "Boosts the player when flying")
     private val playerSpeed by setting("Player Speed", 0.02, 0.0..0.5, 0.005, description = "Speed to add when flying") { playerBoost }
-    private val rocketBoost by setting("Rocket Boost", false, description = "Boosts the player when using a firework")
+    val rocketBoost by setting("Rocket Boost", false, description = "Boosts the player when using a firework")
     private val rocketSpeed by setting("Rocket Speed", 2.0, 0.0 ..2.0, description = "Speed multiplier that the rocket gives you") { rocketBoost }
 
     private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
-
-    @JvmStatic
-    val doBoost: Boolean get() = isEnabled && playerBoost
 
     init {
         listener<MovementEvent.Pre> {

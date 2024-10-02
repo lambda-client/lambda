@@ -18,7 +18,9 @@ public class FireworkRocketEntityMixin {
             )
     )
     private void redirectSetVelocity(LivingEntity shooter, Vec3d vec3d) {
-        if (!ElytraFly.getDoBoost()) return;
-        ElytraFly.boostRocket(shooter);
+        if (ElytraFly.INSTANCE.isEnabled() && ElytraFly.INSTANCE.getRocketBoost()){
+            ElytraFly.boostRocket(shooter);
+        }
+        else shooter.setVelocity(vec3d);
     }
 }
