@@ -97,9 +97,9 @@ jobs:
           destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
 
       - name: Post Upload
-        if: ${{ needs.build.upload.result == 'success' }}
+        if: ${{ steps.upload.outputs.result == 'success' }}
         run: |
-          file_urls="${{ needs.build.upload.file_urls }}"
+          file_urls="${{ steps.upload.outputs.file-urls }}"
           IFS=',' read -ra urls <<< "$file_urls"
           for url in "${urls[@]}"; do
             echo "### Downloads :rocket: $url" >> $GITHUB_STEP_SUMMARY
