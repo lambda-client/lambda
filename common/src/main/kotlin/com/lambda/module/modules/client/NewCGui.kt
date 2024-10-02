@@ -41,10 +41,14 @@ object NewCGui : Module(
             tags.forEachIndexed { i, tag ->
                 val windowPosition = Vec2d.ONE * 20.0 + Vec2d.RIGHT * ((115.0 * i) + (i + 1) * 4)
 
-                window(position = windowPosition, title = tag.name, autoResize = Window.AutoResize.ByConfig) {
-                    val tagModules = modules.filter { it.defaultTags.first() == tag }
-
-                    tagModules.forEach { module ->
+                window(
+                    position = windowPosition,
+                    title = tag.name,
+                    autoResize = Window.AutoResize.ByConfig
+                ) {
+                    modules.filter {
+                        it.defaultTags.firstOrNull() == tag
+                    }.forEach { module ->
                         moduleLayout(module)
                     }
                 }
