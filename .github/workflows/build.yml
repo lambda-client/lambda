@@ -91,9 +91,9 @@ jobs:
           r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
           r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
           source-dir: |
-            './fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
-            './forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
-            './common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
+            ./fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+            ./forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+            ./common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
           destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
 
       - name: Post Upload
