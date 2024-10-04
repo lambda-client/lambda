@@ -96,12 +96,28 @@ jobs:
             ./common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
           destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
 
-      - name: Post Upload
+      - name: Generate download links
         if: ${{ steps.upload.outputs.result == 'success' }}
         run: |
-          file_urls="${{ steps.upload.outputs.file-urls }}"
-          file_urls=$(echo "$file_urls" | jq -r 'to_entries | .[] | .value' | sed 's/"/\\"/g' | tr '\n' ',')
-          IFS=',' read -ra urls <<< "$file_urls"
-          for url in "${urls[@]}"; do
-            echo "### Downloads :rocket: $url" >> $GITHUB_STEP_SUMMARY
-          done
+          cat << EOF >> downloads.txt
+          Fabric https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+          Forge https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+          API (Dev only) https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+          EOF
+
+      - name: Post Upload
+        if: ${{ steps.upload.outputs.result == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: download-links
+          path: downloads.txt
+          
+      - name: Failover Upload
+        if: ${{ steps.upload.outputs.result == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-nightly
+          path: |
+            /**/build/libs/lambda-*-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+        
+        
