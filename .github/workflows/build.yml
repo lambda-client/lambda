@@ -99,7 +99,7 @@ jobs:
       - name: Generate download links
         if: ${{ steps.upload.outputs.result == 'success' }}
         run: |
-          cat << EOF >> downloads.txt
+          cat << EOF >> $GITHUB_STEP_SUMMARY
           Fabric https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
           Forge https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
           API (Dev only) https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
