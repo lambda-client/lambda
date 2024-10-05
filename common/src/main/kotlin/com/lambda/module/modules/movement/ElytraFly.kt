@@ -25,7 +25,7 @@ object ElytraFly : Module(
     private val mute by setting("Mute Elytra", false, "Mutes the elytra sound when gliding")
 
     @JvmStatic
-    val doBoost: Boolean get() = isEnabled && playerBoost
+    val doBoost: Boolean get() = isEnabled && rocketBoost
 
     init {
         listener<MovementEvent.Pre> {
