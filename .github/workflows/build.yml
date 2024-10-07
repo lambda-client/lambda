@@ -81,7 +81,13 @@ jobs:
 
       - name: Build Lambda
         run: ./gradlew build
-        
+
+      - name: Rename Files with Commit Hash
+        run: |
+          mv ./fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar ./fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+          mv ./forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar ./forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+          mv ./common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar ./common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+
       - name: Upload Lambda
         uses: ryand56/r2-upload-action@latest
         id: upload
@@ -91,33 +97,39 @@ jobs:
           r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
           r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
           source-dir: |
-            ./fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
-            ./forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
-            ./common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+            ./fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+            ./forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+            ./common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
           destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
 
-      - name: Generate download links
+      - name: Generate Summary
         if: ${{ steps.upload.outputs.result == 'success' }}
         run: |
           cat << EOF >> $GITHUB_STEP_SUMMARY
-          Fabric https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
-          Forge https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
-          API (Dev only) https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+          ## Build Summary
+
+          **Date:** \`${{ env.DATE }}\`  
+          **Commit Hash:** \`${{ env.COMMIT_HASH }}\`  
+          **Runner:** \`${{ needs.check-runner.outputs.runner-label }}\`
+
+          ### Download Links:
+          - [Fabric](https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
+          - [Forge](https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
+          - [API (Dev only)](https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
+
+          ### Additional Information:
+          - **Build Status:** Success
+          - **Gradle Version:** \`${{ steps.all.outputs.gradleVersion }}\`
+          - **Mod Version:** \`${{ steps.all.outputs.modVersion }}\`
+          - **Minecraft Version:** \`${{ steps.all.outputs.minecraftVersion }}\`
           EOF
 
-      - name: Post Upload
-        if: ${{ steps.upload.outputs.result == 'success' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: download-links
-          path: downloads.txt
-          
       - name: Failover Upload
         if: ${{ steps.upload.outputs.result == 'failure' }}
         uses: actions/upload-artifact@v4
         with:
           name: lambda-nightly
           path: |
-            /**/build/libs/lambda-*-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
+            /**/build/libs/lambda-*-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
         
         
