@@ -39,9 +39,9 @@ object NewCGui : Module(
             val windowPosition = Vec2d.ONE * 20.0 + Vec2d.RIGHT * ((115.0 * i) + (i + 1) * 4)
 
             moduleWindow(tag, windowPosition) {
-                val tagModules = modules.filter { it.defaultTags.first() == tag }
-
-                tagModules.forEach { module ->
+                modules.filter {
+                    it.defaultTags.firstOrNull() == tag
+                }.forEach { module ->
                     moduleLayout(module)
                 }
             }
