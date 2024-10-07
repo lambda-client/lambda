@@ -2,7 +2,7 @@ package com.lambda.newgui.component.window
 
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.modules.client.NewCGui
-import com.lambda.newgui.component.VAlign
+import com.lambda.newgui.ScreenLayout
 import com.lambda.newgui.component.core.FilledRect.Companion.rect
 import com.lambda.newgui.component.core.OutlineRect.Companion.outline
 import com.lambda.newgui.component.layout.Layout
@@ -22,15 +22,15 @@ import com.lambda.util.math.lerp
  */
 open class Window(
     owner: Layout,
-    initialTitle: String,
-    initialPosition: Vec2d,
-    initialSize: Vec2d,
-    draggable: Boolean,
-    scrollable: Boolean,
-    private val minimizable: Boolean,
-    private val resizable: Boolean,
-    val autoResize: AutoResize,
-    useBatching: Boolean,
+    initialTitle: String = "Untitled",
+    initialPosition: Vec2d = Vec2d.ZERO,
+    initialSize: Vec2d = Vec2d(115.0, 300.0),
+    draggable: Boolean = true,
+    scrollable: Boolean = true,
+    private val minimizing: Minimizing = Minimizing.Relative,
+    private val resizable: Boolean = true,
+    val autoResize: AutoResize = AutoResize.Disabled,
+    useBatching: Boolean = false,
 ) : Layout(owner, useBatching, true) {
     private val animation = animationTicker()
     private val cursorController = cursorController()
@@ -45,8 +45,10 @@ open class Window(
         val radius = NewCGui.roundRadius
         leftTopRadius = radius
         rightTopRadius = radius
-        leftBottomRadius = radius * (1 - minimizeAnimation)
-        rightBottomRadius = radius * (1 - minimizeAnimation)
+
+        val bottomRadius = lerp(content.renderHeight, radius, 0.0)
+        leftBottomRadius = bottomRadius
+        rightBottomRadius = bottomRadius
 
         shade = NewCGui.backgroundShade
     }
@@ -79,7 +81,14 @@ open class Window(
 
     // Minimizing
     var minimized = false
-    private val minimizeAnimation by animation.exp(0.0, 1.0, 0.8) { !minimized }
+    private var heightAnimation by animation.exp(
+        min = { 0.0 },
+        max = { if (minimizing == Minimizing.Relative) targetHeight else 1.0 },
+        speed = 0.8,
+        flag = { !minimized }
+    )
+
+    private val targetHeight get() = if (!autoResize.enabled) height - titleBar.renderHeight else content.getContentHeight()
 
     // Resizing
     private var resizeX: Double? = null
@@ -94,23 +103,20 @@ open class Window(
         overrideWidth(animation.exp(::width, 0.8)::value)
 
         overrideHeight {
-            val rawHeight = if (!autoResize.enabled) height
-            else titleBar.renderHeight + content.getContentHeight()
-            lerp(minimizeAnimation, titleBar.renderHeight, rawHeight)
+            titleBar.renderHeight + when (minimizing) {
+                Minimizing.Disabled -> targetHeight
+                Minimizing.Relative -> heightAnimation
+                Minimizing.Absolute -> heightAnimation * targetHeight
+            }
         }
 
-        properties.clampPosition = owner.owner == null
+        properties.clampPosition = owner is ScreenLayout
         content.properties.scissor = true
 
         with(titleBar) {
-            overrideSize(
-                this@Window::renderWidth,
-                NewCGui::titleBarHeight
-            )
-
             onMouseClick { button, action ->
                 // Toggle minimizing state when right-clicking title bar
-                if (!minimizable) return@onMouseClick
+                if (minimizing == Minimizing.Disabled) return@onMouseClick
                 if (button != Mouse.Button.Right || action != Mouse.Action.Click) return@onMouseClick
 
                 minimized = !minimized
@@ -122,6 +128,11 @@ open class Window(
             resizeY = null
             resizeXHovered = false
             resizeYHovered = false
+            heightAnimation = when {
+                minimized -> 0.0
+                minimizing == Minimizing.Relative -> targetHeight
+                else -> 1.0
+            }
         }
 
         onHide {
@@ -150,8 +161,8 @@ open class Window(
 
             if (button != Mouse.Button.Left || action != Mouse.Action.Click) return@onMouseClick
 
-            if (resizeXHovered) resizeX = mousePosition.x - width
-            if (resizeYHovered) resizeY = mousePosition.y - height
+            if (resizeXHovered) resizeX = mousePosition.x - renderWidth
+            if (resizeYHovered) resizeY = mousePosition.y - renderHeight
         }
 
         onMouseMove {
@@ -161,13 +172,13 @@ open class Window(
             if (!resizable || minimized) return@onMouseMove
 
             // Hover state update
-            if (selectedChild != titleBar && isHovered) {
+            if (selectedChild != titleBar && content.selectedChild == null && isHovered) {
                 resizeXHovered = mousePosition in Rect(
                     rightTop - Vec2d(RESIZE_RANGE, 0.0),
                     rightBottom
                 )
 
-                resizeYHovered = mousePosition in Rect(
+                resizeYHovered = !autoResize.enabled && mousePosition in Rect(
                     leftBottom - Vec2d(0.0, RESIZE_RANGE),
                     rightBottom
                 )
@@ -175,17 +186,13 @@ open class Window(
 
             // Resize
             if (resizeX != null || resizeY != null) {
-                val x = resizeX?.let { rx ->
-                    mousePosition.x - rx
-                } ?: width
+                resizeX?.let { rx ->
+                    width = (mousePosition.x - rx).coerceIn(80.0, 1000.0)
+                }
 
-                val y = resizeY?.let { ry ->
-                    if (autoResize.enabled) return@let null
-                    mousePosition.y - ry
-                } ?: height
-
-                width = x.coerceIn(80.0, 1000.0)
-                height = y.coerceIn(titleBar.renderHeight + RESIZE_RANGE, 1000.0)
+                resizeY?.let { ry ->
+                    height = (mousePosition.y - ry).coerceIn(titleBar.renderHeight + RESIZE_RANGE, 1000.0)
+                }
             }
         }
     }
@@ -196,6 +203,17 @@ open class Window(
         ForceEnabled({ true });
 
         val enabled get() = isEnabled()
+    }
+
+    /**
+     * [Disabled] -> No ability to minimize the window
+     * [Relative] -> Animation follows the height of the component ( animation(0.0, height) )
+     * [Absolute] -> Animation does not depend on the height ( animation(0.0, 1.0) * height )
+     */
+    enum class Minimizing {
+        Disabled,
+        Relative,
+        Absolute;
     }
 
     companion object {
@@ -211,9 +229,8 @@ open class Window(
          * @param draggable Whether to allow user to drag the window
          *
          * @param scrollable Whether to allow user to scroll the elements
-         * Note: applies to elements with [VAlign.TOP] only
          *
-         * @param minimizable Whether to allow user to minimize the window
+         * @param minimizing The [Minimizing] mode.
          *
          * @param resizable Whether to allow user to resize the window
          *
@@ -228,7 +245,7 @@ open class Window(
             title: String = "Untitled",
             draggable: Boolean = true,
             scrollable: Boolean = true,
-            minimizable: Boolean = true,
+            minimizing: Minimizing = Minimizing.Relative,
             resizable: Boolean = true,
             autoResize: AutoResize = AutoResize.Disabled,
             useBatching: Boolean = false,
@@ -236,7 +253,7 @@ open class Window(
         ) = Window(
             this, title,
             position, size,
-            draggable, scrollable, minimizable, resizable,
+            draggable, scrollable, minimizing, resizable,
             autoResize,
             useBatching
         ).apply(children::add).apply {

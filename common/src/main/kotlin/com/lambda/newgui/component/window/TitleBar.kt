@@ -34,6 +34,11 @@ class TitleBar(
     private var dragOffset: Vec2d? = null
 
     init {
+        overrideSize(
+            owner::renderWidth,
+            NewCGui::titleBarHeight
+        )
+
         onShow {
             dragOffset = null
         }

@@ -24,7 +24,7 @@ import net.minecraft.text.Text
  */
 class LambdaScreen(
     override val name: String,
-    val layout: Layout
+    val layout: ScreenLayout
 ) : Screen(Text.of(name)), Nameable, Muteable {
     override val isMuted: Boolean get() = !isOpen
 
@@ -110,23 +110,5 @@ class LambdaScreen(
 
         val uv = mcMouse / mcWindow
         return uv * screenSize
-    }
-
-    companion object {
-        /**
-         * Creates gui layout
-         */
-        @UIBuilder
-        fun gui(block: Layout.() -> Unit) =
-            Layout(owner = null, useBatching = false, batchChildren = true).apply {
-                onRender {
-                    size = RenderMain.screenSize
-                }
-            }.apply(block)
-
-        /**
-         * Converts this [Layout] to a minecraft-typed [Screen] represented by the [LambdaScreen] class
-         */
-        fun Layout.toScreen(name: String) = LambdaScreen(name, this)
     }
 }

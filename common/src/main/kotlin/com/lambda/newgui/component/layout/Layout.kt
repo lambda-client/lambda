@@ -120,7 +120,7 @@ open class Layout(
 
     // Structure
     val children = mutableListOf<Layout>()
-    protected var selectedChild: Layout? = null
+    var selectedChild: Layout? = null
 
     // Inputs
     protected var mousePosition = Vec2d.ZERO

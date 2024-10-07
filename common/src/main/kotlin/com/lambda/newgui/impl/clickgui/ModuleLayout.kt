@@ -4,15 +4,14 @@ import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.Module
 import com.lambda.module.modules.client.NewCGui
 import com.lambda.newgui.component.HAlign
-import com.lambda.newgui.component.VAlign
+import com.lambda.newgui.component.core.FilledRect
 import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.newgui.component.layout.Layout
 import com.lambda.newgui.component.window.Window
 import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
-import com.lambda.util.math.setAlpha
-import java.awt.Color
+import com.lambda.util.math.multAlpha
 
 class ModuleLayout(
     owner: Layout,
@@ -21,7 +20,7 @@ class ModuleLayout(
     owner,
     module.name,
     Vec2d.ZERO, Vec2d.ZERO,
-    false, false, true, false,
+    false, false, Minimizing.Relative, false,
     AutoResize.Disabled, // ToDo: should be ForceEnabled, temporarily using this mode to set the height manually
     true
 ) {
@@ -29,6 +28,9 @@ class ModuleLayout(
     private val cursorController = cursorController()
 
     private var enableAnimation by animation.exp(0.0, 1.0, 0.6, module::isEnabled)
+
+    // Could be true only if owner is ModuleWindow
+    var isLast = false
 
     init {
         minimized = true
@@ -58,23 +60,38 @@ class ModuleLayout(
             enableAnimation = 0.0
         }
 
+        onHide {
+            cursorController.reset()
+        }
+
         titleBarRect.onUpdate {
-            setColor(lerp(enableAnimation, DISABLED_COLOR, NewCGui.titleBackgroundColor))
+            setColor(lerp(enableAnimation, NewCGui.titleBackgroundColor.multAlpha(0.15), NewCGui.titleBackgroundColor))
+            correctRadius()
         }
 
         contentRect.onUpdate {
-            setColor(lerp(enableAnimation, DISABLED_COLOR, NewCGui.backgroundColor))
+            setColor(lerp(enableAnimation, NewCGui.backgroundColor.multAlpha(0.15), NewCGui.backgroundColor))
+            correctRadius()
         }
 
-        outlineRect.onUpdate {
-            setColor(lerp(enableAnimation, DISABLED_COLOR, NewCGui.outlineColor))
-        }
+        children.remove(outlineRect)
 
         onTick {
             val cursor = if (titleBar.isHovered) Mouse.Cursor.Pointer else Mouse.Cursor.Arrow
             cursorController.setCursor(cursor)
         }
+    }
 
+    private fun FilledRect.correctRadius() {
+        if (!isLast) {
+            setRadius(0.0)
+            return
+        }
+
+        leftTopRadius = 0.0
+        rightTopRadius = 0.0
+        leftBottomRadius -= NewCGui.padding
+        rightBottomRadius -= NewCGui.padding
     }
 
     companion object {
@@ -84,7 +101,5 @@ class ModuleLayout(
         @UIBuilder
         fun Layout.moduleLayout(module: Module) =
             ModuleLayout(this, module).apply(children::add)
-
-        private val DISABLED_COLOR = Color.BLACK.setAlpha(0.1)
     }
 }

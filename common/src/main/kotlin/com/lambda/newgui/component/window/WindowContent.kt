@@ -2,7 +2,6 @@ package com.lambda.newgui.component.window
 
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.modules.client.NewCGui
-import com.lambda.newgui.component.VAlign
 import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.newgui.component.layout.Layout
 import kotlin.math.abs
@@ -17,8 +16,6 @@ class WindowContent(
     private var scrollOffset = 0.0
     private var rubberbandDelta = 0.0
     private var renderScrollOffset by animation.exp({ scrollOffset + rubberbandDelta }, 0.7)
-
-    private val scrollableChildren get() = children.filter { it.verticalAlignment == VAlign.TOP }
 
     init {
         overrideX { owner.titleBar.renderPositionX }
@@ -69,14 +66,14 @@ class WindowContent(
 
         var offset = renderScrollOffset + NewCGui.padding
 
-        scrollableChildren.forEach { child ->
+        children.forEach { child ->
             child.positionY = renderPositionY + offset
             offset += child.renderHeight + NewCGui.listStep
         }
     }
 
     fun getContentHeight(): Double {
-        val c = scrollableChildren
+        val c = children
 
         val components = c.sumOf(Layout::renderHeight)
         val step = NewCGui.listStep * (c.size - 1).coerceAtLeast(0)
