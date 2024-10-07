@@ -11,7 +11,6 @@ import com.lambda.util.Communication.info
 import com.lambda.util.player.MovementUtils.octant
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.moveY
-import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.VecUtils.rotateClockwise
 import com.lambda.util.world.StructureUtils.generateDirectionalTube
@@ -20,7 +19,6 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3i
-import kotlin.math.roundToInt
 
 object HighwayTools : Module(
     name = "HighwayTools",
@@ -30,14 +28,14 @@ object HighwayTools : Module(
     private val height by setting("Height", 4, 2..10, 1)
     private val width by setting("Width", 6, 1..30, 1)
     private val pavement by setting("Pavement", Material.Block, description = "Material for the pavement")
-    private val rimHeight by setting("Pavement Rim Height", 1, 0..6, 1) { pavement != Material.Any }
-    private val cornerBlock by setting("Corner", Corner.None, description = "Include corner blocks in the highway") { pavement != Material.Any }
+    private val rimHeight by setting("Pavement Rim Height", 1, 0..6, 1) { pavement != Material.None }
+    private val cornerBlock by setting("Corner", Corner.None, description = "Include corner blocks in the highway") { pavement != Material.None }
     private val pavementMaterial by setting("Pavement Material", Blocks.OBSIDIAN, description = "Material to build the highway with") { pavement == Material.Block }
-    private val floor by setting("Floor", Material.Any, description = "Material for the floor")
+    private val floor by setting("Floor", Material.None, description = "Material for the floor")
     private val floorMaterial by setting("Floor Material", Blocks.NETHERRACK, description = "Material to build the floor with") { floor == Material.Block }
-    private val walls by setting("Walls", Material.Any, description = "Material for the walls")
+    private val walls by setting("Walls", Material.None, description = "Material for the walls")
     private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, description = "Material to build the walls with") { walls == Material.Block }
-    private val ceiling by setting("Ceiling", Material.Any, description = "Material for the ceiling")
+    private val ceiling by setting("Ceiling", Material.None, description = "Material for the ceiling")
     private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, description = "Material to build the ceiling with") { ceiling == Material.Block }
     private val distance by setting("Distance", -1, -1..1000000, 1, description = "Distance to build the highway/tunnel (negative for infinite)")
     private val sliceSize by setting("Slice Size", 3, 1..5, 1, description = "Number of slices to build at once")
@@ -49,7 +47,7 @@ object HighwayTools : Module(
     private var runningTask: Task<*>? = null
 
     enum class Material {
-        Any,
+        None,
         Solid,
         Block,
     }
@@ -111,7 +109,7 @@ object HighwayTools : Module(
             0,
         ).associateWith { TargetState.Air }
 
-        if (pavement != Material.Any) {
+        if (pavement != Material.None) {
             structure += generateDirectionalTube(
                 orthogonal,
                 width,
@@ -159,7 +157,7 @@ object HighwayTools : Module(
             }
         }
 
-        if (ceiling != Material.Any) {
+        if (ceiling != Material.None) {
             structure += generateDirectionalTube(
                 orthogonal,
                 width,
@@ -169,7 +167,7 @@ object HighwayTools : Module(
             ).associateWith { target(ceiling, ceilingMaterial) }
         }
 
-        if (walls != Material.Any) {
+        if (walls != Material.None) {
             // Left wall
             structure += generateDirectionalTube(
                 orthogonal,
@@ -189,7 +187,7 @@ object HighwayTools : Module(
             ).associateWith { target(walls, wallMaterial) }
         }
 
-        if (floor != Material.Any) {
+        if (floor != Material.None) {
             structure += generateDirectionalTube(
                 orthogonal,
                 width,
@@ -200,7 +198,7 @@ object HighwayTools : Module(
         }
 
         val transformed = when {
-            pavement != Material.Any -> structure.moveY(-1)
+            pavement != Material.None -> structure.moveY(-1)
             else -> structure
         }
 
