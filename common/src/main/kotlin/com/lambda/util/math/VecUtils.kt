@@ -1,13 +1,10 @@
 package com.lambda.util.math
 
 import com.lambda.util.math.MathUtils.sq
-import com.lambda.util.world.FastVector
-import com.lambda.util.world.x
-import com.lambda.util.world.y
-import com.lambda.util.world.z
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
+import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 import kotlin.math.pow
@@ -24,6 +21,9 @@ object VecUtils {
 
     val Direction.hitVecOffset get() =
         CENTER + vector.vec3d * 0.5
+
+    fun EightWayDirection.rotateClockwise(steps: Int) =
+        EightWayDirection.entries[(ordinal + steps) % 8]
 
     infix fun Vec3d.dist(other: Vec3d): Double = this.distanceTo(other)
 
