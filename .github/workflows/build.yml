@@ -106,17 +106,12 @@ jobs:
         if: ${{ steps.upload.outputs.result == 'success' }}
         run: |
           cat << EOF >> $GITHUB_STEP_SUMMARY
-          ### [Download Fabric](https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
-          ### [Download Forge](https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
+          ### [Lambda Fabric ${{ steps.all.outputs.modVersion }} ${{ steps.all.outputs.minecraftVersion }} (${{ env.COMMIT_HASH }})](https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
+          ### [Lambda Forge ${{ steps.all.outputs.modVersion }} ${{ steps.all.outputs.minecraftVersion }} (${{ env.COMMIT_HASH }})](https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
           
-          #### [Download API (Developer Dependency)](https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
+          #### [API (Developer Dependency)](https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
 
-          #### Additional Information:
-          - **Date:** \`${{ env.DATE }}\`  
-          - **Commit Hash:** \`${{ env.COMMIT_HASH }}\`  
           - **Runner:** \`${{ needs.check-runner.outputs.runner-label }}\`
-          - **Mod Version:** \`${{ steps.all.outputs.modVersion }}\`
-          - **Minecraft Version:** \`${{ steps.all.outputs.minecraftVersion }}\`
           EOF
 
       - name: Failover Upload
