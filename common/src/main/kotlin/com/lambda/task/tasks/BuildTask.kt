@@ -100,7 +100,7 @@ class BuildTask @Ta5kBuilder constructor(
                         result.collectDrop = collectDrops
                     }
 
-                    if (!(result is BreakResult.Break && result.collectDrop)) {
+                    if (result !is BreakResult.Break || !result.collectDrop) {
                         if (pathing) BaritoneUtils.setGoalAndPath(
                             GoalNear(result.blockPos, 4)
                         )

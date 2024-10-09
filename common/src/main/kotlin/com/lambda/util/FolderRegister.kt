@@ -32,6 +32,7 @@ object FolderRegister {
     val packetLogs: File = File(lambda, "packet-log")
     val replay: File = File(lambda, "replay")
     val cache: File = File(lambda, "cache")
+    val structure: File = File(lambda, "structure")
 
     fun File.createIfNotExists() {
         createFileIfNotExists(this.name, this.parentFile)
