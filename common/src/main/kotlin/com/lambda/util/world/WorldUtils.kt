@@ -2,7 +2,7 @@ package com.lambda.util.world
 
 import com.lambda.context.SafeContext
 import com.lambda.core.annotations.InternalApi
-import com.lambda.util.collections.filterPointer
+import com.lambda.util.extension.filterPointer
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.extension.getFluidState
 import net.minecraft.block.BlockState
