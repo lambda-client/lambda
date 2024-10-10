@@ -4,10 +4,14 @@ import com.lambda.util.world.FastVector
 import com.lambda.util.world.x
 import com.lambda.util.world.y
 import com.lambda.util.world.z
+import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
+import net.minecraft.nbt.NbtCompound
+import net.minecraft.registry.RegistryEntryLookup
+import net.minecraft.structure.StructureTemplate
 import net.minecraft.world.World
 
 fun World.getBlockState(x: Int, y: Int, z: Int): BlockState {
@@ -34,3 +38,8 @@ fun World.getFluidState(x: Int, y: Int, z: Int): FluidState {
 
 fun World.getBlockState(vec: FastVector): BlockState = getBlockState(vec.x, vec.y, vec.z)
 fun World.getFluidState(vec: FastVector): FluidState = getFluidState(vec.x, vec.y, vec.z)
+
+fun StructureTemplate.readNbtOrException(
+    lookup: RegistryEntryLookup<Block>,
+    nbt: NbtCompound,
+): Throwable? = runCatching { readNbt(lookup, nbt) }.exceptionOrNull()

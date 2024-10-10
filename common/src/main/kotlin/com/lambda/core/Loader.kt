@@ -10,7 +10,6 @@ import com.lambda.gui.GuiConfigurable
 import com.lambda.gui.HudGuiConfigurable
 import com.lambda.interaction.PlayerPacketManager
 import com.lambda.interaction.RotationManager
-import com.lambda.interaction.construction.StructureManager
 import com.lambda.interaction.material.ContainerManager
 import com.lambda.module.ModuleRegistry
 import com.lambda.sound.SoundRegistry
@@ -39,7 +38,6 @@ object Loader {
         TimerManager,
         PingManager,
         ContainerManager,
-        StructureManager
     )
 
     fun initialize() {
