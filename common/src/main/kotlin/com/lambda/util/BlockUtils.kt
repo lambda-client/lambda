@@ -41,6 +41,8 @@ object BlockUtils {
         Blocks.SOUL_CAMPFIRE,
         Blocks.JUKEBOX,
         Blocks.NOTE_BLOCK,
+        Blocks.STRUCTURE_BLOCK,
+        Blocks.COMMAND_BLOCK,
     ).apply { addAll(shulkerBlocks) }
 
     val signs = setOf(

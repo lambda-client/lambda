@@ -198,7 +198,7 @@ abstract class Task<Result> : Nameable {
         if (state == State.CANCELLED) return
 
         cancelSubTasks()
-        state = State.CANCELLED
+        if (this !is RootTask) state = State.CANCELLED
         stopListening()
         runSafe { onCancel() }
         LOG.info("$identifier was cancelled")

@@ -3,6 +3,7 @@ package com.lambda.task.tasks
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
+import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
@@ -10,6 +11,7 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
+import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.warn
 import net.minecraft.block.BlockState
@@ -66,6 +68,14 @@ class PlaceBlock @Ta5kBuilder constructor(
 
             if (findOutIfNeeded) placeBlock()
             findOutIfNeeded = true
+        }
+
+        listener<MovementEvent.InputUpdate> {
+            if (state != State.PLACING) return@listener
+            val hitBlock = ctx.result.blockPos.blockState(world).block
+            if (hitBlock in BlockUtils.interactionBlacklist) {
+                it.input.sneaking = true
+            }
         }
 
         listener<WorldEvent.BlockUpdate> {
