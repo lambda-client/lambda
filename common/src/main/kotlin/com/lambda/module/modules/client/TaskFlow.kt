@@ -7,6 +7,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.allSigns
 import com.lambda.util.item.ItemUtils
+import net.minecraft.state.property.Properties
 
 object TaskFlow : Module(
     name = "TaskFlow",
@@ -32,4 +33,11 @@ object TaskFlow : Module(
     }
     val disposables by setting("Disposables", ItemUtils.defaultDisposables)
     val ignoredBlocks by setting("Ignored Blocks", allSigns)
+    val defaultIgnoreTags = setOf(
+        Properties.DISTANCE_1_7,
+        Properties.PERSISTENT,
+        Properties.WATERLOGGED,
+        Properties.STAIR_SHAPE
+    )
+//    val ignoredTags by setting("Ignored Tags", defaultIgnoreTags)
 }

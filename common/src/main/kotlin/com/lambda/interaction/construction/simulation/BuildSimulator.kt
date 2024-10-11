@@ -94,7 +94,7 @@ object BuildSimulator {
         }
 
         /* block is unbreakable, so it cant be broken or replaced */
-        if (state.getHardness(world, pos) < 0) {
+        if (state.getHardness(world, pos) < 0 && !player.isCreative) {
             return BuildResult.Unbreakable(pos, state)
         }
 
@@ -222,7 +222,9 @@ object BuildSimulator {
                 }
 
                 if (!target.matches(resultState, pos, world)) {
-                    acc.add(PlaceResult.NoIntegrity(pos, resultState, context))
+                    acc.add(PlaceResult.NoIntegrity(
+                        pos, resultState, context, (target as? TargetState.State)?.blockState)
+                    )
                     return@forEach
                 }
 

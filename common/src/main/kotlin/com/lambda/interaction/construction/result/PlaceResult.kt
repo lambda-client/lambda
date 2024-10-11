@@ -62,7 +62,8 @@ sealed class PlaceResult : BuildResult() {
     data class NoIntegrity(
         override val blockPos: BlockPos,
         val expected: BlockState,
-        val simulated: ItemPlacementContext
+        val simulated: ItemPlacementContext,
+        val actual: BlockState? = null
     ) : Drawable, PlaceResult() {
         override val rank = Rank.PLACE_NO_INTEGRITY
         private val color = Color(252, 3, 3, 100)

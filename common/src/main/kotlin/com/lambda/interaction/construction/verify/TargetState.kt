@@ -8,6 +8,7 @@ import net.minecraft.block.BlockState
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
+import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
@@ -46,7 +47,9 @@ sealed class TargetState(val type: Type) : StateMatcher {
 
     data class State(val blockState: BlockState) : TargetState(Type.STATE) {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
-            state == blockState
+            state.block == blockState.block && state.properties.all {
+                it in TaskFlow.defaultIgnoreTags || state[it] == blockState[it]
+            }
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             blockState.block.getPickStack(world, pos, blockState)
     }
