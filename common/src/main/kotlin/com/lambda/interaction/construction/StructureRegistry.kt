@@ -14,17 +14,15 @@ import net.minecraft.structure.StructureTemplate
 import net.minecraft.util.Identifier
 import net.minecraft.util.PathUtil
 import net.minecraft.util.WorldSavePath
-import java.nio.file.Files
-import java.nio.file.LinkOption
-import java.nio.file.StandardOpenOption
+import java.nio.file.*
+import kotlin.io.path.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.io.path.inputStream
-import kotlin.io.path.notExists
+import kotlin.streams.asSequence
 
 @Suppress("JavaIoSerializableObjectMustHaveReadResolve")
 object StructureRegistry : ConcurrentHashMap<Identifier, StructureTemplate?>() {
     private val levelSession = mc.levelStorage.createSession(FolderRegister.structure.path)
-    private val generatedPath = levelSession.getDirectory(WorldSavePath.ROOT).normalize()
+    private val structurePath = levelSession.getDirectory(WorldSavePath.ROOT).normalize()
 
     /**
      * Loads a structure from disk based on the provided [id].
@@ -33,19 +31,19 @@ object StructureRegistry : ConcurrentHashMap<Identifier, StructureTemplate?>() {
      * @return The loaded [StructureTemplate], or null if the structure is not found.
      */
     fun loadStructure(id: Identifier): StructureTemplate? {
-        val path = PathUtil.getResourcePath(generatedPath, id.path, ".nbt")
+        val path = PathUtil.getResourcePath(structurePath, id.path, ".nbt")
 
-        return if (!Files.isDirectory(generatedPath, LinkOption.NOFOLLOW_LINKS) || path.notExists()) null
+        return if (!structurePath.isDirectory() || path.notExists()) null
         else computeIfAbsent(id) {
-            val compound = path.inputStream(StandardOpenOption.READ)
-                .use { template ->
-                    NbtIo.readCompressed(
-                        template,
-                        NbtSizeTracker.ofUnlimitedBytes()
-                    ).also { template.close() }
+            path.inputStream().use { templateStream ->
+                val compound = NbtIo.readCompressed(templateStream, NbtSizeTracker.ofUnlimitedBytes())
+                if (compound.isValidStructureTemplate()) {
+                    createStructure(compound)
+                } else {
+                    logError("Invalid structure template: ${path.fileName}", "File does not match template format")
+                    null
                 }
-
-            createStructure(nbt = compound)
+            }
         }
     }
 
@@ -61,9 +59,9 @@ object StructureRegistry : ConcurrentHashMap<Identifier, StructureTemplate?>() {
 
         template.readNbtOrException(
             Registries.BLOCK.readOnlyWrapper,
-            DataFixTypes.STRUCTURE.update(mc.dataFixer, nbt, version),
-        )?.let { err ->
-            this@StructureRegistry.logError("Could not create structure from file", err.message ?: "")
+            DataFixTypes.STRUCTURE.update(mc.dataFixer, nbt, version)
+        )?.let { error ->
+            logError("Could not create structure from file", error.message ?: "")
             return null
         }
 
@@ -77,9 +75,82 @@ object StructureRegistry : ConcurrentHashMap<Identifier, StructureTemplate?>() {
      * @param structure The [StructureTemplate] to save.
      */
     fun saveStructure(name: String, structure: StructureTemplate) {
-        val path = PathUtil.getResourcePath(generatedPath, name, ".nbt")
+        val path = PathUtil.getResourcePath(structurePath, name, ".nbt")
         val compound = structure.writeNbt(NbtCompound())
 
-        NbtIo.writeCompressed(compound, path)
+        Files.createDirectories(path.parent) // Ensure parent directories exist
+        path.outputStream().use { output ->
+            NbtIo.writeCompressed(compound, output)
+        }
     }
+
+    /**
+     * Streams all available structure templates from the directory.
+     *
+     * @return A [Sequence] of [Identifier]s of the available templates.
+     */
+    fun streamTemplates(): Sequence<Identifier> {
+        return if (!structurePath.isDirectory()) {
+            emptySequence()
+        } else {
+            try {
+                structurePath.walk().filter { it.isRegularFile() && it.extension == "nbt" }
+                    .filter { it.isValidNbtStructure() }
+                    .mapNotNull { it.toIdentifier() }
+            } catch (e: Exception) {
+                logError("Error streaming structure templates", e)
+                emptySequence()
+            }
+        }
+    }
+
+    /**
+     * Converts a file [Path] to an [Identifier].
+     *
+     * @param this@pathToIdentifier The file path to convert.
+     * @return The resulting [Identifier], or null if the path is invalid.
+     */
+    private fun Path.toIdentifier(): Identifier? {
+        return try {
+            val relativePath = structurePath.relativize(this).invariantSeparatorsPathString
+            val namespace = "minecraft"
+            val pathWithoutExtension = relativePath.removeSuffix(".nbt")
+            Identifier(namespace, pathWithoutExtension)
+        } catch (e: Exception) {
+            this@StructureRegistry.logError("Invalid path for structure template", e.message ?: "")
+            null
+        }
+    }
+
+    /**
+     * Walks through the [Path] hierarchy recursively and returns a [Sequence] of paths.
+     */
+    private fun Path.walk(): Sequence<Path> = Files.walk(this).asSequence()
+
+    /**
+     * Checks whether the NBT file at the given [this@isValidNbtStructure] is a valid Minecraft structure template.
+     *
+     * @param this@isValidNbtStructure The path to the NBT file.
+     * @return True if the NBT file is a valid structure template, false otherwise.
+     */
+    private fun Path.isValidNbtStructure() =
+        runCatching {
+            inputStream().use { input ->
+                NbtIo.readCompressed(input, NbtSizeTracker.ofUnlimitedBytes())
+                    .isValidStructureTemplate()
+            }
+        }.getOrDefault(false)
+
+    /**
+     * Verifies that the provided NBT data represents a valid Minecraft structure template.
+     *
+     * @param this@isValidStructureTemplate The [NbtCompound] to validate.
+     * @return True if the NBT contains valid structure template data, false otherwise.
+     */
+    private fun NbtCompound.isValidStructureTemplate() =
+        contains("DataVersion")
+                && contains("blocks")
+                && contains("entities")
+                && contains("palette")
+                && contains("size")
 }

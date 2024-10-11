@@ -7,9 +7,15 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
+import com.lambda.interaction.construction.Blueprint.Companion.toStructure
+import com.lambda.interaction.construction.DynamicBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.StructureRegistry
+import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
+import com.lambda.util.extension.move
 
 object BuildCommand : LambdaCommand(
     name = "Build",
@@ -20,17 +26,25 @@ object BuildCommand : LambdaCommand(
         required(literal("place")) {
             required(identifier("structure")) { structure ->
                 suggests { _, builder ->
-                    StructureRegistry.keys
+                    StructureRegistry.streamTemplates()
                         .forEach { builder.suggest(it.path) }
 
                     builder.buildFuture()
                 }
 
                 executeWithResult {
-                    StructureRegistry.loadStructure(structure().value())?.let { template ->
-                        info("Building structure: ${template.size}")
+                    runSafe<Unit> {
+                        val id = structure().value()
+                        StructureRegistry.loadStructure(id)?.let { template ->
+                            info("Building structure ${id.path} with size ${template.size.toShortString()} by ${template.author}")
+                            template.toStructure()
+                                .move(player.blockPos)
+                                .toBlueprint()
+                                .build()
+                                .start(null)
 
-                        return@executeWithResult CommandResult.success()
+                            return@executeWithResult CommandResult.success()
+                        }
                     }
 
                     CommandResult.failure("Structure not found")
