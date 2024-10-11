@@ -131,6 +131,7 @@ object BuildSimulator {
 
             boxes.forEach { box ->
                 val res = if (TaskFlow.interact.useRayCast) interact.resolution else 2
+                // ToDo: If state has HALF property we need to scan the correct half of the block surface
                 scanVisibleSurfaces(eye, box, setOf(hitSide), res) { side, vec ->
                     if (eye distSq vec > reachSq) {
                         misses.add(vec)

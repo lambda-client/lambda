@@ -33,8 +33,8 @@ object BuildCommand : LambdaCommand(
                 }
 
                 executeWithResult {
+                    val id = structure().value()
                     runSafe<Unit> {
-                        val id = structure().value()
                         StructureRegistry.loadStructure(id)?.let { template ->
                             info("Building structure ${id.path} with size ${template.size.toShortString()} by ${template.author}")
                             template.toStructure()
@@ -47,32 +47,8 @@ object BuildCommand : LambdaCommand(
                         }
                     }
 
-                    CommandResult.failure("Structure not found")
+                    CommandResult.failure("Structure ${id.path} not found")
                 }
-
-//                execute {
-//                    runSafe {
-//
-////                    val materials = setOf(
-////                        TargetState.Block(Blocks.NETHERRACK),
-////                        TargetState.Block(Blocks.AIR),
-////                        TargetState.Block(Blocks.COBBLESTONE),
-////                        TargetState.Block(Blocks.AIR),
-////                    )
-////                    val facing = player.horizontalFacing
-////                    val pos = player.blockPos.add(facing.vector.multiply(2))
-////
-////                    BlockBox.create(pos, pos.add(facing.rotateYClockwise().vector.multiply(3)))
-////                        .toStructure(TargetState.Block(Blocks.NETHERRACK))
-////                        .toBlueprint {
-////                            it.mapValues { (_, _) ->
-////                                materials.elementAt((System.currentTimeMillis() / 5000).toInt() % materials.size)
-////                            }
-////                        }
-////                        .build(finishOnDone = false)
-////                        .start(null)
-//                    }
-//                }
             }
         }
     }
