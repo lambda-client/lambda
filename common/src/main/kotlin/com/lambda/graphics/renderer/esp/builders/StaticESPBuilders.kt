@@ -2,7 +2,6 @@ package com.lambda.graphics.renderer.esp.builders
 
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.hasDirection
-import com.lambda.graphics.renderer.esp.impl.ESPRenderer
 import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 import com.lambda.util.extension.max
 import com.lambda.util.extension.min

@@ -7,9 +7,9 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.graphics.buffer.vao.VAO
-import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
-import com.lambda.graphics.buffer.vao.vertex.VertexMode
+import com.lambda.graphics.buffer.VertexPipeline
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.gl.GlStateUtils.withBlendFunc
 import com.lambda.graphics.gl.GlStateUtils.withDepth
 import com.lambda.graphics.gl.Matrices
@@ -63,7 +63,7 @@ object Particles : Module(
     private val environmentSpeedV by setting("E Speed V", 0.1, 0.0..10.0, 0.1) { environment }
 
     private var particles = mutableListOf<Particle>()
-    private val vao = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.PARTICLE)
+    private val vao = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.PARTICLE)
     private val shader = Shader("renderer/particle", "renderer/particle")
 
     init {

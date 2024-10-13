@@ -1,9 +1,9 @@
 package com.lambda.graphics.renderer.gui.rect
 
 import com.lambda.graphics.RenderMain
-import com.lambda.graphics.buffer.vao.VAO
-import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
-import com.lambda.graphics.buffer.vao.vertex.VertexMode
+import com.lambda.graphics.buffer.VertexPipeline
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.math.Vec2d
@@ -13,7 +13,7 @@ abstract class AbstractRectRenderer(
     attribGroup: VertexAttrib.Group,
     val shader: Shader
 ) {
-    protected val vao = VAO(VertexMode.TRIANGLES, attribGroup)
+    protected val vao = VertexPipeline(VertexMode.TRIANGLES, attribGroup)
 
     fun render() {
         shader.use()

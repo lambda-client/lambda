@@ -1,19 +1,18 @@
 package com.lambda.graphics.renderer.gui
 
 import com.lambda.graphics.RenderMain
-import com.lambda.graphics.buffer.vao.VAO
-import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
-import com.lambda.graphics.buffer.vao.vertex.VertexMode
+import com.lambda.graphics.buffer.VertexPipeline
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.shader.Shader
 import com.lambda.graphics.texture.Texture
-import com.lambda.graphics.video.Video
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 import org.lwjgl.glfw.GLFW.glfwGetTime
 
 object TextureRenderer {
-    private val vao = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.POS_UV)
+    private val vao = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.POS_UV)
     private val shader = Shader("renderer/pos_tex")
     private val shaderColored = Shader("renderer/pos_tex_shady")
 

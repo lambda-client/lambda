@@ -1,6 +1,6 @@
 package com.lambda.graphics.renderer.gui.rect
 
-import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.shader.Shader
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect

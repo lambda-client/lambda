@@ -5,7 +5,6 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.concurrentListener
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.graphics.buffer.BufferUsage
 import com.lambda.graphics.renderer.esp.impl.ESPRenderer
 import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 import com.lambda.module.modules.client.RenderSettings
@@ -102,17 +101,17 @@ class ChunkedESP private constructor(
         }
 
         suspend fun rebuild() {
-            val newRenderer = awaitMainThread {
-                StaticESPRenderer(BufferUsage.STATIC)
-            }
+            awaitMainThread {
+                val newRenderer = StaticESPRenderer()
 
-            iterateChunk { x, y, z ->
-                owner.update(newRenderer, chunk.world, x, y, z)
-            }
+                iterateChunk { x, y, z ->
+                    owner.update(newRenderer, chunk.world, x, y, z)
+                }
 
-            owner.uploadQueue.add {
-                newRenderer.upload()
-                renderer = newRenderer
+                owner.uploadQueue.add {
+                    newRenderer.upload()
+                    renderer = newRenderer
+                }
             }
         }
 

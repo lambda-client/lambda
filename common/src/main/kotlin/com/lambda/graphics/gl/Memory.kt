@@ -1,6 +1,6 @@
 package com.lambda.graphics.gl
 
-import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import org.lwjgl.BufferUtils
 import org.lwjgl.system.MemoryUtil
 import java.awt.Color
@@ -60,4 +60,22 @@ object Memory {
     }
 
     val Buffer.capacity get() = capacity()
+
+    /**
+     * Returns memory alignment for each CPU architecture
+     */
+    fun alignment(): Int {
+        return when (System.getProperty("os.arch")?.lowercase()) {
+            "x86", "x86_64" -> 4  // 32-bit or 64-bit x86
+            "arm", "armv7l", "aarch64" -> 4  // ARM architectures
+            else -> 8  // Default to 8 bytes alignment for other architectures
+        }
+    }
+
+    /**
+     * Returns how many bytes will be added to reach memory alignment
+     */
+    fun padding(size: Int): Int = size % alignment() / 8
 }
+
+fun ByteBuffer.putTo(dst: ByteBuffer) { dst.put(this) }

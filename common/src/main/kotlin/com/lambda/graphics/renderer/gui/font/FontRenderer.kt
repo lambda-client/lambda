@@ -1,8 +1,8 @@
 package com.lambda.graphics.renderer.gui.font
 
-import com.lambda.graphics.buffer.vao.VAO
-import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
-import com.lambda.graphics.buffer.vao.vertex.VertexMode
+import com.lambda.graphics.buffer.VertexPipeline
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.renderer.gui.font.glyph.GlyphInfo
 import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.LambdaMoji
@@ -16,7 +16,7 @@ class FontRenderer(
     private val font: LambdaFont,
     private val emojis: LambdaEmoji
 ) {
-    private val vao = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.FONT)
+    private val vao = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.FONT)
 
     var scaleMultiplier = 1.0
 

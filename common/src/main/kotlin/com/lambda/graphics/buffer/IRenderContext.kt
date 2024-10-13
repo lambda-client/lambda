@@ -1,4 +1,4 @@
-package com.lambda.graphics.buffer.vao
+package com.lambda.graphics.buffer
 
 import java.awt.Color
 

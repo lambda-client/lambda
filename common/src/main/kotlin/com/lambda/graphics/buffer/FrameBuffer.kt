@@ -2,9 +2,8 @@ package com.lambda.graphics.buffer
 
 import com.lambda.Lambda.mc
 import com.lambda.graphics.RenderMain
-import com.lambda.graphics.buffer.vao.VAO
-import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
-import com.lambda.graphics.buffer.vao.vertex.VertexMode
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.gl.GlStateUtils.withBlendFunc
 import com.lambda.graphics.shader.Shader
 import com.lambda.graphics.texture.TextureUtils.bindTexture
@@ -122,7 +121,7 @@ class FrameBuffer(private val depth: Boolean = false) {
     }
 
     companion object {
-        private val vao = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.POS_UV)
+        private val vao = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.POS_UV)
         private var lastFrameBuffer: Int? = null
     }
 }
