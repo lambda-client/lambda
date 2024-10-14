@@ -114,8 +114,9 @@ interface IBuffer {
     fun grow(size: Long) {
         bufferIds.forEach { bufferId ->
             // Orphan the buffer and allocate a new one
-            glBindBuffer(target, bufferId)
+            bind(bufferId)
             glBufferData(target, size, usage)
+            bind(0)
         }
     }
 
@@ -138,8 +139,8 @@ interface IBuffer {
         ) return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
         if (
-            glGetIntegeri(target, bindingCheckMappings.getValue(target)) == GL_FALSE
-        ) return IllegalArgumentException("Target buffer is not bound")
+            glGetIntegeri(bindingCheckMappings.getValue(target), index) == GL_FALSE
+        ) return IllegalArgumentException("Target is zero bound")
 
         if(
             offset < 0 ||
