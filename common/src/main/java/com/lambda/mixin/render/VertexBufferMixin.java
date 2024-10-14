@@ -1,6 +1,6 @@
 package com.lambda.mixin.render;
 
-import com.lambda.graphics.gl.VaoUtils;
+import com.lambda.graphics.buffer.vertex.ElementBuffer;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gl.VertexBuffer;
 import net.minecraft.client.render.BufferBuilder;
@@ -20,6 +20,6 @@ public class VertexBufferMixin {
     @Inject(method = "uploadIndexBuffer", at = @At("RETURN"))
     private void onConfigureIndexBuffer(BufferBuilder.DrawParameters parameters, ByteBuffer vertexBuffer, CallbackInfoReturnable<RenderSystem.ShapeIndexBuffer> cir) {
         RenderSystem.ShapeIndexBuffer value = cir.getReturnValue();
-        VaoUtils.lastIbo = value == null ? this.indexBufferId : value.id;
+        ElementBuffer.lastIbo = value == null ? this.indexBufferId : value.id;
     }
 }

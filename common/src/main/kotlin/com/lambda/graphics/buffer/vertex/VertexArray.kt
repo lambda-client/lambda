@@ -11,7 +11,7 @@ class VertexArray : IBuffer {
     override val target: Int = -1
     override val access: Int = -1
     override var index = 0
-    override val bufferIds = IntArray(buffers).also { glGenVertexArrays(it) }
+    override val bufferIds = intArrayOf(glGenVertexArrays())
 
     override fun map(
         offset: Long,

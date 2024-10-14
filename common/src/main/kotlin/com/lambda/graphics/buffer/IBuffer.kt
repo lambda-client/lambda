@@ -1,5 +1,7 @@
 package com.lambda.graphics.buffer
 
+import com.lambda.graphics.gl.bindingCheckMappings
+import com.sun.tools.javac.main.Option.G
 import org.lwjgl.opengl.GL30C.*
 import java.nio.ByteBuffer
 
@@ -131,8 +133,13 @@ interface IBuffer {
         block:  (ByteBuffer) -> Unit
     ): Throwable? {
         if(
-            target <= 0
+            target < 34962               ||
+            bindingCheckMappings[target] == null
         ) return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
+
+        if (
+            glGetIntegeri(target, bindingCheckMappings.getValue(target)) == GL_FALSE
+        ) return IllegalArgumentException("Target buffer is not bound")
 
         if(
             offset < 0 ||
@@ -144,8 +151,8 @@ interface IBuffer {
         ) return IllegalArgumentException("Out of bound mapping: $offset + $size > ${glGetBufferParameteri(target, GL_BUFFER_SIZE)}")
 
         if(
-            glGetBufferParameteri(target, GL_BUFFER_SIZE) == GL_TRUE
-        ) return IllegalStateException("Buffer is already mapped, make sure to follow the documentation")
+            glGetBufferParameteri(target, GL_BUFFER_MAPPED) == GL_TRUE
+        ) return IllegalStateException("Buffer is already mapped, something wrong happened")
 
         if(
             access and GL_MAP_WRITE_BIT == 0 &&
