@@ -12,7 +12,7 @@ import com.lambda.util.math.Vec2d
 import org.lwjgl.glfw.GLFW.glfwGetTime
 
 object TextureRenderer {
-    private val vao = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.POS_UV)
+    private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.POS_UV)
     private val shader = Shader("renderer/pos_tex")
     private val shaderColored = Shader("renderer/pos_tex_shady")
 
@@ -39,7 +39,7 @@ object TextureRenderer {
         val pos1 = rect.leftTop
         val pos2 = rect.rightBottom
 
-        vao.use {
+        pipeline.use {
             grow(4)
 
             putQuad(
@@ -50,8 +50,8 @@ object TextureRenderer {
             )
         }
 
-        vao.upload()
-        vao.render()
-        vao.clear()
+        pipeline.upload()
+        pipeline.render()
+        pipeline.clear()
     }
 }

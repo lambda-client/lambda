@@ -16,7 +16,7 @@ class FontRenderer(
     private val font: LambdaFont,
     private val emojis: LambdaEmoji
 ) {
-    private val vao = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.FONT)
+    private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.FONT)
 
     var scaleMultiplier = 1.0
 
@@ -29,7 +29,7 @@ class FontRenderer(
         color: Color = Color.WHITE,
         scale: Double = 1.0,
         shadow: Boolean = true,
-    ) = vao.use {
+    ) = pipeline.use {
         iterateText(text, scale, shadow, color) { char, pos1, pos2, color ->
             grow(4)
             putQuad(
@@ -146,9 +146,9 @@ class FontRenderer(
         font.glyphs.bind()
         emojis.glyphs.bind()
 
-        vao.upload()
-        vao.render()
-        vao.clear()
+        pipeline.upload()
+        pipeline.render()
+        pipeline.clear()
     }
 
     companion object {

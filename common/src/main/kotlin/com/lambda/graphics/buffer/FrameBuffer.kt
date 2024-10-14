@@ -49,7 +49,7 @@ class FrameBuffer(private val depth: Boolean = false) {
         shader.use()
         shaderBlock(shader)
 
-        vao.use {
+        pipeline.use {
             grow(4)
 
             val uv1 = pos1 / RenderMain.screenSize
@@ -64,9 +64,9 @@ class FrameBuffer(private val depth: Boolean = false) {
         }
 
         withBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA) {
-            vao.upload()
-            vao.render()
-            vao.clear()
+            pipeline.upload()
+            pipeline.render()
+            pipeline.clear()
         }
 
         return this
@@ -121,7 +121,7 @@ class FrameBuffer(private val depth: Boolean = false) {
     }
 
     companion object {
-        private val vao = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.POS_UV)
+        private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.POS_UV)
         private var lastFrameBuffer: Int? = null
     }
 }

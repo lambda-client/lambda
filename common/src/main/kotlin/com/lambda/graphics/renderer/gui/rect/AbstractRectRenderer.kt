@@ -13,7 +13,7 @@ abstract class AbstractRectRenderer(
     attribGroup: VertexAttrib.Group,
     val shader: Shader
 ) {
-    protected val vao = VertexPipeline(VertexMode.TRIANGLES, attribGroup)
+    protected val pipeline = VertexPipeline(VertexMode.TRIANGLES, attribGroup)
 
     fun render() {
         shader.use()
@@ -23,8 +23,8 @@ abstract class AbstractRectRenderer(
 
         shader["u_Size"] = RenderMain.screenSize / Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
 
-        vao.upload()
-        vao.render()
-        vao.clear()
+        pipeline.upload()
+        pipeline.render()
+        pipeline.clear()
     }
 }

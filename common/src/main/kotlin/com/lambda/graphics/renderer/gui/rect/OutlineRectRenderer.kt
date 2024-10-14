@@ -36,7 +36,7 @@ class OutlineRectRenderer : AbstractRectRenderer(
         rightBottom: Color = Color.WHITE,
         leftBottom: Color = Color.WHITE,
         shade: Boolean = false,
-    ) = vao.use {
+    ) = pipeline.use {
         if (glowRadius < 1) return@use
 
         grow(verticesCount * 3)

@@ -25,7 +25,7 @@ class FilledRectRenderer : AbstractRectRenderer(
         rightBottom: Color = Color.WHITE,
         leftBottom: Color = Color.WHITE,
         shade: Boolean = false,
-    ) = vao.use {
+    ) = pipeline.use {
         val pos1 = rect.leftTop
         val pos2 = rect.rightBottom
 
