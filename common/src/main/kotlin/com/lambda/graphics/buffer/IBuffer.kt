@@ -1,7 +1,8 @@
 package com.lambda.graphics.buffer
 
-import com.lambda.graphics.gl.bindingCheckMappings
-import com.sun.tools.javac.main.Option.G
+import com.lambda.graphics.gl.bufferValid
+import com.lambda.graphics.gl.bufferBound
+import com.lambda.graphics.gl.bufferUsageValid
 import org.lwjgl.opengl.GL30C.*
 import java.nio.ByteBuffer
 
@@ -106,18 +107,54 @@ interface IBuffer {
     fun swap() { index = (index + 1) % buffers }
 
     /**
+     * Update the current buffer without re-allocating
+     * Alternative to [map]
+     */
+    fun update(
+        data:   ByteBuffer,
+        offset: Long,
+    ): Throwable? {
+        if(!bufferValid(target))
+            return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
+
+        if (!bufferBound(target))
+            return IllegalArgumentException("Target is zero bound for glBufferSubData")
+
+        glBufferSubData(target, offset, data)
+
+        return null
+    }
+
+    /**
      * Grows the backing buffers
      * This function should not be called frequently
      *
      * @param size The size of the new buffer
      */
-    fun grow(size: Long) {
+    fun grow(size: Long): Throwable? {
+        if(
+            size    < 0
+        ) return IllegalArgumentException("Invalid size parameter: $size")
+
+        // FixMe: If access contains any of GL_MAP_PERSISTENT_BIT or GL_MAP_COHERENT_BIT and the buffer was not initialized using glBufferStorage, glMapBufferRange will fail
+        if(!bufferValid(target))
+            return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
+
+        if (!bufferUsageValid(usage))
+            return IllegalArgumentException("Buffer usage is invalid")
+
         bufferIds.forEach { bufferId ->
             // Orphan the buffer and allocate a new one
             bind(bufferId)
-            glBufferData(target, size, usage)
-            bind(0)
+
+            // Only resize if the new size is bigger than the bound buffer capacity
+            if (size > glGetBufferParameteri(target, GL_BUFFER_SIZE))
+                glBufferData(target, size, usage)
+
+            bind(0) // Don't forget to unbind to avoid accidental buffer modification
         }
+
+        return null
     }
 
     /**
@@ -134,25 +171,23 @@ interface IBuffer {
         block:  (ByteBuffer) -> Unit
     ): Throwable? {
         if(
-            target < 34962               ||
-            bindingCheckMappings[target] == null
-        ) return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
-
-        if (
-            glGetIntegeri(bindingCheckMappings.getValue(target), index) == GL_FALSE
-        ) return IllegalArgumentException("Target is zero bound")
-
-        if(
             offset < 0 ||
             size   < 0
         ) return IllegalArgumentException("Invalid offset or size parameter offset: $offset size: $size")
+
+        if(!bufferValid(target))
+            return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
+
+        if (!bufferBound(target))
+            return IllegalArgumentException("Target is zero bound for glMapBufferRange")
 
         if(
             offset + size > glGetBufferParameteri(target, GL_BUFFER_SIZE)
         ) return IllegalArgumentException("Out of bound mapping: $offset + $size > ${glGetBufferParameteri(target, GL_BUFFER_SIZE)}")
 
         if(
-            glGetBufferParameteri(target, GL_BUFFER_MAPPED) == GL_TRUE
+            glGetBufferParameteri(target, GL_BUFFER_MAPPED)
+            == GL_TRUE
         ) return IllegalStateException("Buffer is already mapped, something wrong happened")
 
         if(
@@ -169,15 +204,15 @@ interface IBuffer {
         ) return IllegalArgumentException("GL_MAP_READ_BIT is set and any of GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT or GL_MAP_UNSYNCHRONIZED_BIT is set.")
 
         // Map the buffer into the client's memory
-        val sharedRegion = glMapBufferRange(target, offset, size.toLong(), access)
-            ?: return IllegalStateException("Failed to map buffer, possibly due to insufficient virtual memory.")
+        val sharedRegion = glMapBufferRange(target, offset, size, access)
+            ?: return IllegalStateException("Failed to map buffer")
 
         // Update data on the shared buffer
         block(sharedRegion)
 
         // Release the buffer
         if (!glUnmapBuffer(target))
-            return IllegalStateException("An unknown error occurred due to GPU memory availability.")
+            return IllegalStateException("An unknown error occurred due to GPU memory availability of buffer corruption")
 
         return null
     }

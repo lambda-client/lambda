@@ -4,7 +4,7 @@ import org.lwjgl.opengl.GL44.*
 
 /**
  * Map of valid buffer binding target to their respective binding check parameter
- * using [glGetIntegeri]
+ * using [bufferBound]
  */
 val bindingCheckMappings = mapOf(
     GL_ARRAY_BUFFER to GL_ARRAY_BUFFER_BINDING,
@@ -22,3 +22,20 @@ val bindingCheckMappings = mapOf(
     GL_TRANSFORM_FEEDBACK_BUFFER to GL_TRANSFORM_FEEDBACK_BUFFER_BINDING,
     GL_UNIFORM_BUFFER to GL_UNIFORM_BUFFER_BINDING,
 )
+
+/**
+ * Returns whether the buffer target is valid
+ */
+fun bufferValid(target: Int): Boolean = target in bindingCheckMappings
+
+/**
+ * Returns whether the provided buffer target is bound
+ */
+fun bufferBound(target: Int): Boolean =
+    IntArray(1)
+        .apply { glGetIntegerv(bindingCheckMappings.getValue(target), this) }[0] != GL_FALSE
+
+/**
+ * Returns whether the provided buffer usage is valid
+ */
+fun bufferUsageValid(usage: Int) = usage >= GL_STREAM_DRAW && usage <= GL_DYNAMIC_DRAW

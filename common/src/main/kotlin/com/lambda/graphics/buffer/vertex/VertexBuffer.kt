@@ -15,22 +15,22 @@ class VertexBuffer(
     override val buffers: Int = 2
     override val usage: Int = GL_DYNAMIC_DRAW
     override val target: Int = GL_ARRAY_BUFFER
-    override val access: Int = GL_MAP_WRITE_BIT or GL_MAP_COHERENT_BIT // TODO: Remove the implicit synchronization ?
+    override val access: Int = GL_MAP_WRITE_BIT
     override var index = 0
     override val bufferIds = IntArray(buffers).apply { glGenBuffers(this) }
 
     override fun upload(data: ByteBuffer, offset: Long): Throwable? {
+        // Bind the buffer
+        bind()
+
+        // Update the buffer data
+        val error = map(offset, data.limit().toLong(), data::putTo)
+
         // We need to swap the index because our memory mapping requires
         // synchronization between the GPU and CPU
         // The GL_MAP_COHERENT bit tells OpenGL to synchronize the transfer
         // to the buffer
         swap()
-
-        // Bind the buffer
-        bind()
-
-        // Map the buffer into the client's memory
-        val error = map(offset, data.limit().toLong(), data::putTo)
 
         // Unbind
         bind(0)

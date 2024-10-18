@@ -105,9 +105,6 @@ class PixelBuffer(
 
         // Fill the buffers with null data to allocate the memory spaces
         grow(size)
-
-        // Unbind the buffer
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
     }
 
     companion object {
