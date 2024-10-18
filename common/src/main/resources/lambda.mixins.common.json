@@ -38,6 +38,7 @@
     "render.RenderSystemMixin",
     "render.RenderTickCounterMixin",
     "render.ScreenHandlerMixin",
+    "render.SplashOverlayMixin",
     "render.VertexBufferMixin",
     "render.WorldRendererMixin",
     "world.BlockCollisionSpliteratorMixin",
