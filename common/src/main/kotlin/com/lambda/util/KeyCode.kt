@@ -141,6 +141,17 @@ enum class KeyCode(val keyCode: Int) {
         fun fromKeyCode(keyCode: Int) = keyCodeMap[keyCode] ?: UNBOUND
         fun fromKeyName(name: String) = nameMap[name.lowercase()] ?: UNBOUND
 
+        /**
+         * Maps a US virtual keyboard input to a [KeyCode].
+         *
+         * For key codes in the keypad range, the [keyCode] is directly mapped.
+         * If the key corresponds to a printable character or letter, it is mapped
+         * to its corresponding [KeyCode] based on the US layout.
+         *
+         * @param keyCode The key code to map.
+         * @param scanCode The scan code of the key.
+         * @return The corresponding [KeyCode].
+         */
         fun virtualMapUS(keyCode: Int, scanCode: Int): KeyCode {
             if (keyCode in GLFW.GLFW_KEY_KP_0..GLFW.GLFW_KEY_KP_EQUAL) return fromKeyCode(keyCode)
 
