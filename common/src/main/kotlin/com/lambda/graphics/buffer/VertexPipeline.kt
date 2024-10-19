@@ -10,9 +10,10 @@ import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Memory
 import com.lambda.graphics.gl.Memory.address
 import com.lambda.graphics.gl.Memory.byteBuffer
-import com.lambda.graphics.gl.Memory.capacity
-import com.lambda.graphics.gl.Memory.copy
 import com.lambda.graphics.gl.Memory.int
+import com.lambda.graphics.gl.Memory.vector2f
+import com.lambda.graphics.gl.Memory.vector3f
+import com.lambda.graphics.gl.kibibyte
 import org.joml.Vector4d
 import org.lwjgl.opengl.GL20C.*
 import java.awt.Color
@@ -28,11 +29,11 @@ class VertexPipeline(
     private val vbo = VertexBuffer(mode, attributes)
     private val ebo = ElementBuffer(mode)
 
-    private var vertices = byteBuffer(size * 256 * 4)
+    private var vertices = byteBuffer(size * 1.kibibyte)
     private var verticesPointer = address(vertices)
     private var verticesPosition = verticesPointer
 
-    private var indices = byteBuffer(mode.indicesCount * 512 * 4)
+    private var indices = byteBuffer(mode.indicesCount * 2.kibibyte)
     private var indicesPointer = address(indices)
     private var indicesCount = 0
     private var uploadedIndices = 0
@@ -40,12 +41,12 @@ class VertexPipeline(
     private var vertexIndex = 0
 
     override fun vec3(x: Double, y: Double, z: Double): VertexPipeline {
-        verticesPosition += Memory.vec3(verticesPosition, x, y, z)
+        verticesPosition += vector3f(verticesPosition, x, y, z)
         return this
     }
 
     override fun vec2(x: Double, y: Double): VertexPipeline {
-        verticesPosition += Memory.vec2(verticesPosition, x, y)
+        verticesPosition += vector2f(verticesPosition, x, y)
         return this
     }
 
@@ -89,29 +90,29 @@ class VertexPipeline(
 
     override fun putTriangle(vertex1: Int, vertex2: Int, vertex3: Int) {
         growIndices(3)
-        val p = indicesPointer + indicesCount * 4L
+        val position = indicesPointer + indicesCount * 4L
 
-        int(p + 0, vertex1)
-        int(p + 4, vertex2)
-        int(p + 8, vertex3)
+        int(position + 0, vertex1)
+        int(position + 4, vertex2)
+        int(position + 8, vertex3)
         indicesCount += 3
     }
 
     override fun putQuad(vertex1: Int, vertex2: Int, vertex3: Int, vertex4: Int) {
         growIndices(6)
-        val p = indicesPointer + indicesCount * 4L
+        val position = indicesPointer + indicesCount * 4L
 
-        int(p + 0, vertex1)
-        int(p + 4, vertex2)
-        int(p + 8, vertex3)
-        int(p + 12, vertex3)
-        int(p + 16, vertex4)
-        int(p + 20, vertex1)
+        int(position + 0, vertex1)
+        int(position + 4, vertex2)
+        int(position + 8, vertex3)
+        int(position + 12, vertex3)
+        int(position + 16, vertex4)
+        int(position + 20, vertex1)
         indicesCount += 6
     }
 
     override fun grow(amount: Int) {
-        val cap = vertices.capacity
+        val cap = vertices.capacity()
         if ((vertexIndex + amount + 1) * size < cap) return
 
         val offset = verticesPosition - verticesPointer
@@ -121,7 +122,7 @@ class VertexPipeline(
 
         val from = address(vertices)
         val to = address(newVertices)
-        copy(from, to, offset)
+        Memory.copy(from, to, offset)
 
         vbo.grow(newSize.toLong())
 
@@ -131,7 +132,7 @@ class VertexPipeline(
     }
 
     private fun growIndices(amount: Int) {
-        val cap = indices.capacity
+        val cap = indices.capacity()
         if ((indicesCount + amount) * 4 < cap) return
 
         var newSize = cap * 2
@@ -140,7 +141,7 @@ class VertexPipeline(
 
         val from = address(indices)
         val to = address(newIndices)
-        copy(from, to, indicesCount * 4L)
+        Memory.copy(from, to, indicesCount * 4L)
 
         ebo.grow(newSize.toLong())
 

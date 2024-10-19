@@ -1,7 +1,7 @@
 package com.lambda.graphics.buffer.pixel
 
 import com.lambda.graphics.buffer.IBuffer
-import com.lambda.graphics.gl.Memory.padding
+import com.lambda.graphics.gl.padding
 import com.lambda.graphics.gl.putTo
 import com.lambda.graphics.texture.Texture
 import org.lwjgl.opengl.GL45C.*

@@ -2,6 +2,7 @@ package com.lambda.graphics.buffer.vertex
 
 import com.lambda.graphics.buffer.IBuffer
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
+import com.lambda.graphics.gl.kibibyte
 import com.lambda.graphics.gl.putTo
 import org.lwjgl.opengl.GL30C.*
 import java.nio.ByteBuffer
@@ -39,7 +40,7 @@ class ElementBuffer(mode: VertexMode) : IBuffer {
 
     init {
         // Fill the buffer with null data
-        grow(mode.indicesCount * 512 * 4L)
+        grow(mode.indicesCount * 2L.kibibyte)
     }
 
     companion object {
