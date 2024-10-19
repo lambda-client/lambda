@@ -14,6 +14,7 @@ import com.lambda.graphics.gl.Memory.int
 import com.lambda.graphics.gl.Memory.vector2f
 import com.lambda.graphics.gl.Memory.vector3f
 import com.lambda.graphics.gl.kibibyte
+import com.lambda.graphics.gl.putTo
 import org.joml.Vector4d
 import org.lwjgl.opengl.GL20C.*
 import java.awt.Color
@@ -112,17 +113,14 @@ class VertexPipeline(
     }
 
     override fun grow(amount: Int) {
-        val cap = vertices.capacity()
-        if ((vertexIndex + amount + 1) * size < cap) return
+        val requiredCapacity = (vertexIndex + amount + 1) * size
+        if (requiredCapacity < vertices.capacity()) return
 
         val offset = verticesPosition - verticesPointer
-        var newSize = cap * 2
-        if (newSize % size != 0) newSize += newSize % size
-        val newVertices = byteBuffer(newSize)
+        val newSize = vertices.capacity().let { it * 2 + it % size }
 
-        val from = address(vertices)
-        val to = address(newVertices)
-        Memory.copy(from, to, offset)
+        val newVertices = byteBuffer(newSize)
+        Memory.copy(address(vertices), address(newVertices), offset)
 
         vbo.grow(newSize.toLong())
 
@@ -132,16 +130,13 @@ class VertexPipeline(
     }
 
     private fun growIndices(amount: Int) {
-        val cap = indices.capacity()
-        if ((indicesCount + amount) * 4 < cap) return
+        val requiredCapacity = (indicesCount + amount) * 4
+        if (requiredCapacity < indices.capacity()) return
 
-        var newSize = cap * 2
-        if (newSize % mode.indicesCount != 0) newSize += newSize % (mode.indicesCount * 4)
+        val newSize = indices.capacity().let { it * 2 + it % (mode.indicesCount * 4) }
         val newIndices = byteBuffer(newSize)
 
-        val from = address(indices)
-        val to = address(newIndices)
-        Memory.copy(from, to, indicesCount * 4L)
+        Memory.copy(address(indices), address(newIndices), indicesCount * 4L)
 
         ebo.grow(newSize.toLong())
 
