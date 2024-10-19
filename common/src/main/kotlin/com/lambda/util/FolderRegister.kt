@@ -1,18 +1,9 @@
 package com.lambda.util
 
 import com.lambda.Lambda.mc
-import com.lambda.util.FolderRegister.config
-import com.lambda.util.FolderRegister.lambda
-import com.lambda.util.FolderRegister.minecraft
-import com.lambda.util.FolderRegister.mods
-import com.lambda.util.FolderRegister.packetLogs
-import com.lambda.util.FolderRegister.replay
 import com.lambda.util.StringUtils.sanitizeForFilename
-import org.apache.commons.codec.digest.DigestUtils
 import java.io.File
-import java.io.InputStream
 import java.net.InetSocketAddress
-import java.security.MessageDigest
 
 /**
  * The [FolderRegister] object is responsible for managing the directory structure of the application.
@@ -34,12 +25,36 @@ object FolderRegister {
     val cache: File = File(lambda, "cache")
     val structure: File = File(lambda, "structure")
 
-    fun File.createIfNotExists() {
-        createFileIfNotExists(this.name, this.parentFile)
-    }
+    /**
+     * Ensures the current file exists by creating it if it does not.
+     *
+     * If the file already exists, it will not be recreated. The necessary
+     * parent directories will be created if they do not exist.
+     */
+    fun File.createIfNotExists(): File = also { parentFile.mkdirs(); createNewFile() }
 
-    fun File.listRecursive(predicate: (File) -> Boolean = { true }) = walk().filter(predicate)
+    /**
+     * Returns a sequence of all the files in a tree that matches the [predicate]
+     */
+    fun File.listRecursive(predicate: (File) -> Boolean) = walk().filter(predicate)
 
+    /**
+     * Retrieves or creates a directory based on the current network connection and world dimension.
+     *
+     * The directory is determined by the host name of the current network connection (or "singleplayer" if offline)
+     * and the dimension key of the current world. These values are sanitized for use as filenames and combined
+     * to form a path under the current file. If the directory does not exist, it will be created.
+     *
+     * @receiver The base directory where the location-bound directory will be created.
+     * @return A `File` object representing the location-bound directory.
+     *
+     * The path is structured as:
+     * - `[base directory]/[host name]/[dimension key]`
+     *
+     * Example:
+     * If playing on a server with hostname "example.com" and in the "overworld" dimension, the path would be:
+     * - `[base directory]/example.com/overworld`
+     */
     fun File.locationBoundDirectory(): File {
         val hostName = (mc.networkHandler?.connection?.address as? InetSocketAddress)?.hostName ?: "singleplayer"
         val path = resolve(
@@ -49,73 +64,5 @@ object FolderRegister {
         )
         path.createIfNotExists()
         return path
-    }
-
-    /**
-     * Returns a file with the given name in the specified directory, creating it if it does not exist.
-     * If the directory is not specified, it will try to parse it from the name.
-     * Otherwise, it will default to the Lambda directory.
-     *
-     * @param name The name of the file.
-     * @param directory The directory in which the file is located. Default is the Lambda directory.
-     * @param hash Whether to hash the name of the file.
-     * @return A pair containing the file and a boolean indicating whether the file was created.
-     */
-    fun createFileIfNotExists(name: String, directory: File? = null, hash: Boolean = false): Pair<File, Boolean> {
-        var parsedDir: File = directory ?: lambda
-
-        if (directory == null) {
-            parsedDir = name.substringAfterLast('/').substringBeforeLast('.')
-                .let { if (it.isEmpty()) lambda else File(it) }
-        }
-
-        val compiledName =
-            if (hash) DigestUtils.sha256Hex(name)
-            else name
-
-        val file = File(parsedDir, compiledName)
-        val created = !file.exists()
-
-        if (created) {
-            file.parentFile.mkdirs()
-            file.createNewFile()
-        }
-
-        return file to created
-    }
-
-
-    /**
-     * Returns a file with the given name in the specified directory, creating it if it does not exist.
-     * If the directory is not specified, it will try to parse it from the name.
-     * Otherwise, it will default to the Lambda directory.
-     *
-     * @param name The name of the file.
-     * @param directory The directory in which the file is located. Default is the Lambda directory.
-     * @param compute A lambda function to compute the file contents if it was created.
-     */
-    @JvmName("getFileOrComputeByteArray")
-    inline fun getFileOrCompute(name: String, directory: File? = null, compute: () -> ByteArray): File {
-        val (file, wasCreated) = createFileIfNotExists(name, directory)
-        if (wasCreated) file.outputStream().use { it.write(compute()) }
-
-        return file
-    }
-
-    /**
-     * Returns a file with the given name in the specified directory, creating it if it does not exist.
-     * If the directory is not specified, it will try to parse it from the name.
-     * Otherwise, it will default to the Lambda directory.
-     *
-     * @param name The name of the file.
-     * @param directory The directory in which the file is located. Default is the Lambda directory.
-     * @param compute A lambda function to compute the file contents if it was created.
-     */
-    @JvmName("getFileOrComputeInputStream")
-    inline fun getFileOrCompute(name: String, directory: File? = null, compute: () -> InputStream): File {
-        val (file, wasCreated) = createFileIfNotExists(name, directory)
-        if (wasCreated) file.outputStream().use { compute().copyTo(it) }
-
-        return file
     }
 }

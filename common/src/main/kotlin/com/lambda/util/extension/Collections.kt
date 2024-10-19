@@ -1,4 +1,4 @@
-package com.lambda.util.collections
+package com.lambda.util.extension
 
 import kotlin.reflect.KClass
 
