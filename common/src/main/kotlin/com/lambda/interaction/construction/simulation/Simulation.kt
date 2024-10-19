@@ -23,8 +23,8 @@ data class Simulation(val blueprint: Blueprint) {
     private val cache: MutableMap<FastVector, Set<BuildResult>> = mutableMapOf()
     private fun FastVector.toView(): Vec3d = toVec3d().add(0.5, 0.62, 0.5)
 
-    fun simulate(pos: FastVector): Set<BuildResult> {
-        return cache.computeIfAbsent(pos) {
+    fun simulate(pos: FastVector) =
+        cache.computeIfAbsent(pos) {
             val view = pos.toView()
             runSafe {
                 if (blueprint.isOutOfBounds(view) && blueprint.getClosestPointTo(view).distanceTo(view) > 10.0) return@computeIfAbsent emptySet()
@@ -34,7 +34,6 @@ data class Simulation(val blueprint: Blueprint) {
             }
             blueprint.simulate(view, reach = TaskFlow.interact.reach - 1)
         }
-    }
 
     private fun SafeContext.playerFitsIn(pos: Vec3d): Boolean {
         val pBox = player.boundingBox

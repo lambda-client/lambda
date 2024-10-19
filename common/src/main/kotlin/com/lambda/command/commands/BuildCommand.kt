@@ -1,10 +1,12 @@
 package com.lambda.command.commands
 
 import com.lambda.brigadier.CommandResult
+import com.lambda.brigadier.argument.boolean
 import com.lambda.brigadier.argument.identifier
 import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
+import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.interaction.construction.Blueprint.Companion.toStructure
@@ -31,23 +33,25 @@ object BuildCommand : LambdaCommand(
 
                     builder.buildFuture()
                 }
+                optional(boolean("pathing")) { pathing ->
+                    executeWithResult {
+                        val id = structure().value()
+                        val path = if (pathing != null) pathing().value() else false
+                        runSafe<Unit> {
+                            StructureRegistry.loadStructure(id)?.let { template ->
+                                info("Building structure ${id.path} with dimensions ${template.size.toShortString()} by ${template.author}")
+                                template.toStructure()
+                                    .move(player.blockPos)
+                                    .toBlueprint()
+                                    .build(pathing = path)
+                                    .start(null)
 
-                executeWithResult {
-                    val id = structure().value()
-                    runSafe<Unit> {
-                        StructureRegistry.loadStructure(id)?.let { template ->
-                            info("Building structure ${id.path} with size ${template.size.toShortString()} by ${template.author}")
-                            template.toStructure()
-                                .move(player.blockPos)
-                                .toBlueprint()
-                                .build()
-                                .start(null)
-
-                            return@executeWithResult CommandResult.success()
+                                return@executeWithResult CommandResult.success()
+                            }
                         }
-                    }
 
-                    CommandResult.failure("Structure ${id.path} not found")
+                        CommandResult.failure("Structure ${id.path} not found")
+                    }
                 }
             }
         }

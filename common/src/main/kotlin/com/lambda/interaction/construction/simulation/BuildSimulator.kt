@@ -12,6 +12,8 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerManager.findBestAvailableTool
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.visibilty.VisibilityChecker
+import com.lambda.interaction.visibilty.VisibilityChecker.ScanMode.Companion.scanMode
 import com.lambda.interaction.visibilty.VisibilityChecker.optimum
 import com.lambda.interaction.visibilty.VisibilityChecker.scanVisibleSurfaces
 import com.lambda.module.modules.client.TaskFlow
@@ -31,6 +33,7 @@ import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemUsageContext
 import net.minecraft.registry.RegistryKeys
+import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.HitResult
@@ -130,9 +133,12 @@ object BuildSimulator {
             val reachSq = reach.pow(2)
 
             boxes.forEach { box ->
-                val res = if (TaskFlow.interact.useRayCast) interact.resolution else 2
-                // ToDo: If state has HALF property we need to scan the correct half of the block surface
-                scanVisibleSurfaces(eye, box, setOf(hitSide), res) { side, vec ->
+                val res = if (TaskFlow.interact.useRayCast) interact.resolution else 4
+                val half = (target as? TargetState.State)
+                    ?.blockState
+                    ?.getOrEmpty(Properties.SLAB_TYPE)
+                    ?.scanMode ?: VisibilityChecker.ScanMode.BOTH
+                scanVisibleSurfaces(eye, box, setOf(hitSide), res, half) { side, vec ->
                     if (eye distSq vec > reachSq) {
                         misses.add(vec)
                         return@scanVisibleSurfaces

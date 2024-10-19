@@ -13,6 +13,8 @@ import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.extension.component6
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
+import net.minecraft.block.enums.BlockHalf
+import net.minecraft.block.enums.SlabType
 import net.minecraft.entity.Entity
 import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.BlockPos
@@ -96,7 +98,8 @@ object VisibilityChecker {
         eyes: Vec3d,
         box: Box,
         sides: Set<Direction> = emptySet(),
-        resolution: Int = 30,
+        resolution: Int = 5,
+        half: ScanMode = ScanMode.BOTH,
         check: (Direction, Vec3d) -> Unit,
     ) {
         box.getVisibleSurfaces(eyes)
@@ -106,15 +109,39 @@ object VisibilityChecker {
                 val stepX = (maxX - minX) / resolution
                 val stepY = (maxY - minY) / resolution
                 val stepZ = (maxZ - minZ) / resolution
+
+                val centerY = (minY + maxY) / 2
+                val (startY, endY) = if (stepY != 0.0) {
+                    when (half) {
+                        ScanMode.TOP -> centerY + 0.01 to maxY
+                        ScanMode.BOTTOM -> minY to centerY - 0.01
+                        ScanMode.BOTH -> minY to maxY
+                    }
+                } else minY to maxY
                 (0..resolution).forEach { i ->
                     val x = if (stepX != 0.0) minX + stepX * i else minX
-                    (0..resolution).forEach { j ->
-                        val y = if (stepY != 0.0) minY + stepY * j else minY
+                    (0..resolution).forEach inner@ { j ->
+                        val y = if (stepY != 0.0) startY + stepY * j else startY
+                        if (y > endY) return@inner
                         val z = if (stepZ != 0.0) minZ + stepZ * ((if (stepX != 0.0) j else i)) else minZ
                         check(side, Vec3d(x, y, z))
                     }
                 }
             }
+    }
+
+    enum class ScanMode {
+        BOTH, TOP, BOTTOM;
+
+        companion object {
+            val Optional<SlabType>.scanMode: ScanMode
+                get() = when (orElse(null)) {
+                    SlabType.TOP -> TOP
+                    SlabType.BOTTOM -> BOTTOM
+                    SlabType.DOUBLE -> BOTH
+                    else -> BOTH
+                }
+        }
     }
 
     val Set<Vec3d>.optimum: Vec3d?

@@ -11,6 +11,7 @@
     "entity.ClientPlayerEntityMixin",
     "entity.ClientPlayInteractionManagerMixin",
     "entity.EntityMixin",
+    "entity.FireworkRocketEntityMixin",
     "entity.LivingEntityMixin",
     "entity.PlayerEntityMixin",
     "input.KeyBindingMixin",
@@ -43,8 +44,7 @@
     "render.WorldRendererMixin",
     "world.BlockCollisionSpliteratorMixin",
     "world.ClientChunkManagerMixin",
-    "world.ClientWorldMixin",
-    "entity.FireworkRocketEntityMixin"
+    "world.ClientWorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1
