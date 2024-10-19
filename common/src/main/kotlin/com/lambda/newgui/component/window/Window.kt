@@ -24,7 +24,7 @@ open class Window(
     owner: Layout,
     initialTitle: String = "Untitled",
     initialPosition: Vec2d = Vec2d.ZERO,
-    initialSize: Vec2d = Vec2d(115.0, 300.0),
+    initialSize: Vec2d = Vec2d(120.0, 300.0),
     draggable: Boolean = true,
     scrollable: Boolean = true,
     private val minimizing: Minimizing = Minimizing.Relative,
@@ -228,7 +228,8 @@ open class Window(
          *
          * @param draggable Whether to allow user to drag the window
          *
-         * @param scrollable Whether to allow user to scroll the elements
+         * @param scrollable Whether to let user scroll the content
+         * This will also make your elements be vertically ordered
          *
          * @param minimizing The [Minimizing] mode.
          *
@@ -241,7 +242,7 @@ open class Window(
         @UIBuilder
         fun Layout.window(
             position: Vec2d = Vec2d.ZERO,
-            size: Vec2d = Vec2d(115.0, 300.0),
+            size: Vec2d = Vec2d(120.0, 300.0),
             title: String = "Untitled",
             draggable: Boolean = true,
             scrollable: Boolean = true,

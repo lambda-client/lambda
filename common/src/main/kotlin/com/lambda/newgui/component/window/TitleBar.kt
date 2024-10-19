@@ -21,14 +21,10 @@ class TitleBar(
         text = title
         bold = true
 
-        horizontalAlignment = HAlign.CENTER
-        verticalAlignment = VAlign.CENTER
+        val tb = this@TitleBar
 
-        onUpdate {
-            val tb = this@TitleBar
-            positionX = tb.renderPositionX + tb.renderWidth * 0.5 - textWidth * 0.5
-            positionY = tb.renderPositionY + tb.renderHeight * 0.5 - textHeight * 0.5
-        }
+        overrideX { tb.renderPositionX + tb.renderWidth * 0.5 - textWidth * 0.5 }
+        overrideY { tb.renderPositionY + tb.renderHeight * 0.5 - textHeight * 0.5 }
     }
 
     private var dragOffset: Vec2d? = null

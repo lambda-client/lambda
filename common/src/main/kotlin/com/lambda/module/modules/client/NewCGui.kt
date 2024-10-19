@@ -4,8 +4,10 @@ import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
 import com.lambda.newgui.ScreenLayout.Companion.gui
+import com.lambda.newgui.component.core.FilledRect.Companion.rect
 import com.lambda.newgui.impl.clickgui.ModuleLayout.Companion.moduleLayout
 import com.lambda.newgui.impl.clickgui.ModuleWindow.Companion.moduleWindow
+import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.setAlpha
 import java.awt.Color
@@ -22,6 +24,8 @@ object NewCGui : Module(
 
     val roundRadius by setting("Round Radius", 2.0, 0.0..10.0, 0.1)
 
+    val backgroundTint by setting("Background Tint", Color.BLACK.setAlpha(0.4))
+
     val titleBackgroundColor by setting("Title Background Color", Color.WHITE.setAlpha(0.4))
     val backgroundColor by setting("Background Color", Color.WHITE.setAlpha(0.25))
     val backgroundShade by setting("Background Shade", true)
@@ -31,20 +35,29 @@ object NewCGui : Module(
     val outlineColor by setting("Outline Color", Color.WHITE.setAlpha(0.6)) { outline }
     val outlineShade by setting("Outline Shade", true) { outline }
 
+    val moduleEnabledColor by setting("Module Enabled Color", Color.WHITE.setAlpha(0.25))
+    val moduleDisabledColor by setting("Module Disabled Color", Color.WHITE.setAlpha(0.05))
+
     private val SCREEN get() = gui("New Click Gui") {
+        rect {
+            rectangle = Rect(Vec2d.ZERO, this.size)
+            setColor(backgroundTint)
+        }
+
         val tags = ModuleTag.defaults
         val modules = ModuleRegistry.modules
 
-        tags.forEachIndexed { i, tag ->
-            val windowPosition = Vec2d.ONE * 20.0 + Vec2d.RIGHT * ((115.0 * i) + (i + 1) * 4)
+        var x = 20.0
+        val y = x
 
-            moduleWindow(tag, windowPosition) {
+        tags.forEachIndexed { i, tag ->
+            x += moduleWindow(tag, Vec2d(x, y)) {
                 modules.filter {
                     it.defaultTags.firstOrNull() == tag
                 }.forEach { module ->
                     moduleLayout(module)
                 }
-            }
+            }.width + 3
         }
     }
 

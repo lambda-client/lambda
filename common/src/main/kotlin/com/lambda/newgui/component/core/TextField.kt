@@ -32,10 +32,7 @@ class TextField(
                 action(this@TextField)
             }
 
-            width = textWidth
-            height = textHeight
-
-            val renderPos = Vec2d(renderPositionX, renderPositionY + renderHeight * 0.5)
+            val renderPos = Vec2d(renderPositionX, renderPositionY + textHeight * 0.5)
             fr.build(text, renderPos, color, scale, shadow)
         }
     }

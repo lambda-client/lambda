@@ -42,10 +42,9 @@ class ModuleLayout(
         with(titleBar) {
             with(textField) {
                 bold = false
-                horizontalAlignment = HAlign.LEFT
 
-                onUpdate {
-                    positionX = titleBar.renderPositionX + (titleBar.renderHeight - textHeight) * 0.5
+                overrideX {
+                    titleBar.renderPositionX + (titleBar.renderHeight - textHeight) * 0.5
                 }
             }
 
@@ -65,12 +64,12 @@ class ModuleLayout(
         }
 
         titleBarRect.onUpdate {
-            setColor(lerp(enableAnimation, NewCGui.titleBackgroundColor.multAlpha(0.15), NewCGui.titleBackgroundColor))
+            setColor(lerp(enableAnimation, NewCGui.moduleDisabledColor, NewCGui.moduleEnabledColor))
             correctRadius()
         }
 
         contentRect.onUpdate {
-            setColor(lerp(enableAnimation, NewCGui.backgroundColor.multAlpha(0.15), NewCGui.backgroundColor))
+            setColor(lerp(enableAnimation, NewCGui.moduleDisabledColor, NewCGui.moduleEnabledColor))
             correctRadius()
         }
 

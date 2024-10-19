@@ -8,7 +8,7 @@ import kotlin.math.abs
 
 class WindowContent(
     owner: Window,
-    scrollable: Boolean
+    private val scrollable: Boolean
 ) : Layout(owner, false, true) {
     private val animation = animationTicker(false)
 
@@ -48,9 +48,7 @@ class WindowContent(
             if (abs(rubberbandDelta) < 0.05) rubberbandDelta = 0.0
 
             animation.tick()
-        }
 
-        onRender {
             reorderChildren()
         }
 
@@ -61,22 +59,24 @@ class WindowContent(
     }
 
     private fun reorderChildren() {
-        // Skip for closed windows
-        if (renderHeight < 0.1) return
+        if (!scrollable) return
 
-        var offset = renderScrollOffset + NewCGui.padding
+        children.forEachIndexed { i, child ->
+            val prev by lazy { children[i - 1] }
 
-        children.forEach { child ->
-            child.positionY = renderPositionY + offset
-            offset += child.renderHeight + NewCGui.listStep
+            child.overrideY {
+                if (i == 0) {
+                    renderPositionY + renderScrollOffset + NewCGui.padding
+                } else {
+                    prev.renderPositionY + prev.renderHeight + NewCGui.listStep
+                }
+            }
         }
     }
 
     fun getContentHeight(): Double {
-        val c = children
-
-        val components = c.sumOf(Layout::renderHeight)
-        val step = NewCGui.listStep * (c.size - 1).coerceAtLeast(0)
+        val components = children.sumOf(Layout::renderHeight)
+        val step = NewCGui.listStep * (children.size - 1).coerceAtLeast(0)
         val padding = NewCGui.padding * 2
 
         return components + step + padding
@@ -87,6 +87,7 @@ class WindowContent(
          * Creates an empty [WindowContent] component
          *
          * @param scrollable Whether to let user scroll this layout
+         * This will also make your elements be vertically ordered
          */
         @UIBuilder
         fun Window.windowContent(scrollable: Boolean) =

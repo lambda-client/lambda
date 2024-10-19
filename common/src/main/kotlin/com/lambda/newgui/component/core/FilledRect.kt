@@ -1,12 +1,13 @@
 package com.lambda.newgui.component.core
 
 import com.lambda.newgui.component.layout.Layout
+import com.lambda.util.math.Rect
 import java.awt.Color
 
 class FilledRect(
     owner: Layout
 ) : Layout(owner, true, true) {
-    var rectangle = owner.rect
+    var rectangle = Rect.ZERO
 
     var leftTopRadius = 0.0
     var rightTopRadius = 0.0
