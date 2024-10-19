@@ -46,7 +46,7 @@ object ClickGui : Module(
             LambdaHudGui.close()
         }
 
-        listener<KeyPressEvent> { event ->
+        listener<KeyPressEvent>(priority = Int.MAX_VALUE) { event ->
             if (mc.options.commandKey.isPressed) return@listener
             if (keybind == KeyCode.UNBOUND) return@listener
             if (event.translated != keybind) return@listener
