@@ -5,7 +5,6 @@ import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.gl.putTo
 import org.lwjgl.opengl.GL30C.*
-import org.lwjgl.opengl.GL44.GL_MAP_COHERENT_BIT
 import java.nio.ByteBuffer
 
 class VertexBuffer(
