@@ -72,7 +72,7 @@ abstract class MaterialContainer(
 //        selection.selector = { true }
 //        selection.count = transferAmount
 
-        return TransferResult.Success(selection, from = this, to = destination)
+        return TransferResult.Transfer(selection, from = this, to = destination)
     }
 
     enum class Rank {

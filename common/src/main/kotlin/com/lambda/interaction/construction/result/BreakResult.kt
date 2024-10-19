@@ -9,7 +9,6 @@ import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.MainHandContainer
-import com.lambda.task.Task.Companion.failTask
 import com.lambda.task.tasks.BreakBlock.Companion.breakBlock
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
@@ -23,16 +22,20 @@ sealed class BreakResult : BuildResult() {
      * Represents a successful break. All checks have been passed.
      * @param context The context of the break.
      */
-    data class Success(
+    data class Break(
         override val blockPos: BlockPos,
         val context: BreakContext
-    ) : Resolvable, Drawable, BreakResult() {
+    ) : Drawable, BreakResult() {
         override val rank = Rank.BREAK_SUCCESS
         private val color = Color(222, 0, 0, 100)
 
         var collectDrop = false
 
-        override val resolve get() = breakBlock(context, collectDrop = collectDrop)
+        override fun SafeContext.onStart() {
+            breakBlock(context, collectDrop = collectDrop).onSuccess { _, _ ->
+                success(Unit)
+            }.start(this@Break)
+        }
 
         override fun SafeContext.buildRenderer() {
             withPos(context.resultingPos, color, context.result.side)
@@ -40,7 +43,7 @@ sealed class BreakResult : BuildResult() {
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
-                is Success -> context.compareTo(other.context)
+                is Break -> context.compareTo(other.context)
                 else -> super.compareTo(other)
             }
         }
@@ -54,11 +57,13 @@ sealed class BreakResult : BuildResult() {
     data class NotExposed(
         override val blockPos: BlockPos,
         val side: Direction
-    ) : Resolvable, Drawable, BreakResult() {
+    ) : Drawable, BreakResult() {
         override val rank = Rank.BREAK_NOT_EXPOSED
         private val color = Color(46, 0, 0, 30)
 
-        override val resolve get() = failTask("Block is not exposed to air.")
+        override fun SafeContext.onStart() {
+            failure("Block is not exposed to air.")
+        }
 
         override fun SafeContext.buildRenderer() {
             withPos(blockPos, color, side)
@@ -81,20 +86,24 @@ sealed class BreakResult : BuildResult() {
         override val blockPos: BlockPos,
         val blockState: BlockState,
         val badItem: Item
-    ) : Resolvable, Drawable, BreakResult() {
+    ) : Drawable, BreakResult() {
         override val rank = Rank.BREAK_ITEM_CANT_MINE
         private val color = Color(255, 0, 0, 100)
 
         override val pausesParent get() = true
 
-        override val resolve get() = findBestAvailableTool(blockState)
-                    ?.select()
-                    ?.transfer(MainHandContainer)
-                    ?.solve ?: run {
-                        selectStack {
-                            isItem(badItem).not()
-                        }.transfer(MainHandContainer)?.solve ?: failTask("No item found or space")
-                    }
+        override fun SafeContext.onStart() {
+            findBestAvailableTool(blockState)
+                ?.select()
+                ?.transfer(MainHandContainer)
+                ?.onSuccess { _, _ ->
+                    success(Unit)
+                }?.start(this@ItemCantMine) ?: run {
+                    selectStack {
+                        isItem(badItem).not()
+                    }.transfer(MainHandContainer)?.start(this@ItemCantMine) ?: failure("No item found or space")
+                }
+        }
 
         override fun SafeContext.buildRenderer() {
             withPos(blockPos, color)

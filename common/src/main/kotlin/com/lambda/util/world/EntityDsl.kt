@@ -95,5 +95,5 @@ inline fun <reified T : Entity> SafeContext.entitySearch(
 inline fun <reified T : Entity> SafeContext.fastEntitySearch(
     range: Double,
     pos: BlockPos = player.blockPos,
-    noinline predicate: (T) -> Boolean
+    noinline predicate: (T) -> Boolean = { true }
 ): List<T> = EntityDsl(this, T::class, pos, range, predicate).buildFast()

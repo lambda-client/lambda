@@ -113,9 +113,9 @@ fun lerp(value: Double, start: Vec2d, end: Vec2d) =
  */
 fun lerp(value: Double, start: Vec3d, end: Vec3d) =
     Vec3d(
-        lerp(start.x, end.x, value),
-        lerp(start.y, end.y, value),
-        lerp(start.z, end.z, value),
+        lerp(value, start.x, end.x),
+        lerp(value, start.y, end.y),
+        lerp(value, start.z, end.z),
     )
 
 /**

@@ -107,6 +107,6 @@ class EmojiGlyphs(zipUrl: String) {
 
     companion object {
         private const val STEP = 2
-        private const val GL_TEXTURE_SLOT = 1 // TODO: Texture slot borrowing
+        private const val GL_TEXTURE_SLOT = 1
     }
 }

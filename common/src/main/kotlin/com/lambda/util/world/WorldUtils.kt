@@ -2,9 +2,9 @@ package com.lambda.util.world
 
 import com.lambda.context.SafeContext
 import com.lambda.core.annotations.InternalApi
-import com.lambda.util.collections.filterPointer
-import com.lambda.util.primitives.extension.getBlockState
-import com.lambda.util.primitives.extension.getFluidState
+import com.lambda.util.extension.filterPointer
+import com.lambda.util.extension.getBlockState
+import com.lambda.util.extension.getFluidState
 import net.minecraft.block.BlockState
 import net.minecraft.entity.Entity
 import net.minecraft.fluid.Fluid

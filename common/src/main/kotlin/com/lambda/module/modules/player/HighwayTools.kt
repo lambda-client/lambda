@@ -5,7 +5,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildStructure.Companion.buildStructure
+import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.info
 import com.lambda.util.player.MovementUtils.octant
@@ -60,25 +60,19 @@ object HighwayTools : Module(
         repeat(sliceSize) {
             val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
             currentPos = currentPos.add(vec)
-            structure += slice.map { it.key.add(currentPos) to it.value }
+            structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
         }
 
-        runningTask = buildStructure {
-            structure.toBlueprint()
-        }.apply {
-            onSuccess { _, _ ->
-                if (distanceMoved < distance || distance < 0) {
-                    buildSlice()
-                } else {
-                    this@HighwayTools.info("Highway built")
-                    disable()
-                }
-            }
-            onFailure { _, _ ->
+        runningTask = structure.toBlueprint().build().onSuccess { _, _ ->
+            if (distanceMoved < distance || distance < 0) {
+                buildSlice()
+            } else {
+                this@HighwayTools.info("Highway built")
                 disable()
             }
-            start(null)
-        }
+        }.onFailure { _, _ ->
+            disable()
+        }.start(null)
     }
 
     private fun highwaySlice(): Structure {

@@ -14,7 +14,7 @@ import net.minecraft.util.math.*
 import net.minecraft.world.BlockView
 
 object BlockUtils {
-    private val shulkerBlocks = shulkerBoxes.map { it.block }
+    val shulkerBlocks = shulkerBoxes.map { it.block }
 
     val interactionBlacklist = mutableSetOf(
         Blocks.CHEST,
@@ -52,6 +52,9 @@ object BlockUtils {
         Blocks.DARK_OAK_SIGN,
         Blocks.MANGROVE_SIGN,
         Blocks.BAMBOO_SIGN,
+        Blocks.CRIMSON_SIGN,
+        Blocks.WARPED_SIGN,
+        Blocks.SPRUCE_SIGN
     )
 
     val wallSigns = setOf(
@@ -63,6 +66,9 @@ object BlockUtils {
         Blocks.DARK_OAK_WALL_SIGN,
         Blocks.MANGROVE_WALL_SIGN,
         Blocks.BAMBOO_WALL_SIGN,
+        Blocks.CRIMSON_WALL_SIGN,
+        Blocks.WARPED_WALL_SIGN,
+        Blocks.SPRUCE_WALL_SIGN
     )
 
     val hangingSigns = setOf(
@@ -74,6 +80,9 @@ object BlockUtils {
         Blocks.DARK_OAK_HANGING_SIGN,
         Blocks.MANGROVE_HANGING_SIGN,
         Blocks.BAMBOO_HANGING_SIGN,
+        Blocks.CRIMSON_HANGING_SIGN,
+        Blocks.WARPED_HANGING_SIGN,
+        Blocks.SPRUCE_HANGING_SIGN
     )
 
     val hangingWallSigns = setOf(
@@ -85,6 +94,9 @@ object BlockUtils {
         Blocks.DARK_OAK_WALL_HANGING_SIGN,
         Blocks.MANGROVE_WALL_HANGING_SIGN,
         Blocks.BAMBOO_WALL_HANGING_SIGN,
+        Blocks.CRIMSON_WALL_HANGING_SIGN,
+        Blocks.WARPED_WALL_HANGING_SIGN,
+        Blocks.SPRUCE_WALL_HANGING_SIGN
     )
 
     val fluids = listOf(

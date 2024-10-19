@@ -62,7 +62,7 @@ inline fun taskContext(crossinline block: suspend () -> Unit) =
  *
  * @param block The block of code to be executed within the safe context.
  */
-inline fun runSafeConcurrent(crossinline block: SafeContext.() -> Unit) {
+inline fun runSafeConcurrent(crossinline block: suspend SafeContext.() -> Unit) {
     EventFlow.lambdaScope.launch {
         runSafe { block() }
     }

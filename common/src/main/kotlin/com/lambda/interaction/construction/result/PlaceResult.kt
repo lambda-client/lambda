@@ -4,7 +4,7 @@ import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.PlaceContext
-import com.lambda.task.tasks.BuildStructure.Companion.breakBlock
+import com.lambda.task.tasks.BuildTask.Companion.breakBlock
 import com.lambda.task.tasks.PlaceBlock.Companion.placeBlock
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemPlacementContext
@@ -24,14 +24,18 @@ sealed class PlaceResult : BuildResult() {
      * Represents a successful placement. All checks have been passed.
      * @param context The context of the placement.
      */
-    data class Success(
+    data class Place(
         override val blockPos: BlockPos,
-        val context: PlaceContext,
-    ) : Resolvable, Drawable, PlaceResult() {
+        val context: PlaceContext
+    ) : Drawable, PlaceResult() {
         override val rank = Rank.PLACE_SUCCESS
         private val color = Color(35, 188, 254, 100)
 
-        override val resolve get() = placeBlock(context)
+        override fun SafeContext.onStart() {
+            placeBlock(context).onSuccess { _, _ ->
+                success(Unit)
+            }.start(this@Place)
+        }
 
         override fun SafeContext.buildRenderer() {
             val hitPos = context.result.blockPos
@@ -43,7 +47,7 @@ sealed class PlaceResult : BuildResult() {
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
-                is Success -> context.compareTo(other.context)
+                is Place -> context.compareTo(other.context)
                 else -> super.compareTo(other)
             }
         }
@@ -83,10 +87,14 @@ sealed class PlaceResult : BuildResult() {
     data class CantReplace(
         override val blockPos: BlockPos,
         val simulated: ItemPlacementContext
-    ) : Resolvable, PlaceResult() {
+    ) : PlaceResult() {
         override val rank = Rank.PLACE_CANT_REPLACE
 
-        override val resolve = breakBlock(blockPos)
+        override fun SafeContext.onStart() {
+            breakBlock(blockPos).onSuccess { _, _ ->
+                success(Unit)
+            }.start(this@CantReplace)
+        }
     }
 
     /**
@@ -126,9 +134,7 @@ sealed class PlaceResult : BuildResult() {
     data class NotItemBlock(
         override val blockPos: BlockPos,
         val itemStack: ItemStack
-    ) : Resolvable, PlaceResult() {
+    ) : PlaceResult() {
         override val rank = Rank.PLACE_NOT_ITEM_BLOCK
-
-        override val resolve get() = TODO("Not expected")
     }
 }

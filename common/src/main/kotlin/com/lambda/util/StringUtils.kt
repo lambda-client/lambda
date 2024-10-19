@@ -1,30 +1,18 @@
 package com.lambda.util
 
 object StringUtils {
+    /**
+     * Returns a sanitized file path for both Unix and Linux systems
+     */
     fun String.sanitizeForFilename() =
-        replace("\\", "_")
-            .replace("/", "_")
-            .replace(":", "_")
-            .replace("*", "_")
-            .replace("?", "_")
-            .replace("\"", "_")
-            .replace("<", "_")
-            .replace(">", "_")
-            .replace("|", "_")
+        replace(Regex("[\\\\/:*?\"<>|]"), "_")
             .trim()
             .take(255) // truncate to 255 characters for Windows compatibility
 
-    // ToDo: Fix this. Does not work for some reason
-//    fun String.sanitizeForFilename(): String {
-//        val invalidChars = Regex.fromLiteral("[\\\\/*?|<>:\"\\[\\]\\(\\)\\s]")
-//        val safeChars = Regex.fromLiteral("[^\\p{L}\\p{N}_\\-~]")
-//        return replace(invalidChars, "_")
-//            .replace(safeChars, "")
-//            .trim()
-//            .take(255) // truncate to 255 characters for Windows compatibility
-//    }
 
-
+    /**
+     * Capitalizes the first character of a string using its Unicode mapping
+     */
     fun String.capitalize() = replaceFirstChar { it.titlecase() }
 
     /**

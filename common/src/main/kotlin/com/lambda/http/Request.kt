@@ -2,10 +2,8 @@ package com.lambda.http
 
 import com.lambda.Lambda
 import com.lambda.util.FolderRegister.cache
-import com.lambda.util.FolderRegister.createFileIfNotExists
 import com.lambda.util.FolderRegister.createIfNotExists
 import java.io.File
-import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.time.Duration
@@ -44,12 +42,12 @@ data class Request(
         name: String,
         maxAge: Duration = 7.days,
     ): File {
-        val (file, wasCreated) = createFileIfNotExists(name, cache, true)
+        val file = cache.resolve(name).createIfNotExists()
 
-        if (System.currentTimeMillis() - file.lastModified() < maxAge.inWholeMilliseconds
+        if (
+            System.currentTimeMillis() - file.lastModified() < maxAge.inWholeMilliseconds
             && file.length() > 0
-            && !wasCreated)
-            return file
+        ) return file
 
         file.writeText("") // Clear the file before writing to it.
 
