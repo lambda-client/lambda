@@ -1,9 +1,8 @@
 package com.lambda.task.tasks
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.construction.Blueprint.Companion.toStructure
-import com.lambda.interaction.construction.StaticBlueprint.Companion.toBlueprint
-import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
+import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate

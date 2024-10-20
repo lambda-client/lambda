@@ -1,4 +1,4 @@
-package com.lambda.interaction.construction
+package com.lambda.interaction.construction.blueprint
 
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.BlockUtils.blockPos

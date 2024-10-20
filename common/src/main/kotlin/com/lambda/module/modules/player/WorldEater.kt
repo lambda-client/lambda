@@ -3,8 +3,8 @@ package com.lambda.module.modules.player
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.graphics.renderer.esp.builders.buildOutline
-import com.lambda.interaction.construction.Blueprint.Companion.toStructure
-import com.lambda.interaction.construction.StaticBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
+import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag

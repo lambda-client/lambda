@@ -2,15 +2,12 @@ package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalNear
-import baritone.process.BuilderProcess.GoalPlace
 import com.lambda.context.SafeContext
-import com.lambda.interaction.construction.Blueprint
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.MainHandContainer
 import com.lambda.task.Task
-import com.lambda.task.Task.Companion.failTask
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item

@@ -1,7 +1,7 @@
 package com.lambda.module.modules.player
 
-import com.lambda.interaction.construction.Blueprint.Companion.emptyStructure
-import com.lambda.interaction.construction.DynamicBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
+import com.lambda.interaction.construction.blueprint.DynamicBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag

@@ -2,7 +2,7 @@ package com.lambda.interaction.construction.simulation
 
 import com.lambda.context.SafeContext
 import com.lambda.interaction.RotationManager
-import com.lambda.interaction.construction.Blueprint
+import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.result.BreakResult
@@ -22,7 +22,6 @@ import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.BlockUtils.vecOf
-import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.math.VecUtils.distSq

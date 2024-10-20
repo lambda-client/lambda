@@ -9,10 +9,10 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.interaction.construction.Blueprint.Companion.toStructure
-import com.lambda.interaction.construction.DynamicBlueprint.Companion.toBlueprint
-import com.lambda.interaction.construction.StaticBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.blueprint.DynamicBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.StructureRegistry
+import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info

@@ -6,10 +6,10 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.interaction.construction.Blueprint
-import com.lambda.interaction.construction.Blueprint.Companion.toStructure
-import com.lambda.interaction.construction.DynamicBlueprint
-import com.lambda.interaction.construction.StaticBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.blueprint.Blueprint
+import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
+import com.lambda.interaction.construction.blueprint.DynamicBlueprint
+import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.result.*
 import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
@@ -18,7 +18,6 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
-import com.lambda.util.Communication.info
 import com.lambda.util.extension.Structure
 import net.minecraft.util.math.BlockPos
 

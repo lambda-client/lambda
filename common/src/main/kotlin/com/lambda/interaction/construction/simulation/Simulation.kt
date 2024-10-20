@@ -1,20 +1,15 @@
 package com.lambda.interaction.construction.simulation
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.construction.Blueprint
+import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.module.modules.client.TaskFlow
-import com.lambda.task.Task
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.Communication.info
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.toBlockPos
-import com.lambda.util.world.toFastVec
 import com.lambda.util.world.toVec3d
-import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d

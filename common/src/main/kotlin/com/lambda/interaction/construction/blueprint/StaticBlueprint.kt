@@ -1,4 +1,4 @@
-package com.lambda.interaction.construction
+package com.lambda.interaction.construction.blueprint
 
 import com.lambda.util.extension.Structure
 
