@@ -72,6 +72,7 @@ inline fun <R : Any, C : MutableCollection<in R>> Iterable<*>.filterPointer(
     iterator: (R) -> Unit,
     predicate: (R) -> Boolean,
 ) {
+    @Suppress("UNCHECKED_CAST")
     forEach { element ->
         // Cannot be replaced with reified type due to type erasure
         (element as? R) ?: return@forEach
