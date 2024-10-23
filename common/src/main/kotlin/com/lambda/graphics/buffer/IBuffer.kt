@@ -1,8 +1,25 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.graphics.buffer
 
-import com.lambda.graphics.gl.bufferValid
 import com.lambda.graphics.gl.bufferBound
 import com.lambda.graphics.gl.bufferUsageValid
+import com.lambda.graphics.gl.bufferValid
 import org.lwjgl.opengl.GL30C.*
 import java.nio.ByteBuffer
 
@@ -104,17 +121,19 @@ interface IBuffer {
     /**
      * Swaps the buffer [index] if [buffers] is greater than 1
      */
-    fun swap() { index = (index + 1) % buffers }
+    fun swap() {
+        index = (index + 1) % buffers
+    }
 
     /**
      * Update the current buffer without re-allocating
      * Alternative to [map]
      */
     fun update(
-        data:   ByteBuffer,
+        data: ByteBuffer,
         offset: Long,
     ): Throwable? {
-        if(!bufferValid(target))
+        if (!bufferValid(target))
             return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
         if (!bufferBound(target))
@@ -132,12 +151,12 @@ interface IBuffer {
      * @param size The size of the new buffer
      */
     fun grow(size: Long): Throwable? {
-        if(
-            size    < 0
+        if (
+            size < 0
         ) return IllegalArgumentException("Invalid size parameter: $size")
 
         // FixMe: If access contains any of GL_MAP_PERSISTENT_BIT or GL_MAP_COHERENT_BIT and the buffer was not initialized using glBufferStorage, glMapBufferRange will fail
-        if(!bufferValid(target))
+        if (!bufferValid(target))
             return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
         if (!bufferUsageValid(usage))
@@ -167,40 +186,47 @@ interface IBuffer {
      */
     fun map(
         offset: Long,
-        size:   Long,
-        block:  (ByteBuffer) -> Unit
+        size: Long,
+        block: (ByteBuffer) -> Unit
     ): Throwable? {
-        if(
+        if (
             offset < 0 ||
-            size   < 0
+            size < 0
         ) return IllegalArgumentException("Invalid offset or size parameter offset: $offset size: $size")
 
-        if(!bufferValid(target))
+        if (!bufferValid(target))
             return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
         if (!bufferBound(target))
             return IllegalArgumentException("Target is zero bound for glMapBufferRange")
 
-        if(
+        if (
             offset + size > glGetBufferParameteri(target, GL_BUFFER_SIZE)
-        ) return IllegalArgumentException("Out of bound mapping: $offset + $size > ${glGetBufferParameteri(target, GL_BUFFER_SIZE)}")
+        ) return IllegalArgumentException(
+            "Out of bound mapping: $offset + $size > ${
+                glGetBufferParameteri(
+                    target,
+                    GL_BUFFER_SIZE
+                )
+            }"
+        )
 
-        if(
+        if (
             glGetBufferParameteri(target, GL_BUFFER_MAPPED)
             == GL_TRUE
         ) return IllegalStateException("Buffer is already mapped, something wrong happened")
 
-        if(
+        if (
             access and GL_MAP_WRITE_BIT == 0 &&
-            access and GL_MAP_READ_BIT  == 0
+            access and GL_MAP_READ_BIT == 0
         ) return IllegalArgumentException("Neither GL_MAP_READ_BIT nor GL_MAP_WRITE_BIT is set")
 
-        if(
-            access and GL_MAP_READ_BIT               != 0 &&
-            (access and GL_MAP_INVALIDATE_RANGE_BIT  == 0 ||
-             access and GL_MAP_INVALIDATE_BUFFER_BIT == 0 ||
-             access and GL_MAP_UNSYNCHRONIZED_BIT    == 0
-            )
+        if (
+            access and GL_MAP_READ_BIT != 0 &&
+            (access and GL_MAP_INVALIDATE_RANGE_BIT == 0 ||
+                    access and GL_MAP_INVALIDATE_BUFFER_BIT == 0 ||
+                    access and GL_MAP_UNSYNCHRONIZED_BIT == 0
+                    )
         ) return IllegalArgumentException("GL_MAP_READ_BIT is set and any of GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT or GL_MAP_UNSYNCHRONIZED_BIT is set.")
 
         // Map the buffer into the client's memory
