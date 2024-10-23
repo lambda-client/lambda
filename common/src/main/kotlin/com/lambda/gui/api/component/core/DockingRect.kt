@@ -36,7 +36,7 @@ abstract class DockingRect {
     open val allowHAlign = true
     open val allowVAlign = true
 
-    open var dockingH = HAlign.LEFT;
+    open var dockingH = HAlign.LEFT
         set(to) {
             val from = field
             field = to
@@ -45,7 +45,7 @@ abstract class DockingRect {
             relativePos += Vec2d.RIGHT * delta * (size.x - screenSize.x)
         }
 
-    open var dockingV = VAlign.TOP;
+    open var dockingV = VAlign.TOP
         set(to) {
             val from = field
             field = to
