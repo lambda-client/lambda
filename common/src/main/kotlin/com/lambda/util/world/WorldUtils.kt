@@ -228,6 +228,7 @@ object WorldUtils {
         predicate: (FastVector, FluidState) -> Boolean = { _, _ -> true },
         iterator: (FastVector, FluidState) -> Unit = { _, _ -> },
     ) {
+        @Suppress("UNCHECKED_CAST")
         internalIteratePositions(pos, range, step) { position ->
             world.getFluidState(position.x, position.y, position.z).let { state ->
                 val fulfilled = kClass.isInstance(state.fluid) && predicate(position, state)
