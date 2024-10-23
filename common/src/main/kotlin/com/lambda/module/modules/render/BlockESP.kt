@@ -1,10 +1,26 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
 import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
-import com.lambda.graphics.renderer.esp.impl.ESPRenderer
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
@@ -29,28 +45,34 @@ object BlockESP : Module(
             if (!to) drawOutlines = true
         }
     }
+
     private val faceColor: Color by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") {
         drawFaces
     }.apply {
         onValueSet { _, _ -> esp.rebuild() }
     }
+
     private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks").apply {
         onValueSet { _, to ->
             esp.rebuild()
             if (!to) drawFaces = true
         }
     }
+
     private val outlineColor: Color by setting("Outline Color", Color(100, 150, 255, 128), "Color of the outlines") {
         drawOutlines
     }.apply {
         onValueSet { _, _ -> esp.rebuild() }
     }
+
     private val outlineMode: DirectionMask.OutlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode").apply {
         onValueSet { _, _ -> esp.rebuild() }
     }
+
     private val mesh: Boolean by setting("Mesh", true, "Connect similar adjacent blocks").apply {
         onValueSet { _, _ -> esp.rebuild() }
     }
+
     private val blocks: Set<Block> by setting("Blocks", setOf(Blocks.BEDROCK), "Render blocks").apply {
         onValueSet { _, _ -> esp.rebuild() }
     }

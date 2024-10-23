@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.interaction.material
 
 import com.lambda.core.Loadable
@@ -27,7 +44,8 @@ object ContainerManager : Loadable {
     private val container: List<MaterialContainer>
         get() = compileContainers + runtimeContainers
 
-    private val compileContainers = getInstances<MaterialContainer> { forPackages("com.lambda.interaction.material.container") }
+    private val compileContainers =
+        getInstances<MaterialContainer> { forPackages("com.lambda.interaction.material.container") }
     private val runtimeContainers = mutableSetOf<MaterialContainer>()
 
     private var lastInteractedBlockEntity: BlockEntity? = null
@@ -49,6 +67,7 @@ object ContainerManager : Loadable {
                     this@ContainerManager.info("Updating EnderChestContainer")
                     EnderChestContainer.update(handler.containerStacks)
                 }
+
                 is ChestBlockEntity -> {
                     // ToDo: Handle double chests and single chests
                     if (handler.type != ScreenHandlerType.GENERIC_9X6) return@listener
@@ -58,7 +77,7 @@ object ContainerManager : Loadable {
                     container
                         .filterIsInstance<ChestContainer>()
                         .find {
-                             it.blockPos == block.pos
+                            it.blockPos == block.pos
                         }?.update(stacks) ?: runtimeContainers.add(ChestContainer(stacks, block.pos))
                 }
             }
@@ -104,18 +123,18 @@ object ContainerManager : Loadable {
         blockState: BlockState,
         availableTools: Set<Item> = ItemUtils.tools,
     ) = availableTools.map {
-            it to it.getMiningSpeedMultiplier(it.defaultStack, blockState)
-        }.filter { (item, speed) ->
-            speed > 1.0
+        it to it.getMiningSpeedMultiplier(it.defaultStack, blockState)
+    }.filter { (item, speed) ->
+        speed > 1.0
                 && item.isSuitableFor(blockState)
                 && findContainerWithSelection(item.select()) != null
-        }.maxByOrNull {
-            it.second
-        }?.first
+    }.maxByOrNull {
+        it.second
+    }?.first
 
     fun findDisposable() = container().find { container ->
         TaskFlow.disposables.any { container.available(it.item.select()) >= 0 }
     }
 
-    class NoContainerFound(selection: StackSelection): Exception("No container found matching $selection")
+    class NoContainerFound(selection: StackSelection) : Exception("No container found matching $selection")
 }

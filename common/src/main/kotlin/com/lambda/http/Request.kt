@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.http
 
 import com.lambda.Lambda
@@ -72,7 +89,7 @@ data class Request(
     /**
      * Executes the HTTP request synchronously.
      */
-    inline fun <reified Success: Any> json(): Response<Success> {
+    inline fun <reified Success : Any> json(): Response<Success> {
         val url = URL(
             if (parameters.isNotEmpty() && canBeEncoded) "$url?${parameters.query}"
             else url
@@ -123,7 +140,12 @@ data class Request(
         }
 
         var error: Throwable? = null
-        val data = runCatching { Lambda.gson.fromJson(connection.inputStream.bufferedReader().readText(), Success::class.java) }
+        val data = runCatching {
+            Lambda.gson.fromJson(
+                connection.inputStream.bufferedReader().readText(),
+                Success::class.java
+            )
+        }
             .onFailure { error = it }
             .getOrNull()
 

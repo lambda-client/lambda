@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.graphics.buffer.pbo
 
 import com.lambda.Lambda.LOG
@@ -26,8 +43,8 @@ class PixelBuffer(
     private var uploadIdx = 0 // Used to upload data to the PBO
 
     private val queryId = glGenQueries() // Used to measure the time taken to upload data to the PBO
-    private val uploadTime get() =
-        IntArray(1).also { glGetQueryObjectiv(queryId, GL_QUERY_RESULT, it) }.first()
+    private val uploadTime
+        get() = IntArray(1).also { glGetQueryObjectiv(queryId, GL_QUERY_RESULT, it) }.first()
     private var transferRate = 0L // The transfer rate in bytes per second
 
     private val pboSupported = GL.getCapabilities().OpenGL30 || GL.getCapabilities().GL_ARB_pixel_buffer_object

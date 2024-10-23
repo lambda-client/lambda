@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.movement
 
 import com.lambda.config.groups.IRotationConfig
@@ -23,7 +40,6 @@ import com.lambda.util.player.MovementUtils.newMovementInput
 import com.lambda.util.player.MovementUtils.roundedForward
 import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.setSpeed
-import com.lambda.util.extension.contains
 import com.lambda.util.world.entitySearch
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.ArmorStandEntity
@@ -34,7 +50,8 @@ object Speed : Module(
     description = "Accelerates your walking speed",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
-    @JvmStatic val mode by setting("Mode", Mode.GRIM_STRAFE).apply {
+    @JvmStatic
+    val mode by setting("Mode", Mode.GRIM_STRAFE).apply {
         onValueChange { _, _ ->
             reset()
         }
@@ -45,7 +62,7 @@ object Speed : Module(
     private val grimEntityBoost by setting("Entity Boost", 1.0, 0.0..2.0, 0.01) { mode == Mode.GRIM_STRAFE }
     private val grimCollideMultiplier by setting("Entity Collide Multiplier", 0.5, 0.0..1.0, 0.01)  { mode == Mode.GRIM_STRAFE && grimEntityBoost > 0.0 }
     private val grimBoatBoost by setting("Boat Boost", 0.4, 0.0..1.0, 0.01) { mode == Mode.GRIM_STRAFE }
-    private val grimMaxSpeed by setting("Max Speed", 1.0, 0.2..1.0, 0.01)  { mode == Mode.GRIM_STRAFE }
+    private val grimMaxSpeed by setting("Max Speed", 1.0, 0.2..1.0, 0.01) { mode == Mode.GRIM_STRAFE }
 
     // NCP
     private val strict by setting("Strict", true) { mode == Mode.NCP_STRAFE }
@@ -221,6 +238,7 @@ object Speed : Module(
             Mode.GRIM_STRAFE -> {
                 !player.input.handledByBaritone && !TargetStrafe.isActive
             }
+
             Mode.NCP_STRAFE -> {
                 !player.isSneaking
             }
