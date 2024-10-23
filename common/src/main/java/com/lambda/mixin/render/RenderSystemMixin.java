@@ -11,11 +11,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(RenderSystem.class)
 public class RenderSystemMixin {
-    @Shadow @Final private static float[] shaderFogColor;
+    @Shadow
+    @Final
+    private static float[] shaderFogColor;
 
-    @Inject(method = "_setShaderFogColor", at = @At(value ="HEAD"), cancellable = true)
-    private static void onSetShaderFogColor(float red, float green, float blue, float alpha, CallbackInfo ci){
-        if (WorldColors.INSTANCE.isEnabled() && WorldColors.getCustomFog()){
+    @Inject(method = "_setShaderFogColor", at = @At(value = "HEAD"), cancellable = true)
+    private static void onSetShaderFogColor(float red, float green, float blue, float alpha, CallbackInfo ci) {
+        if (WorldColors.INSTANCE.isEnabled() && WorldColors.getCustomFog()) {
             ci.cancel();
             shaderFogColor[0] = WorldColors.getFogColor().getRed() / 255f;
             shaderFogColor[1] = WorldColors.getFogColor().getGreen() / 255f;

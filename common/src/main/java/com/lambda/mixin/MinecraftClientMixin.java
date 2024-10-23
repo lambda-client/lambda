@@ -2,7 +2,10 @@ package com.lambda.mixin;
 
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
-import com.lambda.event.events.*;
+import com.lambda.event.events.ClientEvent;
+import com.lambda.event.events.ScreenEvent;
+import com.lambda.event.events.ScreenHandlerEvent;
+import com.lambda.event.events.TickEvent;
 import com.lambda.module.modules.player.Interact;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
@@ -18,7 +21,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(MinecraftClient.class)
 public class MinecraftClientMixin {
-    @Shadow @Nullable public Screen currentScreen;
+    @Shadow
+    @Nullable
+    public Screen currentScreen;
 
     @Inject(method = "tick", at = @At("HEAD"))
     void onTickPre(CallbackInfo ci) {

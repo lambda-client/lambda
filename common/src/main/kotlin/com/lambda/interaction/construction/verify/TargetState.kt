@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.interaction.construction.verify
 
 import com.lambda.interaction.material.ContainerManager.findDisposable
@@ -15,6 +32,7 @@ sealed class TargetState : StateMatcher {
     data object Air : TargetState() {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
             state.isAir
+
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             ItemStack.EMPTY
     }
@@ -22,6 +40,7 @@ sealed class TargetState : StateMatcher {
     data object Solid : TargetState() {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
             state.isSolidBlock(world, pos)
+
         override fun getStack(world: ClientWorld, pos: BlockPos) =
             findDisposable()?.stacks?.firstOrNull {
                 it.item.block in TaskFlow.disposables
@@ -42,6 +61,7 @@ sealed class TargetState : StateMatcher {
     data class State(val blockState: BlockState) : TargetState() {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
             state == blockState
+
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             blockState.block.getPickStack(world, pos, blockState)
     }
@@ -49,6 +69,7 @@ sealed class TargetState : StateMatcher {
     data class Block(val block: net.minecraft.block.Block) : TargetState() {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
             state.block == block
+
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             block.getPickStack(world, pos, block.defaultState)
     }

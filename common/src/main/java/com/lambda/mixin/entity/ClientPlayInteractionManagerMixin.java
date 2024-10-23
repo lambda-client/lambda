@@ -25,12 +25,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ClientPlayerInteractionManager.class)
 public class ClientPlayInteractionManagerMixin {
 
+    @Shadow
+    public float currentBreakingProgress;
     @Final
     @Shadow
     private MinecraftClient client;
-
-    @Shadow
-    public float currentBreakingProgress;
 
     @Inject(method = "interactBlock", at = @At("HEAD"))
     public void interactBlockHead(final ClientPlayerEntity player, final Hand hand, final BlockHitResult hitResult, final CallbackInfoReturnable<ActionResult> cir) {
