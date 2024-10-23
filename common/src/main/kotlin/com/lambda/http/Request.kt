@@ -35,13 +35,8 @@ data class Request(
      *
      * @param name The full name of the file to be cached.
      * @param maxAge The maximum age of the cached resource. Default is 4 days.
-     *
-     * @return A pair containing the cached file and a boolean indicating whether the file was downloaded.
      */
-    fun maybeDownload(
-        name: String,
-        maxAge: Duration = 7.days,
-    ): File {
+    fun maybeDownload(name: String, maxAge: Duration = 7.days): File {
         val file = cache.resolve(name).createIfNotExists()
 
         if (
