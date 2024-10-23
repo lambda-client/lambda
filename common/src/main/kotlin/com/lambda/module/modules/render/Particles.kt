@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
@@ -21,19 +38,18 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.GuiSettings.colorSpeed
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.lerp
+import com.lambda.util.extension.partialTicks
 import com.lambda.util.math.MathUtils.random
 import com.lambda.util.math.VecUtils
 import com.lambda.util.math.VecUtils.plus
 import com.lambda.util.math.VecUtils.times
+import com.lambda.util.math.lerp
+import com.lambda.util.math.multAlpha
 import com.lambda.util.math.transform
 import com.lambda.util.player.MovementUtils.moveDelta
-import com.lambda.util.extension.partialTicks
-import com.lambda.util.math.multAlpha
 import com.lambda.util.world.raycast.RayCastMask
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d
-
 import org.lwjgl.opengl.GL11.GL_ONE
 import org.lwjgl.opengl.GL11.GL_SRC_ALPHA
 import kotlin.math.sin

@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.graphics.gl
 
 import com.lambda.Lambda.mc
@@ -62,18 +79,19 @@ object Matrices {
         vertexTransformer = null
     }
 
-    fun buildWorldProjection(pos: Vec3d, scale: Double = 1.0, mode: ProjRotationMode = ProjRotationMode.TO_CAMERA) = Matrix4f().apply {
-        val s = 0.025f * scale.toFloat()
+    fun buildWorldProjection(pos: Vec3d, scale: Double = 1.0, mode: ProjRotationMode = ProjRotationMode.TO_CAMERA) =
+        Matrix4f().apply {
+            val s = 0.025f * scale.toFloat()
 
-        val rotation = when(mode) {
-            ProjRotationMode.TO_CAMERA -> mc.gameRenderer.camera.rotation
-            ProjRotationMode.UP -> RotationAxis.POSITIVE_X.rotationDegrees(90f)
+            val rotation = when (mode) {
+                ProjRotationMode.TO_CAMERA -> mc.gameRenderer.camera.rotation
+                ProjRotationMode.UP -> RotationAxis.POSITIVE_X.rotationDegrees(90f)
+            }
+
+            translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+            rotate(rotation)
+            scale(-s, -s, s)
         }
-
-        translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
-        rotate(rotation)
-        scale(-s, -s, s)
-    }
 
     enum class ProjRotationMode {
         TO_CAMERA,

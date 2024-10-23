@@ -1,10 +1,27 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.gui.api.component.core
 
 import com.lambda.module.modules.client.ClickGui
-import com.lambda.util.math.coerceIn
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.coerceIn
 
 abstract class DockingRect {
     abstract var relativePos: Vec2d
@@ -19,27 +36,31 @@ abstract class DockingRect {
     open val allowHAlign = true
     open val allowVAlign = true
 
-    open var dockingH = HAlign.LEFT; set(to) {
-        val from = field
-        field = to
+    open var dockingH = HAlign.LEFT;
+        set(to) {
+            val from = field
+            field = to
 
-        val delta = to.multiplier - from.multiplier
-        relativePos += Vec2d.RIGHT * delta * (size.x - screenSize.x)
-    }
+            val delta = to.multiplier - from.multiplier
+            relativePos += Vec2d.RIGHT * delta * (size.x - screenSize.x)
+        }
 
-    open var dockingV = VAlign.TOP; set(to) {
-        val from = field
-        field = to
+    open var dockingV = VAlign.TOP;
+        set(to) {
+            val from = field
+            field = to
 
-        val delta = to.multiplier - from.multiplier
-        relativePos += Vec2d.BOTTOM * delta * (size.y - screenSize.y)
-    }
+            val delta = to.multiplier - from.multiplier
+            relativePos += Vec2d.BOTTOM * delta * (size.y - screenSize.y)
+        }
 
     var screenSize: Vec2d = Vec2d.ZERO
 
     var position: Vec2d
         get() = relativeToAbs(relativePos).coerceIn(0.0, screenSize.x - size.x, 0.0, screenSize.y - size.y)
-        set(value) { relativePos = absToRelative(value.roundToStep(ClickGui.dockingGridSize)); if (autoDocking) autoDocking() }
+        set(value) {
+            relativePos = absToRelative(value.roundToStep(ClickGui.dockingGridSize)); if (autoDocking) autoDocking()
+        }
 
     private val dockingOffset get() = (screenSize - size) * Vec2d(dockingH.multiplier, dockingV.multiplier)
 

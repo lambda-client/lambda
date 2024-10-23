@@ -1,8 +1,24 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.util.player
 
 import com.lambda.context.SafeContext
 import com.lambda.interaction.RotationManager
-import com.lambda.util.math.MathUtils.random
 import com.lambda.util.math.MathUtils.toDegree
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.MathUtils.toRadian
@@ -111,7 +127,11 @@ object MovementUtils {
     fun SafeContext.movementVector(radDir: Double = calcMoveRad(), y: Double = 0.0) =
         Vec3d(-sin(radDir), y, cos(radDir))
 
-    var Entity.motion  get() = velocity;   set(value) { velocity = value }
+    var Entity.motion
+        get() = velocity;
+        set(value) {
+            velocity = value
+        }
     var Entity.motionX get() = velocity.x; set(value) = setVelocity(value, velocity.y, velocity.z)
     var Entity.motionY get() = velocity.y; set(value) = setVelocity(velocity.x, value, velocity.z)
     var Entity.motionZ get() = velocity.z; set(value) = setVelocity(velocity.x, velocity.y, value)
