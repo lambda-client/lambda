@@ -83,34 +83,24 @@ jobs:
       - name: Build Lambda
         run: ./gradlew build
 
-      - name: Upload Lambda Fabric
-        uses: ryand56/r2-upload-action@latest
-        with:
-          r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
-          r2-access-key-id: ${{ secrets.R2_ACCESS_KEY }}
-          r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
-          r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
-          source-dir: './fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
-          destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
+      - name: Rename Files with Commit Hash
+        run: |
+          mv ./fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar ./fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+          mv ./forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar ./forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+          mv ./common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar ./common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
 
-      - name: Upload Lambda Forge
+      - name: Upload Lambda
         uses: ryand56/r2-upload-action@latest
+        id: upload
         with:
           r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
           r2-access-key-id: ${{ secrets.R2_ACCESS_KEY }}
           r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
           r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
-          source-dir: './forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
-          destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
-
-      - name: Upload Lambda API
-        uses: ryand56/r2-upload-action@latest
-        with:
-          r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
-          r2-access-key-id: ${{ secrets.R2_ACCESS_KEY }}
-          r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
-          r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
-          source-dir: './common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
+          source-dir: |
+            ./fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+            ./forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+            ./common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
           destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
 
       - name: Create Release
