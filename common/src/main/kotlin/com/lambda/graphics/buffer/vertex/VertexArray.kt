@@ -41,7 +41,7 @@ class VertexArray : IBuffer {
         offset: Long,
     ): Throwable? = throw UnsupportedOperationException("Data cannot be uploaded to a vertex array object")
 
-    override fun grow(size: Long) = throw UnsupportedOperationException("Cannot grow a vertex array object")
+    override fun allocate(size: Long) = throw UnsupportedOperationException("Cannot grow a vertex array object")
 
     override fun bind(id: Int) {
         glBindVertexArray(id); BufferRenderer.currentVertexBuffer = null

@@ -80,19 +80,7 @@ object MathUtils {
         return nextDouble(min, max)
     }
 
-    /**
-     * @return The smallest power of two that is greater than or equal to the input integer.
-     */
-    fun Int.ceilToPOT(): Int {
-        var i = this
-        i--
-        i = i or (i shr 1)
-        i = i or (i shr 2)
-        i = i or (i shr 4)
-        i = i or (i shr 8)
-        i = i or (i shr 16)
-        return ++i
-    }
+    fun Int.nextPowerOf2() = 2f.pow(ceil(log2(toFloat()))).toInt()
 
     inline val Int.sq: Int get() = this * this
 }

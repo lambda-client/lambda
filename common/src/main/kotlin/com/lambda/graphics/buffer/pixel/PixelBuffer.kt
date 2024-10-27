@@ -122,7 +122,7 @@ class PixelBuffer(
         glBindTexture(GL_TEXTURE_2D, 0)
 
         // Fill the buffers with null data to allocate the memory spaces
-        grow(size)
+        allocate(size)
     }
 
     companion object {

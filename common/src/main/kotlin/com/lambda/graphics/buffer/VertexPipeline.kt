@@ -138,8 +138,6 @@ class VertexPipeline(
         val newVertices = byteBuffer(newSize)
         Memory.copy(address(vertices), address(newVertices), offset)
 
-        vbo.grow(newSize.toLong())
-
         vertices = newVertices
         verticesPointer = address(vertices)
         verticesPosition = verticesPointer + offset
@@ -153,8 +151,6 @@ class VertexPipeline(
         val newIndices = byteBuffer(newSize)
 
         Memory.copy(address(indices), address(newIndices), indicesCount * 4L)
-
-        ebo.grow(newSize.toLong())
 
         indices = newIndices
         indicesPointer = address(indices)

@@ -145,15 +145,34 @@ interface IBuffer {
     }
 
     /**
+     * Allocates a region of memory for the buffer
+     * This function handles the buffer binding
+     *
+     * @param data The data to put in the new allocated buffer
+     */
+    fun allocate(data: ByteBuffer): Throwable? {
+        // FixMe: If access contains any of GL_MAP_PERSISTENT_BIT or GL_MAP_COHERENT_BIT and the buffer was not initialized using glBufferStorage, glMapBufferRange will fail
+        if (!bufferValid(target))
+            return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
+
+        if (!bufferUsageValid(usage))
+            return IllegalArgumentException("Buffer usage is invalid")
+
+        bind()
+        glBufferData(target, data, usage)
+        bind(0)
+
+        return null
+    }
+
+    /**
      * Grows the backing buffers
-     * This function should not be called frequently
+     * This function handles the buffer binding
      *
      * @param size The size of the new buffer
      */
-    fun grow(size: Long): Throwable? {
-        if (
-            size < 0
-        ) return IllegalArgumentException("Invalid size parameter: $size")
+    fun allocate(size: Long): Throwable? {
+        if (size < 0) return IllegalArgumentException("Invalid size parameter: $size")
 
         // FixMe: If access contains any of GL_MAP_PERSISTENT_BIT or GL_MAP_COHERENT_BIT and the buffer was not initialized using glBufferStorage, glMapBufferRange will fail
         if (!bufferValid(target))
@@ -162,16 +181,9 @@ interface IBuffer {
         if (!bufferUsageValid(usage))
             return IllegalArgumentException("Buffer usage is invalid")
 
-        bufferIds.forEach { bufferId ->
-            // Orphan the buffer and allocate a new one
-            bind(bufferId)
-
-            // Only resize if the new size is bigger than the bound buffer capacity
-            if (size > glGetBufferParameteri(target, GL_BUFFER_SIZE))
-                glBufferData(target, size, usage)
-
-            bind(0) // Don't forget to unbind to avoid accidental buffer modification
-        }
+        bind()
+        glBufferData(target, size, usage)
+        bind(0)
 
         return null
     }
@@ -202,14 +214,7 @@ interface IBuffer {
 
         if (
             offset + size > glGetBufferParameteri(target, GL_BUFFER_SIZE)
-        ) return IllegalArgumentException(
-            "Out of bound mapping: $offset + $size > ${
-                glGetBufferParameteri(
-                    target,
-                    GL_BUFFER_SIZE
-                )
-            }"
-        )
+        ) return IllegalArgumentException("Out of bound mapping: $offset + $size > ${glGetBufferParameteri(target, GL_BUFFER_SIZE)}")
 
         if (
             glGetBufferParameteri(target, GL_BUFFER_MAPPED)
@@ -222,11 +227,11 @@ interface IBuffer {
         ) return IllegalArgumentException("Neither GL_MAP_READ_BIT nor GL_MAP_WRITE_BIT is set")
 
         if (
-            access and GL_MAP_READ_BIT != 0 &&
+            access and GL_MAP_READ_BIT != 0         &&
             (access and GL_MAP_INVALIDATE_RANGE_BIT == 0 ||
-                    access and GL_MAP_INVALIDATE_BUFFER_BIT == 0 ||
-                    access and GL_MAP_UNSYNCHRONIZED_BIT == 0
-                    )
+            access and GL_MAP_INVALIDATE_BUFFER_BIT == 0 ||
+            access and GL_MAP_UNSYNCHRONIZED_BIT    == 0
+            )
         ) return IllegalArgumentException("GL_MAP_READ_BIT is set and any of GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT or GL_MAP_UNSYNCHRONIZED_BIT is set.")
 
         // Map the buffer into the client's memory

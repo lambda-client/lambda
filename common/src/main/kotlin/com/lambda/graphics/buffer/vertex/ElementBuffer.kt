@@ -35,18 +35,7 @@ class ElementBuffer(mode: VertexMode) : IBuffer {
     override fun upload(
         data: ByteBuffer,
         offset: Long,
-    ): Throwable? {
-        // Bind the buffer
-        bind()
-
-        // Map the buffer into the client's memory
-        val error = map(offset, data.limit().toLong(), data::putTo)
-
-        // Unbind
-        bind(0)
-
-        return error
-    }
+    ): Throwable? = allocate(data)
 
     override fun bind(id: Int) {
         if (id != 0) prevIbo = lastIbo
@@ -56,8 +45,7 @@ class ElementBuffer(mode: VertexMode) : IBuffer {
     }
 
     init {
-        // Fill the buffer with null data
-        grow(mode.indicesCount * 2L.kibibyte)
+        allocate(mode.indicesCount * 2L.kibibyte)
     }
 
     companion object {
