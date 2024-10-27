@@ -52,6 +52,7 @@ import com.lambda.util.player.MovementUtils.newMovementInput
 import com.lambda.util.player.MovementUtils.roundedForward
 import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
+import com.lambda.util.world.toFastVec
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
@@ -313,11 +314,11 @@ object Scaffold : Module(
         renderInfo.removeIf {
             val (info, time) = it
 
-            val pos = info.placedPos
+            val pos = info.placedPos.toFastVec()
             val seconds = (currentTime - time) / 1000.0
 
             val sides = buildSideMesh(pos) { meshPos ->
-                renderInfo.any { it.first.placedPos == meshPos }
+                renderInfo.any { it.first.placedPos.toFastVec() == meshPos }
             }
 
             val box = Box(info.placedPos)

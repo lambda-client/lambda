@@ -18,6 +18,7 @@
 package com.lambda.util.world
 
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 
@@ -131,13 +132,11 @@ infix fun FastVector.plus(vec: FastVector): FastVector = fastVectorOf(x + vec.x,
 
 /**
  * Adds the given vector to the position.
- * @return The new position.
  */
 infix fun FastVector.plus(vec: Vec3i): FastVector = fastVectorOf(x + vec.x, y + vec.y, z + vec.z)
 
 /**
  * Adds the given vector to the position.
- * @return The new position.
  */
 infix fun FastVector.plus(vec: Vec3d): FastVector =
     fastVectorOf(x + vec.x.toLong(), y + vec.y.toLong(), z + vec.z.toLong())
@@ -149,13 +148,11 @@ infix fun FastVector.minus(vec: FastVector): FastVector = fastVectorOf(x - vec.x
 
 /**
  * Subtracts the given vector from the position.
- * @return The new position.
  */
 infix fun FastVector.minus(vec: Vec3i): FastVector = fastVectorOf(x - vec.x, y - vec.y, z - vec.z)
 
 /**
  * Subtracts the given vector from the position.
- * @return The new position.
  */
 infix fun FastVector.minus(vec: Vec3d): FastVector =
     fastVectorOf(x - vec.x.toLong(), y - vec.y.toLong(), z - vec.z.toLong())
@@ -224,14 +221,18 @@ infix fun FastVector.distSq(other: Vec3d): Double {
 }
 
 /**
+ * Adds a [net.minecraft.util.math.Direction] offset to the fast vector
+ */
+fun FastVector.offset(dir: Direction) =
+    fastVectorOf(x + dir.offsetX, y + dir.offsetY, z + dir.offsetZ)
+
+/**
  * Converts a [Vec3i] to a [FastVector].
- * @return The encoded position.
  */
 fun Vec3i.toFastVec(): FastVector = fastVectorOf(x.toLong(), y.toLong(), z.toLong())
 
 /**
  * Converts a [Vec3d] to a [FastVector].
- * @return The encoded position.
  */
 fun Vec3d.toFastVec(): FastVector = fastVectorOf(x.toLong(), y.toLong(), z.toLong())
 
