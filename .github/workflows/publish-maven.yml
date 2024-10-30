@@ -44,7 +44,7 @@ jobs:
 
   publish:
     concurrency:
-      group: ${{ github.workflow }}-${{ needs.check-runner.outputs.runner-label }}
+      group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
 
     needs: check-runner
