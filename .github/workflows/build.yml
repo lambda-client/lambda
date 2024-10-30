@@ -5,9 +5,6 @@ on:
     branches:
       - '**'
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-
 jobs:
   check-runner:
     name: Check Runner Availability
@@ -45,6 +42,10 @@ jobs:
             echo "runner-label=ubuntu-latest" >> $GITHUB_OUTPUT
           fi
   build:
+    concurrency:
+      group: ${{ github.workflow }}-${{ needs.check-runner.outputs.runner-label }}
+      cancel-in-progress: true
+
     needs: check-runner
     runs-on: ${{ needs.check-runner.outputs.runner-label }}
     
@@ -111,7 +112,7 @@ jobs:
           
           #### [API (Developer Dependency)](https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
 
-          - **Runner:** \`${{ needs.check-runner.outputs.runner-label }}\`
+          **Runner:** \`${{ needs.check-runner.outputs.runner-label }}\`
           EOF
 
       - name: Failover Upload

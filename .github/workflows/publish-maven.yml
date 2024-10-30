@@ -5,13 +5,53 @@ on:
     tags:
       - '*'
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-
 jobs:
-  maven:
-    name: Publish artifacts to maven
+  check-runner:
+    name: Check Runner Availability
     runs-on: ubuntu-latest
+
+    outputs:
+      runner-label: ${{ steps.set-runner.outputs.runner-label }}
+
+    steps:
+      - name: Set runner
+        id: set-runner
+        run: |
+          runners=$(curl -v -s -H "Accept: application/vnd.github+json" -H "Authorization: token ${{ secrets.REPO_ACCESS_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/actions/runners" --http1.1)
+          if [ $? -ne 0 ]; then
+            echo "Error: Failed to fetch runners from GitHub API" >&2
+            exit 1
+          fi
+
+          runners_count=$(echo "$runners" | jq '.runners | length')
+          if [ "$runners_count" -eq 0 ]; then
+            echo "No runners available or failed to retrieve runners." >&2
+            echo "runner-label=ubuntu-latest" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          available=$(echo "$runners" | jq '.runners[] | select(.status == "online" and .busy == false and .labels[] .name == "self-hosted")')
+          if [ $? -ne 0 ]; then
+            echo "Error: Failed to parse JSON response" >&2
+            exit 1
+          fi
+
+          if [ -n "$available" ]; then
+            echo "runner-label=lambda-linux-runner" >> $GITHUB_OUTPUT
+          else
+            echo "runner-label=ubuntu-latest" >> $GITHUB_OUTPUT
+          fi
+
+  publish:
+    concurrency:
+      group: ${{ github.workflow }}-${{ needs.check-runner.outputs.runner-label }}
+      cancel-in-progress: true
+
+    needs: check-runner
+    runs-on: ${{ needs.check-runner.outputs.runner-label }}
+
+    name: Publish artifacts to maven
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
