@@ -196,7 +196,7 @@ class VertexPipeline(
                 glEnableVertexAttribArray(index)
                 glVertexAttribPointer(index, attrib.componentCount, attrib.gl, attrib.normalized, stride, pointer)
 
-                attrib.size.toLong()
+                pointer + attrib.size // I'm not sure why there's no accumulator indexed iterator, this cost me many hours
             }
 
         // Unbind everything to avoid accidental modification

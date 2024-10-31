@@ -20,7 +20,6 @@ package com.lambda.graphics.buffer.vertex
 import com.lambda.graphics.buffer.IBuffer
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.gl.kibibyte
-import com.lambda.graphics.gl.putTo
 import org.lwjgl.opengl.GL30C.*
 import java.nio.ByteBuffer
 
