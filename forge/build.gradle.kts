@@ -98,7 +98,6 @@ dependencies {
     includeLib("org.javassist:javassist:3.28.0-GA")
     includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:0.15.0")
-    includeLib("org.bytedeco:ffmpeg-platform:6.1.1-1.5.10")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")

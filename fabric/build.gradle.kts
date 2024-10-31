@@ -87,7 +87,6 @@ dependencies {
     includeLib("dev.babbaj:nether-pathfinder:1.5")
     includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:0.15.0")
-    includeLib("org.bytedeco:ffmpeg-platform:6.1.1-1.5.10")
 
     // Add mods to the mod jar
     includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion+$minecraftVersion")
