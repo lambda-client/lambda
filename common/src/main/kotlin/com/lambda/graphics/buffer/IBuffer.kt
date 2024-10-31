@@ -134,7 +134,7 @@ interface IBuffer {
         data: ByteBuffer,
         offset: Long,
     ): Throwable? {
-        if (!bufferValid(target))
+        if (!bufferValid(target, access))
             return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
         if (!bufferBound(target))
@@ -152,7 +152,7 @@ interface IBuffer {
      * @param data The data to put in the new allocated buffer
      */
     fun allocate(data: ByteBuffer): Throwable? {
-        if (!bufferValid(target))
+        if (!bufferValid(target, access))
             return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
         if (!bufferUsageValid(usage))
@@ -172,7 +172,7 @@ interface IBuffer {
      * @param size The size of the new buffer
      */
     fun allocate(size: Long): Throwable? {
-        if (!bufferValid(target))
+        if (!bufferValid(target, access))
             return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
         if (!bufferUsageValid(usage))
@@ -191,7 +191,7 @@ interface IBuffer {
      * This function handles the buffer binding
      */
     fun storage(data: ByteBuffer): Throwable? {
-        if (!bufferValid(target))
+        if (!bufferValid(target, access))
             return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
         if (!bufferUsageValid(usage))
@@ -212,7 +212,7 @@ interface IBuffer {
      * @param size The size of the storage buffer
      */
     fun storage(size: Long): Throwable? {
-        if (!bufferValid(target))
+        if (!bufferValid(target, access))
             return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
         if (!bufferUsageValid(usage))
@@ -243,7 +243,7 @@ interface IBuffer {
             size < 0
         ) return IllegalArgumentException("Invalid offset or size parameter offset: $offset size: $size")
 
-        if (!bufferValid(target))
+        if (!bufferValid(target, access))
             return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
         if (!bufferBound(target))

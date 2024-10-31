@@ -43,7 +43,12 @@ val bindingCheckMappings = mapOf(
 /**
  * Returns whether the buffer target is valid
  */
-fun bufferValid(target: Int): Boolean = target in bindingCheckMappings
+fun bufferValid(target: Int, access: Int): Boolean =
+    target in bindingCheckMappings &&
+            // If access contains GL_MAP_COHERENT_BIT, it must also contain GL_MAP_PERSISTENT_BIT.
+            (access and GL_MAP_COHERENT_BIT   == 0 || access and GL_MAP_PERSISTENT_BIT != 0) &&
+            // If access contains GL_MAP_PERSISTENT_BIT, it must also contain at least one of GL_MAP_READ_BIT or GL_MAP_WRITE_BIT.
+            (access and GL_MAP_PERSISTENT_BIT == 0 || (access and (GL_MAP_READ_BIT or GL_MAP_WRITE_BIT) != 0))
 
 /**
  * Returns whether the provided buffer target is bound
