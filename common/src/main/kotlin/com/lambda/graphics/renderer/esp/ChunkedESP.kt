@@ -119,17 +119,15 @@ class ChunkedESP private constructor(
         }
 
         suspend fun rebuild() {
-            awaitMainThread {
-                val newRenderer = StaticESPRenderer()
+            val newRenderer = awaitMainThread { StaticESPRenderer() }
 
-                iterateChunk { x, y, z ->
-                    owner.update(newRenderer, chunk.world, x, y, z)
-                }
+            iterateChunk { x, y, z ->
+                owner.update(newRenderer, chunk.world, x, y, z)
+            }
 
-                owner.uploadQueue.add {
-                    newRenderer.upload()
-                    renderer = newRenderer
-                }
+            owner.uploadQueue.add {
+                newRenderer.upload()
+                renderer = newRenderer
             }
         }
 
