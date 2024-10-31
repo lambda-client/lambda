@@ -54,8 +54,7 @@ class PixelBuffer(
     override val bufferIds = IntArray(buffers).apply { glGenBuffers(this) }
 
     private val channels = channelMapping[format] ?: throw IllegalArgumentException("Image format unsupported")
-    private val internalFormat =
-        reverseChannelMapping[channels] ?: throw IllegalArgumentException("Image internal format unsupported")
+    private val internalFormat = reverseChannelMapping[channels] ?: throw IllegalArgumentException("Image internal format unsupported")
     private val size = width * height * channels * 1L
 
     override fun upload(
@@ -121,8 +120,8 @@ class PixelBuffer(
         // Unbind the texture
         glBindTexture(GL_TEXTURE_2D, 0)
 
-        // Fill the buffers with null data to allocate the memory spaces
-        allocate(size)
+        // Fill the storage with null
+        storage(size)
     }
 
     companion object {

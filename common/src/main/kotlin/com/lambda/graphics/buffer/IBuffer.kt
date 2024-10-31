@@ -21,6 +21,7 @@ import com.lambda.graphics.gl.bufferBound
 import com.lambda.graphics.gl.bufferUsageValid
 import com.lambda.graphics.gl.bufferValid
 import org.lwjgl.opengl.GL30C.*
+import org.lwjgl.opengl.GL44.glBufferStorage
 import java.nio.ByteBuffer
 
 interface IBuffer {
@@ -151,7 +152,6 @@ interface IBuffer {
      * @param data The data to put in the new allocated buffer
      */
     fun allocate(data: ByteBuffer): Throwable? {
-        // FixMe: If access contains any of GL_MAP_PERSISTENT_BIT or GL_MAP_COHERENT_BIT and the buffer was not initialized using glBufferStorage, glMapBufferRange will fail
         if (!bufferValid(target))
             return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
@@ -172,9 +172,6 @@ interface IBuffer {
      * @param size The size of the new buffer
      */
     fun allocate(size: Long): Throwable? {
-        if (size < 0) return IllegalArgumentException("Invalid size parameter: $size")
-
-        // FixMe: If access contains any of GL_MAP_PERSISTENT_BIT or GL_MAP_COHERENT_BIT and the buffer was not initialized using glBufferStorage, glMapBufferRange will fail
         if (!bufferValid(target))
             return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
@@ -182,7 +179,47 @@ interface IBuffer {
             return IllegalArgumentException("Buffer usage is invalid")
 
         bind()
-        glBufferData(target, size, usage)
+        glBufferData(target, size.coerceAtLeast(0), usage)
+        bind(0)
+
+        return null
+    }
+
+    /**
+     * Create a new buffer storage
+     * This function cannot be called twice for the same buffer
+     * This function handles the buffer binding
+     */
+    fun storage(data: ByteBuffer): Throwable? {
+        if (!bufferValid(target))
+            return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
+
+        if (!bufferUsageValid(usage))
+            return IllegalArgumentException("Buffer usage is invalid")
+
+        bind()
+        glBufferStorage(target, data, usage)
+        bind(0)
+
+        return null
+    }
+
+    /**
+     * Create a new buffer storage
+     * This function cannot be called twice for the same buffer
+     * This function handles the buffer binding
+     *
+     * @param size The size of the storage buffer
+     */
+    fun storage(size: Long): Throwable? {
+        if (!bufferValid(target))
+            return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
+
+        if (!bufferUsageValid(usage))
+            return IllegalArgumentException("Buffer usage is invalid")
+
+        bind()
+        glBufferStorage(target, size.coerceAtLeast(0), usage)
         bind(0)
 
         return null
