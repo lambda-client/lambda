@@ -24,9 +24,9 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.graphics.buffer.vao.VAO
-import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
-import com.lambda.graphics.buffer.vao.vertex.VertexMode
+import com.lambda.graphics.buffer.VertexPipeline
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.gl.GlStateUtils.withBlendFunc
 import com.lambda.graphics.gl.GlStateUtils.withDepth
 import com.lambda.graphics.gl.Matrices
@@ -79,7 +79,7 @@ object Particles : Module(
     private val environmentSpeedV by setting("E Speed V", 0.1, 0.0..10.0, 0.1) { environment }
 
     private var particles = mutableListOf<Particle>()
-    private val vao = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.PARTICLE)
+    private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.PARTICLE)
     private val shader = Shader("renderer/particle", "renderer/particle")
 
     init {
@@ -96,9 +96,9 @@ object Particles : Module(
                 shader.use()
                 shader["u_CameraPosition"] = mc.gameRenderer.camera.pos
 
-                vao.upload()
-                withDepth(vao::render)
-                vao.clear()
+                pipeline.upload()
+                withDepth(pipeline::render)
+                pipeline.clear()
             }
         }
 
@@ -198,7 +198,7 @@ object Particles : Module(
             val size = if (lay) environmentSize else sizeSetting * lerp(alpha, 0.5, 1.0)
 
             withVertexTransform(buildWorldProjection(position, size, projRotation)) {
-                vao.use {
+                pipeline.use {
                     grow(4) // DO NOT FUCKING FORGOTEOIJTOWKET TO GROW (cost me an hour)
                     putQuad(
                         vec3m(-1.0, -1.0, 0.0).vec2(0.0, 0.0).color(color).end(),

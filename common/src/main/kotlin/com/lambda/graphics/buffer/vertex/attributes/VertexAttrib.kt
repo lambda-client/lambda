@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.buffer.vao.vertex
+package com.lambda.graphics.buffer.vertex.attributes
 
 import com.lambda.graphics.gl.GLObject
 import org.lwjgl.opengl.GL11C.GL_FLOAT

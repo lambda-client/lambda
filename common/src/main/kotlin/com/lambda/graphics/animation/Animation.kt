@@ -18,8 +18,8 @@
 package com.lambda.graphics.animation
 
 import com.lambda.Lambda.mc
-import com.lambda.util.math.lerp
 import com.lambda.util.extension.partialTicks
+import com.lambda.util.math.lerp
 import kotlin.math.abs
 import kotlin.reflect.KProperty
 

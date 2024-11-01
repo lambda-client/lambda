@@ -144,6 +144,14 @@ abstract class Module(
         onDisable {
             playSoundRandomly(LambdaSound.MODULE_OFF.event)
         }
+
+        onEnable {
+            playSoundRandomly(LambdaSound.MODULE_ON.event)
+        }
+
+        onDisable {
+            playSoundRandomly(LambdaSound.MODULE_OFF.event)
+        }
     }
 
     fun enable() {

@@ -1,5 +1,8 @@
+import org.gradle.internal.jvm.*
 import net.fabricmc.loom.api.LoomGradleExtensionAPI
+import org.apache.tools.ant.taskdefs.condition.Os
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.FileNotFoundException
 import java.util.*
 
 val modId: String by project
@@ -66,6 +69,17 @@ subprojects {
     if (path == ":common") return@subprojects
 
     tasks {
+        register<Exec>("renderDoc") {
+            val javaHome = Jvm.current().javaHome
+            val gradleWrapper = rootProject.tasks.wrapper.get().jarFile.absolutePath
+
+            commandLine = listOf(
+                findExecutable("renderdoccmd")
+                    ?: throw FileNotFoundException("Could not find the renderdoccmd executable"),
+                "capture", /* Remove the following 2 lines if you don't want api validation */ "--opt-api-validation", "--opt-api-validation-unmute", "--opt-hook-children", "--wait-for-exit", "--working-dir", ".", "$javaHome/bin/java", "-Xmx64m", "-Xms64m", /*"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005",*/ "-Dorg.gradle.appname=gradlew", "-Dorg.gradle.java.home=$javaHome", "-classpath", gradleWrapper, "org.gradle.wrapper.GradleWrapperMain", "${this@subprojects.path}:runClient",
+            )
+        }
+
         processResources {
             // Replaces placeholders in the mod info files
             filesMatching(targets) {
@@ -117,4 +131,11 @@ allprojects {
             }
         }
     }
+}
+
+private fun findExecutable(executable: String): String? {
+    val isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
+    val cmd = if (isWindows) "where" else "which"
+
+    return ProcessBuilder(cmd, executable).start().inputStream.bufferedReader().readText().trim().takeIf { it.isNotBlank() }
 }

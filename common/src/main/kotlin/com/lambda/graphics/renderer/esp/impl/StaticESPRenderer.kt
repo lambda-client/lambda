@@ -17,15 +17,11 @@
 
 package com.lambda.graphics.renderer.esp.impl
 
-import com.lambda.graphics.buffer.vao.IRenderContext
-import com.lambda.graphics.buffer.BufferUsage
+import com.lambda.graphics.buffer.IRenderContext
 import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
 
-open class StaticESPRenderer(
-    usage: BufferUsage = BufferUsage.STATIC,
-    private val useVertexCaching: Boolean = true,
-) : ESPRenderer(usage, false) {
+open class StaticESPRenderer(private val useVertexCaching: Boolean = true) : ESPRenderer(false) {
     val faceVertices = ConcurrentHashMap<Vertex, Int>()
     val outlineVertices = ConcurrentHashMap<Vertex, Int>()
 

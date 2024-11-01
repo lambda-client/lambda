@@ -18,7 +18,7 @@
 package com.lambda.graphics.texture
 
 import com.lambda.graphics.texture.TextureUtils.bindTexture
-import org.lwjgl.opengl.GL13.glGenTextures
+import org.lwjgl.opengl.GL45C.*
 
 open class Texture {
     val id = glGenTextures()
