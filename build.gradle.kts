@@ -26,6 +26,7 @@ plugins {
     id("architectury-plugin") version "3.4-SNAPSHOT"
     id("dev.architectury.loom") version "1.7-SNAPSHOT" apply false
     id("com.github.johnrengelman.shadow") version "8.1.1" apply false
+    id("maven-publish")
 }
 
 architectury {
@@ -35,10 +36,34 @@ architectury {
 subprojects {
     apply(plugin = "dev.architectury.loom")
     apply(plugin = "org.jetbrains.dokka")
+    apply(plugin = "maven-publish")
 
     dependencies {
         "minecraft"("com.mojang:minecraft:$minecraftVersion")
         "mappings"("net.fabricmc:yarn:$minecraftVersion+$yarnMappings:v2")
+    }
+
+    publishing {
+        publications {
+            register<MavenPublication>("maven") {
+                groupId = mavenGroup
+                artifactId = if (project.name == "common") modId else "$modId-${project.name}"
+                version = "$modVersion+$minecraftVersion"
+
+                from(components["java"])
+            }
+        }
+
+        repositories {
+            maven {
+                name = "reposilite"
+                url = uri("https://maven.lambda-client.org/lambda")
+                credentials(PasswordCredentials::class)
+                authentication {
+                    create<BasicAuthentication>("basic")
+                }
+            }
+        }
     }
 
     if (path == ":common") return@subprojects

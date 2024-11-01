@@ -26,11 +26,11 @@ import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.extension.getBlockState
+import com.lambda.util.world.fastVectorOf
 import net.minecraft.block.Block
 import net.minecraft.block.Blocks
 import net.minecraft.client.render.model.BakedModel
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import java.awt.Color
 
@@ -93,18 +93,22 @@ object BlockESP : Module(
         }
     }
 
-    private val esp = newChunkedESP { view, x, y, z ->
-        val blockPos = BlockPos(x, y, z)
-        val state = view.getBlockState(blockPos)
+    private val esp = newChunkedESP { world, x, y, z ->
+        val position = fastVectorOf(x, y, z)
+        val state = world.getBlockState(position)
         if (state.block !in blocks) return@newChunkedESP
 
         val sides = if (mesh) {
-            buildSideMesh(blockPos) {
-                it.blockState(view).block in blocks
+            buildSideMesh(position) {
+                world.getBlockState(it).block in blocks
             }
         } else DirectionMask.ALL
 
-        build(Box(blockPos), sides)
+        build(
+            // big hack
+            Box(x.toDouble(), y.toDouble(), z.toDouble(), x.toDouble()+1, y.toDouble()+1, z.toDouble()+1),
+            sides
+        )
     }
 
     private fun StaticESPRenderer.build(

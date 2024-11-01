@@ -17,6 +17,8 @@
 
 package com.lambda.graphics.renderer.esp
 
+import com.lambda.util.world.FastVector
+import com.lambda.util.world.offset
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
@@ -39,11 +41,11 @@ object DirectionMask {
     fun Int.exclude(direction: Direction) = exclude(direction.mask)
     fun Int.hasDirection(dir: Int) = (this and dir) != 0
 
-    fun buildSideMesh(blockPos: BlockPos, filter: (BlockPos) -> Boolean): Int {
+    fun buildSideMesh(position: FastVector, filter: (FastVector) -> Boolean): Int {
         var sides = ALL
 
         Direction.entries
-            .filter { filter(blockPos.offset(it)) }
+            .filter { filter(position.offset(it)) }
             .forEach { sides = sides.exclude(it.mask) }
 
         return sides
