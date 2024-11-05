@@ -1,6 +1,7 @@
 package com.lambda.newgui.component.window
 
 import com.lambda.graphics.animation.Animation.Companion.exp
+import com.lambda.gui.api.GuiEvent
 import com.lambda.module.modules.client.NewCGui
 import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.newgui.component.layout.Layout
@@ -15,7 +16,10 @@ class WindowContent(
     private var dwheel = 0.0
     private var scrollOffset = 0.0
     private var rubberbandDelta = 0.0
+
     private var renderScrollOffset by animation.exp({ scrollOffset + rubberbandDelta }, 0.7)
+    private val scaleAnimation by animation.exp(1.0, 0.9, 0.7, ::scrolling)
+    private var scrolling = false
 
     init {
         overrideX { owner.titleBar.renderPositionX }
@@ -37,10 +41,11 @@ class WindowContent(
                 scrollOffset + dwheel
             } else 0.0
 
+            scrolling = dwheel != 0.0
             dwheel = 0.0
 
             val prevOffset = scrollOffset
-            val maxScroll = renderHeight - getContentHeight() - NewCGui.padding * 2
+            val maxScroll = renderHeight - getContentHeight() - NewCGui.padding
             scrollOffset = scrollOffset.coerceAtLeast(maxScroll).coerceAtMost(0.0)
 
             rubberbandDelta += prevOffset - scrollOffset

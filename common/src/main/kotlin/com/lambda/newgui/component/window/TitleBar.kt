@@ -21,10 +21,11 @@ class TitleBar(
         text = title
         bold = true
 
-        val tb = this@TitleBar
+        textHAlignment = HAlign.CENTER
 
-        overrideX { tb.renderPositionX + tb.renderWidth * 0.5 - textWidth * 0.5 }
-        overrideY { tb.renderPositionY + tb.renderHeight * 0.5 - textHeight * 0.5 }
+        onUpdate {
+            scale = NewCGui.fontScale
+        }
     }
 
     private var dragOffset: Vec2d? = null

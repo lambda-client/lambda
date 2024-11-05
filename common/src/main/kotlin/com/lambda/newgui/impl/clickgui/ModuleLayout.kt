@@ -1,5 +1,6 @@
 package com.lambda.newgui.impl.clickgui
 
+import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.Module
 import com.lambda.module.modules.client.NewCGui
@@ -8,10 +9,10 @@ import com.lambda.newgui.component.core.FilledRect
 import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.newgui.component.layout.Layout
 import com.lambda.newgui.component.window.Window
+import com.lambda.newgui.impl.clickgui.settings.BooleanButton.Companion.booleanSetting
 import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
-import com.lambda.util.math.multAlpha
 
 class ModuleLayout(
     owner: Layout,
@@ -20,8 +21,8 @@ class ModuleLayout(
     owner,
     module.name,
     Vec2d.ZERO, Vec2d.ZERO,
-    false, false, Minimizing.Relative, false,
-    AutoResize.Disabled, // ToDo: should be ForceEnabled, temporarily using this mode to set the height manually
+    false, true, Minimizing.Relative, false,
+    AutoResize.ForceEnabled,
     true
 ) {
     private val animation = animationTicker()
@@ -42,9 +43,10 @@ class ModuleLayout(
         with(titleBar) {
             with(textField) {
                 bold = false
+                textHAlignment = HAlign.LEFT
 
-                overrideX {
-                    titleBar.renderPositionX + (titleBar.renderHeight - textHeight) * 0.5
+                onUpdate {
+                    offsetX = NewCGui.fontOffset
                 }
             }
 
@@ -78,6 +80,16 @@ class ModuleLayout(
         onTick {
             val cursor = if (titleBar.isHovered) Mouse.Cursor.Pointer else Mouse.Cursor.Arrow
             cursorController.setCursor(cursor)
+        }
+
+        content.apply {
+            module.settings.forEach { setting ->
+                //layoutOf(setting) doesn't work
+
+                when (setting) {
+                    is BooleanSetting -> booleanSetting(setting)
+                }
+            }
         }
     }
 

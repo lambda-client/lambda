@@ -10,19 +10,19 @@ object Matrices {
 
     var vertexTransformer: Matrix4d? = null
 
-    fun translate(x: Double, y: Double, z: Double) {
+    fun translate(x: Double, y: Double, z: Double = 0.0) {
         translate(x.toFloat(), y.toFloat(), z.toFloat())
     }
 
-    fun translate(x: Float, y: Float, z: Float) {
+    fun translate(x: Float, y: Float, z: Float = 0f) {
         stack.last().translate(x, y, z)
     }
 
-    fun scale(x: Double, y: Double, z: Double) {
+    fun scale(x: Double, y: Double, z: Double = 1.0) {
         stack.last().scale(x.toFloat(), y.toFloat(), z.toFloat())
     }
 
-    fun scale(x: Float, y: Float, z: Float) {
+    fun scale(x: Float, y: Float, z: Float = 1f) {
         stack.last().scale(x, y, z)
     }
 

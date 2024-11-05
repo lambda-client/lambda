@@ -100,9 +100,7 @@ open class Window(
         position = initialPosition
         size = initialSize
 
-        overrideWidth(animation.exp(::width, 0.8)::value)
-
-        overrideHeight {
+        overrideSize(animation.exp(::width, 0.8)::value) {
             titleBar.renderHeight + when (minimizing) {
                 Minimizing.Disabled -> targetHeight
                 Minimizing.Relative -> heightAnimation

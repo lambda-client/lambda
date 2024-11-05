@@ -278,6 +278,21 @@ open class Layout(
         heightTransform = height
     }
 
+    /**
+     * Makes this layout expand up to parents rect
+     */
+    fun fillParent(
+        overrideX: () -> Double = { owner?.renderPositionX ?: ownerX },
+        overrideY: () -> Double = { owner?.renderPositionY ?: ownerY },
+        overrideWidth: () -> Double = { owner?.renderWidth?: ownerWidth },
+        overrideHeight: () -> Double = { owner?.renderHeight?: ownerHeight }
+    ) {
+        overrideX(overrideX)
+        overrideY(overrideY)
+        overrideWidth(overrideWidth)
+        overrideHeight(overrideHeight)
+    }
+
     fun onEvent(e: GuiEvent) {
         if (e is GuiEvent.Render) {
             screenSize = RenderMain.screenSize
@@ -334,32 +349,32 @@ open class Layout(
                 mouseClickActions.forEach { it(e.button, action) }
             }
             is GuiEvent.Render -> {
-                val drawAction = {
-                    val drawChildren = renderWidth > 0.1 && renderHeight > 0.1
-
-                    val partition by lazy {
-                        children.partition { !it.owningRenderer }
-                    }
-
-                    renderActions.forEach { it(renderer) }
-
-                    if (drawChildren) {
-                        partition.first.forEach { it.onEvent(e) }
-                    }
-
-                    if (owningRenderer) {
-                        renderer.render()
-                    }
-
-                    if (drawChildren) {
-                        partition.second.forEach { it.onEvent(e) }
-                    }
-                }
-
                 if (properties.scissor) {
-                    scissor(rect, drawAction)
-                } else drawAction()
+                    scissor(rect) { render(e) }
+                } else render(e)
             }
+        }
+    }
+
+    protected open fun render(e: GuiEvent) {
+        val drawChildren = renderWidth > 0.1 && renderHeight > 0.1
+
+        val partition by lazy {
+            children.partition { !it.owningRenderer }
+        }
+
+        renderActions.forEach { it(renderer) }
+
+        if (drawChildren) {
+            partition.first.forEach { it.onEvent(e) }
+        }
+
+        if (owningRenderer) {
+            renderer.render()
+        }
+
+        if (drawChildren) {
+            partition.second.forEach { it.onEvent(e) }
         }
     }
 

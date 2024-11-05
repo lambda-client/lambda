@@ -5,9 +5,9 @@ import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
 import com.lambda.newgui.ScreenLayout.Companion.gui
 import com.lambda.newgui.component.core.FilledRect.Companion.rect
+import com.lambda.newgui.component.layout.Layout.Companion.layout
 import com.lambda.newgui.impl.clickgui.ModuleLayout.Companion.moduleLayout
 import com.lambda.newgui.impl.clickgui.ModuleWindow.Companion.moduleWindow
-import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.setAlpha
 import java.awt.Color
@@ -17,7 +17,8 @@ object NewCGui : Module(
     description = "ggs",
     defaultTags = setOf(ModuleTag.CLIENT)
 ) {
-    val titleBarHeight by setting("Title Bar Height", 18.0, 0.0..25.0, 0.1)
+    val titleBarHeight by setting("Title Bar Height", 18.0, 10.0..25.0, 0.1)
+    val settingsHeight by setting("Settings Height", 16.0, 10.0..25.0, 0.1)
     val padding by setting("Padding", 2.0, 1.0..6.0, 0.1)
     val listStep by setting("List Step", 2.0, 0.0..6.0, 0.1)
     val autoResize by setting("Auto Resize", false)
@@ -34,15 +35,14 @@ object NewCGui : Module(
     val outlineWidth by setting("Outline Width", 10.0, 1.0..10.0, 0.1) { outline }
     val outlineColor by setting("Outline Color", Color.WHITE.setAlpha(0.6)) { outline }
     val outlineShade by setting("Outline Shade", true) { outline }
+    val fontScale by setting("Font Scale", 1.0, 0.5..2.0, 0.1)
+    val fontOffset by setting("Font Offset", 2.0, 0.0..5.0, 0.1)
 
     val moduleEnabledColor by setting("Module Enabled Color", Color.WHITE.setAlpha(0.25))
     val moduleDisabledColor by setting("Module Disabled Color", Color.WHITE.setAlpha(0.05))
 
     private val SCREEN get() = gui("New Click Gui") {
-        rect {
-            rectangle = Rect(Vec2d.ZERO, this.size)
-            setColor(backgroundTint)
-        }
+
 
         val tags = ModuleTag.defaults
         val modules = ModuleRegistry.modules

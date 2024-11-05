@@ -1,7 +1,10 @@
 package com.lambda.newgui.component.core
 
+import com.lambda.newgui.component.HAlign
+import com.lambda.newgui.component.VAlign
 import com.lambda.newgui.component.layout.Layout
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.lerp
 import java.awt.Color
 
 class TextField(
@@ -16,8 +19,12 @@ class TextField(
     val textWidth  get() = fr.getWidth(text, scale)
     val textHeight get() = fr.getHeight(scale)
 
-    private val fr get() = if (bold) renderer.boldFont else renderer.font
+    var textHAlignment = HAlign.LEFT
+    var textVAlignment = VAlign.CENTER
+    var offsetX = 0.0
+    var offsetY = 0.0
 
+    private val fr get() = if (bold) renderer.boldFont else renderer.font
     private val updateActions = mutableListOf<TextField.() -> Unit>()
 
     fun onUpdate(block: TextField.() -> Unit) {
@@ -26,13 +33,17 @@ class TextField(
 
     init {
         properties.interactionPassthrough = true
+        fillParent()
 
         onRender {
             updateActions.forEach { action ->
                 action(this@TextField)
             }
 
-            val renderPos = Vec2d(renderPositionX, renderPositionY + textHeight * 0.5)
+            val rx = renderPositionX + lerp(textHAlignment.multiplier, offsetX, renderWidth - textWidth - offsetX)
+            val ry = renderPositionY + lerp(textVAlignment.multiplier, offsetY, renderHeight - textHeight - offsetY)
+            val renderPos = Vec2d(rx, ry + textHeight * 0.5)
+
             fr.build(text, renderPos, color, scale, shadow)
         }
     }
