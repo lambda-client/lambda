@@ -5,11 +5,9 @@ on:
     branches:
       - '**'
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-
 jobs:
   check-runner:
+    name: Check Runner Availability
     runs-on: ubuntu-latest
     
     outputs:
@@ -44,6 +42,10 @@ jobs:
             echo "runner-label=ubuntu-latest" >> $GITHUB_OUTPUT
           fi
   build:
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
     needs: check-runner
     runs-on: ${{ needs.check-runner.outputs.runner-label }}
     
@@ -80,33 +82,45 @@ jobs:
 
       - name: Build Lambda
         run: ./gradlew build
-        
-      - name: Upload Lambda Fabric
+
+      - name: Rename Files with Commit Hash
+        run: |
+          mv ./fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar ./fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+          mv ./forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar ./forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+          mv ./common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar ./common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+
+      - name: Upload Lambda
         uses: ryand56/r2-upload-action@latest
+        id: upload
         with:
           r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
           r2-access-key-id: ${{ secrets.R2_ACCESS_KEY }}
           r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
           r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
-          source-dir: './fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
-          destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
-          
-      - name: Upload Lambda Forge
-        uses: ryand56/r2-upload-action@latest
-        with:
-          r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
-          r2-access-key-id: ${{ secrets.R2_ACCESS_KEY }}
-          r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
-          r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
-          source-dir: './forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
+          source-dir: |
+            ./fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+            ./forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+            ./common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
           destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
 
-      - name: Upload Lambda API
-        uses: ryand56/r2-upload-action@latest
+      - name: Generate Summary
+        if: ${{ steps.upload.outputs.result == 'success' }}
+        run: |
+          cat << EOF >> $GITHUB_STEP_SUMMARY
+          ### [Lambda Fabric ${{ steps.all.outputs.modVersion }} ${{ steps.all.outputs.minecraftVersion }} (${{ env.COMMIT_HASH }})](https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
+          ### [Lambda Forge ${{ steps.all.outputs.modVersion }} ${{ steps.all.outputs.minecraftVersion }} (${{ env.COMMIT_HASH }})](https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
+          
+          #### [API (Developer Dependency)](https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
+
+          **Runner:** \`${{ needs.check-runner.outputs.runner-label }}\`
+          EOF
+
+      - name: Failover Upload
+        if: ${{ steps.upload.outputs.result == 'failure' }}
+        uses: actions/upload-artifact@v4
         with:
-          r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
-          r2-access-key-id: ${{ secrets.R2_ACCESS_KEY }}
-          r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
-          r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
-          source-dir: './common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
-          destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
+          name: lambda-nightly
+          path: |
+            /**/build/libs/lambda-*-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar
+        
+        

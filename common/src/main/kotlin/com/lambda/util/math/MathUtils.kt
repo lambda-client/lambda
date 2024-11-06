@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.util.math
 
 import java.math.BigDecimal
@@ -63,19 +80,7 @@ object MathUtils {
         return nextDouble(min, max)
     }
 
-    /**
-     * @return The smallest power of two that is greater than or equal to the input integer.
-     */
-    fun Int.ceilToPOT(): Int {
-        var i = this
-        i--
-        i = i or (i shr 1)
-        i = i or (i shr 2)
-        i = i or (i shr 4)
-        i = i or (i shr 8)
-        i = i or (i shr 16)
-        return ++i
-    }
+    fun Int.nextPowerOf2() = 2f.pow(ceil(log2(toFloat()))).toInt()
 
     inline val Int.sq: Int get() = this * this
 }

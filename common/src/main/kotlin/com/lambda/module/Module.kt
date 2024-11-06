@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module
 
 import com.lambda.command.LambdaCommand
@@ -14,7 +31,6 @@ import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener
-import com.lambda.gui.api.LambdaGui
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.tag.ModuleTag
@@ -22,6 +38,7 @@ import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
+import net.minecraft.client.gui.screen.ChatScreen
 
 /**
  * A [Module] is a feature or tool for the utility mod.
@@ -115,8 +132,17 @@ abstract class Module(
             if (mc.options.commandKey.isPressed) return@listener
             if (keybind == KeyCode.UNBOUND) return@listener
             if (event.translated != keybind) return@listener
+            if (mc.currentScreen != null) return@listener
 
-            if (mc.currentScreen == null || this@Module is ClickGui) toggle()
+            toggle()
+        }
+
+        onEnable {
+            playSoundRandomly(LambdaSound.MODULE_ON.event)
+        }
+
+        onDisable {
+            playSoundRandomly(LambdaSound.MODULE_OFF.event)
         }
 
         onEnable {

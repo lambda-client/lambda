@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.movement
 
 import com.lambda.context.SafeContext
@@ -16,10 +33,10 @@ import com.lambda.util.ClientPacket
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.ServerPacket
-import com.lambda.util.math.lerp
 import com.lambda.util.math.VecUtils.dist
 import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.math.VecUtils.plus
+import com.lambda.util.math.lerp
 import com.lambda.util.math.multAlpha
 import net.minecraft.entity.LivingEntity
 import net.minecraft.network.packet.s2c.play.EntityAnimationS2CPacket
@@ -136,7 +153,7 @@ object BackTrack : Module(
                 }
 
                 is PlaySoundS2CPacket, is PlaySoundFromEntityS2CPacket, is StopSoundS2CPacket,
-                /*is EntityStatusS2CPacket,*/ is EntityStatusEffectS2CPacket, is EntityAnimationS2CPacket,
+                    /*is EntityStatusS2CPacket,*/ is EntityStatusEffectS2CPacket, is EntityAnimationS2CPacket,
                 is ParticleS2CPacket, is WorldTimeUpdateS2CPacket, is WorldEventS2CPacket -> {
                     return@listener
                 }

@@ -1,8 +1,28 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.mixin;
 
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
-import com.lambda.event.events.*;
+import com.lambda.event.events.ClientEvent;
+import com.lambda.event.events.ScreenEvent;
+import com.lambda.event.events.ScreenHandlerEvent;
+import com.lambda.event.events.TickEvent;
 import com.lambda.module.modules.player.Interact;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
@@ -18,7 +38,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(MinecraftClient.class)
 public class MinecraftClientMixin {
-    @Shadow @Nullable public Screen currentScreen;
+    @Shadow
+    @Nullable
+    public Screen currentScreen;
 
     @Inject(method = "tick", at = @At("HEAD"))
     void onTickPre(CallbackInfo ci) {
@@ -57,7 +79,7 @@ public class MinecraftClientMixin {
     private void onScreenOpen(@Nullable Screen screen, CallbackInfo ci) {
         if (screen == null) return;
         if (screen instanceof ScreenHandlerProvider<?> handledScreen) {
-            EventFlow.post(new ScreenHandlerEvent.Open<>(handledScreen.getScreenHandler()));
+            EventFlow.post(new ScreenHandlerEvent.Open(handledScreen.getScreenHandler()));
         }
 
         EventFlow.post(new ScreenEvent.Open<>(screen));
@@ -67,7 +89,7 @@ public class MinecraftClientMixin {
     private void onScreenRemove(@Nullable Screen screen, CallbackInfo ci) {
         if (currentScreen == null) return;
         if (currentScreen instanceof ScreenHandlerProvider<?> handledScreen) {
-            EventFlow.post(new ScreenHandlerEvent.Close<>(handledScreen.getScreenHandler()));
+            EventFlow.post(new ScreenHandlerEvent.Close(handledScreen.getScreenHandler()));
         }
 
         EventFlow.post(new ScreenEvent.Close<>(currentScreen));

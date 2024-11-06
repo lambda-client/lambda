@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.task
 
 import com.lambda.Lambda.LOG
@@ -64,22 +81,21 @@ abstract class Task<Result> : Nameable {
 
     open var pausable = true
 
-    var parent: Task<*>? = null
+    private var parent: Task<*>? = null
     private val root: Task<*> get() = parent?.root ?: this
     private val depth: Int get() = parent?.depth?.plus(1) ?: 0
 
     private var executions = 0
     private var attempted = 0
-    val subTasks = mutableListOf<Task<*>>()
+    private val subTasks = mutableListOf<Task<*>>()
     private var state = State.IDLE
     var age = 0
 
-    private val isDeactivated get() = state == State.DEACTIVATED
-    val isActivated get() = state == State.ACTIVATED
-    val isRunning get() = state == State.ACTIVATED || state == State.DEACTIVATED
+    private val isWaiting get() = state == State.WAITING
+    private val isRunning get() = state == State.RUNNING
     val isFailed get() = state == State.FAILED
     val isCompleted get() = state == State.COMPLETED || state == State.COOLDOWN
-    val isRoot get() = parent == null
+    private val isRoot get() = parent == null
     override var name = this::class.simpleName ?: "Task"
     val identifier get() = "$name@${hashCode()}"
 
@@ -91,15 +107,13 @@ abstract class Task<Result> : Nameable {
 
     enum class State {
         IDLE,
-        ACTIVATED,
-        DEACTIVATED,
+        RUNNING,
+        WAITING,
         CANCELLED,
         FAILED,
         COOLDOWN,
         COMPLETED,
     }
-
-    operator fun plus(other: Task<*>) = subTasks.add(other)
 
     init {
         listener<TickEvent.Pre> {
@@ -131,7 +145,7 @@ abstract class Task<Result> : Nameable {
 
         LOG.info("${owner.identifier} started $identifier")
         this.parent = owner
-        if (pauseParent && owner.isActivated && !owner.isRoot) {
+        if (pauseParent && owner.isRunning && !owner.isRoot) {
             LOG.info("$identifier deactivating parent ${owner.identifier}")
             owner.deactivate()
         }
@@ -146,15 +160,15 @@ abstract class Task<Result> : Nameable {
 
     @Ta5kBuilder
     fun activate() {
-        if (isActivated) return
-        state = State.ACTIVATED
+        if (isRunning) return
+        state = State.RUNNING
         startListening()
     }
 
     @Ta5kBuilder
     fun deactivate() {
-        if (isDeactivated) return
-        state = State.DEACTIVATED
+        if (isWaiting) return
+        state = State.WAITING
         stopListening()
     }
 
@@ -268,7 +282,8 @@ abstract class Task<Result> : Nameable {
                     LOG.info("$identifier completed parent ${par.identifier}")
                     par.notifyParent()
                 }
-                !par.isActivated -> {
+
+                !par.isRunning -> {
                     LOG.info("$identifier reactivated parent ${par.identifier}")
                     par.activate()
                 }
@@ -386,9 +401,9 @@ abstract class Task<Result> : Nameable {
      * @return The current task instance with the updated success action.
      */
     @Ta5kBuilder
-    fun thenRun(action: SafeContext.(Task<Result>, Result) -> Task<*>): Task<Result> {
+    fun thenRun(owner: Task<*>?, action: SafeContext.(Task<Result>, Result) -> Task<*>): Task<Result> {
         this.onSuccess = { task, result ->
-            action(this, task, result).start(task)
+            action(this, task, result).start(owner)
         }
         return this
     }

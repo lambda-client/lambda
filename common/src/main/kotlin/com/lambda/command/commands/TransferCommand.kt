@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.command.commands
 
 import com.lambda.brigadier.CommandResult.Companion.failure
@@ -18,7 +35,7 @@ object TransferCommand : LambdaCommand(
     usage = "transfer <move|cancel|undo> <item> <amount> <to>",
     description = "Transfer items from anywhere to anywhere",
 ) {
-    private var lastTransfer: TransferResult.Success? = null
+    private var lastTransfer: TransferResult.Transfer? = null
 
     override fun CommandBuilder.create() {
         required(itemStack("stack", registry)) { stack ->
@@ -61,17 +78,19 @@ object TransferCommand : LambdaCommand(
                             } ?: return@executeWithResult failure("To container not found")
 
                             when (val result = fromContainer.transfer(selection, toContainer)) {
-                                is TransferResult.Success -> {
+                                is TransferResult.Transfer -> {
                                     info("$result started.")
                                     lastTransfer = result
-                                    result.solve.onSuccess { _, _ ->
+                                    result.onSuccess { _, _ ->
                                         info("$lastTransfer completed.")
                                     }.start(null)
                                     return@executeWithResult success()
                                 }
+
                                 is TransferResult.MissingItems -> {
                                     return@executeWithResult failure("Missing items: ${result.missing}")
                                 }
+
                                 is TransferResult.NoSpace -> {
                                     return@executeWithResult failure("No space in ${toContainer.name}")
                                 }
@@ -86,21 +105,11 @@ object TransferCommand : LambdaCommand(
 
         required(literal("cancel")) {
             executeWithResult {
-                lastTransfer?.solve?.cancel() ?: run {
+                lastTransfer?.cancel() ?: run {
                     return@executeWithResult failure("No transfer to cancel")
                 }
                 info("$lastTransfer cancelled")
                 lastTransfer = null
-                success()
-            }
-        }
-
-        required(literal("undo")) {
-            executeWithResult {
-                lastTransfer?.undo ?: run {
-                    return@executeWithResult failure("No transfer to undo")
-                }
-                info("Undoing $lastTransfer")
                 success()
             }
         }

@@ -1,11 +1,29 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.player
 
-import com.lambda.interaction.construction.DynamicBlueprint.Companion.blueprintOnTick
+import com.lambda.interaction.construction.Blueprint.Companion.emptyStructure
+import com.lambda.interaction.construction.DynamicBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task.Companion.emptyTask
-import com.lambda.task.tasks.BuildStructure.Companion.buildStructure
+import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.util.math.BlockPos
@@ -25,12 +43,8 @@ object Nuker : Module(
 
     init {
         onEnable {
-            task = buildStructure(
-                pathing = false,
-                finishOnDone = false,
-                cancelOnUnsolvable = false
-            ) {
-                blueprintOnTick { _ ->
+            task = emptyStructure()
+                .toBlueprint {
                     val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
                         .asSequence()
                         .map { it.blockPos }
@@ -44,12 +58,16 @@ object Nuker : Module(
                         val floor = BlockPos.iterateOutwards(player.blockPos.down(), width, 0, width)
                             .map { it.blockPos }
                             .associateWith { TargetState.Solid }
-                        return@blueprintOnTick selection + floor
+                        return@toBlueprint selection + floor
                     }
 
                     selection
                 }
-            }
+                .build(
+                    pathing = false,
+                    finishOnDone = false,
+                    cancelOnUnsolvable = false
+                )
             task.start(null)
         }
 

@@ -5,12 +5,9 @@ on:
     tags:
       - '*'
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   check-runner:
+    name: Check Runner Availability
     runs-on: ubuntu-latest
     
     outputs:
@@ -45,6 +42,10 @@ jobs:
             echo "runner-label=ubuntu-latest" >> $GITHUB_OUTPUT
           fi
   build:
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
     needs: check-runner
     runs-on: ${{ needs.check-runner.outputs.runner-label }}
     
@@ -56,13 +57,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4.1.1
-
-      - name: Set current date as env variable
-        run: echo "DATE=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
-
-      - name: Get Short Commit Hash
-        id: vars
-        run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       - name: Set-Up JDK 17
         uses: actions/setup-java@v4
@@ -82,41 +76,14 @@ jobs:
       - name: Build Lambda
         run: ./gradlew build
 
-      - name: Upload Lambda Fabric
-        uses: ryand56/r2-upload-action@latest
-        with:
-          r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
-          r2-access-key-id: ${{ secrets.R2_ACCESS_KEY }}
-          r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
-          r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
-          source-dir: './fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
-          destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
-
-      - name: Upload Lambda Forge
-        uses: ryand56/r2-upload-action@latest
-        with:
-          r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
-          r2-access-key-id: ${{ secrets.R2_ACCESS_KEY }}
-          r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
-          r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
-          source-dir: './forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
-          destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
-
-      - name: Upload Lambda API
-        uses: ryand56/r2-upload-action@latest
-        with:
-          r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
-          r2-access-key-id: ${{ secrets.R2_ACCESS_KEY }}
-          r2-secret-access-key: ${{ secrets.R2_ACCESS_SECRET }}
-          r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
-          source-dir: './common/build/libs/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar'
-          destination-dir: ${{ env.DATE }}-${{ env.COMMIT_HASH }}
-
       - name: Create Release
         uses: softprops/action-gh-release@v2.0.8
         with:
           name: Lambda ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          append_body: true
+          make_latest: "true"
           files: |
             fabric/build/libs/lambda-fabric-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar
             forge/build/libs/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}.jar

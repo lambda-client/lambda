@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.player
 
 import com.lambda.interaction.construction.StaticBlueprint.Companion.toBlueprint
@@ -5,11 +22,11 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task
-import com.lambda.task.tasks.BuildStructure.Companion.buildStructure
+import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.info
-import com.lambda.util.player.MovementUtils.octant
 import com.lambda.util.extension.Structure
+import com.lambda.util.player.MovementUtils.octant
 import com.lambda.util.world.StructureUtils.generateDirectionalTube
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
@@ -60,25 +77,19 @@ object HighwayTools : Module(
         repeat(sliceSize) {
             val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
             currentPos = currentPos.add(vec)
-            structure += slice.map { it.key.add(currentPos) to it.value }
+            structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
         }
 
-        runningTask = buildStructure {
-            structure.toBlueprint()
-        }.apply {
-            onSuccess { _, _ ->
-                if (distanceMoved < distance || distance < 0) {
-                    buildSlice()
-                } else {
-                    this@HighwayTools.info("Highway built")
-                    disable()
-                }
-            }
-            onFailure { _, _ ->
+        runningTask = structure.toBlueprint().build().onSuccess { _, _ ->
+            if (distanceMoved < distance || distance < 0) {
+                buildSlice()
+            } else {
+                this@HighwayTools.info("Highway built")
                 disable()
             }
-            start(null)
-        }
+        }.onFailure { _, _ ->
+            disable()
+        }.start(null)
     }
 
     private fun highwaySlice(): Structure {

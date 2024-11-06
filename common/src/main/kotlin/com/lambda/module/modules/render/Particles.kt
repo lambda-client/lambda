@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
@@ -7,9 +24,9 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.graphics.buffer.vao.VAO
-import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
-import com.lambda.graphics.buffer.vao.vertex.VertexMode
+import com.lambda.graphics.buffer.VertexPipeline
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.gl.GlStateUtils.withBlendFunc
 import com.lambda.graphics.gl.GlStateUtils.withDepth
 import com.lambda.graphics.gl.Matrices
@@ -21,19 +38,18 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.GuiSettings.colorSpeed
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.lerp
+import com.lambda.util.extension.partialTicks
 import com.lambda.util.math.MathUtils.random
 import com.lambda.util.math.VecUtils
 import com.lambda.util.math.VecUtils.plus
 import com.lambda.util.math.VecUtils.times
+import com.lambda.util.math.lerp
+import com.lambda.util.math.multAlpha
 import com.lambda.util.math.transform
 import com.lambda.util.player.MovementUtils.moveDelta
-import com.lambda.util.extension.partialTicks
-import com.lambda.util.math.multAlpha
 import com.lambda.util.world.raycast.RayCastMask
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d
-
 import org.lwjgl.opengl.GL11.GL_ONE
 import org.lwjgl.opengl.GL11.GL_SRC_ALPHA
 import kotlin.math.sin
@@ -63,7 +79,7 @@ object Particles : Module(
     private val environmentSpeedV by setting("E Speed V", 0.1, 0.0..10.0, 0.1) { environment }
 
     private var particles = mutableListOf<Particle>()
-    private val vao = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.PARTICLE)
+    private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.PARTICLE)
     private val shader = Shader("renderer/particle", "renderer/particle")
 
     init {
@@ -80,9 +96,9 @@ object Particles : Module(
                 shader.use()
                 shader["u_CameraPosition"] = mc.gameRenderer.camera.pos
 
-                vao.upload()
-                withDepth(vao::render)
-                vao.clear()
+                pipeline.upload()
+                withDepth(pipeline::render)
+                pipeline.clear()
             }
         }
 
@@ -182,7 +198,7 @@ object Particles : Module(
             val size = if (lay) environmentSize else sizeSetting * lerp(alpha, 0.5, 1.0)
 
             withVertexTransform(buildWorldProjection(position, size, projRotation)) {
-                vao.use {
+                pipeline.use {
                     grow(4) // DO NOT FUCKING FORGOTEOIJTOWKET TO GROW (cost me an hour)
                     putQuad(
                         vec3m(-1.0, -1.0, 0.0).vec2(0.0, 0.0).color(color).end(),

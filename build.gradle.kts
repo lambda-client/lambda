@@ -1,5 +1,8 @@
+import org.gradle.internal.jvm.*
 import net.fabricmc.loom.api.LoomGradleExtensionAPI
+import org.apache.tools.ant.taskdefs.condition.Os
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.FileNotFoundException
 import java.util.*
 
 val modId: String by project
@@ -23,6 +26,7 @@ plugins {
     id("architectury-plugin") version "3.4-SNAPSHOT"
     id("dev.architectury.loom") version "1.7-SNAPSHOT" apply false
     id("com.github.johnrengelman.shadow") version "8.1.1" apply false
+    id("maven-publish")
 }
 
 architectury {
@@ -32,15 +36,50 @@ architectury {
 subprojects {
     apply(plugin = "dev.architectury.loom")
     apply(plugin = "org.jetbrains.dokka")
+    apply(plugin = "maven-publish")
 
     dependencies {
         "minecraft"("com.mojang:minecraft:$minecraftVersion")
         "mappings"("net.fabricmc:yarn:$minecraftVersion+$yarnMappings:v2")
     }
 
+    publishing {
+        publications {
+            register<MavenPublication>("maven") {
+                groupId = mavenGroup
+                artifactId = if (project.name == "common") modId else "$modId-${project.name}"
+                version = "$modVersion+$minecraftVersion"
+
+                from(components["java"])
+            }
+        }
+
+        repositories {
+            maven {
+                name = "reposilite"
+                url = uri("https://maven.lambda-client.org/lambda")
+                credentials(PasswordCredentials::class)
+                authentication {
+                    create<BasicAuthentication>("basic")
+                }
+            }
+        }
+    }
+
     if (path == ":common") return@subprojects
 
     tasks {
+        register<Exec>("renderDoc") {
+            val javaHome = Jvm.current().javaHome
+            val gradleWrapper = rootProject.tasks.wrapper.get().jarFile.absolutePath
+
+            commandLine = listOf(
+                findExecutable("renderdoccmd")
+                    ?: throw FileNotFoundException("Could not find the renderdoccmd executable"),
+                "capture", /* Remove the following 2 lines if you don't want api validation */ "--opt-api-validation", "--opt-api-validation-unmute", "--opt-hook-children", "--wait-for-exit", "--working-dir", ".", "$javaHome/bin/java", "-Xmx64m", "-Xms64m", /*"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005",*/ "-Dorg.gradle.appname=gradlew", "-Dorg.gradle.java.home=$javaHome", "-classpath", gradleWrapper, "org.gradle.wrapper.GradleWrapperMain", "${this@subprojects.path}:runClient",
+            )
+        }
+
         processResources {
             // Replaces placeholders in the mod info files
             filesMatching(targets) {
@@ -92,4 +131,11 @@ allprojects {
             }
         }
     }
+}
+
+private fun findExecutable(executable: String): String? {
+    val isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
+    val cmd = if (isWindows) "where" else "which"
+
+    return ProcessBuilder(cmd, executable).start().inputStream.bufferedReader().readText().trim().takeIf { it.isNotBlank() }
 }
