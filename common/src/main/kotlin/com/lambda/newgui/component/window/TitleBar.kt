@@ -24,6 +24,7 @@ class TitleBar(
         textHAlignment = HAlign.CENTER
 
         onUpdate {
+            offsetX = NewCGui.fontOffset
             scale = NewCGui.fontScale
         }
     }
