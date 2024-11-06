@@ -21,9 +21,12 @@ import com.lambda.graphics.buffer.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.renderer.gui.font.glyph.GlyphInfo
+import com.lambda.graphics.renderer.gui.rect.FilledRectRenderer
 import com.lambda.graphics.shader.Shader
+import com.lambda.gui.api.component.core.DockingRect
 import com.lambda.module.modules.client.LambdaMoji
 import com.lambda.module.modules.client.RenderSettings
+import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.a
 import com.lambda.util.math.setAlpha
