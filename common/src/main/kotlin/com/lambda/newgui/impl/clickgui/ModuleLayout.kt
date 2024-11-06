@@ -4,6 +4,7 @@ import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.Module
 import com.lambda.module.modules.client.NewCGui
+import com.lambda.newgui.GuiManager.layoutOf
 import com.lambda.newgui.component.HAlign
 import com.lambda.newgui.component.core.FilledRect
 import com.lambda.newgui.component.core.UIBuilder
@@ -83,13 +84,7 @@ class ModuleLayout(
         }
 
         content.apply {
-            module.settings.forEach { setting ->
-                //layoutOf(setting) doesn't work
-
-                when (setting) {
-                    is BooleanSetting -> booleanSetting(setting)
-                }
-            }
+            module.settings.forEach { setting -> layoutOf(setting) }
         }
     }
 

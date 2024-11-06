@@ -5,14 +5,13 @@ import com.lambda.core.Loadable
 import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.newgui.component.layout.Layout
 import com.lambda.newgui.impl.clickgui.settings.BooleanButton.Companion.booleanSetting
-import java.lang.reflect.Type
 import kotlin.reflect.KClass
 
 object GuiManager : Loadable {
-    val typeMap = mutableMapOf<Type, (owner: Layout, converted: Any) -> Layout>()
+    val typeMap = mutableMapOf<KClass<*>, (owner: Layout, converted: Any) -> Layout>()
 
     private inline fun <reified T : Any> typeAdapter(noinline block: (Layout, T) -> Layout) {
-        typeMap[T::class.java] = { owner, converted -> block(owner, converted as T) }
+        typeMap[T::class] = { owner, converted -> block(owner, converted as T) }
     }
 
     override fun load(): String {
@@ -27,8 +26,9 @@ object GuiManager : Loadable {
      * Attempts to convert the given [reference] to the [Layout]
      */
     @UIBuilder
-    inline fun <reified T : Any> Layout.layoutOf(reference: T, block: Layout.() -> Unit = {}): Layout? {
-        val adapter = typeMap[T::class.java] ?: return null
-        return adapter(this, reference).apply(children::add).apply(block)
-    }
+    inline fun Layout.layoutOf(
+        reference: Any,
+        block: Layout.() -> Unit = {}
+    ): Layout? =
+        typeMap[reference::class]?.invoke(this, reference)?.apply(block)
 }
