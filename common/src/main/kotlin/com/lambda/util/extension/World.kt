@@ -97,43 +97,41 @@ private fun StructureTemplate.readSpongeV1OrException(
     val paletteMax = nbt.getInt("PaletteMax")
     val palette = nbt.getCompound("Palette")
 
-    if (palette.size != paletteMax)
-        return IllegalStateException("Block palette size does not match the provided size (corrupted?)")
+    check(palette.size == paletteMax) {
+        "Block palette size does not match the provided size (corrupted?)"
+    }
 
     val newPalette = NbtList()
-    val newBlocks = NbtList()
 
     palette.keys.forEach { key ->
         val resource = key.substringBefore('[')
-        val paletteEntry = NbtCompound()
         val blockState = NbtCompound()
 
         // Why ?
         // I know it's supposed to be SNBT, but it cannot be parsed back
-        key
-            .substringAfter('[')
+        key.substringAfter('[')
             .substringBefore(']')
             .takeIf { it != resource }
             ?.split(',')
             ?.associate { it.substringBefore('=') to it.substringAfter('=') }
             ?.forEach { (key, value) -> blockState.putString(key, value) }
 
-        paletteEntry.putString("Name", resource)
-        paletteEntry.put("Properties", blockState)
-
-        newPalette.add(paletteEntry)
+        newPalette.add(NbtCompound().apply {
+            putString("Name", resource)
+            put("Properties", blockState)
+        })
     }
 
+    val newBlocks = NbtList()
     var blockIndex = 0
     VarIntIterator(nbt.getByteArray("BlockData"))
         .forEach { blockId ->
-            val compound = NbtCompound()
             val blockpos = positionFromIndex(width, length, blockIndex++)
 
-            compound.putIntList("pos", blockpos.x, blockpos.y, blockpos.z)
-            compound.putInt("state", blockId.toInt())
-
-            newBlocks.add(compound)
+            newBlocks.add(NbtCompound().apply {
+                putIntList("pos", blockpos.x, blockpos.y, blockpos.z)
+                putInt("state", blockId)
+            })
         }
 
     // Construct a structure compatible nbt compound
