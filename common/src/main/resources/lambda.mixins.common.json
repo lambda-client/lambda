@@ -44,7 +44,8 @@
     "render.WorldRendererMixin",
     "world.BlockCollisionSpliteratorMixin",
     "world.ClientChunkManagerMixin",
-    "world.ClientWorldMixin"
+    "world.ClientWorldMixin",
+    "world.StructureTemplateMixin"
   ],
   "injectors": {
     "defaultRequire": 1

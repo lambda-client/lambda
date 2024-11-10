@@ -1,49 +1,140 @@
 package com.lambda.interaction.construction
 
 import com.lambda.Lambda.mc
+import com.lambda.core.Loadable
 import com.lambda.util.Communication.logError
 import com.lambda.util.FolderRegister
+import com.lambda.util.extension.readLitematicaOrException
 import com.lambda.util.extension.readNbtOrException
-import net.minecraft.datafixer.DataFixTypes
+import com.lambda.util.extension.readSchematicOrException
+import com.lambda.util.extension.readSpongeOrException
 import net.minecraft.nbt.NbtCompound
-import net.minecraft.nbt.NbtHelper
 import net.minecraft.nbt.NbtIo
 import net.minecraft.nbt.NbtSizeTracker
 import net.minecraft.registry.Registries
 import net.minecraft.structure.StructureTemplate
-import net.minecraft.util.Identifier
-import net.minecraft.util.PathUtil
 import net.minecraft.util.WorldSavePath
+import java.io.File
 import java.nio.file.*
-import kotlin.io.path.*
+import java.nio.file.StandardWatchEventKinds.ENTRY_CREATE
+import java.nio.file.StandardWatchEventKinds.ENTRY_DELETE
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.streams.asSequence
+import kotlin.io.inputStream
+import kotlin.io.path.*
 
+/**
+ * The `StructureRegistry` object is responsible for managing the loading, saving, and validating of Minecraft structure templates.
+ * It extends [ConcurrentHashMap] to allow concurrent access to structure templates by their names.
+ * This registry supports multiple structure formats and automatically monitors changes in the structure directory.
+ */
+@OptIn(ExperimentalPathApi::class)
 @Suppress("JavaIoSerializableObjectMustHaveReadResolve")
-object StructureRegistry : ConcurrentHashMap<Identifier, StructureTemplate?>() {
+object StructureRegistry
+    : ConcurrentHashMap<String, StructureTemplate?>(), Loadable {
     private val levelSession = mc.levelStorage.createSession(FolderRegister.structure.path)
     private val structurePath = levelSession.getDirectory(WorldSavePath.ROOT).normalize()
+    private val pathWatcher = FileSystems.getDefault().newWatchService()
+        .apply { structurePath.register(this, ENTRY_CREATE, ENTRY_DELETE) }
 
     /**
-     * Loads a structure from disk based on the provided [id].
+     * Map of file suffix to their respective read function
+     */
+    val serializers = mapOf(
+        "nbt" to StructureTemplate::readNbtOrException,
+        "schem" to StructureTemplate::readSpongeOrException,
+        "litematica" to StructureTemplate::readLitematicaOrException,
+
+        // Not supported, who could guess that converting a format from 14 years ago would be hard ? :clueless:
+        "schematic" to StructureTemplate::readSchematicOrException,
+    )
+
+    /**
+     * Searches for a structure file by name, trying all supported extensions.
      *
-     * @param id The identifier of the structure to load.
+     * @param name The name of the structure file without the extension.
+     * @return The corresponding [File] if found, or null otherwise.
+     */
+    fun findStructureByName(name: String): File? =
+        serializers
+            .keys
+            .firstNotNullOfOrNull { extension ->
+                structurePath
+                    .resolve("$name.$extension")
+                    .toFile()
+                    .takeIf { it.isFile && it.exists() }
+            }
+
+    /**
+     * Loads a structure by name, will attempt a discovery sequence if the structure could not be found
+     * and performs format conversions if necessary
+     *
+     * @param name The name of the structure to load (without extension).
+     * @param convert Whether to replace the file after converting it.
      * @return The loaded [StructureTemplate], or null if the structure is not found.
      */
-    fun loadStructure(id: Identifier): StructureTemplate? {
-        val path = PathUtil.getResourcePath(structurePath, id.path, ".nbt")
+    fun loadStructureByName(
+        name: String,
+        convert: Boolean = true,
+    ): StructureTemplate? {
+        if (!structurePath.isDirectory()) {
+            logError(
+                "Invalid structure template: $name",
+                "The structure folder is not a folder"
+            )
+        }
 
-        return if (!structurePath.isDirectory() || path.notExists()) null
-        else computeIfAbsent(id) {
-            path.inputStream().use { templateStream ->
-                val compound = NbtIo.readCompressed(templateStream, NbtSizeTracker.ofUnlimitedBytes())
-                if (compound.isValidStructureTemplate()) {
-                    createStructure(compound)
-                } else {
-                    logError("Invalid structure template: ${path.fileName}", "File does not match template format")
-                    null
+        // Poll directory file events to load many structures at once
+        // They might not show up in the command suggestion, but they are
+        // present in the map
+        pathWatcher.poll()
+            ?.let { key ->
+                key.pollEvents()?.forEach { event ->
+                    @Suppress("UNCHECKED_CAST")
+                    event as WatchEvent<Path>
+
+                    val kind = event.kind()
+                    val path = event.context()
+                    val nameNoExt = path.nameWithoutExtension
+
+                    when (kind) {
+                        ENTRY_DELETE -> remove(nameNoExt)
+                        ENTRY_CREATE -> if (!contains(nameNoExt) && nameNoExt != name) loadStructureByName(path.nameWithoutExtension, convert = true)
+                    }
+
+                    // Reset the key -- this step is critical if you want to
+                    // receive further watch events.  If the key is no longer valid,
+                    // the directory is inaccessible so exit the loop.
+                    if (!key.reset()) return@forEach
                 }
             }
+
+        return computeIfAbsent(name.lowercase()) {
+            findStructureByName(name)
+                ?.let { it to it.extension }
+                ?.let { (file, extension) ->
+                    file.inputStream().use { templateStream ->
+                        val compound = NbtIo.readCompressed(templateStream, NbtSizeTracker.ofUnlimitedBytes())
+                        val template = createStructure(compound, extension)
+
+                        // Only delete structure files that aren't NBT
+                        if (convert && extension != "nbt") {
+                            template
+                                ?.let { saveStructure(name, it) }
+                                ?.let { structurePath.resolve("$name.$extension").deleteIfExists() }
+                        }
+
+                        // Verify the structure integrity after it had been
+                        // converted to a regular structure template
+                        if (compound.isValidStructureTemplate()) template
+                        else {
+                            logError(
+                                "Invalid structure template: $it",
+                                "File does not match template format, it might have been corrupted",
+                            )
+                            null
+                        }
+                    }
+                }
         }
     }
 
@@ -53,17 +144,19 @@ object StructureRegistry : ConcurrentHashMap<Identifier, StructureTemplate?>() {
      * @param nbt The [NbtCompound] containing the structure's data.
      * @return The created [StructureTemplate], or null if there was an error.
      */
-    private fun createStructure(nbt: NbtCompound): StructureTemplate? {
+    private fun createStructure(nbt: NbtCompound, suffix: String): StructureTemplate? {
         val template = StructureTemplate()
-        val version = NbtHelper.getDataVersion(nbt, 500)
 
-        template.readNbtOrException(
-            Registries.BLOCK.readOnlyWrapper,
-            DataFixTypes.STRUCTURE.update(mc.dataFixer, nbt, version)
-        )?.let { error ->
-            logError("Could not create structure from file", error.message ?: "")
-            return null
-        }
+        serializers[suffix]
+            ?.invoke(
+                template,
+                Registries.BLOCK.readOnlyWrapper,
+                nbt,
+            )
+            ?.let { error ->
+                logError("Could not create structure from file", error.message ?: "")
+                return null
+            }
 
         return template
     }
@@ -71,11 +164,11 @@ object StructureRegistry : ConcurrentHashMap<Identifier, StructureTemplate?>() {
     /**
      * Saves the provided [structure] to disk under the specified [name].
      *
-     * @param name The name of the structure file (without the ".nbt" extension).
+     * @param name The name of the structure file (without the extension).
      * @param structure The [StructureTemplate] to save.
      */
     fun saveStructure(name: String, structure: StructureTemplate) {
-        val path = PathUtil.getResourcePath(structurePath, name, ".nbt")
+        val path = structurePath.resolve("$name.nbt")
         val compound = structure.writeNbt(NbtCompound())
 
         Files.createDirectories(path.parent) // Ensure parent directories exist
@@ -85,72 +178,20 @@ object StructureRegistry : ConcurrentHashMap<Identifier, StructureTemplate?>() {
     }
 
     /**
-     * Streams all available structure templates from the directory.
-     *
-     * @return A [Sequence] of [Identifier]s of the available templates.
-     */
-    fun streamTemplates(): Sequence<Identifier> {
-        return if (!structurePath.isDirectory()) {
-            emptySequence()
-        } else {
-            try {
-                structurePath.walk().filter { it.isRegularFile() && it.extension == "nbt" }
-                    .filter { it.isValidNbtStructure() }
-                    .mapNotNull { it.toIdentifier() }
-            } catch (e: Exception) {
-                logError("Error streaming structure templates", e)
-                emptySequence()
-            }
-        }
-    }
-
-    /**
-     * Converts a file [Path] to an [Identifier].
-     *
-     * @param this@pathToIdentifier The file path to convert.
-     * @return The resulting [Identifier], or null if the path is invalid.
-     */
-    private fun Path.toIdentifier(): Identifier? {
-        return try {
-            val relativePath = structurePath.relativize(this).invariantSeparatorsPathString
-            val namespace = "minecraft"
-            val pathWithoutExtension = relativePath.removeSuffix(".nbt")
-            Identifier(namespace, pathWithoutExtension)
-        } catch (e: Exception) {
-            this@StructureRegistry.logError("Invalid path for structure template", e.message ?: "")
-            null
-        }
-    }
-
-    /**
-     * Walks through the [Path] hierarchy recursively and returns a [Sequence] of paths.
-     */
-    private fun Path.walk(): Sequence<Path> = Files.walk(this).asSequence()
-
-    /**
-     * Checks whether the NBT file at the given [this@isValidNbtStructure] is a valid Minecraft structure template.
-     *
-     * @param this@isValidNbtStructure The path to the NBT file.
-     * @return True if the NBT file is a valid structure template, false otherwise.
-     */
-    private fun Path.isValidNbtStructure() =
-        runCatching {
-            inputStream().use { input ->
-                NbtIo.readCompressed(input, NbtSizeTracker.ofUnlimitedBytes())
-                    .isValidStructureTemplate()
-            }
-        }.getOrDefault(false)
-
-    /**
      * Verifies that the provided NBT data represents a valid Minecraft structure template.
      *
      * @param this@isValidStructureTemplate The [NbtCompound] to validate.
      * @return True if the NBT contains valid structure template data, false otherwise.
      */
     private fun NbtCompound.isValidStructureTemplate() =
-        contains("DataVersion")
-                && contains("blocks")
-                && contains("entities")
-                && contains("palette")
-                && contains("size")
+        contains("DataVersion") && contains("blocks") && contains("palette") && contains("size")
+
+    override fun load(): String {
+        structurePath.walk().forEach { path ->
+            if (path.extension in serializers.keys)
+                loadStructureByName(path.nameWithoutExtension)
+        }
+
+        return "Loaded $size structure templates"
+    }
 }
