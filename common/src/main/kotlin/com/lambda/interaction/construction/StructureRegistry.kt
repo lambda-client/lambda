@@ -1,7 +1,6 @@
 package com.lambda.interaction.construction
 
 import com.lambda.Lambda.LOG
-import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
 import com.lambda.util.Communication.logError
 import com.lambda.util.FolderRegister
@@ -14,7 +13,6 @@ import net.minecraft.nbt.NbtIo
 import net.minecraft.nbt.NbtSizeTracker
 import net.minecraft.registry.Registries
 import net.minecraft.structure.StructureTemplate
-import net.minecraft.util.WorldSavePath
 import java.nio.file.*
 import java.nio.file.StandardWatchEventKinds.ENTRY_CREATE
 import java.nio.file.StandardWatchEventKinds.ENTRY_DELETE
@@ -57,20 +55,10 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Load
         relativePath: Path,
         convert: Boolean = true,
     ): StructureTemplate? {
-        if (!structurePath.isDirectory()) {
-            logError(
-                "Invalid structure template: $relativePath",
-                "The structure folder is not a folder"
-            )
-            return null
-        }
-
         updateFileWatcher()
 
         return computeIfAbsent(relativePath.pathString.lowercase()) {
-            loadFileAndCreate(relativePath, convert)?.also {
-                LOG.info("Loaded structure template $relativePath by ${it.author} with dimensions ${it.size.toShortString()}")
-            }
+            loadFileAndCreate(relativePath, convert)
         }
     }
 
@@ -124,10 +112,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Load
             if (compound.isValidStructureTemplate()) {
                 template
             } else {
-                logError(
-                    "Invalid structure template: $path",
-                    "File does not match template format, it might have been corrupted",
-                )
+                logError("Corrupted structure file: ${path.pathString}")
                 null
             }
         }
@@ -143,7 +128,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Load
             serializers[suffix]
                 ?.invoke(this, Registries.BLOCK.readOnlyWrapper, nbt)
                 ?.let { error ->
-                    logError("Could not create structure from file", error.message ?: "")
+                    logError("Could not create structure from file: ${error.message}")
                     return null
                 }
         }
@@ -155,7 +140,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Load
      * @param structure The [StructureTemplate] to save.
      */
     private fun saveStructure(relativePath: String, structure: StructureTemplate) {
-        val path = structurePath.resolve("$relativePath.nbt")
+        val path = structurePath.resolve(relativePath)
         val compound = structure.writeNbt(NbtCompound())
 
         Files.createDirectories(path.parent)
