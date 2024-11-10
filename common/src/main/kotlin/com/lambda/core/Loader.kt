@@ -15,6 +15,7 @@ import com.lambda.interaction.material.ContainerManager
 import com.lambda.module.ModuleRegistry
 import com.lambda.sound.SoundRegistry
 import com.lambda.util.Communication.ascii
+import com.lambda.util.FolderRegister
 import kotlin.system.measureTimeMillis
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -26,6 +27,7 @@ object Loader {
         get() = "${(System.currentTimeMillis() - started).toDuration(DurationUnit.MILLISECONDS)}"
 
     private val loadables = listOf(
+        FolderRegister,
         ModuleRegistry,
         CommandRegistry,
         RotationManager,

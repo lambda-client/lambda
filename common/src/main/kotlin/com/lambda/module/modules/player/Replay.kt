@@ -412,7 +412,7 @@ object Replay : Module(
             this@Replay.warn("Recording too short. Minimum length: 5 ticks.")
             return
         }
-        val file = FolderRegister.replay.locationBoundDirectory().resolve("$name.json")
+        val file = FolderRegister.replay.toFile().locationBoundDirectory().resolve("$name.json")
 
         lambdaScope.launch(Dispatchers.IO) {
             file.writeText(gsonCompact.toJson(recording))

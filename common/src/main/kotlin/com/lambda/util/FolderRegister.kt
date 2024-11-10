@@ -1,29 +1,44 @@
 package com.lambda.util
 
 import com.lambda.Lambda.mc
+import com.lambda.core.Loadable
 import com.lambda.util.StringUtils.sanitizeForFilename
 import java.io.File
 import java.net.InetSocketAddress
+import java.nio.file.Path
+import kotlin.io.path.createDirectory
+import kotlin.io.path.notExists
 
 /**
  * The [FolderRegister] object is responsible for managing the directory structure of the application.
  *
  * @property minecraft The root directory of the Minecraft client.
  * @property lambda The directory for the Lambda client, located within the Minecraft directory.
- * @property mods The directory for storing mods, located within the Minecraft directory.
  * @property config The directory for storing configuration files, located within the Lambda directory.
  * @property packetLogs The directory for storing packet logs, located within the Lambda directory.
  * @property replay The directory for storing replay files, located within the Lambda directory.
  */
-object FolderRegister {
-    val minecraft: File = mc.runDirectory
-    val lambda: File = File(minecraft, "lambda")
-    val mods: File = File(minecraft, "mods")
-    val config: File = File(lambda, "config")
-    val packetLogs: File = File(lambda, "packet-log")
-    val replay: File = File(lambda, "replay")
-    val cache: File = File(lambda, "cache")
-    val structure: File = File(lambda, "structure")
+object FolderRegister : Loadable {
+    val minecraft: Path = mc.runDirectory.toPath()
+    val lambda: Path = minecraft.resolve("lambda")
+    val config: Path = lambda.resolve("config")
+    val packetLogs: Path = lambda.resolve("packet-log")
+    val replay: Path = lambda.resolve("replay")
+    val cache: Path = lambda.resolve("cache")
+    val structure: Path = lambda.resolve("structure")
+
+    override fun load(): String {
+        val folders = listOf(lambda, config, packetLogs, replay, cache, structure)
+        val createdFolders = folders.mapNotNull {
+            if (it.notExists()) {
+                it.createDirectory()
+                it
+            } else null
+        }
+        return if (createdFolders.isNotEmpty()) {
+            "\nCreated directories: ${createdFolders.joinToString { it.toString() }}"
+        } else ""
+    }
 
     /**
      * Ensures the current file exists by creating it if it does not.

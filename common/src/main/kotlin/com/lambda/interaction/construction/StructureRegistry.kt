@@ -1,5 +1,6 @@
 package com.lambda.interaction.construction
 
+import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
 import com.lambda.util.Communication.logError
@@ -14,12 +15,10 @@ import net.minecraft.nbt.NbtSizeTracker
 import net.minecraft.registry.Registries
 import net.minecraft.structure.StructureTemplate
 import net.minecraft.util.WorldSavePath
-import java.io.File
 import java.nio.file.*
 import java.nio.file.StandardWatchEventKinds.ENTRY_CREATE
 import java.nio.file.StandardWatchEventKinds.ENTRY_DELETE
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.io.inputStream
 import kotlin.io.path.*
 
 /**
@@ -30,8 +29,7 @@ import kotlin.io.path.*
 @OptIn(ExperimentalPathApi::class)
 @Suppress("JavaIoSerializableObjectMustHaveReadResolve")
 object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Loadable {
-    private val levelSession = mc.levelStorage.createSession(FolderRegister.structure.path)
-    private val structurePath = levelSession.getDirectory(WorldSavePath.ROOT).normalize()
+    private val structurePath = FolderRegister.structure
     private val pathWatcher = FileSystems.getDefault().newWatchService()
         .apply { structurePath.register(this, ENTRY_CREATE, ENTRY_DELETE) }
 
@@ -48,56 +46,51 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Load
     )
 
     /**
-     * Searches for a structure file by name, trying all supported extensions.
-     *
-     * @param name The name of the structure file without the extension.
-     * @return The corresponding [File] if found, or null otherwise.
-     */
-    private fun findStructureByName(name: String): File? =
-        serializers
-            .keys
-            .firstNotNullOfOrNull { extension ->
-                structurePath
-                    .resolve("$name.$extension")
-                    .toFile()
-                    .takeIf { it.isFile && it.exists() }
-            }
-
-    /**
-     * Loads a structure by name, will attempt a discovery sequence if the structure could not be found
+     * Loads a structure by relative path, will attempt a discovery sequence if the structure could not be found
      * and performs format conversions if necessary
      *
-     * @param name The name of the structure to load (without extension).
+     * @param relativePath The name of the structure to load (without extension).
      * @param convert Whether to replace the file after converting it.
      * @return The loaded [StructureTemplate], or null if the structure is not found.
      */
-    fun loadStructureByName(
-        name: String,
+    fun loadStructureByRelativePath(
+        relativePath: Path,
         convert: Boolean = true,
     ): StructureTemplate? {
         if (!structurePath.isDirectory()) {
             logError(
-                "Invalid structure template: $name",
+                "Invalid structure template: $relativePath",
                 "The structure folder is not a folder"
             )
             return null
         }
 
-        // Poll directory file events to load many structures at once
-        // They might not show up in the command suggestion, but they are
-        // present in the map
+        updateFileWatcher()
+
+        return computeIfAbsent(relativePath.pathString.lowercase()) {
+            loadFileAndCreate(relativePath, convert)?.also {
+                LOG.info("Loaded structure template $relativePath by ${it.author} with dimensions ${it.size.toShortString()}")
+            }
+        }
+    }
+
+    /**
+     * Poll directory file events to load many structures at once.
+     * They might not show up in the command suggestion, but they are
+     * present in the map.
+     */
+    private fun updateFileWatcher() {
         pathWatcher.poll()?.let { key ->
             key.pollEvents()
                 ?.filterIsInstance<WatchEvent<Path>>()
                 ?.forEach { event ->
-                    val path = event.context()
-                    val nameNoExt = path.nameWithoutExtension
+                    val newPath = event.context()
 
                     when (event.kind()) {
-                        ENTRY_DELETE -> remove(nameNoExt)
+                        ENTRY_DELETE -> remove(newPath.pathString)
                         ENTRY_CREATE -> {
-                            if (!contains(nameNoExt) && nameNoExt != name) {
-                                loadStructureByName(path.nameWithoutExtension, convert = true)
+                            computeIfAbsent(newPath.pathString) {
+                                loadStructureByRelativePath(newPath, convert = true)
                             }
                         }
                     }
@@ -108,42 +101,36 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Load
                     if (!key.reset()) return@forEach
                 }
         }
-
-        return computeIfAbsent(name.lowercase()) { loadFileAndCreate(name, convert) }
     }
 
     /**
      * Loads the structure file and creates a [StructureTemplate].
      *
-     * @param name The name of the structure file (without extension).
      * @param convert Whether to replace the file after converting it.
      * @return The created [StructureTemplate], or null if the structure is not found or invalid.
      */
-    private fun loadFileAndCreate(name: String, convert: Boolean) =
-        findStructureByName(name)
-            ?.let { it to it.extension }
-            ?.let { (file, extension) ->
-                file.inputStream().use { templateStream ->
-                    val compound = NbtIo.readCompressed(templateStream, NbtSizeTracker.ofUnlimitedBytes())
-                    val template = createStructure(compound, extension)
+    private fun loadFileAndCreate(path: Path, convert: Boolean) =
+        structurePath.resolve(path).inputStream().use { templateStream ->
+            val compound = NbtIo.readCompressed(templateStream, NbtSizeTracker.ofUnlimitedBytes())
+            val extension = path.extension
+            val template = createStructure(compound, extension)
 
-                    if (convert && extension != "nbt") {
-                        template?.let { saveStructure(name, it) }
-                    }
-
-                    // Verify the structure integrity after it had been
-                    // converted to a regular structure template
-                    if (compound.isValidStructureTemplate()) {
-                        template
-                    } else {
-                        logError(
-                            "Invalid structure template: $name",
-                            "File does not match template format, it might have been corrupted",
-                        )
-                        null
-                    }
-                }
+            if (convert && extension != "nbt") {
+                template?.let { saveStructure(path.pathString, it) }
             }
+
+            // Verify the structure integrity after it had been
+            // converted to a regular structure template
+            if (compound.isValidStructureTemplate()) {
+                template
+            } else {
+                logError(
+                    "Invalid structure template: $path",
+                    "File does not match template format, it might have been corrupted",
+                )
+                null
+            }
+        }
 
     /**
      * Creates a [StructureTemplate] from the provided NBT data.
@@ -164,14 +151,14 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Load
     /**
      * Saves the provided [structure] to disk under the specified [name].
      *
-     * @param name The name of the structure file (without the extension).
+     * @param relativePath The relative path of the structure to save.
      * @param structure The [StructureTemplate] to save.
      */
-    private fun saveStructure(name: String, structure: StructureTemplate) {
-        val path = structurePath.resolve("$name.nbt")
+    private fun saveStructure(relativePath: String, structure: StructureTemplate) {
+        val path = structurePath.resolve("$relativePath.nbt")
         val compound = structure.writeNbt(NbtCompound())
 
-        Files.createDirectories(path.parent) // Ensure parent directories exist
+        Files.createDirectories(path.parent)
         path.outputStream().use { output ->
             NbtIo.writeCompressed(compound, output)
         }
@@ -189,7 +176,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Load
     override fun load(): String {
         structurePath.walk()
             .filter { it.extension in serializers.keys }
-            .forEach { path -> loadStructureByName(path.nameWithoutExtension) }
+            .forEach { loadStructureByRelativePath(structurePath.relativize(it)) }
 
         return "Loaded $size structure templates"
     }
