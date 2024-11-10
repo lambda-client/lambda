@@ -19,17 +19,19 @@ package com.lambda.config.groups
 
 import com.lambda.config.Configurable
 import com.lambda.context.SafeContext
+import com.lambda.friend.FriendManager.isFriend
 import com.lambda.interaction.rotation.Rotation.Companion.dist
 import com.lambda.interaction.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.threading.runSafe
 import com.lambda.util.math.VecUtils.distSq
-import com.lambda.util.world.entitySearch
+import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.ArmorStandEntity
 import net.minecraft.entity.mob.MobEntity
 import net.minecraft.entity.passive.PassiveEntity
+import net.minecraft.server.network.ServerPlayerEntity
 
 /**
  * Abstract class representing a targeting mechanism for entities in the game.
@@ -60,6 +62,12 @@ abstract class Targeting(
      * Whether players are included in the targeting scope.
      */
     override val players by owner.setting("Players", true) { predicate() }
+
+    /**
+     * Whether friends are included in the targeting scope.
+     * Requires [players] to be true.
+     */
+    override val friends by owner.setting("Friends", false) { predicate() && players }
 
     /**
      * Whether mobs are included in the targeting scope.
@@ -104,7 +112,7 @@ abstract class Targeting(
      * @return `true` if the entity is valid for targeting, `false` otherwise.
      */
     open fun validate(player: ClientPlayerEntity, entity: LivingEntity) = when {
-        !players && entity.isPlayer -> false
+        !players && (entity is ServerPlayerEntity && entity.isFriend) -> false
         !animals && entity is PassiveEntity -> false
         !hostiles && entity is MobEntity -> false
         entity is ArmorStandEntity -> false
@@ -153,12 +161,12 @@ abstract class Targeting(
          *
          * @return The best [LivingEntity] target, or `null` if no valid target is found.
          */
-        fun getTarget(): LivingEntity? = runSafe {
+        fun target(): LivingEntity? = runSafe {
             val predicate = { entity: LivingEntity ->
                 validate(player, entity)
             }
 
-            return@runSafe entitySearch<LivingEntity>(targetingRange) {
+            return@runSafe fastEntitySearch<LivingEntity>(targetingRange) {
                 predicate(it)
             }.minByOrNull {
                 priority.factor(this, it)
