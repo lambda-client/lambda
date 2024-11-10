@@ -94,16 +94,16 @@ private fun StructureTemplate.readSpongeV1OrException(
     //     ?.let { fastVectorOf(it[0], it[1], it[2]) }
     //     ?.takeIf { 274945015809L times 16 < it } ?: 0L
 
-    val paletteMax = nbt.getInt("PaletteMax")
     val palette = nbt.getCompound("Palette")
 
-    check(palette.size == paletteMax) {
-        "Block palette size does not match the provided size (corrupted?)"
-    }
-
+    val paletteMax = nbt.getInt("PaletteMax")
     val newPalette = NbtList()
 
-    palette.keys.forEach { key ->
+    if (palette.size != paletteMax) return IllegalStateException("Block palette size does not match the provided size (corrupted?)")
+
+    palette.keys
+        .sortedBy { palette.getInt(it) }
+        .forEach { key ->
         val resource = key.substringBefore('[')
         val blockState = NbtCompound()
 
@@ -116,6 +116,7 @@ private fun StructureTemplate.readSpongeV1OrException(
             ?.associate { it.substringBefore('=') to it.substringAfter('=') }
             ?.forEach { (key, value) -> blockState.putString(key, value) }
 
+        // Populate the list using the correct indices
         newPalette.add(NbtCompound().apply {
             putString("Name", resource)
             put("Properties", blockState)
