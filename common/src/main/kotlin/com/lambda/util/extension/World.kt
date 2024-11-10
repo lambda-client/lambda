@@ -85,10 +85,10 @@ private fun StructureTemplate.readSpongeV1OrException(
     val metadata = nbt.getCompound("Metadata")
 
     // If the offset is too far, we simply ignore it
-    // I think schematica at some point calculated
-    // the offset based on the current player position from the
-    // schematic, so it would fuck up everything when you tried
-    // to import it back and build it using Baritone
+    // I think at some point schematica calculated
+    // the offset based on the distance between the player position
+    // and the schematic lower corner, so it would fuck up everything
+    // when you tried to import and build it using Baritone
     // val minimumPosition = nbt.getIntArray("Offset")
     //     .takeIf { it.isNotEmpty() }
     //     ?.let { fastVectorOf(it[0], it[1], it[2]) }
