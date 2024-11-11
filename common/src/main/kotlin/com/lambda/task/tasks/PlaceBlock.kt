@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.task.tasks
 
 import com.lambda.Lambda.LOG
@@ -26,10 +43,11 @@ class PlaceBlock @Ta5kBuilder constructor(
     private var state = State.ROTATING
     private var findOutIfNeeded = false
 
-    private val SafeContext.resultingState: BlockState get() =
-        ctx.resultingPos.blockState(world)
-    private val SafeContext.matches get() =
-        ctx.targetState.matches(ctx.resultingPos.blockState(world), ctx.resultingPos, world)
+    private val SafeContext.resultingState: BlockState
+        get() = ctx.resultingPos.blockState(world)
+
+    private val SafeContext.matches
+        get() = ctx.targetState.matches(ctx.resultingPos.blockState(world), ctx.resultingPos, world)
 
     enum class State {
         ROTATING, PLACING, CONFIRMING
@@ -114,11 +132,13 @@ class PlaceBlock @Ta5kBuilder constructor(
     }
 
     private fun SafeContext.finish() {
-        LOG.info("Placed at ${
-            ctx.result.blockPos.toShortString()
-        } (${ctx.result.side}) with expecting state ${
-            ctx.expectedState
-        } and expecting position at ${ctx.resultingPos.toShortString()}")
+        LOG.info(
+            "Placed at ${
+                ctx.result.blockPos.toShortString()
+            } (${ctx.result.side}) with expecting state ${
+                ctx.expectedState
+            } and expecting position at ${ctx.resultingPos.toShortString()}"
+        )
         success(Unit)
     }
 

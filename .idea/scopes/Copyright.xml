@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="Copyright" pattern="(file[Lambda.common*]:*//*||file[Lambda.fabric*]:*//*||file[Lambda.forge*]:*//*)&amp;&amp;!file[Lambda.common.main]:kotlin/com/lambda/brigadier//*" />
+</component>

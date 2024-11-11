@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.interaction.visibilty
 
 import com.lambda.config.groups.IRotationConfig
@@ -24,7 +41,20 @@ import net.minecraft.util.math.Vec3d
 import java.util.*
 import kotlin.math.pow
 
+/**
+ * Object for handling visibility checks, rotation calculations, and hit detection.
+ */
 object VisibilityChecker {
+
+    /**
+     * Attempts to rotate the player to look at a specified entity.
+     * The function calculates the best rotation to center the player's view on the bounding box of the given entity.
+     *
+     * @param rotationConfig Specifies the rotation configuration settings.
+     * @param interactionConfig Specifies interaction settings, such as range and resolution.
+     * @param entity The entity to be looked at.
+     * @return A [RotationContext] if a valid rotation was found; otherwise, null.
+     */
     fun SafeContext.lookAtEntity(
         rotationConfig: IRotationConfig,
         interactionConfig: InteractionConfig,
@@ -33,6 +63,16 @@ object VisibilityChecker {
         entityResult?.entity == entity
     }
 
+    /**
+     * Attempts to rotate the player to look at a specific block position.
+     * The function computes the best rotation to focus on a target block's position and side.
+     *
+     * @param blockPos The position of the block to look at.
+     * @param rotationConfig Specifies rotation configuration settings.
+     * @param interactionConfig Specifies interaction settings, such as range and resolution.
+     * @param sides Specifies the set of block sides to consider for targeting.
+     * @return A [RotationContext] if a valid rotation was found; otherwise, null.
+     */
     fun SafeContext.lookAtBlock(
         blockPos: BlockPos,
         rotationConfig: IRotationConfig = TaskFlow.rotation,
@@ -47,6 +87,18 @@ object VisibilityChecker {
         }
     }
 
+    /**
+     * Finds a rotation that intersects with one of the specified bounding boxes, allowing the player to look at entities or blocks.
+     *
+     * @param boxes List of bounding boxes for potential targets.
+     * @param rotationConfig Specifies rotation configuration settings.
+     * @param interact Specifies interaction settings, such as range and resolution.
+     * @param sides Set of block sides to consider for targeting.
+     * @param reach The maximum reach distance for the interaction.
+     * @param eye The player's eye position.
+     * @param verify A lambda to verify if a [HitResult] meets the desired criteria.
+     * @return A [RotationContext] if a valid rotation was found; otherwise, null.
+     */
     fun SafeContext.findRotation(
         boxes: List<Box>,
         rotationConfig: IRotationConfig,
@@ -94,6 +146,16 @@ object VisibilityChecker {
         return null
     }
 
+    /**
+     * Scans the visible surfaces of a given box, identifying points on each surface within a defined resolution.
+     * The surface is subdivided to hits the corners of the pixels
+     *
+     * @param eyes The player's eye position.
+     * @param box The bounding box of the target.
+     * @param sides Set of block sides to consider for visibility.
+     * @param resolution The number of points to sample along each axis of the box.
+     * @param check A lambda to check each visible point for a hit.
+     */
     inline fun scanVisibleSurfaces(
         eyes: Vec3d,
         box: Box,
@@ -149,6 +211,12 @@ object VisibilityChecker {
             acc.add(vec3d)
         }?.multiply(1.0 / size.toDouble())
 
+    /**
+     * Gets the bounding coordinates of a box's side, specifying min and max values for each axis.
+     *
+     * @param side The side of the box to calculate bounds for.
+     * @return An array of doubles representing the side's bounds.
+     */
     fun Box.bounds(side: Direction) =
         when (side) {
             Direction.DOWN -> doubleArrayOf(minX, minY, minZ, maxX, minY, maxZ)
@@ -159,12 +227,21 @@ object VisibilityChecker {
             Direction.EAST -> doubleArrayOf(maxX, minY, minZ, maxX, maxY, maxZ)
         }
 
+    /**
+     * Determines which surfaces of the box are visible from a specific position, typically the player's eyes.
+     *
+     * @param eyes The position to determine visibility from.
+     * @return A set of directions corresponding to visible sides.
+     */
     fun Box.getVisibleSurfaces(eyes: Vec3d) =
         EnumSet.noneOf(Direction::class.java)
             .checkAxis(eyes.x - center.x, lengthX / 2, Direction.WEST, Direction.EAST)
             .checkAxis(eyes.y - center.y, lengthY / 2, Direction.DOWN, Direction.UP)
             .checkAxis(eyes.z - center.z, lengthZ / 2, Direction.NORTH, Direction.SOUTH)
 
+    /**
+     * Helper function to add visible sides to an EnumSet based on positional differences.
+     */
     private fun EnumSet<Direction>.checkAxis(
         diff: Double,
         limit: Double,

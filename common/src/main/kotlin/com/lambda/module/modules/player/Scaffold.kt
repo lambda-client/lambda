@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.player
 
 import com.lambda.config.groups.InteractionSettings
@@ -35,6 +52,7 @@ import com.lambda.util.player.MovementUtils.newMovementInput
 import com.lambda.util.player.MovementUtils.roundedForward
 import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
+import com.lambda.util.world.toFastVec
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
@@ -296,11 +314,11 @@ object Scaffold : Module(
         renderInfo.removeIf {
             val (info, time) = it
 
-            val pos = info.placedPos
+            val pos = info.placedPos.toFastVec()
             val seconds = (currentTime - time) / 1000.0
 
             val sides = buildSideMesh(pos) { meshPos ->
-                renderInfo.any { it.first.placedPos == meshPos }
+                renderInfo.any { it.first.placedPos.toFastVec() == meshPos }
             }
 
             val box = Box(info.placedPos)

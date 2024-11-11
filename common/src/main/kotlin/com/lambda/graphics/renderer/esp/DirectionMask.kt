@@ -1,5 +1,24 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.graphics.renderer.esp
 
+import com.lambda.util.world.FastVector
+import com.lambda.util.world.offset
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
@@ -22,24 +41,25 @@ object DirectionMask {
     fun Int.exclude(direction: Direction) = exclude(direction.mask)
     fun Int.hasDirection(dir: Int) = (this and dir) != 0
 
-    fun buildSideMesh(blockPos: BlockPos, filter: (BlockPos) -> Boolean): Int {
+    fun buildSideMesh(position: FastVector, filter: (FastVector) -> Boolean): Int {
         var sides = ALL
 
         Direction.entries
-            .filter { filter(blockPos.offset(it)) }
+            .filter { filter(position.offset(it)) }
             .forEach { sides = sides.exclude(it.mask) }
 
         return sides
     }
 
-    val Direction.mask get() = when (this) {
-        Direction.DOWN -> DOWN
-        Direction.UP -> UP
-        Direction.NORTH -> NORTH
-        Direction.SOUTH -> SOUTH
-        Direction.WEST -> WEST
-        Direction.EAST -> EAST
-    }
+    val Direction.mask
+        get() = when (this) {
+            Direction.DOWN -> DOWN
+            Direction.UP -> UP
+            Direction.NORTH -> NORTH
+            Direction.SOUTH -> SOUTH
+            Direction.WEST -> WEST
+            Direction.EAST -> EAST
+        }
 
     enum class OutlineMode(val check: (Boolean, Boolean) -> Boolean) {
         // Render engine will add a line if BOTH touching sides are included into the mask

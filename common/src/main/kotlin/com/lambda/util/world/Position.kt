@@ -1,9 +1,26 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.util.world
 
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
-import kotlin.math.sqrt
 
 /**
  * Represents a position in the world encoded as a long.
@@ -115,15 +132,14 @@ infix fun FastVector.plus(vec: FastVector): FastVector = fastVectorOf(x + vec.x,
 
 /**
  * Adds the given vector to the position.
- * @return The new position.
  */
 infix fun FastVector.plus(vec: Vec3i): FastVector = fastVectorOf(x + vec.x, y + vec.y, z + vec.z)
 
 /**
  * Adds the given vector to the position.
- * @return The new position.
  */
-infix fun FastVector.plus(vec: Vec3d): FastVector = fastVectorOf(x + vec.x.toLong(), y + vec.y.toLong(), z + vec.z.toLong())
+infix fun FastVector.plus(vec: Vec3d): FastVector =
+    fastVectorOf(x + vec.x.toLong(), y + vec.y.toLong(), z + vec.z.toLong())
 
 /**
  * Subtracts the given vector from the position.
@@ -132,15 +148,14 @@ infix fun FastVector.minus(vec: FastVector): FastVector = fastVectorOf(x - vec.x
 
 /**
  * Subtracts the given vector from the position.
- * @return The new position.
  */
 infix fun FastVector.minus(vec: Vec3i): FastVector = fastVectorOf(x - vec.x, y - vec.y, z - vec.z)
 
 /**
  * Subtracts the given vector from the position.
- * @return The new position.
  */
-infix fun FastVector.minus(vec: Vec3d): FastVector = fastVectorOf(x - vec.x.toLong(), y - vec.y.toLong(), z - vec.z.toLong())
+infix fun FastVector.minus(vec: Vec3d): FastVector =
+    fastVectorOf(x - vec.x.toLong(), y - vec.y.toLong(), z - vec.z.toLong())
 
 /**
  * Multiplies the position by the given scalar.
@@ -150,7 +165,8 @@ infix fun FastVector.times(scalar: Int): FastVector = fastVectorOf(x * scalar, y
 /**
  * Multiplies the position by the given scalar.
  */
-infix fun FastVector.times(scalar: Double): FastVector = fastVectorOf((x * scalar).toLong(), (y * scalar).toLong(), (z * scalar).toLong())
+infix fun FastVector.times(scalar: Double): FastVector =
+    fastVectorOf((x * scalar).toLong(), (y * scalar).toLong(), (z * scalar).toLong())
 
 /**
  * Divides the position by the given scalar.
@@ -160,7 +176,8 @@ infix fun FastVector.div(scalar: Int): FastVector = fastVectorOf(x / scalar, y /
 /**
  * Divides the position by the given scalar.
  */
-infix fun FastVector.div(scalar: Double): FastVector = fastVectorOf((x / scalar).toLong(), (y / scalar).toLong(), (z / scalar).toLong())
+infix fun FastVector.div(scalar: Double): FastVector =
+    fastVectorOf((x / scalar).toLong(), (y / scalar).toLong(), (z / scalar).toLong())
 
 /**
  * Modulo the position by the given scalar.
@@ -170,7 +187,8 @@ infix fun FastVector.mod(scalar: Int): FastVector = fastVectorOf(x % scalar, y %
 /**
  * Modulo the position by the given scalar.
  */
-infix fun FastVector.mod(scalar: Double): FastVector = fastVectorOf((x % scalar).toLong(), (y % scalar).toLong(), (z % scalar).toLong())
+infix fun FastVector.mod(scalar: Double): FastVector =
+    fastVectorOf((x % scalar).toLong(), (y % scalar).toLong(), (z % scalar).toLong())
 
 /**
  * Returns the squared distance between this position and the other.
@@ -203,14 +221,18 @@ infix fun FastVector.distSq(other: Vec3d): Double {
 }
 
 /**
+ * Adds a [net.minecraft.util.math.Direction] offset to the fast vector
+ */
+fun FastVector.offset(dir: Direction) =
+    fastVectorOf(x + dir.offsetX, y + dir.offsetY, z + dir.offsetZ)
+
+/**
  * Converts a [Vec3i] to a [FastVector].
- * @return The encoded position.
  */
 fun Vec3i.toFastVec(): FastVector = fastVectorOf(x.toLong(), y.toLong(), z.toLong())
 
 /**
  * Converts a [Vec3d] to a [FastVector].
- * @return The encoded position.
  */
 fun Vec3d.toFastVec(): FastVector = fastVectorOf(x.toLong(), y.toLong(), z.toLong())
 

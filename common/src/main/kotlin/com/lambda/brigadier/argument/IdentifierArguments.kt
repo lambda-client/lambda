@@ -1,5 +1,3 @@
-package com.lambda.brigadier.argument
-
 /*
  * Copyright 2024 The Quilt Project
  *
@@ -15,6 +13,8 @@ package com.lambda.brigadier.argument
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+package com.lambda.brigadier.argument
 
 import com.lambda.brigadier.*
 import com.lambda.brigadier.assumeSourceNotUsed

@@ -1,8 +1,25 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.graphics.renderer.gui.font
 
-import com.lambda.graphics.buffer.vao.VAO
-import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
-import com.lambda.graphics.buffer.vao.vertex.VertexMode
+import com.lambda.graphics.buffer.VertexPipeline
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.renderer.gui.font.glyph.GlyphInfo
 import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.LambdaMoji
@@ -16,7 +33,7 @@ class FontRenderer(
     private val font: LambdaFont,
     private val emojis: LambdaEmoji
 ) {
-    private val vao = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.FONT)
+    private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.FONT)
 
     var scaleMultiplier = 1.0
 
@@ -29,7 +46,7 @@ class FontRenderer(
         color: Color = Color.WHITE,
         scale: Double = 1.0,
         shadow: Boolean = true,
-    ) = vao.use {
+    ) = pipeline.use {
         iterateText(text, scale, shadow, color) { char, pos1, pos2, color ->
             grow(4)
             putQuad(
@@ -146,9 +163,9 @@ class FontRenderer(
         font.glyphs.bind()
         emojis.glyphs.bind()
 
-        vao.upload()
-        vao.render()
-        vao.clear()
+        pipeline.upload()
+        pipeline.render()
+        pipeline.clear()
     }
 
     companion object {
