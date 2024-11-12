@@ -56,38 +56,44 @@ open class Window(
     val content = windowContent(scrollable)
 
     protected val titleBarRect = rect {
-        rectangle = titleBar.rect
-        setColor(NewCGui.titleBackgroundColor)
+        onUpdate {
+            rectangle = titleBar.rect
+            setColor(NewCGui.titleBackgroundColor)
 
-        val radius = NewCGui.roundRadius
-        leftTopRadius = radius
-        rightTopRadius = radius
+            val radius = NewCGui.roundRadius
+            leftTopRadius = radius
+            rightTopRadius = radius
 
-        val bottomRadius = lerp(content.renderHeight, radius, 0.0)
-        leftBottomRadius = bottomRadius
-        rightBottomRadius = bottomRadius
+            val bottomRadius = lerp(content.renderHeight, radius, 0.0)
+            leftBottomRadius = bottomRadius
+            rightBottomRadius = bottomRadius
 
-        shade = NewCGui.backgroundShade
+            shade = NewCGui.backgroundShade
+        }
     }
 
     protected val contentRect = rect {
-        rectangle = Rect(titleBar.leftBottom, this@Window.rightBottom)
-        setColor(NewCGui.backgroundColor)
+        onUpdate {
+            rectangle = Rect(titleBar.leftBottom, this@Window.rightBottom)
+            setColor(NewCGui.backgroundColor)
 
-        leftBottomRadius = NewCGui.roundRadius
-        rightBottomRadius = NewCGui.roundRadius
+            leftBottomRadius = NewCGui.roundRadius
+            rightBottomRadius = NewCGui.roundRadius
 
-        shade = NewCGui.backgroundShade
+            shade = NewCGui.backgroundShade
+        }
     }
 
     protected val outlineRect = outline {
-        rectangle = this@Window.rect
-        setColor(NewCGui.outlineColor)
+        onUpdate {
+            rectangle = this@Window.rect
+            setColor(NewCGui.outlineColor)
 
-        roundRadius = NewCGui.roundRadius
-        glowRadius = NewCGui.outlineWidth * NewCGui.outline.toInt().toDouble()
+            roundRadius = NewCGui.roundRadius
+            glowRadius = NewCGui.outlineWidth * NewCGui.outline.toInt().toDouble()
 
-        shade = NewCGui.outlineShade
+            shade = NewCGui.outlineShade
+        }
     }
 
     // Position
@@ -148,10 +154,6 @@ open class Window(
                 minimizing == Minimizing.Relative -> targetHeight
                 else -> 1.0
             }
-        }
-
-        onHide {
-            cursorController.reset()
         }
 
         onTick {

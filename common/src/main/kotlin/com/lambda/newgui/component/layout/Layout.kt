@@ -77,7 +77,7 @@ open class Layout(
         get() = Vec2d(width, height)
         set(value) { width = value.x; height = value.y }
 
-    val leftTop get() = position
+    val leftTop get() = renderPosition
     val rightTop get() = Vec2d(renderPositionX + renderWidth, renderPositionY)
     val rightBottom get() = Vec2d(renderPositionX + renderWidth, renderPositionY + renderHeight)
     val leftBottom get() = Vec2d(renderPositionX, renderPositionY + renderHeight)
@@ -436,10 +436,10 @@ open class Layout(
          * Use it to set the mouse cursor type for various conditions: hovering, resizing, typing etc...
          */
         @UIBuilder
-        @Suppress("UNUSED_EXPRESSION")
         fun Layout.cursorController(): Mouse.CursorController {
-            this // hack ide to let me make this ui-related only
-            return Mouse.CursorController()
+            val con = Mouse.CursorController()
+            onHide { con.reset() }
+            return con
         }
     }
 }

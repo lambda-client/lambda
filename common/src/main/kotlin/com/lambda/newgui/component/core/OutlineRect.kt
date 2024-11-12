@@ -42,6 +42,8 @@ class OutlineRect(
     }
 
     init {
+        properties.interactionPassthrough = true
+
         onRender {
             updateActions.forEach { action ->
                 action(this@OutlineRect)
@@ -73,8 +75,6 @@ class OutlineRect(
          */
         @UIBuilder
         fun Layout.outline(block: OutlineRect.() -> Unit = {}) =
-            OutlineRect(this).apply(children::add).apply {
-                updateActions += block
-            }
+            OutlineRect(this).apply(children::add).apply(block)
     }
 }

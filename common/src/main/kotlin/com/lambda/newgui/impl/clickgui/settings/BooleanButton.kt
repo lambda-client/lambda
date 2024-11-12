@@ -18,19 +18,57 @@
 package com.lambda.newgui.impl.clickgui.settings
 
 import com.lambda.config.settings.comparable.BooleanSetting
+import com.lambda.graphics.animation.Animation.Companion.exp
+import com.lambda.module.modules.client.NewCGui
+import com.lambda.newgui.component.core.FilledRect.Companion.rect
 import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.newgui.component.layout.Layout
 import com.lambda.newgui.impl.clickgui.SettingLayout
 import com.lambda.util.Mouse
+import com.lambda.util.math.Rect
+import com.lambda.util.math.Vec2d
+import com.lambda.util.math.lerp
+import com.lambda.util.math.setAlpha
+import java.awt.Color
 
 class BooleanButton(
     owner: Layout,
     setting: BooleanSetting
 ) : SettingLayout<Boolean, BooleanSetting>(owner, setting) {
+    private var activeAnimation by animation.exp(0.0, 1.0, 0.6, ::settingValue)
+
     init {
-        titleBar.onMouseClick { button, action ->
-            if (button == Mouse.Button.Left && action == Mouse.Action.Click) {
-                setting.value = !setting.value
+        val checkBox = rect { // Checkbox
+            val shrink = 2.0
+            setRadius(100.0)
+
+            onUpdate {
+                val rb = this@BooleanButton.rightBottom
+                val h = this@BooleanButton.renderHeight
+
+                rectangle = Rect(rb - Vec2d(h * 1.65, h), rb)
+                    .shrink(shrink) + Vec2d.LEFT * (NewCGui.fontOffset - shrink)
+
+                setColor(Color.BLACK.setAlpha(0.25))
+                shade = NewCGui.backgroundShade
+            }
+
+            onMouseClick { button, action ->
+                if (button == Mouse.Button.Left && action == Mouse.Action.Click) {
+                    setting.value = !setting.value
+                }
+            }
+        }
+
+        rect { // Knob
+            setRadius(100.0)
+
+            onUpdate {
+                val knobStart = Rect.basedOn(checkBox.leftTop, Vec2d.ONE * checkBox.renderHeight)
+                val knobEnd = Rect(checkBox.rightBottom -  checkBox.renderHeight, checkBox.rightBottom)
+                rectangle = lerp(activeAnimation, knobStart, knobEnd).shrink(1.0)
+                shade = NewCGui.backgroundShade
+                setColor(Color.WHITE.setAlpha(0.25))
             }
         }
     }

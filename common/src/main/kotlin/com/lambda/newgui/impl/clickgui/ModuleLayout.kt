@@ -17,20 +17,19 @@
 
 package com.lambda.newgui.impl.clickgui
 
-import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.Module
 import com.lambda.module.modules.client.NewCGui
 import com.lambda.newgui.GuiManager.layoutOf
 import com.lambda.newgui.component.HAlign
 import com.lambda.newgui.component.core.FilledRect
+import com.lambda.newgui.component.core.FilledRect.Companion.rect
 import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.newgui.component.layout.Layout
 import com.lambda.newgui.component.window.Window
-import com.lambda.newgui.impl.clickgui.settings.BooleanButton.Companion.booleanSetting
 import com.lambda.util.Mouse
-import com.lambda.util.math.Vec2d
-import com.lambda.util.math.lerp
+import com.lambda.util.math.*
+import java.awt.Color
 
 class ModuleLayout(
     owner: Layout,
@@ -47,6 +46,7 @@ class ModuleLayout(
     private val cursorController = cursorController()
 
     private var enableAnimation by animation.exp(0.0, 1.0, 0.6, module::isEnabled)
+    private var openAnimation by animation.exp(1.0, 0.0, 0.6, ::minimized)
 
     // Could be true only if owner is ModuleWindow
     var isLast = false
@@ -68,6 +68,8 @@ class ModuleLayout(
                 }
             }
 
+            overrideHeight(NewCGui::moduleHeight)
+
             onMouseClick { button, action ->
                 if (button == Mouse.Button.Left && action == Mouse.Action.Click) {
                     module.toggle()
@@ -75,12 +77,25 @@ class ModuleLayout(
             }
         }
 
-        onShow {
-            enableAnimation = 0.0
+        rect { // Separator
+            onUpdate {
+                val vec = Vec2d(
+                    lerp(openAnimation, titleBar.renderWidth * 0.5, NewCGui.fontOffset * 0.5),
+                    -0.25
+                )
+
+                rectangle = Rect(
+                    pos1 = titleBar.leftBottom + vec,
+                    pos2 = titleBar.rightBottom - vec
+                )
+
+                setColor(lerp(enableAnimation, Color.WHITE, Color.BLACK).setAlpha(0.2 * openAnimation))
+                shade = NewCGui.outlineShade
+            }
         }
 
-        onHide {
-            cursorController.reset()
+        onShow {
+            enableAnimation = 0.0
         }
 
         titleBarRect.onUpdate {

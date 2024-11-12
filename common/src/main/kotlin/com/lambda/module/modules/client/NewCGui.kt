@@ -35,7 +35,8 @@ object NewCGui : Module(
     defaultTags = setOf(ModuleTag.CLIENT)
 ) {
     val titleBarHeight by setting("Title Bar Height", 18.0, 10.0..25.0, 0.1)
-    val settingsHeight by setting("Settings Height", 16.0, 10.0..25.0, 0.1)
+    val moduleHeight by setting("Module Height", 18.0, 10.0..25.0, 0.1)
+    val settingsHeight by setting("Settings Height", 14.0, 10.0..25.0, 0.1)
     val padding by setting("Padding", 2.0, 1.0..6.0, 0.1)
     val listStep by setting("List Step", 2.0, 0.0..6.0, 0.1)
     val autoResize by setting("Auto Resize", false)
@@ -59,7 +60,12 @@ object NewCGui : Module(
     val moduleDisabledColor by setting("Module Disabled Color", Color.WHITE.setAlpha(0.05))
 
     private val SCREEN get() = gui("New Click Gui") {
-
+        rect {
+            onUpdate {
+                rectangle = owner!!.rect
+                setColor(backgroundTint)
+            }
+        }
 
         val tags = ModuleTag.defaults
         val modules = ModuleRegistry.modules

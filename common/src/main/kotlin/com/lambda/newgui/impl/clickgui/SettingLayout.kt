@@ -29,7 +29,7 @@ import com.lambda.util.math.Vec2d
  */
 abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
     owner: Layout,
-    setting: T,
+    val setting: T,
     expandable: Boolean = false
 ) : Window( // going to use window to easily implement expandable settings (such as color picker)
     owner,
@@ -41,8 +41,14 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
     AutoResize.ForceEnabled,
     true
 ) {
+    protected val animation = animationTicker()
+    protected val cursorController = cursorController()
+
+    var settingValue by setting
+
     init {
-        overrideSize(owner::renderWidth, NewCGui::settingsHeight)
+        overrideWidth(owner::renderWidth)
+        titleBar.overrideHeight(NewCGui::settingsHeight)
         minimized = true
 
         with(titleBar.textField) {

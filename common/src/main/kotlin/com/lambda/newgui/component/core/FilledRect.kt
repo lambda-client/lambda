@@ -45,10 +45,16 @@ class FilledRect(
     }
 
     init {
+        properties.interactionPassthrough = true
+
         onRender {
             updateActions.forEach { action ->
                 action(this@FilledRect)
             }
+
+            // make it pressable
+            position = rectangle.leftTop
+            size = rectangle.size
 
             filled.build(
                 rectangle,
@@ -79,14 +85,26 @@ class FilledRect(
         leftBottomColor = color
     }
 
+    fun setColorH(colorL: Color, colorR: Color) {
+        leftTopColor = colorL
+        rightTopColor = colorR
+        rightBottomColor = colorR
+        leftBottomColor = colorL
+    }
+
+    fun setColorV(colorT: Color, colorB: Color) {
+        leftTopColor = colorT
+        rightTopColor = colorT
+        rightBottomColor = colorB
+        leftBottomColor = colorB
+    }
+
     companion object {
         /**
          * Creates a [FilledRect] component - layout-based rect representation
          */
         @UIBuilder
         fun Layout.rect(block: FilledRect.() -> Unit = {}) =
-            FilledRect(this).apply(children::add).apply {
-                updateActions += block
-            }
+            FilledRect(this).apply(children::add).apply(block)
     }
 }
