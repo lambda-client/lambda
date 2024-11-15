@@ -18,8 +18,6 @@
 package com.lambda.gui.api
 
 import com.lambda.graphics.renderer.gui.font.FontRenderer
-import com.lambda.graphics.renderer.gui.font.LambdaEmoji
-import com.lambda.graphics.renderer.gui.font.LambdaFont
 import com.lambda.graphics.renderer.gui.rect.FilledRectRenderer
 import com.lambda.graphics.renderer.gui.rect.OutlineRectRenderer
 import com.lambda.threading.mainThread
@@ -28,19 +26,10 @@ class RenderLayer {
     val filled by mainThread(::FilledRectRenderer)
     val outline by mainThread(::OutlineRectRenderer)
 
-    val font by mainThread {
-        FontRenderer(
-            LambdaFont.FiraSansRegular,
-            LambdaEmoji.Twemoji,
-        )
-    }
-
-    private val boldFont0 = lazy {
-        FontRenderer(
-            LambdaFont.FiraSansBold,
-            LambdaEmoji.Twemoji,
-        )
-    }
+    // TODO: CHANGE BOTH OF THESE!!!!
+    // I do NOT want to see 110 vbos
+    val font by mainThread { FontRenderer() }
+    private val boldFont0 = lazy { FontRenderer() }
 
     val boldFont by boldFont0
 

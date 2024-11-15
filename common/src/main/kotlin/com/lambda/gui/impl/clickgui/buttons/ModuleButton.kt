@@ -24,6 +24,7 @@ import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.config.settings.complex.KeyBindSetting
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.gl.Scissor.scissor
+import com.lambda.graphics.renderer.gui.font.FontRenderer
 import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.RenderLayer
 import com.lambda.gui.api.component.WindowComponent
@@ -112,8 +113,6 @@ class ModuleButton(
 
             is GuiEvent.Render -> {
                 super.onEvent(e)
-
-                settingsRenderer.font.scaleMultiplier = ClickGui.settingsFontScale
 
                 // Shadow
                 renderer.filled.apply {

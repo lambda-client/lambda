@@ -43,6 +43,7 @@ class EmojiGlyphs(zipUrl: String) {
     private lateinit var graphics: Graphics2D
 
     val count get() = emojiMap.size
+    val keys get() = emojiMap.keys
 
     init {
         runCatching {
@@ -82,7 +83,7 @@ class EmojiGlyphs(zipUrl: String) {
 
             image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
             graphics = image.graphics as Graphics2D
-            graphics.color = Color(0, 0, 0, 0)
+            graphics.background = Color(0, 0, 0, 0)
 
             var x = 0
             var y = 0

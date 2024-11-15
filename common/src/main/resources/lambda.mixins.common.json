@@ -11,6 +11,7 @@
     "entity.ClientPlayerEntityMixin",
     "entity.ClientPlayInteractionManagerMixin",
     "entity.EntityMixin",
+    "entity.FireworkRocketEntityMixin",
     "entity.LivingEntityMixin",
     "entity.PlayerEntityMixin",
     "input.KeyBindingMixin",
@@ -39,12 +40,12 @@
     "render.RenderTickCounterMixin",
     "render.ScreenHandlerMixin",
     "render.SplashOverlayMixin",
+    "render.TextRendererMixin",
     "render.VertexBufferMixin",
     "render.WorldRendererMixin",
     "world.BlockCollisionSpliteratorMixin",
     "world.ClientChunkManagerMixin",
-    "world.ClientWorldMixin",
-    "entity.FireworkRocketEntityMixin"
+    "world.ClientWorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1
