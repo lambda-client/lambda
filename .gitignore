@@ -16,6 +16,8 @@ build/
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
+.kotlin/
+java_pid*.hprof
 
 ### Eclipse ###
 .apt_generated
@@ -48,3 +50,7 @@ logs/
 
 ### Architectury ###
 .architectury-transformer/
+
+### Kotlin ###
+*.kotlin_module
+.kotlin/

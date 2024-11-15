@@ -1,14 +1,28 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.combat
 
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.concurrentListener
-import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.world.WorldUtils.getClosestEntity
-import net.minecraft.entity.LivingEntity
 import net.minecraft.util.Hand
 
 object CrystalAura : Module(
@@ -56,9 +70,5 @@ object CrystalAura : Module(
         /*listener<RotationEvent.Pre> { event ->
             event.lookAtEntity(rotation, interac, getClosestEntity<LivingEntity>(player.eyePos, placeRange) ?: return@listener)
         }*/
-
-        listener<TickEvent.Pre> {
-            getClosestEntity<LivingEntity>(player.eyePos, 64.0)
-        }
     }
 }

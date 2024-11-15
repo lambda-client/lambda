@@ -1,9 +1,31 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.combat
 
+import com.lambda.context.SafeContext
+import com.lambda.http.Method
+import com.lambda.http.request
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafeConcurrent
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.network.OtherClientPlayerEntity
+import net.minecraft.client.network.PlayerListEntry
 import net.minecraft.entity.Entity
 import java.util.*
 
@@ -14,23 +36,50 @@ object FakePlayer : Module(
 ) {
     private val playerName by setting("Name", "Steve")
 
-    private val uuid = UUID.fromString("41C82C87-7AfB-4024-BA57-13D2C99CAE77")
     private var fakePlayer: OtherClientPlayerEntity? = null
 
     init {
         onEnable {
-            fakePlayer = OtherClientPlayerEntity(world, GameProfile(uuid, playerName))
-                .apply {
-                    copyFrom(player)
+            // Avoid multiple api requests
+            if (fakePlayer?.gameProfile?.name == playerName)
+                return@onEnable spawnPlayer(fakePlayer!!.gameProfile)
 
-                    id = -2024 - 4 - 20
+            runSafeConcurrent {
+                val uuid =
+                    request("https://api.mojang.com/users/profiles/minecraft/$playerName") {
+                        method(Method.GET)
+                    }.json<GameProfile>().data?.id ?: UUID(0, 0)
+
+                val fetchedProperties = mc.sessionService.fetchProfile(uuid, true)?.profile?.properties
+
+                val profile = GameProfile(UUID(0, 0), playerName).apply {
+                    fetchedProperties?.forEach { key, value -> properties.put(key, value) }
                 }
 
-            world.addEntity(fakePlayer)
+                // This is the cache that mc pulls profile data from when it fetches skins.
+                mc.networkHandler?.playerListEntries?.put(profile.id, PlayerListEntry(profile, false))
+                spawnPlayer(profile)
+            }
         }
 
         onDisable {
-            fakePlayer?.setRemoved(Entity.RemovalReason.DISCARDED)
+            deletePlayer()
         }
+    }
+
+    private fun SafeContext.spawnPlayer(profile: GameProfile) {
+        fakePlayer = OtherClientPlayerEntity(world, profile)
+            .apply {
+                copyFrom(player)
+
+                playerListEntry = PlayerListEntry(profile, false)
+                id = -2024 - 4 - 20
+            }
+
+        world.addEntity(fakePlayer)
+    }
+
+    private fun deletePlayer() {
+        fakePlayer?.setRemoved(Entity.RemovalReason.DISCARDED)
     }
 }

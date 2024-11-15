@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.gui.impl.clickgui.buttons.setting
 
 import com.lambda.config.settings.comparable.BooleanSetting
@@ -10,18 +27,18 @@ import com.lambda.module.modules.client.GuiSettings
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.util.Mouse
-import com.lambda.util.math.ColorUtils.multAlpha
-import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Rect.Companion.inv
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.lerp
+import com.lambda.util.math.multAlpha
 
 class BooleanButton(
     setting: BooleanSetting,
     owner: ChildLayer.Drawable<SettingButton<*, *>, ModuleButton>,
 ) : SettingButton<Boolean, BooleanSetting>(setting, owner) {
     private var active by animation.exp(0.0, 1.0, 0.6, ::value)
-    private val zoomAnimation get() = lerp(2.0, 0.0, showAnimation)
+    private val zoomAnimation get() = lerp(showAnimation, 2.0, 0.0)
 
     private val checkboxRect
         get() = Rect(rect.rightTop - Vec2d(rect.size.y * 1.65, 0.0), rect.rightBottom)
@@ -30,7 +47,7 @@ class BooleanButton(
 
     private val knobStart get() = Rect.basedOn(checkboxRect.leftTop, Vec2d.ONE * checkboxRect.size.y)
     private val knobEnd get() = Rect.basedOn(checkboxRect.rightBottom, Vec2d.ONE * checkboxRect.size.y * -1.0).inv()
-    private val checkboxKnob get() = lerp(knobStart, knobEnd, active).shrink(1.0 + zoomAnimation + interactAnimation)
+    private val checkboxKnob get() = lerp(active, knobStart, knobEnd).shrink(1.0 + zoomAnimation + interactAnimation)
 
     override fun onEvent(e: GuiEvent) {
         super.onEvent(e)

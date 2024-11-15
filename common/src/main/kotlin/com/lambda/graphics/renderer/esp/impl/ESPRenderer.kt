@@ -1,30 +1,43 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.graphics.renderer.esp.impl
 
 import com.lambda.Lambda.mc
-import com.lambda.graphics.buffer.vao.VAO
-import com.lambda.graphics.buffer.vao.vertex.BufferUsage
-import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
-import com.lambda.graphics.buffer.vao.vertex.VertexMode
+import com.lambda.graphics.buffer.VertexPipeline
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.gl.GlStateUtils.withFaceCulling
 import com.lambda.graphics.gl.GlStateUtils.withLineWidth
 import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.RenderSettings
-import com.lambda.util.primitives.extension.partialTicks
+import com.lambda.util.extension.partialTicks
 
-abstract class ESPRenderer(
-    usage: BufferUsage,
-    tickedMode: Boolean
-) {
+abstract class ESPRenderer(tickedMode: Boolean) {
     val shader: Shader
-    val faces: VAO
-    val outlines: VAO
+    val faces: VertexPipeline
+    val outlines: VertexPipeline
 
     init {
         val mode = if (tickedMode) dynamicMode else staticMode
 
         shader = mode.first
-        faces = VAO(VertexMode.TRIANGLES, mode.second, usage)
-        outlines = VAO(VertexMode.LINES, mode.second, usage)
+        faces = VertexPipeline(VertexMode.TRIANGLES, mode.second)
+        outlines = VertexPipeline(VertexMode.LINES, mode.second)
     }
 
     open fun upload() {

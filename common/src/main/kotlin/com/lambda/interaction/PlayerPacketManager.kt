@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.interaction
 
 import com.lambda.context.SafeContext
@@ -5,20 +22,28 @@ import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.EventFlow.postChecked
 import com.lambda.event.events.PlayerPacketEvent
-import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
+import com.lambda.interaction.rotation.Rotation
 import com.lambda.threading.runSafe
 import com.lambda.util.collections.LimitedOrderedSet
 import com.lambda.util.math.VecUtils.approximate
 import com.lambda.util.player.MovementUtils.motionX
 import com.lambda.util.player.MovementUtils.motionZ
-import com.lambda.util.primitives.extension.component1
-import com.lambda.util.primitives.extension.component2
-import com.lambda.util.primitives.extension.component3
+import com.lambda.util.extension.component1
+import com.lambda.util.extension.component2
+import com.lambda.util.extension.component3
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.*
+import net.minecraft.util.math.Vec3d
 
 object PlayerPacketManager : Loadable {
     val configurations = LimitedOrderedSet<PlayerPacketEvent.Pre>(100)
+
+    var lastPosition = Vec3d.ZERO
+    var lastRotation = Rotation.ZERO
+    var lastSprint = false
+    var lastSneak = false
+    var lastOnGround = false
+
     private var sendTicks = 0
 
     @JvmStatic
@@ -37,11 +62,10 @@ object PlayerPacketManager : Loadable {
     }
 
     private fun SafeContext.updatePlayerPackets(new: PlayerPacketEvent.Pre) {
-        val previous = configurations.lastOrNull() ?: new
         configurations.add(new)
 
-        reportSprint(previous, new)
-        reportSneak(previous, new)
+        reportSprint(lastSprint, new.isSprinting)
+        reportSneak(lastSneak, new.isSneaking)
 
         if (mc.cameraEntity != player) return
 
@@ -64,9 +88,9 @@ object PlayerPacketManager : Loadable {
             return
         }
 
-        val updatePosition = position.approximate(previous.position, 2.0E-4) || ++sendTicks >= 20
+        val updatePosition = position.approximate(lastPosition, 2.0E-4) || ++sendTicks >= 20
         // has to be different in float precision
-        val updateRotation = !rotation.equalFloat(previous.rotation)
+        val updateRotation = !rotation.equalFloat(lastRotation)
 
         val (x, y, z) = position
 
@@ -83,46 +107,57 @@ object PlayerPacketManager : Loadable {
                 LookAndOnGround(yaw, pitch, onGround)
             }
 
-            previous.onGround != onGround -> {
+            lastOnGround != onGround -> {
                 OnGroundOnly(onGround)
             }
 
             else -> null
         }
 
-        if (updatePosition) {
-            sendTicks = 0
-        }
-
         packet?.let {
-            PlayerPacketEvent.Post(it).postChecked {
+            PlayerPacketEvent.Send(it).postChecked {
                 connection.sendPacket(this.packet)
+
+                if (updatePosition) {
+                    sendTicks = 0
+                    lastPosition = position
+                }
+
+                if (updateRotation) {
+                    lastRotation = rotation
+                }
+
+                lastOnGround = onGround
             }
         }
+
+        PlayerPacketEvent.Post().post()
     }
 
-    private fun SafeContext.reportSprint(previous: PlayerPacketEvent.Pre, new: PlayerPacketEvent.Pre) {
-        if (previous.isSprinting == new.isSprinting) return
+    fun SafeContext.reportSprint(previous: Boolean, new: Boolean) {
+        if (previous == new) return
 
-        val state = if (new.isSprinting) {
+        val state = if (new) {
             ClientCommandC2SPacket.Mode.START_SPRINTING
         } else {
             ClientCommandC2SPacket.Mode.STOP_SPRINTING
         }
 
         connection.sendPacket(ClientCommandC2SPacket(player, state))
+        lastSprint = new
     }
 
-    private fun SafeContext.reportSneak(previous: PlayerPacketEvent.Pre, new: PlayerPacketEvent.Pre) {
-        if (previous.isSneaking == new.isSneaking) return
+    fun SafeContext.reportSneak(previous: Boolean, new: Boolean) {
+        if (previous == new) return
 
-        val state = if (new.isSneaking) {
+        val state = if (new) {
             ClientCommandC2SPacket.Mode.PRESS_SHIFT_KEY
         } else {
             ClientCommandC2SPacket.Mode.RELEASE_SHIFT_KEY
         }
 
         connection.sendPacket(ClientCommandC2SPacket(player, state))
+        lastSneak = new
     }
 }
 

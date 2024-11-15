@@ -1,9 +1,26 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.graphics.buffer
+
 import com.lambda.Lambda.mc
 import com.lambda.graphics.RenderMain
-import com.lambda.graphics.buffer.vao.VAO
-import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
-import com.lambda.graphics.buffer.vao.vertex.VertexMode
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.gl.GlStateUtils.withBlendFunc
 import com.lambda.graphics.shader.Shader
 import com.lambda.graphics.texture.TextureUtils.bindTexture
@@ -49,7 +66,7 @@ class FrameBuffer(private val depth: Boolean = false) {
         shader.use()
         shaderBlock(shader)
 
-        vao.use {
+        pipeline.use {
             grow(4)
 
             val uv1 = pos1 / RenderMain.screenSize
@@ -64,9 +81,9 @@ class FrameBuffer(private val depth: Boolean = false) {
         }
 
         withBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA) {
-            vao.upload()
-            vao.render()
-            vao.clear()
+            pipeline.upload()
+            pipeline.render()
+            pipeline.clear()
         }
 
         return this
@@ -100,7 +117,17 @@ class FrameBuffer(private val depth: Boolean = false) {
 
             if (depth) {
                 setupBufferTexture(depthAttachment)
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, null as IntBuffer?)
+                glTexImage2D(
+                    GL_TEXTURE_2D,          // Target
+                    0,                      // LOD Level
+                    GL_DEPTH_COMPONENT32F,  // Internal Format
+                    width,                  // Width
+                    height,                 // Height
+                    0,                      // Border (must be zero)
+                    GL_DEPTH_COMPONENT,     // Format
+                    GL_FLOAT,               // Type
+                    null as IntBuffer?      // Pointer to data
+                )
                 glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthAttachment, 0)
             }
 
@@ -121,7 +148,7 @@ class FrameBuffer(private val depth: Boolean = false) {
     }
 
     companion object {
-        private val vao = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.POS_UV)
+        private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.POS_UV)
         private var lastFrameBuffer: Int? = null
     }
 }

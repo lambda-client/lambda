@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.gui.api.component
 
 import com.lambda.graphics.animation.Animation.Companion.exp
@@ -12,12 +29,12 @@ import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.GuiSettings.primaryColor
 import com.lambda.util.Mouse
-import com.lambda.util.math.ColorUtils.multAlpha
-import com.lambda.util.math.ColorUtils.setAlpha
-import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.lerp
+import com.lambda.util.math.multAlpha
+import com.lambda.util.math.setAlpha
 import java.awt.Color
 import kotlin.math.abs
 
@@ -64,7 +81,7 @@ abstract class WindowComponent<T : ChildComponent>(
     private val animation = gui.animation
 
     private val showAnimation by animation.exp(0.0, 1.0, 0.6, ::isOpen)
-    override val childShowAnimation get() = lerp(0.0, showAnimation, gui.childShowAnimation)
+    override val childShowAnimation get() = lerp(gui.childShowAnimation, 0.0, showAnimation)
 
     private val actualHeight get() = height + padding * 2 * isOpen.toInt()
     private var renderHeightAnimation by animation.exp({ 0.0 }, ::actualHeight, 0.6, ::isOpen)

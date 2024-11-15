@@ -1,9 +1,26 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.graphics.renderer.gui.rect
 
-import com.lambda.graphics.buffer.vao.IRenderContext
-import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
+import com.lambda.graphics.buffer.IRenderContext
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.shader.Shader
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Rect
@@ -36,7 +53,7 @@ class OutlineRectRenderer : AbstractRectRenderer(
         rightBottom: Color = Color.WHITE,
         leftBottom: Color = Color.WHITE,
         shade: Boolean = false,
-    ) = vao.use {
+    ) = pipeline.use {
         if (glowRadius < 1) return@use
 
         grow(verticesCount * 3)
@@ -53,7 +70,7 @@ class OutlineRectRenderer : AbstractRectRenderer(
                 val min = angleRange.first.toDouble()
                 val max = angleRange.last.toDouble()
                 val p = it.toDouble() / quality
-                val angle = lerp(min, max, p).toRadian()
+                val angle = lerp(p, min, max).toRadian()
 
                 val pos = base + Vec2d(cos(angle), -sin(angle)) * round
                 val s = shade.toInt().toDouble()

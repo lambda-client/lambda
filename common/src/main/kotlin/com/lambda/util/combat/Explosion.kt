@@ -1,15 +1,39 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+@file:OptIn(InternalApi::class)
+
 package com.lambda.util.combat
 
 import com.lambda.context.SafeContext
+import com.lambda.core.annotations.InternalApi
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.fluidState
+import com.lambda.util.math.VecUtils.dist
 import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.math.VecUtils.times
-import com.lambda.util.world.WorldUtils.getFastEntities
+import com.lambda.util.math.VecUtils.vec3d
+import com.lambda.util.world.WorldUtils.internalGetFastEntities
+import com.lambda.util.world.toFastVec
 import net.minecraft.enchantment.ProtectionEnchantment
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.Vec3i
 import net.minecraft.world.explosion.Explosion
 import kotlin.math.max
 
@@ -30,8 +54,18 @@ object Explosion {
      * @param power The strength of the explosion above 0.
      * @return The damage dealt by the explosion.
      */
+    fun SafeContext.explosionDamage(position: Vec3i, entity: LivingEntity, power: Double): Double =
+        explosionDamage(position.vec3d, entity, power)
+
+    /**
+     * Calculates the damage dealt by an explosion to a living entity.
+     * @param position The position of the explosion.
+     * @param entity The entity to calculate the damage for.
+     * @param power The strength of the explosion above 0.
+     * @return The damage dealt by the explosion.
+     */
     fun SafeContext.explosionDamage(position: Vec3d, entity: LivingEntity, power: Double): Double {
-        val distance = entity.pos.distanceTo(position)
+        val distance = entity dist position
 
         val impact = (1.0 - distance / (power * 2.0)) *
                 Explosion.getExposure(position, entity) *
@@ -51,7 +85,7 @@ object Explosion {
      */
     fun SafeContext.explosionVelocity(explosion: Explosion): Map<LivingEntity, Vec3d> {
         val ref = ArrayList<LivingEntity>()
-        getFastEntities(explosion.position, explosion.power * 2.0, ref)
+        internalGetFastEntities(explosion.position.toFastVec(), explosion.power * 2.0, ref)
         return ref.associateWith { entity -> explosionVelocity(entity, explosion) }
     }
 
@@ -115,7 +149,14 @@ object Explosion {
                             val resistance = max(block.block.blastResistance, fluid.blastResistance)
                             intensity -= (resistance + 0.3) * 0.3
 
-                            if (intensity > 0 && source.behavior.canDestroyBlock(source, world, blockPos, block, intensity.toFloat())) {
+                            if (intensity > 0 && source.behavior.canDestroyBlock(
+                                    source,
+                                    world,
+                                    blockPos,
+                                    block,
+                                    intensity.toFloat()
+                                )
+                            ) {
                                 affected.add(Vec3d(explosionX, explosionY, explosionZ))
                             }
 

@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.gui.impl
 
 import com.lambda.Lambda.mc
@@ -10,26 +27,23 @@ import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.LambdaGui
 import com.lambda.gui.api.component.WindowComponent
 import com.lambda.gui.api.component.core.list.ChildLayer
-import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.gui.impl.clickgui.buttons.SettingButton
 import com.lambda.gui.impl.clickgui.windows.ModuleWindow
 import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
 import com.lambda.gui.impl.clickgui.windows.tag.TagWindow
-import com.lambda.gui.impl.hudgui.LambdaHudGui
 import com.lambda.module.Module
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.Mouse
-import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
-import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KMutableProperty0
 
 abstract class AbstractClickGui(name: String, owner: Module? = null) : LambdaGui(name, owner) {
     protected var hoveredWindow: WindowComponent<*>? = null
     protected var closing = false
 
-    final override var childShowAnimation by animation.exp(0.0, 1.0, {
-        if (closing) ClickGui.closeSpeed else ClickGui.openSpeed
-    }) { !closing }; private set
+    final override var childShowAnimation by animation.exp(
+        0.0, 1.0,
+        { if (closing) ClickGui.closeSpeed else ClickGui.openSpeed }
+    ) { !closing }; private set
 
     val windows = ChildLayer<WindowComponent<*>, AbstractClickGui>(this, this, ::rect) { child ->
         child == hoveredWindow && !closing
@@ -85,7 +99,7 @@ abstract class AbstractClickGui(name: String, owner: Module? = null) : LambdaGui
 
             is GuiEvent.MouseMove -> {
                 hoveredWindow = windows.children.lastOrNull { child ->
-                   e.mouse in child.rect
+                    e.mouse in child.rect
                 }
             }
         }

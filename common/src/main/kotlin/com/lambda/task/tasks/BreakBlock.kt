@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
@@ -14,11 +31,10 @@ import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.SlotUtils.clickSlot
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
-import com.lambda.util.primitives.extension.inventorySlots
-import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.BlockState
 import net.minecraft.entity.ItemEntity
 import net.minecraft.screen.slot.SlotActionType
@@ -27,41 +43,51 @@ import net.minecraft.util.math.Direction
 
 class BreakBlock @Ta5kBuilder constructor(
     private val ctx: BreakContext,
-    private val rotationConfig: IRotationConfig,
-    private val interactionConfig: InteractionConfig,
+    private val rotation: IRotationConfig,
+    private val interact: InteractionConfig,
     private val sides: Set<Direction>,
     private val collectDrop: Boolean,
     private val rotate: Boolean,
     private val swingHand: Boolean,
 ) : Task<ItemEntity?>() {
     val blockPos: BlockPos get() = ctx.result.blockPos
+
     private var beginState: BlockState? = null
-    val SafeContext.state: BlockState get() = blockPos.blockState(world)
-    override var cooldown = Int.MAX_VALUE
-        get() = maxOf(TaskFlow.build.breakCoolDown, TaskFlow.taskCooldown)
-        set(value) = run { field = value }
+    val SafeContext.blockState: BlockState
+        get() = blockPos.blockState(world)
+
     private var drop: ItemEntity? = null
+    private var state = State.BREAKING
+    private var isValid = false
+
+    enum class State {
+        BREAKING, COLLECTING
+    }
 
     override fun SafeContext.onStart() {
-        if (state.isAir && !collectDrop) {
+        if (done()) {
             success(null)
             return
         }
-        beginState = state
+        beginState = blockState
+
+        if (!rotate || ctx.instantBreak) {
+            breakBlock(ctx.result.side)
+        }
     }
 
     init {
         listener<RotationEvent.Update> { event ->
-            if (!rotate) return@listener
-            event.context = lookAtBlock(blockPos, rotationConfig, interactionConfig, sides)
+            if (state != State.BREAKING) return@listener
+            if (!rotate || ctx.instantBreak) return@listener
+            event.context = lookAtBlock(blockPos, rotation, interact, sides)
         }
 
         listener<RotationEvent.Post> {
-            if (!rotate) return@listener
-            if (!it.context.isValid) return@listener
-            val hitResult = it.context.hitResult?.blockResult ?: return@listener
+            if (state != State.BREAKING) return@listener
+            if (!rotate || ctx.instantBreak) return@listener
 
-            breakBlock(hitResult.side)
+            isValid = it.context.isValid
         }
 
         listener<TickEvent.Pre> {
@@ -80,32 +106,32 @@ class BreakBlock @Ta5kBuilder constructor(
                 }
 
                 BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
+            } ?: BaritoneUtils.cancel()
+
+            if (isValid || !rotate || ctx.instantBreak) {
+                breakBlock(ctx.result.side)
             }
 
-            if (finish()) {
-                success(null)
-                return@listener
+            if (done()) {
+                state = State.COLLECTING
+                if (!collectDrop) {
+                    success(null)
+                }
             }
-
-            if (rotate) return@listener
-
-            breakBlock(ctx.result.side)
-            if (finish()) success(null)
         }
 
-        listener<WorldEvent.EntitySpawn> {
+        listener<WorldEvent.EntityUpdate> {
             if (collectDrop
-                && drop == null
                 && it.entity is ItemEntity
-                && it.entity.pos.isInRange(blockPos.toCenterPos(), 1.0)
-//                && it.entity.stack.item == beginState?.block?.item // ToDo: The item entities are all air??
+                && it.entity.pos.isInRange(blockPos.toCenterPos(), 0.5)
+
             ) {
                 drop = it.entity
             }
         }
     }
 
-    private fun SafeContext.finish() = state.isAir && !collectDrop
+    private fun SafeContext.done() = blockState.isAir && !collectDrop
 
     private fun SafeContext.breakBlock(side: Direction) {
         if (interaction.updateBlockBreakingProgress(blockPos, side)) {

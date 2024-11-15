@@ -1,13 +1,31 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.event.listener
 
 import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Muteable
-import com.lambda.event.listener.SafeListener.Companion.concurrentListener
-import com.lambda.event.listener.SafeListener.Companion.listenOnce
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.util.Pointer
 import com.lambda.util.selfReference
+import kotlin.properties.ReadOnlyProperty
+import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KProperty
 
 /**
  * An [UnsafeListener] is a specialized type of [Listener] that operates without a [SafeContext].
@@ -19,25 +37,41 @@ import com.lambda.util.selfReference
  * The [UnsafeListener] class is used to create [Listener]s that execute a given [function] without a [SafeContext].
  * This means that the [function] is executed in a context where certain safety conditions may not be met.
  *
+ * The [SafeListener] will keep a reference to the last signal processed by the listener.
+ * Allowing use cases where the last signal is needed.
+ * ```kotlin
+ * val lastPacketReceived by unsafeListener<PacketEvent.Receive.Pre>()
+ *
+ * unsafeListener<PacketEvent.Send.Pre> { event ->
+ *     println("Last packet received: ${lastPacketReceived?.packet}")
+ *     // prints the last packet received
+ *     // prints null if no packet was received
+ * }
+ * ```
+ *
  * @property priority The priority of the listener. Listeners with higher priority are executed first.
  * @property owner The owner of the listener. This is typically the object that created the listener.
  * @property alwaysListen If true, the listener will always be triggered, even if the owner is not enabled.
  * @property function The function to be executed when the event occurs. This function operates without a [SafeContext].
  */
-class UnsafeListener(
+class UnsafeListener<T : Event>(
     override val priority: Int,
     override val owner: Any,
     override val alwaysListen: Boolean = false,
-    val function: (Event) -> Unit,
-) : Listener() {
-    override fun execute(event: Event) {
-//        if (!mc.isOnThread) {
-//            LOG.warn("""
-//                    Event ${this::class.simpleName} executed outside the game thread.
-//                    This can lead to race conditions when manipulating game data.
-//                    Consider moving the execution to the game thread using runSafeOnGameThread { ... } or runOnGameThread { ... }.
-//                """.trimIndent())
-//        }
+    val function: (T) -> Unit,
+) : Listener<T>(), ReadOnlyProperty<Any?, T?> {
+    /**
+     * The last processed event signal.
+     */
+    private var lastSignal: T? = null
+
+    override fun getValue(thisRef: Any?, property: KProperty<*>): T? = lastSignal
+
+    /**
+     * Executes the actions defined by this listener when the event occurs.
+     */
+    override fun execute(event: T) {
+        lastSignal = event
         function(event)
     }
 
@@ -62,18 +96,18 @@ class UnsafeListener(
          * ```
          *
          * @param T The type of the event to listen for. This should be a subclass of Event.
-         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is 0.
-         * @param alwaysListen If true, the listener will be executed even if it is muted. The Default value is false.
+         * @param priority The priority of the listener. Listeners with higher priority will be executed first.
+         * @param alwaysListen If true, the listener will be executed even if it is muted.
          * @param function The function to be executed when the event is posted. This function should take an event of type T as a parameter.
          * @return The newly created and registered [UnsafeListener].
          */
         inline fun <reified T : Event> Any.unsafeListener(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: (T) -> Unit,
-        ): UnsafeListener {
-            val listener = UnsafeListener(priority, this, alwaysListen) { event ->
-                function(event as T)
+            noinline function: (T) -> Unit = {},
+        ): UnsafeListener<T> {
+            val listener = UnsafeListener<T>(priority, this, alwaysListen) { event ->
+                function(event)
             }
 
             EventFlow.syncListeners.subscribe<T>(listener)
@@ -86,8 +120,6 @@ class UnsafeListener(
          * The [function] is executed only once when the [Event] is dispatched.
          * This function should only be used when the [function] performs read actions on the game data.
          * For only in-game related contexts, use the [SafeListener.listenOnce] function instead.
-         * The listener will be automatically unsubscribed after the first execution.
-         * This function is useful for one-time event handling.
          *
          * Usage:
          * ```kotlin
@@ -102,31 +134,35 @@ class UnsafeListener(
          * After the [function] is executed once, the [SafeListener] will be automatically unsubscribed.
          *
          * @param T The type of the event to listen for. This should be a subclass of Event.
-         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is 0.
-         * @param alwaysListen If true, the listener will be executed even if it is muted. The Default value is false.
-         * @param function The function to be executed when the event is posted. This function should take an event of type T as a parameter.
+         * @param priority The priority of the listener. Listeners with higher priority will be executed first.
+         * @param alwaysListen If true, the listener will be executed even if it is muted.
+         * @param transform The function used to transform the event into a value.
          * @return The newly created and registered [UnsafeListener].
          */
-        inline fun <reified T : Event> Any.unsafeListenOnce(
+        inline fun <reified T : Event, reified E> Any.unsafeListenOnce(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: (T) -> Unit,
-        ): Lazy<T?> {
-            // This doesn't leak memory because the owner still has a reference to the listener
-            var value: T? = null
+            noinline transform: (T) -> E? = { null },
+            noinline predicate: (T) -> Boolean = { true },
+        ): ReadWriteProperty<Any?, E?> {
+            val pointer = Pointer<E>()
 
-            val destroyable by selfReference<UnsafeListener> {
+            val destroyable by selfReference<UnsafeListener<T>> {
                 UnsafeListener(priority, this@unsafeListenOnce, alwaysListen) { event ->
-                    function(event as T)
-                    value = event
+                    pointer.value = transform(event)
 
-                    EventFlow.syncListeners.unsubscribe(self)
+                    if (predicate(event) &&
+                        pointer.value != null
+                    ) {
+                        val self by this@selfReference
+                        EventFlow.syncListeners.unsubscribe(self)
+                    }
                 }
             }
 
             EventFlow.syncListeners.subscribe<T>(destroyable)
 
-            return lazy { value }
+            return pointer
         }
 
         /**
@@ -158,11 +194,9 @@ class UnsafeListener(
         inline fun <reified T : Event> Any.unsafeConcurrentListener(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: (T) -> Unit,
-        ): UnsafeListener {
-            val listener = UnsafeListener(priority, this, alwaysListen) { event ->
-                function(event as T)
-            }
+            noinline function: (T) -> Unit = {},
+        ): UnsafeListener<T> {
+            val listener = UnsafeListener<T>(priority, this, alwaysListen) { event -> function(event) }
 
             EventFlow.concurrentListeners.subscribe<T>(listener)
 

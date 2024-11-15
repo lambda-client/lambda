@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.movement
 
 import com.lambda.context.SafeContext
@@ -26,14 +43,18 @@ object TickShift : Module(
     private val boostAmount by setting("Boost", 3.0, 1.1..20.0, 0.01)
     private val slowdown by setting("Slowdown", 0.35, 0.01..0.9, 0.01)
     private val delaySetting by setting("Delay", 0, 0..2000, 10)
-    private val strict by setting("Strict", true)
-    private val shiftVelocity by setting("Shift velocity", true)
+    private val grim by setting("Grim", true)
+    private val strictSetting by setting("Strict", true) { !grim }
+    private val shiftVelocity by setting("Shift velocity", true) { grim }
     private val requiresAura by setting("Requires Aura", false)
 
-    val isActive: Boolean get() {
-        if (requiresAura && (!KillAura.isEnabled || KillAura.target == null)) return false
-        return System.currentTimeMillis() - lastBoost > delaySetting
-    }
+    private val strict get() = grim || strictSetting
+
+    val isActive: Boolean
+        get() {
+            if (requiresAura && (!KillAura.isEnabled || KillAura.target == null)) return false
+            return System.currentTimeMillis() - lastBoost > delaySetting
+        }
 
     private var pingPool = ArrayDeque<CommonPongC2SPacket>()
     private var lastVelocity: EntityVelocityUpdateS2CPacket? = null
@@ -90,7 +111,7 @@ object TickShift : Module(
         }
 
         listener<PacketEvent.Send.Pre> { event ->
-            if (!isActive) return@listener
+            if (!isActive || !grim || event.isCanceled()) return@listener
             if (event.packet !is CommonPongC2SPacket) return@listener
 
             pingPool.add(event.packet)
@@ -99,7 +120,7 @@ object TickShift : Module(
         }
 
         listener<PacketEvent.Receive.Pre> { event ->
-            if (!isActive || !shiftVelocity) return@listener
+            if (!isActive || !grim || !shiftVelocity || event.isCanceled()) return@listener
 
             if (event.packet !is EntityVelocityUpdateS2CPacket) return@listener
             if (event.packet.id != player.id) return@listener

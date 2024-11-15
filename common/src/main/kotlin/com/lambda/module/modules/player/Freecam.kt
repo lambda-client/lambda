@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.player
 
 import com.lambda.Lambda.mc
@@ -10,6 +27,9 @@ import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.extension.interpolate
+import com.lambda.util.extension.partialTicks
+import com.lambda.util.extension.rotation
 import com.lambda.util.math.VecUtils.plus
 import com.lambda.util.math.VecUtils.times
 import com.lambda.util.player.MovementUtils.calcMoveRad
@@ -21,9 +41,6 @@ import com.lambda.util.player.MovementUtils.newMovementInput
 import com.lambda.util.player.MovementUtils.roundedForward
 import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.verticalMovement
-import com.lambda.util.primitives.extension.interpolate
-import com.lambda.util.primitives.extension.partialTicks
-import com.lambda.util.primitives.extension.rotation
 import com.lambda.util.world.raycast.RayCastUtils.orMiss
 import com.lambda.util.world.raycast.RayCastUtils.orNull
 import net.minecraft.client.option.Perspective
@@ -46,7 +63,7 @@ object Freecam : Module(
     private var lastPerspective = Perspective.FIRST_PERSON
     private var prevPosition: Vec3d = Vec3d.ZERO
     private var position: Vec3d = Vec3d.ZERO
-    private val interpolatedPosition: Vec3d
+    private val lerpPos: Vec3d
         get() = prevPosition.interpolate(position, mc.partialTicks)
 
     private var rotation: Rotation = Rotation.ZERO
@@ -56,7 +73,7 @@ object Freecam : Module(
     fun updateCam() {
         mc.gameRenderer.apply {
             camera.setRotation(rotation.yawF, rotation.pitchF)
-            camera.setPos(interpolatedPosition.x, interpolatedPosition.y, interpolatedPosition.z)
+            camera.setPos(lerpPos.x, lerpPos.y, lerpPos.z)
         }
     }
 
@@ -122,7 +139,7 @@ object Freecam : Module(
             it.cancel()
 
             mc.crosshairTarget = rotation
-                .rayCast(reach, interpolatedPosition)
+                .rayCast(reach, lerpPos)
                 .orMiss // Can't be null (otherwise mc will spam "Null returned as 'hitResult', this shouldn't happen!")
         }
 

@@ -1,0 +1,28 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.util.extension
+
+import net.minecraft.util.math.Vec2f
+import net.minecraft.util.math.Vec3d
+
+operator fun Vec2f.component1() = this.x
+operator fun Vec2f.component2() = this.y
+operator fun Vec3d.component1() = this.x
+operator fun Vec3d.component2() = this.y
+operator fun Vec3d.component3() = this.z
+operator fun DoubleArray.component6() = this[5]

@@ -1,6 +1,22 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.util.math
 
-import com.lambda.util.math.MathUtils.lerp
 import kotlin.math.max
 import kotlin.math.min
 
@@ -16,7 +32,7 @@ data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
     val leftBottom get() = Vec2d(left, bottom)
 
     val size get() = Vec2d(right - left, bottom - top)
-    val center get() = lerp(pos1, pos2, 0.5)
+    val center get() = lerp(0.5, pos1, pos2)
 
     operator fun plus(vec2d: Vec2d) = Rect(pos1 + vec2d, pos2 + vec2d)
     operator fun minus(vec2d: Vec2d) = Rect(pos1 - vec2d, pos2 - vec2d)

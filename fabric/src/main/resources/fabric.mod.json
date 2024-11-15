@@ -27,9 +27,10 @@
   ],
   "depends": {
     "fabricloader": ">=${fabricLoaderVersion}",
-    "fabric-api": ">=${fabricApiVersion}+${minecraftVersion}",
     "minecraft": "~${minecraftVersion}",
+    "fabric-api": ">=${fabricApiVersion}+${minecraftVersion}",
     "fabric-language-kotlin": ">=${kotlinFabricVersion}",
-    "java": ">=${javaVersion}"
+    "java": ">=${javaVersion}",
+    "baritone": ">=${baritoneVersion}"
   }
 }

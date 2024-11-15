@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.graphics
 
 import com.lambda.Lambda.mc
@@ -14,6 +31,7 @@ import com.lambda.graphics.gl.Matrices.resetMatrices
 import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.graphics.shader.Shader
+import com.lambda.gui.impl.hudgui.LambdaHudGui
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.math.Vec2d
@@ -25,14 +43,16 @@ object RenderMain {
     val modelViewMatrix: Matrix4f get() = Matrices.peek()
     var screenSize = Vec2d.ZERO
 
+    private val showHud get() = mc.currentScreen == null || LambdaHudGui.isOpen
+
     private val hudAnimation0 = with(AnimationTicker()) {
         listener<TickEvent.Pre> {
             tick()
         }
 
         exp(0.0, 1.0, {
-            if (mc.currentScreen == null) ClickGui.closeSpeed else ClickGui.openSpeed
-        }) { mc.currentScreen == null }
+            if (showHud) ClickGui.closeSpeed else ClickGui.openSpeed
+        }) { showHud }
     }
 
     private val frameBuffer = FrameBuffer()

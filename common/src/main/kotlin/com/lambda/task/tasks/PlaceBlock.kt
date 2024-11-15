@@ -1,34 +1,55 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.task.tasks
 
 import com.lambda.Lambda.LOG
+import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
-import com.lambda.core.PingManager
 import com.lambda.event.events.RotationEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.Communication.info
+import com.lambda.util.Communication.warn
 import net.minecraft.block.BlockState
 
 class PlaceBlock @Ta5kBuilder constructor(
     private val ctx: PlaceContext,
-    private val swingHand: Boolean,
     private val rotate: Boolean,
+    private val interact: InteractionConfig = TaskFlow.interact,
     private val waitForConfirmation: Boolean,
 ) : Task<Unit>() {
     private var beginState: BlockState? = null
-    override var cooldown = Int.MAX_VALUE
-        get() = maxOf(TaskFlow.build.placeCooldown, TaskFlow.taskCooldown)
-    override var timeout = 50
-    private var inScope = 0
+    private var state = State.ROTATING
+    private var findOutIfNeeded = false
 
-    private val SafeContext.resultingState: BlockState get() =
-        ctx.resultingPos.blockState(world)
-    private val SafeContext.matches get() =
-        ctx.targetState.matches(ctx.resultingPos.blockState(world), ctx.resultingPos, world)
+    private val SafeContext.resultingState: BlockState
+        get() = ctx.resultingPos.blockState(world)
+
+    private val SafeContext.matches
+        get() = ctx.targetState.matches(ctx.resultingPos.blockState(world), ctx.resultingPos, world)
+
+    enum class State {
+        ROTATING, PLACING, CONFIRMING
+    }
 
     override fun SafeContext.onStart() {
         if (matches) {
@@ -37,29 +58,32 @@ class PlaceBlock @Ta5kBuilder constructor(
         }
         beginState = resultingState
 
-        if (!rotate) placeBlock()
+        if (!rotate) {
+            placeBlock()
+        }
     }
 
     init {
         listener<RotationEvent.Update> { event ->
+            if (state != State.ROTATING) return@listener
             if (!rotate) return@listener
             event.context = ctx.rotation
         }
 
-        listener<RotationEvent.Post> {
+        listener<RotationEvent.Post> { event ->
+            if (state != State.ROTATING) return@listener
             if (!rotate) return@listener
-            if (!it.context.isValid) return@listener
+            if (event.context != ctx.rotation) return@listener
+            if (!event.context.isValid) return@listener
 
-            if (TaskFlow.build.pingTimeout) {
-                val threshold = PingManager.lastPing / 50L
-                if (++inScope >= threshold) {
-                    inScope = 0
-                    placeBlock()
-                }
-                return@listener
-            }
+            state = State.PLACING
+        }
 
-            placeBlock()
+        listener<TickEvent.Pre> {
+            if (state != State.PLACING) return@listener
+
+            if (findOutIfNeeded) placeBlock()
+            findOutIfNeeded = true
         }
 
         listener<WorldEvent.BlockUpdate> {
@@ -79,7 +103,7 @@ class PlaceBlock @Ta5kBuilder constructor(
         )
 
         if (actionResult.isAccepted) {
-            if (actionResult.shouldSwingHand() && swingHand) {
+            if (actionResult.shouldSwingHand() && interact.swingHand) {
                 player.swingHand(ctx.hand)
             }
 
@@ -87,20 +111,24 @@ class PlaceBlock @Ta5kBuilder constructor(
                 mc.gameRenderer.firstPersonRenderer.resetEquipProgress(ctx.hand)
             }
 
+            state = State.CONFIRMING
+
             if (matches) {
                 if (!waitForConfirmation) finish()
             }
         } else {
-            info("Internal interaction failed with $actionResult")
+            warn("Internal interaction failed with $actionResult")
         }
     }
 
     private fun SafeContext.finish() {
-        LOG.info("Placed at ${
-            ctx.result.blockPos.toShortString()
-        } (${ctx.result.side}) with expecting state ${
-            ctx.expectedState
-        } and expecting position at ${ctx.resultingPos.toShortString()}")
+        LOG.info(
+            "Placed at ${
+                ctx.result.blockPos.toShortString()
+            } (${ctx.result.side}) with expecting state ${
+                ctx.expectedState
+            } and expecting position at ${ctx.resultingPos.toShortString()}"
+        )
         success(Unit)
     }
 
@@ -108,9 +136,9 @@ class PlaceBlock @Ta5kBuilder constructor(
         @Ta5kBuilder
         fun placeBlock(
             ctx: PlaceContext,
-            swingHand: Boolean = TaskFlow.interact.swingHand,
             rotate: Boolean = TaskFlow.build.rotateForPlace,
             waitForConfirmation: Boolean = TaskFlow.build.placeConfirmation,
-        ) = PlaceBlock(ctx, swingHand, rotate, waitForConfirmation)
+            interact: InteractionConfig = TaskFlow.interact,
+        ) = PlaceBlock(ctx, rotate, interact, waitForConfirmation)
     }
 }

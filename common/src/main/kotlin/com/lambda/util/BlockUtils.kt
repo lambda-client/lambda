@@ -1,8 +1,26 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.util
 
 import com.lambda.context.SafeContext
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.item.ItemUtils.shulkerBoxes
+import com.lambda.util.math.MathUtils.floorToInt
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
@@ -11,10 +29,9 @@ import net.minecraft.fluid.Fluids
 import net.minecraft.item.Item
 import net.minecraft.util.math.*
 import net.minecraft.world.BlockView
-import kotlin.math.floor
 
 object BlockUtils {
-    private val shulkerBlocks = shulkerBoxes.map { it.block }
+    val shulkerBlocks = shulkerBoxes.map { it.block }
 
     val interactionBlacklist = mutableSetOf(
         Blocks.CHEST,
@@ -52,6 +69,9 @@ object BlockUtils {
         Blocks.DARK_OAK_SIGN,
         Blocks.MANGROVE_SIGN,
         Blocks.BAMBOO_SIGN,
+        Blocks.CRIMSON_SIGN,
+        Blocks.WARPED_SIGN,
+        Blocks.SPRUCE_SIGN
     )
 
     val wallSigns = setOf(
@@ -63,6 +83,9 @@ object BlockUtils {
         Blocks.DARK_OAK_WALL_SIGN,
         Blocks.MANGROVE_WALL_SIGN,
         Blocks.BAMBOO_WALL_SIGN,
+        Blocks.CRIMSON_WALL_SIGN,
+        Blocks.WARPED_WALL_SIGN,
+        Blocks.SPRUCE_WALL_SIGN
     )
 
     val hangingSigns = setOf(
@@ -74,6 +97,9 @@ object BlockUtils {
         Blocks.DARK_OAK_HANGING_SIGN,
         Blocks.MANGROVE_HANGING_SIGN,
         Blocks.BAMBOO_HANGING_SIGN,
+        Blocks.CRIMSON_HANGING_SIGN,
+        Blocks.WARPED_HANGING_SIGN,
+        Blocks.SPRUCE_HANGING_SIGN
     )
 
     val hangingWallSigns = setOf(
@@ -85,6 +111,9 @@ object BlockUtils {
         Blocks.DARK_OAK_WALL_HANGING_SIGN,
         Blocks.MANGROVE_WALL_HANGING_SIGN,
         Blocks.BAMBOO_WALL_HANGING_SIGN,
+        Blocks.CRIMSON_WALL_HANGING_SIGN,
+        Blocks.WARPED_WALL_HANGING_SIGN,
+        Blocks.SPRUCE_WALL_HANGING_SIGN
     )
 
     val fluids = listOf(
@@ -104,9 +133,10 @@ object BlockUtils {
         val ticksNeeded = 1 / blockState.calcBlockBreakingDelta(player, world, blockPos)
         return (ticksNeeded <= 1 && ticksNeeded != 0f) || player.isCreative
     }
+
     val Vec3i.blockPos: BlockPos get() = BlockPos(this)
     val Block.item: Item get() = asItem()
-    val Vec3d.flooredPos: BlockPos get() = BlockPos(floor(x).toInt(), floor(y).toInt(), floor(z).toInt())
+    val Vec3d.flooredPos: BlockPos get() = BlockPos(x.floorToInt(), y.floorToInt(), z.floorToInt())
     fun BlockPos.vecOf(direction: Direction): Vec3d = toCenterPos().add(Vec3d.of(direction.vector).multiply(0.5))
     fun BlockPos.offset(eightWayDirection: EightWayDirection, amount: Int): BlockPos =
         add(eightWayDirection.offsetX * amount, 0, eightWayDirection.offsetZ * amount)

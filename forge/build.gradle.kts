@@ -1,8 +1,26 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 val modVersion: String by project
 val minecraftVersion: String by project
 val forgeVersion: String by project
 val mixinExtrasVersion: String by project
 val kotlinForgeVersion: String by project
+val discordIPCVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-forge"
 
@@ -17,7 +35,6 @@ architectury {
 
 loom {
     accessWidenerPath.set(project(":common").loom.accessWidenerPath)
-
     forge {
         // This is required to convert the access wideners to the forge
         // format, access transformers.
@@ -39,6 +56,8 @@ repositories {
     // you can add it to the `settings.gradle.kts` file
     // in the base of the project and gradle will do the
     // rest for you.
+    // If you want to add more global repositories, you can
+    // add them to the root build.gradle.kts file.
     maven("https://thedarkcolour.github.io/KotlinForForge/")
 }
 
@@ -60,14 +79,13 @@ val shadowBundle: Configuration by configurations.creating {
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
         implementation(it)
-        forgeRuntimeLibrary(it)
         include(it)
+        // shadowBundle(it)
     }
 
     includeMod.dependencies.forEach {
-        modImplementation(it)
-        forgeRuntimeLibrary(it)
-        include(it)
+        implementation(it)
+        // include(it)
     }
 }
 
@@ -78,6 +96,8 @@ dependencies {
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
+    includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
+    includeLib("com.pngencoder:pngencoder:0.15.0")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")

@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.gui.api.component.button
 
 import com.lambda.graphics.animation.Animation.Companion.exp
@@ -9,10 +26,10 @@ import com.lambda.module.modules.client.GuiSettings
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.util.Mouse
-import com.lambda.util.math.ColorUtils.multAlpha
-import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.lerp
+import com.lambda.util.math.multAlpha
 import java.awt.Color
 
 abstract class ButtonComponent(
@@ -22,7 +39,10 @@ abstract class ButtonComponent(
     abstract val size: Vec2d
 
     abstract val text: String
-    protected open val textColor get() = lerp(Color.WHITE, GuiSettings.mainColor, activeAnimation).multAlpha(showAnimation)
+    protected open val textColor
+        get() = lerp(activeAnimation, Color.WHITE, GuiSettings.mainColor).multAlpha(
+            showAnimation
+        )
     protected open val centerText = false
 
     protected abstract var activeAnimation: Double
@@ -37,7 +57,7 @@ abstract class ButtonComponent(
     private var hoverRectAnimation by animation.exp({ 0.0 }, { 1.0 }, { if (renderHovered) 0.6 else 0.07 }, ::renderHovered)
     protected var hoverFontAnimation by animation.exp(0.0, 1.0, 0.5, ::renderHovered)
     protected var pressAnimation by animation.exp(0.0, 1.0, 0.5) { activeButton != null }
-    protected val interactAnimation get() = lerp(hoverRectAnimation, 1.5, pressAnimation) * 0.4
+    protected val interactAnimation get() = lerp(pressAnimation, hoverRectAnimation, 1.5) * 0.4
     override val childShowAnimation: Double get() = owner.childShowAnimation
     protected open val showAnimation get() = owner.childShowAnimation
 
@@ -45,7 +65,7 @@ abstract class ButtonComponent(
     private val renderHovered get() = hovered || System.currentTimeMillis() - lastHoveredTime < 110
 
     // Removes button shrinking if there's no space between buttons
-    protected val shrinkAnimation get() = lerp(0.0, interactAnimation, ClickGui.buttonStep)
+    protected val shrinkAnimation get() = lerp(ClickGui.buttonStep, 0.0, interactAnimation)
 
     open fun performClickAction(e: GuiEvent.MouseClick) {}
 

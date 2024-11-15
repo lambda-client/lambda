@@ -1,8 +1,27 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 val modVersion: String by project
 val minecraftVersion: String by project
 val fabricLoaderVersion: String by project
 val fabricApiVersion: String by project
 val kotlinFabricVersion: String by project
+val discordIPCVersion: String by project
+val kotlinVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-fabric"
 
@@ -49,11 +68,12 @@ fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
         implementation(it)
         include(it)
+        // shadowBundle(it)
     }
 
     includeMod.dependencies.forEach {
         modImplementation(it)
-        include(it)
+        // include(it)
     }
 }
 
@@ -65,10 +85,12 @@ dependencies {
     includeLib("org.reflections:reflections:0.10.2")
     includeLib("org.javassist:javassist:3.28.0-GA")
     includeLib("dev.babbaj:nether-pathfinder:1.5")
+    includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
+    includeLib("com.pngencoder:pngencoder:0.15.0")
 
     // Add mods to the mod jar
     includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion+$minecraftVersion")
-    includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion")
+    includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion.$kotlinVersion")
     includeMod("baritone-api:baritone-unoptimized-fabric:1.10.2")
 
     // Common (Do not touch)

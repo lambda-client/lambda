@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
@@ -8,7 +25,9 @@ import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.MainHandContainer
+import com.lambda.task.Task
 import com.lambda.task.Task.Companion.failTask
+import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
@@ -18,7 +37,7 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
-abstract class BuildResult : ComparableResult<Rank> {
+abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
     abstract val blockPos: BlockPos
     open val pausesParent = false
 
@@ -122,7 +141,7 @@ abstract class BuildResult : ComparableResult<Rank> {
     ) : Drawable, BuildResult() {
         override val rank = Rank.UNBREAKABLE
         private val color = Color(11, 11, 11, 100)
-        
+
         override fun SafeContext.buildRenderer() {
             withPos(blockPos, color)
         }
@@ -138,14 +157,12 @@ abstract class BuildResult : ComparableResult<Rank> {
         val hitPos: BlockPos,
         val side: Direction,
         val distance: Double
-    ) : Navigable, Drawable, BuildResult() {
+    ) : Drawable, BuildResult() {
         override val rank = Rank.NOT_VISIBLE
-        private val color = Color(46, 0, 0, 30)
-
-        override val goal = GoalPlace(blockPos)
+        private val color = Color(46, 0, 0, 80)
 
         override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color, side)
+            withBox(Box(blockPos), color)
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
@@ -164,17 +181,26 @@ abstract class BuildResult : ComparableResult<Rank> {
         override val blockPos: BlockPos,
         val context: BuildContext,
         val neededItem: Item
-    ) : Resolvable, Drawable, BuildResult() {
+    ) : Drawable, BuildResult() {
         override val rank = Rank.WRONG_ITEM
         private val color = Color(3, 252, 169, 100)
 
         override val pausesParent get() = true
 
-        override val resolve get() =
-            neededItem.select().transfer(MainHandContainer)?.solve ?: failTask("Item ${neededItem.name.string} not found")
+        override fun SafeContext.onStart() {
+            neededItem.select()
+                .transfer(MainHandContainer)
+                ?.onSuccess { _, _ ->
+                    success(Unit)
+                }?.start(this@WrongItem) ?: failure("Item ${neededItem.name.string} not found")
+        }
 
         override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color)
+            if (blockPos.blockState(world).isAir) {
+                withBox(Box(blockPos), color)
+            } else {
+                withPos(blockPos, color)
+            }
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
@@ -194,17 +220,26 @@ abstract class BuildResult : ComparableResult<Rank> {
         override val blockPos: BlockPos,
         val context: BuildContext,
         val neededStack: ItemStack
-    ) : Resolvable, Drawable, BuildResult() {
+    ) : Drawable, BuildResult() {
         override val rank = Rank.WRONG_ITEM
         private val color = Color(3, 252, 169, 100)
 
         override val pausesParent get() = true
 
-        override val resolve get() =
-            neededStack.select().transfer(MainHandContainer)?.solve ?: failTask("Stack ${neededStack.name.string} not found")
+        override fun SafeContext.onStart() {
+            neededStack.select()
+                .transfer(MainHandContainer)
+                ?.onSuccess { _, _ ->
+                    success(Unit)
+                }?.start(this@WrongStack) ?: failTask("Stack ${neededStack.name.string} not found")
+        }
 
         override fun SafeContext.buildRenderer() {
-            withPos(blockPos, color)
+            if (blockPos.blockState(world).isAir) {
+                withBox(Box(blockPos), color)
+            } else {
+                withPos(blockPos, color)
+            }
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {

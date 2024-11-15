@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.movement
 
 import com.lambda.context.SafeContext
@@ -12,13 +29,16 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.ClientPacket
 import com.lambda.util.PacketUtils.handlePacketSilently
+import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.ServerPacket
-import com.lambda.util.math.ColorUtils.multAlpha
-import com.lambda.util.math.MathUtils.lerp
 import com.lambda.util.math.VecUtils.dist
 import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.math.VecUtils.plus
+import com.lambda.util.math.lerp
+import com.lambda.util.math.multAlpha
+import net.minecraft.entity.LivingEntity
 import net.minecraft.network.packet.s2c.play.EntityAnimationS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityS2CPacket
@@ -38,19 +58,22 @@ object BackTrack : Module(
     description = "Gives reach advantage by delaying your packets",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
+    private val outbound by setting("Outbound", true)
     private val mode by setting("Mode", Mode.FIXED)
     private val delay by setting("Delay", 500, 100..2000) { mode == Mode.FIXED }
     private val maxDelay by setting("Max Delay", 1000, 100..2000) { mode == Mode.RANGED || mode == Mode.ADAPTIVE }
     private val distance by setting("Distance", 3.0, 1.0..5.0, 0.1) { mode == Mode.RANGED || mode == Mode.ADAPTIVE }
 
-    private val target get() = if (KillAura.isDisabled) null else KillAura.target
+    private var target: LivingEntity? = null
     private var targetPos: Vec3d? = null
 
     private val box = DynamicAABB()
 
     private const val POSITION_PACKET_SCALE = 1 / 4096.0
     private val currentTime get() = System.currentTimeMillis()
-    private val packetPool = ConcurrentLinkedDeque<Pair<ServerPacket, Long>>()
+
+    private val sendPool = ConcurrentLinkedDeque<Pair<ClientPacket, Long>>()
+    private val receivePool = ConcurrentLinkedDeque<Pair<ServerPacket, Long>>()
 
     enum class Mode(val shouldSend: SafeContext.(Vec3d, Vec3d, Long) -> Boolean) {
         FIXED({ _, _, timing ->
@@ -70,18 +93,22 @@ object BackTrack : Module(
 
     init {
         listener<TickEvent.Pre> {
-            target?.let { target ->
-                val pos = targetPos ?: target.pos
-                targetPos = pos
+            val prevTarget = target
+            target = if (KillAura.isDisabled) null else KillAura.target
+            val currentTarget = target
 
-                box.update(target.boundingBox.offset(pos - target.pos))
-                poolPackets()
+            if (prevTarget != currentTarget || currentTarget == null) {
+                poolPackets(true)
+                targetPos = null
+                box.reset()
                 return@listener
             }
 
-            poolPackets(true)
-            targetPos = null
-            box.reset()
+            val pos = targetPos ?: currentTarget.pos
+            targetPos = pos
+
+            box.update(currentTarget.boundingBox.offset(pos - currentTarget.pos))
+            poolPackets()
         }
 
         listener<RenderEvent.DynamicESP> {
@@ -90,9 +117,15 @@ object BackTrack : Module(
             val c1 = GuiSettings.primaryColor
             val c2 = Color.RED
             val p = target.hurtTime / 10.0
-            val c = lerp(c1, c2, p)
+            val c = lerp(p, c1, c2)
 
             it.renderer.build(box, c.multAlpha(0.3), c.multAlpha(0.8))
+        }
+
+        listener<PacketEvent.Send.Pre> { event ->
+            if (!outbound || target == null) return@listener
+            sendPool.add(event.packet to currentTime)
+            event.cancel()
         }
 
         listener<PacketEvent.Receive.Pre> { event ->
@@ -120,22 +153,24 @@ object BackTrack : Module(
                 }
 
                 is PlaySoundS2CPacket, is PlaySoundFromEntityS2CPacket, is StopSoundS2CPacket,
-                /*is EntityStatusS2CPacket,*/ is EntityStatusEffectS2CPacket, is EntityAnimationS2CPacket,
+                    /*is EntityStatusS2CPacket,*/ is EntityStatusEffectS2CPacket, is EntityAnimationS2CPacket,
                 is ParticleS2CPacket, is WorldTimeUpdateS2CPacket, is WorldEventS2CPacket -> {
                     return@listener
                 }
             }
 
-            packetPool.add(packet to currentTime)
+            receivePool.add(packet to currentTime)
             event.cancel()
         }
 
-        listener<ConnectionEvent.Connect> {
-            packetPool.clear()
+        listener<ConnectionEvent.Connect.Pre> {
+            receivePool.clear()
+            sendPool.clear()
         }
 
         onEnable {
-            poolPackets(true)
+            receivePool.clear()
+            sendPool.clear()
         }
 
         onDisable {
@@ -144,8 +179,21 @@ object BackTrack : Module(
     }
 
     private fun SafeContext.poolPackets(all: Boolean = false) {
-        while (packetPool.isNotEmpty()) {
-            val (packet, timing) = packetPool.poll() ?: break
+        while (receivePool.isNotEmpty()) {
+            val (packet, timing) = receivePool.poll() ?: break
+
+            val receive = all || targetPos?.let { serverPos ->
+                target?.pos?.let { clientPos ->
+                    mode.shouldSend(this, clientPos, serverPos, timing)
+                }
+            } ?: true
+
+            if (!receive) break
+            connection.handlePacketSilently(packet)
+        }
+
+        while (sendPool.isNotEmpty()) {
+            val (packet, timing) = sendPool.poll() ?: break
 
             val send = all || targetPos?.let { serverPos ->
                 target?.pos?.let { clientPos ->
@@ -154,7 +202,7 @@ object BackTrack : Module(
             } ?: true
 
             if (!send) break
-            connection.handlePacketSilently(packet)
+            connection.sendPacketSilently(packet)
         }
     }
 }

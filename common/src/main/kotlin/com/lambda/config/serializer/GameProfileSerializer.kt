@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.config.serializer
 
 import com.google.gson.*
@@ -18,7 +35,7 @@ object GameProfileSerializer : JsonSerializer<GameProfile>, JsonDeserializer<Gam
         src?.let {
             JsonObject().apply {
                 addProperty("name", it.name)
-                addProperty("uuid", it.id.toString())
+                addProperty("id", it.id.toString())
             }
         } ?: JsonNull.INSTANCE
 
@@ -26,9 +43,18 @@ object GameProfileSerializer : JsonSerializer<GameProfile>, JsonDeserializer<Gam
         json: JsonElement?,
         typeOfT: Type?,
         context: JsonDeserializationContext?,
-    ): GameProfile =
-        GameProfile(
-            UUID.fromString(json?.asJsonObject?.get("uuid")?.asString),
+    ): GameProfile {
+        val id = json?.asJsonObject?.get("id")?.asString
+        val parsedId =
+            if (id?.length == 32) id.replaceFirst(
+                "(\\w{8})(\\w{4})(\\w{4})(\\w{4})(\\w{12})".toRegex(),
+                "$1-$2-$3-$4-$5"
+            )
+            else id
+
+        return GameProfile(
+            UUID.fromString(parsedId),
             json?.asJsonObject?.get("name")?.asString
         )
+    }
 }

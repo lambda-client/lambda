@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.interaction
 
 import com.lambda.Lambda.mc
@@ -17,11 +34,11 @@ import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.math.lerp
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
-import com.lambda.util.primitives.extension.partialTicks
-import com.lambda.util.primitives.extension.rotation
+import com.lambda.util.extension.partialTicks
+import com.lambda.util.extension.rotation
 import net.minecraft.client.input.Input
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import kotlin.math.*
@@ -30,7 +47,7 @@ object RotationManager : Loadable {
     var currentRotation = Rotation.ZERO
     var prevRotation = Rotation.ZERO
 
-    private var currentContext: RotationContext? = null
+    var currentContext: RotationContext? = null
 
     private var keepTicks = 0
     private var pauseTicks = 0
@@ -38,13 +55,13 @@ object RotationManager : Loadable {
     fun Any.requestRotation(
         priority: Int = 0,
         alwaysListen: Boolean = false,
-        onUpdate: SafeContext.() -> RotationContext?,
-        onReceive: SafeContext.() -> Unit
+        onUpdate: SafeContext.(lastContext: RotationContext?) -> RotationContext?,
+        onReceive: SafeContext.() -> Unit = {}
     ) {
         var lastCtx: RotationContext? = null
 
         this.listener<RotationEvent.Update>(priority, alwaysListen) { event ->
-            val rotationContext = onUpdate()
+            val rotationContext = onUpdate(event.context)
 
             rotationContext?.let {
                 event.context = it
@@ -132,7 +149,7 @@ object RotationManager : Loadable {
 
     private val smoothRotation
         get() =
-            lerp(prevRotation, currentRotation, mc.partialTicks)
+            lerp(mc.partialTicks, prevRotation, currentRotation)
 
     @JvmStatic
     val lockRotation
@@ -162,25 +179,22 @@ object RotationManager : Loadable {
     @JvmStatic
     val movementYaw: Float?
         get() {
-            val config = currentContext?.config ?: return null
-            if (config.rotationMode == RotationMode.SILENT) return null
+            if (currentContext?.config?.rotationMode == RotationMode.SILENT) return null
             return currentRotation.yaw.toFloat()
         }
 
     @JvmStatic
     val movementPitch: Float?
         get() {
-            val config = currentContext?.config ?: return null
-            if (config.rotationMode == RotationMode.SILENT) return null
+            if (currentContext?.config?.rotationMode == RotationMode.SILENT) return null
             return currentRotation.pitch.toFloat()
         }
 
     @JvmStatic
     fun getRotationForVector(deltaTime: Double): Vec2d? {
-        val config = currentContext?.config ?: return null
-        if (config.rotationMode == RotationMode.SILENT) return null
+        if (currentContext?.config?.rotationMode == RotationMode.SILENT) return null
 
-        val rot = lerp(prevRotation, currentRotation, deltaTime)
+        val rot = lerp(deltaTime, prevRotation, currentRotation)
         return Vec2d(rot.yaw, rot.pitch)
     }
 
@@ -247,7 +261,7 @@ object RotationManager : Loadable {
                 val multiplier = if (slowDown) slowDownFactor else 1f
 
                 movementSideways = round(newX).toFloat() * multiplier
-                movementForward  = round(newZ).toFloat() * multiplier
+                movementForward = round(newZ).toFloat() * multiplier
             }
 
             baritoneYaw ?: return@runSafe

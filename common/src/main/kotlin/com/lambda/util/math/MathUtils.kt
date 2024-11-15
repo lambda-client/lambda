@@ -1,15 +1,22 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.util.math
 
-import com.lambda.interaction.rotation.Rotation
-import com.lambda.module.modules.client.ClickGui
-import com.lambda.util.math.ColorUtils.a
-import com.lambda.util.math.ColorUtils.b
-import com.lambda.util.math.ColorUtils.g
-import com.lambda.util.math.ColorUtils.r
-import com.lambda.util.math.MathUtils.roundToStep
-import net.fabricmc.loader.impl.lib.sat4j.core.Vec
-import net.minecraft.util.math.Vec3d
-import java.awt.Color
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.*
@@ -73,90 +80,7 @@ object MathUtils {
         return nextDouble(min, max)
     }
 
-    /**
-     * @return The smallest power of two that is greater than or equal to the input integer.
-     */
-    fun Int.ceilToPOT(): Int {
-        var i = this
-        i--
-        i = i or (i shr 1)
-        i = i or (i shr 2)
-        i = i or (i shr 4)
-        i = i or (i shr 8)
-        i = i or (i shr 16)
-        return ++i
-    }
+    fun Int.nextPowerOf2() = 2f.pow(ceil(log2(toFloat()))).toInt()
 
     inline val Int.sq: Int get() = this * this
-
-    /**
-     * Performs linear interpolation between two Float values.
-     *
-     * This function calculates the value at a specific point
-     * between [start] and [end] based on the interpolation factor [factor].
-     * The interpolation factor [factor] is clamped between zero
-     * and one to ensure the result stays within the range of [start] and [end].
-     *
-     * @param start The start value.
-     * @param end The end value.
-     * @param factor The interpolation factor, typically between 0 (representing [start]) and 1 (representing [end]).
-     * @return The interpolated value between [start] and [end].
-     */
-    fun lerp(start: Float, end: Float, factor: Float) =
-        start + ((end - start) * factor.coerceIn(0f, 1f))
-
-    /**
-     * Performs linear interpolation between two Double values.
-     *
-     * This function calculates the value at a specific point
-     * between [start] and [end] based on the interpolation factor [factor].
-     * The interpolation factor [factor] is clamped between zero
-     * and one to ensure the result stays within the range of [start] and [end].
-     *
-     * @param start The start value.
-     * @param end The end value.
-     * @param factor The interpolation factor, typically between 0 (representing [start]) and 1 (representing [end]).
-     * @return The interpolated value between [start] and [end].
-     */
-    fun lerp(start: Double, end: Double, factor: Double) =
-        start + ((end - start) * factor.coerceIn(0.0, 1.0))
-
-    fun lerp(start: Vec3d, end: Vec3d, factor: Double) =
-        Vec3d(
-            lerp(start.x, end.x, factor),
-            lerp(start.y, end.y, factor),
-            lerp(start.z, end.z, factor)
-        )
-
-    fun lerp(start: Vec2d, end: Vec2d, factor: Double) =
-        Vec2d(
-            lerp(start.x, end.x, factor),
-            lerp(start.y, end.y, factor)
-        )
-
-    fun lerp(start: Rect, end: Rect, factor: Double) =
-        Rect(
-            lerp(start.leftTop, end.leftTop, factor),
-            lerp(start.rightBottom, end.rightBottom, factor)
-        )
-
-    fun lerp(start: Rotation, end: Rotation, factor: Double) =
-        Rotation(
-            lerp(start.yaw, end.yaw, factor),
-            lerp(start.pitch, end.pitch, factor)
-        )
-
-    fun lerp(c1: Color, c2: Color, p: Double) =
-        Color(
-            lerp(c1.r, c2.r, p).toFloat(),
-            lerp(c1.g, c2.g, p).toFloat(),
-            lerp(c1.b, c2.b, p).toFloat(),
-            lerp(c1.a, c2.a, p).toFloat()
-        )
-
-    fun Vec2d.coerceIn(minX: Double, maxX: Double, minY: Double, maxY: Double) =
-        Vec2d(
-            max(minX, min(x, maxX)),
-            max(minY, min(y, maxY))
-        )
 }
