@@ -67,7 +67,7 @@ object DiscordRPC : Module(
     private val showTime by setting("Show Time", true, description = "Show how long you have been playing for.") { page == Page.General }
 
     /* Technical settings */
-    private var rpcServer by setting("RPC Server", "https://rpc.lambda-client.org") { page == Page.Settings }
+    private var rpcServer by setting("RPC Server", "https://api.lambda-client.org") { page == Page.Settings }
     private var apiVersion by setting("API Version", ApiVersion.V1) { page == Page.Settings }
     private val delay by setting("Update Delay", 15000, 15000..30000, 100, unit = "ms", visibility = { page == Page.Settings })
 
