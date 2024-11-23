@@ -19,6 +19,7 @@ package com.lambda.core.registry
 
 import net.minecraft.registry.Registry
 import net.minecraft.registry.RegistryKey
+import net.minecraft.registry.SimpleRegistry
 import net.minecraft.registry.entry.RegistryEntry
 import net.minecraft.util.Identifier
 
@@ -66,10 +67,11 @@ object AgnosticRegistries {
      * @param registry The registry to dump into.
      * @param wrapper The registry wrapper to use to determine how to register the entry.
      *
-     * @return Whether there were temporary registries or not.
+     * @return Whether there were temporary registries or not or null if the registry is null.
      */
-    fun dump(registry: Registry<*>?, wrapper: RegistryWrapper<*>?): Boolean {
-        val key = registry?.key
+    fun dump(registry: Registry<*>?, wrapper: RegistryWrapper<*>?): Boolean? {
+        if (registry == null || registry !is SimpleRegistry) return null
+        val key = registry.key
 
         registries[key]?.forEach { it.handleRegister(wrapper ?: defaultWrapper(registry)) }
         return registries.remove(key) != null
@@ -78,11 +80,15 @@ object AgnosticRegistries {
     /**
      * Default registry wrapper for vanilla registries.
      */
-    private fun defaultWrapper(registry: Registry<*>?): RegistryWrapper<*> {
+    @Suppress("UNCHECKED_CAST")
+    private fun defaultWrapper(registry: SimpleRegistry<*>): RegistryWrapper<*> {
         return object : RegistryWrapper<Any> {
             override fun <T> registerForHolder(id: Identifier?, value: T): RegistryEntry<T> {
-                @Suppress("UNCHECKED_CAST")
-                return Registry.registerReference(registry as Registry<T>, id, value)
+                registry.frozen = false // fuck off
+                val entry = Registry.registerReference(registry as Registry<T>, id, value)
+                registry.frozen = true
+
+                return entry
             }
         }
     }

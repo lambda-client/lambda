@@ -134,7 +134,7 @@ class ChunkedESP private constructor(
         private fun iterateChunk(block: (Int, Int, Int) -> Unit) = chunk.apply {
             for (x in pos.startX..pos.endX) {
                 for (z in pos.startZ..pos.endZ) {
-                    for (y in bottomY..topY) {
+                    for (y in bottomY..height) {
                         block(x, y, z)
                     }
                 }

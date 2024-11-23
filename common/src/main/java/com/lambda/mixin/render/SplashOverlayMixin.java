@@ -36,11 +36,11 @@ public class SplashOverlayMixin {
     @Mutable
     @Shadow
     @Final
-    static Identifier LOGO;
+    public static Identifier LOGO;
 
     @Redirect(method = "render", at = @At(value = "INVOKE", target = "Ljava/util/function/IntSupplier;getAsInt()I"))
     private int redirectBrandArgb(IntSupplier originalSupplier) {
-        return ColorHelper.Argb.getArgb(255, 35, 35, 35);
+        return ColorHelper.getArgb(255, 35, 35, 35);
     }
 
     @Inject(method = "<init>", at = @At("RETURN"))

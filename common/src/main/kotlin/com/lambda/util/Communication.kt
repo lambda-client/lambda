@@ -90,7 +90,7 @@ object Communication {
             text(message)
         }.let { log ->
             runSafeGameConcurrent {
-                player.sendMessage(log)
+                player.sendMessage(log, false)
             }
         }
     }

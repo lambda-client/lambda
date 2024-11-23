@@ -35,6 +35,7 @@ import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.extension.Structure
+import com.lambda.util.extension.tickDelta
 import net.minecraft.util.math.BlockPos
 
 class BuildTask @Ta5kBuilder constructor(
@@ -77,7 +78,7 @@ class BuildTask @Ta5kBuilder constructor(
                 return@listener
             }
 
-            val results = blueprint.simulate(player.getCameraPosVec(mc.tickDelta))
+            val results = blueprint.simulate(player.getCameraPosVec(mc.tickDelta.toFloat()))
             previousResults = results
 
             val instantResults = results.filterIsInstance<BreakResult.Break>()

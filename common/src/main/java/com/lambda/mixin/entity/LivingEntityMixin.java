@@ -77,7 +77,7 @@ public abstract class LivingEntityMixin extends EntityMixin {
         EventFlow.post(new MovementEvent.Travel.Post());
     }
 
-    @Redirect(method = "travel", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getPitch()F"))
+    @Redirect(method = "calcGlidingVelocity(Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/util/math/Vec3d;", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getPitch()F"))
     private float hookModifyFallFlyingPitch(LivingEntity entity) {
         Float pitch = RotationManager.getMovementPitch();
         if (entity != Lambda.getMc().player || pitch == null) return entity.getPitch();

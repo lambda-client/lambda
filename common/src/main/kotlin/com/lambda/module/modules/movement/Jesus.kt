@@ -26,6 +26,7 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Nameable
+import com.lambda.util.extension.isElytraFlying
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.player.MovementUtils.isInputting
@@ -136,11 +137,11 @@ object Jesus : Module(
 
         listener<MovementEvent.InputUpdate> {
             if (!shouldWork || !goUp || mode == Mode.NCP_DOLPHIN) return@listener
-            it.input.jumping = true
+            it.input.jump()
         }
 
         listener<TickEvent.Pre> {
-            shouldWork = !player.abilities.flying && !player.isFallFlying && !player.input.sneaking
+            shouldWork = !player.abilities.flying && !player.isElytraFlying && !player.input.playerInput.sneak
         }
 
         onEnable {

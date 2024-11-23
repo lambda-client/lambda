@@ -311,14 +311,15 @@ object KillAura : Module(
     }
 
     private fun SafeContext.getAttackCooldown(): Double {
-        val attr = EntityAttributes.GENERIC_ATTACK_SPEED
+        val attr = EntityAttributes.ATTACK_SPEED
 
-        val attackSpeed = if (!cooldownSync) player.getAttributeValue(attr) else {
+        // TODO: Fix this
+        val attackSpeed = player.getAttributeValue(attr) /*if (!cooldownSync) player.getAttributeValue(attr) else {
             player.mainHandStack.item
                 .getAttributeModifiers(EquipmentSlot.MAINHAND)[attr]
                 .filter { it.operation == EntityAttributeModifier.Operation.ADDITION }
                 .sumOf { it.value } + 4
-        }
+        }*/
 
         return 20.0 / attackSpeed
     }

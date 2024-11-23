@@ -174,7 +174,8 @@ fun TextBuilder.scoreboard(name: String, objective: String) {
  */
 @TextDsl
 fun TextBuilder.selector(selector: String, separator: Optional<Text>) {
-    styleAndAppend(Text.selector(selector, separator))
+    // TODO: fix this
+    //styleAndAppend(Text.selector(selector, separator))
 }
 
 /**

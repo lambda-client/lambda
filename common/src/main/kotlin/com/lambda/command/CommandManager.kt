@@ -49,7 +49,7 @@ object CommandManager {
             val reader = StringReader(isolatedCommand)
 
             try {
-                dispatcher.execute(reader, player.commandSource)
+                dispatcher.execute(reader, connection.commandSource)
             } catch (syntax: CommandSyntaxException) {
                 createFeedback(syntax, reader)
             } catch (e: CommandException) {
@@ -106,6 +106,6 @@ object CommandManager {
                     translatable("command.context.here")
                 }
             }
-        })
+        }, false)
     }
 }

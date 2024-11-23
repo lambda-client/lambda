@@ -38,5 +38,5 @@ object BlockSerializer : JsonSerializer<Block>, JsonDeserializer<Block> {
         typeOfT: Type?,
         context: JsonDeserializationContext?,
     ): Block =
-        Registries.BLOCK.getOrEmpty(Identifier(json?.asString)).orElseThrow()
+        Registries.BLOCK.get(Identifier.of(json?.asString))
 }

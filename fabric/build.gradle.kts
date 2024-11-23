@@ -22,6 +22,7 @@ val fabricApiVersion: String by project
 val kotlinFabricVersion: String by project
 val discordIPCVersion: String by project
 val kotlinVersion: String by project
+val baritoneVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-fabric"
 
@@ -91,7 +92,7 @@ dependencies {
     // Add mods to the mod jar
     includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion+$minecraftVersion")
     includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion.$kotlinVersion")
-    includeMod("baritone-api:baritone-unoptimized-fabric:1.10.2")
+    includeMod("baritone-api:baritone-unoptimized-fabric:$baritoneVersion")
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }

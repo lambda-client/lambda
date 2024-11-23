@@ -21,6 +21,7 @@ val modId: String by project
 val fabricLoaderVersion: String by project
 val kotlinxCoroutinesVersion: String by project
 val discordIPCVersion: String by project
+val baritoneVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-api"
 
@@ -49,7 +50,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
 
     // Baritone
-    modImplementation("baritone-api:baritone-unoptimized-fabric:1.10.2") { isTransitive = false }
+    modImplementation("baritone-api:baritone-unoptimized-fabric:$baritoneVersion") { isTransitive = false }
 }
 
 tasks {

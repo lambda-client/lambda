@@ -58,14 +58,15 @@ object ItemStackUtils {
         return listOf(copyWithCount(maxCount), copyWithCount(remainder))
     }
 
+    // TODO: Find another way
     val ItemStack.shulkerBoxContents: List<ItemStack> by cacheable { stack ->
-        BlockItem.getBlockEntityNbt(stack)?.takeIf {
+        /*BlockItem.getBlockEntityNbt(stack)?.takeIf {
             it.contains("Items", NbtElement.LIST_TYPE.toInt())
         }?.let {
             val list = DefaultedList.ofSize(27, ItemStack.EMPTY)
             Inventories.readNbt(it, list)
             list
-        } ?: emptyList()
+        } ?: */emptyList()
     }
 
     /**
@@ -77,6 +78,4 @@ object ItemStackUtils {
      * @see ItemStack.canCombine Checks if two item stacks can be combined into one stack.
      */
     fun ItemStack?.equal(other: ItemStack?) = ItemStack.areEqual(this, other)
-
-    fun ItemStack.combines(other: ItemStack) = ItemStack.canCombine(this, other)
 }

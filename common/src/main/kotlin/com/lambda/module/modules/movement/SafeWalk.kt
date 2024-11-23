@@ -35,7 +35,8 @@ object SafeWalk : Module(
     init {
         listener<MovementEvent.InputUpdate> {
             if (sneakOnLedge && player.isOnGround && player.isNearLedge(ledgeDistance, stepHeight)) {
-                it.input.sneaking = true
+                // TODO: lmao you can't sneak without reallocating the fucking class every time
+                //it.input.sneaking = true
             }
         }
 

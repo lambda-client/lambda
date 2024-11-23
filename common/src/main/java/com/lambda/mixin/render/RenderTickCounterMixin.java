@@ -25,19 +25,21 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(RenderTickCounter.class)
-public class RenderTickCounterMixin {
+@Mixin(RenderTickCounter.Dynamic.class)
+public abstract class RenderTickCounterMixin {
 
     @Shadow
-    public float lastFrameDuration;
+    private float lastFrameDuration;
+
     @Shadow
-    public float tickDelta;
+    private float tickDelta;
+
     @Shadow
     private long prevTimeMillis;
 
-    @Inject(method = "beginRenderTick", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "beginRenderTick(J)I", at = @At("HEAD"), cancellable = true)
     private void beginRenderTick(long timeMillis, CallbackInfoReturnable<Integer> ci) {
-        lastFrameDuration = (timeMillis - prevTimeMillis) / TimerManager.INSTANCE.getLength();
+        lastFrameDuration = (timeMillis - lastFrameDuration) / TimerManager.INSTANCE.getLength();
         prevTimeMillis = timeMillis;
         tickDelta += lastFrameDuration;
         int i = (int) tickDelta;

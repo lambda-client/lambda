@@ -21,6 +21,7 @@ val forgeVersion: String by project
 val mixinExtrasVersion: String by project
 val kotlinForgeVersion: String by project
 val discordIPCVersion: String by project
+val baritoneVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-forge"
 
@@ -101,10 +102,7 @@ dependencies {
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
-    includeMod("baritone-api:baritone-unoptimized-forge:1.10.2")
-
-    // Fix KFF
-    compileOnly(kotlin("stdlib"))
+    includeMod("baritone-api:baritone-unoptimized-forge:$baritoneVersion")
 
     // MixinExtras
     implementation("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")

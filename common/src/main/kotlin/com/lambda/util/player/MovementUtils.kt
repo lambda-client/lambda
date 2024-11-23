@@ -20,15 +20,15 @@ package com.lambda.util.player
 import com.lambda.context.SafeContext
 import com.lambda.interaction.RotationManager
 import com.lambda.util.math.MathUtils.toDegree
-import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.VecUtils.plus
 import com.lambda.util.math.VecUtils.times
 import net.minecraft.client.input.Input
 import net.minecraft.client.input.KeyboardInput
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.enchantment.EnchantmentHelper.getSwiftSneakSpeedBoost
 import net.minecraft.entity.Entity
+import net.minecraft.entity.attribute.EntityAttributes.SNEAKING_SPEED
+import net.minecraft.util.PlayerInput
 import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3d
 import kotlin.math.*
@@ -50,7 +50,7 @@ object MovementUtils {
         var multiplier = 1f
 
         if (slowDownCheck && player.shouldSlowDown()) multiplier =
-            0.3f + getSwiftSneakSpeedBoost(player)
+            0.3f + player.getAttributeValue(SNEAKING_SPEED).toFloat()
 
         KeyboardInput(mc.options).apply {
             tick(true, multiplier.coerceIn(0f, 1f))
@@ -66,46 +66,43 @@ object MovementUtils {
         movementForward = forward.toFloat()
         movementSideways = strafe.toFloat()
 
-        pressingForward = forward > 0.0
-        pressingBack = forward < 0.0
-        pressingLeft = strafe < 0.0
-        pressingRight = strafe > 0.0
-
-        jumping = jump
-        sneaking = sneak
+        playerInput = PlayerInput(
+            forward > 0.0,
+            forward < 0.0,
+            strafe < 0.0,
+            strafe > 0.0,
+            jump,
+            sneak,
+            true, // TODO: We can know sprint this way
+        )
     }
 
     fun Input.mergeFrom(input: Input) {
         movementForward = input.movementForward
         movementSideways = input.movementSideways
 
-        pressingForward = input.pressingForward
-        pressingBack = input.pressingBack
-        pressingLeft = input.pressingLeft
-        pressingRight = input.pressingRight
-
-        jumping = input.jumping
-        sneaking = input.sneaking
+        playerInput = input.playerInput
     }
 
     fun Input.cancel(cancelVertical: Boolean = true) {
         movementForward = 0f
         movementSideways = 0f
 
-        pressingForward = false
-        pressingBack = false
-        pressingLeft = false
-        pressingRight = false
-
-        if (cancelVertical) {
-            jumping = false
-            sneaking = false
-        }
+        playerInput = PlayerInput(
+            false,
+            false,
+            false,
+            false,
+            !cancelVertical,
+            !cancelVertical,
+            false,
+        )
     }
 
+    // TODO: Need to find another way
     val Input.verticalMovement
-        get() =
-            (jumping.toInt() - sneaking.toInt()).toDouble()
+        get() = 0.0
+            //(jumping.toInt() - sneaking.toInt()).toDouble()
 
     private fun inputMoveOffset(
         moveForward: Double,
@@ -128,7 +125,7 @@ object MovementUtils {
         Vec3d(-sin(radDir), y, cos(radDir))
 
     var Entity.motion
-        get() = velocity;
+        get() = velocity
         set(value) {
             velocity = value
         }

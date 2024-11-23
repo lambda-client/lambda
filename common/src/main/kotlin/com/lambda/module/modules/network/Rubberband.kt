@@ -54,7 +54,7 @@ object Rubberband : Module(
                 return@listener
             }
 
-            val newPos = Vec3d(event.packet.x, event.packet.y, event.packet.z)
+            val newPos = event.packet.change.position
             val last = PlayerPacketManager.configurations.minBy {
                 it.position distSq newPos
             }

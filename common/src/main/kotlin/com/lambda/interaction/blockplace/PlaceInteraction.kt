@@ -38,7 +38,8 @@ object PlaceInteraction {
 
         if (!swing) return
 
-        if (actionResult.shouldSwingHand()) {
+        // TODO: Is isAccepted the same as shouldSwing ?
+        if (actionResult.isAccepted) {
             player.swingHand(hand)
         }
 

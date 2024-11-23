@@ -19,6 +19,7 @@ package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.WorldColors;
 import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.render.Fog;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -30,16 +31,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class RenderSystemMixin {
     @Shadow
     @Final
-    private static float[] shaderFogColor;
+    private static float[] shaderColor;
 
-    @Inject(method = "_setShaderFogColor", at = @At(value = "HEAD"), cancellable = true)
-    private static void onSetShaderFogColor(float red, float green, float blue, float alpha, CallbackInfo ci) {
+    @Inject(method = "setShaderColor(FFFF)V", at = @At(value = "HEAD"), cancellable = true)
+    private static void onSetShaderColor(float red, float green, float blue, float alpha, CallbackInfo ci) {
         if (WorldColors.INSTANCE.isEnabled() && WorldColors.getCustomFog()) {
             ci.cancel();
-            shaderFogColor[0] = WorldColors.getFogColor().getRed() / 255f;
-            shaderFogColor[1] = WorldColors.getFogColor().getGreen() / 255f;
-            shaderFogColor[2] = WorldColors.getFogColor().getBlue() / 255f;
-            shaderFogColor[3] = WorldColors.getFogColor().getAlpha() / 255f;
+            shaderColor[0] = WorldColors.getFogColor().getRed() / 255f;
+            shaderColor[1] = WorldColors.getFogColor().getGreen() / 255f;
+            shaderColor[2] = WorldColors.getFogColor().getBlue() / 255f;
+            shaderColor[3] = WorldColors.getFogColor().getAlpha() / 255f;
         }
     }
 }

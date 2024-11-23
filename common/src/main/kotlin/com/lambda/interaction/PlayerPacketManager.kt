@@ -82,7 +82,8 @@ object PlayerPacketManager : Loadable {
                     player.motionZ,
                     yaw,
                     pitch,
-                    onGround
+                    onGround,
+                    true // TODO: Check this after update
                 )
             )
             return
@@ -96,19 +97,19 @@ object PlayerPacketManager : Loadable {
 
         val packet = when {
             updatePosition && updateRotation -> {
-                Full(x, y, z, yaw, pitch, onGround)
+                Full(x, y, z, yaw, pitch, onGround, true) // TODO: Check this after update
             }
 
             updatePosition -> {
-                PositionAndOnGround(x, y, z, onGround)
+                PositionAndOnGround(x, y, z, onGround, true) // TODO: Check this after update
             }
 
             updateRotation -> {
-                LookAndOnGround(yaw, pitch, onGround)
+                LookAndOnGround(yaw, pitch, onGround, true) // TODO: Check this after update
             }
 
             lastOnGround != onGround -> {
-                OnGroundOnly(onGround)
+                OnGroundOnly(onGround, true) // TODO: Check this after update
             }
 
             else -> null

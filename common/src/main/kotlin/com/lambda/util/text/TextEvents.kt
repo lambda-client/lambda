@@ -110,7 +110,9 @@ object HoverEvents {
      * @see HoverEvent.Action.SHOW_ITEM
      */
     fun showItem(nbt: NbtCompound): HoverEvent {
-        return showItem(ItemStack.fromNbt(nbt))
+        // TODO: fix this
+        //return showItem(ItemStack.fromNbt(nbt))
+        return null as HoverEvent
     }
 
     /**
@@ -120,7 +122,9 @@ object HoverEvents {
      * @see HoverEvent.Action.SHOW_ITEM
      */
     fun showItem(item: Item, nbt: NbtCompound? = null): HoverEvent {
-        return showItem(item.defaultStack.also { it.nbt = nbt })
+        // TODO: fix this
+        //return showItem(item.defaultStack.also { it.nbt = nbt })
+        return null as HoverEvent
     }
 
     /**

@@ -123,10 +123,10 @@ object ContainerManager : Loadable {
         blockState: BlockState,
         availableTools: Set<Item> = ItemUtils.tools,
     ) = availableTools.map {
-        it to it.getMiningSpeedMultiplier(it.defaultStack, blockState)
+        it to it.getMiningSpeed(it.defaultStack, blockState)
     }.filter { (item, speed) ->
         speed > 1.0
-                && item.isSuitableFor(blockState)
+                && item.isCorrectForDrops(item.defaultStack, blockState)
                 && findContainerWithSelection(item.select()) != null
     }.maxByOrNull {
         it.second

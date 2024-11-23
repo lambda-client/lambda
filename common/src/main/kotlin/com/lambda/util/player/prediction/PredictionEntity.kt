@@ -33,8 +33,8 @@ import com.lambda.util.player.MovementUtils.moveYaw
 import com.lambda.util.player.MovementUtils.movementVector
 import net.minecraft.client.input.KeyboardInput
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.enchantment.EnchantmentHelper.getSwiftSneakSpeedBoost
 import net.minecraft.entity.Entity
+import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
@@ -73,7 +73,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
         tick(true, 1f)
     }
 
-    private val pressingJump = input.jumping
+    private val pressingJump = input.playerInput.jump
     private val forwardMovement = input.movementForward.toDouble()
     private val strafeMovement = input.movementSideways.toDouble()
     private val verticalMovement = pressingJump.toIntSign().toDouble()
@@ -99,7 +99,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
         }
 
         if (isSneaking) {
-            val mod = 0.3f + getSwiftSneakSpeedBoost(player)
+            val mod = 0.3f + player.getAttributeValue(EntityAttributes.SNEAKING_SPEED)
             forwardSpeed *= mod
             strafeSpeed *= mod
         }

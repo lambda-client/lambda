@@ -30,7 +30,7 @@ val Entity.rotation
     get() = Rotation(yaw, pitch)
 
 var LivingEntity.isElytraFlying
-    get() = isFallFlying
+    get() = isGliding
     set(value) {
         setFlag(7, value)
     }

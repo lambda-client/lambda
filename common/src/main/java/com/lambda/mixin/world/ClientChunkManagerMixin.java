@@ -72,7 +72,7 @@ public class ClientChunkManagerMixin {
         }
     }
 
-    @Inject(method = "unload", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientChunkManager$ClientChunkMap;compareAndSet(ILnet/minecraft/world/chunk/WorldChunk;Lnet/minecraft/world/chunk/WorldChunk;)Lnet/minecraft/world/chunk/WorldChunk;"), locals = LocalCapture.CAPTURE_FAILHARD)
+    @Inject(method = "unload", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientChunkManager$ClientChunkMap;unloadChunk(ILnet/minecraft/world/chunk/WorldChunk;)V"), locals = LocalCapture.CAPTURE_FAILHARD)
     private void onChunkUnload(ChunkPos pos, CallbackInfo ci, int i, WorldChunk chunk) {
         EventFlow.post(new WorldEvent.ChunkEvent.Unload(this.world, chunk));
     }

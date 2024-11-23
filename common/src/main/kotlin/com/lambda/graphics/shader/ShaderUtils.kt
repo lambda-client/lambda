@@ -35,7 +35,7 @@ object ShaderUtils {
 
         // Attach source code and compile it
         val text = IOUtils.toString(resource.stream, Charsets.UTF_8)
-        GlStateManager.glShaderSource(shader, ImmutableList.of(text))
+        GlStateManager.glShaderSource(shader, text) // TODO: Check this after resolving all the erros
         val error = compileShader(shader)
 
         // Handle error

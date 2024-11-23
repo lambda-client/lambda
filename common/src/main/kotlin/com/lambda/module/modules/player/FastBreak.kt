@@ -26,6 +26,8 @@ import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.extension.partialTicks
+import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
 import com.lambda.util.math.transform
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
@@ -126,7 +128,7 @@ object FastBreak : Module(
             boxSet.forEach { box ->
                 val previousFactor = interaction.currentBreakingProgress - breakDelta
                 val nextFactor = interaction.currentBreakingProgress
-                val currentFactor = lerp(mc.tickDelta, previousFactor, nextFactor)
+                val currentFactor = lerp(mc.tickDelta.toFloat(), previousFactor, nextFactor)
 
                 val fillColour = if (fillColourMode == ColourMode.Dynamic) {
                     lerp(currentFactor.toDouble(), startFillColour, endFillColour)

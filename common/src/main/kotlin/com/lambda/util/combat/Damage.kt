@@ -41,9 +41,10 @@ object Damage {
 
         if (source.isIn(DamageTypeTags.BYPASSES_ENCHANTMENTS)) return damage
 
-        val protectionAmount = EnchantmentHelper.getProtectionAmount(entity.armorItems, source)
+        // TODO: Fix this
+        //val protectionAmount = EnchantmentHelper.getProtectionAmount(entity.armorItems, source)
 
-        if (protectionAmount > 0) return damage * (1.0 - min(protectionAmount, 20) / 25.0)
+        //if (protectionAmount > 0) return damage * (1.0 - min(protectionAmount, 20) / 25.0)
 
         return damage
     }

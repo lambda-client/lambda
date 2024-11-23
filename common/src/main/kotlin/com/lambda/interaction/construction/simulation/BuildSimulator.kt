@@ -196,10 +196,7 @@ object BuildSimulator {
                     usageContext.blockPos,
                     false
                 )
-                val canBePlacedOn = optimalStack.canPlaceOn(
-                    usageContext.world.registryManager.get(RegistryKeys.BLOCK),
-                    cachePos,
-                )
+                val canBePlacedOn = optimalStack.canPlaceOn(cachePos)
                 if (!player.abilities.allowModifyWorld && !canBePlacedOn) {
                     acc.add(PlaceResult.IllegalUsage(pos))
                     return@forEach

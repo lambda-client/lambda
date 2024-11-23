@@ -147,8 +147,8 @@ object BackTrack : Module(
                 }
 
                 is EntityPositionS2CPacket -> {
-                    if (target.id == packet.id) {
-                        targetPos = Vec3d(packet.x, packet.y, packet.z)
+                    if (target.id == packet.entityId) {
+                        targetPos = packet.change().position // TODO: Is this relative ?
                     }
                 }
 

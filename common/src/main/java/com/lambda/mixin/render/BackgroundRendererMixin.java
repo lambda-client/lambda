@@ -18,26 +18,23 @@
 package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.WorldColors;
+import com.lambda.util.math.ColorKt;
 import net.minecraft.client.render.BackgroundRenderer;
+import net.minecraft.client.render.Camera;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.Vec3d;
+import org.joml.Vector4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(BackgroundRenderer.class)
 public class BackgroundRendererMixin {
-    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;getX()D"))
-    private static double redirectRed(Vec3d baseColor) {
-        return WorldColors.backgroundColor(baseColor).getX();
-    }
+    @Inject(method = "getFogColor", at = @At("RETURN"), cancellable = true)
+    private static void redirectColor(Camera camera, float tickDelta, ClientWorld world, int clampedViewDistance, float skyDarkness, CallbackInfoReturnable<Vector4f> cir) {
+        Vec3d color = ColorKt.getVec3d(WorldColors.getFogColor());
 
-    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;getY()D"))
-    private static double redirectGreen(Vec3d baseColor) {
-        return WorldColors.backgroundColor(baseColor).getY();
-    }
-
-    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;getZ()D"))
-    private static double redirectBlue(Vec3d baseColor) {
-        return WorldColors.backgroundColor(baseColor).getZ();
+        cir.setReturnValue(new Vector4f((float) color.x, (float) color.y, (float) color.z, 1.0f));
     }
 }

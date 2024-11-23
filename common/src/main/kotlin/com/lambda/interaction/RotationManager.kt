@@ -94,7 +94,8 @@ object RotationManager : Loadable {
             if (packet !is PlayerPositionLookS2CPacket) return@listener
 
             runGameScheduled {
-                reset(Rotation(packet.yaw, packet.pitch))
+                // TODO: wtf happened here ?
+                // reset(Rotation(packet.yaw, packet.pitch))
             }
         }
 

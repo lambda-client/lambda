@@ -103,7 +103,7 @@ class PlaceBlock @Ta5kBuilder constructor(
         )
 
         if (actionResult.isAccepted) {
-            if (actionResult.shouldSwingHand() && interact.swingHand) {
+            if (interact.swingHand) {
                 player.swingHand(ctx.hand)
             }
 

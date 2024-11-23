@@ -74,7 +74,7 @@ fun ArgumentReader<
                 RotationArgumentType
                 >
         >.absolute(): Vec2f {
-    return RotationArgumentType.getRotation(context, name).toAbsoluteRotation(context.source)
+    return RotationArgumentType.getRotation(context, name).getRotation(context.source)
 }
 
 /**

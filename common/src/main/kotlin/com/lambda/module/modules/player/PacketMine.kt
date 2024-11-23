@@ -26,12 +26,15 @@ import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.interaction.RotationManager
+import com.lambda.interaction.construction.result.BreakResult
+import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.visibilty.VisibilityChecker.findRotation
 import com.lambda.module.Module
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap
 import net.minecraft.block.BlockState
@@ -1276,7 +1279,7 @@ object PacketMine : Module(
             }
             val previousFactor = previousMiningProgress * threshold
             val nextFactor = miningProgress * threshold
-            val currentFactor = lerp(mc.tickDelta, previousFactor, nextFactor)
+            val currentFactor = lerp(mc.tickDelta.toFloat(), previousFactor, nextFactor)
 
             val paused = (pauseWhileUsingItems && player.isUsingItem) || pausedForRotation || awaitingQueueBreak
 
@@ -1443,10 +1446,11 @@ object PacketMine : Module(
         var f: Float = player.inventory.getStack(toolSlot).getMiningSpeedMultiplier(state)
         if (f > 1.0f) {
             val itemStack: ItemStack = player.inventory.getStack(toolSlot)
-            val i = EnchantmentHelper.getLevel(Enchantments.EFFICIENCY, itemStack)
+            // TODO: com.lambda.interaction.material.StackSelection.hasEnchantment
+            /*val i = EnchantmentHelper.getLevel(Enchantments.EFFICIENCY, itemStack)
             if (i > 0 && !itemStack.isEmpty) {
                 f += (i * i + 1).toFloat()
-            }
+            }*/
         }
 
         if (StatusEffectUtil.hasHaste(player)) {
@@ -1465,7 +1469,8 @@ object PacketMine : Module(
         }
 
         if (player.isSubmergedIn(FluidTags.WATER)
-            && !EnchantmentHelper.hasAquaAffinity(player)
+            // TODO: fucking registries
+            //&& !EnchantmentHelper.hasAquaAffinity(player)
         ) {
             f /= 5.0f
         }

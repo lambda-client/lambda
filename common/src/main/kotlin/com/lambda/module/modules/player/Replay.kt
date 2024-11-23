@@ -660,17 +660,20 @@ object Replay : Module(
         fun update(input: Input) {
             input.movementSideways = movementSideways
             input.movementForward = movementForward
-            input.pressingForward = pressingForward
+            // TODO: lmao this doesn't exist anymore
+            /*input.pressingForward = pressingForward
             input.pressingBack = pressingBack
             input.pressingLeft = pressingLeft
             input.pressingRight = pressingRight
             input.jumping = jumping
-            input.sneaking = sneaking
+            input.sneaking = sneaking*/
         }
 
         companion object {
             fun Input.toAction() =
-                InputAction(
+                // TODO: lmao this doesn't exist anymore
+                null as InputAction
+                /*InputAction(
                     movementSideways,
                     movementForward,
                     pressingForward,
@@ -679,7 +682,7 @@ object Replay : Module(
                     pressingRight,
                     jumping,
                     sneaking
-                )
+                )*/
         }
     }
 }

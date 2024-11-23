@@ -34,6 +34,7 @@ import com.lambda.threading.runConcurrent
 import com.lambda.util.Communication.warn
 import com.lambda.util.Nameable
 import com.lambda.util.StringUtils.capitalize
+import com.lambda.util.StringUtils.sanitizeForFilename
 import dev.cbyrne.kdiscordipc.KDiscordIPC
 import dev.cbyrne.kdiscordipc.core.event.DiscordEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ActivityJoinEvent
@@ -111,11 +112,7 @@ object DiscordRPC : Module(
         USERNAME({ mc.session.username }),
         HEALTH({ "${mc.player?.health ?: 0} HP" }),
         HUNGER({ "${mc.player?.hungerManager?.foodLevel ?: 0} Hunger" }),
-        DIMENSION({
-            mc.world?.registryKey?.value?.path?.replace(dimensionRegex) {
-                it.value.split("_").joinToString(" ") { it.capitalize() }
-            } ?: "Unknown"
-        }),
+        DIMENSION({ mc.world?.dimensionEntry.toString().sanitizeForFilename().capitalize() }),
         COORDINATES({
             if (confirmCoordinates) "Coords: ${mc.player?.blockPos?.toShortString()}"
             else "[Redacted]"

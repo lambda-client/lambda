@@ -23,6 +23,7 @@ import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
+import com.lambda.util.extension.isElytraFlying
 import com.lambda.util.player.MovementUtils.addSpeed
 import net.minecraft.entity.LivingEntity
 import net.minecraft.sound.SoundEvents
@@ -46,7 +47,7 @@ object ElytraFly : Module(
 
     init {
         listener<MovementEvent.Pre> {
-            if (playerBoost && player.isFallFlying && !player.isUsingItem) {
+            if (playerBoost && player.isElytraFlying && !player.isUsingItem) {
                 addSpeed(playerSpeed)
             }
         }

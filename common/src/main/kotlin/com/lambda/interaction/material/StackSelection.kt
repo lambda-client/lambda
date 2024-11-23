@@ -22,8 +22,10 @@ import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import net.minecraft.block.Block
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.enchantment.EnchantmentHelper
+import net.minecraft.enchantment.Enchantments
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
+import net.minecraft.registry.Registries
 import net.minecraft.screen.slot.Slot
 import kotlin.reflect.KClass
 
@@ -155,11 +157,14 @@ class StackSelection {
      * @return A predicate that matches the [Enchantment] and `level`.
      */
     fun hasEnchantment(enchantment: Enchantment, level: Int = -1): (ItemStack) -> Boolean = {
-        if (level < 0) {
+        true
+
+        // TODO: Figure out what the fuck the new registry system is lmao
+        /*if (level < 0) {
             EnchantmentHelper.getLevel(enchantment, it) > 0
         } else {
             EnchantmentHelper.getLevel(enchantment, it) == level
-        }
+        }*/
     }
 
     /**

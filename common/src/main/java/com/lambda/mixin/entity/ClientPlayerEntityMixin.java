@@ -91,7 +91,7 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         if (self != Lambda.getMc().player) return;
 
         if (self.input == null) return;
-        cir.setReturnValue(EventFlow.post(new MovementEvent.Sneak(self.input.sneaking)).getSneak());
+        cir.setReturnValue(EventFlow.post(new MovementEvent.Sneak(self.input.playerInput.sneak())).getSneak());
     }
 
     @Inject(method = "sendMovementPackets", at = @At(value = "HEAD"), cancellable = true)

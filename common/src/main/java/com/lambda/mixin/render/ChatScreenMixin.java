@@ -31,6 +31,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.ArrayList;
@@ -77,10 +78,10 @@ public abstract class ChatScreenMixin {
     }
 
     @Inject(method = "sendMessage", at = @At("HEAD"), cancellable = true)
-    void sendMessageInject(String chatText, boolean addToHistory, CallbackInfoReturnable<Boolean> cir) {
+    void sendMessageInject(String chatText, boolean addToHistory, CallbackInfo ci) {
         if (!CommandManager.INSTANCE.isLambdaCommand(chatText)) return;
         CommandManager.INSTANCE.executeCommand(chatText);
 
-        cir.setReturnValue(true);
+        ci.cancel();
     }
 }

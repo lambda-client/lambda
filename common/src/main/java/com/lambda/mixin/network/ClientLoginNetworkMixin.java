@@ -31,6 +31,6 @@ public class ClientLoginNetworkMixin {
 
     @Inject(method = "onSuccess(Lnet/minecraft/network/packet/s2c/login/LoginSuccessS2CPacket;)V", at = @At("HEAD"))
     private void onSuccess(LoginSuccessS2CPacket packet, CallbackInfo ci) {
-        EventFlow.post(new ConnectionEvent.Connect.Post(packet.getProfile()));
+        EventFlow.post(new ConnectionEvent.Connect.Post(packet.profile()));
     }
 }

@@ -28,6 +28,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.extension.tickDelta
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import net.minecraft.block.ChestBlock
 import net.minecraft.entity.mob.ShulkerEntity
@@ -46,7 +47,7 @@ class PlaceContainer @Ta5kBuilder constructor(
                 it.blockPos
                     .toStructure(TargetState.Stack(stack))
                     .toBlueprint()
-                    .simulate(player.getCameraPosVec(mc.tickDelta))
+                    .simulate(player.getCameraPosVec(mc.tickDelta.toFloat()))
             }
 
 //        val res = results.sorted()
@@ -83,7 +84,9 @@ class PlaceContainer @Ta5kBuilder constructor(
 
         in shulkerBoxes -> {
             val box = ShulkerEntity
-                .calculateBoundingBox(direction, 0.0f, 0.5f)
+                // TODO: What order?
+                //.calculateBoundingBox(direction, 0.0f, 0.5f)
+                .calculateBoundingBox(0.0f, direction, 0.5f)
                 .offset(blockPos)
                 .contract(1.0E-6)
             world.isSpaceEmpty(box)
