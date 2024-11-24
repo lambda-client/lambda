@@ -18,6 +18,7 @@
 package com.lambda.http.api.rpc.v1.models
 
 import com.google.gson.annotations.SerializedName
+import java.util.UUID
 
 data class Player(
     // The player's name.
@@ -27,11 +28,15 @@ data class Player(
 
     // The player's UUID.
     // example: 069a79f4-44e9-4726-a5be-fca90e38aaf5
-    @SerializedName("uuid")
-    val uuid: String,
+    @SerializedName("id")
+    val uuid: UUID,
 
     // The player's Discord ID.
     // example: "385441179069579265"
     @SerializedName("discord_id")
     val discordId: String,
+
+    // Whether the player is verified or not
+    @SerializedName("unsafe")
+    val unsafe: Boolean,
 )

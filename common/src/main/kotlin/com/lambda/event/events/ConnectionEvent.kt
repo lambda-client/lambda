@@ -25,7 +25,6 @@ import net.minecraft.network.listener.PacketListener
 import net.minecraft.network.packet.c2s.handshake.ConnectionIntent
 import net.minecraft.text.Text
 import java.security.PublicKey
-import java.util.UUID
 import javax.crypto.SecretKey
 
 /**
@@ -69,26 +68,28 @@ sealed class ConnectionEvent : Event {
          */
         sealed class Login : ConnectionEvent() {
             /**
-             * Event representing a hello message during login.
-             * @property name The name associated with the login.
-             * @property uuid The UUID associated with the login.
+             * @see <a href="https://wiki.vg/index.php?title=Protocol&oldid=19208#Encryption_Request">Encryption Request</a>
              */
-            class Hello(
-                val name: String,
-                val uuid: UUID,
+            class EncryptionRequest(
+                val serverId: String,
+                val publicKey: PublicKey,
+                val nonce: ByteArray,
             ) : ConnectionEvent()
 
             /**
-             * Event representing the exchange of cryptographic keys during login.
-             * @property secretKey The secret key exchanged during login.
-             * @property publicKey The public key exchanged during login.
-             * @property nonce The nonce associated with the login.
+             * Event representing the exchange of cryptographic keys during login
+             * from the client to the server
              *
-             * The secret key MUST ABSOLUTELY be, if stored, destroyed after use to avoid security vulnerabilities.
-             * This can be done by calling the `destroy()` method on the secret key object.
-             * We are NOT responsible for any incidents that may occur due to improper handling of cryptographic keys.
+             * Note that this event won't be posted if the server is in offline mode
+             * because the player doesn't fetch the server's public key
+             *
+             * The secret key must be destroyed if stored for long periods
+             * This can be done by calling the `destroy()` method on the secret key object
+             * We are not responsible for any incidents that may occur due to improper handling of cryptographic keys
+             *
+             * @see <a href="https://wiki.vg/index.php?title=Protocol&oldid=19208#Encryption_Response">Encryption Response</a>
              */
-            class Key(
+            class EncryptionResponse(
                 val secretKey: SecretKey,
                 val publicKey: PublicKey,
                 val nonce: ByteArray,
@@ -105,7 +106,6 @@ sealed class ConnectionEvent : Event {
     }
 
     /**
-     * Event representing a disconnection.
      * @property reason The reason for disconnection.
      */
     class Disconnect(val reason: Text) : ConnectionEvent()

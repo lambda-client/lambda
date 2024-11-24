@@ -38,11 +38,5 @@ object RpcCommand : LambdaCommand(
                 }
             }
         }
-
-        required(literal("accept")) {
-            execute {
-                DiscordRPC.join()
-            }
-        }
     }
 }
