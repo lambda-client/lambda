@@ -18,21 +18,45 @@
 package com.lambda.util
 
 import org.lwjgl.glfw.GLFW
+import kotlin.jvm.Throws
 
 class Mouse {
-    @JvmInline
-    value class Button(val key: Int) {
-        companion object {
-            val Left = Button(GLFW.GLFW_MOUSE_BUTTON_LEFT)
-            val Right = Button(GLFW.GLFW_MOUSE_BUTTON_RIGHT)
-            val Middle = Button(GLFW.GLFW_MOUSE_BUTTON_MIDDLE)
-        }
+    enum class Button(val key: Int) {
+        Left(GLFW.GLFW_MOUSE_BUTTON_LEFT),
+        Right(GLFW.GLFW_MOUSE_BUTTON_RIGHT),
+        Middle(GLFW.GLFW_MOUSE_BUTTON_MIDDLE);
 
         val isMainButton get() = key == GLFW.GLFW_MOUSE_BUTTON_LEFT || key == GLFW.GLFW_MOUSE_BUTTON_RIGHT
+
+        companion object {
+            private val mouseCodeMap = entries.associateBy { it.key }
+            private val nameMap = entries.associateBy { it.name.lowercase() }
+
+            @Throws(IllegalArgumentException::class)
+            fun fromMouseCode(code: Int) =
+                mouseCodeMap[code] ?: throw IllegalArgumentException("Mouse code $code not found in mouseCodeMap.")
+
+            @Throws(IllegalArgumentException::class)
+            fun fromMouseName(name: String) =
+                nameMap[name.lowercase()] ?: throw IllegalArgumentException("Mouse name '$name' not found in nameMap.")
+        }
     }
 
     enum class Action {
         Click,
-        Release
+        Release;
+
+        companion object {
+            private val mouseActionMap = entries.associateBy { it.ordinal }
+            private val nameMap = entries.associateBy { it.name.lowercase() }
+
+            @Throws(IllegalArgumentException::class)
+            fun fromActionCode(code: Int) =
+                mouseActionMap[code] ?: throw IllegalArgumentException("Action code $code not found in mouseActionMap.")
+
+            @Throws(IllegalArgumentException::class)
+            fun fromActionName(name: String) =
+                nameMap[name.lowercase()] ?: throw IllegalArgumentException("Action name '$name' not found in nameMap.")
+        }
     }
 }

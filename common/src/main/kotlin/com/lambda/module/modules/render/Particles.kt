@@ -19,7 +19,7 @@ package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.event.events.AttackEvent
+import com.lambda.event.events.LocalPlayerEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
@@ -102,7 +102,7 @@ object Particles : Module(
             }
         }
 
-        listener<AttackEvent.Pre> { event ->
+        listener<LocalPlayerEvent.EntityAttack> { event ->
             spawnForEntity(event.entity)
         }
 

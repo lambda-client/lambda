@@ -22,28 +22,28 @@ import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import net.minecraft.client.input.Input
 
-abstract class MovementEvent : Event {
-    class Pre : MovementEvent()
-    class Post : MovementEvent()
+sealed class MovementEvent {
+    class Pre : Event
+    class Post : Event
 
-    abstract class Travel : MovementEvent() {
-        class Pre : MovementEvent(), ICancellable by Cancellable()
-        class Post : MovementEvent()
+    sealed class Travel {
+        class Pre : ICancellable by Cancellable()
+        class Post : Event
     }
 
-    class InputUpdate(
+    data class InputUpdate(
         val input: Input,
         var slowDown: Boolean,
         var slowDownFactor: Float,
-    ) : MovementEvent()
+    ) : Event
 
-    class Sprint(var sprint: Boolean) : MovementEvent()
-    class Sneak(var sneak: Boolean) : MovementEvent()
+    data class Sprint(var sprint: Boolean) : Event
+    data class Sneak(var sneak: Boolean) : Event
 
-    class ClipAtLedge(
+    data class ClipAtLedge(
         var clip: Boolean,
-    ) : MovementEvent()
+    ) : Event
 
-    class Jump(var height: Double) : MovementEvent(), ICancellable by Cancellable()
-    class SlowDown : Event, ICancellable by Cancellable()
+    data class Jump(var height: Double) : ICancellable by Cancellable()
+    class SlowDown : ICancellable by Cancellable()
 }

@@ -25,18 +25,18 @@ import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.util.math.Vec2d
 
-abstract class RenderEvent : Event {
-    class World : RenderEvent()
+sealed class RenderEvent {
+    class World : Event
 
-    class StaticESP : RenderEvent() {
+    class StaticESP : Event {
         val renderer = StaticESP
     }
 
-    class DynamicESP : RenderEvent() {
+    class DynamicESP : Event {
         val renderer = DynamicESP
     }
 
-    abstract class GUI(val scale: Double) : RenderEvent() {
+    sealed class GUI(val scale: Double) : Event {
         class Scaled(scaleFactor: Double) : GUI(scaleFactor)
         class HUD(scaleFactor: Double) : GUI(scaleFactor)
         class Fixed : GUI(1.0)
@@ -44,5 +44,5 @@ abstract class RenderEvent : Event {
         val screenSize = Vec2d(mc.window.framebufferWidth, mc.window.framebufferHeight) / scale
     }
 
-    class UpdateTarget : RenderEvent(), ICancellable by Cancellable()
+    class UpdateTarget : ICancellable by Cancellable()
 }

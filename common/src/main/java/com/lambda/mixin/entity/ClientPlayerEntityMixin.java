@@ -19,7 +19,7 @@ package com.lambda.mixin.entity;
 
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
-import com.lambda.event.events.EntityEvent;
+import com.lambda.event.events.LocalPlayerEvent;
 import com.lambda.event.events.MovementEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.interaction.PlayerPacketManager;
@@ -125,6 +125,6 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
 
     @Inject(method = "swingHand", at = @At("HEAD"), cancellable = true)
     void onSwingHandPre(Hand hand, CallbackInfo ci) {
-        if (EventFlow.post(new EntityEvent.SwingHand(hand)).isCanceled()) ci.cancel();
+        if (EventFlow.post(new LocalPlayerEvent.SwingHand(hand)).isCanceled()) ci.cancel();
     }
 }
