@@ -18,24 +18,36 @@
 package com.lambda.config.settings.collections
 
 import com.google.gson.JsonElement
+import com.lambda.Lambda.gson
 import com.lambda.config.AbstractSetting
 import java.lang.reflect.Type
 
+/**
+ * @see [com.lambda.config.Configurable]
+ */
 class MapSetting<K, V>(
     override val name: String,
-    private val defaultValue: Map<K, V>,
+    private val defaultValue: MutableMap<K, V>,
     type: Type,
     description: String,
     private val hackDelegates: Boolean,
     visibility: () -> Boolean,
-) : AbstractSetting<Map<K, V>>(
+) : AbstractSetting<MutableMap<K, V>>(
     defaultValue,
     type,
     description,
     visibility
 ) {
     override fun toJson(): JsonElement {
-        if (hackDelegates) value = defaultValue
-        return super.toJson()
+        return if (hackDelegates) gson.toJsonTree(defaultValue, type)
+        else super.toJson()
+    }
+
+    override fun loadFromJson(serialized: JsonElement) {
+        if (hackDelegates) {
+            defaultValue.putAll(gson.fromJson(serialized, type))
+            setValue(this, ::value, defaultValue)
+        }
+        else super.loadFromJson(serialized)
     }
 }

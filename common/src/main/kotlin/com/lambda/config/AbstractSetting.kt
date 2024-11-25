@@ -72,7 +72,7 @@ import kotlin.reflect.KProperty
  */
 abstract class AbstractSetting<T : Any>(
     private val defaultValue: T,
-    private val type: Type,
+    protected val type: Type,
     val description: String,
     val visibility: () -> Boolean,
 ) : Jsonable, Nameable {
