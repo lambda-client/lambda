@@ -18,7 +18,7 @@
 package com.lambda.interaction.material
 
 import com.lambda.core.Loadable
-import com.lambda.event.events.InteractionEvent
+import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.interaction.material.StackSelection.Companion.select
@@ -51,7 +51,7 @@ object ContainerManager : Loadable {
     private var lastInteractedBlockEntity: BlockEntity? = null
 
     init {
-        listener<InteractionEvent.Block> {
+        listener<PlayerEvent.Interact.Block> {
             lastInteractedBlockEntity = it.blockHitResult.blockPos.blockEntity(world)
         }
 

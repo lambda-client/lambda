@@ -18,7 +18,7 @@
 package com.lambda.module.modules.client
 
 import com.lambda.event.events.ClientEvent
-import com.lambda.event.events.KeyPressEvent
+import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
 import com.lambda.gui.impl.clickgui.LambdaClickGui
@@ -62,7 +62,7 @@ object ClickGui : Module(
             LambdaHudGui.close()
         }
 
-        listener<KeyPressEvent>(priority = Int.MAX_VALUE) { event ->
+        listener<KeyboardEvent.Press>(priority = Int.MAX_VALUE) { event ->
             if (mc.options.commandKey.isPressed) return@listener
             if (keybind == KeyCode.UNBOUND) return@listener
             if (event.translated != keybind) return@listener

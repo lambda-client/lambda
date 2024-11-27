@@ -26,7 +26,7 @@ import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.numeric.DoubleSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
-import com.lambda.event.events.KeyPressEvent
+import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listener
@@ -128,7 +128,7 @@ abstract class Module(
     val keybind by keybindSetting
 
     init {
-        listener<KeyPressEvent>(alwaysListen = true) { event ->
+        listener<KeyboardEvent.Press>(alwaysListen = true) { event ->
             if (mc.options.commandKey.isPressed) return@listener
             if (keybind == KeyCode.UNBOUND) return@listener
             if (event.translated != keybind) return@listener

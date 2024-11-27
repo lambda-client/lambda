@@ -21,13 +21,13 @@ import com.lambda.event.Event
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.ScreenHandler
 
-sealed class ScreenHandlerEvent : Event {
-    class Open(val screenHandler: ScreenHandler) : ScreenHandlerEvent()
-    class Close(val screenHandler: ScreenHandler) : ScreenHandlerEvent()
+sealed class ScreenHandlerEvent {
+    class Open(val screenHandler: ScreenHandler) : Event
+    class Close(val screenHandler: ScreenHandler) : Event
 
     data class Update(
         val revision: Int,
         val stacks: List<ItemStack>,
         val cursorStack: ItemStack,
-    ) : ScreenHandlerEvent()
+    ) : Event
 }

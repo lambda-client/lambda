@@ -28,36 +28,54 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.world.chunk.WorldChunk
 
-abstract class WorldEvent : Event {
-    abstract class ChunkEvent : WorldEvent() {
-        abstract val world: ClientWorld
-        abstract val chunk: WorldChunk
+sealed class WorldEvent {
+    sealed class ChunkEvent : Event {
+        /**
+         * Event triggering upon chunk loading
+         */
+        data class Load(
+            val chunk: WorldChunk
+        ) : Event
 
-        class Load(
-            override val world: ClientWorld,
-            override val chunk: WorldChunk
-        ) : ChunkEvent()
-
-        class Unload(
-            override val world: ClientWorld,
-            override val chunk: WorldChunk
-        ) : ChunkEvent()
+        /**
+         * Event triggering upon chunk unloading
+         * Does not trigger when leaving the world
+         */
+        data class Unload(
+            val chunk: WorldChunk
+        ) : Event
     }
 
+    /**
+     * Represents a block update in the world
+     */
     class BlockUpdate(
         val pos: BlockPos,
         val state: BlockState,
         val flags: Int
-    ) : WorldEvent(), ICancellable by Cancellable()
+    ) : ICancellable by Cancellable()
 
+    /**
+     * Represents an entity being added to the world
+     */
     class EntitySpawn(
         val entity: Entity
-    ) : WorldEvent(), ICancellable by Cancellable()
+    ) : ICancellable by Cancellable()
 
+    /**
+     * Triggered upon entity data modification
+     */
     class EntityUpdate(
         val entity: Entity,
         val data: TrackedData<*>,
-    ) : WorldEvent(), ICancellable by Cancellable()
+    ) : ICancellable by Cancellable()
 
-    class Collision(val pos: BlockPos, val state: BlockState, var shape: VoxelShape) : WorldEvent()
+    /**
+     * Triggered upon player colliding with a block
+     */
+    data class Collision(
+        val pos: BlockPos,
+        val state: BlockState,
+        var shape: VoxelShape
+    ) : Event
 }

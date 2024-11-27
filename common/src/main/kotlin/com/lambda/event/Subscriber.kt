@@ -35,7 +35,6 @@ class Subscriber : ConcurrentHashMap<KClass<out Event>, ConcurrentSkipListSet<Li
     val defaultListenerSet: ConcurrentSkipListSet<Listener<out Event>>
         get() = ConcurrentSkipListSet(Listener.comparator.reversed())
 
-
     /** Allows a [Listener] to start receiving a specific type of [Event] */
     inline fun <reified T : Event> subscribe(listener: Listener<T>) =
         getOrPut(T::class) { defaultListenerSet }.add(listener)

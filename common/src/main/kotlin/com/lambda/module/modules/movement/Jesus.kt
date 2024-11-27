@@ -82,7 +82,7 @@ object Jesus : Module(
             }
         }
 
-        listener<MovementEvent.Pre> {
+        listener<MovementEvent.Player.Pre> {
             if (!shouldWork) return@listener
 
             goUp = waterAt(0.0001)

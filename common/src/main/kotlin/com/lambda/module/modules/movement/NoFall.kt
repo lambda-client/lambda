@@ -46,7 +46,7 @@ object NoFall : Module(
     }
 
     init {
-        listener<MovementEvent.Post> {
+        listener<MovementEvent.Player.Post> {
             when (mode) {
                 Mode.Grim -> {
                     if (player.fallDistance + player.motionY < 3.0) return@listener

@@ -19,7 +19,7 @@ package com.lambda.event.events
 
 import com.lambda.event.Event
 
-abstract class TickEvent : Event {
+sealed class TickEvent {
     /**
      * Triggered before each iteration of the game loop.
      *
@@ -40,7 +40,7 @@ abstract class TickEvent : Event {
      *
      * @see net.minecraft.client.MinecraftClient.tick
      */
-    class Pre : TickEvent()
+    class Pre : Event
 
     /**
      * Triggered after each iteration of the game loop.
@@ -57,13 +57,13 @@ abstract class TickEvent : Event {
      * 7. **Input Handling**: Handles input events, decrements attack cooldown.
      * 8. **World Update**: Ticks game and world renderers, world entities (such as [TickEvent.Player]).
      * 9. **Music and Sound Update**: Ticks music tracker and sound manager.
-     * 10. **Tutorial and Social Interactions**: Handles tutorial and social interactions, ticks world.
+     * 10. **Tutorial**: Handles tutorials, ticks world.
      * 11. **Pending Connection**: Ticks integrated server connection.
      * 12. **Keyboard Handling**: Polls for debug crash key presses.
      *
      * @see net.minecraft.client.MinecraftClient.tick
      */
-    class Post : TickEvent()
+    class Post : Event
 
     /**
      * Triggered before ([Pre]) and after ([Post]) each render tick.
@@ -78,16 +78,16 @@ abstract class TickEvent : Event {
      *
      * @see net.minecraft.client.MinecraftClient.render
      */
-    abstract class Render : TickEvent() {
+    sealed class Render {
         /**
          * Triggered before each render tick ([TickEvent.Render]) of the game loop.
          */
-        class Pre : TickEvent()
+        class Pre : Event
 
         /**
          * Triggered after each render tick ([TickEvent.Render]) of the game loop.
          */
-        class Post : TickEvent()
+        class Post : Event
     }
 
     /**
@@ -102,15 +102,15 @@ abstract class TickEvent : Event {
      *
      * @see net.minecraft.client.network.ClientPlayerEntity.tick
      */
-    abstract class Player : TickEvent() {
+    sealed class Player {
         /**
          * Triggered before each player tick ([TickEvent.Player]).
          */
-        class Pre : Player()
+        class Pre : Event
 
         /**
          * Triggered after each player tick ([TickEvent.Player]).
          */
-        class Post : Player()
+        class Post : Event
     }
 }
