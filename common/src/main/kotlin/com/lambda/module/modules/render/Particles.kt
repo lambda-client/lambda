@@ -19,7 +19,7 @@ package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.event.events.LocalPlayerEvent
+import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
@@ -102,11 +102,11 @@ object Particles : Module(
             }
         }
 
-        listener<LocalPlayerEvent.EntityAttack> { event ->
+        listener<PlayerEvent.EntityAttack> { event ->
             spawnForEntity(event.entity)
         }
 
-        listener<MovementEvent.Post> {
+        listener<MovementEvent.Player.Post> {
             if (!onMove || player.moveDelta < 0.05) return@listener
             spawnForEntity(player)
         }

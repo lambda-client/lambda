@@ -102,7 +102,7 @@ object Freecam : Module(
             event.context = RotationContext(rotation, rotationConfig)
         }
 
-        listener<LocalPlayerEvent.ChangeLookDirection> {
+        listener<PlayerEvent.ChangeLookDirection> {
             rotation = rotation.withDelta(
                 it.deltaYaw * SENSITIVITY_FACTOR,
                 it.deltaPitch * SENSITIVITY_FACTOR

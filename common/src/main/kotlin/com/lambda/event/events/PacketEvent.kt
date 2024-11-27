@@ -45,19 +45,21 @@ sealed class PacketEvent {
      * It has two subclasses: [Pre] and [Post], which are triggered before and after the packet is sent.
      */
     sealed class Send {
+        abstract val packet: ClientPacket
+
         /**
          * Represents the event triggered before a packet is sent.
          *
          * @param packet the packet that is about to be sent.
          */
-        data class Pre(val packet: ClientPacket) : ICancellable by Cancellable()
+        data class Pre(override val packet: ClientPacket) : Send(), ICancellable by Cancellable()
 
         /**
          * Represents the event triggered after a packet is sent.
          *
          * @param packet the packet that has been sent.
          */
-        data class Post(val packet: ClientPacket) : Event
+        data class Post(override val packet: ClientPacket) : Send(), Event
     }
 
     /**
@@ -65,18 +67,20 @@ sealed class PacketEvent {
      * It has two subclasses: [Pre] and [Post], which are triggered before and after the packet is received.
      */
     sealed class Receive {
+        abstract val packet: ServerPacket
+
         /**
          * Represents the event triggered before a packet is received.
          *
          * @param packet the packet that is about to be received.
          */
-        data class Pre(val packet: ServerPacket) : ICancellable by Cancellable()
+        data class Pre(override val packet: ServerPacket) : Receive(), ICancellable by Cancellable()
 
         /**
          * Represents the event triggered after a packet is received.
          *
          * @param packet the packet that has been received.
          */
-        data class Post(val packet: ServerPacket) : Event
+        data class Post(override val packet: ServerPacket) : Receive(), Event
     }
 }

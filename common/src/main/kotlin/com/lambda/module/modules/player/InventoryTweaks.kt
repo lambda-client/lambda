@@ -18,7 +18,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.context.SafeContext
-import com.lambda.event.events.LocalPlayerEvent
+import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.module.Module
@@ -50,7 +50,7 @@ object InventoryTweaks : Module(
     private var lastOpenScreen: ScreenHandler? = null
 
     init {
-        listener<LocalPlayerEvent.SlotClick> {
+        listener<PlayerEvent.SlotClick> {
             if (it.action != SlotActionType.PICKUP || it.button != 1) return@listener
             val stack = it.screenHandler.getSlot(it.slot).stack
             if (!(instantShulker && stack.item in shulkerBoxes) && !(instantEChest && stack.item == Items.ENDER_CHEST)) return@listener

@@ -104,7 +104,7 @@ object FastBreak : Module(
             interaction.blockBreakingCooldown = interaction.blockBreakingCooldown.coerceAtMost(breakDelay)
         }
 
-        listener<LocalPlayerEvent.BreakingProgress> {
+        listener<PlayerEvent.BreakingProgress> {
             it.progress += world.getBlockState(it.pos)
                 .calcBlockBreakingDelta(player, world, it.pos) * (1 - breakThreshold)
         }

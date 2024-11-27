@@ -190,7 +190,7 @@ object Replay : Module(
             }
         }
 
-        listener<MovementEvent.Post> {
+        listener<MovementEvent.Player.Post> {
             when (state) {
                 State.RECORDING -> {
                     buffer?.let {

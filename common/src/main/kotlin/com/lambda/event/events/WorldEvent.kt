@@ -73,5 +73,9 @@ sealed class WorldEvent {
     /**
      * Triggered upon player colliding with a block
      */
-    data class Collision(val pos: BlockPos, val state: BlockState, var shape: VoxelShape) : Event
+    data class Collision(
+        val pos: BlockPos,
+        val state: BlockState,
+        var shape: VoxelShape
+    ) : Event
 }

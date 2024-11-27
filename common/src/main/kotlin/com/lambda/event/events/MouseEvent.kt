@@ -36,7 +36,14 @@ sealed class MouseEvent {
         val action: Mouse.Action,
         val modifiers: Int,
         val position: Vec2d
-    ) : ICancellable by Cancellable()
+    ) : ICancellable by Cancellable() {
+        constructor(button: Int, action: Int, modifiers: Int, position: Vec2d) : this(
+            Mouse.Button.fromMouseCode(button),
+            Mouse.Action.fromActionCode(action),
+            modifiers,
+            position
+        )
+    }
 
     /**
      * Represents a mouse scroll event

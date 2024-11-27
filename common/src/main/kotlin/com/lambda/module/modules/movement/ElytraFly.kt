@@ -45,7 +45,7 @@ object ElytraFly : Module(
     val doBoost: Boolean get() = isEnabled && rocketBoost
 
     init {
-        listener<MovementEvent.Pre> {
+        listener<MovementEvent.Player.Pre> {
             if (playerBoost && player.isFallFlying && !player.isUsingItem) {
                 addSpeed(playerSpeed)
             }

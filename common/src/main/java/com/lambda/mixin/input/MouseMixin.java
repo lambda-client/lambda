@@ -19,7 +19,10 @@ package com.lambda.mixin.input;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MouseEvent;
+import com.lambda.util.math.Vec2d;
 import net.minecraft.client.Mouse;
+import com.lambda.util.Mouse.Button;
+import com.lambda.util.Mouse.Action;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -34,18 +37,16 @@ public class MouseMixin {
 
     @Inject(method = "onMouseButton(JIII)V", at = @At("HEAD"), cancellable = true)
     private void onMouseButton(long window, int button, int action, int mods, CallbackInfo ci) {
-        com.lambda.util.Mouse.Button btn = com.lambda.util.Mouse.Button.Companion.fromMouseCode(button);
-        com.lambda.util.Mouse.Action act = com.lambda.util.Mouse.Action.Companion.fromActionCode(action);
-        com.lambda.util.math.Vec2d position = new com.lambda.util.math.Vec2d(x, y);
+        Vec2d position = new Vec2d(x, y);
 
-        if (EventFlow.post(new MouseEvent.Click(btn, act, mods, position)).isCanceled()) {
+        if (EventFlow.post(new MouseEvent.Click(button, action, mods, position)).isCanceled()) {
             ci.cancel();
         }
     }
 
     @Inject(method = "onMouseScroll(JDD)V", at = @At("HEAD"), cancellable = true)
     private void onMouseScroll(long window, double horizontal, double vertical, CallbackInfo ci) {
-        com.lambda.util.math.Vec2d delta = new com.lambda.util.math.Vec2d(horizontal, vertical);
+        Vec2d delta = new Vec2d(horizontal, vertical);
 
         if (EventFlow.post(new MouseEvent.Scroll(delta)).isCanceled()) {
             ci.cancel();
@@ -56,7 +57,7 @@ public class MouseMixin {
     private void onCursorPos(long window, double x, double y, CallbackInfo ci) {
         if (x + y == this.x + this.y) return;
 
-        com.lambda.util.math.Vec2d position = new com.lambda.util.math.Vec2d(x, y);
+        Vec2d position = new Vec2d(x, y);
 
         if (EventFlow.post(new MouseEvent.Move(position)).isCanceled()) {
             ci.cancel();
