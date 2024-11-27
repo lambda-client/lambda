@@ -47,7 +47,7 @@ object Criticals : Module(
     }
 
     init {
-        listener<PlayerEvent.EntityAttack> {
+        listener<PlayerEvent.Attack.Entity> {
             when (mode) {
                 Mode.Grim -> {
                     if (player.isOnGround) posPacket(0.00000001, rotation = player.rotation)

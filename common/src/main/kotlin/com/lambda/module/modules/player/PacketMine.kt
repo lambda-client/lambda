@@ -273,11 +273,11 @@ object PacketMine : Module(
     private var doubleBreakReturnSlot = 0
 
     init {
-        listener<PlayerEvent.BreakingProgress> {
+        listener<PlayerEvent.Breaking.Update> {
             swingingNextAttack = false
         }
 
-        listener<PlayerEvent.BlockAttack> {
+        listener<PlayerEvent.Attack.Block> {
             it.cancel()
             if (swingOnManual) swingMainHand()
 

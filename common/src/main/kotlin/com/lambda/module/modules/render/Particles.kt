@@ -102,7 +102,7 @@ object Particles : Module(
             }
         }
 
-        listener<PlayerEvent.EntityAttack> { event ->
+        listener<PlayerEvent.Attack.Entity> { event ->
             spawnForEntity(event.entity)
         }
 

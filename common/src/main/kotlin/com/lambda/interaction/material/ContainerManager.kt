@@ -51,7 +51,7 @@ object ContainerManager : Loadable {
     private var lastInteractedBlockEntity: BlockEntity? = null
 
     init {
-        listener<PlayerEvent.BlockInteract> {
+        listener<PlayerEvent.Interact.Block> {
             lastInteractedBlockEntity = it.blockHitResult.blockPos.blockEntity(world)
         }
 
