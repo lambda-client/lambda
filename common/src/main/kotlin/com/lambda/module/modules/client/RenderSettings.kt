@@ -17,6 +17,8 @@
 
 package com.lambda.module.modules.client
 
+import com.lambda.graphics.renderer.gui.font.LambdaEmoji
+import com.lambda.graphics.renderer.gui.font.LambdaFont
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
@@ -28,6 +30,8 @@ object RenderSettings : Module(
     private val page by setting("Page", Page.Font)
 
     // Font
+    val textFont by setting("Text Font", LambdaFont.FiraSansRegular)
+    val emojiFont by setting("Emoji Font", LambdaEmoji.Twemoji)
     val shadow by setting("Shadow", true) { page == Page.Font }
     val shadowBrightness by setting("Shadow Brightness", 0.35, 0.0..0.5, 0.01) { page == Page.Font && shadow }
     val shadowShift by setting("Shadow Shift", 1.0, 0.0..2.0, 0.05) { page == Page.Font && shadow }

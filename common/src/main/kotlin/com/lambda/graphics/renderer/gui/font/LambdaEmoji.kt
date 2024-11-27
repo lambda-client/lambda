@@ -31,6 +31,18 @@ enum class LambdaEmoji(private val zipUrl: String) {
         glyphs = EmojiGlyphs(zipUrl)
     }
 
+    private val emojiRegex = Regex(":[a-zA-Z0-9_]+:")
+
+    /**
+     * Parses the emojis in the given text.
+     *
+     * @param text The text to parse.
+     *
+     * @return A list of parsed strings that does not contain the colons
+     */
+    fun parse(text: String): MutableList<String> =
+        emojiRegex.findAll(text).map { it.value.drop(1).dropLast(1) }.toMutableList()
+
     object Loader : Loadable {
         override fun load(): String {
             entries.forEach(LambdaEmoji::loadGlyphs)
