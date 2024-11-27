@@ -1,0 +1,100 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.module.modules.player
+
+import com.lambda.event.events.MouseEvent
+import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.friend.FriendManager.befriend
+import com.lambda.friend.FriendManager.isFriend
+import com.lambda.friend.FriendManager.unfriend
+import com.lambda.module.Module
+import com.lambda.module.modules.client.ClickGui
+import com.lambda.module.tag.ModuleTag
+import com.lambda.util.Communication.info
+import com.lambda.util.Mouse
+import com.lambda.util.text.buildText
+import com.lambda.util.text.color
+import com.lambda.util.text.literal
+import com.lambda.util.text.text
+import com.lambda.util.world.raycast.RayCastUtils.entityResult
+import net.minecraft.client.network.OtherClientPlayerEntity
+import org.lwjgl.glfw.GLFW.GLFW_MOD_ALT
+import org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL
+import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
+import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
+import java.awt.Color
+
+object ClickFriend : Module(
+    name = "ClickFriend",
+    description = "Add or remove friends with a single click",
+    defaultTags = setOf(ModuleTag.PLAYER)
+) {
+    private val friendButton by setting("Friend Button", Mouse.Button.Right, description = "Button to press to friend a player")
+    private val friendAction by setting("Action", Mouse.Action.Release, description = "What mouse action should add or remove the player")
+    private val comboUnfriend by setting("Combo Unfriend", false, description = "Press a key and right click a player to unfriend")
+    private val modUnfriend by setting("Combo Key", MouseMod.Shift, description = "The key to press to activate the unfriend combo") { comboUnfriend }
+
+    init {
+        listener<MouseEvent.Click> {
+            if (it.button != friendButton ||
+                it.action != friendAction ||
+                mc.currentScreen != null
+            ) return@listener
+
+            val target = mc.crosshairTarget?.entityResult?.entity as? OtherClientPlayerEntity
+                ?: return@listener
+
+            if ((modUnfriend.flagsPresent(it.modifiers) || !comboUnfriend) && target.isFriend) {
+                target.unfriend()
+                info(buildText {
+                    color(Color.RED) {
+                        literal("Removed ")
+                        color(Color.CYAN) {
+                            text(target.name)
+                            color(Color.WHITE) { literal(" from your friend list") }
+                        }
+                    }
+                })
+            }
+
+            if (!modUnfriend.flagsPresent(it.modifiers) && !target.isFriend) {
+                target.befriend()
+                info(buildText {
+                    color(Color.GREEN) {
+                        literal("Added ")
+                        color(Color.CYAN) {
+                            text(target.name)
+                            color(Color.WHITE) {
+                                literal(" to your friend list")
+                            }
+                        }
+                    }
+                })
+            }
+        }
+    }
+
+    private enum class MouseMod(val modifiers: Int) {
+        Shift(GLFW_MOD_SHIFT),
+        Control(GLFW_MOD_CONTROL),
+        Alt(GLFW_MOD_ALT),
+        Super(GLFW_MOD_SUPER);
+
+        fun flagsPresent(flags: Int) = flags and modifiers == modifiers
+    }
+}
