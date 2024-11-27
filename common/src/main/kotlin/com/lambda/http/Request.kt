@@ -22,6 +22,7 @@ import com.lambda.util.FolderRegister.cache
 import com.lambda.util.FolderRegister.createIfNotExists
 import java.io.File
 import java.net.HttpURLConnection
+import java.net.URI
 import java.net.URL
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
@@ -63,10 +64,10 @@ data class Request(
 
         file.writeText("") // Clear the file before writing to it.
 
-        val url = URL(
+        val url = URI(
             if (parameters.isNotEmpty() && canBeEncoded) "$url?${parameters.query}"
             else url
-        )
+        ).toURL()
 
         val connection = url.openConnection() as HttpURLConnection
         config.invoke(connection)
@@ -90,10 +91,10 @@ data class Request(
      * Executes the HTTP request synchronously.
      */
     inline fun <reified Success : Any> json(): Response<Success> {
-        val url = URL(
+        val url = URI(
             if (parameters.isNotEmpty() && canBeEncoded) "$url?${parameters.query}"
             else url
-        )
+        ).toURL()
 
         val connection = url.openConnection() as HttpURLConnection
         config.invoke(connection)

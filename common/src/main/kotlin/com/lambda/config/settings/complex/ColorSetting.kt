@@ -21,6 +21,9 @@ import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
 import java.awt.Color
 
+/**
+ * @see [com.lambda.config.Configurable]
+ */
 class ColorSetting(
     override val name: String,
     defaultValue: Color,

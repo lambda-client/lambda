@@ -193,7 +193,6 @@ class ModuleButton(
         when (e.button) {
             Mouse.Button.Left -> {
                 module.toggle()
-
             }
 
             Mouse.Button.Right -> {
@@ -208,6 +207,8 @@ class ModuleButton(
                 val sound = if (isOpen) LambdaSound.SETTINGS_OPEN else LambdaSound.SETTINGS_CLOSE
                 playSoundRandomly(sound.event)
             }
+
+            else -> {}
         }
     }
 

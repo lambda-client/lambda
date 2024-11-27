@@ -85,9 +85,9 @@ class BlockDsl(
  */
 fun SafeContext.blockSearch(
     range: Vec3i,
-    step: Vec3i,
+    step: Vec3i = Vec3i(1, 1, 1),
     pos: BlockPos = player.blockPos,
-    predicate: (BlockPos, BlockState) -> Boolean
+    predicate: (BlockPos, BlockState) -> Boolean = { _, _ -> true }
 ): Map<BlockPos, BlockState> =
     BlockDsl(this, pos, range, step, predicate).build()
 
@@ -102,8 +102,8 @@ fun SafeContext.blockSearch(
  */
 fun SafeContext.blockSearch(
     range: Int,
-    step: Int,
+    step: Int = 1,
     pos: BlockPos = player.blockPos,
-    predicate: (BlockPos, BlockState) -> Boolean
+    predicate: (BlockPos, BlockState) -> Boolean = { _, _ -> true }
 ): Map<BlockPos, BlockState> =
     blockSearch(Vec3i(range, range, range), Vec3i(step, step, step), pos, predicate)

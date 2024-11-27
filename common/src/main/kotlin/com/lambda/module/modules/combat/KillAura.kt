@@ -130,7 +130,7 @@ object KillAura : Module(
         }
 
         listener<TickEvent.Pre> {
-            target = targeting.getTarget()
+            target = targeting.target()
             if (!timerSync) attackTicks++
 
             target?.let { entity ->

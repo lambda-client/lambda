@@ -20,7 +20,6 @@ package com.lambda.mixin;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.ClientEvent;
-import com.lambda.event.events.ScreenEvent;
 import com.lambda.event.events.ScreenHandlerEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.module.modules.player.Interact;
@@ -81,8 +80,6 @@ public class MinecraftClientMixin {
         if (screen instanceof ScreenHandlerProvider<?> handledScreen) {
             EventFlow.post(new ScreenHandlerEvent.Open(handledScreen.getScreenHandler()));
         }
-
-        EventFlow.post(new ScreenEvent.Open<>(screen));
     }
 
     @Inject(method = "setScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/Screen;removed()V", shift = At.Shift.AFTER))
@@ -91,8 +88,6 @@ public class MinecraftClientMixin {
         if (currentScreen instanceof ScreenHandlerProvider<?> handledScreen) {
             EventFlow.post(new ScreenHandlerEvent.Close(handledScreen.getScreenHandler()));
         }
-
-        EventFlow.post(new ScreenEvent.Close<>(currentScreen));
     }
 
     @Redirect(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;isBreakingBlock()Z"))

@@ -135,12 +135,12 @@ abstract class LambdaGui(
     }
 
     final override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        onEvent(GuiEvent.MouseClick(Mouse.Button(button), Mouse.Action.Click, rescaleMouse(mouseX, mouseY)))
+        onEvent(GuiEvent.MouseClick(Mouse.Button.fromMouseCode(button), Mouse.Action.Click, rescaleMouse(mouseX, mouseY)))
         return true
     }
 
     final override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
-        onEvent(GuiEvent.MouseClick(Mouse.Button(button), Mouse.Action.Release, rescaleMouse(mouseX, mouseY)))
+        onEvent(GuiEvent.MouseClick(Mouse.Button.fromMouseCode(button), Mouse.Action.Release, rescaleMouse(mouseX, mouseY)))
         return true
     }
 

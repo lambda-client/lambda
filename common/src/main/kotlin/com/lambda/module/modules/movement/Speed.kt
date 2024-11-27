@@ -97,7 +97,7 @@ object Speed : Module(
     }
 
     init {
-        listener<MovementEvent.Pre> {
+        listener<MovementEvent.Player.Pre> {
             if (!shouldWork()) {
                 reset()
                 return@listener
@@ -109,7 +109,7 @@ object Speed : Module(
             }
         }
 
-        listener<MovementEvent.Post> {
+        listener<MovementEvent.Player.Post> {
             lastDistance = player.moveDelta
         }
 

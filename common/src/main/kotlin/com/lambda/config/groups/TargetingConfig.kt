@@ -21,6 +21,7 @@ interface TargetingConfig {
     val targetingRange: Double
 
     val players: Boolean
+    val friends: Boolean
     val hostiles: Boolean
     val animals: Boolean
 

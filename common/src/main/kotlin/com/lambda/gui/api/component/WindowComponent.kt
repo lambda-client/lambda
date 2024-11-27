@@ -166,6 +166,8 @@ abstract class WindowComponent<T : ChildComponent>(
 
                             if (isOpen) contentComponents.onEvent(GuiEvent.Show())
                         }
+
+                        else -> {}
                     }
                 }
             }

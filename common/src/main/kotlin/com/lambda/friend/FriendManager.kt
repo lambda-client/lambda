@@ -17,15 +17,20 @@
 
 package com.lambda.friend
 
-import com.lambda.friend.FriendRegistry.friends
+import com.lambda.config.Configurable
+import com.lambda.config.configurations.FriendConfig
+import com.lambda.core.Loadable
 import com.mojang.authlib.GameProfile
-import net.minecraft.server.network.ServerPlayerEntity
+import net.minecraft.client.network.OtherClientPlayerEntity
 import java.util.*
 
-object FriendManager {
-    fun add(profile: GameProfile) = friends.add(profile)
+object FriendManager : Configurable(FriendConfig), Loadable {
+    override val name = "friends"
+    val friends by setting("friends", listOf<GameProfile>(), hackDelegates = true)
 
-    fun remove(profile: GameProfile) = friends.remove(profile)
+    fun add(profile: GameProfile) { if (!contains(profile)) friends.add(profile) }
+
+    fun remove(profile: GameProfile) { friends.remove(profile) }
 
     fun get(name: String) = friends.firstOrNull { it.name == name }
     fun get(uuid: UUID) = friends.firstOrNull { it.id == uuid }
@@ -36,9 +41,14 @@ object FriendManager {
 
     fun clear() = friends.clear()
 
-    val ServerPlayerEntity.isFriend: Boolean
+    val OtherClientPlayerEntity.isFriend: Boolean
         get() = contains(gameProfile)
 
-    fun ServerPlayerEntity.befriend() = add(gameProfile)
-    fun ServerPlayerEntity.unfriend() = remove(gameProfile)
+    fun OtherClientPlayerEntity.befriend() = add(gameProfile)
+    fun OtherClientPlayerEntity.unfriend() = remove(gameProfile)
+
+    override fun load(): String {
+        // TODO: Because the settings are loaded after the property and the loadables, the friend list is empty at that point
+        return "Loaded ${friends.size} friends"
+    }
 }

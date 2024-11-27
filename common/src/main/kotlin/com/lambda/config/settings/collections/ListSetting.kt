@@ -18,9 +18,13 @@
 package com.lambda.config.settings.collections
 
 import com.google.gson.JsonElement
+import com.lambda.Lambda.gson
 import com.lambda.config.AbstractSetting
 import java.lang.reflect.Type
 
+/**
+ * @see [com.lambda.config.Configurable]
+ */
 class ListSetting<T : Any>(
     override val name: String,
     private val defaultValue: MutableList<T>,
@@ -35,7 +39,15 @@ class ListSetting<T : Any>(
     visibility
 ) {
     override fun toJson(): JsonElement {
-        if (hackDelegates) value = defaultValue
-        return super.toJson()
+        return if (hackDelegates) gson.toJsonTree(defaultValue, type)
+        else super.toJson()
+    }
+
+    override fun loadFromJson(serialized: JsonElement) {
+        if (hackDelegates) {
+            defaultValue.addAll(gson.fromJson(serialized, type))
+            setValue(this, ::value, defaultValue.distinct().toMutableList())
+        }
+        else super.loadFromJson(serialized)
     }
 }

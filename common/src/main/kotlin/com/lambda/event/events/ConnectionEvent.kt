@@ -25,88 +25,85 @@ import net.minecraft.network.listener.PacketListener
 import net.minecraft.network.packet.c2s.handshake.ConnectionIntent
 import net.minecraft.text.Text
 import java.security.PublicKey
-import java.util.UUID
 import javax.crypto.SecretKey
 
-/**
- * Sealed class representing connection events.
- */
-sealed class ConnectionEvent : Event {
-    /**
-     * Sealed class representing various stages of connection establishment.
-     */
+sealed class ConnectionEvent {
     sealed class Connect {
         /**
-         * Event representing a pre-connection attempt.
-         * @property address The address of the connection attempt.
-         * @property port The port of the connection attempt.
-         * @property listener The packet listener associated with the connection.
-         * @property intent The connection intent.
+         * Event representing a pre-connection attempt
+         *
+         * @property address The address of the connection attempt
+         * @property port The port of the connection attempt
+         * @property listener The packet listener associated with the connection
+         * @property intent The connection intent
          */
-        class Pre(
+        data class Pre(
             val address: String,
             val port: Int,
             val listener: PacketListener,
             val intent: ConnectionIntent,
-        ) : ConnectionEvent(), ICancellable by Cancellable()
+        ) : ICancellable by Cancellable()
 
         /**
-         * Event representing a handshake during connection.
-         * @property protocolVersion The protocol version of the connection.
-         * @property address The address of the connection attempt.
-         * @property port The port of the connection attempt.
-         * @property intent The connection intent.
+         * Event representing a handshake during connection
+         *
+         * @property protocolVersion The protocol version of the connection
+         * @property address The address of the connection attempt
+         * @property port The port of the connection attempt
+         * @property intent The connection intent
+         *
+         * @see <a href="https://wiki.vg/Server_List_Ping#Handshake">Server_List_Ping#Handshake</a>
          */
-        class Handshake(
+        data class Handshake(
             val protocolVersion: Int,
             val address: String,
             val port: Int,
             val intent: ConnectionIntent,
-        ) : ConnectionEvent()
+        ) : Event
 
-        /**
-         * Sealed class representing login-related connection events.
-         */
-        sealed class Login : ConnectionEvent() {
+        sealed class Login {
             /**
-             * Event representing a hello message during login.
-             * @property name The name associated with the login.
-             * @property uuid The UUID associated with the login.
-             */
-            class Hello(
-                val name: String,
-                val uuid: UUID,
-            ) : ConnectionEvent()
-
-            /**
-             * Event representing the exchange of cryptographic keys during login.
-             * @property secretKey The secret key exchanged during login.
-             * @property publicKey The public key exchanged during login.
-             * @property nonce The nonce associated with the login.
+             * This event is not received by the client, it is sent from the client
+             * to the server, this event simply intercepts the outbound packet
              *
-             * The secret key MUST ABSOLUTELY be, if stored, destroyed after use to avoid security vulnerabilities.
-             * This can be done by calling the `destroy()` method on the secret key object.
-             * We are NOT responsible for any incidents that may occur due to improper handling of cryptographic keys.
+             * @see <a href="https://wiki.vg/index.php?title=Protocol#Encryption_Request">Protocol#Encryption_Request</a>
              */
-            class Key(
+            class EncryptionRequest(
+                val serverId: String,
+                val publicKey: PublicKey,
+                val nonce: ByteArray,
+            ) : Event
+
+            /**
+             * Event representing the exchange of cryptographic keys during login
+             * from the client to the server
+             *
+             * Note that this event won't be posted if the server is in offline mode
+             * because the player doesn't fetch the server's public key
+             *
+             * The secret key must be destroyed if stored for long periods
+             * This can be done by calling the `destroy()` method on the secret key object
+             * We are not responsible for any incidents that may occur due to improper handling of cryptographic keys
+             *
+             * @see <a href="https://wiki.vg/index.php?title=Protocol#Encryption_Response">Protocol#Encryption_Response</a>
+             */
+            class EncryptionResponse(
                 val secretKey: SecretKey,
                 val publicKey: PublicKey,
                 val nonce: ByteArray,
-            ) : ConnectionEvent()
+            ) : Event
         }
 
         /**
-         * Event representing post-connection actions.
-         * @property profile The game profile associated with the connection.
+         * Triggered upon successful connection process end
          */
-        class Post(
+        data class Post(
             val profile: GameProfile,
-        ) : ConnectionEvent()
+        ) : Event
     }
 
     /**
-     * Event representing a disconnection.
-     * @property reason The reason for disconnection.
+     * Triggered upon connection failure
      */
-    class Disconnect(val reason: Text) : ConnectionEvent()
+    data class Disconnect(val reason: Text) : Event
 }
