@@ -79,9 +79,7 @@ object ClickFriend : Module(
                         literal("Added ")
                         color(Color.CYAN) {
                             text(target.name)
-                            color(Color.WHITE) {
-                                literal(" to your friend list")
-                            }
+                            color(Color.WHITE) { literal(" to your friend list") }
                         }
                     }
                 })
