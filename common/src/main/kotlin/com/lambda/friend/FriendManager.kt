@@ -30,7 +30,7 @@ object FriendManager : Configurable(FriendConfig), Loadable {
 
     fun add(profile: GameProfile) { if (!contains(profile)) friends.add(profile) }
 
-    fun remove(profile: GameProfile) { friends.remove(profile) }
+    fun remove(profile: GameProfile) = friends.remove(profile) // FixMe: For some reasons you can't remove friends
 
     fun get(name: String) = friends.firstOrNull { it.name == name }
     fun get(uuid: UUID) = friends.firstOrNull { it.id == uuid }
