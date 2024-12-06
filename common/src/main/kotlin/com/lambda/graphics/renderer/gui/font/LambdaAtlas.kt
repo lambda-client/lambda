@@ -51,6 +51,23 @@ import kotlin.time.Duration.Companion.days
  * It stores glyph information, manages texture uploads, and provides functionality to build texture buffers for fonts and emoji sets
  *
  * It caches font information and emoji data for efficient rendering and includes mechanisms for uploading and binding texture atlases
+ *
+ * It's also possible to upload custom atlases and bind them with no hassle
+ * ```kt
+ * enum class ExampleFont {
+ *     CoolFont("Cool-Font");
+ * }
+ *
+ * fun loadFont(...) = BufferedImage
+ *
+ * ExampleFont.CoolFont.uploadAtlas(loadFont(...)) // The extension keeps a reference to the font owner
+ *
+ * ...
+ *
+ * onRender {
+ *     ExampleFont.CoolFont.bind(slot = x)
+ * }
+ * ```
  */
 object LambdaAtlas {
     private val fontMap = Object2ObjectOpenHashMap<Any, Int2ObjectArrayMap<GlyphInfo>>()
