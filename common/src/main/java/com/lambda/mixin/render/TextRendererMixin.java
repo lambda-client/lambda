@@ -18,9 +18,10 @@
 package com.lambda.mixin.render;
 
 import com.lambda.Lambda;
-import com.lambda.graphics.renderer.gui.font.FontRenderer;
+import com.lambda.graphics.renderer.gui.font.LambdaAtlas;
 import com.lambda.graphics.renderer.gui.font.LambdaEmoji;
 import com.lambda.module.modules.client.LambdaMoji;
+import com.lambda.module.modules.client.RenderSettings;
 import com.lambda.util.math.Vec2d;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.render.VertexConsumerProvider;
@@ -104,7 +105,7 @@ public abstract class TextRendererMixin {
             String constructed = ":" + emoji + ":";
             int index = raw.indexOf(constructed);
 
-            if (LambdaEmoji.Twemoji.get(emoji) == null ||
+            if (LambdaAtlas.INSTANCE.get(RenderSettings.INSTANCE.getEmojiFont(), emoji) == null ||
                     index == -1) continue;
 
             int height = Lambda.getMc().textRenderer.fontHeight;

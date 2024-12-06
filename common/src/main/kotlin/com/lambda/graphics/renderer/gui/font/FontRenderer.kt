@@ -20,7 +20,9 @@ package com.lambda.graphics.renderer.gui.font
 import com.lambda.graphics.buffer.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
-import com.lambda.graphics.renderer.gui.font.glyph.GlyphInfo
+import com.lambda.graphics.renderer.gui.font.LambdaAtlas.bind
+import com.lambda.graphics.renderer.gui.font.LambdaAtlas.get
+import com.lambda.graphics.renderer.gui.font.LambdaAtlas.height
 import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.LambdaMoji
@@ -115,7 +117,7 @@ class FontRenderer {
      * @param scale The scale factor for the height calculation.
      * @return The height of the text at the specified scale.
      */
-    fun getHeight(scale: Double = 1.0) = chars.glyphs.fontHeight * getScaleFactor(scale) * 0.7
+    fun getHeight(scale: Double = 1.0) = chars.height * getScaleFactor(scale) * 0.7
 
     /**
      * Iterates over each character and emoji in the text and applies a block operation.
@@ -221,8 +223,8 @@ class FontRenderer {
         shader.use()
         shader["u_EmojiTexture"] = 1
 
-        chars.glyphs.bind()
-        emojis.glyphs.bind()
+        chars.bind()
+        emojis.bind()
 
         pipeline.upload()
         pipeline.render()
