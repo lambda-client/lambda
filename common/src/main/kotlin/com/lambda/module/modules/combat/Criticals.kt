@@ -19,7 +19,7 @@ package com.lambda.module.modules.combat
 
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.module.Module
@@ -47,7 +47,7 @@ object Criticals : Module(
     }
 
     init {
-        listener<PlayerEvent.Attack.Entity> {
+        listen<PlayerEvent.Attack.Entity> {
             when (mode) {
                 Mode.Grim -> {
                     if (player.isOnGround) posPacket(0.00000001, rotation = player.rotation)

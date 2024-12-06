@@ -24,7 +24,7 @@ import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
 import com.lambda.config.configurations.ModuleConfig
 import com.lambda.event.events.ClientEvent
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.threading.runIO
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
@@ -57,9 +57,9 @@ abstract class Configuration : Jsonable {
         get() = File("${primary.parent}/${primary.nameWithoutExtension}-backup.${primary.extension}")
 
     init {
-        unsafeListener<ClientEvent.Startup> { tryLoad() }
+        listenUnsafe<ClientEvent.Startup> { tryLoad() }
 
-        unsafeListener<ClientEvent.Shutdown>(Int.MIN_VALUE) { trySave() }
+        listenUnsafe<ClientEvent.Shutdown>(Int.MIN_VALUE) { trySave() }
 
         register()
     }

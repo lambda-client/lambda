@@ -26,6 +26,8 @@ import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
 import com.lambda.util.Pointer
 import com.lambda.util.selfReference
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -99,11 +101,11 @@ class SafeListener<T : Event>(
          *
          * Usage:
          * ```kotlin
-         * listener<MyEvent> { event ->
+         * listen<MyEvent> { event ->
          *     player.sendMessage("Event received: $event")
          * }
          *
-         * listener<MyEvent>(priority = 1) { event ->
+         * listen<MyEvent>(priority = 1) { event ->
          *     player.sendMessage("Event received before the previous listener: $event")
          * }
          * ```
@@ -114,7 +116,7 @@ class SafeListener<T : Event>(
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [SafeListener].
          */
-        inline fun <reified T : Event> Any.listener(
+        inline fun <reified T : Event> Any.listen(
             priority: Int = 0,
             alwaysListen: Boolean = false,
             noinline function: SafeContext.(T) -> Unit = {},
@@ -142,7 +144,7 @@ class SafeListener<T : Event>(
          *
          * Usage:
          * ```kotlin
-         * private val event by listenNext<MyEvent> { event ->
+         * private val event by listenOnce<MyEvent> { event ->
          *     player.sendMessage("Event received only once: $event")
          *     // event is stored in the value
          *     // event is unsubscribed after execution
@@ -193,11 +195,11 @@ class SafeListener<T : Event>(
          *
          * Usage:
          * ```kotlin
-         * myTask.listener<MyEvent> { event ->
+         * myTask.listen<MyEvent> { event ->
          *     player.sendMessage("Event received: $event")
          * }
          *
-         * myTask.listener<MyEvent>(priority = 1) { event ->
+         * myTask.listen<MyEvent>(priority = 1) { event ->
          *     player.sendMessage("Event received before the previous listener: $event")
          * }
          * ```
@@ -212,7 +214,7 @@ class SafeListener<T : Event>(
          * This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [SafeListener].
          */
-        inline fun <reified T : Event> Task<*>.listener(
+        inline fun <reified T : Event> Task<*>.listen(
             priority: Int = 0,
             alwaysListen: Boolean = false,
             noinline function: SafeContext.(T) -> Unit = {},
@@ -236,12 +238,12 @@ class SafeListener<T : Event>(
          *
          * Usage:
          * ```kotlin
-         * concurrentListener<MyEvent> { event ->
+         * listenConcurrently<MyEvent> { event ->
          *     println("Concurrent event received: $event")
          *     // no safe access to player or world
          * }
          *
-         * concurrentListener<MyEvent>(priority = 1) { event ->
+         * listenConcurrently<MyEvent>(priority = 1) { event ->
          *     println("Concurrent event received before the previous listener: $event")
          * }
          * ```
@@ -251,13 +253,14 @@ class SafeListener<T : Event>(
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [SafeListener].
          */
-        inline fun <reified T : Event> Any.concurrentListener(
+        inline fun <reified T : Event> Any.listenConcurrently(
             priority: Int = 0,
             alwaysListen: Boolean = false,
+            scheduler: CoroutineDispatcher = Dispatchers.Default,
             noinline function: suspend SafeContext.(T) -> Unit = {},
         ): SafeListener<T> {
             val listener = SafeListener<T>(priority, this, alwaysListen) { event ->
-                runConcurrent {
+                runConcurrent(scheduler) {
                     function(event)
                 }
             }

@@ -18,7 +18,7 @@
 package com.lambda.module.modules.movement
 
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.extension.component1
@@ -46,10 +46,10 @@ object NoFall : Module(
     }
 
     init {
-        listener<MovementEvent.Player.Post> {
+        listen<MovementEvent.Player.Post> {
             when (mode) {
                 Mode.Grim -> {
-                    if (player.fallDistance + player.motionY < 3.0) return@listener
+                    if (player.fallDistance + player.motionY < 3.0) return@listen
 
                     val (x, y, z) = player.pos
                     connection.sendPacket(PlayerMoveC2SPacket.Full(x, y + 0.0000000001, z, 0.01f, 90f, false))

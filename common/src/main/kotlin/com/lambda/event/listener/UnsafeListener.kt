@@ -81,16 +81,16 @@ class UnsafeListener<T : Event>(
          * The [function] is executed on the same thread where the [Event] was dispatched.
          * The execution of the [function] is independent of the safety conditions of the context.
          * Use this function when you need to listen to an [Event] in a context that is not in-game.
-         * For only in-game related contexts, use the [SafeListener.listener] function instead.
+         * For only in-game related contexts, use the [SafeListener.listen] function instead.
          *
          * Usage:
          * ```kotlin
-         * unsafeListener<MyEvent> { event ->
+         * listenUnsafe<MyEvent> { event ->
          *     println("Unsafe event received: $event")
          *     // no safe access to player or world
          * }
          *
-         * unsafeListener<MyEvent>(priority = 1) { event ->
+         * listenUnsafe<MyEvent>(priority = 1) { event ->
          *     println("Unsafe event received before the previous listener: $event")
          * }
          * ```
@@ -101,7 +101,7 @@ class UnsafeListener<T : Event>(
          * @param function The function to be executed when the event is posted. This function should take an event of type T as a parameter.
          * @return The newly created and registered [UnsafeListener].
          */
-        inline fun <reified T : Event> Any.unsafeListener(
+        inline fun <reified T : Event> Any.listenUnsafe(
             priority: Int = 0,
             alwaysListen: Boolean = false,
             noinline function: (T) -> Unit = {},
@@ -123,7 +123,7 @@ class UnsafeListener<T : Event>(
          *
          * Usage:
          * ```kotlin
-         * private val event by unsafeListenOnce<MyEvent> { event ->
+         * private val event by listenUnsafeOnce<MyEvent> { event ->
          *     println("Unsafe event received only once: $event")
          *     // no safe access to player or world
          *     // event is stored in the value
@@ -139,7 +139,7 @@ class UnsafeListener<T : Event>(
          * @param transform The function used to transform the event into a value.
          * @return The newly created and registered [UnsafeListener].
          */
-        inline fun <reified T : Event, reified E> Any.unsafeListenOnce(
+        inline fun <reified T : Event, reified E> Any.listenUnsafeOnce(
             priority: Int = 0,
             alwaysListen: Boolean = false,
             noinline transform: (T) -> E? = { null },
@@ -148,7 +148,7 @@ class UnsafeListener<T : Event>(
             val pointer = Pointer<E>()
 
             val destroyable by selfReference<UnsafeListener<T>> {
-                UnsafeListener(priority, this@unsafeListenOnce, alwaysListen) { event ->
+                UnsafeListener(priority, this@listenUnsafeOnce, alwaysListen) { event ->
                     pointer.value = transform(event)
 
                     if (predicate(event) &&
@@ -169,19 +169,19 @@ class UnsafeListener<T : Event>(
          * Registers a new [UnsafeListener] for a generic [Event] type [T].
          * The [function] is executed on a new thread running asynchronously to the game thread.
          * This function should only be used when the [function] performs read actions on the game data.
-         * For only in-game related contexts, use the [SafeListener.concurrentListener] function instead.
+         * For only in-game related contexts, use the [SafeListener.listenConcurrently] function instead.
          *
          * Caution: Using this function to write to the game data can lead to race conditions. Therefore, it is recommended
          * to use this function only for read operations to avoid potential concurrency issues.
          *
          * Usage:
          * ```kotlin
-         * concurrentListener<MyEvent> { event ->
+         * listenUnsafeConcurrently<MyEvent> { event ->
          *     println("Concurrent event received: $event")
          *     // no safe access to player or world
          * }
          *
-         * concurrentListener<MyEvent>(priority = 1) { event ->
+         * listenUnsafeConcurrently<MyEvent>(priority = 1) { event ->
          *     println("Concurrent event received before the previous listener: $event")
          * }
          * ```
@@ -191,7 +191,7 @@ class UnsafeListener<T : Event>(
          * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
          * @return The newly created and registered [UnsafeListener].
          */
-        inline fun <reified T : Event> Any.unsafeConcurrentListener(
+        inline fun <reified T : Event> Any.listenUnsafeConcurrently(
             priority: Int = 0,
             alwaysListen: Boolean = false,
             noinline function: (T) -> Unit = {},

@@ -20,8 +20,8 @@ package com.lambda.graphics.renderer.esp
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
-import com.lambda.event.listener.SafeListener.Companion.concurrentListener
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.impl.ESPRenderer
 import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 import com.lambda.module.modules.client.RenderSettings
@@ -53,19 +53,19 @@ class ChunkedESP private constructor(
     }
 
     init {
-        concurrentListener<WorldEvent.BlockUpdate> { event ->
+        listenConcurrently<WorldEvent.BlockUpdate> { event ->
             world.getWorldChunk(event.pos).renderer.notifyChunks()
         }
 
-        concurrentListener<WorldEvent.ChunkEvent.Load> { event ->
+        listenConcurrently<WorldEvent.ChunkEvent.Load> { event ->
             event.chunk.renderer.notifyChunks()
         }
 
-        concurrentListener<WorldEvent.ChunkEvent.Unload> { event ->
+        listenConcurrently<WorldEvent.ChunkEvent.Unload> { event ->
             rendererMap.remove(event.chunk.pos.toLong())?.notifyChunks()
         }
 
-        owner.concurrentListener<TickEvent.Pre> {
+        owner.listenConcurrently<TickEvent.Pre> {
             if (++ticks % RenderSettings.updateFrequency == 0) {
                 val polls = minOf(RenderSettings.rebuildsPerTick, rebuildQueue.size)
 
@@ -76,8 +76,8 @@ class ChunkedESP private constructor(
             }
         }
 
-        owner.listener<TickEvent.Pre> {
-            if (uploadQueue.isEmpty()) return@listener
+        owner.listen<TickEvent.Pre> {
+            if (uploadQueue.isEmpty()) return@listen
 
             val polls = minOf(RenderSettings.uploadsPerTick, uploadQueue.size)
 
@@ -86,7 +86,7 @@ class ChunkedESP private constructor(
             }
         }
 
-        owner.listener<RenderEvent.World> {
+        owner.listen<RenderEvent.World> {
             rendererMap.values.forEach {
                 it.renderer?.render()
             }

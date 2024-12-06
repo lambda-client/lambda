@@ -21,7 +21,7 @@ import com.lambda.config.groups.IRotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.RotationManager.requestRotation
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.RotationContext
@@ -97,10 +97,10 @@ object Speed : Module(
     }
 
     init {
-        listener<MovementEvent.Player.Pre> {
+        listen<MovementEvent.Player.Pre> {
             if (!shouldWork()) {
                 reset()
-                return@listener
+                return@listen
             }
 
             when (mode) {
@@ -109,22 +109,22 @@ object Speed : Module(
             }
         }
 
-        listener<MovementEvent.Player.Post> {
+        listen<MovementEvent.Player.Post> {
             lastDistance = player.moveDelta
         }
 
-        listener<ClientEvent.Timer> {
-            if (mode != Mode.NCP_STRAFE) return@listener
-            if (!shouldWork() || !isInputting) return@listener
+        listen<ClientEvent.Timer> {
+            if (mode != Mode.NCP_STRAFE) return@listen
+            if (!shouldWork() || !isInputting) return@listen
             it.speed = ncpTimerBoost
         }
 
-        listener<MovementEvent.Jump> {
+        listen<MovementEvent.Jump> {
             if (mode == Mode.NCP_STRAFE && shouldWork()) it.cancel()
         }
 
-        listener<MovementEvent.InputUpdate>(Int.MIN_VALUE) {
-            if (mode != Mode.GRIM_STRAFE || !shouldWork()) return@listener
+        listen<MovementEvent.InputUpdate>(Int.MIN_VALUE) {
+            if (mode != Mode.GRIM_STRAFE || !shouldWork()) return@listen
 
             // Delay jumping key state by 1 tick to let the rotation predict jump timing
             it.input.apply {
