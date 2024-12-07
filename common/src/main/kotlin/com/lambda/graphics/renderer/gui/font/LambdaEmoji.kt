@@ -18,18 +18,10 @@
 package com.lambda.graphics.renderer.gui.font
 
 import com.lambda.core.Loadable
-import com.lambda.graphics.renderer.gui.font.glyph.EmojiGlyphs
+import com.lambda.graphics.renderer.gui.font.LambdaAtlas.buildBuffer
 
-enum class LambdaEmoji(private val zipUrl: String) {
+enum class LambdaEmoji(val url: String) {
     Twemoji("https://github.com/Edouard127/emoji-generator/releases/latest/download/emojis.zip");
-
-    lateinit var glyphs: EmojiGlyphs
-
-    operator fun get(emoji: String) = glyphs.emojiFromString(emoji)
-
-    fun loadGlyphs() {
-        glyphs = EmojiGlyphs(zipUrl)
-    }
 
     private val emojiRegex = Regex(":[a-zA-Z0-9_]+:")
 
@@ -45,8 +37,9 @@ enum class LambdaEmoji(private val zipUrl: String) {
 
     object Loader : Loadable {
         override fun load(): String {
-            entries.forEach(LambdaEmoji::loadGlyphs)
-            return "Loaded ${entries.size} emoji sets with a total of ${entries.sumOf { it.glyphs.count }} emojis"
+            entries.forEach { it.buildBuffer() }
+
+            return "Loaded ${entries.size} emoji sets"
         }
     }
 }

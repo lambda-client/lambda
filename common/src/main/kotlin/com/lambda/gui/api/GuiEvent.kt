@@ -27,9 +27,19 @@ abstract class GuiEvent : Event {
     class Hide : GuiEvent()
     class Tick : GuiEvent()
     class Render : GuiEvent()
+
+    @Deprecated("Deprecated key press event", replaceWith = ReplaceWith("com.lambda.event.events.KeyboardEvent.Press"))
     class KeyPress(val key: KeyCode) : GuiEvent()
+
+    @Deprecated("Deprecated char event", replaceWith = ReplaceWith("com.lambda.event.events.KeyboardEvent.Char"))
     class CharTyped(val char: Char) : GuiEvent()
+
+    @Deprecated("Use the new global mouse events", replaceWith = ReplaceWith("com.lambda.event.events.MouseEvent.Click"))
     class MouseClick(val button: Mouse.Button, val action: Mouse.Action, val mouse: Vec2d) : GuiEvent()
+
+    @Deprecated("Use the new global mouse events", replaceWith = ReplaceWith("com.lambda.event.events.MouseEvent.Move"))
     class MouseMove(val mouse: Vec2d) : GuiEvent()
+
+    @Deprecated("Use the new global mouse events", replaceWith = ReplaceWith("com.lambda.event.events.MouseEvent.Scroll"))
     class MouseScroll(val mouse: Vec2d, val delta: Double) : GuiEvent()
 }

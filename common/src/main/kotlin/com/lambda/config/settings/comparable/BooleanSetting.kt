@@ -20,6 +20,9 @@ package com.lambda.config.settings.comparable
 import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
 
+/**
+ * @see [com.lambda.config.Configurable]
+ */
 class BooleanSetting(
     override val name: String,
     defaultValue: Boolean,

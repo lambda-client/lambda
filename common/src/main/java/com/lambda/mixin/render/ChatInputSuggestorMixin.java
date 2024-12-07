@@ -19,6 +19,7 @@ package com.lambda.mixin.render;
 
 import com.google.common.base.Strings;
 import com.lambda.command.CommandManager;
+import com.lambda.graphics.renderer.gui.font.LambdaAtlas;
 import com.lambda.module.modules.client.LambdaMoji;
 import com.lambda.module.modules.client.RenderSettings;
 import com.mojang.brigadier.CommandDispatcher;
@@ -88,8 +89,8 @@ public abstract class ChatInputSuggestorMixin {
 
         String emojiString = typing.substring(start + 1);
 
-        Stream<String> results = RenderSettings.INSTANCE.getEmojiFont().glyphs.getKeys()
-                .stream()
+        Stream<String> results = LambdaAtlas.INSTANCE.getKeys(RenderSettings.INSTANCE.getEmojiFont())
+                .keySet().stream()
                 .filter(s -> s.startsWith(emojiString))
                 .map(s -> s + ":");
 

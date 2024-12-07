@@ -18,12 +18,13 @@
 package com.lambda.http.api.rpc.v1.models
 
 import com.google.gson.annotations.SerializedName
+import java.util.UUID
 
 data class Party(
     // The ID of the party.
     // It is a random string of 30 characters.
     @SerializedName("id")
-    val id: String,
+    val id: UUID,
 
     // The join secret of the party.
     // It is a random string of 100 characters.

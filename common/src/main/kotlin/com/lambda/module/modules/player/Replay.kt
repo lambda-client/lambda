@@ -23,7 +23,7 @@ import com.lambda.config.groups.IRotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
-import com.lambda.event.events.KeyPressEvent
+import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
@@ -111,7 +111,7 @@ object Replay : Module(
         .create()
 
     init {
-        listener<KeyPressEvent> {
+        listener<KeyboardEvent.Press> {
             if (mc.currentScreen != null && !mc.options.commandKey.isPressed) return@listener
 
             when (it.translated) {
@@ -190,7 +190,7 @@ object Replay : Module(
             }
         }
 
-        listener<MovementEvent.Post> {
+        listener<MovementEvent.Player.Post> {
             when (state) {
                 State.RECORDING -> {
                     buffer?.let {

@@ -63,18 +63,12 @@ public abstract class LivingEntityMixin extends EntityMixin {
 
     @Inject(method = "travel", at = @At("HEAD"), cancellable = true)
     void onTravelPre(Vec3d movementInput, CallbackInfo ci) {
-        LivingEntity self = (LivingEntity) (Object) this;
-        if (self != Lambda.getMc().player) return;
-
-        if (EventFlow.post(new MovementEvent.Travel.Pre()).isCanceled()) ci.cancel();
+        if (EventFlow.post(new MovementEvent.Entity.Pre((LivingEntity) (Object) this, movementInput)).isCanceled()) ci.cancel();
     }
 
     @Inject(method = "travel", at = @At("TAIL"))
     void onTravelPost(Vec3d movementInput, CallbackInfo ci) {
-        LivingEntity self = (LivingEntity) (Object) this;
-        if (self != Lambda.getMc().player) return;
-
-        EventFlow.post(new MovementEvent.Travel.Post());
+        EventFlow.post(new MovementEvent.Entity.Post((LivingEntity) (Object) this, movementInput));
     }
 
     @Redirect(method = "travel", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getPitch()F"))

@@ -278,6 +278,8 @@ abstract class Configurable(
     /**
      * Creates a [ByteSetting] with the provided parameters and adds it to the [settings].
      *
+     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
+     *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Byte] value of the setting.
      * @param range The range within which the setting's value must fall.
@@ -302,6 +304,8 @@ abstract class Configurable(
 
     /**
      * Creates a [DoubleSetting] with the provided parameters and adds it to the [settings].
+     *
+     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Double] value of the setting.
@@ -328,6 +332,8 @@ abstract class Configurable(
     /**
      * Creates a [FloatSetting] with the provided parameters and adds it to the [settings].
      *
+     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
+     *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Float] value of the setting.
      * @param range The range within which the setting's value must fall.
@@ -352,6 +358,8 @@ abstract class Configurable(
 
     /**
      * Creates an [IntegerSetting] with the provided parameters and adds it to the [settings].
+     *
+     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Int] value of the setting.
@@ -378,6 +386,8 @@ abstract class Configurable(
     /**
      * Creates a [LongSetting] with the provided parameters and adds it to the [settings].
      *
+     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
+     *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Long] value of the setting.
      * @param range The range within which the setting's value must fall.
@@ -402,6 +412,8 @@ abstract class Configurable(
 
     /**
      * Creates a [ShortSetting] with the provided parameters and adds it to the [settings].
+     *
+     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Short] value of the setting.

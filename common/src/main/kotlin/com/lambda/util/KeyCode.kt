@@ -155,7 +155,14 @@ enum class KeyCode(val keyCode: Int) {
         private val keyCodeMap = entries.associateBy { it.keyCode }
         private val nameMap = entries.associateBy { it.name.lowercase() }
 
+        /**
+         * Returns the KeyCode enum instance from the key code number or [UNBOUND] if invalid
+         */
         fun fromKeyCode(keyCode: Int) = keyCodeMap[keyCode] ?: UNBOUND
+
+        /**
+         * Returns the KeyCode enum instance from the key code name or [UNBOUND] if invalid
+         */
         fun fromKeyName(name: String) = nameMap[name.lowercase()] ?: UNBOUND
 
         /**

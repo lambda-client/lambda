@@ -32,8 +32,6 @@ object TextureUtils {
     private const val COMPRESSION_LEVEL = 1
     private const val THREADED_COMPRESSION = false
 
-    private val metricCache = mutableMapOf<Font, FontMetrics>()
-
     val encoderPreset = PngEncoder()
         .withCompressionLevel(COMPRESSION_LEVEL)
         .withMultiThreadedCompressionEnabled(THREADED_COMPRESSION)
@@ -91,36 +89,6 @@ object TextureUtils {
         image: ByteBuffer,
         format: NativeImage.Format = NativeImage.Format.RGBA,
     ) = NativeImage.read(format, image).pointer
-
-    fun getCharImage(font: Font, codePoint: Char): BufferedImage? {
-        if (!font.canDisplay(codePoint)) return null
-
-        val fontMetrics = metricCache.getOrPut(font) {
-            val image = BufferedImage(COMPRESSION_LEVEL, COMPRESSION_LEVEL, BufferedImage.TYPE_INT_ARGB)
-            val graphics2D = image.createGraphics()
-
-            graphics2D.font = font
-            graphics2D.dispose()
-
-            image.graphics.getFontMetrics(font)
-        }
-
-        val charWidth = if (fontMetrics.charWidth(codePoint) > 0) fontMetrics.charWidth(codePoint) else 8
-        val charHeight = if (fontMetrics.height > 0) fontMetrics.height else font.size
-
-        val charImage = BufferedImage(charWidth, charHeight, BufferedImage.TYPE_INT_ARGB)
-        val graphics2D = charImage.createGraphics()
-
-        graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-        graphics2D.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_DEFAULT)
-
-        graphics2D.font = font
-        graphics2D.color = Color.WHITE
-        graphics2D.drawString(codePoint.toString(), 0, fontMetrics.ascent)
-        graphics2D.dispose()
-
-        return charImage
-    }
 
     fun BufferedImage.rescale(targetWidth: Int, targetHeight: Int): BufferedImage {
         val type = if (transparency == Transparency.OPAQUE)

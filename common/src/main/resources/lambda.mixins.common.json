@@ -16,6 +16,7 @@
     "entity.PlayerEntityMixin",
     "input.KeyBindingMixin",
     "input.KeyboardMixin",
+    "input.MouseMixin",
     "items.BarrierBlockMixin",
     "items.TridentMixin",
     "network.ClientConnectionMixin",
