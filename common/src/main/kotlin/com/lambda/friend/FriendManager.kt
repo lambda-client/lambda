@@ -20,9 +20,7 @@ package com.lambda.friend
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.FriendConfig
 import com.lambda.core.Loadable
-import com.lambda.util.text.buildText
-import com.lambda.util.text.literal
-import com.lambda.util.text.text
+import com.lambda.util.text.*
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.text.Text
@@ -68,13 +66,23 @@ object FriendManager : Configurable(FriendConfig), Loadable {
     fun befriendedText(name: Text) = buildText {
         literal(Color.GREEN, "Added ")
         text(name)
-        literal(" to your friend list")
+        literal(" to your friend list ")
+        clickEvent(ClickEvents.suggestCommand(";friends remove ${name.string}")) {
+            styled(underlined = true, color = Color.LIGHT_GRAY) {
+                literal("[Click to undo]")
+            }
+        }
     }
 
     fun unfriendedText(name: String): Text = unfriendedText(Text.of(name))
     fun unfriendedText(name: Text) = buildText {
         literal(Color.RED, "Removed ")
         text(name)
-        literal(" from your friend list")
+        literal(" from your friend list ")
+        clickEvent(ClickEvents.suggestCommand(";friends add ${name.string}")) {
+            styled(underlined = true, color = Color.LIGHT_GRAY) {
+                literal("[Click to undo]")
+            }
+        }
     }
 }
