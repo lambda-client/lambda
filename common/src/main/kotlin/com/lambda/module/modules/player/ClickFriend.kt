@@ -44,7 +44,7 @@ object ClickFriend : Module(
     description = "Add or remove friends with a single click",
     defaultTags = setOf(ModuleTag.PLAYER)
 ) {
-    private val friendButton by setting("Friend Button", Mouse.Button.Right, description = "Button to press to friend a player")
+    private val friendButton by setting("Friend Button", Mouse.Button.Middle, description = "Button to press to befriend a player")
     private val friendAction by setting("Action", Mouse.Action.Release, description = "What mouse action should add or remove the player")
     private val comboUnfriend by setting("Combo Unfriend", false, description = "Press a key and right click a player to unfriend")
     private val modUnfriend by setting("Combo Key", MouseMod.Shift, description = "The key to press to activate the unfriend combo") { comboUnfriend }
@@ -59,30 +59,23 @@ object ClickFriend : Module(
             val target = mc.crosshairTarget?.entityResult?.entity as? OtherClientPlayerEntity
                 ?: return@listener
 
-            if ((modUnfriend.flagsPresent(it.modifiers) || !comboUnfriend) && target.isFriend) {
-                target.unfriend()
-                info(buildText {
-                    color(Color.RED) {
-                        literal("Removed ")
-                        color(Color.CYAN) {
+            if (modUnfriend.flagsPresent(it.modifiers) || !comboUnfriend) {
+                when {
+                    target.isFriend && target.unfriend() -> {
+                        this@ClickFriend.info(buildText {
+                            literal(Color.RED, "Removed ")
                             text(target.name)
-                            color(Color.WHITE) { literal(" from your friend list") }
-                        }
+                            literal(Color.WHITE, " from your friend list")
+                        })
                     }
-                })
-            }
-
-            if (!modUnfriend.flagsPresent(it.modifiers) && !target.isFriend) {
-                target.befriend()
-                info(buildText {
-                    color(Color.GREEN) {
-                        literal("Added ")
-                        color(Color.CYAN) {
+                    !target.isFriend && target.befriend() -> {
+                        this@ClickFriend.info(buildText {
+                            literal(Color.GREEN, "Added ")
                             text(target.name)
-                            color(Color.WHITE) { literal(" to your friend list") }
-                        }
+                            literal(Color.WHITE, " to your friend list")
+                        })
                     }
-                })
+                }
             }
         }
     }

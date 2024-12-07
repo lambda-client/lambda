@@ -26,14 +26,14 @@ import java.util.*
 
 object FriendManager : Configurable(FriendConfig), Loadable {
     override val name = "friends"
-    val friends by setting("friends", listOf<GameProfile>(), hackDelegates = true)
+    val friends by setting("friends", setOf<GameProfile>())
 
-    fun add(profile: GameProfile) { if (!contains(profile)) friends.add(profile) }
+    fun add(profile: GameProfile) = friends.add(profile)
 
-    fun remove(profile: GameProfile) = friends.remove(profile) // FixMe: For some reasons you can't remove friends
+    fun remove(profile: GameProfile): Boolean = friends.remove(profile)
 
-    fun get(name: String) = friends.firstOrNull { it.name == name }
-    fun get(uuid: UUID) = friends.firstOrNull { it.id == uuid }
+    fun gameProfile(name: String) = friends.firstOrNull { it.name == name }
+    fun gameProfile(uuid: UUID) = friends.firstOrNull { it.id == uuid }
 
     fun contains(profile: GameProfile) = friends.contains(profile)
     fun contains(name: String) = friends.any { it.name == name }

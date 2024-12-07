@@ -40,7 +40,7 @@ import java.awt.Color
 
 object FriendCommand : LambdaCommand(
     name = "friend",
-    usage = "friend [add/remove] [name]",
+    usage = "friend <add | remove> <name>",
     description = "Add or remove a friend"
 ) {
     override fun CommandBuilder.create() {
@@ -80,7 +80,7 @@ object FriendCommand : LambdaCommand(
                         ?.firstOrNull {
                             it.profile.name == name &&
                             it.profile != mc.gameProfile
-                        } ?: return@executeWithResult failure("Could not find the player in the server")
+                        } ?: return@executeWithResult failure("Could not find the player on the server")
 
                     FriendManager.add(id.profile)
 
@@ -110,7 +110,7 @@ object FriendCommand : LambdaCommand(
 
                 executeWithResult {
                     val name = player().value()
-                    val profile = FriendManager.get(name)
+                    val profile = FriendManager.gameProfile(name)
                         ?: return@executeWithResult failure("This player is not in your friend list")
 
                     FriendManager.remove(profile)

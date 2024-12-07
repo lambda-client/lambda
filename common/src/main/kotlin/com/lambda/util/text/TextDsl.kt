@@ -114,6 +114,19 @@ fun TextBuilder.literal(value: String) {
 }
 
 /**
+ * Adds a literal text.
+ *
+ * @param value The text.
+ * @see StyleBuilder for action
+ */
+@TextDsl
+fun TextBuilder.literal(color: Color, value: String) {
+    color(color) {
+        literal(value)
+    }
+}
+
+/**
  * Adds a mutable key bind text.
  *
  * @param key The key of the Key bind
