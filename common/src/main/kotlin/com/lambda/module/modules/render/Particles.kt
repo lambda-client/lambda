@@ -23,7 +23,7 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.buffer.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
@@ -83,12 +83,12 @@ object Particles : Module(
     private val shader = Shader("renderer/particle", "renderer/particle")
 
     init {
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             if (environment) spawnForEnvironment()
             particles.removeIf(Particle::update)
         }
 
-        listener<RenderEvent.World> {
+        listen<RenderEvent.World> {
             // Todo: interpolated tickbased upload?
             particles.forEach(Particle::build)
 
@@ -102,12 +102,12 @@ object Particles : Module(
             }
         }
 
-        listener<PlayerEvent.Attack.Entity> { event ->
+        listen<PlayerEvent.Attack.Entity> { event ->
             spawnForEntity(event.entity)
         }
 
-        listener<MovementEvent.Player.Post> {
-            if (!onMove || player.moveDelta < 0.05) return@listener
+        listen<MovementEvent.Player.Post> {
+            if (!onMove || player.moveDelta < 0.05) return@listen
             spawnForEntity(player)
         }
     }

@@ -21,7 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.event.Muteable
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.gui.api.component.core.IComponent
 import com.lambda.gui.impl.AbstractClickGui
@@ -51,12 +51,12 @@ abstract class LambdaGui(
     val animation = AnimationTicker()
 
     init {
-        listener<RenderEvent.GUI.Scaled> { event ->
+        listen<RenderEvent.GUI.Scaled> { event ->
             screenSize = event.screenSize
             onEvent(GuiEvent.Render())
         }
 
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             animation.tick()
             onEvent(GuiEvent.Tick())
         }

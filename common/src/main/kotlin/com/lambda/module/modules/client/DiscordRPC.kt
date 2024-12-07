@@ -22,7 +22,7 @@ import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.event.EventFlow
 import com.lambda.event.events.ConnectionEvent
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.http.api.rpc.v1.endpoints.*
 import com.lambda.http.api.rpc.v1.models.Authentication
 import com.lambda.http.api.rpc.v1.models.Party
@@ -96,19 +96,19 @@ object DiscordRPC : Module(
         get() = currentParty?.players?.any { it.uuid == this@isInParty.uuid }
 
     init {
-        unsafeListener<ConnectionEvent.Connect.Login.EncryptionRequest> {
+        listenUnsafe<ConnectionEvent.Connect.Login.EncryptionRequest> {
             connectionTime = System.currentTimeMillis()
             serverId = it.serverId
         }
 
-        unsafeListener<ConnectionEvent.Connect.Login.EncryptionResponse> {
+        listenUnsafe<ConnectionEvent.Connect.Login.EncryptionResponse> {
             if (it.secretKey.isDestroyed)
-                return@unsafeListener logError("Error during the login process", "The client secret key was destroyed by another listener")
+                return@listenUnsafe logError("Error during the login process", "The client secret key was destroyed by another listener")
 
             keyEvent = it
         }
 
-        unsafeListener<ConnectionEvent.Connect.Post> { connect() }
+        listenUnsafe<ConnectionEvent.Connect.Post> { connect() }
 
         // TODO: Exponential backoff up to 25 seconds
         onEnable { connect() }

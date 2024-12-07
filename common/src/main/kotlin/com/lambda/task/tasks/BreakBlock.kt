@@ -24,7 +24,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
 import com.lambda.module.modules.client.TaskFlow
@@ -77,24 +77,24 @@ class BreakBlock @Ta5kBuilder constructor(
     }
 
     init {
-        listener<RotationEvent.Update> { event ->
-            if (state != State.BREAKING) return@listener
-            if (!rotate || ctx.instantBreak) return@listener
+        listen<RotationEvent.Update> { event ->
+            if (state != State.BREAKING) return@listen
+            if (!rotate || ctx.instantBreak) return@listen
             event.context = lookAtBlock(blockPos, rotation, interact, sides)
         }
 
-        listener<RotationEvent.Post> {
-            if (state != State.BREAKING) return@listener
-            if (!rotate || ctx.instantBreak) return@listener
+        listen<RotationEvent.Post> {
+            if (state != State.BREAKING) return@listen
+            if (!rotate || ctx.instantBreak) return@listen
 
             isValid = it.context.isValid
         }
 
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             drop?.let { itemDrop ->
                 if (!world.entities.contains(itemDrop)) {
                     success(itemDrop)
-                    return@listener
+                    return@listen
                 }
 
                 if (player.hotbarAndStorage.none { it.isEmpty }) {
@@ -120,7 +120,7 @@ class BreakBlock @Ta5kBuilder constructor(
             }
         }
 
-        listener<WorldEvent.EntityUpdate> {
+        listen<WorldEvent.EntityUpdate> {
             if (collectDrop
                 && it.entity is ItemEntity
                 && it.entity.pos.isInRange(blockPos.toCenterPos(), 0.5)
