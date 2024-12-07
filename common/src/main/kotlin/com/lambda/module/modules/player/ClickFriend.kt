@@ -18,27 +18,21 @@
 package com.lambda.module.modules.player
 
 import com.lambda.event.events.MouseEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendManager
 import com.lambda.friend.FriendManager.befriend
 import com.lambda.friend.FriendManager.isFriend
 import com.lambda.friend.FriendManager.unfriend
 import com.lambda.module.Module
-import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
 import com.lambda.util.Mouse
-import com.lambda.util.text.buildText
-import com.lambda.util.text.color
-import com.lambda.util.text.literal
-import com.lambda.util.text.text
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.client.network.OtherClientPlayerEntity
 import org.lwjgl.glfw.GLFW.GLFW_MOD_ALT
 import org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
-import java.awt.Color
 
 object ClickFriend : Module(
     name = "ClickFriend",
@@ -51,14 +45,14 @@ object ClickFriend : Module(
     private val modUnfriend by setting("Combo Key", MouseMod.Shift, description = "The key to press to activate the unfriend combo") { comboUnfriend }
 
     init {
-        listener<MouseEvent.Click> {
+        listen<MouseEvent.Click> {
             if (it.button != friendButton ||
                 it.action != friendAction ||
                 mc.currentScreen != null
-            ) return@listener
+            ) return@listen
 
             val target = mc.crosshairTarget?.entityResult?.entity as? OtherClientPlayerEntity
-                ?: return@listener
+                ?: return@listen
 
             if (modUnfriend.flagsPresent(it.modifiers) || !comboUnfriend) {
                 when {
