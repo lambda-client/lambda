@@ -120,7 +120,7 @@ fun TextBuilder.literal(value: String) {
  * @see StyleBuilder for action
  */
 @TextDsl
-fun TextBuilder.literal(color: Color, value: String) {
+fun TextBuilder.literal(color: Color = Color.WHITE, value: String) {
     color(color) {
         literal(value)
     }

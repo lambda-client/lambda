@@ -19,6 +19,7 @@ package com.lambda.module.modules.player
 
 import com.lambda.event.events.MouseEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.friend.FriendManager
 import com.lambda.friend.FriendManager.befriend
 import com.lambda.friend.FriendManager.isFriend
 import com.lambda.friend.FriendManager.unfriend
@@ -62,18 +63,10 @@ object ClickFriend : Module(
             if (modUnfriend.flagsPresent(it.modifiers) || !comboUnfriend) {
                 when {
                     target.isFriend && target.unfriend() -> {
-                        this@ClickFriend.info(buildText {
-                            literal(Color.RED, "Removed ")
-                            text(target.name)
-                            literal(Color.WHITE, " from your friend list")
-                        })
+                        this@ClickFriend.info(FriendManager.unfriendedText(target.name))
                     }
                     !target.isFriend && target.befriend() -> {
-                        this@ClickFriend.info(buildText {
-                            literal(Color.GREEN, "Added ")
-                            text(target.name)
-                            literal(Color.WHITE, " to your friend list")
-                        })
+                        this@ClickFriend.info(FriendManager.befriendedText(target.name))
                     }
                 }
             }

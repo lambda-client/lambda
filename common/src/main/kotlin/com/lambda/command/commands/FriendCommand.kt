@@ -22,6 +22,7 @@ import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.argument.string
+import com.lambda.brigadier.argument.uuid
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.executeWithResult
@@ -33,26 +34,36 @@ import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.buildText
-import com.lambda.util.text.color
 import com.lambda.util.text.literal
 import com.lambda.util.text.styled
 import java.awt.Color
 
 object FriendCommand : LambdaCommand(
-    name = "friend",
-    usage = "friend <add | remove> <name>",
+    name = "friends",
+    usage = "friends <add | remove> <name | uuid>",
     description = "Add or remove a friend"
 ) {
     override fun CommandBuilder.create() {
         execute {
             this@FriendCommand.info(
                 buildText {
+                    if (FriendManager.friends.isEmpty()) {
+                        literal("You have no friends yet. Go make some! :3\n")
+                    } else {
+                        literal("Your friends (${FriendManager.friends.size}):\n")
+
+                        FriendManager.friends.forEachIndexed { index, gameProfile ->
+                            literal("   ${index + 1}. ${gameProfile.name}\n")
+                        }
+                    }
+
+                    literal("\n")
                     styled(
                         color = Color.CYAN,
                         underlined = true,
-                        clickEvent = ClickEvents.openFile(FriendConfig.primary.absolutePath),
+                        clickEvent = ClickEvents.openFile(FriendConfig.primary.path),
                     ) {
-                        literal("Click to open your friend list")
+                        literal("Click to open your friends list as a file")
                     }
                 }
             )
@@ -72,9 +83,6 @@ object FriendCommand : LambdaCommand(
 
                 executeWithResult {
                     val name = player().value()
-                    if (FriendManager.contains(name))
-                        return@executeWithResult failure("This player is already in your friend list")
-
                     val id = mc.networkHandler
                         ?.playerList
                         ?.firstOrNull {
@@ -82,19 +90,40 @@ object FriendCommand : LambdaCommand(
                             it.profile != mc.gameProfile
                         } ?: return@executeWithResult failure("Could not find the player on the server")
 
-                    FriendManager.add(id.profile)
+                    return@executeWithResult if (FriendManager.befriend(id.profile)) {
+                        this@FriendCommand.info(FriendManager.befriendedText(id.profile.name))
+                        success()
+                    } else {
+                        failure("This player is already in your friend list")
+                    }
+                }
+            }
 
-                    this@FriendCommand.info(buildText {
-                        color(Color.GREEN) {
-                            literal("Added ")
-                            color(Color.CYAN) {
-                                literal(name)
-                                color(Color.WHITE) { literal(" to your friend list") }
-                            }
-                        }
-                    })
+            required(uuid("player uuid")) { player ->
+                suggests { _, builder ->
+                    mc.networkHandler
+                        ?.playerList
+                        ?.filter { it.profile != mc.gameProfile }
+                        ?.map { it.profile.id }
+                        ?.forEach { builder.suggest(it.toString())  }
 
-                    return@executeWithResult success()
+                    builder.buildFuture()
+                }
+
+                executeWithResult {
+                    val uuid = player().value()
+                    val id = mc.networkHandler
+                        ?.playerList
+                        ?.firstOrNull {
+                            it.profile.id == uuid && it.profile != mc.gameProfile
+                        } ?: return@executeWithResult failure("Could not find the player on the server")
+
+                    return@executeWithResult if (FriendManager.befriend(id.profile)) {
+                        this@FriendCommand.info(FriendManager.befriendedText(id.profile.name))
+                        success()
+                    } else {
+                        failure("This player is already in your friend list")
+                    }
                 }
             }
         }
@@ -113,19 +142,12 @@ object FriendCommand : LambdaCommand(
                     val profile = FriendManager.gameProfile(name)
                         ?: return@executeWithResult failure("This player is not in your friend list")
 
-                    FriendManager.remove(profile)
-
-                    this@FriendCommand.info(buildText {
-                        color(Color.RED) {
-                            literal("Removed ")
-                            color(Color.CYAN) {
-                                literal(profile.name)
-                                color(Color.WHITE) { literal(" from your friend list") }
-                            }
-                        }
-                    })
-
-                    return@executeWithResult success()
+                    return@executeWithResult if (FriendManager.unfriend(profile)) {
+                        this@FriendCommand.info(FriendManager.unfriendedText(name))
+                        success()
+                    } else {
+                        failure("This player is not in your friend list")
+                    }
                 }
             }
         }
