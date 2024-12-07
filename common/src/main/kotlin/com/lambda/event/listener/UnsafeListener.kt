@@ -123,7 +123,7 @@ class UnsafeListener<T : Event>(
          *
          * Usage:
          * ```kotlin
-         * private val event by listenUnsafeOnce<MyEvent> { event ->
+         * private val event by listenOnceUnsafe<MyEvent> { event ->
          *     println("Unsafe event received only once: $event")
          *     // no safe access to player or world
          *     // event is stored in the value
@@ -139,7 +139,7 @@ class UnsafeListener<T : Event>(
          * @param transform The function used to transform the event into a value.
          * @return The newly created and registered [UnsafeListener].
          */
-        inline fun <reified T : Event, reified E> Any.listenUnsafeOnce(
+        inline fun <reified T : Event, reified E> Any.listenOnceUnsafe(
             priority: Int = 0,
             alwaysListen: Boolean = false,
             noinline transform: (T) -> E? = { null },
@@ -148,7 +148,7 @@ class UnsafeListener<T : Event>(
             val pointer = Pointer<E>()
 
             val destroyable by selfReference<UnsafeListener<T>> {
-                UnsafeListener(priority, this@listenUnsafeOnce, alwaysListen) { event ->
+                UnsafeListener(priority, this@listenOnceUnsafe, alwaysListen) { event ->
                     pointer.value = transform(event)
 
                     if (predicate(event) &&
@@ -196,7 +196,9 @@ class UnsafeListener<T : Event>(
             alwaysListen: Boolean = false,
             noinline function: (T) -> Unit = {},
         ): UnsafeListener<T> {
-            val listener = UnsafeListener<T>(priority, this, alwaysListen) { event -> function(event) }
+            val listener = UnsafeListener<T>(priority, this, alwaysListen) { event ->
+                function(event)
+            }
 
             EventFlow.concurrentListeners.subscribe<T>(listener)
 
