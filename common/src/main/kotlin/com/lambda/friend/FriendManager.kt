@@ -39,7 +39,6 @@ object FriendManager : Configurable(FriendConfig), Loadable {
     val friends by setting("friends", setOf<GameProfile>())
 
     fun befriend(profile: GameProfile) = friends.add(profile)
-
     fun unfriend(profile: GameProfile): Boolean = friends.remove(profile)
 
     fun gameProfile(name: String) = friends.firstOrNull { it.name == name }
@@ -69,7 +68,7 @@ object FriendManager : Configurable(FriendConfig), Loadable {
         literal(" to your friend list ")
         clickEvent(ClickEvents.suggestCommand(";friends remove ${name.string}")) {
             styled(underlined = true, color = Color.LIGHT_GRAY) {
-                literal("[Click to undo]")
+                literal("[Undo]")
             }
         }
     }
@@ -81,7 +80,7 @@ object FriendManager : Configurable(FriendConfig), Loadable {
         literal(" from your friend list ")
         clickEvent(ClickEvents.suggestCommand(";friends add ${name.string}")) {
             styled(underlined = true, color = Color.LIGHT_GRAY) {
-                literal("[Click to undo]")
+                literal("[Undo]")
             }
         }
     }
