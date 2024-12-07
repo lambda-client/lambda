@@ -32,7 +32,7 @@ import com.lambda.util.extension.CommandBuilder
 
 object TransferCommand : LambdaCommand(
     name = "transfer",
-    usage = "transfer <move|cancel|undo> <item> <amount> <to>",
+    usage = "transfer <move | cancel | undo> <item> <amount> <to>",
     description = "Transfer items from anywhere to anywhere",
 ) {
     private var lastTransfer: TransferResult.Transfer? = null
