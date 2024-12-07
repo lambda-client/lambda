@@ -248,7 +248,6 @@ abstract class Configurable(
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Set] value of type [T] for the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
-     * @param hackDelegates A flag that determines whether the setting should be serialized with the default value.
      * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
@@ -262,14 +261,12 @@ abstract class Configurable(
         name: String,
         defaultValue: Set<T>,
         description: String = "",
-        hackDelegates: Boolean = false,
         noinline visibility: () -> Boolean = { true },
     ) = SetSetting(
         name,
         defaultValue.toMutableSet(),
         TypeToken.getParameterized(MutableSet::class.java, T::class.java).type,
         description,
-        hackDelegates,
         visibility,
     ).also {
         settings.add(it)
