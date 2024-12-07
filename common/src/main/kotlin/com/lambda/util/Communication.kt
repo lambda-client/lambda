@@ -151,7 +151,12 @@ object Communication {
             literal("\n")
             literal("Keybind: ")
             color(GuiSettings.primaryColor) {
-                literal(module.keybind.keyCode.toString())
+                if (module.keybind.keyCode != -1) {
+                    literal(module.keybind.keyCode.toString())
+                } else {
+                    literal("Unbound")
+                }
+
             }
             literal("\n")
             literal("Default tags: ")
