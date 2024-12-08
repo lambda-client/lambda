@@ -65,7 +65,7 @@ import kotlin.time.Duration.Companion.days
  * ...
  *
  * onRender {
- *     ExampleFont.CoolFont.bind(slot = x)
+ *     ExampleFont.CoolFont.bind()
  * }
  * ```
  */
