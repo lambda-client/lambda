@@ -66,7 +66,6 @@ open class Texture(
         image?.let {
             bind()
             upload(it)
-            bind(0)
         }
     }
 }
