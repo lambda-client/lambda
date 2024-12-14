@@ -25,17 +25,10 @@ import org.lwjgl.opengl.GL45C.*
 import java.awt.image.BufferedImage
 
 open class Texture(
-    private val image: BufferedImage?,
+    image: BufferedImage?,
     private val levels: Int = 4,
 ) {
     val id = glGenTextures()
-
-    open fun init() = image
-        ?.let {
-            bind()
-            upload(it)
-            bind(0)
-        }
 
     open fun bind(slot: Int = 0) {
         bindTexture(id, slot)
@@ -70,6 +63,10 @@ open class Texture(
     }
 
     init {
-        init() // The overridden method will run and not the base one due to kotlin's order of execution ;)
+        image?.let {
+            bind()
+            upload(it)
+            bind(0)
+        }
     }
 }
