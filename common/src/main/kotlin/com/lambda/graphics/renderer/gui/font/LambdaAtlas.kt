@@ -24,8 +24,8 @@ import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.http.Method
 import com.lambda.http.request
 import com.lambda.threading.runGameScheduled
-import com.lambda.util.LambdaResource
 import com.lambda.util.math.Vec2d
+import com.lambda.util.stream
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap
 import it.unimi.dsi.fastutil.objects.Object2DoubleArrayMap
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap
@@ -162,9 +162,7 @@ object LambdaAtlas : Loadable {
         characters: Int = 2048 // How many characters from that font should be used for the generation
     ) {
         val font = fontCache.computeIfAbsent(this) {
-            val resource = LambdaResource("fonts/$fontName.ttf")
-
-            Font.createFont(Font.TRUETYPE_FONT, resource.stream).deriveFont(64.0f)
+            Font.createFont(Font.TRUETYPE_FONT, "fonts/$fontName.ttf".stream).deriveFont(64.0f)
         }
 
         val textureSize = characters * 2

@@ -19,6 +19,7 @@ package com.lambda.graphics.shader
 
 import com.google.common.collect.ImmutableList
 import com.lambda.util.LambdaResource
+import com.lambda.util.stream
 import com.mojang.blaze3d.platform.GlStateManager
 import org.apache.commons.io.IOUtils
 import org.joml.Matrix4f
@@ -42,7 +43,7 @@ object ShaderUtils {
         error?.let { err ->
             val builder = StringBuilder()
                 .append("Failed to compile ${type.name} shader").appendLine()
-                .append("Path: ${resource.path}").appendLine()
+                .append("Path: $resource").appendLine()
                 .append("Compiler output:").appendLine()
                 .append(err)
 
