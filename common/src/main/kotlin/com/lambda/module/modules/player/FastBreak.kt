@@ -19,7 +19,7 @@ package com.lambda.module.modules.player
 
 import com.lambda.context.SafeContext
 import com.lambda.event.events.*
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
@@ -83,10 +83,10 @@ object FastBreak : Module(
     }
 
     init {
-        listener<PacketEvent.Send.Pre> {
+        listen<PacketEvent.Send.Pre> {
             if (it.packet !is PlayerActionC2SPacket
                 || it.packet.action != Action.STOP_DESTROY_BLOCK
-            ) return@listener
+            ) return@listen
 
             connection.sendPacket(
                 PlayerActionC2SPacket(
@@ -100,24 +100,24 @@ object FastBreak : Module(
             )
         }
 
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             interaction.blockBreakingCooldown = interaction.blockBreakingCooldown.coerceAtMost(breakDelay)
         }
 
-        listener<InteractionEvent.BreakingProgress.Pre> {
+        listen<PlayerEvent.Breaking.Update> {
             it.progress += world.getBlockState(it.pos)
                 .calcBlockBreakingDelta(player, world, it.pos) * (1 - breakThreshold)
         }
 
-        listener<TickEvent.Post> {
-            if (!renderMode.isEnabled()) return@listener
+        listen<TickEvent.Post> {
+            if (!renderMode.isEnabled()) return@listen
 
             val pos = interaction.currentBreakingPos
             boxSet = world.getBlockState(pos).getOutlineShape(world, pos).boundingBoxes.toSet()
         }
 
-        listener<RenderEvent.World> {
-            if (!interaction.isBreakingBlock || !renderMode.isEnabled()) return@listener
+        listen<RenderEvent.World> {
+            if (!interaction.isBreakingBlock || !renderMode.isEnabled()) return@listen
 
             val pos = interaction.currentBreakingPos
             val breakDelta = world.getBlockState(pos).calcBlockBreakingDelta(player, world, pos)

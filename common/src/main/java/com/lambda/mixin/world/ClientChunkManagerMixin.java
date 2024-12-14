@@ -52,7 +52,7 @@ public class ClientChunkManagerMixin {
             Consumer<ChunkData.BlockEntityVisitor> consumer,
             CallbackInfoReturnable<WorldChunk> info
     ) {
-        EventFlow.post(new WorldEvent.ChunkEvent.Load(this.world, info.getReturnValue()));
+        EventFlow.post(new WorldEvent.ChunkEvent.Load(info.getReturnValue()));
     }
 
     @Inject(method = "loadChunkFromPacket", at = @At(value = "NEW", target = "net/minecraft/world/chunk/WorldChunk", shift = At.Shift.BEFORE), locals = LocalCapture.CAPTURE_FAILHARD)
@@ -68,13 +68,13 @@ public class ClientChunkManagerMixin {
             ChunkPos chunkPos
     ) {
         if (chunk != null) {
-            EventFlow.post(new WorldEvent.ChunkEvent.Unload(this.world, chunk));
+            EventFlow.post(new WorldEvent.ChunkEvent.Unload(chunk));
         }
     }
 
     @Inject(method = "unload", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientChunkManager$ClientChunkMap;compareAndSet(ILnet/minecraft/world/chunk/WorldChunk;Lnet/minecraft/world/chunk/WorldChunk;)Lnet/minecraft/world/chunk/WorldChunk;"), locals = LocalCapture.CAPTURE_FAILHARD)
     private void onChunkUnload(ChunkPos pos, CallbackInfo ci, int i, WorldChunk chunk) {
-        EventFlow.post(new WorldEvent.ChunkEvent.Unload(this.world, chunk));
+        EventFlow.post(new WorldEvent.ChunkEvent.Unload(chunk));
     }
 
 //    @Inject(

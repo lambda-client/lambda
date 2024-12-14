@@ -19,7 +19,7 @@ package com.lambda.module.modules.movement
 
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.extension.filterPointer
@@ -39,7 +39,7 @@ object RocketExtend : Module(
     private val keepAliveTime by setting("Keepalive Timeout", 45, 0..60, 1, unit = " s")
 
     init {
-        listener<PacketEvent.Receive.Pre> { event ->
+        listen<PacketEvent.Receive.Pre> { event ->
             if (event.packet is PlayerPositionLookS2CPacket) reset()
 
             if (event.packet is EntitiesDestroyS2CPacket) {
@@ -50,17 +50,17 @@ object RocketExtend : Module(
             }
         }
 
-        listener<PacketEvent.Send.Pre> { event ->
-            if (event.packet !is CommonPongC2SPacket) return@listener
+        listen<PacketEvent.Send.Pre> { event ->
+            if (event.packet !is CommonPongC2SPacket) return@listen
 
             if (extendedRockets.isEmpty()) {
                 lastPingTime = System.currentTimeMillis()
-                return@listener
+                return@listen
             }
 
             if (System.currentTimeMillis() - lastPingTime > keepAliveTime * 1000) {
                 reset()
-                return@listener
+                return@listen
             }
 
             pingPacket = event.packet

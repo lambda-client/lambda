@@ -24,7 +24,7 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
@@ -66,38 +66,38 @@ class PlaceBlock @Ta5kBuilder constructor(
     }
 
     init {
-        listener<RotationEvent.Update> { event ->
-            if (state != State.ROTATING) return@listener
-            if (!rotate) return@listener
+        listen<RotationEvent.Update> { event ->
+            if (state != State.ROTATING) return@listen
+            if (!rotate) return@listen
             event.context = ctx.rotation
         }
 
-        listener<RotationEvent.Post> { event ->
-            if (state != State.ROTATING) return@listener
-            if (!rotate) return@listener
-            if (event.context != ctx.rotation) return@listener
-            if (!event.context.isValid) return@listener
+        listen<RotationEvent.Post> { event ->
+            if (state != State.ROTATING) return@listen
+            if (!rotate) return@listen
+            if (event.context != ctx.rotation) return@listen
+            if (!event.context.isValid) return@listen
 
             state = State.PLACING
         }
 
-        listener<TickEvent.Pre> {
-            if (state != State.PLACING) return@listener
+        listen<TickEvent.Pre> {
+            if (state != State.PLACING) return@listen
 
             if (findOutIfNeeded) placeBlock()
             findOutIfNeeded = true
         }
 
-        listener<MovementEvent.InputUpdate> {
-            if (state != State.PLACING) return@listener
+        listen<MovementEvent.InputUpdate> {
+            if (state != State.PLACING) return@listen
             val hitBlock = ctx.result.blockPos.blockState(world).block
             if (hitBlock in BlockUtils.interactionBlacklist) {
                 it.input.sneaking = true
             }
         }
 
-        listener<WorldEvent.BlockUpdate> {
-            if (it.pos != ctx.resultingPos) return@listener
+        listen<WorldEvent.BlockUpdate> {
+            if (it.pos != ctx.resultingPos) return@listen
 
             if (ctx.targetState.matches(it.state, it.pos, world)) {
                 finish()

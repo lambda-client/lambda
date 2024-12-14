@@ -21,7 +21,7 @@ import com.lambda.config.groups.IRotationConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.ScreenHandlerEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
@@ -50,8 +50,8 @@ class OpenContainer(
     }
 
     init {
-        listener<ScreenHandlerEvent.Open> {
-            if (state != State.OPENING) return@listener
+        listen<ScreenHandlerEvent.Open> {
+            if (state != State.OPENING) return@listen
 
             screenHandler = it.screenHandler
             state = State.SLOT_LOADING
@@ -59,33 +59,33 @@ class OpenContainer(
             if (!waitForSlotLoad) success(it.screenHandler)
         }
 
-        listener<ScreenHandlerEvent.Close> {
-            if (screenHandler != it.screenHandler) return@listener
+        listen<ScreenHandlerEvent.Close> {
+            if (screenHandler != it.screenHandler) return@listen
 
             state = State.SCOPING
             screenHandler = null
         }
 
-        listener<ScreenHandlerEvent.Update> {
-            if (state != State.SLOT_LOADING) return@listener
+        listen<ScreenHandlerEvent.Update> {
+            if (state != State.SLOT_LOADING) return@listen
 
             screenHandler?.let {
                 success(it)
             }
         }
 
-        listener<RotationEvent.Update> { event ->
-            if (!rotate) return@listener
+        listen<RotationEvent.Update> { event ->
+            if (!rotate) return@listen
             event.context = lookAtBlock(blockPos, rotation, interact, sides)
         }
 
-        listener<RotationEvent.Post> {
-            if (!rotate) return@listener
-            if (state != State.SCOPING) return@listener
-            if (!it.context.isValid) return@listener
+        listen<RotationEvent.Post> {
+            if (!rotate) return@listen
+            if (state != State.SCOPING) return@listen
+            if (!it.context.isValid) return@listen
 
             if (inScope++ >= interact.scopeThreshold) {
-                val hitResult = it.context.hitResult?.blockResult ?: return@listener
+                val hitResult = it.context.hitResult?.blockResult ?: return@listen
                 interaction.interactBlock(player, Hand.MAIN_HAND, hitResult)
 
                 state = State.OPENING

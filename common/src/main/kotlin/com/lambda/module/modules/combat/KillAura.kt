@@ -24,7 +24,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.RotationManager
 import com.lambda.interaction.RotationManager.requestRotation
 import com.lambda.interaction.rotation.Rotation
@@ -123,13 +123,13 @@ object KillAura : Module(
             }
         )
 
-        listener<PlayerPacketEvent.Pre>(Int.MIN_VALUE) { event ->
+        listen<PlayerPacketEvent.Pre>(Int.MIN_VALUE) { event ->
             prevY = lastY
             lastY = event.position.y
             lastOnGround = event.onGround
         }
 
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             target = targeting.target()
             if (!timerSync) attackTicks++
 
@@ -148,11 +148,11 @@ object KillAura : Module(
             }
         }
 
-        listener<PacketEvent.Send.Post> { event ->
+        listen<PacketEvent.Send.Post> { event ->
             if (event.packet !is HandSwingC2SPacket &&
                 event.packet !is UpdateSelectedSlotC2SPacket &&
                 event.packet !is PlayerInteractEntityC2SPacket
-            ) return@listener
+            ) return@listen
 
             attackTicks = 0
         }

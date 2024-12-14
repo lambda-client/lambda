@@ -21,7 +21,7 @@ import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.*
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
 import com.lambda.graphics.renderer.esp.builders.build
@@ -129,11 +129,11 @@ object Scaffold : Module(
             }
         )
 
-        listener<MovementEvent.Sneak> {
+        listen<MovementEvent.Sneak> {
             if (sneakTicks > 0) it.sneak = true
         }
 
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             placeInfo?.let { info ->
                 tickPlacement(info)
             }
@@ -141,7 +141,7 @@ object Scaffold : Module(
             updateSneaking()
         }
 
-        listener<RenderEvent.StaticESP> { event ->
+        listen<RenderEvent.StaticESP> { event ->
             buildRenderer(event)
         }
 

@@ -34,7 +34,7 @@ import kotlin.io.path.exists
 
 object ReplayCommand : LambdaCommand(
     name = "replay",
-    usage = "replay <play|load|save|prune>",
+    usage = "replay <play | load | save | prune>",
     description = "Play, load, save, or prune a replay"
 ) {
     override fun CommandBuilder.create() {

@@ -29,7 +29,7 @@ import com.lambda.util.extension.CommandBuilder
 object ConfigCommand : LambdaCommand(
     name = "config",
     aliases = setOf("cfg"),
-    usage = "config <save|load>",
+    usage = "config <save | load>",
     description = "Save or load the configuration files"
 ) {
     override fun CommandBuilder.create() {

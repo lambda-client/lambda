@@ -21,6 +21,9 @@ import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
 import net.minecraft.block.Block
 
+/**
+ * @see [com.lambda.config.Configurable]
+ */
 class BlockSetting(
     override val name: String,
     defaultValue: Block,

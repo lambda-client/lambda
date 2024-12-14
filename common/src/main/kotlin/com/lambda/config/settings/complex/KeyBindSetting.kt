@@ -21,6 +21,9 @@ import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
 import com.lambda.util.KeyCode
 
+/**
+ * @see [com.lambda.config.Configurable]
+ */
 class KeyBindSetting(
     override val name: String,
     defaultValue: KeyCode,

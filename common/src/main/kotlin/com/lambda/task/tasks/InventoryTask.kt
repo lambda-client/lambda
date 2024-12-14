@@ -19,7 +19,7 @@ package com.lambda.task.tasks
 
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
@@ -54,7 +54,7 @@ class InventoryTask(
     init {
         // ToDo: Needs smart code to move as efficient as possible.
         //  Also should handle overflow etc. Should be more generic
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             val moved = selector.filterSlots(to)
                 .filter { it.hasStack() }
                 .sumOf { it.stack.count } >= selector.count

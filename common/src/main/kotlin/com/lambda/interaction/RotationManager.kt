@@ -23,8 +23,8 @@ import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.*
-import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.angleDifference
 import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
@@ -60,7 +60,7 @@ object RotationManager : Loadable {
     ) {
         var lastCtx: RotationContext? = null
 
-        this.listener<RotationEvent.Update>(priority, alwaysListen) { event ->
+        this.listen<RotationEvent.Update>(priority, alwaysListen) { event ->
             val rotationContext = onUpdate(event.context)
 
             rotationContext?.let {
@@ -70,7 +70,7 @@ object RotationManager : Loadable {
             lastCtx = rotationContext
         }
 
-        this.listener<RotationEvent.Post> { event ->
+        this.listen<RotationEvent.Post> { event ->
             if (event.context == lastCtx && event.context.isValid) {
                 onReceive()
             }
@@ -89,16 +89,16 @@ object RotationManager : Loadable {
     }
 
     init {
-        listener<PacketEvent.Send.Post> { event ->
+        listen<PacketEvent.Send.Post> { event ->
             val packet = event.packet
-            if (packet !is PlayerPositionLookS2CPacket) return@listener
+            if (packet !is PlayerPositionLookS2CPacket) return@listen
 
             runGameScheduled {
                 reset(Rotation(packet.yaw, packet.pitch))
             }
         }
 
-        unsafeListener<ConnectionEvent.Disconnect> {
+        listenUnsafe<ConnectionEvent.Disconnect> {
             reset(Rotation.ZERO)
         }
     }

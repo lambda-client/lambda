@@ -18,7 +18,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.event.events.RenderEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
@@ -66,7 +66,7 @@ object WorldEater : Module(
             BaritoneUtils.cancel()
         }
 
-        listener<RenderEvent.StaticESP> {
+        listen<RenderEvent.StaticESP> {
             it.renderer.buildOutline(Box.enclosing(pos1, pos2), Color.BLUE)
         }
     }

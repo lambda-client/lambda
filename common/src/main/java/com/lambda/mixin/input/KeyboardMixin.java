@@ -18,7 +18,7 @@
 package com.lambda.mixin.input;
 
 import com.lambda.event.EventFlow;
-import com.lambda.event.events.KeyPressEvent;
+import com.lambda.event.events.KeyboardEvent;
 import net.minecraft.client.Keyboard;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -28,9 +28,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Keyboard.class)
 public class KeyboardMixin {
     @Inject(method = "onKey", at = @At("HEAD"))
-    void onKey(long window, int key, int scancode, int action, int modifiers, CallbackInfo ci) {
+    private void onKey(long window, int key, int scancode, int action, int modifiers, CallbackInfo ci) {
         if (key <= 0) return;
-        if (action != 1) return;
-        EventFlow.post(new KeyPressEvent(key, scancode, action, modifiers));
+        if (action != 1) return; // TODO: Post events on both press and release ?
+
+        EventFlow.post(new KeyboardEvent.Press(key, scancode, action, modifiers));
+    }
+
+    @Inject(method = "onChar", at = @At("HEAD"))
+    private void onChar(long window, int codePoint, int modifiers, CallbackInfo ci) {
+        char[] chars = Character.toChars(codePoint);
+
+        for (char c : chars) {
+            EventFlow.post(new KeyboardEvent.Char(c));
+        }
     }
 }

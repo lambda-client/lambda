@@ -23,10 +23,10 @@ import com.lambda.config.groups.IRotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
-import com.lambda.event.events.KeyPressEvent
+import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RotationEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
@@ -111,8 +111,8 @@ object Replay : Module(
         .create()
 
     init {
-        listener<KeyPressEvent> {
-            if (mc.currentScreen != null && !mc.options.commandKey.isPressed) return@listener
+        listen<KeyboardEvent.Press> {
+            if (mc.currentScreen != null && !mc.options.commandKey.isPressed) return@listen
 
             when (it.translated) {
                 record -> handleRecord()
@@ -123,7 +123,7 @@ object Replay : Module(
             }
         }
 
-        listener<MovementEvent.InputUpdate> { event ->
+        listen<MovementEvent.InputUpdate> { event ->
             when (state) {
                 State.RECORDING -> {
                     buffer?.let {
@@ -147,7 +147,7 @@ object Replay : Module(
                             if (cancelOnDeviation && diff > deviationThreshold) {
                                 state = State.INACTIVE
                                 this@Replay.logError("Replay cancelled due to exceeding deviation threshold.")
-                                return@listener
+                                return@listen
                             }
                         }
                     }
@@ -157,7 +157,7 @@ object Replay : Module(
             }
         }
 
-        listener<RotationEvent.Update> { event ->
+        listen<RotationEvent.Update> { event ->
             when (state) {
                 State.RECORDING -> {
                     buffer?.rotation?.add(player.rotation)
@@ -173,7 +173,7 @@ object Replay : Module(
             }
         }
 
-        listener<MovementEvent.Sprint> { event ->
+        listen<MovementEvent.Sprint> { event ->
             when (state) {
                 State.RECORDING -> {
                     buffer?.sprint?.add(player.isSprinting)
@@ -190,7 +190,7 @@ object Replay : Module(
             }
         }
 
-        listener<MovementEvent.Post> {
+        listen<MovementEvent.Player.Post> {
             when (state) {
                 State.RECORDING -> {
                     buffer?.let {
@@ -218,7 +218,7 @@ object Replay : Module(
 
                 State.PLAYING -> {
                     buffer?.let {
-                        if (it.size != 0) return@listener
+                        if (it.size != 0) return@listen
 
                         if (playMode == PlayMode.LOOP && (repeats < loops || loops < 0)) {
                             if (repeats >= 0) repeats++
@@ -241,7 +241,7 @@ object Replay : Module(
                                     color(GuiSettings.primaryColor) { literal(playback?.duration.toString()) }
                                     literal(".")
                                 })
-                                return@listener
+                                return@listen
                             }
 
                             state = State.RECORDING
