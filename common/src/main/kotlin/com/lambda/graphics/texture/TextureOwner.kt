@@ -21,7 +21,7 @@ import com.lambda.util.LambdaResource
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import java.awt.image.BufferedImage
 
-object TextureHandler {
+object TextureOwner {
     private val textureMap = Object2ObjectOpenHashMap<Any, Texture>()
 
     /**

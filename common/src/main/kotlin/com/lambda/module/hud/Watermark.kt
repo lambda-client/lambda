@@ -19,7 +19,7 @@ package com.lambda.module.hud
 
 import com.lambda.graphics.renderer.gui.TextureRenderer.drawTexture
 import com.lambda.graphics.renderer.gui.TextureRenderer.drawTextureShaded
-import com.lambda.graphics.texture.TextureHandler.upload
+import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 

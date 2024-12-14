@@ -19,8 +19,8 @@ package com.lambda.graphics.renderer.gui.font
 
 import com.google.common.math.IntMath.pow
 import com.lambda.core.Loadable
-import com.lambda.graphics.texture.TextureHandler.texture
-import com.lambda.graphics.texture.TextureHandler.upload
+import com.lambda.graphics.texture.TextureOwner.texture
+import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.http.Method
 import com.lambda.http.request
 import com.lambda.threading.runGameScheduled
