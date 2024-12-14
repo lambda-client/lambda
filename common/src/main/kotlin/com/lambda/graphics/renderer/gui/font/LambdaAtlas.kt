@@ -18,12 +18,11 @@
 package com.lambda.graphics.renderer.gui.font
 
 import com.google.common.math.IntMath.pow
-import com.lambda.event.events.ConnectionEvent
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeListenOnce
-import com.lambda.graphics.texture.MipmapTexture
+import com.lambda.core.Loadable
+import com.lambda.graphics.texture.TextureHandler.texture
+import com.lambda.graphics.texture.TextureHandler.upload
 import com.lambda.http.Method
 import com.lambda.http.request
-import com.lambda.module.modules.client.RenderSettings
 import com.lambda.threading.runGameScheduled
 import com.lambda.util.LambdaResource
 import com.lambda.util.math.Vec2d
@@ -60,7 +59,8 @@ import kotlin.time.Duration.Companion.days
  *
  * fun loadFont(...) = BufferedImage
  *
- * ExampleFont.CoolFont.uploadAtlas(loadFont(...)) // The extension keeps a reference to the font owner
+ * // Function extension from [TexturePipeline]
+ * ExampleFont.CoolFont.upload(loadFont(...)) // The extension keeps a reference to the font owner
  *
  * ...
  *
@@ -69,11 +69,10 @@ import kotlin.time.Duration.Companion.days
  * }
  * ```
  */
-object LambdaAtlas {
+object LambdaAtlas : Loadable {
     private val fontMap = Object2ObjectOpenHashMap<Any, Int2ObjectArrayMap<GlyphInfo>>()
     private val emojiMap = Object2ObjectOpenHashMap<Any, Object2ObjectOpenHashMap<String, GlyphInfo>>()
-    private val textureMap = Object2ObjectOpenHashMap<Any, MipmapTexture>()
-    private val slotReservation = Object2IntArrayMap<Any>()
+    private val slotReservation = Object2IntArrayMap<Any>() // Will cause undefined behavior if someone is trying to allocate more than 32 slots, unlikely
 
     private val bufferPool =
         mutableMapOf<Any, BufferedImage>() // This array is nuked once the data is dispatched to OpenGL
@@ -85,20 +84,15 @@ object LambdaAtlas {
     operator fun LambdaFont.get(char: Char): GlyphInfo? = fontMap.getValue(this)[char.code]
     operator fun LambdaEmoji.get(string: String): GlyphInfo? = emojiMap.getValue(this)[string]
 
-    /**
-     * Upload additional atlas that can be used with the owner to bind textures to shaders
-     */
-    fun Any.uploadAtlas(data: BufferedImage) = textureMap.set(this, MipmapTexture(data))
-
     // Allow binding any valid font definition enums
-    fun <T : Enum<T>> T.bind() = with(textureMap.getValue(this))
-    {
-        bind(slot = slotReservation.computeIfAbsent(this, ToIntFunction { slotReservation.size }))
-        setLOD(RenderSettings.lodBias.toFloat())
-    }
+    fun <T : Enum<T>> T.bind() =
+        this@bind.texture.bind(slot = slotReservation.computeIfAbsent(this@bind, ToIntFunction { slotReservation.size }))
+
+    val <T : Enum<T>> T.slot: Int
+        get() = slotReservation.getInt(this@slot)
 
     val LambdaFont.height: Double
-        get() = heightCache.getDouble(fontCache[this])
+        get() = heightCache.getDouble(fontCache[this@height])
 
     val LambdaEmoji.keys
         get() = emojiMap.getValue(this)
@@ -215,19 +209,16 @@ object LambdaAtlas {
         bufferPool[this] = image
     }
 
-    init {
-        // TODO: Change this when we've refactored the loadables
-        unsafeListenOnce<ConnectionEvent.Connect.Pre, ConnectionEvent.Connect.Pre> {
-            runGameScheduled {
-                bufferPool.forEach { (owner, image) ->
-                    textureMap[owner] = MipmapTexture(image)
-                }
+    // TODO: Change this when we've refactored the loadables
+    override fun load(): String {
+        val str = "Loaded ${bufferPool.size} fonts" // avoid race condition
 
-                bufferPool.clear()
-            }
-
-            true
+        runGameScheduled {
+            bufferPool.forEach { (owner, image) -> owner.upload(image) }
+            bufferPool.clear()
         }
+
+        return str
     }
 
     private fun getCharImage(font: Font, codePoint: Char): BufferedImage? {

@@ -22,11 +22,8 @@ import com.pngencoder.PngEncoder
 import net.minecraft.client.texture.NativeImage
 import org.lwjgl.BufferUtils
 import org.lwjgl.opengl.GL45C.*
-import java.awt.*
 import java.awt.image.BufferedImage
 import java.nio.ByteBuffer
-import kotlin.math.roundToInt
-import kotlin.math.sqrt
 
 object TextureUtils {
     private const val COMPRESSION_LEVEL = 1
@@ -39,22 +36,6 @@ object TextureUtils {
     fun bindTexture(id: Int, slot: Int = 0) {
         RenderSystem.activeTexture(GL_TEXTURE0 + slot)
         RenderSystem.bindTexture(id)
-    }
-
-    fun upload(bufferedImage: BufferedImage, lod: Int) {
-        val width = bufferedImage.width
-        val height = bufferedImage.height
-
-        glTexImage2D(GL_TEXTURE_2D, lod, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, readImage(bufferedImage))
-
-        setupTexture(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
-    }
-
-    fun setupLOD(levels: Int) {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, 0)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, levels)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, levels)
     }
 
     fun setupTexture(minFilter: Int, magFilter: Int) {
@@ -89,39 +70,4 @@ object TextureUtils {
         image: ByteBuffer,
         format: NativeImage.Format = NativeImage.Format.RGBA,
     ) = NativeImage.read(format, image).pointer
-
-    fun BufferedImage.rescale(targetWidth: Int, targetHeight: Int): BufferedImage {
-        val type = if (transparency == Transparency.OPAQUE)
-            BufferedImage.TYPE_INT_RGB
-        else BufferedImage.TYPE_INT_ARGB
-
-        var image = this
-
-        var width = image.width
-        var height = image.height
-
-        val divisorX = sqrt((width / targetWidth).toDouble())
-        val divisorY = sqrt((height / targetHeight).toDouble())
-
-        do {
-            if (width > targetWidth) {
-                width = (width / divisorX).roundToInt().coerceAtLeast(targetWidth)
-            }
-
-            if (height > targetHeight) {
-                height = (height / divisorY).roundToInt().coerceAtLeast(targetHeight)
-            }
-
-            val tempImage = BufferedImage(width, height, type)
-            val graphics2D = tempImage.createGraphics()
-
-            graphics2D.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
-            graphics2D.drawImage(image, 0, 0, width, height, null)
-            graphics2D.dispose()
-
-            image = tempImage
-        } while (width != targetWidth || height != targetHeight)
-
-        return image
-    }
 }

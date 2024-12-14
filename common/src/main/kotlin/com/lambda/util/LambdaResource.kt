@@ -18,8 +18,13 @@
 package com.lambda.util
 
 import java.io.InputStream
+import javax.imageio.ImageIO
 
 class LambdaResource(val path: String) {
     val stream: InputStream?
         get() = javaClass.getResourceAsStream("/assets/lambda/$path")
+
+    companion object {
+        fun readImage(path: String) = ImageIO.read(LambdaResource(path).stream)
+    }
 }
