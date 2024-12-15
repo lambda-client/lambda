@@ -20,8 +20,7 @@ package com.lambda.graphics.buffer
 import com.lambda.graphics.gl.bufferBound
 import com.lambda.graphics.gl.bufferUsageValid
 import com.lambda.graphics.gl.bufferValid
-import org.lwjgl.opengl.GL30C.*
-import org.lwjgl.opengl.GL44.glBufferStorage
+import org.lwjgl.opengl.GL44.*
 import java.nio.ByteBuffer
 
 abstract class IBuffer(
@@ -212,7 +211,7 @@ abstract class IBuffer(
 
         repeat(buffers) {
             bind()
-            glBufferStorage(target, data, usage)
+            glBufferStorage(target, data, access or GL_DYNAMIC_STORAGE_BIT)
             swap()
         }
 
@@ -237,7 +236,7 @@ abstract class IBuffer(
 
         repeat(buffers) {
             bind()
-            glBufferStorage(target, size.coerceAtLeast(0), usage)
+            glBufferStorage(target, size.coerceAtLeast(0), access or GL_DYNAMIC_STORAGE_BIT)
             swap()
         }
 
