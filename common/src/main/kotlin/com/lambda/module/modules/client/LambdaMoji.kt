@@ -18,7 +18,7 @@
 package com.lambda.module.modules.client
 
 import com.lambda.event.events.RenderEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.api.RenderLayer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -37,7 +37,7 @@ object LambdaMoji : Module(
     private val renderQueue = mutableListOf<Pair<String, Vec2d>>()
 
     init {
-        listener<RenderEvent.GUI.Scaled> {
+        listen<RenderEvent.GUI.Scaled> {
             renderQueue.forEach { (text, position) ->
                 renderer.font.build(text, position, scale = scale)
             }
