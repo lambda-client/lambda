@@ -17,7 +17,6 @@
 
 package com.lambda.graphics.texture
 
-import com.lambda.util.LambdaResource
 import com.lambda.util.readImage
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import java.awt.image.BufferedImage
@@ -44,4 +43,10 @@ object TextureOwner {
      */
     fun Any.upload(path: String, mipmaps: Int = 1) =
         Texture(path.readImage(), levels = mipmaps).also { textureMap[this@upload] = it }
+
+    /**
+     * Loads a gif and associate it with its owner
+     */
+    fun Any.uploadGif(path: String) =
+        AnimatedTexture(path).also { textureMap[this@uploadGif] = it }
 }

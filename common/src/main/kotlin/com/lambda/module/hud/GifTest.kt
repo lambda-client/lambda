@@ -18,29 +18,22 @@
 package com.lambda.module.hud
 
 import com.lambda.graphics.renderer.gui.TextureRenderer.drawTexture
-import com.lambda.graphics.renderer.gui.TextureRenderer.drawTextureShaded
-import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.graphics.texture.TextureOwner.uploadGif
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.Vec2d
 
-object Watermark : HudModule(
-    name = "Watermark",
+object GifTest : HudModule(
+    name = "GifTest",
     defaultTags = setOf(ModuleTag.CLIENT),
 ) {
-    private val shade by setting("Shade", true)
+    val test = uploadGif("chika.gif")
 
-    override val width = 50.0
-    override val height = 50.0
-
-    private val normalTexture = upload("textures/lambda.png")
-    private val monoTexture = upload("textures/lambda_mono.png")
+    override val width = 100.0
+    override val height = 100.0
 
     init {
         onRender {
-            if (shade) drawTextureShaded(monoTexture, rect)
-            else drawTexture(normalTexture, rect)
+            drawTexture(test, rect)
         }
     }
 }
