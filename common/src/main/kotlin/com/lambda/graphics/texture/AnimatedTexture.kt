@@ -95,6 +95,6 @@ class AnimatedTexture(
 
     init {
         readGif()
-        pbo = PixelBuffer(width, height, this@AnimatedTexture, format = GL_RGBA)
+        pbo = PixelBuffer(width, height, format = GL_RGBA, this@AnimatedTexture)
     }
 }

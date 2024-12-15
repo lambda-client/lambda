@@ -24,7 +24,7 @@ import org.lwjgl.opengl.GL30C.*
 import org.lwjgl.opengl.GL44.glBufferStorage
 import java.nio.ByteBuffer
 
-interface IBuffer {
+abstract class IBuffer(
     /**
      * Specifies how many buffer must be used
      *
@@ -40,8 +40,13 @@ interface IBuffer {
      *
      * Triple buffering helps maintain smoother frame rates, but if your app runs faster than the monitor's refresh rate, it offers little benefit as you eventually still wait for vblank synchronization.
      */
-    val buffers: Int
+    val buffers: Int = 1,
 
+    /**
+     * Edge case to handle vertex arrays
+     */
+    val isVertexArray: Boolean = false,
+) {
     /**
      * Specifies how the buffers are used
      *
@@ -57,7 +62,7 @@ interface IBuffer {
      * | GL_DYNAMIC_READ                | Data is modified repeatedly and used many times for reading.    |
      * | GL_DYNAMIC_COPY                | Data is modified repeatedly and used many times for copying.    |
      */
-    val usage: Int
+    abstract val usage: Int
 
     /**
      * Specifies the target to which the buffer object is bound which must be one
@@ -80,7 +85,7 @@ interface IBuffer {
      * | GL_TRANSFORM_FEEDBACK_BUFFER  | Transform feedback buffer            |
      * | GL_UNIFORM_BUFFER             | Uniform block storage                |
      */
-    val target: Int
+    abstract val target: Int
 
     /**
      * Specifies a combination of access flags indicating the desired
@@ -97,22 +102,22 @@ interface IBuffer {
      * | GL_MAP_FLUSH_EXPLICIT_BIT     | Requires explicit flushing of modified sub-ranges.  | Only with GL_MAP_WRITE_BIT. Data may be undefined if skipped. |
      * | GL_MAP_UNSYNCHRONIZED_BIT     | Skips synchronization before mapping.               | May cause data corruption if regions overlap.                 |
      */
-    val access: Int
+    abstract val access: Int
 
     /**
      * Index of the current buffer
      */
-    var index: Int
+    var index: Int = 0; private set
 
     /**
      * List of all the buffers
      */
-    val bufferIds: IntArray
+    private val bufferIds = IntArray(buffers)
 
     /**
      * Binds the buffer id to the [target]
      */
-    fun bind(id: Int) = glBindBuffer(target, id)
+    open fun bind(id: Int) = glBindBuffer(target, id)
 
     /**
      * Binds current the buffer [index] to the [target]
@@ -130,7 +135,7 @@ interface IBuffer {
      * Update the current buffer without re-allocating
      * Alternative to [map]
      */
-    fun update(
+    open fun update(
         data: ByteBuffer,
         offset: Long,
     ): Throwable? {
@@ -151,15 +156,19 @@ interface IBuffer {
      *
      * @param data The data to put in the new allocated buffer
      */
-    fun allocate(data: ByteBuffer): Throwable? {
+    open fun allocate(data: ByteBuffer): Throwable? {
         if (!bufferValid(target, access))
             return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
         if (!bufferUsageValid(usage))
             return IllegalArgumentException("Buffer usage is invalid")
 
-        bind()
-        glBufferData(target, data, usage)
+        repeat(buffers) {
+            bind()
+            glBufferData(target, data, usage)
+            swap()
+        }
+
         bind(0)
 
         return null
@@ -171,15 +180,19 @@ interface IBuffer {
      *
      * @param size The size of the new buffer
      */
-    fun allocate(size: Long): Throwable? {
+    open fun allocate(size: Long): Throwable? {
         if (!bufferValid(target, access))
             return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
         if (!bufferUsageValid(usage))
             return IllegalArgumentException("Buffer usage is invalid")
 
-        bind()
-        glBufferData(target, size.coerceAtLeast(0), usage)
+        repeat(buffers) {
+            bind()
+            glBufferData(target, size.coerceAtLeast(0), usage)
+            swap()
+        }
+
         bind(0)
 
         return null
@@ -190,15 +203,19 @@ interface IBuffer {
      * This function cannot be called twice for the same buffer
      * This function handles the buffer binding
      */
-    fun storage(data: ByteBuffer): Throwable? {
+    open fun storage(data: ByteBuffer): Throwable? {
         if (!bufferValid(target, access))
             return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
         if (!bufferUsageValid(usage))
             return IllegalArgumentException("Buffer usage is invalid")
 
-        bind()
-        glBufferStorage(target, data, usage)
+        repeat(buffers) {
+            bind()
+            glBufferStorage(target, data, usage)
+            swap()
+        }
+
         bind(0)
 
         return null
@@ -211,15 +228,19 @@ interface IBuffer {
      *
      * @param size The size of the storage buffer
      */
-    fun storage(size: Long): Throwable? {
+    open fun storage(size: Long): Throwable? {
         if (!bufferValid(target, access))
             return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
 
         if (!bufferUsageValid(usage))
             return IllegalArgumentException("Buffer usage is invalid")
 
-        bind()
-        glBufferStorage(target, size.coerceAtLeast(0), usage)
+        repeat(buffers) {
+            bind()
+            glBufferStorage(target, size.coerceAtLeast(0), usage)
+            swap()
+        }
+
         bind(0)
 
         return null
@@ -228,14 +249,14 @@ interface IBuffer {
     /**
      * Maps all or part of a buffer object's data store into the client's address space
      *
-     * @param offset    Specifies the starting offset within the buffer of the range to be mapped.
      * @param size      Specifies the length of the range to be mapped.
+     * @param offset    Specifies the starting offset within the buffer of the range to be mapped.
      * @param block     Lambda scope with the mapped buffer passed in
      * @return          Error encountered during the mapping process
      */
-    fun map(
-        offset: Long,
+    open fun map(
         size: Long,
+        offset: Long,
         block: (ByteBuffer) -> Unit
     ): Throwable? {
         if (
@@ -251,7 +272,7 @@ interface IBuffer {
 
         if (
             offset + size > glGetBufferParameteri(target, GL_BUFFER_SIZE)
-        ) return IllegalArgumentException("Out of bound mapping: $offset + $size > ${glGetBufferParameteri(target, GL_BUFFER_SIZE)}")
+        ) return IllegalArgumentException("Out of bound (is the buffer initialized?) $size + $offset > ${glGetBufferParameteri(target, GL_BUFFER_SIZE)}")
 
         if (
             glGetBufferParameteri(target, GL_BUFFER_MAPPED)
@@ -292,7 +313,7 @@ interface IBuffer {
      * @param offset    The starting offset within the buffer of the range to be mapped
      * @return          Error encountered during the mapping process
      */
-    fun upload(data: ByteArray, offset: Long): Throwable? =
+    open fun upload(data: ByteArray, offset: Long): Throwable? =
         upload(ByteBuffer.wrap(data), offset)
 
     /**
@@ -302,5 +323,13 @@ interface IBuffer {
      * @param offset    The starting offset within the buffer of the range to be mapped
      * @return          Error encountered during the mapping process
      */
-    fun upload(data: ByteBuffer, offset: Long): Throwable?
+    abstract fun upload(data: ByteBuffer, offset: Long): Throwable?
+
+    init {
+        // Special edge case for vertex arrays
+        check(buffers > 0) { "Cannot generate less than one buffer" }
+
+        if (isVertexArray) glGenVertexArrays(bufferIds) // If there are more than 1 buffer you should expect undefined behavior, this is not the way to do it
+        else glGenBuffers(bufferIds)
+    }
 }

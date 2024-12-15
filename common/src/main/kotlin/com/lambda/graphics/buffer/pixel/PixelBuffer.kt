@@ -18,38 +18,39 @@
 package com.lambda.graphics.buffer.pixel
 
 import com.lambda.graphics.buffer.IBuffer
+import com.lambda.graphics.gl.putTo
 import com.lambda.graphics.texture.Texture
+import com.lambda.util.math.MathUtils.toInt
 import org.lwjgl.opengl.GL45C.*
 import java.nio.ByteBuffer
 
 /**
  * Represents a Pixel Buffer Object (PBO) that facilitates asynchronous data transfer to the GPU.
- * This class manages the creation, usage, and cleanup of PBOs and provides methods to upload (map) data efficiently.
  *
- * **Process**:
  * Every function that performs a pixel transfer operation can use buffer objects instead of client memory.
  * Functions that perform an upload operation, a pixel unpack, will use the buffer object bound to the target GL_PIXEL_UNPACK_BUFFER.
  * If a buffer is bound, then the pointer value that those functions take is not a pointer, but an offset from the beginning of that buffer.
  *
- * @property width      The width of the texture
- * @property height     The height of the texture
- * @property texture    The [Texture] instance
- * @property format     The image format that will be uploaded
+ * @property width          The width of the texture
+ * @property height         The height of the texture
+ * @property format         The image format that will be uploaded
+ * @property texture        The [Texture] instance to use
+ * @property asynchronous   Whether to use 2 buffers or not
+ * @property bufferMapping  Whether to map a block in memory to upload or not
  *
- * @see <a href="https://www.khronos.org/opengl/wiki/Pixel_Buffer_Object">Pixel Buffer Object</a>
+ * @see <a href="https://www.khronos.org/opengl/wiki/Pixel_Buffer_Object">Reference</a>
  */
 class PixelBuffer(
     private val width: Int,
     private val height: Int,
-    private val texture: Texture,
     private val format: Int,
-) : IBuffer {
-    override val buffers: Int = 1
+    private val texture: Texture,
+    private val asynchronous: Boolean = false,
+    private val bufferMapping: Boolean = false,
+) : IBuffer(buffers = asynchronous.toInt() + 1) {
     override val usage: Int = GL_STATIC_DRAW
     override val target: Int = GL_PIXEL_UNPACK_BUFFER
     override val access: Int = GL_MAP_WRITE_BIT
-    override var index = 0
-    override val bufferIds = IntArray(buffers).apply { glGenBuffers(this) }
 
     private val channels = channelMapping[format] ?: throw IllegalArgumentException("Invalid image format, expected OpenGL format, got $format instead")
     private val internalFormat = reverseChannelMapping[channels] ?: throw IllegalArgumentException("Invalid internal image format, expected channels count, got $channels instead")
@@ -74,7 +75,12 @@ class PixelBuffer(
             0,              // PBO offset (for asynchronous transfer)
         )
 
-        val error = update(data, offset)
+        swap()
+        bind()
+
+        val error =
+            if (bufferMapping) map(size, offset, data::putTo)
+            else update(data, offset)
 
         bind(0)
 
@@ -89,7 +95,7 @@ class PixelBuffer(
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
 
-        allocate(size)
+        storage(size)
     }
 
     companion object {
