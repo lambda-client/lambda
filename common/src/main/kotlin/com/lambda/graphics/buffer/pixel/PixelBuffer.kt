@@ -17,7 +17,7 @@
 
 package com.lambda.graphics.buffer.pixel
 
-import com.lambda.graphics.buffer.IBuffer
+import com.lambda.graphics.buffer.Buffer
 import com.lambda.graphics.gl.putTo
 import com.lambda.graphics.texture.Texture
 import com.lambda.util.math.MathUtils.toInt
@@ -47,7 +47,7 @@ class PixelBuffer(
     private val texture: Texture,
     private val asynchronous: Boolean = false,
     private val bufferMapping: Boolean = false,
-) : IBuffer(buffers = asynchronous.toInt() + 1) {
+) : Buffer(buffers = asynchronous.toInt() + 1) {
     override val usage: Int = GL_STATIC_DRAW
     override val target: Int = GL_PIXEL_UNPACK_BUFFER
     override val access: Int = GL_MAP_WRITE_BIT

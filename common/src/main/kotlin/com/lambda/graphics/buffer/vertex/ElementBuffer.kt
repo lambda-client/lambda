@@ -17,14 +17,14 @@
 
 package com.lambda.graphics.buffer.vertex
 
-import com.lambda.graphics.buffer.IBuffer
+import com.lambda.graphics.buffer.Buffer
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.gl.kibibyte
 import org.lwjgl.opengl.GL30C.*
 import java.nio.ByteBuffer
 
 class ElementBuffer(mode: VertexMode) :
-    IBuffer(buffers = 1)
+    Buffer(buffers = 1)
 {
     override val usage: Int = GL_DYNAMIC_DRAW
     override val target: Int = GL_ELEMENT_ARRAY_BUFFER

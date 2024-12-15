@@ -23,7 +23,7 @@ import com.lambda.graphics.gl.bufferValid
 import org.lwjgl.opengl.GL44.*
 import java.nio.ByteBuffer
 
-abstract class IBuffer(
+abstract class Buffer(
     /**
      * Specifies how many buffer must be used
      *

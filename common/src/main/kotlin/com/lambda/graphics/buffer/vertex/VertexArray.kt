@@ -17,12 +17,12 @@
 
 package com.lambda.graphics.buffer.vertex
 
-import com.lambda.graphics.buffer.IBuffer
+import com.lambda.graphics.buffer.Buffer
 import net.minecraft.client.render.BufferRenderer
 import org.lwjgl.opengl.GL30C.*
 import java.nio.ByteBuffer
 
-class VertexArray : IBuffer(isVertexArray = true) {
+class VertexArray : Buffer(isVertexArray = true) {
     override val usage: Int = -1
     override val target: Int = -1
     override val access: Int = -1
