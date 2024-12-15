@@ -27,22 +27,23 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.toVec3d
+import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 
 data class Simulation(val blueprint: Blueprint) {
     private val cache: MutableMap<FastVector, Set<BuildResult>> = mutableMapOf()
-    private fun FastVector.toView(): Vec3d = toVec3d().add(0.5, 0.62, 0.5)
+    private fun FastVector.toView(): Vec3d = toVec3d().add(0.5, ClientPlayerEntity.DEFAULT_EYE_HEIGHT.toDouble(), 0.5)
 
     fun simulate(pos: FastVector) =
-        cache.computeIfAbsent(pos) {
+        cache.getOrPut(pos) {
             val view = pos.toView()
             runSafe {
-                if (blueprint.isOutOfBounds(view) && blueprint.getClosestPointTo(view).distanceTo(view) > 10.0) return@computeIfAbsent emptySet()
+                if (blueprint.isOutOfBounds(view) && blueprint.getClosestPointTo(view).distanceTo(view) > 10.0) return@getOrPut emptySet()
                 val blockPos = pos.toBlockPos()
-                if (!playerFitsIn(Vec3d.ofBottomCenter(blockPos))) return@computeIfAbsent emptySet()
-                if (!blockPos.down().blockState(world).isSideSolidFullSquare(world, blockPos, Direction.UP)) return@computeIfAbsent emptySet()
+                if (!playerFitsIn(Vec3d.ofBottomCenter(blockPos))) return@getOrPut emptySet()
+                if (!blockPos.down().blockState(world).isSideSolidFullSquare(world, blockPos, Direction.UP)) return@getOrPut emptySet()
             }
             blueprint.simulate(view, reach = TaskFlow.interact.reach - 1)
         }

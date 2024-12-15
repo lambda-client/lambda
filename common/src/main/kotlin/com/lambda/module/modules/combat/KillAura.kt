@@ -31,7 +31,9 @@ import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.dist
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationContext
-import com.lambda.interaction.visibilty.VisibilityChecker.scanVisibleSurfaces
+import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
+import com.lambda.interaction.visibilty.VisibilityChecker.visibleSides
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runConcurrent
@@ -53,6 +55,7 @@ import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.util.Hand
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import kotlin.math.pow
 
@@ -243,13 +246,15 @@ object KillAura : Module(
             // Get visible point set
             val validHits = mutableMapOf<Vec3d, Rotation>()
 
-            scanVisibleSurfaces(eye, box, resolution = interactionSettings.resolution) { _, vec ->
-                if (eye distSq vec > reachSq) return@scanVisibleSurfaces
+            val sides = visibleSides(box, eye, interactionSettings)
+
+            scanSurfaces(box, sides, resolution = interactionSettings.resolution) { _, vec ->
+                if (eye distSq vec > reachSq) return@scanSurfaces
 
                 val newRotation = eye.rotationTo(vec)
 
-                val cast = newRotation.rayCast(reach, eye) ?: return@scanVisibleSurfaces
-                if (cast.entityResult?.entity != target) return@scanVisibleSurfaces
+                val cast = newRotation.rayCast(reach, eye) ?: return@scanSurfaces
+                if (cast.entityResult?.entity != target) return@scanSurfaces
 
                 validHits[vec] = newRotation
             }

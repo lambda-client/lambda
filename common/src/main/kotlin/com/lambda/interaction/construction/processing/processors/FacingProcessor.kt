@@ -15,19 +15,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.simulation
+package com.lambda.interaction.construction.processing.processors
 
-import baritone.api.pathing.goals.Goal
-import com.lambda.util.world.fastVectorOf
+import com.lambda.interaction.construction.processing.PlacementProcessor
+import com.lambda.interaction.construction.processing.PreprocessingStep
+import net.minecraft.block.BlockState
+import net.minecraft.state.property.Properties
 
-class BuildGoal(private val sim: Simulation) : Goal {
-    override fun isInGoal(x: Int, y: Int, z: Int) =
-        sim.simulate(fastVectorOf(x, y, z))
-            .any { it.rank.ordinal < 4 }
+object FacingProcessor : PlacementProcessor() {
+    override fun acceptState(state: BlockState) =
+        state.getOrEmpty(Properties.FACING).isPresent
 
-    override fun heuristic(x: Int, y: Int, z: Int): Double {
-        val bestRank = sim.simulate(fastVectorOf(x, y, z))
-            .minOrNull()?.rank?.ordinal ?: 100000
-        return 1 / (bestRank.toDouble() + 1)
+    override fun preProcess(state: BlockState): PreprocessingStep {
+        // Needs two sets of blocks: native and opposite!
+        return PreprocessingStep(
+            sides = setOf(state.getOrEmpty(Properties.FACING).get())
+        )
     }
 }

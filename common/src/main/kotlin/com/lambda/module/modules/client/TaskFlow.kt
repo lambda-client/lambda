@@ -54,7 +54,13 @@ object TaskFlow : Module(
         Properties.DISTANCE_1_7,
         Properties.PERSISTENT,
         Properties.WATERLOGGED,
-        Properties.STAIR_SHAPE
+        Properties.STAIR_SHAPE,
+        Properties.UP,
+        Properties.DOWN,
+        Properties.NORTH,
+        Properties.EAST,
+        Properties.SOUTH,
+        Properties.WEST
     )
 //    val ignoredTags by setting("Ignored Tags", defaultIgnoreTags)
 }

@@ -47,7 +47,7 @@ class BuildTask @Ta5kBuilder constructor(
     val collectDrops: Boolean = TaskFlow.build.collectDrops,
 ) : Task<Unit>() {
     private var previousResults = setOf<BuildResult>()
-    private val placeTimeout = 15
+    private val placeTimeout = 5
     private val pending = mutableListOf<BuildResult>()
 
     override fun SafeContext.onStart() {
@@ -66,9 +66,7 @@ class BuildTask @Ta5kBuilder constructor(
                 if (it.age > placeTimeout) {
                     it.cancel()
                     true
-                } else {
-                    it.isCompleted
-                }
+                } else it.isCompleted
             }
 
             (blueprint as? DynamicBlueprint)?.update(this)
@@ -78,6 +76,7 @@ class BuildTask @Ta5kBuilder constructor(
                 return@listen
             }
 
+            // ToDo: Simulate for each pair player positions that work
             val results = blueprint.simulate(player.getCameraPosVec(mc.tickDelta))
             previousResults = results
 
@@ -99,15 +98,17 @@ class BuildTask @Ta5kBuilder constructor(
             }
 
             val result = results.minOrNull() ?: return@listen
-            when {
-                !result.rank.solvable -> success(Unit)
-                result is BuildResult.NotVisible -> {
+            when (result) {
+                is BuildResult.Done -> {
+                    if (finishOnDone) success(Unit)
+                }
+//                !result.rank.solvable -> failure("Result is not solvable: $result")
+                is BuildResult.NotVisible, is PlaceResult.NoIntegrity -> {
                     if (pathing) BaritoneUtils.setGoalAndPath(
                         BuildGoal(blueprint.simulation())
                     )
                 }
-
-                result is Navigable -> {
+                is Navigable -> {
                     if (pathing) BaritoneUtils.setGoalAndPath(result.goal)
                 }
 

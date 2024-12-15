@@ -26,12 +26,19 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.interaction.rotation.Rotation
+import com.lambda.interaction.rotation.Rotation.Companion.rotation
+import com.lambda.interaction.rotation.RotationContext
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.task.Task
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
+import com.lambda.util.extension.partialTicks
 import net.minecraft.block.BlockState
+import net.minecraft.client.gui.screen.ingame.SignEditScreen
+import net.minecraft.text.Text
 
 class PlaceBlock @Ta5kBuilder constructor(
     private val ctx: PlaceContext,
@@ -40,8 +47,10 @@ class PlaceBlock @Ta5kBuilder constructor(
     private val waitForConfirmation: Boolean,
 ) : Task<Unit>() {
     private var beginState: BlockState? = null
-    private var state = State.ROTATING
+    private var state = State.PRIME_ROTATION
     private var findOutIfNeeded = false
+    private var primeContext: RotationContext? = null
+    private var waited = 0
 
     private val SafeContext.resultingState: BlockState
         get() = ctx.resultingPos.blockState(world)
@@ -50,10 +59,14 @@ class PlaceBlock @Ta5kBuilder constructor(
         get() = ctx.targetState.matches(ctx.resultingPos.blockState(world), ctx.resultingPos, world)
 
     enum class State {
-        ROTATING, PLACING, CONFIRMING
+        PRIME_ROTATION, ROTATING, PLACING, CONFIRMING
     }
 
     override fun SafeContext.onStart() {
+        if (ctx.primeDirection == null) {
+            state = State.ROTATING
+        }
+
         if (matches) {
             finish()
             return
@@ -67,25 +80,46 @@ class PlaceBlock @Ta5kBuilder constructor(
 
     init {
         listen<RotationEvent.Update> { event ->
-            if (state != State.ROTATING) return@listen
             if (!rotate) return@listen
-            event.context = ctx.rotation
+            when (state) {
+                State.PRIME_ROTATION -> {
+                    ctx.primeDirection?.let { direction ->
+                        primeContext = RotationContext(
+                            direction.rotation,
+                            ctx.rotation.config,
+                        )
+                        event.context = primeContext
+                    }
+                }
+                else -> event.context = ctx.rotation
+            }
         }
 
         listen<RotationEvent.Post> { event ->
-            if (state != State.ROTATING) return@listen
             if (!rotate) return@listen
-            if (event.context != ctx.rotation) return@listen
             if (!event.context.isValid) return@listen
+            Text.of("Rotation: ${event.context.rotation}")
+            when (state) {
+                State.PRIME_ROTATION -> {
+                    if (event.context != primeContext) return@listen
+                    state = State.ROTATING
+                }
+                State.ROTATING -> {
+                    if (event.context != ctx.rotation) return@listen
+                    if (!event.context.isValid) return@listen
 
-            state = State.PLACING
+                    state = State.PLACING
+                }
+                else -> return@listen
+            }
         }
 
         listen<TickEvent.Pre> {
             if (state != State.PLACING) return@listen
 
-            if (findOutIfNeeded) placeBlock()
-            findOutIfNeeded = true
+            /*if (findOutIfNeeded) placeBlock()
+            findOutIfNeeded = true*/
+            placeBlock()
         }
 
         listen<MovementEvent.InputUpdate> {

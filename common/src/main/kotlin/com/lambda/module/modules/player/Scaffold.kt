@@ -36,9 +36,11 @@ import com.lambda.interaction.rotation.Rotation.Companion.dist
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.Rotation.Companion.wrap
 import com.lambda.interaction.rotation.RotationContext
-import com.lambda.interaction.visibilty.VisibilityChecker.scanVisibleSurfaces
+import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.module.modules.client.TaskFlow
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.VecUtils.dist
@@ -212,15 +214,19 @@ object Scaffold : Module(
 
         // Dividing the surface by segments and iterating through them
         val pointScan = mutableSetOf<Rotation>().apply {
-            scanVisibleSurfaces(
-                eyes = eye,
-                box = Box(info.clickPos),
+            val box = Box(info.clickPos)
+            val sides = if (TaskFlow.interact.visibilityCheck) {
+                box.getVisibleSurfaces(eye)
+            } else Direction.entries.toSet()
+            scanSurfaces(
+                box,
+                sides,
                 resolution = interactionConfig.resolution
             ) { _, vec ->
-                if (eye distSq vec > reachSq) return@scanVisibleSurfaces
+                if (eye distSq vec > reachSq) return@scanSurfaces
 
                 val rotation = eye.rotationTo(vec)
-                castRotation(rotation, info) ?: return@scanVisibleSurfaces
+                castRotation(rotation, info) ?: return@scanSurfaces
 
                 add(rotation)
             }

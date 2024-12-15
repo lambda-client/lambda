@@ -15,30 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.groups
+package com.lambda.interaction.construction.processing
 
-import com.lambda.core.PingManager
+import net.minecraft.block.BlockState
 
-interface InteractionConfig {
-    /**
-     * Maximum distance to interact.
-     */
-    val reach: Double
-
-    val visibilityCheck: Boolean
-
-    /**
-     * Will check `resolution squared` many points on a grid on each visible surface of the hit box.
-     */
-    val resolution: Int
-
-    val useRayCast: Boolean
-    val swingHand: Boolean
-    val inScopeThreshold: Int
-    val pingTimeout: Boolean
-
-    val scopeThreshold: Int
-        get() =
-            if (pingTimeout) PingManager.lastPing.toInt() / 50
-            else inScopeThreshold
+abstract class PlacementProcessor {
+    abstract fun acceptState(state: BlockState): Boolean
+    abstract fun preProcess(state: BlockState): PreprocessingStep
 }
+

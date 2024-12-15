@@ -24,6 +24,7 @@ import net.minecraft.block.BlockState
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 
 data class PlaceContext(
@@ -37,6 +38,7 @@ data class PlaceContext(
     val targetState: TargetState,
     val sneak: Boolean,
     val insideBlock: Boolean,
+    val primeDirection: Direction?
 ) : BuildContext {
     override val resultingPos: BlockPos
         get() = result.blockPos.offset(result.side)

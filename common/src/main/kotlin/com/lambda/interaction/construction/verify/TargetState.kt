@@ -25,7 +25,6 @@ import net.minecraft.block.BlockState
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
-import net.minecraft.state.property.Properties
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 

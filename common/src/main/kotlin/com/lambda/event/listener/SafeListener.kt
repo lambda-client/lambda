@@ -46,9 +46,9 @@ import kotlin.reflect.KProperty
  * The [SafeListener] will keep a reference to the last signal processed by the listener.
  * Allowing use cases where the last signal is needed.
  * ```kotlin
- * val lastPacketReceived by listener<PacketEvent.Receive.Pre>()
+ * val lastPacketReceived by listen<PacketEvent.Receive.Pre>()
  *
- * listener<PacketEvent.Send.Pre> { event ->
+ * listen<PacketEvent.Send.Pre> { event ->
  *     println("Last packet received: ${lastPacketReceived?.packet}")
  *     // prints the last packet received
  *     // prints null if no packet was received

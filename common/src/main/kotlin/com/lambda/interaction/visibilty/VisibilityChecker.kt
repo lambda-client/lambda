@@ -21,17 +21,16 @@ import com.lambda.config.groups.IRotationConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.RotationManager
-import com.lambda.interaction.rotation.Rotation.Companion.dist
+import com.lambda.interaction.construction.verify.ScanMode
+import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.extension.component6
+import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
-import net.minecraft.block.enums.BlockHalf
-import net.minecraft.block.enums.SlabType
 import net.minecraft.entity.Entity
 import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.BlockPos
@@ -119,13 +118,15 @@ object VisibilityChecker {
         val reachSq = reach.pow(2)
 
         boxes.forEach { box ->
-            scanVisibleSurfaces(eye, box, sides, interact.resolution) { _, vec ->
-                if (eye distSq vec > reachSq) return@scanVisibleSurfaces
+            val visible = visibleSides(box, eye, interact)
+
+            scanSurfaces(box, visible.intersect(sides), interact.resolution) { _, vec ->
+                if (eye distSq vec > reachSq) return@scanSurfaces
 
                 val newRotation = eye.rotationTo(vec)
 
-                val cast = newRotation.rayCast(reach, eye) ?: return@scanVisibleSurfaces
-                if (!cast.verify()) return@scanVisibleSurfaces
+                val cast = newRotation.rayCast(reach, eye) ?: return@scanSurfaces
+                if (!cast.verify()) return@scanSurfaces
 
                 validHits[vec] = cast
             }
@@ -147,69 +148,91 @@ object VisibilityChecker {
     }
 
     /**
-     * Scans the visible surfaces of a given box, identifying points on each surface within a defined resolution.
-     * The surface is subdivided to hits the corners of the pixels
+     * Scans the surfaces of a given box, optionally excluding specific sides,
+     * and executes a callback for each point calculated based on the scanning parameters.
      *
-     * @param eyes The player's eye position.
-     * @param box The bounding box of the target.
-     * @param sides Set of block sides to consider for visibility.
-     * @param resolution The number of points to sample along each axis of the box.
-     * @param check A lambda to check each visible point for a hit.
+     * @param box The 3D box whose surfaces will be scanned.
+     * @param excludedSides A set of directions representing the sides of the box to exclude from the scan (default is an empty set).
+     * @param resolution The number of intervals into which each dimension is divided for scanning (default is 5).
+     * @param scan Configuration specifying the axis and mode of the scan (default is `SurfaceScan.DEFAULT`).
+     * @param check A callback function that performs an action for each surface point, receiving the direction of the surface and the current 3D vector.
      */
-    inline fun scanVisibleSurfaces(
-        eyes: Vec3d,
+    inline fun scanSurfaces(
         box: Box,
-        sides: Set<Direction> = emptySet(),
+        excludedSides: Set<Direction> = emptySet(),
         resolution: Int = 5,
-        half: ScanMode = ScanMode.BOTH,
+        scan: SurfaceScan = SurfaceScan.DEFAULT,
         check: (Direction, Vec3d) -> Unit,
     ) {
-        box.getVisibleSurfaces(eyes)
-            .forEach { side ->
-                if (sides.isNotEmpty() && side !in sides) return@forEach
-                val (minX, minY, minZ, maxX, maxY, maxZ) = box.shrink(0.01, 0.01, 0.01).bounds(side)
-                val stepX = (maxX - minX) / resolution
-                val stepY = (maxY - minY) / resolution
-                val stepZ = (maxZ - minZ) / resolution
+        excludedSides.forEach { side ->
+            if (excludedSides.isNotEmpty() && side !in excludedSides) return@forEach
+            val (minX, minY, minZ, maxX, maxY, maxZ) = box.shrink(0.01, 0.01, 0.01).bounds(side)
+            val stepX = (maxX - minX) / resolution
+            val stepY = (maxY - minY) / resolution
+            val stepZ = (maxZ - minZ) / resolution
 
+            // Determine the bounds to scan based on the axis and mode
+            val (startX, endX) = if (scan.axis == Direction.Axis.X && stepX != 0.0) {
+                val centerX = (minX + maxX) / 2
+                when (scan.mode) {
+                    ScanMode.GREATER_HALF -> centerX + 0.01 to maxX
+                    ScanMode.LESSER_HALF -> minX to centerX - 0.01
+                    ScanMode.FULL -> minX to maxX
+                }
+            } else minX to maxX
+
+            val (startY, endY) = if (scan.axis == Direction.Axis.Y && stepY != 0.0) {
                 val centerY = (minY + maxY) / 2
-                val (startY, endY) = if (stepY != 0.0) {
-                    when (half) {
-                        ScanMode.TOP -> centerY + 0.01 to maxY
-                        ScanMode.BOTTOM -> minY to centerY - 0.01
-                        ScanMode.BOTH -> minY to maxY
-                    }
-                } else minY to maxY
-                (0..resolution).forEach { i ->
-                    val x = if (stepX != 0.0) minX + stepX * i else minX
-                    (0..resolution).forEach inner@ { j ->
-                        val y = if (stepY != 0.0) startY + stepY * j else startY
-                        if (y > endY) return@inner
-                        val z = if (stepZ != 0.0) minZ + stepZ * ((if (stepX != 0.0) j else i)) else minZ
-                        check(side, Vec3d(x, y, z))
-                    }
+                when (scan.mode) {
+                    ScanMode.GREATER_HALF -> centerY + 0.01 to maxY
+                    ScanMode.LESSER_HALF -> minY to centerY - 0.01
+                    ScanMode.FULL -> minY to maxY
+                }
+            } else minY to maxY
+
+            val (startZ, endZ) = if (scan.axis == Direction.Axis.Z && stepZ != 0.0) {
+                val centerZ = (minZ + maxZ) / 2
+                when (scan.mode) {
+                    ScanMode.GREATER_HALF -> centerZ + 0.01 to maxZ
+                    ScanMode.LESSER_HALF -> minZ to centerZ - 0.01
+                    ScanMode.FULL -> minZ to maxZ
+                }
+            } else minZ to maxZ
+
+            (0..resolution).forEach outer@ { i ->
+                val x = if (stepX != 0.0) startX + stepX * i else startX
+                if (x > endX) return@outer
+                (0..resolution).forEach inner@ { j ->
+                    val y = if (stepY != 0.0) startY + stepY * j else startY
+                    if (y > endY) return@inner
+                    val z = if (stepZ != 0.0) startZ + stepZ * ((if (stepX != 0.0) j else i)) else startZ
+                    if (z > endZ) return@inner
+                    check(side, Vec3d(x, y, z))
                 }
             }
-    }
-
-    enum class ScanMode {
-        BOTH, TOP, BOTTOM;
-
-        companion object {
-            val Optional<SlabType>.scanMode: ScanMode
-                get() = when (orElse(null)) {
-                    SlabType.TOP -> TOP
-                    SlabType.BOTTOM -> BOTTOM
-                    SlabType.DOUBLE -> BOTH
-                    else -> BOTH
-                }
         }
     }
 
+    /**
+     * Determines the approximate central point (optimum) of a set of 3D vectors.
+    */
     val Set<Vec3d>.optimum: Vec3d?
         get() = reduceOrNull { acc, vec3d ->
             acc.add(vec3d)
         }?.multiply(1.0 / size.toDouble())
+
+    /**
+     * Determines the sides of a box that are visible from a given position, based on interaction settings.
+     *
+     * @param box The box whose visible sides are to be determined.
+     * @param eye The position (e.g., the player's eyes) to determine visibility from.
+     * @param interactionSettings The settings that define how visibility checks are handled.
+     * @return A set of directions corresponding to the visible sides of the box.
+     */
+    fun visibleSides(box: Box, eye: Vec3d, interactionSettings: InteractionConfig) =
+        if (interactionSettings.visibilityCheck) {
+            box.getVisibleSurfaces(eye)
+        } else Direction.entries.toSet()
 
     /**
      * Gets the bounding coordinates of a box's side, specifying min and max values for each axis.

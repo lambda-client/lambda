@@ -123,19 +123,20 @@ object RotationManager : Loadable {
         currentRotation = currentContext?.let { context ->
             val rotationTo = if (keepTicks >= 0) context.rotation else player.rotation
 
-            var speedMultiplier = (context.config as? RotationSettings)?.speedMultiplier ?: 1.0
-            if (keepTicks < 0) speedMultiplier = 1.0
-
-            val turnSpeed = context.config.turnSpeed * speedMultiplier
-
-            currentRotation
-                .slerp(rotationTo, turnSpeed)
-                .fixSensitivity(prevRotation)
-                .apply {
-                    if (context.config.rotationMode != RotationMode.LOCK) return@apply
-                    player.yaw = this.yawF
-                    player.pitch = this.pitchF
-                }
+            rotationTo
+//            var speedMultiplier = (context.config as? RotationSettings)?.speedMultiplier ?: 1.0
+//            if (keepTicks < 0) speedMultiplier = 1.0
+//
+//            val turnSpeed = context.config.turnSpeed * speedMultiplier
+//
+//            currentRotation
+//                .slerp(rotationTo, turnSpeed)
+//                .fixSensitivity(prevRotation)
+//                .apply {
+//                    if (context.config.rotationMode != RotationMode.LOCK) return@apply
+//                    player.yaw = this.yawF
+//                    player.pitch = this.pitchF
+//                }
         } ?: player.rotation
     }
 

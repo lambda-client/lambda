@@ -22,17 +22,20 @@ import com.lambda.interaction.RotationManager
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.interaction.construction.processing.ProcessorRegistry.findProcessorForState
 import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerManager.findBestAvailableTool
+import com.lambda.interaction.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.visibilty.VisibilityChecker
-import com.lambda.interaction.visibilty.VisibilityChecker.ScanMode.Companion.scanMode
+import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.visibilty.VisibilityChecker.optimum
-import com.lambda.interaction.visibilty.VisibilityChecker.scanVisibleSurfaces
+import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
+import com.lambda.interaction.visibilty.VisibilityChecker.visibleSides
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
@@ -42,8 +45,10 @@ import com.lambda.util.BlockUtils.vecOf
 import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.player.copyPlayer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.OperatorBlock
+import net.minecraft.block.enums.BlockFace
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemPlacementContext
@@ -57,6 +62,8 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
+import java.util.stream.Collectors
+import kotlin.jvm.optionals.getOrNull
 import kotlin.math.pow
 
 object BuildSimulator {
@@ -133,7 +140,36 @@ object BuildSimulator {
         val interact = TaskFlow.interact
         val rotation = TaskFlow.rotation
 
-        Direction.entries.forEach { neighbor ->
+        val preprocessing = findProcessorForState(target)
+
+//        var sidesToCheck = Direction.entries.toTypedArray()
+//
+//        (target as? TargetState.State)
+//            ?.blockState
+//            ?.getOrEmpty(Properties.FACING)
+//            ?.ifPresent {
+//                sidesToCheck = arrayOf(it)
+//            }
+//
+//        (target as? TargetState.State)
+//            ?.blockState
+//            ?.getOrEmpty(Properties.BLOCK_FACE)
+//            ?.ifPresent {
+//                sidesToCheck = when (it) {
+//                    BlockFace.FLOOR -> arrayOf(Direction.DOWN)
+//                    BlockFace.CEILING -> arrayOf(Direction.UP)
+//                    BlockFace.WALL -> Direction.Type.HORIZONTAL.stream().collect(Collectors.toList()).toTypedArray()
+//                }
+//            }
+//
+//        (target as? TargetState.State)
+//            ?.blockState
+//            ?.getOrEmpty(Properties.AXIS)
+//            ?.ifPresent { axis ->
+//                sidesToCheck = Direction.entries.filter { it.axis == axis }.toTypedArray()
+//            }
+
+        preprocessing.sides.forEach { neighbor ->
             val hitPos = pos.offset(neighbor)
             val hitSide = neighbor.opposite
 
@@ -150,20 +186,22 @@ object BuildSimulator {
 
             boxes.forEach { box ->
                 val res = if (TaskFlow.interact.useRayCast) interact.resolution else 4
-                val half = (target as? TargetState.State)
-                    ?.blockState
-                    ?.getOrEmpty(Properties.SLAB_TYPE)
-                    ?.scanMode ?: VisibilityChecker.ScanMode.BOTH
-                scanVisibleSurfaces(eye, box, setOf(hitSide), res, half) { side, vec ->
+                val sides = if (TaskFlow.interact.visibilityCheck) {
+                    box.getVisibleSurfaces(eye).intersect(setOf(hitSide))
+                } else {
+                    Direction.entries.toSet()
+                }
+
+                scanSurfaces(box, sides, res, preprocessing.surfaceScan) { side, vec ->
                     if (eye distSq vec > reachSq) {
                         misses.add(vec)
-                        return@scanVisibleSurfaces
+                        return@scanSurfaces
                     }
 
-                    validHits[vec] = if (TaskFlow.interact.useRayCast) {
+                    validHits[vec] = if (TaskFlow.interact.useRayCast && TaskFlow.interact.visibilityCheck) {
                         val cast = eye.rotationTo(vec)
-                            .rayCast(reach, eye) ?: return@scanVisibleSurfaces
-                        if (!cast.verify()) return@scanVisibleSurfaces
+                            .rayCast(reach, eye) ?: return@scanSurfaces
+                        if (!cast.verify()) return@scanSurfaces
 
                         cast
                     } else {
@@ -195,9 +233,15 @@ object BuildSimulator {
             }?.let { rotation ->
                 val optimalStack = target.getStack(world, pos)
 
+                // ToDo: For each hand and sneak or not?
+                val fakePlayer = copyPlayer(player).apply {
+                    setPos(eye.x, eye.y - standingEyeHeight, eye.z)
+                    this.rotation = rotation.rotation
+                }
+
                 val usageContext = ItemUsageContext(
-                    player,
-                    Hand.MAIN_HAND, // ToDo: notice that the hand may have a different item stack and simulation will be wrong
+                    fakePlayer,
+                    Hand.MAIN_HAND,
                     rotation.hitResult?.blockResult,
                 )
                 val cachePos = CachedBlockPosition(
@@ -240,7 +284,7 @@ object BuildSimulator {
                 }
 
                 val resultState = blockItem.getPlacementState(context) ?: run {
-                    acc.add(PlaceResult.BlockedByPlayer(pos))
+//                    acc.add(PlaceResult.BlockedByPlayer(pos))
                     return@forEach
                 }
 
@@ -255,6 +299,11 @@ object BuildSimulator {
                 val hitBlock = blockHit.blockPos.blockState(world).block
                 val shouldSneak = hitBlock in BlockUtils.interactionBlacklist
 
+                val primeDirection = (target as? TargetState.State)
+                    ?.blockState
+                    ?.getOrEmpty(Properties.HORIZONTAL_FACING)
+                    ?.getOrNull()
+
                 val placeContext = PlaceContext(
                     eye,
                     blockHit,
@@ -265,7 +314,8 @@ object BuildSimulator {
                     Hand.MAIN_HAND,
                     target,
                     shouldSneak,
-                    false
+                    false,
+                    primeDirection
                 )
 
                 val currentHandStack = player.getStackInHand(Hand.MAIN_HAND)
@@ -377,25 +427,21 @@ object BuildSimulator {
 
         boxes.forEach { box ->
             val res = if (TaskFlow.interact.useRayCast) interact.resolution else 2
-            scanVisibleSurfaces(eye, box, emptySet(), res) { side, vec ->
+            val sides = visibleSides(box, eye, TaskFlow.interact)
+            scanSurfaces(box, sides, res) { side, vec ->
                 if (eye distSq vec > reachSq) {
                     misses.add(vec)
-                    return@scanVisibleSurfaces
+                    return@scanSurfaces
                 }
 
-                validHits[vec] = if (TaskFlow.interact.useRayCast) {
+                validHits[vec] = if (TaskFlow.interact.useRayCast && TaskFlow.interact.visibilityCheck) {
                     val cast = eye.rotationTo(vec)
-                        .rayCast(reach, eye) ?: return@scanVisibleSurfaces
-                    if (!cast.verify()) return@scanVisibleSurfaces
+                        .rayCast(reach, eye) ?: return@scanSurfaces
+                    if (!cast.verify()) return@scanSurfaces
 
                     cast
                 } else {
-                    BlockHitResult(
-                        vec,
-                        side,
-                        pos,
-                        false
-                    )
+                    BlockHitResult(vec, side, pos, false)
                 }
             }
         }
