@@ -23,7 +23,7 @@ import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Subscriber
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.modules.client.TaskFlow
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runGameScheduled
@@ -116,7 +116,7 @@ abstract class Task<Result> : Nameable {
     }
 
     init {
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             parent?.let {
                 it.age++
             }
@@ -460,7 +460,7 @@ abstract class Task<Result> : Nameable {
     inline fun <reified T : Event> withListener(
         crossinline action: SafeContext.(Task<Result>) -> Unit
     ): Task<Result> {
-        listener<T> {
+        listen<T> {
             action(this@Task)
         }
         return this

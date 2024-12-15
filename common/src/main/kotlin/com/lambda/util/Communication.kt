@@ -128,14 +128,23 @@ object Communication {
 
     private fun TextBuilder.commandSource(command: LambdaCommand, color: Color) {
         hoverEvent(HoverEvents.showText(buildText {
-            literal(command.description)
-            literal("\n")
-            literal(command.usage)
-            literal("\n")
-            literal("Aliases: ")
-            joinToText(command.aliases) {
+            if (command.description.isNotBlank()) {
+                literal(command.description)
+            }
+            if (command.usage.isNotBlank()) {
+                literal("\n")
+                literal("Usage: ")
                 color(GuiSettings.primaryColor) {
-                    literal(it)
+                    literal(command.usage)
+                }
+            }
+            if (command.aliases.isNotEmpty()) {
+                literal("\n")
+                literal("Aliases: ")
+                joinToText(command.aliases) {
+                    color(GuiSettings.primaryColor) {
+                        literal(it)
+                    }
                 }
             }
         })) {
@@ -147,17 +156,26 @@ object Communication {
 
     private fun TextBuilder.moduleSource(module: Module, color: Color) {
         hoverEvent(HoverEvents.showText(buildText {
-            literal(module.description)
-            literal("\n")
+            if (module.description.isNotBlank()) {
+                literal(module.description)
+                literal("\n")
+            }
             literal("Keybind: ")
             color(GuiSettings.primaryColor) {
-                literal(module.keybind.keyCode.toString())
+                if (module.keybind.keyCode != -1) {
+                    literal(module.keybind.keyCode.toString())
+                } else {
+                    literal("Unbound")
+                }
+
             }
-            literal("\n")
-            literal("Default tags: ")
-            joinToText(module.defaultTags) {
-                color(GuiSettings.primaryColor) {
-                    literal(it.name)
+            if (module.defaultTags.isNotEmpty()) {
+                literal("\n")
+                literal("Default tags: ")
+                joinToText(module.defaultTags) {
+                    color(GuiSettings.primaryColor) {
+                        literal(it.name)
+                    }
                 }
             }
             if (module.customTags.value.isNotEmpty()) {

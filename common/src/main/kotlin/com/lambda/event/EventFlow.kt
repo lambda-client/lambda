@@ -66,7 +66,7 @@ object EventFlow {
      * the oldest event will be dropped to accommodate a new event.
      */
     val concurrentFlow = MutableSharedFlow<Event>(
-        extraBufferCapacity = 1000,
+        extraBufferCapacity = 10000,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 

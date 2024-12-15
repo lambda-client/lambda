@@ -22,7 +22,7 @@ import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.builders.build
 import com.lambda.module.Module
@@ -92,7 +92,7 @@ object BackTrack : Module(
     }
 
     init {
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             val prevTarget = target
             target = if (KillAura.isDisabled) null else KillAura.target
             val currentTarget = target
@@ -101,7 +101,7 @@ object BackTrack : Module(
                 poolPackets(true)
                 targetPos = null
                 box.reset()
-                return@listener
+                return@listen
             }
 
             val pos = targetPos ?: currentTarget.pos
@@ -111,8 +111,8 @@ object BackTrack : Module(
             poolPackets()
         }
 
-        listener<RenderEvent.DynamicESP> {
-            val target = target ?: return@listener
+        listen<RenderEvent.DynamicESP> {
+            val target = target ?: return@listen
 
             val c1 = GuiSettings.primaryColor
             val c2 = Color.RED
@@ -122,14 +122,14 @@ object BackTrack : Module(
             it.renderer.build(box, c.multAlpha(0.3), c.multAlpha(0.8))
         }
 
-        listener<PacketEvent.Send.Pre> { event ->
-            if (!outbound || target == null) return@listener
+        listen<PacketEvent.Send.Pre> { event ->
+            if (!outbound || target == null) return@listen
             sendPool.add(event.packet to currentTime)
             event.cancel()
         }
 
-        listener<PacketEvent.Receive.Pre> { event ->
-            val target = target ?: return@listener
+        listen<PacketEvent.Receive.Pre> { event ->
+            val target = target ?: return@listen
 
             val packet = event.packet
 
@@ -155,7 +155,7 @@ object BackTrack : Module(
                 is PlaySoundS2CPacket, is PlaySoundFromEntityS2CPacket, is StopSoundS2CPacket,
                     /*is EntityStatusS2CPacket,*/ is EntityStatusEffectS2CPacket, is EntityAnimationS2CPacket,
                 is ParticleS2CPacket, is WorldTimeUpdateS2CPacket, is WorldEventS2CPacket -> {
-                    return@listener
+                    return@listen
                 }
             }
 
@@ -163,7 +163,7 @@ object BackTrack : Module(
             event.cancel()
         }
 
-        listener<ConnectionEvent.Connect.Pre> {
+        listen<ConnectionEvent.Connect.Pre> {
             receivePool.clear()
             sendPool.clear()
         }
