@@ -117,10 +117,10 @@ sealed class BreakResult : BuildResult() {
                 ?.onSuccess { _, _ ->
                     success(Unit)
                 }?.start(this@ItemCantMine) ?: run {
-                selectStack {
-                    isItem(badItem).not()
-                }.transfer(MainHandContainer)?.start(this@ItemCantMine) ?: failure("No item found or space")
-            }
+                    selectStack {
+                        isItem(badItem).not()
+                    }.transfer(MainHandContainer)?.start(this@ItemCantMine) ?: failure("No item found or space")
+                }
         }
 
         override fun SafeContext.buildRenderer() {
