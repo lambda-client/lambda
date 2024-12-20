@@ -20,7 +20,7 @@ package com.lambda.module.modules.player
 import com.lambda.Lambda.mc
 import com.lambda.config.groups.IRotationConfig
 import com.lambda.event.events.*
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationContext
@@ -94,15 +94,15 @@ object Freecam : Module(
             mc.options.perspective = lastPerspective
         }
 
-        listener<RotationEvent.Update>(Int.MAX_VALUE) { event ->
-            if (!rotateToTarget) return@listener
-            val target = mc.crosshairTarget?.orNull ?: return@listener
+        listen<RotationEvent.Update>(Int.MAX_VALUE) { event ->
+            if (!rotateToTarget) return@listen
+            val target = mc.crosshairTarget?.orNull ?: return@listen
 
             val rotation = player.eyePos.rotationTo(target.pos)
             event.context = RotationContext(rotation, rotationConfig)
         }
 
-        listener<PlayerEvent.ChangeLookDirection> {
+        listen<PlayerEvent.ChangeLookDirection> {
             rotation = rotation.withDelta(
                 it.deltaYaw * SENSITIVITY_FACTOR,
                 it.deltaPitch * SENSITIVITY_FACTOR
@@ -110,7 +110,7 @@ object Freecam : Module(
             it.cancel()
         }
 
-        listener<MovementEvent.InputUpdate> { event ->
+        listen<MovementEvent.InputUpdate> { event ->
             mc.options.perspective = Perspective.FIRST_PERSON
 
             // Don't block baritone from working
@@ -135,7 +135,7 @@ object Freecam : Module(
             position += velocity
         }
 
-        listener<RenderEvent.UpdateTarget> {
+        listen<RenderEvent.UpdateTarget> {
             it.cancel()
 
             mc.crosshairTarget = rotation
@@ -143,7 +143,7 @@ object Freecam : Module(
                 .orMiss // Can't be null (otherwise mc will spam "Null returned as 'hitResult', this shouldn't happen!")
         }
 
-        listener<ConnectionEvent.Disconnect> {
+        listen<ConnectionEvent.Disconnect> {
             disable()
         }
     }

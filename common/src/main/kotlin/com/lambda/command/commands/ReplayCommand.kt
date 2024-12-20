@@ -33,7 +33,7 @@ import com.lambda.util.extension.CommandBuilder
 
 object ReplayCommand : LambdaCommand(
     name = "replay",
-    usage = "replay <play|load|save|prune>",
+    usage = "replay <play | load | save | prune>",
     description = "Play, load, save, or prune a replay"
 ) {
     override fun CommandBuilder.create() {

@@ -19,9 +19,8 @@ package com.lambda.module
 
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.animation.AnimationTicker
-import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.RenderLayer
 import com.lambda.gui.api.component.core.DockingRect
 import com.lambda.module.tag.ModuleTag
@@ -86,7 +85,7 @@ abstract class HudModule(
         renderCallables.add(block)
 
     init {
-        listener<RenderEvent.GUI.HUD> { event ->
+        listen<RenderEvent.GUI.HUD> { event ->
             rectHandler.screenSize = event.screenSize
 
             renderCallables.forEach { function ->
@@ -96,7 +95,7 @@ abstract class HudModule(
             renderer.render()
         }
 
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             animation.tick()
         }
     }

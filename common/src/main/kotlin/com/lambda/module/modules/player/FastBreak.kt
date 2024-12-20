@@ -19,11 +19,11 @@ package com.lambda.module.modules.player
 
 import com.lambda.context.SafeContext
 import com.lambda.event.events.*
-import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.graphics.RenderPipeline
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
+import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.lerp
@@ -59,7 +59,8 @@ object FastBreak : Module(
     private val endOutlineColour by setting("End Outline Colour", Color(0f, 1f, 0f, 0.3f), "The colour used to render the end outline of the box", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill && outlineColourMode == ColourMode.Dynamic  })
     private val outlineWidth by setting("Outline Width", 1f, 0f..3f, 0.1f, "the thickness of the outline", visibility = { page == Page.Render && renderMode.isEnabled() && renderSetting != RenderSetting.Fill })
 
-    private val renderer = RenderPipeline.DYNAMIC_ESP
+
+    private val renderer = DynamicESP
     private var boxSet = emptySet<Box>()
 
     private enum class Page {
@@ -82,10 +83,10 @@ object FastBreak : Module(
     }
 
     init {
-        listener<PacketEvent.Send.Pre> {
+        listen<PacketEvent.Send.Pre> {
             if (it.packet !is PlayerActionC2SPacket
                 || it.packet.action != Action.STOP_DESTROY_BLOCK
-            ) return@listener
+            ) return@listen
 
             connection.sendPacket(
                 PlayerActionC2SPacket(
@@ -99,24 +100,24 @@ object FastBreak : Module(
             )
         }
 
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             interaction.blockBreakingCooldown = interaction.blockBreakingCooldown.coerceAtMost(breakDelay)
         }
 
-        listener<PlayerEvent.Breaking.Update> {
+        listen<PlayerEvent.Breaking.Update> {
             it.progress += world.getBlockState(it.pos)
                 .calcBlockBreakingDelta(player, world, it.pos) * (1 - breakThreshold)
         }
 
-        listener<TickEvent.Post> {
-            if (!renderMode.isEnabled()) return@listener
+        listen<TickEvent.Post> {
+            if (!renderMode.isEnabled()) return@listen
 
             val pos = interaction.currentBreakingPos
             boxSet = world.getBlockState(pos).getOutlineShape(world, pos).boundingBoxes.toSet()
         }
 
-        listener<RenderEvent.World> {
-            if (!interaction.isBreakingBlock || !renderMode.isEnabled()) return@listener
+        listen<RenderEvent.World> {
+            if (!interaction.isBreakingBlock || !renderMode.isEnabled()) return@listen
 
             val pos = interaction.currentBreakingPos
             val breakDelta = world.getBlockState(pos).calcBlockBreakingDelta(player, world, pos)

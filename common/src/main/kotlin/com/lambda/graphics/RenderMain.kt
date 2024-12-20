@@ -21,7 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.graphics.buffer.FrameBuffer
@@ -44,7 +44,7 @@ object RenderMain {
     private val showHud get() = mc.currentScreen == null || LambdaHudGui.isOpen
 
     private val hudAnimation0 = with(AnimationTicker()) {
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             tick()
         }
 

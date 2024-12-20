@@ -15,23 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings.collections
+package com.lambda.graphics.renderer.esp.global
 
-import com.lambda.config.AbstractSetting
-import java.lang.reflect.Type
+import com.lambda.event.EventFlow.post
+import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 
-/**
- * @see [com.lambda.config.Configurable]
- */
-class SetSetting<T : Any>(
-    override val name: String,
-    defaultValue: MutableSet<T>,
-    type: Type,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<MutableSet<T>>(
-    defaultValue,
-    type,
-    description,
-    visibility
-)
+object StaticESP : StaticESPRenderer(false) {
+    init {
+        listen<TickEvent.Post> {
+            clear()
+            RenderEvent.StaticESP().post()
+            upload()
+        }
+    }
+}

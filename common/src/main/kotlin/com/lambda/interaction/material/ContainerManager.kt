@@ -20,7 +20,7 @@ package com.lambda.interaction.material
 import com.lambda.core.Loadable
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.ScreenHandlerEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.*
 import com.lambda.module.modules.client.TaskFlow
@@ -51,18 +51,18 @@ object ContainerManager : Loadable {
     private var lastInteractedBlockEntity: BlockEntity? = null
 
     init {
-        listener<PlayerEvent.Interact.Block> {
+        listen<PlayerEvent.Interact.Block> {
             lastInteractedBlockEntity = it.blockHitResult.blockPos.blockEntity(world)
         }
 
-        listener<ScreenHandlerEvent.Close> { event ->
-            if (event.screenHandler !is GenericContainerScreenHandler) return@listener
+        listen<ScreenHandlerEvent.Close> { event ->
+            if (event.screenHandler !is GenericContainerScreenHandler) return@listen
 
             val handler = event.screenHandler
 
             when (val block = lastInteractedBlockEntity) {
                 is EnderChestBlockEntity -> {
-                    if (handler.type != ScreenHandlerType.GENERIC_9X3) return@listener
+                    if (handler.type != ScreenHandlerType.GENERIC_9X3) return@listen
 
                     this@ContainerManager.info("Updating EnderChestContainer")
                     EnderChestContainer.update(handler.containerStacks)
@@ -70,7 +70,7 @@ object ContainerManager : Loadable {
 
                 is ChestBlockEntity -> {
                     // ToDo: Handle double chests and single chests
-                    if (handler.type != ScreenHandlerType.GENERIC_9X6) return@listener
+                    if (handler.type != ScreenHandlerType.GENERIC_9X6) return@listen
                     val stacks = handler.containerStacks
 
                     this@ContainerManager.info("Updating ChestContainer")

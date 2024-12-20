@@ -19,7 +19,7 @@ package com.lambda.module.modules.movement
 
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.world.fastEntitySearch
@@ -36,7 +36,7 @@ object EntityControl : Module(
     private val saddledHorses = mutableSetOf<AbstractHorseEntity>()
 
     init {
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             fastEntitySearch<AbstractHorseEntity>(8.0)
                 .forEach {
                     if (!it.isSaddled) saddledHorses.add(it)
@@ -44,13 +44,13 @@ object EntityControl : Module(
                 }
         }
 
-        listener<PacketEvent.Send.Pre> { event ->
-            if (!forceMount) return@listener
-            if (event.packet !is PlayerInteractEntityC2SPacket) return@listener
-            if (event.packet.type !is PlayerInteractEntityC2SPacket.InteractAtHandler) return@listener
+        listen<PacketEvent.Send.Pre> { event ->
+            if (!forceMount) return@listen
+            if (event.packet !is PlayerInteractEntityC2SPacket) return@listen
+            if (event.packet.type !is PlayerInteractEntityC2SPacket.InteractAtHandler) return@listen
 
-            val entity = world.getEntityById(event.packet.entityId) ?: return@listener
-            if (entity !is AbstractHorseEntity) return@listener
+            val entity = world.getEntityById(event.packet.entityId) ?: return@listen
+            if (entity !is AbstractHorseEntity) return@listen
 
             event.cancel()
         }

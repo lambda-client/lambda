@@ -20,7 +20,7 @@ package com.lambda.module.modules.combat
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.concurrentListener
+import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import net.minecraft.util.Hand
@@ -65,7 +65,7 @@ object CrystalAura : Module(
     }
 
     init {
-        concurrentListener<TickEvent.Pre> {}
+        listenConcurrently<TickEvent.Pre> {}
 
         /*listener<RotationEvent.Pre> { event ->
             event.lookAtEntity(rotation, interac, getClosestEntity<LivingEntity>(player.eyePos, placeRange) ?: return@listener)

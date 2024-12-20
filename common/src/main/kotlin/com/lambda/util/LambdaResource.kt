@@ -17,9 +17,16 @@
 
 package com.lambda.util
 
+import com.lambda.Lambda
+import java.awt.image.BufferedImage
+import java.io.FileNotFoundException
 import java.io.InputStream
+import javax.imageio.ImageIO
 
-class LambdaResource(val path: String) {
-    val stream: InputStream?
-        get() = javaClass.getResourceAsStream("/assets/lambda/$path")
-}
+typealias LambdaResource = String
+
+val LambdaResource.stream: InputStream
+    get() = Lambda::class.java.getResourceAsStream("/assets/lambda/$this")
+        ?: throw FileNotFoundException("File \"/assets/lambda/$this\" not found")
+
+fun LambdaResource.readImage(): BufferedImage = ImageIO.read(this.stream)

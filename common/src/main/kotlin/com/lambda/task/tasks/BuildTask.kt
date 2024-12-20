@@ -21,7 +21,7 @@ import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.Blueprint
 import com.lambda.interaction.construction.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.DynamicBlueprint
@@ -54,13 +54,13 @@ class BuildTask @Ta5kBuilder constructor(
     }
 
     init {
-        listener<RenderEvent.StaticESP> {
+        listen<RenderEvent.StaticESP> {
             previousResults.filterIsInstance<Drawable>().forEach { res ->
                 with(res) { buildRenderer() }
             }
         }
 
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             pending.removeIf {
                 if (it.age > placeTimeout) {
                     it.cancel()
@@ -74,7 +74,7 @@ class BuildTask @Ta5kBuilder constructor(
 
             if (finishOnDone && blueprint.structure.isEmpty()) {
                 failure("Structure is empty")
-                return@listener
+                return@listen
             }
 
             val results = blueprint.simulate(player.getCameraPosVec(mc.tickDelta))
@@ -90,18 +90,18 @@ class BuildTask @Ta5kBuilder constructor(
                     pending.add(it)
                     it.start(this@BuildTask, pauseParent = false)
                 }
-                return@listener
+                return@listen
             }
 
             if (pending.isNotEmpty()) {
-                return@listener
+                return@listen
             }
 
-            val result = results.minOrNull() ?: return@listener
+            val result = results.minOrNull() ?: return@listen
             when {
                 !result.rank.solvable -> {
 //                    info("Unsolvable: $result")
-                    if (!blueprint.isDone(this)) return@listener
+                    if (!blueprint.isDone(this)) return@listen
                     success(Unit)
                 }
 

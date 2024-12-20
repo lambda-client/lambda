@@ -18,7 +18,7 @@
 package com.lambda.module.modules.network
 
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
@@ -60,11 +60,11 @@ object PacketLimiter : Module(
             packetQueue = LimitedDecayQueue(limit, interval)
         }
 
-        listener<PacketEvent.Send.Pre>(Int.MAX_VALUE) {
-            if (it.packet::class.simpleName in ignorePackets) return@listener
+        listen<PacketEvent.Send.Pre>(Int.MAX_VALUE) {
+            if (it.packet::class.simpleName in ignorePackets) return@listen
 
 //            this@PacketLimiter.info("Packet sent: ${it.packet::class.simpleName} (${packetQueue.size} / $limit) ${Instant.now()}")
-            if (packetQueue.add(it)) return@listener
+            if (packetQueue.add(it)) return@listen
 
             it.cancel()
             this@PacketLimiter.info("Packet limit reached, dropping packet: ${it.packet::class.simpleName} (${packetQueue.size} / $limit)")

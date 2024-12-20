@@ -34,8 +34,8 @@ class Shader(fragmentPath: String, vertexPath: String) {
     private val uniformCache: Object2IntMap<String> = Object2IntOpenHashMap()
 
     private val id = createShaderProgram(
-        loadShader(ShaderType.VERTEX_SHADER, LambdaResource("shaders/vertex/$vertexPath.vert")),
-        loadShader(ShaderType.FRAGMENT_SHADER, LambdaResource("shaders/fragment/$fragmentPath.frag"))
+        loadShader(ShaderType.VERTEX_SHADER, "shaders/vertex/$vertexPath.vert"),
+        loadShader(ShaderType.FRAGMENT_SHADER, "shaders/fragment/$fragmentPath.frag")
     )
 
     constructor(path: String) : this(path, path)

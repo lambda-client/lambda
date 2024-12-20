@@ -15,23 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings.collections
+package com.lambda.module.hud
 
-import com.lambda.config.AbstractSetting
-import java.lang.reflect.Type
+import com.lambda.graphics.renderer.gui.TextureRenderer.drawTexture
+import com.lambda.graphics.texture.TextureOwner.uploadGif
+import com.lambda.module.HudModule
+import com.lambda.module.tag.ModuleTag
 
-/**
- * @see [com.lambda.config.Configurable]
- */
-class SetSetting<T : Any>(
-    override val name: String,
-    defaultValue: MutableSet<T>,
-    type: Type,
-    description: String,
-    visibility: () -> Boolean,
-) : AbstractSetting<MutableSet<T>>(
-    defaultValue,
-    type,
-    description,
-    visibility
-)
+object GifTest : HudModule(
+    name = "GifTest",
+    defaultTags = setOf(ModuleTag.CLIENT),
+) {
+    val test = uploadGif("chika.gif")
+
+    override val width = 100.0
+    override val height = 100.0
+
+    init {
+        onRender {
+            drawTexture(test, rect)
+        }
+    }
+}

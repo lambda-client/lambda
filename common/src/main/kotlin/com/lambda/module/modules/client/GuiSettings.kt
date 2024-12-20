@@ -19,7 +19,7 @@ package com.lambda.module.modules.client
 
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.gui.impl.clickgui.LambdaClickGui
@@ -69,12 +69,12 @@ object GuiSettings : Module(
         }
 
     private val animation = with(AnimationTicker()) {
-        unsafeListener<TickEvent.Pre>(alwaysListen = true) {
+        listenUnsafe<TickEvent.Pre>(alwaysListen = true) {
             tick()
         }
 
         exp({ targetScale }, 0.5).apply {
-            unsafeListener<ConnectionEvent.Connect.Pre>(alwaysListen = true) {
+            listenUnsafe<ConnectionEvent.Connect.Pre>(alwaysListen = true) {
                 setValue(targetScale)
             }
         }

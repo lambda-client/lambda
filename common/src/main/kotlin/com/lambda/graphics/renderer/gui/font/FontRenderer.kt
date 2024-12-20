@@ -23,6 +23,7 @@ import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.renderer.gui.font.LambdaAtlas.bind
 import com.lambda.graphics.renderer.gui.font.LambdaAtlas.get
 import com.lambda.graphics.renderer.gui.font.LambdaAtlas.height
+import com.lambda.graphics.renderer.gui.font.LambdaAtlas.slot
 import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.LambdaMoji
@@ -221,7 +222,8 @@ class FontRenderer {
 
     fun render() {
         shader.use()
-        shader["u_EmojiTexture"] = 1
+        shader["u_FontTexture"] = chars.slot
+        shader["u_EmojiTexture"] = emojis.slot
 
         chars.bind()
         emojis.bind()
