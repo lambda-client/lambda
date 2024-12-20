@@ -34,9 +34,42 @@ class WindowContent(
     private var scrollOffset = 0.0
     private var rubberbandDelta = 0.0
 
-    private var renderScrollOffset by animation.exp({ scrollOffset + rubberbandDelta }, 0.7)
-    private val scaleAnimation by animation.exp(1.0, 0.9, 0.7, ::scrolling)
+    var renderScrollOffset by animation.exp({ scrollOffset + rubberbandDelta }, 0.7)
     private var scrolling = false
+
+    private var contentHeight = {
+        NewCGui.padding * 2 +
+                children.sumOf(Layout::renderHeight) +
+                NewCGui.listStep * (children.size - 1).coerceAtLeast(0)
+    }
+
+    private var reorder = block@ {
+        children.forEachIndexed { i, child ->
+            val prev by lazy { children[i - 1] }
+
+            child.overrideY {
+                if (i == 0) {
+                    renderPositionY + renderScrollOffset + NewCGui.padding
+                } else {
+                    prev.renderPositionY + prev.renderHeight + NewCGui.listStep
+                }
+            }
+        }
+    }
+
+    /**
+     * Overrides the summary height of the content
+     */
+    fun overrideContentHeight(block: () -> Double) {
+        contentHeight = block
+    }
+
+    /**
+     * Overrides the action performed on ordering update
+     */
+    fun reorderChildren(block: () -> Unit) {
+        reorder = block
+    }
 
     init {
         overrideX { owner.titleBar.renderPositionX }
@@ -50,7 +83,7 @@ class WindowContent(
             rubberbandDelta = 0.0
             renderScrollOffset = 0.0
 
-            reorderChildren()
+            if (scrollable) reorder()
         }
 
         onTick {
@@ -70,8 +103,6 @@ class WindowContent(
             if (abs(rubberbandDelta) < 0.05) rubberbandDelta = 0.0
 
             animation.tick()
-
-            reorderChildren()
         }
 
         onMouseScroll { delta ->
@@ -80,29 +111,12 @@ class WindowContent(
         }
     }
 
-    private fun reorderChildren() {
-        if (!scrollable) return
-
-        children.forEachIndexed { i, child ->
-            val prev by lazy { children[i - 1] }
-
-            child.overrideY {
-                if (i == 0) {
-                    renderPositionY + renderScrollOffset + NewCGui.padding
-                } else {
-                    prev.renderPositionY + prev.renderHeight + NewCGui.listStep
-                }
-            }
-        }
+    override fun render(e: GuiEvent) {
+        if (scrollable) reorder()
+        super.render(e)
     }
 
-    fun getContentHeight(): Double {
-        val components = children.sumOf(Layout::renderHeight)
-        val step = NewCGui.listStep * (children.size - 1).coerceAtLeast(0)
-        val padding = NewCGui.padding * 2
-
-        return components + step + padding
-    }
+    fun getContentHeight() = contentHeight()
 
     companion object {
         /**

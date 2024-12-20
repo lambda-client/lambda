@@ -15,20 +15,39 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.renderer.esp.global
+package com.lambda.graphics
 
+import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listener
 import com.lambda.graphics.renderer.esp.impl.DynamicESPRenderer
+import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 
-object DynamicESP : DynamicESPRenderer() {
+object RenderPipeline : Loadable {
+    // Updates once a tick, stays fixed, uses less memory
+    val STATIC_ESP = StaticESPRenderer()
+
+    // Updates once a tick, interpolates within frames
+    val DYNAMIC_ESP = DynamicESPRenderer()
+
     init {
+        // Ticked 3d renderers update
         listener<TickEvent.Post> {
-            clear()
+            STATIC_ESP.clear()
+            RenderEvent.StaticESP().post()
+            STATIC_ESP.upload()
+
+            DYNAMIC_ESP.clear()
             RenderEvent.DynamicESP().post()
-            upload()
+            DYNAMIC_ESP.upload()
+        }
+
+        // 3d renderers drawcall
+        listener<RenderEvent.World> {
+            STATIC_ESP.render()
+            DYNAMIC_ESP.render()
         }
     }
 }

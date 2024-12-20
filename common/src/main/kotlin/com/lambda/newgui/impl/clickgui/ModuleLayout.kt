@@ -77,6 +77,37 @@ class ModuleLayout(
             }
         }
 
+        content.overrideContentHeight {
+            val settings = content.children
+                .filterIsInstance<SettingLayout<*, *>>()
+
+            val components = settings.sumOf {
+                (it.renderHeight + NewCGui.listStep) * it.visibilityAnimation
+            } - NewCGui.listStep
+
+            val padding = NewCGui.padding * 2
+            components + if (settings.isNotEmpty()) padding else 0.0
+        }
+
+        content.reorderChildren {
+            val settings = content.children
+                .filterIsInstance<SettingLayout<*, *>>()
+
+            var y = 0.0
+
+            settings.forEach {
+                if (it.visible) {
+                    it.heightOffset = y
+                }
+
+                y += (it.renderHeight + NewCGui.listStep) * it.visibilityAnimation
+
+                it.overrideY {
+                    content.renderPositionY + content.renderScrollOffset + NewCGui.padding + it.heightOffset
+                }
+            }
+        }
+
         rect { // Separator
             onUpdate {
                 val vec = Vec2d(
@@ -94,10 +125,6 @@ class ModuleLayout(
             }
         }
 
-        onShow {
-            enableAnimation = 0.0
-        }
-
         titleBarRect.onUpdate {
             setColor(lerp(enableAnimation, NewCGui.moduleDisabledColor, NewCGui.moduleEnabledColor))
             correctRadius()
@@ -110,18 +137,22 @@ class ModuleLayout(
 
         children.remove(outlineRect)
 
+        onShow {
+            enableAnimation = 0.0
+        }
+
         onTick {
             val cursor = if (titleBar.isHovered) Mouse.Cursor.Pointer else Mouse.Cursor.Arrow
             cursorController.setCursor(cursor)
         }
 
-        content.apply {
-            module.settings.forEach { setting -> layoutOf(setting) }
+        module.settings.forEach { setting ->
+            content.layoutOf(setting)
         }
     }
 
     private fun FilledRect.correctRadius() {
-        if (!isLast) {
+        if (!isLast || !NewCGui.autoResize) {
             setRadius(0.0)
             return
         }

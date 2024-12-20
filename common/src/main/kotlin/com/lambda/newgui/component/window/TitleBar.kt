@@ -19,7 +19,6 @@ package com.lambda.newgui.component.window
 
 import com.lambda.module.modules.client.NewCGui
 import com.lambda.newgui.component.HAlign
-import com.lambda.newgui.component.VAlign
 import com.lambda.newgui.component.core.TextField.Companion.textField
 import com.lambda.newgui.component.core.UIBuilder
 import com.lambda.newgui.component.layout.Layout

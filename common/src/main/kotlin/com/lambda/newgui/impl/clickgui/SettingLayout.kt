@@ -18,11 +18,15 @@
 package com.lambda.newgui.impl.clickgui
 
 import com.lambda.config.AbstractSetting
+import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.modules.client.NewCGui
 import com.lambda.newgui.component.HAlign
 import com.lambda.newgui.component.layout.Layout
 import com.lambda.newgui.component.window.Window
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.setAlpha
+import com.lambda.util.math.transform
+import java.awt.Color
 
 /**
  * A base class for setting layouts.
@@ -44,12 +48,21 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
     protected val animation = animationTicker()
     protected val cursorController = cursorController()
 
+    var visibilityAnimation by animation.exp(0.0, 1.0, 0.8, ::visible)
+    var heightOffset = 0.0
+
     var settingValue by setting
+    val visible get() = setting.visibility()
 
     init {
+        minimized = true
+
         overrideWidth(owner::renderWidth)
         titleBar.overrideHeight(NewCGui::settingsHeight)
-        minimized = true
+
+        overrideX {
+            owner.renderPositionX + transform(visibilityAnimation, 0.0, 1.0, -10.0, 0.0)
+        }
 
         with(titleBar.textField) {
             text = setting.name
@@ -58,6 +71,7 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
 
             onUpdate {
                 scale = NewCGui.fontScale * 0.92
+                color = Color.WHITE.setAlpha(visibilityAnimation)
             }
         }
 

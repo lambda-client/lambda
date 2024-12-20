@@ -28,8 +28,6 @@ import com.lambda.graphics.buffer.FrameBuffer
 import com.lambda.graphics.gl.GlStateUtils.setupGL
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.resetMatrices
-import com.lambda.graphics.renderer.esp.global.StaticESP
-import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.graphics.shader.Shader
 import com.lambda.gui.impl.hudgui.LambdaHudGui
 import com.lambda.module.modules.client.ClickGui
@@ -80,8 +78,6 @@ object RenderMain {
 
         setupGL {
             RenderEvent.World().post()
-            StaticESP.render()
-            DynamicESP.render()
         }
     }
 

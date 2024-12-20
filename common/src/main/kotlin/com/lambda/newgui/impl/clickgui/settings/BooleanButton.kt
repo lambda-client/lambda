@@ -49,8 +49,14 @@ class BooleanButton(
                 rectangle = Rect(rb - Vec2d(h * 1.65, h), rb)
                     .shrink(shrink) + Vec2d.LEFT * (NewCGui.fontOffset - shrink)
 
-                setColor(Color.BLACK.setAlpha(0.25))
+                setColor(Color.BLACK.setAlpha(0.25 * visibilityAnimation))
                 shade = NewCGui.backgroundShade
+            }
+
+            onTick {
+                cursorController.setCursor(
+                    if (isHovered) Mouse.Cursor.Pointer else Mouse.Cursor.Arrow
+                )
             }
 
             onMouseClick { button, action ->
@@ -68,7 +74,7 @@ class BooleanButton(
                 val knobEnd = Rect(checkBox.rightBottom -  checkBox.renderHeight, checkBox.rightBottom)
                 rectangle = lerp(activeAnimation, knobStart, knobEnd).shrink(1.0)
                 shade = NewCGui.backgroundShade
-                setColor(Color.WHITE.setAlpha(0.25))
+                setColor(Color.WHITE.setAlpha(0.25 * visibilityAnimation))
             }
         }
     }
