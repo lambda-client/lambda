@@ -21,20 +21,44 @@ import com.lambda.graphics.texture.TextureUtils.bindTexture
 import com.lambda.graphics.texture.TextureUtils.readImage
 import com.lambda.graphics.texture.TextureUtils.setupTexture
 import com.lambda.module.modules.client.RenderSettings
+import org.lwjgl.opengl.GL11C
 import org.lwjgl.opengl.GL45C.*
 import java.awt.image.BufferedImage
 
+/**
+ * Represents a texture that can be uploaded and bound to the graphics pipeline.
+ * Supports mipmap generation and LOD (Level of Detail) configuration
+ *
+ * @param image             Optional initial image to upload to the texture
+ * @param levels            Number of mipmap levels to generate for the texture
+ * @param forceConsistency  Flag to enforce consistency when updating the texture. If true, attempts to update
+ *                          the texture after initialization will throw an exception
+ */
 open class Texture(
     image: BufferedImage?,
     private val levels: Int = 4,
+    private val forceConsistency: Boolean = false,
 ) {
+    /**
+     * Indicates whether there is an initial texture or not
+     */
+    var initialized: Boolean = false; private set
     val id = glGenTextures()
 
+    /**
+     * Binds the texture to a specific slot in the graphics pipeline.
+     */
     open fun bind(slot: Int = 0) {
         bindTexture(id, slot)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, RenderSettings.lodBias)
     }
 
+    /**
+     * Uploads an image to the texture and generates mipmaps for the texture if applicable.
+     *
+     * @param image The image to upload to the texture
+     * @param offset The mipmap level to upload the image to
+     */
     open fun upload(image: BufferedImage, offset: Int = 0) {
         // Store level_base +1 through `level` images and generate
         // mipmaps from them
@@ -43,11 +67,22 @@ open class Texture(
         val width = image.width
         val height = image.height
 
-        // Set this mipmap to 0 to define the original texture
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, readImage(image))
+        // Set this mipmap to `offset` to define the original texture
+        glTexImage2D(GL_TEXTURE_2D, offset, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, readImage(image))
         glGenerateMipmap(GL_TEXTURE_2D) // This take the derived values GL_TEXTURE_BASE_LEVEL and GL_TEXTURE_MAX_LEVEL to generate the stack
 
         setupTexture(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
+    }
+
+    open fun update(image: BufferedImage, offset: Int = 0) {
+        if (forceConsistency && initialized)
+            throw IllegalStateException("Client tried to update a texture, but the enforce consistency flag was present")
+
+        val width = image.width
+        val height = image.height
+
+        // Can we rebuild LOD ?
+        glTexSubImage2D(GL_TEXTURE_2D, offset, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, readImage(image))
     }
 
     private fun setupLOD(levels: Int) {
@@ -66,6 +101,8 @@ open class Texture(
         image?.let {
             bind()
             upload(it)
+
+            initialized = true
         }
     }
 }
