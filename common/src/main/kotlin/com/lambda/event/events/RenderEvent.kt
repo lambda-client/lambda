@@ -22,7 +22,6 @@ import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import com.lambda.graphics.RenderPipeline
-import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.util.math.Vec2d
 
 sealed class RenderEvent {
