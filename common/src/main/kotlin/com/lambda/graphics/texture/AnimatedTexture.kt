@@ -27,7 +27,7 @@ import org.lwjgl.stb.STBImage
 import java.nio.ByteBuffer
 
 
-class AnimatedTexture(path: LambdaResource) : Texture(null) {
+class AnimatedTexture(path: LambdaResource) : Texture(image = null, forceConsistency = false) {
     private val pbo: PixelBuffer
     private val gif: ByteBuffer // Do NOT free this pointer
     private val frameDurations: IntArray
