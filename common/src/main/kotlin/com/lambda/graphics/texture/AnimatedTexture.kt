@@ -25,26 +25,22 @@ import org.lwjgl.BufferUtils
 import org.lwjgl.opengl.GL11.GL_RGBA
 import org.lwjgl.stb.STBImage
 import java.nio.ByteBuffer
-import kotlin.properties.Delegates
 
 
-class AnimatedTexture(
-    private val path: LambdaResource,
-) : Texture(null) {
-    lateinit var frameDurations: IntArray
-    var width by Delegates.notNull<Int>()
-    var height by Delegates.notNull<Int>()
-    var channels by Delegates.notNull<Int>()
-    var frames by Delegates.notNull<Int>()
+class AnimatedTexture(path: LambdaResource) : Texture(null) {
+    private val pbo: PixelBuffer
+    private val gif: ByteBuffer // Do NOT free this pointer
+    private val frameDurations: IntArray
+    val width: Int
+    val height: Int
+    val channels: Int
+    val frames: Int
 
-    val blockSize: Int
+    private val blockSize: Int
         get() = width * height * channels
 
-    lateinit var gif: ByteBuffer // Do NOT free this pointer
-    var pbo: PixelBuffer
-
-    var currentFrame = 0
-    var lastUpload = 0L
+    private var currentFrame = 0
+    private var lastUpload = 0L
 
     override fun bind(slot: Int) {
         update()
@@ -53,6 +49,9 @@ class AnimatedTexture(
 
     fun update() {
         if (System.currentTimeMillis() - lastUpload >= frameDurations[currentFrame]) {
+            // This is cool because instead of having a buffer for each frame we can
+            // just move the frame's block on each update
+            // 0 memory allocation and few cpu cycles
             val slice = gif
                 .position(blockSize * currentFrame)
                 .limit(blockSize * (currentFrame + 1))
@@ -67,7 +66,7 @@ class AnimatedTexture(
         }
     }
 
-    private fun readGif() {
+    init {
         val bytes = path.stream.readAllBytes()
         val buffer = ByteBuffer.allocateDirect(bytes.size)
 
@@ -82,19 +81,17 @@ class AnimatedTexture(
 
         // The buffer contains packed frames that can be extracted as follows:
         // limit = width * height * channels * [frame number]
-        gif = STBImage.stbi_load_gif_from_memory(buffer, pDelays, pWidth, pHeight, pLayers, pChannels, 4)!!
+        gif = STBImage.stbi_load_gif_from_memory(buffer, pDelays, pWidth, pHeight, pLayers, pChannels, 4)
+            ?: throw IllegalStateException("There was an unknown error while loading the gif file")
 
         width = pWidth.get()
         height = pHeight.get()
         frames = pLayers.get()
         channels = pChannels.get()
-
         frameDurations = IntArray(frames)
-        pDelays.getIntBuffer(frames).get(frameDurations)
-    }
 
-    init {
-        readGif()
+        pDelays.getIntBuffer(frames).get(frameDurations)
+
         pbo = PixelBuffer(width, height, format = GL_RGBA, this@AnimatedTexture)
     }
 }
