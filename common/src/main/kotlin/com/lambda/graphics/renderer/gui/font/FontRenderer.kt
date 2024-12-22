@@ -44,10 +44,10 @@ class FontRenderer {
     private val shader = Shader("renderer/font")
     private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.FONT)
 
-    val shadowShift get() = RenderSettings.shadowShift * 5.0
-    val baselineOffset get() = RenderSettings.baselineOffset * 2.0f - 10f
-    val gap get() = RenderSettings.gap * 0.5f - 0.8f
-    val scaleMultiplier: Double get() = ClickGui.settingsFontScale
+    private val shadowShift get() = RenderSettings.shadowShift * 5.0
+    private val baselineOffset get() = RenderSettings.baselineOffset * 2.0f - 10f
+    private val gap get() = RenderSettings.gap * 0.5f - 0.8f
+    private val scaleMultiplier: Double get() = ClickGui.settingsFontScale
 
     /**
      * Builds the vertex array for rendering the provided text string at a specified position.
@@ -145,7 +145,7 @@ class FontRenderer {
         val emojiColor = color.setAlpha(color.a)
 
         var posX = 0.0
-        val posY = getHeight(scale) * -0.5 + baselineOffset * actualScale
+        var posY = getHeight(scale) * -0.5 + baselineOffset * actualScale
 
         fun drawGlyph(info: GlyphInfo?, color: Color, offset: Double = 0.0) {
             if (info == null) return
@@ -164,12 +164,17 @@ class FontRenderer {
             if (section.isEmpty()) return
             if (!parseEmoji || parsed.isEmpty() || !hasEmojis) {
                 // Draw simple characters if no emojis are present
-                section
-                    .mapNotNull { chars[it] }
-                    .forEach { charGlyph ->
-                        if (shadow && shadowShift > 0.0) drawGlyph(charGlyph, shadowColor, shadowShift)
-                        drawGlyph(charGlyph, color)
+                section.forEach { char ->
+                    // Logic for control characters
+                    when (char) {
+                        '\n', '\r' -> { posX = 0.0; posY += chars.height * actualScale; return@forEach }
                     }
+
+                    val glyph = chars[char] ?: return@forEach
+
+                    if (shadow && shadowShift > 0.0) drawGlyph(glyph, shadowColor, shadowShift)
+                    drawGlyph(glyph, color)
+                }
             } else {
                 // Only compute the first parsed emoji to avoid duplication
                 // This is important in order to keep the parsed ranges valid
