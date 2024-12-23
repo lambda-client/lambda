@@ -23,7 +23,7 @@ import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.*
-import com.lambda.module.modules.client.TaskFlow
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.BlockUtils.item
 import com.lambda.util.Communication.info
@@ -133,7 +133,7 @@ object ContainerManager : Loadable {
     }?.first
 
     fun findDisposable() = container().find { container ->
-        TaskFlow.disposables.any { container.available(it.item.select()) >= 0 }
+        TaskFlowModule.disposables.any { container.available(it.item.select()) >= 0 }
     }
 
     class NoContainerFound(selection: StackSelection) : Exception("No container found matching $selection")

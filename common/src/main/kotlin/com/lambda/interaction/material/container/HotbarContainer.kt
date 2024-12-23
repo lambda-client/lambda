@@ -18,10 +18,10 @@
 package com.lambda.interaction.material.container
 
 import com.lambda.Lambda.mc
+import com.lambda.context.SafeContext
+import com.lambda.interaction.material.ContainerTask
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
-import com.lambda.task.Task
-import com.lambda.task.Task.Companion.emptyTask
 import com.lambda.task.tasks.InventoryTask.Companion.deposit
 import com.lambda.util.player.SlotUtils.hotbar
 import net.minecraft.item.ItemStack
@@ -32,10 +32,16 @@ object HotbarContainer : MaterialContainer(Rank.HOTBAR) {
         set(_) {}
     override val name = "Hotbar"
 
-    override fun withdraw(selection: StackSelection) = emptyTask("WithdrawFromHotbar")
+    class HotbarDeposit @Ta5kBuilder constructor(val selection: StackSelection) : ContainerTask() {
+        override val name: String get() = "Depositing $selection into hotbar"
 
-    override fun deposit(selection: StackSelection): Task<*> {
-        val handler = mc.player?.currentScreenHandler ?: return emptyTask("NoScreenHandler")
-        return deposit(handler, selection)
+        override fun SafeContext.onStart() {
+            val handler = player.currentScreenHandler
+            deposit(handler, selection).finally {
+                delayedFinish()
+            }.execute(this@HotbarDeposit)
+        }
     }
+
+    override fun deposit(selection: StackSelection) = HotbarDeposit(selection)
 }

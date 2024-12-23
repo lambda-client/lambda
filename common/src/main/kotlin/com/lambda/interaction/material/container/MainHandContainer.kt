@@ -18,14 +18,15 @@
 package com.lambda.interaction.material.container
 
 import com.lambda.Lambda.mc
+import com.lambda.context.SafeContext
+import com.lambda.interaction.material.ContainerTask
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
-import com.lambda.task.Task.Companion.buildTask
-import com.lambda.task.Task.Companion.emptyTask
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.player.SlotUtils.hotbar
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
+import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
@@ -35,15 +36,21 @@ object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
         set(_) {}
     override val name = "MainHand"
 
-    override fun withdraw(selection: StackSelection) = emptyTask("WithdrawFromMainHand")
+    class MainHandDeposit @Ta5kBuilder constructor(val selection: StackSelection, val hand: Hand) : ContainerTask() {
+        override val name: String get() = "Depositing $selection to main hand"
 
-    override fun deposit(selection: StackSelection) = buildTask("DepositToMainHand") {
-        InventoryContainer.matchingStacks(selection).firstOrNull()?.let { stack ->
-            if (ItemStack.areEqual(stack, player.mainHandStack)) {
-                return@buildTask
+        override fun SafeContext.onStart() {
+            val moveStack = InventoryContainer.matchingStacks(selection).firstOrNull() ?: return
+
+            val otherHand = if (hand == Hand.MAIN_HAND) Hand.OFF_HAND else Hand.MAIN_HAND
+            val handStack = player.getStackInHand(hand)
+            val otherStack = player.getStackInHand(otherHand)
+            if (ItemStack.areEqual(moveStack, handStack)) {
+                delayedFinish()
+                return
             }
 
-            if (ItemStack.areEqual(stack, player.offHandStack)) {
+            if (ItemStack.areEqual(moveStack, otherStack)) {
                 connection.sendPacket(
                     PlayerActionC2SPacket(
                         PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
@@ -51,15 +58,20 @@ object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
                         Direction.DOWN,
                     ),
                 )
-                return@buildTask
+                delayedFinish()
+                return
             }
 
-            if (stack in player.hotbar) {
-                player.inventory.selectedSlot = player.hotbar.indexOf(stack)
-                return@buildTask
+            if (moveStack in player.hotbar) {
+                player.inventory.selectedSlot = player.hotbar.indexOf(moveStack)
+                delayedFinish()
+                return
             }
 
-            interaction.pickFromInventory(player.combined.indexOf(stack))
+            interaction.pickFromInventory(player.combined.indexOf(moveStack))
+            delayedFinish()
         }
     }
+
+    override fun deposit(selection: StackSelection) = MainHandDeposit(selection, Hand.MAIN_HAND)
 }

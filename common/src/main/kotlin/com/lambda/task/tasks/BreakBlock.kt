@@ -27,7 +27,7 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
-import com.lambda.module.modules.client.TaskFlow
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils.blockState
@@ -43,13 +43,15 @@ import net.minecraft.util.math.Direction
 
 class BreakBlock @Ta5kBuilder constructor(
     private val ctx: BreakContext,
-    private val rotation: IRotationConfig,
-    private val interact: InteractionConfig,
-    private val sides: Set<Direction>,
-    private val collectDrop: Boolean,
-    private val rotate: Boolean,
-    private val swingHand: Boolean,
+    private val collectDrop: Boolean = false,
+    private val rotation: IRotationConfig = TaskFlowModule.rotation,
+    private val interact: InteractionConfig = TaskFlowModule.interact,
+    private val sides: Set<Direction> = Direction.entries.toSet(),
+    private val rotate: Boolean = TaskFlowModule.build.rotateForBreak,
+    private val swingHand: Boolean = TaskFlowModule.interact.swingHand,
 ) : Task<ItemEntity?>() {
+    override val name get() = "Breaking ${ctx.result.blockPos.toShortString()}"
+
     val blockPos: BlockPos get() = ctx.result.blockPos
 
     private var beginState: BlockState? = null
@@ -72,7 +74,7 @@ class BreakBlock @Ta5kBuilder constructor(
         beginState = blockState
 
         if (!rotate || ctx.instantBreak) {
-            breakBlock(ctx.result.side)
+            hitBlock(ctx.result.side)
         }
     }
 
@@ -100,7 +102,7 @@ class BreakBlock @Ta5kBuilder constructor(
 
                 if (player.hotbarAndStorage.none { it.isEmpty }) {
                     player.currentScreenHandler.inventorySlots.firstOrNull {
-                        it.stack.item.block in TaskFlow.disposables
+                        it.stack.item.block in TaskFlowModule.disposables
                     }?.let {
                         clickSlot(it.index, 1, SlotActionType.THROW)
                     }
@@ -112,7 +114,7 @@ class BreakBlock @Ta5kBuilder constructor(
             } ?: BaritoneUtils.cancel()
 
             if (isValid || !rotate || ctx.instantBreak) {
-                breakBlock(ctx.result.side)
+                hitBlock(ctx.result.side)
             }
 
             if (done()) {
@@ -137,31 +139,10 @@ class BreakBlock @Ta5kBuilder constructor(
 
     private fun SafeContext.done() = blockState.isAir && !collectDrop
 
-    private fun SafeContext.breakBlock(side: Direction) {
+    private fun SafeContext.hitBlock(side: Direction) {
         if (interaction.updateBlockBreakingProgress(blockPos, side)) {
             if (player.isCreative) interaction.blockBreakingCooldown = 0
             if (swingHand) player.swingHand(ctx.hand)
         }
-    }
-
-    companion object {
-        @Ta5kBuilder
-        fun breakBlock(
-            ctx: BreakContext,
-            rotationConfig: IRotationConfig = TaskFlow.rotation,
-            interactionConfig: InteractionConfig = TaskFlow.interact,
-            sides: Set<Direction> = emptySet(),
-            collectDrop: Boolean = TaskFlow.build.collectDrops,
-            rotate: Boolean = TaskFlow.build.rotateForBreak,
-            swingHand: Boolean = TaskFlow.interact.swingHand,
-        ) = BreakBlock(
-            ctx,
-            rotationConfig,
-            interactionConfig,
-            sides,
-            collectDrop,
-            rotate,
-            swingHand
-        )
     }
 }

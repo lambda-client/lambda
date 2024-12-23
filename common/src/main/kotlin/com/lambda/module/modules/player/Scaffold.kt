@@ -40,7 +40,7 @@ import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
-import com.lambda.module.modules.client.TaskFlow
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.VecUtils.dist
@@ -215,7 +215,7 @@ object Scaffold : Module(
         // Dividing the surface by segments and iterating through them
         val pointScan = mutableSetOf<Rotation>().apply {
             val box = Box(info.clickPos)
-            val sides = if (TaskFlow.interact.visibilityCheck) {
+            val sides = if (TaskFlowModule.interact.visibilityCheck) {
                 box.getVisibleSurfaces(eye)
             } else Direction.entries.toSet()
             scanSurfaces(

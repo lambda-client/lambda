@@ -46,6 +46,8 @@ abstract class Blueprint {
 
     fun isOutOfBounds(vec3d: Vec3d): Boolean = !bounds.contains(vec3d.blockPos)
 
+    val center get() = bounds.center.blockPos
+
     companion object {
         fun emptyStructure(): Structure = emptyMap()
 

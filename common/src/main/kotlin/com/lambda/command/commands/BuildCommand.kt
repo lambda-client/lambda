@@ -26,6 +26,7 @@ import com.lambda.command.LambdaCommand
 import com.lambda.interaction.construction.StructureRegistry
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
+import com.lambda.task.TaskFlow.run
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
@@ -62,7 +63,7 @@ object BuildCommand : LambdaCommand(
                                             .move(player.blockPos)
                                             .toBlueprint()
                                             .build(pathing = doPathing)
-                                            .start(null)
+                                            .run()
 
                                         return@executeWithResult CommandResult.success()
                                     }

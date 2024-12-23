@@ -20,8 +20,7 @@ package com.lambda.interaction.material.container
 import com.lambda.Lambda.mc
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
-import com.lambda.task.Task
-import com.lambda.task.Task.Companion.emptyTask
+import com.lambda.task.tasks.InventoryTask
 import com.lambda.util.player.SlotUtils.combined
 import net.minecraft.item.ItemStack
 
@@ -31,7 +30,9 @@ object InventoryContainer : MaterialContainer(Rank.INVENTORY) {
         set(_) {}
     override val name = "Inventory"
 
-    override fun withdraw(selection: StackSelection) = emptyTask("WithdrawFromInventory")
+    private val handler get() = mc.player?.currentScreenHandler
 
-    override fun deposit(selection: StackSelection) = emptyTask("DepositToInventory")
+    override fun withdraw(selection: StackSelection) = InventoryTask.withdraw(handler!!, selection)
+
+    override fun deposit(selection: StackSelection) = InventoryTask.deposit(handler!!, selection)
 }

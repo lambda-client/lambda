@@ -22,6 +22,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task
+import com.lambda.task.TaskFlow.run
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.info
@@ -100,16 +101,14 @@ object HighwayTools : Module(
             structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
         }
 
-        runningTask = structure.toBlueprint().build().onSuccess { _, _ ->
+        runningTask = structure.toBlueprint().build().finally {
             if (distanceMoved < distance || distance < 0) {
                 buildSlice()
             } else {
                 this@HighwayTools.info("Highway built")
                 disable()
             }
-        }.onFailure { _, _ ->
-            disable()
-        }.start(null)
+        }.run()
     }
 
     private fun generateSlice(): Structure {

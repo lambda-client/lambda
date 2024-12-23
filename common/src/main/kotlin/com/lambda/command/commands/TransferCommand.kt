@@ -27,6 +27,7 @@ import com.lambda.interaction.material.ContainerManager
 import com.lambda.interaction.material.ContainerManager.containerMatchSelection
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.transfer.TransferResult
+import com.lambda.task.TaskFlow.run
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 
@@ -77,18 +78,18 @@ object TransferCommand : LambdaCommand(
                                 it.name == to().value().split(" with ").firstOrNull()
                             } ?: return@executeWithResult failure("To container not found")
 
-                            when (val result = fromContainer.transfer(selection, toContainer)) {
+                            when (val transaction = fromContainer.transfer(selection, toContainer)) {
                                 is TransferResult.Transfer -> {
-                                    info("$result started.")
-                                    lastTransfer = result
-                                    result.onSuccess { _, _ ->
+                                    info("$transaction started.")
+                                    lastTransfer = transaction
+                                    transaction.finally {
                                         info("$lastTransfer completed.")
-                                    }.start(null)
+                                    }.run()
                                     return@executeWithResult success()
                                 }
 
                                 is TransferResult.MissingItems -> {
-                                    return@executeWithResult failure("Missing items: ${result.missing}")
+                                    return@executeWithResult failure("Missing items: ${transaction.missing}")
                                 }
 
                                 is TransferResult.NoSpace -> {

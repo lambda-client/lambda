@@ -53,7 +53,7 @@ class ChunkedESP private constructor(
     }
 
     init {
-        listenConcurrently<WorldEvent.BlockUpdate> { event ->
+        listenConcurrently<WorldEvent.BlockUpdate.Post> { event ->
             world.getWorldChunk(event.pos).renderer.notifyChunks()
         }
 

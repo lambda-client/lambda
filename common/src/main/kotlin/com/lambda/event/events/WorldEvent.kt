@@ -21,7 +21,6 @@ import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import net.minecraft.block.BlockState
-import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.Entity
 import net.minecraft.entity.data.TrackedData
 import net.minecraft.util.math.BlockPos
@@ -49,11 +48,15 @@ sealed class WorldEvent {
     /**
      * Represents a block update in the world
      */
-    class BlockUpdate(
+    sealed class BlockUpdate(
         val pos: BlockPos,
         val state: BlockState,
-        val flags: Int
-    ) : ICancellable by Cancellable()
+        val flags: Int,
+        val maxUpdateDepth: Int,
+    ) {
+        class Pre(pos: BlockPos, state: BlockState, flags: Int, depth: Int) : BlockUpdate(pos, state, flags, depth), ICancellable by Cancellable()
+        class Post(pos: BlockPos, state: BlockState, flags: Int, depth: Int) : BlockUpdate(pos, state, flags, depth), Event
+    }
 
     /**
      * Represents an entity being added to the world

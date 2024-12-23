@@ -31,12 +31,11 @@ import com.lambda.interaction.material.ContainerManager.findBestAvailableTool
 import com.lambda.interaction.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationContext
-import com.lambda.interaction.visibilty.VisibilityChecker
 import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.visibilty.VisibilityChecker.optimum
 import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.interaction.visibilty.VisibilityChecker.visibleSides
-import com.lambda.module.modules.client.TaskFlow
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
@@ -48,7 +47,6 @@ import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.player.copyPlayer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.OperatorBlock
-import net.minecraft.block.enums.BlockFace
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemPlacementContext
@@ -62,12 +60,11 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
-import java.util.stream.Collectors
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.pow
 
 object BuildSimulator {
-    fun Blueprint.simulate(eye: Vec3d, reach: Double = TaskFlow.interact.reach) =
+    fun Blueprint.simulate(eye: Vec3d, reach: Double = TaskFlowModule.interact.reach) =
         runSafe {
             structure.entries.flatMap { (pos, target) ->
                 checkRequirements(pos, target)?.let {
@@ -100,7 +97,7 @@ object BuildSimulator {
         }
 
         /* block should be ignored */
-        if (state.block in TaskFlow.ignoredBlocks && target.type == TargetState.Type.AIR) {
+        if (state.block in TaskFlowModule.ignoredBlocks && target.type == TargetState.Type.AIR) {
             return BuildResult.Ignored(pos)
         }
 
@@ -137,8 +134,8 @@ object BuildSimulator {
 
         if (target is TargetState.Air || !pos.blockState(world).isReplaceable) return acc
 
-        val interact = TaskFlow.interact
-        val rotation = TaskFlow.rotation
+        val interact = TaskFlowModule.interact
+        val rotation = TaskFlowModule.rotation
 
         val preprocessing = findProcessorForState(target)
 
@@ -185,8 +182,8 @@ object BuildSimulator {
             val reachSq = reach.pow(2)
 
             boxes.forEach { box ->
-                val res = if (TaskFlow.interact.useRayCast) interact.resolution else 4
-                val sides = if (TaskFlow.interact.visibilityCheck) {
+                val res = if (TaskFlowModule.interact.useRayCast) interact.resolution else 4
+                val sides = if (TaskFlowModule.interact.visibilityCheck) {
                     box.getVisibleSurfaces(eye).intersect(setOf(hitSide))
                 } else {
                     Direction.entries.toSet()
@@ -198,7 +195,7 @@ object BuildSimulator {
                         return@scanSurfaces
                     }
 
-                    validHits[vec] = if (TaskFlow.interact.useRayCast && TaskFlow.interact.visibilityCheck) {
+                    validHits[vec] = if (TaskFlowModule.interact.useRayCast && TaskFlowModule.interact.visibilityCheck) {
                         val cast = eye.rotationTo(vec)
                             .rayCast(reach, eye) ?: return@scanSurfaces
                         if (!cast.verify()) return@scanSurfaces
@@ -325,7 +322,7 @@ object BuildSimulator {
                 }
 
                 if (optimalStack.item != currentHandStack.item) {
-                    acc.add(BuildResult.WrongItem(pos, placeContext, optimalStack.item))
+                    acc.add(BuildResult.WrongItem(pos, placeContext, optimalStack.item, currentHandStack))
                     return@forEach
                 }
 
@@ -345,7 +342,7 @@ object BuildSimulator {
         val state = pos.blockState(world)
 
         /* is a block that will be destroyed by breaking adjacent blocks */
-        if (TaskFlow.build.breakWeakBlocks && state.block.hardness == 0f && !state.isAir) {
+        if (TaskFlowModule.build.breakWeakBlocks && state.block.hardness == 0f && !state.isAir) {
             acc.add(BuildResult.Ignored(pos))
             return acc
         }
@@ -392,8 +389,8 @@ object BuildSimulator {
             return acc
         }
 
-        val interact = TaskFlow.interact
-        val rotation = TaskFlow.rotation
+        val interact = TaskFlowModule.interact
+        val rotation = TaskFlowModule.rotation
         val currentRotation = RotationManager.currentRotation
         val currentCast = currentRotation.rayCast(reach, eye)
 
@@ -426,15 +423,15 @@ object BuildSimulator {
         val reachSq = reach.pow(2)
 
         boxes.forEach { box ->
-            val res = if (TaskFlow.interact.useRayCast) interact.resolution else 2
-            val sides = visibleSides(box, eye, TaskFlow.interact)
+            val res = if (TaskFlowModule.interact.useRayCast) interact.resolution else 2
+            val sides = visibleSides(box, eye, TaskFlowModule.interact)
             scanSurfaces(box, sides, res) { side, vec ->
                 if (eye distSq vec > reachSq) {
                     misses.add(vec)
                     return@scanSurfaces
                 }
 
-                validHits[vec] = if (TaskFlow.interact.useRayCast && TaskFlow.interact.visibilityCheck) {
+                validHits[vec] = if (TaskFlowModule.interact.useRayCast && TaskFlowModule.interact.visibilityCheck) {
                     val cast = eye.rotationTo(vec)
                         .rayCast(reach, eye) ?: return@scanSurfaces
                     if (!cast.verify()) return@scanSurfaces
@@ -479,7 +476,7 @@ object BuildSimulator {
                     acc.add(BreakResult.Break(pos, breakContext))
                     return acc
                 } ?: run {
-                    acc.add(BuildResult.WrongItem(pos, breakContext, bestTool))
+                    acc.add(BuildResult.WrongItem(pos, breakContext, bestTool, player.activeItem))
                     return acc
                 }
             }

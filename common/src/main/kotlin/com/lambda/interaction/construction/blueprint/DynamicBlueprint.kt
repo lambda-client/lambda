@@ -36,6 +36,8 @@ data class DynamicBlueprint(
     override var structure: Structure = emptyMap()
         private set
 
+    override fun toString() = "Dynamic Blueprint at ${center.toShortString()}"
+
     companion object {
         fun offset(offset: Vec3i): SafeContext.(Structure) -> Structure = {
             it.map { (pos, state) ->

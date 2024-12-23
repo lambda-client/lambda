@@ -25,7 +25,7 @@ import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationContext
-import com.lambda.module.modules.client.TaskFlow
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.component6
 import com.lambda.util.math.VecUtils.distSq
@@ -74,9 +74,9 @@ object VisibilityChecker {
      */
     fun SafeContext.lookAtBlock(
         blockPos: BlockPos,
-        rotationConfig: IRotationConfig = TaskFlow.rotation,
-        interactionConfig: InteractionConfig = TaskFlow.interact,
-        sides: Set<Direction> = emptySet()
+        rotationConfig: IRotationConfig = TaskFlowModule.rotation,
+        interactionConfig: InteractionConfig = TaskFlowModule.interact,
+        sides: Set<Direction> = Direction.entries.toSet()
     ): RotationContext? {
         val state = blockPos.blockState(world)
         val voxelShape = state.getOutlineShape(world, blockPos)
@@ -102,7 +102,7 @@ object VisibilityChecker {
         boxes: List<Box>,
         rotationConfig: IRotationConfig,
         interact: InteractionConfig,
-        sides: Set<Direction> = emptySet(),
+        sides: Set<Direction> = Direction.entries.toSet(),
         reach: Double = interact.reach,
         eye: Vec3d = player.getCameraPosVec(1f),
         verify: HitResult.() -> Boolean,

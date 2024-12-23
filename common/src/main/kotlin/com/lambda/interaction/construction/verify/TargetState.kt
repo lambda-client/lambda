@@ -18,8 +18,9 @@
 package com.lambda.interaction.construction.verify
 
 import com.lambda.interaction.material.ContainerManager.findDisposable
-import com.lambda.module.modules.client.TaskFlow
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.item.ItemUtils.block
 import net.minecraft.block.BlockState
 import net.minecraft.client.world.ClientWorld
@@ -35,6 +36,8 @@ sealed class TargetState(val type: Type) : StateMatcher {
     }
 
     data object Air : TargetState(Type.AIR) {
+        override fun toString() = "Air"
+
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
             state.isAir
 
@@ -43,36 +46,44 @@ sealed class TargetState(val type: Type) : StateMatcher {
     }
 
     data object Solid : TargetState(Type.SOLID) {
+        override fun toString() = "Solid"
+
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
             state.isSolidBlock(world, pos)
 
         override fun getStack(world: ClientWorld, pos: BlockPos) =
             findDisposable()?.stacks?.firstOrNull {
-                it.item.block in TaskFlow.disposables
+                it.item.block in TaskFlowModule.disposables
             } ?: ItemStack(Items.NETHERRACK)
     }
 
     data class Support(val direction: Direction) : TargetState(Type.SUPPORT) {
+        override fun toString() = "Support for ${direction.name}"
+
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
             pos.offset(direction).blockState(world).isSolidBlock(world, pos.offset(direction))
                     || state.isSolidBlock(world, pos)
 
         override fun getStack(world: ClientWorld, pos: BlockPos) =
             findDisposable()?.stacks?.firstOrNull {
-                it.item.block in TaskFlow.disposables
+                it.item.block in TaskFlowModule.disposables
             } ?: ItemStack(Items.NETHERRACK)
     }
 
     data class State(val blockState: BlockState) : TargetState(Type.STATE) {
+        override fun toString() = "State of $blockState"
+
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
             state.block == blockState.block && state.properties.all {
-                it in TaskFlow.defaultIgnoreTags || state[it] == blockState[it]
+                it in TaskFlowModule.defaultIgnoreTags || state[it] == blockState[it]
             }
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             blockState.block.getPickStack(world, pos, blockState)
     }
 
     data class Block(val block: net.minecraft.block.Block) : TargetState(Type.BLOCK) {
+        override fun toString() = "Block of ${block.name.string.capitalize()}"
+
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
             state.block == block
 
@@ -81,6 +92,9 @@ sealed class TargetState(val type: Type) : StateMatcher {
     }
 
     data class Stack(val itemStack: ItemStack) : TargetState(Type.STACK) {
+        private val startStack: ItemStack = itemStack.copy()
+        override fun toString() = "Stack of ${startStack.item.name.string.capitalize()}"
+
         private val block = itemStack.item.block
 
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =

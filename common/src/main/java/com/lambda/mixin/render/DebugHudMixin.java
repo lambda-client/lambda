@@ -17,7 +17,7 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.task.RootTask;
+import com.lambda.task.TaskFlow;
 import com.lambda.util.DebugInfoHud;
 import net.minecraft.client.gui.hud.DebugHud;
 import org.spongepowered.asm.mixin.Mixin;
@@ -36,6 +36,6 @@ public class DebugHudMixin {
 
     @Inject(method = "getLeftText", at = @At(value = "TAIL"))
     private void onGetLeftText(CallbackInfoReturnable<List<String>> cir) {
-        RootTask.INSTANCE.addInfo(cir.getReturnValue());
+        cir.getReturnValue().addAll(List.of(TaskFlow.INSTANCE.toString().split("\n")));
     }
 }

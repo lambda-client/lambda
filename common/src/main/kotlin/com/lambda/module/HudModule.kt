@@ -87,7 +87,7 @@ abstract class HudModule(
             rectHandler.screenSize = event.screenSize
 
             renderCallables.forEach { function ->
-                function.invoke(renderer)
+                function(renderer)
             }
 
             renderer.render()

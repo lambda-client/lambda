@@ -23,30 +23,37 @@ import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
-import com.lambda.module.modules.client.TaskFlow
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
+import com.lambda.util.Communication.info
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
-class OpenContainer(
+class OpenContainer @Ta5kBuilder constructor(
     private val blockPos: BlockPos,
     private val waitForSlotLoad: Boolean = true,
-    private val rotate: Boolean,
-    private val rotation: IRotationConfig = TaskFlow.rotation,
-    private val interact: InteractionConfig = TaskFlow.interact,
-    private val sides: Set<Direction> = emptySet(),
+    private val rotate: Boolean = true,
+    private val rotation: IRotationConfig = TaskFlowModule.rotation,
+    private val interact: InteractionConfig = TaskFlowModule.interact,
+    private val sides: Set<Direction> = Direction.entries.toSet(),
 ) : Task<ScreenHandler>() {
+    override val name get() = "${state.description(inScope)} at ${blockPos.toShortString()}"
+
     private var screenHandler: ScreenHandler? = null
     private var state = State.SCOPING
     private var inScope = 0
 
-    override var timeout = 50
-
     enum class State {
-        SCOPING, OPENING, SLOT_LOADING
+        SCOPING, OPENING, SLOT_LOADING;
+
+        fun description(inScope: Int) = when (this) {
+            SCOPING -> "Waiting for scope ($inScope)"
+            OPENING -> "Opening container"
+            SLOT_LOADING -> "Waiting for slots to load"
+        }
     }
 
     init {
@@ -91,14 +98,5 @@ class OpenContainer(
                 state = State.OPENING
             }
         }
-    }
-
-    companion object {
-        @Ta5kBuilder
-        fun openContainer(
-            blockPos: BlockPos,
-            waitForSlotLoad: Boolean = true,
-            rotate: Boolean = true,
-        ) = OpenContainer(blockPos, waitForSlotLoad, rotate)
     }
 }

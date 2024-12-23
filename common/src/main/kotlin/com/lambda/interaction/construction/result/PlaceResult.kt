@@ -22,7 +22,7 @@ import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.task.tasks.BuildTask.Companion.breakBlock
-import com.lambda.task.tasks.PlaceBlock.Companion.placeBlock
+import com.lambda.task.tasks.PlaceBlock
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
@@ -49,9 +49,9 @@ sealed class PlaceResult : BuildResult() {
         private val color = Color(35, 188, 254, 100)
 
         override fun SafeContext.onStart() {
-            placeBlock(context).onSuccess { _, _ ->
-                success(Unit)
-            }.start(this@Place)
+            PlaceBlock(context).finally {
+                success()
+            }.execute(this@Place)
         }
 
         override fun SafeContext.buildRenderer() {
@@ -109,9 +109,9 @@ sealed class PlaceResult : BuildResult() {
         override val rank = Rank.PLACE_CANT_REPLACE
 
         override fun SafeContext.onStart() {
-            breakBlock(blockPos).onSuccess { _, _ ->
-                success(Unit)
-            }.start(this@CantReplace)
+            breakBlock(blockPos).finally {
+                success()
+            }.execute(this@CantReplace)
         }
     }
 

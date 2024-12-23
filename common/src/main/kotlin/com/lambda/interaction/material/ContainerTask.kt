@@ -15,15 +15,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.task
+package com.lambda.interaction.material
 
-object RootTask : Task<Unit>() {
-    init {
-        name = "RootTask"
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.task.Task
+
+abstract class ContainerTask : Task<Unit>() {
+    private var finish = false
+    private val delay = 5
+    private var currentDelay = 0
+
+    fun delayedFinish() {
+        finish = true
     }
 
-    fun addInfo(debugText: MutableList<String>) {
-        debugText.add("")
-        debugText.addAll(info.string.split("\n"))
+    init {
+        listen<TickEvent.Post> {
+            if (finish) {
+                if (currentDelay++ > delay) success()
+            }
+        }
     }
 }

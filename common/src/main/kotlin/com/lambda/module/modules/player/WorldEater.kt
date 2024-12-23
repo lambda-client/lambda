@@ -26,6 +26,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task
+import com.lambda.task.TaskFlow.run
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BaritoneUtils
 import net.minecraft.util.math.BlockBox
@@ -76,10 +77,10 @@ object WorldEater : Module(
             runningTask = build {
                 box.toStructure(TargetState.Air)
                     .toBlueprint()
-            }.onSuccess { _, _ ->
+            }.finally {
                 work.removeFirstOrNull()
                 buildLayer()
-            }.start(null)
+            }.run()
         } ?: disable()
     }
 }

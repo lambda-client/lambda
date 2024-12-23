@@ -24,8 +24,8 @@ import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.InventoryTask.Companion.deposit
 import com.lambda.task.tasks.InventoryTask.Companion.withdraw
-import com.lambda.task.tasks.OpenContainer.Companion.openContainer
-import com.lambda.task.tasks.PlaceContainer.Companion.placeContainer
+import com.lambda.task.tasks.OpenContainer
+import com.lambda.task.tasks.PlaceContainer
 import net.minecraft.item.ItemStack
 
 data class ShulkerBoxContainer(
@@ -37,41 +37,45 @@ data class ShulkerBoxContainer(
 
     private val slotInContainer: Int get() = containedIn.stacks.indexOf(shulkerStack)
 
-    class Withdraw(
+    class ShulkerWithdraw(
         private val selection: StackSelection,
         private val shulkerStack: ItemStack
     ) : Task<Unit>() {
+        override val name = "Withdraw $selection from ${shulkerStack.name.string}"
+
         override fun SafeContext.onStart() {
-            placeContainer(shulkerStack).thenRun(this@Withdraw) { _, placePos ->
-                openContainer(placePos).thenRun(this@Withdraw) { _, screen ->
-                    withdraw(screen, selection).thenRun(this@Withdraw) { _, _ ->
-                        breakAndCollectBlock(placePos).onSuccess { _, _ ->
-                            success(Unit)
+            PlaceContainer(shulkerStack).then { placePos ->
+                OpenContainer(placePos).then { screen ->
+                    withdraw(screen, selection).then {
+                        breakAndCollectBlock(placePos).finally {
+                            success()
                         }
                     }
                 }
-            }.start(this@Withdraw)
+            }.execute(this@ShulkerWithdraw)
         }
     }
 
-    override fun withdraw(selection: StackSelection) = Withdraw(selection, shulkerStack)
+    override fun withdraw(selection: StackSelection) = ShulkerWithdraw(selection, shulkerStack)
 
-    class Deposit(
+    class ShulkerDeposit(
         private val selection: StackSelection,
         private val shulkerStack: ItemStack
     ) : Task<Unit>() {
+        override val name = "Deposit $selection into ${shulkerStack.name.string}"
+
         override fun SafeContext.onStart() {
-            placeContainer(shulkerStack).thenRun(this@Deposit) { _, placePos ->
-                openContainer(placePos).thenRun(this@Deposit) { _, screen ->
-                    deposit(screen, selection).thenRun(this@Deposit) { _, _ ->
-                        breakAndCollectBlock(placePos).onSuccess { _, _ ->
-                            success(Unit)
+            PlaceContainer(shulkerStack).then { placePos ->
+                OpenContainer(placePos).then { screen ->
+                    deposit(screen, selection).then {
+                        breakAndCollectBlock(placePos).finally {
+                            success()
                         }
                     }
                 }
-            }.start(this@Deposit)
+            }.execute(this@ShulkerDeposit)
         }
     }
 
-    override fun deposit(selection: StackSelection) = Deposit(selection, shulkerStack)
+    override fun deposit(selection: StackSelection) = ShulkerDeposit(selection, shulkerStack)
 }

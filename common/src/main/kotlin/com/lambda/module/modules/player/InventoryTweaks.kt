@@ -24,9 +24,10 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task
+import com.lambda.task.TaskFlow.run
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
-import com.lambda.task.tasks.OpenContainer.Companion.openContainer
-import com.lambda.task.tasks.PlaceContainer.Companion.placeContainer
+import com.lambda.task.tasks.OpenContainer
+import com.lambda.task.tasks.PlaceContainer
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import com.lambda.util.player.SlotUtils.clickSlot
 import com.lambda.util.player.SlotUtils.hotbar
@@ -59,19 +60,19 @@ object InventoryTweaks : Module(
 
             player.closeScreen()
 
-            lastPlace = placeContainer(stack).thenRun(null) { _, placePos ->
+            lastPlace = PlaceContainer(stack).then { placePos ->
                 placedPos = placePos
-                openContainer(placePos).onSuccess { _, screenHandler ->
+                OpenContainer(placePos).finally { screenHandler ->
                     lastOpenScreen = screenHandler
                 }
-            }.start(null)
+            }.run()
         }
 
         listen<ScreenHandlerEvent.Close> { event ->
             if (event.screenHandler != lastOpenScreen) return@listen
             lastOpenScreen = null
             placedPos?.let {
-                lastBreak = breakAndCollectBlock(it).start(null)
+                lastBreak = breakAndCollectBlock(it).run()
                 placedPos = null
             }
         }

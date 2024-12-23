@@ -19,18 +19,21 @@ package com.lambda.module.hud
 
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
+import com.lambda.task.TaskFlow
 import com.lambda.util.math.Vec2d
 
-object TaskFlow : HudModule(
+object TaskFlowHUD : HudModule(
     name = "TaskFlowHud",
     defaultTags = setOf(ModuleTag.CLIENT),
 ) {
-    override val width = 50.0
-    override val height = 50.0
+    override val width = 200.0
+    override val height = 200.0
 
     init {
         onRender {
-            font.build("TaskFlow", Vec2d.ZERO)
+            TaskFlow.toString().lines().forEachIndexed { index, line ->
+                font.build(line, Vec2d(position.x, position.y + index * (font.getHeight(font.scaleMultiplier) + 2.0)))
+            }
         }
     }
 }

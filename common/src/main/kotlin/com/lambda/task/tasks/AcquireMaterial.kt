@@ -23,15 +23,18 @@ import com.lambda.interaction.material.ContainerManager.findContainerWithSelecti
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
 
-class AcquireMaterial(
+class AcquireMaterial @Ta5kBuilder constructor(
     val selection: StackSelection
 ) : Task<StackSelection>() {
+    override val name: String
+        get() = "Acquiring $selection"
+
     override fun SafeContext.onStart() {
         findContainerWithSelection(selection)
             ?.withdraw(selection)
-            ?.onSuccess { _, _ ->
+            ?.finally {
                 success(selection)
-            }?.start(this@AcquireMaterial)
+            }?.execute(this@AcquireMaterial)
             ?: failure(ContainerManager.NoContainerFound(selection)) // ToDo: Create crafting path
     }
 

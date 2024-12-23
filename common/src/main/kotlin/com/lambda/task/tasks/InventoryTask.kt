@@ -21,7 +21,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection
-import com.lambda.module.modules.client.TaskFlow
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.extension.inventorySlots
@@ -31,18 +31,21 @@ import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
 
-class InventoryTask(
+class InventoryTask @Ta5kBuilder constructor(
     val screen: ScreenHandler,
-    private val selector: StackSelection,
+    private val selection: StackSelection,
     val from: List<Slot>,
     val to: List<Slot>,
     private val closeScreen: Boolean = true
 ) : Task<Unit>() {
+    override val name: String
+        get() = "Moving $selection from [${from.joinToString { "${it.id}" }}] to [${from.joinToString { "${it.id}" }}] in ${runCatching { screen.type::class.simpleName }.getOrNull() ?: screen::class.simpleName}"
+
     private val transactions = mutableListOf<SlotUtils.Transaction>()
 
     override fun SafeContext.onStart() {
-        val selectedFrom = selector.filterSlots(from).filter { it.hasStack() }
-        val selectedTo = to.filter { it.stack.isEmpty } + to.filter { it.stack.item.block in TaskFlow.disposables }
+        val selectedFrom = selection.filterSlots(from).filter { it.hasStack() }
+        val selectedTo = to.filter { it.stack.isEmpty } + to.filter { it.stack.item.block in TaskFlowModule.disposables }
         selectedFrom.zip(selectedTo).forEach { (from, to) ->
             transactions.add(SlotUtils.Transaction(to.index, 0, SlotActionType.SWAP))
             transactions.add(SlotUtils.Transaction(from.index, 0, SlotActionType.SWAP))
@@ -55,16 +58,16 @@ class InventoryTask(
         // ToDo: Needs smart code to move as efficient as possible.
         //  Also should handle overflow etc. Should be more generic
         listen<TickEvent.Pre> {
-            val moved = selector.filterSlots(to)
+            val moved = selection.filterSlots(to)
                 .filter { it.hasStack() }
-                .sumOf { it.stack.count } >= selector.count
+                .sumOf { it.stack.count } >= selection.count
 
             if (transactions.isEmpty() || moved) {
                 if (closeScreen) player.closeHandledScreen()
-                success(Unit)
+                success()
             }
 
-            transactions.removeFirstOrNull()?.click() ?: success(Unit)
+            transactions.removeFirstOrNull()?.click() ?: success()
         }
     }
 
@@ -79,11 +82,11 @@ class InventoryTask(
         ) = InventoryTask(screen, selection, from, to, closeScreen)
 
         @Ta5kBuilder
-        fun withdraw(screen: ScreenHandler, selection: StackSelection) =
-            moveItems(screen, selection, screen.containerSlots, screen.inventorySlots)
+        fun withdraw(screen: ScreenHandler, selection: StackSelection, closeScreen: Boolean = true) =
+            moveItems(screen, selection, screen.containerSlots, screen.inventorySlots, closeScreen)
 
         @Ta5kBuilder
-        fun deposit(screen: ScreenHandler, selection: StackSelection) =
-            moveItems(screen, selection, screen.inventorySlots, screen.containerSlots)
+        fun deposit(screen: ScreenHandler, selection: StackSelection, closeScreen: Boolean = true) =
+            moveItems(screen, selection, screen.inventorySlots, screen.containerSlots, closeScreen)
     }
 }

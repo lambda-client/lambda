@@ -21,7 +21,7 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
-import com.lambda.module.modules.client.TaskFlow
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.FastVector
@@ -45,7 +45,7 @@ data class Simulation(val blueprint: Blueprint) {
                 if (!playerFitsIn(Vec3d.ofBottomCenter(blockPos))) return@getOrPut emptySet()
                 if (!blockPos.down().blockState(world).isSideSolidFullSquare(world, blockPos, Direction.UP)) return@getOrPut emptySet()
             }
-            blueprint.simulate(view, reach = TaskFlow.interact.reach - 1)
+            blueprint.simulate(view, reach = TaskFlowModule.interact.reach - 1)
         }
 
     private fun SafeContext.playerFitsIn(pos: Vec3d): Boolean {

@@ -23,6 +23,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.http.urlEncoded
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.DynamicBlueprint
@@ -32,7 +33,7 @@ import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.module.modules.client.TaskFlow
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.extension.Structure
@@ -41,11 +42,13 @@ import net.minecraft.util.math.BlockPos
 class BuildTask @Ta5kBuilder constructor(
     private val blueprint: Blueprint,
     private val finishOnDone: Boolean = true,
-    private val pathing: Boolean = TaskFlow.build.pathing,
+    private val pathing: Boolean = TaskFlowModule.build.pathing,
     private val stayInRange: Boolean = true,
     private val forceSilkTouch: Boolean = false,
-    val collectDrops: Boolean = TaskFlow.build.collectDrops,
+    val collectDrops: Boolean = TaskFlowModule.build.collectDrops,
 ) : Task<Unit>() {
+    override val name: String get() = "Building $blueprint"
+
     private var previousResults = setOf<BuildResult>()
     private val placeTimeout = 5
     private val pending = mutableListOf<BuildResult>()
@@ -83,12 +86,12 @@ class BuildTask @Ta5kBuilder constructor(
             val instantResults = results.filterIsInstance<BreakResult.Break>()
                 .filter { it.context.instantBreak }
                 .sorted()
-                .take(TaskFlow.build.breaksPerTick)
+                .take(TaskFlowModule.build.breaksPerTick)
 
-            if (TaskFlow.build.breaksPerTick > 1 && instantResults.isNotEmpty()) {
+            if (TaskFlowModule.build.breaksPerTick > 1 && instantResults.isNotEmpty()) {
                 instantResults.forEach {
                     pending.add(it)
-                    it.start(this@BuildTask, pauseParent = false)
+                    it.execute(this@BuildTask, pauseParent = false)
                 }
                 return@listen
             }
@@ -100,7 +103,7 @@ class BuildTask @Ta5kBuilder constructor(
             val result = results.minOrNull() ?: return@listen
             when (result) {
                 is BuildResult.Done -> {
-                    if (finishOnDone) success(Unit)
+                    if (finishOnDone) success()
                 }
 //                !result.rank.solvable -> failure("Result is not solvable: $result")
                 is BuildResult.NotVisible, is PlaceResult.NoIntegrity -> {
@@ -126,7 +129,9 @@ class BuildTask @Ta5kBuilder constructor(
                     }
 
                     pending.add(result)
-                    result.start(this@BuildTask, pauseParent = result.pausesParent)
+                    result.finally {
+                        this@BuildTask.activate()
+                    }.execute(this@BuildTask, pauseParent = result.pausesParent)
                 }
             }
         }
@@ -136,10 +141,10 @@ class BuildTask @Ta5kBuilder constructor(
         @Ta5kBuilder
         fun build(
             finishOnDone: Boolean = true,
-            pathing: Boolean = TaskFlow.build.pathing,
+            pathing: Boolean = TaskFlowModule.build.pathing,
             stayInRange: Boolean = true,
             forceSilkTouch: Boolean = false,
-            collectDrops: Boolean = TaskFlow.build.collectDrops,
+            collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             cancelOnUnsolvable: Boolean = true,
             blueprint: () -> Blueprint,
         ) = BuildTask(
@@ -154,10 +159,10 @@ class BuildTask @Ta5kBuilder constructor(
         @Ta5kBuilder
         fun Structure.build(
             finishOnDone: Boolean = true,
-            pathing: Boolean = TaskFlow.build.pathing,
+            pathing: Boolean = TaskFlowModule.build.pathing,
             stayInRange: Boolean = true,
             forceSilkTouch: Boolean = false,
-            collectDrops: Boolean = TaskFlow.build.collectDrops,
+            collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             cancelOnUnsolvable: Boolean = true,
         ) = BuildTask(
             toBlueprint(),
@@ -171,10 +176,10 @@ class BuildTask @Ta5kBuilder constructor(
         @Ta5kBuilder
         fun Blueprint.build(
             finishOnDone: Boolean = true,
-            pathing: Boolean = TaskFlow.build.pathing,
+            pathing: Boolean = TaskFlowModule.build.pathing,
             stayInRange: Boolean = true,
             forceSilkTouch: Boolean = false,
-            collectDrops: Boolean = TaskFlow.build.collectDrops,
+            collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             cancelOnUnsolvable: Boolean = true,
         ) = BuildTask(
             this,

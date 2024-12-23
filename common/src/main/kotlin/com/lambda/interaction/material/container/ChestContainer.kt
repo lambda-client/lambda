@@ -21,10 +21,9 @@ import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.tasks.InventoryTask.Companion.deposit
 import com.lambda.task.tasks.InventoryTask.Companion.withdraw
-import com.lambda.task.tasks.OpenContainer.Companion.openContainer
+import com.lambda.task.tasks.OpenContainer
 import com.lambda.util.Communication.info
 import net.minecraft.item.ItemStack
-import net.minecraft.screen.GenericContainerScreenHandler
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.util.math.BlockPos
 
@@ -47,21 +46,17 @@ data class ChestContainer(
 //        }
 
     override fun withdraw(selection: StackSelection) =
-        openContainer(blockPos)
-//            .withMaxAttempts(3)
-//            .withTimeout(20)
-            .onSuccess { open, screen ->
-                info("Withdrawing $selection from ${screen.type}")
-                withdraw(screen, selection).start(open)
+        OpenContainer(blockPos)
+            .then {
+                info("Withdrawing $selection from ${it.type}")
+                withdraw(it, selection)
             }
 
     override fun deposit(selection: StackSelection) =
-        openContainer(blockPos)
-//            .withMaxAttempts(3)
-//            .withTimeout(20)
-            .onSuccess { open, screen ->
-                info("Depositing $selection to ${screen.type}")
-                deposit(screen, selection).start(open)
+        OpenContainer(blockPos)
+            .then {
+                info("Depositing $selection to ${it.type}")
+                deposit(it, selection)
             }
 
     class ChestBlockedException : Exception("The chest is blocked by another block or a cat")

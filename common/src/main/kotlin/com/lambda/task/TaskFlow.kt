@@ -15,16 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.blueprint
+package com.lambda.task
 
-import com.lambda.util.extension.Structure
+import com.lambda.threading.runSafe
 
-data class StaticBlueprint(
-    override val structure: Structure
-) : Blueprint() {
-    override fun toString() = "Static Blueprint at ${center.toShortString()}"
+object TaskFlow : Task<Unit>() {
+    override val name get() = "TaskFlow ($size)"
 
-    companion object {
-        fun Structure.toBlueprint() = StaticBlueprint(this)
+    @Ta5kBuilder
+    fun Task<*>.run() = this.execute(this@TaskFlow)
+
+    @Ta5kBuilder
+    fun Task<*>.run(task: TaskGenerator<Unit>) {
+        runSafe {
+            task(Unit).execute(this@run)
+        }
     }
 }

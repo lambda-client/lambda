@@ -46,7 +46,8 @@
     "world.BlockCollisionSpliteratorMixin",
     "world.ClientChunkManagerMixin",
     "world.ClientWorldMixin",
-    "world.StructureTemplateMixin"
+    "world.StructureTemplateMixin",
+    "world.WorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1

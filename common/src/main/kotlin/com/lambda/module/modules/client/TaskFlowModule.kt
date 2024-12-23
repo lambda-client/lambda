@@ -26,7 +26,7 @@ import com.lambda.util.BlockUtils.allSigns
 import com.lambda.util.item.ItemUtils
 import net.minecraft.state.property.Properties
 
-object TaskFlow : Module(
+object TaskFlowModule : Module(
     name = "TaskFlow",
     description = "Settings for task automation",
     defaultTags = setOf(ModuleTag.CLIENT, ModuleTag.AUTOMATION)

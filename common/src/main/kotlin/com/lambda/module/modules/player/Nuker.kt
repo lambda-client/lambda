@@ -22,7 +22,8 @@ import com.lambda.interaction.construction.blueprint.DynamicBlueprint.Companion.
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.Task.Companion.emptyTask
+import com.lambda.task.Task
+import com.lambda.task.TaskFlow.run
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
@@ -39,7 +40,7 @@ object Nuker : Module(
     private val onlyBreakInstant by setting("Only Break Instant", true)
     private val fillFloor by setting("Fill Floor", false)
 
-    private var task = emptyTask()
+    private var task: Task<*>? = null
 
     init {
         onEnable {
@@ -68,11 +69,11 @@ object Nuker : Module(
                     finishOnDone = false,
                     cancelOnUnsolvable = false
                 )
-            task.start(null)
+            task?.run()
         }
 
         onDisable {
-            task.cancel()
+            task?.cancel()
         }
 
 //        listener<TickEvent.Pre> {

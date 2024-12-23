@@ -26,7 +26,7 @@ import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.MainHandContainer
-import com.lambda.task.tasks.BreakBlock.Companion.breakBlock
+import com.lambda.task.tasks.BreakBlock
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
@@ -50,9 +50,9 @@ sealed class BreakResult : BuildResult() {
         override val pausesParent get() = collectDrop
 
         override fun SafeContext.onStart() {
-            breakBlock(context, collectDrop = collectDrop).onSuccess { _, _ ->
-                success(Unit)
-            }.start(this@Break)
+            BreakBlock(context, collectDrop).finally {
+                success()
+            }.execute(this@Break)
         }
 
         override fun SafeContext.buildRenderer() {
@@ -114,12 +114,12 @@ sealed class BreakResult : BuildResult() {
             findBestAvailableTool(blockState)
                 ?.select()
                 ?.transfer(MainHandContainer)
-                ?.onSuccess { _, _ ->
-                    success(Unit)
-                }?.start(this@ItemCantMine) ?: run {
+                ?.finally {
+                    success()
+                }?.execute(this@ItemCantMine) ?: run {
                     selectStack {
                         isItem(badItem).not()
-                    }.transfer(MainHandContainer)?.start(this@ItemCantMine) ?: failure("No item found or space")
+                    }.transfer(MainHandContainer)?.execute(this@ItemCantMine) ?: failure("No item found or space")
                 }
         }
 

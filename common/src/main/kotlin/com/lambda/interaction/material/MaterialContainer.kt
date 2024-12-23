@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.material
 
+import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.ShulkerBoxContainer
 import com.lambda.interaction.material.transfer.TransferResult
@@ -51,17 +52,24 @@ abstract class MaterialContainer(
         this.stacks = stacks
     }
 
+    class Nothing : Task<Unit>() {
+        override val name = "Nothing"
+        override fun SafeContext.onStart() {
+            success()
+        }
+    }
+
     /**
      * Withdraws items from the container to the player's inventory.
      */
     @Task.Ta5kBuilder
-    abstract fun withdraw(selection: StackSelection): Task<*>
+    open fun withdraw(selection: StackSelection): Task<*> = Nothing()
 
     /**
      * Deposits items from the player's inventory into the container.
      */
     @Task.Ta5kBuilder
-    abstract fun deposit(selection: StackSelection): Task<*>
+    open fun deposit(selection: StackSelection): Task<*> = Nothing()
 
     open fun matchingStacks(selection: StackSelection) =
         selection.filterStacks(stacks)

@@ -33,14 +33,6 @@ data class StashContainer(
         set(_) {}
     override val name = "Stash at ${pos.center.blockPos.toShortString()}"
 
-    override fun withdraw(selection: StackSelection): Task<*> {
-        TODO("Not yet implemented")
-    }
-
-    override fun deposit(selection: StackSelection): Task<*> {
-        TODO("Not yet implemented")
-    }
-
     override fun available(selection: StackSelection): Int =
         chests.sumOf {
             it.available(selection)
