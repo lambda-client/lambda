@@ -15,8 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.renderer.esp.impl
+package com.lambda.gui.component
 
-import com.lambda.graphics.renderer.esp.ESPRenderer
+enum class HAlign(val multiplier: Double, val offset: Double) {
+    LEFT(0.0, -1.0),
+    CENTER(0.5, 0.0),
+    RIGHT(1.0, 1.0)
+}
 
-open class DynamicESPRenderer : ESPRenderer(true)
+enum class VAlign(val multiplier: Double, val offset: Double) {
+    TOP(0.0, -1.0),
+    CENTER(0.5, 0.0),
+    BOTTOM(1.0, 1.0)
+}

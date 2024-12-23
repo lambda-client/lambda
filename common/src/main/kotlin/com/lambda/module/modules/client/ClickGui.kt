@@ -17,61 +17,77 @@
 
 package com.lambda.module.modules.client
 
-import com.lambda.event.events.ClientEvent
-import com.lambda.event.events.KeyboardEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.gui.impl.clickgui.LambdaClickGui
-import com.lambda.gui.impl.hudgui.LambdaHudGui
 import com.lambda.module.Module
+import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.KeyCode
+import com.lambda.gui.ScreenLayout.Companion.gui
+import com.lambda.gui.component.core.FilledRect.Companion.rect
+import com.lambda.gui.impl.clickgui.ModuleLayout.Companion.moduleLayout
+import com.lambda.gui.impl.clickgui.ModuleWindow.Companion.moduleWindow
+import com.lambda.util.math.Vec2d
+import com.lambda.util.math.setAlpha
+import java.awt.Color
 
 object ClickGui : Module(
     name = "ClickGui",
-    description = "Sexy",
-    defaultTags = setOf(ModuleTag.CLIENT),
-    defaultKeybind = KeyCode.RIGHT_SHIFT
+    description = "sexy again",
+    defaultTags = setOf(ModuleTag.CLIENT)
 ) {
-    // General
-    val windowRadius by setting("Window Radius", 2.0, 0.0..10.0, 0.1)
-    val glowRadius by setting("Glow Radius", 2.0, 0.0..20.0, 0.1)
-    val buttonRadius by setting("Button Radius", 0.0, 0.0..10.0, 0.1)
-    val windowPadding by setting("Window Padding", 2.0, 0.0..10.0, 0.1)
-    val buttonHeight by setting("Button Height", 11.0, 8.0..20.0, 0.1)
-    val buttonStep by setting("Button Step", 0.0, 0.0..5.0, 0.1)
-    val settingsFontScale by setting("Settings Font Scale", 0.92, 0.5..1.0, 0.01)
+    val titleBarHeight by setting("Title Bar Height", 18.0, 10.0..25.0, 0.1)
+    val moduleHeight by setting("Module Height", 18.0, 10.0..25.0, 0.1)
+    val settingsHeight by setting("Settings Height", 14.0, 10.0..25.0, 0.1)
+    val padding by setting("Padding", 2.0, 1.0..6.0, 0.1)
+    val listStep by setting("List Step", 2.0, 0.0..6.0, 0.1)
+    val autoResize by setting("Auto Resize", false)
 
-    // Animation
-    val openSpeed by setting("Open Speed", 0.5, 0.1..1.0, 0.01)
-    val closeSpeed by setting("Close Speed", 0.5, 0.1..1.0, 0.01)
-    val scrollSpeed by setting("Scroll Speed", 1.0, 0.1..10.0, 0.01)
+    val roundRadius by setting("Round Radius", 2.0, 0.0..10.0, 0.1)
 
-    // Alignment
-    val allowHAlign by setting("Allow H Docking", false)
-    val allowVAlign by setting("Allow V Docking", true)
-    val dockingGridSize by setting("Docking Grid Size", 1.0, 0.0..20.0, 0.5)
+    val backgroundTint by setting("Background Tint", Color.BLACK.setAlpha(0.4))
+
+    val titleBackgroundColor by setting("Title Background Color", Color.WHITE.setAlpha(0.4))
+    val backgroundColor by setting("Background Color", Color.WHITE.setAlpha(0.25))
+    val backgroundShade by setting("Background Shade", true)
+
+    val outline by setting("Outline", true)
+    val outlineWidth by setting("Outline Width", 10.0, 1.0..10.0, 0.1) { outline }
+    val outlineColor by setting("Outline Color", Color.WHITE.setAlpha(0.6)) { outline }
+    val outlineShade by setting("Outline Shade", true) { outline }
+    val fontScale by setting("Font Scale", 1.0, 0.5..2.0, 0.1)
+    val fontOffset by setting("Font Offset", 2.0, 0.0..5.0, 0.1)
+    val dockingGridSize by setting("Docking Grid Size", 1.0, 0.1..10.0, 0.1)
+
+    val moduleEnabledColor by setting("Module Enabled Color", Color.WHITE.setAlpha(0.25))
+    val moduleDisabledColor by setting("Module Disabled Color", Color.WHITE.setAlpha(0.05))
+
+    val SCREEN get() = gui("Click Gui") {
+        rect {
+            onUpdate {
+                rectangle = owner!!.rect
+                setColor(backgroundTint)
+            }
+        }
+
+        val tags = ModuleTag.defaults
+        val modules = ModuleRegistry.modules
+
+        var x = 20.0
+        val y = x
+
+        tags.forEachIndexed { i, tag ->
+            x += moduleWindow(tag, Vec2d(x, y)) {
+                modules.filter {
+                    it.defaultTags.firstOrNull() == tag
+                }.forEach { module ->
+                    moduleLayout(module)
+                }
+            }.width + 3
+        }
+    }
 
     init {
         onEnable {
-            LambdaClickGui.show()
-        }
-
-        onDisable {
-            LambdaClickGui.close()
-            LambdaHudGui.close()
-        }
-
-        listen<KeyboardEvent.Press>(priority = Int.MAX_VALUE) { event ->
-            if (mc.options.commandKey.isPressed) return@listen
-            if (keybind == KeyCode.UNBOUND) return@listen
-            if (event.translated != keybind) return@listen
-            // ToDo: Exception for ui text input
+            SCREEN.show()
             toggle()
-        }
-
-        listenUnsafe<ClientEvent.Shutdown> {
-            disable()
         }
     }
 }

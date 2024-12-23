@@ -15,8 +15,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.renderer.esp.impl
+package com.lambda.graphics.pipeline
 
-import com.lambda.graphics.renderer.esp.ESPRenderer
+import com.lambda.core.Loadable
+import com.lambda.graphics.gl.GlStateUtils.withDepth
+import com.lambda.graphics.renderer.gui.font.FontRenderer
+import com.lambda.graphics.renderer.gui.rect.FilledRectRenderer
+import com.lambda.graphics.renderer.gui.rect.OutlineRectRenderer
 
-open class DynamicESPRenderer : ESPRenderer(true)
+object UIPipeline : Loadable {
+    private var uiDepth = 0
+    val depth get() = uiDepth * -0.001
+
+    fun objectDrawn() {
+        uiDepth++
+    }
+
+    fun reset() {
+        uiDepth = 0
+    }
+
+    fun render() = withDepth(true) {
+        FilledRectRenderer.render()
+        OutlineRectRenderer.render()
+        FontRenderer.render()
+    }
+}

@@ -21,10 +21,11 @@ import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.RenderPipeline
+import com.lambda.graphics.pipeline.UIPipeline
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
+import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.interaction.RotationManager
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.visibilty.VisibilityChecker.findRotation
@@ -246,7 +247,7 @@ object PacketMine : Module(
             this == Primary
     }
 
-    val renderer = RenderPipeline.DYNAMIC_ESP
+    val renderer = DynamicESP
     private var currentMiningBlock = Array<BreakingContext?>(2) { null }
     private var lastNonEmptyState: BlockState? = null
     private val blockQueue = ArrayDeque<BlockPos>()

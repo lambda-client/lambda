@@ -6,6 +6,9 @@ uniform vec4 u_Color2;
 uniform vec2 u_Size;
 
 in vec2 v_Position;
+in vec2 v_TexCoord;
+in vec2 v_Scissor1;
+in vec2 v_Scissor2;
 in float v_Alpha;
 in vec4 v_Color;
 in float v_Shade;
@@ -26,6 +29,11 @@ vec4 glow() {
     return vec4(1.0, 1.0, 1.0, newAlpha);
 }
 
+bool scissorFailed(vec2 coord) {
+    return coord.x < v_Scissor1.x || coord.x > v_Scissor2.x || coord.y < v_Scissor1.y || coord.y > v_Scissor2.y;
+}
+
 void main() {
+    if (scissorFailed(v_TexCoord)) discard;
     color = shade() * glow();
 }

@@ -19,7 +19,7 @@ package com.lambda.module.modules.client
 
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.gui.api.RenderLayer
+import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.Vec2d
@@ -34,16 +34,14 @@ object LambdaMoji : Module(
     val scale by setting("Emoji Scale", 1.0, 0.5..1.5, 0.1)
     val suggestions by setting("Chat Suggestions", true)
 
-    private val renderer = RenderLayer()
     private val renderQueue = mutableListOf<Triple<String, Vec2d, Color>>()
 
     init {
         listen<RenderEvent.GUI.Scaled> {
             renderQueue.forEach { (text, position, color) ->
-                renderer.font.build(text, position, color, scale = scale)
+                drawString(text, position, color, scale = scale)
             }
 
-            renderer.render()
             renderQueue.clear()
         }
     }

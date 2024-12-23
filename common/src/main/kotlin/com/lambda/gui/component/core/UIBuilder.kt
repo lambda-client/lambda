@@ -15,8 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.renderer.esp.impl
+package com.lambda.gui.component.core
 
-import com.lambda.graphics.renderer.esp.ESPRenderer
-
-open class DynamicESPRenderer : ESPRenderer(true)
+@DslMarker
+annotation class UIBuilder

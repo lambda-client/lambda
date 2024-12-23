@@ -18,6 +18,8 @@
 package com.lambda.module.hud
 
 import com.lambda.graphics.animation.Animation.Companion.exp
+import com.lambda.graphics.renderer.gui.rect.FilledRectRenderer.filledRect
+import com.lambda.graphics.renderer.gui.rect.OutlineRectRenderer.outlineRect
 import com.lambda.module.HudModule
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.GuiSettings
@@ -46,28 +48,30 @@ object TickShiftCharge : HudModule(
 
     init {
         onRender {
-            filled.build(
+            filledRect(
                 rect = rect,
-                roundRadius = ClickGui.windowRadius,
+                roundRadius = ClickGui.roundRadius,
                 color = GuiSettings.backgroundColor,
                 shade = GuiSettings.shadeBackground
             )
 
             val padding = 1.0
-            filled.build(
+            filledRect(
                 rect = Rect.basedOn(rect.leftTop, rect.size.x * renderProgress, rect.size.y).shrink(padding),
-                roundRadius = ClickGui.windowRadius - padding,
+                roundRadius = ClickGui.roundRadius - padding,
                 color = GuiSettings.mainColor.multAlpha(0.3),
                 shade = true
             )
 
-            outline.build(
-                rect = rect,
-                roundRadius = ClickGui.windowRadius,
-                color = (if (GuiSettings.shadeBackground) Color.WHITE else primaryColor).multAlpha(activeAnimation),
-                glowRadius = ClickGui.glowRadius * activeAnimation,
-                shade = true
-            )
+            if (ClickGui.outline) {
+                outlineRect(
+                    rect = rect,
+                    roundRadius = ClickGui.roundRadius,
+                    color = (if (GuiSettings.shadeBackground) Color.WHITE else primaryColor).multAlpha(activeAnimation),
+                    glowRadius = ClickGui.outlineWidth * activeAnimation,
+                    shade = true
+                )
+            }
         }
     }
 }

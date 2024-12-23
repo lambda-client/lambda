@@ -19,32 +19,35 @@ package com.lambda.graphics.renderer.gui.rect
 
 import com.lambda.graphics.buffer.IRenderContext
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.pipeline.ScissorAdapter
+import com.lambda.graphics.pipeline.UIPipeline
 import com.lambda.graphics.shader.Shader
 import com.lambda.util.math.lerp
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.transform
 import java.awt.Color
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 
-class OutlineRectRenderer : AbstractRectRenderer(
-    VertexAttrib.Group.RECT_OUTLINE, shader
+object OutlineRectRenderer : AbstractRectRenderer(
+    VertexAttrib.Group.RECT_OUTLINE, Shader("renderer/rect_outline")
 ) {
-    private val quality = 8
-    private val verticesCount = quality * 4
+    private const val QUALITY = 8
+    private const val VERTICES_COUNT = QUALITY * 4
 
-    fun build(
+    fun outlineRect(
         rect: Rect,
         roundRadius: Double = 0.0,
         glowRadius: Double = 1.0,
         color: Color = Color.WHITE,
         shade: Boolean = false,
-    ) = build(rect, roundRadius, glowRadius, color, color, color, color, shade)
+    ) = outlineRect(rect, roundRadius, glowRadius, color, color, color, color, shade)
 
-    fun build(
+    fun outlineRect(
         rect: Rect,
         roundRadius: Double = 0.0,
         glowRadius: Double = 1.0,
@@ -56,7 +59,9 @@ class OutlineRectRenderer : AbstractRectRenderer(
     ) = pipeline.use {
         if (glowRadius < 1) return@use
 
-        grow(verticesCount * 3)
+        grow(VERTICES_COUNT * 3)
+
+        val scissor = ScissorAdapter.scissorTest(rect.left, rect.top, rect.right, rect.bottom)
 
         fun IRenderContext.genVertices(size: Double, isGlow: Boolean): MutableList<Int> {
             val r = rect.expand(size)
@@ -66,15 +71,25 @@ class OutlineRectRenderer : AbstractRectRenderer(
             val maxRadius = min(halfSize.x, halfSize.y) - 0.5
             val round = (roundRadius + size).coerceAtMost(maxRadius).coerceAtLeast(0.0)
 
-            fun MutableList<Int>.buildCorners(base: Vec2d, c: Color, angleRange: IntRange) = repeat(quality) {
+            fun MutableList<Int>.buildCorners(base: Vec2d, c: Color, angleRange: IntRange) = repeat(QUALITY) {
                 val min = angleRange.first.toDouble()
                 val max = angleRange.last.toDouble()
-                val p = it.toDouble() / quality
+                val p = it.toDouble() / QUALITY
                 val angle = lerp(p, min, max).toRadian()
 
                 val pos = base + Vec2d(cos(angle), -sin(angle)) * round
                 val s = shade.toInt().toDouble()
-                add(vec2m(pos.x, pos.y).float(a).float(s).color(c).end())
+
+                val uvx = transform(pos.x, rect.left, rect.right, 0.0, 1.0)
+                val uvy = transform(pos.y, rect.top, rect.bottom, 0.0, 1.0)
+
+                add(vec3m(pos.x, pos.y, UIPipeline.depth)
+                    .vec2(uvx, uvy)
+                    .float(a).float(s)
+                    .vec2(scissor.x1, scissor.y1)
+                    .vec2(scissor.x2, scissor.y2)
+                    .color(c).end()
+                )
             }
 
             val rt = r.rightTop + Vec2d(-round, round)
@@ -94,7 +109,7 @@ class OutlineRectRenderer : AbstractRectRenderer(
 
         fun drawStripWith(vertices: MutableList<Int>) {
             var prev = main.last() to vertices.last()
-            repeat(verticesCount) {
+            repeat(VERTICES_COUNT) {
                 val new = main[it] to vertices[it]
                 putQuad(new.first, new.second, prev.second, prev.first)
                 prev = new
@@ -103,9 +118,7 @@ class OutlineRectRenderer : AbstractRectRenderer(
 
         drawStripWith(genVertices(-(glowRadius.coerceAtMost(1.0)), true))
         drawStripWith(genVertices(glowRadius, true))
-    }
 
-    companion object {
-        private val shader = Shader("renderer/rect_outline")
+        UIPipeline.objectDrawn()
     }
 }

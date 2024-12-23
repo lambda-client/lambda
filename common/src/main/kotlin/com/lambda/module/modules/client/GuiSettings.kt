@@ -22,7 +22,6 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.animation.AnimationTicker
-import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import java.awt.Color
@@ -63,7 +62,7 @@ object GuiSettings : Module(
 
     private var targetScale = 2.0
         get() {
-            val update = System.currentTimeMillis() - lastChange > 200 || !LambdaClickGui.isOpen
+            val update = System.currentTimeMillis() - lastChange > 200 || !ClickGui.SCREEN.isOpen
             if (update) field = scaleSetting / 100.0 * 2.0
             return field
         }

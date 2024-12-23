@@ -21,7 +21,6 @@ import com.lambda.graphics.RenderMain
 import com.lambda.graphics.shader.ShaderUtils.createShaderProgram
 import com.lambda.graphics.shader.ShaderUtils.loadShader
 import com.lambda.graphics.shader.ShaderUtils.uniformMatrix
-import com.lambda.util.LambdaResource
 import com.lambda.util.math.Vec2d
 import it.unimi.dsi.fastutil.objects.Object2IntMap
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
@@ -42,7 +41,7 @@ class Shader(fragmentPath: String, vertexPath: String) {
 
     fun use() {
         glUseProgram(id)
-        set("u_ProjModel", Matrix4f(RenderMain.projectionMatrix).mul(RenderMain.modelViewMatrix))
+        set("u_ProjModel", RenderMain.projModel)
     }
 
     private fun loc(name: String) =

@@ -17,6 +17,7 @@
 
 package com.lambda.module.hud
 
+import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.Vec2d
@@ -30,7 +31,7 @@ object TaskFlow : HudModule(
 
     init {
         onRender {
-            font.build("TaskFlow", Vec2d.ZERO)
+            drawString("TaskFlow", Vec2d.ZERO)
         }
     }
 }

@@ -7,6 +7,8 @@ uniform vec2 u_Size;
 
 in vec2 v_Position;
 in vec2 v_TexCoord;
+in vec2 v_Scissor1;
+in vec2 v_Scissor2;
 in vec4 v_Color;
 in vec2 v_Size;
 in vec2 v_RoundRadiusL;
@@ -76,6 +78,11 @@ vec4 round() {
     return vec4(1.0, 1.0, 1.0, clamp(alpha, 0.0, 1.0));
 }
 
+bool scissorFailed(vec2 coord) {
+    return coord.x < v_Scissor1.x || coord.x > v_Scissor2.x || coord.y < v_Scissor1.y || coord.y > v_Scissor2.y;
+}
+
 void main() {
+    if (scissorFailed(v_TexCoord)) discard;
     color = shade() * round() + noise();
 }

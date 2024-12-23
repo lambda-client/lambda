@@ -20,6 +20,8 @@ package com.lambda.graphics.renderer.gui.font
 import com.lambda.graphics.buffer.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
+import com.lambda.graphics.pipeline.ScissorAdapter
+import com.lambda.graphics.pipeline.UIPipeline
 import com.lambda.graphics.renderer.gui.font.LambdaAtlas.bind
 import com.lambda.graphics.renderer.gui.font.LambdaAtlas.get
 import com.lambda.graphics.renderer.gui.font.LambdaAtlas.height
@@ -37,7 +39,7 @@ import java.awt.Color
  * Renders text and emoji glyphs using a shader-based font rendering system.
  * This class handles text and emoji rendering, shadow effects, and text scaling.
  */
-class FontRenderer {
+object FontRenderer {
     private val chars = RenderSettings.textFont
     private val emojis = RenderSettings.emojiFont
 
@@ -47,7 +49,7 @@ class FontRenderer {
     private val shadowShift get() = RenderSettings.shadowShift * 5.0
     private val baselineOffset get() = RenderSettings.baselineOffset * 2.0f - 10f
     private val gap get() = RenderSettings.gap * 0.5f - 0.8f
-    private val scaleMultiplier: Double get() = ClickGui.settingsFontScale
+    private val scaleMultiplier: Double get() = 1.0
 
     /**
      * Builds the vertex array for rendering the provided text string at a specified position.
@@ -59,14 +61,16 @@ class FontRenderer {
      * @param shadow Whether to render a shadow for the text.
      * @param parseEmoji Whether to parse and render emojis in the text.
      */
-    fun build(
+    fun drawString(
         text: String,
         position: Vec2d = Vec2d.ZERO,
         color: Color = Color.WHITE,
         scale: Double = 1.0,
         shadow: Boolean = RenderSettings.shadow,
         parseEmoji: Boolean = LambdaMoji.isEnabled
-    ) = processText(text, color, scale, shadow, parseEmoji) { char, pos1, pos2, color -> buildGlyph(char, position, pos1, pos2, color) }
+    ) = processText(text, color, scale, shadow, parseEmoji) { char, pos1, pos2, color -> buildGlyph(char, position, pos1, pos2, color) }.also {
+        UIPipeline.objectDrawn()
+    }
 
     /**
      * Renders a single glyph at a given position.
@@ -85,14 +89,21 @@ class FontRenderer {
         color: Color = Color.WHITE,
     ) = pipeline.use {
         grow(4)
+
+        val x1 = pos1.x + origin.x
+        val y1 = pos1.y + origin.y
+        val x2 = pos2.x + origin.x
+        val y2 = pos2.y + origin.y
+
+        val scissor = ScissorAdapter.scissorTest(x1, y1, x2, y2, glyph)
+
         putQuad(
-            vec3m(pos1.x + origin.x, pos1.y + origin.y, 0.0).vec2(glyph.uv1.x, glyph.uv1.y).color(color).end(),
-            vec3m(pos1.x + origin.x, pos2.y + origin.y, 0.0).vec2(glyph.uv1.x, glyph.uv2.y).color(color).end(),
-            vec3m(pos2.x + origin.x, pos2.y + origin.y, 0.0).vec2(glyph.uv2.x, glyph.uv2.y).color(color).end(),
-            vec3m(pos2.x + origin.x, pos1.y + origin.y, 0.0).vec2(glyph.uv2.x, glyph.uv1.y).color(color).end()
+            vec3m(x1, y1, UIPipeline.depth).vec2(glyph.uv1.x, glyph.uv1.y).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(color).end(),
+            vec3m(x1, y2, UIPipeline.depth).vec2(glyph.uv1.x, glyph.uv2.y).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(color).end(),
+            vec3m(x2, y2, UIPipeline.depth).vec2(glyph.uv2.x, glyph.uv2.y).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(color).end(),
+            vec3m(x2, y1, UIPipeline.depth).vec2(glyph.uv2.x, glyph.uv1.y).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(color).end()
         )
     }
-
 
     /**
      * Calculates the width of the specified text.

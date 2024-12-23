@@ -212,7 +212,7 @@ object LambdaAtlas : Loadable {
         val str = "Loaded ${bufferPool.size} fonts" // avoid race condition
 
         runGameScheduled {
-            bufferPool.forEach { (owner, image) -> owner.upload(image) }
+            bufferPool.forEach { (owner, image) -> owner.upload(image, 4) }
             bufferPool.clear()
         }
 

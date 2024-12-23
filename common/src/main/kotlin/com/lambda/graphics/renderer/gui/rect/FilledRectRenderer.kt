@@ -18,23 +18,28 @@
 package com.lambda.graphics.renderer.gui.rect
 
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.pipeline.ScissorAdapter
+import com.lambda.graphics.pipeline.UIPipeline
 import com.lambda.graphics.shader.Shader
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
 import java.awt.Color
 import kotlin.math.min
 
-class FilledRectRenderer : AbstractRectRenderer(
-    VertexAttrib.Group.RECT_FILLED, shader
+object FilledRectRenderer : AbstractRectRenderer(
+    VertexAttrib.Group.RECT_FILLED, Shader("renderer/rect_filled")
 ) {
-    fun build(
+    private const val MIN_SIZE = 0.5
+    private const val MIN_ALPHA = 3
+
+    fun filledRect(
         rect: Rect,
         roundRadius: Double = 0.0,
         color: Color = Color.WHITE,
         shade: Boolean = false,
-    ) = build(rect, roundRadius, color, color, color, color, shade)
+    ) = filledRect(rect, roundRadius, color, color, color, color, shade)
 
-    fun build(
+    fun filledRect(
         rect: Rect,
         roundRadius: Double = 0.0,
         leftTop: Color = Color.WHITE,
@@ -42,14 +47,14 @@ class FilledRectRenderer : AbstractRectRenderer(
         rightBottom: Color = Color.WHITE,
         leftBottom: Color = Color.WHITE,
         shade: Boolean = false,
-    ) = build(
+    ) = filledRect(
         rect,
         roundRadius, roundRadius, roundRadius, roundRadius,
         leftTop, rightTop, rightBottom, leftBottom,
         shade
     )
 
-    fun build(
+    fun filledRect(
         rect: Rect,
         leftTopRadius: Double = 0.0,
         rightTopRadius: Double = 0.0,
@@ -57,14 +62,14 @@ class FilledRectRenderer : AbstractRectRenderer(
         leftBottomRadius: Double = 0.0,
         color: Color = Color.WHITE,
         shade: Boolean = false,
-    ) = build(
+    ) = filledRect(
         rect,
         leftTopRadius, rightTopRadius, rightBottomRadius, leftBottomRadius,
         color, color, color, color,
         shade
     )
 
-    fun build(
+    fun filledRect(
         rect: Rect,
         leftTopRadius: Double = 0.0,
         rightTopRadius: Double = 0.0,
@@ -103,18 +108,15 @@ class FilledRectRenderer : AbstractRectRenderer(
 
         grow(4)
 
+        val scissor = ScissorAdapter.scissorTest(p1.x, p1.y, p2.x, p2.y)
+
         putQuad(
-            vec2m(p1.x, p1.y).vec2(0.0, 0.0).vec2(size.x, size.y).vec2(ltr, lbr).vec2(rtr, rbr).float(s).color(leftTop).end(),
-            vec2m(p1.x, p2.y).vec2(0.0, 1.0).vec2(size.x, size.y).vec2(ltr, lbr).vec2(rtr, rbr).float(s).color(leftBottom).end(),
-            vec2m(p2.x, p2.y).vec2(1.0, 1.0).vec2(size.x, size.y).vec2(ltr, lbr).vec2(rtr, rbr).float(s).color(rightBottom).end(),
-            vec2m(p2.x, p1.y).vec2(1.0, 0.0).vec2(size.x, size.y).vec2(ltr, lbr).vec2(rtr, rbr).float(s).color(rightTop).end()
+            vec3m(p1.x, p1.y, UIPipeline.depth).vec2(0.0, 0.0).vec2(size.x, size.y).vec2(ltr, lbr).vec2(rtr, rbr).float(s).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(leftTop).end(),
+            vec3m(p1.x, p2.y, UIPipeline.depth).vec2(0.0, 1.0).vec2(size.x, size.y).vec2(ltr, lbr).vec2(rtr, rbr).float(s).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(leftBottom).end(),
+            vec3m(p2.x, p2.y, UIPipeline.depth).vec2(1.0, 1.0).vec2(size.x, size.y).vec2(ltr, lbr).vec2(rtr, rbr).float(s).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(rightBottom).end(),
+            vec3m(p2.x, p1.y, UIPipeline.depth).vec2(1.0, 0.0).vec2(size.x, size.y).vec2(ltr, lbr).vec2(rtr, rbr).float(s).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(rightTop).end()
         )
-    }
 
-    companion object {
-        private const val MIN_SIZE = 0.5
-        private const val MIN_ALPHA = 3
-
-        private val shader = Shader("renderer/rect_filled")
+        UIPipeline.objectDrawn()
     }
 }

@@ -15,8 +15,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.renderer.esp.impl
+package com.lambda.gui.component.layout
 
-import com.lambda.graphics.renderer.esp.ESPRenderer
+class LayoutProperties {
+    /**
+     * If true, interactions pass through to elements beneath this one.
+     */
+    var interactionPassthrough = false
 
-open class DynamicESPRenderer : ESPRenderer(true)
+    /**
+     * If true, this element's rectangle is clamped within parent's bounds.
+     */
+    var clampPosition = false
+
+    /**
+     * If true, anything drawn onto this render layer are clipped within this rect.
+     */
+    var scissor = false
+}

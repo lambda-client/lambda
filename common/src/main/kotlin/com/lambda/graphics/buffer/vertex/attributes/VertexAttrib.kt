@@ -38,15 +38,48 @@ enum class VertexAttrib(
         POS_UV(Vec2, Vec2),
 
         // GUI
-        FONT(Vec3, Vec2, Color), // pos, uv, color
-        RECT_FILLED(Vec2, Vec2, Vec2, Vec2, Vec2, Float, Color), // pos, uv, size, roundL, roundR, shade, color
-        RECT_OUTLINE(Vec2, Float, Float, Color), // pos, alpha, shade, color
+        FONT(
+            Vec3, // pos
+            Vec2, // uv
+            Vec2, Vec2, // scissor test bounds
+            Color
+        ),
+
+        RECT_FILLED(
+            Vec3, // pos
+            Vec2, // uv
+            Vec2, // size
+            Vec2, Vec2, // roundL, roundR
+            Float, // shade
+            Vec2, Vec2, // scissor test bounds
+            Color
+        ),
+
+        RECT_OUTLINE(
+            Vec3, // pos
+            Vec2, // uv
+            Float, // alpha
+            Float, // shade
+            Vec2, Vec2, // scissor test bounds
+            Color
+        ),
 
         // WORLD
-        DYNAMIC_RENDERER(Vec3, Vec3, Color), // prev pos, pos, color
-        STATIC_RENDERER(Vec3, Color), // pos, color
+        DYNAMIC_RENDERER(
+            Vec3, // prev pos
+            Vec3, // pos
+            Color
+        ),
 
-        PARTICLE(Vec3, Vec2, Color); // pos, uv, color
+        STATIC_RENDERER(
+            Vec3, // pos
+            Color
+        ),
+
+        PARTICLE(Vec3,
+            Vec2, // pos
+            Color
+        );
 
         val stride = attributes.sumOf { attribute -> attribute.size }
     }

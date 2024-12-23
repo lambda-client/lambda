@@ -15,8 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.renderer.esp.impl
+package com.lambda.gui
 
-import com.lambda.graphics.renderer.esp.ESPRenderer
+import com.lambda.graphics.RenderMain
+import com.lambda.gui.component.core.UIBuilder
+import com.lambda.gui.component.layout.Layout
 
-open class DynamicESPRenderer : ESPRenderer(true)
+class ScreenLayout : Layout(owner = null, useBatching = false, batchChildren = true) {
+    init {
+        onRender {
+            size = RenderMain.screenSize
+        }
+    }
+
+    companion object {
+        /**
+         * Creates gui layout
+         */
+        @UIBuilder
+        fun gui(name: String, block: ScreenLayout.() -> Unit) =
+            LambdaScreen(name, ScreenLayout().apply(block))
+    }
+}

@@ -15,8 +15,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.renderer.esp.impl
+package com.lambda.event.events
 
-import com.lambda.graphics.renderer.esp.ESPRenderer
+import com.lambda.event.Event
+import com.lambda.util.KeyCode
+import com.lambda.util.Mouse
+import com.lambda.util.math.Vec2d
 
-open class DynamicESPRenderer : ESPRenderer(true)
+sealed class GuiEvent : Event {
+    data object Show : GuiEvent()
+    data object Hide : GuiEvent()
+    data object Tick : GuiEvent()
+    data object Render : GuiEvent()
+
+    class KeyPress(val key: KeyCode) : GuiEvent()
+
+    class CharTyped(val char: Char) : GuiEvent()
+
+    class MouseClick(val button: Mouse.Button, val action: Mouse.Action, val mouse: Vec2d) : GuiEvent()
+
+    class MouseMove(val mouse: Vec2d) : GuiEvent()
+
+    class MouseScroll(val mouse: Vec2d, val delta: Double) : GuiEvent()
+}
