@@ -23,6 +23,7 @@ import com.lambda.gui.api.RenderLayer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.Vec2d
+import java.awt.Color
 
 object LambdaMoji : Module(
     name = "LambdaMoji",
@@ -34,12 +35,12 @@ object LambdaMoji : Module(
     val suggestions by setting("Chat Suggestions", true)
 
     private val renderer = RenderLayer()
-    private val renderQueue = mutableListOf<Pair<String, Vec2d>>()
+    private val renderQueue = mutableListOf<Triple<String, Vec2d, Color>>()
 
     init {
         listen<RenderEvent.GUI.Scaled> {
-            renderQueue.forEach { (text, position) ->
-                renderer.font.build(text, position, scale = scale)
+            renderQueue.forEach { (text, position, color) ->
+                renderer.font.build(text, position, color, scale = scale)
             }
 
             renderer.render()
@@ -47,5 +48,5 @@ object LambdaMoji : Module(
         }
     }
 
-    fun push(text: String, position: Vec2d) = renderQueue.add(Pair(text, position))
+    fun push(text: String, position: Vec2d, color: Color) = renderQueue.add(Triple(text, position, color))
 }

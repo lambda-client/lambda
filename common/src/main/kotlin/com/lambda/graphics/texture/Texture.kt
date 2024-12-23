@@ -68,10 +68,9 @@ open class Texture(
         val height = image.height
 
         // Set this mipmap to `offset` to define the original texture
+        setupTexture(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
         glTexImage2D(GL_TEXTURE_2D, offset, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, readImage(image))
         glGenerateMipmap(GL_TEXTURE_2D) // This take the derived values GL_TEXTURE_BASE_LEVEL and GL_TEXTURE_MAX_LEVEL to generate the stack
-
-        setupTexture(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
     }
 
     open fun update(image: BufferedImage, offset: Int = 0) {

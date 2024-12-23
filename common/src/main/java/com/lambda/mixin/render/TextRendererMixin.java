@@ -33,6 +33,7 @@ import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 
+import java.awt.*;
 import java.util.List;
 
 @Mixin(TextRenderer.class)
@@ -61,9 +62,9 @@ public abstract class TextRendererMixin {
             int light,
             boolean rightToLeft
     ) {
-        if (LambdaMoji.INSTANCE.isDisabled()) return this.drawInternal(text, x, y, color, shadow, matrix, vertexConsumers, layerType, backgroundColor, light, rightToLeft);
+        String parsed = neoLambda$parseEmojisAndRender(text, x, y, color);
 
-        return this.drawInternal(neoLambda$parseEmojisAndRender(text, x, y), x, y, color, shadow, matrix, vertexConsumers, layerType, backgroundColor, light, rightToLeft);
+        return this.drawInternal(parsed, x, y, color, shadow, matrix, vertexConsumers, layerType, backgroundColor, light, rightToLeft);
     }
 
     /**
@@ -83,22 +84,21 @@ public abstract class TextRendererMixin {
             int backgroundColor,
             int light
     ) {
-        if (LambdaMoji.INSTANCE.isDisabled()) return this.drawInternal(text, x, y, color, shadow, matrix, vertexConsumers, layerType, backgroundColor, light);
-
         StringBuilder builder = new StringBuilder();
         text.accept((index, style, c) -> {
             builder.appendCodePoint(c);
             return true;
         });
 
-        return this.drawInternal(
-                Text.literal(neoLambda$parseEmojisAndRender(builder.toString(), x, y)).asOrderedText(),
-                x, y, color, shadow, matrix, vertexConsumers, layerType, backgroundColor, light
-        );
+        String parsed = neoLambda$parseEmojisAndRender(builder.toString(), x, y, color);
+
+        return this.drawInternal(Text.literal(parsed).asOrderedText(), x, y, color, shadow, matrix, vertexConsumers, layerType, backgroundColor, light);
     }
 
     @Unique
-    private String neoLambda$parseEmojisAndRender(String raw, float x, float y) {
+    private String neoLambda$parseEmojisAndRender(String raw, float x, float y, int color) {
+        if (LambdaMoji.INSTANCE.isDisabled()) return raw;
+
         List<String> emojis = LambdaEmoji.Twemoji.parse(raw);
 
         for (String emoji : emojis) {
@@ -111,7 +111,13 @@ public abstract class TextRendererMixin {
             int height = Lambda.getMc().textRenderer.fontHeight;
             int width = Lambda.getMc().textRenderer.getWidth(raw.substring(0, index));
 
-            LambdaMoji.INSTANCE.push(constructed, new Vec2d(x + width, y + (float) height / 2));
+            // Dude I'm sick of working with the shitcode that is minecraft's codebase :sob:
+            Color trueColor = switch (color) {
+                case 0x00E0E0E0, 0 -> new Color(255, 255, 255, 255);
+                default -> new Color(255, 255, 255, (color >> 24 & 0xFF));
+            };
+
+            LambdaMoji.INSTANCE.push(constructed, new Vec2d(x + width, y + (float) height / 2), trueColor);
 
             // Replace the emoji with whitespaces depending on the player's settings
             raw = raw.replaceFirst(constructed, neoLambda$getReplacement());
