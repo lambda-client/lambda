@@ -31,8 +31,6 @@ class AnimatedTexture(path: LambdaResource) : Texture(image = null, forceConsist
     private val pbo: PixelBuffer
     private val gif: ByteBuffer // Do NOT free this pointer
     private val frameDurations: IntArray
-    val width: Int
-    val height: Int
     val channels: Int
     val frames: Int
 

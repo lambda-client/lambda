@@ -45,6 +45,9 @@ open class Texture(
     var initialized: Boolean = false; private set
     val id = glGenTextures()
 
+    var width = -1; protected set
+    var height = -1; protected set
+
     /**
      * Binds the texture to a specific slot in the graphics pipeline.
      */
@@ -64,8 +67,9 @@ open class Texture(
         // mipmaps from them
         setupLOD(levels = levels)
 
-        val width = image.width
-        val height = image.height
+        width = image.width
+        height = image.height
+        initialized = true
 
         // Set this mipmap to `offset` to define the original texture
         setupTexture(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
@@ -74,11 +78,16 @@ open class Texture(
     }
 
     open fun update(image: BufferedImage, offset: Int = 0) {
-        if (forceConsistency && initialized)
-            throw IllegalStateException("Client tried to update a texture, but the enforce consistency flag was present")
+        if (!initialized) return upload(image, offset)
 
-        val width = image.width
-        val height = image.height
+        check(forceConsistency && initialized) {
+            "Client tried to update a texture, but the enforce consistency flag was present"
+        }
+
+        check(image.width + image.height > this.width + this.height && initialized) {
+            "Client tried to update a texture with more data than allowed" +
+                    "Expected ${this.width + this.height} bytes but got ${image.width + image.height}"
+        }
 
         // Can we rebuild LOD ?
         glTexSubImage2D(GL_TEXTURE_2D, offset, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, readImage(image))
@@ -100,8 +109,6 @@ open class Texture(
         image?.let {
             bind()
             upload(it)
-
-            initialized = true
         }
     }
 }
