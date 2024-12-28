@@ -24,25 +24,29 @@ import com.lambda.module.modules.client.RenderSettings
 import org.lwjgl.opengl.GL11C
 import org.lwjgl.opengl.GL45C.*
 import java.awt.image.BufferedImage
+import java.lang.IllegalStateException
+import java.nio.ByteBuffer
 
 /**
- * Represents a texture that can be uploaded and bound to the graphics pipeline.
+ * Represents a texture that can be uploaded and bound to the graphics pipeline
  * Supports mipmap generation and LOD (Level of Detail) configuration
  *
  * @param image             Optional initial image to upload to the texture
+ * @param format            The format of the image passed in
  * @param levels            Number of mipmap levels to generate for the texture
  * @param forceConsistency  Flag to enforce consistency when updating the texture. If true, attempts to update
  *                          the texture after initialization will throw an exception
  */
 open class Texture(
     image: BufferedImage?,
+    val format: Int = GL_RGBA,
     private val levels: Int = 4,
     private val forceConsistency: Boolean = false,
 ) {
     /**
      * Indicates whether there is an initial texture or not
      */
-    var initialized: Boolean = false; private set
+    var initialized: Boolean = false; protected set
     val id = glGenTextures()
 
     var width = -1; protected set
@@ -63,6 +67,8 @@ open class Texture(
      * @param offset The mipmap level to upload the image to
      */
     open fun upload(image: BufferedImage, offset: Int = 0) {
+        if (forceConsistency && initialized) throw IllegalStateException("Client tried to update a texture, but the enforce consistency flag was present")
+
         // Store level_base +1 through `level` images and generate
         // mipmaps from them
         setupLOD(levels = levels)
@@ -79,10 +85,7 @@ open class Texture(
 
     open fun update(image: BufferedImage, offset: Int = 0) {
         if (!initialized) return upload(image, offset)
-
-        check(forceConsistency && initialized) {
-            "Client tried to update a texture, but the enforce consistency flag was present"
-        }
+        if (forceConsistency && initialized) throw IllegalStateException("Client tried to update a texture, but the enforce consistency flag was present")
 
         check(image.width + image.height > this.width + this.height && initialized) {
             "Client tried to update a texture with more data than allowed" +
