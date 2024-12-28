@@ -25,19 +25,12 @@ import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(World.class)
 public abstract class WorldMixin {
-    @Inject(method = "setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;II)Z", at = @At("HEAD"), cancellable = true)
-    void setBlockStatePre(BlockPos pos, BlockState state, int flags, int maxUpdateDepth, CallbackInfoReturnable<Boolean> cir) {
-        if (EventFlow.post(new WorldEvent.BlockUpdate.Pre(pos, state, flags, maxUpdateDepth)).isCanceled()) {
-            cir.setReturnValue(false);
-        }
-    }
-
-    @Inject(method = "setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;II)Z", at = @At("TAIL"))
-    void setBlockStatePost(BlockPos pos, BlockState state, int flags, int maxUpdateDepth, CallbackInfoReturnable<Boolean> cir) {
-        EventFlow.post(new WorldEvent.BlockUpdate.Post(pos, state, flags, maxUpdateDepth));
+    @Inject(method = "onBlockChanged", at = @At("TAIL"))
+    void onBlockChanged(BlockPos pos, BlockState oldBlock, BlockState newBlock, CallbackInfo ci) {
+        EventFlow.post(new WorldEvent.BlockChange(pos, oldBlock, newBlock));
     }
 }

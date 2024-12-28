@@ -56,7 +56,7 @@ sealed class BreakResult : BuildResult() {
         }
 
         override fun SafeContext.buildRenderer() {
-            withPos(context.resultingPos, color, context.result.side)
+            withPos(context.expectedPos, color, context.result.side)
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {

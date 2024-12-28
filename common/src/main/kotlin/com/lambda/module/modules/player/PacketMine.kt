@@ -514,10 +514,10 @@ object PacketMine : Module(
             }
         }
 
-        listen<WorldEvent.BlockUpdate.Post> {
+        listen<WorldEvent.BlockChange> {
             currentMiningBlock.forEach { ctx ->
                 ctx?.apply {
-                    if (it.pos != pos || !isStateBroken(pos.blockState(world), it.state)) return@forEach
+                    if (it.pos != pos || !isStateBroken(pos.blockState(world), it.newState)) return@forEach
 
                     if (breakType.isPrimary()) {
                         runHandlers(ProgressStage.PacketReceiveBreak, pos, lastValidBestTool)

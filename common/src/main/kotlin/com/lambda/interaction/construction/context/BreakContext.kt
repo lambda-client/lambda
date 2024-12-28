@@ -35,7 +35,7 @@ data class BreakContext(
     override var hand: Hand,
     val instantBreak: Boolean,
 ) : BuildContext {
-    override val resultingPos: BlockPos
+    override val expectedPos: BlockPos
         get() = result.blockPos
 
     override val distance: Double by lazy {

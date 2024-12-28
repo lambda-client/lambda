@@ -35,14 +35,12 @@ data class PlaceContext(
     override val expectedState: BlockState,
     override val checkedState: BlockState,
     override val hand: Hand,
+    override val expectedPos: BlockPos,
     val targetState: TargetState,
     val sneak: Boolean,
     val insideBlock: Boolean,
     val primeDirection: Direction?
 ) : BuildContext {
-    override val resultingPos: BlockPos
-        get() = result.blockPos.offset(result.side)
-
     override fun compareTo(other: BuildContext): Int {
         return when (other) {
             is PlaceContext -> compareBy<PlaceContext> {

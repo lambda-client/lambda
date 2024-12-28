@@ -20,6 +20,7 @@ package com.lambda.module.modules.debug
 import com.lambda.Lambda.LOG
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.ScreenHandlerEvent
+import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -35,6 +36,10 @@ object InventoryDebug : Module(
     defaultTags = setOf(ModuleTag.DEBUG)
 ) {
     init {
+        listen<WorldEvent.BlockChange> {
+            info("Block change at ${it.pos.toShortString()}: ${it.oldState} -> ${it.newState}")
+        }
+
         listen<ScreenHandlerEvent.Open> {
             info("Opened screen handler: ${it.screenHandler::class.simpleName}")
         }

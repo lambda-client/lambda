@@ -257,6 +257,12 @@ object BuildSimulator {
 
                 var context = ItemPlacementContext(usageContext)
 
+                // ToDo: Actually find these result positions as well and use them smartly
+                if (context.blockPos != pos) {
+                    acc.add(PlaceResult.UnexpectedPosition(pos, context.blockPos))
+                    return@forEach
+                }
+
                 if (!optimalStack.item.isEnabled(world.enabledFeatures)) {
                     acc.add(PlaceResult.BlockFeatureDisabled(pos, optimalStack))
                     return@forEach
@@ -309,6 +315,7 @@ object BuildSimulator {
                     resultState,
                     blockHit.blockPos.blockState(world),
                     Hand.MAIN_HAND,
+                    context.blockPos,
                     target,
                     shouldSneak,
                     false,

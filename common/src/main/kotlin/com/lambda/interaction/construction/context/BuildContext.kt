@@ -29,9 +29,9 @@ interface BuildContext : Comparable<BuildContext> {
     val result: BlockHitResult
     val distance: Double
     val expectedState: BlockState
+    val expectedPos: BlockPos
     val checkedState: BlockState
     val hand: Hand
-    val resultingPos: BlockPos
     val rotation: RotationContext
 
     override fun compareTo(other: BuildContext): Int {

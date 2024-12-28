@@ -33,7 +33,8 @@ import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import net.minecraft.block.BlockState
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
-import net.minecraft.text.Text
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 class PlaceBlock @Ta5kBuilder constructor(
     private val ctx: PlaceContext,
@@ -44,20 +45,18 @@ class PlaceBlock @Ta5kBuilder constructor(
     override val name get() = "${state.description(waited)} ${ctx.targetState} at ${ctx.result.blockPos.toShortString()}"
 
     private var beginState: BlockState? = null
-    private var state = State.PRIME_ROTATION
+    private var state = State.INIT
     private var primeContext: RotationContext? = null
     private var waited = 0
 
-    private val SafeContext.resultingState: BlockState
-        get() = ctx.resultingPos.blockState(world)
-
     private val SafeContext.matches
-        get() = ctx.targetState.matches(ctx.resultingPos.blockState(world), ctx.resultingPos, world)
+        get() = ctx.targetState.matches(ctx.expectedPos.blockState(world), ctx.expectedPos, world)
 
     enum class State {
-        PRIME_ROTATION, ROTATING, PLACING, CONFIRMING;
+        INIT, PRIME_ROTATION, ROTATING, PLACING, CONFIRMING;
 
         fun description(waited: Int) = when (this) {
+            INIT -> "Placing block"
             PRIME_ROTATION -> "Priming rotation"
             ROTATING -> "Rotating"
             PLACING -> "Placing"
@@ -68,40 +67,34 @@ class PlaceBlock @Ta5kBuilder constructor(
     override fun SafeContext.onStart() {
         if (ctx.primeDirection == null) {
             state = State.ROTATING
+        } else {
+            state = State.PRIME_ROTATION
+            primeContext = RotationContext(
+                ctx.primeDirection.rotation,
+                ctx.rotation.config,
+            )
         }
 
         if (matches) {
             finish()
             return
         }
-        beginState = resultingState
+        beginState = ctx.expectedPos.blockState(world)
 
-        if (!rotate) {
-            placeBlock()
-        }
+        if (!rotate) placeBlock()
     }
 
     init {
         listen<RotationEvent.Update> { event ->
             if (!rotate) return@listen
-            when (state) {
-                State.PRIME_ROTATION -> {
-                    ctx.primeDirection?.let { direction ->
-                        primeContext = RotationContext(
-                            direction.rotation,
-                            ctx.rotation.config,
-                        )
-                        event.context = primeContext
-                    }
-                }
-                else -> event.context = ctx.rotation
-            }
+            event.context = if (state == State.PRIME_ROTATION) {
+                primeContext
+            } else ctx.rotation
         }
 
         listen<RotationEvent.Post> { event ->
             if (!rotate) return@listen
             if (!event.context.isValid) return@listen
-            Text.of("Rotation: ${event.context.rotation}")
             when (state) {
                 State.PRIME_ROTATION -> {
                     if (event.context != primeContext) return@listen
@@ -134,13 +127,13 @@ class PlaceBlock @Ta5kBuilder constructor(
             val packet = it.packet
             if (packet !is BlockUpdateS2CPacket) return@listen
             if (state != State.CONFIRMING) return@listen
-            if (packet.pos != ctx.resultingPos) return@listen
+            if (packet.pos != ctx.expectedPos) return@listen
 
             if (ctx.targetState.matches(packet.state, packet.pos, world)) {
                 finish()
             } else {
-                info("State: ${packet.state.block} at ${packet.pos.toShortString()} doesn't match ${ctx.targetState} at ${ctx.resultingPos.toShortString()} (expected ${ctx.expectedState})")
-                warn("Waiting for confirmation...")
+                info("Packet: State: ${packet.state.block} at ${packet.pos.toShortString()} doesn't match ${ctx.targetState} at ${ctx.expectedPos.toShortString()} (expected ${ctx.expectedState})")
+                warn("Packet: Waiting for confirmation...")
             }
         }
     }
@@ -163,9 +156,7 @@ class PlaceBlock @Ta5kBuilder constructor(
 
             state = State.CONFIRMING
 
-            if (matches) {
-                if (!waitForConfirmation) finish()
-            }
+            if (!waitForConfirmation && matches) finish()
         } else {
             warn("Internal interaction failed with $actionResult")
         }
@@ -177,7 +168,7 @@ class PlaceBlock @Ta5kBuilder constructor(
                 ctx.result.blockPos.toShortString()
             } (${ctx.result.side}) with expecting state ${
                 ctx.expectedState
-            } and expecting position at ${ctx.resultingPos.toShortString()}"
+            } and expecting position at ${ctx.expectedPos.toShortString()}"
         )
         success()
     }

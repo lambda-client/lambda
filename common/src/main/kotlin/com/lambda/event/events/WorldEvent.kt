@@ -45,18 +45,11 @@ sealed class WorldEvent {
         ) : Event
     }
 
-    /**
-     * Represents a block update in the world
-     */
-    sealed class BlockUpdate(
+    class BlockChange(
         val pos: BlockPos,
-        val state: BlockState,
-        val flags: Int,
-        val maxUpdateDepth: Int,
-    ) {
-        class Pre(pos: BlockPos, state: BlockState, flags: Int, depth: Int) : BlockUpdate(pos, state, flags, depth), ICancellable by Cancellable()
-        class Post(pos: BlockPos, state: BlockState, flags: Int, depth: Int) : BlockUpdate(pos, state, flags, depth), Event
-    }
+        val oldState: BlockState,
+        val newState: BlockState,
+    ) : Event
 
     /**
      * Represents an entity being added to the world

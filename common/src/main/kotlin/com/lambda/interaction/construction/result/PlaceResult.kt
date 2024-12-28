@@ -59,7 +59,7 @@ sealed class PlaceResult : BuildResult() {
             withPos(hitPos, color, context.result.side)
 
             val light = Color(35, 188, 254, 20)
-            withState(context.expectedState, context.resultingPos, light)
+            withState(context.expectedState, context.expectedPos, light)
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
@@ -134,6 +134,13 @@ sealed class PlaceResult : BuildResult() {
         val itemStack: ItemStack,
     ) : PlaceResult() {
         override val rank = Rank.PLACE_BLOCK_FEATURE_DISABLED
+    }
+
+    data class UnexpectedPosition(
+        override val blockPos: BlockPos,
+        val actualPos: BlockPos
+    ) : PlaceResult() {
+        override val rank = Rank.UNEXPECTED_POSITION
     }
 
     /**
