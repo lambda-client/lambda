@@ -22,7 +22,6 @@ import com.lambda.util.Communication.logError
 import com.lambda.util.LambdaResource
 import com.lambda.util.stream
 import org.lwjgl.BufferUtils
-import org.lwjgl.opengl.GL11.GL_RGBA
 import org.lwjgl.stb.STBImage
 import java.nio.ByteBuffer
 
@@ -82,6 +81,7 @@ class AnimatedTexture(path: LambdaResource) : Texture(image = null, forceConsist
         gif = STBImage.stbi_load_gif_from_memory(buffer, pDelays, pWidth, pHeight, pLayers, pChannels, 4)
             ?: throw IllegalStateException("There was an unknown error while loading the gif file")
 
+        initialized = true
         width = pWidth.get()
         height = pHeight.get()
         frames = pLayers.get()
@@ -90,6 +90,6 @@ class AnimatedTexture(path: LambdaResource) : Texture(image = null, forceConsist
 
         pDelays.getIntBuffer(frames).get(frameDurations)
 
-        pbo = PixelBuffer(width, height, format = GL_RGBA, this@AnimatedTexture)
+        pbo = PixelBuffer(this@AnimatedTexture)
     }
 }

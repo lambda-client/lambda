@@ -22,6 +22,7 @@ import com.lambda.graphics.gl.putTo
 import com.lambda.graphics.texture.Texture
 import com.lambda.util.math.MathUtils.toInt
 import org.lwjgl.opengl.GL45C.*
+import java.lang.IllegalStateException
 import java.nio.ByteBuffer
 
 /**
@@ -31,9 +32,6 @@ import java.nio.ByteBuffer
  * Functions that perform an upload operation, a pixel unpack, will use the buffer object bound to the target GL_PIXEL_UNPACK_BUFFER.
  * If a buffer is bound, then the pointer value that those functions take is not a pointer, but an offset from the beginning of that buffer.
  *
- * @property width          The width of the texture
- * @property height         The height of the texture
- * @property format         The image format that will be uploaded
  * @property texture        The [Texture] instance to use
  * @property asynchronous   Whether to use 2 buffers or not
  * @property bufferMapping  Whether to map a block in memory to upload or not
@@ -41,9 +39,6 @@ import java.nio.ByteBuffer
  * @see <a href="https://www.khronos.org/opengl/wiki/Pixel_Buffer_Object">Reference</a>
  */
 class PixelBuffer(
-    private val width: Int,
-    private val height: Int,
-    private val format: Int,
     private val texture: Texture,
     private val asynchronous: Boolean = false,
     private val bufferMapping: Boolean = false,
@@ -52,9 +47,8 @@ class PixelBuffer(
     override val target: Int = GL_PIXEL_UNPACK_BUFFER
     override val access: Int = GL_MAP_WRITE_BIT
 
-    private val channels = channelMapping[format] ?: throw IllegalArgumentException("Invalid image format, expected OpenGL format, got $format instead")
-    private val internalFormat = reverseChannelMapping[channels] ?: throw IllegalArgumentException("Invalid internal image format, expected channels count, got $channels instead")
-    private val size = width * height * channels * 1L
+    private val channels = channelMapping[texture.format] ?: throw IllegalArgumentException("Invalid image format, expected OpenGL format, got ${texture.format} instead")
+    private val size = texture.width * texture.height * channels * 1L
 
     override fun upload(
         data: ByteBuffer,
@@ -69,8 +63,9 @@ class PixelBuffer(
             GL_TEXTURE_2D,        // Target
             0,               // Mipmap level
             0, 0,    // x and y offset
-            width, height,        // width and height of the texture (set to your size)
-            format,               // Format (depends on your data)
+            texture.width,        // Width of the texture
+            texture.height,       // Height of the texture
+            texture.format,       // Format of your texture (depends on your data)
             GL_UNSIGNED_BYTE,     // Type (depends on your data)
             0,              // PBO offset (for asynchronous transfer)
         )
@@ -88,10 +83,12 @@ class PixelBuffer(
     }
 
     init {
+        if (!texture.initialized) throw IllegalStateException("Cannot use uninitialized textures for pixel buffers")
+
         glBindTexture(GL_TEXTURE_2D, texture.id)
 
         // Allocate texture storage
-        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, 0)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture.width, texture.height, 0, texture.format, GL_UNSIGNED_BYTE, 0)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
 
@@ -112,16 +109,6 @@ class PixelBuffer(
             GL_BGR to 3,
             GL_RGBA to 4,
             GL_BGRA to 4,
-        )
-
-        /**
-         * Returns an internal format based on how many channels there are
-         */
-        private val reverseChannelMapping = mapOf(
-            1 to GL_RED,
-            2 to GL_RG,
-            3 to GL_RGB,
-            4 to GL_RGBA,
         )
     }
 }
