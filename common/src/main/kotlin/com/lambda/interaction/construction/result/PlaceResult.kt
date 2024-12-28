@@ -21,6 +21,7 @@ import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.breakBlock
 import com.lambda.task.tasks.PlaceBlock
 import net.minecraft.block.BlockState
@@ -44,15 +45,11 @@ sealed class PlaceResult : BuildResult() {
     data class Place(
         override val blockPos: BlockPos,
         val context: PlaceContext
-    ) : Drawable, PlaceResult() {
+    ) : Drawable, Resolvable, PlaceResult() {
         override val rank = Rank.PLACE_SUCCESS
         private val color = Color(35, 188, 254, 100)
 
-        override fun SafeContext.onStart() {
-            PlaceBlock(context).finally {
-                success()
-            }.execute(this@Place)
-        }
+        override fun resolve() = PlaceBlock(context)
 
         override fun SafeContext.buildRenderer() {
             val hitPos = context.result.blockPos
@@ -105,14 +102,10 @@ sealed class PlaceResult : BuildResult() {
     data class CantReplace(
         override val blockPos: BlockPos,
         val simulated: ItemPlacementContext
-    ) : PlaceResult() {
+    ) : Resolvable, PlaceResult() {
         override val rank = Rank.PLACE_CANT_REPLACE
 
-        override fun SafeContext.onStart() {
-            breakBlock(blockPos).finally {
-                success()
-            }.execute(this@CantReplace)
-        }
+        override fun resolve() = breakBlock(blockPos)
     }
 
     /**

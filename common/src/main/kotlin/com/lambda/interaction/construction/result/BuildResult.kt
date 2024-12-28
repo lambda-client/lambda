@@ -22,10 +22,12 @@ import baritone.api.pathing.goals.GoalNear
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.material.ContainerManager.transfer
+import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.MainHandContainer
 import com.lambda.task.Task
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.Nameable
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
@@ -35,7 +37,7 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
-abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
+abstract class BuildResult : ComparableResult<Rank>, Nameable {
     abstract val blockPos: BlockPos
     open val pausesParent = false
     override val name: String get() = "${this::class.simpleName} at ${blockPos.toShortString()}"
@@ -191,20 +193,15 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
         val context: BuildContext,
         val neededItem: Item,
         val currentItem: ItemStack,
-    ) : Drawable, BuildResult() {
+    ) : Drawable, Resolvable, BuildResult() {
         override val name: String get() = "Wrong item ($currentItem) for ${blockPos.toShortString()} need ${neededItem.name.string}"
         override val rank = Rank.WRONG_ITEM
         private val color = Color(3, 252, 169, 100)
 
         override val pausesParent get() = true
 
-        override fun SafeContext.onStart() {
-            neededItem.select()
-                .transfer(MainHandContainer)
-                ?.finally {
-                    success()
-                }?.execute(this@WrongItem) ?: failure("Item ${neededItem.name.string} not found")
-        }
+        override fun resolve() = neededItem.select()
+            .transfer(MainHandContainer) ?: MaterialContainer.Nothing()
 
         override fun SafeContext.buildRenderer() {
             if (blockPos.blockState(world).isAir) {
@@ -231,20 +228,15 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
         override val blockPos: BlockPos,
         val context: BuildContext,
         val neededStack: ItemStack
-    ) : Drawable, BuildResult() {
+    ) : Drawable, Resolvable, BuildResult() {
         override val name: String get() = "Wrong stack for $blockPos need $neededStack."
         override val rank = Rank.WRONG_ITEM
         private val color = Color(3, 252, 169, 100)
 
         override val pausesParent get() = true
 
-        override fun SafeContext.onStart() {
-            neededStack.select()
-                .transfer(MainHandContainer)
-                ?.finally {
-                    success()
-                }?.execute(this@WrongStack) ?: failure("Stack ${neededStack.name.string} not found")
-        }
+        override fun resolve() =
+            neededStack.select().transfer(MainHandContainer) ?: MaterialContainer.Nothing()
 
         override fun SafeContext.buildRenderer() {
             if (blockPos.blockState(world).isAir) {

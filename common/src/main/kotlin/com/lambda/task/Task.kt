@@ -41,7 +41,7 @@ abstract class Task<Result> : Nameable {
     val isCompleted get() = state == State.COMPLETED
     val size: Int get() = subTasks.sumOf { it.size } + 1
 
-    open var alwaysListening = false
+    open var unpausable = false
 
     private var nextTask: TaskGenerator<Result>? = null
     private var nextTaskOrNull: TaskGeneratorOrNull<Result>? = null
@@ -113,9 +113,9 @@ abstract class Task<Result> : Nameable {
         owner.subTasks.add(this)
         parent = owner
         LOG.info("${owner.name} started $name")
-        if (!alwaysListening || pauseParent) {
+        if (!unpausable || pauseParent) {
             LOG.info("$name deactivating parent ${owner.name}")
-            owner.deactivate()
+            if (owner !is TaskFlow) owner.deactivate()
         }
         runSafe { runCatching { onStart() }.onFailure { failure(it) } }
         startListening()
@@ -145,8 +145,8 @@ abstract class Task<Result> : Nameable {
 
     @Ta5kBuilder
     fun deactivate() {
-        if (this is TaskFlow) return
         if (state != State.RUNNING) return
+        if (unpausable) return
         state = State.PAUSED
         stopListening()
     }
@@ -161,7 +161,8 @@ abstract class Task<Result> : Nameable {
             nextTaskOrNull = null
             parent?.let { owner -> task?.execute(owner) }
         } ?: run {
-            onFinish?.invoke(this, result) ?: println("No more tasks to run")
+            onFinish?.invoke(this, result)
+            parent?.activate()
             onFinish = null
         }
     }
@@ -324,7 +325,7 @@ abstract class Task<Result> : Nameable {
         appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is TaskFlow) " [${task.state.display}]" else "")
 //        if (task.state == State.COMPLETED || task.state == State.CANCELLED) return
         task.subTasks.forEach {
-//            if (task is TaskFlow && (it.state == State.COMPLETED || it.state == State.CANCELLED)) return@forEach
+            if (task is TaskFlow && (it.state == State.COMPLETED || it.state == State.CANCELLED)) return@forEach
             appendTaskTree(it, level + 1)
         }
     }

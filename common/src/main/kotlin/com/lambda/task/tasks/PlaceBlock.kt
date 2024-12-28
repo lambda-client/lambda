@@ -42,12 +42,11 @@ class PlaceBlock @Ta5kBuilder constructor(
     private val interact: InteractionConfig = TaskFlowModule.interact,
     private val waitForConfirmation: Boolean = TaskFlowModule.build.placeConfirmation,
 ) : Task<Unit>() {
-    override val name get() = "${state.description(waited)} ${ctx.targetState} at ${ctx.result.blockPos.toShortString()}"
+    override val name get() = "${state.description()} ${ctx.targetState} at ${ctx.result.blockPos.toShortString()}"
 
     private var beginState: BlockState? = null
     private var state = State.INIT
     private var primeContext: RotationContext? = null
-    private var waited = 0
 
     private val SafeContext.matches
         get() = ctx.targetState.matches(ctx.expectedPos.blockState(world), ctx.expectedPos, world)
@@ -55,12 +54,12 @@ class PlaceBlock @Ta5kBuilder constructor(
     enum class State {
         INIT, PRIME_ROTATION, ROTATING, PLACING, CONFIRMING;
 
-        fun description(waited: Int) = when (this) {
-            INIT -> "Placing block"
+        fun description() = when (this) {
+            INIT -> "Placing"
             PRIME_ROTATION -> "Priming rotation"
             ROTATING -> "Rotating"
             PLACING -> "Placing"
-            CONFIRMING -> "Waiting for confirmation (${waited})"
+            CONFIRMING -> "Waiting for confirmation"
         }
     }
 
@@ -112,7 +111,9 @@ class PlaceBlock @Ta5kBuilder constructor(
 
         listen<TickEvent.Pre> {
             if (state != State.PLACING) return@listen
-            placeBlock()
+            if (!matches) placeBlock() else {
+                if (!waitForConfirmation) finish()
+            }
         }
 
         listen<MovementEvent.InputUpdate> {

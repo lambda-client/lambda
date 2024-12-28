@@ -20,6 +20,9 @@ package com.lambda.module.modules.client
 import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
+import com.lambda.event.events.RenderEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.construction.result.Drawable
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.allSigns
@@ -63,4 +66,15 @@ object TaskFlowModule : Module(
         Properties.WEST
     )
 //    val ignoredTags by setting("Ignored Tags", defaultIgnoreTags)
+
+    @Volatile
+    var drawables = listOf<Drawable>()
+
+    init {
+        listen<RenderEvent.StaticESP> {
+            drawables.toList().forEach { res ->
+                with(res) { buildRenderer() }
+            }
+        }
+    }
 }
