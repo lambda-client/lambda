@@ -59,7 +59,6 @@ object TaskFlowModule : Module(
         Properties.SOUTH,
         Properties.WEST
     )
-//    val ignoredTags by setting("Ignored Tags", defaultIgnoreTags)
 
     @Volatile
     var drawables = listOf<Drawable>()

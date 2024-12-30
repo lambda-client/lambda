@@ -15,15 +15,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.container
+package com.lambda.interaction.material.container.containers
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
-import com.lambda.task.tasks.InventoryTask.Companion.deposit
-import com.lambda.task.tasks.InventoryTask.Companion.withdraw
+import com.lambda.interaction.material.transfer.InventoryTransferTask.Companion.deposit
+import com.lambda.interaction.material.transfer.InventoryTransferTask.Companion.withdraw
+import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.task.tasks.OpenContainer
 import com.lambda.task.tasks.PlaceContainer
 import com.lambda.util.text.buildText

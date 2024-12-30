@@ -15,11 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material
+package com.lambda.interaction.material.container
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.material.container.ShulkerBoxContainer
+import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.container.containers.ShulkerBoxContainer
 import com.lambda.interaction.material.transfer.TransferResult
 import com.lambda.task.Task
 import com.lambda.util.Nameable
@@ -80,8 +80,7 @@ abstract class MaterialContainer(
         this.stacks = stacks
     }
 
-    class Nothing : Task<Unit>() {
-        override val name = this::class.simpleName ?: "Nothing"
+    class Nothing(override val name: String = "Nothing") : Task<Unit>() {
         override fun SafeContext.onStart() {
             success()
         }
@@ -91,19 +90,16 @@ abstract class MaterialContainer(
      * Withdraws items from the container to the player's inventory.
      */
     @Task.Ta5kBuilder
-    open fun withdraw(selection: StackSelection): Task<*> = Nothing()
+    open fun withdraw(selection: StackSelection): Task<*> = Nothing(name)
 
     /**
      * Deposits items from the player's inventory into the container.
      */
     @Task.Ta5kBuilder
-    open fun deposit(selection: StackSelection): Task<*> = Nothing()
+    open fun deposit(selection: StackSelection): Task<*> = Nothing(name)
 
     open fun matchingStacks(selection: StackSelection) =
         selection.filterStacks(stacks)
-
-    open fun matchingStacks(selection: (ItemStack) -> Boolean) =
-        matchingStacks(selection.select())
 
     open fun materialAvailable(selection: StackSelection) =
         matchingStacks(selection).count
@@ -117,16 +113,16 @@ abstract class MaterialContainer(
             return TransferResult.MissingItems(selection.count - amount)
         }
 
-        val space = destination.spaceAvailable(selection)
-        if (space == 0) {
-            return TransferResult.NoSpace
-        }
+//        val space = destination.spaceAvailable(selection)
+//        if (space == 0) {
+//            return TransferResult.NoSpace
+//        }
 
 //        val transferAmount = minOf(amount, space)
 //        selection.selector = { true }
 //        selection.count = transferAmount
 
-        return TransferResult.Transfer(selection, from = this, to = destination)
+        return TransferResult.ContainerTransfer(selection, from = this, to = destination)
     }
 
     enum class Rank {

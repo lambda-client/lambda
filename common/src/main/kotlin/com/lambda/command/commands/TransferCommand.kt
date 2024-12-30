@@ -23,9 +23,9 @@ import com.lambda.brigadier.argument.*
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.interaction.material.ContainerManager
-import com.lambda.interaction.material.ContainerManager.containerWithMaterial
-import com.lambda.interaction.material.ContainerManager.containerWithSpace
+import com.lambda.interaction.material.container.ContainerManager
+import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
+import com.lambda.interaction.material.container.ContainerManager.containerWithSpace
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.transfer.TransferResult
 import com.lambda.task.TaskFlow.run
@@ -37,7 +37,7 @@ object TransferCommand : LambdaCommand(
     usage = "transfer <move | cancel | undo> <item> <amount> <to>",
     description = "Transfer items from anywhere to anywhere",
 ) {
-    private var lastTransfer: TransferResult.Transfer? = null
+    private var lastContainerTransfer: TransferResult.ContainerTransfer? = null
 
     override fun CommandBuilder.create() {
         required(itemStack("stack", registry)) { stack ->
@@ -76,9 +76,9 @@ object TransferCommand : LambdaCommand(
                             } ?: return@executeWithResult failure("To container not found")
 
                             when (val transaction = fromContainer.transfer(selection, toContainer)) {
-                                is TransferResult.Transfer -> {
+                                is TransferResult.ContainerTransfer -> {
                                     info("${transaction.name} started.")
-                                    lastTransfer = transaction
+                                    lastContainerTransfer = transaction
                                     transaction.finally {
                                         info("${transaction.name} completed.")
                                     }.run()
@@ -103,11 +103,11 @@ object TransferCommand : LambdaCommand(
 
         required(literal("cancel")) {
             executeWithResult {
-                lastTransfer?.cancel() ?: run {
+                lastContainerTransfer?.cancel() ?: run {
                     return@executeWithResult failure("No transfer to cancel")
                 }
-                info("$lastTransfer cancelled")
-                lastTransfer = null
+                info("$lastContainerTransfer cancelled")
+                lastContainerTransfer = null
                 success()
             }
         }

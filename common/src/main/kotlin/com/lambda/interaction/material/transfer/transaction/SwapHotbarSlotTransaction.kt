@@ -15,14 +15,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.transfer
+package com.lambda.interaction.material.transfer.transaction
 
-import com.lambda.task.Task
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.material.transfer.InventoryTransaction
 
-abstract class TransferStep<T> : Task<T>() {
+class SwapHotbarSlotTransaction @Ta5kBuilder constructor(
+    val slot: Int
+) : InventoryTransaction() {
+    override val name: String get() = "Selecting slot #$slot"
 
+    init {
+        listen<TickEvent.Pre> {
+            player.inventory.selectedSlot = slot
+        }
 
-    companion object {
-
+        listen<TickEvent.Post> {
+            finish()
+        }
     }
 }

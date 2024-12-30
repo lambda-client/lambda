@@ -15,14 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material
+package com.lambda.interaction.material.container
 
 import com.lambda.core.Loadable
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.material.container.*
+import com.lambda.interaction.material.container.containers.ChestContainer
+import com.lambda.interaction.material.container.containers.EnderChestContainer
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.BlockUtils.item

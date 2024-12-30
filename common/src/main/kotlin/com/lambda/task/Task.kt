@@ -234,7 +234,7 @@ abstract class Task<Result> : Nameable {
      * @return The current task instance (`Task<R>`) to allow method chaining.
      */
     @Ta5kBuilder
-    infix fun then(task: Task<Result>): Task<Result> {
+    infix fun then(task: Task<*>): Task<Result> {
         require(task != this) { "Cannot link a task to itself" }
         nextTask = { task }
         return this
@@ -253,7 +253,7 @@ abstract class Task<Result> : Nameable {
      * @return The current task instance (`Task<R>`) to allow method chaining.
      */
     @Ta5kBuilder
-    fun then(vararg task: Task<Result>): Task<Result> {
+    fun then(vararg task: Task<*>): Task<Result> {
         (listOf(this) + task).zipWithNext { current, next ->
             current then next
         }
@@ -325,7 +325,7 @@ abstract class Task<Result> : Nameable {
         appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is TaskFlow) " [${task.state.display}]" else "")
 //        if (task.state == State.COMPLETED || task.state == State.CANCELLED) return
         task.subTasks.forEach {
-            if (task is TaskFlow && (it.state == State.COMPLETED || it.state == State.CANCELLED)) return@forEach
+//            if (task is TaskFlow && (it.state == State.COMPLETED || it.state == State.CANCELLED)) return@forEach
             appendTaskTree(it, level + 1)
         }
     }

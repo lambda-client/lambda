@@ -27,7 +27,7 @@ import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.material.ContainerManager.findBestAvailableTool
+import com.lambda.interaction.material.container.ContainerManager.findBestAvailableTool
 import com.lambda.interaction.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationContext

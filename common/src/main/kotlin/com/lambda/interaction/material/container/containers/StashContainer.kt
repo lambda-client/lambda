@@ -15,22 +15,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.container
+package com.lambda.interaction.material.container.containers
 
-import com.lambda.Lambda.mc
-import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.util.math.VecUtils.blockPos
 import com.lambda.util.text.buildText
+import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
-import net.minecraft.util.Hand
+import net.minecraft.util.math.Box
 
-object OffHandContainer : MaterialContainer(Rank.OFF_HAND) {
+data class StashContainer(
+    val chests: Set<ChestContainer>,
+    val pos: Box,
+) : MaterialContainer(Rank.STASH) {
     override var stacks: List<ItemStack>
-        get() = mc.player?.offHandStack?.let { listOf(it) } ?: emptyList()
+        get() = chests.flatMap { it.stacks }
         set(_) {}
 
-    override val description = buildText { literal("OffHand") }
+    override val description = buildText {
+        literal("Stash at ")
+        highlighted(pos.center.blockPos.toShortString())
+    }
 
-    override fun deposit(selection: StackSelection) = MainHandContainer.MainHandDeposit(selection, Hand.OFF_HAND)
+    override fun materialAvailable(selection: StackSelection): Int =
+        chests.sumOf {
+            it.materialAvailable(selection)
+        }
 }

@@ -15,22 +15,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.container
+package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.ContainerTask
-import com.lambda.interaction.material.MaterialContainer
+import com.lambda.interaction.material.transfer.InventoryTransfer.Companion.transfer
 import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.player.SlotUtils.hotbar
+import com.lambda.util.player.SlotUtils.storage
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.util.Hand
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
 
 object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
     override var stacks: List<ItemStack>
@@ -39,45 +39,39 @@ object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
 
     override val description = buildText { literal("MainHand") }
 
-    class MainHandDeposit @Ta5kBuilder constructor(val selection: StackSelection, val hand: Hand) : ContainerTask() {
-        override val name: String get() = "Depositing $selection to main hand"
+    class HandDeposit @Ta5kBuilder constructor(val selection: StackSelection, val hand: Hand) : ContainerTask() {
+        override val name: String get() = "Depositing [$selection] to ${hand.name.lowercase().replace("_", " ")}"
 
         override fun SafeContext.onStart() {
             val moveStack = InventoryContainer.matchingStacks(selection).firstOrNull() ?: run {
-                success()
+                failure("No matching stacks found in inventory")
                 return
             }
 
-            val otherHand = if (hand == Hand.MAIN_HAND) Hand.OFF_HAND else Hand.MAIN_HAND
             val handStack = player.getStackInHand(hand)
-            val otherStack = player.getStackInHand(otherHand)
-            if (ItemStack.areEqual(moveStack, handStack)) {
+            if (moveStack.equal(handStack)) {
                 success()
                 return
             }
 
-            if (ItemStack.areEqual(moveStack, otherStack)) {
-                connection.sendPacket(
-                    PlayerActionC2SPacket(
-                        PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
-                        BlockPos.ORIGIN,
-                        Direction.DOWN,
-                    ),
-                )
-                success()
-                return
-            }
+            transfer {
+                val stackInOffHand = moveStack.equal(player.offHandStack)
+                if (hand == Hand.MAIN_HAND && stackInOffHand) {
+                    swapHands()
+                    return@transfer
+                }
 
-            if (moveStack in player.hotbar) {
-                player.inventory.selectedSlot = player.hotbar.indexOf(moveStack)
-                success()
-                return
-            }
+                when (moveStack) {
+                    in player.hotbar -> swapToHotbarSlot(player.hotbar.indexOf(moveStack))
+                    in player.storage -> pickFromInventory(player.combined.indexOf(moveStack))
+                }
 
-            interaction.pickFromInventory(player.combined.indexOf(moveStack))
-            success()
+                if (hand == Hand.OFF_HAND) swapHands()
+            }.finally {
+                success()
+            }.execute(this@HandDeposit)
         }
     }
 
-    override fun deposit(selection: StackSelection) = MainHandDeposit(selection, Hand.MAIN_HAND)
+    override fun deposit(selection: StackSelection) = HandDeposit(selection, Hand.MAIN_HAND)
 }

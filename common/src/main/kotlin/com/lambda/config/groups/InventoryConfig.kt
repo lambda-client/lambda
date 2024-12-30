@@ -17,10 +17,13 @@
 
 package com.lambda.config.groups
 
-import com.lambda.interaction.material.MaterialContainer
+import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 
 interface InventoryConfig {
+    val actionTimout: Int
+    val swapWithDisposables: Boolean
+
     val providerPriority: Priority
     val storePriority: Priority
 

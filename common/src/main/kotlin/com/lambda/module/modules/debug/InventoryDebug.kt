@@ -26,6 +26,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
 import com.lambda.util.DynamicReflectionSerializer.dynamicString
+import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.network.packet.c2s.play.*
 import net.minecraft.network.packet.s2c.play.InventoryS2CPacket
 import net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket
@@ -36,8 +37,12 @@ object InventoryDebug : Module(
     defaultTags = setOf(ModuleTag.DEBUG)
 ) {
     init {
-        listen<ScreenHandlerEvent.Open> {
-            info("Opened screen handler: ${it.screenHandler::class.simpleName}")
+        listen<ScreenHandlerEvent.Open> { event ->
+            info("Opened screen handler: ${event.screenHandler::class.simpleName}")
+
+            LOG.info(event.screenHandler.slots.joinToString("\n") {
+                "${it.inventory::class.simpleName} ${it.index} ${it.x} ${it.y}"
+            })
         }
 
         listen<ScreenHandlerEvent.Close> {

@@ -15,11 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.container
+package com.lambda.interaction.material.container.containers
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.task.Task
 import com.lambda.util.Communication.info
 import com.lambda.util.text.buildText

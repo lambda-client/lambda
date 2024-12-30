@@ -15,20 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.task
+package com.lambda.event.events
 
-import com.lambda.threading.runSafe
+import com.lambda.event.Event
+import net.minecraft.item.ItemStack
 
-object TaskFlow : Task<Unit>() {
-    override val name get() = "TaskFlow"
-
-    @Ta5kBuilder
-    fun Task<*>.run() = this.execute(this@TaskFlow)
-
-    @Ta5kBuilder
-    fun Task<*>.run(task: TaskGenerator<Unit>) {
-        runSafe {
-            task(Unit).execute(this@run)
-        }
-    }
+sealed class InventoryEvent {
+    class SelectedSlotUpdate(val slot: Int) : Event
+    class SlotUpdate(val syncId: Int, val revision: Int, val slot: Int, val stack: ItemStack) : Event
 }

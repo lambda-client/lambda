@@ -21,13 +21,12 @@ import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.interaction.material.ContainerManager.findBestAvailableTool
-import com.lambda.interaction.material.ContainerManager.transfer
-import com.lambda.interaction.material.MaterialContainer
+import com.lambda.interaction.material.container.ContainerManager.findBestAvailableTool
+import com.lambda.interaction.material.container.ContainerManager.transfer
+import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.MainHandContainer
-import com.lambda.task.Task
+import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.task.tasks.BreakBlock
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item

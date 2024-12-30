@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.construction.verify
 
-import com.lambda.interaction.material.ContainerManager.findDisposable
+import com.lambda.interaction.material.container.ContainerManager.findDisposable
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.StringUtils.capitalize

@@ -15,12 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.container
+package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
-import com.lambda.interaction.material.MaterialContainer
-import com.lambda.interaction.material.StackSelection
-import com.lambda.task.tasks.InventoryTask
+import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
@@ -32,10 +30,4 @@ object InventoryContainer : MaterialContainer(Rank.INVENTORY) {
         set(_) {}
 
     override val description = buildText { literal("Inventory") }
-
-    private val handler get() = mc.player?.currentScreenHandler
-
-    override fun withdraw(selection: StackSelection) = InventoryTask.withdraw(handler!!, selection)
-
-    override fun deposit(selection: StackSelection) = InventoryTask.deposit(handler!!, selection)
 }

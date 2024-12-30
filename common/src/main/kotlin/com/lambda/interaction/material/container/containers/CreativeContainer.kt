@@ -15,27 +15,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.container
+package com.lambda.interaction.material.container.containers
 
 import com.lambda.Lambda.mc
-import com.lambda.brigadier.argument.literal
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.task.Task
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.text.buildText
-import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 
 data object CreativeContainer : MaterialContainer(Rank.CREATIVE) {
     override var stacks = emptyList<ItemStack>()
 
-    override val description =
-        buildText {
-            literal("Creative")
-        }
+    override val description = buildText { literal("Creative") }
 
     override fun materialAvailable(selection: StackSelection): Int =
         if (mc.player?.isCreative == true && selection.optimalStack != null) Int.MAX_VALUE else 0

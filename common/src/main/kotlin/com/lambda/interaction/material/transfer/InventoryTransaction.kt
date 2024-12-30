@@ -15,20 +15,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.task
+package com.lambda.interaction.material.transfer
 
+import com.lambda.context.SafeContext
+import com.lambda.task.Task
 import com.lambda.threading.runSafe
+import com.lambda.util.Communication.info
 
-object TaskFlow : Task<Unit>() {
-    override val name get() = "TaskFlow"
+abstract class InventoryTransaction : Task<InventoryChanges>() {
+    private var changes: InventoryChanges? = null
 
-    @Ta5kBuilder
-    fun Task<*>.run() = this.execute(this@TaskFlow)
-
-    @Ta5kBuilder
-    fun Task<*>.run(task: TaskGenerator<Unit>) {
-        runSafe {
-            task(Unit).execute(this@run)
-        }
+    override fun SafeContext.onStart() {
+        changes = InventoryChanges(this)
     }
+
+    fun finish() {
+        runSafe {
+            changes?.let {
+                it.detectChanges()
+                info("Changes: $it")
+                success(it)
+            }
+        } ?: failure("Failed to finish transaction")
+    }
+
 }

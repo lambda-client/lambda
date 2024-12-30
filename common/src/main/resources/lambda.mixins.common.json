@@ -21,6 +21,7 @@
     "items.TridentMixin",
     "network.ClientConnectionMixin",
     "network.ClientLoginNetworkMixin",
+    "network.ClientPlayNetworkHandlerMixin",
     "network.HandshakeC2SPacketMixin",
     "network.LoginHelloC2SPacketMixin",
     "network.LoginKeyC2SPacketMixin",

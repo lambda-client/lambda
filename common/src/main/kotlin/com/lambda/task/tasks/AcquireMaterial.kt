@@ -18,8 +18,8 @@
 package com.lambda.task.tasks
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.ContainerManager
-import com.lambda.interaction.material.ContainerManager.findContainerWithMaterial
+import com.lambda.interaction.material.container.ContainerManager
+import com.lambda.interaction.material.container.ContainerManager.findContainerWithMaterial
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
 

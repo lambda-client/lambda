@@ -104,7 +104,7 @@ class BreakBlock @Ta5kBuilder constructor(
                     player.currentScreenHandler.inventorySlots.firstOrNull {
                         it.stack.item.block in TaskFlowModule.disposables
                     }?.let {
-                        clickSlot(it.index, 1, SlotActionType.THROW)
+                        clickSlot(it.id, 1, SlotActionType.THROW)
                     }
                     return@listen
                 }

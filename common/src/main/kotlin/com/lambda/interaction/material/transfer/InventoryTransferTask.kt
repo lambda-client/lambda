@@ -15,59 +15,79 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.task.tasks
+package com.lambda.interaction.material.transfer
 
+import com.lambda.Lambda.LOG
+import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.transfer.InventoryTransfer.Companion.transfer
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.extension.inventorySlots
-import com.lambda.util.item.ItemUtils.block
-import com.lambda.util.player.SlotUtils
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
-import net.minecraft.screen.slot.SlotActionType
 
-class InventoryTask @Ta5kBuilder constructor(
+class InventoryTransferTask @Ta5kBuilder constructor(
     val screen: ScreenHandler,
     private val selection: StackSelection,
     val from: List<Slot>,
     val to: List<Slot>,
-    private val closeScreen: Boolean = true
+    private val closeScreen: Boolean = true,
+    private val settings: InventoryConfig = TaskFlowModule.inventory
 ) : Task<Unit>() {
+    private var selectedFrom = selection.filterSlots(from)
+    private var selectedTo = to.filter { it.stack.isEmpty } // + to.filter { it.stack.item.block in TaskFlowModule.disposables }
+    private val screenName = runCatching { screen.type::class.simpleName }.getOrNull() ?: screen::class.simpleName
     override val name: String
-        get() = "Moving $selection from [${from.joinToString { "${it.id}" }}] to [${from.joinToString { "${it.id}" }}] in ${runCatching { screen.type::class.simpleName }.getOrNull() ?: screen::class.simpleName}"
+        get() = "Moving $selection from [${selectedFrom.joinToString { "${it.id}" }}] to [${selectedTo.joinToString { "${it.id}" }}] in $screenName"
 
-    private val transactions = mutableListOf<SlotUtils.Transaction>()
+    private var delay = 0
+    private var changes: InventoryChanges? = null
 
     override fun SafeContext.onStart() {
-        val selectedFrom = selection.filterSlots(from).filter { it.hasStack() }
-        val selectedTo = to.filter { it.stack.isEmpty } + to.filter { it.stack.item.block in TaskFlowModule.disposables }
-        selectedFrom.zip(selectedTo).forEach { (from, to) ->
-            transactions.add(SlotUtils.Transaction(to.index, 0, SlotActionType.SWAP))
-            transactions.add(SlotUtils.Transaction(from.index, 0, SlotActionType.SWAP))
-
-            // ToDo: Handle overflow of cursor for PICKUP
-        }
+        changes = InventoryChanges(this)
     }
 
     init {
-        // ToDo: Needs smart code to move as efficient as possible.
-        //  Also should handle overflow etc. Should be more generic
         listen<TickEvent.Pre> {
-            val moved = selection.filterSlots(to)
-                .filter { it.hasStack() }
-                .sumOf { it.stack.count } >= selection.count
-
-            if (transactions.isEmpty() || moved) {
-                if (closeScreen) player.closeHandledScreen()
-                success()
+            if (player.currentScreenHandler != screen) {
+                failure("Screen has changed")
+                return@listen
             }
 
-            transactions.removeFirstOrNull()?.click() ?: success()
+            if (changes?.fulfillsSelection(to, selection) == true) {
+                if (closeScreen) player.closeHandledScreen()
+                success()
+                return@listen
+            }
+
+            if (--delay >= 0) return@listen
+            delay = settings.actionTimout
+
+            selectedFrom = selection.filterSlots(from)
+            selectedTo = to.filter { it.stack.isEmpty } // + to.filter { it.stack.item.block in TaskFlowModule.disposables }
+
+            val nextFrom = selectedFrom.firstOrNull() ?: return@listen
+            val nextTo = selectedTo.firstOrNull() ?: return@listen
+
+            LOG.info("Changes so far:\n$changes")
+
+            transfer {
+                moveSlot(nextFrom.id, nextTo.id)
+            }.finally { change ->
+                changes?.merge(change)
+            }.execute(this@InventoryTransferTask)
+
+//            if (transfer.fulfillsSelection(selection)) {
+//                info("Transfer complete")
+////                success()
+////                if (closeScreen) player.closeHandledScreen()
+//                return@listen
+//            }
         }
     }
 
@@ -79,7 +99,7 @@ class InventoryTask @Ta5kBuilder constructor(
             from: List<Slot>,
             to: List<Slot>,
             closeScreen: Boolean = true
-        ) = InventoryTask(screen, selection, from, to, closeScreen)
+        ) = InventoryTransferTask(screen, selection, from, to, closeScreen)
 
         @Ta5kBuilder
         fun withdraw(screen: ScreenHandler, selection: StackSelection, closeScreen: Boolean = true) =
