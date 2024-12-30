@@ -52,6 +52,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 class BuildTask @Ta5kBuilder constructor(
     private val blueprint: Blueprint,
     private val finishOnDone: Boolean = true,
+    private val collectDrops: Boolean = TaskFlowModule.build.collectDrops,
     private val build: BuildConfig = TaskFlowModule.build,
     private val rotation: RotationConfig = TaskFlowModule.rotation,
     private val interact: InteractionConfig = TaskFlowModule.interact,
@@ -141,7 +142,7 @@ class BuildTask @Ta5kBuilder constructor(
                     LOG.info("Resolving: ${result.name}")
 
                     if (result is BreakResult.Break) {
-                        result.collectDrop = build.collectDrops
+                        result.collectDrop = collectDrops
                     }
 
                     result.resolve().execute(this@BuildTask, pauseParent = result.pausesParent)
@@ -180,50 +181,55 @@ class BuildTask @Ta5kBuilder constructor(
         @Ta5kBuilder
         fun build(
             finishOnDone: Boolean = true,
+            collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
             interact: InteractionConfig = TaskFlowModule.interact,
             blueprint: () -> Blueprint,
-        ) = BuildTask(blueprint(), finishOnDone, build, rotation, interact)
+        ) = BuildTask(blueprint(), finishOnDone, collectDrops, build, rotation, interact)
 
         @Ta5kBuilder
         fun Structure.build(
             finishOnDone: Boolean = true,
+            collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
             interact: InteractionConfig = TaskFlowModule.interact
-        ) = BuildTask(toBlueprint(), finishOnDone, build, rotation, interact)
+        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, build, rotation, interact)
 
         @Ta5kBuilder
         fun Blueprint.build(
             finishOnDone: Boolean = true,
+            collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
             interact: InteractionConfig = TaskFlowModule.interact
-        ) = BuildTask(this, finishOnDone, build, rotation, interact)
+        ) = BuildTask(this, finishOnDone, collectDrops, build, rotation, interact)
 
         @Ta5kBuilder
         fun breakAndCollectBlock(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
+            collectDrops: Boolean = true,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
             interact: InteractionConfig = TaskFlowModule.interact
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, build, rotation, interact
+            finishOnDone, collectDrops, build, rotation, interact
         )
 
         @Ta5kBuilder
         fun breakBlock(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
+            collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
             interact: InteractionConfig = TaskFlowModule.interact
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, build, rotation, interact
+            finishOnDone, collectDrops, build, rotation, interact
         )
     }
 }
