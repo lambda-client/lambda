@@ -28,8 +28,8 @@ object ProcessorRegistry : Loadable {
     private val processors = getInstances<PlacementProcessor> { forPackages(PROCESSOR_PACKAGE) }
     private val processorCache = mutableMapOf<BlockState, PreprocessingStep>()
 
-    fun findProcessorForState(target: TargetState): PreprocessingStep =
-        (target as? TargetState.State)?.let { state ->
+    fun TargetState.findProcessorForState(): PreprocessingStep =
+        (this as? TargetState.State)?.let { state ->
             processorCache.getOrPut(state.blockState) {
                 (processors.find { it.acceptState(state.blockState) } ?: DefaultProcessor).preProcess(state.blockState)
             }
