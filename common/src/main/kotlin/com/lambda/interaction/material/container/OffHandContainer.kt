@@ -20,6 +20,8 @@ package com.lambda.interaction.material.container
 import com.lambda.Lambda.mc
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
+import com.lambda.util.text.buildText
+import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 import net.minecraft.util.Hand
 
@@ -27,7 +29,8 @@ object OffHandContainer : MaterialContainer(Rank.OFF_HAND) {
     override var stacks: List<ItemStack>
         get() = mc.player?.offHandStack?.let { listOf(it) } ?: emptyList()
         set(_) {}
-    override val name = "OffHand"
+
+    override val description = buildText { literal("OffHand") }
 
     override fun deposit(selection: StackSelection) = MainHandContainer.MainHandDeposit(selection, Hand.OFF_HAND)
 }

@@ -19,8 +19,10 @@ package com.lambda.interaction.material.container
 
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
-import com.lambda.task.Task
 import com.lambda.util.math.VecUtils.blockPos
+import com.lambda.util.text.buildText
+import com.lambda.util.text.highlighted
+import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.Box
 
@@ -31,10 +33,14 @@ data class StashContainer(
     override var stacks: List<ItemStack>
         get() = chests.flatMap { it.stacks }
         set(_) {}
-    override val name = "Stash at ${pos.center.blockPos.toShortString()}"
 
-    override fun available(selection: StackSelection): Int =
+    override val description = buildText {
+        literal("Stash at ")
+        highlighted(pos.center.blockPos.toShortString())
+    }
+
+    override fun materialAvailable(selection: StackSelection): Int =
         chests.sumOf {
-            it.available(selection)
+            it.materialAvailable(selection)
         }
 }

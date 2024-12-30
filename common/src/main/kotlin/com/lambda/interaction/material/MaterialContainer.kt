@@ -28,13 +28,41 @@ import com.lambda.util.item.ItemStackUtils.empty
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import com.lambda.util.item.ItemStackUtils.spaceLeft
 import com.lambda.util.item.ItemUtils
+import com.lambda.util.text.*
 import net.minecraft.item.ItemStack
+import net.minecraft.text.Text
 
 // ToDo: Make jsonable to persistently store them
 abstract class MaterialContainer(
-    private val rank: Rank
+    val rank: Rank
 ) : Nameable, Comparable<MaterialContainer> {
     abstract var stacks: List<ItemStack>
+    abstract val description: Text
+
+    @TextDsl
+    fun TextBuilder.stock(selection: StackSelection) {
+        literal("\n")
+        literal("Contains ")
+        val available = materialAvailable(selection)
+        highlighted(if (available == Int.MAX_VALUE) "∞" else available.toString())
+        literal(" of ")
+        highlighted("${selection.optimalStack?.name?.string}")
+        literal("\n")
+        literal("Could store ")
+        val left = spaceAvailable(selection)
+        highlighted(if (left == Int.MAX_VALUE) "∞" else left.toString())
+        literal(" of ")
+        highlighted("${selection.optimalStack?.name?.string}")
+    }
+
+    fun description(selection: StackSelection) =
+        buildText {
+            text(description)
+            stock(selection)
+        }
+
+    override val name: String
+        get() = buildText { text(description) }.string
 
     val shulkerContainer
         get() =
@@ -53,7 +81,7 @@ abstract class MaterialContainer(
     }
 
     class Nothing : Task<Unit>() {
-        override val name = "Nothing"
+        override val name = this::class.simpleName ?: "Nothing"
         override fun SafeContext.onStart() {
             success()
         }
@@ -77,23 +105,23 @@ abstract class MaterialContainer(
     open fun matchingStacks(selection: (ItemStack) -> Boolean) =
         matchingStacks(selection.select())
 
-    open fun available(selection: StackSelection) =
+    open fun materialAvailable(selection: StackSelection) =
         matchingStacks(selection).count
 
-    open fun spaceLeft(selection: StackSelection) =
+    open fun spaceAvailable(selection: StackSelection) =
         matchingStacks(selection).spaceLeft + stacks.empty * selection.stackSize
 
     fun transfer(selection: StackSelection, destination: MaterialContainer): TransferResult {
-        val amount = available(selection)
+        val amount = materialAvailable(selection)
         if (amount < selection.count) {
             return TransferResult.MissingItems(selection.count - amount)
         }
 
-//        val space = destination.spaceLeft(selection)
-//        if (space == 0) {
-//            return TransferResult.NoSpace
-//        }
-//
+        val space = destination.spaceAvailable(selection)
+        if (space == 0) {
+            return TransferResult.NoSpace
+        }
+
 //        val transferAmount = minOf(amount, space)
 //        selection.selector = { true }
 //        selection.count = transferAmount

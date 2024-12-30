@@ -23,6 +23,10 @@ import com.lambda.task.tasks.InventoryTask.Companion.deposit
 import com.lambda.task.tasks.InventoryTask.Companion.withdraw
 import com.lambda.task.tasks.OpenContainer
 import com.lambda.util.Communication.info
+import com.lambda.util.text.TextBuilder
+import com.lambda.util.text.buildText
+import com.lambda.util.text.highlighted
+import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.util.math.BlockPos
@@ -32,7 +36,16 @@ data class ChestContainer(
     val blockPos: BlockPos,
     val containedInStash: StashContainer? = null,
 ) : MaterialContainer(Rank.CHEST) {
-    override val name = "Chest at ${blockPos.toShortString()}"
+    override val description =
+        buildText {
+            literal("Chest at ")
+            highlighted(blockPos.toShortString())
+            containedInStash?.let { stash ->
+                literal(" (contained in ")
+                highlighted(stash.name)
+                literal(")")
+            }
+        }
 
 //    override fun prepare() =
 //        moveIntoEntityRange(blockPos).onSuccess { _, _ ->

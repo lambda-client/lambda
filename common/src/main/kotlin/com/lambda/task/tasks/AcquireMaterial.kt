@@ -19,7 +19,7 @@ package com.lambda.task.tasks
 
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.ContainerManager
-import com.lambda.interaction.material.ContainerManager.findContainerWithSelection
+import com.lambda.interaction.material.ContainerManager.findContainerWithMaterial
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
 
@@ -30,7 +30,7 @@ class AcquireMaterial @Ta5kBuilder constructor(
         get() = "Acquiring $selection"
 
     override fun SafeContext.onStart() {
-        findContainerWithSelection(selection)
+        findContainerWithMaterial(selection)
             ?.withdraw(selection)
             ?.finally {
                 success(selection)

@@ -30,7 +30,7 @@ abstract class TransferResult : Task<Unit>() {
         val to: MaterialContainer
     ) : TransferResult() {
         override val name = "Transfer of [$selection] from [${from.name}] to [${to.name}]"
-        
+
         override fun SafeContext.onStart() {
             from.withdraw(selection).then {
                 to.deposit(selection).finally {
@@ -38,8 +38,6 @@ abstract class TransferResult : Task<Unit>() {
                 }
             }.execute(this@Transfer)
         }
-
-        override fun toString() = "Transfer of [$selection] from [${from.name}] to [${to.name}]"
     }
 
     data object NoSpace : TransferResult() {

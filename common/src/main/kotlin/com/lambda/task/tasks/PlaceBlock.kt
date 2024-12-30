@@ -55,7 +55,7 @@ class PlaceBlock @Ta5kBuilder constructor(
         INIT, PRIME_ROTATION, ROTATING, PLACING, CONFIRMING;
 
         fun description() = when (this) {
-            INIT -> "Placing"
+            INIT -> "Prepare placing"
             PRIME_ROTATION -> "Priming rotation"
             ROTATING -> "Rotating"
             PLACING -> "Placing"
@@ -96,11 +96,11 @@ class PlaceBlock @Ta5kBuilder constructor(
             if (!event.context.isValid) return@listen
             when (state) {
                 State.PRIME_ROTATION -> {
-                    if (event.context != primeContext) return@listen
+                    if (event.context.rotation != primeContext?.rotation) return@listen
                     state = State.ROTATING
                 }
                 State.ROTATING -> {
-                    if (event.context != ctx.rotation) return@listen
+                    if (event.context.rotation != ctx.rotation.rotation) return@listen
                     if (!event.context.isValid) return@listen
 
                     state = State.PLACING

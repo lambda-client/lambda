@@ -24,13 +24,16 @@ import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.tasks.InventoryTask.Companion.deposit
 import com.lambda.util.player.SlotUtils.hotbar
+import com.lambda.util.text.buildText
+import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 
 object HotbarContainer : MaterialContainer(Rank.HOTBAR) {
     override var stacks: List<ItemStack>
         get() = mc.player?.hotbar ?: emptyList()
         set(_) {}
-    override val name = "Hotbar"
+
+    override val description = buildText { literal("Hotbar") }
 
     class HotbarDeposit @Ta5kBuilder constructor(val selection: StackSelection) : ContainerTask() {
         override val name: String get() = "Depositing $selection into hotbar"

@@ -18,7 +18,9 @@
 package com.lambda.module.modules.client
 
 import com.lambda.module.Module
+import com.lambda.module.modules.client.GuiSettings.Page
 import com.lambda.module.tag.ModuleTag
+import java.awt.Color
 
 object RenderSettings : Module(
     name = "RenderSettings",
@@ -34,6 +36,7 @@ object RenderSettings : Module(
     val gap by setting("Gap", 1.5, -10.0..10.0, 0.5) { page == Page.Font }
     val baselineOffset by setting("Vertical Offset", 0.0, -10.0..10.0, 0.5) { page == Page.Font }
     private val lodBiasSetting by setting("Smoothing", 0.0, -10.0..10.0, 0.5) { page == Page.Font }
+    val highlightColor by setting("Text Highlight Color", Color(100, 100, 100, 150), visibility = { page == Page.Font })
 
     // ESP
     val uploadsPerTick by setting("Uploads", 16, 1..256, 1, unit = " chunk/tick") { page == Page.ESP }

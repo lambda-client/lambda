@@ -22,13 +22,16 @@ import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.tasks.InventoryTask
 import com.lambda.util.player.SlotUtils.combined
+import com.lambda.util.text.buildText
+import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 
 object InventoryContainer : MaterialContainer(Rank.INVENTORY) {
     override var stacks: List<ItemStack>
         get() = mc.player?.combined ?: emptyList()
         set(_) {}
-    override val name = "Inventory"
+
+    override val description = buildText { literal("Inventory") }
 
     private val handler get() = mc.player?.currentScreenHandler
 

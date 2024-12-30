@@ -24,6 +24,8 @@ import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.player.SlotUtils.hotbar
+import com.lambda.util.text.buildText
+import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.util.Hand
@@ -34,19 +36,23 @@ object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
     override var stacks: List<ItemStack>
         get() = mc.player?.mainHandStack?.let { listOf(it) } ?: emptyList()
         set(_) {}
-    override val name = "MainHand"
+
+    override val description = buildText { literal("MainHand") }
 
     class MainHandDeposit @Ta5kBuilder constructor(val selection: StackSelection, val hand: Hand) : ContainerTask() {
         override val name: String get() = "Depositing $selection to main hand"
 
         override fun SafeContext.onStart() {
-            val moveStack = InventoryContainer.matchingStacks(selection).firstOrNull() ?: return
+            val moveStack = InventoryContainer.matchingStacks(selection).firstOrNull() ?: run {
+                success()
+                return
+            }
 
             val otherHand = if (hand == Hand.MAIN_HAND) Hand.OFF_HAND else Hand.MAIN_HAND
             val handStack = player.getStackInHand(hand)
             val otherStack = player.getStackInHand(otherHand)
             if (ItemStack.areEqual(moveStack, handStack)) {
-                delayedFinish()
+                success()
                 return
             }
 
@@ -58,18 +64,18 @@ object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
                         Direction.DOWN,
                     ),
                 )
-                delayedFinish()
+                success()
                 return
             }
 
             if (moveStack in player.hotbar) {
                 player.inventory.selectedSlot = player.hotbar.indexOf(moveStack)
-                delayedFinish()
+                success()
                 return
             }
 
             interaction.pickFromInventory(player.combined.indexOf(moveStack))
-            delayedFinish()
+            success()
         }
     }
 

@@ -22,13 +22,16 @@ import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
 import com.lambda.util.Communication.info
+import com.lambda.util.text.buildText
+import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.BlockPos
 
 object EnderChestContainer : MaterialContainer(Rank.ENDER_CHEST) {
     override var stacks = emptyList<ItemStack>()
-    override val name = "EnderChest"
     private var placePos: BlockPos? = null
+
+    override val description = buildText { literal("Ender Chest") }
 
 //    override fun prepare(): Task<*> {
 //        TODO("Not yet implemented")

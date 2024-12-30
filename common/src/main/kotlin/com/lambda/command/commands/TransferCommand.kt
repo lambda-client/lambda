@@ -24,7 +24,8 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.interaction.material.ContainerManager
-import com.lambda.interaction.material.ContainerManager.containerMatchSelection
+import com.lambda.interaction.material.ContainerManager.containerWithMaterial
+import com.lambda.interaction.material.ContainerManager.containerWithSpace
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.transfer.TransferResult
 import com.lambda.task.TaskFlow.run
@@ -40,17 +41,15 @@ object TransferCommand : LambdaCommand(
 
     override fun CommandBuilder.create() {
         required(itemStack("stack", registry)) { stack ->
-            required(integer("amount")) { amount ->
+            required(integer("amount", 1)) { amount ->
                 required(string("from")) { from ->
                     suggests { ctx, builder ->
                         val count = amount(ctx).value()
                         val selection = selectStack(count) {
                             isItem(stack(ctx).value().item)
                         }
-                        containerMatchSelection(selection).forEach {
-                            val available = it.available(selection)
-                            val availableMsg = if (available == Int.MAX_VALUE) "∞" else available.toString()
-                            builder.suggest("\"${it.name} with $availableMsg\"")
+                        containerWithMaterial(selection).forEachIndexed { i, container ->
+                            builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
                         }
                         builder.buildFuture()
                     }
@@ -59,10 +58,8 @@ object TransferCommand : LambdaCommand(
                             val selection = selectStack(amount(ctx).value()) {
                                 isItem(stack(ctx).value().item)
                             }
-                            ContainerManager.container().forEach {
-                                val space = it.spaceLeft(selection)
-                                val spaceMsg = if (space == Int.MAX_VALUE) "∞" else space.toString()
-                                if (space > 0) builder.suggest("\"${it.name} with $spaceMsg space left\"")
+                            containerWithSpace(selection).forEachIndexed { i, container ->
+                                builder.suggest("\"${i + 1}. ${container.name}\"", container.description(selection))
                             }
                             builder.buildFuture()
                         }
@@ -71,19 +68,19 @@ object TransferCommand : LambdaCommand(
                                 isItem(stack().value().item)
                             }
                             val fromContainer = ContainerManager.container().find {
-                                it.name == from().value().split(" with ").firstOrNull()
+                                it.name == from().value().split(".").last().trim()
                             } ?: return@executeWithResult failure("From container not found")
 
                             val toContainer = ContainerManager.container().find {
-                                it.name == to().value().split(" with ").firstOrNull()
+                                it.name == to().value().split(".").last().trim()
                             } ?: return@executeWithResult failure("To container not found")
 
                             when (val transaction = fromContainer.transfer(selection, toContainer)) {
                                 is TransferResult.Transfer -> {
-                                    info("$transaction started.")
+                                    info("${transaction.name} started.")
                                     lastTransfer = transaction
                                     transaction.finally {
-                                        info("$lastTransfer completed.")
+                                        info("${transaction.name} completed.")
                                     }.run()
                                     return@executeWithResult success()
                                 }

@@ -19,6 +19,7 @@ package com.lambda.module.modules.client
 
 import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.InteractionSettings
+import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -35,22 +36,15 @@ object TaskFlowModule : Module(
     defaultTags = setOf(ModuleTag.CLIENT, ModuleTag.AUTOMATION)
 ) {
     enum class Page {
-        BUILD, ROTATION, INTERACTION, TASKS
+        BUILD, ROTATION, INTERACTION, INVENTORY
     }
 
     private val page by setting("Page", Page.BUILD)
-    val build = BuildSettings(this) {
-        page == Page.BUILD
-    }
-    val rotation = RotationSettings(this) {
-        page == Page.ROTATION
-    }
-    val interact = InteractionSettings(this) {
-        page == Page.INTERACTION
-    }
-    val taskCooldown by setting("Task Cooldown", 0, 0..10000, 10, unit = " ms") {
-        page == Page.TASKS
-    }
+    val build = BuildSettings(this) { page == Page.BUILD }
+    val rotation = RotationSettings(this) { page == Page.ROTATION }
+    val interact = InteractionSettings(this) { page == Page.INTERACTION }
+    val inventory = InventorySettings(this) { page == Page.INVENTORY }
+
     val disposables by setting("Disposables", ItemUtils.defaultDisposables)
     val ignoredBlocks by setting("Ignored Blocks", allSigns)
     val defaultIgnoreTags = setOf(

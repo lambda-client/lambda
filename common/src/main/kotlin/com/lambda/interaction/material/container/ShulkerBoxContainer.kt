@@ -26,6 +26,9 @@ import com.lambda.task.tasks.InventoryTask.Companion.deposit
 import com.lambda.task.tasks.InventoryTask.Companion.withdraw
 import com.lambda.task.tasks.OpenContainer
 import com.lambda.task.tasks.PlaceContainer
+import com.lambda.util.text.buildText
+import com.lambda.util.text.highlighted
+import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 
 data class ShulkerBoxContainer(
@@ -33,7 +36,14 @@ data class ShulkerBoxContainer(
     val containedIn: MaterialContainer,
     val shulkerStack: ItemStack,
 ) : MaterialContainer(Rank.SHULKER_BOX) {
-    override val name = "${shulkerStack.name.string} in slot $slotInContainer in ${containedIn.name}"
+    override val description =
+        buildText {
+            highlighted(shulkerStack.name.string)
+            literal(" in ")
+            highlighted(containedIn.name)
+            literal(" in slot ")
+            highlighted("$slotInContainer")
+        }
 
     private val slotInContainer: Int get() = containedIn.stacks.indexOf(shulkerStack)
 

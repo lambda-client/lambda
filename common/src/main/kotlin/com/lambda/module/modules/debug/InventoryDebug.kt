@@ -36,10 +36,6 @@ object InventoryDebug : Module(
     defaultTags = setOf(ModuleTag.DEBUG)
 ) {
     init {
-        listen<WorldEvent.BlockChange> {
-            info("Block change at ${it.pos.toShortString()}: ${it.oldState} -> ${it.newState}")
-        }
-
         listen<ScreenHandlerEvent.Open> {
             info("Opened screen handler: ${it.screenHandler::class.simpleName}")
         }

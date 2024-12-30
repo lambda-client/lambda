@@ -46,21 +46,21 @@ class PlaceContainer @Ta5kBuilder constructor(
             .map { it.blockPos }
             .flatMap {
                 it.blockPos
-                    .toStructure(TargetState.Stack(stack))
+                    .toStructure(TargetState.Stack(startStack))
                     .toBlueprint()
                     .simulate(player.getCameraPosVec(mc.tickDelta))
             }
 
         val succeeds = results.filterIsInstance<PlaceResult.Place>().filter {
-            canBeOpened(stack, it.blockPos, it.context.result.side)
+            canBeOpened(startStack, it.blockPos, it.context.result.side)
         }
         val wrongStacks = results.filterIsInstance<BuildResult.WrongStack>().filter {
-            canBeOpened(stack, it.blockPos, it.context.result.side)
+            canBeOpened(startStack, it.blockPos, it.context.result.side)
         }
         (succeeds + wrongStacks).minOrNull()?.let { result ->
             build {
                 result.blockPos
-                    .toStructure(TargetState.Stack(stack))
+                    .toStructure(TargetState.Stack(startStack))
                     .toBlueprint()
             }.finally {
                 success(result.blockPos)

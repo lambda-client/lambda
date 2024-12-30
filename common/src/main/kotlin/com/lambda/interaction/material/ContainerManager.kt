@@ -35,7 +35,6 @@ import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.entity.ChestBlockEntity
 import net.minecraft.block.entity.EnderChestBlockEntity
 import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
 import net.minecraft.screen.GenericContainerScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 
@@ -85,39 +84,38 @@ object ContainerManager : Loadable {
         }
     }
 
-    fun container() = container.flatMap {
-        setOf(it) + it.shulkerContainer
-    }.sorted()
+    fun container() = container.flatMap { setOf(it) + it.shulkerContainer }.sorted()
 
     fun StackSelection.transfer(destination: MaterialContainer) =
-        findContainerWithSelection(this)?.transfer(this, destination)
+        findContainerWithMaterial(this)?.transfer(this, destination)
 
     fun findContainer(
         block: (MaterialContainer) -> Boolean
     ): MaterialContainer? = container().find(block)
 
-    fun findContainerWithSelection(
+    fun findContainerWithMaterial(
         selection: StackSelection
     ): MaterialContainer? =
-        container().find { it.available(selection) >= selection.count }
+        containerWithMaterial(selection).firstOrNull()
 
-    fun containerMatchSelection(
+    fun findContainerWithSpace(
         selection: StackSelection
-    ): Set<MaterialContainer> =
-        container().filter { it.available(selection) >= selection.count }.toSet()
-
-    fun findContainerWithSelection(
-        selectionBuilder: StackSelection.() -> Unit
-    ): MaterialContainer? {
-        val selection = StackSelection().apply(selectionBuilder)
-        return container().find { it.available(selection) >= selection.count }
-    }
-
-    fun findContainerWithStacks(
-        count: Int = StackSelection.DEFAULT_AMOUNT,
-        selection: (ItemStack) -> Boolean,
     ): MaterialContainer? =
-        findContainerWithSelection(selection.select())
+        containerWithSpace(selection).firstOrNull()
+
+    fun containerWithMaterial(
+        selection: StackSelection
+    ): List<MaterialContainer> =
+        container()
+            .sortedWith(TaskFlowModule.inventory.providerPriority.materialComparator(selection))
+            .filter { it.materialAvailable(selection) >= selection.count }
+
+    fun containerWithSpace(
+        selection: StackSelection
+    ): List<MaterialContainer> =
+        container()
+            .sortedWith(TaskFlowModule.inventory.providerPriority.spaceComparator(selection))
+            .filter { it.spaceAvailable(selection) >= selection.count }
 
     fun findBestAvailableTool(
         blockState: BlockState,
@@ -127,13 +125,13 @@ object ContainerManager : Loadable {
     }.filter { (item, speed) ->
         speed > 1.0
                 && item.isSuitableFor(blockState)
-                && findContainerWithSelection(item.select()) != null
+                && containerWithMaterial(item.select()).isNotEmpty()
     }.maxByOrNull {
         it.second
     }?.first
 
     fun findDisposable() = container().find { container ->
-        TaskFlowModule.disposables.any { container.available(it.item.select()) >= 0 }
+        TaskFlowModule.disposables.any { container.materialAvailable(it.item.select()) >= 0 }
     }
 
     class NoContainerFound(selection: StackSelection) : Exception("No container found matching $selection")

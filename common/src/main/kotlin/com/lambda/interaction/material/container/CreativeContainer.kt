@@ -18,21 +18,30 @@
 package com.lambda.interaction.material.container
 
 import com.lambda.Lambda.mc
+import com.lambda.brigadier.argument.literal
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
 import com.lambda.util.item.ItemStackUtils.equal
+import com.lambda.util.text.buildText
+import com.lambda.util.text.highlighted
+import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
 
 data object CreativeContainer : MaterialContainer(Rank.CREATIVE) {
     override var stacks = emptyList<ItemStack>()
-    override val name = "Creative"
 
-    override fun available(selection: StackSelection): Int =
+    override val description =
+        buildText {
+            literal("Creative")
+        }
+
+    override fun materialAvailable(selection: StackSelection): Int =
         if (mc.player?.isCreative == true && selection.optimalStack != null) Int.MAX_VALUE else 0
 
-    override fun spaceLeft(selection: StackSelection) = Int.MAX_VALUE
+    override fun spaceAvailable(selection: StackSelection): Int =
+        if (mc.player?.isCreative == true && selection.optimalStack != null) Int.MAX_VALUE else 0
 
     class CreativeDeposit @Ta5kBuilder constructor(val selection: StackSelection) : Task<Unit>() {
         override val name: String get() = "Removing $selection from creative inventory"
