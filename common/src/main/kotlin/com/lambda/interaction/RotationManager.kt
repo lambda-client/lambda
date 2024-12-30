@@ -60,7 +60,7 @@ object RotationManager : Loadable {
     ) {
         var lastCtx: RotationContext? = null
 
-        this.listen<RotationEvent.Update>(priority, alwaysListen) { event ->
+        listen<RotationEvent.Update>(priority, alwaysListen) { event ->
             val rotationContext = onUpdate(event.context)
 
             rotationContext?.let {
@@ -70,7 +70,7 @@ object RotationManager : Loadable {
             lastCtx = rotationContext
         }
 
-        this.listen<RotationEvent.Post> { event ->
+        listen<RotationEvent.Post> { event ->
             if (event.context == lastCtx && event.context.isValid) {
                 onReceive()
             }

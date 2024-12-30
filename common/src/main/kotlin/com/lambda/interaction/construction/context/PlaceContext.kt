@@ -17,15 +17,21 @@
 
 package com.lambda.interaction.construction.context
 
+import com.lambda.context.SafeContext
+import com.lambda.graphics.renderer.esp.DirectionMask
+import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.rotation.RotationContext
+import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
+import com.lambda.util.Communication.warn
 import net.minecraft.block.BlockState
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
+import java.awt.Color
 
 data class PlaceContext(
     override val pov: Vec3d,
@@ -39,10 +45,35 @@ data class PlaceContext(
     val targetState: TargetState,
     val sneak: Boolean,
     val insideBlock: Boolean,
-    val primeDirection: Direction?
+    val primeDirection: Direction?,
 ) : BuildContext {
-    override fun compareTo(other: BuildContext): Int {
-        return when (other) {
+    var placeTick = 0L
+    private val baseColor = Color(35, 188, 254, 25)
+    private val sideColor = Color(35, 188, 254, 100)
+
+    fun place(swingHand: Boolean) {
+        runSafe {
+            val actionResult = interaction.interactBlock(
+                player, hand, result
+            )
+
+            if (actionResult.isAccepted) {
+                if (actionResult.shouldSwingHand() && swingHand) {
+                    player.swingHand(hand)
+                }
+
+                if (!player.getStackInHand(hand).isEmpty && interaction.hasCreativeInventory()) {
+                    mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
+                }
+                placeTick = mc.uptimeInTicks
+            } else {
+                warn("Internal interaction failed with $actionResult")
+            }
+        }
+    }
+
+    override fun compareTo(other: BuildContext) =
+        when (other) {
             is PlaceContext -> compareBy<PlaceContext> {
                 BlockUtils.fluids.indexOf(it.checkedState.fluidState.fluid)
             }.thenByDescending {
@@ -59,5 +90,9 @@ data class PlaceContext(
 
             else -> 1
         }
+
+    override fun SafeContext.buildRenderer() {
+        withState(expectedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side.opposite))
+        withState(expectedState, expectedPos, sideColor, result.side.opposite)
     }
 }

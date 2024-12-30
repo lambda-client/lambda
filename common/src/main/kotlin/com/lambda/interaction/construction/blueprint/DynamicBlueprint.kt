@@ -18,6 +18,7 @@
 package com.lambda.interaction.construction.blueprint
 
 import com.lambda.context.SafeContext
+import com.lambda.threading.runSafe
 import com.lambda.util.extension.Structure
 import net.minecraft.util.math.Vec3i
 
@@ -25,12 +26,16 @@ data class DynamicBlueprint(
     val init: SafeContext.(Structure) -> Structure = { emptyMap() },
     val update: SafeContext.(Structure) -> Structure = { it },
 ) : Blueprint() {
-    fun update(ctx: SafeContext) {
-        structure = ctx.update(structure)
+    fun update() {
+        runSafe {
+            structure = update(structure)
+        }
     }
 
-    fun create(ctx: SafeContext) {
-        structure = ctx.init(structure)
+    fun create() {
+        runSafe {
+            structure = init(structure)
+        }
     }
 
     override var structure: Structure = emptyMap()

@@ -18,7 +18,7 @@
 package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
-import com.lambda.config.groups.IRotationConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RotationEvent
@@ -44,7 +44,7 @@ import net.minecraft.util.math.Direction
 class BreakBlock @Ta5kBuilder constructor(
     private val ctx: BreakContext,
     private val collectDrop: Boolean = false,
-    private val rotation: IRotationConfig = TaskFlowModule.rotation,
+    private val rotation: RotationConfig = TaskFlowModule.rotation,
     private val interact: InteractionConfig = TaskFlowModule.interact,
     private val sides: Set<Direction> = Direction.entries.toSet(),
     private val rotate: Boolean = TaskFlowModule.build.rotateForBreak,

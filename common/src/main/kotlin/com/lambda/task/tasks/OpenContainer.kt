@@ -17,7 +17,7 @@
 
 package com.lambda.task.tasks
 
-import com.lambda.config.groups.IRotationConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.ScreenHandlerEvent
@@ -25,7 +25,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
-import com.lambda.util.Communication.info
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.util.Hand
@@ -36,7 +35,7 @@ class OpenContainer @Ta5kBuilder constructor(
     private val blockPos: BlockPos,
     private val waitForSlotLoad: Boolean = true,
     private val rotate: Boolean = true,
-    private val rotation: IRotationConfig = TaskFlowModule.rotation,
+    private val rotation: RotationConfig = TaskFlowModule.rotation,
     private val interact: InteractionConfig = TaskFlowModule.interact,
     private val sides: Set<Direction> = Direction.entries.toSet(),
 ) : Task<ScreenHandler>() {

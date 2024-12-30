@@ -64,11 +64,8 @@ object Nuker : Module(
 
                     selection
                 }
-                .build(
-                    pathing = false,
-                    finishOnDone = false,
-                    cancelOnUnsolvable = false
-                )
+                // ToDo: Add build setting delegates
+                .build()
             task?.run()
         }
 

@@ -45,19 +45,8 @@ sealed class PlaceResult : BuildResult() {
     data class Place(
         override val blockPos: BlockPos,
         val context: PlaceContext
-    ) : Drawable, Resolvable, PlaceResult() {
+    ) : PlaceResult() {
         override val rank = Rank.PLACE_SUCCESS
-        private val color = Color(35, 188, 254, 100)
-
-        override fun resolve() = PlaceBlock(context)
-
-        override fun SafeContext.buildRenderer() {
-            val hitPos = context.result.blockPos
-            withPos(hitPos, color, context.result.side)
-
-            val light = Color(35, 188, 254, 20)
-            withState(context.expectedState, context.expectedPos, light)
-        }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -68,10 +57,15 @@ sealed class PlaceResult : BuildResult() {
     }
 
     /**
-     * The calculated placement configuration does not match the simulated outcome.
-     * @param blockPos The position of the block that is not placed correctly.
-     * @param expected The expected placement configuration.
-     * @param simulated The simulated placement configuration.
+     * Represents a placement result where the block placement does not meet integrity expectations.
+     *
+     * This class is used to provide details about a block placement issue in which the actual block
+     * placed does not match the expected state, or additional integrity conditions are not met.
+     *
+     * @property blockPos The position of the block being inspected or placed.
+     * @property expected The expected state of the block.
+     * @property simulated The context of the item placement simulation.
+     * @property actual The expected
      */
     data class NoIntegrity(
         override val blockPos: BlockPos,
@@ -87,6 +81,11 @@ sealed class PlaceResult : BuildResult() {
         }
     }
 
+    /**
+     * Represents a scenario where block placement is obstructed by a player.
+     *
+     * @property blockPos The position of the block that was attempted to be placed.
+     */
     data class BlockedByPlayer(
         override val blockPos: BlockPos
     ) : Navigable, PlaceResult() {
@@ -96,8 +95,10 @@ sealed class PlaceResult : BuildResult() {
     }
 
     /**
-     * The placement configuration cannot replace the block at the target position.
-     * @param simulated The simulated placement configuration.
+     * Represents a result indicating that a block cannot be replaced during a placement operation.
+     *
+     * @property blockPos The position of the block that cannot be replaced.
+     * @property simulated The context of the item placement simulation.
      */
     data class CantReplace(
         override val blockPos: BlockPos,
@@ -109,8 +110,10 @@ sealed class PlaceResult : BuildResult() {
     }
 
     /**
-     * The placement configuration exceeds the maximum scaffold distance.
-     * @param simulated The simulated placement configuration.
+     * Represents a placement result indicating that the scaffolding placement has exceeded the allowed limits.
+     *
+     * @property blockPos The position of the block where the placement attempt occurred.
+     * @property simulated The context of the simulated item placement attempt.
      */
     data class ScaffoldExceeded(
         override val blockPos: BlockPos,
@@ -120,7 +123,11 @@ sealed class PlaceResult : BuildResult() {
     }
 
     /**
-     * The interaction with the block is restricted due to the feature being disabled.
+     * Represents a result where a block placement operation was prevented because
+     * the relevant block feature is disabled.
+     *
+     * @property blockPos The position of the block that could not be placed.
+     * @property itemStack The item stack associated with the attempted placement.
      */
     data class BlockFeatureDisabled(
         override val blockPos: BlockPos,
@@ -129,6 +136,12 @@ sealed class PlaceResult : BuildResult() {
         override val rank = Rank.PLACE_BLOCK_FEATURE_DISABLED
     }
 
+    /**
+     * Represents a result state where the placement or manipulation of a block resulted in an unexpected position.
+     *
+     * @property blockPos The intended position of the block.
+     * @property actualPos The actual position of the block, which differs from the intended position.
+     */
     data class UnexpectedPosition(
         override val blockPos: BlockPos,
         val actualPos: BlockPos
@@ -137,7 +150,11 @@ sealed class PlaceResult : BuildResult() {
     }
 
     /**
-     * The player has no permission to interact with the block. Or the stack cannot be used on the block.
+     * Represents a result indicating an illegal usage during a placement operation.
+     * E.g., the player can't modify the world or the block cannot be placed against the surface.
+     *
+     * @property blockPos The position of the block associated with the illegal usage result.
+     * @property rank The ranking of this result, which is always `PLACE_ILLEGAL_USAGE`.
      */
     data class IllegalUsage(
         override val blockPos: BlockPos
@@ -146,8 +163,10 @@ sealed class PlaceResult : BuildResult() {
     }
 
     /**
-     * The item stack is not a block item.
-     * This will be resolved by analyzing interaction with non-block items.
+     * Represents the result of a place operation where the provided item does not match the expected item block type.
+     *
+     * @property blockPos The position of the block where the operation was attempted.
+     * @property itemStack The item stack that was checked during the place operation.
      */
     data class NotItemBlock(
         override val blockPos: BlockPos,

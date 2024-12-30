@@ -18,12 +18,23 @@
 package com.lambda.config.groups
 
 interface BuildConfig {
-    val breakConfirmation: Boolean
-    val placeConfirmation: Boolean
-    val collectDrops: Boolean
-    val breakWeakBlocks: Boolean
+    // General
     val pathing: Boolean
-    val breaksPerTick: Int
+    val stayInRange: Boolean
+    val collectDrops: Boolean
+    val forceSilkTouch: Boolean
+
+    // Breaking
     val rotateForBreak: Boolean
+    val breakConfirmation: Boolean
+    val maxPendingBreaks: Int
+    val breaksPerTick: Int
+    val breakWeakBlocks: Boolean
+
+    // Placing
     val rotateForPlace: Boolean
+    val placeConfirmation: Boolean
+    val placeTimeout: Int
+    val maxPendingPlacements: Int
+    val placementsPerTick: Int
 }

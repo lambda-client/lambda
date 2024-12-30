@@ -25,7 +25,7 @@ import kotlin.random.Random
 class RotationSettings(
     c: Configurable,
     vis: () -> Boolean = { true },
-) : IRotationConfig {
+) : RotationConfig {
     /**
      * The rotation mode
      */

@@ -46,38 +46,34 @@ object BuildCommand : LambdaCommand(
             required(greedyString("structure")) { structure ->
                 suggests { _, builder ->
                     StructureRegistry.forEach { key, _ -> builder.suggest(key) }
-
                     builder.buildFuture()
                 }
-                optional(boolean("pathing")) { pathing ->
-                    executeWithResult {
-                        val pathString = structure().value()
-                        val doPathing = if (pathing != null) pathing().value() else false
-                        runSafe<Unit> {
-                            try {
-                                StructureRegistry
-                                    .loadStructureByRelativePath(Path.of(pathString))
-                                    ?.let { template ->
-                                        info("Building structure $pathString with dimensions ${template.size.toShortString()} created by ${template.author}")
-                                        template.toStructure()
-                                            .move(player.blockPos)
-                                            .toBlueprint()
-                                            .build(pathing = doPathing)
-                                            .run()
+                executeWithResult {
+                    val pathString = structure().value()
+                    runSafe<Unit> {
+                        try {
+                            StructureRegistry
+                                .loadStructureByRelativePath(Path.of(pathString))
+                                ?.let { template ->
+                                    info("Building structure $pathString with dimensions ${template.size.toShortString()} created by ${template.author}")
+                                    template.toStructure()
+                                        .move(player.blockPos)
+                                        .toBlueprint()
+                                        .build()
+                                        .run()
 
-                                        return@executeWithResult CommandResult.success()
-                                    }
-                            } catch (e: InvalidPathException) {
-                                return@executeWithResult CommandResult.failure("Invalid path $pathString")
-                            } catch (e: NoSuchFileException) {
-                                return@executeWithResult CommandResult.failure("Structure $pathString not found")
-                            } catch (e: Exception) {
-                                return@executeWithResult CommandResult.failure(e.message ?: "Failed to load structure $pathString")
-                            }
+                                    return@executeWithResult CommandResult.success()
+                                }
+                        } catch (e: InvalidPathException) {
+                            return@executeWithResult CommandResult.failure("Invalid path $pathString")
+                        } catch (e: NoSuchFileException) {
+                            return@executeWithResult CommandResult.failure("Structure $pathString not found")
+                        } catch (e: Exception) {
+                            return@executeWithResult CommandResult.failure(e.message ?: "Failed to load structure $pathString")
                         }
-
-                        CommandResult.failure("Structure $pathString not found")
                     }
+
+                    CommandResult.failure("Structure $pathString not found")
                 }
             }
         }

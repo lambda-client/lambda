@@ -43,6 +43,8 @@ sealed class TargetState(val type: Type) : StateMatcher {
 
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             ItemStack.EMPTY
+
+        override fun isAir() = true
     }
 
     data object Solid : TargetState(Type.SOLID) {
@@ -55,6 +57,8 @@ sealed class TargetState(val type: Type) : StateMatcher {
             findDisposable()?.stacks?.firstOrNull {
                 it.item.block in TaskFlowModule.disposables
             } ?: ItemStack(Items.NETHERRACK)
+
+        override fun isAir() = false
     }
 
     data class Support(val direction: Direction) : TargetState(Type.SUPPORT) {
@@ -68,6 +72,8 @@ sealed class TargetState(val type: Type) : StateMatcher {
             findDisposable()?.stacks?.firstOrNull {
                 it.item.block in TaskFlowModule.disposables
             } ?: ItemStack(Items.NETHERRACK)
+
+        override fun isAir() = false
     }
 
     data class State(val blockState: BlockState) : TargetState(Type.STATE) {
@@ -79,6 +85,8 @@ sealed class TargetState(val type: Type) : StateMatcher {
             }
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             blockState.block.getPickStack(world, pos, blockState)
+
+        override fun isAir() = blockState.isAir
     }
 
     data class Block(val block: net.minecraft.block.Block) : TargetState(Type.BLOCK) {
@@ -89,6 +97,8 @@ sealed class TargetState(val type: Type) : StateMatcher {
 
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             block.getPickStack(world, pos, block.defaultState)
+
+        override fun isAir() = block.defaultState.isAir
     }
 
     data class Stack(val itemStack: ItemStack) : TargetState(Type.STACK) {
@@ -102,5 +112,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
 
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             itemStack
+
+        override fun isAir() = false
     }
 }

@@ -17,7 +17,7 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.config.groups.IRotationConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
@@ -71,7 +71,7 @@ object Speed : Module(
     private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01) { mode == Mode.NCP_STRAFE }
 
     // Grim
-    private val rotationConfig = object : IRotationConfig.Instant {
+    private val rotationConfig = object : RotationConfig.Instant {
         override val rotationMode = RotationMode.SYNC
     }
 

@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.visibilty
 
-import com.lambda.config.groups.IRotationConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.RotationManager
@@ -55,7 +55,7 @@ object VisibilityChecker {
      * @return A [RotationContext] if a valid rotation was found; otherwise, null.
      */
     fun SafeContext.lookAtEntity(
-        rotationConfig: IRotationConfig,
+        rotationConfig: RotationConfig,
         interactionConfig: InteractionConfig,
         entity: Entity
     ) = findRotation(listOf(entity.boundingBox), rotationConfig, interactionConfig) {
@@ -74,7 +74,7 @@ object VisibilityChecker {
      */
     fun SafeContext.lookAtBlock(
         blockPos: BlockPos,
-        rotationConfig: IRotationConfig = TaskFlowModule.rotation,
+        rotationConfig: RotationConfig = TaskFlowModule.rotation,
         interactionConfig: InteractionConfig = TaskFlowModule.interact,
         sides: Set<Direction> = Direction.entries.toSet()
     ): RotationContext? {
@@ -100,7 +100,7 @@ object VisibilityChecker {
      */
     fun SafeContext.findRotation(
         boxes: List<Box>,
-        rotationConfig: IRotationConfig,
+        rotationConfig: RotationConfig,
         interact: InteractionConfig,
         sides: Set<Direction> = Direction.entries.toSet(),
         reach: Double = interact.reach,

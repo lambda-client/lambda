@@ -19,7 +19,7 @@ package com.lambda.config.groups
 
 import com.lambda.interaction.rotation.RotationMode
 
-interface IRotationConfig {
+interface RotationConfig {
     /**
      * - [RotationMode.SILENT] Spoofing server-side rotation.
      * - [RotationMode.SYNC] Spoofing server-side rotation and adjusting client-side movement based on reported rotation (for Grim).
@@ -42,7 +42,7 @@ interface IRotationConfig {
      */
     val resetTicks: Int
 
-    interface Instant : IRotationConfig {
+    interface Instant : RotationConfig {
         override val turnSpeed get() = 360.0
         override val keepTicks get() = 1
         override val resetTicks get() = 1

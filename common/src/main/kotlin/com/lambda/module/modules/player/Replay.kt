@@ -19,7 +19,7 @@ package com.lambda.module.modules.player
 
 import com.google.gson.*
 import com.lambda.brigadier.CommandResult
-import com.lambda.config.groups.IRotationConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
@@ -79,7 +79,7 @@ object Replay : Module(
     private val deviationThreshold by setting("Deviation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the deviation to cancel the replay.") { cancelOnDeviation }
     private val lockCamera by setting("Lock Camera", true)
 
-    private val rotationConfig = object : IRotationConfig.Instant {
+    private val rotationConfig = object : RotationConfig.Instant {
         override val rotationMode = if (lockCamera) RotationMode.LOCK else RotationMode.SYNC
     }
 

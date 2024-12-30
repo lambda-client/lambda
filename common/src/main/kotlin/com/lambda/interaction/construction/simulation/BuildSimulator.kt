@@ -131,43 +131,17 @@ object BuildSimulator {
         reach: Double
     ): Set<BuildResult> {
         val acc = mutableSetOf<BuildResult>()
+        val targetPosState = pos.blockState(world)
 
-        if (target is TargetState.Air || !pos.blockState(world).isReplaceable) return acc
+        if (target.isAir() || !targetPosState.isReplaceable) return acc
 
         val interact = TaskFlowModule.interact
         val rotation = TaskFlowModule.rotation
 
-        val preprocessing = findProcessorForState(target)
-
-//        var sidesToCheck = Direction.entries.toTypedArray()
-//
-//        (target as? TargetState.State)
-//            ?.blockState
-//            ?.getOrEmpty(Properties.FACING)
-//            ?.ifPresent {
-//                sidesToCheck = arrayOf(it)
-//            }
-//
-//        (target as? TargetState.State)
-//            ?.blockState
-//            ?.getOrEmpty(Properties.BLOCK_FACE)
-//            ?.ifPresent {
-//                sidesToCheck = when (it) {
-//                    BlockFace.FLOOR -> arrayOf(Direction.DOWN)
-//                    BlockFace.CEILING -> arrayOf(Direction.UP)
-//                    BlockFace.WALL -> Direction.Type.HORIZONTAL.stream().collect(Collectors.toList()).toTypedArray()
-//                }
-//            }
-//
-//        (target as? TargetState.State)
-//            ?.blockState
-//            ?.getOrEmpty(Properties.AXIS)
-//            ?.ifPresent { axis ->
-//                sidesToCheck = Direction.entries.filter { it.axis == axis }.toTypedArray()
-//            }
+        val preprocessing = target.findProcessorForState()
 
         preprocessing.sides.forEach { neighbor ->
-            val hitPos = pos.offset(neighbor)
+            val hitPos = if (targetPosState.isAir) pos.offset(neighbor) else pos
             val hitSide = neighbor.opposite
 
             val voxelShape = hitPos.blockState(world).getOutlineShape(world, hitPos)
@@ -202,12 +176,7 @@ object BuildSimulator {
 
                         cast
                     } else {
-                        BlockHitResult(
-                            vec,
-                            side,
-                            hitPos,
-                            false
-                        )
+                        BlockHitResult(vec, side, hitPos, false)
                     }
                 }
             }
@@ -257,7 +226,6 @@ object BuildSimulator {
 
                 var context = ItemPlacementContext(usageContext)
 
-                // ToDo: Actually find these result positions as well and use them smartly
                 if (context.blockPos != pos) {
                     acc.add(PlaceResult.UnexpectedPosition(pos, context.blockPos))
                     return@forEach

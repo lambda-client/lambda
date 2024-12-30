@@ -18,7 +18,7 @@
 package com.lambda.module.modules.player
 
 import com.lambda.Lambda.mc
-import com.lambda.config.groups.IRotationConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.rotation.Rotation
@@ -56,7 +56,7 @@ object Freecam : Module(
     private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
     private val rotateToTarget by setting("Rotate to target", true)
 
-    private val rotationConfig = object : IRotationConfig.Instant {
+    private val rotationConfig = object : RotationConfig.Instant {
         override val rotationMode = RotationMode.LOCK
     }
 
