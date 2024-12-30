@@ -17,12 +17,13 @@
 
 package com.lambda.config.groups
 
+import net.minecraft.block.Block
+
 interface BuildConfig {
     // General
     val pathing: Boolean
     val stayInRange: Boolean
     val collectDrops: Boolean
-    val forceSilkTouch: Boolean
 
     // Breaking
     val rotateForBreak: Boolean
@@ -30,6 +31,8 @@ interface BuildConfig {
     val maxPendingBreaks: Int
     val breaksPerTick: Int
     val breakWeakBlocks: Boolean
+    val forceSilkTouch: Boolean
+    val ignoredBlocks: Set<Block>
 
     // Placing
     val rotateForPlace: Boolean

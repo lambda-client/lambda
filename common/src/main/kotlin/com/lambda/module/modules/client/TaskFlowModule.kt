@@ -18,6 +18,7 @@
 package com.lambda.module.modules.client
 
 import com.lambda.config.groups.BuildSettings
+import com.lambda.config.groups.BuildSettings.Page
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
@@ -36,7 +37,7 @@ object TaskFlowModule : Module(
     defaultTags = setOf(ModuleTag.CLIENT, ModuleTag.AUTOMATION)
 ) {
     enum class Page {
-        BUILD, ROTATION, INTERACTION, INVENTORY
+        BUILD, ROTATION, INTERACTION, INVENTORY, DEBUG
     }
 
     private val page by setting("Page", Page.BUILD)
@@ -45,20 +46,7 @@ object TaskFlowModule : Module(
     val interact = InteractionSettings(this) { page == Page.INTERACTION }
     val inventory = InventorySettings(this) { page == Page.INVENTORY }
 
-    val disposables by setting("Disposables", ItemUtils.defaultDisposables)
-    val ignoredBlocks by setting("Ignored Blocks", allSigns)
-    val defaultIgnoreTags = setOf(
-        Properties.DISTANCE_1_7,
-        Properties.PERSISTENT,
-        Properties.WATERLOGGED,
-        Properties.STAIR_SHAPE,
-        Properties.UP,
-        Properties.DOWN,
-        Properties.NORTH,
-        Properties.EAST,
-        Properties.SOUTH,
-        Properties.WEST
-    )
+    val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree") { page == Page.DEBUG }
 
     @Volatile
     var drawables = listOf<Drawable>()

@@ -20,7 +20,6 @@ package com.lambda.interaction.material.transfer
 import com.lambda.context.SafeContext
 import com.lambda.task.Task
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication.info
 
 abstract class InventoryTransaction : Task<InventoryChanges>() {
     private var changes: InventoryChanges? = null
@@ -33,7 +32,6 @@ abstract class InventoryTransaction : Task<InventoryChanges>() {
         runSafe {
             changes?.let {
                 it.detectChanges()
-                info("Changes: $it")
                 success(it)
             }
         } ?: failure("Failed to finish transaction")

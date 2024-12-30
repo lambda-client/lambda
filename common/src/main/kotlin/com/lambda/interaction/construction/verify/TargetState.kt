@@ -55,7 +55,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
 
         override fun getStack(world: ClientWorld, pos: BlockPos) =
             findDisposable()?.stacks?.firstOrNull {
-                it.item.block in TaskFlowModule.disposables
+                it.item.block in TaskFlowModule.inventory.disposables
             } ?: ItemStack(Items.NETHERRACK)
 
         override fun isAir() = false
@@ -70,7 +70,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
 
         override fun getStack(world: ClientWorld, pos: BlockPos) =
             findDisposable()?.stacks?.firstOrNull {
-                it.item.block in TaskFlowModule.disposables
+                it.item.block in TaskFlowModule.inventory.disposables
             } ?: ItemStack(Items.NETHERRACK)
 
         override fun isAir() = false
@@ -81,7 +81,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
 
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
             state.block == blockState.block && state.properties.all {
-                it in TaskFlowModule.defaultIgnoreTags || state[it] == blockState[it]
+                /*it in TaskFlowModule.defaultIgnoreTags ||*/ state[it] == blockState[it]
             }
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             blockState.block.getPickStack(world, pos, blockState)

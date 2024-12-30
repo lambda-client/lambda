@@ -64,6 +64,7 @@ class BuildTask @Ta5kBuilder constructor(
     private var currentPlacement: PlaceContext? = null
     private var placements = 0
     private var breaks = 0
+    private var inScope = 0
 
     override fun SafeContext.onStart() {
         (blueprint as? DynamicBlueprint)?.create()
@@ -80,9 +81,12 @@ class BuildTask @Ta5kBuilder constructor(
             }
 
             currentPlacement?.let {
+                if (currentPlacement?.rotation?.isValid != true) return@listen
+                if (inScope++ < 1) return@listen // ToDo: Should not be needed but timings are wrong
                 it.place(interact.swingHand)
                 pendingPlacements.add(it)
                 currentPlacement = null
+                inScope = 0
             }
 
             (blueprint as? DynamicBlueprint)?.update()

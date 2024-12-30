@@ -19,8 +19,11 @@ package com.lambda.config.groups
 
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.StackSelection
+import net.minecraft.block.Block
 
 interface InventoryConfig {
+    val disposables: Set<Block>
+
     val actionTimout: Int
     val swapWithDisposables: Boolean
 

@@ -23,6 +23,7 @@ import com.lambda.event.EventFlow
 import com.lambda.event.Subscriber
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.logError
 import com.lambda.util.Nameable
@@ -323,9 +324,9 @@ abstract class Task<Result> : Nameable {
 
     private fun StringBuilder.appendTaskTree(task: Task<*>, level: Int = 0) {
         appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is TaskFlow) " [${task.state.display}]" else "")
-//        if (task.state == State.COMPLETED || task.state == State.CANCELLED) return
+        if (!TaskFlowModule.showAllEntries && (task.state == State.COMPLETED || task.state == State.CANCELLED)) return
         task.subTasks.forEach {
-//            if (task is TaskFlow && (it.state == State.COMPLETED || it.state == State.CANCELLED)) return@forEach
+            if (!TaskFlowModule.showAllEntries && task is TaskFlow && (it.state == State.COMPLETED || it.state == State.CANCELLED)) return@forEach
             appendTaskTree(it, level + 1)
         }
     }

@@ -97,7 +97,7 @@ object BuildSimulator {
         }
 
         /* block should be ignored */
-        if (state.block in TaskFlowModule.ignoredBlocks && target.type == TargetState.Type.AIR) {
+        if (state.block in TaskFlowModule.build.ignoredBlocks && target.type == TargetState.Type.AIR) {
             return BuildResult.Ignored(pos)
         }
 

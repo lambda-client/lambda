@@ -102,7 +102,7 @@ class BreakBlock @Ta5kBuilder constructor(
 
                 if (player.hotbarAndStorage.none { it.isEmpty }) {
                     player.currentScreenHandler.inventorySlots.firstOrNull {
-                        it.stack.item.block in TaskFlowModule.disposables
+                        it.stack.item.block in TaskFlowModule.inventory.disposables
                     }?.let {
                         clickSlot(it.id, 1, SlotActionType.THROW)
                     }
