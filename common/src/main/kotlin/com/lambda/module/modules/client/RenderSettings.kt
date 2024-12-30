@@ -17,8 +17,8 @@
 
 package com.lambda.module.modules.client
 
-import com.lambda.graphics.renderer.gui.font.LambdaEmoji
-import com.lambda.graphics.renderer.gui.font.LambdaFont
+import com.lambda.graphics.renderer.gui.font.core.LambdaEmoji
+import com.lambda.graphics.renderer.gui.font.core.LambdaFont
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
@@ -37,15 +37,6 @@ object RenderSettings : Module(
     val shadowShift by setting("Shadow Shift", 1.0, 0.0..2.0, 0.05) { page == Page.Font && shadow }
     val gap by setting("Gap", 1.5, -10.0..10.0, 0.5) { page == Page.Font }
     val baselineOffset by setting("Vertical Offset", 0.0, -10.0..10.0, 0.5) { page == Page.Font }
-
-    // This value actually depends on the parameters of the texture...
-    // The specified value is added to the shader-supplied bias value (if any)
-    // and subsequently clamped into the implementation-defined range
-    // [-biasmax, biasmax], where biasmax is the value of the implementation
-    // defined constant GL_MAX_TEXTURE_LOD_BIAS. The initial value is 0.0.
-    //
-    // At least we're sure that the smoothing we see is the same for everyone
-    val lodBias by setting("Smoothing", -2.0f, -15.0f..15.0f, 0.1f) { page == Page.Font }
 
     // ESP
     val uploadsPerTick by setting("Uploads", 16, 1..256, 1, unit = " chunk/tick") { page == Page.ESP }

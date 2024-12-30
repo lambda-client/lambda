@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.renderer.gui.font
+package com.lambda.graphics.renderer.gui.font.core
 
 import com.lambda.util.math.Vec2d
 

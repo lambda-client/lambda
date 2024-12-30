@@ -19,7 +19,7 @@ package com.lambda.mixin.render;
 
 import com.google.common.base.Strings;
 import com.lambda.command.CommandManager;
-import com.lambda.graphics.renderer.gui.font.LambdaAtlas;
+import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas;
 import com.lambda.module.modules.client.LambdaMoji;
 import com.lambda.module.modules.client.RenderSettings;
 import com.mojang.brigadier.CommandDispatcher;

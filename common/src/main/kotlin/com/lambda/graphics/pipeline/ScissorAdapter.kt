@@ -17,10 +17,9 @@
 
 package com.lambda.graphics.pipeline
 
-import com.lambda.graphics.renderer.gui.font.GlyphInfo
+import com.lambda.graphics.renderer.gui.font.core.GlyphInfo
 import com.lambda.util.math.Rect
 import com.lambda.util.math.transform
-import kotlin.random.Random
 
 object ScissorAdapter {
     private var stack = ArrayDeque<Rect>()

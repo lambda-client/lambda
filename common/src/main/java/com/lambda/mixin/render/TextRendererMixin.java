@@ -18,8 +18,8 @@
 package com.lambda.mixin.render;
 
 import com.lambda.Lambda;
-import com.lambda.graphics.renderer.gui.font.LambdaAtlas;
-import com.lambda.graphics.renderer.gui.font.LambdaEmoji;
+import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas;
+import com.lambda.graphics.renderer.gui.font.core.LambdaEmoji;
 import com.lambda.module.modules.client.LambdaMoji;
 import com.lambda.module.modules.client.RenderSettings;
 import com.lambda.util.math.Vec2d;

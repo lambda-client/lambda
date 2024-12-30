@@ -15,10 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.renderer.gui.font
+package com.lambda.graphics.renderer.gui.font.core
 
-import com.lambda.core.Loadable
-import com.lambda.graphics.renderer.gui.font.LambdaAtlas.buildBuffer
+import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.buildBuffer
 
 enum class LambdaEmoji(val url: String) {
     Twemoji("https://github.com/Edouard127/emoji-generator/releases/latest/download/emojis.zip");
@@ -35,11 +34,8 @@ enum class LambdaEmoji(val url: String) {
     fun parse(text: String): MutableList<String> =
         emojiRegex.findAll(text).map { it.value.drop(1).dropLast(1) }.toMutableList()
 
-    object Loader : Loadable {
-        override fun load(): String {
-            entries.forEach { it.buildBuffer() }
-
-            return "Loaded ${entries.size} emoji sets"
-        }
+    fun load(): String {
+        entries.forEach { it.buildBuffer() }
+        return "Loaded ${entries.size} emoji sets"
     }
 }

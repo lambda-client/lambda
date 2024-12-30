@@ -15,9 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.renderer.gui.font
+package com.lambda.graphics.renderer.gui.font.core
 
-import com.google.common.math.IntMath.pow
+import com.google.common.math.IntMath
 import com.lambda.core.Loadable
 import com.lambda.graphics.texture.TextureOwner.texture
 import com.lambda.graphics.texture.TextureOwner.upload
@@ -30,11 +30,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap
 import it.unimi.dsi.fastutil.objects.Object2DoubleArrayMap
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
-import java.awt.Color
-import java.awt.Font
-import java.awt.FontMetrics
-import java.awt.Graphics2D
-import java.awt.RenderingHints
+import java.awt.*
 import java.awt.image.BufferedImage
 import java.util.function.ToIntFunction
 import java.util.zip.ZipFile
@@ -72,7 +68,8 @@ import kotlin.time.Duration.Companion.days
 object LambdaAtlas : Loadable {
     private val fontMap = Object2ObjectOpenHashMap<Any, Int2ObjectArrayMap<GlyphInfo>>()
     private val emojiMap = Object2ObjectOpenHashMap<Any, Object2ObjectOpenHashMap<String, GlyphInfo>>()
-    private val slotReservation = Object2IntArrayMap<Any>() // Will cause undefined behavior if someone is trying to allocate more than 32 slots, unlikely
+    private val slotReservation =
+        Object2IntArrayMap<Any>() // Will cause undefined behavior if someone is trying to allocate more than 32 slots, unlikely
 
     private val bufferPool =
         mutableMapOf<Any, BufferedImage>() // This array is nuked once the data is dispatched to OpenGL
@@ -97,6 +94,8 @@ object LambdaAtlas : Loadable {
     val LambdaEmoji.keys
         get() = emojiMap.getValue(this)
 
+    const val CHAR_SPACE = 8
+
     /**
      * Builds the buffer for an emoji set by reading a ZIP file containing emoji images.
      * The images are arranged into a texture atlas, and their UV coordinates are computed for later rendering.
@@ -115,7 +114,7 @@ object LambdaAtlas : Loadable {
             val length = zip.size().toDouble()
 
             val textureDimensionLength: (Int) -> Int = { dimLength ->
-                pow(2, ceil(log2((dimLength + 2) * sqrt(length))).toInt())
+                IntMath.pow(2, ceil(log2((dimLength + CHAR_SPACE) * sqrt(length))).toInt())
             }
 
             val width = textureDimensionLength(firstImage.width)
@@ -126,20 +125,23 @@ object LambdaAtlas : Loadable {
             val graphics = image.graphics as Graphics2D
             graphics.color = Color(0, 0, 0, 0)
 
-            var x = 0
-            var y = 0
+            var x = CHAR_SPACE
+            var y = CHAR_SPACE
 
             val constructed = Object2ObjectOpenHashMap<String, GlyphInfo>()
             for (entry in zip.entries()) {
                 val name = entry.name.substringAfterLast("/").substringBeforeLast(".")
                 val emoji = ImageIO.read(zip.getInputStream(entry))
 
-                if (x + emoji.width >= image.width) {
-                    y += emoji.height + 2
+                val charWidth = emoji.width + CHAR_SPACE
+                val charHeight = emoji.height + CHAR_SPACE
+
+                if (x + charWidth >= image.width) {
+                    check(y + charHeight < image.height) { "Can't load emoji glyphs. Texture size is too small" }
+
+                    y += charHeight
                     x = 0
                 }
-
-                check(y + emoji.height < image.height) { "Can't load emoji glyphs. Texture size is too small" }
 
                 graphics.drawImage(emoji, x, y, null)
 
@@ -162,7 +164,7 @@ object LambdaAtlas : Loadable {
         characters: Int = 2048 // How many characters from that font should be used for the generation
     ) {
         val font = fontCache.computeIfAbsent(this) {
-            Font.createFont(Font.TRUETYPE_FONT, "fonts/$fontName.ttf".stream).deriveFont(64.0f)
+            Font.createFont(Font.TRUETYPE_FONT, "fonts/$fontName.ttf".stream).deriveFont(128.0f)
         }
 
         val textureSize = characters * 2
@@ -173,23 +175,25 @@ object LambdaAtlas : Loadable {
         val graphics = image.graphics as Graphics2D
         graphics.background = Color(0, 0, 0, 0)
 
-        var x = 0
-        var y = 0
+        var x = CHAR_SPACE
+        var y = CHAR_SPACE
         var rowHeight = 0
 
         val constructed = Int2ObjectArrayMap<GlyphInfo>()
         (Char.MIN_VALUE..<characters.toChar()).forEach { char ->
             val charImage = getCharImage(font, char) ?: return@forEach
 
-            rowHeight = max(rowHeight, charImage.height + 2)
+            rowHeight = max(rowHeight, charImage.height + CHAR_SPACE)
+            val charWidth = charImage.width + CHAR_SPACE
 
-            if (x + charImage.width >= textureSize) {
+            if (x + charWidth >= textureSize) {
+                // Check if possible to step to the next row
+                check(y + rowHeight <= textureSize) { "Can't load font glyphs. Texture size is too small" }
+
                 y += rowHeight
                 x = 0
                 rowHeight = 0
             }
-
-            check(y + charImage.height <= textureSize) { "Can't load font glyphs. Texture size is too small" }
 
             graphics.drawImage(charImage, x, y, null)
 
@@ -200,7 +204,7 @@ object LambdaAtlas : Loadable {
             constructed[char.code] = GlyphInfo(size, uv1, uv2)
             heightCache[font] = max(heightCache.getDouble(font), size.y) // No compare set unfortunately
 
-            x += charImage.width + 2
+            x += charWidth
         }
 
         fontMap[this] = constructed
@@ -209,10 +213,13 @@ object LambdaAtlas : Loadable {
 
     // TODO: Change this when we've refactored the loadables
     override fun load(): String {
+        LambdaFont.entries.forEach(LambdaFont::load)
+        LambdaEmoji.entries.forEach(LambdaEmoji::load)
+
         val str = "Loaded ${bufferPool.size} fonts" // avoid race condition
 
         runGameScheduled {
-            bufferPool.forEach { (owner, image) -> owner.upload(image, 4) }
+            bufferPool.forEach { (owner, image) -> owner.upload(image) }
             bufferPool.clear()
         }
 

@@ -15,19 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.graphics.renderer.gui.font
+package com.lambda.graphics.renderer.gui.font.core
 
-import com.lambda.core.Loadable
-import com.lambda.graphics.renderer.gui.font.LambdaAtlas.buildBuffer
+import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.buildBuffer
 
 enum class LambdaFont(val fontName: String) {
     FiraSansRegular("FiraSans-Regular"),
     FiraSansBold("FiraSans-Bold");
 
-    object Loader : Loadable {
-        override fun load(): String {
-            entries.forEach { it.buildBuffer() }
-            return "Loaded ${entries.size} fonts"
-        }
+    fun load(): String {
+        entries.forEach { it.buildBuffer() }
+        return "Loaded ${entries.size} fonts"
     }
 }

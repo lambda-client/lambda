@@ -22,12 +22,13 @@ import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.pipeline.ScissorAdapter
 import com.lambda.graphics.pipeline.UIPipeline
-import com.lambda.graphics.renderer.gui.font.LambdaAtlas.bind
-import com.lambda.graphics.renderer.gui.font.LambdaAtlas.get
-import com.lambda.graphics.renderer.gui.font.LambdaAtlas.height
-import com.lambda.graphics.renderer.gui.font.LambdaAtlas.slot
+import com.lambda.graphics.renderer.gui.font.core.GlyphInfo
+import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.get
+import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.height
+import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.slot
+import com.lambda.graphics.renderer.gui.font.sdf.DistanceFieldTexture
 import com.lambda.graphics.shader.Shader
-import com.lambda.module.modules.client.ClickGui
+import com.lambda.graphics.texture.TextureOwner.texture
 import com.lambda.module.modules.client.LambdaMoji
 import com.lambda.module.modules.client.RenderSettings
 import com.lambda.util.math.Vec2d
@@ -43,13 +44,14 @@ object FontRenderer {
     private val chars = RenderSettings.textFont
     private val emojis = RenderSettings.emojiFont
 
-    private val shader = Shader("renderer/font")
+    private val charsSDF = DistanceFieldTexture(chars.texture)
+
+    private val shader = Shader("font/font")
     private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.FONT)
 
     private val shadowShift get() = RenderSettings.shadowShift * 5.0
     private val baselineOffset get() = RenderSettings.baselineOffset * 2.0f - 10f
     private val gap get() = RenderSettings.gap * 0.5f - 0.8f
-    private val scaleMultiplier: Double get() = 1.0
 
     /**
      * Builds the vertex array for rendering the provided text string at a specified position.
@@ -221,7 +223,7 @@ object FontRenderer {
      * @param scale The base scale factor.
      * @return The adjusted scale factor.
      */
-    fun getScaleFactor(scale: Double): Double = scaleMultiplier * scale * 0.12
+    fun getScaleFactor(scale: Double): Double = scale * 8 / chars.height
 
     /**
      * Calculates the shadow color by adjusting the brightness of the input color.
@@ -238,14 +240,14 @@ object FontRenderer {
 
     fun render() {
         shader.use()
-        shader["u_FontTexture"] = chars.slot
+        shader["u_FontTexture"] = 0
         shader["u_EmojiTexture"] = emojis.slot
+        shader["u_SDFMin"] = 0.3
+        shader["u_SDFMax"] = 1.0
 
-        chars.bind()
-        emojis.bind()
+        charsSDF.frame.bind()
+        //emojis.bind()
 
-        pipeline.upload()
-        pipeline.render()
-        pipeline.clear()
+        pipeline.immediateDraw()
     }
 }

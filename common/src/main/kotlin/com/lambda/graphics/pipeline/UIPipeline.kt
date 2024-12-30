@@ -18,7 +18,6 @@
 package com.lambda.graphics.pipeline
 
 import com.lambda.core.Loadable
-import com.lambda.graphics.gl.GlStateUtils.withDepth
 import com.lambda.graphics.renderer.gui.font.FontRenderer
 import com.lambda.graphics.renderer.gui.rect.FilledRectRenderer
 import com.lambda.graphics.renderer.gui.rect.OutlineRectRenderer
@@ -35,7 +34,7 @@ object UIPipeline : Loadable {
         uiDepth = 0
     }
 
-    fun render() = withDepth(true) {
+    fun render() {
         FilledRectRenderer.render()
         OutlineRectRenderer.render()
         FontRenderer.render()

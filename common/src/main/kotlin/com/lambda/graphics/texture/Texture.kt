@@ -57,7 +57,6 @@ open class Texture(
      */
     open fun bind(slot: Int = 0) {
         bindTexture(id, slot)
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, RenderSettings.lodBias)
     }
 
     /**
