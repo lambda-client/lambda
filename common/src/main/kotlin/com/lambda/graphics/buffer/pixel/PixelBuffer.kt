@@ -22,7 +22,6 @@ import com.lambda.graphics.gl.putTo
 import com.lambda.graphics.texture.Texture
 import com.lambda.util.math.MathUtils.toInt
 import org.lwjgl.opengl.GL45C.*
-import java.lang.IllegalStateException
 import java.nio.ByteBuffer
 
 /**
@@ -85,9 +84,10 @@ class PixelBuffer(
     init {
         if (!texture.initialized) throw IllegalStateException("Cannot use uninitialized textures for pixel buffers")
 
+        // We can't call the texture's bind method because the animated texture updates the
+        // data when binding the texture, causing a null pointer exception due to the animated
+        // texture object not being initialized
         glBindTexture(GL_TEXTURE_2D, texture.id)
-
-        // Allocate texture storage
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture.width, texture.height, 0, texture.format, GL_UNSIGNED_BYTE, 0)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
