@@ -56,7 +56,7 @@ object RotationManager : Loadable {
         priority: Int = 0,
         alwaysListen: Boolean = false,
         onUpdate: SafeContext.(lastContext: RotationContext?) -> RotationContext?,
-        onReceive: SafeContext.() -> Unit = {}
+        onReceive: SafeContext.(context: RotationContext) -> Unit = {}
     ) {
         var lastCtx: RotationContext? = null
 
@@ -71,8 +71,8 @@ object RotationManager : Loadable {
         }
 
         listen<RotationEvent.Post> { event ->
-            if (event.context == lastCtx && event.context.isValid) {
-                onReceive()
+            if (event.context == lastCtx) {
+                onReceive(event.context)
             }
         }
     }
@@ -123,20 +123,19 @@ object RotationManager : Loadable {
         currentRotation = currentContext?.let { context ->
             val rotationTo = if (keepTicks >= 0) context.rotation else player.rotation
 
-            rotationTo
-//            var speedMultiplier = (context.config as? RotationSettings)?.speedMultiplier ?: 1.0
-//            if (keepTicks < 0) speedMultiplier = 1.0
-//
-//            val turnSpeed = context.config.turnSpeed * speedMultiplier
-//
-//            currentRotation
-//                .slerp(rotationTo, turnSpeed)
-//                .fixSensitivity(prevRotation)
-//                .apply {
-//                    if (context.config.rotationMode != RotationMode.LOCK) return@apply
-//                    player.yaw = this.yawF
-//                    player.pitch = this.pitchF
-//                }
+            var speedMultiplier = (context.config as? RotationSettings)?.speedMultiplier ?: 1.0
+            if (keepTicks < 0) speedMultiplier = 1.0
+
+            val turnSpeed = context.config.turnSpeed * speedMultiplier
+
+            currentRotation
+                .slerp(rotationTo, turnSpeed)
+                .fixSensitivity(prevRotation)
+                .apply {
+                    if (context.config.rotationMode != RotationMode.LOCK) return@apply
+                    player.yaw = this.yawF
+                    player.pitch = this.pitchF
+                }
         } ?: player.rotation
     }
 

@@ -81,11 +81,11 @@ class BuildTask @Ta5kBuilder constructor(
                 timeout
             }
 
-            currentPlacement?.let {
-                if (currentPlacement?.rotation?.isValid != true) return@listen
+            currentPlacement?.let { context ->
+                if (!context.rotation.isValid) return@listen
                 if (inScope++ < 1) return@listen // ToDo: Should not be needed but timings are wrong
-                it.place(interact.swingHand)
-                pendingPlacements.add(it)
+                context.place(interact.swingHand)
+                pendingPlacements.add(context)
                 currentPlacement = null
                 inScope = 0
             }
