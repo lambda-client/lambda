@@ -58,7 +58,7 @@ class AnimatedTexture(path: LambdaResource) : Texture(image = null, forceConsist
 
             gif.clear()
 
-            currentFrame = (currentFrame+1) % frames
+            currentFrame = (currentFrame + 1) % frames
             lastUpload = System.currentTimeMillis()
         }
     }

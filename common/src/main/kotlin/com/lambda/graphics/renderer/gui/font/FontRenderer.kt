@@ -25,10 +25,8 @@ import com.lambda.graphics.pipeline.UIPipeline
 import com.lambda.graphics.renderer.gui.font.core.GlyphInfo
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.get
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.height
-import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.slot
-import com.lambda.graphics.renderer.gui.font.sdf.DistanceFieldTexture
 import com.lambda.graphics.shader.Shader
-import com.lambda.graphics.texture.TextureOwner.texture
+import com.lambda.graphics.texture.TextureOwner.bind
 import com.lambda.module.modules.client.LambdaMoji
 import com.lambda.module.modules.client.RenderSettings
 import com.lambda.util.math.Vec2d
@@ -43,8 +41,6 @@ import java.awt.Color
 object FontRenderer {
     private val chars = RenderSettings.textFont
     private val emojis = RenderSettings.emojiFont
-
-    private val charsSDF = DistanceFieldTexture(chars.texture)
 
     private val shader = Shader("font/font")
     private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.FONT)
@@ -241,12 +237,11 @@ object FontRenderer {
     fun render() {
         shader.use()
         shader["u_FontTexture"] = 0
-        shader["u_EmojiTexture"] = emojis.slot
+        shader["u_EmojiTexture"] = 1
         shader["u_SDFMin"] = 0.3
         shader["u_SDFMax"] = 1.0
 
-        charsSDF.frame.bind()
-        //emojis.bind()
+        bind(chars, emojis)
 
         pipeline.immediateDraw()
     }

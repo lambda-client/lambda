@@ -22,6 +22,7 @@ import com.lambda.graphics.buffer.frame.FrameBuffer
 import com.lambda.graphics.shader.Shader
 import com.lambda.graphics.texture.Texture
 import com.lambda.util.math.Vec2d
+import java.awt.image.BufferedImage
 
 /**
  * A class that represents a distance field texture, which is created by rendering a given texture
@@ -29,12 +30,12 @@ import com.lambda.util.math.Vec2d
  *
  * The texture is used to create a signed distance field (SDF) for rendering operations.
  *
- * @param texture The texture to be used for creating the distance field.
+ * @param image Image data to upload
  */
-class DistanceFieldTexture(texture: Texture) {
-    val frame = CachedFrame(texture.width, texture.height).write {
+class DistanceFieldTexture(image: BufferedImage) : Texture(image) {
+    private val frame = CachedFrame(width, height).write {
         FrameBuffer.pipeline.use {
-            val (pos1, pos2) = Vec2d.ZERO to Vec2d(texture.width, texture.height)
+            val (pos1, pos2) = Vec2d.ZERO to Vec2d(width, height)
 
             grow(4)
             putQuad(
@@ -46,10 +47,14 @@ class DistanceFieldTexture(texture: Texture) {
 
             shader.use()
             shader["u_TexelSize"] = Vec2d.ONE / pos2
-            texture.bind()
+            super.bind(0)
 
             immediateDraw()
         }
+    }
+
+    override fun bind(slot: Int) {
+        frame.bind(slot)
     }
 
     companion object {

@@ -19,20 +19,16 @@ package com.lambda.graphics.renderer.gui.font.core
 
 import com.google.common.math.IntMath
 import com.lambda.core.Loadable
-import com.lambda.graphics.texture.TextureOwner.texture
-import com.lambda.graphics.texture.TextureOwner.upload
+import com.lambda.graphics.texture.TextureOwner.uploadField
 import com.lambda.http.Method
 import com.lambda.http.request
 import com.lambda.threading.runGameScheduled
 import com.lambda.util.math.Vec2d
 import com.lambda.util.stream
-import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap
 import it.unimi.dsi.fastutil.objects.Object2DoubleArrayMap
-import it.unimi.dsi.fastutil.objects.Object2IntArrayMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import java.awt.*
 import java.awt.image.BufferedImage
-import java.util.function.ToIntFunction
 import java.util.zip.ZipFile
 import javax.imageio.ImageIO
 import kotlin.math.ceil
@@ -66,10 +62,8 @@ import kotlin.time.Duration.Companion.days
  * ```
  */
 object LambdaAtlas : Loadable {
-    private val fontMap = Object2ObjectOpenHashMap<Any, Int2ObjectArrayMap<GlyphInfo>>()
-    private val emojiMap = Object2ObjectOpenHashMap<Any, Object2ObjectOpenHashMap<String, GlyphInfo>>()
-    private val slotReservation =
-        Object2IntArrayMap<Any>() // Will cause undefined behavior if someone is trying to allocate more than 32 slots, unlikely
+    private val fontMap = mutableMapOf<Any, Map<Char, GlyphInfo>>()
+    private val emojiMap = mutableMapOf<Any, Map<String, GlyphInfo>>()
 
     private val bufferPool =
         mutableMapOf<Any, BufferedImage>() // This array is nuked once the data is dispatched to OpenGL
@@ -78,15 +72,8 @@ object LambdaAtlas : Loadable {
     private val metricCache = mutableMapOf<Font, FontMetrics>()
     private val heightCache = Object2DoubleArrayMap<Font>()
 
-    operator fun LambdaFont.get(char: Char): GlyphInfo? = fontMap.getValue(this)[char.code]
+    operator fun LambdaFont.get(char: Char): GlyphInfo? = fontMap.getValue(this)[char]
     operator fun LambdaEmoji.get(string: String): GlyphInfo? = emojiMap.getValue(this)[string]
-
-    // Allow binding any valid font definition enums
-    fun <T : Enum<T>> T.bind() =
-        this@bind.texture.bind(slot = slotReservation.computeIfAbsent(this@bind, ToIntFunction { slotReservation.size }))
-
-    val <T : Enum<T>> T.slot: Int
-        get() = slotReservation.getInt(this@slot)
 
     val LambdaFont.height: Double
         get() = heightCache.getDouble(fontCache[this@height])
@@ -154,10 +141,10 @@ object LambdaAtlas : Loadable {
                 x += emoji.width + 2
             }
 
-            emojiMap[this] = constructed
+            emojiMap[this@buildBuffer] = constructed
         }
 
-        bufferPool[this] = image
+        bufferPool[this@buildBuffer] = image
     }
 
     fun LambdaFont.buildBuffer(
@@ -179,7 +166,7 @@ object LambdaAtlas : Loadable {
         var y = CHAR_SPACE
         var rowHeight = 0
 
-        val constructed = Int2ObjectArrayMap<GlyphInfo>()
+        val constructed = mutableMapOf<Char, GlyphInfo>()
         (Char.MIN_VALUE..<characters.toChar()).forEach { char ->
             val charImage = getCharImage(font, char) ?: return@forEach
 
@@ -201,14 +188,14 @@ object LambdaAtlas : Loadable {
             val uv1 = Vec2d(x, y) * oneTexelSize
             val uv2 = Vec2d(x, y).plus(size) * oneTexelSize
 
-            constructed[char.code] = GlyphInfo(size, uv1, uv2)
+            constructed[char] = GlyphInfo(size, uv1, uv2)
             heightCache[font] = max(heightCache.getDouble(font), size.y) // No compare set unfortunately
 
             x += charWidth
         }
 
-        fontMap[this] = constructed
-        bufferPool[this] = image
+        fontMap[this@buildBuffer] = constructed
+        bufferPool[this@buildBuffer] = image
     }
 
     // TODO: Change this when we've refactored the loadables
@@ -219,7 +206,7 @@ object LambdaAtlas : Loadable {
         val str = "Loaded ${bufferPool.size} fonts" // avoid race condition
 
         runGameScheduled {
-            bufferPool.forEach { (owner, image) -> owner.upload(image) }
+            bufferPool.forEach { (owner, image) -> owner.uploadField(image) }
             bufferPool.clear()
         }
 

@@ -109,7 +109,8 @@ open class Texture(
 
     init {
         image?.let {
-            bind()
+            // Don't use bind() because if a child class overrides the function we're screwed
+            bindTexture(id)
             upload(it)
         }
     }

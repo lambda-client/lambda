@@ -17,36 +17,96 @@
 
 package com.lambda.graphics.texture
 
+import com.lambda.graphics.renderer.gui.font.sdf.DistanceFieldTexture
 import com.lambda.util.readImage
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import java.awt.image.BufferedImage
 
+/**
+ * The [TextureOwner] object is responsible for managing textures owned by various objects in the render pipeline
+ */
 object TextureOwner {
-    private val textureMap = Object2ObjectOpenHashMap<Any, Texture>()
+    private val textureMap = HashMap<Any, MutableList<Texture>>()
 
     /**
-     * Returns the texture owned by a specific object
+     * Retrieves the first texture owned by the object
      */
     val Any.texture: Texture
-        get() = textureMap.getValue(this@texture)
+        get() = textureMap.getValue(this@texture)[0]
 
     /**
-     * Generate mipmap texture from data and associate it with its owner
+     * Retrieves a specific texture owned by the object by its index
+     *
+     * @param index The index of the texture to retrieve
+     * @return The texture [T] at the given index
+     */
+    @Suppress("unchecked_cast")
+    fun <T : Texture> Any.texture(index: Int) =
+        textureMap.getValue(this@texture)[index] as T
+
+    /**
+     * Binds a list of textures to texture slots, ensuring no more than 32 textures
+     * are bound at once (to fit within the typical GPU limitations)
+     *
+     * @param textures The list of objects that own textures to be bound.
+     * @throws IllegalArgumentException If more than 32 textures are provided.
+     */
+    fun bind(vararg textures: Any) {
+        check(textures.size < 33) { "Texture slot overflow, expected to use less than 33 slots, got ${textures.size} slots" }
+
+        textures.forEachIndexed { index, texture -> texture.texture.bind(index) }
+    }
+
+    /**
+     * Binds a list of textures to texture slots, ensuring no more than 32 textures
+     * are bound at once (to fit within the typical GPU limitations)
+     *
+     * @param textures The list of textures to be bound
+     * @throws IllegalArgumentException If more than 32 textures are provided
+     */
+    fun bind(vararg textures: Texture) {
+        check(textures.size < 33) { "Texture slot overflow, expected to use less than 33 slots, got ${textures.size} slots" }
+
+        textures.forEachIndexed { index, texture -> texture.bind(index) }
+    }
+
+    /**
+     * Uploads a texture from image data and associates it with the object,
+     * optionally generating mipmaps for the texture
+     *
+     * @param data The image data as a [BufferedImage] to create the texture
+     * @param mipmaps The number of mipmaps to generate for the texture (default is 1)
+     * @return The created texture object
      */
     fun Any.upload(data: BufferedImage, mipmaps: Int = 1) =
-        Texture(data, levels = mipmaps).also { textureMap[this@upload] = it }
+        Texture(data, levels = mipmaps).also { textureMap.computeIfAbsent(this@upload) { mutableListOf() }.add(it) }
 
     /**
-     * Generate mipmap texture from data and associate it with its owner
+     * Uploads a texture from an image file path and associates it with the object,
+     * optionally generating mipmaps for the texture
      *
-     * @param path  Lambda resource path containing the image data
+     * @param path The resource path to the image file
+     * @param mipmaps The number of mipmaps to generate for the texture (default is 1)
+     * @return The created texture object
      */
     fun Any.upload(path: String, mipmaps: Int = 1) =
-        Texture(path.readImage(), levels = mipmaps).also { textureMap[this@upload] = it }
+        Texture(path.readImage(), levels = mipmaps).also { textureMap.computeIfAbsent(this@upload) { mutableListOf() }.add(it) }
 
     /**
-     * Loads a gif and associate it with its owner
+     * Uploads a distance field texture from image data and associates it with the object
+     * Distance field textures are commonly used for rendering fonts.
+     *
+     * @param data The image data as a [BufferedImage] to create the distance field texture
+     * @return The created distance field texture object
+     */
+    fun Any.uploadField(data: BufferedImage) =
+        DistanceFieldTexture(data).also { textureMap.computeIfAbsent(this@uploadField) { mutableListOf() }.add(it) }
+
+    /**
+     * Uploads a GIF and associates it with the object as an animated texture
+     *
+     * @param path The resource path to the GIF file
+     * @return The created animated texture object
      */
     fun Any.uploadGif(path: String) =
-        AnimatedTexture(path).also { textureMap[this@uploadGif] = it }
+        AnimatedTexture(path).also { textureMap.computeIfAbsent(this@uploadGif) { mutableListOf() }.add(it) }
 }
