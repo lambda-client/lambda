@@ -32,7 +32,7 @@ import java.awt.image.BufferedImage
  *
  * @param image Image data to upload
  */
-class DistanceFieldTexture(image: BufferedImage) : Texture(image) {
+class DistanceFieldTexture(image: BufferedImage) : Texture(image, levels = 0) {
     private val frame = CachedFrame(width, height).write {
         FrameBuffer.pipeline.use {
             val (pos1, pos2) = Vec2d.ZERO to Vec2d(width, height)
