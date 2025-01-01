@@ -19,8 +19,8 @@ package com.lambda.task
 
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
-import com.lambda.event.EventFlow
-import com.lambda.event.Subscriber
+import com.lambda.event.EventFlow.unsubscribe
+import com.lambda.event.Muteable
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.modules.client.TaskFlowModule
@@ -33,10 +33,11 @@ typealias TaskGenerator<R> = SafeContext.(R) -> Task<*>
 typealias TaskGeneratorOrNull<R> = SafeContext.(R) -> Task<*>?
 typealias TaskGeneratorUnit<R> = SafeContext.(R) -> Unit
 
-abstract class Task<Result> : Nameable {
+abstract class Task<Result> : Nameable, Muteable {
     private var parent: Task<*>? = null
     private val subTasks = mutableListOf<Task<*>>()
-    private var state = State.RUNNING
+    private var state = State.INIT
+    override val isMuted: Boolean get() = state == State.PAUSED || state == State.INIT
     var age = 0
     private val depth: Int get() = parent?.depth?.plus(1) ?: 0
     val isCompleted get() = state == State.COMPLETED
@@ -48,10 +49,8 @@ abstract class Task<Result> : Nameable {
     private var nextTaskOrNull: TaskGeneratorOrNull<Result>? = null
     private var onFinish: TaskGeneratorUnit<Result>? = null
 
-    val syncListeners = Subscriber()
-    private val concurrentListeners = Subscriber()
-
     enum class State {
+        INIT,
         RUNNING,
         PAUSED,
         CANCELLED,
@@ -118,14 +117,14 @@ abstract class Task<Result> : Nameable {
             LOG.info("$name deactivating parent ${owner.name}")
             if (owner !is TaskFlow) owner.deactivate()
         }
+        state = State.RUNNING
         runSafe { runCatching { onStart() }.onFailure { failure(it) } }
-        startListening()
         return this
     }
 
     @Ta5kBuilder
     fun success(result: Result) {
-        stopListening()
+        unsubscribe()
         state = State.COMPLETED
         runSafe {
             executeNextTask(result)
@@ -141,7 +140,6 @@ abstract class Task<Result> : Nameable {
     fun activate() {
         if (state != State.PAUSED) return
         state = State.RUNNING
-        startListening()
     }
 
     @Ta5kBuilder
@@ -149,7 +147,6 @@ abstract class Task<Result> : Nameable {
         if (state != State.RUNNING) return
         if (unpausable) return
         state = State.PAUSED
-        stopListening()
     }
 
     private fun SafeContext.executeNextTask(result: Result) {
@@ -174,7 +171,7 @@ abstract class Task<Result> : Nameable {
         if (this is TaskFlow) return
         if (state == State.COMPLETED || state == State.CANCELLED) return
         state = State.CANCELLED
-        stopListening()
+        unsubscribe()
     }
 
     @Ta5kBuilder
@@ -198,7 +195,7 @@ abstract class Task<Result> : Nameable {
         stacktrace: MutableList<Task<*>> = mutableListOf()
     ) {
         state = State.FAILED
-        stopListening()
+        unsubscribe()
         stacktrace.add(this)
         parent?.failure(e, stacktrace) ?: run {
             val message = buildString {
@@ -212,16 +209,6 @@ abstract class Task<Result> : Nameable {
             LOG.error(message, e)
             logError(message)
         }
-    }
-
-    private fun startListening() {
-        EventFlow.syncListeners.subscribe(syncListeners)
-        EventFlow.concurrentListeners.subscribe(concurrentListeners)
-    }
-
-    private fun stopListening() {
-        EventFlow.syncListeners.unsubscribe(syncListeners)
-        EventFlow.concurrentListeners.unsubscribe(concurrentListeners)
     }
 
     /**

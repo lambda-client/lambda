@@ -87,6 +87,11 @@ object EventFlow {
      */
     val concurrentListeners = Subscriber()
 
+    fun Any.unsubscribe() {
+        syncListeners.unsubscribe(this)
+        concurrentListeners.unsubscribe(this)
+    }
+
     init {
         // parallel event execution on dedicated threads
         runConcurrent {
