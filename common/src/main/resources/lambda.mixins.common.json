@@ -37,6 +37,7 @@
     "render.InGameOverlayRendererMixin",
     "render.LightmapTextureManagerMixin",
     "render.LivingEntityRendererMixin",
+    "render.PlayerListHudMixin",
     "render.RenderLayersMixin",
     "render.RenderSystemMixin",
     "render.RenderTickCounterMixin",
