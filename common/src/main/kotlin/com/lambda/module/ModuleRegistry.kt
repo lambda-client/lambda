@@ -33,6 +33,6 @@ object ModuleRegistry : Loadable {
         get() = modules.map { it.name }.toSet()
 
     override fun load(): String {
-        return "Registered ${modules.size} modules with ${modules.sumOf { it.settings.size }} settings"
+        return "Loaded ${modules.size} modules with ${modules.sumOf { it.settings.size }} settings"
     }
 }

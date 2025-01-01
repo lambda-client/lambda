@@ -23,8 +23,8 @@ import com.lambda.util.StringUtils.sanitizeForFilename
 import java.io.File
 import java.net.InetSocketAddress
 import java.nio.file.Path
-import kotlin.io.path.createDirectory
-import kotlin.io.path.notExists
+import kotlin.io.path.*
+import kotlin.math.min
 
 /**
  * The [FolderRegister] object is responsible for managing the directory structure of the application.
@@ -48,13 +48,12 @@ object FolderRegister : Loadable {
         val folders = listOf(lambda, config, packetLogs, replay, cache, structure)
         val createdFolders = folders.mapNotNull {
             if (it.notExists()) {
-                it.createDirectory()
-                it
+                it.createDirectories()
             } else null
         }
         return if (createdFolders.isNotEmpty()) {
-            "\nCreated directories: ${createdFolders.joinToString { it.toString() }}"
-        } else ""
+            "Created directories: ${createdFolders.joinToString { minecraft.parent.relativize(it).toString() }}"
+        } else "Loaded ${folders.size} directories"
     }
 
     /**

@@ -29,6 +29,8 @@ object PingManager : Loadable {
     private val pings: LimitedOrderedSet<Long> = LimitedOrderedSet(100)
     private const val INTERVAL = 1
 
+    override fun load() = "Loaded Ping Manager"
+
     val lastPing: Long
         get() = pings.lastOrNull() ?: 0
 

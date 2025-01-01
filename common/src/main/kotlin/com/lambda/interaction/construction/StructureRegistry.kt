@@ -44,9 +44,10 @@ import kotlin.io.path.*
 @OptIn(ExperimentalPathApi::class)
 @Suppress("JavaIoSerializableObjectMustHaveReadResolve")
 object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Loadable {
-    private val structurePath = FolderRegister.structure
-    private val pathWatcher = FileSystems.getDefault().newWatchService()
-        .apply { structurePath.register(this, ENTRY_CREATE, ENTRY_DELETE) }
+    private val pathWatcher by lazy {
+        FileSystems.getDefault().newWatchService()
+            .apply { FolderRegister.structure.register(this, ENTRY_CREATE, ENTRY_DELETE) }
+    }
 
     /**
      * Map of file suffix to their respective read function
@@ -115,7 +116,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Load
      * @return The created [StructureTemplate], or null if the structure is not found or invalid.
      */
     private fun loadFileAndCreate(path: Path, convert: Boolean) =
-        structurePath.resolve(path).inputStream().use { templateStream ->
+        FolderRegister.structure.resolve(path).inputStream().use { templateStream ->
             val compound = NbtIo.readCompressed(templateStream, NbtSizeTracker.ofUnlimitedBytes())
             val extension = path.extension
             val template = createStructure(compound, extension)
@@ -157,7 +158,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Load
      * @param structure The [StructureTemplate] to save.
      */
     private fun saveStructure(relativePath: String, structure: StructureTemplate) {
-        val path = structurePath.resolve(relativePath)
+        val path = FolderRegister.structure.resolve(relativePath)
         val compound = structure.writeNbt(NbtCompound())
 
         Files.createDirectories(path.parent)
@@ -176,9 +177,9 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Load
         contains("DataVersion") && contains("blocks") && contains("palette") && contains("size")
 
     override fun load(): String {
-        structurePath.walk()
+        FolderRegister.structure.walk()
             .filter { it.extension in serializers.keys }
-            .forEach { loadStructureByRelativePath(structurePath.relativize(it)) }
+            .forEach { loadStructureByRelativePath(FolderRegister.structure.relativize(it)) }
 
         return "Loaded $size structure templates"
     }

@@ -40,7 +40,7 @@ object InventoryDebug : Module(
         listen<ScreenHandlerEvent.Open> { event ->
             info("Opened screen handler: ${event.screenHandler::class.simpleName}")
 
-            LOG.info(event.screenHandler.slots.joinToString("\n") {
+            LOG.info("\n" + event.screenHandler.slots.joinToString("\n") {
                 "${it.inventory::class.simpleName} ${it.index} ${it.x} ${it.y}"
             })
         }
@@ -54,10 +54,16 @@ object InventoryDebug : Module(
         }
 
         listen<PacketEvent.Receive.Pre> {
-            when (val packet = it.packet) {
-                is UpdateSelectedSlotS2CPacket, is InventoryS2CPacket -> {
-                    this@InventoryDebug.info(packet.dynamicString())
+            when (it.packet) {
+                is UpdateSelectedSlotS2CPacket,
+                is InventoryS2CPacket
+                    -> {
+                        LOG.info(it.packet.dynamicString())
                 }
+            }
+            when (val packet = it.packet) {
+                is UpdateSelectedSlotS2CPacket -> this@InventoryDebug.info("Updated selected slot: ${packet.slot}")
+                is InventoryS2CPacket -> this@InventoryDebug.info("Received inventory update: syncId: ${packet.syncId} | revision: ${packet.revision} | cursorStack ${packet.cursorStack}")
             }
         }
 
@@ -70,7 +76,7 @@ object InventoryDebug : Module(
                 is CreativeInventoryActionC2SPacket,
                 is PickFromInventoryC2SPacket,
                 is UpdateSelectedSlotC2SPacket,
-                    -> LOG.info(it.packet.dynamicString())
+                    -> LOG.info(System.currentTimeMillis().toString() + " " + it.packet.dynamicString())
             }
         }
     }

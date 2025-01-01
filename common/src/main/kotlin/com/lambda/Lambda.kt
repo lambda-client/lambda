@@ -63,10 +63,9 @@ object Lambda {
         .registerTypeAdapter(Optional::class.java, OptionalSerializer)
         .create()
 
-    fun initialize(block: () -> Unit) {
+    fun initialize(block: (Long) -> Unit) {
         recordRenderCall {
-            Loader.initialize()
-            block()
+            block(Loader.initialize())
         }
     }
 }
