@@ -66,9 +66,11 @@ public class ClientPlayInteractionManagerMixin {
         }
     }
 
-    @Inject(method = "attackBlock", at = @At("HEAD"))
+    @Inject(method = "attackBlock", at = @At("HEAD"), cancellable = true)
     public void onAttackBlock(BlockPos pos, Direction side, CallbackInfoReturnable<Boolean> cir) {
-        if (EventFlow.post(new PlayerEvent.Attack.Block(pos, side)).isCanceled()) cir.cancel();
+        if (EventFlow.post(new PlayerEvent.Attack.Block(pos, side)).isCanceled()) {
+            cir.setReturnValue(false);
+        }
     }
 
     @Inject(method = "attackEntity", at = @At("HEAD"), cancellable = true)

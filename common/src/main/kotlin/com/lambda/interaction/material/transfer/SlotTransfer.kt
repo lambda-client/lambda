@@ -23,7 +23,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.transfer.InventoryTransfer.Companion.transfer
+import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.extension.containerSlots
@@ -31,7 +31,7 @@ import com.lambda.util.extension.inventorySlots
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
 
-class InventoryTransferTask @Ta5kBuilder constructor(
+class SlotTransfer @Ta5kBuilder constructor(
     val screen: ScreenHandler,
     private val selection: StackSelection,
     val from: List<Slot>,
@@ -41,25 +41,25 @@ class InventoryTransferTask @Ta5kBuilder constructor(
 ) : Task<Unit>() {
     private var selectedFrom = selection.filterSlots(from)
     private var selectedTo = to.filter { it.stack.isEmpty } // + to.filter { it.stack.item.block in TaskFlowModule.disposables }
-    private val screenName = runCatching { screen.type::class.simpleName }.getOrNull() ?: screen::class.simpleName
     override val name: String
-        get() = "Moving $selection from [${selectedFrom.joinToString { "${it.id}" }}] to [${selectedTo.joinToString { "${it.id}" }}] in $screenName"
+        get() = "Moving $selection from slots [${selectedFrom.joinToString { "${it.id}" }}] to slots [${selectedTo.joinToString { "${it.id}" }}] in ${screen::class.simpleName}"
 
     private var delay = 0
-    private var changes: InventoryChanges? = null
+    private lateinit var changes: InventoryChanges
 
     override fun SafeContext.onStart() {
-        changes = InventoryChanges(this)
+        changes = InventoryChanges(player.currentScreenHandler.slots)
     }
 
     init {
         listen<TickEvent.Pre> {
-            if (player.currentScreenHandler != screen) {
-                failure("Screen has changed")
+            val current = player.currentScreenHandler
+            if (current != screen) {
+                failure("Screen has changed. Expected ${screen::class.simpleName} (revision ${screen.revision}, got ${current::class.simpleName} (revision ${current.revision})")
                 return@listen
             }
 
-            if (changes?.fulfillsSelection(to, selection) == true) {
+            if (changes.fulfillsSelection(to, selection)) {
                 if (closeScreen) player.closeHandledScreen()
                 success()
                 return@listen
@@ -79,8 +79,8 @@ class InventoryTransferTask @Ta5kBuilder constructor(
             transfer {
                 moveSlot(nextFrom.id, nextTo.id)
             }.finally { change ->
-                changes?.merge(change)
-            }.execute(this@InventoryTransferTask)
+                changes merge change
+            }.execute(this@SlotTransfer)
 
 //            if (transfer.fulfillsSelection(selection)) {
 //                info("Transfer complete")
@@ -99,7 +99,7 @@ class InventoryTransferTask @Ta5kBuilder constructor(
             from: List<Slot>,
             to: List<Slot>,
             closeScreen: Boolean = true
-        ) = InventoryTransferTask(screen, selection, from, to, closeScreen)
+        ) = SlotTransfer(screen, selection, from, to, closeScreen)
 
         @Ta5kBuilder
         fun withdraw(screen: ScreenHandler, selection: StackSelection, closeScreen: Boolean = true) =

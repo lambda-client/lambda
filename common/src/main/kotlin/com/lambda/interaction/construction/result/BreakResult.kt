@@ -110,7 +110,7 @@ sealed class BreakResult : BuildResult() {
                 ?: selectStack {
                     isItem(badItem).not()
                 }.transfer(MainHandContainer)
-                ?: MaterialContainer.Nothing()
+                ?: MaterialContainer.Nothing("Couldn't find a tool for ${blockState.block.name.string} with $badItem in main hand.")
 
         override fun SafeContext.buildRenderer() {
             withPos(blockPos, color)

@@ -21,8 +21,8 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
-import com.lambda.interaction.material.transfer.InventoryTransferTask.Companion.deposit
-import com.lambda.interaction.material.transfer.InventoryTransferTask.Companion.withdraw
+import com.lambda.interaction.material.transfer.SlotTransfer.Companion.deposit
+import com.lambda.interaction.material.transfer.SlotTransfer.Companion.withdraw
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.task.tasks.OpenContainer
 import com.lambda.task.tasks.PlaceContainer

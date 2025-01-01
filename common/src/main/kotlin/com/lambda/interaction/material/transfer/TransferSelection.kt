@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,21 +17,5 @@
 
 package com.lambda.interaction.material.transfer
 
-import com.lambda.context.SafeContext
-import com.lambda.task.Task
-import com.lambda.threading.runSafe
-
-abstract class InventoryTransaction : Task<InventoryChanges>() {
-    private lateinit var changes: InventoryChanges
-
-    override fun SafeContext.onStart() {
-        changes = InventoryChanges(player.currentScreenHandler.slots)
-    }
-
-    fun finish() {
-        runSafe {
-            changes.detectChanges()
-            success(changes)
-        } ?: failure("Failed to finish transaction")
-    }
+class TransferSelection {
 }

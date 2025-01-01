@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,23 +15,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.material.transfer
+package com.lambda.interaction.material.transfer.transaction
 
-import com.lambda.context.SafeContext
-import com.lambda.task.Task
-import com.lambda.threading.runSafe
+import com.lambda.interaction.material.transfer.InventoryTransaction
 
-abstract class InventoryTransaction : Task<InventoryChanges>() {
-    private lateinit var changes: InventoryChanges
+class QuickCraftTransaction @Ta5kBuilder constructor(
+    private val slots: List<Int>,
+    private val mode: Mode = Mode.SINGLE
+) : InventoryTransaction() {
+    override val name: String get() = "Drag and drop ${slots.size} slots"
 
-    override fun SafeContext.onStart() {
-        changes = InventoryChanges(player.currentScreenHandler.slots)
-    }
-
-    fun finish() {
-        runSafe {
-            changes.detectChanges()
-            success(changes)
-        } ?: failure("Failed to finish transaction")
+    enum class Mode {
+        SINGLE, SPLIT
     }
 }

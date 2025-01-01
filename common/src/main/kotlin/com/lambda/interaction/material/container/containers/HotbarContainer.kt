@@ -21,7 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.ContainerTask
 import com.lambda.interaction.material.StackSelection
-import com.lambda.interaction.material.transfer.InventoryTransferTask.Companion.deposit
+import com.lambda.interaction.material.transfer.SlotTransfer.Companion.deposit
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.text.buildText

@@ -24,33 +24,32 @@ import com.lambda.interaction.material.transfer.transaction.*
 import com.lambda.task.Task
 import net.minecraft.screen.slot.SlotActionType
 
-class InventoryTransfer @Ta5kBuilder constructor() : Task<InventoryChanges>() {
-    override val name: String get() = "Inventory Transfer" 
+class TransactionExecutor @Ta5kBuilder constructor(
+    private val transactions: MutableList<InventoryTransaction> = mutableListOf()
+) : Task<InventoryChanges>() {
+    override val name: String get() = "Execution of ${transactions.size} transactions left"
 
-    @DslMarker
-    annotation class InvTransfer
-
-    private var transactions = mutableListOf<InventoryTransaction>()
-    private var changes: InventoryChanges? = null
+    private lateinit var changes: InventoryChanges
 
     override fun SafeContext.onStart() {
-        changes = InventoryChanges(this)
+        changes = InventoryChanges(player.currentScreenHandler.slots)
     }
 
     init {
         listen<TickEvent.Pre> {
             if (transactions.isEmpty()) {
-                changes?.let {
-                    success(it)
-                }
+                success(changes)
                 return@listen
             }
 
             transactions.removeFirstOrNull()?.finally { change ->
-                changes?.merge(change)
-            }?.execute(this@InventoryTransfer)
+                changes merge change
+            }?.execute(this@TransactionExecutor)
         }
     }
+
+    @DslMarker
+    annotation class InvTransfer
 
     @InvTransfer
     fun click(slotId: Int, button: Int, actionType: SlotActionType) {
@@ -132,8 +131,8 @@ class InventoryTransfer @Ta5kBuilder constructor() : Task<InventoryChanges>() {
 
     companion object {
         @InvTransfer
-        fun transfer(block: InventoryTransfer.() -> Unit) =
-            InventoryTransfer().apply {
+        fun transfer(block: TransactionExecutor.() -> Unit) =
+            TransactionExecutor().apply {
                 block(this)
             }
     }
