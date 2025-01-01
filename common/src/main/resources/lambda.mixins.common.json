@@ -42,6 +42,7 @@
     "render.RenderTickCounterMixin",
     "render.ScreenHandlerMixin",
     "render.SplashOverlayMixin",
+    "render.SplashOverlayMixin$LogoTextureMixin",
     "render.VertexBufferMixin",
     "render.WorldRendererMixin",
     "world.BlockCollisionSpliteratorMixin",
