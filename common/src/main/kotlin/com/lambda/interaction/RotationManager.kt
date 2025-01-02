@@ -45,12 +45,14 @@ import kotlin.math.*
 
 object RotationManager : Loadable {
     var currentRotation = Rotation.ZERO
-    var prevRotation = Rotation.ZERO
+    private var prevRotation = Rotation.ZERO
 
     var currentContext: RotationContext? = null
 
     private var keepTicks = 0
     private var pauseTicks = 0
+
+    override fun load() = "Loaded Rotation Manager"
 
     fun Any.requestRotation(
         priority: Int = 0,

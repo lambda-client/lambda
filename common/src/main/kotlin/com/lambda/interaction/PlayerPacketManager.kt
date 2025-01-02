@@ -35,10 +35,10 @@ import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.*
 import net.minecraft.util.math.Vec3d
 
-object PlayerPacketManager : Loadable {
+object PlayerPacketManager {
     val configurations = LimitedOrderedSet<PlayerPacketEvent.Pre>(100)
 
-    var lastPosition = Vec3d.ZERO
+    var lastPosition: Vec3d = Vec3d.ZERO
     var lastRotation = Rotation.ZERO
     var lastSprint = false
     var lastSneak = false

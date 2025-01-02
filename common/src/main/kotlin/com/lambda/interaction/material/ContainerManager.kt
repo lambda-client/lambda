@@ -50,6 +50,8 @@ object ContainerManager : Loadable {
 
     private var lastInteractedBlockEntity: BlockEntity? = null
 
+    override fun load() = "Loaded ${compileContainers.size} containers"
+
     init {
         listen<PlayerEvent.Interact.Block> {
             lastInteractedBlockEntity = it.blockHitResult.blockPos.blockEntity(world)

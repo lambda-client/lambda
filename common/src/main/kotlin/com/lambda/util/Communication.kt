@@ -37,6 +37,7 @@ import java.awt.Color
 
 object Communication {
     val ascii = """
+
         ⣰⡛⠶⣄⠀⠀⠀⠀⠀⠀
         ⠑⠭⣛⡜⣳⡀⠀⠀⠀⠀
         ⠀⠀⠹⣾⣥⣛⡄⠀⠀⠀
@@ -44,6 +45,7 @@ object Communication {
         ⠀⢠⣿⣿⣿⢶⣏⡿⡄⠀
         ⢠⣿⣿⡿⠃⠘⣿⣼⣻⣄
         ⠻⢿⡿⠁⠀⠀⠘⢷⡽⠞
+
     """.trimIndent()
 
     fun Any.debug(message: String, source: String = "") = log(LogLevel.DEBUG.text(message), LogLevel.DEBUG, source)
