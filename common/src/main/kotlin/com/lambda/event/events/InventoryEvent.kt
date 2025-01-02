@@ -77,7 +77,7 @@ sealed class InventoryEvent {
         val syncId: Int,
         val revision: Int,
         val slot: Int,
-        val stack: ItemStack
+        val stack: ItemStack,
     ) : Event
 
     /**

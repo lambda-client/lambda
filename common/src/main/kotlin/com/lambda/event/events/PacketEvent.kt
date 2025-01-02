@@ -21,6 +21,8 @@ import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
+import com.lambda.event.events.PacketEvent.Receive
+import com.lambda.event.events.PacketEvent.Send
 import com.lambda.util.ClientPacket
 import com.lambda.util.ServerPacket
 

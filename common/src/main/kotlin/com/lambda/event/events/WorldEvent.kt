@@ -18,11 +18,7 @@
 package com.lambda.event.events
 
 import com.lambda.event.Event
-import com.lambda.event.callback.Cancellable
-import com.lambda.event.callback.ICancellable
 import net.minecraft.block.BlockState
-import net.minecraft.entity.Entity
-import net.minecraft.entity.data.TrackedData
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.world.chunk.WorldChunk
@@ -50,7 +46,7 @@ sealed class WorldEvent {
          * Event triggering upon chunk loading
          */
         data class Load(
-            val chunk: WorldChunk
+            val chunk: WorldChunk,
         ) : Event
 
         /**
@@ -58,7 +54,7 @@ sealed class WorldEvent {
          * Does not trigger when leaving the world
          */
         data class Unload(
-            val chunk: WorldChunk
+            val chunk: WorldChunk,
         ) : Event
     }
 
@@ -87,6 +83,6 @@ sealed class WorldEvent {
     data class Collision(
         val pos: BlockPos,
         val state: BlockState,
-        var shape: VoxelShape
+        var shape: VoxelShape,
     ) : Event
 }

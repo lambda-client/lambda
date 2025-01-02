@@ -19,7 +19,6 @@ package com.lambda.event.events
 
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import net.minecraft.entity.Entity
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.SlotActionType
@@ -49,7 +48,7 @@ sealed class PlayerEvent {
      * Represents the player swinging its hand
      */
     data class SwingHand(
-        val hand: Hand
+        val hand: Hand,
     ) : ICancellable by Cancellable()
 
     /**
@@ -72,7 +71,7 @@ sealed class PlayerEvent {
          */
         data class Block(
             val hand: Hand,
-            val blockHitResult: BlockHitResult
+            val blockHitResult: BlockHitResult,
         ) : ICancellable by Cancellable()
 
         /**
@@ -85,7 +84,7 @@ sealed class PlayerEvent {
         data class Entity(
             val hand: Hand,
             val entity: net.minecraft.entity.Entity,
-            val entityHitResult: EntityHitResult
+            val entityHitResult: EntityHitResult,
         ) : ICancellable by Cancellable()
 
         /**
@@ -94,7 +93,7 @@ sealed class PlayerEvent {
          * @param hand The hand used to interact with the item
          */
         data class Item(
-            val hand: Hand
+            val hand: Hand,
         ) : ICancellable by Cancellable()
     }
 
@@ -104,14 +103,14 @@ sealed class PlayerEvent {
          */
         data class Block(
             val pos: BlockPos,
-            val side: Direction
+            val side: Direction,
         ) : ICancellable by Cancellable()
 
         /**
          * Represents the player attacking an entity
          */
         data class Entity(
-            val entity: net.minecraft.entity.Entity
+            val entity: net.minecraft.entity.Entity,
         ) : ICancellable by Cancellable()
     }
 

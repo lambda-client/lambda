@@ -51,7 +51,7 @@ sealed class EntityEvent {
      * @property entity The entity that is being spawned.
      */
     data class EntitySpawn(
-        val entity: Entity
+        val entity: Entity,
     ) : ICancellable by Cancellable()
 
     /**

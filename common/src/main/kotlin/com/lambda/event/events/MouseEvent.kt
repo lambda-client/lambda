@@ -35,7 +35,7 @@ sealed class MouseEvent {
         val button: Mouse.Button,
         val action: Mouse.Action,
         val modifiers: Int,
-        val position: Vec2d
+        val position: Vec2d,
     ) : ICancellable by Cancellable() {
         constructor(button: Int, action: Int, modifiers: Int, position: Vec2d) : this(
             Mouse.Button.fromMouseCode(button),
@@ -51,7 +51,7 @@ sealed class MouseEvent {
      * @property delta The amount of scrolling in the x and y directions
      */
     data class Scroll(
-        val delta: Vec2d
+        val delta: Vec2d,
     ) : ICancellable by Cancellable()
 
     /**
@@ -60,6 +60,6 @@ sealed class MouseEvent {
      * @property position The x and y position of the mouse on the screen.
      */
     data class Move(
-        val position: Vec2d
+        val position: Vec2d,
     ) : ICancellable by Cancellable()
 }
