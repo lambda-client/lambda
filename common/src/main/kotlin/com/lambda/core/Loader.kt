@@ -20,7 +20,6 @@ package com.lambda.core
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.util.Communication.ascii
-import com.lambda.util.FolderRegister
 import com.lambda.util.reflections.getInstances
 import kotlin.system.measureTimeMillis
 import kotlin.time.DurationUnit

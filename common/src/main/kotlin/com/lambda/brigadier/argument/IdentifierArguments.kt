@@ -17,7 +17,6 @@
 package com.lambda.brigadier.argument
 
 import com.lambda.brigadier.*
-import com.lambda.brigadier.assumeSourceNotUsed
 import net.minecraft.advancement.AdvancementEntry
 import net.minecraft.command.argument.IdentifierArgumentType
 import net.minecraft.loot.condition.LootCondition
@@ -111,7 +110,7 @@ fun ArgumentReader<
  */
 @BrigadierDsl
 fun <S> identifier(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, IdentifierArgumentType> {
     return argument(name, IdentifierArgumentType.identifier())
 }

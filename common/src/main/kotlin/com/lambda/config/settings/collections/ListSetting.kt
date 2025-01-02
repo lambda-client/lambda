@@ -47,7 +47,6 @@ class ListSetting<T : Any>(
         if (hackDelegates) {
             defaultValue.addAll(gson.fromJson(serialized, type))
             setValue(this, ::value, defaultValue.distinct().toMutableList())
-        }
-        else super.loadFromJson(serialized)
+        } else super.loadFromJson(serialized)
     }
 }

@@ -49,7 +49,7 @@ abstract class Targeting(
     owner: Configurable,
     predicate: () -> Boolean = { true },
     defaultRange: Double,
-    maxRange: Double
+    maxRange: Double,
 ) : TargetingConfig {
 
     /**

@@ -18,9 +18,10 @@
 package com.lambda.command.commands
 
 import com.lambda.brigadier.CommandResult
-import com.lambda.brigadier.argument.*
+import com.lambda.brigadier.argument.greedyString
+import com.lambda.brigadier.argument.literal
+import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
-import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.interaction.construction.StructureRegistry
@@ -69,7 +70,9 @@ object BuildCommand : LambdaCommand(
                         } catch (e: NoSuchFileException) {
                             return@executeWithResult CommandResult.failure("Structure $pathString not found")
                         } catch (e: Exception) {
-                            return@executeWithResult CommandResult.failure(e.message ?: "Failed to load structure $pathString")
+                            return@executeWithResult CommandResult.failure(
+                                e.message ?: "Failed to load structure $pathString"
+                            )
                         }
                     }
 

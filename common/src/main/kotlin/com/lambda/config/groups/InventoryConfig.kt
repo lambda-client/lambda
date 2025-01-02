@@ -17,8 +17,8 @@
 
 package com.lambda.config.groups
 
-import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.container.MaterialContainer
 import net.minecraft.block.Block
 
 interface InventoryConfig {
@@ -40,6 +40,7 @@ interface InventoryConfig {
                 WITH_MAX_ITEMS -> compareBy<MaterialContainer> { it.rank }
                     .thenByDescending { it.materialAvailable(selection) }
                     .thenBy { it.name }
+
                 WITH_MIN_ITEMS -> compareBy<MaterialContainer> { it.rank }
                     .thenBy { it.materialAvailable(selection) }
                     .thenBy { it.name }
@@ -50,6 +51,7 @@ interface InventoryConfig {
                 WITH_MAX_ITEMS -> compareBy<MaterialContainer> { it.rank }
                     .thenByDescending { it.spaceAvailable(selection) }
                     .thenBy { it.name }
+
                 WITH_MIN_ITEMS -> compareBy<MaterialContainer> { it.rank }
                     .thenBy { it.spaceAvailable(selection) }
                     .thenBy { it.name }

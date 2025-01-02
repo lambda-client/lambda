@@ -50,7 +50,7 @@ import java.awt.Color
  * @property settings A set of [AbstractSetting]s that this configurable manages.
  */
 abstract class Configurable(
-    private val configuration: Configuration
+    private val configuration: Configuration,
 ) : Jsonable, Nameable {
     val settings = mutableSetOf<AbstractSetting<*>>()
 

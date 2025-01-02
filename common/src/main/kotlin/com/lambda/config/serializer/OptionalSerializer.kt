@@ -28,7 +28,7 @@ object OptionalSerializer : JsonSerializer<Optional<Any>>, JsonDeserializer<Opti
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type?,
-        context: JsonDeserializationContext?
+        context: JsonDeserializationContext?,
     ): Optional<Any> =
         Optional.ofNullable(json?.let { context?.deserialize(it, typeOfT) ?: Optional.empty<Any>() })
 }

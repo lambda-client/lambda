@@ -47,7 +47,6 @@ class MapSetting<K, V>(
         if (hackDelegates) {
             defaultValue.putAll(gson.fromJson(serialized, type))
             setValue(this, ::value, defaultValue)
-        }
-        else super.loadFromJson(serialized)
+        } else super.loadFromJson(serialized)
     }
 }
