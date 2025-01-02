@@ -30,7 +30,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(BarrierBlock.class)
 public class BarrierBlockMixin {
 
-    @Inject(method = "getRenderType", at = @At(value = "RETURN"), cancellable = true)
+    @Inject(method = "getRenderType", at = @At("RETURN"), cancellable = true)
     private void getRenderType(BlockState state, CallbackInfoReturnable<BlockRenderType> cir) {
         if (BlockESP.INSTANCE.isEnabled()
                 && BlockESP.getBarrier()

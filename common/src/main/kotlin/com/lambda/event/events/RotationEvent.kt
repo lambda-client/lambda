@@ -33,7 +33,7 @@ sealed class RotationEvent {
      *
      * @property context The rotation context that listeners can set. Only one rotation can "win" each tick
      */
-    class Update(var context: RotationContext?) : ICancellable by Cancellable()
+    data class Update(var context: RotationContext?) : ICancellable by Cancellable()
 
     /**
      * This event allows listeners to modify the yaw relative to which the movement input is going to be constructed
@@ -41,7 +41,7 @@ sealed class RotationEvent {
      * @property strafeYaw The angle at which the player will move when pressing W
      * Changing this value will never force the anti cheat to flag you because RotationManager is designed to modify the key input instead
      */
-    class StrafeInput(var strafeYaw: Double, val input: Input) : Event
+    data class StrafeInput(var strafeYaw: Double, val input: Input) : Event
 
-    class Post(val context: RotationContext) : Event
+    data class Post(val context: RotationContext) : Event
 }

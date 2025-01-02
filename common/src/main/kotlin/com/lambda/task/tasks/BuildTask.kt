@@ -43,6 +43,7 @@ import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.info
+import com.lambda.util.Formatting.string
 import com.lambda.util.extension.Structure
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
 import net.minecraft.util.math.BlockPos
@@ -56,7 +57,7 @@ class BuildTask @Ta5kBuilder constructor(
     private val rotation: RotationConfig = TaskFlowModule.rotation,
     private val interact: InteractionConfig = TaskFlowModule.interact,
 ) : Task<Unit>() {
-    override val name: String get() = "Building $blueprint with ${"%.2f".format(placements / (age / 20.0 + 0.001))} p/s"
+    override val name: String get() = "Building $blueprint with ${(placements / (age / 20.0 + 0.001)).string} p/s"
 
     private val pendingPlacements = ConcurrentLinkedQueue<PlaceContext>()
     private val pendingBreaks = ConcurrentLinkedQueue<BreakContext>()

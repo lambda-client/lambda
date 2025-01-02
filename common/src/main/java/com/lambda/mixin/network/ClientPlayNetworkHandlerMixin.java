@@ -29,12 +29,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ClientPlayNetworkHandler.class)
 public class ClientPlayNetworkHandlerMixin {
-    @Inject(method = "onUpdateSelectedSlot", at = @At(value = "TAIL"))
+    @Inject(method = "onUpdateSelectedSlot", at = @At("TAIL"))
     private void onUpdateSelectedSlot(UpdateSelectedSlotS2CPacket packet, CallbackInfo ci) {
         EventFlow.post(new InventoryEvent.SelectedHotbarSlotUpdate(packet.getSlot()));
     }
 
-    @Inject(method = "onScreenHandlerSlotUpdate", at = @At(value = "TAIL"))
+    @Inject(method = "onScreenHandlerSlotUpdate", at = @At("TAIL"))
     private void onScreenHandlerSlotUpdate(ScreenHandlerSlotUpdateS2CPacket packet, CallbackInfo ci) {
         EventFlow.post(new InventoryEvent.SlotUpdate(packet.getSyncId(), packet.getRevision(), packet.getSlot(), packet.getStack()));
     }

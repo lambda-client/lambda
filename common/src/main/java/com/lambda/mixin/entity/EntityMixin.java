@@ -19,12 +19,14 @@ package com.lambda.mixin.entity;
 
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
+import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.event.events.WorldEvent;
 import com.lambda.interaction.RotationManager;
 import com.lambda.util.math.Vec2d;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.MovementType;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
@@ -33,6 +35,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Entity.class)
 public abstract class EntityMixin {
@@ -94,6 +97,16 @@ public abstract class EntityMixin {
     public void onTrackedDataSet(TrackedData<?> data, CallbackInfo ci) {
         Entity entity = (Entity) (Object) this;
 
-        EventFlow.post(new WorldEvent.EntityUpdate(entity, data));
+        EventFlow.post(new EntityEvent.EntityUpdate(entity, data));
+    }
+
+    // ToDo: Does not trigger for some reason.
+    @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
+    public void damage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        Entity entity = (Entity) (Object) this;
+
+        if (EventFlow.post(new EntityEvent.Damage(entity, source, amount)).isCanceled()) {
+            cir.setReturnValue(false);
+        }
     }
 }

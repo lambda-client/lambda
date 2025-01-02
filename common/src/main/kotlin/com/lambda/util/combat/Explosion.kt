@@ -67,13 +67,8 @@ object Explosion {
     fun SafeContext.explosionDamage(position: Vec3d, entity: LivingEntity, power: Double): Double {
         val distance = entity dist position
 
-        val impact = (1.0 - distance / (power * 2.0)) *
-                Explosion.getExposure(position, entity) *
-                0.4
-
-        val damage = world.difficulty.id * 3 *
-                power *
-                (impact * impact + impact) + 1
+        val impact = (1.0 - distance / (power * 2.0)) * Explosion.getExposure(position, entity) * 0.4
+        val damage = world.difficulty.id * 3 * power * (impact * impact + impact) + 1
 
         return Damage.mask(entity, damage, Explosion.createDamageSource(world, null))
     }

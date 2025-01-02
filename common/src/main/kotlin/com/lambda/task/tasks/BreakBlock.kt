@@ -18,11 +18,11 @@
 package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
-import com.lambda.config.groups.RotationConfig
 import com.lambda.config.groups.InteractionConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.context.SafeContext
+import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.RotationManager.rotate
 import com.lambda.interaction.construction.context.BreakContext
@@ -37,6 +37,7 @@ import com.lambda.util.player.SlotUtils.clickSlot
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import net.minecraft.block.BlockState
 import net.minecraft.entity.ItemEntity
+import net.minecraft.entity.data.TrackedDataHandlerRegistry
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -125,12 +126,14 @@ class BreakBlock @Ta5kBuilder constructor(
             }
         }
 
-        // ToDo: Find out when the stack entity is filled with the item
-        listen<WorldEvent.EntityUpdate> {
-            if (collectDrop
-                && it.entity is ItemEntity
-                && it.entity.pos.isInRange(blockPos.toCenterPos(), 0.5)
-            ) {
+        // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
+        listen<EntityEvent.EntityUpdate> {
+            if (!collectDrop) return@listen
+            if (it.entity !is ItemEntity) return@listen
+            val inBreakRange = it.entity.pos.isInRange(blockPos.toCenterPos(), 0.5)
+            val correctMaterial = it.entity.stack.item.block == beginState?.block
+
+            if (inBreakRange && correctMaterial) {
                 drop = it.entity
                 state = State.COLLECTING
             }

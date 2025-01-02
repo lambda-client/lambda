@@ -18,6 +18,7 @@
 package com.lambda.module.modules.combat
 
 import com.lambda.context.SafeContext
+import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.friend.FriendManager
@@ -25,12 +26,15 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundManager.playSound
 import com.lambda.util.Communication
+import com.lambda.util.Communication.info
 import com.lambda.util.Communication.prefix
 import com.lambda.util.Formatting.string
 import com.lambda.util.combat.Explosion.explosionDamage
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.text.*
 import com.lambda.util.world.fastEntitySearch
+import net.minecraft.entity.damage.DamageSource
+import net.minecraft.entity.damage.DamageTypes
 import net.minecraft.entity.decoration.EndCrystalEntity
 import net.minecraft.entity.mob.CreeperEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -54,23 +58,90 @@ object AutoDisconnect : Module(
     private val minPlayerDistance by setting("Player Distance", 64, 32..128, 4, "Set the distance to detect players for disconnection.") { players }
     private val friends by setting("Friends", false, "Exclude friends from triggering player-based disconnections.") { players }
 
+    private val onDamage by setting("On Damage", false, "Disconnect from the server when you take damage.")
+
+    // ToDo: Only those DamageTypes are reported by the server. why?
+    private val generic by setting("Generic", false, "Disconnect from the server when you get generic damage. (will always trigger!)") { onDamage }
+    private val inFire by setting("Burning", false, "Disconnect from the server when you take fire damage.") { onDamage }
+    private val lava by setting("Lava", false, "Disconnect from the server when you get lava.") { onDamage }
+    private val hotFloor by setting("Hot Floor", false, "Disconnect from the server when you get hot floor.") { onDamage }
+    private val drown by setting("Drown", false, "Disconnect from the server when you get drown.") { onDamage }
+    private val cactus by setting("Cactus", false, "Disconnect from the server when you get cactus.") { onDamage }
+    private val fall by setting("Fall", false, "Disconnect from the server when you fall.") { onDamage }
+    private val outOfWorld by setting("Out of World", false, "Disconnect from the server when you get out of the world.") { onDamage }
+    private val wither by setting("Wither", false, "Disconnect from the server when you get wither damage.") { onDamage }
+    private val stalagmite by setting("Stalagmite", false, "Disconnect from the server when you get stalagmite damage.") { onDamage }
+    private val arrow by setting("Arrow", false, "Disconnect from the server when you get arrow damage.") { onDamage }
+    private val trident by setting("Trident", false, "Disconnect from the server when you get trident damage.") { onDamage }
+
     init {
         listen<TickEvent.Pre>(-1000) {
             Reason.entries.filter {
                 it.check()
             }.forEach { reason ->
                 reason.generateReason(this)?.let { reasonText ->
-                    disconnect(reason, reasonText)
+                    disconnect(reasonText, reason)
                     return@listen
                 }
             }
         }
+
+        listen<PlayerEvent.Damage> { event ->
+            if (!onDamage) return@listen
+
+            val damageHandlers = listOf(
+                inFire to DamageTypes.IN_FIRE,
+                lava to DamageTypes.LAVA,
+                hotFloor to DamageTypes.HOT_FLOOR,
+                drown to DamageTypes.DROWN,
+                cactus to DamageTypes.CACTUS,
+                fall to DamageTypes.FALL,
+                outOfWorld to DamageTypes.OUT_OF_WORLD,
+                generic to DamageTypes.GENERIC,
+                wither to DamageTypes.WITHER,
+                stalagmite to DamageTypes.STALAGMITE,
+                arrow to DamageTypes.ARROW,
+                trident to DamageTypes.TRIDENT
+            )
+
+            damageHandlers.firstOrNull { (enabled, damageSource) ->
+                enabled && event.source.isOf(damageSource)
+            }?.let {
+                damageDisconnect(event.source, event.amount)
+            }
+        }
     }
 
-    private fun SafeContext.disconnect(reason: Reason, reasonText: Text) {
-        connection.connection.disconnect(generateInfo(reasonText))
-        playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP)
+    private fun SafeContext.damageDisconnect(source: DamageSource, amount: Float) {
+        buildText {
+            literal("Got ")
+            highlighted(amount.string)
+            literal(" damage of type ")
+            highlighted(source.name)
+            source.attacker?.let {
+                literal(" from attacker ")
+                if (it.customName != null) text(it.name)
+                else highlighted(it.name.string)
+            }
+            source.source?.let {
+                literal(" by source ")
+                if (it.customName != null) text(it.name)
+                else highlighted(it.name.string)
+            }
+            source.position?.let {
+                literal(" at position ")
+                highlighted(it.string)
+            }
+            literal(".")
+        }.let {
+            disconnect(it)
+        }
+    }
+
+    private fun SafeContext.disconnect(reasonText: Text, reason: Reason? = null) {
         if (reason == Reason.HEALTH || reason == Reason.TOTEM) disable()
+        connection.connection.disconnect(generateInfo(reasonText))
+        playSound(SoundEvents.BLOCK_ANVIL_LAND)
     }
 
     private fun SafeContext.generateInfo(text: Text) = buildText {
@@ -82,18 +153,31 @@ object AutoDisconnect : Module(
         literal(" on ")
         highlighted(Communication.currentTime())
         literal(" with ")
-        highlighted("%.2f".format(player.health))
+        highlighted(player.health.string)
         literal(" health.")
+        if (player.isSubmergedInWater) {
+            literal("\n")
+            literal("Submerged in water, had ")
+            highlighted("${player.air}")
+            literal(" ticks left of breath.")
+        }
+        if (player.isInLava) {
+            literal("\n")
+            literal("In lava, had ")
+            highlighted("${player.air}")
+            literal(" ticks left of breath.")
+        }
         if (player.isOnFire) {
             literal("\n")
             literal("Burning for ")
             highlighted("${player.fireTicks}")
             literal(" ticks.")
         }
-
-        color(Color.YELLOW) {
-            literal("\n\n")
-            literal("AutoDisconnect disabled.")
+        if (isDisabled) {
+            color(Color.YELLOW) {
+                literal("\n\n")
+                literal("AutoDisconnect disabled.")
+            }
         }
     }
 
@@ -102,7 +186,7 @@ object AutoDisconnect : Module(
             if (player.health < minimumHealth) {
                 buildText {
                     literal("Health ")
-                    highlighted("%.2f".format(player.health))
+                    highlighted(player.health.string)
                     literal(" below minimum of ")
                     highlighted("$minimumHealth")
                     literal("!")
@@ -128,7 +212,7 @@ object AutoDisconnect : Module(
             }?.let { creeper ->
                 buildText {
                     literal("An ignited creeper was ")
-                    highlighted("%.2f".format(creeper.pos.distanceTo(player.pos)))
+                    highlighted(creeper.pos.distanceTo(player.pos).string)
                     literal(" blocks away!")
                 }
             }
@@ -140,8 +224,10 @@ object AutoDisconnect : Module(
                         && (!friends || !FriendManager.isFriend(otherPlayer.uuid))
             }?.let { otherPlayer ->
                 buildText {
-                    literal("A player (${otherPlayer.name}) was ")
-                    highlighted("${"%.2f".format(otherPlayer.distanceTo(player))} blocks away")
+                    literal("The player ")
+                    text(otherPlayer.name)
+                    literal(" was ")
+                    highlighted("${otherPlayer.distanceTo(player).string} blocks away")
                     literal("!")
                 }
             }

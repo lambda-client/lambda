@@ -18,6 +18,7 @@
 package com.lambda.mixin.world;
 
 import com.lambda.event.EventFlow;
+import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.WorldEvent;
 import com.lambda.module.modules.render.WorldColors;
 import com.lambda.util.math.ColorKt;
@@ -36,7 +37,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class ClientWorldMixin {
     @Inject(method = "addEntity", at = @At("HEAD"), cancellable = true)
     private void addEntity(Entity entity, CallbackInfo ci) {
-        if (EventFlow.post(new WorldEvent.EntitySpawn(entity)).isCanceled()) ci.cancel();
+        if (EventFlow.post(new EntityEvent.EntitySpawn(entity)).isCanceled()) ci.cancel();
     }
 
     @Inject(method = "getCloudsColor", at = @At("HEAD"), cancellable = true)

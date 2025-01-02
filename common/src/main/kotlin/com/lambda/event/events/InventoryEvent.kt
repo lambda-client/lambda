@@ -38,7 +38,7 @@ sealed class InventoryEvent {
      *
      * @property screenHandler The screen handler associated with the opened inventory.
      */
-    class Open(val screenHandler: ScreenHandler) : Event
+    data class Open(val screenHandler: ScreenHandler) : Event
 
     /**
      * Represents an event triggered when an inventory or screen is closed.
@@ -49,7 +49,7 @@ sealed class InventoryEvent {
      *
      * @property screenHandler The screen handler associated with the closed inventory.
      */
-    class Close(val screenHandler: ScreenHandler) : Event
+    data class Close(val screenHandler: ScreenHandler) : Event
 
     /**
      * Represents an update event for an inventory, typically triggered when inventory contents or states
@@ -73,7 +73,7 @@ sealed class InventoryEvent {
      * @property slot The index of the updated inventory slot.
      * @property stack The new item stack in the updated slot.
      */
-    class SlotUpdate(
+    data class SlotUpdate(
         val syncId: Int,
         val revision: Int,
         val slot: Int,
@@ -85,5 +85,5 @@ sealed class InventoryEvent {
      *
      * @property slot The index of the newly selected hotbar slot.
      */
-    class SelectedHotbarSlotUpdate(val slot: Int) : Event
+    data class SelectedHotbarSlotUpdate(val slot: Int) : Event
 }
