@@ -26,7 +26,6 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.SoundManager.playSound
 import com.lambda.util.Communication
-import com.lambda.util.Communication.info
 import com.lambda.util.Communication.prefix
 import com.lambda.util.Formatting.string
 import com.lambda.util.combat.Explosion.explosionDamage

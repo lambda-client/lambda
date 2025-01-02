@@ -19,9 +19,6 @@ package com.lambda.module
 
 import com.lambda.core.Loadable
 import com.lambda.util.reflections.getInstances
-import org.reflections.Reflections
-import org.reflections.scanners.Scanners
-import org.reflections.util.ConfigurationBuilder
 
 /**
  * The [ModuleRegistry] object is responsible for managing all [Module] instances in the system.

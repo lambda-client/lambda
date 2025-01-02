@@ -20,7 +20,9 @@ package com.lambda.module.modules.player
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
-import com.lambda.event.events.*
+import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh

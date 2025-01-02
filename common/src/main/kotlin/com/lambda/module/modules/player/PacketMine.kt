@@ -713,7 +713,7 @@ object PacketMine : Module(
         bestTool: Supplier<Int>,
         empty: Boolean = false,
         instaBroken: Boolean = false,
-        task: Runnable
+        task: Runnable,
     ) {
         handleRotations(preStage, pos, empty = empty, instaBroken = instaBroken)
 
@@ -736,7 +736,7 @@ object PacketMine : Module(
         pos: BlockPos,
         bestTool: Int,
         empty: Boolean = false,
-        instaBroken: Boolean = false
+        instaBroken: Boolean = false,
     ) {
         handleRotations(progressStage, pos, empty = empty, instaBroken = instaBroken)
         handleAutoSwap(progressStage, bestTool, empty = empty, instaBroken = instaBroken)
@@ -747,7 +747,7 @@ object PacketMine : Module(
         progressStage: ProgressStage,
         pos: BlockPos,
         empty: Boolean = false,
-        instaBroken: Boolean = false
+        instaBroken: Boolean = false,
     ) {
         when (progressStage) {
             ProgressStage.PreTick -> {
@@ -773,7 +773,8 @@ object PacketMine : Module(
             ProgressStage.EndPost -> if (!validateBreak || empty) checkReleaseRotation()
 
             ProgressStage.PacketReceiveBreak,
-            ProgressStage.TimedOut -> checkReleaseRotation()
+            ProgressStage.TimedOut,
+                -> checkReleaseRotation()
         }
     }
 
@@ -781,7 +782,7 @@ object PacketMine : Module(
         progressStage: ProgressStage,
         bestTool: Int,
         empty: Boolean = false,
-        instaBroken: Boolean = false
+        instaBroken: Boolean = false,
     ) {
         if (!swapMethod.isEnabled()) return
 
@@ -827,14 +828,15 @@ object PacketMine : Module(
             }
 
             ProgressStage.PacketReceiveBreak,
-            ProgressStage.TimedOut -> returnToOriginalSlot()
+            ProgressStage.TimedOut,
+                -> returnToOriginalSlot()
         }
     }
 
     private fun SafeContext.handleSwing(
         progressStage: ProgressStage,
         empty: Boolean = false,
-        instaBroken: Boolean = false
+        instaBroken: Boolean = false,
     ) {
         if (!swingMode.isEnabled()) return
 
@@ -856,7 +858,8 @@ object PacketMine : Module(
             ProgressStage.EndPost,
             ProgressStage.StartPost,
             ProgressStage.PacketReceiveBreak,
-            ProgressStage.TimedOut -> {
+            ProgressStage.TimedOut,
+                -> {
             }
         }
     }
@@ -1130,7 +1133,7 @@ object PacketMine : Module(
     private fun SafeContext.checkClientSideBreak(
         packetReceiveBreak: Boolean,
         pos: BlockPos,
-        doubleBreakBlock: Boolean = false
+        doubleBreakBlock: Boolean = false,
     ) {
         if (packetReceiveBreak || (!validateBreak && !doubleBreakBlock)) {
             interaction.breakBlock(pos)

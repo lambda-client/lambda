@@ -106,7 +106,7 @@ object BlockESP : Module(
 
         build(
             // big hack
-            Box(x.toDouble(), y.toDouble(), z.toDouble(), x.toDouble()+1, y.toDouble()+1, z.toDouble()+1),
+            Box(x.toDouble(), y.toDouble(), z.toDouble(), x.toDouble() + 1, y.toDouble() + 1, z.toDouble() + 1),
             sides
         )
     }

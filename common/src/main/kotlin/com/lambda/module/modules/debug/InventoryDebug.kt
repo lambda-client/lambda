@@ -54,9 +54,9 @@ object InventoryDebug : Module(
         listen<PacketEvent.Receive.Pre> {
             when (it.packet) {
                 is UpdateSelectedSlotS2CPacket,
-                is InventoryS2CPacket
+                is InventoryS2CPacket,
                     -> {
-                        LOG.info(it.packet.dynamicString())
+                    LOG.info(it.packet.dynamicString())
                 }
             }
             when (val packet = it.packet) {

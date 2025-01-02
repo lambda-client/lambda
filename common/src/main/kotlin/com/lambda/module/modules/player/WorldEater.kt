@@ -39,7 +39,7 @@ object WorldEater : Module(
     description = "Eats the world",
     defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
 ) {
-//    private val height by setting("Height", 4, 1..10, 1)
+    //    private val height by setting("Height", 4, 1..10, 1)
 //    private val width by setting("Width", 6, 1..30, 1)
     private val pos1 by setting("Position 1", BlockPos(351, 104, 103))
     private val pos2 by setting("Position 2", BlockPos(361, 70, 113))

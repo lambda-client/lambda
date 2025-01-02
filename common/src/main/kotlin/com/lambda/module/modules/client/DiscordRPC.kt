@@ -103,7 +103,10 @@ object DiscordRPC : Module(
 
         listenUnsafe<ConnectionEvent.Connect.Login.EncryptionResponse> {
             if (it.secretKey.isDestroyed)
-                return@listenUnsafe logError("Error during the login process", "The client secret key was destroyed by another listener")
+                return@listenUnsafe logError(
+                    "Error during the login process",
+                    "The client secret key was destroyed by another listener"
+                )
 
             keyEvent = it
         }

@@ -59,6 +59,7 @@ object ClickFriend : Module(
                     target.isFriend && target.unfriend() -> {
                         this@ClickFriend.info(FriendManager.unfriendedText(target.name))
                     }
+
                     !target.isFriend && target.befriend() -> {
                         this@ClickFriend.info(FriendManager.befriendedText(target.name))
                     }

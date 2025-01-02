@@ -44,7 +44,7 @@ abstract class HudModule(
         private var relativePosX by setting("Position X", 0.0, -10000.0..10000.0, 0.1) { false }
         private var relativePosY by setting("Position Y", 0.0, -10000.0..10000.0, 0.1) { false }
         override var relativePos
-            get() = Vec2d(relativePosX, relativePosY);
+            get() = Vec2d(relativePosX, relativePosY)
             set(value) {
                 relativePosX = value.x; relativePosY = value.y
             }

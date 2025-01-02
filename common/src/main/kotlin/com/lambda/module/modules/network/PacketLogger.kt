@@ -21,8 +21,8 @@ import com.lambda.Lambda
 import com.lambda.Lambda.mc
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafeConcurrently
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafeConcurrently
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runIO

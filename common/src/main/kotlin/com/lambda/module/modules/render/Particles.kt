@@ -19,8 +19,8 @@ package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -150,7 +150,7 @@ object Particles : Module(
     private class Particle(
         initialPosition: Vec3d,
         initialMotion: Vec3d,
-        val lay: Boolean
+        val lay: Boolean,
     ) {
         private val fadeTicks = fadeDuration
 

@@ -18,7 +18,6 @@
 package com.lambda.module.modules.client
 
 import com.lambda.config.groups.BuildSettings
-import com.lambda.config.groups.BuildSettings.Page
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
@@ -27,9 +26,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.BlockUtils.allSigns
-import com.lambda.util.item.ItemUtils
-import net.minecraft.state.property.Properties
 
 object TaskFlowModule : Module(
     name = "TaskFlow",

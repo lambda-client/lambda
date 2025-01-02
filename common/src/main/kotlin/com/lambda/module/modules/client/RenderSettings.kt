@@ -18,7 +18,6 @@
 package com.lambda.module.modules.client
 
 import com.lambda.module.Module
-import com.lambda.module.modules.client.GuiSettings.Page
 import com.lambda.module.tag.ModuleTag
 import java.awt.Color
 
