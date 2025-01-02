@@ -59,7 +59,7 @@ class EntityDsl<T : Entity>(
     private val kClass: KClass<out T>,
     pos: BlockPos,
     private val range: Double,
-    private val predicate: (T) -> Boolean
+    private val predicate: (T) -> Boolean,
 ) {
     private val fastVector = pos.toFastVec()
     private val receiver: MutableList<T> = mutableListOf()
@@ -97,7 +97,7 @@ class EntityDsl<T : Entity>(
 inline fun <reified T : Entity> SafeContext.entitySearch(
     range: Double,
     pos: BlockPos = player.blockPos,
-    noinline predicate: (T) -> Boolean = { true }
+    noinline predicate: (T) -> Boolean = { true },
 ): List<T> = EntityDsl(this, T::class, pos, range, predicate).build()
 
 /**
@@ -112,5 +112,5 @@ inline fun <reified T : Entity> SafeContext.entitySearch(
 inline fun <reified T : Entity> SafeContext.fastEntitySearch(
     range: Double,
     pos: BlockPos = player.blockPos,
-    noinline predicate: (T) -> Boolean = { true }
+    noinline predicate: (T) -> Boolean = { true },
 ): List<T> = EntityDsl(this, T::class, pos, range, predicate).buildFast()

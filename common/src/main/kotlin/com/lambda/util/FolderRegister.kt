@@ -19,12 +19,17 @@ package com.lambda.util
 
 import com.lambda.Lambda.mc
 import com.lambda.core.Loadable
+import com.lambda.util.FolderRegister.config
+import com.lambda.util.FolderRegister.lambda
+import com.lambda.util.FolderRegister.minecraft
+import com.lambda.util.FolderRegister.packetLogs
+import com.lambda.util.FolderRegister.replay
 import com.lambda.util.StringUtils.sanitizeForFilename
 import java.io.File
 import java.net.InetSocketAddress
 import java.nio.file.Path
-import kotlin.io.path.*
-import kotlin.math.min
+import kotlin.io.path.createDirectories
+import kotlin.io.path.notExists
 
 /**
  * The [FolderRegister] object is responsible for managing the directory structure of the application.

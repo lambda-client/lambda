@@ -18,7 +18,6 @@
 package com.lambda.util
 
 import org.lwjgl.glfw.GLFW
-import kotlin.jvm.Throws
 
 class Mouse {
     enum class Button(val key: Int) {

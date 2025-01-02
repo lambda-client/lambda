@@ -17,12 +17,10 @@
 
 package com.lambda.util
 
-import java.util.NoSuchElementException
-
 class VarIntIterator(
     private val bytes: ByteArray,
     private val bitsPerEntry: Int = 7,
-    private val maxGroups: Int = 5
+    private val maxGroups: Int = 5,
 ) : Iterator<Int> {
     private var index: Int = 0
 

@@ -63,7 +63,7 @@ class FluidDsl<T : Fluid>(
     pos: BlockPos,
     private val range: Vec3i,
     private val step: Vec3i,
-    private val predicate: (BlockPos, FluidState) -> Boolean
+    private val predicate: (BlockPos, FluidState) -> Boolean,
 ) {
     private val fastVector = pos.toFastVec()
     private val receiver: MutableMap<FastVector, T> = mutableMapOf()
@@ -95,7 +95,7 @@ inline fun <reified T : Fluid> SafeContext.fluidSearch(
     range: Vec3i,
     step: Vec3i,
     pos: BlockPos = player.blockPos,
-    noinline predicate: (BlockPos, FluidState) -> Boolean
+    noinline predicate: (BlockPos, FluidState) -> Boolean,
 ): Map<BlockPos, T> = FluidDsl(this, T::class, pos, range, step, predicate).build()
 
 /**
@@ -111,5 +111,5 @@ inline fun <reified T : Fluid> SafeContext.fluidSearch(
     range: Int,
     step: Int,
     pos: BlockPos = player.blockPos,
-    noinline predicate: (BlockPos, FluidState) -> Boolean
+    noinline predicate: (BlockPos, FluidState) -> Boolean,
 ): Map<BlockPos, T> = fluidSearch(Vec3i(range, range, range), Vec3i(step, step, step), pos, predicate)

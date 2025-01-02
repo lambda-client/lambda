@@ -19,11 +19,7 @@ package com.lambda.util.math
 
 import com.lambda.util.math.MathUtils.sq
 import net.minecraft.entity.Entity
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.EightWayDirection
-import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.Vec3i
+import net.minecraft.util.math.*
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -44,11 +40,15 @@ object VecUtils {
     fun EightWayDirection.rotateClockwise(steps: Int) =
         EightWayDirection.entries[(ordinal + steps) % 8]
 
-    fun Vec3d.approximate(other: Vec3d, precision: Double = 2.0E-4): Boolean = (subtract(other) distSq Vec3d.ZERO) > precision.pow(2)
+    fun Vec3d.approximate(other: Vec3d, precision: Double = 2.0E-4): Boolean =
+        (subtract(other) distSq Vec3d.ZERO) > precision.pow(2)
+
     infix fun Vec3d.dist(other: Vec3d): Double = sqrt(this distSq other)
     infix fun Vec3d.dist(other: Vec3i): Double = sqrt(this distSq other)
     infix fun Vec3d.distSq(other: Vec3d): Double = this.squaredDistanceTo(other)
-    infix fun Vec3d.distSq(other: Vec3i): Double = this.squaredDistanceTo(other.x.toDouble(), other.y.toDouble(), other.z.toDouble())
+    infix fun Vec3d.distSq(other: Vec3i): Double =
+        this.squaredDistanceTo(other.x.toDouble(), other.y.toDouble(), other.z.toDouble())
+
     infix operator fun Vec3d.plus(other: Vec3d): Vec3d = this.add(other)
     infix operator fun Vec3d.minus(other: Vec3d): Vec3d = this.subtract(other)
     infix operator fun Vec3d.times(other: Vec3d): Vec3d = this.multiply(other)

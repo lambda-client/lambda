@@ -83,7 +83,7 @@ fun StructureTemplate.readSpongeOrException(
 fun StructureTemplate.readSchematicOrException(
     lookup: RegistryEntryLookup<Block>,
     nbt: NbtCompound,
-): Throwable? = when (nbt.getString("Materials")) {
+): Throwable = when (nbt.getString("Materials")) {
     "Alpha" -> IllegalStateException("Not implemented, you can help us by contributing to the project")
     "Classic" -> IllegalStateException("Method not implemented, you can help us by contributing to the Minecraft Wiki (https://minecraft.wiki/w/Data_values_(Classic))")
     "Pocket" -> IllegalStateException("Pocket Edition schematics are not supported")
@@ -121,24 +121,24 @@ private fun StructureTemplate.readSpongeV1OrException(
     palette.keys
         .sortedBy { palette.getInt(it) }
         .forEach { key ->
-        val resource = key.substringBefore('[')
-        val blockState = NbtCompound()
+            val resource = key.substringBefore('[')
+            val blockState = NbtCompound()
 
-        // Why ?
-        // I know it's supposed to be SNBT, but it cannot be parsed back
-        key.substringAfter('[')
-            .substringBefore(']')
-            .takeIf { it != resource }
-            ?.split(',')
-            ?.associate { it.substringBefore('=') to it.substringAfter('=') }
-            ?.forEach { (key, value) -> blockState.putString(key, value) }
+            // Why ?
+            // I know it's supposed to be SNBT, but it cannot be parsed back
+            key.substringAfter('[')
+                .substringBefore(']')
+                .takeIf { it != resource }
+                ?.split(',')
+                ?.associate { it.substringBefore('=') to it.substringAfter('=') }
+                ?.forEach { (key, value) -> blockState.putString(key, value) }
 
-        // Populate the list using the correct indices
-        newPalette.add(NbtCompound().apply {
-            putString("Name", resource)
-            put("Properties", blockState)
-        })
-    }
+            // Populate the list using the correct indices
+            newPalette.add(NbtCompound().apply {
+                putString("Name", resource)
+                put("Properties", blockState)
+            })
+        }
 
     val newBlocks = NbtList()
     var blockIndex = 0
@@ -181,6 +181,6 @@ private fun StructureTemplate.readSpongeV3OrException(
 fun StructureTemplate.readLitematicaOrException(
     lookup: RegistryEntryLookup<Block>,
     nbt: NbtCompound,
-): Throwable? {
+): Throwable {
     return IllegalStateException("Litematica parsing is not implemented")
 }
