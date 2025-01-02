@@ -20,7 +20,10 @@ package com.lambda.task.tasks
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
-import com.lambda.event.events.*
+import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.PacketEvent
+import com.lambda.event.events.RotationEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.rotation.Rotation.Companion.rotation
@@ -33,8 +36,6 @@ import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import net.minecraft.block.BlockState
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
 
 class PlaceBlock @Ta5kBuilder constructor(
     private val ctx: PlaceContext,
@@ -99,12 +100,14 @@ class PlaceBlock @Ta5kBuilder constructor(
                     if (event.context.rotation != primeContext?.rotation) return@listen
                     state = State.ROTATING
                 }
+
                 State.ROTATING -> {
                     if (event.context.rotation != ctx.rotation.rotation) return@listen
                     if (!event.context.isValid) return@listen
 
                     state = State.PLACING
                 }
+
                 else -> return@listen
             }
         }

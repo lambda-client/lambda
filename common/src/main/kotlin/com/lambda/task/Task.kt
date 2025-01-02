@@ -192,7 +192,7 @@ abstract class Task<Result> : Nameable, Muteable {
     @Ta5kBuilder
     fun failure(
         e: Throwable,
-        stacktrace: MutableList<Task<*>> = mutableListOf()
+        stacktrace: MutableList<Task<*>> = mutableListOf(),
     ) {
         state = State.FAILED
         unsubscribe()

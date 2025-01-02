@@ -37,7 +37,6 @@ import com.lambda.util.player.SlotUtils.clickSlot
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import net.minecraft.block.BlockState
 import net.minecraft.entity.ItemEntity
-import net.minecraft.entity.data.TrackedDataHandlerRegistry
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction

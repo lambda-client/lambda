@@ -78,6 +78,7 @@ class PlaceContainer @Ta5kBuilder constructor(
         Items.ENDER_CHEST -> {
             !ChestBlock.isChestBlocked(world, blockPos)
         }
+
         in shulkerBoxes -> {
             val box = ShulkerEntity
                 .calculateBoundingBox(direction, 0.0f, 0.5f)
@@ -85,6 +86,7 @@ class PlaceContainer @Ta5kBuilder constructor(
                 .contract(1.0E-6)
             world.isSpaceEmpty(box)
         }
+
         else -> false
     }
 }

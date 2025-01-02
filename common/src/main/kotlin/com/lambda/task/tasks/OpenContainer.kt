@@ -17,8 +17,8 @@
 
 package com.lambda.task.tasks
 
-import com.lambda.config.groups.RotationConfig
 import com.lambda.config.groups.InteractionConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.listener.SafeListener.Companion.listen

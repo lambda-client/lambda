@@ -18,13 +18,13 @@
 package com.lambda.task.tasks
 
 import com.lambda.context.SafeContext
+import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.ContainerManager
 import com.lambda.interaction.material.container.ContainerManager.findContainerWithMaterial
-import com.lambda.interaction.material.StackSelection
 import com.lambda.task.Task
 
 class AcquireMaterial @Ta5kBuilder constructor(
-    val selection: StackSelection
+    val selection: StackSelection,
 ) : Task<StackSelection>() {
     override val name: String
         get() = "Acquiring $selection"

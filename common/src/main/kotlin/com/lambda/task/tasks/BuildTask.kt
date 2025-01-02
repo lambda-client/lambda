@@ -18,11 +18,12 @@
 package com.lambda.task.tasks
 
 import com.lambda.Lambda.LOG
-import com.lambda.config.groups.*
+import com.lambda.config.groups.BuildConfig
+import com.lambda.config.groups.InteractionConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.RotationManager.rotate
@@ -123,15 +124,19 @@ class BuildTask @Ta5kBuilder constructor(
                 is BuildResult.Ignored,
                 is BuildResult.Unbreakable,
                 is BuildResult.Restricted,
-                is BuildResult.NoPermission -> {
+                is BuildResult.NoPermission,
+                    -> {
                     if (finishOnDone) success()
                 }
+
                 is BuildResult.NotVisible, is PlaceResult.NoIntegrity -> {
                     if (build.pathing) BaritoneUtils.setGoalAndPath(BuildGoal(blueprint.simulation()))
                 }
+
                 is Navigable -> {
                     if (build.pathing) BaritoneUtils.setGoalAndPath(result.goal)
                 }
+
                 is PlaceResult.Place -> {
                     if (pendingPlacements.size >= build.maxPendingPlacements) return@listen
 
@@ -142,6 +147,7 @@ class BuildTask @Ta5kBuilder constructor(
 
                     currentPlacement = result.context
                 }
+
                 is Resolvable -> {
                     LOG.info("Resolving: ${result.name}")
 
@@ -200,7 +206,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact
+            interact: InteractionConfig = TaskFlowModule.interact,
         ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, build, rotation, interact)
 
         @Ta5kBuilder
@@ -209,7 +215,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact
+            interact: InteractionConfig = TaskFlowModule.interact,
         ) = BuildTask(this, finishOnDone, collectDrops, build, rotation, interact)
 
         @Ta5kBuilder
@@ -219,7 +225,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = true,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact
+            interact: InteractionConfig = TaskFlowModule.interact,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
             finishOnDone, collectDrops, build, rotation, interact
@@ -232,7 +238,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact
+            interact: InteractionConfig = TaskFlowModule.interact,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
             finishOnDone, collectDrops, build, rotation, interact
