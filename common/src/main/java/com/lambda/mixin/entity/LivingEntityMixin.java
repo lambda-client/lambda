@@ -63,7 +63,10 @@ public abstract class LivingEntityMixin extends EntityMixin {
 
     @Inject(method = "travel", at = @At("HEAD"), cancellable = true)
     void onTravelPre(Vec3d movementInput, CallbackInfo ci) {
-        if (EventFlow.post(new MovementEvent.Entity.Pre((LivingEntity) (Object) this, movementInput)).isCanceled()) ci.cancel();
+        LivingEntity entity = (LivingEntity) (Object) this;
+        if (EventFlow.post(new MovementEvent.Entity.Pre(entity, movementInput)).isCanceled()) {
+            ci.cancel();
+        }
     }
 
     @Inject(method = "travel", at = @At("TAIL"))

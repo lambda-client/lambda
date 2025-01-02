@@ -21,7 +21,6 @@ import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.PlayerEvent;
-import com.lambda.event.events.WorldEvent;
 import com.lambda.interaction.RotationManager;
 import com.lambda.util.math.Vec2d;
 import net.minecraft.entity.Entity;

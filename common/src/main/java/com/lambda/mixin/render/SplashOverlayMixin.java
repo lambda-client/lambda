@@ -56,13 +56,13 @@ public class SplashOverlayMixin {
 
     @Mixin(SplashOverlay.LogoTexture.class)
     static class LogoTextureMixin extends ResourceTexture {
+        public LogoTextureMixin(Identifier location) {
+            super(location);
+        }
+
         @Redirect(method = "loadTextureData", at = @At(value = "INVOKE", target = "Lnet/minecraft/resource/DefaultResourcePack;open(Lnet/minecraft/resource/ResourceType;Lnet/minecraft/util/Identifier;)Lnet/minecraft/resource/InputSupplier;"))
         InputSupplier<InputStream> loadTextureData(DefaultResourcePack instance, ResourceType type, Identifier id) {
             return () -> new LambdaResource("textures/lambda_banner.png").getStream();
-        }
-
-        public LogoTextureMixin(Identifier location) {
-            super(location);
         }
     }
 }

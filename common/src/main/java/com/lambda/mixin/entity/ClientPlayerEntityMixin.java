@@ -19,9 +19,8 @@ package com.lambda.mixin.entity;
 
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
-import com.lambda.event.events.EntityEvent;
-import com.lambda.event.events.PlayerEvent;
 import com.lambda.event.events.MovementEvent;
+import com.lambda.event.events.PlayerEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.interaction.PlayerPacketManager;
 import com.lambda.interaction.RotationManager;
