@@ -43,7 +43,8 @@ import net.minecraft.screen.ScreenHandlerType
 // ToDo: Make this a Configurable to save container caches. Should use a cached region based storage system.
 object ContainerManager : Loadable {
     private val container: List<MaterialContainer>
-        get() = compileContainers + runtimeContainers
+        // ToDo: Filter containers based on a filter setting TaskFlowModule.inventory.accessEnderChest etc
+        get() = compileContainers.filter { it !is EnderChestContainer } + runtimeContainers
 
     private val compileContainers =
         getInstances<MaterialContainer> { forPackages("com.lambda.interaction.material.container") }

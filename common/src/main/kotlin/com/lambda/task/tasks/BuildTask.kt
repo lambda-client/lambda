@@ -25,6 +25,7 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.RotationManager.rotate
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.DynamicBlueprint
@@ -38,12 +39,10 @@ import com.lambda.interaction.construction.simulation.Simulation.Companion.simul
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
-import com.lambda.task.tasks.PlaceBlock.State
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.info
-import com.lambda.util.Communication.warn
 import com.lambda.util.extension.Structure
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
 import net.minecraft.util.math.BlockPos
@@ -119,7 +118,11 @@ class BuildTask @Ta5kBuilder constructor(
             }
             val result = resultsWithoutPending.minOrNull() ?: return@listen
             when (result) {
-                is BuildResult.Done -> {
+                is BuildResult.Done,
+                is BuildResult.Ignored,
+                is BuildResult.Unbreakable,
+                is BuildResult.Restricted,
+                is BuildResult.NoPermission -> {
                     if (finishOnDone) success()
                 }
                 is BuildResult.NotVisible, is PlaceResult.NoIntegrity -> {
@@ -150,10 +153,12 @@ class BuildTask @Ta5kBuilder constructor(
             }
         }
 
-        listen<RotationEvent.Update> { event ->
-            if (currentPlacement == null) return@listen
-            if (!build.rotateForPlace) return@listen
-            event.context = currentPlacement?.rotation
+        rotate {
+            onUpdate {
+                if (currentPlacement == null) return@onUpdate null
+                if (!build.rotateForPlace) return@onUpdate null
+                currentPlacement?.rotation
+            }
         }
 
         listen<MovementEvent.InputUpdate> {

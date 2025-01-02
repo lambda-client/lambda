@@ -26,12 +26,11 @@ import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.RotationManager
-import com.lambda.interaction.RotationManager.requestRotation
+import com.lambda.interaction.RotationManager.rotate
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.dist
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationContext
-import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.interaction.visibilty.VisibilityChecker.visibleSides
 import com.lambda.module.Module
@@ -55,7 +54,6 @@ import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.util.Hand
-import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import kotlin.math.pow
 
@@ -116,15 +114,15 @@ object KillAura : Module(
     }
 
     init {
-        requestRotation(
-            onUpdate = {
-                if (!rotate) return@requestRotation null
+        rotate {
+            onUpdate {
+                if (!rotate) return@onUpdate null
 
                 target?.let { target ->
                     buildRotation(target)
                 }
             }
-        )
+        }
 
         listen<PlayerPacketEvent.Pre>(Int.MIN_VALUE) { event ->
             prevY = lastY

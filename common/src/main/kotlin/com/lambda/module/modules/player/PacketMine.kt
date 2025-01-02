@@ -1382,10 +1382,12 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.packetStartBreak(pos: BlockPos) {
-        startBreak(pos)
-        if (packets != PacketMode.Vanilla || doubleBreak) {
+        if (packets == PacketMode.Grim) {
             abortBreak(pos)
+            stopBreak(pos)
         }
+        startBreak(pos)
+        if (packets == PacketMode.NCP) abortBreak(pos)
         if (packets == PacketMode.Grim || doubleBreak) {
             stopBreak(pos)
         }

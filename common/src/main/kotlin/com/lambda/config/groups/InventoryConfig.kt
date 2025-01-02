@@ -23,6 +23,7 @@ import net.minecraft.block.Block
 
 interface InventoryConfig {
     val disposables: Set<Block>
+    val accessEnderChest: Boolean
 
     val actionTimout: Int
     val swapWithDisposables: Boolean

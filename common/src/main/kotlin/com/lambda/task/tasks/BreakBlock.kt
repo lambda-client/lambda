@@ -21,11 +21,10 @@ import baritone.api.pathing.goals.GoalBlock
 import com.lambda.config.groups.RotationConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
-import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.RotationManager.requestRotation
+import com.lambda.interaction.RotationManager.rotate
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
 import com.lambda.module.modules.client.TaskFlowModule
@@ -81,17 +80,17 @@ class BreakBlock @Ta5kBuilder constructor(
     }
 
     init {
-        requestRotation(
-            onUpdate = {
-                if (state != State.BREAKING) return@requestRotation null
-                if (!rotate || ctx.instantBreak) return@requestRotation null
+        rotate {
+            onUpdate {
+                if (state != State.BREAKING) return@onUpdate null
+                if (!rotate || ctx.instantBreak) return@onUpdate null
 
                 lookAtBlock(blockPos, rotation, interact, sides)
-            },
-            onReceive = { context ->
+            }
+            onReceive { context ->
                 isValid = context.isValid
             }
-        )
+        }
 
         listen<TickEvent.Pre> {
             drop?.let { itemDrop ->

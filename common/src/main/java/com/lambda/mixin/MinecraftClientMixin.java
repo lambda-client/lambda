@@ -86,7 +86,7 @@ public class MinecraftClientMixin {
     private void onScreenRemove(@Nullable Screen screen, CallbackInfo ci) {
         if (currentScreen == null) return;
         if (currentScreen instanceof ScreenHandlerProvider<?> handledScreen) {
-            EventFlow.post(new ScreenHandlerEvent.Close(handledScreen.getScreenHandler()));
+            EventFlow.post(new InventoryEvent.Close(handledScreen.getScreenHandler()));
         }
     }
 

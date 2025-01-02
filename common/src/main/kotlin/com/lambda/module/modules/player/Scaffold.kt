@@ -26,7 +26,7 @@ import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
 import com.lambda.graphics.renderer.esp.builders.build
 import com.lambda.interaction.RotationManager.currentRotation
-import com.lambda.interaction.RotationManager.requestRotation
+import com.lambda.interaction.RotationManager.rotate
 import com.lambda.interaction.blockplace.PlaceFinder.Companion.buildPlaceInfo
 import com.lambda.interaction.blockplace.PlaceInfo
 import com.lambda.interaction.blockplace.PlaceInteraction.placeBlock
@@ -121,15 +121,15 @@ object Scaffold : Module(
     }
 
     init {
-        requestRotation(
-            onUpdate = {
+        rotate {
+            onUpdate {
                 lastRotation = null
-                val info = updatePlaceInfo() ?: return@requestRotation null
-                val rotation = rotate(info) ?: return@requestRotation null
+                val info = updatePlaceInfo() ?: return@onUpdate null
+                val rotation = rotate(info) ?: return@onUpdate null
 
                 RotationContext(rotation, rotationConfig)
             }
-        )
+        }
 
         listen<MovementEvent.Sneak> {
             if (sneakTicks > 0) it.sneak = true
