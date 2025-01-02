@@ -34,6 +34,10 @@ import com.lambda.util.text.*
 import net.minecraft.client.toast.SystemToast
 import net.minecraft.text.Text
 import java.awt.Color
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 object Communication {
     val ascii = """
@@ -47,6 +51,10 @@ object Communication {
         ⠻⢿⡿⠁⠀⠀⠘⢷⡽⠞
 
     """.trimIndent()
+
+    fun currentTime(): String = LocalDateTime.now()
+        .atZone(ZoneId.systemDefault())
+        .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG))
 
     fun Any.debug(message: String, source: String = "") = log(LogLevel.DEBUG.text(message), LogLevel.DEBUG, source)
     fun Any.debug(message: Text, source: Text = Text.empty()) = log(message, LogLevel.DEBUG, textSource = source)
@@ -103,7 +111,7 @@ object Communication {
         textSource: Text = Text.empty(),
         color: Color = Color.GRAY,
     ) = buildText {
-        text(logLevel.prefix())
+        text(prefix(logLevel.logoColor))
 
         // ToDo: HUD elements
 
@@ -196,11 +204,11 @@ object Communication {
         }
     }
 
-    private fun LogLevel.prefix() =
+    fun prefix(color: Color) =
         buildText {
             hoverEvent(HoverEvents.showText(buildText {
                 literal("Lambda ")
-                color(logoColor) {
+                color(color) {
                     literal(Lambda.SYMBOL)
                 }
                 literal(" v${Lambda.VERSION}\n")
@@ -219,7 +227,7 @@ object Communication {
                 literal("Concurrent listeners: ${EventFlow.concurrentListeners.size}")
 
             })) {
-                styled(logoColor) {
+                styled(color) {
                     literal(Lambda.SYMBOL)
                 }
                 literal(" ")
