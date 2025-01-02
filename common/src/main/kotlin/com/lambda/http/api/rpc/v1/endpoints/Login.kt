@@ -35,7 +35,7 @@ fun login(
 
     // The player's Mojang session hash.
     // example: 069a79f444e94726a5befca90e38aaf5
-    hash: String
+    hash: String,
 ) =
     request("$endpoint/api/$version/login") {
         method(Method.POST)
