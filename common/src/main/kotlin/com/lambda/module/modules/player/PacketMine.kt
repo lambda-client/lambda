@@ -29,7 +29,7 @@ import com.lambda.interaction.RotationManager
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.visibilty.VisibilityChecker.findRotation
 import com.lambda.module.Module
-import com.lambda.module.modules.client.TaskFlow
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.lerp
@@ -514,10 +514,10 @@ object PacketMine : Module(
             }
         }
 
-        listen<WorldEvent.BlockUpdate> {
+        listen<WorldEvent.BlockChange> {
             currentMiningBlock.forEach { ctx ->
                 ctx?.apply {
-                    if (it.pos != pos || !isStateBroken(pos.blockState(world), it.state)) return@forEach
+                    if (it.pos != pos || !isStateBroken(pos.blockState(world), it.newState)) return@forEach
 
                     if (breakType.isPrimary()) {
                         runHandlers(ProgressStage.PacketReceiveBreak, pos, lastValidBestTool)
@@ -539,7 +539,7 @@ object PacketMine : Module(
                 lastNonEmptyState?.let { state ->
                     val boxList = state.getOutlineShape(world, pos).boundingBoxes.map { it.offset(pos) }
                     val rotationContext =
-                        findRotation(boxList, TaskFlow.rotation, TaskFlow.interact, emptySet()) { true }
+                        findRotation(boxList, TaskFlowModule.rotation, TaskFlowModule.interact, emptySet()) { true }
                     rotationContext?.let { context ->
                         it.context = context
                         expectedRotation = context
@@ -1382,10 +1382,12 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.packetStartBreak(pos: BlockPos) {
-        startBreak(pos)
-        if (packets != PacketMode.Vanilla || doubleBreak) {
+        if (packets == PacketMode.Grim) {
             abortBreak(pos)
+            stopBreak(pos)
         }
+        startBreak(pos)
+        if (packets == PacketMode.NCP) abortBreak(pos)
         if (packets == PacketMode.Grim || doubleBreak) {
             stopBreak(pos)
         }

@@ -18,9 +18,8 @@
 package com.lambda.task.tasks
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.construction.Blueprint.Companion.toStructure
-import com.lambda.interaction.construction.StaticBlueprint.Companion.toBlueprint
-import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
+import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
@@ -39,34 +38,33 @@ import net.minecraft.util.math.Direction
 class PlaceContainer @Ta5kBuilder constructor(
     val stack: ItemStack,
 ) : Task<BlockPos>() {
+    private val startStack: ItemStack = stack.copy()
+    override val name: String get() = "Placing container ${startStack.name.string}"
+
     override fun SafeContext.onStart() {
         val results = BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
             .map { it.blockPos }
             .flatMap {
                 it.blockPos
-                    .toStructure(TargetState.Stack(stack))
+                    .toStructure(TargetState.Stack(startStack))
                     .toBlueprint()
                     .simulate(player.getCameraPosVec(mc.tickDelta))
             }
 
-//        val res = results.sorted()
-//        res
-
         val succeeds = results.filterIsInstance<PlaceResult.Place>().filter {
-            canBeOpened(stack, it.blockPos, it.context.result.side)
+            canBeOpened(startStack, it.blockPos, it.context.result.side)
         }
         val wrongStacks = results.filterIsInstance<BuildResult.WrongStack>().filter {
-            val result = (it.context as? PlaceContext)?.result ?: return@filter false
-            canBeOpened(stack, it.blockPos, result.side)
+            canBeOpened(startStack, it.blockPos, it.context.result.side)
         }
         (succeeds + wrongStacks).minOrNull()?.let { result ->
             build {
                 result.blockPos
-                    .toStructure(TargetState.Stack(stack))
+                    .toStructure(TargetState.Stack(startStack))
                     .toBlueprint()
-            }.onSuccess { _, _ ->
+            }.finally {
                 success(result.blockPos)
-            }.start(this@PlaceContainer)
+            }.execute(this@PlaceContainer)
         } ?: {
             failure("No valid placement found")
         }
@@ -80,7 +78,6 @@ class PlaceContainer @Ta5kBuilder constructor(
         Items.ENDER_CHEST -> {
             !ChestBlock.isChestBlocked(world, blockPos)
         }
-
         in shulkerBoxes -> {
             val box = ShulkerEntity
                 .calculateBoundingBox(direction, 0.0f, 0.5f)
@@ -88,14 +85,6 @@ class PlaceContainer @Ta5kBuilder constructor(
                 .contract(1.0E-6)
             world.isSpaceEmpty(box)
         }
-
         else -> false
-    }
-
-    companion object {
-        @Ta5kBuilder
-        fun placeContainer(
-            stack: ItemStack,
-        ) = PlaceContainer(stack)
     }
 }

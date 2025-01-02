@@ -25,6 +25,8 @@ interface InteractionConfig {
      */
     val reach: Double
 
+    val visibilityCheck: Boolean
+
     /**
      * Will check `resolution squared` many points on a grid on each visible surface of the hit box.
      */

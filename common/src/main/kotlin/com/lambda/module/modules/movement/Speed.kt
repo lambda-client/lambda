@@ -17,12 +17,12 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.config.groups.IRotationConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.RotationManager.requestRotation
+import com.lambda.interaction.RotationManager.rotate
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
@@ -71,7 +71,7 @@ object Speed : Module(
     private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01) { mode == Mode.NCP_STRAFE }
 
     // Grim
-    private val rotationConfig = object : IRotationConfig.Instant {
+    private val rotationConfig = object : RotationConfig.Instant {
         override val rotationMode = RotationMode.SYNC
     }
 
@@ -134,15 +134,15 @@ object Speed : Module(
             }
         }
 
-        requestRotation(100, alwaysListen = false,
-            onUpdate = { lastContext ->
-                if (mode != Mode.GRIM_STRAFE) return@requestRotation null
-                if (!shouldWork()) return@requestRotation null
+        rotate(100, alwaysListen = false) {
+            onUpdate { lastContext ->
+                if (mode != Mode.GRIM_STRAFE) return@onUpdate null
+                if (!shouldWork()) return@onUpdate null
 
                 var yaw = player.yaw
                 val input = newMovementInput()
 
-                if (!input.isInputting) return@requestRotation null
+                if (!input.isInputting) return@onUpdate null
 
                 run {
                     if (!diagonal) return@run
@@ -161,8 +161,8 @@ object Speed : Module(
                 val rotation = Rotation(moveYaw, lastContext?.rotation?.pitch ?: player.pitch.toDouble())
 
                 RotationContext(rotation, rotationConfig)
-            }, {}
-        )
+            }
+        }
 
         onEnable {
             reset()

@@ -17,13 +17,13 @@
 
 package com.lambda.interaction.rotation
 
-import com.lambda.config.groups.IRotationConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.util.world.raycast.RayCastUtils.orMiss
 import net.minecraft.util.hit.HitResult
 
 data class RotationContext(
     val rotation: Rotation,
-    val config: IRotationConfig,
+    val config: RotationConfig,
     val hitResult: HitResult? = null,
     val verify: HitResult.() -> Boolean = { true },
 ) {

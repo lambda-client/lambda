@@ -46,9 +46,9 @@ import kotlin.reflect.KProperty
  * The [SafeListener] will keep a reference to the last signal processed by the listener.
  * Allowing use cases where the last signal is needed.
  * ```kotlin
- * val lastPacketReceived by listener<PacketEvent.Receive.Pre>()
+ * val lastPacketReceived by listen<PacketEvent.Receive.Pre>()
  *
- * listener<PacketEvent.Send.Pre> { event ->
+ * listen<PacketEvent.Send.Pre> { event ->
  *     println("Last packet received: ${lastPacketReceived?.packet}")
  *     // prints the last packet received
  *     // prints null if no packet was received
@@ -126,51 +126,6 @@ class SafeListener<T : Event>(
             }
 
             EventFlow.syncListeners.subscribe(listener)
-
-            return listener
-        }
-
-        /**
-         * Registers a new [SafeListener] for a generic [Event] type [T] within the context of a [Task].
-         * The [function] is executed on the same thread where the [Event] was dispatched.
-         * The [function] will only be executed when the context satisfies certain safety conditions.
-         * These conditions are met when none of the following [SafeContext] properties are null:
-         * - [SafeContext.world]
-         * - [SafeContext.player]
-         * - [SafeContext.interaction]
-         * - [SafeContext.connection]
-         *
-         * Usage:
-         * ```kotlin
-         * myTask.listen<MyEvent> { event ->
-         *     player.sendMessage("Event received: $event")
-         * }
-         *
-         * myTask.listen<MyEvent>(priority = 1) { event ->
-         *     player.sendMessage("Event received before the previous listener: $event")
-         * }
-         * ```
-         *
-         * @param T The type of the event to listen for.
-         * This should be a subclass of Event.
-         * @param priority The priority of the listener.
-         * Listeners with higher priority will be executed first.
-         * The Default value is 0.
-         * @param alwaysListen If true, the listener will be executed even if it is muted. The Default value is false.
-         * @param function The function to be executed when the event is posted.
-         * This function should take a SafeContext and an event of type T as parameters.
-         * @return The newly created and registered [SafeListener].
-         */
-        inline fun <reified T : Event> Task<*>.listen(
-            priority: Int = 0,
-            alwaysListen: Boolean = false,
-            noinline function: SafeContext.(T) -> Unit = {},
-        ): SafeListener<T> {
-            val listener = SafeListener<T>(priority, this, alwaysListen) { event ->
-                function(event) // ToDo: run function always on game thread
-            }
-
-            syncListeners.subscribe<T>(listener)
 
             return listener
         }

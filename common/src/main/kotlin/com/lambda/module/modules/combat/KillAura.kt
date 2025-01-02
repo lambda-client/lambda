@@ -26,12 +26,13 @@ import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.RotationManager
-import com.lambda.interaction.RotationManager.requestRotation
+import com.lambda.interaction.RotationManager.rotate
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.dist
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationContext
-import com.lambda.interaction.visibilty.VisibilityChecker.scanVisibleSurfaces
+import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
+import com.lambda.interaction.visibilty.VisibilityChecker.visibleSides
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runConcurrent
@@ -113,15 +114,15 @@ object KillAura : Module(
     }
 
     init {
-        requestRotation(
-            onUpdate = {
-                if (!rotate) return@requestRotation null
+        rotate {
+            onUpdate {
+                if (!rotate) return@onUpdate null
 
                 target?.let { target ->
                     buildRotation(target)
                 }
             }
-        )
+        }
 
         listen<PlayerPacketEvent.Pre>(Int.MIN_VALUE) { event ->
             prevY = lastY
@@ -243,13 +244,15 @@ object KillAura : Module(
             // Get visible point set
             val validHits = mutableMapOf<Vec3d, Rotation>()
 
-            scanVisibleSurfaces(eye, box, resolution = interactionSettings.resolution) { _, vec ->
-                if (eye distSq vec > reachSq) return@scanVisibleSurfaces
+            val sides = visibleSides(box, eye, interactionSettings)
+
+            scanSurfaces(box, sides, resolution = interactionSettings.resolution) { _, vec ->
+                if (eye distSq vec > reachSq) return@scanSurfaces
 
                 val newRotation = eye.rotationTo(vec)
 
-                val cast = newRotation.rayCast(reach, eye) ?: return@scanVisibleSurfaces
-                if (cast.entityResult?.entity != target) return@scanVisibleSurfaces
+                val cast = newRotation.rayCast(reach, eye) ?: return@scanSurfaces
+                if (cast.entityResult?.entity != target) return@scanSurfaces
 
                 validHits[vec] = newRotation
             }

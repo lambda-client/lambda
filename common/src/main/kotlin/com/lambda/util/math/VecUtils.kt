@@ -21,6 +21,7 @@ import com.lambda.util.math.MathUtils.sq
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
+import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 import kotlin.math.pow
@@ -39,6 +40,9 @@ object VecUtils {
     val Direction.hitVecOffset
         get() =
             CENTER + vector.vec3d * 0.5
+
+    fun EightWayDirection.rotateClockwise(steps: Int) =
+        EightWayDirection.entries[(ordinal + steps) % 8]
 
     fun Vec3d.approximate(other: Vec3d, precision: Double = 2.0E-4): Boolean = (subtract(other) distSq Vec3d.ZERO) > precision.pow(2)
     infix fun Vec3d.dist(other: Vec3d): Double = sqrt(this distSq other)

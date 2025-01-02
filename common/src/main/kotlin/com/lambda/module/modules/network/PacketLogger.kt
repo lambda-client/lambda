@@ -97,7 +97,7 @@ object PacketLogger : Module(
             val fileName = "packet-log-${getTime(fileFormatter)}.txt"
 
             // ToDo: Organize files with FolderRegister.worldBoundDirectory
-            file = FolderRegister.packetLogs.resolve(fileName).apply {
+            file = FolderRegister.packetLogs.resolve(fileName).toFile().apply {
                 if (!parentFile.exists()) {
                     parentFile.mkdirs()
                 }

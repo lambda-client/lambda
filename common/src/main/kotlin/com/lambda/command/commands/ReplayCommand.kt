@@ -30,6 +30,7 @@ import com.lambda.module.modules.player.Replay
 import com.lambda.util.FolderRegister
 import com.lambda.util.FolderRegister.listRecursive
 import com.lambda.util.extension.CommandBuilder
+import kotlin.io.path.exists
 
 object ReplayCommand : LambdaCommand(
     name = "replay",
@@ -48,7 +49,7 @@ object ReplayCommand : LambdaCommand(
         required(literal("load")) {
             required(greedyString("replay filepath")) { replayName ->
                 suggests { _, builder ->
-                    val dir = FolderRegister.replay
+                    val dir = FolderRegister.replay.toFile()
                     dir.listRecursive { it.isFile }.forEach {
                         builder.suggest(it.relativeTo(dir).path)
                     }
@@ -63,7 +64,7 @@ object ReplayCommand : LambdaCommand(
                     }
 
                     try {
-                        Replay.loadRecording(replayFile)
+                        Replay.loadRecording(replayFile.toFile())
                     } catch (e: JsonSyntaxException) {
                         return@executeWithResult CommandResult.failure("Failed to load replay file: ${e.message}")
                     }

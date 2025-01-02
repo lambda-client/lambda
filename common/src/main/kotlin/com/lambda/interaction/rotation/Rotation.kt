@@ -72,19 +72,25 @@ data class Rotation(val yaw: Double, val pitch: Double) {
         box.raycast(eyeVec, eyeVec + vector * reach).orElse(null)
     }
 
-    val Direction.yaw: Float
-        get() = when (this) {
-            Direction.NORTH -> -180.0f
-            Direction.SOUTH -> 0.0f
-            Direction.EAST -> -90.0f
-            Direction.WEST -> 90.0f
-            else -> 0.0f
-        }
-
     companion object {
+        val Direction.yaw: Float
+            get() = when (this) {
+                Direction.NORTH -> -180.0f
+                Direction.SOUTH -> 0.0f
+                Direction.EAST -> -90.0f
+                Direction.WEST -> 90.0f
+                else -> 0.0f
+            }
+
         val ZERO = Rotation(0.0, 0.0)
         val DOWN = Rotation(0.0, 90.0)
-        val Entity.rotation get() = Rotation(yaw, pitch)
+        val UP = Rotation(0.0, -90.0)
+        val Direction.rotation get() = Rotation(yaw.toDouble(), 0.0)
+        var Entity.rotation get() = Rotation(yaw, pitch)
+            set(value) {
+                yaw = value.yawF
+                pitch = value.pitchF
+            }
 
         fun wrap(deg: Double) = MathHelper.wrapDegrees(deg)
 
