@@ -20,9 +20,9 @@ package com.lambda.interaction.material.container.containers
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.ContainerTask
-import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.player.SlotUtils.hotbar

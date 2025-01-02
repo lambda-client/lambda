@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.construction
 
-import com.lambda.Lambda.LOG
 import com.lambda.core.Loadable
 import com.lambda.util.Communication.logError
 import com.lambda.util.FolderRegister
@@ -30,9 +29,12 @@ import net.minecraft.nbt.NbtIo
 import net.minecraft.nbt.NbtSizeTracker
 import net.minecraft.registry.Registries
 import net.minecraft.structure.StructureTemplate
-import java.nio.file.*
+import java.nio.file.FileSystems
+import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.StandardWatchEventKinds.ENTRY_CREATE
 import java.nio.file.StandardWatchEventKinds.ENTRY_DELETE
+import java.nio.file.WatchEvent
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.*
 

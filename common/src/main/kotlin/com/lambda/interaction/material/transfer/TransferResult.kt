@@ -18,15 +18,15 @@
 package com.lambda.interaction.material.transfer
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.task.Task
 
 abstract class TransferResult : Task<Unit>() {
     data class ContainerTransfer(
         val selection: StackSelection,
         val from: MaterialContainer,
-        val to: MaterialContainer
+        val to: MaterialContainer,
     ) : TransferResult() {
         override val name = "Container Transfer of [$selection] from [${from.name}] to [${to.name}]"
 

@@ -21,7 +21,7 @@ import com.lambda.interaction.material.transfer.InventoryTransaction
 
 class QuickCraftTransaction @Ta5kBuilder constructor(
     private val slots: List<Int>,
-    private val mode: Mode = Mode.SINGLE
+    private val mode: Mode = Mode.SINGLE,
 ) : InventoryTransaction() {
     override val name: String get() = "Drag and drop ${slots.size} slots"
 

@@ -23,7 +23,7 @@ import com.lambda.interaction.material.transfer.InventoryTransaction
 import net.minecraft.util.Hand
 
 class DropItemInHandTransaction @Ta5kBuilder constructor(
-    private val entireStack: Boolean = false
+    private val entireStack: Boolean = false,
 ) : InventoryTransaction() {
     override val name: String get() = "Dropping ${if (entireStack) "stack" else "item"} in hand"
 

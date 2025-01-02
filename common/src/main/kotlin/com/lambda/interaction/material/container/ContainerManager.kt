@@ -29,8 +29,8 @@ import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.BlockUtils.item
 import com.lambda.util.Communication.info
-import com.lambda.util.item.ItemUtils
 import com.lambda.util.extension.containerStacks
+import com.lambda.util.item.ItemUtils
 import com.lambda.util.reflections.getInstances
 import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
@@ -95,28 +95,28 @@ object ContainerManager : Loadable {
         findContainerWithMaterial(this)?.transfer(this, destination)
 
     fun findContainer(
-        block: (MaterialContainer) -> Boolean
+        block: (MaterialContainer) -> Boolean,
     ): MaterialContainer? = container().find(block)
 
     fun findContainerWithMaterial(
-        selection: StackSelection
+        selection: StackSelection,
     ): MaterialContainer? =
         containerWithMaterial(selection).firstOrNull()
 
     fun findContainerWithSpace(
-        selection: StackSelection
+        selection: StackSelection,
     ): MaterialContainer? =
         containerWithSpace(selection).firstOrNull()
 
     fun containerWithMaterial(
-        selection: StackSelection
+        selection: StackSelection,
     ): List<MaterialContainer> =
         container()
             .sortedWith(TaskFlowModule.inventory.providerPriority.materialComparator(selection))
             .filter { it.materialAvailable(selection) >= selection.count }
 
     fun containerWithSpace(
-        selection: StackSelection
+        selection: StackSelection,
     ): List<MaterialContainer> =
         container()
             .sortedWith(TaskFlowModule.inventory.providerPriority.spaceComparator(selection))

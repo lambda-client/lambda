@@ -66,7 +66,7 @@ data class Rotation(val yaw: Double, val pitch: Double) {
     fun castBox(
         box: Box,
         reach: Double,
-        eye: Vec3d? = null
+        eye: Vec3d? = null,
     ) = runSafe {
         val eyeVec = eye ?: player.eyePos
         box.raycast(eyeVec, eyeVec + vector * reach).orElse(null)
@@ -86,7 +86,8 @@ data class Rotation(val yaw: Double, val pitch: Double) {
         val DOWN = Rotation(0.0, 90.0)
         val UP = Rotation(0.0, -90.0)
         val Direction.rotation get() = Rotation(yaw.toDouble(), 0.0)
-        var Entity.rotation get() = Rotation(yaw, pitch)
+        var Entity.rotation
+            get() = Rotation(yaw, pitch)
             set(value) {
                 yaw = value.yawF
                 pitch = value.pitchF

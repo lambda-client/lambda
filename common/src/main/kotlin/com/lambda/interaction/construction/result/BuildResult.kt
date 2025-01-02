@@ -21,9 +21,9 @@ import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalNear
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BuildContext
+import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Nameable
@@ -45,7 +45,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
      * The build action is done.
      */
     data class Done(
-        override val blockPos: BlockPos
+        override val blockPos: BlockPos,
     ) : BuildResult() {
         override val name: String
             get() = "Build at $blockPos is done."
@@ -56,7 +56,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
      * The build action is ignored.
      */
     data class Ignored(
-        override val blockPos: BlockPos
+        override val blockPos: BlockPos,
     ) : BuildResult() {
         override val name: String
             get() = "Build at $blockPos is ignored."
@@ -68,7 +68,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
      * @param blockPos The position of the block that is in an unloaded chunk.
      */
     data class ChunkNotLoaded(
-        override val blockPos: BlockPos
+        override val blockPos: BlockPos,
     ) : Navigable, Drawable, BuildResult() {
         override val name: String get() = "Chunk at $blockPos is not loaded."
         override val rank = Rank.CHUNK_NOT_LOADED
@@ -93,7 +93,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
      * @param blockPos The position of the block that is restricted.
      */
     data class Restricted(
-        override val blockPos: BlockPos
+        override val blockPos: BlockPos,
     ) : Drawable, BuildResult() {
         override val name: String get() = "Restricted at $blockPos."
         override val rank = Rank.BREAK_RESTRICTED
@@ -111,7 +111,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
      */
     data class NoPermission(
         override val blockPos: BlockPos,
-        val blockState: BlockState
+        val blockState: BlockState,
     ) : Drawable, BuildResult() {
         override val name: String get() = "No permission at $blockPos."
         override val rank get() = Rank.BREAK_NO_PERMISSION
@@ -127,7 +127,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
      * @param blockPos The position of the block that is out of the world.
      */
     data class OutOfWorld(
-        override val blockPos: BlockPos
+        override val blockPos: BlockPos,
     ) : Drawable, BuildResult() {
         override val name: String get() = "$blockPos is out of the world."
         override val rank = Rank.OUT_OF_WORLD
@@ -145,7 +145,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
      */
     data class Unbreakable(
         override val blockPos: BlockPos,
-        val blockState: BlockState
+        val blockState: BlockState,
     ) : Drawable, BuildResult() {
         override val name: String get() = "Unbreakable at $blockPos."
         override val rank = Rank.UNBREAKABLE
@@ -165,7 +165,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
         override val blockPos: BlockPos,
         val hitPos: BlockPos,
         val side: Direction,
-        val distance: Double
+        val distance: Double,
     ) : Drawable, BuildResult() {
         override val name: String get() = "Not visible at $blockPos."
         override val rank = Rank.NOT_VISIBLE
@@ -226,7 +226,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
     data class WrongStack(
         override val blockPos: BlockPos,
         val context: BuildContext,
-        val neededStack: ItemStack
+        val neededStack: ItemStack,
     ) : Drawable, Resolvable, BuildResult() {
         override val name: String get() = "Wrong stack for $blockPos need $neededStack."
         override val rank = Rank.WRONG_ITEM
@@ -262,7 +262,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
     data class OutOfReach(
         override val blockPos: BlockPos,
         val pov: Vec3d,
-        val misses: Set<Vec3d>
+        val misses: Set<Vec3d>,
     ) : Navigable, Drawable, BuildResult() {
         override val name: String get() = "Out of reach at $blockPos."
         override val rank = Rank.OUT_OF_REACH

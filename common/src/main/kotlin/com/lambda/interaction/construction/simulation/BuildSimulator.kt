@@ -128,7 +128,7 @@ object BuildSimulator {
         pos: BlockPos,
         target: TargetState,
         eye: Vec3d,
-        reach: Double
+        reach: Double,
     ): Set<BuildResult> {
         val acc = mutableSetOf<BuildResult>()
         val targetPosState = pos.blockState(world)
@@ -169,15 +169,16 @@ object BuildSimulator {
                         return@scanSurfaces
                     }
 
-                    validHits[vec] = if (TaskFlowModule.interact.useRayCast && TaskFlowModule.interact.visibilityCheck) {
-                        val cast = eye.rotationTo(vec)
-                            .rayCast(reach, eye) ?: return@scanSurfaces
-                        if (!cast.verify()) return@scanSurfaces
+                    validHits[vec] =
+                        if (TaskFlowModule.interact.useRayCast && TaskFlowModule.interact.visibilityCheck) {
+                            val cast = eye.rotationTo(vec)
+                                .rayCast(reach, eye) ?: return@scanSurfaces
+                            if (!cast.verify()) return@scanSurfaces
 
-                        cast
-                    } else {
-                        BlockHitResult(vec, side, hitPos, false)
-                    }
+                            cast
+                        } else {
+                            BlockHitResult(vec, side, hitPos, false)
+                        }
                 }
             }
 
@@ -260,8 +261,10 @@ object BuildSimulator {
                 }
 
                 if (!target.matches(resultState, pos, world)) {
-                    acc.add(PlaceResult.NoIntegrity(
-                        pos, resultState, context, (target as? TargetState.State)?.blockState)
+                    acc.add(
+                        PlaceResult.NoIntegrity(
+                            pos, resultState, context, (target as? TargetState.State)?.blockState
+                        )
                     )
                     return@forEach
                 }
@@ -311,7 +314,7 @@ object BuildSimulator {
     private fun SafeContext.checkBreakResults(
         pos: BlockPos,
         eye: Vec3d,
-        reach: Double
+        reach: Double,
     ): Set<BuildResult> {
         val acc = mutableSetOf<BuildResult>()
         val state = pos.blockState(world)

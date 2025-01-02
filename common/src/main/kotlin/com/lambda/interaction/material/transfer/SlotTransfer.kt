@@ -37,10 +37,11 @@ class SlotTransfer @Ta5kBuilder constructor(
     val from: List<Slot>,
     val to: List<Slot>,
     private val closeScreen: Boolean = true,
-    private val settings: InventoryConfig = TaskFlowModule.inventory
+    private val settings: InventoryConfig = TaskFlowModule.inventory,
 ) : Task<Unit>() {
     private var selectedFrom = selection.filterSlots(from)
-    private var selectedTo = to.filter { it.stack.isEmpty } // + to.filter { it.stack.item.block in TaskFlowModule.disposables }
+    private var selectedTo =
+        to.filter { it.stack.isEmpty } // + to.filter { it.stack.item.block in TaskFlowModule.disposables }
     override val name: String
         get() = "Moving $selection from slots [${selectedFrom.joinToString { "${it.id}" }}] to slots [${selectedTo.joinToString { "${it.id}" }}] in ${screen::class.simpleName}"
 
@@ -69,7 +70,8 @@ class SlotTransfer @Ta5kBuilder constructor(
             delay = settings.actionTimout
 
             selectedFrom = selection.filterSlots(from)
-            selectedTo = to.filter { it.stack.isEmpty } // + to.filter { it.stack.item.block in TaskFlowModule.disposables }
+            selectedTo =
+                to.filter { it.stack.isEmpty } // + to.filter { it.stack.item.block in TaskFlowModule.disposables }
 
             val nextFrom = selectedFrom.firstOrNull() ?: return@listen
             val nextTo = selectedTo.firstOrNull() ?: return@listen
@@ -98,7 +100,7 @@ class SlotTransfer @Ta5kBuilder constructor(
             selection: StackSelection,
             from: List<Slot>,
             to: List<Slot>,
-            closeScreen: Boolean = true
+            closeScreen: Boolean = true,
         ) = SlotTransfer(screen, selection, from, to, closeScreen)
 
         @Ta5kBuilder

@@ -52,7 +52,7 @@ data class DynamicBlueprint(
 
         fun Structure.toBlueprint(
             init: SafeContext.(Structure) -> Structure = { this@toBlueprint },
-            onTick: SafeContext.(Structure) -> Structure
+            onTick: SafeContext.(Structure) -> Structure,
         ) = DynamicBlueprint(init = init, update = onTick)
     }
 }

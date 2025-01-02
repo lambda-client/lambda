@@ -17,5 +17,4 @@
 
 package com.lambda.interaction.material.transfer
 
-class TransferSelection {
-}
+class TransferSelection

@@ -22,7 +22,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.transfer.InventoryTransaction
 
 class SwapHotbarSlotTransaction @Ta5kBuilder constructor(
-    val slot: Int
+    val slot: Int,
 ) : InventoryTransaction() {
     override val name: String get() = "Selecting slot #$slot"
 

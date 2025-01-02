@@ -83,6 +83,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
             state.block == blockState.block && state.properties.all {
                 /*it in TaskFlowModule.defaultIgnoreTags ||*/ state[it] == blockState[it]
             }
+
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             blockState.block.getPickStack(world, pos, blockState)
 

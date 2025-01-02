@@ -21,9 +21,7 @@ import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.PlaceContext
-import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.breakBlock
-import com.lambda.task.tasks.PlaceBlock
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
@@ -44,7 +42,7 @@ sealed class PlaceResult : BuildResult() {
      */
     data class Place(
         override val blockPos: BlockPos,
-        val context: PlaceContext
+        val context: PlaceContext,
     ) : PlaceResult() {
         override val rank = Rank.PLACE_SUCCESS
 
@@ -71,7 +69,7 @@ sealed class PlaceResult : BuildResult() {
         override val blockPos: BlockPos,
         val expected: BlockState,
         val simulated: ItemPlacementContext,
-        val actual: BlockState? = null
+        val actual: BlockState? = null,
     ) : Drawable, PlaceResult() {
         override val rank = Rank.PLACE_NO_INTEGRITY
         private val color = Color(252, 3, 3, 100)
@@ -87,7 +85,7 @@ sealed class PlaceResult : BuildResult() {
      * @property blockPos The position of the block that was attempted to be placed.
      */
     data class BlockedByPlayer(
-        override val blockPos: BlockPos
+        override val blockPos: BlockPos,
     ) : Navigable, PlaceResult() {
         override val rank = Rank.PLACE_BLOCKED_BY_PLAYER
 
@@ -102,7 +100,7 @@ sealed class PlaceResult : BuildResult() {
      */
     data class CantReplace(
         override val blockPos: BlockPos,
-        val simulated: ItemPlacementContext
+        val simulated: ItemPlacementContext,
     ) : Resolvable, PlaceResult() {
         override val rank = Rank.PLACE_CANT_REPLACE
 
@@ -117,7 +115,7 @@ sealed class PlaceResult : BuildResult() {
      */
     data class ScaffoldExceeded(
         override val blockPos: BlockPos,
-        val simulated: ItemPlacementContext
+        val simulated: ItemPlacementContext,
     ) : PlaceResult() {
         override val rank = Rank.PLACE_SCAFFOLD_EXCEEDED
     }
@@ -144,7 +142,7 @@ sealed class PlaceResult : BuildResult() {
      */
     data class UnexpectedPosition(
         override val blockPos: BlockPos,
-        val actualPos: BlockPos
+        val actualPos: BlockPos,
     ) : PlaceResult() {
         override val rank = Rank.UNEXPECTED_POSITION
     }
@@ -157,7 +155,7 @@ sealed class PlaceResult : BuildResult() {
      * @property rank The ranking of this result, which is always `PLACE_ILLEGAL_USAGE`.
      */
     data class IllegalUsage(
-        override val blockPos: BlockPos
+        override val blockPos: BlockPos,
     ) : PlaceResult() {
         override val rank = Rank.PLACE_ILLEGAL_USAGE
     }
@@ -170,7 +168,7 @@ sealed class PlaceResult : BuildResult() {
      */
     data class NotItemBlock(
         override val blockPos: BlockPos,
-        val itemStack: ItemStack
+        val itemStack: ItemStack,
     ) : PlaceResult() {
         override val rank = Rank.PLACE_NOT_ITEM_BLOCK
     }

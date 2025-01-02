@@ -19,11 +19,11 @@ package com.lambda.interaction.material.container.containers
 
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
-import com.lambda.task.Task
-import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
+import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.transfer.SlotTransfer.Companion.deposit
 import com.lambda.interaction.material.transfer.SlotTransfer.Companion.withdraw
-import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.task.Task
+import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainer
 import com.lambda.task.tasks.PlaceContainer
 import com.lambda.util.text.buildText
@@ -49,7 +49,7 @@ data class ShulkerBoxContainer(
 
     class ShulkerWithdraw(
         private val selection: StackSelection,
-        private val shulkerStack: ItemStack
+        private val shulkerStack: ItemStack,
     ) : Task<Unit>() {
         override val name = "Withdraw $selection from ${shulkerStack.name.string}"
 
@@ -70,7 +70,7 @@ data class ShulkerBoxContainer(
 
     class ShulkerDeposit(
         private val selection: StackSelection,
-        private val shulkerStack: ItemStack
+        private val shulkerStack: ItemStack,
     ) : Task<Unit>() {
         override val name = "Deposit $selection into ${shulkerStack.name.string}"
 

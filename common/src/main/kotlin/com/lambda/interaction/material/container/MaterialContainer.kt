@@ -34,7 +34,7 @@ import net.minecraft.text.Text
 
 // ToDo: Make jsonable to persistently store them
 abstract class MaterialContainer(
-    val rank: Rank
+    val rank: Rank,
 ) : Nameable, Comparable<MaterialContainer> {
     abstract var stacks: List<ItemStack>
     abstract val description: Text

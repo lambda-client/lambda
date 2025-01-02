@@ -26,7 +26,7 @@ import net.minecraft.screen.slot.SlotActionType
 class ClickSlotTransaction @Ta5kBuilder constructor(
     private val slotId: Int,
     private val button: Int,
-    private val actionType: SlotActionType
+    private val actionType: SlotActionType,
 ) : InventoryTransaction() {
     override val name: String get() = "Click slot #$slotId with action $actionType and button $button"
 

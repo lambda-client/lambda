@@ -25,7 +25,7 @@ import com.lambda.task.Task
 import net.minecraft.screen.slot.SlotActionType
 
 class TransactionExecutor @Ta5kBuilder constructor(
-    private val transactions: MutableList<InventoryTransaction> = mutableListOf()
+    private val transactions: MutableList<InventoryTransaction> = mutableListOf(),
 ) : Task<InventoryChanges>() {
     override val name: String get() = "Execution of ${transactions.size} transactions left"
 
@@ -70,7 +70,7 @@ class TransactionExecutor @Ta5kBuilder constructor(
     fun swapHands() {
         transactions.add(SwapHandsTransaction())
     }
-    
+
     @InvTransfer
     fun swapToHotbarSlot(slotId: Int) {
         transactions.add(SwapHotbarSlotTransaction(slotId))
@@ -93,14 +93,17 @@ class TransactionExecutor @Ta5kBuilder constructor(
     // Throw stack or single item
     @InvTransfer
     fun throwStack(slotId: Int) = click(slotId, 1, SlotActionType.THROW)
+
     @InvTransfer
     fun throwSingle(slotId: Int) = click(slotId, 0, SlotActionType.THROW)
 
     // Quick craft action
     @InvTransfer
     fun quickCraftStart(slotId: Int) = click(slotId, 0, SlotActionType.QUICK_CRAFT)
+
     @InvTransfer
     fun quickCraftDrag(slotId: Int) = click(slotId, 1, SlotActionType.QUICK_CRAFT)
+
     @InvTransfer
     fun quickCraftEnd(slotId: Int) = click(slotId, 2, SlotActionType.QUICK_CRAFT)
 

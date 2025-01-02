@@ -17,8 +17,8 @@
 
 package com.lambda.interaction.visibilty
 
-import com.lambda.config.groups.RotationConfig
 import com.lambda.config.groups.InteractionConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.RotationManager
 import com.lambda.interaction.construction.verify.ScanMode
@@ -57,7 +57,7 @@ object VisibilityChecker {
     fun SafeContext.lookAtEntity(
         rotationConfig: RotationConfig,
         interactionConfig: InteractionConfig,
-        entity: Entity
+        entity: Entity,
     ) = findRotation(listOf(entity.boundingBox), rotationConfig, interactionConfig) {
         entityResult?.entity == entity
     }
@@ -76,7 +76,7 @@ object VisibilityChecker {
         blockPos: BlockPos,
         rotationConfig: RotationConfig = TaskFlowModule.rotation,
         interactionConfig: InteractionConfig = TaskFlowModule.interact,
-        sides: Set<Direction> = Direction.entries.toSet()
+        sides: Set<Direction> = Direction.entries.toSet(),
     ): RotationContext? {
         val state = blockPos.blockState(world)
         val voxelShape = state.getOutlineShape(world, blockPos)
@@ -199,10 +199,10 @@ object VisibilityChecker {
                 }
             } else minZ to maxZ
 
-            (0..resolution).forEach outer@ { i ->
+            (0..resolution).forEach outer@{ i ->
                 val x = if (stepX != 0.0) startX + stepX * i else startX
                 if (x > endX) return@outer
-                (0..resolution).forEach inner@ { j ->
+                (0..resolution).forEach inner@{ j ->
                     val y = if (stepY != 0.0) startY + stepY * j else startY
                     if (y > endY) return@inner
                     val z = if (stepZ != 0.0) startZ + stepZ * ((if (stepX != 0.0) j else i)) else startZ
@@ -215,7 +215,7 @@ object VisibilityChecker {
 
     /**
      * Determines the approximate central point (optimum) of a set of 3D vectors.
-    */
+     */
     val Set<Vec3d>.optimum: Vec3d?
         get() = reduceOrNull { acc, vec3d ->
             acc.add(vec3d)

@@ -40,10 +40,14 @@ data class Simulation(val blueprint: Blueprint) {
         cache.getOrPut(pos) {
             val view = pos.toView()
             runSafe {
-                if (blueprint.isOutOfBounds(view) && blueprint.getClosestPointTo(view).distanceTo(view) > 10.0) return@getOrPut emptySet()
+                if (blueprint.isOutOfBounds(view) && blueprint.getClosestPointTo(view)
+                        .distanceTo(view) > 10.0
+                ) return@getOrPut emptySet()
                 val blockPos = pos.toBlockPos()
                 if (!playerFitsIn(Vec3d.ofBottomCenter(blockPos))) return@getOrPut emptySet()
-                if (!blockPos.down().blockState(world).isSideSolidFullSquare(world, blockPos, Direction.UP)) return@getOrPut emptySet()
+                if (!blockPos.down().blockState(world)
+                        .isSideSolidFullSquare(world, blockPos, Direction.UP)
+                ) return@getOrPut emptySet()
             }
             blueprint.simulate(view, reach = TaskFlowModule.interact.reach - 1)
         }
