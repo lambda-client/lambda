@@ -18,8 +18,8 @@
 package com.lambda.interaction.material.container
 
 import com.lambda.core.Loadable
+import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
-import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
@@ -58,7 +58,7 @@ object ContainerManager : Loadable {
             lastInteractedBlockEntity = it.blockHitResult.blockPos.blockEntity(world)
         }
 
-        listen<ScreenHandlerEvent.Close> { event ->
+        listen<InventoryEvent.Close> { event ->
             if (event.screenHandler !is GenericContainerScreenHandler) return@listen
 
             val handler = event.screenHandler

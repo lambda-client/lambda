@@ -20,7 +20,7 @@ package com.lambda.mixin;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.ClientEvent;
-import com.lambda.event.events.ScreenHandlerEvent;
+import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.module.modules.player.Interact;
 import net.minecraft.client.MinecraftClient;
@@ -78,7 +78,7 @@ public class MinecraftClientMixin {
     private void onScreenOpen(@Nullable Screen screen, CallbackInfo ci) {
         if (screen == null) return;
         if (screen instanceof ScreenHandlerProvider<?> handledScreen) {
-            EventFlow.post(new ScreenHandlerEvent.Open(handledScreen.getScreenHandler()));
+            EventFlow.post(new InventoryEvent.Open(handledScreen.getScreenHandler()));
         }
     }
 

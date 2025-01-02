@@ -36,7 +36,7 @@ class PickFromInventoryTransaction @Ta5kBuilder constructor(
             confirming = true
         }
 
-        listen<InventoryEvent.SelectedSlotUpdate> {
+        listen<InventoryEvent.SelectedHotbarSlotUpdate> {
             finish()
         }
     }

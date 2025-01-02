@@ -18,15 +18,13 @@
 package com.lambda.module.modules.debug
 
 import com.lambda.Lambda.LOG
+import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.events.ScreenHandlerEvent
-import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
 import com.lambda.util.DynamicReflectionSerializer.dynamicString
-import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.network.packet.c2s.play.*
 import net.minecraft.network.packet.s2c.play.InventoryS2CPacket
 import net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket
@@ -37,7 +35,7 @@ object InventoryDebug : Module(
     defaultTags = setOf(ModuleTag.DEBUG)
 ) {
     init {
-        listen<ScreenHandlerEvent.Open> { event ->
+        listen<InventoryEvent.Open> { event ->
             info("Opened screen handler: ${event.screenHandler::class.simpleName}")
 
             LOG.info("\n" + event.screenHandler.slots.joinToString("\n") {
@@ -45,11 +43,11 @@ object InventoryDebug : Module(
             })
         }
 
-        listen<ScreenHandlerEvent.Close> {
+        listen<InventoryEvent.Close> {
             info("Closed screen handler: ${it.screenHandler::class.simpleName}")
         }
 
-        listen<ScreenHandlerEvent.Update> {
+        listen<InventoryEvent.FullUpdate> {
             info("Updated screen handler: ${it.revision}, ${it.stacks}, ${it.cursorStack}")
         }
 

@@ -18,8 +18,8 @@
 package com.lambda.module.modules.player
 
 import com.lambda.context.SafeContext
+import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
-import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -68,7 +68,7 @@ object InventoryTweaks : Module(
             }.run()
         }
 
-        listen<ScreenHandlerEvent.Close> { event ->
+        listen<InventoryEvent.Close> { event ->
             if (event.screenHandler != lastOpenScreen) return@listen
             lastOpenScreen = null
             placedPos?.let {

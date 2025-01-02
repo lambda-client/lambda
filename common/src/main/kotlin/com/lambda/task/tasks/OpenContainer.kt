@@ -19,8 +19,8 @@ package com.lambda.task.tasks
 
 import com.lambda.config.groups.RotationConfig
 import com.lambda.config.groups.InteractionConfig
+import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.RotationEvent
-import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
 import com.lambda.module.modules.client.TaskFlowModule
@@ -56,7 +56,7 @@ class OpenContainer @Ta5kBuilder constructor(
     }
 
     init {
-        listen<ScreenHandlerEvent.Open> {
+        listen<InventoryEvent.Open> {
             if (state != State.OPENING) return@listen
 
             screenHandler = it.screenHandler
@@ -65,14 +65,14 @@ class OpenContainer @Ta5kBuilder constructor(
             if (!waitForSlotLoad) success(it.screenHandler)
         }
 
-        listen<ScreenHandlerEvent.Close> {
+        listen<InventoryEvent.Close> {
             if (screenHandler != it.screenHandler) return@listen
 
             state = State.SCOPING
             screenHandler = null
         }
 
-        listen<ScreenHandlerEvent.Update> {
+        listen<InventoryEvent.FullUpdate> {
             if (state != State.SLOT_LOADING) return@listen
 
             screenHandler?.let {
