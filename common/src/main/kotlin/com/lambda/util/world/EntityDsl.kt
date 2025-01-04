@@ -21,6 +21,8 @@ package com.lambda.util.world
 
 import com.lambda.context.SafeContext
 import com.lambda.core.annotations.InternalApi
+import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.world.WorldUtils.internalGetEntities
 import com.lambda.util.world.WorldUtils.internalGetFastEntities
 import net.minecraft.entity.Entity
@@ -85,13 +87,21 @@ class EntityDsl<T : Entity>(
     }
 }
 
+@EntityDslMarker
+inline fun <reified T : Entity> SafeContext.closestEntity(
+    range: Double = 64.0,
+    pos: BlockPos = player.blockPos,
+    noinline predicate: (T) -> Boolean = { true },
+): T? = EntityDsl(this, T::class, pos, range, predicate).build().minByOrNull { pos distSq it.pos }
+
 /**
- * Initiates an entity search operation in the world at the specified position using an [EntityDsl].
+ * Initiates an entity search operation in the world at the specified position using an [EntityDsl]
  *
- * @param pos The position to start the search from. Defaults to the player's current position.
- * @param range The range around the position to search for entities.
- * @param predicate The predicate to filter entities.
- * @return A list of entities matching the predicate within the specified range.
+ * @param pos The position to start the search from. Defaults to the player's current position
+ * @param range The range around the position to search for entities
+ * @param predicate The predicate to filter entities
+ *
+ * @return A list of entities matching the predicate within the specified range
  */
 @EntityDslMarker
 inline fun <reified T : Entity> SafeContext.entitySearch(

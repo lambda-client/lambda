@@ -28,7 +28,8 @@ import com.lambda.sound.SoundManager.playSound
 import com.lambda.util.Communication
 import com.lambda.util.Communication.prefix
 import com.lambda.util.Formatting.string
-import com.lambda.util.combat.Explosion.explosionDamage
+import com.lambda.util.combat.CombatUtils.explosionDamage
+import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.text.*
 import com.lambda.util.world.fastEntitySearch
@@ -232,18 +233,11 @@ object AutoDisconnect : Module(
             }
         }),
         END_CRYSTAL({ crystals }, {
-            fastEntitySearch<EndCrystalEntity>(10.2).find {
-                player.health - explosionDamage(it.pos, player, 6.0) <= 1.0
-            }?.let { crystal ->
-                val damage = explosionDamage(crystal.pos, player, 6.0)
+            if (hasDeadlyCrystal(1.0))
                 buildText {
-                    literal("An end crystal at ")
-                    highlighted(crystal.pos.string)
-                    literal(" could give you ")
-                    highlighted("$damage")
-                    literal(" damage what would kill you!")
+                    literal("There was an end crystal close to you that would've killed you")
                 }
-            }
+            else null
         });
     }
 }
