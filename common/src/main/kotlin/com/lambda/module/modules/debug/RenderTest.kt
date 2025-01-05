@@ -18,7 +18,7 @@
 package com.lambda.module.modules.debug
 
 import com.lambda.event.events.RenderEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DynamicAABB.Companion.dynamicBox
 import com.lambda.graphics.renderer.esp.builders.build
 import com.lambda.module.Module
@@ -45,14 +45,14 @@ object RenderTest : Module(
     private val filledColor = outlineColor.setAlpha(0.2)
 
     init {
-        listener<RenderEvent.DynamicESP> {
+        listen<RenderEvent.DynamicESP> {
             entitySearch<LivingEntity>(8.0)
                 .forEach { entity ->
                     it.renderer.build(entity.dynamicBox, filledColor, outlineColor)
                 }
         }
 
-        listener<RenderEvent.StaticESP> {
+        listen<RenderEvent.StaticESP> {
             it.renderer.build(Box.of(player.pos, 0.3, 0.3, 0.3), filledColor, outlineColor)
         }
     }

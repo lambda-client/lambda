@@ -50,7 +50,7 @@ import java.awt.Color
  * @property settings A set of [AbstractSetting]s that this configurable manages.
  */
 abstract class Configurable(
-    private val configuration: Configuration
+    private val configuration: Configuration,
 ) : Jsonable, Nameable {
     val settings = mutableSetOf<AbstractSetting<*>>()
 
@@ -248,7 +248,6 @@ abstract class Configurable(
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Set] value of type [T] for the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
-     * @param hackDelegates A flag that determines whether the setting should be serialized with the default value.
      * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
@@ -262,14 +261,12 @@ abstract class Configurable(
         name: String,
         defaultValue: Set<T>,
         description: String = "",
-        hackDelegates: Boolean = false,
         noinline visibility: () -> Boolean = { true },
     ) = SetSetting(
         name,
         defaultValue.toMutableSet(),
         TypeToken.getParameterized(MutableSet::class.java, T::class.java).type,
         description,
-        hackDelegates,
         visibility,
     ).also {
         settings.add(it)
@@ -277,6 +274,8 @@ abstract class Configurable(
 
     /**
      * Creates a [ByteSetting] with the provided parameters and adds it to the [settings].
+     *
+     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Byte] value of the setting.
@@ -303,6 +302,8 @@ abstract class Configurable(
     /**
      * Creates a [DoubleSetting] with the provided parameters and adds it to the [settings].
      *
+     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
+     *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Double] value of the setting.
      * @param range The range within which the setting's value must fall.
@@ -327,6 +328,8 @@ abstract class Configurable(
 
     /**
      * Creates a [FloatSetting] with the provided parameters and adds it to the [settings].
+     *
+     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Float] value of the setting.
@@ -353,6 +356,8 @@ abstract class Configurable(
     /**
      * Creates an [IntegerSetting] with the provided parameters and adds it to the [settings].
      *
+     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
+     *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Int] value of the setting.
      * @param range The range within which the setting's value must fall.
@@ -378,6 +383,8 @@ abstract class Configurable(
     /**
      * Creates a [LongSetting] with the provided parameters and adds it to the [settings].
      *
+     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
+     *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Long] value of the setting.
      * @param range The range within which the setting's value must fall.
@@ -402,6 +409,8 @@ abstract class Configurable(
 
     /**
      * Creates a [ShortSetting] with the provided parameters and adds it to the [settings].
+     *
+     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
      *
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Short] value of the setting.

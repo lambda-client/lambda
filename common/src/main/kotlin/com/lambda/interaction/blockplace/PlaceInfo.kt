@@ -28,5 +28,5 @@ data class PlaceInfo(
     val hitVec: Vec3d,
 
     val eyeDistanceSq: Double,
-    val placeSteps: Int
+    val placeSteps: Int,
 )

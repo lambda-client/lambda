@@ -19,112 +19,49 @@ package com.lambda.task
 
 import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
-import com.lambda.event.Event
-import com.lambda.event.EventFlow
-import com.lambda.event.Subscriber
+import com.lambda.event.EventFlow.unsubscribe
+import com.lambda.event.Muteable
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.module.modules.client.TaskFlow
-import com.lambda.threading.runConcurrent
-import com.lambda.threading.runGameScheduled
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.logError
-import com.lambda.util.Communication.warn
 import com.lambda.util.Nameable
-import com.lambda.util.text.buildText
-import com.lambda.util.text.color
-import com.lambda.util.text.literal
-import com.lambda.util.text.text
-import kotlinx.coroutines.delay
-import net.minecraft.text.Text
-import org.apache.commons.lang3.time.DurationFormatUtils
-import java.awt.Color
+import com.lambda.util.StringUtils.capitalize
 
-/**
- * A [Task] represents a time-critical activity.
- * It automates in-game activities through event-based programming, leveraging game events to control task flow.
- *
- * [Result] is the type of the result that the task will return when it completes successfully.
- * In case the task should not return any result, [Unit] can be used as the type.
- *
- * A [Task] can have event listeners that are active while the task is running.
- * The task will attempt to execute its subtasks sequentially, and can either keep listening
- * or stop receiving events while the subtasks are running.
- *
- * It supports a builder pattern, allowing you to chain configuration methods like [withDelay],
- * [withTimeout], [withMaxAttempts], [withRepeats], [onSuccess], [onRetry], [onTimeout], [onFailure], and [onRepeat]
- * to construct a [Task] instance.
- * This makes it easy to build complex flows of nested tasks.
- *
- * @property delay The delay before the task starts, in milliseconds.
- * @property timeout The maximum time that the task is allowed to run, in ticks.
- * @property tries The maximum number of attempts to execute the task before it is considered failed.
- * @property executions The number of times the task should be repeated.
- * @property onSuccess The action to be performed when the task completes successfully.
- * @property onRetry The action to be performed when the task is retried after a failure or timeout.
- * @property onTimeout The action to be performed when the task times out.
- * @property onRepeat The action to be performed each time the task is repeated.
- * @property onException The action to be performed when the task encounters an exception.
- */
-abstract class Task<Result> : Nameable {
-    open var delay: Int = 0
-    open var timeout: Int = Int.MAX_VALUE
-    open var tries: Int = 0
-    open var repeats: Int = 0
-    open var cooldown: Int = TaskFlow.taskCooldown
-    open var onStart: SafeContext.(Task<Result>) -> Unit = {}
-    open var onSuccess: SafeContext.(Task<Result>, Result) -> Unit = { _, _ -> }
-    open var onRetry: SafeContext.(Task<Result>) -> Unit = {}
-    open var onTimeout: SafeContext.(Task<Result>) -> Unit = {}
-    open var onRepeat: SafeContext.(Task<Result>, Result, Int) -> Unit = { _, _, _ -> }
-    open var onException: SafeContext.(Task<Result>, Throwable) -> Unit = { _, _ -> }
+typealias TaskGenerator<R> = SafeContext.(R) -> Task<*>
+typealias TaskGeneratorOrNull<R> = SafeContext.(R) -> Task<*>?
+typealias TaskGeneratorUnit<R> = SafeContext.(R) -> Unit
 
-    open var pausable = true
-
+abstract class Task<Result> : Nameable, Muteable {
     private var parent: Task<*>? = null
-    private val root: Task<*> get() = parent?.root ?: this
-    private val depth: Int get() = parent?.depth?.plus(1) ?: 0
-
-    private var executions = 0
-    private var attempted = 0
     private val subTasks = mutableListOf<Task<*>>()
-    private var state = State.IDLE
+    private var state = State.INIT
+    override val isMuted: Boolean get() = state == State.PAUSED || state == State.INIT
     var age = 0
+    private val depth: Int get() = parent?.depth?.plus(1) ?: 0
+    val isCompleted get() = state == State.COMPLETED
+    val size: Int get() = subTasks.sumOf { it.size } + 1
 
-    private val isWaiting get() = state == State.WAITING
-    private val isRunning get() = state == State.RUNNING
-    val isFailed get() = state == State.FAILED
-    val isCompleted get() = state == State.COMPLETED || state == State.COOLDOWN
-    private val isRoot get() = parent == null
-    override var name = this::class.simpleName ?: "Task"
-    val identifier get() = "$name@${hashCode()}"
+    open var unpausable = false
 
-    // ToDo: Better color management
-    private val primaryColor = Color(0, 255, 0, 100)
-
-    val syncListeners = Subscriber()
-    private val concurrentListeners = Subscriber()
+    private var nextTask: TaskGenerator<Result>? = null
+    private var nextTaskOrNull: TaskGeneratorOrNull<Result>? = null
+    private var onFinish: TaskGeneratorUnit<Result>? = null
 
     enum class State {
-        IDLE,
+        INIT,
         RUNNING,
-        WAITING,
+        PAUSED,
         CANCELLED,
         FAILED,
-        COOLDOWN,
-        COMPLETED,
+        COMPLETED;
+
+        val display get() = name.lowercase().capitalize()
     }
 
     init {
-        listener<TickEvent.Pre> {
-            parent?.let {
-                it.age++
-            }
-            if (++age >= timeout) {
-                onTimeout(this@Task)
-                failure(TimeoutException(age, attempted))
-            }
-        }
+        listen<TickEvent.Pre> { age++ }
     }
 
     /**
@@ -134,98 +71,117 @@ abstract class Task<Result> : Nameable {
     @DslMarker
     annotation class Ta5kBuilder
 
+    /**
+     * Invoked when the task starts execution.
+     *
+     * This method serves as a lifecycle hook and can be overridden to define
+     * custom behavior or initialization steps necessary before the task begins.
+     * It provides a `SafeContext` to access relevant context-sensitive properties
+     * or actions safely.
+     *
+     * By default, this method does not contain any logic. Subclasses may override
+     * it to implement specific functionality, such as logging, resource allocation,
+     * or preparing preconditions for task execution.
+     */
     @Ta5kBuilder
     open fun SafeContext.onStart() {}
 
+    /**
+     * This function is called when the task is canceled.
+     * It can be overridden for tasks that need to perform cleanup operations,
+     * such as cancelling a block breaking progress, releasing resources,
+     * or stopping any ongoing operations that were started by the task.
+     */
     @Ta5kBuilder
-    fun start(parent: Task<*>?, pauseParent: Boolean = true): Task<Result> {
-        executions++
-        val owner = parent ?: RootTask
+    open fun SafeContext.onCancel() {}
+
+    /**
+     * Executes the current task as a subtask of the specified owner task.
+     *
+     * This method adds the current task to the owner's subtasks, sets the parent relationship,
+     * logs the execution details, and invokes the necessary lifecycle hooks. Additionally,
+     * it manages the state of the parent task and starts any required listeners for execution.
+     *
+     * @param owner The parent task that will execute this task as a child. Must not be the same as this task.
+     * @param pauseParent Defines whether the parent task should be paused during the execution of this task. Defaults to `true`.
+     * @return The current task instance as a `Task<Result>` to support chaining or further configuration.
+     * @throws IllegalArgumentException if the owner task is the same as the task being executed.
+     */
+    @Ta5kBuilder
+    fun execute(owner: Task<*>, pauseParent: Boolean = true): Task<Result> {
+        require(owner != this) { "Cannot execute a task as a child of itself" }
         owner.subTasks.add(this)
-
-        LOG.info("${owner.identifier} started $identifier")
-        this.parent = owner
-        if (pauseParent && owner.isRunning && !owner.isRoot) {
-            LOG.info("$identifier deactivating parent ${owner.identifier}")
-            owner.deactivate()
+        parent = owner
+        LOG.info("${owner.name} started $name")
+        if (!unpausable || pauseParent) {
+            LOG.info("$name deactivating parent ${owner.name}")
+            if (owner !is TaskFlow) owner.deactivate()
         }
-
-        activate()
-        runSafe {
-            onStart(this@Task)
-            onStart()
-        }
+        state = State.RUNNING
+        runSafe { runCatching { onStart() }.onFailure { failure(it) } }
         return this
     }
 
     @Ta5kBuilder
+    fun success(result: Result) {
+        unsubscribe()
+        state = State.COMPLETED
+        runSafe {
+            executeNextTask(result)
+        }
+    }
+
+    @Ta5kBuilder
+    fun Task<Unit>.success() {
+        success(Unit)
+    }
+
+    @Ta5kBuilder
     fun activate() {
-        if (isRunning) return
+        if (state != State.PAUSED) return
         state = State.RUNNING
-        startListening()
     }
 
     @Ta5kBuilder
     fun deactivate() {
-        if (isWaiting) return
-        state = State.WAITING
-        stopListening()
+        if (state != State.RUNNING) return
+        if (unpausable) return
+        state = State.PAUSED
     }
 
-    @Ta5kBuilder
-    fun SafeContext.success(result: Result) {
-        if (executions < repeats) {
-            executions++
-            LOG.info("Repeating $identifier $executions/$repeats...")
-            onRepeat(this@Task, result, executions)
-            reset()
-            return
+    private fun SafeContext.executeNextTask(result: Result) {
+        nextTask?.let { taskGen ->
+            val task = taskGen(this, result)
+            nextTask = null
+            parent?.let { owner -> task.execute(owner) }
+        } ?: nextTaskOrNull?.let { taskGen ->
+            val task = taskGen(this, result)
+            nextTaskOrNull = null
+            parent?.let { owner -> task?.execute(owner) }
+        } ?: run {
+            onFinish?.invoke(this, result)
+            parent?.activate()
+            onFinish = null
         }
-
-        stopListening()
-        if (cooldown > 0) {
-            state = State.COOLDOWN
-            runConcurrent {
-                delay(cooldown.toLong())
-                runGameScheduled {
-                    if (state == State.COOLDOWN) finish(result)
-                }
-            }
-        } else finish(result)
-    }
-
-    private fun SafeContext.finish(result: Result) {
-        state = State.COMPLETED
-        try {
-            onSuccess(this@Task, result)
-        } catch (e: ClassCastException) {
-            result?.let {
-                LOG.error("Failed to cast result of $identifier to ${it::class.simpleName}")
-            }
-            failure(e)
-        }
-
-        notifyParent()
-        LOG.info("$identifier completed successfully after $attempted retries and $executions executions.")
     }
 
     @Ta5kBuilder
     fun cancel() {
-        if (state == State.COMPLETED) return
-        if (state == State.CANCELLED) return
-
         cancelSubTasks()
+        if (this is TaskFlow) return
+        if (state == State.COMPLETED || state == State.CANCELLED) return
         state = State.CANCELLED
-        stopListening()
-        runSafe { onCancel() }
-        LOG.info("$identifier was cancelled")
+        unsubscribe()
     }
 
     @Ta5kBuilder
     fun cancelSubTasks() {
-        subTasks.forEach {
-            it.cancel()
-        }
+        subTasks.forEach { it.cancel() }
+    }
+
+    fun clear() {
+        subTasks.forEach { it.clear() }
+        subTasks.clear()
     }
 
     @Ta5kBuilder
@@ -236,28 +192,17 @@ abstract class Task<Result> : Nameable {
     @Ta5kBuilder
     fun failure(
         e: Throwable,
-        stacktrace: MutableList<Task<*>> = mutableListOf()
+        stacktrace: MutableList<Task<*>> = mutableListOf(),
     ) {
-        if (attempted < tries) {
-            attempted++
-            warn("Failed task with error: ${e.message}, retrying ($attempted/$tries) ...")
-            runSafe {
-                onRetry(this@Task)
-            }
-            reset()
-            return
-        }
-
         state = State.FAILED
-        stopListening()
-        runSafe { onException(this@Task, e) }
+        unsubscribe()
         stacktrace.add(this)
         parent?.failure(e, stacktrace) ?: run {
             val message = buildString {
                 stacktrace.firstOrNull()?.let { first ->
-                    append("${first.identifier} failed: ${e.message}\n")
+                    append("${first.name} failed: ${e.message}\n")
                     stacktrace.drop(1).forEach {
-                        append("  -> ${it.identifier}\n")
+                        append("  -> ${it.name}\n")
                     }
                 }
             }
@@ -267,301 +212,109 @@ abstract class Task<Result> : Nameable {
     }
 
     /**
-     * This function is called when the task is canceled.
-     * It should be overridden for tasks that need to perform cleanup operations,
-     * such as cancelling a block breaking progress, releasing resources,
-     * or stopping any ongoing operations that were started by the task.
-     */
-    @Ta5kBuilder
-    open fun SafeContext.onCancel() {}
-
-    private fun notifyParent() {
-        parent?.let { par ->
-            when {
-                par.isCompleted -> {
-                    LOG.info("$identifier completed parent ${par.identifier}")
-                    par.notifyParent()
-                }
-
-                !par.isRunning -> {
-                    LOG.info("$identifier reactivated parent ${par.identifier}")
-                    par.activate()
-                }
-            }
-        }
-    }
-
-    @Ta5kBuilder
-    private fun reset() {
-        age = 0
-    }
-
-    private fun startListening() {
-        EventFlow.syncListeners.subscribe(syncListeners)
-        EventFlow.concurrentListeners.subscribe(concurrentListeners)
-    }
-
-    private fun stopListening() {
-        EventFlow.syncListeners.unsubscribe(syncListeners)
-        EventFlow.concurrentListeners.unsubscribe(concurrentListeners)
-    }
-
-    /**
-     * Sets the delay before the task starts.
+     * Specifies the next task to execute after the current task completes successfully.
      *
-     * @param delay The delay in ticks.
-     * @return This task instance with the updated delay.
+     * This method links the current task to the specified `task`, creating a sequential
+     * execution flow where the `task` will be executed immediately after the current task.
+     *
+     * @param task The task that should be executed following the successful completion
+     *             of the current task.
+     * @return The current task instance (`Task<R>`) to allow method chaining.
      */
     @Ta5kBuilder
-    fun withDelay(delay: Int): Task<Result> {
-        this.delay = delay
+    infix fun then(task: Task<*>): Task<Result> {
+        require(task != this) { "Cannot link a task to itself" }
+        nextTask = { task }
         return this
     }
 
     /**
-     * Sets the timeout for a single attempt of the task
+     * Chains multiple tasks to be executed sequentially after the current task.
      *
-     * @param timeout The timeout in ticks.
-     * @return This task instance with the updated timeout.
+     * This method establishes an ordered execution flow between tasks, where each task
+     * in the provided list will trigger the execution of the next task upon completion.
+     * It effectively links the current task to the first task in the given array
+     * and ensures that the sequence is executed in order.
+     *
+     * @param task A vararg list of tasks to be linked sequentially after the current task.
+     *             These tasks are executed in the order they are provided.
+     * @return The current task instance (`Task<R>`) to allow method chaining.
      */
     @Ta5kBuilder
-    fun withTimeout(timeout: Int): Task<Result> {
-        this.timeout = timeout
-        return this
-    }
-
-    /**
-     * Sets the cooldown period for the task.
-     *
-     * The cooldown period is the time that the task will wait before it the next task can be executed.
-     *
-     * @param cooldown The cooldown period in milliseconds.
-     * @return This task instance with the updated cooldown period.
-     */
-    @Ta5kBuilder
-    fun withCooldown(cooldown: Int): Task<Result> {
-        this.cooldown = cooldown
-        return this
-    }
-
-    /**
-     * Sets the maximum number of attempts to execute the task before it is considered failed.
-     *
-     * @param maxAttempts The maximum number of attempts.
-     * @return This task instance with the updated maximum attempts.
-     */
-    @Ta5kBuilder
-    fun withMaxAttempts(maxAttempts: Int): Task<Result> {
-        this.tries = maxAttempts
-        return this
-    }
-
-    /**
-     * Sets the number of times the task should be repeated.
-     *
-     * @param repeats The number of repeats.
-     * @return This task instance with the updated number of repeats.
-     */
-    @Ta5kBuilder
-    fun withRepeats(repeats: Int): Task<Result> {
-        this.repeats = repeats
-        return this
-    }
-
-    /**
-     * Sets the action to be performed when the task starts.
-     *
-     * @param action The action to be performed.
-     * @return The task instance with the updated start action.
-     */
-    @Ta5kBuilder
-    fun onStart(action: SafeContext.(Task<Result>) -> Unit): Task<Result> {
-        this.onStart = action
-        return this
-    }
-
-    /**
-     * Sets the action to be performed when the task completes successfully.
-     *
-     * @param action The action to be performed.
-     * @return The task instance with the updated success action.
-     */
-    @Ta5kBuilder
-    fun onSuccess(action: SafeContext.(Task<Result>, Result) -> Unit): Task<Result> {
-        this.onSuccess = action
-        return this
-    }
-
-    /**
-     * This method allows you to chain another task that will be started upon the successful completion of the current task.
-     * The action provided as a parameter will be used to create the next task.
-     * The context of the action, the current task, and the result of the current task are passed as parameters to the action.
-     *
-     * @param action A lambda function that takes the current task and its result as parameters and returns the next task to be started.
-     * @return The current task instance with the updated success action.
-     */
-    @Ta5kBuilder
-    fun thenRun(owner: Task<*>?, action: SafeContext.(Task<Result>, Result) -> Task<*>): Task<Result> {
-        this.onSuccess = { task, result ->
-            action(this, task, result).start(owner)
+    fun then(vararg task: Task<*>): Task<Result> {
+        (listOf(this) + task).zipWithNext { current, next ->
+            current then next
         }
         return this
     }
 
     /**
-     * Sets the action to be performed when the task is retried after a failure or timeout.
+     * Adds a subsequent task to the current task's execution sequence.
      *
-     * @param action The action to be performed.
-     * @return The task instance with the updated retry action.
+     * This method specifies the next task to be executed after the current task
+     * completes successfully. The task is generated dynamically using the provided
+     * `TaskGenerator`. This allows chaining tasks together in a flexible manner.
+     *
+     * @param taskGenerator A function that generates the next task based on the result
+     *                      of the current task. It takes a `SafeContext` and the result
+     *                      of type `R` as input and returns a new `Task`.
+     * @return The current task instance (`Task<R>`) to allow method chaining.
      */
     @Ta5kBuilder
-    fun onRetry(action: SafeContext.(Task<Result>) -> Unit): Task<Result> {
-        this.onRetry = action
+    fun then(taskGenerator: TaskGenerator<Result>): Task<Result> {
+        require(nextTask == null) { "Cannot link multiple tasks to a single task" }
+        nextTask = taskGenerator
         return this
     }
 
     /**
-     * Sets the action to be performed when the task times out.
+     * Adds a subsequent task to the current task's execution sequence conditionally.
      *
-     * @param action The action to be performed.
-     * @return The task instance with the updated timeout action.
+     * This method specifies the next task to be executed after the current task
+     * completes successfully. The next task is generated dynamically using the provided
+     * [TaskGeneratorOrNull]. This allows chaining tasks together flexibly,
+     * where the next task is conditionally determined or null.
+     *
+     * @param taskGenerator A function that generates the next task based on the
+     *                      result of the current task. It takes a `SafeContext`
+     *                      and the result of type `R` as input and returns a new
+     *                      `Task` or null if no next task is required.
+     * @return The current task instance (`Task<R>`) to allow method chaining.
      */
     @Ta5kBuilder
-    fun onTimeout(action: SafeContext.(Task<Result>) -> Unit): Task<Result> {
-        this.onTimeout = action
+    fun thenOrNull(taskGenerator: TaskGeneratorOrNull<Result>): Task<Result> {
+        require(nextTask == null) { "Cannot link multiple tasks to a single task" }
+        nextTaskOrNull = taskGenerator
         return this
     }
 
     /**
-     * Sets the action to be performed when the task encounters an exception.
+     * Registers a finalization action to be executed after the current task completes.
      *
-     * @param action The action to be performed.
-     * @return The task instance with the updated exception action.
+     * This method allows specifying a finalization function that runs upon completion
+     * of the task, regardless of its outcome (success or failure). It is typically used
+     * for cleanup operations or logging after a task finishes execution.
+     *
+     * @param onFinish The finalization action to be executed. This function receives
+     *                 the task's result of type `R` within a `SafeContext`.
+     * @return The current task instance (`Task<R>`) to allow method chaining.
      */
     @Ta5kBuilder
-    fun onFailure(action: SafeContext.(Task<Result>, Throwable) -> Unit): Task<Result> {
-        this.onException = action
+    fun finally(onFinish: TaskGeneratorUnit<Result>): Task<Result> {
+        require(this.onFinish == null) { "Cannot link multiple finally blocks to a single task" }
+        this.onFinish = onFinish
         return this
     }
 
-    /**
-     * Sets the action to be performed each time the task is repeated.
-     *
-     * @param action The action to be performed.
-     * @return The task instance with the updated repeat action.
-     */
-    @Ta5kBuilder
-    fun onRepeat(action: SafeContext.(Task<Result>, Result, Int) -> Unit): Task<Result> {
-        this.onRepeat = action
-        return this
-    }
+    override fun toString() =
+        buildString { appendTaskTree(this@Task) }
 
-    @Ta5kBuilder
-    inline fun <reified T : Event> withListener(
-        crossinline action: SafeContext.(Task<Result>) -> Unit
-    ): Task<Result> {
-        listener<T> {
-            action(this@Task)
-        }
-        return this
-    }
-
-    @Ta5kBuilder
-    fun withName(name: String): Task<Result> {
-        this.name = name
-        return this
-    }
-
-    class TimeoutException(age: Int, attempts: Int) : Exception("Task timed out after $age ticks and $attempts attempts")
-
-    companion object {
-        val MAX_DEPTH = 20
-        const val MAX_DEBUG_ENTRIES = 15
-
-        @Ta5kBuilder
-        fun emptyTask(
-            name: String = "EmptyTask",
-        ): Task<Unit> = object : Task<Unit>() {
-            init { this.name = name }
-            override fun SafeContext.onStart() { success(Unit) }
-        }
-
-        @Ta5kBuilder
-        fun failTask(
-            message: String
-        ): Task<Unit> = object : Task<Unit>() {
-            init { this.name = "FailTask" }
-            override fun SafeContext.onStart() {
-                failure(message)
-            }
-        }
-
-        @Ta5kBuilder
-        fun failTask(
-            e: Throwable
-        ): Task<Unit> = object : Task<Unit>() {
-            init { this.name = "FailTask" }
-            override fun SafeContext.onStart() {
-                failure(e)
-            }
-        }
-
-        @Ta5kBuilder
-        fun buildTask(
-            name: String = "Task",
-            block: SafeContext.() -> Unit
-        ) = object : Task<Unit>() {
-            init { this.name = name }
-            override fun SafeContext.onStart() {
-                try {
-                    success(block())
-                } catch (e: Throwable) {
-                    failure(e)
-                }
-            }
-        }
-
-        @Ta5kBuilder
-        inline fun <reified R> buildTaskWithReturn(
-            crossinline block: SafeContext.() -> R
-        ) = object : Task<R>() {
-            override fun SafeContext.onStart() {
-                try {
-                    success(block())
-                } catch (e: Throwable) {
-                    failure(e)
-                }
-            }
+    private fun StringBuilder.appendTaskTree(task: Task<*>, level: Int = 0) {
+        appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is TaskFlow) " [${task.state.display}]" else "")
+        if (!TaskFlowModule.showAllEntries && (task.state == State.COMPLETED || task.state == State.CANCELLED)) return
+        task.subTasks.forEach {
+            if (!TaskFlowModule.showAllEntries && task is TaskFlow && (it.state == State.COMPLETED || it.state == State.CANCELLED)) return@forEach
+            appendTaskTree(it, level + 1)
         }
     }
-
-    val info: Text
-        get() = buildText {
-            literal("Name ")
-            color(primaryColor) { literal(name) }
-
-            literal(" State ")
-            color(primaryColor) { literal(state.name) }
-
-            literal(" Runtime ")
-            color(primaryColor) {
-                literal(DurationFormatUtils.formatDuration(age * 50L, "HH:mm:ss,SSS").dropLast(1))
-            }
-
-            val display = subTasks.reversed().take(MAX_DEBUG_ENTRIES)
-            display.forEach {
-                literal("\n${"  ".repeat(depth + 1)}")
-                text(it.info)
-            }
-
-            val left = subTasks.size - display.size
-            if (left > 0) {
-                literal("\n${"  ".repeat(depth + 1)}And ")
-                color(primaryColor) {
-                    literal("$left")
-                }
-                literal(" more...")
-            }
-
-        }
 }

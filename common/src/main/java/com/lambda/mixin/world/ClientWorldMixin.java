@@ -18,13 +18,11 @@
 package com.lambda.mixin.world;
 
 import com.lambda.event.EventFlow;
-import com.lambda.event.events.WorldEvent;
+import com.lambda.event.events.EntityEvent;
 import com.lambda.module.modules.render.WorldColors;
 import com.lambda.util.math.ColorKt;
-import net.minecraft.block.BlockState;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -34,16 +32,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ClientWorld.class)
 public class ClientWorldMixin {
-    @Inject(method = "handleBlockUpdate", at = @At("HEAD"), cancellable = true)
-    private void handleBlockUpdateInject(BlockPos pos, BlockState state, int flags, CallbackInfo ci) {
-        if (EventFlow.post(new WorldEvent.BlockUpdate(pos, state, flags)).isCanceled()) {
-            ci.cancel();
-        }
-    }
-
     @Inject(method = "addEntity", at = @At("HEAD"), cancellable = true)
     private void addEntity(Entity entity, CallbackInfo ci) {
-        if (EventFlow.post(new WorldEvent.EntitySpawn(entity)).isCanceled()) ci.cancel();
+        if (EventFlow.post(new EntityEvent.EntitySpawn(entity)).isCanceled()) ci.cancel();
     }
 
     @Inject(method = "getCloudsColor", at = @At("HEAD"), cancellable = true)

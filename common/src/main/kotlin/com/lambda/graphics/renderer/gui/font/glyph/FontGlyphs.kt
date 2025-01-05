@@ -40,7 +40,7 @@ class FontGlyphs(
     init {
         runCatching {
             processGlyphs()
-            LOG.info("Font ${font.fontName} loaded with ${charMap.size} characters")
+            LOG.info("Loaded ${font.fontName} with ${charMap.size} characters")
         }.onFailure {
             LOG.error("Failed to load font glyphs: ${it.message}", it)
             fontTexture = MipmapTexture(BufferedImage(1024, 1024, BufferedImage.TYPE_INT_ARGB))

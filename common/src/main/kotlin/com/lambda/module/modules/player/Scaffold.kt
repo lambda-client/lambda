@@ -20,13 +20,15 @@ package com.lambda.module.modules.player
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
-import com.lambda.event.events.*
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
 import com.lambda.graphics.renderer.esp.builders.build
 import com.lambda.interaction.RotationManager.currentRotation
-import com.lambda.interaction.RotationManager.requestRotation
+import com.lambda.interaction.RotationManager.rotate
 import com.lambda.interaction.blockplace.PlaceFinder.Companion.buildPlaceInfo
 import com.lambda.interaction.blockplace.PlaceInfo
 import com.lambda.interaction.blockplace.PlaceInteraction.placeBlock
@@ -36,9 +38,11 @@ import com.lambda.interaction.rotation.Rotation.Companion.dist
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.Rotation.Companion.wrap
 import com.lambda.interaction.rotation.RotationContext
-import com.lambda.interaction.visibilty.VisibilityChecker.scanVisibleSurfaces
+import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.VecUtils.dist
@@ -119,21 +123,21 @@ object Scaffold : Module(
     }
 
     init {
-        requestRotation(
-            onUpdate = {
+        rotate {
+            onUpdate {
                 lastRotation = null
-                val info = updatePlaceInfo() ?: return@requestRotation null
-                val rotation = rotate(info) ?: return@requestRotation null
+                val info = updatePlaceInfo() ?: return@onUpdate null
+                val rotation = rotate(info) ?: return@onUpdate null
 
                 RotationContext(rotation, rotationConfig)
             }
-        )
+        }
 
-        listener<MovementEvent.Sneak> {
+        listen<MovementEvent.Sneak> {
             if (sneakTicks > 0) it.sneak = true
         }
 
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             placeInfo?.let { info ->
                 tickPlacement(info)
             }
@@ -141,7 +145,7 @@ object Scaffold : Module(
             updateSneaking()
         }
 
-        listener<RenderEvent.StaticESP> { event ->
+        listen<RenderEvent.StaticESP> { event ->
             buildRenderer(event)
         }
 
@@ -212,15 +216,19 @@ object Scaffold : Module(
 
         // Dividing the surface by segments and iterating through them
         val pointScan = mutableSetOf<Rotation>().apply {
-            scanVisibleSurfaces(
-                eyes = eye,
-                box = Box(info.clickPos),
+            val box = Box(info.clickPos)
+            val sides = if (TaskFlowModule.interact.visibilityCheck) {
+                box.getVisibleSurfaces(eye)
+            } else Direction.entries.toSet()
+            scanSurfaces(
+                box,
+                sides,
                 resolution = interactionConfig.resolution
             ) { _, vec ->
-                if (eye distSq vec > reachSq) return@scanVisibleSurfaces
+                if (eye distSq vec > reachSq) return@scanSurfaces
 
                 val rotation = eye.rotationTo(vec)
-                castRotation(rotation, info) ?: return@scanVisibleSurfaces
+                castRotation(rotation, info) ?: return@scanSurfaces
 
                 add(rotation)
             }

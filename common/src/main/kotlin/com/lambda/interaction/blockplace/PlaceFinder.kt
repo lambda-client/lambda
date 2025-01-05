@@ -29,7 +29,6 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.util.*
-import kotlin.collections.Collection
 
 class PlaceFinder(
     private val basePos: BlockPos,
@@ -37,7 +36,7 @@ class PlaceFinder(
     range: Double,
     private val eyes: Vec3d,
     private val visibleCheck: Boolean,
-    private val sides: Set<Direction>
+    private val sides: Set<Direction>,
 ) {
     private val rangeSq = range * range
 
@@ -56,14 +55,14 @@ class PlaceFinder(
             range: Double = 3.25,
             eyes: Vec3d = player.eyePos,
             visibleCheck: Boolean = true,
-            sides: Set<Direction> = EnumSet.allOf(Direction::class.java)
+            sides: Set<Direction> = EnumSet.allOf(Direction::class.java),
         ) = PlaceFinder(basePos, maxAttempts, range, eyes, visibleCheck, sides).build(this)
     }
 
     private fun build(
         ctx: SafeContext,
         pos: BlockPos = basePos,
-        attempts: Int = 0
+        attempts: Int = 0,
     ): PlaceInfo? = with(ctx) {
         if (sides.isEmpty()) return null
         if (!canPlaceAt(pos)) return null

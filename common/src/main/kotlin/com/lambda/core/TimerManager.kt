@@ -23,6 +23,8 @@ import com.lambda.event.events.ClientEvent
 object TimerManager : Loadable {
     var lastTickLength: Float = 50f
 
+    override fun load() = "Loaded Timer Manager"
+
     fun getLength(): Float {
         var length = 50f
 

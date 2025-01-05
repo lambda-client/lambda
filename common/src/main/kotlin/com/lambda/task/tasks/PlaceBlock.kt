@@ -20,77 +20,124 @@ package com.lambda.task.tasks
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
+import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.WorldEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
-import com.lambda.module.modules.client.TaskFlow
+import com.lambda.interaction.rotation.Rotation.Companion.rotation
+import com.lambda.interaction.rotation.RotationContext
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
+import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import net.minecraft.block.BlockState
+import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
 
 class PlaceBlock @Ta5kBuilder constructor(
     private val ctx: PlaceContext,
-    private val rotate: Boolean,
-    private val interact: InteractionConfig = TaskFlow.interact,
-    private val waitForConfirmation: Boolean,
+    private val rotate: Boolean = TaskFlowModule.build.rotateForPlace,
+    private val interact: InteractionConfig = TaskFlowModule.interact,
+    private val waitForConfirmation: Boolean = TaskFlowModule.build.placeConfirmation,
 ) : Task<Unit>() {
-    private var beginState: BlockState? = null
-    private var state = State.ROTATING
-    private var findOutIfNeeded = false
+    override val name get() = "${state.description()} ${ctx.targetState} at ${ctx.result.blockPos.toShortString()}"
 
-    private val SafeContext.resultingState: BlockState
-        get() = ctx.resultingPos.blockState(world)
+    private var beginState: BlockState? = null
+    private var state = State.INIT
+    private var primeContext: RotationContext? = null
 
     private val SafeContext.matches
-        get() = ctx.targetState.matches(ctx.resultingPos.blockState(world), ctx.resultingPos, world)
+        get() = ctx.targetState.matches(ctx.expectedPos.blockState(world), ctx.expectedPos, world)
 
     enum class State {
-        ROTATING, PLACING, CONFIRMING
+        INIT, PRIME_ROTATION, ROTATING, PLACING, CONFIRMING;
+
+        fun description() = when (this) {
+            INIT -> "Prepare placing"
+            PRIME_ROTATION -> "Priming rotation"
+            ROTATING -> "Rotating"
+            PLACING -> "Placing"
+            CONFIRMING -> "Waiting for confirmation"
+        }
     }
 
     override fun SafeContext.onStart() {
+        if (ctx.primeDirection == null) {
+            state = State.ROTATING
+        } else {
+            state = State.PRIME_ROTATION
+            primeContext = RotationContext(
+                ctx.primeDirection.rotation,
+                ctx.rotation.config,
+            )
+        }
+
         if (matches) {
             finish()
             return
         }
-        beginState = resultingState
+        beginState = ctx.expectedPos.blockState(world)
 
-        if (!rotate) {
-            placeBlock()
-        }
+        if (!rotate) placeBlock()
     }
 
     init {
-        listener<RotationEvent.Update> { event ->
-            if (state != State.ROTATING) return@listener
-            if (!rotate) return@listener
-            event.context = ctx.rotation
+        listen<RotationEvent.Update> { event ->
+            if (!rotate) return@listen
+            event.context = if (state == State.PRIME_ROTATION) {
+                primeContext
+            } else ctx.rotation
         }
 
-        listener<RotationEvent.Post> { event ->
-            if (state != State.ROTATING) return@listener
-            if (!rotate) return@listener
-            if (event.context != ctx.rotation) return@listener
-            if (!event.context.isValid) return@listener
+        listen<RotationEvent.Post> { event ->
+            if (!rotate) return@listen
+            if (!event.context.isValid) return@listen
+            when (state) {
+                State.PRIME_ROTATION -> {
+                    if (event.context.rotation != primeContext?.rotation) return@listen
+                    state = State.ROTATING
+                }
 
-            state = State.PLACING
+                State.ROTATING -> {
+                    if (event.context.rotation != ctx.rotation.rotation) return@listen
+                    if (!event.context.isValid) return@listen
+
+                    state = State.PLACING
+                }
+
+                else -> return@listen
+            }
         }
 
-        listener<TickEvent.Pre> {
-            if (state != State.PLACING) return@listener
-
-            if (findOutIfNeeded) placeBlock()
-            findOutIfNeeded = true
+        listen<TickEvent.Pre> {
+            if (state != State.PLACING) return@listen
+            if (!matches) placeBlock() else {
+                if (!waitForConfirmation) finish()
+            }
         }
 
-        listener<WorldEvent.BlockUpdate> {
-            if (it.pos != ctx.resultingPos) return@listener
+        listen<MovementEvent.InputUpdate> {
+            if (state != State.PLACING) return@listen
+            val hitBlock = ctx.result.blockPos.blockState(world).block
+            if (hitBlock in BlockUtils.interactionBlacklist) {
+                it.input.sneaking = true
+            }
+        }
 
-            if (ctx.targetState.matches(it.state, it.pos, world)) {
+        listen<PacketEvent.Receive.Pre> {
+            val packet = it.packet
+            if (packet !is BlockUpdateS2CPacket) return@listen
+            if (state != State.CONFIRMING) return@listen
+            if (packet.pos != ctx.expectedPos) return@listen
+
+            if (ctx.targetState.matches(packet.state, packet.pos, world)) {
                 finish()
+            } else {
+                info("Packet: State: ${packet.state.block} at ${packet.pos.toShortString()} doesn't match ${ctx.targetState} at ${ctx.expectedPos.toShortString()} (expected ${ctx.expectedState})")
+                warn("Packet: Waiting for confirmation...")
             }
         }
     }
@@ -113,32 +160,20 @@ class PlaceBlock @Ta5kBuilder constructor(
 
             state = State.CONFIRMING
 
-            if (matches) {
-                if (!waitForConfirmation) finish()
-            }
+            if (!waitForConfirmation && matches) finish()
         } else {
             warn("Internal interaction failed with $actionResult")
         }
     }
 
-    private fun SafeContext.finish() {
+    private fun finish() {
         LOG.info(
             "Placed at ${
                 ctx.result.blockPos.toShortString()
             } (${ctx.result.side}) with expecting state ${
                 ctx.expectedState
-            } and expecting position at ${ctx.resultingPos.toShortString()}"
+            } and expecting position at ${ctx.expectedPos.toShortString()}"
         )
-        success(Unit)
-    }
-
-    companion object {
-        @Ta5kBuilder
-        fun placeBlock(
-            ctx: PlaceContext,
-            rotate: Boolean = TaskFlow.build.rotateForPlace,
-            waitForConfirmation: Boolean = TaskFlow.build.placeConfirmation,
-            interact: InteractionConfig = TaskFlow.interact,
-        ) = PlaceBlock(ctx, rotate, interact, waitForConfirmation)
+        success()
     }
 }

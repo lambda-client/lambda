@@ -17,7 +17,12 @@
 
 package com.lambda.mixin.render;
 
+import com.lambda.util.LambdaResource;
 import net.minecraft.client.gui.screen.SplashOverlay;
+import net.minecraft.client.texture.ResourceTexture;
+import net.minecraft.resource.DefaultResourcePack;
+import net.minecraft.resource.InputSupplier;
+import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ColorHelper;
 import org.spongepowered.asm.mixin.Final;
@@ -29,6 +34,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.io.InputStream;
 import java.util.function.IntSupplier;
 
 @Mixin(SplashOverlay.class)
@@ -46,5 +52,17 @@ public class SplashOverlayMixin {
     @Inject(method = "<init>", at = @At("RETURN"))
     private void onInit(CallbackInfo ci) {
         LOGO = Identifier.of("lambda", "textures/lambda_banner.png");
+    }
+
+    @Mixin(SplashOverlay.LogoTexture.class)
+    static class LogoTextureMixin extends ResourceTexture {
+        public LogoTextureMixin(Identifier location) {
+            super(location);
+        }
+
+        @Redirect(method = "loadTextureData", at = @At(value = "INVOKE", target = "Lnet/minecraft/resource/DefaultResourcePack;open(Lnet/minecraft/resource/ResourceType;Lnet/minecraft/util/Identifier;)Lnet/minecraft/resource/InputSupplier;"))
+        InputSupplier<InputStream> loadTextureData(DefaultResourcePack instance, ResourceType type, Identifier id) {
+            return () -> new LambdaResource("textures/lambda_banner.png").getStream();
+        }
     }
 }

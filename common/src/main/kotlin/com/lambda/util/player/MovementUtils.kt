@@ -43,7 +43,7 @@ object MovementUtils {
 
     fun SafeContext.newMovementInput(
         assumeBaritoneUsage: Boolean = true,
-        slowDownCheck: Boolean = true
+        slowDownCheck: Boolean = true,
     ): Input = if (assumeBaritoneUsage && player.input.handledByBaritone) {
         player.input
     } else {
@@ -61,7 +61,7 @@ object MovementUtils {
         forward: Double,
         strafe: Double,
         jump: Boolean = false,
-        sneak: Boolean = false
+        sneak: Boolean = false,
     ) = Input().apply {
         movementForward = forward.toFloat()
         movementSideways = strafe.toFloat()
@@ -109,26 +109,26 @@ object MovementUtils {
 
     private fun inputMoveOffset(
         moveForward: Double,
-        moveStrafe: Double
+        moveStrafe: Double,
     ) = atan2(-moveStrafe, moveForward)
 
     fun SafeContext.calcMoveYaw(
         yawIn: Float = player.moveYaw,
         moveForward: Double = player.input.roundedForward,
-        moveStrafe: Double = player.input.roundedStrafing
+        moveStrafe: Double = player.input.roundedStrafing,
     ) = yawIn + inputMoveOffset(moveForward, moveStrafe).toDegree()
 
     fun SafeContext.calcMoveRad(
         yawIn: Float = player.moveYaw,
         moveForward: Double = player.input.roundedForward,
-        moveStrafe: Double = player.input.roundedStrafing
+        moveStrafe: Double = player.input.roundedStrafing,
     ) = yawIn.toRadian() + inputMoveOffset(moveForward, moveStrafe)
 
     fun SafeContext.movementVector(radDir: Double = calcMoveRad(), y: Double = 0.0) =
         Vec3d(-sin(radDir), y, cos(radDir))
 
     var Entity.motion
-        get() = velocity;
+        get() = velocity
         set(value) {
             velocity = value
         }

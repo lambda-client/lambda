@@ -99,7 +99,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/lambda
 - **Explain why this enhancement would be useful** to most Lambda users. You may also want to point out the other projects that solved it better and which could serve as inspiration.
 
 ### Your First Code Contribution
-First of all, make sure to read or simply check the [Official Kotlin Coding Convention](https://kotlinlang.org/docs/coding-conventions.html#control-flow-statements)
+First of all, make sure to read or simply check the [Official Kotlin Coding Convention](https://kotlinlang.org/docs/coding-conventions.html)
 
 This is required for pull requests to be accepted, or even reviewed.
 

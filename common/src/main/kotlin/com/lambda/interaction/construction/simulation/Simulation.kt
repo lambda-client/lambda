@@ -18,57 +18,39 @@
 package com.lambda.interaction.construction.simulation
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.construction.Blueprint
+import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
-import com.lambda.util.Communication.info
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.toBlockPos
-import com.lambda.util.world.toFastVec
 import com.lambda.util.world.toVec3d
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 
 data class Simulation(val blueprint: Blueprint) {
     private val cache: MutableMap<FastVector, Set<BuildResult>> = mutableMapOf()
-    private fun FastVector.toView(): Vec3d = toVec3d().add(0.5, 0.62, 0.5)
-//    private lateinit var player: ClientPlayerEntity
+    private fun FastVector.toView(): Vec3d = toVec3d().add(0.5, ClientPlayerEntity.DEFAULT_EYE_HEIGHT.toDouble(), 0.5)
 
-//    init {
-//        runSafe {
-//            this@Simulation.player = player
-//            BlockPos.iterateOutwards(player.blockPos, 5, 5, 5).forEach { pos ->
-//                val vec = pos.toFastVec()
-//                info("Preloading simulation at $vec")
-//                simulate(vec)
-//            }
-//        }
-//    }
-
-//    val best: FastVector? get() = cache.filter { (_, results) ->
-//        results.isNotEmpty() && results.any { it.rank.ordinal < 4 }
-//    }.keys.minByOrNull { it.toVec3d().distanceTo(player.pos) }
-
-//    fun best() = cache.filter { (_, results) ->
-//        results.isNotEmpty() && results.any { it.rank.ordinal < 3 }
-//    }.keys
-
-    fun simulate(pos: FastVector): Set<BuildResult> {
-//        runSafe {
-//            if (!playerFitsIn(Vec3d.ofBottomCenter(pos.toBlockPos()))) return emptySet()
-//        }
-//        return blueprint.simulate(pos.toView()).also { cache[pos] = it }
-//        return cache.computeIfAbsent(pos) {
-////            runSafe {
-////                if (!playerFitsIn(Vec3d.ofBottomCenter(pos.toBlockPos()))) return@computeIfAbsent emptySet()
-////            }
-//            blueprint.simulate(pos.toView())
-//        }
-        return blueprint.simulate(pos.toView(), reach = 3.5)
-    }
+    fun simulate(pos: FastVector) =
+        cache.getOrPut(pos) {
+            val view = pos.toView()
+            runSafe {
+                if (blueprint.isOutOfBounds(view) && blueprint.getClosestPointTo(view)
+                        .distanceTo(view) > 10.0
+                ) return@getOrPut emptySet()
+                val blockPos = pos.toBlockPos()
+                if (!playerFitsIn(Vec3d.ofBottomCenter(blockPos))) return@getOrPut emptySet()
+                if (!blockPos.down().blockState(world)
+                        .isSideSolidFullSquare(world, blockPos, Direction.UP)
+                ) return@getOrPut emptySet()
+            }
+            blueprint.simulate(view, reach = TaskFlowModule.interact.reach - 1)
+        }
 
     private fun SafeContext.playerFitsIn(pos: Vec3d): Boolean {
         val pBox = player.boundingBox

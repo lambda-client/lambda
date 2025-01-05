@@ -19,14 +19,14 @@ package com.lambda.module.modules.player
 
 import com.google.gson.*
 import com.lambda.brigadier.CommandResult
-import com.lambda.config.groups.IRotationConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
-import com.lambda.event.events.KeyPressEvent
+import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RotationEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
@@ -79,7 +79,7 @@ object Replay : Module(
     private val deviationThreshold by setting("Deviation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the deviation to cancel the replay.") { cancelOnDeviation }
     private val lockCamera by setting("Lock Camera", true)
 
-    private val rotationConfig = object : IRotationConfig.Instant {
+    private val rotationConfig = object : RotationConfig.Instant {
         override val rotationMode = if (lockCamera) RotationMode.LOCK else RotationMode.SYNC
     }
 
@@ -111,8 +111,8 @@ object Replay : Module(
         .create()
 
     init {
-        listener<KeyPressEvent> {
-            if (mc.currentScreen != null && !mc.options.commandKey.isPressed) return@listener
+        listen<KeyboardEvent.Press> {
+            if (mc.currentScreen != null && !mc.options.commandKey.isPressed) return@listen
 
             when (it.translated) {
                 record -> handleRecord()
@@ -123,7 +123,7 @@ object Replay : Module(
             }
         }
 
-        listener<MovementEvent.InputUpdate> { event ->
+        listen<MovementEvent.InputUpdate> { event ->
             when (state) {
                 State.RECORDING -> {
                     buffer?.let {
@@ -147,7 +147,7 @@ object Replay : Module(
                             if (cancelOnDeviation && diff > deviationThreshold) {
                                 state = State.INACTIVE
                                 this@Replay.logError("Replay cancelled due to exceeding deviation threshold.")
-                                return@listener
+                                return@listen
                             }
                         }
                     }
@@ -157,7 +157,7 @@ object Replay : Module(
             }
         }
 
-        listener<RotationEvent.Update> { event ->
+        listen<RotationEvent.Update> { event ->
             when (state) {
                 State.RECORDING -> {
                     buffer?.rotation?.add(player.rotation)
@@ -173,7 +173,7 @@ object Replay : Module(
             }
         }
 
-        listener<MovementEvent.Sprint> { event ->
+        listen<MovementEvent.Sprint> { event ->
             when (state) {
                 State.RECORDING -> {
                     buffer?.sprint?.add(player.isSprinting)
@@ -190,7 +190,7 @@ object Replay : Module(
             }
         }
 
-        listener<MovementEvent.Post> {
+        listen<MovementEvent.Player.Post> {
             when (state) {
                 State.RECORDING -> {
                     buffer?.let {
@@ -218,7 +218,7 @@ object Replay : Module(
 
                 State.PLAYING -> {
                     buffer?.let {
-                        if (it.size != 0) return@listener
+                        if (it.size != 0) return@listen
 
                         if (playMode == PlayMode.LOOP && (repeats < loops || loops < 0)) {
                             if (repeats >= 0) repeats++
@@ -241,7 +241,7 @@ object Replay : Module(
                                     color(GuiSettings.primaryColor) { literal(playback?.duration.toString()) }
                                     literal(".")
                                 })
-                                return@listener
+                                return@listen
                             }
 
                             state = State.RECORDING
@@ -429,7 +429,7 @@ object Replay : Module(
             this@Replay.warn("Recording too short. Minimum length: 5 ticks.")
             return
         }
-        val file = FolderRegister.replay.locationBoundDirectory().resolve("$name.json")
+        val file = FolderRegister.replay.toFile().locationBoundDirectory().resolve("$name.json")
 
         lambdaScope.launch(Dispatchers.IO) {
             file.writeText(gsonCompact.toJson(recording))

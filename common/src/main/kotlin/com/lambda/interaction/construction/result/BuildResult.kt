@@ -19,15 +19,14 @@ package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalNear
-import baritone.process.BuilderProcess.GoalPlace
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
-import com.lambda.interaction.material.container.MainHandContainer
-import com.lambda.task.Task
-import com.lambda.task.Task.Companion.failTask
+import com.lambda.interaction.material.container.ContainerManager.transfer
+import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.Nameable
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
@@ -37,9 +36,10 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
-abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
+abstract class BuildResult : ComparableResult<Rank>, Nameable {
     abstract val blockPos: BlockPos
     open val pausesParent = false
+    override val name: String get() = "${this::class.simpleName} at ${blockPos.toShortString()}"
 
     /**
      * The build action is done.
@@ -47,6 +47,8 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
     data class Done(
         override val blockPos: BlockPos,
     ) : BuildResult() {
+        override val name: String
+            get() = "Build at $blockPos is done."
         override val rank = Rank.DONE
     }
 
@@ -56,6 +58,8 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
     data class Ignored(
         override val blockPos: BlockPos,
     ) : BuildResult() {
+        override val name: String
+            get() = "Build at $blockPos is ignored."
         override val rank = Rank.IGNORED
     }
 
@@ -64,8 +68,9 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
      * @param blockPos The position of the block that is in an unloaded chunk.
      */
     data class ChunkNotLoaded(
-        override val blockPos: BlockPos
+        override val blockPos: BlockPos,
     ) : Navigable, Drawable, BuildResult() {
+        override val name: String get() = "Chunk at $blockPos is not loaded."
         override val rank = Rank.CHUNK_NOT_LOADED
         private val color = Color(252, 165, 3, 100)
 
@@ -88,8 +93,9 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
      * @param blockPos The position of the block that is restricted.
      */
     data class Restricted(
-        override val blockPos: BlockPos
+        override val blockPos: BlockPos,
     ) : Drawable, BuildResult() {
+        override val name: String get() = "Restricted at $blockPos."
         override val rank = Rank.BREAK_RESTRICTED
         private val color = Color(255, 0, 0, 100)
 
@@ -105,8 +111,9 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
      */
     data class NoPermission(
         override val blockPos: BlockPos,
-        val blockState: BlockState
+        val blockState: BlockState,
     ) : Drawable, BuildResult() {
+        override val name: String get() = "No permission at $blockPos."
         override val rank get() = Rank.BREAK_NO_PERMISSION
         private val color = Color(255, 0, 0, 100)
 
@@ -120,8 +127,9 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
      * @param blockPos The position of the block that is out of the world.
      */
     data class OutOfWorld(
-        override val blockPos: BlockPos
+        override val blockPos: BlockPos,
     ) : Drawable, BuildResult() {
+        override val name: String get() = "$blockPos is out of the world."
         override val rank = Rank.OUT_OF_WORLD
         private val color = Color(3, 148, 252, 100)
 
@@ -137,8 +145,9 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
      */
     data class Unbreakable(
         override val blockPos: BlockPos,
-        val blockState: BlockState
+        val blockState: BlockState,
     ) : Drawable, BuildResult() {
+        override val name: String get() = "Unbreakable at $blockPos."
         override val rank = Rank.UNBREAKABLE
         private val color = Color(11, 11, 11, 100)
 
@@ -156,8 +165,9 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
         override val blockPos: BlockPos,
         val hitPos: BlockPos,
         val side: Direction,
-        val distance: Double
+        val distance: Double,
     ) : Drawable, BuildResult() {
+        override val name: String get() = "Not visible at $blockPos."
         override val rank = Rank.NOT_VISIBLE
         private val color = Color(46, 0, 0, 80)
 
@@ -180,20 +190,17 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
     data class WrongItem(
         override val blockPos: BlockPos,
         val context: BuildContext,
-        val neededItem: Item
-    ) : Drawable, BuildResult() {
+        val neededItem: Item,
+        val currentItem: ItemStack,
+    ) : Drawable, Resolvable, BuildResult() {
+        override val name: String get() = "Wrong item ($currentItem) for ${blockPos.toShortString()} need ${neededItem.name.string}"
         override val rank = Rank.WRONG_ITEM
         private val color = Color(3, 252, 169, 100)
 
         override val pausesParent get() = true
 
-        override fun SafeContext.onStart() {
-            neededItem.select()
-                .transfer(MainHandContainer)
-                ?.onSuccess { _, _ ->
-                    success(Unit)
-                }?.start(this@WrongItem) ?: failure("Item ${neededItem.name.string} not found")
-        }
+        override fun resolve() = neededItem.select()
+            .transfer(MainHandContainer) ?: MaterialContainer.Nothing()
 
         override fun SafeContext.buildRenderer() {
             if (blockPos.blockState(world).isAir) {
@@ -219,20 +226,16 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
     data class WrongStack(
         override val blockPos: BlockPos,
         val context: BuildContext,
-        val neededStack: ItemStack
-    ) : Drawable, BuildResult() {
+        val neededStack: ItemStack,
+    ) : Drawable, Resolvable, BuildResult() {
+        override val name: String get() = "Wrong stack for $blockPos need $neededStack."
         override val rank = Rank.WRONG_ITEM
         private val color = Color(3, 252, 169, 100)
 
         override val pausesParent get() = true
 
-        override fun SafeContext.onStart() {
-            neededStack.select()
-                .transfer(MainHandContainer)
-                ?.onSuccess { _, _ ->
-                    success(Unit)
-                }?.start(this@WrongStack) ?: failTask("Stack ${neededStack.name.string} not found")
-        }
+        override fun resolve() =
+            neededStack.select().transfer(MainHandContainer) ?: MaterialContainer.Nothing()
 
         override fun SafeContext.buildRenderer() {
             if (blockPos.blockState(world).isAir) {
@@ -253,26 +256,23 @@ abstract class BuildResult : ComparableResult<Rank>, Task<Unit>() {
     /**
      * Represents a break out of reach.
      * @param blockPos The position of the block that is out of reach.
-     * @param startVec The start vector of the reach.
-     * @param hitVec The hit vector of the reach.
-     * @param reach The maximum reach distance.
-     * @param side The side that is out of reach.
+     * @param pov The point of view of the player.
+     * @param misses The points that are out of reach.
      */
     data class OutOfReach(
         override val blockPos: BlockPos,
-        val startVec: Vec3d,
-        val hitVec: Vec3d,
-        val reach: Double,
-        val side: Direction,
+        val pov: Vec3d,
+        val misses: Set<Vec3d>,
     ) : Navigable, Drawable, BuildResult() {
+        override val name: String get() = "Out of reach at $blockPos."
         override val rank = Rank.OUT_OF_REACH
         private val color = Color(252, 3, 207, 100)
 
         val distance: Double by lazy {
-            startVec.distanceTo(hitVec)
+            misses.minOfOrNull { pov.distanceTo(it) } ?: 0.0
         }
 
-        override val goal = GoalNear(blockPos, 2)
+        override val goal = GoalNear(blockPos, 3)
 
         override fun SafeContext.buildRenderer() {
             withPos(blockPos, color)

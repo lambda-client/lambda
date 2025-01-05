@@ -18,15 +18,16 @@
 package com.lambda.module.modules.player
 
 import com.lambda.context.SafeContext
-import com.lambda.event.events.InteractionEvent
-import com.lambda.event.events.ScreenHandlerEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.events.InventoryEvent
+import com.lambda.event.events.PlayerEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task
+import com.lambda.task.TaskFlow.run
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
-import com.lambda.task.tasks.OpenContainer.Companion.openContainer
-import com.lambda.task.tasks.PlaceContainer.Companion.placeContainer
+import com.lambda.task.tasks.OpenContainer
+import com.lambda.task.tasks.PlaceContainer
 import com.lambda.util.item.ItemUtils.shulkerBoxes
 import com.lambda.util.player.SlotUtils.clickSlot
 import com.lambda.util.player.SlotUtils.hotbar
@@ -50,28 +51,28 @@ object InventoryTweaks : Module(
     private var lastOpenScreen: ScreenHandler? = null
 
     init {
-        listener<InteractionEvent.SlotClick> {
-            if (it.action != SlotActionType.PICKUP || it.button != 1) return@listener
+        listen<PlayerEvent.SlotClick> {
+            if (it.action != SlotActionType.PICKUP || it.button != 1) return@listen
             val stack = it.screenHandler.getSlot(it.slot).stack
-            if (!(instantShulker && stack.item in shulkerBoxes) && !(instantEChest && stack.item == Items.ENDER_CHEST)) return@listener
+            if (!(instantShulker && stack.item in shulkerBoxes) && !(instantEChest && stack.item == Items.ENDER_CHEST)) return@listen
             it.cancel()
             move(it.slot, stack)
 
             player.closeScreen()
 
-            lastPlace = placeContainer(stack).thenRun(null) { _, placePos ->
+            lastPlace = PlaceContainer(stack).then { placePos ->
                 placedPos = placePos
-                openContainer(placePos).onSuccess { _, screenHandler ->
+                OpenContainer(placePos).finally { screenHandler ->
                     lastOpenScreen = screenHandler
                 }
-            }.start(null)
+            }.run()
         }
 
-        listener<ScreenHandlerEvent.Close> { event ->
-            if (event.screenHandler != lastOpenScreen) return@listener
+        listen<InventoryEvent.Close> { event ->
+            if (event.screenHandler != lastOpenScreen) return@listen
             lastOpenScreen = null
             placedPos?.let {
-                lastBreak = breakAndCollectBlock(it).start(null)
+                lastBreak = breakAndCollectBlock(it).run()
                 placedPos = null
             }
         }

@@ -22,9 +22,11 @@ import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
-import com.lambda.event.events.*
-import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.event.events.ConnectionEvent
+import com.lambda.event.events.PacketEvent
+import com.lambda.event.events.RotationEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.angleDifference
 import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
@@ -34,34 +36,40 @@ import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
-import com.lambda.util.math.lerp
-import com.lambda.util.math.MathUtils.toRadian
-import com.lambda.util.math.Vec2d
 import com.lambda.util.extension.partialTicks
 import com.lambda.util.extension.rotation
+import com.lambda.util.math.MathUtils.toRadian
+import com.lambda.util.math.Vec2d
+import com.lambda.util.math.lerp
 import net.minecraft.client.input.Input
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
-import kotlin.math.*
+import kotlin.math.cos
+import kotlin.math.round
+import kotlin.math.sign
+import kotlin.math.sin
 
 object RotationManager : Loadable {
     var currentRotation = Rotation.ZERO
-    var prevRotation = Rotation.ZERO
+    private var prevRotation = Rotation.ZERO
 
     var currentContext: RotationContext? = null
 
     private var keepTicks = 0
     private var pauseTicks = 0
 
-    fun Any.requestRotation(
+    override fun load() = "Loaded Rotation Manager"
+
+    @RotationDsl
+    fun Any.rotate(
         priority: Int = 0,
         alwaysListen: Boolean = false,
-        onUpdate: SafeContext.(lastContext: RotationContext?) -> RotationContext?,
-        onReceive: SafeContext.() -> Unit = {}
+        block: RequestRotationBuilder.() -> Unit,
     ) {
+        val builder = RequestRotationBuilder().apply(block)
         var lastCtx: RotationContext? = null
 
-        this.listener<RotationEvent.Update>(priority, alwaysListen) { event ->
-            val rotationContext = onUpdate(event.context)
+        listen<RotationEvent.Update>(priority, alwaysListen) { event ->
+            val rotationContext = builder.onUpdate?.invoke(this, event.context)
 
             rotationContext?.let {
                 event.context = it
@@ -70,10 +78,28 @@ object RotationManager : Loadable {
             lastCtx = rotationContext
         }
 
-        this.listener<RotationEvent.Post> { event ->
-            if (event.context == lastCtx && event.context.isValid) {
-                onReceive()
+        listen<RotationEvent.Post> { event ->
+            if (event.context == lastCtx) {
+                builder.onReceive?.invoke(this, event.context)
             }
+        }
+    }
+
+    @DslMarker
+    annotation class RotationDsl
+
+    class RequestRotationBuilder {
+        var onUpdate: (SafeContext.(lastContext: RotationContext?) -> RotationContext?)? = null
+        var onReceive: (SafeContext.(context: RotationContext) -> Unit)? = null
+
+        @RotationDsl
+        fun onUpdate(block: SafeContext.(lastContext: RotationContext?) -> RotationContext?) {
+            onUpdate = block
+        }
+
+        @RotationDsl
+        fun onReceive(block: SafeContext.(context: RotationContext) -> Unit) {
+            onReceive = block
         }
     }
 
@@ -89,16 +115,16 @@ object RotationManager : Loadable {
     }
 
     init {
-        listener<PacketEvent.Send.Post> { event ->
+        listen<PacketEvent.Send.Post> { event ->
             val packet = event.packet
-            if (packet !is PlayerPositionLookS2CPacket) return@listener
+            if (packet !is PlayerPositionLookS2CPacket) return@listen
 
             runGameScheduled {
                 reset(Rotation(packet.yaw, packet.pitch))
             }
         }
 
-        unsafeListener<ConnectionEvent.Disconnect> {
+        listenUnsafe<ConnectionEvent.Disconnect> {
             reset(Rotation.ZERO)
         }
     }

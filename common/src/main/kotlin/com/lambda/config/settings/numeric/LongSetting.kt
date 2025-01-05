@@ -19,6 +19,9 @@ package com.lambda.config.settings.numeric
 
 import com.lambda.config.settings.NumericSetting
 
+/**
+ * @see [com.lambda.config.Configurable]
+ */
 class LongSetting(
     override val name: String,
     defaultValue: Long,

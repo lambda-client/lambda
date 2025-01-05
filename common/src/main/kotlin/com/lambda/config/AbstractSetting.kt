@@ -72,7 +72,7 @@ import kotlin.reflect.KProperty
  */
 abstract class AbstractSetting<T : Any>(
     private val defaultValue: T,
-    private val type: Type,
+    protected val type: Type,
     val description: String,
     val visibility: () -> Boolean,
 ) : Jsonable, Nameable {
@@ -100,6 +100,10 @@ abstract class AbstractSetting<T : Any>(
         value = gson.fromJson(serialized, type)
     }
 
+    /**
+     * Will only register changes of the variable, not the content of the variable!
+     * E.g., if the variable is a list, it will only register if the list reference changes, not if the content of the list changes.
+     */
     fun onValueChange(block: SafeContext.(from: T, to: T) -> Unit) {
         listeners.add(ValueListener(true) { from, to ->
             runSafe {

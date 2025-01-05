@@ -31,7 +31,5 @@ object CommandRegistry : Configurable(LambdaConfig), Loadable {
 
     val commands = getInstances<LambdaCommand> { forPackages("com.lambda.command.commands") }.toMutableList()
 
-    override fun load(): String {
-        return "Registered ${commands.size} commands"
-    }
+    override fun load() = "Loaded ${commands.size} commands"
 }

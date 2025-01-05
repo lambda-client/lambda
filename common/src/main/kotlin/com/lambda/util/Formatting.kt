@@ -27,6 +27,12 @@ object Formatting {
     val Vec3d.string: String
         get() = asString()
 
+    val Float.string: String
+        get() = "%.2f".format(this)
+
+    val Double.string: String
+        get() = "%.2f".format(this)
+
     fun Vec3d.asString(decimals: Int = 2): String {
         val format = "%.${decimals}f"
         return "(${format.format(x)}, ${format.format(y)}, ${format.format(z)})"

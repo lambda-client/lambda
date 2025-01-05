@@ -17,15 +17,19 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.interaction.construction.StaticBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task
+import com.lambda.task.TaskFlow.run
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.Structure
+import com.lambda.util.extension.moveY
+import com.lambda.util.math.MathUtils.floorToInt
+import com.lambda.util.math.VecUtils.rotateClockwise
 import com.lambda.util.player.MovementUtils.octant
 import com.lambda.util.world.StructureUtils.generateDirectionalTube
 import net.minecraft.block.Blocks
@@ -33,26 +37,43 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3i
-import kotlin.math.roundToInt
 
 object HighwayTools : Module(
     name = "HighwayTools",
     description = "Auto highway builder",
     defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
 ) {
-    private val height by setting("Height", 4, 1..10, 1)
+    private val height by setting("Height", 4, 2..10, 1)
     private val width by setting("Width", 6, 1..30, 1)
-    private val rimHeight by setting("Rim Height", 1, 0..6, 1)
-    private val cornerBlock by setting("Corner Block", false, description = "Include corner blocks in the highway")
-    private val distance by setting("Distance", -1, -1..1000000, 1, description = "Distance to build the highway (negative for infinite)")
+    private val pavement by setting("Pavement", Material.Block, description = "Material for the pavement")
+    private val rimHeight by setting("Pavement Rim Height", 1, 0..6, 1) { pavement != Material.None }
+    private val cornerBlock by setting("Corner", Corner.None, description = "Include corner blocks in the highway") { pavement != Material.None }
+    private val pavementMaterial by setting("Pavement Material", Blocks.OBSIDIAN, description = "Material to build the highway with") { pavement == Material.Block }
+    private val floor by setting("Floor", Material.None, description = "Material for the floor")
+    private val floorMaterial by setting("Floor Material", Blocks.NETHERRACK, description = "Material to build the floor with") { floor == Material.Block }
+    private val walls by setting("Walls", Material.None, description = "Material for the walls")
+    private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, description = "Material to build the walls with") { walls == Material.Block }
+    private val ceiling by setting("Ceiling", Material.None, description = "Material for the ceiling")
+    private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, description = "Material to build the ceiling with") { ceiling == Material.Block }
+    private val distance by setting("Distance", -1, -1..1000000, 1, description = "Distance to build the highway/tunnel (negative for infinite)")
     private val sliceSize by setting("Slice Size", 3, 1..5, 1, description = "Number of slices to build at once")
-    private val material by setting("Material", Blocks.OBSIDIAN, description = "Material to build the highway with")
 
     private var octant = EightWayDirection.NORTH
     private var distanceMoved = 0
     private var startPos = BlockPos.ORIGIN
     private var currentPos = BlockPos.ORIGIN
     private var runningTask: Task<*>? = null
+
+    enum class Material {
+        None,
+        Solid,
+        Block,
+    }
+
+    enum class Corner {
+        None,
+        Solid,
+    }
 
     init {
         onEnable {
@@ -73,102 +94,138 @@ object HighwayTools : Module(
         distanceMoved += sliceSize
 
         var structure: Structure = mutableMapOf()
-        val slice = highwaySlice()
+        val slice = generateSlice()
         repeat(sliceSize) {
             val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
             currentPos = currentPos.add(vec)
             structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
         }
 
-        runningTask = structure.toBlueprint().build().onSuccess { _, _ ->
+        runningTask = structure.toBlueprint().build().finally {
             if (distanceMoved < distance || distance < 0) {
                 buildSlice()
             } else {
                 this@HighwayTools.info("Highway built")
                 disable()
             }
-        }.onFailure { _, _ ->
-            disable()
-        }.start(null)
+        }.run()
     }
 
-    private fun highwaySlice(): Structure {
+    private fun generateSlice(): Structure {
         val structure = mutableMapOf<BlockPos, TargetState>()
-        val orthogonal = EightWayDirection.entries[(octant.ordinal + 2).mod(8)]
-        val center = (width / 2.0).roundToInt()
+        val orthogonal = octant.rotateClockwise(2)
+        val center = (width / 2.0).floorToInt()
 
-        // Area to clear
+        // Hole
         structure += generateDirectionalTube(
             orthogonal,
             width,
             height,
             -center,
-            -1,
+            0,
         ).associateWith { TargetState.Air }
 
-        // Highway
-        structure += generateDirectionalTube(
-            orthogonal,
-            width,
-            1,
-            -center,
-            -1,
-        ).associateWith { TargetState.Block(material) }
+        if (pavement != Material.None) {
+            structure += generateDirectionalTube(
+                orthogonal,
+                width,
+                1,
+                -center,
+                0,
+            ).associateWith { target(pavement, pavementMaterial) }
 
-        // Left rim
-        structure += generateDirectionalTube(
-            orthogonal,
-            1,
-            rimHeight,
-            -center + width - 1,
-            0,
-        ).associateWith { TargetState.Block(material) }
-
-        // Right rim
-        structure += generateDirectionalTube(
-            orthogonal,
-            1,
-            rimHeight,
-            -center,
-            0,
-        ).associateWith { TargetState.Block(material) }
-
-        if (!cornerBlock) {
-            structure -= generateDirectionalTube(
+            // Left rim
+            structure += generateDirectionalTube(
                 orthogonal,
                 1,
-                1,
+                rimHeight,
                 -center + width - 1,
-                -1,
-            )
+                1,
+            ).associateWith { target(pavement, pavementMaterial) }
 
-            structure -= generateDirectionalTube(
+            // Right rim
+            structure += generateDirectionalTube(
                 orthogonal,
                 1,
+                rimHeight,
+                -center,
+                1,
+            ).associateWith { target(pavement, pavementMaterial) }
+
+            if (cornerBlock == Corner.None) {
+                // Support for the left rim
+                structure += generateDirectionalTube(
+                    orthogonal,
+                    1,
+                    1,
+                    -center + width - 1,
+                    0,
+                ).associateWith { TargetState.Support(Direction.UP) }
+
+                // Support for the right rim
+                structure += generateDirectionalTube(
+                    orthogonal,
+                    1,
+                    1,
+                    -center,
+                    0,
+                ).associateWith { TargetState.Support(Direction.UP) }
+            }
+        }
+
+        if (ceiling != Material.None) {
+            structure += generateDirectionalTube(
+                orthogonal,
+                width,
+                1,
+                -center,
+                height,
+            ).associateWith { target(ceiling, ceilingMaterial) }
+        }
+
+        if (walls != Material.None) {
+            // Left wall
+            structure += generateDirectionalTube(
+                orthogonal,
+                1,
+                height,
+                -center + width,
+                0,
+            ).associateWith { target(walls, wallMaterial) }
+
+            // Right wall
+            structure += generateDirectionalTube(
+                orthogonal,
+                1,
+                height,
+                -center - 1,
+                0,
+            ).associateWith { target(walls, wallMaterial) }
+        }
+
+        if (floor != Material.None) {
+            structure += generateDirectionalTube(
+                orthogonal,
+                width,
                 1,
                 -center,
                 -1,
-            )
+            ).associateWith { target(floor, floorMaterial) }
         }
 
-        // Support for the left corner
-        structure += generateDirectionalTube(
-            orthogonal,
-            1,
-            1,
-            -center + width - 1,
-            -1,
-        ).associateWith { TargetState.Support(Direction.UP) }
+        val transformed = when {
+            pavement != Material.None -> structure.moveY(-1)
+            else -> structure
+        }
 
-        // Support for the right corner
-        structure += generateDirectionalTube(
-            orthogonal,
-            1,
-            1,
-            -center,
-            -1,
-        ).associateWith { TargetState.Support(Direction.UP) }
+        return transformed
+    }
 
-        return structure
+    private fun target(target: Material, material: net.minecraft.block.Block): TargetState {
+        return when (target) {
+            Material.Solid -> TargetState.Solid
+            Material.Block -> TargetState.Block(material)
+            else -> throw IllegalStateException("Invalid material")
+        }
     }
 }

@@ -22,7 +22,7 @@ import com.lambda.util.FolderRegister.cache
 import com.lambda.util.FolderRegister.createIfNotExists
 import java.io.File
 import java.net.HttpURLConnection
-import java.net.URL
+import java.net.URI
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 
@@ -54,7 +54,7 @@ data class Request(
      * @param maxAge The maximum age of the cached resource. Default is 4 days.
      */
     fun maybeDownload(name: String, maxAge: Duration = 7.days): File {
-        val file = cache.resolve(name).createIfNotExists()
+        val file = cache.resolve(name).toFile().createIfNotExists()
 
         if (
             System.currentTimeMillis() - file.lastModified() < maxAge.inWholeMilliseconds
@@ -63,10 +63,10 @@ data class Request(
 
         file.writeText("") // Clear the file before writing to it.
 
-        val url = URL(
+        val url = URI(
             if (parameters.isNotEmpty() && canBeEncoded) "$url?${parameters.query}"
             else url
-        )
+        ).toURL()
 
         val connection = url.openConnection() as HttpURLConnection
         config.invoke(connection)
@@ -90,10 +90,10 @@ data class Request(
      * Executes the HTTP request synchronously.
      */
     inline fun <reified Success : Any> json(): Response<Success> {
-        val url = URL(
+        val url = URI(
             if (parameters.isNotEmpty() && canBeEncoded) "$url?${parameters.query}"
             else url
-        )
+        ).toURL()
 
         val connection = url.openConnection() as HttpURLConnection
         config.invoke(connection)

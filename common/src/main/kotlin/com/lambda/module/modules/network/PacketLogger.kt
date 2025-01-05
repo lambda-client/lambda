@@ -21,8 +21,8 @@ import com.lambda.Lambda
 import com.lambda.Lambda.mc
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeConcurrentListener
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafeConcurrently
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runIO
@@ -97,7 +97,7 @@ object PacketLogger : Module(
             val fileName = "packet-log-${getTime(fileFormatter)}.txt"
 
             // ToDo: Organize files with FolderRegister.worldBoundDirectory
-            file = FolderRegister.packetLogs.resolve(fileName).apply {
+            file = FolderRegister.packetLogs.resolve(fileName).toFile().apply {
                 if (!parentFile.exists()) {
                     parentFile.mkdirs()
                 }
@@ -155,45 +155,45 @@ object PacketLogger : Module(
             }
         }
 
-        unsafeListener<TickEvent.Pre> {
-            if (!logTicks) return@unsafeListener
+        listenUnsafe<TickEvent.Pre> {
+            if (!logTicks) return@listenUnsafe
 
             storageFlow.tryEmit("Started tick at ${getTime(entryFormatter)}\n\n")
         }
 
-        unsafeListener<PacketEvent.Receive.Pre> {
+        listenUnsafe<PacketEvent.Receive.Pre> {
             if (logConcurrent
                 || !scope.shouldLog(it.packet)
                 || !networkSide.shouldLog(NetworkSide.SERVER)
-            ) return@unsafeListener
+            ) return@listenUnsafe
 
             it.packet.logReceived()
         }
 
-        unsafeListener<PacketEvent.Send.Pre> {
+        listenUnsafe<PacketEvent.Send.Pre> {
             if (logConcurrent
                 || !scope.shouldLog(it.packet)
                 || !networkSide.shouldLog(NetworkSide.CLIENT)
-            ) return@unsafeListener
+            ) return@listenUnsafe
 
 
             it.packet.logSent()
         }
 
-        unsafeConcurrentListener<PacketEvent.Receive.Pre> {
+        listenUnsafeConcurrently<PacketEvent.Receive.Pre> {
             if (!logConcurrent
                 || !scope.shouldLog(it.packet)
                 || !networkSide.shouldLog(NetworkSide.SERVER)
-            ) return@unsafeConcurrentListener
+            ) return@listenUnsafeConcurrently
 
             it.packet.logReceived()
         }
 
-        unsafeConcurrentListener<PacketEvent.Send.Pre> {
+        listenUnsafeConcurrently<PacketEvent.Send.Pre> {
             if (!logConcurrent
                 || !scope.shouldLog(it.packet)
                 || !networkSide.shouldLog(NetworkSide.CLIENT)
-            ) return@unsafeConcurrentListener
+            ) return@listenUnsafeConcurrently
 
             it.packet.logSent()
         }

@@ -33,16 +33,13 @@ fun editParty(
     // Whether the party is public or not.
     // If false can only be joined by invite.
     // example: true
-    public: Boolean = true,
+    // public: Boolean = true,
 ) =
     request("$endpoint/api/$version/party/edit") {
         method(Method.PATCH)
 
         parameters(
-            mapOf(
-                "max_players" to maxPlayers,
-                "public" to public,
-            )
+            mapOf("max_players" to maxPlayers)
         )
 
         headers(

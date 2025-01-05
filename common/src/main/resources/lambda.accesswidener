@@ -5,6 +5,7 @@ accessible field net/minecraft/client/MinecraftClient attackCooldown I
 accessible field net/minecraft/client/MinecraftClient paused Z
 accessible field net/minecraft/client/MinecraftClient pausedTickDelta F
 accessible field net/minecraft/client/MinecraftClient thread Ljava/lang/Thread;
+accessible field net/minecraft/client/MinecraftClient uptimeInTicks J
 
 # World
 accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minecraft/client/world/ClientEntityManager;
@@ -35,6 +36,7 @@ accessible method net/minecraft/client/render/Camera setRotation (FF)V
 accessible field com/mojang/blaze3d/systems/RenderSystem$ShapeIndexBuffer id I
 accessible field net/minecraft/client/render/BufferRenderer currentVertexBuffer Lnet/minecraft/client/gl/VertexBuffer;
 accessible field net/minecraft/client/texture/NativeImage pointer J
+accessible class net/minecraft/client/gui/screen/SplashOverlay$LogoTexture
 
 # Text
 accessible field net/minecraft/text/Style color Lnet/minecraft/text/TextColor;

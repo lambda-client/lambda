@@ -24,14 +24,15 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.RotationManager
-import com.lambda.interaction.RotationManager.requestRotation
+import com.lambda.interaction.RotationManager.rotate
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.dist
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationContext
-import com.lambda.interaction.visibilty.VisibilityChecker.scanVisibleSurfaces
+import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
+import com.lambda.interaction.visibilty.VisibilityChecker.visibleSides
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runConcurrent
@@ -113,23 +114,23 @@ object KillAura : Module(
     }
 
     init {
-        requestRotation(
-            onUpdate = {
-                if (!rotate) return@requestRotation null
+        rotate {
+            onUpdate {
+                if (!rotate) return@onUpdate null
 
                 target?.let { target ->
                     buildRotation(target)
                 }
             }
-        )
+        }
 
-        listener<PlayerPacketEvent.Pre>(Int.MIN_VALUE) { event ->
+        listen<PlayerPacketEvent.Pre>(Int.MIN_VALUE) { event ->
             prevY = lastY
             lastY = event.position.y
             lastOnGround = event.onGround
         }
 
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             target = targeting.target()
             if (!timerSync) attackTicks++
 
@@ -148,11 +149,11 @@ object KillAura : Module(
             }
         }
 
-        listener<PacketEvent.Send.Post> { event ->
+        listen<PacketEvent.Send.Post> { event ->
             if (event.packet !is HandSwingC2SPacket &&
                 event.packet !is UpdateSelectedSlotC2SPacket &&
                 event.packet !is PlayerInteractEntityC2SPacket
-            ) return@listener
+            ) return@listen
 
             attackTicks = 0
         }
@@ -243,13 +244,15 @@ object KillAura : Module(
             // Get visible point set
             val validHits = mutableMapOf<Vec3d, Rotation>()
 
-            scanVisibleSurfaces(eye, box, resolution = interactionSettings.resolution) { _, vec ->
-                if (eye distSq vec > reachSq) return@scanVisibleSurfaces
+            val sides = visibleSides(box, eye, interactionSettings)
+
+            scanSurfaces(box, sides, resolution = interactionSettings.resolution) { _, vec ->
+                if (eye distSq vec > reachSq) return@scanSurfaces
 
                 val newRotation = eye.rotationTo(vec)
 
-                val cast = newRotation.rayCast(reach, eye) ?: return@scanVisibleSurfaces
-                if (cast.entityResult?.entity != target) return@scanVisibleSurfaces
+                val cast = newRotation.rayCast(reach, eye) ?: return@scanSurfaces
+                if (cast.entityResult?.entity != target) return@scanSurfaces
 
                 validHits[vec] = newRotation
             }

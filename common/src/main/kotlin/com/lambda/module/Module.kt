@@ -26,10 +26,10 @@ import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.numeric.DoubleSetting
 import com.lambda.context.SafeContext
 import com.lambda.event.Muteable
-import com.lambda.event.events.KeyPressEvent
+import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
 import com.lambda.gui.impl.clickgui.buttons.ModuleButton
 import com.lambda.module.modules.client.ClickGui
@@ -38,7 +38,6 @@ import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
-import net.minecraft.client.gui.screen.ChatScreen
 
 /**
  * A [Module] is a feature or tool for the utility mod.
@@ -128,11 +127,11 @@ abstract class Module(
     val keybind by keybindSetting
 
     init {
-        listener<KeyPressEvent>(alwaysListen = true) { event ->
-            if (mc.options.commandKey.isPressed) return@listener
-            if (keybind == KeyCode.UNBOUND) return@listener
-            if (event.translated != keybind) return@listener
-            if (mc.currentScreen != null) return@listener
+        listen<KeyboardEvent.Press>(alwaysListen = true) { event ->
+            if (mc.options.commandKey.isPressed) return@listen
+            if (keybind == KeyCode.UNBOUND) return@listen
+            if (event.translated != keybind) return@listen
+            if (mc.currentScreen != null) return@listen
 
             toggle()
         }

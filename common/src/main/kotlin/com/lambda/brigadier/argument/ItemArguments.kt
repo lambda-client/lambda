@@ -76,7 +76,7 @@ fun DefaultArgumentReader<ItemStackArgumentType>.value(): ItemStackArgument {
 @BrigadierDsl
 fun <S> itemPredicate(
     name: String,
-    context: CommandRegistryAccess
+    context: CommandRegistryAccess,
 ): DefaultArgumentConstructor<S, ItemPredicateArgumentType> {
     return argument(name, ItemPredicateArgumentType.itemPredicate(context))
 }
@@ -86,7 +86,7 @@ fun <S> itemPredicate(
  */
 @BrigadierDsl
 fun <S> itemSlot(
-    name: String
+    name: String,
 ): DefaultArgumentConstructor<S, ItemSlotArgumentType> {
     return argument(name, ItemSlotArgumentType.itemSlot())
 }
@@ -99,7 +99,7 @@ fun <S> itemSlot(
 @BrigadierDsl
 fun <S> itemStack(
     name: String,
-    context: CommandRegistryAccess
+    context: CommandRegistryAccess,
 ): DefaultArgumentConstructor<S, ItemStackArgumentType> {
     return argument(name, ItemStackArgumentType.itemStack(context))
 }

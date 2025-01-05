@@ -22,10 +22,26 @@ import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import net.minecraft.client.sound.SoundInstance
 
+sealed class ClientEvent {
+    /**
+     * Triggered upon client initialization
+     */
+    class Startup : Event
 
-abstract class ClientEvent : Event {
-    class Shutdown : ClientEvent()
-    class Startup : ClientEvent()
-    class Timer(var speed: Double) : ClientEvent()
-    class Sound(val sound: SoundInstance) : ClientEvent(), ICancellable by Cancellable()
+    /**
+     * Triggered upon client shutdown
+     */
+    class Shutdown : Event
+
+    /**
+     * Triggered upon game logic tick
+     *
+     * @property speed The speed of the timer.
+     */
+    data class Timer(var speed: Double) : Event
+
+    /**
+     * Triggered before playing a sound
+     */
+    data class Sound(val sound: SoundInstance) : ICancellable by Cancellable()
 }

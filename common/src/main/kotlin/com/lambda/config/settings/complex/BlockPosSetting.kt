@@ -21,6 +21,9 @@ import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
 import net.minecraft.util.math.BlockPos
 
+/**
+ * @see [com.lambda.config.Configurable]
+ */
 class BlockPosSetting(
     override val name: String,
     defaultValue: BlockPos,

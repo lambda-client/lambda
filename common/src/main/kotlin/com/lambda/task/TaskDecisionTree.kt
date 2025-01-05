@@ -17,6 +17,4 @@
 
 package com.lambda.task
 
-class TaskDecisionTree {
-
-}
+class TaskDecisionTree

@@ -42,6 +42,7 @@ enum class Rank {
     BREAK_NO_PERMISSION,
     PLACE_SCAFFOLD_EXCEEDED,
     PLACE_BLOCK_FEATURE_DISABLED,
+    UNEXPECTED_POSITION,
     PLACE_ILLEGAL_USAGE,
 
     // not an issue
@@ -49,5 +50,5 @@ enum class Rank {
     IGNORED;
 
     val solvable: Boolean
-        get() = ordinal < OUT_OF_WORLD.ordinal
+        get() = ordinal < PLACE_NOT_ITEM_BLOCK.ordinal
 }

@@ -22,20 +22,9 @@ import com.lambda.event.callback.ICancellable
 import com.lambda.event.listener.Listener
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.filterNot
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.flow.*
 
 
 /**
@@ -66,7 +55,7 @@ object EventFlow {
      * the oldest event will be dropped to accommodate a new event.
      */
     val concurrentFlow = MutableSharedFlow<Event>(
-        extraBufferCapacity = 1000,
+        extraBufferCapacity = 10000,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
@@ -86,6 +75,11 @@ object EventFlow {
      * The [concurrentListeners] are stored in a [Subscriber] object, which is a specialized [ConcurrentHashMap] that manages sets of [Listener]s for different [Event] types.
      */
     val concurrentListeners = Subscriber()
+
+    fun Any.unsubscribe() {
+        syncListeners.unsubscribe(this)
+        concurrentListeners.unsubscribe(this)
+    }
 
     init {
         // parallel event execution on dedicated threads

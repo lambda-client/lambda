@@ -27,11 +27,11 @@ import com.lambda.threading.runSafe
 import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.ArmorStandEntity
 import net.minecraft.entity.mob.MobEntity
 import net.minecraft.entity.passive.PassiveEntity
-import net.minecraft.server.network.ServerPlayerEntity
 
 /**
  * Abstract class representing a targeting mechanism for entities in the game.
@@ -49,7 +49,7 @@ abstract class Targeting(
     owner: Configurable,
     predicate: () -> Boolean = { true },
     defaultRange: Double,
-    maxRange: Double
+    maxRange: Double,
 ) : TargetingConfig {
 
     /**
@@ -112,7 +112,7 @@ abstract class Targeting(
      * @return `true` if the entity is valid for targeting, `false` otherwise.
      */
     open fun validate(player: ClientPlayerEntity, entity: LivingEntity) = when {
-        !players && (entity is ServerPlayerEntity && entity.isFriend) -> false
+        !players && (entity is OtherClientPlayerEntity && entity.isFriend) -> false
         !animals && entity is PassiveEntity -> false
         !hostiles && entity is MobEntity -> false
         entity is ArmorStandEntity -> false

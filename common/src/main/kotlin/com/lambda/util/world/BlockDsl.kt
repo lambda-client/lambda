@@ -56,7 +56,7 @@ class BlockDsl(
     pos: BlockPos,
     private val range: Vec3i,
     private val step: Vec3i,
-    private val predicate: (BlockPos, BlockState) -> Boolean
+    private val predicate: (BlockPos, BlockState) -> Boolean,
 ) {
     private val fastVector = pos.toFastVec()
     private val receiver: MutableMap<FastVector, BlockState> = mutableMapOf()
@@ -87,7 +87,7 @@ fun SafeContext.blockSearch(
     range: Vec3i,
     step: Vec3i = Vec3i(1, 1, 1),
     pos: BlockPos = player.blockPos,
-    predicate: (BlockPos, BlockState) -> Boolean = { _, _ -> true }
+    predicate: (BlockPos, BlockState) -> Boolean = { _, _ -> true },
 ): Map<BlockPos, BlockState> =
     BlockDsl(this, pos, range, step, predicate).build()
 
@@ -104,6 +104,6 @@ fun SafeContext.blockSearch(
     range: Int,
     step: Int = 1,
     pos: BlockPos = player.blockPos,
-    predicate: (BlockPos, BlockState) -> Boolean = { _, _ -> true }
+    predicate: (BlockPos, BlockState) -> Boolean = { _, _ -> true },
 ): Map<BlockPos, BlockState> =
     blockSearch(Vec3i(range, range, range), Vec3i(step, step, step), pos, predicate)

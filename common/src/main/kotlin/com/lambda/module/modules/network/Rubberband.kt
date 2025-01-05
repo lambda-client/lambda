@@ -18,7 +18,7 @@
 package com.lambda.module.modules.network
 
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.PlayerPacketManager
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -45,13 +45,13 @@ object Rubberband : Module(
     private val showRubberbandInfo by setting("Show Rubberband Info", true)
 
     init {
-        listener<PacketEvent.Receive.Pre> { event ->
-            if (!showRubberbandInfo) return@listener
-            if (event.packet !is PlayerPositionLookS2CPacket) return@listener
+        listen<PacketEvent.Receive.Pre> { event ->
+            if (!showRubberbandInfo) return@listen
+            if (event.packet !is PlayerPositionLookS2CPacket) return@listen
 
             if (PlayerPacketManager.configurations.isEmpty()) {
                 this@Rubberband.warn("Position was reverted")
-                return@listener
+                return@listen
             }
 
             val newPos = Vec3d(event.packet.x, event.packet.y, event.packet.z)

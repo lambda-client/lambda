@@ -17,18 +17,25 @@
 
 package com.lambda.command.commands
 
+import com.lambda.brigadier.CommandResult
+import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.literal
-import com.lambda.brigadier.execute
+import com.lambda.brigadier.argument.value
+import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.interaction.construction.Blueprint.Companion.toStructure
-import com.lambda.interaction.construction.DynamicBlueprint.Companion.toBlueprint
-import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.construction.StructureRegistry
+import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
+import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
+import com.lambda.task.TaskFlow.run
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.threading.runSafe
+import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
-import net.minecraft.block.Blocks
-import net.minecraft.util.math.BlockBox
+import com.lambda.util.extension.move
+import java.nio.file.InvalidPathException
+import java.nio.file.NoSuchFileException
+import java.nio.file.Path
 
 object BuildCommand : LambdaCommand(
     name = "Build",
@@ -37,26 +44,39 @@ object BuildCommand : LambdaCommand(
 ) {
     override fun CommandBuilder.create() {
         required(literal("place")) {
-            execute {
-                runSafe {
-                    val materials = setOf(
-                        TargetState.Block(Blocks.NETHERRACK),
-                        TargetState.Block(Blocks.AIR),
-                        TargetState.Block(Blocks.COBBLESTONE),
-                        TargetState.Block(Blocks.AIR),
-                    )
-                    val facing = player.horizontalFacing
-                    val pos = player.blockPos.add(facing.vector.multiply(2))
+            required(greedyString("structure")) { structure ->
+                suggests { _, builder ->
+                    StructureRegistry.forEach { key, _ -> builder.suggest(key) }
+                    builder.buildFuture()
+                }
+                executeWithResult {
+                    val pathString = structure().value()
+                    runSafe<Unit> {
+                        try {
+                            StructureRegistry
+                                .loadStructureByRelativePath(Path.of(pathString))
+                                ?.let { template ->
+                                    info("Building structure $pathString with dimensions ${template.size.toShortString()} created by ${template.author}")
+                                    template.toStructure()
+                                        .move(player.blockPos)
+                                        .toBlueprint()
+                                        .build()
+                                        .run()
 
-                    BlockBox.create(pos, pos.add(facing.rotateYClockwise().vector.multiply(3)))
-                        .toStructure(TargetState.Block(Blocks.NETHERRACK))
-                        .toBlueprint {
-                            it.mapValues { (_, _) ->
-                                materials.elementAt((System.currentTimeMillis() / 5000).toInt() % materials.size)
-                            }
+                                    return@executeWithResult CommandResult.success()
+                                }
+                        } catch (e: InvalidPathException) {
+                            return@executeWithResult CommandResult.failure("Invalid path $pathString")
+                        } catch (e: NoSuchFileException) {
+                            return@executeWithResult CommandResult.failure("Structure $pathString not found")
+                        } catch (e: Exception) {
+                            return@executeWithResult CommandResult.failure(
+                                e.message ?: "Failed to load structure $pathString"
+                            )
                         }
-                        .build(finishOnDone = false)
-                        .start(null)
+                    }
+
+                    CommandResult.failure("Structure $pathString not found")
                 }
             }
         }

@@ -20,7 +20,7 @@ package com.lambda.module.modules.player
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.event.events.*
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
@@ -29,7 +29,7 @@ import com.lambda.interaction.RotationManager
 import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.visibilty.VisibilityChecker.findRotation
 import com.lambda.module.Module
-import com.lambda.module.modules.client.TaskFlow
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.lerp
@@ -273,11 +273,11 @@ object PacketMine : Module(
     private var doubleBreakReturnSlot = 0
 
     init {
-        listener<InteractionEvent.BreakingProgress.Pre> {
+        listen<PlayerEvent.Breaking.Update> {
             swingingNextAttack = false
         }
 
-        listener<InteractionEvent.BlockAttack.Pre> {
+        listen<PlayerEvent.Attack.Block> {
             it.cancel()
             if (swingOnManual) swingMainHand()
 
@@ -294,10 +294,10 @@ object PacketMine : Module(
                     } else {
                         blockQueue.add(it.pos)
                     }
-                    return@listener
+                    return@listen
                 }
 
-                if (blockQueue.contains(it.pos)) return@listener
+                if (blockQueue.contains(it.pos)) return@listen
             }
 
             currentMiningBlock.forEach { ctx ->
@@ -306,9 +306,9 @@ object PacketMine : Module(
 
                     val primary = breakType.isPrimary()
 
-                    if (!primary || (breakState == BreakState.ReBreaking && !reBreak.isStandard())) return@listener
+                    if (!primary || (breakState == BreakState.ReBreaking && !reBreak.isStandard())) return@listen
 
-                    if (miningProgress < breakThreshold) return@listener
+                    if (miningProgress < breakThreshold) return@listen
 
                     runBetweenHandlers(ProgressStage.EndPre, ProgressStage.EndPost, pos, { lastValidBestTool }) {
                         packetStopBreak(pos)
@@ -316,7 +316,7 @@ object PacketMine : Module(
                         onBlockBreak()
                     }
 
-                    return@listener
+                    return@listen
                 }
             }
 
@@ -332,17 +332,17 @@ object PacketMine : Module(
             startBreaking(it.pos)
         }
 
-        listener<EntityEvent.SwingHand> {
-            if (!cancelNextSwing) return@listener
+        listen<PlayerEvent.SwingHand> {
+            if (!cancelNextSwing) return@listen
 
             cancelNextSwing = false
             it.cancel()
         }
 
-        listener<TickEvent.Pre>(1) {
+        listen<TickEvent.Pre>(1) {
             updateCounters()
 
-            if (shouldWaitForQueuePause()) return@listener
+            if (shouldWaitForQueuePause()) return@listen
 
             currentMiningBlock.forEach { ctx ->
                 ctx?.apply {
@@ -508,16 +508,16 @@ object PacketMine : Module(
             }
         }
 
-        listener<TickEvent.Post> {
+        listen<TickEvent.Post> {
             if (doubleBreakSwapped && doubleBreakSwappedCounter >= 1) {
                 returnToOriginalDoubleBreakSlot()
             }
         }
 
-        listener<WorldEvent.BlockUpdate> {
+        listen<WorldEvent.BlockChange> {
             currentMiningBlock.forEach { ctx ->
                 ctx?.apply {
-                    if (it.pos != pos || !isStateBroken(pos.blockState(world), it.state)) return@forEach
+                    if (it.pos != pos || !isStateBroken(pos.blockState(world), it.newState)) return@forEach
 
                     if (breakType.isPrimary()) {
                         runHandlers(ProgressStage.PacketReceiveBreak, pos, lastValidBestTool)
@@ -532,14 +532,14 @@ object PacketMine : Module(
             }
         }
 
-        listener<RotationEvent.Update> {
-            if (!rotate.isEnabled()) return@listener
+        listen<RotationEvent.Update> {
+            if (!rotate.isEnabled()) return@listen
 
             rotationPosition?.let { pos ->
                 lastNonEmptyState?.let { state ->
                     val boxList = state.getOutlineShape(world, pos).boundingBoxes.map { it.offset(pos) }
                     val rotationContext =
-                        findRotation(boxList, TaskFlow.rotation, TaskFlow.interact, emptySet()) { true }
+                        findRotation(boxList, TaskFlowModule.rotation, TaskFlowModule.interact, emptySet()) { true }
                     rotationContext?.let { context ->
                         it.context = context
                         expectedRotation = context
@@ -549,7 +549,7 @@ object PacketMine : Module(
                 expectedRotation = null
             }
 
-            if (!rotated || !waitingToReleaseRotation) return@listener
+            if (!rotated || !waitingToReleaseRotation) return@listen
 
             releaseRotateDelayCounter--
 
@@ -560,14 +560,14 @@ object PacketMine : Module(
             }
         }
 
-        listener<RotationEvent.Post> {
-            if (!rotate.isEnabled()) return@listener
+        listen<RotationEvent.Post> {
+            if (!rotate.isEnabled()) return@listen
 
             expectedRotation?.let { expectedRot ->
                 rotationPosition?.let { pos ->
                     if (it.context != expectedRot) {
                         pausedForRotation = true
-                        return@listener
+                        return@listen
                     }
 
                     val boxList = lastNonEmptyState?.getOutlineShape(world, pos)?.boundingBoxes?.map { it.offset(pos) }
@@ -584,7 +584,7 @@ object PacketMine : Module(
                         pausedForRotation = true
                     }
 
-                    return@listener
+                    return@listen
                 }
             }
 
@@ -592,7 +592,7 @@ object PacketMine : Module(
             pausedForRotation = false
         }
 
-        listener<RenderEvent.World> {
+        listen<RenderEvent.World> {
             renderer.clear()
 
             currentMiningBlock.forEach { ctx ->
@@ -713,7 +713,7 @@ object PacketMine : Module(
         bestTool: Supplier<Int>,
         empty: Boolean = false,
         instaBroken: Boolean = false,
-        task: Runnable
+        task: Runnable,
     ) {
         handleRotations(preStage, pos, empty = empty, instaBroken = instaBroken)
 
@@ -736,7 +736,7 @@ object PacketMine : Module(
         pos: BlockPos,
         bestTool: Int,
         empty: Boolean = false,
-        instaBroken: Boolean = false
+        instaBroken: Boolean = false,
     ) {
         handleRotations(progressStage, pos, empty = empty, instaBroken = instaBroken)
         handleAutoSwap(progressStage, bestTool, empty = empty, instaBroken = instaBroken)
@@ -747,7 +747,7 @@ object PacketMine : Module(
         progressStage: ProgressStage,
         pos: BlockPos,
         empty: Boolean = false,
-        instaBroken: Boolean = false
+        instaBroken: Boolean = false,
     ) {
         when (progressStage) {
             ProgressStage.PreTick -> {
@@ -773,7 +773,8 @@ object PacketMine : Module(
             ProgressStage.EndPost -> if (!validateBreak || empty) checkReleaseRotation()
 
             ProgressStage.PacketReceiveBreak,
-            ProgressStage.TimedOut -> checkReleaseRotation()
+            ProgressStage.TimedOut,
+                -> checkReleaseRotation()
         }
     }
 
@@ -781,7 +782,7 @@ object PacketMine : Module(
         progressStage: ProgressStage,
         bestTool: Int,
         empty: Boolean = false,
-        instaBroken: Boolean = false
+        instaBroken: Boolean = false,
     ) {
         if (!swapMethod.isEnabled()) return
 
@@ -827,14 +828,15 @@ object PacketMine : Module(
             }
 
             ProgressStage.PacketReceiveBreak,
-            ProgressStage.TimedOut -> returnToOriginalSlot()
+            ProgressStage.TimedOut,
+                -> returnToOriginalSlot()
         }
     }
 
     private fun SafeContext.handleSwing(
         progressStage: ProgressStage,
         empty: Boolean = false,
-        instaBroken: Boolean = false
+        instaBroken: Boolean = false,
     ) {
         if (!swingMode.isEnabled()) return
 
@@ -856,7 +858,8 @@ object PacketMine : Module(
             ProgressStage.EndPost,
             ProgressStage.StartPost,
             ProgressStage.PacketReceiveBreak,
-            ProgressStage.TimedOut -> {
+            ProgressStage.TimedOut,
+                -> {
             }
         }
     }
@@ -1130,7 +1133,7 @@ object PacketMine : Module(
     private fun SafeContext.checkClientSideBreak(
         packetReceiveBreak: Boolean,
         pos: BlockPos,
-        doubleBreakBlock: Boolean = false
+        doubleBreakBlock: Boolean = false,
     ) {
         if (packetReceiveBreak || (!validateBreak && !doubleBreakBlock)) {
             interaction.breakBlock(pos)
@@ -1382,10 +1385,12 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.packetStartBreak(pos: BlockPos) {
-        startBreak(pos)
-        if (packets != PacketMode.Vanilla || doubleBreak) {
+        if (packets == PacketMode.Grim) {
             abortBreak(pos)
+            stopBreak(pos)
         }
+        startBreak(pos)
+        if (packets == PacketMode.NCP) abortBreak(pos)
         if (packets == PacketMode.Grim || doubleBreak) {
             stopBreak(pos)
         }

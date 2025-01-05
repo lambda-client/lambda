@@ -17,13 +17,27 @@
 
 package com.lambda.config.groups
 
+import net.minecraft.block.Block
+
 interface BuildConfig {
-    val breakConfirmation: Boolean
-    val placeConfirmation: Boolean
-    val collectDrops: Boolean
-    val breakWeakBlocks: Boolean
+    // General
     val pathing: Boolean
-    val breaksPerTick: Int
+    val stayInRange: Boolean
+    val collectDrops: Boolean
+
+    // Breaking
     val rotateForBreak: Boolean
+    val breakConfirmation: Boolean
+    val maxPendingBreaks: Int
+    val breaksPerTick: Int
+    val breakWeakBlocks: Boolean
+    val forceSilkTouch: Boolean
+    val ignoredBlocks: Set<Block>
+
+    // Placing
     val rotateForPlace: Boolean
+    val placeConfirmation: Boolean
+    val placeTimeout: Int
+    val maxPendingPlacements: Int
+    val placementsPerTick: Int
 }

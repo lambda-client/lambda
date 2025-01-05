@@ -20,7 +20,7 @@ package com.lambda.module.modules.movement
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.RenderEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.builders.build
 import com.lambda.module.Module
@@ -58,47 +58,47 @@ object Blink : Module(
     private var lastBox = Box(BlockPos.ORIGIN)
 
     init {
-        listener<RenderEvent.World> {
+        listen<RenderEvent.World> {
             val time = System.currentTimeMillis()
 
-            if (isActive && time - lastUpdate < delay) return@listener
+            if (isActive && time - lastUpdate < delay) return@listen
             lastUpdate = time
 
             poolPackets()
         }
 
-        listener<RenderEvent.DynamicESP> { event ->
+        listen<RenderEvent.DynamicESP> { event ->
             val color = GuiSettings.primaryColor
             event.renderer.build(box.update(lastBox), color.setAlpha(0.3), color)
         }
 
-        listener<PacketEvent.Send.Pre> { event ->
-            if (!isActive) return@listener
+        listen<PacketEvent.Send.Pre> { event ->
+            if (!isActive) return@listen
 
             packetPool.add(event.packet)
             event.cancel()
-            return@listener
+            return@listen
         }
 
-        listener<PacketEvent.Send.Post> { event ->
+        listen<PacketEvent.Send.Post> { event ->
             val packet = event.packet
-            if (packet !is PlayerMoveC2SPacket) return@listener
+            if (packet !is PlayerMoveC2SPacket) return@listen
 
             val vec = Vec3d(packet.getX(0.0), packet.getY(0.0), packet.getZ(0.0))
-            if (vec == Vec3d.ZERO) return@listener
+            if (vec == Vec3d.ZERO) return@listen
 
             lastBox = player.boundingBox.offset(vec - player.pos)
         }
 
-        listener<PacketEvent.Receive.Pre> { event ->
-            if (!isActive || !shiftVelocity) return@listener
+        listen<PacketEvent.Receive.Pre> { event ->
+            if (!isActive || !shiftVelocity) return@listen
 
-            if (event.packet !is EntityVelocityUpdateS2CPacket) return@listener
-            if (event.packet.id != player.id) return@listener
+            if (event.packet !is EntityVelocityUpdateS2CPacket) return@listen
+            if (event.packet.id != player.id) return@listen
 
             lastVelocity = event.packet
             event.cancel()
-            return@listener
+            return@listen
         }
 
         onDisable {
