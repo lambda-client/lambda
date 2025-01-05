@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,16 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.blueprint
+package com.lambda.util.collections
 
-import com.lambda.util.extension.Structure
+class ResettableLazy<T>(private val initializer: () -> T) {
+    private var _value: T? = null
 
-data class StaticBlueprint(
-    override val structure: Structure,
-) : Blueprint() {
-    override fun toString() = "Static Blueprint at ${center?.toShortString()}"
+    val value: T?
+        get() {
+            if (_value == null) _value = initializer()
+            return _value
+        }
 
-    companion object {
-        fun Structure.toBlueprint() = StaticBlueprint(this)
+    fun reset() {
+        _value = null
     }
 }
