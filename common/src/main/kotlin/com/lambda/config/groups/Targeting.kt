@@ -162,12 +162,8 @@ abstract class Targeting(
          * @return The best [LivingEntity] target, or `null` if no valid target is found.
          */
         fun target(): LivingEntity? = runSafe {
-            val predicate = { entity: LivingEntity ->
-                validate(player, entity)
-            }
-
             return@runSafe fastEntitySearch<LivingEntity>(targetingRange) {
-                predicate(it)
+                validate(player, it)
             }.minByOrNull {
                 priority.factor(this, it)
             }

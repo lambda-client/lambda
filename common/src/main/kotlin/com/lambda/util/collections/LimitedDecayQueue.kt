@@ -23,17 +23,13 @@ import java.util.concurrent.ConcurrentLinkedQueue
 class LimitedDecayQueue<E>(
     private var sizeLimit: Int,
     private var interval: Long,
-) {
-    private val queue: ConcurrentLinkedQueue<Pair<E, Instant>> = ConcurrentLinkedQueue()
-
-    val size: Int
-        get() = queue.size
-
+) : ConcurrentLinkedQueue<Pair<E, Instant>>() {
     @Synchronized
+    @JvmName("jvmAdd")
     fun add(element: E): Boolean {
         cleanUp()
-        return if (queue.size < sizeLimit) {
-            queue.add(element to Instant.now())
+        return if (size < sizeLimit) {
+            add(element to Instant.now())
             true
         } else {
             false
@@ -55,8 +51,8 @@ class LimitedDecayQueue<E>(
     @Synchronized
     private fun cleanUp() {
         val now = Instant.now()
-        while (queue.isNotEmpty() && now.minusMillis(interval).isAfter(queue.peek().second)) {
-            queue.poll()
+        while (isNotEmpty() && now.minusMillis(interval).isAfter(peek().second)) {
+            poll()
         }
     }
 }
