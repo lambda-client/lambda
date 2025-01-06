@@ -43,6 +43,7 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3d
 import java.awt.Color
 import java.time.Instant
 
@@ -93,11 +94,7 @@ object CrystalAura : Module(
     }
 
     private fun SafeContext.validPositions(target: LivingEntity): Sequence<BlockPos> {
-        return blockSearch(
-            range = placing.reach.toInt(),
-            step = minSeparation, // Need to change this behavior
-            pos = player.blockPos,
-        ) { pos, _ -> canPlace(pos, target) }
+        return blockSearch(range = placing.reach.toInt()) { pos, _ -> canPlace(pos, target) }
             .keys.asSequence()
             .sortedByDescending { placeMethod.sorted(this, target, it.up()) } // The explosion source of the crystal is not at its base
     }
@@ -107,6 +104,8 @@ object CrystalAura : Module(
         // and the player and the place position is <= to the placing range
         return player dist target <= placing.reach &&
                 player dist pos <= placing.reach &&
+                // Checks if the position is within the player hitbox
+                !player.boundingBox.intersects(Box.of(pos.up().toCenterPos(), 1.0, 2.0, 1.0)) &&
                 // Checks if the support block is either obsidian or bedrock
                 (pos.blockState(world).isOf(Blocks.OBSIDIAN)
                         || pos.blockState(world).isOf(Blocks.BEDROCK)) &&
@@ -125,6 +124,8 @@ object CrystalAura : Module(
         //if (multiPlace) !placedCrystal.any { (crystalPos, _) -> pos.up() == crystalPos } else true
     }
 
+    private val testRender = mutableListOf<BlockPos>()
+
 
     init {
         rotate(
@@ -133,9 +134,13 @@ object CrystalAura : Module(
            onUpdate {
                if (!rotate) return@onUpdate null
 
-               val blockpos = validPositions(
+               val poss = validPositions(
                    target ?: return@onUpdate null
-               ).firstOrNull() ?: return@onUpdate null
+               )
+
+               testRender.addAll(poss.take(3))
+
+               val blockpos = poss.firstOrNull() ?: return@onUpdate null
 
                // Taskflow interact block
                // placedCrystal.add()
@@ -146,11 +151,23 @@ object CrystalAura : Module(
         listen<RenderEvent.StaticESP> {
             worldCrystals(target ?: return@listen).forEach { crystal ->
                 it.renderer.build(
-                    Box.of(crystal.pos, 1.0, 1.0, 1.0),
-                    crystalColor.compared(this, target ?: return@forEach, crystal.blockPos),
-                    crystalColor.compared(this, target ?: return@forEach, crystal.blockPos)
+                    Box.of(crystal.blockPos.toCenterPos(), 1.0, 1.0, 1.0),
+                    crystalColor.compared(this, target ?: return@forEach, crystal.pos),
+                    crystalColor.compared(this, target ?: return@forEach, crystal.pos)
                 )
             }
+
+            testRender.forEachIndexed { index, pos ->
+                val center = pos.toCenterPos()
+                val blurple = Color(85, 57, 204, 50)
+                it.renderer.build(
+                    Box.of(center, 1.0, 1.0, 1.0),
+                    blurple,
+                    blurple
+                )
+            }
+
+            testRender.clear()
         }
     }
 
@@ -162,13 +179,25 @@ object CrystalAura : Module(
         Rendering
     }
 
+    /**
+     * Damage sorter parameter
+     *
+     * deadly -> always prioritize enemy damage no matter what
+     * balanced -> sort by the highest ratio of enemy damage to self damage
+     * safe -> always prioritize the least amount of self damage
+     */
     private enum class DamageSort(val sorted: SafeContext.(LivingEntity, BlockPos) -> Double) {
         Deadly({ target, source -> explosionDamage(source, target, 6.0) }),
         Balanced({ target, source -> explosionDamage(source, player, 6.0) - explosionDamage(source, target, 6.0) }),
         Safe({ target, source -> explosionDamage(source, target, 6.0) - explosionDamage(source, player, 6.0) });
     }
 
-    private enum class ColorComparator(val compared: SafeContext.(LivingEntity, BlockPos) -> Color) {
+    /**
+     * Comparator for different render modes
+     *
+     * @param compared Lambda that takes in a living target and crystal position and then returns a color
+     */
+    private enum class ColorComparator(val compared: SafeContext.(LivingEntity, Vec3d) -> Color) {
         Distance({ target, dest ->
             val red = transform(target dist dest, 0.0, explodeRange, 255.0, 0.0).toInt()
             Color(red, 255-red, 0, crystalAlpha)
