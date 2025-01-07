@@ -22,7 +22,6 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.extension.filterPointer
 import net.minecraft.entity.projectile.FireworkRocketEntity
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
 import net.minecraft.network.packet.s2c.play.EntitiesDestroyS2CPacket
@@ -41,12 +40,8 @@ object RocketExtend : Module(
     init {
         listen<PacketEvent.Receive.Pre> { event ->
             if (event.packet is PlayerPositionLookS2CPacket) reset()
-
             if (event.packet is EntitiesDestroyS2CPacket) {
-                event.packet.entityIds.map(world::getEntityById)
-                    .filterPointer(extendedRockets, { _, id -> event.packet.entityIds.removeInt(id) }) { rocket ->
-                        rocket.shooter == player
-                    }
+                extendedRockets.removeAll { rocket -> event.packet.entityIds.any { it == rocket.id }  }
             }
         }
 
