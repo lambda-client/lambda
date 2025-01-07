@@ -20,10 +20,44 @@ package com.lambda.graphics.renderer.esp.builders
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.hasDirection
 import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
+import com.lambda.threading.runSafe
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.max
 import com.lambda.util.extension.min
+import net.minecraft.block.BlockState
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
+import net.minecraft.util.shape.VoxelShape
 import java.awt.Color
+
+fun StaticESPRenderer.buildVoxel(
+    pos: BlockPos,
+    state: BlockState,
+    color: Color,
+    sides: Int = DirectionMask.ALL,
+) = runSafe {
+    val shape = state.getOutlineShape(world, pos)
+    buildVoxel(shape, color, sides)
+}
+
+fun StaticESPRenderer.buildVoxel(
+    pos: BlockPos,
+    color: Color,
+    sides: Int = DirectionMask.ALL,
+) = runSafe {
+    val shape = pos.blockState(world).getOutlineShape(world, pos)
+    buildVoxel(shape, color, sides)
+}
+
+fun StaticESPRenderer.buildVoxel(
+    shape: VoxelShape,
+    color: Color,
+    sides: Int = DirectionMask.ALL,
+) {
+    shape.boundingBoxes
+        .forEach { buildFilled(it, color, sides) }
+}
+
 
 fun StaticESPRenderer.build(
     box: Box,
