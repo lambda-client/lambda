@@ -30,32 +30,38 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.shape.VoxelShape
 import java.awt.Color
 
-fun StaticESPRenderer.buildVoxel(
+fun StaticESPRenderer.buildMesh(
     pos: BlockPos,
     state: BlockState,
-    color: Color,
+    filledColor: Color,
+    outlineColor: Color,
     sides: Int = DirectionMask.ALL,
+    outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
 ) = runSafe {
     val shape = state.getOutlineShape(world, pos)
-    buildVoxel(shape, color, sides)
+    buildMesh(shape, filledColor, outlineColor, sides, outlineMode)
 }
 
-fun StaticESPRenderer.buildVoxel(
+fun StaticESPRenderer.buildMesh(
     pos: BlockPos,
-    color: Color,
+    filledColor: Color,
+    outlineColor: Color,
     sides: Int = DirectionMask.ALL,
+    outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
 ) = runSafe {
     val shape = pos.blockState(world).getOutlineShape(world, pos)
-    buildVoxel(shape, color, sides)
+    buildMesh(shape, filledColor, outlineColor, sides, outlineMode)
 }
 
-fun StaticESPRenderer.buildVoxel(
+fun StaticESPRenderer.buildMesh(
     shape: VoxelShape,
-    color: Color,
+    filledColor: Color,
+    outlineColor: Color,
     sides: Int = DirectionMask.ALL,
+    outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
 ) {
     shape.boundingBoxes
-        .forEach { buildFilled(it, color, sides) }
+        .forEach { build(it,filledColor, outlineColor, sides, outlineMode) }
 }
 
 
@@ -70,11 +76,71 @@ fun StaticESPRenderer.build(
     buildOutline(box, outlineColor, sides, outlineMode)
 }
 
+fun StaticESPRenderer.buildFilledMesh(
+    pos: BlockPos,
+    state: BlockState,
+    color: Color,
+    sides: Int = DirectionMask.ALL,
+) = runSafe {
+    val shape = state.getOutlineShape(world, pos)
+    buildFilledMesh(shape, color, sides)
+}
+
+fun StaticESPRenderer.buildFilledMesh(
+    pos: BlockPos,
+    color: Color,
+    sides: Int = DirectionMask.ALL,
+) = runSafe {
+    val shape = pos.blockState(world).getOutlineShape(world, pos)
+    buildFilledMesh(shape, color, sides)
+}
+
+fun StaticESPRenderer.buildFilledMesh(
+    shape: VoxelShape,
+    color: Color,
+    sides: Int = DirectionMask.ALL,
+) {
+    shape.boundingBoxes
+        .forEach { buildFilled(it, color, sides) }
+}
+
+
 fun StaticESPRenderer.buildFilled(
     box: Box,
     color: Color,
     sides: Int = DirectionMask.ALL
 ) = buildFilled(box, color, color, sides)
+
+fun StaticESPRenderer.buildOutlineMesh(
+    pos: BlockPos,
+    state: BlockState,
+    color: Color,
+    sides: Int = DirectionMask.ALL,
+    outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
+) = runSafe {
+    val shape = state.getOutlineShape(world, pos)
+    buildOutlineMesh(shape, color, sides)
+}
+
+fun StaticESPRenderer.buildOutlineMesh(
+    pos: BlockPos,
+    color: Color,
+    sides: Int = DirectionMask.ALL,
+    outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
+) = runSafe {
+    val shape = pos.blockState(world).getOutlineShape(world, pos)
+    buildOutlineMesh(shape, color, sides)
+}
+
+fun StaticESPRenderer.buildOutlineMesh(
+    shape: VoxelShape,
+    color: Color,
+    sides: Int = DirectionMask.ALL,
+    outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
+) {
+    shape.boundingBoxes
+        .forEach { buildOutline(it, color, sides) }
+}
 
 fun StaticESPRenderer.buildOutline(
     box: Box,
