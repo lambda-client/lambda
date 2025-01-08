@@ -103,18 +103,7 @@ First of all, make sure to read or simply check the [Official Kotlin Coding Conv
 
 This is required for pull requests to be accepted, or even reviewed.
 
-You will need the following before contributing:
-- GitHub CLI / Desktop
-- IntelliJ IDEA
-- Java 17 SDK
-- [Minecraft Development Plugin](https://plugins.jetbrains.com/plugin/8327-minecraft-development)
-
-After you have everything you can do the following:
-- Clone the repository `git clone https://github.com/lambda-client/lambda`
-- Open the project, **inside the project folder**, in IntelliJ IDEA
-- Set the java runtime in `File > Project Structure > SDK > JDK 17`
-- Wait for Gradle to resolve dependencies and to set up the project.
-- And you should now be able to run the project using the [run configurations](https://www.jetbrains.com/help/idea/run-debug-configuration.html)
+After this, you can read the [getting started](https://github.com/lambda-client/wiki/Getting-Started) section in the wiki
 
 ### Improving The Documentation
 If you believe that some documentation can be improved or added, please discuss with us on our [Discord](https://discord.gg/QjfBxJzE5x)
