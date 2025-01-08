@@ -193,13 +193,11 @@ abstract class Configurable(
         defaultValue: List<T>,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-        hackDelegates: Boolean = false,
     ) = ListSetting(
         name,
         defaultValue.toMutableList(),
         TypeToken.getParameterized(MutableList::class.java, T::class.java).type,
         description,
-        hackDelegates,
         visibility,
     ).also {
         settings.add(it)
@@ -227,14 +225,12 @@ abstract class Configurable(
         name: String,
         defaultValue: Map<K, V>,
         description: String = "",
-        hackDelegates: Boolean,
         noinline visibility: () -> Boolean = { true },
     ) = MapSetting(
         name,
         defaultValue.toMutableMap(),
         TypeToken.getParameterized(MutableMap::class.java, K::class.java, V::class.java).type,
         description,
-        hackDelegates,
         visibility
     ).also {
         settings.add(it)
@@ -269,33 +265,6 @@ abstract class Configurable(
         description,
         visibility,
     ).also {
-        settings.add(it)
-    }
-
-    /**
-     * Creates a [ByteSetting] with the provided parameters and adds it to the [settings].
-     *
-     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [Byte] value of the setting.
-     * @param range The range within which the setting's value must fall.
-     * @param step The step to which the setting's value is rounded.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     * @param unit The unit of the setting. E.g. "°C", "m/s", "ms", "ticks", etc.
-     *
-     * @return The created [ByteSetting].
-     */
-    fun setting(
-        name: String,
-        defaultValue: Byte,
-        range: ClosedRange<Byte>,
-        step: Byte = 1,
-        description: String = "",
-        unit: String = "",
-        visibility: () -> Boolean = { true },
-    ) = ByteSetting(name, defaultValue, range, step, description, visibility, unit).also {
         settings.add(it)
     }
 
@@ -404,33 +373,6 @@ abstract class Configurable(
         unit: String = "",
         visibility: () -> Boolean = { true },
     ) = LongSetting(name, defaultValue, range, step, description, visibility, unit).also {
-        settings.add(it)
-    }
-
-    /**
-     * Creates a [ShortSetting] with the provided parameters and adds it to the [settings].
-     *
-     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
-     *
-     * @param name The unique identifier for the setting.
-     * @param defaultValue The default [Short] value of the setting.
-     * @param range The range within which the setting's value must fall.
-     * @param step The step to which the setting's value is rounded.
-     * @param description A brief explanation of the setting's purpose and behavior.
-     * @param visibility A lambda expression that determines the visibility status of the setting.
-     * @param unit The unit of the setting. E.g. "°C", "m/s", "ms", "ticks", etc.
-     *
-     * @return The created [ShortSetting].
-     */
-    fun setting(
-        name: String,
-        defaultValue: Short,
-        range: ClosedRange<Short>,
-        step: Short = 1,
-        description: String = "",
-        unit: String = "",
-        visibility: () -> Boolean = { true },
-    ) = ShortSetting(name, defaultValue, range, step, description, visibility, unit).also {
         settings.add(it)
     }
 
