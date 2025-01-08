@@ -119,7 +119,7 @@ fun StaticESPRenderer.buildOutlineMesh(
     outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
 ) = runSafe {
     val shape = state.getOutlineShape(world, pos)
-    buildOutlineMesh(shape, color, sides)
+    buildOutlineMesh(shape, color, sides, outlineMode)
 }
 
 fun StaticESPRenderer.buildOutlineMesh(
@@ -129,7 +129,7 @@ fun StaticESPRenderer.buildOutlineMesh(
     outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
 ) = runSafe {
     val shape = pos.blockState(world).getOutlineShape(world, pos)
-    buildOutlineMesh(shape, color, sides)
+    buildOutlineMesh(shape, color, sides, outlineMode)
 }
 
 fun StaticESPRenderer.buildOutlineMesh(
@@ -139,7 +139,7 @@ fun StaticESPRenderer.buildOutlineMesh(
     outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
 ) {
     shape.boundingBoxes
-        .forEach { buildOutline(it, color, sides) }
+        .forEach { buildOutline(it, color, sides, outlineMode) }
 }
 
 fun StaticESPRenderer.buildOutline(
