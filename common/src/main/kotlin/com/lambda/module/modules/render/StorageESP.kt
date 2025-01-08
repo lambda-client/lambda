@@ -76,7 +76,7 @@ object StorageESP : Module(
     // TODO:
     //  Once we have map setting we can do this:
     //  val blockColors by setting("Block Colors", mapOf<String, Color>()) { page == Page.Color && !useBlockColor }
-    //  val renders by setting("Block Colors", mapOf<String, Color>()) { page == Page.Color && !useBlockColor }
+    //  val renders by setting("Render Blocks", mapOf<String, Boolean>()) { page == Page.General }
     //
     // TODO: Create enum of MapColors
 
