@@ -107,7 +107,7 @@ object StorageESP : Module(
 
             (entitySearch<AbstractMinecartEntity>(range = distance) +
                     entitySearch<ItemFrameEntity>(range = distance))
-                .forEach { event.renderer.build(it, DirectionMask.ALL) }
+                .forEach { event.renderer.build(it, DirectionMask.ALL) } // I didn't add block entity meshing because I'm not sure how to handle blocks that aren't full
         }
     }
 
