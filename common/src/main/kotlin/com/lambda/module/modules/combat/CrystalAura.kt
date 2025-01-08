@@ -32,6 +32,7 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.combat.CombatUtils.explosionDamage
 import com.lambda.util.math.VecUtils.dist
+import com.lambda.util.math.VecUtils.vec3d
 import com.lambda.util.math.transform
 import com.lambda.util.world.blockSearch
 import com.lambda.util.world.fastEntitySearch
@@ -39,6 +40,7 @@ import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.EndCrystalEntity
+import net.minecraft.item.EndCrystalItem
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -96,7 +98,7 @@ object CrystalAura : Module(
     private fun SafeContext.validPositions(target: LivingEntity): Sequence<BlockPos> {
         return blockSearch(range = placing.reach.toInt()) { pos, _ -> canPlace(pos, target) }
             .keys.asSequence()
-            .sortedByDescending { placeMethod.sorted(this, target, it.up()) } // The explosion source of the crystal is not at its base
+            .sortedByDescending { placeMethod.sorted(this, target, it.up()) }
     }
 
     private fun SafeContext.canPlace(pos: BlockPos, target: LivingEntity): Boolean {
@@ -105,7 +107,7 @@ object CrystalAura : Module(
         return player dist target <= placing.reach &&
                 player dist pos <= placing.reach &&
                 // Checks if the position is within the player hitbox
-                !player.boundingBox.intersects(Box.of(pos.up().toCenterPos(), 1.0, 2.0, 1.0)) &&
+                !player.boundingBox.intersects(Box.of(pos.vec3d, 1.0, 1.0, 1.0)) &&
                 // Checks if the support block is either obsidian or bedrock
                 (pos.blockState(world).isOf(Blocks.OBSIDIAN)
                         || pos.blockState(world).isOf(Blocks.BEDROCK)) &&
@@ -114,11 +116,11 @@ object CrystalAura : Module(
                 // Or if there's another crystal 2 blocks around the air block
                 world.isAir(pos.up()) &&
                 fastEntitySearch<Entity>(0.5, pos.up()).isEmpty() &&
-                fastEntitySearch<EndCrystalEntity>(1.5, pos.up()).isEmpty() && // Doesn't handle the edge case where there is a crystal floating
+                fastEntitySearch<EndCrystalEntity>(2.0, pos.up()).isEmpty() && // Replace by intersection check bc blockpos is corner
 
-                player.health + player.absorptionAmount >= placeMinHealth &&
-                explosionDamage(pos, target, 6.0) >= placeMinDamage &&
-                explosionDamage(pos, player, 6.0) <= placeMaxSelfDamage &&
+                // player.health + player.absorptionAmount >= placeMinHealth &&
+                explosionDamage(pos.up(), target, 6.0) >= placeMinDamage &&
+                explosionDamage(pos.up(), player, 6.0) <= placeMaxSelfDamage &&
                 // Checks if the last crystal was set more than [placeDelay] ms ago
                 placedCrystal.peek()?.second?.plusMillis(placeDelay)?.isBefore(Instant.now()) ?: true
         //if (multiPlace) !placedCrystal.any { (crystalPos, _) -> pos.up() == crystalPos } else true
@@ -128,9 +130,7 @@ object CrystalAura : Module(
 
 
     init {
-        rotate(
-            priority = 100,
-        ) {
+        rotate {
            onUpdate {
                if (!rotate) return@onUpdate null
 
@@ -138,7 +138,7 @@ object CrystalAura : Module(
                    target ?: return@onUpdate null
                )
 
-               testRender.addAll(poss.take(3))
+               testRender.addAll(poss)
 
                val blockpos = poss.firstOrNull() ?: return@onUpdate null
 
@@ -204,7 +204,10 @@ object CrystalAura : Module(
         }),
 
         Damage({ target, dest ->
-            val red = transform(explosionDamage(dest, target, 6.0), 0.0, target.health.toDouble(), 0.0, 255.0).toInt()
+            val damage = explosionDamage(dest, target, 6.0)
+                .coerceIn(0.0, target.health.toDouble())
+
+            val red = transform(damage, 0.0, target.health.toDouble(), 0.0, 255.0).toInt()
             Color(red, 255-red, 0, crystalAlpha)
         })
     }
