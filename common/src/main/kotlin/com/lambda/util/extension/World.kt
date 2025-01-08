@@ -24,7 +24,6 @@ import com.lambda.util.world.*
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
-import net.minecraft.block.entity.BlockEntity
 import net.minecraft.datafixer.DataFixTypes
 import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
@@ -37,10 +36,10 @@ import net.minecraft.world.World
 import java.awt.Color
 import kotlin.experimental.and
 
-fun SafeContext.blockFilledMesh(state: BlockState, pos: BlockPos) =
+fun SafeContext.collisionShape(state: BlockState, pos: BlockPos) =
     state.getCollisionShape(world, pos).offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
 
-fun SafeContext.blockOutlineMesh(state: BlockState, pos: BlockPos) =
+fun SafeContext.outlineShape(state: BlockState, pos: BlockPos) =
     state.getOutlineShape(world, pos).offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
 
 fun SafeContext.blockColor(state: BlockState, pos: BlockPos) =

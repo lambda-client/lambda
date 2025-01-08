@@ -28,8 +28,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.blockColor
-import com.lambda.util.extension.blockFilledMesh
-import com.lambda.util.extension.blockOutlineMesh
+import com.lambda.util.extension.outlineShape
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.toBlockPos
@@ -91,12 +90,11 @@ object BlockESP : Module(
         pos: BlockPos,
         sides: Int,
     ) = runSafe {
-        val filledMesh = blockFilledMesh(state, pos)
-        val outlineMesh = blockOutlineMesh(state, pos)
+        val shape = outlineShape(state, pos)
         val blockColor = blockColor(state, pos)
 
-        if (drawFaces) buildFilledMesh(filledMesh, if (useBlockColor) blockColor else faceColor, sides)
-        if (drawOutlines) buildOutlineMesh(outlineMesh, if (useBlockColor) blockColor else outlineColor, sides, outlineMode)
+        if (drawFaces) buildFilledMesh(shape, if (useBlockColor) blockColor else faceColor, sides)
+        if (drawOutlines) buildOutlineMesh(shape, if (useBlockColor) blockColor else outlineColor, sides, outlineMode)
     }
 
     private fun rebuildMesh(from: Any, to: Any): Unit = esp.rebuild()

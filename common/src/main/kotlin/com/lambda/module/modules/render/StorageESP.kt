@@ -31,8 +31,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.blockColor
-import com.lambda.util.extension.blockFilledMesh
-import com.lambda.util.extension.blockOutlineMesh
+import com.lambda.util.extension.outlineShape
 import com.lambda.util.math.setAlpha
 import com.lambda.util.world.blockEntitySearch
 import com.lambda.util.world.entitySearch
@@ -50,6 +49,7 @@ import net.minecraft.block.entity.SmokerBlockEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.decoration.ItemFrameEntity
 import net.minecraft.entity.vehicle.AbstractMinecartEntity
+import net.minecraft.entity.vehicle.MinecartEntity
 import net.minecraft.util.math.BlockPos
 import java.awt.Color
 
@@ -67,14 +67,13 @@ object StorageESP : Module(
     private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks") { page == Page.Render }.apply { onValueSet { _, to -> if (!to) drawOutlines = true } }
     private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks") { page == Page.Render }.apply { onValueSet { _, to -> if (!to) drawFaces = true } }
     private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode") { page == Page.Render }
-    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks")
+    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks") { page == Page.Render }
 
     /* Color settings */
     private val useBlockColor by setting("Use Block Color", true, "Use the color of the block instead") { page == Page.Color }
     private val alpha by setting("Alpha", 0.3, 0.1..1.0, 0.05) { page == Page.Color }
 
     // TODO:
-    //  Once we have map setting we can do this:
     //  val blockColors by setting("Block Colors", mapOf<String, Color>()) { page == Page.Color && !useBlockColor }
     //  val renders by setting("Render Blocks", mapOf<String, Boolean>()) { page == Page.General }
     //
@@ -98,39 +97,63 @@ object StorageESP : Module(
     private val smokerColor by setting("Smoker Color", Color(112, 112, 112)) { page == Page.Color && !useBlockColor }
     private val shulkerColor by setting("Shulker Color", Color(178, 76, 216)) { page == Page.Color && !useBlockColor }
     private val itemFrameColor by setting("Item Frame Color", Color(216, 127, 51)) { page == Page.Color && !useBlockColor }
-    private val cartColor by setting("Cart Color", Color(102, 127, 51)) { page == Page.Color && !useBlockColor }
+    private val cartColor by setting("Minecart Color", Color(102, 127, 51)) { page == Page.Color && !useBlockColor }
+
+    private val entities = setOf(
+        BarrelBlockEntity::class,
+        BlastFurnaceBlockEntity::class,
+        BrewingStandBlockEntity::class,
+        ChestBlockEntity::class,
+        DispenserBlockEntity::class,
+        EnderChestBlockEntity::class,
+        FurnaceBlockEntity::class,
+        HopperBlockEntity::class,
+        SmokerBlockEntity::class,
+        ShulkerBoxBlockEntity::class,
+        AbstractMinecartEntity::class,
+        ItemFrameEntity::class,
+        MinecartEntity::class,
+    )
 
     init {
         listen<RenderEvent.StaticESP> { event ->
-            blockEntitySearch<BlockEntity>(range = distance)
-                .forEach { event.renderer.build(it, it.pos, buildMesh(it.pos)) }
+            blockEntitySearch<BlockEntity>(distance)
+                .filter { it::class in entities }
+                .forEach { event.renderer.build(it, it.pos, excludedSides(it)) }
 
-            (entitySearch<AbstractMinecartEntity>(range = distance) +
-                    entitySearch<ItemFrameEntity>(range = distance))
-                .forEach { event.renderer.build(it, DirectionMask.ALL) } // I didn't add block entity meshing because I'm not sure how to handle blocks that aren't full
+            val mineCarts = entitySearch<AbstractMinecartEntity>(distance)
+            val itemFrames = entitySearch<ItemFrameEntity>(distance)
+            (mineCarts + itemFrames)
+                .forEach { event.renderer.build(it, DirectionMask.ALL) }
         }
     }
 
-    private fun SafeContext.buildMesh(position: BlockPos) =
-        if (mesh) buildSideMesh(position) {
-            val block = world.getBlockEntity(it) ?: return@buildSideMesh false
+    private fun SafeContext.excludedSides(blockEntity: BlockEntity): Int {
+        val isFullCube = blockEntity.cachedState.isFullCube(world, blockEntity.pos)
+        return if (mesh && isFullCube) {
+            buildSideMesh(blockEntity.pos) { neighbor ->
+                val other = world.getBlockEntity(neighbor) ?: return@buildSideMesh false
+                val otherFullCube = other.cachedState.isFullCube(world, other.pos)
+                val sameType = blockEntity.cachedState.block == other.cachedState.block
+                val searchedFor = other::class in entities
 
-            getBlockEntityColor(block) != null &&
-                block.cachedState.isFullCube(world, it)
-        }
-        else DirectionMask.ALL
+                searchedFor && otherFullCube && sameType
+            }
+        } else DirectionMask.ALL
+    }
 
     private fun StaticESPRenderer.build(
         block: BlockEntity,
         pos: BlockPos,
         sides: Int,
     ) = runSafe {
-        val color = if (useBlockColor) blockColor(block.cachedState, pos) else getBlockEntityColor(block) ?: return@runSafe
-        val filledMesh = blockFilledMesh(block.cachedState, pos)
-        val outlineMesh = blockOutlineMesh(block.cachedState, pos)
+        val color = if (useBlockColor) {
+            blockColor(block.cachedState, pos)
+        } else getBlockEntityColor(block) ?: return@runSafe
+        val shape = outlineShape(block.cachedState, pos)
 
-        if (drawFaces) buildFilledMesh(filledMesh, color.setAlpha(alpha), sides)
-        if (drawOutlines) buildOutlineMesh(outlineMesh, color, sides, outlineMode)
+        if (drawFaces) buildFilledMesh(shape, color.setAlpha(alpha), sides)
+        if (drawOutlines) buildOutlineMesh(shape, color, sides, outlineMode)
     }
 
     private fun StaticESPRenderer.build(
