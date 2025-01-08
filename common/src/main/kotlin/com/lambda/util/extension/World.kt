@@ -24,6 +24,7 @@ import com.lambda.util.world.*
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
+import net.minecraft.block.entity.BlockEntity
 import net.minecraft.datafixer.DataFixTypes
 import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
@@ -68,6 +69,7 @@ fun World.getFluidState(x: Int, y: Int, z: Int): FluidState {
 }
 
 fun World.getBlockState(vec: FastVector): BlockState = getBlockState(vec.x, vec.y, vec.z)
+fun World.getBlockEntity(vec: FastVector) = getBlockEntity(vec.toBlockPos())
 fun World.getFluidState(vec: FastVector): FluidState = getFluidState(vec.x, vec.y, vec.z)
 
 private fun positionFromIndex(width: Int, length: Int, index: Int): FastVector {
