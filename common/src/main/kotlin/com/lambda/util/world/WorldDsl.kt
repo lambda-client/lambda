@@ -124,7 +124,7 @@ inline fun <reified T : BlockEntity> SafeContext.blockEntitySearch(
     range: Double = 64.0,
     pos: BlockPos = player.blockPos,
     noinline filter: (T) -> Boolean = { true },
-) = internalGetBlockEntities<T>(pos.toFastVec(), range, predicate = filter)
+) = internalGetBlockEntities<T>(pos.toFastVec(), range, predicate = filter).toSet()
 
 @DslMarker
 annotation class EntityMarker
@@ -201,7 +201,7 @@ inline fun <reified T : Entity> SafeContext.fastEntitySearch(
     range: Double,
     pos: BlockPos = player.blockPos,
     noinline filter: (T) -> Boolean = { true },
-) = internalGetFastEntities<T>(pos.toFastVec(), range, predicate = filter)
+) = internalGetFastEntities<T>(pos.toFastVec(), range, predicate = filter).toSet()
 
 @DslMarker
 annotation class FluidMarker
