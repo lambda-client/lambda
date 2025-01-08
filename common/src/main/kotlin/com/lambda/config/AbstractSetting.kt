@@ -127,4 +127,7 @@ abstract class AbstractSetting<T : Any>(
     class ValueListener<T>(val requiresValueChange: Boolean, val execute: (from: T, to: T) -> Unit)
 
     override fun toString() = "Setting $name: $value of type ${type.typeName}"
+
+    override fun equals(other: Any?) = other is AbstractSetting<*> && name == other.name
+    override fun hashCode() = name.hashCode()
 }

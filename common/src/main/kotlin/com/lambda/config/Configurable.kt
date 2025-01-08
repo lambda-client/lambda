@@ -55,10 +55,15 @@ abstract class Configurable(
     val settings = mutableSetOf<AbstractSetting<*>>()
 
     init {
-        register()
+        registerConfigurable()
     }
 
-    private fun register() = configuration.configurables.add(this)
+    private fun registerConfigurable() = configuration.configurables.add(this)
+
+    inline fun <reified T : AbstractSetting<*>> T.register(): T {
+        check(settings.add(this)) { "Setting with name $name already exists for configurable: ${this@Configurable.name}" }
+        return this
+    }
 
     override fun toJson() =
         JsonObject().apply {
@@ -99,9 +104,7 @@ abstract class Configurable(
         defaultValue: Boolean,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = BooleanSetting(name, defaultValue, description, visibility).also {
-        settings.add(it)
-    }
+    ) = BooleanSetting(name, defaultValue, description, visibility).register()
 
     /**
      * Creates an [EnumSetting] with the provided parameters and adds it to the [settings].
@@ -124,9 +127,7 @@ abstract class Configurable(
         defaultValue: T,
         description: String = "",
         noinline visibility: () -> Boolean = { true },
-    ) = EnumSetting(name, defaultValue, description, visibility).also {
-        settings.add(it)
-    }
+    ) = EnumSetting(name, defaultValue, description, visibility).register()
 
     /**
      * Creates a [CharSetting] with the provided parameters and adds it to the [settings].
@@ -143,9 +144,7 @@ abstract class Configurable(
         defaultValue: Char,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = CharSetting(name, defaultValue, description, visibility).also {
-        settings.add(it)
-    }
+    ) = CharSetting(name, defaultValue, description, visibility).register()
 
     /**
      * Creates a [StringSetting] with the provided parameters and adds it to the [settings].
@@ -166,9 +165,7 @@ abstract class Configurable(
         defaultValue: String,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = StringSetting(name, defaultValue, description, visibility).also {
-        settings.add(it)
-    }
+    ) = StringSetting(name, defaultValue, description, visibility).register()
 
     /**
      * Constructs a [ListSetting] instance with the specified parameters and appends it to the [settings] collection.
@@ -199,9 +196,7 @@ abstract class Configurable(
         TypeToken.getParameterized(MutableList::class.java, T::class.java).type,
         description,
         visibility,
-    ).also {
-        settings.add(it)
-    }
+    ).register()
 
     /**
      * Constructs a [MapSetting] instance with the specified parameters and appends it to the [settings] collection.
@@ -232,9 +227,7 @@ abstract class Configurable(
         TypeToken.getParameterized(MutableMap::class.java, K::class.java, V::class.java).type,
         description,
         visibility
-    ).also {
-        settings.add(it)
-    }
+    ).register()
 
     /**
      * Constructs a [SetSetting] instance with the specified parameters and appends it to the [settings] collection.
@@ -264,9 +257,7 @@ abstract class Configurable(
         TypeToken.getParameterized(MutableSet::class.java, T::class.java).type,
         description,
         visibility,
-    ).also {
-        settings.add(it)
-    }
+    ).register()
 
     /**
      * Creates a [DoubleSetting] with the provided parameters and adds it to the [settings].
@@ -291,9 +282,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = DoubleSetting(name, defaultValue, range, step, description, visibility, unit).also {
-        settings.add(it)
-    }
+    ) = DoubleSetting(name, defaultValue, range, step, description, visibility, unit).register()
 
     /**
      * Creates a [FloatSetting] with the provided parameters and adds it to the [settings].
@@ -318,9 +307,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = FloatSetting(name, defaultValue, range, step, description, visibility, unit).also {
-        settings.add(it)
-    }
+    ) = FloatSetting(name, defaultValue, range, step, description, visibility, unit).register()
 
     /**
      * Creates an [IntegerSetting] with the provided parameters and adds it to the [settings].
@@ -345,9 +332,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = IntegerSetting(name, defaultValue, range, step, description, visibility, unit).also {
-        settings.add(it)
-    }
+    ) = IntegerSetting(name, defaultValue, range, step, description, visibility, unit).register()
 
     /**
      * Creates a [LongSetting] with the provided parameters and adds it to the [settings].
@@ -372,9 +357,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = LongSetting(name, defaultValue, range, step, description, visibility, unit).also {
-        settings.add(it)
-    }
+    ) = LongSetting(name, defaultValue, range, step, description, visibility, unit).register()
 
     /**
      * Creates a [KeyBindSetting] with the provided parameters and adds it to the [settings].
@@ -391,9 +374,7 @@ abstract class Configurable(
         defaultValue: KeyCode,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = KeyBindSetting(name, defaultValue, description, visibility).also {
-        settings.add(it)
-    }
+    ) = KeyBindSetting(name, defaultValue, description, visibility).register()
 
     /**
      * Creates a [ColorSetting] with the provided parameters and adds it to the [settings].
@@ -410,9 +391,7 @@ abstract class Configurable(
         defaultValue: Color,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = ColorSetting(name, defaultValue, description, visibility).also {
-        settings.add(it)
-    }
+    ) = ColorSetting(name, defaultValue, description, visibility).register()
 
     /**
      * Creates a [BlockPosSetting] with the provided parameters and adds it to the [settings].
@@ -429,9 +408,7 @@ abstract class Configurable(
         defaultValue: BlockPos,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = BlockPosSetting(name, defaultValue, description, visibility).also {
-        settings.add(it)
-    }
+    ) = BlockPosSetting(name, defaultValue, description, visibility).register()
 
     /**
      * Creates a [BlockSetting] with the provided parameters and adds it to the [settings].
@@ -448,7 +425,5 @@ abstract class Configurable(
         defaultValue: Block,
         description: String = "",
         visibility: () -> Boolean = { true },
-    ) = BlockSetting(name, defaultValue, description, visibility).also {
-        settings.add(it)
-    }
+    ) = BlockSetting(name, defaultValue, description, visibility).register()
 }
