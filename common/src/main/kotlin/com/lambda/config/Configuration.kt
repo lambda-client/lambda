@@ -156,5 +156,12 @@ abstract class Configuration : Jsonable {
 
     companion object {
         val configurations = mutableSetOf<Configuration>()
+        val configurables: Set<Configurable>
+            get() = configurations.flatMapTo(mutableSetOf()) { it.configurables }
+
+        fun configurableByName(name: String) =
+            configurables.find { it.name == name }
+        fun settingByName(configurable: Configurable, name: String) =
+            configurable.settings.find { it.name == name }
     }
 }
