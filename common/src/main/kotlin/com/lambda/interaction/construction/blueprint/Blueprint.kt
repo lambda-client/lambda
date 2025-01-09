@@ -19,6 +19,7 @@ package com.lambda.interaction.construction.blueprint
 
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.BlockUtils.blockPos
+import com.lambda.util.collections.ResettableLazy
 import com.lambda.util.extension.Structure
 import com.lambda.util.math.VecUtils.blockPos
 import net.minecraft.structure.StructureTemplate
@@ -27,7 +28,8 @@ import net.minecraft.util.math.*
 abstract class Blueprint {
     abstract val structure: Structure
 
-    private val bounds: BlockBox by lazy {
+    val bounds = ResettableLazy {
+        if (structure.isEmpty()) return@ResettableLazy null
         val maxX = structure.keys.maxOf { it.x }
         val maxY = structure.keys.maxOf { it.y }
         val maxZ = structure.keys.maxOf { it.z }
@@ -38,15 +40,16 @@ abstract class Blueprint {
     }
 
     fun getClosestPointTo(target: Vec3d): Vec3d {
+        val bounds = bounds.value ?: return target
         val d = MathHelper.clamp(target.x, bounds.minX.toDouble(), bounds.maxX.toDouble())
         val e = MathHelper.clamp(target.y, bounds.minY.toDouble(), bounds.maxY.toDouble())
         val f = MathHelper.clamp(target.z, bounds.minZ.toDouble(), bounds.maxZ.toDouble())
         return Vec3d(d, e, f)
     }
 
-    fun isOutOfBounds(vec3d: Vec3d): Boolean = !bounds.contains(vec3d.blockPos)
+    fun isOutOfBounds(vec3d: Vec3d): Boolean = bounds.value?.contains(vec3d.blockPos) == false
 
-    val center get() = bounds.center.blockPos
+    val center get() = bounds.value?.center?.blockPos
 
     companion object {
         fun emptyStructure(): Structure = emptyMap()

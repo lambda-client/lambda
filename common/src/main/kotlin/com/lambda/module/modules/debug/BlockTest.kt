@@ -50,7 +50,7 @@ object BlockTest : Module(
 
     init {
         listen<RenderEvent.StaticESP> {
-            blockSearch(range, step) { _, state ->
+            blockSearch(range, step = step) { _, state ->
                 state.isOf(Blocks.DIAMOND_BLOCK)
             }.forEach { (pos, state) ->
                 state.getOutlineShape(world, pos).boundingBoxes.forEach { box ->
