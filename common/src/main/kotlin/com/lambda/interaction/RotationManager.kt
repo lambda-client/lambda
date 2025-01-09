@@ -69,16 +69,15 @@ object RotationManager : Loadable {
         var lastCtx: RotationContext? = null
 
         listen<RotationEvent.Update>(priority, alwaysListen) { event ->
-            val rotationContext = builder.onUpdate?.invoke(this, event.context)
-
-            rotationContext?.let {
-                event.context = it
+            builder.onUpdate?.invoke(this, event.context)?.let { context ->
+                if (!context.config.rotate) return@let
+                event.context = context
+                lastCtx = context
             }
-
-            lastCtx = rotationContext
         }
 
         listen<RotationEvent.Post> { event ->
+            if (!event.context.config.rotate) return@listen
             if (event.context == lastCtx) {
                 builder.onReceive?.invoke(this, event.context)
             }

@@ -42,6 +42,8 @@ interface RotationConfig {
      */
     val resetTicks: Int
 
+    val rotate: Boolean get() = rotationMode != RotationMode.NONE
+
     interface Instant : RotationConfig {
         override val turnSpeed get() = 360.0
         override val keepTicks get() = 1
