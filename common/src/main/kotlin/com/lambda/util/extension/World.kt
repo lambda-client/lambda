@@ -18,6 +18,7 @@
 package com.lambda.util.extension
 
 import com.lambda.Lambda.mc
+import com.lambda.context.SafeContext
 import com.lambda.util.VarIntIterator
 import com.lambda.util.world.*
 import net.minecraft.block.Block
@@ -30,8 +31,19 @@ import net.minecraft.nbt.NbtCompound
 import net.minecraft.nbt.NbtList
 import net.minecraft.registry.RegistryEntryLookup
 import net.minecraft.structure.StructureTemplate
+import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
+import java.awt.Color
 import kotlin.experimental.and
+
+fun SafeContext.collisionShape(state: BlockState, pos: BlockPos) =
+    state.getCollisionShape(world, pos).offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+
+fun SafeContext.outlineShape(state: BlockState, pos: BlockPos) =
+    state.getOutlineShape(world, pos).offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+
+fun SafeContext.blockColor(state: BlockState, pos: BlockPos) =
+    Color(state.getMapColor(world, pos).color)
 
 fun World.getBlockState(x: Int, y: Int, z: Int): BlockState {
     if (isOutOfHeightLimit(y)) return Blocks.VOID_AIR.defaultState
@@ -56,6 +68,7 @@ fun World.getFluidState(x: Int, y: Int, z: Int): FluidState {
 }
 
 fun World.getBlockState(vec: FastVector): BlockState = getBlockState(vec.x, vec.y, vec.z)
+fun World.getBlockEntity(vec: FastVector) = getBlockEntity(vec.toBlockPos())
 fun World.getFluidState(vec: FastVector): FluidState = getFluidState(vec.x, vec.y, vec.z)
 
 private fun positionFromIndex(width: Int, length: Int, index: Int): FastVector {

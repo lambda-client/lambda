@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,26 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings.numeric
+package com.lambda.util.collections
 
-import com.lambda.config.settings.NumericSetting
+class ResettableLazy<T>(private val initializer: () -> T) {
+    private var _value: T? = null
 
-/**
- * @see [com.lambda.config.Configurable]
- */
-class ShortSetting(
-    override val name: String,
-    defaultValue: Short,
-    override val range: ClosedRange<Short>,
-    override val step: Short = 1,
-    description: String,
-    visibility: () -> Boolean,
-    unit: String,
-) : NumericSetting<Short>(
-    defaultValue,
-    range,
-    step,
-    description,
-    visibility,
-    unit
-)
+    val value: T?
+        get() {
+            if (_value == null) _value = initializer()
+            return _value
+        }
+
+    fun reset() {
+        _value = null
+    }
+}

@@ -59,7 +59,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Load
         "schem" to StructureTemplate::readSpongeOrException,
         "litematica" to StructureTemplate::readLitematicaOrException,
 
-        // Not supported, who could guess that converting a format from 14 years ago would be hard? :clueless:
+        // Not supported, who could've guess that converting a format from 14 years ago would be hard? :clueless:
         "schematic" to StructureTemplate::readSchematicOrException,
     )
 
