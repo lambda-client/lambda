@@ -18,6 +18,8 @@
 package com.lambda.command.commands
 
 import com.lambda.brigadier.CommandResult
+import com.lambda.brigadier.CommandResult.Companion.failure
+import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.argument.value
@@ -28,6 +30,7 @@ import com.lambda.interaction.construction.StructureRegistry
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.task.TaskFlow.run
+import com.lambda.task.tasks.BuildTask
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
@@ -42,6 +45,8 @@ object BuildCommand : LambdaCommand(
     description = "Builds a structure",
     usage = "build <structure>"
 ) {
+    private var lastBuildTask: BuildTask? = null
+
     override fun CommandBuilder.create() {
         required(literal("place")) {
             required(greedyString("structure")) { structure ->
@@ -66,18 +71,29 @@ object BuildCommand : LambdaCommand(
                                     return@executeWithResult CommandResult.success()
                                 }
                         } catch (e: InvalidPathException) {
-                            return@executeWithResult CommandResult.failure("Invalid path $pathString")
+                            return@executeWithResult failure("Invalid path $pathString")
                         } catch (e: NoSuchFileException) {
-                            return@executeWithResult CommandResult.failure("Structure $pathString not found")
+                            return@executeWithResult failure("Structure $pathString not found")
                         } catch (e: Exception) {
-                            return@executeWithResult CommandResult.failure(
+                            return@executeWithResult failure(
                                 e.message ?: "Failed to load structure $pathString"
                             )
                         }
                     }
 
-                    CommandResult.failure("Structure $pathString not found")
+                    failure("Structure $pathString not found")
                 }
+            }
+        }
+
+        required(literal("cancel")) {
+            executeWithResult {
+                lastBuildTask?.cancel() ?: run {
+                    return@executeWithResult failure("No build task to cancel")
+                }
+                this@BuildCommand.info("$lastBuildTask cancelled")
+                lastBuildTask = null
+                success()
             }
         }
     }
