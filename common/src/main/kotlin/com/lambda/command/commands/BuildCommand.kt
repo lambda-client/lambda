@@ -62,13 +62,13 @@ object BuildCommand : LambdaCommand(
                                 .loadStructureByRelativePath(Path.of(pathString))
                                 ?.let { template ->
                                     info("Building structure $pathString with dimensions ${template.size.toShortString()} created by ${template.author}")
-                                    template.toStructure()
+                                    lastBuildTask = template.toStructure()
                                         .move(player.blockPos)
                                         .toBlueprint()
                                         .build()
                                         .run()
 
-                                    return@executeWithResult CommandResult.success()
+                                    return@executeWithResult success()
                                 }
                         } catch (e: InvalidPathException) {
                             return@executeWithResult failure("Invalid path $pathString")
