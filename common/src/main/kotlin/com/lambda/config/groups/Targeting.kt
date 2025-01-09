@@ -131,8 +131,10 @@ abstract class Targeting(
      */
     class Combat(
         owner: Configurable,
+        defaultRange: Double = 5.0,
+        maxRange: Double = 16.0,
         predicate: () -> Boolean = { true },
-    ) : Targeting(owner, predicate, 5.0, 16.0) {
+    ) : Targeting(owner, predicate, defaultRange, maxRange) {
 
         /**
          * The field of view limit for targeting entities. Configurable between 5 and 180 degrees.
