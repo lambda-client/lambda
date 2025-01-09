@@ -174,7 +174,7 @@ abstract class Targeting(
             }
         }
 
-        val illegalTargets = setOf(UUID.fromString("4f332cd7-cf93-427e-a282-53f45f6bb113"))
+        private val illegalTargets = setOf(UUID.fromString("4f332cd7-cf93-427e-a282-53f45f6bb113"))
     }
 
     /**

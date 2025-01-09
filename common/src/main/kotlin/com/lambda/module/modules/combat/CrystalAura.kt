@@ -129,13 +129,14 @@ object CrystalAura : Module(
         val maximumRange = ((1 - (placeMinDamage / 12.0)) * 12.0).toInt()
 
         return BlockPos.iterateOutwards(target.blockPos, maximumRange, maximumRange, maximumRange).mapNotNull { pos ->
-            targetData(pos, pos.blockState(world), target)
+            targetData(pos, target)
         }.sortedWith(placeMethod.comparator)
     }
 
-    private fun SafeContext.targetData(pos: BlockPos, state: BlockState, target: LivingEntity): TargetPosition? {
+    private fun SafeContext.targetData(pos: BlockPos, target: LivingEntity): TargetPosition? {
         val inRange = pos.dist(player.eyePos) < interact.reach + 1
         if (!inRange) return null
+        val state = pos.blockState(world)
         val isOfBlock = state.isOf(Blocks.OBSIDIAN) || state.isOf(Blocks.BEDROCK)
         if (!isOfBlock) return null
         if (pos in placements) return null
