@@ -41,7 +41,7 @@ object PacketLimiter : Module(
     }
     private val interval by setting("Duration", 1000L, 1L..1000L, 50L, "The interval / duration in milliseconds to limit packets for", unit = " ms").apply {
         onValueChange { _, to ->
-            packetQueue.setInterval(to)
+            packetQueue.setDecayTime(to)
         }
     }
 
