@@ -120,9 +120,9 @@ object CrystalAura : Module(
 
                 // player.health + player.absorptionAmount >= placeMinHealth &&
                 explosionDamage(pos.up(), target, 6.0) >= placeMinDamage &&
-                explosionDamage(pos.up(), player, 6.0) <= placeMaxSelfDamage &&
+                explosionDamage(pos.up(), player, 6.0) <= placeMaxSelfDamage
                 // Checks if the last crystal was set more than [placeDelay] ms ago
-                placedCrystal.peek()?.second?.plusMillis(placeDelay)?.isBefore(Instant.now()) ?: true
+                // placedCrystal.lastOrNull()?.second?.plusMillis(placeDelay)?.isBefore(Instant.now()) ?: true
         //if (multiPlace) !placedCrystal.any { (crystalPos, _) -> pos.up() == crystalPos } else true
     }
 
