@@ -23,7 +23,10 @@ object TaskFlow : Task<Unit>() {
     override val name get() = "TaskFlow"
 
     @Ta5kBuilder
-    fun Task<*>.run() = this.execute(this@TaskFlow)
+    inline fun <reified T : Task<*>> T.run(): T {
+        execute(this@TaskFlow)
+        return this
+    }
 
     @Ta5kBuilder
     fun Task<*>.run(task: TaskGenerator<Unit>) {

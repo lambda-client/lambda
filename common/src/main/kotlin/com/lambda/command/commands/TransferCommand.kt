@@ -106,7 +106,7 @@ object TransferCommand : LambdaCommand(
                 lastContainerTransfer?.cancel() ?: run {
                     return@executeWithResult failure("No transfer to cancel")
                 }
-                info("$lastContainerTransfer cancelled")
+                this@TransferCommand.info("$lastContainerTransfer cancelled")
                 lastContainerTransfer = null
                 success()
             }
