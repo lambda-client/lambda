@@ -28,7 +28,7 @@ import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Nameable
+import com.lambda.util.NamedEnum
 import com.lambda.util.extension.contains
 import com.lambda.util.player.MovementUtils.addSpeed
 import com.lambda.util.player.MovementUtils.calcMoveYaw
@@ -85,7 +85,7 @@ object Speed : Module(
     private var ncpSpeed = NCP_BASE_SPEED
     private var lastDistance = 0.0
 
-    enum class Mode(override val displayName: String) : Nameable.NamedEnum {
+    enum class Mode(override val displayName: String) : NamedEnum {
         GRIM_STRAFE("Grim Strafe"),
         NCP_STRAFE("NCP Strafe"),
     }

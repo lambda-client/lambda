@@ -17,12 +17,11 @@
 
 package com.lambda.util.extension
 
-import com.lambda.util.Nameable
+import com.lambda.util.NamedEnum
+import com.lambda.util.StringUtils.capitalize
 
 val Enum<*>.displayValue
     get() =
-        (this as? Nameable.NamedEnum)?.displayName ?: name.split('_').joinToString(" ") { low ->
-            low.lowercase().replaceFirstChar {
-                if (it.isLowerCase()) it.titlecase() else it.toString()
-            }
+        (this as? NamedEnum)?.displayName ?: name.split('_').joinToString(" ") { low ->
+            low.capitalize()
         }

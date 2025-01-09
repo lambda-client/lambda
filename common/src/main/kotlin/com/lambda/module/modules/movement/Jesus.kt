@@ -25,7 +25,7 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Nameable
+import com.lambda.util.NamedEnum
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.VecUtils.minus
 import com.lambda.util.player.MovementUtils.isInputting
@@ -53,7 +53,7 @@ object Jesus : Module(
     private var goUp = true
     private var swimmingTicks = 0
 
-    enum class Mode(override val displayName: String, val collision: Boolean) : Nameable.NamedEnum {
+    enum class Mode(override val displayName: String, val collision: Boolean) : NamedEnum {
         NCP("NCP", true),
         NCP_DOLPHIN("NCP Dolphin", false),
         NCP_NEW("NCP New", true)

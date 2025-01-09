@@ -19,7 +19,8 @@ package com.lambda.module.hud
 
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.TpsClock.normalizedTickRate
+import com.lambda.util.NamedEnum
+import com.lambda.util.ServerTPS.averageMSPerTick
 import com.lambda.util.math.MathUtils.format
 
 object TPS : HudModule(
@@ -27,11 +28,11 @@ object TPS : HudModule(
     description = "Display the server's tick rate",
     defaultTags = setOf(ModuleTag.CLIENT, ModuleTag.NETWORK),
 ) {
-    private val format by setting("Tick format", TickFormat.Tick)
+    private val format by setting("Tick format", TickFormat.TPS)
 
-    private val text: String get() = "${format.string}: ${format.output().format(2)}"
+    private val text: String get() = "${format.displayName}: ${format.output().format(2)}${format.unit}"
 
-    // TODO: Replace by LambdaAtlas height cache
+    // TODO: Replace by LambdaAtlas height cache and actually build a proper text with highlighted parameters
 
     override val height: Double get() = 20.0
     override val width: Double get() = 50.0
@@ -42,10 +43,15 @@ object TPS : HudModule(
         }
     }
 
-    private enum class TickFormat(val output: () -> Double, val string: String) {
-        Tick({ normalizedTickRate * 20 }, "TPS"),
-        Milliseconds({ normalizedTickRate * 50 }, "MSPS"),
-        Normalized({ normalizedTickRate }, "TPSN"),
-        Percentage({ normalizedTickRate * 100 }, "TPS%")
+    @Suppress("unused")
+    private enum class TickFormat(
+        val output: () -> Double,
+        override val displayName: String,
+        val unit: String = ""
+    ) : NamedEnum {
+        TPS({ 1000 / averageMSPerTick }, "TPS"),
+        MSPT({ averageMSPerTick }, "MSPT", " ms"),
+        Normalized({ 50 / averageMSPerTick }, "TPS"),
+        Percentage({ 5000 / averageMSPerTick }, "TPS", "%")
     }
 }

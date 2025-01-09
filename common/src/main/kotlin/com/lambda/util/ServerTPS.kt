@@ -23,39 +23,28 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.util.collections.LimitedDecayQueue
 import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket
 
-object TpsClock {
-    private val tickHistory = LimitedDecayQueue<Double>(120, 5000)
+object ServerTPS {
+    // Server sends exactly one world time update every 20 server ticks (one per second).
+    private val updateHistory = LimitedDecayQueue<Long>(61, 60000)
     private var lastUpdate = 0L
 
-    /**
-     * Returns the average tick rate normalized between 0 and 1
-     */
-    val normalizedTickRate: Double
-        get() {
-            val average = tickHistory.average()
-            return if (average.isNaN()) 1.0 else average
-        }
-
-    /**
-     * Returns the average tick rate normalized multiplied by 20
-     */
-    val tickRate: Double get() = normalizedTickRate * 20
+    val averageMSPerTick: Double
+        get() = (if (updateHistory.isEmpty()) 1000.0 else updateHistory.average()) / 20
 
     init {
         listen<PacketEvent.Receive.Pre>(priority = 10000) {
             if (it.packet !is WorldTimeUpdateS2CPacket) return@listen
-
+            val currentTime = System.currentTimeMillis()
 
             if (lastUpdate != 0L) {
-                val timeElapsed = (System.nanoTime() - lastUpdate) / 1E9
-                tickHistory.add((1 / timeElapsed).coerceIn(0.0, 1.0))
+                updateHistory.add(currentTime - lastUpdate)
             }
 
-            lastUpdate = System.nanoTime()
+            lastUpdate = currentTime
         }
 
         listen<ConnectionEvent.Connect.Post> {
-            tickHistory.clear()
+            updateHistory.clear()
             lastUpdate = 0
         }
     }
