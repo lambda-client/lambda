@@ -43,7 +43,7 @@ object ServerTPS {
             lastUpdate = currentTime
         }
 
-        listen<ConnectionEvent.Connect.Post> {
+        listen<ConnectionEvent.Disconnect> {
             updateHistory.clear()
             lastUpdate = 0
         }
