@@ -22,7 +22,7 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DynamicAABB
-import com.lambda.graphics.renderer.esp.builders.build
+import com.lambda.graphics.renderer.esp.builders.ofBox
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.combat.KillAura
@@ -69,7 +69,7 @@ object Blink : Module(
 
         listen<RenderEvent.DynamicESP> { event ->
             val color = GuiSettings.primaryColor
-            event.renderer.build(box.update(lastBox), color.setAlpha(0.3), color)
+            event.renderer.ofBox(box.update(lastBox), color.setAlpha(0.3), color)
         }
 
         listen<PacketEvent.Send.Pre> { event ->

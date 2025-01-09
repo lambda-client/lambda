@@ -21,8 +21,8 @@ import com.lambda.Lambda.mc
 import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
-import com.lambda.graphics.renderer.esp.builders.buildFilledMesh
-import com.lambda.graphics.renderer.esp.builders.buildOutlineMesh
+import com.lambda.graphics.renderer.esp.builders.buildFilledShape
+import com.lambda.graphics.renderer.esp.builders.buildOutlineShape
 import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -93,8 +93,8 @@ object BlockESP : Module(
         val shape = outlineShape(state, pos)
         val blockColor = blockColor(state, pos)
 
-        if (drawFaces) buildFilledMesh(shape, if (useBlockColor) blockColor else faceColor, sides)
-        if (drawOutlines) buildOutlineMesh(shape, if (useBlockColor) blockColor else outlineColor, sides, outlineMode)
+        if (drawFaces) buildFilledShape(shape, if (useBlockColor) blockColor else faceColor, sides)
+        if (drawOutlines) buildOutlineShape(shape, if (useBlockColor) blockColor else outlineColor, sides, outlineMode)
     }
 
     private fun rebuildMesh(from: Any, to: Any): Unit = esp.rebuild()

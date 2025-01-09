@@ -24,7 +24,7 @@ import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DynamicAABB
-import com.lambda.graphics.renderer.esp.builders.build
+import com.lambda.graphics.renderer.esp.builders.ofBox
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.combat.KillAura
@@ -110,7 +110,7 @@ object BackTrack : Module(
             val p = target.hurtTime / 10.0
             val c = lerp(p, c1, c2)
 
-            it.renderer.build(box, c.multAlpha(0.3), c.multAlpha(0.8))
+            it.renderer.ofBox(box, c.multAlpha(0.3), c.multAlpha(0.8))
         }
 
         listen<PacketEvent.Send.Pre> { event ->

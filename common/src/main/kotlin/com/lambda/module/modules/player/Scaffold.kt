@@ -26,7 +26,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
-import com.lambda.graphics.renderer.esp.builders.build
+import com.lambda.graphics.renderer.esp.builders.ofBox
 import com.lambda.interaction.RotationManager.currentRotation
 import com.lambda.interaction.RotationManager.rotate
 import com.lambda.interaction.blockplace.PlaceFinder.Companion.buildPlaceInfo
@@ -332,7 +332,7 @@ object Scaffold : Module(
             val box = Box(info.placedPos)
             val alpha = transform(seconds, 0.0, 0.5, 1.0, 0.0).coerceIn(0.0, 1.0)
 
-            event.renderer.build(
+            event.renderer.ofBox(
                 box,
                 c.multAlpha(0.3 * alpha),
                 c.multAlpha(alpha),

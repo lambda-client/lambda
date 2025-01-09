@@ -19,7 +19,7 @@ package com.lambda.module.modules.debug
 
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.renderer.esp.builders.build
+import com.lambda.graphics.renderer.esp.builders.ofBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.world.blockSearch
@@ -54,7 +54,7 @@ object BlockTest : Module(
                 state.isOf(Blocks.DIAMOND_BLOCK)
             }.forEach { (pos, state) ->
                 state.getOutlineShape(world, pos).boundingBoxes.forEach { box ->
-                    it.renderer.build(box.offset(pos), filledColor, outlineColor)
+                    it.renderer.ofBox(box.offset(pos), filledColor, outlineColor)
                 }
             }
         }
