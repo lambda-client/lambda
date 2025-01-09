@@ -35,8 +35,6 @@ import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.interaction.visibilty.VisibilityChecker.visibleSides
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runConcurrent
-import com.lambda.threading.runSafe
 import com.lambda.util.math.MathUtils.random
 import com.lambda.util.math.VecUtils.distSq
 import com.lambda.util.math.VecUtils.plus
@@ -45,7 +43,6 @@ import com.lambda.util.math.lerp
 import com.lambda.util.player.MovementUtils.moveDiff
 import com.lambda.util.player.prediction.buildPlayerPrediction
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
-import kotlinx.coroutines.delay
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.attribute.EntityAttributeModifier
@@ -89,7 +86,8 @@ object KillAura : Module(
     private val selfPredict by setting("Self Predict", 1.0, 0.0..2.0, 0.1) { page == Page.Aiming && rotate }
     private val targetPredict by setting("Target Predict", 0.0, 0.0..2.0, 0.1) { page == Page.Aiming && rotate }
 
-    var target: LivingEntity? = null; private set
+    val target: LivingEntity?
+        get() = targeting.target()
 
     private var shakeRandom = Vec3d.ZERO
 
@@ -131,21 +129,10 @@ object KillAura : Module(
         }
 
         listen<TickEvent.Pre> {
-            target = targeting.target()
             if (!timerSync) attackTicks++
 
             target?.let { entity ->
                 runAttack(entity)
-            }
-        }
-
-        runConcurrent {
-            while (true) {
-                delay(50) // ToDo: tps sync
-
-                runSafe {
-                    if (timerSync && isEnabled) attackTicks++
-                }
             }
         }
 
@@ -327,7 +314,6 @@ object KillAura : Module(
     }
 
     private fun reset(ctx: SafeContext) = ctx.apply {
-        target = null
         attackTicks = player.lastAttackedTicks
         rotation.speedMultiplier = 1.0
         shakeRandom = Vec3d.ZERO
