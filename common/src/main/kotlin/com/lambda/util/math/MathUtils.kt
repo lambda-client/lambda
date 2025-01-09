@@ -82,5 +82,7 @@ object MathUtils {
 
     fun Int.nextPowerOf2() = 2f.pow(ceil(log2(toFloat()))).toInt()
 
+    fun Double.format(scale: Int) = "%.${scale}f".format(this)
+
     inline val Int.sq: Int get() = this * this
 }
