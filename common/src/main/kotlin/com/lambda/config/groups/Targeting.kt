@@ -32,6 +32,8 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.ArmorStandEntity
 import net.minecraft.entity.mob.MobEntity
 import net.minecraft.entity.passive.PassiveEntity
+import net.minecraft.util.Uuids
+import java.util.UUID
 
 /**
  * Abstract class representing a targeting mechanism for entities in the game.
@@ -155,6 +157,7 @@ abstract class Targeting(
          */
         override fun validate(player: ClientPlayerEntity, entity: LivingEntity): Boolean {
             if (fov < 180 && player.rotation dist player.eyePos.rotationTo(entity.pos) > fov) return false
+            if (entity.uuid in illegalTargets) return false
             return super.validate(player, entity)
         }
 
@@ -170,6 +173,8 @@ abstract class Targeting(
                 priority.factor(this, it)
             }
         }
+
+        val illegalTargets = setOf(UUID.fromString("4f332cd7-cf93-427e-a282-53f45f6bb113"))
     }
 
     /**
