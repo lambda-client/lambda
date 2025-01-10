@@ -222,6 +222,8 @@ open class Texture{
 
     private fun getNativeFormat(gl: Int) =
         when (gl) {
+            GL_RED, GL_GREEN, GL_BLUE -> NativeImage.Format.LUMINANCE
+            GL_RG -> NativeImage.Format.LUMINANCE_ALPHA
             GL_RGB -> NativeImage.Format.RGB
             else -> NativeImage.Format.RGBA
         }
