@@ -30,7 +30,7 @@ import com.lambda.interaction.RotationManager.rotate
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.dist
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.interaction.visibilty.VisibilityChecker.visibleSides
 import com.lambda.module.Module
@@ -149,7 +149,7 @@ object KillAura : Module(
         onDisable(::reset)
     }
 
-    private fun SafeContext.buildRotation(target: LivingEntity): RotationContext? {
+    private fun SafeContext.buildRotation(target: LivingEntity): RotationRequest? {
         val currentRotation = RotationManager.currentRotation
 
         val prediction = buildPlayerPrediction()
@@ -178,7 +178,7 @@ object KillAura : Module(
 
         // Do not rotate if the eyes are inside the target's AABB
         if (box.contains(eye)) {
-            return RotationContext(currentRotation, rotation)
+            return RotationRequest(currentRotation, rotation)
         }
 
         // Rotation stabilizer
@@ -249,7 +249,7 @@ object KillAura : Module(
         }
 
         val predictOffset = target.moveDiff * targetPredict
-        return RotationContext(eye.rotationTo(vec + predictOffset), rotation)
+        return RotationRequest(eye.rotationTo(vec + predictOffset), rotation)
     }
 
     private fun SafeContext.runAttack(target: LivingEntity) {

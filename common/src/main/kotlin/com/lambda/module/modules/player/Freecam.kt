@@ -23,7 +23,7 @@ import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -99,7 +99,7 @@ object Freecam : Module(
             val target = mc.crosshairTarget?.orNull ?: return@listen
 
             val rotation = player.eyePos.rotationTo(target.pos)
-            event.context = RotationContext(rotation, rotationConfig)
+            event.request = RotationRequest(rotation, rotationConfig)
         }
 
         listen<PlayerEvent.ChangeLookDirection> {

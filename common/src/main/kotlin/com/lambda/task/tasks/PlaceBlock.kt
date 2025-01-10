@@ -27,7 +27,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.rotation.Rotation.Companion.rotation
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BlockUtils
@@ -47,7 +47,7 @@ class PlaceBlock @Ta5kBuilder constructor(
 
     private var beginState: BlockState? = null
     private var state = State.INIT
-    private var primeContext: RotationContext? = null
+    private var primeContext: RotationRequest? = null
 
     private val SafeContext.matches
         get() = ctx.targetState.matches(ctx.expectedPos.blockState(world), ctx.expectedPos, world)
@@ -69,7 +69,7 @@ class PlaceBlock @Ta5kBuilder constructor(
             state = State.ROTATING
         } else {
             state = State.PRIME_ROTATION
-            primeContext = RotationContext(
+            primeContext = RotationRequest(
                 ctx.primeDirection.rotation,
                 ctx.rotation.config,
             )
@@ -87,23 +87,23 @@ class PlaceBlock @Ta5kBuilder constructor(
     init {
         listen<RotationEvent.Update> { event ->
             if (!rotate) return@listen
-            event.context = if (state == State.PRIME_ROTATION) {
+            event.request = if (state == State.PRIME_ROTATION) {
                 primeContext
             } else ctx.rotation
         }
 
         listen<RotationEvent.Post> { event ->
             if (!rotate) return@listen
-            if (!event.context.isValid) return@listen
+            if (!event.request.isValid) return@listen
             when (state) {
                 State.PRIME_ROTATION -> {
-                    if (event.context.rotation != primeContext?.rotation) return@listen
+                    if (event.request.rotation != primeContext?.rotation) return@listen
                     state = State.ROTATING
                 }
 
                 State.ROTATING -> {
-                    if (event.context.rotation != ctx.rotation.rotation) return@listen
-                    if (!event.context.isValid) return@listen
+                    if (event.request.rotation != ctx.rotation.rotation) return@listen
+                    if (!event.request.isValid) return@listen
 
                     state = State.PLACING
                 }

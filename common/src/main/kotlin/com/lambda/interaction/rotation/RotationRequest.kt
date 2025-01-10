@@ -23,10 +23,10 @@ import com.lambda.threading.runSafe
 import com.lambda.util.world.raycast.RayCastUtils.orMiss
 import net.minecraft.util.hit.HitResult
 
-data class RotationContext(
+data class RotationRequest(
     val rotation: Rotation,
     val config: RotationConfig,
-    val hitResult: HitResult? = null,
+    val checkedResult: HitResult? = null,
     val verify: HitResult.() -> Boolean = { true },
 ) {
     val isValid: Boolean get() = runSafe {

@@ -24,7 +24,7 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.RotationManager.rotate
 import com.lambda.interaction.rotation.Rotation
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -160,7 +160,7 @@ object Speed : Module(
                 val moveYaw = calcMoveYaw(yaw, input.roundedForward, input.roundedStrafing)
                 val rotation = Rotation(moveYaw, lastContext?.rotation?.pitch ?: player.pitch.toDouble())
 
-                RotationContext(rotation, rotationConfig)
+                RotationRequest(rotation, rotationConfig)
             }
         }
 

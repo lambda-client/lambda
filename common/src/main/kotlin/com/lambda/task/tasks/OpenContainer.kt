@@ -82,16 +82,16 @@ class OpenContainer @Ta5kBuilder constructor(
 
         listen<RotationEvent.Update> { event ->
             if (!rotate) return@listen
-            event.context = lookAtBlock(blockPos, rotation, interact, sides)
+            event.request = lookAtBlock(blockPos, rotation, interact, sides)
         }
 
         listen<RotationEvent.Post> {
             if (!rotate) return@listen
             if (state != State.SCOPING) return@listen
-            if (!it.context.isValid) return@listen
+            if (!it.request.isValid) return@listen
 
             if (inScope++ >= interact.scopeThreshold) {
-                val hitResult = it.context.hitResult?.blockResult ?: return@listen
+                val hitResult = it.request.checkedResult?.blockResult ?: return@listen
                 interaction.interactBlock(player, Hand.MAIN_HAND, hitResult)
 
                 state = State.OPENING

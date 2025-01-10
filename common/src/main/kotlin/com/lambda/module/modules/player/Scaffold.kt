@@ -37,7 +37,7 @@ import com.lambda.interaction.rotation.Rotation.Companion.angleDifference
 import com.lambda.interaction.rotation.Rotation.Companion.dist
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.Rotation.Companion.wrap
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.module.Module
@@ -129,7 +129,7 @@ object Scaffold : Module(
                 val info = updatePlaceInfo() ?: return@request null
                 val rotation = rotate(info) ?: return@request null
 
-                RotationContext(rotation, rotationConfig)
+                RotationRequest(rotation, rotationConfig)
             }
         }
 

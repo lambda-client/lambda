@@ -31,7 +31,7 @@ import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.angleDifference
 import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
 import com.lambda.interaction.rotation.Rotation.Companion.slerp
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
@@ -52,7 +52,7 @@ object RotationManager : Loadable {
     var currentRotation = Rotation.ZERO
     private var prevRotation = Rotation.ZERO
 
-    var currentContext: RotationContext? = null
+    var currentContext: RotationRequest? = null
 
     private var keepTicks = 0
     private var pauseTicks = 0
@@ -66,18 +66,18 @@ object RotationManager : Loadable {
         block: RequestRotationBuilder.() -> Unit,
     ) {
         val builder = RequestRotationBuilder().apply(block)
-        var requested: RotationContext? = null
+        var requested: RotationRequest? = null
 
         listen<RotationEvent.Update>(priority, alwaysListen) { event ->
-            builder.onUpdate?.invoke(this, event.context)?.let { context ->
+            builder.onUpdate?.invoke(this, event.request)?.let { context ->
                 if (!context.config.rotate) return@let
-                event.context = context
+                event.request = context
                 requested = context
             }
         }
 
         listen<RotationEvent.Post> { event ->
-            val context = event.context
+            val context = event.request
             if (!context.config.rotate) return@listen
             if (context != requested) return@listen
             if (!context.isValid) return@listen
@@ -89,16 +89,16 @@ object RotationManager : Loadable {
     annotation class RotationDsl
 
     class RequestRotationBuilder {
-        var onUpdate: (SafeContext.(lastContext: RotationContext?) -> RotationContext?)? = null
-        var onReceive: (SafeContext.(context: RotationContext) -> Unit)? = null
+        var onUpdate: (SafeContext.(lastContext: RotationRequest?) -> RotationRequest?)? = null
+        var onReceive: (SafeContext.(context: RotationRequest) -> Unit)? = null
 
         @RotationDsl
-        fun request(block: SafeContext.(lastContext: RotationContext?) -> RotationContext?) {
+        fun request(block: SafeContext.(lastContext: RotationRequest?) -> RotationRequest?) {
             onUpdate = block
         }
 
         @RotationDsl
-        fun finished(block: SafeContext.(context: RotationContext) -> Unit) {
+        fun finished(block: SafeContext.(context: RotationRequest) -> Unit) {
             onReceive = block
         }
     }
@@ -106,7 +106,7 @@ object RotationManager : Loadable {
     @JvmStatic
     fun update() = runSafe {
         RotationEvent.Update(BaritoneProcessor.poolContext()).post {
-            rotate(context)
+            rotate(request)
 
             currentContext?.let {
                 RotationEvent.Post(it).post()
@@ -129,7 +129,7 @@ object RotationManager : Loadable {
         }
     }
 
-    private fun rotate(newContext: RotationContext?) = runSafe {
+    private fun rotate(newContext: RotationRequest?) = runSafe {
         prevRotation = currentRotation
 
         keepTicks--
@@ -225,9 +225,9 @@ object RotationManager : Loadable {
     }
 
     object BaritoneProcessor {
-        private var baritoneContext: RotationContext? = null
+        private var baritoneContext: RotationRequest? = null
 
-        fun poolContext(): RotationContext? {
+        fun poolContext(): RotationRequest? {
             val ctx = baritoneContext
             baritoneContext = null
             return ctx
@@ -242,7 +242,7 @@ object RotationManager : Loadable {
 
         @JvmStatic
         fun handleBaritoneRotation(yaw: Float, pitch: Float) {
-            baritoneContext = RotationContext(Rotation(yaw, pitch), Baritone.rotation.apply {
+            baritoneContext = RotationRequest(Rotation(yaw, pitch), Baritone.rotation.apply {
                 if (rotationMode != RotationMode.SILENT) return@apply
                 rotationMode = RotationMode.SYNC
             })
