@@ -27,7 +27,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.builders.ofBox
 import com.lambda.graphics.renderer.esp.builders.ofShape
 import com.lambda.interaction.RotationManager.rotate
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -108,14 +108,14 @@ object CrystalAura : Module(
     private val placementTargets = mutableListOf<PlacementTarget>()
     private val target: LivingEntity? get() = targeting.target()
 
-    private var currentRotation: RotationContext? = null
+    private var currentRotation: RotationRequest? = null
 
     init {
         listen<TickEvent.Pre> {
             currentRotation?.let { rotate ->
                 if (!place) return@let
                 if (!rotate.isValid) return@let
-                val blockHit = rotate.hitResult?.blockResult ?: return@let
+                val blockHit = rotate.checkedResult?.blockResult ?: return@let
                 val inMainHand = player.mainHandStack.item == Items.END_CRYSTAL
                 val inOffHand = player.offHandStack.item == Items.END_CRYSTAL
                 if (!inMainHand && !inOffHand) return@let
