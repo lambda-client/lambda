@@ -63,13 +63,13 @@ object RotationManager : Loadable {
     fun Any.rotate(
         priority: Int = 0,
         alwaysListen: Boolean = false,
-        block: RequestRotationBuilder.() -> Unit,
+        block: RotationRequestBuilder.() -> Unit,
     ) {
-        val builder = RequestRotationBuilder().apply(block)
+        val builder = RotationRequestBuilder().apply(block)
         var lastRequest: RotationRequest? = null
 
         listen<RotationEvent.Update>(priority, alwaysListen) { event ->
-            val rotationRequest = builder.onUpdate?.invoke(this, event.request)
+            val rotationRequest = builder.request?.invoke(this, event.request)
 
             rotationRequest?.let {
                 event.request = it
@@ -80,7 +80,7 @@ object RotationManager : Loadable {
 
         listen<RotationEvent.Post> { event ->
             if (event.request == lastRequest) {
-                builder.onReceive?.invoke(this, event.request)
+                builder.onFinish?.invoke(this, event.request)
             }
         }
     }
@@ -88,18 +88,18 @@ object RotationManager : Loadable {
     @DslMarker
     annotation class RotationDsl
 
-    class RequestRotationBuilder {
-        var onUpdate: (SafeContext.(lastContext: RotationRequest?) -> RotationRequest?)? = null
-        var onReceive: (SafeContext.(context: RotationRequest) -> Unit)? = null
+    class RotationRequestBuilder {
+        var request: (SafeContext.(lastContext: RotationRequest?) -> RotationRequest?)? = null
+        var onFinish: (SafeContext.(context: RotationRequest) -> Unit)? = null
 
         @RotationDsl
-        fun onUpdate(block: SafeContext.(lastContext: RotationRequest?) -> RotationRequest?) {
-            onUpdate = block
+        fun request(block: SafeContext.(lastContext: RotationRequest?) -> RotationRequest?) {
+            request = block
         }
 
         @RotationDsl
-        fun onReceive(block: SafeContext.(context: RotationRequest) -> Unit) {
-            onReceive = block
+        fun finished(block: SafeContext.(context: RotationRequest) -> Unit) {
+            onFinish = block
         }
     }
 

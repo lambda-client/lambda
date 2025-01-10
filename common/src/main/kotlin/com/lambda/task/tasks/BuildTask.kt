@@ -43,12 +43,11 @@ import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.Communication.info
 import com.lambda.util.Formatting.string
+import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.extension.Structure
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
 import net.minecraft.util.math.BlockPos
-import java.util.concurrent.ConcurrentLinkedQueue
 
 class BuildTask @Ta5kBuilder constructor(
     private val blueprint: Blueprint,
@@ -60,13 +59,12 @@ class BuildTask @Ta5kBuilder constructor(
 ) : Task<Unit>() {
     override val name: String get() = "Building $blueprint with ${(placements / (age / 20.0 + 0.001)).string} p/s"
 
-    private val pendingPlacements = ConcurrentLinkedQueue<PlaceContext>()
-    private val pendingBreaks = ConcurrentLinkedQueue<BreakContext>()
+    private val pendingPlacements = LimitedDecayQueue<PlaceContext>(20, 1000)
+    private val pendingBreaks = LimitedDecayQueue<BreakContext>(20, 1000)
 
     private var currentPlacement: PlaceContext? = null
     private var placements = 0
     private var breaks = 0
-    private var inScope = 0
 
     override fun SafeContext.onStart() {
         (blueprint as? DynamicBlueprint)?.create()
@@ -74,21 +72,11 @@ class BuildTask @Ta5kBuilder constructor(
 
     init {
         listen<TickEvent.Pre> {
-            pendingPlacements.removeIf {
-                val timeout = (mc.uptimeInTicks - it.placeTick) > build.placeTimeout
-                if (timeout) {
-                    info("Placement Timeout of ${it.expectedPos.toShortString()}")
-                }
-                timeout
-            }
-
             currentPlacement?.let { context ->
-                if (!context.rotation.isValid) return@listen
-                if (inScope++ < 1) return@listen // ToDo: Should not be needed but timings are wrong
+                if (!context.rotation.isValid) return@let
                 context.place(interact.swingHand)
                 pendingPlacements.add(context)
                 currentPlacement = null
-                inScope = 0
             }
 
             (blueprint as? DynamicBlueprint)?.update()
@@ -161,9 +149,8 @@ class BuildTask @Ta5kBuilder constructor(
         }
 
         rotate {
-            onUpdate {
-                if (currentPlacement == null) return@onUpdate null
-                if (!build.rotateForPlace) return@onUpdate null
+            request {
+                if (!build.rotateForPlace) return@request null
                 currentPlacement?.rotation
             }
         }

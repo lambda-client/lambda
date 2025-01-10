@@ -135,14 +135,14 @@ object Speed : Module(
         }
 
         rotate(100, alwaysListen = false) {
-            onUpdate { lastContext ->
-                if (mode != Mode.GRIM_STRAFE) return@onUpdate null
-                if (!shouldWork()) return@onUpdate null
+            request { lastContext ->
+                if (mode != Mode.GRIM_STRAFE) return@request null
+                if (!shouldWork()) return@request null
 
                 var yaw = player.yaw
                 val input = newMovementInput()
 
-                if (!input.isInputting) return@onUpdate null
+                if (!input.isInputting) return@request null
 
                 run {
                     if (!diagonal) return@run

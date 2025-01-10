@@ -124,10 +124,10 @@ object Scaffold : Module(
 
     init {
         rotate {
-            onUpdate {
+            request {
                 lastRotation = null
-                val info = updatePlaceInfo() ?: return@onUpdate null
-                val rotation = rotate(info) ?: return@onUpdate null
+                val info = updatePlaceInfo() ?: return@request null
+                val rotation = rotate(info) ?: return@request null
 
                 RotationRequest(rotation, rotationConfig)
             }
