@@ -312,16 +312,6 @@ abstract class Buffer(
      * @param offset    The starting offset within the buffer of the range to be mapped
      * @return          Error encountered during the mapping process
      */
-    open fun upload(data: ByteArray, offset: Long): Throwable? =
-        upload(ByteBuffer.wrap(data), offset)
-
-    /**
-     * Sets the given data into the client mapped memory and executes the provided processing function to manage data transfer.
-     *
-     * @param data      Data to set in memory
-     * @param offset    The starting offset within the buffer of the range to be mapped
-     * @return          Error encountered during the mapping process
-     */
     abstract fun upload(data: ByteBuffer, offset: Long): Throwable?
 
     init {
