@@ -26,7 +26,7 @@ import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.interaction.RotationManager
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.interaction.visibilty.VisibilityChecker.findRotation
 import com.lambda.module.Module
 import com.lambda.module.modules.client.TaskFlowModule
@@ -255,7 +255,7 @@ object PacketMine : Module(
     private var swappedSlot = -1
     private var swapped = false
     private var previousSelectedSlot = -1
-    private var expectedRotation: RotationContext? = null
+    private var expectedRotation: RotationRequest? = null
     private var rotationPosition: BlockPos? = null
     private var pausedForRotation = false
     private var releaseRotateDelayCounter = 0
@@ -537,11 +537,11 @@ object PacketMine : Module(
             rotationPosition?.let { pos ->
                 lastNonEmptyState?.let { state ->
                     val boxList = state.getOutlineShape(world, pos).boundingBoxes.map { it.offset(pos) }
-                    val rotationContext =
+                    val rotationRequest =
                         findRotation(boxList, TaskFlowModule.rotation, TaskFlowModule.interact, emptySet()) { true }
-                    rotationContext?.let { context ->
-                        it.context = context
-                        expectedRotation = context
+                    rotationRequest?.let { request ->
+                        it.request = request
+                        expectedRotation = request
                     }
                 }
             } ?: run {
@@ -564,7 +564,7 @@ object PacketMine : Module(
 
             expectedRotation?.let { expectedRot ->
                 rotationPosition?.let { pos ->
-                    if (it.context != expectedRot) {
+                    if (it.request != expectedRot) {
                         pausedForRotation = true
                         return@listen
                     }
@@ -573,7 +573,7 @@ object PacketMine : Module(
                     if (verifyRotation(
                             boxList,
                             RotationManager.currentRotation.vector,
-                            RotationManager.currentContext?.hitResult
+                            RotationManager.currentContext?.checkedResult
                         )
                     ) {
                         onRotationComplete?.run()
@@ -899,7 +899,7 @@ object PacketMine : Module(
         if (!verifyRotation(
                 lastNonEmptyState?.getOutlineShape(world, pos)?.boundingBoxes?.map { it.offset(pos) },
                 RotationManager.currentRotation.vector,
-                RotationManager.currentContext?.hitResult
+                RotationManager.currentContext?.checkedResult
             )
         ) {
             pausedForRotation = true

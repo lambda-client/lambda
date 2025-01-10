@@ -21,7 +21,7 @@ import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
 import com.lambda.util.Communication.warn
@@ -36,7 +36,7 @@ import java.awt.Color
 data class PlaceContext(
     override val pov: Vec3d,
     override val result: BlockHitResult,
-    override val rotation: RotationContext,
+    override val rotation: RotationRequest,
     override val distance: Double,
     override val expectedState: BlockState,
     override val checkedState: BlockState,

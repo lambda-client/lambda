@@ -30,7 +30,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.container.ContainerManager.findBestAvailableTool
 import com.lambda.interaction.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.visibilty.VisibilityChecker.optimum
 import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
@@ -195,7 +195,7 @@ object BuildSimulator {
             validHits.keys.optimum?.let { optimum ->
                 validHits.minByOrNull { optimum distSq it.key }?.let { closest ->
                     val optimumRotation = eye.rotationTo(closest.key)
-                    RotationContext(optimumRotation, rotation, closest.value, verify)
+                    RotationRequest(optimumRotation, rotation, closest.value, verify)
                 }
             }?.let { rotation ->
                 val optimalStack = target.getStack(world, pos)
@@ -209,7 +209,7 @@ object BuildSimulator {
                 val usageContext = ItemUsageContext(
                     fakePlayer,
                     Hand.MAIN_HAND,
-                    rotation.hitResult?.blockResult,
+                    rotation.checkedResult?.blockResult,
                 )
                 val cachePos = CachedBlockPosition(
                     usageContext.world,
@@ -269,7 +269,7 @@ object BuildSimulator {
                     return@forEach
                 }
 
-                val blockHit = rotation.hitResult?.blockResult ?: return@forEach
+                val blockHit = rotation.checkedResult?.blockResult ?: return@forEach
                 val hitBlock = blockHit.blockPos.blockState(world).block
                 val shouldSneak = hitBlock in BlockUtils.interactionBlacklist
 
@@ -382,11 +382,11 @@ object BuildSimulator {
         /* the player is buried inside the block */
         if (boxes.any { it.contains(eye) }) {
             currentCast?.blockResult?.let { blockHit ->
-                val rotationContext = RotationContext(currentRotation, rotation, currentCast, verify)
+                val rotationRequest = RotationRequest(currentRotation, rotation, currentCast, verify)
                 val breakContext = BreakContext(
                     eye,
                     blockHit,
-                    rotationContext,
+                    rotationRequest,
                     state,
                     player.activeHand,
                     instantBreakable(state, pos)
@@ -430,10 +430,10 @@ object BuildSimulator {
         validHits.keys.optimum?.let { optimum ->
             validHits.minByOrNull { optimum distSq it.key }?.let { closest ->
                 val optimumRotation = eye.rotationTo(closest.key)
-                RotationContext(optimumRotation, rotation, closest.value, verify)
+                RotationRequest(optimumRotation, rotation, closest.value, verify)
             }
         }?.let { bestRotation ->
-            val blockHit = bestRotation.hitResult?.blockResult ?: return@let
+            val blockHit = bestRotation.checkedResult?.blockResult ?: return@let
 
             val breakContext = BreakContext(
                 eye,

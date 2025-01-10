@@ -24,7 +24,7 @@ import com.lambda.interaction.RotationManager
 import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.component6
@@ -52,7 +52,7 @@ object VisibilityChecker {
      * @param rotationConfig Specifies the rotation configuration settings.
      * @param interactionConfig Specifies interaction settings, such as range and resolution.
      * @param entity The entity to be looked at.
-     * @return A [RotationContext] if a valid rotation was found; otherwise, null.
+     * @return A [RotationRequest] if a valid rotation was found; otherwise, null.
      */
     fun SafeContext.lookAtEntity(
         rotationConfig: RotationConfig,
@@ -70,14 +70,14 @@ object VisibilityChecker {
      * @param rotationConfig Specifies rotation configuration settings.
      * @param interactionConfig Specifies interaction settings, such as range and resolution.
      * @param sides Specifies the set of block sides to consider for targeting.
-     * @return A [RotationContext] if a valid rotation was found; otherwise, null.
+     * @return A [RotationRequest] if a valid rotation was found; otherwise, null.
      */
     fun SafeContext.lookAtBlock(
         blockPos: BlockPos,
         rotationConfig: RotationConfig = TaskFlowModule.rotation,
         interactionConfig: InteractionConfig = TaskFlowModule.interact,
         sides: Set<Direction> = Direction.entries.toSet(),
-    ): RotationContext? {
+    ): RotationRequest? {
         val state = blockPos.blockState(world)
         val voxelShape = state.getOutlineShape(world, blockPos)
         val boundingBoxes = voxelShape.boundingBoxes.map { it.offset(blockPos) }
@@ -96,7 +96,7 @@ object VisibilityChecker {
      * @param reach The maximum reach distance for the interaction.
      * @param eye The player's eye position.
      * @param verify A lambda to verify if a [HitResult] meets the desired criteria.
-     * @return A [RotationContext] if a valid rotation was found; otherwise, null.
+     * @return A [RotationRequest] if a valid rotation was found; otherwise, null.
      */
     fun SafeContext.findRotation(
         boxes: List<Box>,
@@ -106,12 +106,12 @@ object VisibilityChecker {
         reach: Double = interact.reach,
         eye: Vec3d = player.getCameraPosVec(1f),
         verify: HitResult.() -> Boolean,
-    ): RotationContext? {
+    ): RotationRequest? {
         val currentRotation = RotationManager.currentRotation
         val currentCast = currentRotation.rayCast(reach, eye)
 
         if (boxes.any { it.contains(eye) }) {
-            return RotationContext(currentRotation, rotationConfig, currentCast, verify)
+            return RotationRequest(currentRotation, rotationConfig, currentCast, verify)
         }
 
         val validHits = mutableMapOf<Vec3d, HitResult>()
@@ -140,7 +140,7 @@ object VisibilityChecker {
         validHits.keys.optimum?.let { optimum ->
             validHits.minByOrNull { optimum distSq it.key }?.let { closest ->
                 val optimumRotation = eye.rotationTo(closest.key)
-                return RotationContext(optimumRotation, rotationConfig, closest.value, verify)
+                return RotationRequest(optimumRotation, rotationConfig, closest.value, verify)
             }
         }
 
