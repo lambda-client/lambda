@@ -23,6 +23,7 @@ import com.lambda.graphics.texture.TextureUtils.readImage
 import com.lambda.graphics.texture.TextureUtils.setupTexture
 import com.lambda.util.math.Rect.Companion.basedOn
 import com.lambda.util.math.Vec2d
+import net.minecraft.client.texture.NativeImage
 import org.lwjgl.opengl.GL45C.*
 import java.awt.image.BufferedImage
 import java.lang.IllegalStateException
@@ -123,7 +124,7 @@ open class Texture{
 
         // Set this mipmap to `offset` to define the original texture
         setupTexture(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
-        glTexImage2D(GL_TEXTURE_2D, offset, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, readImage(image))
+        glTexImage2D(GL_TEXTURE_2D, offset, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, readImage(image, getNativeFormat(format)))
         if (levels > 1) glGenerateMipmap(GL_TEXTURE_2D) // This take the derived values GL_TEXTURE_BASE_LEVEL and GL_TEXTURE_MAX_LEVEL to generate the stack
     }
 
@@ -171,7 +172,7 @@ open class Texture{
                     "Expected ${this.width + this.height} bytes but got ${image.width + image.height}"
         }
 
-        glTexSubImage2D(GL_TEXTURE_2D, offset, 0, 0, width, height, format, GL_UNSIGNED_BYTE, readImage(image))
+        glTexSubImage2D(GL_TEXTURE_2D, offset, 0, 0, width, height, format, GL_UNSIGNED_BYTE, readImage(image, getNativeFormat(format)))
     }
 
     /**
@@ -218,4 +219,10 @@ open class Texture{
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, levels)
     }
+
+    private fun getNativeFormat(gl: Int) =
+        when (gl) {
+            GL_RGB -> NativeImage.Format.RGB
+            else -> NativeImage.Format.RGBA
+        }
 }
