@@ -40,7 +40,6 @@ object MapPreview : Module(
 
     private val buffer = BufferUtils.createByteBuffer(128*128)
     private val texture = Texture(buffer, 128, 128, format = GL_RGB, levels = 1)
-    private val pbo = PixelBuffer(texture)
 
     @JvmStatic
     fun drawMap(stack: ItemStack, x: Int, y: Int) = runSafe {
