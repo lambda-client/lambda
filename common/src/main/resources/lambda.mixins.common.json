@@ -32,6 +32,7 @@
     "render.DebugHudMixin",
     "render.GameRendererMixin",
     "render.GlStateManagerMixin",
+    "render.HandledScreenMixin",
     "render.InGameHudMixin",
     "render.InGameOverlayRendererMixin",
     "render.LightmapTextureManagerMixin",

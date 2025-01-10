@@ -65,6 +65,9 @@ data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
         fun basedOn(base: Vec2d, width: Double, height: Double) =
             Rect(base, base + Vec2d(width, height))
 
+        fun basedOn(base: Vec2d, width: Int, height: Int) =
+            Rect(base, base + Vec2d(width, height))
+
         fun basedOn(base: Vec2d, size: Vec2d) =
             Rect(base, base + size)
 
