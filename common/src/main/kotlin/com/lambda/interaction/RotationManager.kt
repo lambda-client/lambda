@@ -66,21 +66,22 @@ object RotationManager : Loadable {
         block: RequestRotationBuilder.() -> Unit,
     ) {
         val builder = RequestRotationBuilder().apply(block)
-        var lastCtx: RotationContext? = null
+        var requested: RotationContext? = null
 
         listen<RotationEvent.Update>(priority, alwaysListen) { event ->
             builder.onUpdate?.invoke(this, event.context)?.let { context ->
                 if (!context.config.rotate) return@let
                 event.context = context
-                lastCtx = context
+                requested = context
             }
         }
 
         listen<RotationEvent.Post> { event ->
-            if (!event.context.config.rotate) return@listen
-            if (event.context == lastCtx) {
-                builder.onReceive?.invoke(this, event.context)
-            }
+            val context = event.context
+            if (!context.config.rotate) return@listen
+            if (context != requested) return@listen
+            if (!context.isValid) return@listen
+            builder.onReceive?.invoke(this, context)
         }
     }
 
@@ -92,12 +93,12 @@ object RotationManager : Loadable {
         var onReceive: (SafeContext.(context: RotationContext) -> Unit)? = null
 
         @RotationDsl
-        fun onUpdate(block: SafeContext.(lastContext: RotationContext?) -> RotationContext?) {
+        fun request(block: SafeContext.(lastContext: RotationContext?) -> RotationContext?) {
             onUpdate = block
         }
 
         @RotationDsl
-        fun onReceive(block: SafeContext.(context: RotationContext) -> Unit) {
+        fun finished(block: SafeContext.(context: RotationContext) -> Unit) {
             onReceive = block
         }
     }

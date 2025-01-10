@@ -22,9 +22,11 @@ import com.lambda.config.groups.RotationSettings
 import com.lambda.config.groups.Targeting
 import com.lambda.context.SafeContext
 import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.builders.ofShape
 import com.lambda.interaction.RotationManager.rotate
+import com.lambda.interaction.rotation.RotationContext
 import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -34,10 +36,10 @@ import com.lambda.util.combat.CombatUtils.explosionDamage
 import com.lambda.util.math.VecUtils.dist
 import com.lambda.util.math.VecUtils.vec3d
 import com.lambda.util.math.transform
-import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.Hand
+import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
@@ -86,17 +88,31 @@ object CrystalAura : Module(
     private val placements = LimitedDecayQueue<BlockPos>(64, 1000L)
     private val target: LivingEntity? get() = targeting.target()
 
+    private var currentRotation: RotationContext? = null
+
     init {
-        rotate {
-            onUpdate {
-                val targetEntity = target ?: return@onUpdate null
-                val validPositions = findTargetPositions(targetEntity)
-
-                testRender.addAll(validPositions.map { it.blockPos })
-
-                validPositions.firstNotNullOfOrNull {
-                    lookAtBlock(it.blockPos, rotation, interact)
+        listen<TickEvent.Pre> {
+            currentRotation?.let { rotate ->
+                if (!rotate.isValid) return@let
+                (rotate.hitResult as? BlockHitResult)?.let { result ->
+                    interaction.interactBlock(player, Hand.MAIN_HAND, result)
+                    placements.add(result.blockPos)
+                    currentRotation = null
                 }
+            }
+
+            target?.let { tar ->
+                val validPositions = findTargetPositions(tar).filter { it.blockPos !in placements }
+                testRender.addAll(validPositions.map { it.blockPos })
+                currentRotation = validPositions.firstNotNullOfOrNull {
+                    lookAtBlock(it.blockPos.toImmutable(), rotation, interact)
+                }
+            }
+        }
+
+        rotate {
+            request {
+                currentRotation
             }
         }
 

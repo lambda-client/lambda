@@ -113,8 +113,8 @@ object KillAura : Module(
 
     init {
         rotate {
-            onUpdate {
-                if (!rotate) return@onUpdate null
+            request {
+                if (!rotate) return@request null
 
                 target?.let { target ->
                     buildRotation(target)

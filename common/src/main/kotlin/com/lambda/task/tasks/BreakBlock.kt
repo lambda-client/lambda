@@ -81,13 +81,13 @@ class BreakBlock @Ta5kBuilder constructor(
 
     init {
         rotate {
-            onUpdate {
-                if (state != State.BREAKING) return@onUpdate null
-                if (!rotate || ctx.instantBreak) return@onUpdate null
+            request {
+                if (state != State.BREAKING) return@request null
+                if (!rotate || ctx.instantBreak) return@request null
 
                 lookAtBlock(blockPos, rotation, interact, sides)
             }
-            onReceive { context ->
+            finished { context ->
                 isValid = context.isValid
             }
         }

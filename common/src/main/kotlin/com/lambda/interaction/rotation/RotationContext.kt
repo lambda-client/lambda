@@ -18,6 +18,8 @@
 package com.lambda.interaction.rotation
 
 import com.lambda.config.groups.RotationConfig
+import com.lambda.interaction.RotationManager
+import com.lambda.threading.runSafe
 import com.lambda.util.world.raycast.RayCastUtils.orMiss
 import net.minecraft.util.hit.HitResult
 
@@ -27,5 +29,9 @@ data class RotationContext(
     val hitResult: HitResult? = null,
     val verify: HitResult.() -> Boolean = { true },
 ) {
-    val isValid: Boolean get() = verify(hitResult.orMiss)
+    val isValid: Boolean get() = runSafe {
+        // ToDo: Use proper reach
+        val result = RotationManager.currentRotation.rayCast(10.0, player.eyePos)
+        verify(result.orMiss)
+    } ?: false
 }

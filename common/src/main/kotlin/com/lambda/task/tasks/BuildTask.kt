@@ -161,9 +161,9 @@ class BuildTask @Ta5kBuilder constructor(
         }
 
         rotate {
-            onUpdate {
-                if (currentPlacement == null) return@onUpdate null
-                if (!build.rotateForPlace) return@onUpdate null
+            request {
+                if (currentPlacement == null) return@request null
+                if (!build.rotateForPlace) return@request null
                 currentPlacement?.rotation
             }
         }
