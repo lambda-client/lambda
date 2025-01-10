@@ -37,22 +37,25 @@ object FakePlayer : Module(
     private val playerName by setting("Name", "Steve")
 
     private var fakePlayer: OtherClientPlayerEntity? = null
+    private val nilUuid = UUID(0, 0)
 
     init {
         onEnable {
-            // Avoid multiple api requests
-            if (fakePlayer?.gameProfile?.name == playerName)
-                return@onEnable spawnPlayer(fakePlayer!!.gameProfile)
+            fakePlayer?.let { fake ->
+                // Avoid multiple api requests
+                if (fake.gameProfile.name == playerName)
+                    return@onEnable spawnPlayer(fake.gameProfile)
+            }
 
             runSafeConcurrent {
                 val uuid =
                     request("https://api.mojang.com/users/profiles/minecraft/$playerName") {
                         method(Method.GET)
-                    }.json<GameProfile>().data?.id ?: UUID(0, 0)
+                    }.json<GameProfile>().data?.id ?: nilUuid
 
                 val fetchedProperties = mc.sessionService.fetchProfile(uuid, true)?.profile?.properties
 
-                val profile = GameProfile(UUID(0, 0), playerName).apply {
+                val profile = GameProfile(nilUuid, playerName).apply {
                     fetchedProperties?.forEach { key, value -> properties.put(key, value) }
                 }
 
