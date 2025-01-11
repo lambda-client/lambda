@@ -17,41 +17,60 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.graphics.buffer.pixel.PixelBuffer
-import com.lambda.graphics.texture.Texture
+import com.lambda.Lambda.mc
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runSafe
-import com.lambda.util.math.Vec2d
+import com.mojang.blaze3d.systems.RenderSystem
+import net.minecraft.client.font.TextRenderer
+import net.minecraft.client.gui.DrawContext
+import net.minecraft.client.gui.tooltip.TooltipComponent
+import net.minecraft.client.render.MapRenderer
 import net.minecraft.item.FilledMapItem
 import net.minecraft.item.ItemStack
-import org.lwjgl.BufferUtils
-import org.lwjgl.opengl.GL11.GL_RGB
-import org.lwjgl.opengl.GL11.GL_RGBA
-import org.lwjgl.opengl.GL45C.GL_TEXTURE_2D
-import org.lwjgl.opengl.GL45C.glBindTexture
+import net.minecraft.item.map.MapState
+import net.minecraft.util.Identifier
+
 
 object MapPreview : Module(
     name = "MapPreview",
     description = "Preview maps in your inventory",
     defaultTags = setOf(ModuleTag.RENDER)
 ) {
-    private val scale by setting("Scale", 0.7, 0.1..1.0, 0.05)
+    private val scale by setting("Scale", 0.7f, 0.1f..1.0f, 0.05f)
 
-    private val buffer = BufferUtils.createByteBuffer(128*128)
-    private val texture = Texture(buffer, 128, 128, format = GL_RGB, levels = 1)
+    private val background = Identifier("textures/map/map_background.png")
 
-    @JvmStatic
-    fun drawMap(stack: ItemStack, x: Int, y: Int) = runSafe {
-        val state = FilledMapItem.getMapState(stack, world) ?: return@runSafe
-        buffer.put(state.colors)
-        buffer.flip()
+    // The map component is added via the draw context mixin, thanks mojang
+    class MapComponent(val stack: ItemStack) : TooltipComponent {
+        val state: MapState?
+            get() = FilledMapItem.getMapState(stack, mc.world)
 
-        val base = Vec2d(x, y)
+        val mapId: Int?
+            get() = FilledMapItem.getMapId(stack)
 
-        texture.bind()
-        texture.update(buffer, 128, 128)
+        override fun drawItems(fontRenderer: TextRenderer, x: Int, y: Int, context: DrawContext) {
+            mapId?.let { id ->
+                // Values taken from net.minecraft.client.render.item.HeldItemRenderer.renderFirstPersonMap
 
-        texture.draw(base, scale)
+                val matrices = context.matrices
+
+                matrices.push()
+                matrices.translate(x + 3.0, y + 3.0, 500.0)
+                matrices.scale(scale, scale, 1f)
+
+                RenderSystem.enableBlend()
+                context.drawTexture(background, -7, -7, 0f, 0f, 142, 142, 142, 142)
+
+                matrices.translate(0.0, 0.0, 1.0)
+                mc.gameRenderer.mapRenderer.draw(matrices, context.vertexConsumers, id, state, true, 240)
+            }
+        }
+
+        override fun getHeight(): Int {
+            return if (FilledMapItem.getMapState(stack, mc.world) != null) 100
+            else 0
+        }
+
+        override fun getWidth(textRenderer: TextRenderer) = 72
     }
 }
