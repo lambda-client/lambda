@@ -21,9 +21,9 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.extension.component1
-import com.lambda.util.extension.component2
-import com.lambda.util.extension.component3
+import com.lambda.util.math.component1
+import com.lambda.util.math.component2
+import com.lambda.util.math.component3
 import com.lambda.util.player.MovementUtils.motion
 import com.lambda.util.player.MovementUtils.motionY
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket

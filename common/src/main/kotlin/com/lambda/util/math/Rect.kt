@@ -34,8 +34,8 @@ data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
     val size get() = Vec2d(right - left, bottom - top)
     val center get() = lerp(0.5, pos1, pos2)
 
-    operator fun plus(vec2d: Vec2d) = Rect(pos1 + vec2d, pos2 + vec2d)
-    operator fun minus(vec2d: Vec2d) = Rect(pos1 - vec2d, pos2 - vec2d)
+    infix operator fun plus(vec2d: Vec2d) = Rect(pos1 + vec2d, pos2 + vec2d)
+    infix operator fun minus(vec2d: Vec2d) = Rect(pos1 - vec2d, pos2 - vec2d)
 
     fun moveFirst(vec2d: Vec2d) = Rect(pos1 + vec2d, pos2)
     fun moveSecond(vec2d: Vec2d) = Rect(pos1, pos2 + vec2d)

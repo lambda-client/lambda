@@ -19,7 +19,7 @@ package com.lambda.interaction.material.container.containers
 
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.util.math.VecUtils.blockPos
+import com.lambda.util.math.blockPos
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal

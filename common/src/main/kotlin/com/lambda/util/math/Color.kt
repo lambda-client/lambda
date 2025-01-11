@@ -20,16 +20,6 @@ package com.lambda.util.math
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
-val Color.hsb
-    get() = Color.RGBtoHSB(red, green, blue, null)
-        .map(Float::toDouble)
-
-fun DoubleArray.readHSB(): Color = Color.getHSBColor(this[0].toFloat(), this[1].toFloat(), this[2].toFloat())
-
-val Color.hue get() = hsb[0]
-val Color.saturation get() = hsb[1]
-val Color.brightness get() = hsb[2]
-
 fun Color.setAlpha(value: Double) =
     Color(red, green, blue, (value * 255.0).coerceIn(0.0, 255.0).toInt())
 

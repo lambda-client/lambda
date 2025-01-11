@@ -33,9 +33,9 @@ import com.lambda.util.ClientPacket
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.ServerPacket
-import com.lambda.util.math.VecUtils.dist
-import com.lambda.util.math.VecUtils.minus
-import com.lambda.util.math.VecUtils.plus
+import com.lambda.util.math.dist
+import com.lambda.util.math.minus
+import com.lambda.util.math.plus
 import com.lambda.util.math.lerp
 import com.lambda.util.math.multAlpha
 import net.minecraft.entity.LivingEntity

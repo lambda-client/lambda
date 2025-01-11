@@ -23,8 +23,8 @@ import com.lambda.interaction.PlayerPacketManager
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.warn
-import com.lambda.util.math.VecUtils.dist
-import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.dist
+import com.lambda.util.math.distSq
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
 import com.lambda.util.text.literal
