@@ -33,7 +33,8 @@ import java.nio.ByteBuffer
  * Represents a texture that can be uploaded and bound to the graphics pipeline
  * Supports mipmap generation and LOD (Level of Detail) configuration
  */
-open class Texture{
+open class Texture {
+    val internalFormat: Int
     val format: Int
     private val levels: Int
     private val forceConsistency: Boolean
@@ -46,10 +47,12 @@ open class Texture{
      *                          the texture after initialization will throw an exception
      */
     constructor(image: BufferedImage?,
+                internalFormat: Int = GL_RGBA,
                 format: Int = GL_RGBA,
                 levels: Int = 4,
                 forceConsistency: Boolean = false)
     {
+        this.internalFormat = internalFormat
         this.format = format
         this.levels = levels
         this.forceConsistency = forceConsistency
@@ -69,10 +72,12 @@ open class Texture{
     constructor(buffer: ByteBuffer,
                 width: Int,
                 height: Int,
+                internalFormat: Int = GL_RGBA,
                 format: Int = GL_RGBA,
                 levels: Int = 4,
                 forceConsistency: Boolean = false)
     {
+        this.internalFormat = internalFormat
         this.format = format
         this.levels = levels
         this.forceConsistency = forceConsistency
@@ -124,7 +129,7 @@ open class Texture{
 
         // Set this mipmap to `offset` to define the original texture
         setupTexture(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
-        glTexImage2D(GL_TEXTURE_2D, offset, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, readImage(image, getNativeFormat(format)))
+        glTexImage2D(GL_TEXTURE_2D, offset, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, readImage(image, getNativeFormat(format)))
         if (levels > 1) glGenerateMipmap(GL_TEXTURE_2D) // This take the derived values GL_TEXTURE_BASE_LEVEL and GL_TEXTURE_MAX_LEVEL to generate the stack
     }
 
@@ -150,7 +155,7 @@ open class Texture{
 
         // Set this mipmap to `offset` to define the original texture
         setupTexture(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
-        glTexImage2D(GL_TEXTURE_2D, offset, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, buffer)
+        glTexImage2D(GL_TEXTURE_2D, offset, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, buffer)
         if (levels > 1) glGenerateMipmap(GL_TEXTURE_2D) // This take the derived values GL_TEXTURE_BASE_LEVEL and GL_TEXTURE_MAX_LEVEL to generate the stack
     }
 
