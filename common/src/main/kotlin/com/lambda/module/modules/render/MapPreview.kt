@@ -52,7 +52,7 @@ object MapPreview : Module(
                 val matrices = context.matrices
 
                 matrices.push()
-                matrices.translate(x + 3.0, y + 3.0, 500.0)
+                matrices.translate(x + 4.0, y + 4.0, 500.0)
                 matrices.scale(0.7f, 0.7f, 1f)
 
                 RenderSystem.enableBlend()
