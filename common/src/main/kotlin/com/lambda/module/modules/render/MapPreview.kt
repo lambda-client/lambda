@@ -24,7 +24,6 @@ import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.client.font.TextRenderer
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.tooltip.TooltipComponent
-import net.minecraft.client.render.MapRenderer
 import net.minecraft.item.FilledMapItem
 import net.minecraft.item.ItemStack
 import net.minecraft.item.map.MapState
@@ -36,8 +35,6 @@ object MapPreview : Module(
     description = "Preview maps in your inventory",
     defaultTags = setOf(ModuleTag.RENDER)
 ) {
-    private val scale by setting("Scale", 0.7f, 0.1f..1.0f, 0.05f)
-
     private val background = Identifier("textures/map/map_background.png")
 
     // The map component is added via the draw context mixin, thanks mojang
@@ -56,7 +53,7 @@ object MapPreview : Module(
 
                 matrices.push()
                 matrices.translate(x + 3.0, y + 3.0, 500.0)
-                matrices.scale(scale, scale, 1f)
+                matrices.scale(0.7f, 0.7f, 1f)
 
                 RenderSystem.enableBlend()
                 context.drawTexture(background, -7, -7, 0f, 0f, 142, 142, 142, 142)
