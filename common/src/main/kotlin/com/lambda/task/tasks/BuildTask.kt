@@ -88,7 +88,7 @@ class BuildTask @Ta5kBuilder constructor(
 
             // ToDo: Simulate for each pair player positions that work
             val results = blueprint.simulate(player.getCameraPosVec(mc.tickDelta))
-            TaskFlowModule.drawables = results.filterIsInstance<Drawable>().plus(pendingPlacements.toList())
+            TaskFlowModule.drawables = results.filterIsInstance<Drawable>().plus(pendingPlacements)
 
             val instantResults = results.filterIsInstance<BreakResult.Break>()
                 .filter { it.context.instantBreak }
