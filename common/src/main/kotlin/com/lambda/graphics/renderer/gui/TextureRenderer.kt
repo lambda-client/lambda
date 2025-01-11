@@ -38,7 +38,6 @@ object TextureRenderer {
         shader.use()
 
         drawInternal(rect)
-        texture.unbind()
     }
 
     fun drawTextureShaded(texture: Texture, rect: Rect) {

@@ -52,7 +52,7 @@ object TextureUtils {
 
     fun readImage(
         bufferedImage: BufferedImage,
-        format: NativeImage.Format = NativeImage.Format.RGBA,
+        format: NativeImage.Format,
     ): Long {
         val bytes = encoderPreset
             .withBufferedImage(bufferedImage)
@@ -68,6 +68,6 @@ object TextureUtils {
 
     fun readImage(
         image: ByteBuffer,
-        format: NativeImage.Format = NativeImage.Format.RGBA,
+        format: NativeImage.Format,
     ) = NativeImage.read(format, image).pointer
 }

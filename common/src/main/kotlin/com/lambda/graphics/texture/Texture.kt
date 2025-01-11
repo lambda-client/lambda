@@ -17,45 +17,34 @@
 
 package com.lambda.graphics.texture
 
-import com.lambda.graphics.renderer.gui.TextureRenderer
 import com.lambda.graphics.texture.TextureUtils.bindTexture
 import com.lambda.graphics.texture.TextureUtils.readImage
 import com.lambda.graphics.texture.TextureUtils.setupTexture
-import com.lambda.util.math.Rect.Companion.basedOn
-import com.lambda.util.math.Vec2d
 import net.minecraft.client.texture.NativeImage
 import org.lwjgl.opengl.GL45C.*
 import java.awt.image.BufferedImage
-import java.lang.IllegalStateException
+import java.awt.image.BufferedImage.*
 import java.nio.ByteBuffer
+import kotlin.IllegalStateException
 
 /**
  * Represents a texture that can be uploaded and bound to the graphics pipeline
  * Supports mipmap generation and LOD (Level of Detail) configuration
  */
 open class Texture {
-    val internalFormat: Int
     val format: Int
     private val levels: Int
-    private val forceConsistency: Boolean
+    private val nativeFormat: NativeImage.Format // For mojang native images
 
     /**
      * @param image             Optional initial image to upload to the texture
-     * @param format            The format of the image passed in
+     * @param format            The format of the image passed in, if the [image] is null, then you must pass the appropriate format
      * @param levels            Number of mipmap levels to generate for the texture
-     * @param forceConsistency  Flag to enforce consistency when updating the texture. If true, attempts to update
-     *                          the texture after initialization will throw an exception
      */
-    constructor(image: BufferedImage?,
-                internalFormat: Int = GL_RGBA,
-                format: Int = GL_RGBA,
-                levels: Int = 4,
-                forceConsistency: Boolean = false)
-    {
-        this.internalFormat = internalFormat
-        this.format = format
+    constructor(image: BufferedImage?, format: Int = GL_RGBA, levels: Int = 4) {
+        this.format = image?.type?.let { bufferedMapping[it] } ?: format
         this.levels = levels
-        this.forceConsistency = forceConsistency
+        this.nativeFormat = nativeMapping.getOrDefault(format, NativeImage.Format.RGBA)
 
         image?.let { bindTexture(id); upload(it) }
     }
@@ -64,23 +53,13 @@ open class Texture {
      * @param buffer            The image buffer
      * @param width             The width of the image
      * @param height            The height of the image
-     * @param format            The format of the image passed in
+     * @param format            The format of the image passed in, must be specified
      * @param levels            Number of mipmap levels to generate for the texture
-     * @param forceConsistency  Flag to enforce consistency when updating the texture. If true, attempts to update
-     *                          the texture after initialization will throw an exception
      */
-    constructor(buffer: ByteBuffer,
-                width: Int,
-                height: Int,
-                internalFormat: Int = GL_RGBA,
-                format: Int = GL_RGBA,
-                levels: Int = 4,
-                forceConsistency: Boolean = false)
-    {
-        this.internalFormat = internalFormat
+    constructor(buffer: ByteBuffer, width: Int, height: Int, format: Int, levels: Int = 4) {
         this.format = format
         this.levels = levels
-        this.forceConsistency = forceConsistency
+        this.nativeFormat = nativeMapping.getOrDefault(format, NativeImage.Format.RGBA)
 
         bindTexture(id)
         upload(buffer, width, height)
@@ -117,11 +96,9 @@ open class Texture {
      * @param offset    The mipmap level to upload the image to
      */
     fun upload(image: BufferedImage, offset: Int = 0) {
-        if (forceConsistency && initialized) throw IllegalStateException("Client tried to update a texture, but the enforce consistency flag was present")
-
         // Store level_base +1 through `level` images and generate
         // mipmaps from them
-        setupLOD(levels = levels)
+        setupLOD(levels)
 
         width = image.width
         height = image.height
@@ -129,8 +106,8 @@ open class Texture {
 
         // Set this mipmap to `offset` to define the original texture
         setupTexture(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
-        glTexImage2D(GL_TEXTURE_2D, offset, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, readImage(image, getNativeFormat(format)))
-        if (levels > 1) glGenerateMipmap(GL_TEXTURE_2D) // This take the derived values GL_TEXTURE_BASE_LEVEL and GL_TEXTURE_MAX_LEVEL to generate the stack
+        glTexImage2D(GL_TEXTURE_2D, offset, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, readImage(image, nativeFormat))
+        if (levels > 0) glGenerateMipmap(GL_TEXTURE_2D) // This take the derived values GL_TEXTURE_BASE_LEVEL and GL_TEXTURE_MAX_LEVEL to generate the stack
     }
 
     /**
@@ -143,11 +120,9 @@ open class Texture {
      * @param offset    The mipmap level to upload the image to
      */
     fun upload(buffer: ByteBuffer, width: Int, height: Int, offset: Int = 0) {
-        if (forceConsistency && initialized) throw IllegalStateException("Client tried to update a texture, but the enforce consistency flag was present")
-
         // Store level_base +1 through `level` images and generate
         // mipmaps from them
-        setupLOD(levels = levels)
+        setupLOD(levels)
 
         this.width = width
         this.height = height
@@ -155,8 +130,8 @@ open class Texture {
 
         // Set this mipmap to `offset` to define the original texture
         setupTexture(GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
-        glTexImage2D(GL_TEXTURE_2D, offset, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, buffer)
-        if (levels > 1) glGenerateMipmap(GL_TEXTURE_2D) // This take the derived values GL_TEXTURE_BASE_LEVEL and GL_TEXTURE_MAX_LEVEL to generate the stack
+        glTexImage2D(GL_TEXTURE_2D, offset, GL_RGBA, width, height, 0, format, GL_UNSIGNED_BYTE, buffer)
+        if (levels > 0) glGenerateMipmap(GL_TEXTURE_2D) // This take the derived values GL_TEXTURE_BASE_LEVEL and GL_TEXTURE_MAX_LEVEL to generate the stack
     }
 
     /**
@@ -170,14 +145,9 @@ open class Texture {
      */
     fun update(image: BufferedImage, offset: Int = 0) {
         if (!initialized) return upload(image, offset)
-        if (forceConsistency && initialized) throw IllegalStateException("Client tried to update a texture, but the enforce consistency flag was present")
 
-        check(image.width + image.height <= this.width + this.height && initialized) {
-            "Client tried to update a texture with more data than allowed" +
-                    "Expected ${this.width + this.height} bytes but got ${image.width + image.height}"
-        }
-
-        glTexSubImage2D(GL_TEXTURE_2D, offset, 0, 0, width, height, format, GL_UNSIGNED_BYTE, readImage(image, getNativeFormat(format)))
+        checkDimensions(width, height)
+        glTexSubImage2D(GL_TEXTURE_2D, offset, 0, 0, width, height, format, GL_UNSIGNED_BYTE, readImage(image, nativeFormat))
     }
 
     /**
@@ -193,25 +163,10 @@ open class Texture {
      */
     fun update(buffer: ByteBuffer, width: Int, height: Int, offset: Int = 0) {
         if (!initialized) return upload(buffer, width, height, offset)
-        if (forceConsistency && initialized) throw IllegalStateException("Client tried to update a texture, but the enforce consistency flag was present")
 
-        check(width + height <= this.width + this.height && initialized) {
-            "Client tried to update a texture with more data than allowed\n" +
-                    "Expected ${this.width + this.height} bytes but got ${width + height}"
-        }
-
+        checkDimensions(width, height)
         glTexSubImage2D(GL_TEXTURE_2D, offset, 0, 0, width, height, format, GL_UNSIGNED_BYTE, buffer)
     }
-
-    /**
-     * Draws the texture
-     * This function binds the texture
-     *
-     * @param coord     The top left coordinate to draw at
-     * @param scale     The width and height multiplier
-     */
-    fun draw(coord: Vec2d, scale: Double = 0.0) =
-        TextureRenderer.drawTexture(this, basedOn(coord, width * scale, height * scale))
 
     private fun setupLOD(levels: Int) {
         // When you call glTextureStorage, you're specifying the total number of levels, including level 0
@@ -225,11 +180,28 @@ open class Texture {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, levels)
     }
 
-    private fun getNativeFormat(gl: Int) =
-        when (gl) {
-            GL_RED, GL_GREEN, GL_BLUE -> NativeImage.Format.LUMINANCE
-            GL_RG -> NativeImage.Format.LUMINANCE_ALPHA
-            GL_RGB -> NativeImage.Format.RGB
-            else -> NativeImage.Format.RGBA
+    private fun checkDimensions(width: Int, height: Int) =
+        check(width + height <= this.width + this.height && initialized) {
+            "Client tried to update a texture with more data than allowed\n" +
+                    "Expected ${this.width + this.height} bytes but got ${width + height}"
         }
+
+    companion object {
+        private val nativeMapping = mapOf(
+            GL_RED      to NativeImage.Format.LUMINANCE,
+            GL_GREEN    to NativeImage.Format.LUMINANCE,
+            GL_BLUE     to NativeImage.Format.LUMINANCE,
+            GL_RG       to NativeImage.Format.LUMINANCE_ALPHA,
+            GL_RGB      to NativeImage.Format.RGB,
+            GL_RGBA     to NativeImage.Format.RGBA,
+        )
+
+        private val bufferedMapping = mapOf(
+            TYPE_BYTE_BINARY    to GL_RED,
+            TYPE_BYTE_GRAY      to GL_RG,
+            TYPE_INT_RGB        to GL_RGB,
+            TYPE_INT_ARGB       to GL_RGBA,
+            TYPE_4BYTE_ABGR     to GL_BGRA,
+        )
+    }
 }
