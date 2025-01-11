@@ -43,6 +43,9 @@ object VecUtils {
     fun Vec3d.approximate(other: Vec3d, precision: Double = 2.0E-4): Boolean =
         (subtract(other) distSq Vec3d.ZERO) > precision.pow(2)
 
+    val Entity.netherCoord: Vec3d get() = pos.multiply(0.125, 1.0, 0.125)
+    val Entity.overworldCoord: Vec3d get() = pos.multiply(8.0, 1.0, 8.0)
+
     infix fun Vec3d.dist(other: Vec3d): Double = sqrt(this distSq other)
     infix fun Vec3d.dist(other: Vec3i): Double = sqrt(this distSq other)
     infix fun Vec3d.distSq(other: Vec3d): Double = this.squaredDistanceTo(other)

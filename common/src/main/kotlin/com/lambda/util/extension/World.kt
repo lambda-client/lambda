@@ -36,6 +36,17 @@ import net.minecraft.world.World
 import java.awt.Color
 import kotlin.experimental.and
 
+val SafeContext.isOverworld: Boolean get() = world.registryKey == World.OVERWORLD
+val SafeContext.isNether: Boolean get() = world.registryKey == World.NETHER
+val SafeContext.isEnd: Boolean get() = world.registryKey == World.END
+val SafeContext.dimensionName: String
+    get() = when {
+        isOverworld -> "Overworld"
+        isNether -> "Nether"
+        isEnd -> "End"
+        else -> "Unknown"
+    }
+
 fun SafeContext.collisionShape(state: BlockState, pos: BlockPos) =
     state.getCollisionShape(world, pos).offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
 

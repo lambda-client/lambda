@@ -19,9 +19,9 @@ package com.lambda.module.hud
 
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.Formatting.string
 import com.lambda.util.NamedEnum
 import com.lambda.util.ServerTPS.averageMSPerTick
-import com.lambda.util.math.MathUtils.format
 
 object TPS : HudModule(
     name = "TPS",
@@ -30,7 +30,7 @@ object TPS : HudModule(
 ) {
     private val format by setting("Tick format", TickFormat.TPS)
 
-    private val text: String get() = "${format.displayName}: ${format.output().format(2)}${format.unit}"
+    private val text: String get() = "${format.displayName}: ${format.output().string}${format.unit}"
 
     // TODO: Replace by LambdaAtlas height cache and actually build a proper text with highlighted parameters
 
