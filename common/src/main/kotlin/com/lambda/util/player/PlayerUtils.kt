@@ -1,7 +1,6 @@
 package com.lambda.util.player
 
 import com.lambda.context.SafeContext
-import com.lambda.module.modules.combat.FakePlayer.fakePlayer
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
