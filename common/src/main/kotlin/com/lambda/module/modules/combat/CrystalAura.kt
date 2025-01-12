@@ -21,6 +21,7 @@ import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.config.groups.Targeting
 import com.lambda.context.SafeContext
+import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
@@ -158,6 +159,20 @@ object CrystalAura : Module(
             possibleExplodeOpportunities.clear()
             possiblePlaceOpportunities.clear()
         }
+
+        onDisable { clear() }
+        listen<ConnectionEvent.Disconnect> { clear() }
+    }
+
+    private fun clear() {
+        pendingPlacements.clear()
+        possiblePlaceOpportunities.clear()
+        pendingExplosions.clear()
+        possibleExplodeOpportunities.clear()
+
+        placementRequest = null
+        explosionRequest = null
+        rotationRequest = null
     }
 
     private fun SafeContext.determineActionForNextTick() {
