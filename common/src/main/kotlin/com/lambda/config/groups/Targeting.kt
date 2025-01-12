@@ -113,7 +113,7 @@ abstract class Targeting(
      * @return `true` if the entity is valid for targeting, `false` otherwise.
      */
     open fun validate(player: ClientPlayerEntity, entity: LivingEntity) = when {
-        !players && (entity is OtherClientPlayerEntity && entity.isFriend) -> false
+        !players || (entity is OtherClientPlayerEntity && entity.isFriend) -> false
         !animals && entity is PassiveEntity -> false
         !hostiles && entity is MobEntity -> false
         entity is ArmorStandEntity -> false
@@ -174,8 +174,7 @@ abstract class Targeting(
         }
 
         private val illegalTargets = setOf(
-            UUID(5706954458220675710, -6736729783554821869),
-            UUID(-6114492090883684892, -8539188786807016414)
+            UUID(5706954458220675710, -6736729783554821869)
         )
     }
 
