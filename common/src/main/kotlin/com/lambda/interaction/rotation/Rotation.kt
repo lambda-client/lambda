@@ -42,6 +42,10 @@ data class Rotation(val yaw: Double, val pitch: Double) {
 
     fun equalFloat(other: Rotation): Boolean = yawF == other.yawF && pitchF == other.pitchF
 
+    /**
+     * Returns the player's rotation vector
+     * Same as [net.minecraft.entity.Entity.getRotationVec]
+     */
     val vector: Vec3d
         get() {
             val yawRad = -yaw.toRadian()
