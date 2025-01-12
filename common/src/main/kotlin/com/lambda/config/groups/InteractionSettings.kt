@@ -21,12 +21,15 @@ import com.lambda.config.Configurable
 import com.lambda.threading.runSafe
 import net.minecraft.entity.player.PlayerEntity
 
+// TODO: Rewrite the group settings plz
 class InteractionSettings(
     c: Configurable,
+    useDefaultReach: Boolean = true,
+    cReach: Double = 3.0,
     vis: () -> Boolean = { true },
 ) : InteractionConfig {
-    override val defaultReach by c.setting("Default Reach", true)
-    private val customReach by c.setting("Reach", 4.5, 0.1..10.0, 0.1, "Players reach / range", " blocks") { vis() && !defaultReach }
+    override val defaultReach by c.setting("Default Reach", useDefaultReach)
+    private val customReach by c.setting("Reach", if (!defaultReach) cReach else 4.5, 0.1..10.0, 0.1, "Players reach / range", " blocks") { vis() && !defaultReach }
     override val reach: Double
         get() = if (defaultReach) runSafe { PlayerEntity.getReachDistance(interaction.currentGameMode.isCreative).toDouble() } ?: 4.5 else customReach
     override val useRayCast by c.setting("Raycast", true, "Verify hit vector with ray casting (for very strict ACs)", vis)

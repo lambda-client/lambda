@@ -62,7 +62,7 @@ object KillAura : Module(
     private val page by setting("Page", Page.Interact)
 
     // Interact
-    private val interactionSettings = InteractionSettings(this) { page == Page.Interact }
+    private val interactionSettings = InteractionSettings(this, useDefaultReach = false) { page == Page.Interact }
     private val attackMode by setting("Attack Mode", AttackMode.Cooldown) { page == Page.Interact }
     private val delaySync by setting("Client-side Delay", true) { page == Page.Interact && attackMode == AttackMode.Cooldown }
     private val cooldownSync by setting("Client-side Cooldown", true) { page == Page.Interact && attackMode == AttackMode.Cooldown }
