@@ -55,9 +55,9 @@ object VisibilityChecker {
      * @return A [RotationRequest] if a valid rotation was found; otherwise, null.
      */
     fun SafeContext.lookAtEntity(
-        rotationConfig: RotationConfig,
-        interactionConfig: InteractionConfig,
         entity: Entity,
+        rotationConfig: RotationConfig = TaskFlowModule.rotation,
+        interactionConfig: InteractionConfig = TaskFlowModule.interact,
     ) = findRotation(listOf(entity.boundingBox), rotationConfig, interactionConfig) {
         entityResult?.entity == entity
     }
@@ -100,8 +100,8 @@ object VisibilityChecker {
      */
     fun SafeContext.findRotation(
         boxes: List<Box>,
-        rotationConfig: RotationConfig,
-        interact: InteractionConfig,
+        rotationConfig: RotationConfig = TaskFlowModule.rotation,
+        interact: InteractionConfig = TaskFlowModule.interact,
         sides: Set<Direction> = Direction.entries.toSet(),
         reach: Double = interact.reach,
         eye: Vec3d = player.getCameraPosVec(1f),

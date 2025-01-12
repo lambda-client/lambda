@@ -29,9 +29,10 @@ data class RotationRequest(
     val checkedResult: HitResult? = null,
     val verify: HitResult.() -> Boolean = { true },
 ) {
+    val cast: HitResult? get() = runSafe { RotationManager.currentRotation.rayCast(10.0, player.eyePos) }
     val isValid: Boolean get() = runSafe {
         // ToDo: Use proper reach
-        val result = RotationManager.currentRotation.rayCast(10.0, player.eyePos)
+        val result = cast
         verify(result.orMiss)
     } ?: false
 }

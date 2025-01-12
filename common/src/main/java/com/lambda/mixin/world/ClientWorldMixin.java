@@ -33,8 +33,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ClientWorld.class)
 public class ClientWorldMixin {
     @Inject(method = "addEntity", at = @At("HEAD"), cancellable = true)
-    private void addEntity(Entity entity, CallbackInfo ci) {
+    private void onAddEntity(Entity entity, CallbackInfo ci) {
         if (EventFlow.post(new EntityEvent.EntitySpawn(entity)).isCanceled()) ci.cancel();
+    }
+
+    @Inject(method = "removeEntity", at = @At("HEAD"))
+    private void onRemoveEntity(int entityId, Entity.RemovalReason removalReason, CallbackInfo ci) {
+        Entity entity = ((ClientWorld) (Object) this).getEntityById(entityId);
+        if (entity == null) return;
+        EventFlow.post(new EntityEvent.EntityRemoval(entity, removalReason));
     }
 
     @Inject(method = "getCloudsColor", at = @At("HEAD"), cancellable = true)
