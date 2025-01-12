@@ -22,6 +22,7 @@ import com.lambda.http.Method
 import com.lambda.http.request
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.onShutdown
 import com.lambda.threading.runSafeConcurrent
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.network.OtherClientPlayerEntity
@@ -68,6 +69,8 @@ object FakePlayer : Module(
         onDisable {
             deletePlayer()
         }
+
+        onShutdown { disable() }
     }
 
     private fun SafeContext.spawnPlayer(profile: GameProfile) {
