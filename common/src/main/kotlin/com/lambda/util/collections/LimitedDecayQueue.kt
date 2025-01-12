@@ -42,7 +42,17 @@ class LimitedDecayQueue<E>(
 
     override fun iterator(): MutableIterator<E> {
         cleanUp()
-        return queue.map { it.first }.iterator() as MutableIterator<E>
+        return object : MutableIterator<E> {
+            private val delegate = queue.iterator()
+
+            override fun hasNext(): Boolean = delegate.hasNext()
+
+            override fun next(): E = delegate.next().first
+
+            override fun remove() {
+                delegate.remove() // This affects the underlying queue directly
+            }
+        }
     }
 
     @Synchronized
