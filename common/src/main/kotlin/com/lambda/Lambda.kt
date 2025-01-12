@@ -32,6 +32,8 @@ import com.mojang.authlib.GameProfile
 import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
+import net.minecraft.item.ItemStack
+import net.minecraft.text.Text
 import net.minecraft.util.math.BlockPos
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -61,6 +63,8 @@ object Lambda {
         .registerTypeAdapter(Block::class.java, BlockSerializer)
         .registerTypeAdapter(GameProfile::class.java, GameProfileSerializer)
         .registerTypeAdapter(Optional::class.java, OptionalSerializer)
+        .registerTypeAdapter(ItemStack::class.java, ItemStackSerializer)
+        .registerTypeAdapter(Text::class.java, Text.Serializer())
         .create()
 
     fun initialize(block: (Long) -> Unit) {
