@@ -21,6 +21,11 @@ import com.lambda.core.PingManager
 
 interface InteractionConfig {
     /**
+     * Minecraft's default reach values
+     */
+    val defaultReach: Boolean
+
+    /**
      * Maximum distance to interact.
      */
     val reach: Double

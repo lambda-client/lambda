@@ -18,13 +18,17 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
+import com.lambda.threading.runSafe
+import net.minecraft.entity.player.PlayerEntity
 
 class InteractionSettings(
     c: Configurable,
-    defaultReach: Double = 4.6,
     vis: () -> Boolean = { true },
 ) : InteractionConfig {
-    override val reach by c.setting("Reach", defaultReach, 0.1..10.0, 0.1, "Players reach / range", " blocks", vis)
+    override val defaultReach by c.setting("Default Reach", true)
+    private val customReach by c.setting("Reach", 4.5, 0.1..10.0, 0.1, "Players reach / range", " blocks") { vis() && !defaultReach }
+    override val reach: Double
+        get() = if (defaultReach) runSafe { PlayerEntity.getReachDistance(interaction.currentGameMode.isCreative).toDouble() } ?: 4.5 else customReach
     override val useRayCast by c.setting("Raycast", true, "Verify hit vector with ray casting (for very strict ACs)", vis)
     override val visibilityCheck by c.setting("Visibility Check", true, "Check if target is visible", vis)
     override val resolution by c.setting("Resolution", 4, 1..40, 1, "How many raycast checks per surface (will be squared)") { vis() && useRayCast }
