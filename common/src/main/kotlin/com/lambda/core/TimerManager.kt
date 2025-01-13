@@ -32,13 +32,13 @@ object TimerManager : Loadable {
     val fixedTickDelta get() = (System.nanoTime() - start).mod(TICK_DELAY_NANOS).toDouble() / TICK_DELAY_NANOS
 
     init {
-        start = System.nanoTime()
         fixedRateTimer(
             daemon = true,
             name = "Scheduler-Lambda-Tick",
-            initialDelay = TICK_DELAY,
+            initialDelay = 0,
             period = TICK_DELAY
         ) {
+            if (start == 0L) start = System.nanoTime()
             ClientEvent.FixedTick(this).post()
         }
     }
