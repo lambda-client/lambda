@@ -19,9 +19,6 @@ package com.lambda.core
 
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ClientEvent
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listenOnce
-import java.util.*
 import kotlin.concurrent.fixedRateTimer
 
 object TimerManager : Loadable {
@@ -30,20 +27,19 @@ object TimerManager : Loadable {
     override fun load() = "Loaded Timer Manager"
 
     private const val TICK_DELAY = 50L
+    private const val TICK_DELAY_NANOS = TICK_DELAY * 1_000_000L
     private var start = 0L
-    val fixedTickDelta get() = (System.currentTimeMillis() - start).mod(TICK_DELAY).toDouble() / TICK_DELAY
+    val fixedTickDelta get() = (System.nanoTime() - start).mod(TICK_DELAY_NANOS).toDouble() / TICK_DELAY_NANOS
 
     init {
-        listenOnce<TickEvent.Pre, Timer> {
-            start = System.currentTimeMillis()
-            fixedRateTimer(
-                daemon = true,
-                name = "Scheduler-Lambda-Tick",
-                initialDelay = TICK_DELAY,
-                period = TICK_DELAY
-            ) {
-                ClientEvent.FixedTick(this).post()
-            }
+        start = System.nanoTime()
+        fixedRateTimer(
+            daemon = true,
+            name = "Scheduler-Lambda-Tick",
+            initialDelay = TICK_DELAY,
+            period = TICK_DELAY
+        ) {
+            ClientEvent.FixedTick(this).post()
         }
     }
 
