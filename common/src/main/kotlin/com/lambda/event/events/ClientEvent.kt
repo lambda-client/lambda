@@ -44,4 +44,6 @@ sealed class ClientEvent {
      * Triggered before playing a sound
      */
     data class Sound(val sound: SoundInstance) : ICancellable by Cancellable()
+
+    class FixedTick : Event
 }
