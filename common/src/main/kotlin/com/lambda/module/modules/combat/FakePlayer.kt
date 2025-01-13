@@ -18,6 +18,8 @@
 package com.lambda.module.modules.combat
 
 import com.lambda.context.SafeContext
+import com.lambda.event.events.ConnectionEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.http.Method
 import com.lambda.http.request
 import com.lambda.module.Module
@@ -71,6 +73,10 @@ object FakePlayer : Module(
         }
 
         onShutdown { disable() }
+
+        listen<ConnectionEvent.Disconnect> {
+            disable()
+        }
     }
 
     private fun SafeContext.spawnPlayer(profile: GameProfile) {
