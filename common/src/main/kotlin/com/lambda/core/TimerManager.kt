@@ -19,16 +19,38 @@ package com.lambda.core
 
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ClientEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listenOnce
+import java.util.*
+import kotlin.concurrent.fixedRateTimer
 
 object TimerManager : Loadable {
     var lastTickLength: Float = 50f
 
     override fun load() = "Loaded Timer Manager"
 
+    private const val TICK_DELAY = 50L
+    private var start = 0L
+    val fixedTickDelta get() = (System.currentTimeMillis() - start).mod(TICK_DELAY).toDouble() / TICK_DELAY
+
+    init {
+        listenOnce<TickEvent.Pre, Timer> {
+            start = System.currentTimeMillis()
+            fixedRateTimer(
+                daemon = true,
+                name = "Scheduler-Lambda-Tick",
+                initialDelay = TICK_DELAY,
+                period = TICK_DELAY
+            ) {
+                ClientEvent.FixedTick(this).post()
+            }
+        }
+    }
+
     fun getLength(): Float {
         var length = 50f
 
-        ClientEvent.Timer(1.0).post {
+        ClientEvent.TimerUpdate(1.0).post {
             length /= speed.toFloat()
         }
 

@@ -18,6 +18,7 @@
 package com.lambda.graphics.renderer.esp.impl
 
 import com.lambda.Lambda.mc
+import com.lambda.core.TimerManager
 import com.lambda.graphics.buffer.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
@@ -47,7 +48,7 @@ abstract class ESPRenderer(tickedMode: Boolean) {
 
     fun render() {
         shader.use()
-        shader["u_TickDelta"] = mc.partialTicks
+        shader["u_TickDelta"] = TimerManager.fixedTickDelta
         shader["u_CameraPosition"] = mc.gameRenderer.camera.pos
 
         withFaceCulling(faces::render)

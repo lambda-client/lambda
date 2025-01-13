@@ -113,7 +113,7 @@ object Speed : Module(
             lastDistance = player.moveDelta
         }
 
-        listen<ClientEvent.Timer> {
+        listen<ClientEvent.TimerUpdate> {
             if (mode != Mode.NCP_STRAFE) return@listen
             if (!shouldWork() || !isInputting) return@listen
             it.speed = ncpTimerBoost

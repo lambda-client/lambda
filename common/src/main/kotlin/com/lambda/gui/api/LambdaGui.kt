@@ -19,8 +19,8 @@ package com.lambda.gui.api
 
 import com.lambda.Lambda.mc
 import com.lambda.event.Muteable
+import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.RenderEvent
-import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.gui.api.component.core.IComponent
@@ -56,7 +56,7 @@ abstract class LambdaGui(
             onEvent(GuiEvent.Render())
         }
 
-        listen<TickEvent.Pre> {
+        listen<ClientEvent.FixedTick> {
             animation.tick()
             onEvent(GuiEvent.Tick())
         }

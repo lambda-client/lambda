@@ -19,14 +19,13 @@ package com.lambda.event
 
 import com.lambda.context.SafeContext
 import com.lambda.event.callback.ICancellable
-import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.Listener
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
-import kotlin.concurrent.fixedRateTimer
+import java.util.*
 
 
 /**
@@ -77,17 +76,6 @@ object EventFlow {
      * The [concurrentListeners] are stored in a [Subscriber] object, which is a specialized [ConcurrentHashMap] that manages sets of [Listener]s for different [Event] types.
      */
     val concurrentListeners = Subscriber()
-
-    init {
-        fixedRateTimer(
-            daemon = true,
-            name = "Scheduler-Lambda-Tick",
-            initialDelay = 50L,
-            period = 50L
-        ) {
-            ClientEvent.FixedTick().post()
-        }
-    }
 
     fun Any.unsubscribe() {
         syncListeners.unsubscribe(this)
