@@ -22,6 +22,7 @@ import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Muteable
 import com.lambda.threading.runConcurrent
+import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.Pointer
 import com.lambda.util.selfReference
@@ -121,7 +122,7 @@ class SafeListener<T : Event>(
             noinline function: SafeContext.(T) -> Unit = {},
         ): SafeListener<T> {
             val listener = SafeListener<T>(priority, this, alwaysListen) { event ->
-                function(event)
+                runGameScheduled { function(event) }
             }
 
             EventFlow.syncListeners.subscribe(listener)

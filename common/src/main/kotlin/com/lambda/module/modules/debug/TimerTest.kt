@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,23 +15,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.movement
+package com.lambda.module.modules.debug
 
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.Communication.info
+import com.lambda.util.KeyCode
+import net.minecraft.block.Blocks
+import net.minecraft.util.math.BlockPos
+import java.awt.Color
 
-object Timer : Module(
-    name = "Timer",
-    description = "Modify client tick speed.",
-    defaultTags = setOf(ModuleTag.MOVEMENT, ModuleTag.WORLD)
+object TimerTest : Module(
+    name = "TimerTest",
+    defaultTags = setOf(ModuleTag.DEBUG)
 ) {
-    private val timer by setting("Timer", 1.0, 0.0..10.0, 0.01)
+    private var last = 0L
 
     init {
-        listen<ClientEvent.TimerUpdate> {
-            it.speed = timer.coerceAtLeast(0.05)
+        listen<ClientEvent.FixedTick> {
+            val now = System.currentTimeMillis()
+            info("${now - last} - Fixed Tick on game thread")
+            last = now
+        }
+
+        listenConcurrently<ClientEvent.FixedTick> {
+//            info("${System.currentTimeMillis()} - Fixed Tick Concurrently (but not on mc game thread)")
         }
     }
 }
