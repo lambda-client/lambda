@@ -25,7 +25,9 @@ import com.lambda.http.request
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.onShutdown
+import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafeConcurrent
+import com.lambda.threading.runSafeGameScheduled
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.client.network.PlayerListEntry
@@ -88,7 +90,9 @@ object FakePlayer : Module(
                 id = -2024 - 4 - 20
             }
 
-        world.addEntity(fakePlayer)
+        runSafeGameScheduled {
+            world.addEntity(fakePlayer)
+        }
     }
 
     private fun deletePlayer() {
