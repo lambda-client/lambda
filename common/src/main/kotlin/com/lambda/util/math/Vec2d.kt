@@ -23,7 +23,7 @@ data class Vec2d(val x: Double, val y: Double) {
     constructor(x: Float, y: Float) : this(x.toDouble(), y.toDouble())
     constructor(x: Int, y: Int) : this(x.toDouble(), y.toDouble())
 
-    operator fun unaryMinus(): Vec2d = Vec2d(-x, -y)
+    operator fun unaryMinus() = Vec2d(-x, -y)
 
     fun plus(x: Double, y: Double) = Vec2d(this.x + x, this.y + y)
     infix operator fun plus(other: Vec2d) = plus(other.x, other.y)
@@ -31,7 +31,7 @@ data class Vec2d(val x: Double, val y: Double) {
     infix operator fun plus(other: Float): Vec2d = plus(other.toDouble(), other.toDouble())
     infix operator fun plus(other: Int): Vec2d = plus(other.toDouble(), other.toDouble())
 
-    fun minus(x: Double, y: Double)= Vec2d(this.x + x, this.y + y)
+    fun minus(x: Double, y: Double) = Vec2d(this.x - x, this.y - y)
     infix operator fun minus(other: Vec2d): Vec2d = minus(other.x, other.y)
     infix operator fun minus(other: Double): Vec2d = minus(other, other)
     infix operator fun minus(other: Float): Vec2d = minus(other.toDouble(), other.toDouble())
@@ -49,7 +49,7 @@ data class Vec2d(val x: Double, val y: Double) {
     infix operator fun div(other: Float): Vec2d = div(other.toDouble(), other.toDouble())
     infix operator fun div(other: Int): Vec2d = div(other.toDouble(), other.toDouble())
 
-    fun roundToInt(): Vec2d = Vec2d(this.x.roundToInt(), this.y.roundToInt())
+    fun roundToInt() = Vec2d(x.roundToInt(), y.roundToInt())
 
     companion object {
         val ZERO = Vec2d(0.0, 0.0)

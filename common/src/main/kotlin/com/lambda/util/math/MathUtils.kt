@@ -54,7 +54,7 @@ object MathUtils {
         BigDecimal(this).setScale(places, RoundingMode.HALF_EVEN).toDouble()
 
     private val Double.decimals: Int
-        get() = BigDecimal(this).scale()
+        get() = BigDecimal.valueOf(this).scale()
 
     fun <T : Number> T.typeConvert(valueIn: Double): T {
         @Suppress("UNCHECKED_CAST")
@@ -69,8 +69,7 @@ object MathUtils {
         } as T
     }
 
-    // TODO: wtf is this? is this just a coerce ?
-    fun Vec2d.roundToStep(step: Double): Vec2d =
+    fun Vec2d.roundToStep(step: Double) =
         Vec2d(x.roundToStep(step), y.roundToStep(step))
 
     fun random(v1: Double, v2: Double): Double {
