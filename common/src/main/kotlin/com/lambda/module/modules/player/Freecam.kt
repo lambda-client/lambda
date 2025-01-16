@@ -27,11 +27,11 @@ import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.extension.interpolate
 import com.lambda.util.extension.partialTicks
 import com.lambda.util.extension.rotation
-import com.lambda.util.math.VecUtils.plus
-import com.lambda.util.math.VecUtils.times
+import com.lambda.util.math.interpolate
+import com.lambda.util.math.plus
+import com.lambda.util.math.times
 import com.lambda.util.player.MovementUtils.calcMoveRad
 import com.lambda.util.player.MovementUtils.cancel
 import com.lambda.util.player.MovementUtils.handledByBaritone
@@ -64,7 +64,7 @@ object Freecam : Module(
     private var prevPosition: Vec3d = Vec3d.ZERO
     private var position: Vec3d = Vec3d.ZERO
     private val lerpPos: Vec3d
-        get() = prevPosition.interpolate(position, mc.partialTicks)
+        get() = prevPosition.interpolate(mc.partialTicks, position)
 
     private var rotation: Rotation = Rotation.ZERO
     private var velocity: Vec3d = Vec3d.ZERO

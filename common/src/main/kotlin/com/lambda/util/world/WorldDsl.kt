@@ -19,7 +19,7 @@ package com.lambda.util.world
 
 import com.lambda.context.SafeContext
 import com.lambda.core.annotations.InternalApi
-import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.distSq
 import com.lambda.util.world.WorldUtils.internalGetBlockEntities
 import com.lambda.util.world.WorldUtils.internalGetEntities
 import com.lambda.util.world.WorldUtils.internalGetFastEntities

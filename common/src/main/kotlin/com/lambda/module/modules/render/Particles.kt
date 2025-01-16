@@ -40,9 +40,10 @@ import com.lambda.module.modules.client.GuiSettings.colorSpeed
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.extension.partialTicks
 import com.lambda.util.math.MathUtils.random
-import com.lambda.util.math.VecUtils
-import com.lambda.util.math.VecUtils.plus
-import com.lambda.util.math.VecUtils.times
+import com.lambda.util.math.UP
+import com.lambda.util.math.DOWN
+import com.lambda.util.math.plus
+import com.lambda.util.math.times
 import com.lambda.util.math.lerp
 import com.lambda.util.math.multAlpha
 import com.lambda.util.math.transform
@@ -134,8 +135,8 @@ object Particles : Module(
         repeat(environmentSpawnAmount) {
             var particlePos = player.pos + Rotation(random(-180.0, 180.0), 0.0).vector * random(0.0, environmentRange)
 
-            Rotation.DOWN.rayCast(6.0, particlePos + VecUtils.UP * 2.0, true, RayCastMask.BLOCK)?.pos?.let {
-                particlePos = it + VecUtils.UP * 0.03
+            Rotation.DOWN.rayCast(6.0, particlePos + UP * 2.0, true, RayCastMask.BLOCK)?.pos?.let {
+                particlePos = it + UP * 0.03
             } ?: return@repeat
 
             val particleMotion = Rotation(
@@ -169,7 +170,7 @@ object Particles : Module(
 
             prevPos = position
 
-            if (!lay) motion += VecUtils.DOWN * gravity * 0.01
+            if (!lay) motion += DOWN * gravity * 0.01
             motion *= 0.9 + inertia * 0.1
 
             position += motion

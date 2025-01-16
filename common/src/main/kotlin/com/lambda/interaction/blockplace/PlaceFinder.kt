@@ -22,8 +22,8 @@ import com.lambda.interaction.blockplace.PlaceInteraction.canPlaceAt
 import com.lambda.interaction.blockplace.PlaceInteraction.isClickable
 import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.math.VecUtils.distSq
-import com.lambda.util.math.VecUtils.getHitVec
+import com.lambda.util.math.distSq
+import com.lambda.util.math.getHitVec
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction

@@ -19,10 +19,9 @@ package com.lambda.util.combat
 
 import com.lambda.context.SafeContext
 import com.lambda.core.annotations.InternalApi
-import com.lambda.util.math.VecUtils.dist
-import com.lambda.util.math.VecUtils.minus
-import com.lambda.util.math.VecUtils.times
-import com.lambda.util.math.VecUtils.vec3d
+import com.lambda.util.math.dist
+import com.lambda.util.math.minus
+import com.lambda.util.math.times
 import com.lambda.util.world.WorldUtils.internalGetFastEntities
 import com.lambda.util.world.fastEntitySearch
 import com.lambda.util.world.toFastVec
@@ -34,7 +33,6 @@ import net.minecraft.entity.decoration.EndCrystalEntity
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.registry.tag.DamageTypeTags
 import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.Vec3i
 import net.minecraft.world.explosion.Explosion
 import kotlin.math.max
 import kotlin.math.min
@@ -82,16 +80,6 @@ object CombatUtils {
         explosionDamage(source.position, entity, source.power.toDouble())
 
     /**
-     * Calculates the damage dealt by an explosion to a living entity
-     *
-     * @param position The position of the explosion
-     * @param entity The entity to calculate the damage for
-     * @param power The [power of the explosion](https://minecraft.wiki/w/Explosion#Damage)
-     */
-    fun SafeContext.explosionDamage(position: Vec3i, entity: LivingEntity, power: Double): Double =
-        explosionDamage(position.vec3d, entity, power)
-
-    /**
      * Calculates the damage dealt by an explosion to a living entity.
      *
      * @param position The position of the explosion
@@ -135,7 +123,7 @@ object CombatUtils {
      * @param position The position of the explosion
      * @param power The strength of the explosion
      */
-    fun SafeContext.explosionVelocity(entity: LivingEntity, position: Vec3d, power: Double): Vec3d {
+    fun explosionVelocity(entity: LivingEntity, position: Vec3d, power: Double): Vec3d {
         val distance = entity.pos.distanceTo(position)
 
         val size = power * 2.0

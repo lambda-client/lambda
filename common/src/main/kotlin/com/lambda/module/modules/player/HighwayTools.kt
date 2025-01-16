@@ -29,7 +29,7 @@ import com.lambda.util.Communication.info
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.moveY
 import com.lambda.util.math.MathUtils.floorToInt
-import com.lambda.util.math.VecUtils.rotateClockwise
+import com.lambda.util.math.rotateClockwise
 import com.lambda.util.player.MovementUtils.octant
 import com.lambda.util.world.StructureUtils.generateDirectionalTube
 import net.minecraft.block.Blocks

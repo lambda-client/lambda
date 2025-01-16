@@ -22,8 +22,8 @@ import com.lambda.interaction.RotationManager
 import com.lambda.util.math.MathUtils.toDegree
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.MathUtils.toRadian
-import com.lambda.util.math.VecUtils.plus
-import com.lambda.util.math.VecUtils.times
+import com.lambda.util.math.plus
+import com.lambda.util.math.times
 import net.minecraft.client.input.Input
 import net.minecraft.client.input.KeyboardInput
 import net.minecraft.client.network.ClientPlayerEntity

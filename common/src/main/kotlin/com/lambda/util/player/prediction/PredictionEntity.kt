@@ -23,11 +23,11 @@ import com.lambda.interaction.rotation.Rotation
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.flooredPos
+import com.lambda.util.math.DOWN
 import com.lambda.util.math.MathUtils.toIntSign
 import com.lambda.util.math.MathUtils.toRadian
-import com.lambda.util.math.VecUtils
-import com.lambda.util.math.VecUtils.plus
-import com.lambda.util.math.VecUtils.times
+import com.lambda.util.math.plus
+import com.lambda.util.math.times
 import com.lambda.util.player.MovementUtils.motion
 import com.lambda.util.player.MovementUtils.moveYaw
 import com.lambda.util.player.MovementUtils.movementVector
@@ -83,7 +83,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
 
     // Other shit
     private var jumpingCooldown = player.jumpingCooldown
-    private var velocityAffectingPos = player.supportingBlockPos.orElse((position + VecUtils.DOWN * 0.001).flooredPos)
+    private var velocityAffectingPos = player.supportingBlockPos.orElse((position + DOWN * 0.001).flooredPos)
 
     private var horizontalCollision = player.horizontalCollision
     private var verticalCollision = player.verticalCollision
@@ -153,7 +153,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
         applyMovementInput(travelVec, slipperiness)
         move()
 
-        motion += VecUtils.DOWN * gravity
+        motion += DOWN * gravity
         motion *= Vec3d(friction, 0.98, friction)
     }
 
@@ -214,7 +214,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
             boundingBox = normalized.offset(position)
         }
 
-        velocityAffectingPos = (position + VecUtils.DOWN * 0.001).flooredPos
+        velocityAffectingPos = (position + DOWN * 0.001).flooredPos
     }
 
     /** @see net.minecraft.entity.LivingEntity.jump */
