@@ -17,24 +17,13 @@
 
 package com.lambda.util.extension
 
+import com.mojang.authlib.GameProfile
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
-/**
- * Executes the given block only if the object receiver is null
- * Opposite of `Any?.let {}`
- */
-@OptIn(ExperimentalContracts::class)
-inline fun <T> T?.ifNull(block: () -> Unit): T? {
-    contract {
-        callsInPlace(block, InvocationKind.AT_MOST_ONCE)
-    }
-
-    if (this == null) block()
-
-    return this
-}
+val GameProfile.isOffline
+    get() = properties.isEmpty
 
 val Class<*>.isObject: Boolean
     get() = declaredFields.any { it.name == "INSTANCE" }

@@ -72,7 +72,7 @@ import kotlin.reflect.KProperty
  */
 abstract class AbstractSetting<T : Any>(
     private val defaultValue: T,
-    protected val type: Type,
+    val type: Type,
     val description: String,
     val visibility: () -> Boolean,
 ) : Jsonable, Nameable {
@@ -127,4 +127,7 @@ abstract class AbstractSetting<T : Any>(
     class ValueListener<T>(val requiresValueChange: Boolean, val execute: (from: T, to: T) -> Unit)
 
     override fun toString() = "Setting $name: $value of type ${type.typeName}"
+
+    override fun equals(other: Any?) = other is AbstractSetting<*> && name == other.name
+    override fun hashCode() = name.hashCode()
 }

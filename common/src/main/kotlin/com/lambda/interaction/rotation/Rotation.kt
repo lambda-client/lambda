@@ -22,8 +22,8 @@ import com.lambda.threading.runSafe
 import com.lambda.util.math.MathUtils.toDegree
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
-import com.lambda.util.math.VecUtils.plus
-import com.lambda.util.math.VecUtils.times
+import com.lambda.util.math.plus
+import com.lambda.util.math.times
 import com.lambda.util.world.raycast.RayCastMask
 import com.lambda.util.world.raycast.RayCastUtils.rayCast
 import net.minecraft.entity.Entity
@@ -66,25 +66,32 @@ data class Rotation(val yaw: Double, val pitch: Double) {
     fun castBox(
         box: Box,
         reach: Double,
-        eye: Vec3d? = null
+        eye: Vec3d? = null,
     ) = runSafe {
         val eyeVec = eye ?: player.eyePos
         box.raycast(eyeVec, eyeVec + vector * reach).orElse(null)
     }
 
-    val Direction.yaw: Float
-        get() = when (this) {
-            Direction.NORTH -> -180.0f
-            Direction.SOUTH -> 0.0f
-            Direction.EAST -> -90.0f
-            Direction.WEST -> 90.0f
-            else -> 0.0f
-        }
-
     companion object {
+        val Direction.yaw: Float
+            get() = when (this) {
+                Direction.NORTH -> -180.0f
+                Direction.SOUTH -> 0.0f
+                Direction.EAST -> -90.0f
+                Direction.WEST -> 90.0f
+                else -> 0.0f
+            }
+
         val ZERO = Rotation(0.0, 0.0)
         val DOWN = Rotation(0.0, 90.0)
-        val Entity.rotation get() = Rotation(yaw, pitch)
+        val UP = Rotation(0.0, -90.0)
+        val Direction.rotation get() = Rotation(yaw.toDouble(), 0.0)
+        var Entity.rotation
+            get() = Rotation(yaw, pitch)
+            set(value) {
+                yaw = value.yawF
+                pitch = value.pitchF
+            }
 
         fun wrap(deg: Double) = MathHelper.wrapDegrees(deg)
 

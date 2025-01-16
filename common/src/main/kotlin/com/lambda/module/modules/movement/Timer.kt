@@ -30,7 +30,7 @@ object Timer : Module(
     private val timer by setting("Timer", 1.0, 0.0..10.0, 0.01)
 
     init {
-        listen<ClientEvent.Timer> {
+        listen<ClientEvent.TimerUpdate> {
             it.speed = timer.coerceAtLeast(0.05)
         }
     }

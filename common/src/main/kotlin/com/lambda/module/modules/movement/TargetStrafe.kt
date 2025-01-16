@@ -24,7 +24,7 @@ import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.distSq
 import com.lambda.util.player.MovementUtils.buildMovementInput
 import com.lambda.util.player.MovementUtils.mergeFrom
 import kotlin.math.pow

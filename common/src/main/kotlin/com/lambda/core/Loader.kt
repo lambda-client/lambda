@@ -33,14 +33,18 @@ object Loader {
 
     private val loadables = getInstances<Loadable> { forPackages("com.lambda") }
 
-    fun initialize() {
+    fun initialize(): Long {
         ascii.split("\n").forEach { LOG.info(it) }
-        LOG.info("Initializing ${Lambda.MOD_NAME} ${Lambda.VERSION}")
+        LOG.info("Initializing ${Lambda.MOD_NAME} ${Lambda.VERSION} (${loadables.size} loaders)...")
 
         val initTime = measureTimeMillis {
-            loadables.forEach { LOG.info(it.load()) }
+            loadables.forEach {
+                var response: String
+                val time = measureTimeMillis { response = it.load() }
+                LOG.info("$response ($time ms)")
+            }
         }
 
-        LOG.info("${Lambda.MOD_NAME} ${Lambda.VERSION} was successfully initialized (${initTime}ms)")
+        return initTime
     }
 }

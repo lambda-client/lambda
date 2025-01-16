@@ -20,17 +20,35 @@ package com.lambda.util.collections
 import java.time.Instant
 import java.util.concurrent.ConcurrentLinkedQueue
 
+/**
+ * A thread-safe collection that limits the number of elements it can hold and automatically removes elements
+ * older than a specified time interval. The elements are stored with the timestamp of their addition to the collection.
+ *
+ * @param E The type of elements held in this collection.
+ * @property sizeLimit The maximum number of elements the queue can hold at any given time.
+ * @property maxAge The age (in milliseconds) after which elements are considered expired and are removed from the queue.
+ */
 class LimitedDecayQueue<E>(
     private var sizeLimit: Int,
-    private var interval: Long,
-) {
+    private var maxAge: Long,
+) : AbstractMutableCollection<E>() {
     private val queue: ConcurrentLinkedQueue<Pair<E, Instant>> = ConcurrentLinkedQueue()
 
-    val size: Int
-        get() = queue.size
+    override val size: Int
+        @Synchronized
+        get() {
+            cleanUp()
+            return queue.size
+        }
 
     @Synchronized
-    fun add(element: E): Boolean {
+    override fun iterator(): MutableIterator<E> {
+        cleanUp()
+        return queue.map { it.first }.iterator() as MutableIterator<E>
+    }
+
+    @Synchronized
+    override fun add(element: E): Boolean {
         cleanUp()
         return if (queue.size < sizeLimit) {
             queue.add(element to Instant.now())
@@ -41,21 +59,63 @@ class LimitedDecayQueue<E>(
     }
 
     @Synchronized
+    override fun addAll(elements: Collection<E>): Boolean {
+        cleanUp()
+        val spaceAvailable = sizeLimit - queue.size
+        val elementsToAdd = elements.take(spaceAvailable)
+        val added = elementsToAdd.map { queue.add(it to Instant.now()) }
+        return added.any { it }
+    }
+
+    @Synchronized
+    override fun remove(element: E): Boolean {
+        cleanUp()
+        return queue.removeIf { it.first == element }
+    }
+
+    @Synchronized
+    override fun removeAll(elements: Collection<E>): Boolean {
+        cleanUp()
+        return queue.removeIf { it.first in elements }
+    }
+
+    @Synchronized
+    override fun retainAll(elements: Collection<E>): Boolean {
+        cleanUp()
+        return queue.removeIf { it.first !in elements }
+    }
+
+    @Synchronized
+    override fun clear() {
+        queue.clear()
+    }
+
+    /**
+     * Updates the maximum allowed size for the queue and triggers a cleanup operation
+     * to remove elements exceeding the new size or falling outside the allowed time interval.
+     *
+     * @param newSize The new maximum size for the queue. Must be a non-negative integer.
+     */
     fun setMaxSize(newSize: Int) {
         sizeLimit = newSize
         cleanUp()
     }
 
-    @Synchronized
-    fun setInterval(newInterval: Long) {
-        interval = newInterval
+    /**
+     * Sets the decay time for the elements in the queue. The decay time determines the
+     * maximum age that any element in the queue can have before being considered expired
+     * and removed. Updates the internal state and triggers a cleanup of expired elements.
+     *
+     * @param decayTime The decay time in milliseconds. Must be a non-negative value.
+     */
+    fun setDecayTime(decayTime: Long) {
+        maxAge = decayTime
         cleanUp()
     }
 
-    @Synchronized
     private fun cleanUp() {
         val now = Instant.now()
-        while (queue.isNotEmpty() && now.minusMillis(interval).isAfter(queue.peek().second)) {
+        while (queue.isNotEmpty() && now.minusMillis(maxAge).isAfter(queue.peek().second)) {
             queue.poll()
         }
     }

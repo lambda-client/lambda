@@ -22,65 +22,91 @@ import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
-import com.lambda.event.events.*
+import com.lambda.event.events.ConnectionEvent
+import com.lambda.event.events.PacketEvent
+import com.lambda.event.events.RotationEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.angleDifference
 import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
 import com.lambda.interaction.rotation.Rotation.Companion.slerp
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.interaction.rotation.RotationMode
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
-import com.lambda.util.math.lerp
-import com.lambda.util.math.MathUtils.toRadian
-import com.lambda.util.math.Vec2d
 import com.lambda.util.extension.partialTicks
 import com.lambda.util.extension.rotation
+import com.lambda.util.math.MathUtils.toRadian
+import com.lambda.util.math.Vec2d
+import com.lambda.util.math.lerp
 import net.minecraft.client.input.Input
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
-import kotlin.math.*
+import kotlin.math.cos
+import kotlin.math.round
+import kotlin.math.sign
+import kotlin.math.sin
 
 object RotationManager : Loadable {
     var currentRotation = Rotation.ZERO
-    var prevRotation = Rotation.ZERO
+    private var prevRotation = Rotation.ZERO
 
-    var currentContext: RotationContext? = null
+    var currentContext: RotationRequest? = null
 
     private var keepTicks = 0
     private var pauseTicks = 0
 
-    fun Any.requestRotation(
+    override fun load() = "Loaded Rotation Manager"
+
+    @RotationDsl
+    fun Any.rotate(
         priority: Int = 0,
         alwaysListen: Boolean = false,
-        onUpdate: SafeContext.(lastContext: RotationContext?) -> RotationContext?,
-        onReceive: SafeContext.() -> Unit = {}
+        block: RotationRequestBuilder.() -> Unit,
     ) {
-        var lastCtx: RotationContext? = null
+        val builder = RotationRequestBuilder().apply(block)
+        var lastRequest: RotationRequest? = null
 
-        this.listen<RotationEvent.Update>(priority, alwaysListen) { event ->
-            val rotationContext = onUpdate(event.context)
+        listen<RotationEvent.Update>(priority, alwaysListen) { event ->
+            val rotationRequest = builder.request?.invoke(this, event.request)
 
-            rotationContext?.let {
-                event.context = it
+            rotationRequest?.let {
+                event.request = it
             }
 
-            lastCtx = rotationContext
+            lastRequest = rotationRequest
         }
 
-        this.listen<RotationEvent.Post> { event ->
-            if (event.context == lastCtx && event.context.isValid) {
-                onReceive()
+        listen<RotationEvent.Post> { event ->
+            if (event.request == lastRequest) {
+                builder.onFinish?.invoke(this, event.request)
             }
+        }
+    }
+
+    @DslMarker
+    annotation class RotationDsl
+
+    class RotationRequestBuilder {
+        var request: (SafeContext.(lastContext: RotationRequest?) -> RotationRequest?)? = null
+        var onFinish: (SafeContext.(context: RotationRequest) -> Unit)? = null
+
+        @RotationDsl
+        fun request(block: SafeContext.(lastContext: RotationRequest?) -> RotationRequest?) {
+            request = block
+        }
+
+        @RotationDsl
+        fun finished(block: SafeContext.(context: RotationRequest) -> Unit) {
+            onFinish = block
         }
     }
 
     @JvmStatic
     fun update() = runSafe {
         RotationEvent.Update(BaritoneProcessor.poolContext()).post {
-            rotate(context)
+            rotate(request)
 
             currentContext?.let {
                 RotationEvent.Post(it).post()
@@ -103,7 +129,7 @@ object RotationManager : Loadable {
         }
     }
 
-    private fun rotate(newContext: RotationContext?) = runSafe {
+    private fun rotate(newContext: RotationRequest?) = runSafe {
         prevRotation = currentRotation
 
         keepTicks--
@@ -199,9 +225,9 @@ object RotationManager : Loadable {
     }
 
     object BaritoneProcessor {
-        private var baritoneContext: RotationContext? = null
+        private var baritoneContext: RotationRequest? = null
 
-        fun poolContext(): RotationContext? {
+        fun poolContext(): RotationRequest? {
             val ctx = baritoneContext
             baritoneContext = null
             return ctx
@@ -216,7 +242,7 @@ object RotationManager : Loadable {
 
         @JvmStatic
         fun handleBaritoneRotation(yaw: Float, pitch: Float) {
-            baritoneContext = RotationContext(Rotation(yaw, pitch), Baritone.rotation.apply {
+            baritoneContext = RotationRequest(Rotation(yaw, pitch), Baritone.rotation.apply {
                 if (rotationMode != RotationMode.SILENT) return@apply
                 rotationMode = RotationMode.SYNC
             })

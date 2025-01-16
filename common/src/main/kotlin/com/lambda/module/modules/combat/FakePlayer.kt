@@ -17,12 +17,12 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.context.SafeContext
 import com.lambda.http.Method
 import com.lambda.http.request
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafeConcurrent
+import com.lambda.util.player.spawnFakePlayer
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.client.network.PlayerListEntry
@@ -41,8 +41,10 @@ object FakePlayer : Module(
     init {
         onEnable {
             // Avoid multiple api requests
-            if (fakePlayer?.gameProfile?.name == playerName)
-                return@onEnable spawnPlayer(fakePlayer!!.gameProfile)
+            if (fakePlayer?.gameProfile?.name == playerName) {
+                fakePlayer = spawnFakePlayer(fakePlayer!!.gameProfile)
+                return@onEnable
+            }
 
             runSafeConcurrent {
                 val uuid =
@@ -58,25 +60,13 @@ object FakePlayer : Module(
 
                 // This is the cache that mc pulls profile data from when it fetches skins.
                 mc.networkHandler?.playerListEntries?.put(profile.id, PlayerListEntry(profile, false))
-                spawnPlayer(profile)
+                spawnFakePlayer(profile)
             }
         }
 
         onDisable {
             deletePlayer()
         }
-    }
-
-    private fun SafeContext.spawnPlayer(profile: GameProfile) {
-        fakePlayer = OtherClientPlayerEntity(world, profile)
-            .apply {
-                copyFrom(player)
-
-                playerListEntry = PlayerListEntry(profile, false)
-                id = -2024 - 4 - 20
-            }
-
-        world.addEntity(fakePlayer)
     }
 
     private fun deletePlayer() {

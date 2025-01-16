@@ -40,7 +40,7 @@ sealed class MovementEvent {
          * @property movementType The type of movement.
          * @property movement The movement vector.
          */
-        class Pre(
+        data class Pre(
             override val movementType: MovementType,
             override val movement: Vec3d,
         ) : Player(), ICancellable by Cancellable()
@@ -51,7 +51,7 @@ sealed class MovementEvent {
          * @property movementType The type of movement.
          * @property movement The movement vector.
          */
-        class Post(
+        data class Post(
             override val movementType: MovementType,
             override val movement: Vec3d,
         ) : Player(), Event
@@ -71,7 +71,7 @@ sealed class MovementEvent {
          * @property entity The entity involved in the movement event.
          * @property movementInput The movement input vector for the entity.
          */
-        class Pre(
+        data class Pre(
             override val entity: LivingEntity,
             override val movementInput: Vec3d,
         ) : Entity(), ICancellable by Cancellable()
@@ -82,7 +82,7 @@ sealed class MovementEvent {
          * @property entity The entity involved in the movement event.
          * @property movementInput The movement input vector for the entity.
          */
-        class Post(
+        data class Post(
             override val entity: LivingEntity,
             override val movementInput: Vec3d,
         ) : Entity(), Event

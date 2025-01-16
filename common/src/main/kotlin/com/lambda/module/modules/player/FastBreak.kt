@@ -18,7 +18,10 @@
 package com.lambda.module.modules.player
 
 import com.lambda.context.SafeContext
-import com.lambda.event.events.*
+import com.lambda.event.events.PacketEvent
+import com.lambda.event.events.PlayerEvent
+import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.pipeline.UIPipeline
 import com.lambda.graphics.renderer.esp.DynamicAABB

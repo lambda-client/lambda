@@ -19,6 +19,7 @@ package com.lambda.event.events
 
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
+import net.minecraft.entity.damage.DamageSource
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.Hand
@@ -27,6 +28,13 @@ import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
+/**
+ * Represents various events that can be triggered by the player during gameplay.
+ *
+ * Each event belongs to a specific category, such as movement, interaction, attacking, or other actions.
+ * Many of the events in this sealed class are cancellable, allowing listeners to intercept and prevent the event
+ * from proceeding.
+ */
 sealed class PlayerEvent {
     /**
      * Represents the player moving the cursor around
@@ -40,7 +48,18 @@ sealed class PlayerEvent {
      * Represents the player swinging its hand
      */
     data class SwingHand(
-        val hand: Hand
+        val hand: Hand,
+    ) : ICancellable by Cancellable()
+
+    /**
+     * Represents a damage event for entities.
+     *
+     * @property source The source of the damage, which identifies what caused the damage.
+     * @property amount The amount of damage dealt.
+     */
+    data class Damage(
+        val source: DamageSource,
+        val amount: Float,
     ) : ICancellable by Cancellable()
 
     sealed class Interact {
@@ -52,7 +71,7 @@ sealed class PlayerEvent {
          */
         data class Block(
             val hand: Hand,
-            val blockHitResult: BlockHitResult
+            val blockHitResult: BlockHitResult,
         ) : ICancellable by Cancellable()
 
         /**
@@ -65,7 +84,7 @@ sealed class PlayerEvent {
         data class Entity(
             val hand: Hand,
             val entity: net.minecraft.entity.Entity,
-            val entityHitResult: EntityHitResult
+            val entityHitResult: EntityHitResult,
         ) : ICancellable by Cancellable()
 
         /**
@@ -74,7 +93,7 @@ sealed class PlayerEvent {
          * @param hand The hand used to interact with the item
          */
         data class Item(
-            val hand: Hand
+            val hand: Hand,
         ) : ICancellable by Cancellable()
     }
 
@@ -84,14 +103,14 @@ sealed class PlayerEvent {
          */
         data class Block(
             val pos: BlockPos,
-            val side: Direction
+            val side: Direction,
         ) : ICancellable by Cancellable()
 
         /**
          * Represents the player attacking an entity
          */
         data class Entity(
-            val entity: net.minecraft.entity.Entity
+            val entity: net.minecraft.entity.Entity,
         ) : ICancellable by Cancellable()
     }
 

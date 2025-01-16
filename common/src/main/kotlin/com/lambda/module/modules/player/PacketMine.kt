@@ -27,10 +27,10 @@ import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.interaction.RotationManager
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.interaction.visibilty.VisibilityChecker.findRotation
 import com.lambda.module.Module
-import com.lambda.module.modules.client.TaskFlow
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.lerp
@@ -113,17 +113,16 @@ object PacketMine : Module(
     private val renderQueueSetting by setting("Render Setting", RenderSetting.Both, "The style to render queue blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() })
     private val renderQueueSize by setting("Render Size", 0.3f, 0f..1f, 0.01f, "The scale of the queue render blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() })
 
-    private val queueFillColourMode by setting("Fill Mode", ColourMode.Dynamic, visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline })
-    private val queueStaticFillColour by setting("Static Fill Colour", Color(1f, 0f, 0f, 0.2f), "The colour used to render the faces for queue blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline && queueFillColourMode == ColourMode.Static })
-    private val queueStartFillColour by setting("Start Fill Colour", Color(1f, 0f, 0f, 0.2f), "The colour to render the faces for queue blocks closer to being broken next", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline && queueFillColourMode == ColourMode.Dynamic })
-    private val queueEndFillColour by setting("End Fill Colour", Color(1f, 1f, 0f, 0.2f), "the colour to render the faces for queue blocks closer to the end of the queue", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline && queueFillColourMode == ColourMode.Dynamic })
+    private val queueFillColourMode by setting("Queue Fill Mode", ColourMode.Dynamic, visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline })
+    private val queueStaticFillColour by setting("Queue Static Fill Colour", Color(1f, 0f, 0f, 0.2f), "The colour used to render the faces for queue blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline && queueFillColourMode == ColourMode.Static })
+    private val queueStartFillColour by setting("Queue Start Fill Colour", Color(1f, 0f, 0f, 0.2f), "The colour to render the faces for queue blocks closer to being broken next", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline && queueFillColourMode == ColourMode.Dynamic })
+    private val queueEndFillColour by setting("Queue End Fill Colour", Color(1f, 1f, 0f, 0.2f), "the colour to render the faces for queue blocks closer to the end of the queue", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Outline && queueFillColourMode == ColourMode.Dynamic })
 
-    private val queueOutlineColourMode by setting("Outline Mode", ColourMode.Dynamic, visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill })
-    private val queueStaticOutlineColour by setting("Static Outline Colour", Color(1f, 0f, 0f), "The colour used to render the outline for queue blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill && queueOutlineColourMode == ColourMode.Static })
-    private val queueStartOutlineColour by setting("Start Outline Colour", Color(1f, 0f, 0f), "The colour to render the outline for queue blocks closer to being broken next", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill && queueOutlineColourMode == ColourMode.Dynamic })
-    private val queueEndOutlineColour by setting("End Outline Colour", Color(1f, 1f, 0f), "the colour to render the outline for queue blocks closer to the end of the queue", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill && queueOutlineColourMode == ColourMode.Dynamic })
-    private val queueOutlineWidth by setting("Outline Width", 1f, 0f..3f, 0.1f, "The thickness of the outline used on queue blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderSetting != RenderSetting.Fill } )
-
+    private val queueOutlineColourMode by setting("Queue Outline Mode", ColourMode.Dynamic, visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill })
+    private val queueStaticOutlineColour by setting("Queue Static Outline Colour", Color(1f, 0f, 0f), "The colour used to render the outline for queue blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill && queueOutlineColourMode == ColourMode.Static })
+    private val queueStartOutlineColour by setting("Queue Start Outline Colour", Color(1f, 0f, 0f), "The colour to render the outline for queue blocks closer to being broken next", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill && queueOutlineColourMode == ColourMode.Dynamic })
+    private val queueEndOutlineColour by setting("Queue End Outline Colour", Color(1f, 1f, 0f), "the colour to render the outline for queue blocks closer to the end of the queue", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderQueueSetting != RenderSetting.Fill && queueOutlineColourMode == ColourMode.Dynamic })
+    private val queueOutlineWidth by setting("Queue Outline Width", 1f, 0f..3f, 0.1f, "The thickness of the outline used on queue blocks", visibility = { page == Page.QueueRender && renderQueueMode.isEnabled() && renderSetting != RenderSetting.Fill } )
 
     private enum class Page {
         General, ReBreak, Queue, BlockRender, QueueRender
@@ -257,7 +256,7 @@ object PacketMine : Module(
     private var swappedSlot = -1
     private var swapped = false
     private var previousSelectedSlot = -1
-    private var expectedRotation: RotationContext? = null
+    private var expectedRotation: RotationRequest? = null
     private var rotationPosition: BlockPos? = null
     private var pausedForRotation = false
     private var releaseRotateDelayCounter = 0
@@ -515,10 +514,10 @@ object PacketMine : Module(
             }
         }
 
-        listen<WorldEvent.BlockUpdate> {
+        listen<WorldEvent.BlockChange> {
             currentMiningBlock.forEach { ctx ->
                 ctx?.apply {
-                    if (it.pos != pos || !isStateBroken(pos.blockState(world), it.state)) return@forEach
+                    if (it.pos != pos || !isStateBroken(pos.blockState(world), it.newState)) return@forEach
 
                     if (breakType.isPrimary()) {
                         runHandlers(ProgressStage.PacketReceiveBreak, pos, lastValidBestTool)
@@ -539,11 +538,11 @@ object PacketMine : Module(
             rotationPosition?.let { pos ->
                 lastNonEmptyState?.let { state ->
                     val boxList = state.getOutlineShape(world, pos).boundingBoxes.map { it.offset(pos) }
-                    val rotationContext =
-                        findRotation(boxList, TaskFlow.rotation, TaskFlow.interact, emptySet()) { true }
-                    rotationContext?.let { context ->
-                        it.context = context
-                        expectedRotation = context
+                    val rotationRequest =
+                        findRotation(boxList, TaskFlowModule.rotation, TaskFlowModule.interact, emptySet()) { true }
+                    rotationRequest?.let { request ->
+                        it.request = request
+                        expectedRotation = request
                     }
                 }
             } ?: run {
@@ -566,7 +565,7 @@ object PacketMine : Module(
 
             expectedRotation?.let { expectedRot ->
                 rotationPosition?.let { pos ->
-                    if (it.context != expectedRot) {
+                    if (it.request != expectedRot) {
                         pausedForRotation = true
                         return@listen
                     }
@@ -575,7 +574,7 @@ object PacketMine : Module(
                     if (verifyRotation(
                             boxList,
                             RotationManager.currentRotation.vector,
-                            RotationManager.currentContext?.hitResult
+                            RotationManager.currentContext?.checkedResult
                         )
                     ) {
                         onRotationComplete?.run()
@@ -714,7 +713,7 @@ object PacketMine : Module(
         bestTool: Supplier<Int>,
         empty: Boolean = false,
         instaBroken: Boolean = false,
-        task: Runnable
+        task: Runnable,
     ) {
         handleRotations(preStage, pos, empty = empty, instaBroken = instaBroken)
 
@@ -737,7 +736,7 @@ object PacketMine : Module(
         pos: BlockPos,
         bestTool: Int,
         empty: Boolean = false,
-        instaBroken: Boolean = false
+        instaBroken: Boolean = false,
     ) {
         handleRotations(progressStage, pos, empty = empty, instaBroken = instaBroken)
         handleAutoSwap(progressStage, bestTool, empty = empty, instaBroken = instaBroken)
@@ -748,7 +747,7 @@ object PacketMine : Module(
         progressStage: ProgressStage,
         pos: BlockPos,
         empty: Boolean = false,
-        instaBroken: Boolean = false
+        instaBroken: Boolean = false,
     ) {
         when (progressStage) {
             ProgressStage.PreTick -> {
@@ -774,7 +773,8 @@ object PacketMine : Module(
             ProgressStage.EndPost -> if (!validateBreak || empty) checkReleaseRotation()
 
             ProgressStage.PacketReceiveBreak,
-            ProgressStage.TimedOut -> checkReleaseRotation()
+            ProgressStage.TimedOut,
+                -> checkReleaseRotation()
         }
     }
 
@@ -782,7 +782,7 @@ object PacketMine : Module(
         progressStage: ProgressStage,
         bestTool: Int,
         empty: Boolean = false,
-        instaBroken: Boolean = false
+        instaBroken: Boolean = false,
     ) {
         if (!swapMethod.isEnabled()) return
 
@@ -828,14 +828,15 @@ object PacketMine : Module(
             }
 
             ProgressStage.PacketReceiveBreak,
-            ProgressStage.TimedOut -> returnToOriginalSlot()
+            ProgressStage.TimedOut,
+                -> returnToOriginalSlot()
         }
     }
 
     private fun SafeContext.handleSwing(
         progressStage: ProgressStage,
         empty: Boolean = false,
-        instaBroken: Boolean = false
+        instaBroken: Boolean = false,
     ) {
         if (!swingMode.isEnabled()) return
 
@@ -857,7 +858,8 @@ object PacketMine : Module(
             ProgressStage.EndPost,
             ProgressStage.StartPost,
             ProgressStage.PacketReceiveBreak,
-            ProgressStage.TimedOut -> {
+            ProgressStage.TimedOut,
+                -> {
             }
         }
     }
@@ -898,7 +900,7 @@ object PacketMine : Module(
         if (!verifyRotation(
                 lastNonEmptyState?.getOutlineShape(world, pos)?.boundingBoxes?.map { it.offset(pos) },
                 RotationManager.currentRotation.vector,
-                RotationManager.currentContext?.hitResult
+                RotationManager.currentContext?.checkedResult
             )
         ) {
             pausedForRotation = true
@@ -1131,7 +1133,7 @@ object PacketMine : Module(
     private fun SafeContext.checkClientSideBreak(
         packetReceiveBreak: Boolean,
         pos: BlockPos,
-        doubleBreakBlock: Boolean = false
+        doubleBreakBlock: Boolean = false,
     ) {
         if (packetReceiveBreak || (!validateBreak && !doubleBreakBlock)) {
             interaction.breakBlock(pos)
@@ -1383,10 +1385,12 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.packetStartBreak(pos: BlockPos) {
-        startBreak(pos)
-        if (packets != PacketMode.Vanilla || doubleBreak) {
+        if (packets == PacketMode.Grim) {
             abortBreak(pos)
+            stopBreak(pos)
         }
+        startBreak(pos)
+        if (packets == PacketMode.NCP) abortBreak(pos)
         if (packets == PacketMode.Grim || doubleBreak) {
             stopBreak(pos)
         }

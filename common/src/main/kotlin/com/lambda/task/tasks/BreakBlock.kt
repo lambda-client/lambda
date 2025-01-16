@@ -18,16 +18,16 @@
 package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
-import com.lambda.config.groups.IRotationConfig
 import com.lambda.config.groups.InteractionConfig
+import com.lambda.config.groups.RotationConfig
 import com.lambda.context.SafeContext
-import com.lambda.event.events.RotationEvent
+import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.RotationManager.rotate
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
-import com.lambda.module.modules.client.TaskFlow
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils.blockState
@@ -43,13 +43,15 @@ import net.minecraft.util.math.Direction
 
 class BreakBlock @Ta5kBuilder constructor(
     private val ctx: BreakContext,
-    private val rotation: IRotationConfig,
-    private val interact: InteractionConfig,
-    private val sides: Set<Direction>,
-    private val collectDrop: Boolean,
-    private val rotate: Boolean,
-    private val swingHand: Boolean,
+    private val collectDrop: Boolean = false,
+    private val rotation: RotationConfig = TaskFlowModule.rotation,
+    private val interact: InteractionConfig = TaskFlowModule.interact,
+    private val sides: Set<Direction> = Direction.entries.toSet(),
+    private val rotate: Boolean = TaskFlowModule.build.rotateForBreak,
+    private val swingHand: Boolean = TaskFlowModule.interact.swingHand,
 ) : Task<ItemEntity?>() {
+    override val name get() = "Breaking ${ctx.result.blockPos.toShortString()}"
+
     val blockPos: BlockPos get() = ctx.result.blockPos
 
     private var beginState: BlockState? = null
@@ -69,95 +71,80 @@ class BreakBlock @Ta5kBuilder constructor(
             success(null)
             return
         }
+
         beginState = blockState
 
         if (!rotate || ctx.instantBreak) {
-            breakBlock(ctx.result.side)
+            hitBlock(ctx.result.side)
         }
     }
 
     init {
-        listen<RotationEvent.Update> { event ->
-            if (state != State.BREAKING) return@listen
-            if (!rotate || ctx.instantBreak) return@listen
-            event.context = lookAtBlock(blockPos, rotation, interact, sides)
-        }
+        rotate {
+            request {
+                if (state != State.BREAKING) return@request null
+                if (!rotate || ctx.instantBreak) return@request null
 
-        listen<RotationEvent.Post> {
-            if (state != State.BREAKING) return@listen
-            if (!rotate || ctx.instantBreak) return@listen
-
-            isValid = it.context.isValid
+                lookAtBlock(blockPos, rotation, interact, sides)
+            }
+            finished { context ->
+                isValid = context.isValid
+            }
         }
 
         listen<TickEvent.Pre> {
             drop?.let { itemDrop ->
                 if (!world.entities.contains(itemDrop)) {
+                    BaritoneUtils.cancel()
                     success(itemDrop)
                     return@listen
                 }
 
                 if (player.hotbarAndStorage.none { it.isEmpty }) {
                     player.currentScreenHandler.inventorySlots.firstOrNull {
-                        it.stack.item.block in TaskFlow.disposables
+                        it.stack.item.block in TaskFlowModule.inventory.disposables
                     }?.let {
-                        clickSlot(it.index, 1, SlotActionType.THROW)
+                        clickSlot(it.id, 1, SlotActionType.THROW)
                     }
+                    return@listen
                 }
 
                 BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
+                return@listen
             } ?: BaritoneUtils.cancel()
 
             if (isValid || !rotate || ctx.instantBreak) {
-                breakBlock(ctx.result.side)
+                hitBlock(ctx.result.side)
             }
 
             if (done()) {
-                state = State.COLLECTING
                 if (!collectDrop) {
+                    BaritoneUtils.cancel()
                     success(null)
                 }
             }
         }
 
-        listen<WorldEvent.EntityUpdate> {
-            if (collectDrop
-                && it.entity is ItemEntity
-                && it.entity.pos.isInRange(blockPos.toCenterPos(), 0.5)
+        // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
+        listen<EntityEvent.EntityUpdate> {
+            if (!collectDrop) return@listen
+            if (it.entity !is ItemEntity) return@listen
+            val inBreakRange = it.entity.pos.isInRange(blockPos.toCenterPos(), 0.5)
+            val correctMaterial = it.entity.stack.item.block == beginState?.block
 
-            ) {
+            if (inBreakRange && correctMaterial) {
                 drop = it.entity
+                state = State.COLLECTING
             }
         }
     }
 
     private fun SafeContext.done() = blockState.isAir && !collectDrop
 
-    private fun SafeContext.breakBlock(side: Direction) {
+    private fun SafeContext.hitBlock(side: Direction) {
         if (interaction.updateBlockBreakingProgress(blockPos, side)) {
             if (player.isCreative) interaction.blockBreakingCooldown = 0
             if (swingHand) player.swingHand(ctx.hand)
         }
-    }
-
-    companion object {
-        @Ta5kBuilder
-        fun breakBlock(
-            ctx: BreakContext,
-            rotationConfig: IRotationConfig = TaskFlow.rotation,
-            interactionConfig: InteractionConfig = TaskFlow.interact,
-            sides: Set<Direction> = emptySet(),
-            collectDrop: Boolean = TaskFlow.build.collectDrops,
-            rotate: Boolean = TaskFlow.build.rotateForBreak,
-            swingHand: Boolean = TaskFlow.interact.swingHand,
-        ) = BreakBlock(
-            ctx,
-            rotationConfig,
-            interactionConfig,
-            sides,
-            collectDrop,
-            rotate,
-            swingHand
-        )
     }
 }

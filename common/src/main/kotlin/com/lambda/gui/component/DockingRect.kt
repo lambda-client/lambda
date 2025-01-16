@@ -55,10 +55,15 @@ abstract class DockingRect {
     var screenSize: Vec2d = Vec2d.ZERO
 
     var position: Vec2d
-        get() = relativeToAbs(relativePos).coerceIn(0.0, screenSize.x - size.x, 0.0, screenSize.y - size.y)
-        set(value) { relativePos = absToRelative(value.roundToStep(ClickGui.dockingGridSize)); if (autoDocking) autoDocking() }
+        get() = relativeToAbs(relativePos)
+            .coerceIn(0.0, screenSize.x - size.x, 0.0, screenSize.y - size.y)
+        set(value) {
+            relativePos = absToRelative(value.roundToStep(ClickGui.dockingGridSize))
+            if (autoDocking) autoDocking()
+        }
 
-    private val dockingOffset get() = (screenSize - size) * Vec2d(dockingH.multiplier, dockingV.multiplier)
+    private val dockingOffset get() =
+        (screenSize - size) * Vec2d(dockingH.multiplier, dockingV.multiplier)
 
     private fun relativeToAbs(posIn: Vec2d) = posIn + dockingOffset
     private fun absToRelative(posIn: Vec2d) = posIn - dockingOffset

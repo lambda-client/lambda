@@ -18,7 +18,10 @@
 package com.lambda.config.configurations
 
 import com.lambda.config.Configuration
+import com.lambda.config.configurations.ModuleConfig.configName
+import com.lambda.config.configurations.ModuleConfig.primary
 import com.lambda.util.FolderRegister
+import java.io.File
 
 
 /**
@@ -31,5 +34,5 @@ import com.lambda.util.FolderRegister
  */
 object ModuleConfig : Configuration() {
     override val configName get() = "modules"
-    override val primary = FolderRegister.config.resolve("$configName.json")
+    override val primary: File = FolderRegister.config.resolve("$configName.json").toFile()
 }

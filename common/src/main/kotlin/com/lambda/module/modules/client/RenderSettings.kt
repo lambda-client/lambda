@@ -21,6 +21,7 @@ import com.lambda.graphics.renderer.gui.font.core.LambdaEmoji
 import com.lambda.graphics.renderer.gui.font.core.LambdaFont
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import java.awt.Color
 
 object RenderSettings : Module(
     name = "RenderSettings",
@@ -37,6 +38,7 @@ object RenderSettings : Module(
     val shadowShift by setting("Shadow Shift", 1.0, 0.0..2.0, 0.05) { page == Page.Font && shadow }
     val gap by setting("Gap", 1.5, -10.0..10.0, 0.5) { page == Page.Font }
     val baselineOffset by setting("Vertical Offset", 0.0, -10.0..10.0, 0.5) { page == Page.Font }
+    val highlightColor by setting("Text Highlight Color", Color(214, 55, 87), visibility = { page == Page.Font })
 
     // ESP
     val uploadsPerTick by setting("Uploads", 16, 1..256, 1, unit = " chunk/tick") { page == Page.ESP }

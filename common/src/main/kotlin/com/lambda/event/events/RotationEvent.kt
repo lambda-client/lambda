@@ -20,7 +20,7 @@ package com.lambda.event.events
 import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.rotation.RotationRequest
 import net.minecraft.client.input.Input
 
 sealed class RotationEvent {
@@ -31,9 +31,9 @@ sealed class RotationEvent {
      *
      * CAUTION: The listener with the LOWEST priority will win as it is the last to override the context
      *
-     * @property context The rotation context that listeners can set. Only one rotation can "win" each tick
+     * @property request The rotation context that listeners can set. Only one rotation can "win" each tick
      */
-    class Update(var context: RotationContext?) : ICancellable by Cancellable()
+    data class Update(var request: RotationRequest?) : ICancellable by Cancellable()
 
     /**
      * This event allows listeners to modify the yaw relative to which the movement input is going to be constructed
@@ -41,7 +41,7 @@ sealed class RotationEvent {
      * @property strafeYaw The angle at which the player will move when pressing W
      * Changing this value will never force the anti cheat to flag you because RotationManager is designed to modify the key input instead
      */
-    class StrafeInput(var strafeYaw: Double, val input: Input) : Event
+    data class StrafeInput(var strafeYaw: Double, val input: Input) : Event
 
-    class Post(val context: RotationContext) : Event
+    data class Post(val request: RotationRequest) : Event
 }

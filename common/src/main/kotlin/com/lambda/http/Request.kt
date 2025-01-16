@@ -23,7 +23,6 @@ import com.lambda.util.FolderRegister.createIfNotExists
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URI
-import java.net.URL
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 
@@ -55,7 +54,7 @@ data class Request(
      * @param maxAge The maximum age of the cached resource. Default is 4 days.
      */
     fun maybeDownload(name: String, maxAge: Duration = 7.days): File {
-        val file = cache.resolve(name).createIfNotExists()
+        val file = cache.resolve(name).toFile().createIfNotExists()
 
         if (
             System.currentTimeMillis() - file.lastModified() < maxAge.inWholeMilliseconds

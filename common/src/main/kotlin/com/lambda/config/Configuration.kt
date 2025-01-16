@@ -104,7 +104,10 @@ abstract class Configuration : Jsonable {
     }
 
     private fun load(file: File) {
-        check(file.exists()) { "No configuration file found for ${configName.capitalize()}" }
+        if (!file.exists()) {
+            LOG.warn("No configuration file found for ${configName.capitalize()}. Creating new file when saving.")
+            return
+        }
 
         loadFromJson(JsonParser.parseReader(file.reader()).asJsonObject)
     }
@@ -153,5 +156,12 @@ abstract class Configuration : Jsonable {
 
     companion object {
         val configurations = mutableSetOf<Configuration>()
+        val configurables: Set<Configurable>
+            get() = configurations.flatMapTo(mutableSetOf()) { it.configurables }
+
+        fun configurableByName(name: String) =
+            configurables.find { it.name == name }
+        fun settingByName(configurable: Configurable, name: String) =
+            configurable.settings.find { it.name == name }
     }
 }

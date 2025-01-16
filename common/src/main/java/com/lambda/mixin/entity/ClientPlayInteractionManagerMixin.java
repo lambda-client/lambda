@@ -19,7 +19,6 @@ package com.lambda.mixin.entity;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.PlayerEvent;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.entity.Entity;
@@ -31,7 +30,6 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -66,9 +64,11 @@ public class ClientPlayInteractionManagerMixin {
         }
     }
 
-    @Inject(method = "attackBlock", at = @At("HEAD"))
+    @Inject(method = "attackBlock", at = @At("HEAD"), cancellable = true)
     public void onAttackBlock(BlockPos pos, Direction side, CallbackInfoReturnable<Boolean> cir) {
-        if (EventFlow.post(new PlayerEvent.Attack.Block(pos, side)).isCanceled()) cir.cancel();
+        if (EventFlow.post(new PlayerEvent.Attack.Block(pos, side)).isCanceled()) {
+            cir.setReturnValue(false);
+        }
     }
 
     @Inject(method = "attackEntity", at = @At("HEAD"), cancellable = true)

@@ -40,7 +40,7 @@ data class PredictionTick(
     val eyePos: Vec3d,
     val onGround: Boolean,
     val isJumping: Boolean,
-    val predictionEntity: PredictionEntity
+    val predictionEntity: PredictionEntity,
 ) {
     fun next() = skipTicks(1)
 

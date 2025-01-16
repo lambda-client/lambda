@@ -21,6 +21,7 @@
     "items.TridentMixin",
     "network.ClientConnectionMixin",
     "network.ClientLoginNetworkMixin",
+    "network.ClientPlayNetworkHandlerMixin",
     "network.HandshakeC2SPacketMixin",
     "network.LoginHelloC2SPacketMixin",
     "network.LoginKeyC2SPacketMixin",
@@ -37,17 +38,21 @@
     "render.InGameOverlayRendererMixin",
     "render.LightmapTextureManagerMixin",
     "render.LivingEntityRendererMixin",
+    "render.PlayerListHudMixin",
     "render.RenderLayersMixin",
     "render.RenderSystemMixin",
     "render.RenderTickCounterMixin",
     "render.ScreenHandlerMixin",
     "render.SplashOverlayMixin",
+    "render.SplashOverlayMixin$LogoTextureMixin",
     "render.TextRendererMixin",
     "render.VertexBufferMixin",
     "render.WorldRendererMixin",
     "world.BlockCollisionSpliteratorMixin",
     "world.ClientChunkManagerMixin",
-    "world.ClientWorldMixin"
+    "world.ClientWorldMixin",
+    "world.StructureTemplateMixin",
+    "world.WorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1

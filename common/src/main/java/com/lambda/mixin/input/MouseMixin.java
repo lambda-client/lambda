@@ -21,8 +21,6 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.MouseEvent;
 import com.lambda.util.math.Vec2d;
 import net.minecraft.client.Mouse;
-import com.lambda.util.Mouse.Button;
-import com.lambda.util.Mouse.Action;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;

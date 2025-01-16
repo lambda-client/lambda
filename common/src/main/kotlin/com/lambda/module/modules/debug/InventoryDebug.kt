@@ -18,8 +18,8 @@
 package com.lambda.module.modules.debug
 
 import com.lambda.Lambda.LOG
+import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.events.ScreenHandlerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -35,23 +35,33 @@ object InventoryDebug : Module(
     defaultTags = setOf(ModuleTag.DEBUG)
 ) {
     init {
-        listen<ScreenHandlerEvent.Open> {
-            info("Opened screen handler: ${it.screenHandler::class.simpleName}")
+        listen<InventoryEvent.Open> { event ->
+            info("Opened screen handler: ${event.screenHandler::class.simpleName}")
+
+            LOG.info("\n" + event.screenHandler.slots.joinToString("\n") {
+                "${it.inventory::class.simpleName} ${it.index} ${it.x} ${it.y}"
+            })
         }
 
-        listen<ScreenHandlerEvent.Close> {
+        listen<InventoryEvent.Close> {
             info("Closed screen handler: ${it.screenHandler::class.simpleName}")
         }
 
-        listen<ScreenHandlerEvent.Update> {
+        listen<InventoryEvent.FullUpdate> {
             info("Updated screen handler: ${it.revision}, ${it.stacks}, ${it.cursorStack}")
         }
 
         listen<PacketEvent.Receive.Pre> {
-            when (val packet = it.packet) {
-                is UpdateSelectedSlotS2CPacket, is InventoryS2CPacket -> {
-                    this@InventoryDebug.info(packet.dynamicString())
+            when (it.packet) {
+                is UpdateSelectedSlotS2CPacket,
+                is InventoryS2CPacket,
+                    -> {
+                    LOG.info(it.packet.dynamicString())
                 }
+            }
+            when (val packet = it.packet) {
+                is UpdateSelectedSlotS2CPacket -> this@InventoryDebug.info("Updated selected slot: ${packet.slot}")
+                is InventoryS2CPacket -> this@InventoryDebug.info("Received inventory update: syncId: ${packet.syncId} | revision: ${packet.revision} | cursorStack ${packet.cursorStack}")
             }
         }
 
@@ -64,7 +74,7 @@ object InventoryDebug : Module(
                 is CreativeInventoryActionC2SPacket,
                 is PickFromInventoryC2SPacket,
                 is UpdateSelectedSlotC2SPacket,
-                    -> LOG.info(it.packet.dynamicString())
+                    -> LOG.info(System.currentTimeMillis().toString() + " " + it.packet.dynamicString())
             }
         }
     }

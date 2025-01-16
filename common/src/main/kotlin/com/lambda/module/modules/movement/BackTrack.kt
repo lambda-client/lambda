@@ -33,22 +33,13 @@ import com.lambda.util.ClientPacket
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.ServerPacket
-import com.lambda.util.math.VecUtils.dist
-import com.lambda.util.math.VecUtils.minus
-import com.lambda.util.math.VecUtils.plus
+import com.lambda.util.math.dist
+import com.lambda.util.math.minus
+import com.lambda.util.math.plus
 import com.lambda.util.math.lerp
 import com.lambda.util.math.multAlpha
 import net.minecraft.entity.LivingEntity
-import net.minecraft.network.packet.s2c.play.EntityAnimationS2CPacket
-import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket
-import net.minecraft.network.packet.s2c.play.EntityS2CPacket
-import net.minecraft.network.packet.s2c.play.EntityStatusEffectS2CPacket
-import net.minecraft.network.packet.s2c.play.ParticleS2CPacket
-import net.minecraft.network.packet.s2c.play.PlaySoundFromEntityS2CPacket
-import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket
-import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket
-import net.minecraft.network.packet.s2c.play.WorldEventS2CPacket
-import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket
+import net.minecraft.network.packet.s2c.play.*
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -154,7 +145,8 @@ object BackTrack : Module(
 
                 is PlaySoundS2CPacket, is PlaySoundFromEntityS2CPacket, is StopSoundS2CPacket,
                     /*is EntityStatusS2CPacket,*/ is EntityStatusEffectS2CPacket, is EntityAnimationS2CPacket,
-                is ParticleS2CPacket, is WorldTimeUpdateS2CPacket, is WorldEventS2CPacket -> {
+                is ParticleS2CPacket, is WorldTimeUpdateS2CPacket, is WorldEventS2CPacket,
+                    -> {
                     return@listen
                 }
             }

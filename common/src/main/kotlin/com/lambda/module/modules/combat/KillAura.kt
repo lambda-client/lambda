@@ -26,20 +26,21 @@ import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.RotationManager
-import com.lambda.interaction.RotationManager.requestRotation
+import com.lambda.interaction.RotationManager.rotate
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.interaction.rotation.Rotation.Companion.dist
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.rotation.RotationContext
-import com.lambda.interaction.visibilty.VisibilityChecker.scanVisibleSurfaces
+import com.lambda.interaction.rotation.RotationRequest
+import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
+import com.lambda.interaction.visibilty.VisibilityChecker.visibleSides
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
 import com.lambda.util.math.MathUtils.random
-import com.lambda.util.math.VecUtils.distSq
-import com.lambda.util.math.VecUtils.plus
-import com.lambda.util.math.VecUtils.times
+import com.lambda.util.math.distSq
+import com.lambda.util.math.plus
+import com.lambda.util.math.times
 import com.lambda.util.math.lerp
 import com.lambda.util.player.MovementUtils.moveDiff
 import com.lambda.util.player.prediction.buildPlayerPrediction
@@ -113,15 +114,15 @@ object KillAura : Module(
     }
 
     init {
-        requestRotation(
-            onUpdate = {
-                if (!rotate) return@requestRotation null
+        rotate {
+            request {
+                if (!rotate) return@request null
 
                 target?.let { target ->
                     buildRotation(target)
                 }
             }
-        )
+        }
 
         listen<PlayerPacketEvent.Pre>(Int.MIN_VALUE) { event ->
             prevY = lastY
@@ -161,7 +162,7 @@ object KillAura : Module(
         onDisable(::reset)
     }
 
-    private fun SafeContext.buildRotation(target: LivingEntity): RotationContext? {
+    private fun SafeContext.buildRotation(target: LivingEntity): RotationRequest? {
         val currentRotation = RotationManager.currentRotation
 
         val prediction = buildPlayerPrediction()
@@ -190,7 +191,7 @@ object KillAura : Module(
 
         // Do not rotate if the eyes are inside the target's AABB
         if (box.contains(eye)) {
-            return RotationContext(currentRotation, rotation)
+            return RotationRequest(currentRotation, rotation)
         }
 
         // Rotation stabilizer
@@ -243,13 +244,15 @@ object KillAura : Module(
             // Get visible point set
             val validHits = mutableMapOf<Vec3d, Rotation>()
 
-            scanVisibleSurfaces(eye, box, resolution = interactionSettings.resolution) { _, vec ->
-                if (eye distSq vec > reachSq) return@scanVisibleSurfaces
+            val sides = visibleSides(box, eye, interactionSettings)
+
+            scanSurfaces(box, sides, resolution = interactionSettings.resolution) { _, vec ->
+                if (eye distSq vec > reachSq) return@scanSurfaces
 
                 val newRotation = eye.rotationTo(vec)
 
-                val cast = newRotation.rayCast(reach, eye) ?: return@scanVisibleSurfaces
-                if (cast.entityResult?.entity != target) return@scanVisibleSurfaces
+                val cast = newRotation.rayCast(reach, eye) ?: return@scanSurfaces
+                if (cast.entityResult?.entity != target) return@scanSurfaces
 
                 validHits[vec] = newRotation
             }
@@ -259,7 +262,7 @@ object KillAura : Module(
         }
 
         val predictOffset = target.moveDiff * targetPredict
-        return RotationContext(eye.rotationTo(vec + predictOffset), rotation)
+        return RotationRequest(eye.rotationTo(vec + predictOffset), rotation)
     }
 
     private fun SafeContext.runAttack(target: LivingEntity) {

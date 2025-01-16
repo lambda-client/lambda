@@ -93,7 +93,7 @@ object DiscordRPC : Module(
         get() = uuid == currentParty?.leader?.uuid
 
     private val PlayerEntity.isInParty
-        get() = currentParty?.players?.any { it.uuid == this@isInParty.uuid }
+        get() = currentParty?.players?.any { it.uuid == this.uuid }
 
     init {
         listenUnsafe<ConnectionEvent.Connect.Login.EncryptionRequest> {
@@ -103,7 +103,10 @@ object DiscordRPC : Module(
 
         listenUnsafe<ConnectionEvent.Connect.Login.EncryptionResponse> {
             if (it.secretKey.isDestroyed)
-                return@listenUnsafe logError("Error during the login process", "The client secret key was destroyed by another listener")
+                return@listenUnsafe logError(
+                    "Error during the login process",
+                    "The client secret key was destroyed by another listener"
+                )
 
             keyEvent = it
         }
@@ -157,7 +160,7 @@ object DiscordRPC : Module(
         runConcurrent {
             while (rpc.connected) {
                 updateActivity()
-                delay(delay.toLong())
+                delay(delay)
             }
         }
     }

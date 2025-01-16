@@ -18,23 +18,35 @@
 package com.lambda.event.events
 
 import com.lambda.event.Event
-import com.lambda.event.callback.Cancellable
-import com.lambda.event.callback.ICancellable
 import net.minecraft.block.BlockState
-import net.minecraft.client.world.ClientWorld
-import net.minecraft.entity.Entity
-import net.minecraft.entity.data.TrackedData
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.world.chunk.WorldChunk
 
+/**
+ * Represents various events that can occur within the world.
+ *
+ * This class encapsulates different types of world-related events,
+ * which can be used for listening and responding to changes or
+ * occurrences in the game world.
+ */
 sealed class WorldEvent {
+    /**
+     * Represents an event specific to chunk operations within the world.
+     *
+     * Chunk events are triggered during two main operations:
+     * - When a chunk is loaded into memory.
+     * - When a chunk is unloaded from memory (not triggered upon leaving the world).
+     *
+     * These events can be used to listen for and respond to changes in the state
+     * of chunks within the game world, providing contextual data for the operations.
+     */
     sealed class ChunkEvent : Event {
         /**
          * Event triggering upon chunk loading
          */
         data class Load(
-            val chunk: WorldChunk
+            val chunk: WorldChunk,
         ) : Event
 
         /**
@@ -42,40 +54,35 @@ sealed class WorldEvent {
          * Does not trigger when leaving the world
          */
         data class Unload(
-            val chunk: WorldChunk
+            val chunk: WorldChunk,
         ) : Event
     }
 
     /**
-     * Represents a block update in the world
+     * Represents a block state change event within the world.
+     *
+     * @property pos The position of the block within the world where the change occurred.
+     * @property oldState The block state prior to the change.
+     * @property newState The block state after the change.
      */
-    class BlockUpdate(
+    data class BlockChange(
         val pos: BlockPos,
-        val state: BlockState,
-        val flags: Int
-    ) : ICancellable by Cancellable()
+        val oldState: BlockState,
+        val newState: BlockState,
+    ) : Event
 
     /**
-     * Represents an entity being added to the world
-     */
-    class EntitySpawn(
-        val entity: Entity
-    ) : ICancellable by Cancellable()
-
-    /**
-     * Triggered upon entity data modification
-     */
-    class EntityUpdate(
-        val entity: Entity,
-        val data: TrackedData<*>,
-    ) : ICancellable by Cancellable()
-
-    /**
-     * Triggered upon player colliding with a block
+     * Represents a collision event in the game world.
+     *
+     * This event is triggered when a collision is detected between an entity or object and a block.
+     *
+     * @property pos The position of the block involved in the collision.
+     * @property state The current state of the block involved in the collision.
+     * @property shape The voxel shape of the block involved in the collision, which can be modified during the event.
      */
     data class Collision(
         val pos: BlockPos,
         val state: BlockState,
-        var shape: VoxelShape
+        var shape: VoxelShape,
     ) : Event
 }

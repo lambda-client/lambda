@@ -18,27 +18,26 @@
 package com.lambda.interaction
 
 import com.lambda.context.SafeContext
-import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.EventFlow.postChecked
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.threading.runSafe
 import com.lambda.util.collections.LimitedOrderedSet
-import com.lambda.util.math.VecUtils.approximate
+import com.lambda.util.math.approximate
+import com.lambda.util.math.component1
+import com.lambda.util.math.component2
+import com.lambda.util.math.component3
 import com.lambda.util.player.MovementUtils.motionX
 import com.lambda.util.player.MovementUtils.motionZ
-import com.lambda.util.extension.component1
-import com.lambda.util.extension.component2
-import com.lambda.util.extension.component3
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.*
 import net.minecraft.util.math.Vec3d
 
-object PlayerPacketManager : Loadable {
+object PlayerPacketManager {
     val configurations = LimitedOrderedSet<PlayerPacketEvent.Pre>(100)
 
-    var lastPosition = Vec3d.ZERO
+    var lastPosition: Vec3d = Vec3d.ZERO
     var lastRotation = Rotation.ZERO
     var lastSprint = false
     var lastSneak = false

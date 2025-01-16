@@ -76,7 +76,7 @@ object FriendCommand : LambdaCommand(
                         ?.playerList
                         ?.filter { it.profile != mc.gameProfile }
                         ?.map { it.profile.name }
-                        ?.forEach { builder.suggest(it)  }
+                        ?.forEach { builder.suggest(it) }
 
                     builder.buildFuture()
                 }
@@ -87,7 +87,7 @@ object FriendCommand : LambdaCommand(
                         ?.playerList
                         ?.firstOrNull {
                             it.profile.name == name &&
-                            it.profile != mc.gameProfile
+                                    it.profile != mc.gameProfile
                         } ?: return@executeWithResult failure("Could not find the player on the server")
 
                     return@executeWithResult if (FriendManager.befriend(id.profile)) {
@@ -105,7 +105,7 @@ object FriendCommand : LambdaCommand(
                         ?.playerList
                         ?.filter { it.profile != mc.gameProfile }
                         ?.map { it.profile.id }
-                        ?.forEach { builder.suggest(it.toString())  }
+                        ?.forEach { builder.suggest(it.toString()) }
 
                     builder.buildFuture()
                 }

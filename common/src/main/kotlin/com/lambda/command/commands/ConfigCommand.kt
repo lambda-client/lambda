@@ -17,8 +17,14 @@
 
 package com.lambda.command.commands
 
+import com.google.gson.JsonParser
+import com.lambda.brigadier.CommandResult
+import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.literal
+import com.lambda.brigadier.argument.string
+import com.lambda.brigadier.argument.value
+import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
@@ -28,8 +34,8 @@ import com.lambda.util.extension.CommandBuilder
 
 object ConfigCommand : LambdaCommand(
     name = "config",
-    aliases = setOf("cfg"),
-    usage = "config <save | load>",
+    aliases = setOf("cfg", "settings", "setting"),
+    usage = "config <save | load | set> <configurable> <setting> <value>",
     description = "Save or load the configuration files"
 ) {
     override fun CommandBuilder.create() {
@@ -49,6 +55,52 @@ object ConfigCommand : LambdaCommand(
                 }
                 this@ConfigCommand.info("Loaded ${Configuration.configurations.size} configuration files.")
                 return@executeWithResult success()
+            }
+        }
+        required(literal("set")) {
+            required(string("configurable")) { config ->
+                suggests { _, builder ->
+                    Configuration.configurables.forEach {
+                        builder.suggest("\"${it.name}\"")
+                    }
+                    builder.buildFuture()
+                }
+                required(string("setting")) { setting ->
+                    suggests { ctx, builder ->
+                        val conf = config(ctx).value()
+                        Configuration.configurableByName(conf)?.let { configurable ->
+                            configurable.settings.forEach {
+                                builder.suggest("\"${it.name}\"")
+                            }
+                        }
+                        builder.buildFuture()
+                    }
+                    required(string("value as JSON")) { value ->
+                        executeWithResult {
+                            val valueString = value().value()
+                            val confName = config().value()
+                            val settingName = setting().value()
+                            val conf = Configuration.configurableByName(confName) ?: run {
+                                return@executeWithResult failure("$confName is not a valid configurable.")
+                            }
+                            val set = Configuration.settingByName(conf, settingName) ?: run {
+                                return@executeWithResult failure("$settingName is not a valid setting for $confName.")
+                            }
+                            val parsed = try {
+                                JsonParser.parseString("\"$valueString\"")
+                            } catch (e: Exception) {
+                                return@executeWithResult failure("$valueString is not a valid JSON string.")
+                            }
+                            try {
+                                set.loadFromJson(parsed)
+                            } catch (e: Exception) {
+                                return@executeWithResult failure("Failed to load $valueString as a ${set.type::class.simpleName} for $settingName in $confName.")
+                            }
+                            this@ConfigCommand.info("Set $settingName to ${set.value} for $confName.")
+                            return@executeWithResult success()
+                        }
+                    }
+                }
             }
         }
     }

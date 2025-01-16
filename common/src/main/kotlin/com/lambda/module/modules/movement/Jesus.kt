@@ -27,7 +27,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Nameable
 import com.lambda.util.math.MathUtils.toInt
-import com.lambda.util.math.VecUtils.minus
+import com.lambda.util.math.minus
 import com.lambda.util.player.MovementUtils.isInputting
 import com.lambda.util.player.MovementUtils.motionY
 import com.lambda.util.player.MovementUtils.setSpeed
