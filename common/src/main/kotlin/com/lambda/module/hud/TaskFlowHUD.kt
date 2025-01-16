@@ -32,7 +32,7 @@ object TaskFlowHUD : HudModule(
 
     init {
         onRender {
-            drawString("TaskFlow", Vec2d.ZERO)
+            drawString(TaskFlow.toString(), Vec2d.ZERO)
         }
     }
 }

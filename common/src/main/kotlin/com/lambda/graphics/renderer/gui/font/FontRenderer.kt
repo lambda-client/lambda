@@ -66,7 +66,7 @@ object FontRenderer {
         scale: Double = 1.0,
         shadow: Boolean = RenderSettings.shadow,
         parseEmoji: Boolean = LambdaMoji.isEnabled
-    ) = processText(text, color, scale, shadow, parseEmoji) { char, pos1, pos2, color -> buildGlyph(char, position, pos1, pos2, color) }.also {
+    ) = processText(text, color, scale, shadow, parseEmoji) { char, pos1, pos2, col -> buildGlyph(char, position, pos1, pos2, col) }.also {
         UIPipeline.objectDrawn()
     }
 

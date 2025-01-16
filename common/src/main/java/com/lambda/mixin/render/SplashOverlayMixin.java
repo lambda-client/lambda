@@ -17,7 +17,7 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.util.LambdaResource;
+import com.lambda.util.LambdaResourceKt;
 import net.minecraft.client.gui.screen.SplashOverlay;
 import net.minecraft.client.texture.ResourceTexture;
 import net.minecraft.resource.DefaultResourcePack;
@@ -62,7 +62,7 @@ public class SplashOverlayMixin {
 
         @Redirect(method = "loadTextureData", at = @At(value = "INVOKE", target = "Lnet/minecraft/resource/DefaultResourcePack;open(Lnet/minecraft/resource/ResourceType;Lnet/minecraft/util/Identifier;)Lnet/minecraft/resource/InputSupplier;"))
         InputSupplier<InputStream> loadTextureData(DefaultResourcePack instance, ResourceType type, Identifier id) {
-            return () -> new LambdaResource("textures/lambda_banner.png").getStream();
+            return () -> LambdaResourceKt.getStream("textures/lambda_banner.png");
         }
     }
 }
