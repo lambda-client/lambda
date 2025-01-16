@@ -17,7 +17,8 @@
 
 package com.lambda.graphics.animation
 
-import com.lambda.core.TimerManager
+import com.lambda.Lambda.mc
+import com.lambda.util.extension.partialTicks
 import com.lambda.util.math.lerp
 import kotlin.math.abs
 import kotlin.reflect.KProperty
@@ -27,7 +28,7 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
     private var currValue = initialValue
 
     operator fun getValue(thisRef: Any?, property: KProperty<*>) =
-        lerp(TimerManager.fixedTickDelta, prevValue, currValue)
+        lerp(mc.partialTicks, prevValue, currValue)
 
     operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: Double) = setValue(valueIn)
 

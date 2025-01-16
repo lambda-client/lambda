@@ -27,9 +27,8 @@ object TimerManager : Loadable {
     override fun load() = "Loaded Timer Manager"
 
     private const val TICK_DELAY = 50L
-    private const val TICK_DELAY_NANOS = TICK_DELAY * 1_000_000L
     private var start = 0L
-    val fixedTickDelta get() = (System.nanoTime() - start).mod(TICK_DELAY_NANOS).toDouble() / TICK_DELAY_NANOS
+    val fixedTickDelta get() = (System.currentTimeMillis() - start).mod(TICK_DELAY).toDouble() / TICK_DELAY
 
     init {
         fixedRateTimer(
@@ -38,7 +37,7 @@ object TimerManager : Loadable {
             initialDelay = 0,
             period = TICK_DELAY
         ) {
-            if (start == 0L) start = System.nanoTime()
+            if (start == 0L) start = System.currentTimeMillis()
             ClientEvent.FixedTick(this).post()
         }
     }
