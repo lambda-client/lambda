@@ -126,7 +126,7 @@ inline fun runGameScheduled(crossinline block: () -> Unit) {
  *
  * @param block The task to be executed on the game's main thread within a safe context.
  */
-inline fun runSafeGameConcurrent(crossinline block: SafeContext.() -> Unit) {
+inline fun runSafeGameScheduled(crossinline block: SafeContext.() -> Unit) {
     runGameScheduled { runSafe { block() } }
 }
 

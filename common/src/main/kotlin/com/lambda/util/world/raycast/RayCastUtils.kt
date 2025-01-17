@@ -40,12 +40,12 @@ object RayCastUtils {
 
     fun SafeContext.rayCast(
         start: Vec3d,
-        rotation: Vec3d,
+        direction: Vec3d,
         reach: Double,
         mask: RayCastMask,
         fluids: Boolean = false,
     ): HitResult? {
-        val vec = rotation.multiply(reach)
+        val vec = direction.multiply(reach)
         val point = start.add(vec)
 
         val block = run {

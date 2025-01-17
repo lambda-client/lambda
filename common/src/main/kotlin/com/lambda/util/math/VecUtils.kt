@@ -25,8 +25,11 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 object VecUtils {
-    val Vec3d.blockPos: BlockPos
+    val Vec3d.roundedBlockPos: BlockPos
         get() = BlockPos(x.roundToInt(), y.roundToInt(), z.roundToInt())
+
+    val Vec3d.flooredBlockPos: BlockPos
+        get() = BlockPos.ofFloored(this)
 
     val Vec3i.vec3d get() = Vec3d.of(this)
 

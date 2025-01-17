@@ -21,7 +21,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.collections.ResettableLazy
 import com.lambda.util.extension.Structure
-import com.lambda.util.math.VecUtils.blockPos
+import com.lambda.util.math.VecUtils.roundedBlockPos
 import net.minecraft.structure.StructureTemplate
 import net.minecraft.util.math.*
 
@@ -47,7 +47,7 @@ abstract class Blueprint {
         return Vec3d(d, e, f)
     }
 
-    fun isOutOfBounds(vec3d: Vec3d): Boolean = bounds.value?.contains(vec3d.blockPos) == false
+    fun isOutOfBounds(vec3d: Vec3d): Boolean = bounds.value?.contains(vec3d.roundedBlockPos) == false
 
     val center get() = bounds.value?.center?.blockPos
 

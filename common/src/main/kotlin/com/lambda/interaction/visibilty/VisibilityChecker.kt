@@ -23,6 +23,7 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.RotationManager
 import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
+import com.lambda.interaction.rotation.Rotation.Companion.dist
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.module.modules.client.TaskFlowModule
@@ -133,16 +134,16 @@ object VisibilityChecker {
         }
 
         // Way stable
-        /*validHits.minByOrNull { eye.rotationTo(it.key) dist currentRotation }?.let { closest ->
-            return RotationContext(eye.rotationTo(closest.key), rotationConfig, closest.value, verify)
-        }*/
+        validHits.minByOrNull { eye.rotationTo(it.key) dist currentRotation }?.let { closest ->
+            return RotationRequest(eye.rotationTo(closest.key), rotationConfig, closest.value, verify)
+        }
 
-        validHits.keys.optimum?.let { optimum ->
+        /*validHits.keys.optimum?.let { optimum ->
             validHits.minByOrNull { optimum distSq it.key }?.let { closest ->
                 val optimumRotation = eye.rotationTo(closest.key)
                 return RotationRequest(optimumRotation, rotationConfig, closest.value, verify)
             }
-        }
+        }*/
 
         return null
     }

@@ -19,7 +19,7 @@ package com.lambda.interaction.material.container.containers
 
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.util.math.VecUtils.blockPos
+import com.lambda.util.math.VecUtils.roundedBlockPos
 import com.lambda.util.text.buildText
 import com.lambda.util.text.highlighted
 import com.lambda.util.text.literal
@@ -36,7 +36,7 @@ data class StashContainer(
 
     override val description = buildText {
         literal("Stash at ")
-        highlighted(pos.center.blockPos.toShortString())
+        highlighted(pos.center.roundedBlockPos.toShortString())
     }
 
     override fun materialAvailable(selection: StackSelection): Int =
