@@ -38,7 +38,7 @@ operator fun Vec2f.component2() = y
 fun Vec3d.approximate(other: Vec3d, precision: Double = 2.0E-4): Boolean =
     (subtract(other) distSq Vec3d.ZERO) > precision.pow(2)
 
-val Vec3d.blockPos: BlockPos
+val Vec3d.roundedBlockPos: BlockPos
     get() = BlockPos(x.roundToInt(), y.roundToInt(), z.roundToInt())
 
 fun Vec3d.interpolate(value: Double, max: Vec3d) = lerp(value, this, max)

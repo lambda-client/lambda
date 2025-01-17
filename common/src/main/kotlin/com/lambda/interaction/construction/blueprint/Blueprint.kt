@@ -21,7 +21,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.collections.ResettableLazy
 import com.lambda.util.extension.Structure
-import com.lambda.util.math.VecUtils.roundedBlockPos
+import com.lambda.util.math.roundedBlockPos
 import net.minecraft.structure.StructureTemplate
 import net.minecraft.util.math.*
 
