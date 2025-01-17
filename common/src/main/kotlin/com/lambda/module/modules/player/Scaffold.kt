@@ -45,8 +45,8 @@ import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.MathUtils.floorToInt
-import com.lambda.util.math.VecUtils.dist
-import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.dist
+import com.lambda.util.math.distSq
 import com.lambda.util.math.multAlpha
 import com.lambda.util.math.step
 import com.lambda.util.math.transform

@@ -24,7 +24,7 @@ import com.lambda.interaction.rotation.Rotation.Companion.dist
 import com.lambda.interaction.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.threading.runSafe
-import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.distSq
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
@@ -41,16 +41,16 @@ import java.util.UUID
  * based on player settings and entity characteristics. It allows for specifying which types of entities
  * are targetable, the range of targeting, and various other conditions for targeting.
  *
- * @property owner The [Configurable] instance used to get and set configuration options for targeting.
- * @property predicate The predicate used to determine whether the targeting settings are visible and active.
- * @property defaultRange The default range within which entities can be targeted.
- * @property maxRange The maximum range within which entities can be targeted.
+ * @param owner The [Configurable] instance used to get and set configuration options for targeting.
+ * @param predicate The predicate used to determine whether the targeting settings are visible and active.
+ * @param defaultRange The default range within which entities can be targeted.
+ * @param maxRange The maximum range within which entities can be targeted.
  */
 abstract class Targeting(
-    owner: Configurable,
-    predicate: () -> Boolean = { true },
-    defaultRange: Double,
-    maxRange: Double,
+    private val owner: Configurable,
+    private val predicate: () -> Boolean = { true },
+    private val defaultRange: Double,
+    private val maxRange: Double,
 ) : TargetingConfig {
 
     /**

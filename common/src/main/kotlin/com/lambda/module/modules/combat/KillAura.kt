@@ -36,9 +36,9 @@ import com.lambda.interaction.visibilty.VisibilityChecker.visibleSides
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.MathUtils.random
-import com.lambda.util.math.VecUtils.distSq
-import com.lambda.util.math.VecUtils.plus
-import com.lambda.util.math.VecUtils.times
+import com.lambda.util.math.distSq
+import com.lambda.util.math.plus
+import com.lambda.util.math.times
 import com.lambda.util.math.lerp
 import com.lambda.util.player.MovementUtils.moveDiff
 import com.lambda.util.player.prediction.buildPlayerPrediction

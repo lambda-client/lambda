@@ -101,7 +101,7 @@ object TickShift : Module(
             }
         }
 
-        listen<ClientEvent.Timer> {
+        listen<ClientEvent.TimerUpdate> {
             if (!isActive) {
                 poolPackets()
                 return@listen

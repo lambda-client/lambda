@@ -1,0 +1,58 @@
+/*
+ * Copyright 2025 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.config.serializer
+
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
+import com.google.gson.JsonSerializationContext
+import com.google.gson.JsonSerializer
+import net.minecraft.item.ItemStack
+import net.minecraft.nbt.StringNbtReader
+import net.minecraft.nbt.visitor.StringNbtWriter
+import net.minecraft.registry.Registries
+import net.minecraft.util.Identifier
+import java.lang.reflect.Type
+
+object ItemStackSerializer : JsonSerializer<ItemStack>, JsonDeserializer<ItemStack> {
+    override fun serialize(
+        stack: ItemStack,
+        typeOfSrc: Type,
+        context: JsonSerializationContext
+    ): JsonElement =
+        JsonObject().apply {
+            addProperty("id", stack.item.registryEntry.key.get().value.toString())
+            addProperty("count", stack.count)
+            stack.nbt?.let { addProperty("tag", StringNbtWriter().apply(it)) }
+        }
+
+    override fun deserialize(
+        json: JsonElement,
+        typeOfT: Type,
+        context: JsonDeserializationContext
+    ): ItemStack {
+        val id = json.asJsonObject.get("id").asString
+        val count = json.asJsonObject.get("count").asInt
+        val nbt = json.asJsonObject?.get("tag")?.asString
+
+        val item = Registries.ITEM.get(Identifier(id))
+
+        return ItemStack(item, count).apply { nbt?.let { setNbt(StringNbtReader.parse(it)) } }
+    }
+}

@@ -21,7 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.threading.runSafe
-import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.distSq
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.projectile.ProjectileUtil

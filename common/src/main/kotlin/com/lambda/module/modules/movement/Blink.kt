@@ -30,7 +30,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.ClientPacket
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
-import com.lambda.util.math.VecUtils.minus
+import com.lambda.util.math.minus
 import com.lambda.util.math.setAlpha
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket

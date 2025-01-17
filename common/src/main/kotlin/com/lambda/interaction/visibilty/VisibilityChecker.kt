@@ -29,7 +29,7 @@ import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.component6
-import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.distSq
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.entity.Entity

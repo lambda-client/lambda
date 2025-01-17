@@ -17,7 +17,6 @@
 
 package com.lambda.module.modules.combat
 
-import com.lambda.context.SafeContext
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.http.Method
@@ -25,9 +24,8 @@ import com.lambda.http.request
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.onShutdown
-import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafeConcurrent
-import com.lambda.threading.runSafeGameScheduled
+import com.lambda.util.player.spawnFakePlayer
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.client.network.PlayerListEntry
@@ -48,8 +46,10 @@ object FakePlayer : Module(
         onEnable {
             fakePlayer?.let { fake ->
                 // Avoid multiple api requests
-                if (fake.gameProfile.name == playerName)
-                    return@onEnable spawnPlayer(fake.gameProfile)
+                if (fake.gameProfile.name == playerName) {
+                    fakePlayer = spawnFakePlayer(fake.gameProfile)
+                    return@onEnable
+                }
             }
 
             runSafeConcurrent {
@@ -66,7 +66,7 @@ object FakePlayer : Module(
 
                 // This is the cache that mc pulls profile data from when it fetches skins.
                 mc.networkHandler?.playerListEntries?.put(profile.id, PlayerListEntry(profile, false))
-                spawnPlayer(profile)
+                spawnFakePlayer(profile)
             }
         }
 
@@ -78,20 +78,6 @@ object FakePlayer : Module(
 
         listen<ConnectionEvent.Disconnect> {
             disable()
-        }
-    }
-
-    private fun SafeContext.spawnPlayer(profile: GameProfile) {
-        fakePlayer = OtherClientPlayerEntity(world, profile)
-            .apply {
-                copyFrom(player)
-
-                playerListEntry = PlayerListEntry(profile, false)
-                id = -2024 - 4 - 20
-            }
-
-        runSafeGameScheduled {
-            world.addEntity(fakePlayer)
         }
     }
 

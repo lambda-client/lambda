@@ -35,11 +35,13 @@ class LimitedDecayQueue<E>(
     private val queue: ConcurrentLinkedQueue<Pair<E, Instant>> = ConcurrentLinkedQueue()
 
     override val size: Int
+        @Synchronized
         get() {
             cleanUp()
             return queue.size
         }
 
+    @Synchronized
     override fun iterator(): MutableIterator<E> {
         cleanUp()
         return object : MutableIterator<E> {
