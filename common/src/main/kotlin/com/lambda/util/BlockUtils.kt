@@ -60,7 +60,26 @@ object BlockUtils {
         Blocks.NOTE_BLOCK,
         Blocks.STRUCTURE_BLOCK,
         Blocks.COMMAND_BLOCK,
-    ).apply { addAll(shulkerBlocks) }
+    ).apply { addAll(shulkerBlocks); addAll(bedBlocks) }
+
+    val bedBlocks = setOf(
+        Blocks.WHITE_BED,
+        Blocks.ORANGE_BED,
+        Blocks.MAGENTA_BED,
+        Blocks.LIGHT_BLUE_BED,
+        Blocks.YELLOW_BED,
+        Blocks.LIME_BED,
+        Blocks.PINK_BED,
+        Blocks.GRAY_BED,
+        Blocks.LIGHT_GRAY_BED,
+        Blocks.CYAN_BED,
+        Blocks.PURPLE_BED,
+        Blocks.BLUE_BED,
+        Blocks.BROWN_BED,
+        Blocks.GREEN_BED,
+        Blocks.RED_BED,
+        Blocks.BLACK_BED,
+    )
 
     val signs = setOf(
         Blocks.OAK_SIGN,
