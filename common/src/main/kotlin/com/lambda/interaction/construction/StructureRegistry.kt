@@ -17,9 +17,10 @@
 
 package com.lambda.interaction.construction
 
+import com.lambda.Lambda.LOG
 import com.lambda.core.Loadable
-import com.lambda.util.Communication.logError
 import com.lambda.util.FolderRegister
+import com.lambda.util.FolderRegister.structure
 import com.lambda.util.extension.readLitematicaOrException
 import com.lambda.util.extension.readNbtOrException
 import com.lambda.util.extension.readSchematicOrException
@@ -45,10 +46,10 @@ import kotlin.io.path.*
  */
 @OptIn(ExperimentalPathApi::class)
 @Suppress("JavaIoSerializableObjectMustHaveReadResolve")
-object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Loadable {
+object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loadable {
     private val pathWatcher by lazy {
         FileSystems.getDefault().newWatchService()
-            .apply { FolderRegister.structure.register(this, ENTRY_CREATE, ENTRY_DELETE) }
+            .apply { structure.register(this, ENTRY_CREATE, ENTRY_DELETE) }
     }
 
     /**
@@ -69,12 +70,13 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Load
      *
      * @param relativePath The name of the structure to load (without extension).
      * @param convert Whether to replace the file after converting it.
-     * @return The loaded [StructureTemplate], or null if the structure is not found.
+     *
+     * @throws IllegalStateException if there was an error while parsing the data
      */
     fun loadStructureByRelativePath(
         relativePath: Path,
         convert: Boolean = true,
-    ): StructureTemplate? {
+    ): StructureTemplate {
         updateFileWatcher()
 
         return computeIfAbsent(relativePath.pathString.lowercase()) {
@@ -115,52 +117,49 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Load
      * Loads the structure file and creates a [StructureTemplate].
      *
      * @param convert Whether to replace the file after converting it.
+     * @throws IllegalStateException if the parsed data is corrupted
+     *
      * @return The created [StructureTemplate], or null if the structure is not found or invalid.
      */
     private fun loadFileAndCreate(path: Path, convert: Boolean) =
-        FolderRegister.structure.resolve(path).inputStream().use { templateStream ->
+        structure.resolve(path).inputStream().use { templateStream ->
             val compound = NbtIo.readCompressed(templateStream, NbtSizeTracker.ofUnlimitedBytes())
             val extension = path.extension
             val template = createStructure(compound, extension)
 
             if (convert && extension != "nbt") {
-                template?.let { saveStructure(path.pathString, it) }
+                saveStructure(path.nameWithoutExtension, template)
             }
 
             // Verify the structure integrity after it had been
             // converted to a regular structure template
-            if (compound.isValidStructureTemplate()) {
-                template
-            } else {
-                logError("Corrupted structure file: ${path.pathString}")
-                null
-            }
+            if (compound.isValidStructureTemplate()) template
+            else throw IllegalStateException("Corrupted structure file: ${path.pathString}")
         }
 
     /**
      * Creates a [StructureTemplate] from the provided NBT data.
      *
      * @param nbt The [NbtCompound] containing the structure's data.
-     * @return The created [StructureTemplate], or null if there was an error.
+     * @throws IllegalStateException if there was an error while parsing the data
      */
-    private fun createStructure(nbt: NbtCompound, suffix: String): StructureTemplate? =
+    private fun createStructure(nbt: NbtCompound, suffix: String): StructureTemplate =
         StructureTemplate().apply {
             serializers[suffix]
                 ?.invoke(this, Registries.BLOCK.readOnlyWrapper, nbt)
                 ?.let { error ->
-                    logError("Could not create structure from file: ${error.message}")
-                    return null
+                    throw IllegalStateException("Could not create structure: ${error.message}")
                 }
         }
 
     /**
      * Saves the provided [structure] to disk under the specified [name].
      *
-     * @param relativePath The relative path of the structure to save.
+     * @param relativePath The relative path of the structure to save without the extension.
      * @param structure The [StructureTemplate] to save.
      */
     private fun saveStructure(relativePath: String, structure: StructureTemplate) {
-        val path = FolderRegister.structure.resolve(relativePath)
+        val path = FolderRegister.structure.resolve("$relativePath.nbt")
         val compound = structure.writeNbt(NbtCompound())
 
         Files.createDirectories(path.parent)
@@ -179,9 +178,13 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate?>(), Load
         contains("DataVersion") && contains("blocks") && contains("palette") && contains("size")
 
     override fun load(): String {
-        FolderRegister.structure.walk()
-            .filter { it.extension in serializers.keys }
-            .forEach { loadStructureByRelativePath(FolderRegister.structure.relativize(it)) }
+        runCatching {
+            structure.walk()
+                .filter { it.extension in serializers.keys }
+                .sortedBy { it.extension.length } // Don’t walk lexicographically -Constructor
+                .distinctBy { it.nameWithoutExtension }
+                .forEach { loadStructureByRelativePath(structure.relativize(it)) }
+        }.onFailure { LOG.warn(it.message) }
 
         return "Loaded $size structure templates"
     }
