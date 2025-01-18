@@ -33,6 +33,25 @@ import net.minecraft.world.BlockView
 object BlockUtils {
     val shulkerBlocks = shulkerBoxes.map { it.block }
 
+    val bedBlocks = setOf(
+        Blocks.WHITE_BED,
+        Blocks.ORANGE_BED,
+        Blocks.MAGENTA_BED,
+        Blocks.LIGHT_BLUE_BED,
+        Blocks.YELLOW_BED,
+        Blocks.LIME_BED,
+        Blocks.PINK_BED,
+        Blocks.GRAY_BED,
+        Blocks.LIGHT_GRAY_BED,
+        Blocks.CYAN_BED,
+        Blocks.PURPLE_BED,
+        Blocks.BLUE_BED,
+        Blocks.BROWN_BED,
+        Blocks.GREEN_BED,
+        Blocks.RED_BED,
+        Blocks.BLACK_BED,
+    )
+
     val interactionBlacklist = mutableSetOf(
         Blocks.CHEST,
         Blocks.TRAPPED_CHEST,
@@ -62,25 +81,6 @@ object BlockUtils {
         Blocks.COMMAND_BLOCK,
         Blocks.LEVER,
     ).apply { addAll(shulkerBlocks); addAll(bedBlocks) }
-
-    val bedBlocks = setOf(
-        Blocks.WHITE_BED,
-        Blocks.ORANGE_BED,
-        Blocks.MAGENTA_BED,
-        Blocks.LIGHT_BLUE_BED,
-        Blocks.YELLOW_BED,
-        Blocks.LIME_BED,
-        Blocks.PINK_BED,
-        Blocks.GRAY_BED,
-        Blocks.LIGHT_GRAY_BED,
-        Blocks.CYAN_BED,
-        Blocks.PURPLE_BED,
-        Blocks.BLUE_BED,
-        Blocks.BROWN_BED,
-        Blocks.GREEN_BED,
-        Blocks.RED_BED,
-        Blocks.BLACK_BED,
-    )
 
     val signs = setOf(
         Blocks.OAK_SIGN,
