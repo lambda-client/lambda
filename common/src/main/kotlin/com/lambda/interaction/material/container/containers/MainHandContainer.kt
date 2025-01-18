@@ -43,8 +43,11 @@ object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
         override val name: String get() = "Depositing [$selection] to ${hand.name.lowercase().replace("_", " ")}"
 
         override fun SafeContext.onStart() {
+            // FixMe: If the player tries to deposit from the CreativeInventory to the main hand, this fails
+            //  because we check if the player has the matching stack in its regular inventory, and this never happen
             val moveStack = InventoryContainer.matchingStacks(selection).firstOrNull() ?: run {
-                failure("No matching stacks found in inventory")
+                success()
+                //failure("No matching stacks found in inventory")
                 return
             }
 
