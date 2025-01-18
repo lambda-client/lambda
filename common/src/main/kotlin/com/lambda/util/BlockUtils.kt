@@ -60,6 +60,7 @@ object BlockUtils {
         Blocks.NOTE_BLOCK,
         Blocks.STRUCTURE_BLOCK,
         Blocks.COMMAND_BLOCK,
+        Blocks.LEVER,
     ).apply { addAll(shulkerBlocks); addAll(bedBlocks) }
 
     val bedBlocks = setOf(
