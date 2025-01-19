@@ -24,8 +24,8 @@ import com.lambda.threading.runSafe
 import com.lambda.util.Formatting.asString
 import com.lambda.util.Formatting.string
 import com.lambda.util.extension.dimensionName
-import com.lambda.util.math.VecUtils.netherCoord
-import com.lambda.util.math.VecUtils.overworldCoord
+import com.lambda.util.math.netherCoord
+import com.lambda.util.math.overworldCoord
 import net.minecraft.registry.RegistryKey
 import net.minecraft.world.World
 
