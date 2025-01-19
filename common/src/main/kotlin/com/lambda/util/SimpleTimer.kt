@@ -17,6 +17,9 @@
 
 package com.lambda.util
 
+import com.lambda.context.SafeContext
+import com.lambda.threading.runSafe
+
 /**
  * A utility class to manage time-based operations, such as delays and periodic tasks.
  */
@@ -60,6 +63,58 @@ class SimpleTimer {
             if (reset) reset()
 
             block()
+        }
+
+    /**
+     * Executes a given block of code if the specified time has not passed yet since the last timing event.
+     * Optionally resets the timer after execution.
+     *
+     * @param time the time interval in milliseconds to check.
+     * @param reset whether to reset the timer after running the block. Defaults to `true`.
+     * @param block the code block to execute if the time has passed.
+     */
+    fun runIfNotPassed(time: Long, reset: Boolean = true, block: () -> Unit) =
+        timePassed(time).apply {
+            if (this) return@apply
+            if (reset) reset()
+
+            block()
+        }
+
+    /**
+     * Executes a given block of code in safe context if the specified time has passed since the last timing event.
+     * Optionally resets the timer after execution.
+     *
+     * @param time the time interval in milliseconds to check.
+     * @param reset whether to reset the timer after running the block. Defaults to `true`.
+     * @param block the code block to execute if the time has passed.
+     */
+    fun runSafeIfPassed(time: Long, reset: Boolean = true, block: SafeContext.() -> Unit) =
+        timePassed(time).also { passed ->
+            if (!passed) return@also
+
+            runSafe {
+                if (reset) reset()
+                block()
+            }
+        }
+
+    /**
+     * Executes a given block of code in safe context if the specified time has not passed yet since the last timing event.
+     * Optionally resets the timer after execution.
+     *
+     * @param time the time interval in milliseconds to check.
+     * @param reset whether to reset the timer after running the block. Defaults to `true`.
+     * @param block the code block to execute if the time has passed.
+     */
+    fun runSafeIfNotPassed(time: Long, reset: Boolean = true, block: SafeContext.() -> Unit) =
+        timePassed(time).also { passed ->
+            if (passed) return@also
+
+            runSafe {
+                if (reset) reset()
+                block()
+            }
         }
 
     /**
