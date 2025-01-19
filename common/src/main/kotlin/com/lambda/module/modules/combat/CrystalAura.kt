@@ -30,7 +30,6 @@ import com.lambda.graphics.renderer.gui.font.FontRenderer
 import com.lambda.graphics.renderer.gui.font.LambdaEmoji
 import com.lambda.graphics.renderer.gui.font.LambdaFont
 import com.lambda.interaction.RotationManager.rotate
-import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.rotation.RotationRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -43,14 +42,14 @@ import com.lambda.util.math.*
 import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.world.fastEntitySearch
-import com.lambda.util.world.raycast.RayCastMask
-import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.EndCrystalEntity
+import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.util.Hand
+import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.*
 import kotlin.concurrent.fixedRateTimer
 import kotlin.math.max
@@ -83,7 +82,6 @@ object CrystalAura : Module(
     /* Prediction */
     private val prediction by setting("Prediction", PredictionMode.None) { page == Page.Prediction }
     private val predictionPackets by setting("Prediction Packets", 1, 1..20) { page == Page.Prediction && prediction.isActive }
-    private val postPlace by setting("Post Place", false) { page == Page.Prediction && prediction.isActive && predictionPackets > 1 }
     private val packetLifetime by setting("Packet Lifetime", 300L, 50L..1000L) { page == Page.Prediction && prediction.onPlace }
 
     /* Targeting */
@@ -105,7 +103,6 @@ object CrystalAura : Module(
     private val placeTimer = SimpleTimer()
     private val explodeTimer = SimpleTimer()
 
-    // ToDo: pending prediction decay queue (crystalId s)
     private val predictionTimer = SimpleTimer()
     private var lastEntityId = 0
 
@@ -171,10 +168,10 @@ object CrystalAura : Module(
             if (getBestOpportunity() != opportunity) return@listen
 
             repeat(predictionPackets) {
-                val offset = if (postPlace) 0 else it
+                val offset = if (prediction.postPlace) 0 else it
                 explodeInternal(lastEntityId + offset)
 
-                if (postPlace) {
+                if (prediction.postPlace) {
                     placeInternal(pos, Hand.MAIN_HAND)
                     lastEntityId++
                     placeTimer.reset()
@@ -187,7 +184,6 @@ object CrystalAura : Module(
             val pos = crystal.baseBlockPos
 
             blueprint[pos]?.crystal = null
-            //pendingExplosions.remove(blockPos)
         }
 
         onEnable {
@@ -211,26 +207,7 @@ object CrystalAura : Module(
         // Choosing and running the best opportunity
         val best = getBestOpportunity() ?: return
 
-        if (!best.blocked) {
-            best.explode()
-            best.place()
-            return
-        }
-
-        val mutableBlockPos = BlockPos.Mutable()
-
-        // Break crystals nearby if the best crystal placement is blocked by other crystals
-        collidingOffsets.mapNotNull {
-            mutableBlockPos.set(
-                best.blockPos.x + it.x,
-                best.blockPos.y + it.y,
-                best.blockPos.z + it.z
-            )
-
-            blueprint[mutableBlockPos]
-        }.filter { it.hasCrystal }.maxByOrNull { it.priority }?.explode()
-
-        best.place()
+        tickInteraction(best)
     }
 
     private fun SafeContext.buildBlueprint(target: LivingEntity) = updateTimer.runIfPassed(updateDelay) {
@@ -335,8 +312,6 @@ object CrystalAura : Module(
             blueprint[it.blockPos] = it
         }
 
-        // ToDo: force place
-
         // Associate by actions
         blueprint.values.forEach { opportunity ->
             actionMap.getOrPut(opportunity.actionType, ::mutableListOf) += opportunity
@@ -345,6 +320,54 @@ object CrystalAura : Module(
                 actionType = opportunity.actionType
             }
         }
+    }
+
+    private fun tickInteraction(best: Opportunity) {
+        if (!best.blocked) {
+            best.explode()
+            best.place()
+            return
+        }
+
+        val mutableBlockPos = BlockPos.Mutable()
+
+        // Break crystals nearby if the best crystal placement is blocked by other crystals
+        collidingOffsets.mapNotNull {
+            mutableBlockPos.set(
+                best.blockPos.x + it.x,
+                best.blockPos.y + it.y,
+                best.blockPos.z + it.z
+            )
+
+            blueprint[mutableBlockPos]
+        }.filter { it.hasCrystal }.maxByOrNull { it.priority }?.explode()
+
+        best.place()
+    }
+
+    private fun getBestOpportunity() =
+        actionMap[actionType]?.maxByOrNull {
+            it.priority
+        }
+
+    private fun SafeContext.placeInternal(blockPos: BlockPos, hand: Hand) {
+        connection.sendPacket(
+            PlayerInteractBlockC2SPacket(
+                hand, BlockHitResult(blockPos.crystalPosition, Direction.UP, blockPos, false), 0
+            )
+        )
+
+        player.swingHand(hand)
+    }
+
+    private fun SafeContext.explodeInternal(id: Int) {
+        connection.sendPacket(
+            PlayerInteractEntityC2SPacket(
+                id, player.isSneaking, PlayerInteractEntityC2SPacket.ATTACK
+            )
+        )
+
+        player.swingHand(Hand.MAIN_HAND)
     }
 
     /**
@@ -366,7 +389,7 @@ object CrystalAura : Module(
     ) {
         var actionType = ActionType.Normal
         val priority = priorityMode.factor(target, self)
-        val hasCrystal = crystal != null
+        val hasCrystal get() = crystal != null
 
         /**
          * Places the crystal on [blockPos]
@@ -382,9 +405,18 @@ object CrystalAura : Module(
                 run {
                     if (!prediction.onPlace || predictionTimer.timePassed(packetLifetime)) return@run
 
+                    val last = lastEntityId
+
                     repeat(predictionPackets) {
-                        if (it != 0) placeInternal(blockPos, Hand.MAIN_HAND)
+                        if (it != 0 && prediction.postPlace) {
+                            placeInternal(blockPos, Hand.MAIN_HAND)
+                        }
                         explodeInternal(++lastEntityId)
+                    }
+
+                    if (prediction == PredictionMode.StepDeferred) {
+                        lastEntityId = last + 1
+                        crystal = null
                     }
                 }
 
@@ -434,33 +466,6 @@ object CrystalAura : Module(
         }
     }
 
-    private fun getBestOpportunity() =
-        actionMap[actionType]?.maxByOrNull {
-            it.priority
-        }
-
-    private fun SafeContext.placeInternal(blockPos: BlockPos, hand: Hand): Boolean {
-        val angles = player.eyePos.rotationTo(blockPos.crystalPosition)
-        val cast = angles.rayCast(placeRange, mask = RayCastMask.BLOCK)?.blockResult ?: return false
-        if (cast.blockPos != blockPos) return false
-
-        val actionResult = interaction.interactBlock(player, hand, cast)
-        if (!actionResult.isAccepted || !actionResult.shouldSwingHand()) return false
-
-        player.swingHand(hand)
-        return true
-    }
-
-    private fun SafeContext.explodeInternal(id: Int) {
-        connection.sendPacket(
-            PlayerInteractEntityC2SPacket(
-                id, player.isSneaking, PlayerInteractEntityC2SPacket.ATTACK
-            )
-        )
-
-        player.swingHand(Hand.MAIN_HAND)
-    }
-
     private val EndCrystalEntity.baseBlockPos get() =
         (pos - Vec3d(0.0, 0.5, 0.0)).flooredBlockPos
 
@@ -495,10 +500,18 @@ object CrystalAura : Module(
         Ticked
     }
 
-    private enum class PredictionMode(val onPacket: Boolean, val onPlace: Boolean) {
-        None(false, false),
-        Packet(true, false),
-        Deferred(false, true);
+    private enum class PredictionMode(val onPacket: Boolean, val onPlace: Boolean, val postPlace: Boolean) {
+        // Prediction disable
+        None(false, false, false),
+
+        // Predict on packet receive
+        SemiPacket(true, false, false),
+        Packet(true, false, true),
+
+        // Predict on place
+        SemiDeferred(false, true, false),
+        Deferred(false, true, true),
+        StepDeferred(false, true, false); // the best method
 
         val isActive = onPacket || onPlace
     }
@@ -512,6 +525,7 @@ object CrystalAura : Module(
         })
     }
 
+    // ToDo: implement actions
     private enum class ActionType(val priority: Int) {
         Normal(0),
         ForcePlace(1),
