@@ -18,6 +18,7 @@
 package com.lambda.config
 
 import com.google.gson.JsonElement
+import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
 import com.lambda.context.SafeContext
 import com.lambda.threading.runSafe
@@ -97,7 +98,12 @@ abstract class AbstractSetting<T : Any>(
         gson.toJsonTree(value, type)
 
     override fun loadFromJson(serialized: JsonElement) {
-        value = gson.fromJson(serialized, type)
+        runCatching {
+            value = gson.fromJson(serialized, type)
+        }.onFailure {
+            LOG.warn("Failed to load setting ${this.name} with value $serialized. Resetting to default value $defaultValue", it)
+            value = defaultValue
+        }
     }
 
     /**
