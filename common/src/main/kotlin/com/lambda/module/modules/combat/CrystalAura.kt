@@ -183,15 +183,24 @@ object CrystalAura : Module(
             opportunity.crystal = crystal
 
             // Run packet prediction
-            if (!prediction.onPacket || activeOpportunity != opportunity) return@listen
-            repeat(predictionPackets) {
-                val offset = if (prediction.postPlace) 0 else it
-                explodeInternal(lastEntityId + offset)
+            if (activeOpportunity != opportunity) return@listen
 
-                if (prediction.postPlace) {
-                    placeInternal(pos, Hand.MAIN_HAND)
-                    lastEntityId++
-                    placeTimer.reset()
+            when {
+                prediction.onPlace -> {
+                    explodeInternal(lastEntityId)
+                }
+
+                prediction.onPacket -> {
+                    repeat(predictionPackets) {
+                        val offset = if (prediction.postPlace) 0 else it
+                        explodeInternal(lastEntityId + offset)
+
+                        if (prediction.postPlace) {
+                            placeInternal(pos, Hand.MAIN_HAND)
+                            lastEntityId++
+                            placeTimer.reset()
+                        }
+                    }
                 }
             }
         }
@@ -428,26 +437,25 @@ object CrystalAura : Module(
          */
         fun place() = placeTimer.runSafeIfPassed(placeDelay) {
             placeInternal(blockPos, Hand.MAIN_HAND)
-            if (prediction.onPlace) predictionPlace()
 
-            placeTimer.reset()
-        }
+            if (prediction.onPlace) predictionTimer.runIfNotPassed(packetLifetime, false) {
+                val last = lastEntityId
 
-        private fun SafeContext.predictionPlace() = predictionTimer.runIfNotPassed(packetLifetime) {
-            val last = lastEntityId
+                repeat(predictionPackets) {
+                    if (it != 0 && prediction.postPlace) {
+                        placeInternal(blockPos, Hand.MAIN_HAND)
+                    }
 
-            repeat(predictionPackets) {
-                if (it != 0 && prediction.postPlace) {
-                    placeInternal(blockPos, Hand.MAIN_HAND)
+                    explodeInternal(++lastEntityId)
                 }
 
-                explodeInternal(++lastEntityId)
+                if (prediction == PredictionMode.StepDeferred) {
+                    lastEntityId = last + 1
+                    crystal = null
+                }
             }
 
-            if (prediction == PredictionMode.StepDeferred) {
-                lastEntityId = last + 1
-                crystal = null
-            }
+            placeTimer.reset()
         }
 
         /**
