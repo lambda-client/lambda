@@ -74,8 +74,8 @@ class SimpleTimer {
      * @param block the code block to execute if the time has passed.
      */
     fun runIfNotPassed(time: Long, reset: Boolean = true, block: () -> Unit) =
-        timePassed(time).apply {
-            if (this) return@apply
+        timePassed(time).also { passed ->
+            if (passed) return@also
             if (reset) reset()
 
             block()
