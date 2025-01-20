@@ -84,8 +84,9 @@ object CrystalAura : Module(
 
     /* Prediction */
     private val prediction by setting("Prediction", PredictionMode.None) { page == Page.Prediction }
-    private val predictionPackets by setting("Prediction Packets", 1, 1..20) { page == Page.Prediction && prediction.isActive }
-    private val packetLifetime by setting("Packet Lifetime", 300L, 50L..1000L) { page == Page.Prediction && prediction.onPlace }
+    private val packetPredictions by setting("Packet Predictions", 1, 0..20, 1) { page == Page.Prediction && prediction.onPacket }
+    private val placePredictions by setting("Place Predictions", 4, 1..20, 1) { page == Page.Prediction && prediction.onPlace }
+    private val packetLifetime by setting("Packet Lifetime", 500L, 50L..1000L) { page == Page.Prediction && prediction.onPlace }
 
     /* Targeting */
     private val targeting = Targeting.Combat(this, 10.0) { page == Page.Targeting }
@@ -169,12 +170,14 @@ object CrystalAura : Module(
             }
         }
 
-        // Prediction
-        listen<EntityEvent.EntitySpawn> { event ->
-            // Update last received entity spawn
+        // Update last received entity spawn
+        listen<EntityEvent.EntitySpawn>(alwaysListen = true) { event ->
             lastEntityId = event.entity.id
             predictionTimer.reset()
+        }
 
+        // Prediction
+        listen<EntityEvent.EntitySpawn> { event ->
             val crystal = event.entity as? EndCrystalEntity ?: return@listen
             val pos = crystal.baseBlockPos
 
@@ -183,26 +186,18 @@ object CrystalAura : Module(
             opportunity.crystal = crystal
 
             // Run packet prediction
-            if (activeOpportunity != opportunity) return@listen
+            if (!prediction.isActive || activeOpportunity != opportunity) return@listen
 
-            when {
-                prediction.onPlace -> {
-                    explodeInternal(lastEntityId)
-                }
+            explodeInternal(lastEntityId)
 
-                prediction.onPacket -> {
-                    repeat(predictionPackets) {
-                        val offset = if (prediction.postPlace) 0 else it
-                        explodeInternal(lastEntityId + offset)
+            if (!prediction.onPacket) return@listen
 
-                        if (prediction.postPlace) {
-                            placeInternal(pos, Hand.MAIN_HAND)
-                            lastEntityId++
-                            placeTimer.reset()
-                        }
-                    }
-                }
+            repeat(packetPredictions) {
+                placeInternal(pos, Hand.MAIN_HAND)
+                explodeInternal(++lastEntityId)
             }
+
+            placeTimer.reset()
         }
 
         listen<EntityEvent.EntityRemoval> { event ->
@@ -441,18 +436,12 @@ object CrystalAura : Module(
             if (prediction.onPlace) predictionTimer.runIfNotPassed(packetLifetime, false) {
                 val last = lastEntityId
 
-                repeat(predictionPackets) {
-                    if (it != 0 && prediction.postPlace) {
-                        placeInternal(blockPos, Hand.MAIN_HAND)
-                    }
-
+                repeat(placePredictions) {
                     explodeInternal(++lastEntityId)
                 }
 
-                if (prediction == PredictionMode.StepDeferred) {
-                    lastEntityId = last + 1
-                    crystal = null
-                }
+                lastEntityId = last + 1
+                crystal = null
             }
 
             placeTimer.reset()
@@ -527,18 +516,18 @@ object CrystalAura : Module(
     }
 
     @Suppress("Unused")
-    private enum class PredictionMode(val onPacket: Boolean, val onPlace: Boolean, val postPlace: Boolean) {
+    private enum class PredictionMode(val onPacket: Boolean, val onPlace: Boolean) {
         // Prediction disable
-        None(false, false, false),
+        None(false, false),
 
         // Predict on packet receive
-        SemiPacket(true, false, false),
-        Packet(true, false, true),
+        Packet(true, false),
 
         // Predict on place
-        SemiDeferred(false, true, false),
-        Deferred(false, true, true),
-        StepDeferred(false, true, false); // the best method
+        Deferred(false, true),
+
+        // Predict on both timings
+        Mixed(true, true);
 
         val isActive = onPacket || onPlace
     }
