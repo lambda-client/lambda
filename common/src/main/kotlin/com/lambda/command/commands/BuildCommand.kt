@@ -17,7 +17,6 @@
 
 package com.lambda.command.commands
 
-import com.lambda.brigadier.CommandResult
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.greedyString
@@ -60,7 +59,7 @@ object BuildCommand : LambdaCommand(
                         try {
                             StructureRegistry
                                 .loadStructureByRelativePath(Path.of(pathString))
-                                ?.let { template ->
+                                .let { template ->
                                     info("Building structure $pathString with dimensions ${template.size.toShortString()} created by ${template.author}")
                                     lastBuildTask = template.toStructure()
                                         .move(player.blockPos)
