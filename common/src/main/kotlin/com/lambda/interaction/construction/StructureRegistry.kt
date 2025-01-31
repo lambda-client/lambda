@@ -58,9 +58,11 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
     private val serializers = mapOf(
         "nbt" to StructureTemplate::readNbtOrException,
         "schem" to StructureTemplate::readSpongeOrException,
-        "litematica" to StructureTemplate::readLitematicaOrException,
 
-        // Not supported, who could've guess that converting a format from 14 years ago would be hard? :clueless:
+        // Not supported due to the clusterfuck codebase of litematica and basically zero documentation
+        "litematic" to StructureTemplate::readLitematicaOrException,
+
+        // Not supported, who could've guess that converting a format from 15 years ago would be hard? :clueless:
         "schematic" to StructureTemplate::readSchematicOrException,
     )
 
@@ -134,7 +136,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
             // Verify the structure integrity after it had been
             // converted to a regular structure template
             if (compound.isValidStructureTemplate()) template
-            else throw IllegalStateException("Corrupted structure file: ${path.pathString}")
+            else throw IllegalStateException("Corrupted structure file ${path.pathString}")
         }
 
     /**
