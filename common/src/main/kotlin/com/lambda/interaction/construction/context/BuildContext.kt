@@ -18,7 +18,7 @@
 package com.lambda.interaction.construction.context
 
 import com.lambda.interaction.construction.result.Drawable
-import com.lambda.interaction.rotation.RotationRequest
+import com.lambda.interaction.request.rotation.RotationRequest
 import net.minecraft.block.BlockState
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult

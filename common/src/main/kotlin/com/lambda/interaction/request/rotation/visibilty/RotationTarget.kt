@@ -1,0 +1,52 @@
+/*
+ * Copyright 2025 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package com.lambda.interaction.request.rotation.visibilty
+
+import com.lambda.context.SafeContext
+import com.lambda.interaction.request.rotation.Rotation
+import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.interaction.request.rotation.RotationRequest
+import com.lambda.threading.runSafe
+import com.lambda.util.collections.cached
+
+/**
+ * Represents a target for rotation.
+ *
+ * @param hit The requested hit to look at.
+ * @param verify A lambda to check the active rotation.
+ * @param buildRotation A lambda that builds the rotation.
+ */
+class RotationTarget(
+    val hit: RequestedHit? = null,
+    val verify: RotationTarget.() -> Boolean = { hit?.verifyRotation() ?: true },
+    private val buildRotation: SafeContext.() -> Rotation?,
+) {
+
+    val targetRotation = cached {
+        runSafe { buildRotation() }
+    }
+
+    /**
+     * Requests a rotation based on the given configuration.
+     *
+     * @param config The rotation configuration.
+     * @return [RotationRequest] containing this [RotationTarget].
+     */
+    fun requestBy(config: RotationConfig) =
+        config.request(RotationRequest(this, config))
+}

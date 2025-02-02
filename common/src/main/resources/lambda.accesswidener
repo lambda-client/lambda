@@ -27,6 +27,7 @@ accessible method net/minecraft/entity/Entity setFlag (IZ)V
 accessible field net/minecraft/client/network/AbstractClientPlayerEntity playerListEntry Lnet/minecraft/client/network/PlayerListEntry;
 accessible field net/minecraft/entity/LivingEntity jumpingCooldown I
 accessible field net/minecraft/entity/Entity pos Lnet/minecraft/util/math/Vec3d;
+accessible field net/minecraft/client/network/ClientPlayerInteractionManager lastSelectedSlot I
 
 # Camera
 accessible method net/minecraft/client/render/Camera setPos (DDD)V

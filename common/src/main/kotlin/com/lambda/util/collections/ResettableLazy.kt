@@ -30,3 +30,5 @@ class ResettableLazy<T>(private val initializer: () -> T) {
         _value = null
     }
 }
+
+fun <T> resettableLazy(initializer: () -> T) = ResettableLazy(initializer)

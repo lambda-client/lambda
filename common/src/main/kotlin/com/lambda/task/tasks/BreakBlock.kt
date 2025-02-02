@@ -19,14 +19,13 @@ package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.config.groups.RotationConfig
+import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.RotationManager.rotate
 import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
+import com.lambda.interaction.request.rotation.visibilty.lookAtBlock
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
@@ -60,7 +59,6 @@ class BreakBlock @Ta5kBuilder constructor(
 
     private var drop: ItemEntity? = null
     private var state = State.BREAKING
-    private var isValid = false
 
     enum class State {
         BREAKING, COLLECTING
@@ -80,18 +78,6 @@ class BreakBlock @Ta5kBuilder constructor(
     }
 
     init {
-        rotate {
-            request {
-                if (state != State.BREAKING) return@request null
-                if (!rotate || ctx.instantBreak) return@request null
-
-                lookAtBlock(blockPos, rotation, interact, sides)
-            }
-            finished { context ->
-                isValid = context.isValid
-            }
-        }
-
         listen<TickEvent.Pre> {
             drop?.let { itemDrop ->
                 if (!world.entities.contains(itemDrop)) {
@@ -113,8 +99,12 @@ class BreakBlock @Ta5kBuilder constructor(
                 return@listen
             } ?: BaritoneUtils.cancel()
 
-            if (isValid || !rotate || ctx.instantBreak) {
-                hitBlock(ctx.result.side)
+            if (rotate && !ctx.instantBreak && state == State.BREAKING) {
+                lookAtBlock(blockPos, sides, interact).let {
+                    if (it.requestBy(rotation).done) {
+                        hitBlock(ctx.result.side)
+                    }
+                }
             }
 
             if (done()) {

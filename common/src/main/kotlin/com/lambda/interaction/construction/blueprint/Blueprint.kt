@@ -19,7 +19,7 @@ package com.lambda.interaction.construction.blueprint
 
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.BlockUtils.blockPos
-import com.lambda.util.collections.ResettableLazy
+import com.lambda.util.collections.resettableLazy
 import com.lambda.util.extension.Structure
 import com.lambda.util.math.roundedBlockPos
 import net.minecraft.structure.StructureTemplate
@@ -28,8 +28,8 @@ import net.minecraft.util.math.*
 abstract class Blueprint {
     abstract val structure: Structure
 
-    val bounds = ResettableLazy {
-        if (structure.isEmpty()) return@ResettableLazy null
+    val bounds = resettableLazy {
+        if (structure.isEmpty()) return@resettableLazy null
         val maxX = structure.keys.maxOf { it.x }
         val maxY = structure.keys.maxOf { it.y }
         val maxZ = structure.keys.maxOf { it.z }

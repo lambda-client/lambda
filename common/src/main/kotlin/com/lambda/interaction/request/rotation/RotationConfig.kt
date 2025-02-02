@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,38 +15,50 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.groups
+package com.lambda.interaction.request.rotation
 
-import com.lambda.interaction.rotation.RotationMode
+import com.lambda.interaction.request.Priority
+import com.lambda.interaction.request.RequestConfig
+import com.lambda.interaction.request.rotation.visibilty.RotationTarget
 
-interface RotationConfig {
+/*
+ * Abstract base class for configuring rotation behavior.
+ *
+ * @param priority The priority of this configuration.
+ */
+abstract class RotationConfig(priority: Priority) : RequestConfig<RotationRequest>(priority) {
     /**
      * - [RotationMode.SILENT] Spoofing server-side rotation.
      * - [RotationMode.SYNC] Spoofing server-side rotation and adjusting client-side movement based on reported rotation (for Grim).
      * - [RotationMode.LOCK] Locks the camera client-side.
      */
-    val rotationMode: RotationMode
+    abstract val rotationMode: RotationMode
 
     /**
      * The rotation speed (in degrees).
      */
-    val turnSpeed: Double
+    abstract val turnSpeed: Double
 
     /**
      * Ticks the rotation should not be changed.
      */
-    val keepTicks: Int
+    abstract val keepTicks: Int
 
     /**
      * Ticks to rotate back to the actual rotation.
      */
-    val resetTicks: Int
+    abstract val decayTicks: Int
 
     val rotate: Boolean get() = rotationMode != RotationMode.NONE
 
-    interface Instant : RotationConfig {
+    override fun requestInternal(request: RotationRequest) {
+        RotationManager.registerRequest(this, request)
+    }
+
+    open class Instant(mode: RotationMode, priority: Priority = 0) : RotationConfig(priority) {
         override val turnSpeed get() = 360.0
         override val keepTicks get() = 1
-        override val resetTicks get() = 1
+        override val decayTicks get() = 1
+        override val rotationMode = mode
     }
 }

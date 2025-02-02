@@ -20,9 +20,9 @@ package com.lambda.config.groups
 import com.lambda.config.Configurable
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendManager.isFriend
-import com.lambda.interaction.rotation.Rotation.Companion.dist
-import com.lambda.interaction.rotation.Rotation.Companion.rotation
-import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
+import com.lambda.interaction.request.rotation.Rotation.Companion.dist
+import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
+import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.threading.runSafe
 import com.lambda.util.math.distSq
 import com.lambda.util.world.fastEntitySearch

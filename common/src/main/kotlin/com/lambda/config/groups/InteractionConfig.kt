@@ -17,33 +17,50 @@
 
 package com.lambda.config.groups
 
-import com.lambda.core.PingManager
+import com.lambda.interaction.request.rotation.visibilty.PointSelection
 
 interface InteractionConfig {
     /**
-     * Minecraft's default reach values
+     * Maximum entity interaction distance
      */
-    val defaultReach: Boolean
+    val attackReach: Double
 
     /**
-     * Maximum distance to interact.
+     * Maximum block interaction distance
      */
-    val reach: Double
-
-    val visibilityCheck: Boolean
+    val placeReach: Double
 
     /**
-     * Will check `resolution squared` many points on a grid on each visible surface of the hit box.
+     * Maximum possible interaction distance
+     *
+     * Equals to `max(attackReach, placeReach)` if both are present. Equals to one of them otherwise
+     */
+    val scanReach: Double
+
+    /**
+     * Whether to include the environment to the ray cast context.
+     *
+     * if false: skips walls for entities, skips entities for blocks.
+     */
+    val strictRayCast: Boolean
+
+    /**
+     * Whether to check if an AABB side is visible.
+     */
+    val checkSideVisibility: Boolean
+
+    /**
+     * Grid divisions count per surface of the hit box.
      */
     val resolution: Int
 
-    val useRayCast: Boolean
-    val swingHand: Boolean
-    val inScopeThreshold: Int
-    val pingTimeout: Boolean
+    /**
+     * The way to select the best point.
+     */
+    val pointSelection: PointSelection
 
-    val scopeThreshold: Int
-        get() =
-            if (pingTimeout) PingManager.lastPing.toInt() / 50
-            else inScopeThreshold
+    /**
+     * Whether to swing the hand when interacting.
+     */
+    val swingHand: Boolean
 }

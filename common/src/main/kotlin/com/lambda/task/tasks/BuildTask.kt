@@ -20,13 +20,13 @@ package com.lambda.task.tasks
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.config.groups.RotationConfig
+import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.RotationManager.rotate
+import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.DynamicBlueprint
@@ -83,7 +83,7 @@ class BuildTask @Ta5kBuilder constructor(
             }
 
             currentPlacement?.let { context ->
-                if (!context.rotation.isValid) return@listen
+                if (!context.rotation.done) return@listen
                 if (inScope++ < 1) return@listen // ToDo: Should not be needed but timings are wrong
                 context.place(interact.swingHand)
                 pendingPlacements.add(context)
@@ -160,12 +160,13 @@ class BuildTask @Ta5kBuilder constructor(
             }
         }
 
-        rotate {
-            request {
-                if (currentPlacement == null) return@request null
-                if (!build.rotateForPlace) return@request null
-                currentPlacement?.rotation
-            }
+        onRotate {
+            if (currentPlacement == null) return@onRotate
+            if (!build.rotateForPlace) return@onRotate
+
+            rotation.request(
+                currentPlacement?.rotation ?: return@onRotate
+            )
         }
 
         listen<MovementEvent.InputUpdate> {

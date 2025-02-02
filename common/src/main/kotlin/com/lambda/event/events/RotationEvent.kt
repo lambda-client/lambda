@@ -20,20 +20,10 @@ package com.lambda.event.events
 import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import com.lambda.interaction.rotation.RotationRequest
+import com.lambda.interaction.request.rotation.RotationRequest
 import net.minecraft.client.input.Input
 
 sealed class RotationEvent {
-    /**
-     * This event allows listeners to register a rotation request to be executed that tick.
-     *
-     * Only one rotation can "win" each tick
-     *
-     * CAUTION: The listener with the LOWEST priority will win as it is the last to override the context
-     *
-     * @property request The rotation context that listeners can set. Only one rotation can "win" each tick
-     */
-    data class Update(var request: RotationRequest?) : ICancellable by Cancellable()
 
     /**
      * This event allows listeners to modify the yaw relative to which the movement input is going to be constructed

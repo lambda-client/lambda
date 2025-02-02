@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,24 +15,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction
+package com.lambda.interaction.request.rotation
 
-import com.lambda.Lambda.mc
-import com.lambda.config.groups.RotationSettings
+import com.lambda.Lambda
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
+import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.interaction.rotation.Rotation
-import com.lambda.interaction.rotation.Rotation.Companion.angleDifference
-import com.lambda.interaction.rotation.Rotation.Companion.fixSensitivity
-import com.lambda.interaction.rotation.Rotation.Companion.slerp
-import com.lambda.interaction.rotation.RotationRequest
-import com.lambda.interaction.rotation.RotationMode
+import com.lambda.interaction.request.RequestHandler
+import com.lambda.interaction.request.rotation.Rotation.Companion.fixSensitivity
+import com.lambda.interaction.request.rotation.Rotation.Companion.slerp
+import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
@@ -48,73 +46,72 @@ import kotlin.math.round
 import kotlin.math.sign
 import kotlin.math.sin
 
-object RotationManager : Loadable {
+object RotationManager : RequestHandler<RotationRequest>(), Loadable {
     var currentRotation = Rotation.ZERO
     private var prevRotation = Rotation.ZERO
 
-    var currentContext: RotationRequest? = null
-
-    private var keepTicks = 0
-    private var pauseTicks = 0
-
     override fun load() = "Loaded Rotation Manager"
 
-    @RotationDsl
-    fun Any.rotate(
-        priority: Int = 0,
+    /**
+     * Registers a listener that is called right before [RotationManager] updates the context and the rotation
+     *
+     * Use this if you need to match specific state of the client
+     * (when the player and its input are already updated this tick and similar) /
+     * when you don't know when to rotate / you simply want to request before rotation update
+     */
+    fun Any.onRotate(
         alwaysListen: Boolean = false,
-        block: RequestRotationBuilder.() -> Unit,
-    ) {
-        val builder = RequestRotationBuilder().apply(block)
-        var requested: RotationRequest? = null
-
-        listen<RotationEvent.Update>(priority, alwaysListen) { event ->
-            builder.onUpdate?.invoke(this, event.request)?.let { context ->
-                if (!context.config.rotate) return@let
-                event.request = context
-                requested = context
-            }
-        }
-
-        listen<RotationEvent.Post> { event ->
-            val context = event.request
-            if (!context.config.rotate) return@listen
-            if (context != requested) return@listen
-            if (!context.isValid) return@listen
-            builder.onReceive?.invoke(this, context)
-        }
-    }
-
-    @DslMarker
-    annotation class RotationDsl
-
-    class RequestRotationBuilder {
-        var onUpdate: (SafeContext.(lastContext: RotationRequest?) -> RotationRequest?)? = null
-        var onReceive: (SafeContext.(context: RotationRequest) -> Unit)? = null
-
-        @RotationDsl
-        fun request(block: SafeContext.(lastContext: RotationRequest?) -> RotationRequest?) {
-            onUpdate = block
-        }
-
-        @RotationDsl
-        fun finished(block: SafeContext.(context: RotationRequest) -> Unit) {
-            onReceive = block
-        }
-    }
-
-    @JvmStatic
-    fun update() = runSafe {
-        RotationEvent.Update(BaritoneProcessor.poolContext()).post {
-            rotate(request)
-
-            currentContext?.let {
-                RotationEvent.Post(it).post()
-            }
-        }
+        block: SafeContext.() -> Unit,
+    ) = this.listen<PlayerPacketEvent.Post>(0, alwaysListen) {
+        block()
     }
 
     init {
+        // For some reason we have to update AFTER sending player packets
+        // instead of updating on TickEvent.Pre (am I doing something wrong?)
+        listen<PlayerPacketEvent.Post>(Int.MIN_VALUE) {
+            // Update the request
+            val changed = updateRequest(true) { entry ->
+                // skip requests that have failed to build the rotation
+                // to free the request place for others
+                entry.value.target.targetRotation.value != null
+            }
+
+            if (!changed) { // rebuild the rotation if the same context gets used again
+                currentRequest?.target?.targetRotation?.update()
+            }
+
+            // Calculate the target rotation
+            val targetRotation = currentRequest?.let { request ->
+                val rotationTo = if (request.keepTicks >= 0)
+                    request.target.targetRotation.value
+                        ?: currentRotation // same context gets used again && the rotation is null this tick
+                else player.rotation
+
+                val speedMultiplier = if (request.keepTicks < 0) 1.0 else request.speedMultiplier
+                val turnSpeed = request.turnSpeed() * speedMultiplier
+
+                currentRotation.slerp(rotationTo, turnSpeed)
+            } ?: player.rotation
+
+            // Update the current rotation
+            prevRotation = currentRotation
+            currentRotation = targetRotation.fixSensitivity(prevRotation)
+
+            // Handle LOCK mode
+            if (currentRequest?.mode == RotationMode.LOCK) {
+                player.yaw = currentRotation.yawF
+                player.pitch = currentRotation.pitchF
+            }
+
+            // Tick and reset the context
+            currentRequest?.let {
+                if (--it.keepTicks > 0) return@let
+                if (--it.decayTicks >= 0) return@let
+                currentRequest = null
+            }
+        }
+
         listen<PacketEvent.Send.Post> { event ->
             val packet = event.packet
             if (packet !is PlayerPositionLookS2CPacket) return@listen
@@ -124,101 +121,63 @@ object RotationManager : Loadable {
             }
         }
 
-        listenUnsafe<ConnectionEvent.Disconnect> {
+        listenUnsafe<ConnectionEvent.Connect.Pre> {
             reset(Rotation.ZERO)
         }
-    }
-
-    private fun rotate(newContext: RotationRequest?) = runSafe {
-        prevRotation = currentRotation
-
-        keepTicks--
-        pauseTicks--
-
-        currentContext?.let { current ->
-            if (keepTicks + current.config.resetTicks < 0 || pauseTicks >= 0) {
-                currentContext = null
-            }
-        }
-
-        newContext?.let { request ->
-            currentContext = request
-            keepTicks = request.config.keepTicks
-        }
-
-        currentRotation = currentContext?.let { context ->
-            val rotationTo = if (keepTicks >= 0) context.rotation else player.rotation
-
-            var speedMultiplier = (context.config as? RotationSettings)?.speedMultiplier ?: 1.0
-            if (keepTicks < 0) speedMultiplier = 1.0
-
-            val turnSpeed = context.config.turnSpeed * speedMultiplier
-
-            currentRotation
-                .slerp(rotationTo, turnSpeed)
-                .fixSensitivity(prevRotation)
-                .apply {
-                    if (context.config.rotationMode != RotationMode.LOCK) return@apply
-                    player.yaw = this.yawF
-                    player.pitch = this.pitchF
-                }
-        } ?: player.rotation
     }
 
     private fun reset(rotation: Rotation) {
         prevRotation = rotation
         currentRotation = rotation
-
-        currentContext = null
-        pauseTicks = 3
+        currentRequest = null
     }
 
     private val smoothRotation
         get() =
-            lerp(mc.partialTicks, prevRotation, currentRotation)
+            lerp(Lambda.mc.partialTicks, prevRotation, currentRotation)
 
     @JvmStatic
     val lockRotation
         get() =
-            if (currentContext?.config?.rotationMode == RotationMode.LOCK) smoothRotation else null
+            if (currentRequest?.mode == RotationMode.LOCK) smoothRotation else null
 
     @JvmStatic
     val renderYaw
         get() =
-            if (currentContext?.config == null) null else smoothRotation.yaw.toFloat()
+            if (currentRequest == null) null else smoothRotation.yaw.toFloat()
 
     @JvmStatic
     val renderPitch
         get() =
-            if (currentContext?.config == null) null else smoothRotation.pitch.toFloat()
+            if (currentRequest == null) null else smoothRotation.pitch.toFloat()
 
     @JvmStatic
     val handYaw
         get() =
-            if (currentContext?.config?.rotationMode == RotationMode.LOCK) currentRotation.yaw.toFloat() else null
+            if (currentRequest?.mode == RotationMode.LOCK) currentRotation.yaw.toFloat() else null
 
     @JvmStatic
     val handPitch
         get() =
-            if (currentContext?.config?.rotationMode == RotationMode.LOCK) currentRotation.pitch.toFloat() else null
+            if (currentRequest?.mode == RotationMode.LOCK) currentRotation.pitch.toFloat() else null
 
     @JvmStatic
     val movementYaw: Float?
         get() {
-            if (currentContext?.config?.rotationMode == RotationMode.SILENT) return null
+            if (currentRequest?.mode == RotationMode.SILENT) return null
             return currentRotation.yaw.toFloat()
         }
 
     @JvmStatic
     val movementPitch: Float?
         get() {
-            if (currentContext?.config?.rotationMode == RotationMode.SILENT) return null
+            if (currentRequest?.mode == RotationMode.SILENT) return null
             return currentRotation.pitch.toFloat()
         }
 
     @JvmStatic
     fun getRotationForVector(deltaTime: Double): Vec2d? {
-        if (currentContext?.config?.rotationMode == RotationMode.SILENT) return null
+        if (currentRequest?.mode == RotationMode.SILENT) return null
 
         val rot = lerp(deltaTime, prevRotation, currentRotation)
         return Vec2d(rot.yaw, rot.pitch)
@@ -226,11 +185,9 @@ object RotationManager : Loadable {
 
     object BaritoneProcessor {
         private var baritoneContext: RotationRequest? = null
-
-        fun poolContext(): RotationRequest? {
-            val ctx = baritoneContext
-            baritoneContext = null
-            return ctx
+        private val baritoneRotation get() = Baritone.rotation.apply {
+            if (rotationMode == RotationMode.SYNC) return@apply
+            rotationMode = RotationMode.SYNC
         }
 
         private val movementYawList = arrayOf(
@@ -242,16 +199,15 @@ object RotationManager : Loadable {
 
         @JvmStatic
         fun handleBaritoneRotation(yaw: Float, pitch: Float) {
-            baritoneContext = RotationRequest(Rotation(yaw, pitch), Baritone.rotation.apply {
-                if (rotationMode != RotationMode.SILENT) return@apply
-                rotationMode = RotationMode.SYNC
-            })
+            lookAt(
+                Rotation(yaw, pitch)
+            ).requestBy(baritoneRotation)
         }
 
         @JvmStatic
         fun processPlayerMovement(input: Input, slowDown: Boolean, slowDownFactor: Float) = runSafe {
             // The yaw relative to which the movement was constructed
-            val baritoneYaw = baritoneContext?.rotation?.yaw
+            val baritoneYaw = baritoneContext?.target?.targetRotation?.value?.yaw
             val strafeEvent = RotationEvent.StrafeInput(baritoneYaw ?: player.yaw.toDouble(), input)
             val movementYaw = strafeEvent.post().strafeYaw
 
@@ -269,7 +225,7 @@ object RotationManager : Loadable {
             // Actual yaw used by the physics engine
             var actualYaw = currentRotation.yaw
 
-            if (currentContext?.config?.rotationMode == RotationMode.SILENT) {
+            if (currentRequest?.mode == RotationMode.SILENT) {
                 actualYaw = player.yaw.toDouble()
             }
 
@@ -296,7 +252,7 @@ object RotationManager : Loadable {
             // when yaw difference is too big to compensate it by modifying keyboard input
             val minYawDist = movementYawList
                 .map { currentRotation.yaw + it } // all possible movement directions (including diagonals)
-                .minOf { angleDifference(it, baritoneYaw) }
+                .minOf { Rotation.angleDifference(it, baritoneYaw) }
 
             if (minYawDist > 5.0) {
                 input.movementSideways = 0f

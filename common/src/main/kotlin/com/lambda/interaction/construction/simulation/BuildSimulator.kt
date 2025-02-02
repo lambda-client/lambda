@@ -18,7 +18,7 @@
 package com.lambda.interaction.construction.simulation
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.RotationManager
+import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.PlaceContext
@@ -28,13 +28,14 @@ import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.container.ContainerManager.findBestAvailableTool
-import com.lambda.interaction.rotation.Rotation.Companion.rotation
-import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.rotation.RotationRequest
-import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
-import com.lambda.interaction.visibilty.VisibilityChecker.optimum
-import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
-import com.lambda.interaction.visibilty.VisibilityChecker.visibleSides
+import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
+import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
+import com.lambda.interaction.request.rotation.RotationRequest
+import com.lambda.interaction.request.rotation.visibilty.RequestedHit
+import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.CheckedHit
+import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.scanSurfaces
+import com.lambda.interaction.request.rotation.visibilty.lookAtBlock
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
@@ -54,7 +55,6 @@ import net.minecraft.item.ItemUsageContext
 import net.minecraft.registry.RegistryKeys
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
-import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
@@ -64,7 +64,7 @@ import kotlin.jvm.optionals.getOrNull
 import kotlin.math.pow
 
 object BuildSimulator {
-    fun Blueprint.simulate(eye: Vec3d, reach: Double = TaskFlowModule.interact.reach) =
+    fun Blueprint.simulate(eye: Vec3d, reach: Double = TaskFlowModule.interact.placeReach) =
         runSafe {
             structure.entries.flatMap { (pos, target) ->
                 checkRequirements(pos, target)?.let {
@@ -148,41 +148,38 @@ object BuildSimulator {
             if (voxelShape.isEmpty) return@forEach
 
             val boxes = voxelShape.boundingBoxes.map { it.offset(hitPos) }
-            val verify: HitResult.() -> Boolean = {
-                blockResult?.blockPos == hitPos && blockResult?.side == hitSide
+            val verify: CheckedHit.() -> Boolean = {
+                hit.blockResult?.blockPos == hitPos && hit.blockResult?.side == hitSide
             }
-            val validHits = mutableMapOf<Vec3d, HitResult>()
+
+            val checkedHits = mutableListOf<CheckedHit>()
             val misses = mutableSetOf<Vec3d>()
             val reachSq = reach.pow(2)
 
             boxes.forEach { box ->
-                val res = if (TaskFlowModule.interact.useRayCast) interact.resolution else 4
-                val sides = if (TaskFlowModule.interact.visibilityCheck) {
+                val sides = if (interact.checkSideVisibility) {
                     box.getVisibleSurfaces(eye).intersect(setOf(hitSide))
                 } else {
                     Direction.entries.toSet()
                 }
 
-                scanSurfaces(box, sides, res, preprocessing.surfaceScan) { side, vec ->
+                scanSurfaces(box, sides, interact.resolution, preprocessing.surfaceScan) { _, vec ->
                     if (eye distSq vec > reachSq) {
                         misses.add(vec)
                         return@scanSurfaces
                     }
 
-                    validHits[vec] =
-                        if (TaskFlowModule.interact.useRayCast && TaskFlowModule.interact.visibilityCheck) {
-                            val cast = eye.rotationTo(vec)
-                                .rayCast(reach, eye) ?: return@scanSurfaces
-                            if (!cast.verify()) return@scanSurfaces
+                    val newRotation = eye.rotationTo(vec)
 
-                            cast
-                        } else {
-                            BlockHitResult(vec, side, hitPos, false)
-                        }
+                    val hit = newRotation.rayCast(reach, eye) ?: return@scanSurfaces
+                    val checked = CheckedHit(hit, newRotation, reach)
+                    if (!checked.verify()) return@scanSurfaces
+
+                    checkedHits.add(checked)
                 }
             }
 
-            if (validHits.isEmpty()) {
+            if (checkedHits.isEmpty()) {
                 if (misses.isNotEmpty()) {
                     acc.add(BuildResult.OutOfReach(pos, eye, misses))
                     return@forEach
@@ -192,24 +189,21 @@ object BuildSimulator {
                 return@forEach
             }
 
-            validHits.keys.optimum?.let { optimum ->
-                validHits.minByOrNull { optimum distSq it.key }?.let { closest ->
-                    val optimumRotation = eye.rotationTo(closest.key)
-                    RotationRequest(optimumRotation, rotation, closest.value, verify)
-                }
-            }?.let { rotation ->
+            interact.pointSelection.select(checkedHits)?.let { checkedHit ->
                 val optimalStack = target.getStack(world, pos)
 
                 // ToDo: For each hand and sneak or not?
                 val fakePlayer = copyPlayer(player).apply {
                     setPos(eye.x, eye.y - standingEyeHeight, eye.z)
-                    this.rotation = rotation.rotation
+                    this.rotation = checkedHit.targetRotation
                 }
+
+                val checkedResult = checkedHit.hit
 
                 val usageContext = ItemUsageContext(
                     fakePlayer,
                     Hand.MAIN_HAND,
-                    rotation.checkedResult?.blockResult,
+                    checkedResult.blockResult,
                 )
                 val cachePos = CachedBlockPosition(
                     usageContext.world,
@@ -269,7 +263,7 @@ object BuildSimulator {
                     return@forEach
                 }
 
-                val blockHit = rotation.checkedResult?.blockResult ?: return@forEach
+                val blockHit = checkedResult.blockResult ?: return@forEach
                 val hitBlock = blockHit.blockPos.blockState(world).block
                 val shouldSneak = hitBlock in BlockUtils.interactionBlacklist
 
@@ -281,7 +275,10 @@ object BuildSimulator {
                 val placeContext = PlaceContext(
                     eye,
                     blockHit,
-                    rotation,
+                    RotationRequest(
+                        lookAtBlock(blockHit.blockPos, setOf(blockHit.side), interact),
+                        rotation
+                    ),
                     eye.distanceTo(blockHit.pos),
                     resultState,
                     blockHit.blockPos.blockState(world),
@@ -378,11 +375,18 @@ object BuildSimulator {
         }
 
         val boxes = voxelShape.boundingBoxes.map { it.offset(pos) }
-        val verify: HitResult.() -> Boolean = { blockResult?.blockPos == pos }
+        val verify: CheckedHit.() -> Boolean = {
+            hit.blockResult?.blockPos == pos
+        }
+
+        val checkedHits = mutableListOf<CheckedHit>()
         /* the player is buried inside the block */
         if (boxes.any { it.contains(eye) }) {
             currentCast?.blockResult?.let { blockHit ->
-                val rotationRequest = RotationRequest(currentRotation, rotation, currentCast, verify)
+                val rotationRequest = RotationRequest(
+                    lookAtBlock(pos, interactionConfig = interact),
+                    rotation
+                )
                 val breakContext = BreakContext(
                     eye,
                     blockHit,
@@ -401,23 +405,19 @@ object BuildSimulator {
         val reachSq = reach.pow(2)
 
         boxes.forEach { box ->
-            val res = if (TaskFlowModule.interact.useRayCast) interact.resolution else 2
-            val sides = visibleSides(box, eye, TaskFlowModule.interact)
-            scanSurfaces(box, sides, res) { side, vec ->
+            scanSurfaces(box, Direction.entries.toSet(), interact.resolution) { side, vec ->
                 if (eye distSq vec > reachSq) {
                     misses.add(vec)
                     return@scanSurfaces
                 }
 
-                validHits[vec] = if (TaskFlowModule.interact.useRayCast && TaskFlowModule.interact.visibilityCheck) {
-                    val cast = eye.rotationTo(vec)
-                        .rayCast(reach, eye) ?: return@scanSurfaces
-                    if (!cast.verify()) return@scanSurfaces
+                val newRotation = eye.rotationTo(vec)
 
-                    cast
-                } else {
-                    BlockHitResult(vec, side, pos, false)
-                }
+                val hit = newRotation.rayCast(reach, eye) ?: return@scanSurfaces
+                val checked = CheckedHit(hit, newRotation, reach)
+                if (!checked.verify()) return@scanSurfaces
+
+                checkedHits.add(checked)
             }
         }
 
@@ -427,18 +427,16 @@ object BuildSimulator {
             return acc
         }
 
-        validHits.keys.optimum?.let { optimum ->
-            validHits.minByOrNull { optimum distSq it.key }?.let { closest ->
-                val optimumRotation = eye.rotationTo(closest.key)
-                RotationRequest(optimumRotation, rotation, closest.value, verify)
-            }
-        }?.let { bestRotation ->
-            val blockHit = bestRotation.checkedResult?.blockResult ?: return@let
+        interact.pointSelection.select(checkedHits)?.let { checkedHit ->
+            val blockHit = checkedHit.hit.blockResult ?: return@let
 
             val breakContext = BreakContext(
                 eye,
                 blockHit,
-                bestRotation,
+                RotationRequest(
+                    lookAtBlock(blockHit.blockPos, interactionConfig = interact),
+                    rotation
+                ),
                 state,
                 player.activeHand,
                 instantBreakable(state, pos)

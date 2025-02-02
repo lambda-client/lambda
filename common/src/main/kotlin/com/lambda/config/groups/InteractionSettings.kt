@@ -18,26 +18,53 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
-import com.lambda.threading.runSafe
-import net.minecraft.entity.player.PlayerEntity
+import com.lambda.interaction.request.rotation.visibilty.PointSelection
+import com.lambda.util.world.raycast.InteractionMask
+import kotlin.math.max
 
-// TODO: Rewrite the group settings plz
 class InteractionSettings(
     c: Configurable,
-    useDefaultReach: Boolean = true,
-    cReach: Double = 3.0,
+    private val usage: InteractionMask,
     vis: () -> Boolean = { true },
 ) : InteractionConfig {
-    override val defaultReach by c.setting("Default Reach", useDefaultReach)
-    private val customReach by c.setting("Reach", if (!defaultReach) cReach else 4.5, 0.1..10.0, 0.1, "Players reach / range", " blocks") { vis() && !defaultReach }
-    override val reach: Double
-        get() = if (defaultReach) runSafe { PlayerEntity.getReachDistance(interaction.currentGameMode.isCreative).toDouble() } ?: 4.5 else customReach
-    override val useRayCast by c.setting("Raycast", true, "Verify hit vector with ray casting (for very strict ACs)", vis)
-    override val visibilityCheck by c.setting("Visibility Check", true, "Check if target is visible", vis)
-    override val resolution by c.setting("Resolution", 4, 1..40, 1, "How many raycast checks per surface (will be squared)") { vis() && useRayCast }
-    override val swingHand by c.setting("Swing Hand", true, "Swing hand on interactions", vis)
-    override val pingTimeout by c.setting("Ping Timeout", false, "Timeout on high ping", vis)
-    override val inScopeThreshold by c.setting("Constant Timeout", 1, 0..20, 1, "How many ticks to wait after target box is in rotation scope"," ticks") {
-        vis() && !pingTimeout
+    // Reach
+    private val useDefaultReach by c.setting("Default Reach", true, "Whether to use vanilla interaction ranges", vis)
+    private val attackReachSetting = if (usage.entity) c.setting("Attack Reach", DEFAULT_ATTACK_REACH, 1.0..10.0, 0.01, "Maximum entity interaction distance") { vis() && !useDefaultReach } else null
+    private val placeReachSetting = if (usage.block) c.setting("Place Reach", DEFAULT_PLACE_REACH, 1.0..10.0, 0.01, "Maximum block interaction distance") { vis() && !useDefaultReach } else null
+
+    override val attackReach: Double get() {
+        check(usage.entity) {
+            "Given interaction config has no attack reach implementation"
+        }
+
+        return if (useDefaultReach) DEFAULT_ATTACK_REACH else attackReachSetting!!.value
+    }
+
+    override val placeReach: Double get()  {
+        check(usage.block) {
+            "Given interaction config has no place reach implementation"
+        }
+
+        return if (useDefaultReach) DEFAULT_ATTACK_REACH else placeReachSetting!!.value
+    }
+
+    override val scanReach: Double get() = when (usage) {
+        InteractionMask.ENTITY -> attackReach
+        InteractionMask.BLOCK -> placeReach
+        InteractionMask.BOTH -> max(attackReach, placeReach)
+    }
+
+    // Point scan
+    override val strictRayCast by c.setting("Strict Raycast", true, "Whether to include the environment to the ray cast context", vis)
+    override val checkSideVisibility by c.setting("Visibility Check", true, "Whether to check if an AABB side is visible", vis)
+    override val resolution by c.setting("Resolution", 8, 1..20, 1, "The amount of grid divisions per surface of the hit box", "", vis)
+    override val pointSelection by c.setting("Point Selection", PointSelection.ByRotation, "The way to select the best point", vis)
+
+    // Swing
+    override val swingHand by c.setting("Swing Hand", true, "Whether to swing hand on interactions", vis)
+
+    companion object {
+        const val DEFAULT_ATTACK_REACH = 3.0
+        const val DEFAULT_PLACE_REACH = 4.5
     }
 }

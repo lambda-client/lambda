@@ -18,7 +18,7 @@
 package com.lambda.interaction.construction.context
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.rotation.RotationRequest
+import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.util.world.raycast.RayCastUtils.distanceTo
 import net.minecraft.block.BlockState
 import net.minecraft.util.Hand

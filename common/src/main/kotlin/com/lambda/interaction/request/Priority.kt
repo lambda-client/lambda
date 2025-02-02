@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,17 +15,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.rotation
+package com.lambda.interaction.request
 
-/**
- * @property SILENT Spoofing server-side rotation.
- * @property SYNC Spoofing server-side rotation and adjusting client-side movement based on reported rotation (for Grim).
- * @property LOCK Locks the camera client-side.
- * @property NONE No rotation.
- */
-enum class RotationMode {
-    SILENT,
-    SYNC,
-    LOCK,
-    NONE
-}
+typealias Priority = Int

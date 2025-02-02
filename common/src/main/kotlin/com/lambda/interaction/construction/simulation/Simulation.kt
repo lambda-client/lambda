@@ -49,7 +49,9 @@ data class Simulation(val blueprint: Blueprint) {
                         .isSideSolidFullSquare(world, blockPos, Direction.UP)
                 ) return@getOrPut emptySet()
             }
-            blueprint.simulate(view, reach = TaskFlowModule.interact.reach - 1)
+
+            // ToDo: wtf was that "reach = TaskFlowModule.interact.reach - 1"
+            blueprint.simulate(view)
         }
 
     private fun SafeContext.playerFitsIn(pos: Vec3d): Boolean {
