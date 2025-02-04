@@ -31,7 +31,7 @@ import com.lambda.util.collections.cached
  * @param verify A lambda to check the active rotation.
  * @param buildRotation A lambda that builds the rotation.
  */
-class RotationTarget(
+data class RotationTarget(
     val hit: RequestedHit? = null,
     val verify: RotationTarget.() -> Boolean = { hit?.verifyRotation() ?: true },
     private val buildRotation: SafeContext.() -> Rotation?,

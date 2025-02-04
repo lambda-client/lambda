@@ -66,7 +66,6 @@ class BuildTask @Ta5kBuilder constructor(
     private var currentPlacement: PlaceContext? = null
     private var placements = 0
     private var breaks = 0
-    private var inScope = 0
 
     override fun SafeContext.onStart() {
         (blueprint as? DynamicBlueprint)?.create()
@@ -83,12 +82,10 @@ class BuildTask @Ta5kBuilder constructor(
             }
 
             currentPlacement?.let { context ->
-                if (!context.rotation.done) return@listen
-                if (inScope++ < 1) return@listen // ToDo: Should not be needed but timings are wrong
+                if (build.rotateForPlace && !context.rotation.done) return@listen
                 context.place(interact.swingHand)
                 pendingPlacements.add(context)
                 currentPlacement = null
-                inScope = 0
             }
 
             (blueprint as? DynamicBlueprint)?.update()
@@ -161,12 +158,10 @@ class BuildTask @Ta5kBuilder constructor(
         }
 
         onRotate {
-            if (currentPlacement == null) return@onRotate
             if (!build.rotateForPlace) return@onRotate
+            val rotateTo = currentPlacement?.rotation ?: return@onRotate
 
-            rotation.request(
-                currentPlacement?.rotation ?: return@onRotate
-            )
+            rotation.request(rotateTo)
         }
 
         listen<MovementEvent.InputUpdate> {

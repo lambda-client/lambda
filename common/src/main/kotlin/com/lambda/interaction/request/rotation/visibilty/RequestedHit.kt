@@ -33,10 +33,9 @@ import net.minecraft.util.math.Direction
 /**
  * An abstract class representing a rotation target, which can be either a block or an entity.
  */
-abstract class RequestedHit private constructor(
-    val sides: Set<Direction>,
-    val reach: Double
-) {
+abstract class RequestedHit {
+    abstract val sides: Set<Direction>
+    abstract val reach: Double
 
     /**
      * Verifies if the given [HitResult] satisfies the criteria of this
@@ -80,8 +79,11 @@ abstract class RequestedHit private constructor(
      * @param entity The [LivingEntity] to be hit.
      * @param reach The maximum distance for the hit.
      */
-    class Entity(val entity: LivingEntity, reach: Double) : RequestedHit(ALL_SIDES, reach) {
-
+    data class Entity(
+        val entity: LivingEntity,
+        override val reach: Double,
+        override val sides: Set<Direction> = ALL_SIDES
+    ) : RequestedHit() {
         override fun getBoundingBoxes() =
             listOf(entity.boundingBox)
 
@@ -96,8 +98,11 @@ abstract class RequestedHit private constructor(
      * @param sides The set of directions for which the hit is requested.
      * @param reach The maximum distance for the hit.
      */
-    class Block(val blockPos: BlockPos, sides: Set<Direction>, reach: Double) : RequestedHit(sides, reach) {
-
+    data class Block(
+        val blockPos: BlockPos,
+        override val sides: Set<Direction>,
+        override val reach: Double
+    ) : RequestedHit() {
         override fun getBoundingBoxes(): List<Box> = runSafe {
             val state = blockPos.blockState(world)
             val voxelShape = state.getOutlineShape(world, blockPos)

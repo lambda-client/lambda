@@ -22,15 +22,15 @@ import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.rotation.visibilty.RotationTarget
 import com.lambda.threading.runSafe
 
-class RotationRequest(
+data class RotationRequest(
     val target: RotationTarget,
-    priority: Priority,
+    val prio: Priority,
     val mode: RotationMode,
     var keepTicks: Int = 3,
     var decayTicks: Int = 0,
     val turnSpeed: () -> Double = { 180.0 },
     val speedMultiplier: Double = 1.0
-) : Request(priority) {
+) : Request(prio) {
 
     constructor(
         target: RotationTarget,
