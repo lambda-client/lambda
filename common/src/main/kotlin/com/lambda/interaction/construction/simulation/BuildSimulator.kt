@@ -31,7 +31,6 @@ import com.lambda.interaction.material.container.ContainerManager.findBestAvaila
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.RotationRequest
-import com.lambda.interaction.request.rotation.visibilty.RequestedHit
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.CheckedHit
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.scanSurfaces
@@ -55,7 +54,6 @@ import net.minecraft.item.ItemUsageContext
 import net.minecraft.registry.RegistryKeys
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
-import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
@@ -152,7 +150,7 @@ object BuildSimulator {
                 hit.blockResult?.blockPos == hitPos && hit.blockResult?.side == hitSide
             }
 
-            val checkedHits = mutableListOf<CheckedHit>()
+            val validHits = mutableListOf<CheckedHit>()
             val misses = mutableSetOf<Vec3d>()
             val reachSq = reach.pow(2)
 
@@ -175,11 +173,11 @@ object BuildSimulator {
                     val checked = CheckedHit(hit, newRotation, reach)
                     if (!checked.verify()) return@scanSurfaces
 
-                    checkedHits.add(checked)
+                    validHits.add(checked)
                 }
             }
 
-            if (checkedHits.isEmpty()) {
+            if (validHits.isEmpty()) {
                 if (misses.isNotEmpty()) {
                     acc.add(BuildResult.OutOfReach(pos, eye, misses))
                     return@forEach
@@ -189,7 +187,7 @@ object BuildSimulator {
                 return@forEach
             }
 
-            interact.pointSelection.select(checkedHits)?.let { checkedHit ->
+            interact.pointSelection.select(validHits)?.let { checkedHit ->
                 val optimalStack = target.getStack(world, pos)
 
                 // ToDo: For each hand and sneak or not?
@@ -379,7 +377,6 @@ object BuildSimulator {
             hit.blockResult?.blockPos == pos
         }
 
-        val checkedHits = mutableListOf<CheckedHit>()
         /* the player is buried inside the block */
         if (boxes.any { it.contains(eye) }) {
             currentCast?.blockResult?.let { blockHit ->
@@ -400,7 +397,7 @@ object BuildSimulator {
             }
         }
 
-        val validHits = mutableMapOf<Vec3d, HitResult>()
+        val validHits = mutableListOf<CheckedHit>()
         val misses = mutableSetOf<Vec3d>()
         val reachSq = reach.pow(2)
 
@@ -417,7 +414,7 @@ object BuildSimulator {
                 val checked = CheckedHit(hit, newRotation, reach)
                 if (!checked.verify()) return@scanSurfaces
 
-                checkedHits.add(checked)
+                validHits.add(checked)
             }
         }
 
@@ -427,7 +424,7 @@ object BuildSimulator {
             return acc
         }
 
-        interact.pointSelection.select(checkedHits)?.let { checkedHit ->
+        interact.pointSelection.select(validHits)?.let { checkedHit ->
             val blockHit = checkedHit.hit.blockResult ?: return@let
 
             val breakContext = BreakContext(

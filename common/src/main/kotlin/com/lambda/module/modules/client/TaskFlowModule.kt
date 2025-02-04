@@ -42,20 +42,6 @@ object TaskFlowModule : Module(
     val build = BuildSettings(this) { page == Page.BUILD }
     val rotation = RotationSettings(this) { page == Page.ROTATION }
     val interact = InteractionSettings(this, InteractionMask.BOTH) { page == Page.INTERACTION }
-
-    // ToDo: remove
-    // might be useless since grim has ping compensation things and shit
-    // its better to make sure the interactions are 100% matching the minecraft's ones
-    private val pingTimeout by setting("Ping Timeout", false, "Timeout on high ping") { page == Page.INTERACTION }
-    private val inScopeThreshold by setting("Constant Timeout", 1, 0..20, 1, "How many ticks to wait after target box is in rotation scope"," ticks") {
-        page == Page.INTERACTION && !pingTimeout
-    }
-
-    val scopeThreshold: Int
-        get() =
-            if (pingTimeout) PingManager.lastPing.toInt() / 50
-            else inScopeThreshold
-
     val inventory = InventorySettings(this) { page == Page.INVENTORY }
 
     val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree") { page == Page.DEBUG }

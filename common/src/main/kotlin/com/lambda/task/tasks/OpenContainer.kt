@@ -86,12 +86,10 @@ class OpenContainer @Ta5kBuilder constructor(
             val target = lookAtBlock(blockPos, sides, interact)
             if (rotate && !target.requestBy(rotation).done) return@listen
 
-            if (inScope++ >= TaskFlowModule.scopeThreshold) {
-                val hitResult = target.hit?.hitIfValid()?.blockResult ?: return@listen
-                interaction.interactBlock(player, Hand.MAIN_HAND, hitResult)
+            val hitResult = target.hit?.hitIfValid()?.blockResult ?: return@listen
+            interaction.interactBlock(player, Hand.MAIN_HAND, hitResult)
 
-                state = State.OPENING
-            }
+            state = State.OPENING
         }
     }
 }
