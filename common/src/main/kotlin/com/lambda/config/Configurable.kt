@@ -78,9 +78,7 @@ abstract class Configurable(
 
     override fun loadFromJson(serialized: JsonElement) {
         serialized.asJsonObject.entrySet().forEach { (name, value) ->
-            settings.find {
-                it.name == name
-            }?.loadFromJson(value)
+            settings.find { it.name == name }?.loadFromJson(value)
                 ?: LOG.warn("No saved setting found for $name with $value in ${this::class.simpleName}")
         }
     }

@@ -155,6 +155,4 @@ private fun StructureTemplate.readSpongeV3OrException(
 fun StructureTemplate.readLitematicaOrException(
     lookup: RegistryEntryLookup<Block>,
     nbt: NbtCompound,
-): Throwable {
-    return IllegalStateException("Litematica parsing is not implemented")
-}
+): Throwable = NotImplementedError("Litematica is not supported, you can help by contributing to the project")

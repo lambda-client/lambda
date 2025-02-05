@@ -96,9 +96,9 @@ object FolderRegister : Loadable {
         val path = resolve(
             hostName.sanitizeForFilename()
         ).resolve(
-            mc.world?.dimensionKey?.value?.path?.sanitizeForFilename() ?: "unknown"
+            mc.world?.dimensionKey?.value?.path?.sanitizeForFilename() ?: "unknown" // TODO: Change with utils when merged to master
         )
-        path.createIfNotExists()
+        path.mkdirs()
         return path
     }
 }

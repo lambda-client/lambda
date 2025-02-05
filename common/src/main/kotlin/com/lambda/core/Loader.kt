@@ -38,10 +38,10 @@ object Loader {
         LOG.info("Initializing ${Lambda.MOD_NAME} ${Lambda.VERSION} (${loadables.size} loaders)...")
 
         val initTime = measureTimeMillis {
-            loadables.forEach {
+            loadables.sortedByDescending { it.priority }.forEach {
                 var response: String
                 val time = measureTimeMillis { response = it.load() }
-                LOG.info("$response ($time ms)")
+                if (response.isNotBlank()) LOG.info("$response ($time ms)")
             }
         }
 
