@@ -146,8 +146,8 @@ abstract class AbstractSetting<T : Any>(
             ConfigCommand.info(notChangedMessage())
             return
         }
+        ConfigCommand.info(resetMessage(value, defaultValue))
         value = defaultValue
-        ConfigCommand.info(resetMessage(defaultValue))
     }
 
     open fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
@@ -166,7 +166,7 @@ abstract class AbstractSetting<T : Any>(
                 } catch (e: Exception) {
                     return@executeWithResult failure("Failed to load $valueString as a ${type::class.simpleName} for $name in ${config.name}.")
                 }
-                ConfigCommand.info(setMessage(previous))
+                ConfigCommand.info(setMessage(previous, this@AbstractSetting.value))
                 return@executeWithResult success()
             }
         }
@@ -178,13 +178,13 @@ abstract class AbstractSetting<T : Any>(
         } else {
             val previous = value
             value = newValue
-            ConfigCommand.info(setMessage(previous))
+            ConfigCommand.info(setMessage(previous, newValue))
         }
     }
 
-    private fun setMessage(previousValue: T) = buildText {
+    private fun setMessage(previousValue: T, newValue: T) = buildText {
         literal("Set ")
-        changedMessage(previousValue)
+        changedMessage(previousValue, newValue)
         val config = Configuration.configurableBySetting(this@AbstractSetting) ?: return@buildText
         clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.name} reset ${config.commandName} $commandName")) {
             hoverEvent(HoverEvents.showText(buildText {
@@ -196,9 +196,9 @@ abstract class AbstractSetting<T : Any>(
         }
     }
 
-    fun resetMessage(previousValue: T) = buildText {
+    private fun resetMessage(previousValue: T, newValue: T) = buildText {
         literal("Reset ")
-        changedMessage(previousValue)
+        changedMessage(previousValue, newValue)
     }
 
     private fun notChangedMessage() = buildText {
@@ -209,7 +209,7 @@ abstract class AbstractSetting<T : Any>(
         literal(".")
     }
 
-    private fun TextBuilder.changedMessage(previousValue: T) {
+    private fun TextBuilder.changedMessage(previousValue: T, newValue: T) {
         val config = Configuration.configurableBySetting(this@AbstractSetting) ?: return
         highlighted(config.name)
         literal(" > ")
@@ -217,7 +217,7 @@ abstract class AbstractSetting<T : Any>(
         literal(" from ")
         highlighted(previousValue.toString())
         literal(" to ")
-        highlighted(value.toString())
+        highlighted(newValue.toString())
         literal(".")
         clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.name} set ${config.commandName} $commandName $previousValue")) {
             hoverEvent(HoverEvents.showText(buildText {
