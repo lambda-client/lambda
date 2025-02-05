@@ -64,6 +64,11 @@ accessible field net/minecraft/network/ClientConnection packetsReceivedCounter I
 accessible field net/minecraft/network/packet/c2s/login/LoginKeyC2SPacket encryptedSecretKey [B
 accessible field net/minecraft/network/packet/c2s/login/LoginKeyC2SPacket nonce [B
 
+# Math
+accessible method net/minecraft/util/math/Vec3i setX (I)Lnet/minecraft/util/math/Vec3i;
+accessible method net/minecraft/util/math/Vec3i setY (I)Lnet/minecraft/util/math/Vec3i;
+accessible method net/minecraft/util/math/Vec3i setZ (I)Lnet/minecraft/util/math/Vec3i;
+
 # Other
 accessible field net/minecraft/world/explosion/Explosion behavior Lnet/minecraft/world/explosion/ExplosionBehavior;
 accessible field net/minecraft/structure/StructureTemplate blockInfoLists Ljava/util/List;

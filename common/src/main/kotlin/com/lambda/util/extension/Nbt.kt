@@ -20,10 +20,24 @@ package com.lambda.util.extension
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.nbt.NbtInt
 import net.minecraft.nbt.NbtList
+import net.minecraft.util.math.Vec3i
 
 /**
  * Puts a list of integer into the component, this is not the same as an int array
  */
 fun NbtCompound.putIntList(key: String, vararg values: Int) {
     put(key, values.fold(NbtList()) { list, value -> list.add(NbtInt.of(value)); list })
+}
+
+/**
+ * Retrieves a vector from a tuple
+ */
+fun NbtCompound.getVector(key: String): Vec3i {
+    // TODO: Handle other cases like array of values, capitalized keys, etc
+    val compound = getCompound(key)
+    val x = compound.getInt("x")
+    val y = compound.getInt("y")
+    val z = compound.getInt("z")
+
+    return Vec3i(x, y, z)
 }

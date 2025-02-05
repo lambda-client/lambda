@@ -19,6 +19,7 @@ package com.lambda.util.extension
 
 import com.lambda.Lambda.mc
 import com.lambda.util.VarIntIterator
+import com.lambda.util.math.MathUtils.logCap
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.x
@@ -31,6 +32,7 @@ import net.minecraft.nbt.NbtList
 import net.minecraft.registry.RegistryEntryLookup
 import net.minecraft.structure.StructureTemplate
 import kotlin.experimental.and
+import kotlin.math.abs
 
 private fun positionFromIndex(width: Int, length: Int, index: Int): FastVector {
     val y = index / (width * length)
@@ -155,4 +157,71 @@ private fun StructureTemplate.readSpongeV3OrException(
 fun StructureTemplate.readLitematicaOrException(
     lookup: RegistryEntryLookup<Block>,
     nbt: NbtCompound,
-): Throwable = NotImplementedError("Litematica is not supported, you can help by contributing to the project")
+): Throwable? {
+    val version = nbt.getInt("MinecraftDataVersion")
+
+    val metadata = nbt.getCompound("Metadata")
+    val author = metadata.getString("Author")
+
+    val dimension = metadata.getVector("EnclosingSize")
+
+    val newPalette = NbtList()
+    val newBlocks = NbtList()
+
+    val regions = nbt.getCompound("Regions")
+    regions.keys.map { regions.getCompound(it) }
+        .forEach {
+            val position = it.getVector("Position")
+            val size = it.getVector("Size")
+
+            val xSizeAbs = abs(size.x)
+            val ySizeAbs = abs(size.y)
+            val zSizeAbs = abs(size.z)
+
+            if (size.x < 0) position.x %= size.x + 1
+            if (size.y < 0) position.y %= size.y + 1
+            if (size.z < 0) position.z %= size.z + 1
+
+            // The litematic's block state palette is the same as nbt
+            newPalette.addAll(it.getList("BlockStatePalette", 10))
+
+            val palette = it.getLongArray("BlockStates")
+            val bits = palette.size.logCap(2)
+            val maxEntryValue = (1 shl bits) - 1L
+
+            for (y in 0 until ySizeAbs) {
+                for (z in 0 until zSizeAbs) {
+                    for (x in 0 until xSizeAbs) {
+                        val index = (y * xSizeAbs * zSizeAbs) + z * xSizeAbs + x
+
+                        val startOffset = index * bits
+                        val startArrIndex = startOffset / 64
+                        val endArrIndex = ((index + 1) * bits - 1) / 64
+                        val startBitOffset = startOffset % 64
+
+                        val stateId =
+                            if (startArrIndex == endArrIndex) palette[startArrIndex] ushr startBitOffset and maxEntryValue
+                            else (palette[startArrIndex] ushr startBitOffset or palette[endArrIndex] shl (64 - startBitOffset)) and maxEntryValue
+
+                        newBlocks.add(NbtCompound().apply {
+                            putIntList("pos", x, y, z)
+                            putInt("state", stateId.toInt())
+                        })
+                    }
+                }
+            }
+        }
+
+    // Construct a structure compatible nbt compound
+    nbt.putInt("DataVersion", version)
+    nbt.putIntList("size", dimension.x, dimension.y, dimension.z)
+    nbt.put("palette", newPalette)
+    nbt.put("blocks", newBlocks)
+    nbt.putString("author", author)
+
+    // Fix the data for future versions
+    DataFixTypes.STRUCTURE.update(mc.dataFixer, nbt, version)
+
+    // Use the StructureTemplate NBT read utils in order to construct the template
+    return readNbtOrException(lookup, nbt)
+}
