@@ -18,7 +18,12 @@
 package com.lambda.config.settings.complex
 
 import com.google.gson.reflect.TypeToken
+import com.lambda.brigadier.argument.*
+import com.lambda.brigadier.execute
+import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
+import com.lambda.util.extension.CommandBuilder
+import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.BlockPos
 
 /**
@@ -34,4 +39,16 @@ class BlockPosSetting(
     TypeToken.get(BlockPos::class.java).type,
     description,
     visibility
-)
+) {
+    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+        required(integer("X", -30000000, 30000000)) { x ->
+            required(integer("Y", -64, 255)) { y ->
+                required(integer("Z", -30000000, 30000000)) { z ->
+                    execute {
+                        trySetValue(BlockPos(x().value(), y().value(), z().value()))
+                    }
+                }
+            }
+        }
+    }
+}

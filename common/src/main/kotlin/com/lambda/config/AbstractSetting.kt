@@ -18,11 +18,24 @@
 package com.lambda.config
 
 import com.google.gson.JsonElement
+import com.google.gson.JsonParser
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
+import com.lambda.brigadier.CommandResult.Companion.failure
+import com.lambda.brigadier.CommandResult.Companion.success
+import com.lambda.brigadier.argument.string
+import com.lambda.brigadier.argument.value
+import com.lambda.brigadier.executeWithResult
+import com.lambda.brigadier.required
+import com.lambda.command.CommandRegistry
+import com.lambda.command.commands.ConfigCommand
 import com.lambda.context.SafeContext
 import com.lambda.threading.runSafe
+import com.lambda.util.Communication.info
 import com.lambda.util.Nameable
+import com.lambda.util.extension.CommandBuilder
+import com.lambda.util.text.*
+import net.minecraft.command.CommandRegistryAccess
 import java.lang.reflect.Type
 import kotlin.properties.Delegates
 import kotlin.reflect.KProperty
@@ -106,6 +119,8 @@ abstract class AbstractSetting<T : Any>(
         }
     }
 
+    class ValueListener<T>(val requiresValueChange: Boolean, val execute: (from: T, to: T) -> Unit)
+
     /**
      * Will only register changes of the variable, not the content of the variable!
      * E.g., if the variable is a list, it will only register if the list reference changes, not if the content of the list changes.
@@ -126,11 +141,93 @@ abstract class AbstractSetting<T : Any>(
         listeners.add(ValueListener(false, block))
     }
 
-    private fun reset() {
+    fun reset() {
+        if (value == defaultValue) {
+            ConfigCommand.info(notChangedMessage())
+            return
+        }
         value = defaultValue
+        ConfigCommand.info(resetMessage(defaultValue))
     }
 
-    class ValueListener<T>(val requiresValueChange: Boolean, val execute: (from: T, to: T) -> Unit)
+    open fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+        required(string("value as JSON")) { value ->
+            executeWithResult {
+                val valueString = value().value()
+                val parsed = try {
+                    JsonParser.parseString("\"$valueString\"")
+                } catch (e: Exception) {
+                    return@executeWithResult failure("$valueString is not a valid JSON string.")
+                }
+                val config = Configuration.configurableBySetting(this@AbstractSetting) ?: return@executeWithResult failure("No config found for $name.")
+                val previous = this@AbstractSetting.value
+                try {
+                    loadFromJson(parsed)
+                } catch (e: Exception) {
+                    return@executeWithResult failure("Failed to load $valueString as a ${type::class.simpleName} for $name in ${config.name}.")
+                }
+                ConfigCommand.info(setMessage(previous))
+                return@executeWithResult success()
+            }
+        }
+    }
+
+    fun trySetValue(newValue: T) {
+        if (newValue == value) {
+            ConfigCommand.info(notChangedMessage())
+        } else {
+            val previous = value
+            value = newValue
+            ConfigCommand.info(setMessage(previous))
+        }
+    }
+
+    private fun setMessage(previousValue: T) = buildText {
+        literal("Set ")
+        changedMessage(previousValue)
+        val config = Configuration.configurableBySetting(this@AbstractSetting) ?: return@buildText
+        clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.name} reset ${config.commandName} $commandName")) {
+            hoverEvent(HoverEvents.showText(buildText {
+                literal("Click to reset to default value ")
+                highlighted(defaultValue.toString())
+            })) {
+                highlighted(" [Reset]")
+            }
+        }
+    }
+
+    fun resetMessage(previousValue: T) = buildText {
+        literal("Reset ")
+        changedMessage(previousValue)
+    }
+
+    private fun notChangedMessage() = buildText {
+        literal("No changes made to ")
+        highlighted(name)
+        literal(" as it is already set to ")
+        highlighted(value.toString())
+        literal(".")
+    }
+
+    private fun TextBuilder.changedMessage(previousValue: T) {
+        val config = Configuration.configurableBySetting(this@AbstractSetting) ?: return
+        highlighted(config.name)
+        literal(" > ")
+        highlighted(name)
+        literal(" from ")
+        highlighted(previousValue.toString())
+        literal(" to ")
+        highlighted(value.toString())
+        literal(".")
+        clickEvent(ClickEvents.suggestCommand("${CommandRegistry.prefix}${ConfigCommand.name} set ${config.commandName} $commandName $previousValue")) {
+            hoverEvent(HoverEvents.showText(buildText {
+                literal("Click to undo to previous value ")
+                highlighted(previousValue.toString())
+            })) {
+                highlighted(" [Undo]")
+            }
+        }
+    }
 
     override fun toString() = "Setting $name: $value of type ${type.typeName}"
 

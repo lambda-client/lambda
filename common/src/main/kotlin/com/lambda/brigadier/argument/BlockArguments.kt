@@ -14,12 +14,6 @@
  * limitations under the License.
  */
 
-/*
- * Preserve binary compatibility when moving extensions between files
- */
-@file:JvmMultifileClass
-@file:JvmName("ArgumentsKt")
-
 package com.lambda.brigadier.argument
 
 import com.lambda.brigadier.*
@@ -36,7 +30,6 @@ import java.util.function.Predicate
  *
  * @see BlockPredicateArgumentType.getBlockPredicate
  */
-@JvmName("valueBlockPredicateArg")
 @BrigadierDsl
 fun DefaultArgumentReader<BlockPredicateArgumentType>.value(): Predicate<CachedBlockPosition> {
     return BlockPredicateArgumentType.getBlockPredicate(context.assumeSourceNotUsed(), name)
@@ -48,7 +41,6 @@ fun DefaultArgumentReader<BlockPredicateArgumentType>.value(): Predicate<CachedB
  *
  * @see BlockStateArgumentType.getBlockState
  */
-@JvmName("valueBlockStateArg")
 @BrigadierDsl
 fun DefaultArgumentReader<BlockStateArgumentType>.value(): BlockStateArgument {
     return BlockStateArgumentType.getBlockState(context.assumeSourceNotUsed(), name)
