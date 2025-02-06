@@ -53,11 +53,13 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
     override fun load() = "Loaded Rotation Manager"
 
     /**
-     * Registers a listener called right before [RotationManager] updates the context and the rotation
+     * Registers a listener called immediately before [RotationManager] handles its context and applies rotation updates.
      *
-     * Use this if you need to match specific state of the client
-     * (when the player and its input are already updated this tick and similar) /
-     * when you don't know when to rotate / you simply want to request before rotation update
+     * This is useful if you need to synchronize with the latest player state (including inputs and movement),
+     * or if you must place your rotation requests as the tick is completed and just before the new rotation is processed.
+     *
+     * @param alwaysListen Whether to keep this listener active at all times. Defaults to false.
+     * @param block A callback providing a [SafeContext] where you can place rotation-related operations or other logic.
      */
     fun Any.onRotate(
         alwaysListen: Boolean = false,

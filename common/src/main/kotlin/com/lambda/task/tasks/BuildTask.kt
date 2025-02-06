@@ -20,7 +20,6 @@ package com.lambda.task.tasks
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventoryConfig
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.context.SafeContext
@@ -40,7 +39,6 @@ import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.rotation.visibilty.PointSelection
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
@@ -86,12 +84,13 @@ class BuildTask @Ta5kBuilder constructor(
             }
 
             currentPlacement?.let { context ->
-                currentPlacement = null
                 if (build.rotateForPlace && !context.rotation.done) return@listen
                 context.place(interact.swingHand)
                 pendingPlacements.add(context)
             }
+        }
 
+        listen<TickEvent.Post> {
             (blueprint as? DynamicBlueprint)?.update()
 
             if (finishOnDone && blueprint.structure.isEmpty()) {
@@ -100,7 +99,7 @@ class BuildTask @Ta5kBuilder constructor(
             }
 
             // ToDo: Simulate for each pair player positions that work
-            val results = blueprint.simulate(player.getCameraPosVec(mc.tickDelta), interact, rotation, inventory)
+            val results = blueprint.simulate(player.eyePos, interact, rotation, inventory)
             TaskFlowModule.drawables = results.filterIsInstance<Drawable>().plus(pendingPlacements.toList())
 
             val instantResults = results.filterIsInstance<BreakResult.Break>()
@@ -115,12 +114,12 @@ class BuildTask @Ta5kBuilder constructor(
                 return@listen
             }
 
-            val resultsWithoutPending = results.filterNot { res ->
+            val resultsWithoutPending = results.filterNot { result ->
                 val blockedPositions = pendingPlacements.map { it.expectedPos }
-                res is PlaceResult.Place && res.context.expectedPos in blockedPositions
+                result is PlaceResult.Place && result.context.expectedPos in blockedPositions
             }
-            val result = resultsWithoutPending.minOrNull() ?: return@listen
-            when (result) {
+            val bestResult = resultsWithoutPending.minOrNull() ?: return@listen
+            when (bestResult) {
                 is BuildResult.Done,
                 is BuildResult.Ignored,
                 is BuildResult.Unbreakable,
@@ -151,23 +150,23 @@ class BuildTask @Ta5kBuilder constructor(
                 }
 
                 is Navigable -> {
-                    if (build.pathing) BaritoneUtils.setGoalAndPath(result.goal)
+                    if (build.pathing) BaritoneUtils.setGoalAndPath(bestResult.goal)
                 }
 
                 is PlaceResult.Place -> {
                     if (pendingPlacements.size >= build.maxPendingPlacements) return@listen
 
-                    currentPlacement = result.context
+                    currentPlacement = bestResult.context
                 }
 
                 is Resolvable -> {
-                    LOG.info("Resolving: ${result.name}")
+                    LOG.info("Resolving: ${bestResult.name}")
 
-                    if (result is BreakResult.Break) {
-                        result.collectDrop = collectDrops
+                    if (bestResult is BreakResult.Break) {
+                        bestResult.collectDrop = collectDrops
                     }
 
-                    result.resolve().execute(this@BuildTask, pauseParent = result.pausesParent)
+                    bestResult.resolve().execute(this@BuildTask, pauseParent = bestResult.pausesParent)
                 }
             }
         }
