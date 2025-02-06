@@ -57,8 +57,8 @@ class InteractionSettings(
     // Point scan
     override val strictRayCast by c.setting("Strict Raycast", true, "Whether to include the environment to the ray cast context", vis)
     override val checkSideVisibility by c.setting("Visibility Check", true, "Whether to check if an AABB side is visible", vis)
-    override val resolution by c.setting("Resolution", 8, 1..20, 1, "The amount of grid divisions per surface of the hit box", "", vis)
-    override val pointSelection by c.setting("Point Selection", PointSelection.ByRotation, "The way to select the best point", vis)
+    override val resolution by c.setting("Resolution", 5, 1..20, 1, "The amount of grid divisions per surface of the hit box", "", vis)
+    override val pointSelection by c.setting("Point Selection", PointSelection.Optimum, "The way to select the best point", vis)
 
     // Swing
     override val swingHand by c.setting("Swing Hand", true, "Whether to swing hand on interactions", vis)

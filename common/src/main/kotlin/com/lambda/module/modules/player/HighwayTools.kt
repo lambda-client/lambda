@@ -65,10 +65,10 @@ object HighwayTools : Module(
     private val distance by setting("Distance", -1, -1..1000000, 1, description = "Distance to build the highway/tunnel (negative for infinite)") { page == Page.Structure }
     private val sliceSize by setting("Slice Size", 3, 1..5, 1, description = "Number of slices to build at once") { page == Page.Structure }
 
-    val build = BuildSettings(this) { page == Page.Build }
-    val rotation = RotationSettings(this) { page == Page.Rotation }
-    val interact = InteractionSettings(this, InteractionMask.BOTH) { page == Page.Interaction }
-    val inventory = InventorySettings(this) { page == Page.Inventory }
+    private val build = BuildSettings(this) { page == Page.Build }
+    private val rotation = RotationSettings(this) { page == Page.Rotation }
+    private val interact = InteractionSettings(this, InteractionMask.BOTH) { page == Page.Interaction }
+    private val inventory = InventorySettings(this) { page == Page.Inventory }
 
     private var octant = EightWayDirection.NORTH
     private var distanceMoved = 0
