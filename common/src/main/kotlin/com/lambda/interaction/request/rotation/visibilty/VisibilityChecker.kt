@@ -138,7 +138,7 @@ object VisibilityChecker {
     ) {
         excludedSides.forEach { side ->
             if (excludedSides.isNotEmpty() && side !in excludedSides) return@forEach
-            val (minX, minY, minZ, maxX, maxY, maxZ) = box.shrink(0.01, 0.01, 0.01).bounds(side)
+            val (minX, minY, minZ, maxX, maxY, maxZ) = box.contract(1.0E-6).bounds(side)
             val stepX = (maxX - minX) / resolution
             val stepY = (maxY - minY) / resolution
             val stepZ = (maxZ - minZ) / resolution

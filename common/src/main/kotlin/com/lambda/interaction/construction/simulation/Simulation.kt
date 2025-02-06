@@ -23,6 +23,7 @@ import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.result.BuildResult
+import com.lambda.interaction.construction.result.Drawable
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
@@ -32,9 +33,11 @@ import com.lambda.util.world.FastVector
 import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.toVec3d
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
+import java.awt.Color
 
 data class Simulation(
     val blueprint: Blueprint,
@@ -47,31 +50,37 @@ data class Simulation(
     private fun FastVector.toView(): Vec3d = toVec3d().add(0.5, ClientPlayerEntity.DEFAULT_EYE_HEIGHT.toDouble(), 0.5)
 
     fun simulate(
-        pos: FastVector
-    ) =
-        cache.getOrPut(pos) {
-            val view = pos.toView()
-            runSafe {
-                if (blueprint.isOutOfBounds(view) && blueprint.getClosestPointTo(view)
-                        .distanceTo(view) > 10.0
-                ) return@getOrPut emptySet()
-                val blockPos = pos.toBlockPos()
-                if (!playerFitsIn(Vec3d.ofBottomCenter(blockPos))) return@getOrPut emptySet()
-                if (!blockPos.down().blockState(world)
-                        .isSideSolidFullSquare(world, blockPos, Direction.UP)
-                ) return@getOrPut emptySet()
-            }
-
-            blueprint.simulate(view, interact, rotation, inventory, build)
+        pos: FastVector,
+    ) = cache.getOrPut(pos) {
+        val view = pos.toView()
+        val isOutOfBounds = blueprint.isOutOfBounds(view)
+        val isTooFar = blueprint.getClosestPointTo(view).distanceTo(view) > 10.0
+        runSafe {
+            if (isOutOfBounds && isTooFar) return@getOrPut emptySet()
+            val blockPos = pos.toBlockPos()
+            val isWalkable = blockPos.down().blockState(world).isSideSolidFullSquare(world, blockPos, Direction.UP)
+            if (!isWalkable) return@getOrPut emptySet()
+            if (!playerFitsIn(blockPos)) return@getOrPut emptySet()
         }
 
-    private fun SafeContext.playerFitsIn(pos: Vec3d): Boolean {
-        val pBox = player.boundingBox
-        val aabb = Box(pBox.minX, pBox.minY - 1.0E-6, pBox.minZ, pBox.maxX, pBox.minY, pBox.maxZ)
-        return world.isSpaceEmpty(aabb.offset(pos))
+        blueprint.simulate(view, interact, rotation, inventory, build)
+    }
+
+    fun goodPositions() = cache.filter { it.value.any { it.rank.ordinal < 4 } }.map { PossiblePos(it.key.toBlockPos()) }
+
+    class PossiblePos(val pos: BlockPos): Drawable {
+        override fun SafeContext.buildRenderer() {
+            withBox(Vec3d.ofBottomCenter(pos).playerBox(), Color(0, 255, 0, 50))
+        }
+    }
+
+    private fun SafeContext.playerFitsIn(pos: BlockPos): Boolean {
+        return world.isSpaceEmpty(Vec3d.ofBottomCenter(pos).playerBox())
     }
 
     companion object {
+        fun Vec3d.playerBox(): Box = Box(x - 0.3, y, z - 0.3, x + 0.3, y + 1.8, z + 0.3).contract(1.0E-6)
+
         fun Blueprint.simulation(
             interact: InteractionConfig = TaskFlowModule.interact,
             rotation: RotationConfig = TaskFlowModule.rotation,

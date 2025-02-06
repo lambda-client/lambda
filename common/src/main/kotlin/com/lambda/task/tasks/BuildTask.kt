@@ -47,6 +47,7 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.info
 import com.lambda.util.Formatting.string
 import com.lambda.util.extension.Structure
+import com.lambda.util.world.toFastVec
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -68,6 +69,7 @@ class BuildTask @Ta5kBuilder constructor(
     private var currentPlacement: PlaceContext? = null
     private var placements = 0
     private var breaks = 0
+    private var goodPositions = setOf<BlockPos>()
 
     override fun SafeContext.onStart() {
         (blueprint as? DynamicBlueprint)?.create()
@@ -98,9 +100,16 @@ class BuildTask @Ta5kBuilder constructor(
                 return@listen
             }
 
+//            val sim = blueprint.simulation(interact, rotation, inventory)
+//            BlockPos.iterateOutwards(player.blockPos, 5, 5, 5).forEach { pos ->
+//                sim.simulate(pos.toFastVec())
+//            }
+
             // ToDo: Simulate for each pair player positions that work
             val results = blueprint.simulate(player.eyePos, interact, rotation, inventory, build)
-            TaskFlowModule.drawables = results.filterIsInstance<Drawable>().plus(pendingPlacements.toList())
+            TaskFlowModule.drawables = results.filterIsInstance<Drawable>()
+                .plus(pendingPlacements.toList())
+//                .plus(sim.goodPositions())
 
             val instantResults = results.filterIsInstance<BreakResult.Break>()
                 .filter { it.context.instantBreak }
