@@ -85,6 +85,7 @@ data class Simulation(
             interact: InteractionConfig = TaskFlowModule.interact,
             rotation: RotationConfig = TaskFlowModule.rotation,
             inventory: InventoryConfig = TaskFlowModule.inventory,
-        ) = Simulation(this, interact, rotation, inventory)
+            build: BuildConfig = TaskFlowModule.build,
+        ) = Simulation(this, interact, rotation, inventory, build)
     }
 }

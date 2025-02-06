@@ -154,7 +154,7 @@ class BuildTask @Ta5kBuilder constructor(
                         override val pointSelection = interact.pointSelection
                         override val swingHand = interact.swingHand
                     }
-                    val goal = BuildGoal(blueprint.simulation(interaction, rotation, inventory))
+                    val goal = BuildGoal(blueprint.simulation(interaction, rotation, inventory, build))
                     BaritoneUtils.setGoalAndPath(goal)
                 }
 

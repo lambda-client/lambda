@@ -136,49 +136,83 @@ object VisibilityChecker {
         scan: SurfaceScan = SurfaceScan.DEFAULT,
         check: (Direction, Vec3d) -> Unit,
     ) {
+        val margin = 0.1
+
         excludedSides.forEach { side ->
             if (excludedSides.isNotEmpty() && side !in excludedSides) return@forEach
-            val (minX, minY, minZ, maxX, maxY, maxZ) = box.contract(1.0E-6).bounds(side)
-            val stepX = (maxX - minX) / resolution
-            val stepY = (maxY - minY) / resolution
-            val stepZ = (maxZ - minZ) / resolution
 
-            // Determine the bounds to scan based on the axis and mode
-            val (startX, endX) = if (scan.axis == Direction.Axis.X && stepX != 0.0) {
-                val centerX = (minX + maxX) / 2
-                when (scan.mode) {
-                    ScanMode.GREATER_HALF -> centerX + 0.01 to maxX
-                    ScanMode.LESSER_HALF -> minX to centerX - 0.01
-                    ScanMode.FULL -> minX to maxX
+            val contractedBox = box.contract(1.0E-6)
+            val (minX, minY, minZ, maxX, maxY, maxZ) = contractedBox.bounds(side)
+
+            // Determine start and end for each axis based on scan configuration
+            val (startX, endX) = when (scan.axis) {
+                Direction.Axis.X -> {
+                    val centerX = (minX + maxX) / 2
+                    when (scan.mode) {
+                        ScanMode.GREATER_HALF -> centerX + 0.01 to maxX
+                        ScanMode.LESSER_HALF -> minX to centerX - 0.01
+                        ScanMode.FULL -> minX to maxX
+                    }
                 }
-            } else minX to maxX
+                else -> minX to maxX
+            }
 
-            val (startY, endY) = if (scan.axis == Direction.Axis.Y && stepY != 0.0) {
-                val centerY = (minY + maxY) / 2
-                when (scan.mode) {
-                    ScanMode.GREATER_HALF -> centerY + 0.01 to maxY
-                    ScanMode.LESSER_HALF -> minY to centerY - 0.01
-                    ScanMode.FULL -> minY to maxY
+            val (startY, endY) = when (scan.axis) {
+                Direction.Axis.Y -> {
+                    val centerY = (minY + maxY) / 2
+                    when (scan.mode) {
+                        ScanMode.GREATER_HALF -> centerY + 0.01 to maxY
+                        ScanMode.LESSER_HALF -> minY to centerY - 0.01
+                        ScanMode.FULL -> minY to maxY
+                    }
                 }
-            } else minY to maxY
+                else -> minY to maxY
+            }
 
-            val (startZ, endZ) = if (scan.axis == Direction.Axis.Z && stepZ != 0.0) {
-                val centerZ = (minZ + maxZ) / 2
-                when (scan.mode) {
-                    ScanMode.GREATER_HALF -> centerZ + 0.01 to maxZ
-                    ScanMode.LESSER_HALF -> minZ to centerZ - 0.01
-                    ScanMode.FULL -> minZ to maxZ
+            val (startZ, endZ) = when (scan.axis) {
+                Direction.Axis.Z -> {
+                    val centerZ = (minZ + maxZ) / 2
+                    when (scan.mode) {
+                        ScanMode.GREATER_HALF -> centerZ + 0.01 to maxZ
+                        ScanMode.LESSER_HALF -> minZ to centerZ - 0.01
+                        ScanMode.FULL -> minZ to maxZ
+                    }
                 }
-            } else minZ to maxZ
+                else -> minZ to maxZ
+            }
 
+            // Apply margin and calculate adjusted step values
+            val adjustedStartX = startX + margin
+            val adjustedEndX = (endX - margin).coerceAtLeast(adjustedStartX)
+            val stepX = if (resolution > 0) (adjustedEndX - adjustedStartX) / resolution else 0.0
+
+            val adjustedStartY = startY + margin
+            val adjustedEndY = (endY - margin).coerceAtLeast(adjustedStartY)
+            val stepY = if (resolution > 0) (adjustedEndY - adjustedStartY) / resolution else 0.0
+
+            val adjustedStartZ = startZ + margin
+            val adjustedEndZ = (endZ - margin).coerceAtLeast(adjustedStartZ)
+            val stepZ = if (resolution > 0) (adjustedEndZ - adjustedStartZ) / resolution else 0.0
+
+            // Iterate over the adjusted ranges
             (0..resolution).forEach outer@{ i ->
-                val x = if (stepX != 0.0) startX + stepX * i else startX
-                if (x > endX) return@outer
+                val x = adjustedStartX + stepX * i
+                if (x > adjustedEndX) return@outer
+
                 (0..resolution).forEach inner@{ j ->
-                    val y = if (stepY != 0.0) startY + stepY * j else startY
-                    if (y > endY) return@inner
-                    val z = if (stepZ != 0.0) startZ + stepZ * ((if (stepX != 0.0) j else i)) else startZ
-                    if (z > endZ) return@inner
+                    val y = adjustedStartY + stepY * j
+                    if (y > adjustedEndY) return@inner
+
+                    // Determine z based on which axis is being scanned
+                    val z = when (scan.axis) {
+                        Direction.Axis.X, Direction.Axis.Y -> {
+                            adjustedStartZ + stepZ * (if (scan.axis == Direction.Axis.X) j else i)
+                        }
+                        else -> adjustedStartZ + stepZ * j
+                    }
+
+                    if (z > adjustedEndZ) return@inner
+
                     check(side, Vec3d(x, y, z))
                 }
             }
