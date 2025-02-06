@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.construction.simulation
 
+import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
@@ -70,16 +71,17 @@ object BuildSimulator {
         interact: InteractionConfig = TaskFlowModule.interact,
         rotation: RotationConfig = TaskFlowModule.rotation,
         inventory: InventoryConfig = TaskFlowModule.inventory,
+        build: BuildConfig = TaskFlowModule.build,
     ) = runSafe {
         structure.entries.flatMap { (pos, target) ->
-            checkRequirements(pos, target)?.let {
+            checkRequirements(pos, target, build)?.let {
                 return@flatMap setOf(it)
             }
             checkPlaceResults(pos, target, eye, interact, rotation, inventory).let {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
-            checkBreakResults(pos, eye, interact, rotation, inventory).let {
+            checkBreakResults(pos, eye, interact, rotation, inventory, build).let {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
@@ -91,6 +93,7 @@ object BuildSimulator {
     private fun SafeContext.checkRequirements(
         pos: BlockPos,
         target: TargetState,
+        build: BuildConfig
     ): BuildResult? {/* the chunk is not loaded */
         if (!world.isChunkLoaded(pos)) {
             return BuildResult.ChunkNotLoaded(pos)
@@ -104,7 +107,7 @@ object BuildSimulator {
         }
 
         /* block should be ignored */
-        if (state.block in TaskFlowModule.build.ignoredBlocks && target.type == TargetState.Type.AIR) {
+        if (state.block in build.ignoredBlocks && target.type == TargetState.Type.AIR) {
             return BuildResult.Ignored(pos)
         }
 
@@ -314,13 +317,14 @@ object BuildSimulator {
         eye: Vec3d,
         interact: InteractionConfig,
         rotation: RotationConfig,
-        inventory: InventoryConfig
+        inventory: InventoryConfig,
+        build: BuildConfig
     ): Set<BuildResult> {
         val acc = mutableSetOf<BuildResult>()
         val state = pos.blockState(world)
 
         /* is a block that will be destroyed by breaking adjacent blocks */
-        if (TaskFlowModule.build.breakWeakBlocks && state.block.hardness == 0f && !state.isAir) {
+        if (build.breakWeakBlocks && state.block.hardness == 0f && !state.isAir) {
             acc.add(BuildResult.Ignored(pos))
             return acc
         }

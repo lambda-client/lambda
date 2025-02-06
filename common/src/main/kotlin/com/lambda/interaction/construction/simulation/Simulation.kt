@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.construction.simulation
 
+import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
@@ -40,6 +41,7 @@ data class Simulation(
     val interact: InteractionConfig = TaskFlowModule.interact,
     val rotation: RotationConfig = TaskFlowModule.rotation,
     val inventory: InventoryConfig = TaskFlowModule.inventory,
+    val build: BuildConfig = TaskFlowModule.build,
 ) {
     private val cache: MutableMap<FastVector, Set<BuildResult>> = mutableMapOf()
     private fun FastVector.toView(): Vec3d = toVec3d().add(0.5, ClientPlayerEntity.DEFAULT_EYE_HEIGHT.toDouble(), 0.5)
@@ -60,7 +62,7 @@ data class Simulation(
                 ) return@getOrPut emptySet()
             }
 
-            blueprint.simulate(view, interact, rotation, inventory)
+            blueprint.simulate(view, interact, rotation, inventory, build)
         }
 
     private fun SafeContext.playerFitsIn(pos: Vec3d): Boolean {
