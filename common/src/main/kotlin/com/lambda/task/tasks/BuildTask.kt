@@ -20,6 +20,7 @@ package com.lambda.task.tasks
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
+import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventoryConfig
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.context.SafeContext
@@ -39,6 +40,7 @@ import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.request.rotation.visibilty.PointSelection
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
@@ -123,13 +125,29 @@ class BuildTask @Ta5kBuilder constructor(
                 is BuildResult.Ignored,
                 is BuildResult.Unbreakable,
                 is BuildResult.Restricted,
-                is BuildResult.NoPermission,
-                    -> {
+                is BuildResult.NoPermission -> {
                     if (finishOnDone) success()
                 }
 
-                is BuildResult.NotVisible, is PlaceResult.NoIntegrity -> {
-                    if (build.pathing) BaritoneUtils.setGoalAndPath(BuildGoal(blueprint.simulation()))
+                is BuildResult.NotVisible,
+                is PlaceResult.NoIntegrity -> {
+                    if (!build.pathing) return@listen
+                    // ToDo:
+                    //  Solve the problem that baritone stops pathing when it thinks it is in a valid goal
+                    //  but the player position does not perfectly match the simulated position
+                    // hacky fix for now is to walk "closer" but it wont work in every situation
+                    val interaction = object : InteractionConfig {
+                        override val attackReach = interact.attackReach
+                        override val interactReach = interact.interactReach - 1
+                        override val scanReach = interact.scanReach
+                        override val strictRayCast = interact.strictRayCast
+                        override val checkSideVisibility = interact.checkSideVisibility
+                        override val resolution = interact.resolution
+                        override val pointSelection = interact.pointSelection
+                        override val swingHand = interact.swingHand
+                    }
+                    val goal = BuildGoal(blueprint.simulation(interaction, rotation, inventory))
+                    BaritoneUtils.setGoalAndPath(goal)
                 }
 
                 is Navigable -> {

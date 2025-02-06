@@ -185,10 +185,6 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
 
     object BaritoneProcessor {
         private var baritoneContext: RotationRequest? = null
-        private val baritoneRotation get() = Baritone.rotation.apply {
-            if (rotationMode == RotationMode.Sync) return@apply
-            rotationMode = RotationMode.Sync
-        }
 
         private val movementYawList = arrayOf(
             0.0, 45.0,
@@ -199,9 +195,7 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
 
         @JvmStatic
         fun handleBaritoneRotation(yaw: Float, pitch: Float) {
-            lookAt(
-                Rotation(yaw, pitch)
-            ).requestBy(baritoneRotation)
+            lookAt(Rotation(yaw, pitch)).requestBy(Baritone.rotation)
         }
 
         @JvmStatic

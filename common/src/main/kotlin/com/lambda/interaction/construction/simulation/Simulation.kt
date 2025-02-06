@@ -17,10 +17,13 @@
 
 package com.lambda.interaction.construction.simulation
 
+import com.lambda.config.groups.InteractionConfig
+import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
+import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
@@ -32,11 +35,18 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 
-data class Simulation(val blueprint: Blueprint) {
+data class Simulation(
+    val blueprint: Blueprint,
+    val interact: InteractionConfig = TaskFlowModule.interact,
+    val rotation: RotationConfig = TaskFlowModule.rotation,
+    val inventory: InventoryConfig = TaskFlowModule.inventory,
+) {
     private val cache: MutableMap<FastVector, Set<BuildResult>> = mutableMapOf()
     private fun FastVector.toView(): Vec3d = toVec3d().add(0.5, ClientPlayerEntity.DEFAULT_EYE_HEIGHT.toDouble(), 0.5)
 
-    fun simulate(pos: FastVector) =
+    fun simulate(
+        pos: FastVector
+    ) =
         cache.getOrPut(pos) {
             val view = pos.toView()
             runSafe {
@@ -50,8 +60,7 @@ data class Simulation(val blueprint: Blueprint) {
                 ) return@getOrPut emptySet()
             }
 
-            // ToDo: wtf was that "reach = TaskFlowModule.interact.reach - 1"
-            blueprint.simulate(view)
+            blueprint.simulate(view, interact, rotation, inventory)
         }
 
     private fun SafeContext.playerFitsIn(pos: Vec3d): Boolean {
@@ -61,6 +70,10 @@ data class Simulation(val blueprint: Blueprint) {
     }
 
     companion object {
-        fun Blueprint.simulation() = Simulation(this)
+        fun Blueprint.simulation(
+            interact: InteractionConfig = TaskFlowModule.interact,
+            rotation: RotationConfig = TaskFlowModule.rotation,
+            inventory: InventoryConfig = TaskFlowModule.inventory,
+        ) = Simulation(this, interact, rotation, inventory)
     }
 }
