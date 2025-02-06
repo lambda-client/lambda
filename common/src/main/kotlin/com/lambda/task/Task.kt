@@ -28,6 +28,8 @@ import com.lambda.threading.runSafe
 import com.lambda.util.Communication.logError
 import com.lambda.util.Nameable
 import com.lambda.util.StringUtils.capitalize
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 typealias TaskGenerator<R> = SafeContext.(R) -> Task<*>
 typealias TaskGeneratorOrNull<R> = SafeContext.(R) -> Task<*>?
@@ -306,11 +308,16 @@ abstract class Task<Result> : Nameable, Muteable {
         return this
     }
 
+    val duration: String get() =
+        (age * 50).toDuration(DurationUnit.MILLISECONDS).toComponents { days, hours, minutes, seconds, nanoseconds ->
+            "${"%03d".format(days)}:${"%02d".format(hours)}:${"%02d".format(minutes)}:${"%02d".format(seconds)}.${"${nanoseconds / 1_000_000}".take(2)}"
+        }
+
     override fun toString() =
         buildString { appendTaskTree(this@Task) }
 
     private fun StringBuilder.appendTaskTree(task: Task<*>, level: Int = 0) {
-        appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " [${task.state.display}]" else "")
+        appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " ${task.duration} [${task.state.display}]" else "")
         if (!TaskFlowModule.showAllEntries && (task.state == State.COMPLETED || task.state == State.CANCELLED)) return
         task.subTasks.forEach {
             if (!TaskFlowModule.showAllEntries && task is RootTask && (it.state == State.COMPLETED || it.state == State.CANCELLED)) return@forEach

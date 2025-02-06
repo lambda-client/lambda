@@ -60,7 +60,7 @@ class BuildTask @Ta5kBuilder constructor(
     private val interact: InteractionConfig = TaskFlowModule.interact,
     private val inventory: InventoryConfig = TaskFlowModule.inventory,
 ) : Task<Unit>() {
-    override val name: String get() = "Building $blueprint with ${(placements / (age / 20.0 + 0.001)).string} p/s ${(breaks / (age / 20.0 + 0.001)).string} p/s"
+    override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).string} b/s ${(placements / (age / 20.0 + 0.001)).string} p/s"
 
     private val pendingPlacements = ConcurrentLinkedQueue<PlaceContext>()
     private val pendingBreaks = ConcurrentLinkedQueue<BreakContext>()
