@@ -19,7 +19,6 @@ package com.lambda.interaction.request.rotation
 
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
-import com.lambda.interaction.request.rotation.visibilty.RotationTarget
 
 /*
  * Abstract base class for configuring rotation behavior.
@@ -28,9 +27,10 @@ import com.lambda.interaction.request.rotation.visibilty.RotationTarget
  */
 abstract class RotationConfig(priority: Priority) : RequestConfig<RotationRequest>(priority) {
     /**
-     * - [RotationMode.SILENT] Spoofing server-side rotation.
-     * - [RotationMode.SYNC] Spoofing server-side rotation and adjusting client-side movement based on reported rotation (for Grim).
-     * - [RotationMode.LOCK] Locks the camera client-side.
+     * - [RotationMode.Silent] Spoofing server-side rotation.
+     * - [RotationMode.Sync] Spoofing server-side rotation and adjusting client-side movement based on reported rotation (for Grim).
+     * - [RotationMode.Lock] Locks the camera client-side.
+     * - [RotationMode.None] No rotation.
      */
     abstract val rotationMode: RotationMode
 
@@ -49,7 +49,7 @@ abstract class RotationConfig(priority: Priority) : RequestConfig<RotationReques
      */
     abstract val decayTicks: Int
 
-    val rotate: Boolean get() = rotationMode != RotationMode.NONE
+    val rotate: Boolean get() = rotationMode != RotationMode.None
 
     override fun requestInternal(request: RotationRequest) {
         RotationManager.registerRequest(this, request)

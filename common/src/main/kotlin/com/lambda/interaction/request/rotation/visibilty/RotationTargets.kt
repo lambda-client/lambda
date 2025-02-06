@@ -72,11 +72,11 @@ fun lookAtHit(hit: RequestedHit, rotation: SafeContext.() -> Rotation?) =
 @RotationDsl
 fun lookAtHit(
     hit: HitResult,
-    interactionConfig: InteractionConfig = TaskFlowModule.interact,
+    config: InteractionConfig = TaskFlowModule.interact,
 ): RotationTarget? {
     return when (hit) {
-        is BlockHitResult -> lookAtBlock(hit.blockPos, setOf(hit.side), interactionConfig)
-        is EntityHitResult -> lookAtEntity(hit.entity as? LivingEntity ?: return null, interactionConfig)
+        is BlockHitResult -> lookAtBlock(hit.blockPos, setOf(hit.side), config)
+        is EntityHitResult -> lookAtEntity(hit.entity as? LivingEntity ?: return null, config)
         else -> null
     }
 }
@@ -85,24 +85,24 @@ fun lookAtHit(
  * Creates a [RotationTarget] based on an entity.
  *
  * @param entity The target entity.
- * @param interactionConfig The interaction configuration. Defaults to [TaskFlowModule.interact].
+ * @param config The interaction configuration. Defaults to [TaskFlowModule.interact].
  * @return A [RotationTarget] instance.
  */
 @RotationDsl
 fun lookAtEntity(
     entity: LivingEntity,
-    interactionConfig: InteractionConfig = TaskFlowModule.interact
+    config: InteractionConfig = TaskFlowModule.interact
 ): RotationTarget {
-    val requestedHit = entityHit(entity, interactionConfig.attackReach)
+    val requestedHit = entityHit(entity, config.attackReach)
 
     return RotationTarget(requestedHit) {
         findRotation(
             requestedHit.getBoundingBoxes(),
-            interactionConfig.attackReach,
+            config.attackReach,
             player.eyePos,
             ALL_SIDES,
             InteractionMask.ENTITY,
-            interactionConfig
+            config
         ) { requestedHit.verifyHit(hit) }?.targetRotation
     }
 }
@@ -112,25 +112,25 @@ fun lookAtEntity(
  *
  * @param pos The position of the block.
  * @param sides The set of sides to consider for the hit. Defaults to [ALL_SIDES].
- * @param interactionConfig The interaction configuration. Defaults to [TaskFlowModule.interact].
+ * @param config The interaction configuration. Defaults to [TaskFlowModule.interact].
  * @return A [RotationTarget] instance.
  */
 @RotationDsl
 fun lookAtBlock(
     pos: BlockPos,
     sides: Set<Direction> = ALL_SIDES,
-    interactionConfig: InteractionConfig = TaskFlowModule.interact,
+    config: InteractionConfig = TaskFlowModule.interact,
 ): RotationTarget {
-    val requestedHit = blockHit(pos, sides, interactionConfig.placeReach)
+    val requestedHit = blockHit(pos, sides, config.interactReach)
 
     return RotationTarget(requestedHit) {
         findRotation(
             requestedHit.getBoundingBoxes(),
-            interactionConfig.placeReach,
+            config.interactReach,
             player.eyePos,
             sides,
             InteractionMask.BLOCK,
-            interactionConfig
+            config
         ) { requestedHit.verifyHit(hit) }?.targetRotation
     }
 }

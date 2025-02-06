@@ -41,7 +41,7 @@ data class DynamicBlueprint(
     override var structure: Structure = emptyMap()
         private set(value) {
             field = value
-            bounds.reset()
+            bounds.update()
         }
 
     override fun toString() = "Dynamic Blueprint at ${center?.toShortString()}"

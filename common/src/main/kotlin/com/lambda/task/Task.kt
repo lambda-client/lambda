@@ -115,7 +115,7 @@ abstract class Task<Result> : Nameable, Muteable {
         LOG.info("${owner.name} started $name")
         if (!unpausable || pauseParent) {
             LOG.info("$name deactivating parent ${owner.name}")
-            if (owner !is TaskFlow) owner.deactivate()
+            if (owner !is RootTask) owner.deactivate()
         }
         state = State.RUNNING
         runSafe { runCatching { onStart() }.onFailure { failure(it) } }
@@ -168,7 +168,7 @@ abstract class Task<Result> : Nameable, Muteable {
     @Ta5kBuilder
     fun cancel() {
         cancelSubTasks()
-        if (this is TaskFlow) return
+        if (this is RootTask) return
         if (state == State.COMPLETED || state == State.CANCELLED) return
         state = State.CANCELLED
         unsubscribe()
@@ -310,10 +310,10 @@ abstract class Task<Result> : Nameable, Muteable {
         buildString { appendTaskTree(this@Task) }
 
     private fun StringBuilder.appendTaskTree(task: Task<*>, level: Int = 0) {
-        appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is TaskFlow) " [${task.state.display}]" else "")
+        appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " [${task.state.display}]" else "")
         if (!TaskFlowModule.showAllEntries && (task.state == State.COMPLETED || task.state == State.CANCELLED)) return
         task.subTasks.forEach {
-            if (!TaskFlowModule.showAllEntries && task is TaskFlow && (it.state == State.COMPLETED || it.state == State.CANCELLED)) return@forEach
+            if (!TaskFlowModule.showAllEntries && task is RootTask && (it.state == State.COMPLETED || it.state == State.CANCELLED)) return@forEach
             appendTaskTree(it, level + 1)
         }
     }

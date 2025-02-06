@@ -25,11 +25,9 @@ import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.events.RotationEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
-import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.interaction.request.rotation.RotationMode
 import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.module.Module
@@ -81,8 +79,8 @@ object Replay : Module(
     private val deviationThreshold by setting("Deviation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the deviation to cancel the replay.") { cancelOnDeviation }
     private val lockCamera by setting("Lock Camera", true)
 
-    private val rotationConfig = object : RotationConfig.Instant(RotationMode.SYNC) {
-        override val rotationMode = if (lockCamera) RotationMode.LOCK else RotationMode.SYNC
+    private val rotationConfig = object : RotationConfig.Instant(RotationMode.Sync) {
+        override val rotationMode = if (lockCamera) RotationMode.Lock else RotationMode.Sync
     }
 
     enum class State {

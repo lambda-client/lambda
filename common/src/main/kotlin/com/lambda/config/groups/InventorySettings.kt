@@ -28,6 +28,6 @@ class InventorySettings(
     override val accessEnderChest by c.setting("Access Ender Chest", false, "Allow access to the player's ender chest", vis)
     override val actionTimout by c.setting("Action Timeout", 10, 0..100, 1, "How long to wait for after each inventory action", " ticks", vis)
     override val swapWithDisposables by c.setting("Swap With Disposables", true, "Swap items with disposable ones", vis)
-    override val providerPriority by c.setting("Provider Priority", InventoryConfig.Priority.WITH_MIN_ITEMS, "What container to prefer when retrieving the item from", vis)
-    override val storePriority by c.setting("Store Priority", InventoryConfig.Priority.WITH_MIN_ITEMS, "What container to prefer when storing the item to", vis)
+    override val providerPriority by c.setting("Provider Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when retrieving the item from", vis)
+    override val storePriority by c.setting("Store Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when storing the item to", vis)
 }

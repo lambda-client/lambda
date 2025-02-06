@@ -53,7 +53,7 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
     override fun load() = "Loaded Rotation Manager"
 
     /**
-     * Registers a listener that is called right before [RotationManager] updates the context and the rotation
+     * Registers a listener called right before [RotationManager] updates the context and the rotation
      *
      * Use this if you need to match specific state of the client
      * (when the player and its input are already updated this tick and similar) /
@@ -99,7 +99,7 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
             currentRotation = targetRotation.fixSensitivity(prevRotation)
 
             // Handle LOCK mode
-            if (currentRequest?.mode == RotationMode.LOCK) {
+            if (currentRequest?.mode == RotationMode.Lock) {
                 player.yaw = currentRotation.yawF
                 player.pitch = currentRotation.pitchF
             }
@@ -139,7 +139,7 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
     @JvmStatic
     val lockRotation
         get() =
-            if (currentRequest?.mode == RotationMode.LOCK) smoothRotation else null
+            if (currentRequest?.mode == RotationMode.Lock) smoothRotation else null
 
     @JvmStatic
     val renderYaw
@@ -154,30 +154,30 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
     @JvmStatic
     val handYaw
         get() =
-            if (currentRequest?.mode == RotationMode.LOCK) currentRotation.yaw.toFloat() else null
+            if (currentRequest?.mode == RotationMode.Lock) currentRotation.yaw.toFloat() else null
 
     @JvmStatic
     val handPitch
         get() =
-            if (currentRequest?.mode == RotationMode.LOCK) currentRotation.pitch.toFloat() else null
+            if (currentRequest?.mode == RotationMode.Lock) currentRotation.pitch.toFloat() else null
 
     @JvmStatic
     val movementYaw: Float?
         get() {
-            if (currentRequest?.mode == RotationMode.SILENT) return null
+            if (currentRequest?.mode == RotationMode.Silent) return null
             return currentRotation.yaw.toFloat()
         }
 
     @JvmStatic
     val movementPitch: Float?
         get() {
-            if (currentRequest?.mode == RotationMode.SILENT) return null
+            if (currentRequest?.mode == RotationMode.Silent) return null
             return currentRotation.pitch.toFloat()
         }
 
     @JvmStatic
     fun getRotationForVector(deltaTime: Double): Vec2d? {
-        if (currentRequest?.mode == RotationMode.SILENT) return null
+        if (currentRequest?.mode == RotationMode.Silent) return null
 
         val rot = lerp(deltaTime, prevRotation, currentRotation)
         return Vec2d(rot.yaw, rot.pitch)
@@ -186,8 +186,8 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
     object BaritoneProcessor {
         private var baritoneContext: RotationRequest? = null
         private val baritoneRotation get() = Baritone.rotation.apply {
-            if (rotationMode == RotationMode.SYNC) return@apply
-            rotationMode = RotationMode.SYNC
+            if (rotationMode == RotationMode.Sync) return@apply
+            rotationMode = RotationMode.Sync
         }
 
         private val movementYawList = arrayOf(
@@ -225,7 +225,7 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
             // Actual yaw used by the physics engine
             var actualYaw = currentRotation.yaw
 
-            if (currentRequest?.mode == RotationMode.SILENT) {
+            if (currentRequest?.mode == RotationMode.Silent) {
                 actualYaw = player.yaw.toDouble()
             }
 

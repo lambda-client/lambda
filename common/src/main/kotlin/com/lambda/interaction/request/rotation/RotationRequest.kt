@@ -34,22 +34,12 @@ data class RotationRequest(
 
     constructor(
         target: RotationTarget,
-        priority: Priority,
-        mode: RotationMode,
-        keepTicks: Int = 3,
-        decayTicks: Int = 0,
-        turnSpeed: Double = 180.0,
-        speedMultiplier: Double = 1.0
-    ) : this(target, priority, mode, keepTicks, decayTicks, { turnSpeed }, speedMultiplier)
-
-    constructor(
-        target: RotationTarget,
         config: RotationConfig,
         speedMultiplier: Double = 1.0
     ) : this(target, config.priority, config.rotationMode, config.keepTicks, config.decayTicks, config::turnSpeed, speedMultiplier)
 
     override val done: Boolean get() =
-        mode == RotationMode.NONE || runSafe {
+        mode == RotationMode.None || runSafe {
             target.verify(target)
         } == true
 }

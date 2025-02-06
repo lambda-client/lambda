@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,23 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.task
+package com.lambda.util.collections
 
-import com.lambda.threading.runSafe
+class UpdatableLazy<T>(private val initializer: () -> T) {
+    private var _value: T? = null
 
-object TaskFlow : Task<Unit>() {
-    override val name get() = "TaskFlow"
-
-    @Ta5kBuilder
-    inline fun <reified T : Task<*>> T.run(): T {
-        execute(this@TaskFlow)
-        return this
-    }
-
-    @Ta5kBuilder
-    fun Task<*>.run(task: TaskGenerator<Unit>) {
-        runSafe {
-            task(Unit).execute(this@run)
+    val value: T?
+        get() {
+            if (_value == null) _value = initializer()
+            return _value
         }
+
+    fun update() {
+        _value = initializer()
     }
 }
+
+fun <T> resettableLazy(initializer: () -> T) = UpdatableLazy(initializer)

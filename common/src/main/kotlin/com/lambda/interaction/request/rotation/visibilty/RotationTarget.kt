@@ -22,7 +22,7 @@ import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.threading.runSafe
-import com.lambda.util.collections.cached
+import com.lambda.util.collections.resettableLazy
 
 /**
  * Represents a target for rotation.
@@ -37,7 +37,7 @@ data class RotationTarget(
     private val buildRotation: SafeContext.() -> Rotation?,
 ) {
 
-    val targetRotation = cached {
+    val targetRotation = resettableLazy {
         runSafe { buildRotation() }
     }
 

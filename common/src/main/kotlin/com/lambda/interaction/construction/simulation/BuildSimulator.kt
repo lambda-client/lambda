@@ -17,8 +17,9 @@
 
 package com.lambda.interaction.construction.simulation
 
+import com.lambda.config.groups.InteractionConfig
+import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
-import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.PlaceContext
@@ -30,6 +31,8 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.container.ContainerManager.findBestAvailableTool
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
+import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.CheckedHit
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
@@ -62,27 +65,33 @@ import kotlin.jvm.optionals.getOrNull
 import kotlin.math.pow
 
 object BuildSimulator {
-    fun Blueprint.simulate(eye: Vec3d, reach: Double = TaskFlowModule.interact.placeReach) =
-        runSafe {
-            structure.entries.flatMap { (pos, target) ->
-                checkRequirements(pos, target)?.let {
-                    return@flatMap setOf(it)
-                }
-                checkPlaceResults(pos, target, eye, reach).let {
-                    if (it.isEmpty()) return@let
-                    return@flatMap it
-                }
-                checkBreakResults(pos, eye, reach).let {
-                    if (it.isEmpty()) return@let
-                    return@flatMap it
-                }
-                warn("Nothing matched $pos $target")
-                emptySet()
-            }.toSet()
-        } ?: emptySet()
+    fun Blueprint.simulate(
+        eye: Vec3d,
+        interact: InteractionConfig = TaskFlowModule.interact,
+        rotation: RotationConfig = TaskFlowModule.rotation,
+        inventory: InventoryConfig = TaskFlowModule.inventory,
+    ) = runSafe {
+        structure.entries.flatMap { (pos, target) ->
+            checkRequirements(pos, target)?.let {
+                return@flatMap setOf(it)
+            }
+            checkPlaceResults(pos, target, eye, interact, rotation, inventory).let {
+                if (it.isEmpty()) return@let
+                return@flatMap it
+            }
+            checkBreakResults(pos, eye, interact, rotation, inventory).let {
+                if (it.isEmpty()) return@let
+                return@flatMap it
+            }
+            warn("Nothing matched $pos $target")
+            emptySet()
+        }.toSet()
+    } ?: emptySet()
 
-    private fun SafeContext.checkRequirements(pos: BlockPos, target: TargetState): BuildResult? {
-        /* the chunk is not loaded */
+    private fun SafeContext.checkRequirements(
+        pos: BlockPos,
+        target: TargetState,
+    ): BuildResult? {/* the chunk is not loaded */
         if (!world.isChunkLoaded(pos)) {
             return BuildResult.ChunkNotLoaded(pos)
         }
@@ -126,15 +135,14 @@ object BuildSimulator {
         pos: BlockPos,
         target: TargetState,
         eye: Vec3d,
-        reach: Double,
+        interact: InteractionConfig,
+        rotation: RotationConfig,
+        inventory: InventoryConfig
     ): Set<BuildResult> {
         val acc = mutableSetOf<BuildResult>()
         val targetPosState = pos.blockState(world)
 
         if (target.isAir() || !targetPosState.isReplaceable) return acc
-
-        val interact = TaskFlowModule.interact
-        val rotation = TaskFlowModule.rotation
 
         val preprocessing = target.findProcessorForState()
 
@@ -152,7 +160,7 @@ object BuildSimulator {
 
             val validHits = mutableListOf<CheckedHit>()
             val misses = mutableSetOf<Vec3d>()
-            val reachSq = reach.pow(2)
+            val reachSq = interact.interactReach.pow(2)
 
             boxes.forEach { box ->
                 val sides = if (interact.checkSideVisibility) {
@@ -169,8 +177,8 @@ object BuildSimulator {
 
                     val newRotation = eye.rotationTo(vec)
 
-                    val hit = newRotation.rayCast(reach, eye) ?: return@scanSurfaces
-                    val checked = CheckedHit(hit, newRotation, reach)
+                    val hit = newRotation.rayCast(interact.interactReach, eye) ?: return@scanSurfaces
+                    val checked = CheckedHit(hit, newRotation, interact.interactReach)
                     if (!checked.verify()) return@scanSurfaces
 
                     validHits.add(checked)
@@ -204,9 +212,7 @@ object BuildSimulator {
                     checkedResult.blockResult,
                 )
                 val cachePos = CachedBlockPosition(
-                    usageContext.world,
-                    usageContext.blockPos,
-                    false
+                    usageContext.world, usageContext.blockPos, false
                 )
                 val canBePlacedOn = optimalStack.canPlaceOn(
                     usageContext.world.registryManager.get(RegistryKeys.BLOCK),
@@ -265,17 +271,14 @@ object BuildSimulator {
                 val hitBlock = blockHit.blockPos.blockState(world).block
                 val shouldSneak = hitBlock in BlockUtils.interactionBlacklist
 
-                val primeDirection = (target as? TargetState.State)
-                    ?.blockState
-                    ?.getOrEmpty(Properties.HORIZONTAL_FACING)
-                    ?.getOrNull()
+                val primeDirection =
+                    (target as? TargetState.State)?.blockState?.getOrEmpty(Properties.HORIZONTAL_FACING)?.getOrNull()
 
                 val placeContext = PlaceContext(
                     eye,
                     blockHit,
                     RotationRequest(
-                        lookAtBlock(blockHit.blockPos, setOf(blockHit.side), interact),
-                        rotation
+                        lookAtBlock(blockHit.blockPos, setOf(blockHit.side), interact), rotation
                     ),
                     eye.distanceTo(blockHit.pos),
                     resultState,
@@ -290,12 +293,12 @@ object BuildSimulator {
 
                 val currentHandStack = player.getStackInHand(Hand.MAIN_HAND)
                 if (target is TargetState.Stack && !target.itemStack.equal(currentHandStack)) {
-                    acc.add(BuildResult.WrongStack(pos, placeContext, target.itemStack))
+                    acc.add(BuildResult.WrongStack(pos, placeContext, target.itemStack, inventory))
                     return@forEach
                 }
 
                 if (optimalStack.item != currentHandStack.item) {
-                    acc.add(BuildResult.WrongItem(pos, placeContext, optimalStack.item, currentHandStack))
+                    acc.add(BuildResult.WrongItem(pos, placeContext, optimalStack.item, currentHandStack, inventory))
                     return@forEach
                 }
 
@@ -309,7 +312,9 @@ object BuildSimulator {
     private fun SafeContext.checkBreakResults(
         pos: BlockPos,
         eye: Vec3d,
-        reach: Double,
+        interact: InteractionConfig,
+        rotation: RotationConfig,
+        inventory: InventoryConfig
     ): Set<BuildResult> {
         val acc = mutableSetOf<BuildResult>()
         val state = pos.blockState(world)
@@ -333,7 +338,7 @@ object BuildSimulator {
 
         /* liquid needs to be submerged first to be broken */
         if (!state.fluidState.isEmpty && state.isReplaceable) {
-            val submerge = checkPlaceResults(pos, TargetState.Solid, eye, reach)
+            val submerge = checkPlaceResults(pos, TargetState.Solid, eye, interact, rotation, inventory)
             acc.add(BreakResult.Submerge(pos, state, submerge))
             acc.addAll(submerge)
             return acc
@@ -347,7 +352,7 @@ object BuildSimulator {
         if (adjacentLiquids.isNotEmpty()) {
             acc.add(BreakResult.BlockedByLiquid(pos, state))
             adjacentLiquids.forEach {
-                val submerge = checkPlaceResults(pos.offset(it), TargetState.Solid, eye, reach)
+                val submerge = checkPlaceResults(pos.offset(it), TargetState.Solid, eye, interact, rotation, inventory)
                 acc.addAll(submerge)
             }
             return acc
@@ -358,14 +363,12 @@ object BuildSimulator {
             val stack = player.getStackInHand(it)
             if (stack.isEmpty) return@forEach
             if (stack.item.canMine(state, world, pos, player)) return@forEach
-            acc.add(BreakResult.ItemCantMine(pos, state, stack.item))
+            acc.add(BreakResult.ItemCantMine(pos, state, stack.item, inventory))
             return acc
         }
 
-        val interact = TaskFlowModule.interact
-        val rotation = TaskFlowModule.rotation
         val currentRotation = RotationManager.currentRotation
-        val currentCast = currentRotation.rayCast(reach, eye)
+        val currentCast = currentRotation.rayCast(interact.interactReach, eye)
 
         val voxelShape = state.getOutlineShape(world, pos)
         voxelShape.getClosestPointTo(eye).ifPresent {
@@ -381,16 +384,10 @@ object BuildSimulator {
         if (boxes.any { it.contains(eye) }) {
             currentCast?.blockResult?.let { blockHit ->
                 val rotationRequest = RotationRequest(
-                    lookAtBlock(pos, interactionConfig = interact),
-                    rotation
+                    lookAtBlock(pos, config = interact), rotation
                 )
                 val breakContext = BreakContext(
-                    eye,
-                    blockHit,
-                    rotationRequest,
-                    state,
-                    player.activeHand,
-                    instantBreakable(state, pos)
+                    eye, blockHit, rotationRequest, state, player.activeHand, instantBreakable(state, pos)
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
                 return acc
@@ -399,7 +396,7 @@ object BuildSimulator {
 
         val validHits = mutableListOf<CheckedHit>()
         val misses = mutableSetOf<Vec3d>()
-        val reachSq = reach.pow(2)
+        val reachSq = interact.interactReach.pow(2)
 
         boxes.forEach { box ->
             scanSurfaces(box, Direction.entries.toSet(), interact.resolution) { side, vec ->
@@ -410,8 +407,8 @@ object BuildSimulator {
 
                 val newRotation = eye.rotationTo(vec)
 
-                val hit = newRotation.rayCast(reach, eye) ?: return@scanSurfaces
-                val checked = CheckedHit(hit, newRotation, reach)
+                val hit = newRotation.rayCast(interact.interactReach, eye) ?: return@scanSurfaces
+                val checked = CheckedHit(hit, newRotation, interact.interactReach)
                 if (!checked.verify()) return@scanSurfaces
 
                 validHits.add(checked)
@@ -428,15 +425,9 @@ object BuildSimulator {
             val blockHit = checkedHit.hit.blockResult ?: return@let
 
             val breakContext = BreakContext(
-                eye,
-                blockHit,
-                RotationRequest(
-                    lookAtBlock(blockHit.blockPos, interactionConfig = interact),
-                    rotation
-                ),
-                state,
-                player.activeHand,
-                instantBreakable(state, pos)
+                eye, blockHit, RotationRequest(
+                    lookAtBlock(blockHit.blockPos, config = interact), rotation
+                ), state, player.activeHand, instantBreakable(state, pos)
             )
 
             /* player has a better tool for the job available */
@@ -449,7 +440,7 @@ object BuildSimulator {
                     acc.add(BreakResult.Break(pos, breakContext))
                     return acc
                 } ?: run {
-                    acc.add(BuildResult.WrongItem(pos, breakContext, bestTool, player.activeItem))
+                    acc.add(BuildResult.WrongItem(pos, breakContext, bestTool, player.activeItem, inventory))
                     return acc
                 }
             }

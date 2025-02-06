@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2024 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,20 +15,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.collections
+package com.lambda.task
 
-class CachedValue<T> (private val initializer: () -> T) {
-    private var _value: T? = null
+import com.lambda.threading.runSafe
 
-    val value: T?
-        get() {
-            if (_value == null) _value = initializer()
-            return _value
+object RootTask : Task<Unit>() {
+    override val name get() = "Root Task"
+
+    @Ta5kBuilder
+    inline fun <reified T : Task<*>> T.run(): T {
+        execute(this@RootTask)
+        return this
+    }
+
+    @Ta5kBuilder
+    fun Task<*>.run(task: TaskGenerator<Unit>) {
+        runSafe {
+            task(Unit).execute(this@run)
         }
-
-    fun update() {
-        _value = initializer()
     }
 }
-
-fun <T> cached(initializer: () -> T) = CachedValue(initializer)

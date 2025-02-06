@@ -28,7 +28,7 @@ interface InteractionConfig {
     /**
      * Maximum block interaction distance
      */
-    val placeReach: Double
+    val interactReach: Double
 
     /**
      * Maximum possible interaction distance

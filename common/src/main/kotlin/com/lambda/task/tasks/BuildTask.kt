@@ -20,6 +20,7 @@ package com.lambda.task.tasks
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
+import com.lambda.config.groups.InventoryConfig
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
@@ -57,6 +58,7 @@ class BuildTask @Ta5kBuilder constructor(
     private val build: BuildConfig = TaskFlowModule.build,
     private val rotation: RotationConfig = TaskFlowModule.rotation,
     private val interact: InteractionConfig = TaskFlowModule.interact,
+    private val inventory: InventoryConfig = TaskFlowModule.inventory,
 ) : Task<Unit>() {
     override val name: String get() = "Building $blueprint with ${(placements / (age / 20.0 + 0.001)).string} p/s"
 
@@ -82,10 +84,10 @@ class BuildTask @Ta5kBuilder constructor(
             }
 
             currentPlacement?.let { context ->
+                currentPlacement = null
                 if (build.rotateForPlace && !context.rotation.done) return@listen
                 context.place(interact.swingHand)
                 pendingPlacements.add(context)
-                currentPlacement = null
             }
 
             (blueprint as? DynamicBlueprint)?.update()
@@ -96,7 +98,7 @@ class BuildTask @Ta5kBuilder constructor(
             }
 
             // ToDo: Simulate for each pair player positions that work
-            val results = blueprint.simulate(player.getCameraPosVec(mc.tickDelta))
+            val results = blueprint.simulate(player.getCameraPosVec(mc.tickDelta), interact, rotation, inventory)
             TaskFlowModule.drawables = results.filterIsInstance<Drawable>().plus(pendingPlacements.toList())
 
             val instantResults = results.filterIsInstance<BreakResult.Break>()
@@ -136,11 +138,6 @@ class BuildTask @Ta5kBuilder constructor(
 
                 is PlaceResult.Place -> {
                     if (pendingPlacements.size >= build.maxPendingPlacements) return@listen
-
-//                    if (!result.context.rotation.isValid) {
-//                        currentPlacement = result.context
-//                        return@listen
-//                    }
 
                     currentPlacement = result.context
                 }
@@ -203,7 +200,8 @@ class BuildTask @Ta5kBuilder constructor(
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
             interact: InteractionConfig = TaskFlowModule.interact,
-        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, build, rotation, interact)
+            inventory: InventoryConfig = TaskFlowModule.inventory,
+        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory)
 
         @Ta5kBuilder
         fun Blueprint.build(
@@ -212,7 +210,8 @@ class BuildTask @Ta5kBuilder constructor(
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
             interact: InteractionConfig = TaskFlowModule.interact,
-        ) = BuildTask(this, finishOnDone, collectDrops, build, rotation, interact)
+            inventory: InventoryConfig = TaskFlowModule.inventory,
+        ) = BuildTask(this, finishOnDone, collectDrops, build, rotation, interact, inventory)
 
         @Ta5kBuilder
         fun breakAndCollectBlock(
@@ -222,9 +221,10 @@ class BuildTask @Ta5kBuilder constructor(
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
             interact: InteractionConfig = TaskFlowModule.interact,
+            inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, collectDrops, build, rotation, interact
+            finishOnDone, collectDrops, build, rotation, interact, inventory
         )
 
         @Ta5kBuilder
@@ -235,9 +235,10 @@ class BuildTask @Ta5kBuilder constructor(
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
             interact: InteractionConfig = TaskFlowModule.interact,
+            inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, collectDrops, build, rotation, interact
+            finishOnDone, collectDrops, build, rotation, interact, inventory
         )
     }
 }

@@ -24,14 +24,14 @@ import java.util.concurrent.ConcurrentHashMap
  * It provides a mechanism to register requests and select the highest priority request
  * for processing.
  */
-abstract class RequestHandler<T : Request> {
+abstract class RequestHandler<R : Request> {
 
-    private val requestMap = ConcurrentHashMap<RequestConfig<T>, T>()
+    private val requestMap = ConcurrentHashMap<RequestConfig<R>, R>()
 
     /**
      * The currently active request.
      */
-    var currentRequest: T? = null; protected set
+    var currentRequest: R? = null; protected set
 
     /**
      * Registers a new request with the given configuration.
@@ -40,7 +40,7 @@ abstract class RequestHandler<T : Request> {
      * @param request The request to register.
      * @return The registered request.
      */
-    fun registerRequest(config: RequestConfig<T>, request: T): T {
+    fun registerRequest(config: RequestConfig<R>, request: R): R {
         requestMap[config] = request
         return request
     }
@@ -53,7 +53,7 @@ abstract class RequestHandler<T : Request> {
      */
     protected fun updateRequest(
         keepIfNull: Boolean = false,
-        filter: (Map.Entry<RequestConfig<T>, T>) -> Boolean = { true }
+        filter: (Map.Entry<RequestConfig<R>, R>) -> Boolean = { true }
     ): Boolean {
         val prev = currentRequest
 

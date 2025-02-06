@@ -134,7 +134,7 @@ object Scaffold : Module(
             val info = updatePlaceInfo() ?: return@onRotate
 
             lastRequest = lookAtHit(
-                blockHit(info.clickPos, info.clickSide, interactionConfig.placeReach)
+                blockHit(info.clickPos, info.clickSide, interactionConfig.interactReach)
             ) { rotate(info) }.requestBy(rotationConfig)
         }
 
@@ -178,7 +178,7 @@ object Scaffold : Module(
         // Getting the latest block of the placement sequence
         placeInfo = buildPlaceInfo(
             basePos = BlockPos(player.pos.x.floorToInt(), y, player.pos.z.floorToInt()),
-            range = interactionConfig.placeReach + 2,
+            range = interactionConfig.interactReach + 2,
             sides = builderSideMask
         )
 
@@ -201,7 +201,7 @@ object Scaffold : Module(
     private fun SafeContext.rotate(info: PlaceInfo): Rotation? {
         val eye = player.eyePos
 
-        val reach = interactionConfig.placeReach
+        val reach = interactionConfig.interactReach
         val reachSq = reach.pow(2)
 
         val input = newMovementInput()
@@ -373,7 +373,7 @@ object Scaffold : Module(
 
     // Checks if the rotation matches the placement requirements
     private fun castRotation(rotation: Rotation, info: PlaceInfo): BlockHitResult? {
-        val blockResult = rotation.rayCast(interactionConfig.placeReach)?.blockResult ?: return null
+        val blockResult = rotation.rayCast(interactionConfig.interactReach)?.blockResult ?: return null
         if (blockResult.blockPos != info.clickPos || blockResult.side != info.clickSide) return null
         return blockResult
     }
