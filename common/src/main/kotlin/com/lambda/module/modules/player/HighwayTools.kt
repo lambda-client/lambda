@@ -21,7 +21,8 @@ import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
-import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
+import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -93,7 +94,7 @@ object HighwayTools : Module(
             octant = player.octant
             startPos = player.blockPos
             currentPos = startPos
-            buildSlice()
+            buildHighway()
         }
         onDisable {
             runningTask?.cancel()
@@ -103,30 +104,29 @@ object HighwayTools : Module(
         }
     }
 
-    private fun buildSlice() {
-        distanceMoved += sliceSize
-
-        var structure: Structure = mutableMapOf()
-        val slice = generateSlice()
-        repeat(sliceSize) {
-            val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
-            currentPos = currentPos.add(vec)
-            structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
-        }
-
-        runningTask = structure.toBlueprint().build(
+    private fun buildHighway() {
+        runningTask = propagatingBlueprint {
+            if (distanceMoved < distance || distance < 0) {
+                var structure = emptyStructure()
+                val slice = generateSlice()
+                repeat(sliceSize) {
+                    structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
+                    val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
+                    currentPos = currentPos.add(vec)
+                }
+                distanceMoved += sliceSize
+                structure
+            } else {
+                this@HighwayTools.info("Highway built")
+                disable()
+                emptyStructure()
+            }
+        }.build(
             build = build,
             rotation = rotation,
             interact = interact,
             inventory = inventory,
-        ).finally {
-            if (distanceMoved < distance || distance < 0) {
-                buildSlice()
-            } else {
-                this@HighwayTools.info("Highway built")
-                disable()
-            }
-        }.run()
+        ).run()
     }
 
     private fun generateSlice(): Structure {
@@ -202,22 +202,24 @@ object HighwayTools : Module(
         }
 
         if (walls != Material.None) {
+            val wallElevation = rimHeight + if (pavement != Material.None) 1 else 0
+
             // Left wall
             structure += generateDirectionalTube(
                 orthogonal,
                 1,
-                height,
+                height - wallElevation,
                 -center + width,
-                0,
+                wallElevation,
             ).associateWith { target(walls, wallMaterial) }
 
             // Right wall
             structure += generateDirectionalTube(
                 orthogonal,
                 1,
-                height,
+                height - wallElevation,
                 -center - 1,
-                0,
+                wallElevation,
             ).associateWith { target(walls, wallMaterial) }
         }
 

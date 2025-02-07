@@ -24,14 +24,14 @@ import com.lambda.config.groups.InventoryConfig
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
-import com.lambda.interaction.construction.blueprint.DynamicBlueprint
+import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
+import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
@@ -50,9 +50,6 @@ import com.lambda.util.Communication.info
 import com.lambda.util.Formatting.string
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.extension.Structure
-import net.minecraft.block.BlockState
-import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
-import net.minecraft.network.packet.s2c.play.ChunkDeltaUpdateS2CPacket
 import net.minecraft.util.math.BlockPos
 
 class BuildTask @Ta5kBuilder constructor(
@@ -76,7 +73,7 @@ class BuildTask @Ta5kBuilder constructor(
     private var goodPositions = setOf<BlockPos>()
 
     override fun SafeContext.onStart() {
-        (blueprint as? DynamicBlueprint)?.create()
+        (blueprint as? PropagatingBlueprint)?.next()
     }
 
     init {
@@ -88,7 +85,7 @@ class BuildTask @Ta5kBuilder constructor(
         }
 
         listen<TickEvent.Post> {
-            (blueprint as? DynamicBlueprint)?.update()
+            (blueprint as? TickingBlueprint)?.tick()
 
             if (finishOnDone && blueprint.structure.isEmpty()) {
                 failure("Structure is empty")
@@ -132,6 +129,10 @@ class BuildTask @Ta5kBuilder constructor(
                 is BuildResult.Unbreakable,
                 is BuildResult.Restricted,
                 is BuildResult.NoPermission -> {
+                    if (blueprint is PropagatingBlueprint) {
+                        blueprint.next()
+                        return@listen
+                    }
                     if (finishOnDone) success()
                 }
 

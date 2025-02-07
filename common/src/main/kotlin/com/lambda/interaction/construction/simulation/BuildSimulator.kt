@@ -150,7 +150,7 @@ object BuildSimulator {
         val preprocessing = target.findProcessorForState()
 
         preprocessing.sides.forEach { neighbor ->
-            val hitPos = if (targetPosState.isAir) pos.offset(neighbor) else pos
+            val hitPos = if (targetPosState.isAir || targetPosState.isLiquid) pos.offset(neighbor) else pos
             val hitSide = neighbor.opposite
 
             val voxelShape = hitPos.blockState(world).getOutlineShape(world, hitPos)

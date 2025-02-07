@@ -17,8 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
-import com.lambda.interaction.construction.blueprint.DynamicBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -44,8 +43,7 @@ object Nuker : Module(
 
     init {
         onEnable {
-            task = emptyStructure()
-                .toBlueprint {
+            task = tickingBlueprint {
                     val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
                         .asSequence()
                         .map { it.blockPos }
@@ -59,7 +57,7 @@ object Nuker : Module(
                         val floor = BlockPos.iterateOutwards(player.blockPos.down(), width, 0, width)
                             .map { it.blockPos }
                             .associateWith { TargetState.Solid }
-                        return@toBlueprint selection + floor
+                        return@tickingBlueprint selection + floor
                     }
 
                     selection
