@@ -290,9 +290,7 @@ object BuildSimulator {
                 val placeContext = PlaceContext(
                     eye,
                     blockHit,
-                    RotationRequest(
-                        lookAtBlock(blockHit.blockPos, setOf(blockHit.side), config = interact), rotation
-                    ),
+                    RotationRequest(lookAt(checkedHit.targetRotation, 0.001), rotation),
                     eye.distanceTo(blockHit.pos),
                     resultState,
                     blockHit.blockPos.blockState(world),

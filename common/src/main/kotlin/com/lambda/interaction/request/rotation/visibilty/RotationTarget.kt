@@ -39,7 +39,6 @@ data class RotationTarget(
     val verify: RotationTarget.() -> Boolean = { hit?.verifyRotation() ?: true },
     private val buildRotation: SafeContext.() -> Rotation?,
 ) {
-
     val targetRotation = resettableLazy {
         runSafe { buildRotation() }
     }

@@ -43,6 +43,4 @@ data class RotationRequest(
         mode == RotationMode.None || runSafe {
             target.verify(target)
         } == true
-
-    fun megaDone() = target.distance < 0.001
 }

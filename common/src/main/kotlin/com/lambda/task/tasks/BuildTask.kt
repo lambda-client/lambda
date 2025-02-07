@@ -67,6 +67,7 @@ class BuildTask @Ta5kBuilder constructor(
         build.maxPendingInteractions, build.interactionTimeout * 50L
     ) { info("${it::class.simpleName} at ${it.expectedPos.toShortString()} timed out") }
     private var currentInteraction: BuildContext? = null
+    private val instantBreaks = mutableSetOf<BreakContext>()
 
     private var placements = 0
     private var breaks = 0
@@ -79,9 +80,14 @@ class BuildTask @Ta5kBuilder constructor(
     init {
         listen<TickEvent.Pre> {
             currentInteraction?.let { context ->
-                if (context.shouldRotate(build) && !context.rotation.megaDone()) return@listen
+                if (context.shouldRotate(build) && !context.rotation.done) return@let
                 context.interact(interact.swingHand)
             }
+            instantBreaks.forEach { context ->
+                context.interact(interact.swingHand)
+                pendingInteractions.add(context)
+            }
+            instantBreaks.clear()
         }
 
         listen<TickEvent.Post> {
@@ -91,7 +97,9 @@ class BuildTask @Ta5kBuilder constructor(
                 failure("Structure is empty")
                 return@listen
             }
+        }
 
+        onRotate {
 //            val sim = blueprint.simulation(interact, rotation, inventory)
 //            BlockPos.iterateOutwards(player.blockPos, 5, 5, 5).forEach { pos ->
 //                sim.simulate(pos.toFastVec())
@@ -109,50 +117,33 @@ class BuildTask @Ta5kBuilder constructor(
                     .sorted()
                     .take(build.breaksPerTick)
 
-                instantResults.forEach {
-                    it.context.interact(interact.swingHand)
-                    pendingInteractions.add(it.context)
-                }
+                instantBreaks.addAll(instantResults.map { it.context })
 
-                if (instantResults.isNotEmpty()) return@listen
+                if (instantResults.isNotEmpty()) return@onRotate
             }
 
             val resultsWithoutPending = results.filterNot { result ->
                 result.blockPos in pendingInteractions.map { it.expectedPos }
             }
-            val bestResult = resultsWithoutPending.minOrNull() ?: return@listen
+            val bestResult = resultsWithoutPending.minOrNull() ?: return@onRotate
             when (bestResult) {
                 is BuildResult.Done,
                 is BuildResult.Ignored,
                 is BuildResult.Unbreakable,
                 is BuildResult.Restricted,
                 is BuildResult.NoPermission -> {
-                    if (pendingInteractions.isNotEmpty()) return@listen
+                    if (pendingInteractions.isNotEmpty()) return@onRotate
                     if (blueprint is PropagatingBlueprint) {
                         blueprint.next()
-                        return@listen
+                        return@onRotate
                     }
                     if (finishOnDone) success()
                 }
 
                 is BuildResult.NotVisible,
                 is PlaceResult.NoIntegrity -> {
-                    if (!build.pathing) return@listen
-                    // ToDo:
-                    //  Solve the problem that baritone stops pathing when it thinks it is in a valid goal
-                    //  but the player position does not perfectly match the simulated position
-                    // hacky fix for now is to walk "closer" but it wont work in every situation
-                    val interaction = object : InteractionConfig {
-                        override val attackReach = 3.0
-                        override val interactReach = interact.interactReach - 1
-                        override val scanReach = interact.scanReach
-                        override val strictRayCast = interact.strictRayCast
-                        override val checkSideVisibility = interact.checkSideVisibility
-                        override val resolution = interact.resolution
-                        override val pointSelection = interact.pointSelection
-                        override val swingHand = interact.swingHand
-                    }
-                    val goal = BuildGoal(blueprint.simulation(interaction, rotation, inventory, build))
+                    if (!build.pathing) return@onRotate
+                    val goal = BuildGoal(blueprint.simulation(interact, rotation, inventory, build), player.blockPos)
                     BaritoneUtils.setGoalAndPath(goal)
                 }
 
@@ -161,7 +152,7 @@ class BuildTask @Ta5kBuilder constructor(
                 }
 
                 is BuildResult.Contextual -> {
-                    if (pendingInteractions.size >= build.maxPendingInteractions) return@listen
+                    if (pendingInteractions.size >= build.maxPendingInteractions) return@onRotate
 
                     currentInteraction = bestResult.context
                 }
@@ -172,9 +163,7 @@ class BuildTask @Ta5kBuilder constructor(
                     bestResult.resolve().execute(this@BuildTask)
                 }
             }
-        }
 
-        onRotate {
             if (!build.rotateForPlace) return@onRotate
             val rotateTo = currentInteraction?.rotation ?: return@onRotate
 
