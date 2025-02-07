@@ -40,11 +40,10 @@ interface BuildContext : Comparable<BuildContext>, Drawable {
 
     fun interact(swingHand: Boolean)
 
-    override fun compareTo(other: BuildContext): Int {
-        return compareBy<BuildContext> {
+    override fun compareTo(other: BuildContext) =
+        compareBy<BuildContext> {
             it.distance
         }.compare(this, other)
-    }
 
     fun shouldRotate(config: BuildConfig): Boolean
 }

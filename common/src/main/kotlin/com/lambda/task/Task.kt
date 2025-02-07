@@ -45,8 +45,6 @@ abstract class Task<Result> : Nameable, Muteable {
     val isCompleted get() = state == State.COMPLETED
     val size: Int get() = subTasks.sumOf { it.size } + 1
 
-    open var unpausable = false
-
     private var nextTask: TaskGenerator<Result>? = null
     private var nextTaskOrNull: TaskGeneratorOrNull<Result>? = null
     private var onFinish: TaskGeneratorUnit<Result>? = null
@@ -115,9 +113,9 @@ abstract class Task<Result> : Nameable, Muteable {
         owner.subTasks.add(this)
         parent = owner
         LOG.info("${owner.name} started $name")
-        if (!unpausable || pauseParent) {
-            LOG.info("$name deactivating parent ${owner.name}")
-            if (owner !is RootTask) owner.deactivate()
+        if (pauseParent) {
+            LOG.info("$name pausing parent ${owner.name}")
+            if (owner !is RootTask) owner.pause()
         }
         state = State.RUNNING
         runSafe { runCatching { onStart() }.onFailure { failure(it) } }
@@ -145,9 +143,8 @@ abstract class Task<Result> : Nameable, Muteable {
     }
 
     @Ta5kBuilder
-    fun deactivate() {
+    fun pause() {
         if (state != State.RUNNING) return
-        if (unpausable) return
         state = State.PAUSED
     }
 

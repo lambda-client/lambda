@@ -67,7 +67,7 @@ object HighwayTools : Module(
 
     private val build = BuildSettings(this) { page == Page.Build }
     private val rotation = RotationSettings(this) { page == Page.Rotation }
-    private val interact = InteractionSettings(this, InteractionMask.BOTH) { page == Page.Interaction }
+    private val interact = InteractionSettings(this, InteractionMask.BLOCK) { page == Page.Interaction }
     private val inventory = InventorySettings(this) { page == Page.Inventory }
 
     private var octant = EightWayDirection.NORTH

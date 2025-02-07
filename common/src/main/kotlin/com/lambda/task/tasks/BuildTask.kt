@@ -123,6 +123,8 @@ class BuildTask @Ta5kBuilder constructor(
             val resultsWithoutPending = results.filterNot { result ->
                 result.blockPos in pendingInteractions.map { it.expectedPos }
             }
+            val sortedResults = resultsWithoutPending.sorted()
+            sortedResults
             val bestResult = resultsWithoutPending.minOrNull() ?: return@listen
             when (bestResult) {
                 is BuildResult.Done,
@@ -141,7 +143,7 @@ class BuildTask @Ta5kBuilder constructor(
                     //  but the player position does not perfectly match the simulated position
                     // hacky fix for now is to walk "closer" but it wont work in every situation
                     val interaction = object : InteractionConfig {
-                        override val attackReach = interact.attackReach
+                        override val attackReach = 3.0
                         override val interactReach = interact.interactReach - 1
                         override val scanReach = interact.scanReach
                         override val strictRayCast = interact.strictRayCast
@@ -161,6 +163,7 @@ class BuildTask @Ta5kBuilder constructor(
                 is BuildResult.Contextual -> {
                     if (pendingInteractions.size >= build.maxPendingInteractions) return@listen
 
+//                    info("Swapping interaction to ${bestResult.context.expectedPos} ${bestResult.context.distance}")
                     currentInteraction = bestResult.context
                 }
 
@@ -195,7 +198,8 @@ class BuildTask @Ta5kBuilder constructor(
             pendingInteractions.add(context)
         }
 
-        listen<WorldEvent.BlockUpdate.Server> { event ->
+        listen<WorldEvent.BlockUpdate.Server>(alwaysListen = true) { event ->
+//            info("Update at ${event.pos.toShortString()}: ${event.newState.block.name.string}")
             pendingInteractions.firstOrNull { it.expectedPos == event.pos }?.let { context ->
                 pendingInteractions.remove(context)
                 if (!context.targetState.matches(event.newState, event.pos, world)) return@let
