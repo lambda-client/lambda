@@ -100,7 +100,7 @@ class BreakBlock @Ta5kBuilder constructor(
             } ?: BaritoneUtils.cancel()
 
             if (rotate && !ctx.instantBreak && state == State.BREAKING) {
-                lookAtBlock(blockPos, sides, interact).let {
+                lookAtBlock(blockPos, sides, config = interact).let {
                     if (it.requestBy(rotation).done) {
                         hitBlock(ctx.result.side)
                     }

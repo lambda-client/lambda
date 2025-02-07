@@ -83,7 +83,7 @@ class OpenContainer @Ta5kBuilder constructor(
         listen<TickEvent.Pre> {
             if (state != State.SCOPING) return@listen
 
-            val target = lookAtBlock(blockPos, sides, interact)
+            val target = lookAtBlock(blockPos, sides, config = interact)
             if (rotate && !target.requestBy(rotation).done) return@listen
 
             val hitResult = target.hit?.hitIfValid()?.blockResult ?: return@listen

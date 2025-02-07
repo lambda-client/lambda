@@ -21,10 +21,7 @@ import com.lambda.Lambda
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
-import com.lambda.event.events.ConnectionEvent
-import com.lambda.event.events.PacketEvent
-import com.lambda.event.events.PlayerPacketEvent
-import com.lambda.event.events.RotationEvent
+import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.request.RequestHandler
@@ -197,7 +194,13 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
 
         @JvmStatic
         fun handleBaritoneRotation(yaw: Float, pitch: Float) {
-            lookAt(Rotation(yaw, pitch)).requestBy(Baritone.rotation)
+            baritoneContext = lookAt(Rotation(yaw, pitch)).requestBy(Baritone.rotation)
+        }
+
+        init {
+            listenUnsafe<TickEvent.Pre> {
+                baritoneContext = null
+            }
         }
 
         @JvmStatic

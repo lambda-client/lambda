@@ -19,6 +19,7 @@ package com.lambda.interaction.request.rotation.visibilty
 
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
+import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.dist
 import com.lambda.interaction.request.rotation.RotationManager
@@ -75,7 +76,7 @@ fun lookAtHit(
     config: InteractionConfig = TaskFlowModule.interact,
 ): RotationTarget? {
     return when (hit) {
-        is BlockHitResult -> lookAtBlock(hit.blockPos, setOf(hit.side), config)
+        is BlockHitResult -> lookAtBlock(hit.blockPos, setOf(hit.side), SurfaceScan.DEFAULT, config)
         is EntityHitResult -> lookAtEntity(hit.entity as? LivingEntity ?: return null, config)
         else -> null
     }
@@ -101,6 +102,7 @@ fun lookAtEntity(
             config.attackReach,
             player.eyePos,
             ALL_SIDES,
+            SurfaceScan.DEFAULT,
             InteractionMask.ENTITY,
             config
         ) { requestedHit.verifyHit(hit) }?.targetRotation
@@ -119,6 +121,7 @@ fun lookAtEntity(
 fun lookAtBlock(
     pos: BlockPos,
     sides: Set<Direction> = ALL_SIDES,
+    surfaceScan: SurfaceScan = SurfaceScan.DEFAULT,
     config: InteractionConfig = TaskFlowModule.interact,
 ): RotationTarget {
     val requestedHit = blockHit(pos, sides, config.interactReach)
@@ -129,6 +132,7 @@ fun lookAtBlock(
             config.interactReach,
             player.eyePos,
             sides,
+            surfaceScan,
             InteractionMask.BLOCK,
             config
         ) { requestedHit.verifyHit(hit) }?.targetRotation

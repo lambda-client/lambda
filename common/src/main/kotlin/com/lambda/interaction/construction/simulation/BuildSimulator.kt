@@ -291,7 +291,7 @@ object BuildSimulator {
                     eye,
                     blockHit,
                     RotationRequest(
-                        lookAtBlock(blockHit.blockPos, setOf(blockHit.side), interact), rotation
+                        lookAtBlock(blockHit.blockPos, setOf(blockHit.side), config = interact), rotation
                     ),
                     eye.distanceTo(blockHit.pos),
                     resultState,
