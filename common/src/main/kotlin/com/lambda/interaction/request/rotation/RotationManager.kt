@@ -98,7 +98,7 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
 
             // Update the current rotation
             prevRotation = currentRotation
-            currentRotation = targetRotation.fixSensitivity(prevRotation)
+            currentRotation = targetRotation/*.fixSensitivity(prevRotation)*/
 
             // Handle LOCK mode
             if (currentRequest?.mode == RotationMode.Lock) {

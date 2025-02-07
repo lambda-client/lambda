@@ -43,18 +43,12 @@ sealed class BreakResult : BuildResult() {
      */
     data class Break(
         override val blockPos: BlockPos,
-        val context: BreakContext,
-    ) : Drawable, Resolvable, BreakResult() {
+        override val context: BreakContext,
+    ) : Drawable, Contextual, BreakResult() {
         override val rank = Rank.BREAK_SUCCESS
-        private val color = Color(222, 0, 0, 100)
-
-        var collectDrop = false
-        override val pausesParent get() = collectDrop
-
-        override fun resolve() = BreakBlock(context, collectDrop)
 
         override fun SafeContext.buildRenderer() {
-            withPos(context.expectedPos, color, context.result.side)
+            with(context) { buildRenderer() }
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {

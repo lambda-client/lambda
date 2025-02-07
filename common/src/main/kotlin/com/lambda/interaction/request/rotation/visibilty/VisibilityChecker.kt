@@ -136,7 +136,7 @@ object VisibilityChecker {
         scan: SurfaceScan = SurfaceScan.DEFAULT,
         check: (Direction, Vec3d) -> Unit,
     ) {
-        val margin = 0.1
+        val margin = 0.01
 
         excludedSides.forEach { side ->
             if (excludedSides.isNotEmpty() && side !in excludedSides) return@forEach

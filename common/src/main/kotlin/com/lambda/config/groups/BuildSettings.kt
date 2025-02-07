@@ -34,11 +34,11 @@ class BuildSettings(
     override val pathing by c.setting("Pathing", true, "Path to blocks") { vis() && page == Page.General }
     override val stayInRange by c.setting("Stay In Range", true, "Stay in range of blocks") { vis() && page == Page.General && pathing }
     override val collectDrops by c.setting("Collect All Drops", false, "Collect all drops when breaking blocks") { vis() && page == Page.General }
+    override val maxPendingInteractions by c.setting("Max Pending Interactions", 1, 1..10, 1, "Dont wait for this many interactions for the server response") { vis() && page == Page.General }
 
     // Breaking
     override val rotateForBreak by c.setting("Rotate For Break", true, "Rotate towards block while breaking") { vis() && page == Page.Break }
     override val breakConfirmation by c.setting("Break Confirmation", false, "Wait for block break confirmation") { vis() && page == Page.Break }
-    override val maxPendingBreaks by c.setting("Max Pending Breaks", 1, 1..10, 1, "Maximum pending block breaks") { vis() && page == Page.Break }
     override val breaksPerTick by c.setting("Instant Breaks Per Tick", 5, 1..30, 1, "Maximum instant block breaks per tick") { vis() && page == Page.Break }
     override val breakWeakBlocks by c.setting("Break Weak Blocks", false, "Break blocks that dont have structural integrity (e.g: grass)") { vis() && page == Page.Break }
     override val forceSilkTouch by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks") { vis() && page == Page.Break }
@@ -47,7 +47,7 @@ class BuildSettings(
     // Placing
     override val rotateForPlace by c.setting("Rotate For Place", true, "Rotate towards block while placing") { vis() && page == Page.Place }
     override val placeConfirmation by c.setting("Place Confirmation", true, "Wait for block placement confirmation") { vis() && page == Page.Place }
-    override val placeTimeout by c.setting("Place Timeout", 10, 1..30, 1, "Timeout for block placement in ticks", unit = " ticks") { vis() && page == Page.Place && placeConfirmation }
-    override val maxPendingPlacements by c.setting("Max Pending Places", 1, 1..10, 1, "Maximum pending block places") { vis() && page == Page.Place }
     override val placementsPerTick by c.setting("Instant Places Per Tick", 1, 1..30, 1, "Maximum instant block places per tick") { vis() && page == Page.Place }
+
+    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") { vis() && (page == Page.Place && placeConfirmation || page == Page.Break && breakConfirmation) }
 }

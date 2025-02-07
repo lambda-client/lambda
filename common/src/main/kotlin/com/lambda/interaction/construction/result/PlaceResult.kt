@@ -42,9 +42,13 @@ sealed class PlaceResult : BuildResult() {
      */
     data class Place(
         override val blockPos: BlockPos,
-        val context: PlaceContext,
-    ) : PlaceResult() {
+        override val context: PlaceContext,
+    ) : Contextual, Drawable, PlaceResult() {
         override val rank = Rank.PLACE_SUCCESS
+
+        override fun SafeContext.buildRenderer() {
+            with(context) { buildRenderer() }
+        }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {

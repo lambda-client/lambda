@@ -42,6 +42,10 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
     open val pausesParent = false
     override val name: String get() = "${this::class.simpleName} at ${blockPos.toShortString()}"
 
+    interface Contextual {
+        val context: BuildContext
+    }
+
     /**
      * The build action is done.
      */
@@ -197,7 +201,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
     ) : Drawable, Resolvable, BuildResult() {
         override val name: String get() = "Wrong item ($currentItem) for ${blockPos.toShortString()} need ${neededItem.name.string}"
         override val rank = Rank.WRONG_ITEM
-        private val color = Color(3, 252, 169, 100)
+        private val color = Color(3, 252, 169, 25)
 
         override val pausesParent get() = true
 
@@ -233,7 +237,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
     ) : Drawable, Resolvable, BuildResult() {
         override val name: String get() = "Wrong stack for $blockPos need $neededStack."
         override val rank = Rank.WRONG_ITEM
-        private val color = Color(3, 252, 169, 100)
+        private val color = Color(3, 252, 169, 25)
 
         override val pausesParent get() = true
 
@@ -269,7 +273,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
     ) : Navigable, Drawable, BuildResult() {
         override val name: String get() = "Out of reach at $blockPos."
         override val rank = Rank.OUT_OF_REACH
-        private val color = Color(252, 3, 207, 100)
+        private val color = Color(252, 3, 207, 25)
 
         val distance: Double by lazy {
             misses.minOfOrNull { pov.distanceTo(it) } ?: 0.0

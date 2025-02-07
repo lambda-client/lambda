@@ -317,7 +317,7 @@ abstract class Task<Result> : Nameable, Muteable {
         buildString { appendTaskTree(this@Task) }
 
     private fun StringBuilder.appendTaskTree(task: Task<*>, level: Int = 0) {
-        appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " ${task.duration} [${task.state.display}]" else "")
+        appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " [${task.state.display}] ${task.duration}" else "")
         if (!TaskFlowModule.showAllEntries && (task.state == State.COMPLETED || task.state == State.CANCELLED)) return
         task.subTasks.forEach {
             if (!TaskFlowModule.showAllEntries && task is RootTask && (it.state == State.COMPLETED || it.state == State.CANCELLED)) return@forEach
