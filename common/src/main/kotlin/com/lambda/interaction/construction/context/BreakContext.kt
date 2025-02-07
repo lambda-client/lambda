@@ -71,7 +71,7 @@ data class BreakContext(
     override fun compareTo(other: BuildContext): Int {
         return when (other) {
             is BreakContext -> compareBy<BreakContext> {
-                it.distance
+                it.rotation.target.distance
             }.compare(this, other)
 
             else -> 1

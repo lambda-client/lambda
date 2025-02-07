@@ -19,6 +19,8 @@ package com.lambda.interaction.request.rotation.visibilty
 
 import com.lambda.context.SafeContext
 import com.lambda.interaction.request.rotation.Rotation
+import com.lambda.interaction.request.rotation.Rotation.Companion.dist
+import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.threading.runSafe
@@ -39,6 +41,10 @@ data class RotationTarget(
 
     val targetRotation = resettableLazy {
         runSafe { buildRotation() }
+    }
+
+    val distance by lazy {
+        runSafe { targetRotation.value?.dist(player.rotation) } ?: 1000.0
     }
 
     /**

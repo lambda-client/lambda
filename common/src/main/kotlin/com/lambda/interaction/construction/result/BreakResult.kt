@@ -28,7 +28,6 @@ import com.lambda.interaction.material.container.ContainerManager.findBestAvaila
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.container.containers.MainHandContainer
-import com.lambda.task.tasks.BreakBlock
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
@@ -106,7 +105,7 @@ sealed class BreakResult : BuildResult() {
                 ?: selectStack {
                     isItem(badItem).not()
                 }.transfer(MainHandContainer, inventory)
-                ?: MaterialContainer.Nothing("Couldn't find a tool for ${blockState.block.name.string} with $badItem in main hand.")
+                ?: MaterialContainer.FailureTask("Couldn't find a tool for ${blockState.block.name.string} with $badItem in main hand.")
 
         override fun SafeContext.buildRenderer() {
             withPos(blockPos, color)

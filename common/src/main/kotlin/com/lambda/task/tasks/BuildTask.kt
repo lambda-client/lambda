@@ -129,6 +129,7 @@ class BuildTask @Ta5kBuilder constructor(
                 is BuildResult.Unbreakable,
                 is BuildResult.Restricted,
                 is BuildResult.NoPermission -> {
+                    if (pendingInteractions.isNotEmpty()) return@listen
                     if (blueprint is PropagatingBlueprint) {
                         blueprint.next()
                         return@listen

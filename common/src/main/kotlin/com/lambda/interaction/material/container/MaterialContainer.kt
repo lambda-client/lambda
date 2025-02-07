@@ -80,7 +80,7 @@ abstract class MaterialContainer(
         this.stacks = stacks
     }
 
-    class Nothing(override val name: String = "Nothing") : Task<Unit>() {
+    class FailureTask(override val name: String) : Task<Unit>() {
         override fun SafeContext.onStart() {
             failure(name)
         }
