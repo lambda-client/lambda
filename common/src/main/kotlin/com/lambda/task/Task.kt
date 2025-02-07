@@ -313,11 +313,14 @@ abstract class Task<Result> : Nameable, Muteable {
     override fun toString() =
         buildString { appendTaskTree(this@Task) }
 
-    private fun StringBuilder.appendTaskTree(task: Task<*>, level: Int = 0) {
+    private fun StringBuilder.appendTaskTree(task: Task<*>, level: Int = 0, maxEntries: Int = 10) {
+        if (task.state == State.CANCELLED) return
         appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " [${task.state.display}] ${task.duration}" else "")
-        if (!TaskFlowModule.showAllEntries && (task.state == State.COMPLETED || task.state == State.CANCELLED)) return
-        task.subTasks.forEach {
-            if (!TaskFlowModule.showAllEntries && task is RootTask && (it.state == State.COMPLETED || it.state == State.CANCELLED)) return@forEach
+        val left = task.subTasks.size - maxEntries
+        if (left > 0) {
+            appendLine("${" ".repeat(level * 5)}...and $left more tasks")
+        }
+        task.subTasks.takeLast(maxEntries).forEach {
             appendTaskTree(it, level + 1)
         }
     }

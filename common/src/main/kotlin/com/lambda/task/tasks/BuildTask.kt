@@ -120,8 +120,6 @@ class BuildTask @Ta5kBuilder constructor(
             val resultsWithoutPending = results.filterNot { result ->
                 result.blockPos in pendingInteractions.map { it.expectedPos }
             }
-            val sortedResults = resultsWithoutPending.sorted()
-            sortedResults
             val bestResult = resultsWithoutPending.minOrNull() ?: return@listen
             when (bestResult) {
                 is BuildResult.Done,
@@ -172,7 +170,7 @@ class BuildTask @Ta5kBuilder constructor(
                 is Resolvable -> {
                     LOG.info("Resolving: ${bestResult.name}")
 
-                    bestResult.resolve().execute(this@BuildTask, pauseParent = true)
+                    bestResult.resolve().execute(this@BuildTask)
                 }
             }
         }
