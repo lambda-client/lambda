@@ -167,7 +167,7 @@ class BuildTask @Ta5kBuilder constructor(
                 is Resolvable -> {
                     LOG.info("Resolving: ${bestResult.name}")
 
-                    bestResult.resolve().execute(this@BuildTask, pauseParent = bestResult.pausesParent)
+                    bestResult.resolve().execute(this@BuildTask, pauseParent = true)
                 }
             }
         }
@@ -197,8 +197,8 @@ class BuildTask @Ta5kBuilder constructor(
 
         listen<WorldEvent.BlockUpdate.Server> { event ->
             pendingInteractions.firstOrNull { it.expectedPos == event.pos }?.let { context ->
-                if (!context.targetState.matches(event.newState, event.pos, world)) return@let
                 pendingInteractions.remove(context)
+                if (!context.targetState.matches(event.newState, event.pos, world)) return@let
                 when (context) {
                     is BreakContext -> breaks++
                     is PlaceContext -> placements++
