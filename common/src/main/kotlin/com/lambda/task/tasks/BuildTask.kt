@@ -79,7 +79,7 @@ class BuildTask @Ta5kBuilder constructor(
     init {
         listen<TickEvent.Pre> {
             currentInteraction?.let { context ->
-                if (context.shouldRotate(build) && !context.rotation.done) return@listen
+                if (context.shouldRotate(build) && !context.rotation.megaDone()) return@listen
                 context.interact(interact.swingHand)
             }
         }
@@ -163,7 +163,6 @@ class BuildTask @Ta5kBuilder constructor(
                 is BuildResult.Contextual -> {
                     if (pendingInteractions.size >= build.maxPendingInteractions) return@listen
 
-//                    info("Swapping interaction to ${bestResult.context.expectedPos} ${bestResult.context.distance}")
                     currentInteraction = bestResult.context
                 }
 
@@ -199,7 +198,6 @@ class BuildTask @Ta5kBuilder constructor(
         }
 
         listen<WorldEvent.BlockUpdate.Server>(alwaysListen = true) { event ->
-//            info("Update at ${event.pos.toShortString()}: ${event.newState.block.name.string}")
             pendingInteractions.firstOrNull { it.expectedPos == event.pos }?.let { context ->
                 pendingInteractions.remove(context)
                 if (!context.targetState.matches(event.newState, event.pos, world)) return@let

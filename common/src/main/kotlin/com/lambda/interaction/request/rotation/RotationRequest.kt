@@ -19,6 +19,7 @@ package com.lambda.interaction.request.rotation
 
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.Request
+import com.lambda.interaction.request.rotation.Rotation.Companion.dist
 import com.lambda.interaction.request.rotation.visibilty.RotationTarget
 import com.lambda.threading.runSafe
 
@@ -42,4 +43,6 @@ data class RotationRequest(
         mode == RotationMode.None || runSafe {
             target.verify(target)
         } == true
+
+    fun megaDone() = target.distance < 0.001
 }

@@ -35,10 +35,13 @@ import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.interaction.request.rotation.RotationRequest
+import com.lambda.interaction.request.rotation.visibilty.RequestedHit
+import com.lambda.interaction.request.rotation.visibilty.RotationTarget
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.CheckedHit
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.interaction.request.rotation.visibilty.lookAtBlock
+import com.lambda.interaction.request.rotation.visibilty.lookAtHit
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
@@ -58,6 +61,7 @@ import net.minecraft.item.ItemUsageContext
 import net.minecraft.registry.RegistryKeys
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
+import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
@@ -180,7 +184,13 @@ object BuildSimulator {
 
                     val newRotation = eye.rotationTo(vec)
 
-                    val hit = newRotation.rayCast(interact.interactReach, eye) ?: return@scanSurfaces
+                    val hit = if (interact.strictRayCast) {
+                        newRotation.rayCast(interact.interactReach, eye)?.blockResult
+                    } else {
+                        val hitVec = newRotation.castBox(box, interact.interactReach, eye)
+                        BlockHitResult(hitVec, hitSide, hitPos, false)
+                    } ?: return@scanSurfaces
+
                     val checked = CheckedHit(hit, newRotation, interact.interactReach)
                     if (!checked.verify()) return@scanSurfaces
 
@@ -411,7 +421,13 @@ object BuildSimulator {
 
                 val newRotation = eye.rotationTo(vec)
 
-                val hit = newRotation.rayCast(interact.interactReach, eye) ?: return@scanSurfaces
+                val hit = if (interact.strictRayCast) {
+                    newRotation.rayCast(interact.interactReach, eye)?.blockResult
+                } else {
+                    val hitVec = newRotation.castBox(box, interact.interactReach, eye)
+                    BlockHitResult(hitVec, side, pos, false)
+                } ?: return@scanSurfaces
+
                 val checked = CheckedHit(hit, newRotation, interact.interactReach)
                 if (!checked.verify()) return@scanSurfaces
 

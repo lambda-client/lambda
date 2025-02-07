@@ -318,7 +318,7 @@ abstract class Task<Result> : Nameable, Muteable {
         appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " [${task.state.display}] ${task.duration}" else "")
         val left = task.subTasks.size - maxEntries
         if (left > 0) {
-            appendLine("${" ".repeat(level * 5)}...and $left more tasks")
+            appendLine("${" ".repeat((level + 1) * 4)}...and $left more tasks")
         }
         task.subTasks.takeLast(maxEntries).forEach {
             appendTaskTree(it, level + 1)

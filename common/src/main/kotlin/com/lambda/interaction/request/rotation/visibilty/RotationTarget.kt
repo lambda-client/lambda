@@ -22,6 +22,7 @@ import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.dist
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.collections.resettableLazy
@@ -44,7 +45,7 @@ data class RotationTarget(
     }
 
     val distance by lazy {
-        runSafe { targetRotation.value?.dist(player.rotation) } ?: 1000.0
+        runSafe { targetRotation.value?.dist(RotationManager.currentRotation) } ?: 1000.0
     }
 
     /**
