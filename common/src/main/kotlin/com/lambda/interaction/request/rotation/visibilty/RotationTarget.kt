@@ -20,12 +20,11 @@ package com.lambda.interaction.request.rotation.visibilty
 import com.lambda.context.SafeContext
 import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.dist
-import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.threading.runSafe
-import com.lambda.util.collections.resettableLazy
+import com.lambda.util.collections.updatableLazy
 
 /**
  * Represents a target for rotation.
@@ -39,13 +38,13 @@ data class RotationTarget(
     val verify: RotationTarget.() -> Boolean = { hit?.verifyRotation() ?: true },
     private val buildRotation: SafeContext.() -> Rotation?,
 ) {
-    val targetRotation = resettableLazy {
+    val targetRotation = updatableLazy {
         runSafe { buildRotation() }
     }
 
-    val distance by lazy {
-        runSafe { targetRotation.value?.dist(RotationManager.currentRotation) } ?: 1000.0
-    }
+    val angleDistance get() = runSafe {
+        targetRotation.value?.dist(RotationManager.currentRotation)
+    } ?: 1000.0
 
     /**
      * Requests a rotation based on the given configuration.

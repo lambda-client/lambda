@@ -68,4 +68,4 @@ class UpdatableLazy<T>(private val initializer: () -> T) {
  * @param initializer A lambda function that defines how the value should be computed.
  * @return An `UpdatableLazy` instance capable of managing a lazily-initialized value.
  */
-fun <T> resettableLazy(initializer: () -> T) = UpdatableLazy(initializer)
+fun <T> updatableLazy(initializer: () -> T) = UpdatableLazy(initializer)

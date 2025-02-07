@@ -22,7 +22,6 @@ import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.rotation.Rotation.Companion.dist
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
@@ -83,7 +82,7 @@ data class PlaceContext(
             }.thenBy {
                 it.sneak
             }.thenBy {
-                it.rotation.target.distance
+                it.rotation.target.angleDistance
             }.thenBy {
                 it.distance
             }.thenBy {
