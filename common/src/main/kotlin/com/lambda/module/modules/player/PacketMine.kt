@@ -28,7 +28,6 @@ import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.interaction.request.rotation.RotationRequest
-import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.collectHitsFor
 import com.lambda.interaction.request.rotation.visibilty.lookAtBlock
 import com.lambda.module.Module
 import com.lambda.module.modules.client.TaskFlowModule
@@ -515,7 +514,7 @@ object PacketMine : Module(
             }
         }
 
-        listen<WorldEvent.BlockChange> {
+        listen<WorldEvent.BlockUpdate.Client> {
             currentMiningBlock.forEach { ctx ->
                 ctx?.apply {
                     if (it.pos != pos || !isStateBroken(pos.blockState(world), it.newState)) return@forEach

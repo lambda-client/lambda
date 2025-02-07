@@ -50,10 +50,10 @@ import com.lambda.util.Communication.info
 import com.lambda.util.Formatting.string
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.extension.Structure
-import com.lambda.util.world.toFastVec
+import net.minecraft.block.BlockState
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
+import net.minecraft.network.packet.s2c.play.ChunkDeltaUpdateS2CPacket
 import net.minecraft.util.math.BlockPos
-import java.util.concurrent.ConcurrentLinkedQueue
 
 class BuildTask @Ta5kBuilder constructor(
     private val blueprint: Blueprint,
@@ -68,7 +68,7 @@ class BuildTask @Ta5kBuilder constructor(
 
     private val pendingInteractions = LimitedDecayQueue<BuildContext>(
         build.maxPendingInteractions, build.interactionTimeout * 50L
-    ) { info("Interaction at ${it.expectedPos.toShortString()} timed out") }
+    ) { info("${it::class.simpleName} at ${it.expectedPos.toShortString()} timed out") }
     private var currentInteraction: BuildContext? = null
 
     private var placements = 0
@@ -106,16 +106,18 @@ class BuildTask @Ta5kBuilder constructor(
                 .plus(pendingInteractions.toList())
 //                .plus(sim.goodPositions())
 
-            val instantResults = results.filterIsInstance<BreakResult.Break>()
-                .filter { it.context.instantBreak }
-                .sorted()
-                .take(build.breaksPerTick)
+            if (build.breaksPerTick > 1) {
+                val instantResults = results.filterIsInstance<BreakResult.Break>()
+                    .filter { it.context.instantBreak }
+                    .sorted()
+                    .take(build.breaksPerTick)
 
-            if (build.breaksPerTick > 1 && instantResults.isNotEmpty()) {
                 instantResults.forEach {
                     it.context.interact(interact.swingHand)
+                    pendingInteractions.add(it.context)
                 }
-                return@listen
+
+                if (instantResults.isNotEmpty()) return@listen
             }
 
             val resultsWithoutPending = results.filterNot { result ->
@@ -186,24 +188,20 @@ class BuildTask @Ta5kBuilder constructor(
             }
         }
 
-        listen<WorldEvent.BlockChange> { event ->
-            val interaction = currentInteraction ?: return@listen
-            if (interaction.expectedPos != event.pos) return@listen
+        listen<WorldEvent.BlockUpdate.Client> { event ->
+            val context = currentInteraction ?: return@listen
+            if (context.expectedPos != event.pos) return@listen
             currentInteraction = null
-            pendingInteractions.add(interaction)
+            pendingInteractions.add(context)
         }
 
-        listen<PacketEvent.Receive.Pre> { event ->
-            val packet = event.packet
-            if (packet !is BlockUpdateS2CPacket) return@listen
-
-            pendingInteractions.firstOrNull { it.expectedPos == packet.pos }?.let {
-                if (it.targetState.matches(packet.state, packet.pos, world)) {
-                    pendingInteractions.remove(it)
-                    when (it) {
-                        is BreakContext -> breaks++
-                        is PlaceContext -> placements++
-                    }
+        listen<WorldEvent.BlockUpdate.Server> { event ->
+            pendingInteractions.firstOrNull { it.expectedPos == event.pos }?.let { context ->
+                if (!context.targetState.matches(event.newState, event.pos, world)) return@let
+                pendingInteractions.remove(context)
+                when (context) {
+                    is BreakContext -> breaks++
+                    is PlaceContext -> placements++
                 }
             }
         }
