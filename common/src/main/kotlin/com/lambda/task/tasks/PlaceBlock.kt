@@ -26,8 +26,11 @@ import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
-import com.lambda.interaction.rotation.Rotation.Companion.rotation
-import com.lambda.interaction.rotation.RotationRequest
+import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
+import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.interaction.request.rotation.RotationManager.onRotate
+import com.lambda.interaction.request.rotation.RotationRequest
+import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BlockUtils
@@ -40,6 +43,7 @@ import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
 class PlaceBlock @Ta5kBuilder constructor(
     private val ctx: PlaceContext,
     private val rotate: Boolean = TaskFlowModule.build.rotateForPlace,
+    private val rotation: RotationConfig = TaskFlowModule.rotation,
     private val interact: InteractionConfig = TaskFlowModule.interact,
     private val waitForConfirmation: Boolean = TaskFlowModule.build.placeConfirmation,
 ) : Task<Unit>() {
@@ -69,10 +73,7 @@ class PlaceBlock @Ta5kBuilder constructor(
             state = State.ROTATING
         } else {
             state = State.PRIME_ROTATION
-            primeContext = RotationRequest(
-                ctx.primeDirection.rotation,
-                ctx.rotation.config,
-            )
+            primeContext = ctx.rotation
         }
 
         if (matches) {
@@ -85,25 +86,26 @@ class PlaceBlock @Ta5kBuilder constructor(
     }
 
     init {
-        listen<RotationEvent.Update> { event ->
-            if (!rotate) return@listen
-            event.request = if (state == State.PRIME_ROTATION) {
-                primeContext
-            } else ctx.rotation
+        onRotate {
+           rotation.request(
+               if (state == State.PRIME_ROTATION) {
+                   primeContext ?: return@onRotate
+               } else ctx.rotation
+           )
         }
 
         listen<RotationEvent.Post> { event ->
             if (!rotate) return@listen
-            if (!event.request.isValid) return@listen
+            if (!event.request.done) return@listen
+
             when (state) {
                 State.PRIME_ROTATION -> {
-                    if (event.request.rotation != primeContext?.rotation) return@listen
+                    if (event.request.target != primeContext?.target) return@listen
                     state = State.ROTATING
                 }
 
                 State.ROTATING -> {
-                    if (event.request.rotation != ctx.rotation.rotation) return@listen
-                    if (!event.request.isValid) return@listen
+                    if (event.request.target != ctx.rotation.target) return@listen
 
                     state = State.PLACING
                 }

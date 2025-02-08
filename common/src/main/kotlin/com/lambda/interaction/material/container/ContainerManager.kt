@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.material.container
 
+import com.lambda.config.groups.InventoryConfig
 import com.lambda.core.Loadable
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
@@ -91,8 +92,8 @@ object ContainerManager : Loadable {
 
     fun container() = container.flatMap { setOf(it) + it.shulkerContainer }.sorted()
 
-    fun StackSelection.transfer(destination: MaterialContainer) =
-        findContainerWithMaterial(this)?.transfer(this, destination)
+    fun StackSelection.transfer(destination: MaterialContainer, inventory: InventoryConfig = TaskFlowModule.inventory) =
+        findContainerWithMaterial(this, inventory)?.transfer(this, destination)
 
     fun findContainer(
         block: (MaterialContainer) -> Boolean,
@@ -100,8 +101,9 @@ object ContainerManager : Loadable {
 
     fun findContainerWithMaterial(
         selection: StackSelection,
+        inventory: InventoryConfig
     ): MaterialContainer? =
-        containerWithMaterial(selection).firstOrNull()
+        containerWithMaterial(selection, inventory).firstOrNull()
 
     fun findContainerWithSpace(
         selection: StackSelection,
@@ -110,33 +112,36 @@ object ContainerManager : Loadable {
 
     fun containerWithMaterial(
         selection: StackSelection,
+        inventory: InventoryConfig = TaskFlowModule.inventory,
     ): List<MaterialContainer> =
         container()
-            .sortedWith(TaskFlowModule.inventory.providerPriority.materialComparator(selection))
+            .sortedWith(inventory.providerPriority.materialComparator(selection))
             .filter { it.materialAvailable(selection) >= selection.count }
 
     fun containerWithSpace(
         selection: StackSelection,
+        inventory: InventoryConfig = TaskFlowModule.inventory,
     ): List<MaterialContainer> =
         container()
-            .sortedWith(TaskFlowModule.inventory.providerPriority.spaceComparator(selection))
+            .sortedWith(inventory.providerPriority.spaceComparator(selection))
             .filter { it.spaceAvailable(selection) >= selection.count }
 
     fun findBestAvailableTool(
         blockState: BlockState,
         availableTools: Set<Item> = ItemUtils.tools,
+        inventory: InventoryConfig = TaskFlowModule.inventory,
     ) = availableTools.map {
         it to it.getMiningSpeedMultiplier(it.defaultStack, blockState)
     }.filter { (item, speed) ->
         speed > 1.0
                 && item.isSuitableFor(blockState)
-                && containerWithMaterial(item.select()).isNotEmpty()
+                && containerWithMaterial(item.select(), inventory).isNotEmpty()
     }.maxByOrNull {
         it.second
     }?.first
 
-    fun findDisposable() = container().find { container ->
-        TaskFlowModule.inventory.disposables.any { container.materialAvailable(it.item.select()) >= 0 }
+    fun findDisposable(inventory: InventoryConfig = TaskFlowModule.inventory) = container().find { container ->
+        inventory.disposables.any { container.materialAvailable(it.item.select()) >= 0 }
     }
 
     class NoContainerFound(selection: StackSelection) : Exception("No container found matching $selection")

@@ -18,13 +18,13 @@
 package com.lambda.module.modules.player
 
 import com.lambda.Lambda.mc
-import com.lambda.config.groups.RotationConfig
+import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.rotation.Rotation
-import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.rotation.RotationRequest
-import com.lambda.interaction.rotation.RotationMode
+import com.lambda.interaction.request.rotation.Rotation
+import com.lambda.interaction.request.rotation.RotationManager.onRotate
+import com.lambda.interaction.request.rotation.RotationMode
+import com.lambda.interaction.request.rotation.visibilty.lookAtHit
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.extension.partialTicks
@@ -42,7 +42,6 @@ import com.lambda.util.player.MovementUtils.roundedForward
 import com.lambda.util.player.MovementUtils.roundedStrafing
 import com.lambda.util.player.MovementUtils.verticalMovement
 import com.lambda.util.world.raycast.RayCastUtils.orMiss
-import com.lambda.util.world.raycast.RayCastUtils.orNull
 import net.minecraft.client.option.Perspective
 import net.minecraft.util.math.Vec3d
 
@@ -56,9 +55,7 @@ object Freecam : Module(
     private val reach by setting("Reach", 10.0, 1.0..100.0, 1.0, "Freecam reach distance")
     private val rotateToTarget by setting("Rotate to target", true)
 
-    private val rotationConfig = object : RotationConfig.Instant {
-        override val rotationMode = RotationMode.LOCK
-    }
+    private val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
 
     private var lastPerspective = Perspective.FIRST_PERSON
     private var prevPosition: Vec3d = Vec3d.ZERO
@@ -94,12 +91,12 @@ object Freecam : Module(
             mc.options.perspective = lastPerspective
         }
 
-        listen<RotationEvent.Update>(Int.MAX_VALUE) { event ->
-            if (!rotateToTarget) return@listen
-            val target = mc.crosshairTarget?.orNull ?: return@listen
+        onRotate {
+            if (!rotateToTarget) return@onRotate
 
-            val rotation = player.eyePos.rotationTo(target.pos)
-            event.request = RotationRequest(rotation, rotationConfig)
+            mc.crosshairTarget?.let {
+                lookAtHit(it)?.requestBy(rotationConfig)
+            }
         }
 
         listen<PlayerEvent.ChangeLookDirection> {

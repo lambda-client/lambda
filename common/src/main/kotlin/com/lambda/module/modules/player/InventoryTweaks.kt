@@ -24,7 +24,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task
-import com.lambda.task.TaskFlow.run
+import com.lambda.task.RootTask.run
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainer
 import com.lambda.task.tasks.PlaceContainer

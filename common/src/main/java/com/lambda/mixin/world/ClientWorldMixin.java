@@ -19,10 +19,13 @@ package com.lambda.mixin.world;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.EntityEvent;
+import com.lambda.event.events.WorldEvent;
 import com.lambda.module.modules.render.WorldColors;
 import com.lambda.util.math.ColorKt;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -33,8 +36,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(ClientWorld.class)
 public class ClientWorldMixin {
     @Inject(method = "addEntity", at = @At("HEAD"), cancellable = true)
-    private void addEntity(Entity entity, CallbackInfo ci) {
+    private void onAddEntity(Entity entity, CallbackInfo ci) {
         if (EventFlow.post(new EntityEvent.EntitySpawn(entity)).isCanceled()) ci.cancel();
+    }
+
+    @Inject(method = "removeEntity", at = @At("HEAD"))
+    private void onRemoveEntity(int entityId, Entity.RemovalReason removalReason, CallbackInfo ci) {
+        Entity entity = ((ClientWorld) (Object) this).getEntityById(entityId);
+        if (entity == null) return;
+        EventFlow.post(new EntityEvent.EntityRemoval(entity, removalReason));
     }
 
     @Inject(method = "getCloudsColor", at = @At("HEAD"), cancellable = true)
@@ -49,5 +59,10 @@ public class ClientWorldMixin {
         if (WorldColors.INSTANCE.isEnabled() && WorldColors.getCustomSky()) {
             cir.setReturnValue(ColorKt.getVec3d(WorldColors.getSkyColor()));
         }
+    }
+
+    @Inject(method = "handleBlockUpdate", at = @At("HEAD"), cancellable = true)
+    private void handleBlockUpdateInject(BlockPos pos, BlockState newState, int flags, CallbackInfo ci) {
+        if (EventFlow.post(new WorldEvent.BlockUpdate.Server(pos, newState)).isCanceled()) ci.cancel();
     }
 }

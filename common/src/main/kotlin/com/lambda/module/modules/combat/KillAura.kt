@@ -25,27 +25,13 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.RotationManager
-import com.lambda.interaction.RotationManager.rotate
-import com.lambda.interaction.rotation.Rotation
-import com.lambda.interaction.rotation.Rotation.Companion.dist
-import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.rotation.RotationRequest
-import com.lambda.interaction.visibilty.VisibilityChecker.scanSurfaces
-import com.lambda.interaction.visibilty.VisibilityChecker.visibleSides
+import com.lambda.interaction.request.rotation.RotationManager
+import com.lambda.interaction.request.rotation.visibilty.lookAtEntity
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runConcurrent
-import com.lambda.threading.runSafe
 import com.lambda.util.math.MathUtils.random
-import com.lambda.util.math.distSq
-import com.lambda.util.math.plus
-import com.lambda.util.math.times
-import com.lambda.util.math.lerp
-import com.lambda.util.player.MovementUtils.moveDiff
-import com.lambda.util.player.prediction.buildPlayerPrediction
+import com.lambda.util.world.raycast.InteractionMask
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
-import kotlinx.coroutines.delay
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.attribute.EntityAttributeModifier
@@ -55,8 +41,8 @@ import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.util.Hand
 import net.minecraft.util.math.Vec3d
-import kotlin.math.pow
 
+// ToDo: Rewrite me plz
 object KillAura : Module(
     name = "KillAura",
     description = "Attacks entities",
@@ -65,7 +51,7 @@ object KillAura : Module(
     private val page by setting("Page", Page.Interact)
 
     // Interact
-    private val interactionSettings = InteractionSettings(this, 3.0) { page == Page.Interact }
+    private val interactionSettings = InteractionSettings(this, InteractionMask.ENTITY) { page == Page.Interact }
     private val attackMode by setting("Attack Mode", AttackMode.Cooldown) { page == Page.Interact }
     private val delaySync by setting("Client-side Delay", true) { page == Page.Interact && attackMode == AttackMode.Cooldown }
     private val cooldownSync by setting("Client-side Cooldown", true) { page == Page.Interact && attackMode == AttackMode.Cooldown }
@@ -89,9 +75,11 @@ object KillAura : Module(
     private val selfPredict by setting("Self Predict", 1.0, 0.0..2.0, 0.1) { page == Page.Aiming && rotate }
     private val targetPredict by setting("Target Predict", 0.0, 0.0..2.0, 0.1) { page == Page.Aiming && rotate }
 
-    var target: LivingEntity? = null; private set
+    val target: LivingEntity?
+        get() = targeting.target()
 
     private var shakeRandom = Vec3d.ZERO
+    private var speedMultiplier = 1.0
 
     private var attackTicks = 0
     private var lastAttackTime = 0L
@@ -114,16 +102,6 @@ object KillAura : Module(
     }
 
     init {
-        rotate {
-            request {
-                if (!rotate) return@request null
-
-                target?.let { target ->
-                    buildRotation(target)
-                }
-            }
-        }
-
         listen<PlayerPacketEvent.Pre>(Int.MIN_VALUE) { event ->
             prevY = lastY
             lastY = event.position.y
@@ -131,20 +109,12 @@ object KillAura : Module(
         }
 
         listen<TickEvent.Pre> {
-            target = targeting.target()
             if (!timerSync) attackTicks++
 
+
             target?.let { entity ->
-                runAttack(entity)
-            }
-        }
-
-        runConcurrent {
-            while (true) {
-                delay(50) // ToDo: tps sync
-
-                runSafe {
-                    if (timerSync && isEnabled) attackTicks++
+                if (lookAtEntity(entity).requestBy(rotation).done) {
+                    runAttack(entity)
                 }
             }
         }
@@ -162,7 +132,7 @@ object KillAura : Module(
         onDisable(::reset)
     }
 
-    private fun SafeContext.buildRotation(target: LivingEntity): RotationRequest? {
+    /*private fun SafeContext.buildRotation(target: LivingEntity) {
         val currentRotation = RotationManager.currentRotation
 
         val prediction = buildPlayerPrediction()
@@ -187,15 +157,9 @@ object KillAura : Module(
         val box = target.boundingBox
 
         val reach = targeting.targetingRange + 2.0
-        val reachSq = reach.pow(2)
-
-        // Do not rotate if the eyes are inside the target's AABB
-        if (box.contains(eye)) {
-            return RotationRequest(currentRotation, rotation)
-        }
 
         // Rotation stabilizer
-        rotation.speedMultiplier = if (stabilize && !rotation.instant) {
+        speedMultiplier = if (stabilize && !rotation.instant) {
             val slowDown = currentRotation.castBox(box, reach, eye) != null
 
             with(rotation) {
@@ -242,28 +206,27 @@ object KillAura : Module(
             if (vecRotation.rayCast(reach, eye)?.entityResult?.entity == target) return@run
 
             // Get visible point set
-            val validHits = mutableMapOf<Vec3d, Rotation>()
-
-            val sides = visibleSides(box, eye, interactionSettings)
-
-            scanSurfaces(box, sides, resolution = interactionSettings.resolution) { _, vec ->
-                if (eye distSq vec > reachSq) return@scanSurfaces
-
-                val newRotation = eye.rotationTo(vec)
-
-                val cast = newRotation.rayCast(reach, eye) ?: return@scanSurfaces
-                if (cast.entityResult?.entity != target) return@scanSurfaces
-
-                validHits[vec] = newRotation
+            val validHits = collectHitsFor(
+                listOf(target.boundingBox),
+                reach
+            ) {
+                hit.entityResult?.entity == target
             }
 
             // Switch to the closest visible point
-            vec = validHits.minByOrNull { vecRotation dist it.value }?.key ?: return null
+            //vec = validHits.minByOrNull { vecRotation dist it.value }?.key ?: return null
         }
 
         val predictOffset = target.moveDiff * targetPredict
-        return RotationRequest(eye.rotationTo(vec + predictOffset), rotation)
-    }
+
+        return RotationRequest(
+            eye.rotationTo(),
+            rotation,
+            speedMultiplier
+        ) {
+            rayCast(reach, eye)?.entityResult == target
+        }
+    }*/
 
     private fun SafeContext.runAttack(target: LivingEntity) {
         // Critical hit check
@@ -296,13 +259,13 @@ object KillAura : Module(
             if (!rotate) return@run
             val angle = RotationManager.currentRotation
 
-            if (interactionSettings.useRayCast) {
-                val cast = angle.rayCast(interactionSettings.reach)
+            if (interactionSettings.strictRayCast) {
+                val cast = angle.rayCast(interactionSettings.attackReach)
                 if (cast?.entityResult?.entity != target) return
             }
 
             // Perform a raycast without checking the environment
-            angle.castBox(target.boundingBox, interactionSettings.reach) ?: return
+            angle.castBox(target.boundingBox, interactionSettings.attackReach) ?: return
         }
 
         // Attack
@@ -327,9 +290,8 @@ object KillAura : Module(
     }
 
     private fun reset(ctx: SafeContext) = ctx.apply {
-        target = null
         attackTicks = player.lastAttackedTicks
-        rotation.speedMultiplier = 1.0
+        speedMultiplier = 1.0
         shakeRandom = Vec3d.ZERO
 
         lastY = 0.0

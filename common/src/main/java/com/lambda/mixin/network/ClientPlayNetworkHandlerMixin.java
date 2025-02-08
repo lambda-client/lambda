@@ -29,9 +29,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ClientPlayNetworkHandler.class)
 public class ClientPlayNetworkHandlerMixin {
-    @Inject(method = "onUpdateSelectedSlot", at = @At("TAIL"))
+    @Inject(method = "onUpdateSelectedSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/util/thread/ThreadExecutor;)V", shift = At.Shift.AFTER), cancellable = true)
     private void onUpdateSelectedSlot(UpdateSelectedSlotS2CPacket packet, CallbackInfo ci) {
-        EventFlow.post(new InventoryEvent.SelectedHotbarSlotUpdate(packet.getSlot()));
+        if (EventFlow.post(new InventoryEvent.HotbarSlot.Sync(packet.getSlot())).isCanceled()) ci.cancel();
     }
 
     @Inject(method = "onScreenHandlerSlotUpdate", at = @At("TAIL"))

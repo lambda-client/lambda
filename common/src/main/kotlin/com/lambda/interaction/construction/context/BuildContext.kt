@@ -17,8 +17,10 @@
 
 package com.lambda.interaction.construction.context
 
+import com.lambda.config.groups.BuildConfig
 import com.lambda.interaction.construction.result.Drawable
-import com.lambda.interaction.rotation.RotationRequest
+import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.request.rotation.RotationRequest
 import net.minecraft.block.BlockState
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
@@ -30,14 +32,12 @@ interface BuildContext : Comparable<BuildContext>, Drawable {
     val result: BlockHitResult
     val distance: Double
     val expectedState: BlockState
+    val targetState: TargetState
     val expectedPos: BlockPos
     val checkedState: BlockState
     val hand: Hand
     val rotation: RotationRequest
 
-    override fun compareTo(other: BuildContext): Int {
-        return compareBy<BuildContext> {
-            it.distance
-        }.compare(this, other)
-    }
+    fun interact(swingHand: Boolean)
+    fun shouldRotate(config: BuildConfig): Boolean
 }

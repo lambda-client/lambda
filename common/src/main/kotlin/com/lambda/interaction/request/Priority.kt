@@ -15,18 +15,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.collections
+package com.lambda.interaction.request
 
-class ResettableLazy<T>(private val initializer: () -> T) {
-    private var _value: T? = null
-
-    val value: T?
-        get() {
-            if (_value == null) _value = initializer()
-            return _value
-        }
-
-    fun reset() {
-        _value = null
-    }
-}
+typealias Priority = Int

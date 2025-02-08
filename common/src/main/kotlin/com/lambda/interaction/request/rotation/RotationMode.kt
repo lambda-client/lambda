@@ -15,23 +15,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.rotation
+package com.lambda.interaction.request.rotation
 
-import com.lambda.config.groups.RotationConfig
-import com.lambda.interaction.RotationManager
-import com.lambda.threading.runSafe
-import com.lambda.util.world.raycast.RayCastUtils.orMiss
-import net.minecraft.util.hit.HitResult
-
-data class RotationRequest(
-    val rotation: Rotation,
-    val config: RotationConfig,
-    val checkedResult: HitResult? = null,
-    val verify: HitResult.() -> Boolean = { true },
-) {
-    val isValid: Boolean get() = runSafe {
-        // ToDo: Use proper reach
-        val result = RotationManager.currentRotation.rayCast(10.0, player.eyePos)
-        verify(result.orMiss)
-    } ?: false
+/**
+ * @property Silent Spoofing server-side rotation.
+ * @property Sync Spoofing server-side rotation and adjusting client-side movement based on reported rotation (for Grim).
+ * @property Lock Locks the camera client-side.
+ * @property None No rotation.
+ */
+enum class RotationMode {
+    Silent,
+    Sync,
+    Lock,
+    None
 }

@@ -19,6 +19,7 @@ package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
+import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.material.StackSelection.Companion.select
@@ -27,7 +28,6 @@ import com.lambda.interaction.material.container.ContainerManager.findBestAvaila
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.container.containers.MainHandContainer
-import com.lambda.task.tasks.BreakBlock
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
@@ -42,18 +42,12 @@ sealed class BreakResult : BuildResult() {
      */
     data class Break(
         override val blockPos: BlockPos,
-        val context: BreakContext,
-    ) : Drawable, Resolvable, BreakResult() {
+        override val context: BreakContext,
+    ) : Drawable, Contextual, BreakResult() {
         override val rank = Rank.BREAK_SUCCESS
-        private val color = Color(222, 0, 0, 100)
-
-        var collectDrop = false
-        override val pausesParent get() = collectDrop
-
-        override fun resolve() = BreakBlock(context, collectDrop)
 
         override fun SafeContext.buildRenderer() {
-            withPos(context.expectedPos, color, context.result.side)
+            with(context) { buildRenderer() }
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
@@ -97,6 +91,7 @@ sealed class BreakResult : BuildResult() {
         override val blockPos: BlockPos,
         val blockState: BlockState,
         val badItem: Item,
+        val inventory: InventoryConfig
     ) : Drawable, Resolvable, BreakResult() {
         override val rank = Rank.BREAK_ITEM_CANT_MINE
         private val color = Color(255, 0, 0, 100)
@@ -104,13 +99,13 @@ sealed class BreakResult : BuildResult() {
         override val pausesParent get() = true
 
         override fun resolve() =
-            findBestAvailableTool(blockState)
+            findBestAvailableTool(blockState, inventory = inventory)
                 ?.select()
-                ?.transfer(MainHandContainer)
+                ?.transfer(MainHandContainer, inventory)
                 ?: selectStack {
                     isItem(badItem).not()
-                }.transfer(MainHandContainer)
-                ?: MaterialContainer.Nothing("Couldn't find a tool for ${blockState.block.name.string} with $badItem in main hand.")
+                }.transfer(MainHandContainer, inventory)
+                ?: MaterialContainer.FailureTask("Couldn't find a tool for ${blockState.block.name.string} with $badItem in main hand.")
 
         override fun SafeContext.buildRenderer() {
             withPos(blockPos, color)

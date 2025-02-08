@@ -56,7 +56,7 @@ class SlotTransfer @Ta5kBuilder constructor(
         listen<TickEvent.Pre> {
             val current = player.currentScreenHandler
             if (current != screen) {
-                failure("Screen has changed. Expected ${screen::class.simpleName} (revision ${screen.revision}, got ${current::class.simpleName} (revision ${current.revision})")
+                failure("Screen has changed. Expected ${screen::class.simpleName} (revision ${screen.revision}) but got ${current::class.simpleName} (revision ${current.revision})")
                 return@listen
             }
 

@@ -27,6 +27,7 @@ accessible method net/minecraft/entity/Entity setFlag (IZ)V
 accessible field net/minecraft/client/network/AbstractClientPlayerEntity playerListEntry Lnet/minecraft/client/network/PlayerListEntry;
 accessible field net/minecraft/entity/LivingEntity jumpingCooldown I
 accessible field net/minecraft/entity/Entity pos Lnet/minecraft/util/math/Vec3d;
+accessible field net/minecraft/client/network/ClientPlayerInteractionManager lastSelectedSlot I
 
 # Camera
 accessible method net/minecraft/client/render/Camera setPos (DDD)V
@@ -63,6 +64,8 @@ accessible field net/minecraft/network/ClientConnection packetsSentCounter I
 accessible field net/minecraft/network/ClientConnection packetsReceivedCounter I
 accessible field net/minecraft/network/packet/c2s/login/LoginKeyC2SPacket encryptedSecretKey [B
 accessible field net/minecraft/network/packet/c2s/login/LoginKeyC2SPacket nonce [B
+accessible method net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket <init> (IZLnet/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler;)V
+accessible field net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket ATTACK Lnet/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler;
 
 # Other
 accessible field net/minecraft/world/explosion/Explosion behavior Lnet/minecraft/world/explosion/ExplosionBehavior;

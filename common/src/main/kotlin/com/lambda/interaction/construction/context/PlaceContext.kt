@@ -17,11 +17,12 @@
 
 package com.lambda.interaction.construction.context
 
+import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.rotation.RotationRequest
+import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
 import com.lambda.util.Communication.warn
@@ -42,16 +43,15 @@ data class PlaceContext(
     override val checkedState: BlockState,
     override val hand: Hand,
     override val expectedPos: BlockPos,
-    val targetState: TargetState,
+    override val targetState: TargetState,
     val sneak: Boolean,
     val insideBlock: Boolean,
     val primeDirection: Direction?,
 ) : BuildContext {
-    var placeTick = 0L
     private val baseColor = Color(35, 188, 254, 25)
     private val sideColor = Color(35, 188, 254, 100)
 
-    fun place(swingHand: Boolean) {
+    override fun interact(swingHand: Boolean) {
         runSafe {
             val actionResult = interaction.interactBlock(
                 player, hand, result
@@ -65,7 +65,6 @@ data class PlaceContext(
                 if (!player.getStackInHand(hand).isEmpty && interaction.hasCreativeInventory()) {
                     mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
                 }
-                placeTick = mc.uptimeInTicks
             } else {
                 warn("Internal interaction failed with $actionResult")
             }
@@ -83,6 +82,8 @@ data class PlaceContext(
             }.thenBy {
                 it.sneak
             }.thenBy {
+                it.rotation.target.angleDistance
+            }.thenBy {
                 it.distance
             }.thenBy {
                 it.insideBlock
@@ -95,4 +96,6 @@ data class PlaceContext(
         withState(expectedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side.opposite))
         withState(expectedState, expectedPos, sideColor, result.side.opposite)
     }
+
+    override fun shouldRotate(config: BuildConfig) = config.rotateForPlace
 }

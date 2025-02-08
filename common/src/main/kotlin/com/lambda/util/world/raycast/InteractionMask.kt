@@ -15,15 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.rotation
+package com.lambda.util.world.raycast
 
-/**
- * @property SILENT Spoofing server-side rotation.
- * @property SYNC Spoofing server-side rotation and adjusting client-side movement based on reported rotation (for Grim).
- * @property LOCK Locks the camera client-side.
- */
-enum class RotationMode {
-    SILENT,
-    SYNC,
-    LOCK
+enum class InteractionMask(val block: Boolean, val entity: Boolean) {
+    BOTH(true, true),
+    BLOCK(true, false),
+    ENTITY(false, true)
 }

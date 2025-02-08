@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.rotation
+package com.lambda.interaction.request.rotation
 
 import com.lambda.Lambda.mc
 import com.lambda.threading.runSafe
@@ -24,7 +24,7 @@ import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.plus
 import com.lambda.util.math.times
-import com.lambda.util.world.raycast.RayCastMask
+import com.lambda.util.world.raycast.InteractionMask
 import com.lambda.util.world.raycast.RayCastUtils.rayCast
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Box
@@ -42,6 +42,10 @@ data class Rotation(val yaw: Double, val pitch: Double) {
 
     fun equalFloat(other: Rotation): Boolean = yawF == other.yawF && pitchF == other.pitchF
 
+    /**
+     * Returns the player's rotation vector
+     * Same as [net.minecraft.entity.Entity.getRotationVec]
+     */
     val vector: Vec3d
         get() {
             val yawRad = -yaw.toRadian()
@@ -58,7 +62,7 @@ data class Rotation(val yaw: Double, val pitch: Double) {
         reach: Double,
         eye: Vec3d? = null,
         fluids: Boolean = false,
-        mask: RayCastMask = RayCastMask.BOTH,
+        mask: InteractionMask = InteractionMask.BOTH,
     ) = runSafe {
         rayCast(eye ?: player.eyePos, vector, reach, mask, fluids)
     }

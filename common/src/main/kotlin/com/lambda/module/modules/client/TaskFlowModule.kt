@@ -21,11 +21,13 @@ import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
+import com.lambda.core.PingManager
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.world.raycast.InteractionMask
 
 object TaskFlowModule : Module(
     name = "TaskFlow",
@@ -39,7 +41,7 @@ object TaskFlowModule : Module(
     private val page by setting("Page", Page.BUILD)
     val build = BuildSettings(this) { page == Page.BUILD }
     val rotation = RotationSettings(this) { page == Page.ROTATION }
-    val interact = InteractionSettings(this) { page == Page.INTERACTION }
+    val interact = InteractionSettings(this, InteractionMask.BOTH) { page == Page.INTERACTION }
     val inventory = InventorySettings(this) { page == Page.INVENTORY }
 
     val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree") { page == Page.DEBUG }
@@ -54,4 +56,6 @@ object TaskFlowModule : Module(
             }
         }
     }
+
+
 }

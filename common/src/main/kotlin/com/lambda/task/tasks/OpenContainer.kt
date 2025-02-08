@@ -18,11 +18,11 @@
 package com.lambda.task.tasks
 
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.config.groups.RotationConfig
+import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.event.events.InventoryEvent
-import com.lambda.event.events.RotationEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.visibilty.VisibilityChecker.lookAtBlock
+import com.lambda.interaction.request.rotation.visibilty.lookAtBlock
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -80,22 +80,16 @@ class OpenContainer @Ta5kBuilder constructor(
             }
         }
 
-        listen<RotationEvent.Update> { event ->
-            if (!rotate) return@listen
-            event.request = lookAtBlock(blockPos, rotation, interact, sides)
-        }
-
-        listen<RotationEvent.Post> {
-            if (!rotate) return@listen
+        listen<TickEvent.Pre> {
             if (state != State.SCOPING) return@listen
-            if (!it.request.isValid) return@listen
 
-            if (inScope++ >= interact.scopeThreshold) {
-                val hitResult = it.request.checkedResult?.blockResult ?: return@listen
-                interaction.interactBlock(player, Hand.MAIN_HAND, hitResult)
+            val target = lookAtBlock(blockPos, sides, config = interact)
+            if (rotate && !target.requestBy(rotation).done) return@listen
 
-                state = State.OPENING
-            }
+            val hitResult = target.hit?.hitIfValid()?.blockResult ?: return@listen
+            interaction.interactBlock(player, Hand.MAIN_HAND, hitResult)
+
+            state = State.OPENING
         }
     }
 }

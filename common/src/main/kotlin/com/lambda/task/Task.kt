@@ -28,6 +28,8 @@ import com.lambda.threading.runSafe
 import com.lambda.util.Communication.logError
 import com.lambda.util.Nameable
 import com.lambda.util.StringUtils.capitalize
+import kotlin.time.DurationUnit
+import kotlin.time.toDuration
 
 typealias TaskGenerator<R> = SafeContext.(R) -> Task<*>
 typealias TaskGeneratorOrNull<R> = SafeContext.(R) -> Task<*>?
@@ -42,8 +44,6 @@ abstract class Task<Result> : Nameable, Muteable {
     private val depth: Int get() = parent?.depth?.plus(1) ?: 0
     val isCompleted get() = state == State.COMPLETED
     val size: Int get() = subTasks.sumOf { it.size } + 1
-
-    open var unpausable = false
 
     private var nextTask: TaskGenerator<Result>? = null
     private var nextTaskOrNull: TaskGeneratorOrNull<Result>? = null
@@ -113,9 +113,9 @@ abstract class Task<Result> : Nameable, Muteable {
         owner.subTasks.add(this)
         parent = owner
         LOG.info("${owner.name} started $name")
-        if (!unpausable || pauseParent) {
-            LOG.info("$name deactivating parent ${owner.name}")
-            if (owner !is TaskFlow) owner.deactivate()
+        if (pauseParent) {
+            LOG.info("$name pausing parent ${owner.name}")
+            if (owner !is RootTask) owner.pause()
         }
         state = State.RUNNING
         runSafe { runCatching { onStart() }.onFailure { failure(it) } }
@@ -143,9 +143,8 @@ abstract class Task<Result> : Nameable, Muteable {
     }
 
     @Ta5kBuilder
-    fun deactivate() {
+    fun pause() {
         if (state != State.RUNNING) return
-        if (unpausable) return
         state = State.PAUSED
     }
 
@@ -168,7 +167,7 @@ abstract class Task<Result> : Nameable, Muteable {
     @Ta5kBuilder
     fun cancel() {
         cancelSubTasks()
-        if (this is TaskFlow) return
+        if (this is RootTask) return
         if (state == State.COMPLETED || state == State.CANCELLED) return
         state = State.CANCELLED
         unsubscribe()
@@ -306,14 +305,22 @@ abstract class Task<Result> : Nameable, Muteable {
         return this
     }
 
+    val duration: String get() =
+        (age * 50).toDuration(DurationUnit.MILLISECONDS).toComponents { days, hours, minutes, seconds, nanoseconds ->
+            "${"%03d".format(days)}:${"%02d".format(hours)}:${"%02d".format(minutes)}:${"%02d".format(seconds)}.${"${nanoseconds / 1_000_000}".take(2)}"
+        }
+
     override fun toString() =
         buildString { appendTaskTree(this@Task) }
 
-    private fun StringBuilder.appendTaskTree(task: Task<*>, level: Int = 0) {
-        appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is TaskFlow) " [${task.state.display}]" else "")
-        if (!TaskFlowModule.showAllEntries && (task.state == State.COMPLETED || task.state == State.CANCELLED)) return
-        task.subTasks.forEach {
-            if (!TaskFlowModule.showAllEntries && task is TaskFlow && (it.state == State.COMPLETED || it.state == State.CANCELLED)) return@forEach
+    private fun StringBuilder.appendTaskTree(task: Task<*>, level: Int = 0, maxEntries: Int = 10) {
+        if (task.state == State.CANCELLED) return
+        appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " [${task.state.display}] ${task.duration}" else "")
+        val left = task.subTasks.size - maxEntries
+        if (left > 0) {
+            appendLine("${" ".repeat((level + 1) * 4)}...and $left more tasks")
+        }
+        task.subTasks.takeLast(maxEntries).forEach {
             appendTaskTree(it, level + 1)
         }
     }

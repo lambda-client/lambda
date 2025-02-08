@@ -56,7 +56,10 @@ interface Drawable {
     }
 
     fun SafeContext.withShape(shape: VoxelShape, offset: BlockPos, color: Color, mask: Int = DirectionMask.ALL) {
-        if (shape.isEmpty) return
+        if (shape.isEmpty) {
+            withBox(Box(offset), color, mask)
+            return
+        }
         shape.boundingBoxes.forEach { box ->
             withBox(box.offset(offset), color, mask)
         }

@@ -21,7 +21,7 @@ import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.task.TaskFlow
+import com.lambda.task.RootTask
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 
@@ -34,15 +34,15 @@ object TaskCommand : LambdaCommand(
         required(literal("cancel")) {
             execute {
                 this@TaskCommand.info("Cancelling all tasks")
-                TaskFlow.cancel()
+                RootTask.cancel()
             }
         }
 
         required(literal("clear")) {
             execute {
                 this@TaskCommand.info("Clearing all tasks")
-                TaskFlow.cancel()
-                TaskFlow.clear()
+                RootTask.cancel()
+                RootTask.clear()
             }
         }
     }

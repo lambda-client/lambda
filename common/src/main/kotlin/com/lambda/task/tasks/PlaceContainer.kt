@@ -48,7 +48,7 @@ class PlaceContainer @Ta5kBuilder constructor(
                 it.blockPos
                     .toStructure(TargetState.Stack(startStack))
                     .toBlueprint()
-                    .simulate(player.getCameraPosVec(mc.tickDelta))
+                    .simulate(player.eyePos)
             }
 
         val succeeds = results.filterIsInstance<PlaceResult.Place>().filter {
