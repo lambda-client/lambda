@@ -25,6 +25,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.warn
 import net.minecraft.block.BlockState
 import net.minecraft.util.Hand
@@ -94,7 +95,7 @@ data class PlaceContext(
 
     override fun SafeContext.buildRenderer() {
         withState(expectedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side.opposite))
-        withState(expectedState, expectedPos, sideColor, result.side.opposite)
+        withState(result.blockPos.blockState(world), result.blockPos, sideColor, result.side.opposite)
     }
 
     override fun shouldRotate(config: BuildConfig) = config.rotateForPlace

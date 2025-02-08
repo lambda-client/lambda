@@ -27,10 +27,14 @@ import net.minecraft.util.math.Direction
 
 class SwapHandsTransaction @Ta5kBuilder constructor() : InventoryTransaction() {
     override val name: String get() = "Swap Hand Stacks"
+    private var confirming = false
 
     init {
         listen<TickEvent.Pre> {
-            if (player.isSpectator) return@listen
+            if (player.isSpectator) {
+                failure("Spectators cannot swap hands")
+                return@listen
+            }
             connection.sendPacket(
                 PlayerActionC2SPacket(
                     PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
@@ -38,10 +42,12 @@ class SwapHandsTransaction @Ta5kBuilder constructor() : InventoryTransaction() {
                     Direction.DOWN
                 )
             )
+            confirming = true
         }
 
         listen<InventoryEvent.SlotUpdate> {
-            finish()
+            // ToDo: Check slot
+            if (confirming) finish()
         }
     }
 }

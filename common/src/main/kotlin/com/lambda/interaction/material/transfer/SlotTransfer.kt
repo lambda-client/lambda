@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.material.transfer
 
-import com.lambda.Lambda.LOG
 import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
@@ -28,6 +27,7 @@ import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.extension.containerSlots
 import com.lambda.util.extension.inventorySlots
+import com.lambda.util.item.ItemUtils.block
 import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.Slot
 
@@ -37,11 +37,10 @@ class SlotTransfer @Ta5kBuilder constructor(
     val from: List<Slot>,
     val to: List<Slot>,
     private val closeScreen: Boolean = true,
-    private val settings: InventoryConfig = TaskFlowModule.inventory,
+    private val config: InventoryConfig = TaskFlowModule.inventory,
 ) : Task<Unit>() {
-    private var selectedFrom = selection.filterSlots(from)
-    private var selectedTo =
-        to.filter { it.stack.isEmpty } // + to.filter { it.stack.item.block in TaskFlowModule.disposables }
+    private var selectedFrom = listOf<Slot>()
+    private var selectedTo = listOf<Slot>()
     override val name: String
         get() = "Moving $selection from slots [${selectedFrom.joinToString { "${it.id}" }}] to slots [${selectedTo.joinToString { "${it.id}" }}] in ${screen::class.simpleName}"
 
@@ -54,42 +53,31 @@ class SlotTransfer @Ta5kBuilder constructor(
 
     init {
         listen<TickEvent.Pre> {
+            if (changes.fulfillsSelection(to, selection)) {
+                if (closeScreen) { player.closeHandledScreen() }
+                success()
+                return@listen
+            }
+
             val current = player.currentScreenHandler
             if (current != screen) {
                 failure("Screen has changed. Expected ${screen::class.simpleName} (revision ${screen.revision}) but got ${current::class.simpleName} (revision ${current.revision})")
                 return@listen
             }
 
-            if (changes.fulfillsSelection(to, selection)) {
-                if (closeScreen) player.closeHandledScreen()
-                success()
-                return@listen
-            }
-
-            if (--delay >= 0) return@listen
-            delay = settings.actionTimout
-
             selectedFrom = selection.filterSlots(from)
-            selectedTo =
-                to.filter { it.stack.isEmpty } // + to.filter { it.stack.item.block in TaskFlowModule.disposables }
+            selectedTo = to.filter { it.stack.isEmpty } + to.filter { it.stack.item.block in config.disposables }
 
             val nextFrom = selectedFrom.firstOrNull() ?: return@listen
             val nextTo = selectedTo.firstOrNull() ?: return@listen
 
-            LOG.info("Changes so far:\n$changes")
-
             transfer {
                 moveSlot(nextFrom.id, nextTo.id)
+//                swap(nextFrom.id, 0)
+//                swap(nextTo.id, 0)
             }.finally { change ->
                 changes merge change
             }.execute(this@SlotTransfer)
-
-//            if (transfer.fulfillsSelection(selection)) {
-//                info("Transfer complete")
-////                success()
-////                if (closeScreen) player.closeHandledScreen()
-//                return@listen
-//            }
         }
     }
 

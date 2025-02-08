@@ -17,8 +17,10 @@
 
 package com.lambda.interaction.material.transfer.transaction
 
+import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.material.transfer.InventoryChanges
 import com.lambda.interaction.material.transfer.InventoryTransaction
 import com.lambda.util.player.SlotUtils.clickSlot
 import net.minecraft.screen.slot.SlotActionType
@@ -30,13 +32,10 @@ class ClickSlotTransaction @Ta5kBuilder constructor(
 ) : InventoryTransaction() {
     override val name: String get() = "Click slot #$slotId with action $actionType and button $button"
 
-    init {
-        listen<TickEvent.Pre> {
-            clickSlot(slotId, button, actionType)
-        }
-
-        listen<TickEvent.Post> {
-            finish()
-        }
+    override fun SafeContext.onStart() {
+        changes = InventoryChanges(player.currentScreenHandler.slots)
+        clickSlot(slotId, button, actionType)
+        changes.detectChanges()
+        success(changes)
     }
 }

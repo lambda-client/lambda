@@ -37,6 +37,7 @@ class PickFromInventoryTransaction @Ta5kBuilder constructor(
         }
 
         listen<InventoryEvent.HotbarSlot.Update> {
+            // ToDo: Check slot
             finish()
         }
     }

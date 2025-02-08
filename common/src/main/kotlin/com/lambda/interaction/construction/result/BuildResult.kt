@@ -235,7 +235,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
         val neededStack: ItemStack,
         val inventory: InventoryConfig
     ) : Drawable, Resolvable, BuildResult() {
-        override val name: String get() = "Wrong stack for $blockPos need $neededStack."
+        override val name: String get() = "Wrong stack for ${blockPos.toShortString()} need $neededStack."
         override val rank = Rank.WRONG_ITEM
         private val color = Color(3, 252, 169, 25)
 

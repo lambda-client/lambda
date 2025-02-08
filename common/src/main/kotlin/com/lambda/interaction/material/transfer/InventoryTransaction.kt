@@ -22,7 +22,7 @@ import com.lambda.task.Task
 import com.lambda.threading.runSafe
 
 abstract class InventoryTransaction : Task<InventoryChanges>() {
-    private lateinit var changes: InventoryChanges
+    lateinit var changes: InventoryChanges
 
     override fun SafeContext.onStart() {
         changes = InventoryChanges(player.currentScreenHandler.slots)

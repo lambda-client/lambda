@@ -25,7 +25,6 @@ interface InventoryConfig {
     val disposables: Set<Block>
     val accessEnderChest: Boolean
 
-    val actionTimout: Int
     val swapWithDisposables: Boolean
 
     val providerPriority: Priority
