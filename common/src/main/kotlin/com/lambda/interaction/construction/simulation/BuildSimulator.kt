@@ -35,13 +35,10 @@ import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.interaction.request.rotation.RotationRequest
-import com.lambda.interaction.request.rotation.visibilty.RequestedHit
-import com.lambda.interaction.request.rotation.visibilty.RotationTarget
+import com.lambda.interaction.request.rotation.visibilty.*
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.CheckedHit
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.scanSurfaces
-import com.lambda.interaction.request.rotation.visibilty.lookAtBlock
-import com.lambda.interaction.request.rotation.visibilty.lookAtHit
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
@@ -267,7 +264,7 @@ object BuildSimulator {
                 }
 
                 val resultState = blockItem.getPlacementState(context) ?: run {
-//                    acc.add(PlaceResult.BlockedByPlayer(pos))
+                    acc.add(PlaceResult.BlockedByEntity(pos))
                     return@forEach
                 }
 

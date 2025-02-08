@@ -84,11 +84,11 @@ sealed class PlaceResult : BuildResult() {
     }
 
     /**
-     * Represents a scenario where block placement is obstructed by a player.
+     * Represents a scenario where block placement is obstructed by an entity.
      *
      * @property blockPos The position of the block that was attempted to be placed.
      */
-    data class BlockedByPlayer(
+    data class BlockedByEntity(
         override val blockPos: BlockPos,
     ) : Navigable, PlaceResult() {
         override val rank = Rank.PLACE_BLOCKED_BY_PLAYER
