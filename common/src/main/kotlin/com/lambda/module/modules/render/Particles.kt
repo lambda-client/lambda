@@ -135,7 +135,7 @@ object Particles : Module(
         repeat(environmentSpawnAmount) {
             var particlePos = player.pos + Rotation(random(-180.0, 180.0), 0.0).vector * random(0.0, environmentRange)
 
-            Rotation.DOWN.rayCast(6.0, particlePos + UP * 2.0, true, InteractionMask.BLOCK)?.pos?.let {
+            Rotation.DOWN.rayCast(6.0, particlePos + UP * 2.0, true, InteractionMask.Block)?.pos?.let {
                 particlePos = it + UP * 0.03
             } ?: return@repeat
 

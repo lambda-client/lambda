@@ -103,7 +103,7 @@ fun lookAtEntity(
             player.eyePos,
             ALL_SIDES,
             SurfaceScan.DEFAULT,
-            InteractionMask.ENTITY,
+            InteractionMask.Entity,
             config
         ) { requestedHit.verifyHit(hit) }?.targetRotation
     }
@@ -133,7 +133,7 @@ fun lookAtBlock(
             player.eyePos,
             sides,
             surfaceScan,
-            InteractionMask.BLOCK,
+            InteractionMask.Block,
             config
         ) { requestedHit.verifyHit(hit) }?.targetRotation
     }

@@ -49,9 +49,9 @@ class InteractionSettings(
     }
 
     override val scanReach: Double get() = when (usage) {
-        InteractionMask.ENTITY -> attackReach
-        InteractionMask.BLOCK -> interactReach
-        InteractionMask.BOTH -> max(attackReach, interactReach)
+        InteractionMask.Entity -> attackReach
+        InteractionMask.Block -> interactReach
+        InteractionMask.Both -> max(attackReach, interactReach)
     }
 
     // Point scan

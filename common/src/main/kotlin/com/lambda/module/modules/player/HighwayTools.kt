@@ -17,10 +17,7 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.groups.BuildSettings
-import com.lambda.config.groups.InteractionSettings
-import com.lambda.config.groups.InventorySettings
-import com.lambda.config.groups.RotationSettings
+import com.lambda.config.groups.*
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
@@ -53,22 +50,22 @@ object HighwayTools : Module(
 
     private val height by setting("Height", 4, 2..10, 1) { page == Page.Structure }
     private val width by setting("Width", 6, 1..30, 1) { page == Page.Structure }
-    private val pavement by setting("Pavement", Material.Block, description = "Material for the pavement") { page == Page.Structure }
+    private val pavement by setting("Pavement", Material.Block, "Material for the pavement") { page == Page.Structure }
     private val rimHeight by setting("Pavement Rim Height", 1, 0..6, 1) { page == Page.Structure && pavement != Material.None }
-    private val cornerBlock by setting("Corner", Corner.None, description = "Include corner blocks in the highway") { page == Page.Structure && pavement != Material.None }
-    private val pavementMaterial by setting("Pavement Material", Blocks.OBSIDIAN, description = "Material to build the highway with") { page == Page.Structure && pavement == Material.Block }
-    private val floor by setting("Floor", Material.None, description = "Material for the floor") { page == Page.Structure }
-    private val floorMaterial by setting("Floor Material", Blocks.NETHERRACK, description = "Material to build the floor with") { page == Page.Structure && floor == Material.Block }
-    private val walls by setting("Walls", Material.None, description = "Material for the walls") { page == Page.Structure }
-    private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, description = "Material to build the walls with") { page == Page.Structure && walls == Material.Block }
-    private val ceiling by setting("Ceiling", Material.None, description = "Material for the ceiling") { page == Page.Structure }
-    private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, description = "Material to build the ceiling with") { page == Page.Structure && ceiling == Material.Block }
-    private val distance by setting("Distance", -1, -1..1000000, 1, description = "Distance to build the highway/tunnel (negative for infinite)") { page == Page.Structure }
-    private val sliceSize by setting("Slice Size", 3, 1..5, 1, description = "Number of slices to build at once") { page == Page.Structure }
+    private val cornerBlock by setting("Corner", Corner.None, "Include corner blocks in the highway") { page == Page.Structure && pavement != Material.None }
+    private val pavementMaterial by setting("Pavement Material", Blocks.OBSIDIAN, "Material to build the highway with") { page == Page.Structure && pavement == Material.Block }
+    private val floor by setting("Floor", Material.None, "Material for the floor") { page == Page.Structure }
+    private val floorMaterial by setting("Floor Material", Blocks.NETHERRACK, "Material to build the floor with") { page == Page.Structure && floor == Material.Block }
+    private val walls by setting("Walls", Material.None, "Material for the walls") { page == Page.Structure }
+    private val wallMaterial by setting("Wall Material", Blocks.NETHERRACK, "Material to build the walls with") { page == Page.Structure && walls == Material.Block }
+    private val ceiling by setting("Ceiling", Material.None, "Material for the ceiling") { page == Page.Structure }
+    private val ceilingMaterial by setting("Ceiling Material", Blocks.OBSIDIAN, "Material to build the ceiling with") { page == Page.Structure && ceiling == Material.Block }
+    private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)") { page == Page.Structure }
+    private val sliceSize by setting("Slice Size", 3, 1..5, 1, "Number of slices to build at once") { page == Page.Structure }
 
     private val build = BuildSettings(this) { page == Page.Build }
     private val rotation = RotationSettings(this) { page == Page.Rotation }
-    private val interact = InteractionSettings(this, InteractionMask.BLOCK) { page == Page.Interaction }
+    private val interact = InteractionSettings(this, InteractionMask.Block) { page == Page.Interaction }
     private val inventory = InventorySettings(this) { page == Page.Inventory }
 
     private var octant = EightWayDirection.NORTH
@@ -78,11 +75,11 @@ object HighwayTools : Module(
     private var runningTask: Task<*>? = null
 
     enum class Material {
-        None, Solid, Block,
+        None, Solid, Block
     }
 
     enum class Corner {
-        None, Solid,
+        None, Solid
     }
 
     enum class Page {

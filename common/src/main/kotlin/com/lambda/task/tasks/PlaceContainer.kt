@@ -17,6 +17,9 @@
 
 package com.lambda.task.tasks
 
+import com.lambda.config.groups.BuildConfig
+import com.lambda.config.groups.InteractionConfig
+import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
@@ -24,6 +27,8 @@ import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
@@ -37,6 +42,10 @@ import net.minecraft.util.math.Direction
 
 class PlaceContainer @Ta5kBuilder constructor(
     val stack: ItemStack,
+    val build: BuildConfig = TaskFlowModule.build,
+    val rotation: RotationConfig = TaskFlowModule.rotation,
+    val interact: InteractionConfig = TaskFlowModule.interact,
+    val inventory: InventoryConfig = TaskFlowModule.inventory,
 ) : Task<BlockPos>() {
     private val startStack: ItemStack = stack.copy()
     override val name: String get() = "Placing container ${startStack.name.string}"
@@ -58,7 +67,12 @@ class PlaceContainer @Ta5kBuilder constructor(
             canBeOpened(startStack, it.blockPos, it.context.result.side)
         }
         (succeeds + wrongStacks).minOrNull()?.let { result ->
-            build {
+            build(
+                build = build,
+                rotation = rotation,
+                interact = interact,
+                inventory = inventory,
+            ) {
                 result.blockPos
                     .toStructure(TargetState.Stack(startStack))
                     .toBlueprint()

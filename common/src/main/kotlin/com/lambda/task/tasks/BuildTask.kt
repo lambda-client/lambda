@@ -206,8 +206,9 @@ class BuildTask @Ta5kBuilder constructor(
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
             interact: InteractionConfig = TaskFlowModule.interact,
+            inventory: InventoryConfig = TaskFlowModule.inventory,
             blueprint: () -> Blueprint,
-        ) = BuildTask(blueprint(), finishOnDone, collectDrops, build, rotation, interact)
+        ) = BuildTask(blueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory)
 
         @Ta5kBuilder
         fun Structure.build(

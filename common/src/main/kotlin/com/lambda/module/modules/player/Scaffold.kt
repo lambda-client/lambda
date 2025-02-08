@@ -86,7 +86,7 @@ object Scaffold : Module(
     private val direction by setting("Direction", LookingDirection.FREE) { page == Page.ROTATION }
     private val optimalPitch by setting("Optimal Pitch", 81.0, 70.0..85.0, 0.05) { page == Page.ROTATION }
 
-    private val interactionConfig = InteractionSettings(this, InteractionMask.BLOCK) { page == Page.INTERACTION }
+    private val interactionConfig = InteractionSettings(this, InteractionMask.Block) { page == Page.INTERACTION }
 
     // Placement
     private var placeInfo: PlaceInfo? = null

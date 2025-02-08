@@ -18,9 +18,7 @@
 package com.lambda.interaction.request.rotation.visibilty
 
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.config.groups.InteractionSettings
 import com.lambda.context.SafeContext
-import com.lambda.interaction.construction.processing.PreprocessingStep
 import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.request.rotation.*
@@ -29,7 +27,6 @@ import com.lambda.util.extension.component6
 import com.lambda.util.math.distSq
 import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.entity.LivingEntity
-import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
@@ -111,7 +108,7 @@ object VisibilityChecker {
 
                 val newRotation = eye.rotationTo(vec)
 
-                val mask = if (interaction.strictRayCast) InteractionMask.BOTH else targetType
+                val mask = if (interaction.strictRayCast) InteractionMask.Both else targetType
                 val hit = newRotation.rayCast(reach, eye, mask = mask) ?: return@scanSurfaces
 
                 val checked = CheckedHit(hit, newRotation, reach)
@@ -143,7 +140,7 @@ object VisibilityChecker {
 
                 val newRotation = eye.rotationTo(vec)
 
-                val mask = if (interaction.strictRayCast || entity == null) InteractionMask.BOTH else targetType
+                val mask = if (interaction.strictRayCast || entity == null) InteractionMask.Both else targetType
                 val hit = newRotation.rayCast(reach, eye, mask = mask) ?: return@scanSurfaces
 
                 val checked = CheckedHit(hit, newRotation, reach)

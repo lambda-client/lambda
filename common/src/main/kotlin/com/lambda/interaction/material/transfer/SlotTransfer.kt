@@ -72,9 +72,9 @@ class SlotTransfer @Ta5kBuilder constructor(
             val nextTo = selectedTo.firstOrNull() ?: return@listen
 
             transfer {
-                moveSlot(nextFrom.id, nextTo.id)
-//                swap(nextFrom.id, 0)
-//                swap(nextTo.id, 0)
+//                moveSlot(nextFrom.id, nextTo.id)
+                swap(nextTo.id, 0)
+                swap(nextFrom.id, 0)
             }.finally { change ->
                 changes merge change
             }.execute(this@SlotTransfer)
