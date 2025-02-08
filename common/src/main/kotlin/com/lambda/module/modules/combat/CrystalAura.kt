@@ -39,7 +39,9 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.Communication.info
 import com.lambda.util.Timer
+import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.combat.CombatUtils.crystalDamage
 import com.lambda.util.math.*
 import com.lambda.util.math.MathUtils.ceilToInt
@@ -56,8 +58,7 @@ import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.*
 import kotlin.concurrent.fixedRateTimer
 import kotlin.math.max
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
+import kotlin.time.Duration.Companion.milliseconds
 
 object CrystalAura : Module(
     name = "CrystalAura",
@@ -69,8 +70,8 @@ object CrystalAura : Module(
     /* General */
     private val placeRange by setting("Place Range", 4.6, 1.0..7.0, 0.1, "Range to place crystals", " blocks") { page == Page.General }
     private val explodeRange by setting("Explode Range", 3.0, 1.0..7.0, 0.1, "Range to explode crystals", " blocks") { page == Page.General }
-    private val placeDelay by setting("Place Delay", 50L, 0L..1000L, 5L, "Delay between placement attempts", " ms") { page == Page.General }
-    private val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 5L, "Delay between explosion attempts", " ms") { page == Page.General }
+    private val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms") { page == Page.General }
+    private val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms") { page == Page.General }
     private val updateMode by setting("Update Mode", UpdateMode.Async) { page == Page.General }
     private val updateDelaySetting by setting("Update Delay", 25L, 5L..200L, 5L, unit = " ms") { page == Page.General && updateMode == UpdateMode.Async }
     private val maxUpdatesPerFrame by setting("Max Updates Per Frame", 5, 1..20, 1) { page == Page.General && updateMode == UpdateMode.Async }
@@ -117,6 +118,8 @@ object CrystalAura : Module(
     private val predictionTimer = Timer()
     private var lastEntityId = 0
 
+    private val decay = LimitedDecayQueue<Int>(10000, 3000L)
+
     private val collidingOffsets = mutableListOf<BlockPos>().apply {
         for (x in -1..1) {
             for (z in -1..1) {
@@ -140,7 +143,7 @@ object CrystalAura : Module(
             if (CrystalAura.isDisabled || updateMode != UpdateMode.Async) return@fixedRateTimer
 
             runSafe {
-                // timer may spam faster than main thread computes(game freezes completely at the beginning of the frame)
+                // timer may spam faster than main thread computes (game freezes completely at the beginning of the frame)
                 if (updatesThisFrame > maxUpdatesPerFrame) return@runSafe
                 updatesThisFrame++
 
@@ -148,6 +151,19 @@ object CrystalAura : Module(
                 runSafeGameScheduled {
                     tick()
                 }
+            }
+        }
+
+        fixedRateTimer(
+            name = "CA Counter",
+            daemon = true,
+            initialDelay = 0L,
+            period = 1000L
+        ) {
+            if (CrystalAura.isDisabled || !debug) return@fixedRateTimer
+
+            runSafeGameScheduled {
+                info((decay.size.toDouble() * 0.3333).roundToStep(0.1).toString())
             }
         }
 
@@ -211,7 +227,9 @@ object CrystalAura : Module(
             val pos = crystal.baseBlockPos
 
             // Invalidate crystal entity
-            blueprint[pos]?.crystal = null
+            val opportunity = blueprint[pos] ?: return@listen
+            opportunity.crystal = null
+            decay += crystal.id
         }
 
         onEnable {
@@ -279,7 +297,7 @@ object CrystalAura : Module(
     }
 
     private fun SafeContext.updateBlueprint(target: LivingEntity) =
-        updateTimer.runIfPassed(updateDelay.toDuration(DurationUnit.MILLISECONDS)) {
+        updateTimer.runIfPassed(updateDelay.milliseconds) {
             resetBlueprint()
 
         // Build damage info
@@ -452,10 +470,10 @@ object CrystalAura : Module(
         fun place() {
             if (rotation.rotate && !lookAt(placeRotation).requestBy(rotation).done) return
 
-            placeTimer.runSafeIfPassed(placeDelay.toDuration(DurationUnit.MILLISECONDS)) {
+            placeTimer.runSafeIfPassed(placeDelay.milliseconds) {
                 placeInternal(this@Opportunity, Hand.MAIN_HAND)
 
-                if (prediction.onPlace) predictionTimer.runIfNotPassed(packetLifetime.toDuration(DurationUnit.MILLISECONDS), false) {
+                if (prediction.onPlace) predictionTimer.runIfNotPassed(packetLifetime.milliseconds, false) {
                     val last = lastEntityId
 
                     repeat(placePredictions) {
@@ -475,7 +493,7 @@ object CrystalAura : Module(
         fun explode() {
             if (rotation.rotate && !lookAt(placeRotation).requestBy(rotation).done) return
 
-            explodeTimer.runSafeIfPassed(explodeDelay.toDuration(DurationUnit.MILLISECONDS)) {
+            explodeTimer.runSafeIfPassed(explodeDelay.milliseconds) {
                 crystal?.let { crystal ->
                     explodeInternal(crystal.id)
                     explodeTimer.reset()

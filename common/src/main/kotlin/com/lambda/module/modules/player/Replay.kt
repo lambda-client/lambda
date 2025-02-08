@@ -56,6 +56,7 @@ import java.lang.reflect.Type
 import java.time.format.DateTimeFormatter
 import kotlin.io.path.pathString
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -571,7 +572,7 @@ object Replay : Module(
         val endPos: Vec3d
             get() = position.lastOrNull() ?: Vec3d.ZERO
         val pruneTimesave: Duration
-            get() = (position.findCyclicPaths(5).size * 50L).toDuration(DurationUnit.MILLISECONDS)
+            get() = (position.findCyclicPaths(5).size * 50L).milliseconds
 
         fun duplicate() = Recording(
             input.take(size).toMutableList(),

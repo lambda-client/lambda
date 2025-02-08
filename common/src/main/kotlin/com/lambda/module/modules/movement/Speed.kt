@@ -51,7 +51,7 @@ object Speed : Module(
     @JvmStatic
     val mode by setting("Mode", Mode.GRIM_STRAFE).apply {
         onValueChange { _, _ ->
-            reset()
+            Speed.reset()
         }
     }
 

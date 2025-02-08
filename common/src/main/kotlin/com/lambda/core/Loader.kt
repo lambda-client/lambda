@@ -22,14 +22,13 @@ import com.lambda.Lambda.LOG
 import com.lambda.util.Communication.ascii
 import com.lambda.util.reflections.getInstances
 import kotlin.system.measureTimeMillis
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
+import kotlin.time.Duration.Companion.milliseconds
 
 object Loader {
     private val started = System.currentTimeMillis()
 
     val runtime: String
-        get() = "${(System.currentTimeMillis() - started).toDuration(DurationUnit.MILLISECONDS)}"
+        get() = "${(System.currentTimeMillis() - started).milliseconds}"
 
     private val loadables = getInstances<Loadable> { forPackages("com.lambda") }
 
