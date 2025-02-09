@@ -51,7 +51,7 @@ interface Drawable {
     }
 
     fun SafeContext.withPos(blockPos: BlockPos, color: Color, mask: Int = DirectionMask.ALL) {
-        val shape = blockPos.blockState(world).getOutlineShape(world, blockPos)
+        val shape = blockState(blockPos).getOutlineShape(world, blockPos)
         withShape(shape, blockPos, color, mask)
     }
 

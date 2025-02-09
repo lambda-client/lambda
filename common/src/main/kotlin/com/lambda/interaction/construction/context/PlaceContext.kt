@@ -95,7 +95,7 @@ data class PlaceContext(
 
     override fun SafeContext.buildRenderer() {
         withState(expectedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side.opposite))
-        withState(result.blockPos.blockState(world), result.blockPos, sideColor, result.side)
+        withState(blockState(result.blockPos), result.blockPos, sideColor, result.side)
     }
 
     override fun shouldRotate(config: BuildConfig) = config.rotateForPlace

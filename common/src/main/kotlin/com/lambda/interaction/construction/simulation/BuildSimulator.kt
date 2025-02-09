@@ -100,7 +100,7 @@ object BuildSimulator {
             return BuildResult.ChunkNotLoaded(pos)
         }
 
-        val state = pos.blockState(world)
+        val state = blockState(pos)
 
         /* block is already in the correct state */
         if (target.matches(state, pos, world)) {
@@ -144,7 +144,7 @@ object BuildSimulator {
         inventory: InventoryConfig
     ): Set<BuildResult> {
         val acc = mutableSetOf<BuildResult>()
-        val targetPosState = pos.blockState(world)
+        val targetPosState = blockState(pos)
 
         if (target.isAir() || !targetPosState.isReplaceable) return acc
 
@@ -154,7 +154,7 @@ object BuildSimulator {
             val hitPos = if (targetPosState.isAir || targetPosState.isLiquid) pos.offset(neighbor) else pos
             val hitSide = neighbor.opposite
 
-            val voxelShape = hitPos.blockState(world).getOutlineShape(world, hitPos)
+            val voxelShape = blockState(hitPos).getOutlineShape(world, hitPos)
             if (voxelShape.isEmpty) return@forEach
 
             val boxes = voxelShape.boundingBoxes.map { it.offset(hitPos) }
@@ -278,7 +278,7 @@ object BuildSimulator {
                 }
 
                 val blockHit = checkedResult.blockResult ?: return@forEach
-                val hitBlock = blockHit.blockPos.blockState(world).block
+                val hitBlock = blockState(blockHit.blockPos).block
                 val shouldSneak = hitBlock::class in BlockUtils.interactionClasses
 
                 val primeDirection =
@@ -290,7 +290,7 @@ object BuildSimulator {
                     RotationRequest(lookAt(checkedHit.targetRotation, 0.001), rotation),
                     eye.distanceTo(blockHit.pos),
                     resultState,
-                    blockHit.blockPos.blockState(world),
+                    blockState(blockHit.blockPos),
                     Hand.MAIN_HAND,
                     context.blockPos,
                     target,
@@ -326,7 +326,7 @@ object BuildSimulator {
         build: BuildConfig
     ): Set<BuildResult> {
         val acc = mutableSetOf<BuildResult>()
-        val state = pos.blockState(world)
+        val state = blockState(pos)
 
         /* is a block that will be destroyed by breaking adjacent blocks */
         if (build.breakWeakBlocks && state.block.hardness == 0f && !state.isAir) {
@@ -339,7 +339,7 @@ object BuildSimulator {
         val aabb = Box(pBox.minX, pBox.minY - 1.0E-6, pBox.minZ, pBox.maxX, pBox.minY, pBox.maxZ)
         world.findSupportingBlockPos(player, aabb).orElse(null)?.let { support ->
             if (support != pos) return@let
-            val belowSupport = support.down().blockState(world)
+            val belowSupport = blockState(support.down())
             if (belowSupport.isSolidSurface(world, support, player, Direction.UP)) return@let
             acc.add(BreakResult.PlayerOnTop(pos, state))
             return acc
@@ -354,14 +354,14 @@ object BuildSimulator {
         }
 
         val adjacentLiquids = Direction.entries.filter {
-            it != Direction.DOWN && !pos.offset(it).blockState(world).fluidState.isEmpty
+            it != Direction.DOWN && !blockState(pos.offset(it)).fluidState.isEmpty
         }.map { pos.offset(it) }
 
         /* block has liquids next to it that will leak when broken */
         if (adjacentLiquids.isNotEmpty()) {
             acc.add(BreakResult.BlockedByLiquid(pos, state))
             adjacentLiquids.forEach { liquidPos ->
-                val submerge = if (liquidPos.blockState(world).isReplaceable) {
+                val submerge = if (blockState(liquidPos).isReplaceable) {
                     checkPlaceResults(liquidPos, TargetState.Solid, eye, interact, rotation, inventory)
                 } else {
                     checkBreakResults(liquidPos, eye, interact, rotation, inventory, build)

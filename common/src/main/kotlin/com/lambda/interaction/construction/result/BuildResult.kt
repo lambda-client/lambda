@@ -209,7 +209,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
             .transfer(MainHandContainer, inventory) ?: MaterialContainer.FailureTask("Couldn't find ${neededItem.name.string} anywhere.")
 
         override fun SafeContext.buildRenderer() {
-            if (blockPos.blockState(world).isAir) {
+            if (blockState(blockPos).isAir) {
                 withBox(Box(blockPos), color)
             } else {
                 withPos(blockPos, color)
@@ -246,7 +246,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
                 .transfer(MainHandContainer, inventory) ?: MaterialContainer.FailureTask("Couldn't find ${neededStack.item.name.string} anywhere.")
 
         override fun SafeContext.buildRenderer() {
-            if (blockPos.blockState(world).isAir) {
+            if (blockState(blockPos).isAir) {
                 withBox(Box(blockPos), color)
             } else {
                 withPos(blockPos, color)

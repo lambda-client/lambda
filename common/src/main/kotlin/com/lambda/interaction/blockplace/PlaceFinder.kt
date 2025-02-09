@@ -86,7 +86,7 @@ class PlaceFinder(
         val distSq = eyes distSq hitVec
 
         if (distSq > rangeSq) return null
-        if (clickPos.blockState(world).isClickable) return null
+        if (blockState(clickPos).isClickable) return null
 
         if (visibleCheck) {
             val box = Box(clickPos)

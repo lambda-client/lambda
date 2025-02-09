@@ -335,7 +335,7 @@ object CrystalAura : Module(
             target: LivingEntity
         ): Opportunity? {
             // Check if crystals could be placed on the base block
-            val state = pos.blockState(world)
+            val state = blockState(pos)
             val isOfBlock = state.isOf(Blocks.OBSIDIAN) || state.isOf(Blocks.BEDROCK)
             if (!isOfBlock) return null
 

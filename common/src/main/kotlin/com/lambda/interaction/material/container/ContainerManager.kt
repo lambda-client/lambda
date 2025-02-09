@@ -57,7 +57,7 @@ object ContainerManager : Loadable {
 
     init {
         listen<PlayerEvent.Interact.Block> {
-            lastInteractedBlockEntity = it.blockHitResult.blockPos.blockEntity(world)
+            lastInteractedBlockEntity = blockEntity(it.blockHitResult.blockPos)
         }
 
         listen<InventoryEvent.Close> { event ->

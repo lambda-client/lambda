@@ -349,7 +349,7 @@ object PacketMine : Module(
 
                     mineTicks++
 
-                    val activeState = pos.blockState(world)
+                    val activeState = blockState(pos)
                     state = activeState
 
                     val empty = isStateEmpty(activeState)
@@ -517,7 +517,7 @@ object PacketMine : Module(
         listen<WorldEvent.BlockUpdate.Client> {
             currentMiningBlock.forEach { ctx ->
                 ctx?.apply {
-                    if (it.pos != pos || !isStateBroken(pos.blockState(world), it.newState)) return@forEach
+                    if (it.pos != pos || !isStateBroken(blockState(pos), it.newState)) return@forEach
 
                     if (breakType.isPrimary()) {
                         runHandlers(ProgressStage.PacketReceiveBreak, pos, lastValidBestTool)
@@ -596,7 +596,7 @@ object PacketMine : Module(
             if (renderQueueMode.isEnabled()) {
                 blockQueue.forEach { pos ->
                     var boxes = if (renderQueueMode == RenderQueueMode.Shape) {
-                        pos.blockState(world).getOutlineShape(world, pos).boundingBoxes
+                        blockState(pos).getOutlineShape(world, pos).boundingBoxes
                     } else {
                         listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
                     }
@@ -668,7 +668,7 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.startBreaking(pos: BlockPos) {
-        val state = pos.blockState(world)
+        val state = blockState(pos)
         val bestTool = getBestTool(state, pos)
         if (!isStateEmpty(state)) lastNonEmptyState = state
 

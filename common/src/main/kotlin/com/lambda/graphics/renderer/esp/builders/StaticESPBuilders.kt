@@ -37,7 +37,7 @@ fun StaticESPRenderer.ofShape(
     sides: Int = DirectionMask.ALL,
     outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
 ) = runSafe {
-    val shape = pos.blockState(world).getOutlineShape(world, pos)
+    val shape = blockState(pos).getOutlineShape(world, pos)
     ofShape(pos, shape, filledColor, outlineColor, sides, outlineMode)
 }
 
@@ -92,7 +92,7 @@ fun StaticESPRenderer.buildFilledShape(
     color: Color,
     sides: Int = DirectionMask.ALL,
 ) = runSafe {
-    val shape = pos.blockState(world).getOutlineShape(world, pos)
+    val shape = blockState(pos).getOutlineShape(world, pos)
     buildFilledShape(shape, color, sides)
 }
 
@@ -129,7 +129,7 @@ fun StaticESPRenderer.buildOutlineShape(
     sides: Int = DirectionMask.ALL,
     outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
 ) = runSafe {
-    val shape = pos.blockState(world).getOutlineShape(world, pos)
+    val shape = blockState(pos).getOutlineShape(world, pos)
     buildOutlineShape(shape, color, sides, outlineMode)
 }
 
