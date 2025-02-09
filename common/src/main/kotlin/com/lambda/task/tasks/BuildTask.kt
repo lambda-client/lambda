@@ -17,12 +17,14 @@
 
 package com.lambda.task.tasks
 
+import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.config.groups.InventoryConfig
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.context.SafeContext
+import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
@@ -41,6 +43,7 @@ import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
@@ -50,6 +53,10 @@ import com.lambda.util.Communication.info
 import com.lambda.util.Formatting.string
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.extension.Structure
+import com.lambda.util.extension.inventorySlots
+import com.lambda.util.item.ItemUtils.block
+import com.lambda.util.player.SlotUtils.hotbarAndStorage
+import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 
 class BuildTask @Ta5kBuilder constructor(
@@ -71,7 +78,8 @@ class BuildTask @Ta5kBuilder constructor(
 
     private var placements = 0
     private var breaks = 0
-    private var goodPositions = setOf<BlockPos>()
+    private val dropsToCollect = mutableSetOf<ItemEntity>()
+//    private var goodPositions = setOf<BlockPos>()
 
     override fun SafeContext.onStart() {
         (blueprint as? PropagatingBlueprint)?.next()
@@ -80,6 +88,7 @@ class BuildTask @Ta5kBuilder constructor(
     init {
         listen<TickEvent.Pre> {
             currentInteraction?.let { context ->
+//                TaskFlowModule.drawables = listOf(context)
                 if (context.shouldRotate(build) && !context.rotation.done) return@let
                 context.interact(interact.swingHand)
             }
@@ -88,6 +97,30 @@ class BuildTask @Ta5kBuilder constructor(
                 pendingInteractions.add(context)
             }
             instantBreaks.clear()
+
+            dropsToCollect.firstOrNull()?.let { itemDrop ->
+                if (!world.entities.contains(itemDrop)) {
+                    dropsToCollect.remove(itemDrop)
+                    BaritoneUtils.cancel()
+                    return@listen
+                }
+
+                val noInventorySpace = player.hotbarAndStorage.none { it.isEmpty }
+                if (noInventorySpace) {
+                    val stackToThrow = player.currentScreenHandler.inventorySlots.firstOrNull {
+                        it.stack.item.block in TaskFlowModule.inventory.disposables
+                    } ?: run {
+                        failure("No item in inventory to throw but inventory is full and cant pick up item drop")
+                        return@listen
+                    }
+                    transfer {
+                        throwStack(stackToThrow.id)
+                    }.execute(this@BuildTask)
+                    return@listen
+                }
+
+                BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
+            }
         }
 
         listen<TickEvent.Post> {
@@ -100,6 +133,8 @@ class BuildTask @Ta5kBuilder constructor(
         }
 
         onRotate {
+            if (collectDrops && dropsToCollect.isNotEmpty()) return@onRotate
+
 //            val sim = blueprint.simulation(interact, rotation, inventory)
 //            BlockPos.iterateOutwards(player.blockPos, 5, 5, 5).forEach { pos ->
 //                sim.simulate(pos.toFastVec())
@@ -107,6 +142,7 @@ class BuildTask @Ta5kBuilder constructor(
 
             // ToDo: Simulate for each pair player positions that work
             val results = blueprint.simulate(player.eyePos, interact, rotation, inventory, build)
+
             TaskFlowModule.drawables = results.filterIsInstance<Drawable>()
                 .plus(pendingInteractions.toList())
 //                .plus(sim.goodPositions())
@@ -194,6 +230,19 @@ class BuildTask @Ta5kBuilder constructor(
                     is BreakContext -> breaks++
                     is PlaceContext -> placements++
                 }
+            }
+        }
+
+        // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
+        listen<EntityEvent.EntityUpdate> {
+            if (!collectDrops) return@listen
+            if (it.entity !is ItemEntity) return@listen
+            pendingInteractions.find { context ->
+                val inRange = context.expectedPos.toCenterPos().isInRange(it.entity.pos, 0.5)
+                val correctMaterial = context.checkedState.block == it.entity.stack.item.block
+                inRange && correctMaterial
+            }?.let { context ->
+                dropsToCollect.add(it.entity)
             }
         }
     }
