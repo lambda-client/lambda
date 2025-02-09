@@ -28,6 +28,7 @@ import com.lambda.threading.runSafe
 import com.lambda.util.Communication.logError
 import com.lambda.util.Nameable
 import com.lambda.util.StringUtils.capitalize
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -315,7 +316,7 @@ abstract class Task<Result> : Nameable, Muteable {
 
     private fun StringBuilder.appendTaskTree(task: Task<*>, level: Int = 0, maxEntries: Int = 10) {
         if (task.state == State.CANCELLED) return
-        appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " [${task.state.display}] ${task.duration}" else "")
+        appendLine("${" ".repeat(level * 4)}${task.name}" + if (task !is RootTask) " [${task.state.display}] ${(task.age * 50).milliseconds}" else "")
         val left = task.subTasks.size - maxEntries
         if (left > 0) {
             appendLine("${" ".repeat((level + 1) * 4)}...and $left more tasks")

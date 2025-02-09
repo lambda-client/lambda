@@ -41,6 +41,7 @@ object TaskFlowModule : Module(
     val inventory = InventorySettings(this) { page == Page.Inventory }
 
     val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree") { page == Page.Debug }
+    val shrinkFactor by setting("Shrink Factor", 0.001, 0.0..1.0, 0.001) { page == Page.Debug }
 
     @Volatile
     var drawables = listOf<Drawable>()

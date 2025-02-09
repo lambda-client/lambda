@@ -50,6 +50,7 @@ import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.info
+import com.lambda.util.Communication.warn
 import com.lambda.util.Formatting.string
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.extension.Structure
@@ -88,8 +89,9 @@ class BuildTask @Ta5kBuilder constructor(
     init {
         listen<TickEvent.Pre> {
             currentInteraction?.let { context ->
-//                TaskFlowModule.drawables = listOf(context)
+                TaskFlowModule.drawables = listOf(context)
                 if (context.shouldRotate(build) && !context.rotation.done) return@let
+                if (context is PlaceContext && context.sneak && !player.isSneaking) return@let
                 context.interact(interact.swingHand)
             }
             instantBreaks.forEach { context ->
@@ -143,8 +145,8 @@ class BuildTask @Ta5kBuilder constructor(
             // ToDo: Simulate for each pair player positions that work
             val results = blueprint.simulate(player.eyePos, interact, rotation, inventory, build)
 
-            TaskFlowModule.drawables = results.filterIsInstance<Drawable>()
-                .plus(pendingInteractions.toList())
+//            TaskFlowModule.drawables = results.filterIsInstance<Drawable>()
+//                .plus(pendingInteractions.toList())
 //                .plus(sim.goodPositions())
 
             if (build.breaksPerTick > 1) {
@@ -179,7 +181,8 @@ class BuildTask @Ta5kBuilder constructor(
                 is BuildResult.NotVisible,
                 is PlaceResult.NoIntegrity -> {
                     if (!build.pathing) return@onRotate
-                    val goal = BuildGoal(blueprint.simulation(interact, rotation, inventory, build), player.blockPos)
+                    val sim = blueprint.simulation(interact, rotation, inventory, build)
+                    val goal = BuildGoal(sim, player.blockPos)
                     BaritoneUtils.setGoalAndPath(goal)
                 }
 
@@ -209,10 +212,7 @@ class BuildTask @Ta5kBuilder constructor(
         listen<MovementEvent.InputUpdate> {
             val context = currentInteraction ?: return@listen
             if (context !is PlaceContext) return@listen
-            val hitBlock = context.result.blockPos.blockState(world).block
-            if (hitBlock in BlockUtils.interactionBlacklist) {
-                it.input.sneaking = true
-            }
+            if (context.sneak) it.input.sneaking = true
         }
 
         listen<WorldEvent.BlockUpdate.Client> { event ->
@@ -225,7 +225,10 @@ class BuildTask @Ta5kBuilder constructor(
         listen<WorldEvent.BlockUpdate.Server>(alwaysListen = true) { event ->
             pendingInteractions.firstOrNull { it.expectedPos == event.pos }?.let { context ->
                 pendingInteractions.remove(context)
-                if (!context.targetState.matches(event.newState, event.pos, world)) return@let
+                if (!context.targetState.matches(event.newState, event.pos, world)) {
+                    this@BuildTask.warn("Update at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${context.targetState}")
+                    return@let
+                }
                 when (context) {
                     is BreakContext -> breaks++
                     is PlaceContext -> placements++

@@ -279,7 +279,7 @@ object BuildSimulator {
 
                 val blockHit = checkedResult.blockResult ?: return@forEach
                 val hitBlock = blockHit.blockPos.blockState(world).block
-                val shouldSneak = hitBlock in BlockUtils.interactionBlacklist
+                val shouldSneak = hitBlock::class in BlockUtils.interactionClasses
 
                 val primeDirection =
                     (target as? TargetState.State)?.blockState?.getOrEmpty(Properties.HORIZONTAL_FACING)?.getOrNull()
@@ -440,9 +440,7 @@ object BuildSimulator {
             val blockHit = checkedHit.hit.blockResult ?: return@let
 
             val breakContext = BreakContext(
-                eye, blockHit, RotationRequest(
-                    lookAtBlock(blockHit.blockPos, config = interact), rotation
-                ), state, player.activeHand, instantBreakable(state, pos)
+                eye, blockHit, RotationRequest(lookAt(checkedHit.targetRotation, 0.001), rotation), state, player.activeHand, instantBreakable(state, pos)
             )
 
             /* player has a better tool for the job available */

@@ -242,7 +242,8 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
         override val pausesParent get() = true
 
         override fun resolve() =
-            neededStack.select().transfer(MainHandContainer, inventory) ?: MaterialContainer.FailureTask("Couldn't find ${neededStack.item.name.string} anywhere.")
+            neededStack.select()
+                .transfer(MainHandContainer, inventory) ?: MaterialContainer.FailureTask("Couldn't find ${neededStack.item.name.string} anywhere.")
 
         override fun SafeContext.buildRenderer() {
             if (blockPos.blockState(world).isAir) {

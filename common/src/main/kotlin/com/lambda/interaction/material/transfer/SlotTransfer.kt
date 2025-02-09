@@ -73,8 +73,8 @@ class SlotTransfer @Ta5kBuilder constructor(
 
             transfer {
 //                moveSlot(nextFrom.id, nextTo.id)
-                swap(nextTo.id, 0)
-                swap(nextFrom.id, 0)
+                swap(nextTo.id, 1)
+                swap(nextFrom.id, 1)
             }.finally { change ->
                 changes merge change
             }.execute(this@SlotTransfer)

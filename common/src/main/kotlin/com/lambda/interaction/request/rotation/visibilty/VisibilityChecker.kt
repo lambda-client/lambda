@@ -23,6 +23,7 @@ import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
 import com.lambda.interaction.request.rotation.*
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.extension.component6
 import com.lambda.util.math.distSq
 import com.lambda.util.world.raycast.InteractionMask
@@ -170,7 +171,7 @@ object VisibilityChecker {
     ) {
         excludedSides.forEach { side ->
             if (excludedSides.isNotEmpty() && side !in excludedSides) return@forEach
-            val (minX, minY, minZ, maxX, maxY, maxZ) = box.contract(1.0E-3).bounds(side)
+            val (minX, minY, minZ, maxX, maxY, maxZ) = box.contract(TaskFlowModule.shrinkFactor).bounds(side)
             val stepX = (maxX - minX) / resolution
             val stepY = (maxY - minY) / resolution
             val stepZ = (maxZ - minZ) / resolution
