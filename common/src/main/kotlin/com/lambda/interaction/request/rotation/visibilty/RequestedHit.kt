@@ -104,7 +104,7 @@ abstract class RequestedHit {
         override val reach: Double
     ) : RequestedHit() {
         override fun getBoundingBoxes(): List<Box> = runSafe {
-            val state = blockPos.blockState(world)
+            val state = blockState(blockPos)
             val voxelShape = state.getOutlineShape(world, blockPos)
             voxelShape.boundingBoxes.map { it.offset(blockPos) }
         } ?: listOf(Box(blockPos))

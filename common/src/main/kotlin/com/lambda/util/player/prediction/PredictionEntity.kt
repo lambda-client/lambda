@@ -143,7 +143,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
             else -> 0.08
         }
 
-        val slipperiness = velocityAffectingPos.blockState(world).block.slipperiness.toDouble()
+        val slipperiness = blockState(velocityAffectingPos).block.slipperiness.toDouble()
         var friction = 0.91
 
         if (isOnGround) {
@@ -202,8 +202,8 @@ class PredictionEntity(val player: ClientPlayerEntity) {
         }
 
         val velocityMultiplier = run {
-            val f = position.flooredPos.blockState(world).block.velocityMultiplier.toDouble()
-            val g = velocityAffectingPos.blockState(world).block.velocityMultiplier.toDouble()
+            val f = blockState(position.flooredPos).block.velocityMultiplier.toDouble()
+            val g = blockState(velocityAffectingPos).block.velocityMultiplier.toDouble()
             if (f == 1.0) g else f
         }
 
@@ -226,8 +226,8 @@ class PredictionEntity(val player: ClientPlayerEntity) {
 
         /** @see net.minecraft.entity.Entity.getJumpVelocityMultiplier */
         val jumpHeight = run {
-            val f = position.flooredPos.blockState(world).block.jumpVelocityMultiplier.toDouble()
-            val g = velocityAffectingPos.blockState(world).block.jumpVelocityMultiplier.toDouble()
+            val f = blockState(position.flooredPos).block.jumpVelocityMultiplier.toDouble()
+            val g = blockState(velocityAffectingPos).block.jumpVelocityMultiplier.toDouble()
             if (f == 1.0) g else f
         } * 0.42 + player.jumpBoostVelocityModifier
 

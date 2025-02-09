@@ -58,7 +58,7 @@ data class Simulation(
         runSafe {
             if (isOutOfBounds && isTooFar) return@getOrPut emptySet()
             val blockPos = pos.toBlockPos()
-            val isWalkable = blockPos.down().blockState(world).isSideSolidFullSquare(world, blockPos, Direction.UP)
+            val isWalkable = blockState(blockPos.down()).isSideSolidFullSquare(world, blockPos, Direction.UP)
             if (!isWalkable) return@getOrPut emptySet()
             if (!playerFitsIn(blockPos)) return@getOrPut emptySet()
         }

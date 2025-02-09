@@ -49,8 +49,8 @@ object Nuker : Module(
                         .map { it.blockPos }
                         .filter { !world.isAir(it) }
                         .filter { !flatten || it.y >= player.blockPos.y }
-                        .filter { !onlyBreakInstant || it.blockState(world).getHardness(world, it) <= 1 }
-                        .filter { it.blockState(world).getHardness(world, it) >= 0 }
+                        .filter { !onlyBreakInstant || blockState(it).getHardness(world, it) <= 1 }
+                        .filter { blockState(it).getHardness(world, it) >= 0 }
                         .associateWith { TargetState.Air }
 
                     if (fillFloor) {

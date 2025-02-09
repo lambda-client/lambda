@@ -84,7 +84,6 @@ import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
 import net.minecraft.item.Item
 import net.minecraft.util.math.*
-import net.minecraft.world.BlockView
 
 object BlockUtils {
 
@@ -215,9 +214,10 @@ object BlockUtils {
         Fluids.EMPTY,
     )
 
-    fun BlockPos.blockState(world: BlockView): BlockState = world.getBlockState(this)
-    fun BlockPos.fluidState(world: BlockView): FluidState = world.getFluidState(this)
-    fun BlockPos.blockEntity(world: BlockView) = world.getBlockEntity(this)
+    fun SafeContext.blockState(pos: BlockPos): BlockState = world.getBlockState(pos)
+    fun SafeContext.fluidState(pos: BlockPos): FluidState = world.getFluidState(pos)
+    fun SafeContext.blockEntity(pos: BlockPos) = world.getBlockEntity(pos)
+
     fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos): Boolean {
         val ticksNeeded = 1 / blockState.calcBlockBreakingDelta(player, world, blockPos)
         return (ticksNeeded <= 1 && ticksNeeded != 0f) || player.isCreative
