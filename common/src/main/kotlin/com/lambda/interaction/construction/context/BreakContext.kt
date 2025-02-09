@@ -38,10 +38,10 @@ data class BreakContext(
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
     override val checkedState: BlockState,
+    override val targetState: TargetState,
     override var hand: Hand,
     val instantBreak: Boolean,
 ) : BuildContext {
-    override val targetState = TargetState.Air
     private val baseColor = Color(222, 0, 0, 25)
     private val sideColor = Color(222, 0, 0, 100)
 

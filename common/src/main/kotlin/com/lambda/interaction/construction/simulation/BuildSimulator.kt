@@ -355,13 +355,17 @@ object BuildSimulator {
 
         val adjacentLiquids = Direction.entries.filter {
             it != Direction.DOWN && !pos.offset(it).blockState(world).fluidState.isEmpty
-        }
+        }.map { pos.offset(it) }
 
         /* block has liquids next to it that will leak when broken */
         if (adjacentLiquids.isNotEmpty()) {
             acc.add(BreakResult.BlockedByLiquid(pos, state))
-            adjacentLiquids.forEach {
-                val submerge = checkPlaceResults(pos.offset(it), TargetState.Solid, eye, interact, rotation, inventory)
+            adjacentLiquids.forEach { liquidPos ->
+                val submerge = if (liquidPos.blockState(world).isReplaceable) {
+                    checkPlaceResults(liquidPos, TargetState.Solid, eye, interact, rotation, inventory)
+                } else {
+                    checkBreakResults(liquidPos, eye, interact, rotation, inventory, build)
+                }
                 acc.addAll(submerge)
             }
             return acc
@@ -388,6 +392,11 @@ object BuildSimulator {
         val verify: CheckedHit.() -> Boolean = {
             hit.blockResult?.blockPos == pos
         }
+        val targetState = if (!state.fluidState.isEmpty) {
+            TargetState.State(state.fluidState.blockState)
+        } else {
+            TargetState.Air
+        }
 
         /* the player is buried inside the block */
         if (boxes.any { it.contains(eye) }) {
@@ -396,7 +405,7 @@ object BuildSimulator {
                     lookAtBlock(pos, config = interact), rotation
                 )
                 val breakContext = BreakContext(
-                    eye, blockHit, rotationRequest, state, player.activeHand, instantBreakable(state, pos)
+                    eye, blockHit, rotationRequest, state, targetState, player.activeHand, instantBreakable(state, pos)
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
                 return acc
@@ -440,7 +449,13 @@ object BuildSimulator {
             val blockHit = checkedHit.hit.blockResult ?: return@let
 
             val breakContext = BreakContext(
-                eye, blockHit, RotationRequest(lookAt(checkedHit.targetRotation, 0.001), rotation), state, player.activeHand, instantBreakable(state, pos)
+                eye,
+                blockHit,
+                RotationRequest(lookAt(checkedHit.targetRotation, 0.001), rotation),
+                state,
+                targetState,
+                player.activeHand,
+                instantBreakable(state, pos)
             )
 
             /* player has a better tool for the job available */

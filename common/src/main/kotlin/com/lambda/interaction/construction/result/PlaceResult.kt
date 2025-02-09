@@ -93,6 +93,7 @@ sealed class PlaceResult : BuildResult() {
     ) : Navigable, PlaceResult() {
         override val rank = Rank.PLACE_BLOCKED_BY_PLAYER
 
+        // ToDo: check what type of entity. player -> leave box, other entity -> kill?
         override val goal = GoalInverted(GoalBlock(blockPos))
     }
 
