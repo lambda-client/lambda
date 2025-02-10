@@ -22,6 +22,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.transfer.transaction.*
 import com.lambda.task.Task
+import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.SlotActionType
 
 class TransactionExecutor @Ta5kBuilder constructor(
@@ -130,6 +131,11 @@ class TransactionExecutor @Ta5kBuilder constructor(
     fun mergeStacks(sourceSlotId: Int, targetSlotId: Int) {
         pickup(sourceSlotId, 0)
         pickup(targetSlotId, 0)
+    }
+
+    @InvTransfer
+    fun clickCreativeStack(stack: ItemStack, slotId: Int) {
+        transactions.add(ClickCreativeStackTransaction(stack, slotId))
     }
 
     companion object {

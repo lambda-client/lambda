@@ -21,6 +21,8 @@ import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.material.transfer.TransactionExecutor
+import com.lambda.interaction.material.transfer.TransactionExecutor.Companion
 import com.lambda.task.Task
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.text.buildText
@@ -47,13 +49,15 @@ data object CreativeContainer : MaterialContainer(Rank.CREATIVE) {
                 throw NotInCreativeModeException()
             }
 
-            player.currentScreenHandler?.slots?.let { slots ->
-                selection.filterSlots(slots).forEach {
-                    interaction.clickCreativeStack(ItemStack.EMPTY, it.id)
+            TransactionExecutor.transfer {
+                player.currentScreenHandler?.slots?.let { slots ->
+                    selection.filterSlots(slots).forEach {
+                        clickCreativeStack(ItemStack.EMPTY, it.id)
+                    }
                 }
-            }
-
-            success()
+            }.finally {
+                success()
+            }.execute(this@CreativeDeposit)
         }
     }
 
@@ -71,11 +75,11 @@ data object CreativeContainer : MaterialContainer(Rank.CREATIVE) {
                     throw NotInCreativeModeException()
                 }
 
-                interaction.clickCreativeStack(
-                    optimalStack,
-                    36 + player.inventory.selectedSlot
-                )
-                success()
+                TransactionExecutor.transfer {
+                    clickCreativeStack(optimalStack, 36 + player.inventory.selectedSlot)
+                }.finally {
+                    success()
+                }.execute(this@CreativeWithdrawal)
                 return
             }
 
