@@ -89,7 +89,7 @@ class BuildTask @Ta5kBuilder constructor(
     init {
         listen<TickEvent.Pre> {
             currentInteraction?.let { context ->
-                TaskFlowModule.drawables = listOf(context)
+//                TaskFlowModule.drawables = listOf(context)
                 if (context.shouldRotate(build) && !context.rotation.done) return@let
                 if (context is PlaceContext && context.sneak && !player.isSneaking) return@let
                 context.interact(interact.swingHand)
@@ -145,8 +145,8 @@ class BuildTask @Ta5kBuilder constructor(
             // ToDo: Simulate for each pair player positions that work
             val results = blueprint.simulate(player.eyePos, interact, rotation, inventory, build)
 
-//            TaskFlowModule.drawables = results.filterIsInstance<Drawable>()
-//                .plus(pendingInteractions.toList())
+            TaskFlowModule.drawables = results.filterIsInstance<Drawable>()
+                .plus(pendingInteractions.toList())
 //                .plus(sim.goodPositions())
 
             if (build.breaksPerTick > 1) {
