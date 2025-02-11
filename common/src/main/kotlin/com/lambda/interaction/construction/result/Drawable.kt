@@ -18,7 +18,6 @@
 package com.lambda.interaction.construction.result
 
 import com.lambda.context.SafeContext
-import com.lambda.graphics.pipeline.UIPipeline
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.include
 import com.lambda.graphics.renderer.esp.builders.buildFilled

@@ -46,9 +46,8 @@ open class Window(
     scrollable: Boolean = true,
     private val minimizing: Minimizing = Minimizing.Relative,
     private val resizable: Boolean = true,
-    val autoResize: AutoResize = AutoResize.Disabled,
-    useBatching: Boolean = false,
-) : Layout(owner, useBatching, true) {
+    val autoResize: AutoResize = AutoResize.Disabled
+) : Layout(owner) {
     private val animation = animationTicker()
     private val cursorController = cursorController()
 
@@ -134,14 +133,12 @@ open class Window(
         properties.clampPosition = owner is ScreenLayout
         content.properties.scissor = true
 
-        with(titleBar) {
-            onMouseClick { button, action ->
-                // Toggle minimizing state when right-clicking title bar
-                if (minimizing == Minimizing.Disabled) return@onMouseClick
-                if (button != Mouse.Button.Right || action != Mouse.Action.Click) return@onMouseClick
+        titleBar.onMouseClick { button, action ->
+            // Toggle minimizing state when right-clicking title bar
+            if (minimizing == Minimizing.Disabled) return@onMouseClick
+            if (button != Mouse.Button.Right || action != Mouse.Action.Click) return@onMouseClick
 
-                minimized = !minimized
-            }
+            minimized = !minimized
         }
 
         onShow {
@@ -266,14 +263,12 @@ open class Window(
             minimizing: Minimizing = Minimizing.Relative,
             resizable: Boolean = true,
             autoResize: AutoResize = AutoResize.Disabled,
-            useBatching: Boolean = false,
             block: WindowContent.() -> Unit = {}
         ) = Window(
             this, title,
             position, size,
             draggable, scrollable, minimizing, resizable,
-            autoResize,
-            useBatching
+            autoResize
         ).apply(children::add).apply {
             block(this.content)
         }

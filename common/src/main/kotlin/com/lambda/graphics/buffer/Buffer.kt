@@ -121,7 +121,12 @@ abstract class Buffer(
     /**
      * Binds current the buffer [index] to the [target]
      */
-    fun bind() = bind(bufferIds[index])
+    fun bind() = bind(bufferAt(index))
+
+    /**
+     * Returns the id of the buffer based on the index
+     */
+    fun bufferAt(index: Int) = bufferIds[index]
 
     /**
      * Swaps the buffer [index] if [buffers] is greater than 1

@@ -19,6 +19,7 @@ package com.lambda.gui.component.window
 
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.event.events.GuiEvent
+import com.lambda.gui.component.core.LayoutBuilder
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
@@ -27,7 +28,7 @@ import kotlin.math.abs
 class WindowContent(
     owner: Window,
     private val scrollable: Boolean
-) : Layout(owner, false, true) {
+) : Layout(owner) {
     private val animation = animationTicker(false)
 
     private var dwheel = 0.0
@@ -60,6 +61,7 @@ class WindowContent(
     /**
      * Overrides the summary height of the content
      */
+    @LayoutBuilder
     fun overrideContentHeight(block: () -> Double) {
         contentHeight = block
     }
@@ -67,6 +69,7 @@ class WindowContent(
     /**
      * Overrides the action performed on ordering update
      */
+    @LayoutBuilder
     fun reorderChildren(block: () -> Unit) {
         reorder = block
     }
@@ -103,9 +106,7 @@ class WindowContent(
             if (abs(rubberbandDelta) < 0.05) rubberbandDelta = 0.0
 
             animation.tick()
-        }
 
-        onRender {
             if (scrollable) reorder()
         }
 

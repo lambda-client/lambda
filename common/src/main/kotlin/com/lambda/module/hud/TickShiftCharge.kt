@@ -18,7 +18,9 @@
 package com.lambda.module.hud
 
 import com.lambda.graphics.animation.Animation.Companion.exp
+import com.lambda.graphics.renderer.gui.rect.FilledRectRenderer
 import com.lambda.graphics.renderer.gui.rect.FilledRectRenderer.filledRect
+import com.lambda.graphics.renderer.gui.rect.OutlineRectRenderer
 import com.lambda.graphics.renderer.gui.rect.OutlineRectRenderer.outlineRect
 import com.lambda.module.HudModule
 import com.lambda.module.modules.client.ClickGui

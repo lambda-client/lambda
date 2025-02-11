@@ -42,8 +42,7 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
     false, false,
     if (expandable) Minimizing.Relative else Minimizing.Disabled,
     false,
-    AutoResize.ForceEnabled,
-    true
+    AutoResize.ForceEnabled
 ) {
     protected val animation = animationTicker()
     protected val cursorController = cursorController()
@@ -64,7 +63,7 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
             owner.renderPositionX + transform(visibilityAnimation, 0.0, 1.0, -10.0, 0.0)
         }
 
-        with(titleBar.textField) {
+        titleBar.textField.use {
             text = setting.name
             textHAlignment = HAlign.LEFT
 

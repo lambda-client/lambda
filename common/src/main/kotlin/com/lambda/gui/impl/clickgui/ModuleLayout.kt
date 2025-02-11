@@ -39,8 +39,7 @@ class ModuleLayout(
     module.name,
     Vec2d.ZERO, Vec2d.ZERO,
     false, true, Minimizing.Relative, false,
-    AutoResize.ForceEnabled,
-    true
+    AutoResize.ForceEnabled
 ) {
     private val animation = animationTicker()
     private val cursorController = cursorController()
@@ -54,19 +53,13 @@ class ModuleLayout(
     init {
         minimized = true
         height = 100.0
+        openAnimation = 0.0
 
         overrideX { owner.renderPositionX + ClickGui.padding }
         overrideWidth { owner.renderWidth - ClickGui.padding * 2 }
 
-        with(titleBar) {
-            with(textField) {
-                textHAlignment = HAlign.LEFT
-
-                onUpdate {
-                    offsetX = ClickGui.fontOffset
-                }
-            }
-
+        titleBar.use {
+            textField.textHAlignment = HAlign.LEFT
             overrideHeight(ClickGui::moduleHeight)
 
             onMouseClick { button, action ->

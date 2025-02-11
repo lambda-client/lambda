@@ -28,39 +28,28 @@ import java.awt.Color
 
 class TextField(
     owner: Layout,
-) : Layout(owner, true, true) {
-    var text = ""
-    var color = Color.WHITE
-    var scale = 1.0
-    var shadow = true
+) : Layout(owner) {
+    @UIRenderPr0p3rty var text = ""
+    @UIRenderPr0p3rty var color: Color = Color.WHITE
+    @UIRenderPr0p3rty var scale = 1.0
+    @UIRenderPr0p3rty var shadow = true
+
+    @UIRenderPr0p3rty var textHAlignment = HAlign.LEFT
+    @UIRenderPr0p3rty var textVAlignment = VAlign.CENTER
+    @UIRenderPr0p3rty var offsetX = 0.0
+    @UIRenderPr0p3rty var offsetY = 0.0
 
     val textWidth get() = FontRenderer.getWidth(text, scale)
     val textHeight get() = FontRenderer.getHeight(scale)
 
-    var textHAlignment = HAlign.LEFT
-    var textVAlignment = VAlign.CENTER
-    var offsetX = 0.0
-    var offsetY = 0.0
-
-    private val updateActions = mutableListOf<TextField.() -> Unit>()
-
-    fun onUpdate(block: TextField.() -> Unit) {
-        updateActions += block
-    }
-
     init {
-        properties.interactionPassthrough = true
         fillParent()
+        properties.interactionPassthrough = true
 
         onRender {
-            updateActions.forEach { action ->
-                action(this@TextField)
-            }
-
             val rx = renderPositionX + lerp(textHAlignment.multiplier, offsetX, renderWidth - textWidth - offsetX)
             val ry = renderPositionY + lerp(textVAlignment.multiplier, offsetY, renderHeight - textHeight - offsetY)
             val renderPos = Vec2d(rx, ry + textHeight * 0.5)
-
             drawString(text, renderPos, color, scale, shadow)
         }
     }

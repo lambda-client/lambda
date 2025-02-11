@@ -19,13 +19,13 @@ package com.lambda.graphics.renderer.gui.font
 
 import com.lambda.graphics.buffer.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
-import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.pipeline.ScissorAdapter
-import com.lambda.graphics.pipeline.UIPipeline
+import com.lambda.graphics.renderer.gui.AbstractGUIRenderer
 import com.lambda.graphics.renderer.gui.font.core.GlyphInfo
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.get
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.height
 import com.lambda.graphics.shader.Shader
+import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.graphics.texture.TextureOwner.bind
 import com.lambda.module.modules.client.LambdaMoji
 import com.lambda.module.modules.client.RenderSettings
@@ -33,17 +33,15 @@ import com.lambda.util.math.Vec2d
 import com.lambda.util.math.a
 import com.lambda.util.math.setAlpha
 import java.awt.Color
+import java.awt.Font
 
 /**
  * Renders text and emoji glyphs using a shader-based font rendering system.
  * This class handles text and emoji rendering, shadow effects, and text scaling.
  */
-object FontRenderer {
-    private val chars = RenderSettings.textFont
-    private val emojis = RenderSettings.emojiFont
-
-    private val shader = Shader("font/font")
-    private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.FONT)
+object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/font")) {
+    private val chars get() = RenderSettings.textFont
+    private val emojis get() = RenderSettings.emojiFont
 
     private val shadowShift get() = RenderSettings.shadowShift * 5.0
     private val baselineOffset get() = RenderSettings.baselineOffset * 2.0f - 10f
@@ -66,8 +64,17 @@ object FontRenderer {
         scale: Double = 1.0,
         shadow: Boolean = RenderSettings.shadow,
         parseEmoji: Boolean = LambdaMoji.isEnabled
-    ) = processText(text, color, scale, shadow, parseEmoji) { char, pos1, pos2, col -> buildGlyph(char, position, pos1, pos2, col) }.also {
-        UIPipeline.objectDrawn()
+    ) = render {
+        shader["u_FontTexture"] = 0
+        shader["u_EmojiTexture"] = 1
+        shader["u_SDFMin"] = 0.3
+        shader["u_SDFMax"] = 1.0
+
+        bind(chars, emojis)
+
+        processText(text, color, scale, shadow, parseEmoji) { char, pos1, pos2, col ->
+            buildGlyph(char, position, pos1, pos2, col)
+        }
     }
 
     /**
@@ -79,27 +86,25 @@ object FontRenderer {
      * @param pos2 The end position of the glyph
      * @param color The color of the glyph.
      */
-    fun buildGlyph(
+    private fun VertexPipeline.buildGlyph(
         glyph: GlyphInfo,
         origin: Vec2d = Vec2d.ZERO,
         pos1: Vec2d = Vec2d.ZERO,
         pos2: Vec2d = pos1 + glyph.size,
         color: Color = Color.WHITE,
-    ) = pipeline.use {
-        grow(4)
-
+    ) {
         val x1 = pos1.x + origin.x
         val y1 = pos1.y + origin.y
         val x2 = pos2.x + origin.x
         val y2 = pos2.y + origin.y
 
-        val scissor = ScissorAdapter.scissorTest(x1, y1, x2, y2, glyph)
+        grow(4)
 
         putQuad(
-            vec3m(x1, y1, UIPipeline.depth).vec2(glyph.uv1.x, glyph.uv1.y).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(color).end(),
-            vec3m(x1, y2, UIPipeline.depth).vec2(glyph.uv1.x, glyph.uv2.y).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(color).end(),
-            vec3m(x2, y2, UIPipeline.depth).vec2(glyph.uv2.x, glyph.uv2.y).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(color).end(),
-            vec3m(x2, y1, UIPipeline.depth).vec2(glyph.uv2.x, glyph.uv1.y).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(color).end()
+            vec3m(x1, y1, 0.0).vec2(glyph.uv1.x, glyph.uv1.y).color(color).end(),
+            vec3m(x1, y2, 0.0).vec2(glyph.uv1.x, glyph.uv2.y).color(color).end(),
+            vec3m(x2, y2, 0.0).vec2(glyph.uv2.x, glyph.uv2.y).color(color).end(),
+            vec3m(x2, y1, 0.0).vec2(glyph.uv2.x, glyph.uv1.y).color(color).end()
         )
     }
 
@@ -219,7 +224,7 @@ object FontRenderer {
      * @param scale The base scale factor.
      * @return The adjusted scale factor.
      */
-    fun getScaleFactor(scale: Double): Double = scale * 8 / chars.height
+    fun getScaleFactor(scale: Double): Double = scale * 9.0 / chars.height
 
     /**
      * Calculates the shadow color by adjusting the brightness of the input color.
@@ -233,16 +238,4 @@ object FontRenderer {
         (color.blue * RenderSettings.shadowBrightness).toInt(),
         color.alpha
     )
-
-    fun render() {
-        shader.use()
-        shader["u_FontTexture"] = 0
-        shader["u_EmojiTexture"] = 1
-        shader["u_SDFMin"] = 0.3
-        shader["u_SDFMax"] = 1.0
-
-        bind(chars, emojis)
-
-        pipeline.immediateDraw()
-    }
 }

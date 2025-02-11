@@ -41,17 +41,12 @@ enum class VertexAttrib(
         FONT(
             Vec3, // pos
             Vec2, // uv
-            Vec2, Vec2, // scissor test bounds
             Color
         ),
 
         RECT_FILLED(
             Vec3, // pos
             Vec2, // uv
-            Vec2, // size
-            Vec2, Vec2, // roundL, roundR
-            Float, // shade
-            Vec2, Vec2, // scissor test bounds
             Color
         ),
 
@@ -59,8 +54,6 @@ enum class VertexAttrib(
             Vec3, // pos
             Vec2, // uv
             Float, // alpha
-            Float, // shade
-            Vec2, Vec2, // scissor test bounds
             Color
         ),
 

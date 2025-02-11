@@ -21,7 +21,6 @@ import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.pipeline.UIPipeline
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline

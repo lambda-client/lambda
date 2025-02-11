@@ -39,6 +39,11 @@ object Matrices {
     var vertexTransformer: Matrix4d? = null
 
     /**
+     * An optional vec3 offset for applying vertex transformations.
+     */
+    var vertexOffset: Vec3d? = null
+
+    /**
      * Executes a block of code within the context of a new matrix.
      * The current matrix is pushed onto the stack before the block executes and popped after the block completes.
      *
@@ -51,7 +56,7 @@ object Matrices {
      */
     fun push(block: Matrices.() -> Unit) {
         push()
-        block()
+        block.invoke(this)
         pop()
     }
 
@@ -144,6 +149,20 @@ object Matrices {
         vertexTransformer = Matrix4d(matrix)
         block()
         vertexTransformer = null
+    }
+
+    /**
+     * Temporarily sets a vertex offset vector for the duration of a block.
+     *
+     * Use this to avoid precision loss when using matrices while being on huge coordinates.
+     *
+     * @param offset The transformation offset to apply to vertices.
+     * @param block The block of code to execute with the transformation applied.
+     */
+    fun withVertexOffset(offset: Vec3d, block: () -> Unit) {
+        vertexOffset = offset
+        block()
+        vertexOffset = null
     }
 
     /**

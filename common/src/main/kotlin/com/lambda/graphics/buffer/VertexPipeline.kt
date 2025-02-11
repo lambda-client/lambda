@@ -32,6 +32,7 @@ import com.lambda.graphics.gl.Memory.vector2f
 import com.lambda.graphics.gl.Memory.vector3f
 import com.lambda.graphics.gl.kibibyte
 import org.joml.Vector4d
+import org.lwjgl.opengl.GL15C
 import org.lwjgl.opengl.GL20C.*
 import java.awt.Color
 
@@ -181,6 +182,10 @@ class VertexPipeline(
         vertexIndex = 0
         indicesCount = 0
         uploadedIndices = 0
+    }
+
+    fun finalize() {
+
     }
 
     init {

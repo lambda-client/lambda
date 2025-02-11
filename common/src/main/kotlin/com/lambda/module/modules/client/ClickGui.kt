@@ -18,11 +18,9 @@
 package com.lambda.module.modules.client
 
 import com.lambda.module.Module
-import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
 import com.lambda.gui.ScreenLayout.Companion.gui
 import com.lambda.gui.component.core.FilledRect.Companion.rect
-import com.lambda.gui.impl.clickgui.ModuleLayout.Companion.moduleLayout
 import com.lambda.gui.impl.clickgui.ModuleWindow.Companion.moduleWindow
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.setAlpha
@@ -67,20 +65,11 @@ object ClickGui : Module(
             }
         }
 
-        val tags = ModuleTag.defaults
-        val modules = ModuleRegistry.modules
-
-        var x = 20.0
+        var x = 10.0
         val y = x
 
-        tags.forEachIndexed { i, tag ->
-            x += moduleWindow(tag, Vec2d(x, y)) {
-                modules.filter {
-                    it.defaultTags.firstOrNull() == tag
-                }.forEach { module ->
-                    moduleLayout(module)
-                }
-            }.width + 3
+        ModuleTag.defaults.forEach { tag ->
+            x += moduleWindow(tag, Vec2d(x, y)).renderWidth + 5
         }
     }
 

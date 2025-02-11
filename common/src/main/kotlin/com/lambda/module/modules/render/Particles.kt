@@ -33,6 +33,7 @@ import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.buildWorldProjection
 import com.lambda.graphics.gl.Matrices.withVertexTransform
 import com.lambda.graphics.shader.Shader
+import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.interaction.rotation.Rotation
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
@@ -81,7 +82,7 @@ object Particles : Module(
 
     private var particles = mutableListOf<Particle>()
     private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.PARTICLE)
-    private val shader = Shader("renderer/particle", "renderer/particle")
+    private val shader = shader("renderer/particle", "renderer/particle")
 
     init {
         listen<TickEvent.Pre> {

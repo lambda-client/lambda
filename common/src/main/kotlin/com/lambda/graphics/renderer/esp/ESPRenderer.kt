@@ -23,6 +23,7 @@ import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.gl.GlStateUtils
 import com.lambda.graphics.shader.Shader
+import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.module.modules.client.RenderSettings
 import com.lambda.util.extension.partialTicks
 
@@ -59,12 +60,12 @@ open class ESPRenderer(tickedMode: Boolean) {
     }
 
     companion object {
-        private val staticMode = Shader(
+        private val staticMode = shader(
             "renderer/pos_color",
             "renderer/box_static"
         ) to VertexAttrib.Group.STATIC_RENDERER
 
-        private val dynamicMode = Shader(
+        private val dynamicMode = shader(
             "renderer/pos_color",
             "renderer/box_dynamic"
         ) to VertexAttrib.Group.DYNAMIC_RENDERER

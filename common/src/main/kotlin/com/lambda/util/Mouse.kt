@@ -88,6 +88,7 @@ class Mouse {
         }
     }
 
+    // ToDo: replace by event
     class CursorController {
         private var lastSetCursor: Cursor? = null
 

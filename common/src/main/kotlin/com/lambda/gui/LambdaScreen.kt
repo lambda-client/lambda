@@ -48,6 +48,7 @@ class LambdaScreen(
     init {
         listen<RenderEvent.GUI.Scaled> { event ->
             screenSize = event.screenSize
+            layout.onEvent(GuiEvent.Update)
             layout.onEvent(GuiEvent.Render)
         }
 

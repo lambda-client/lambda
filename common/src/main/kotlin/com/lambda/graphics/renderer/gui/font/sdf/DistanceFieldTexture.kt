@@ -20,6 +20,7 @@ package com.lambda.graphics.renderer.gui.font.sdf
 import com.lambda.graphics.buffer.frame.CachedFrame
 import com.lambda.graphics.buffer.frame.FrameBuffer
 import com.lambda.graphics.shader.Shader
+import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.graphics.texture.Texture
 import com.lambda.util.math.Vec2d
 import java.awt.image.BufferedImage
@@ -33,6 +34,8 @@ import java.awt.image.BufferedImage
  * @param image Image data to upload
  */
 class DistanceFieldTexture(image: BufferedImage) : Texture(image, levels = 0) {
+    private val shader = shader("signed_distance_field", "renderer/pos_tex")
+
     private val frame = CachedFrame(width, height).write {
         FrameBuffer.pipeline.use {
             val (pos1, pos2) = Vec2d.ZERO to Vec2d(width, height)
@@ -55,9 +58,5 @@ class DistanceFieldTexture(image: BufferedImage) : Texture(image, levels = 0) {
 
     override fun bind(slot: Int) {
         frame.bind(slot)
-    }
-
-    companion object {
-        private val shader = Shader("signed_distance_field", "renderer/pos_tex")
     }
 }

@@ -17,71 +17,43 @@
 
 package com.lambda.graphics.pipeline
 
-import com.lambda.graphics.renderer.gui.font.core.GlyphInfo
+import com.lambda.Lambda.mc
+import com.lambda.graphics.RenderMain
+import com.lambda.util.math.MathUtils.ceilToInt
+import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.Rect
-import com.lambda.util.math.transform
+import com.mojang.blaze3d.systems.RenderSystem.disableScissor
+import com.mojang.blaze3d.systems.RenderSystem.enableScissor
 
 object ScissorAdapter {
     private var stack = ArrayDeque<Rect>()
-    private val scissorInstance = ScissorRect()
 
     fun scissor(rect: Rect, block: () -> Unit) {
-        // clamp corners so children scissor boxes can't overlap parent
         val processed = stack.lastOrNull()?.let(rect::clamp) ?: rect
 
-        // push the stack
         stack.add(processed)
+        scissorRect(processed)
 
-        // do render tasks
         block()
 
-        // pop the stack
         stack.removeLast()
+        stack.lastOrNull()?.let { scissorRect(it) } ?: disableScissor()
     }
 
-    fun scissorTest(x1: Double, y1: Double, x2: Double, y2: Double, glyph: GlyphInfo? = null): ScissorRect {
-        reset()
+    private fun scissorRect(rect: Rect) {
+        val pos1 = rect.leftTop * RenderMain.scaleFactor
+        val pos2 = rect.rightBottom * RenderMain.scaleFactor
 
-        run {
-            val entry = stack.lastOrNull() ?: return@run
+        val width = pos2.x - pos1.x
+        val height = pos2.y - pos1.y
 
-            val width = x2 - x1
-            val height = y2 - y1
+        val y = mc.window.framebufferHeight - pos1.y - height
 
-            if (width <= 0 || height <= 0) {
-                nullify()
-                return@run
-            }
-
-            val si = scissorInstance
-
-            si.x1 = transform(entry.left, x1, x2, glyph?.u1 ?: 0.0, glyph?.u2 ?: 1.0)
-            si.y1 = transform(entry.top, y1, y2, glyph?.v1 ?: 0.0, glyph?.v2 ?: 1.0)
-            si.x2 = transform(entry.right, x1, x2, glyph?.u1 ?: 0.0, glyph?.u2 ?: 1.0)
-            si.y2 = transform(entry.bottom, y1, y2, glyph?.v1 ?: 0.0, glyph?.v2 ?: 1.0)
-        }
-
-        return scissorInstance
-    }
-
-    private fun reset() = scissorInstance.apply {
-        x1 = 0.0
-        y1 = 0.0
-        x2 = 1.0
-        y2 = 1.0
-    }
-
-    private fun nullify() = scissorInstance.apply {
-        x1 = 0.0
-        y1 = 0.0
-        x2 = 0.0
-        y2 = 0.0
-    }
-
-    class ScissorRect {
-        var x1 = 0.0
-        var y1 = 0.0
-        var x2 = 1.0
-        var y2 = 1.0
+        enableScissor(
+            pos1.x.floorToInt(),
+            y.floorToInt(),
+            width.ceilToInt(),
+            height.ceilToInt()
+        )
     }
 }

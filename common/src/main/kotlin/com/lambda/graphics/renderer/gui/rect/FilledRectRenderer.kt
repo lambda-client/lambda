@@ -18,16 +18,14 @@
 package com.lambda.graphics.renderer.gui.rect
 
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
-import com.lambda.graphics.pipeline.ScissorAdapter
-import com.lambda.graphics.pipeline.UIPipeline
-import com.lambda.graphics.shader.Shader
-import com.lambda.util.math.MathUtils.toInt
+import com.lambda.graphics.renderer.gui.AbstractGUIRenderer
+import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.util.math.Rect
 import java.awt.Color
 import kotlin.math.min
 
-object FilledRectRenderer : AbstractRectRenderer(
-    VertexAttrib.Group.RECT_FILLED, Shader("renderer/rect_filled")
+object FilledRectRenderer : AbstractGUIRenderer(
+    VertexAttrib.Group.RECT_FILLED, shader("renderer/rect_filled")
 ) {
     private const val MIN_SIZE = 0.5
     private const val MIN_ALPHA = 3
@@ -80,7 +78,7 @@ object FilledRectRenderer : AbstractRectRenderer(
         rightBottom: Color = Color.WHITE,
         leftBottom: Color = Color.WHITE,
         shade: Boolean = false,
-    ) = pipeline.use {
+    ) = render(shade) {
         val pos1 = rect.leftTop
         val pos2 = rect.rightBottom
 
@@ -90,9 +88,9 @@ object FilledRectRenderer : AbstractRectRenderer(
             rightTop.alpha < MIN_ALPHA &&
             rightBottom.alpha < MIN_ALPHA &&
             leftBottom.alpha < MIN_ALPHA
-        ) return@use
+        ) return@render
 
-        if (size.x < MIN_SIZE || size.y < MIN_SIZE) return@use
+        if (size.x < MIN_SIZE || size.y < MIN_SIZE) return@render
 
         val halfSize = size * 0.5
         val maxRadius = min(halfSize.x, halfSize.y)
@@ -104,19 +102,19 @@ object FilledRectRenderer : AbstractRectRenderer(
 
         val p1 = pos1 - 0.25
         val p2 = pos2 + 0.25
-        val s = shade.toInt().toDouble()
+
+        shader["u_Size"] = size
+        shader["u_RoundLeftTop"] = ltr
+        shader["u_RoundLeftBottom"] = lbr
+        shader["u_RoundRightBottom"] = rbr
+        shader["u_RoundRightTop"] = rtr
 
         grow(4)
-
-        val scissor = ScissorAdapter.scissorTest(p1.x, p1.y, p2.x, p2.y)
-
         putQuad(
-            vec3m(p1.x, p1.y, UIPipeline.depth).vec2(0.0, 0.0).vec2(size.x, size.y).vec2(ltr, lbr).vec2(rtr, rbr).float(s).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(leftTop).end(),
-            vec3m(p1.x, p2.y, UIPipeline.depth).vec2(0.0, 1.0).vec2(size.x, size.y).vec2(ltr, lbr).vec2(rtr, rbr).float(s).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(leftBottom).end(),
-            vec3m(p2.x, p2.y, UIPipeline.depth).vec2(1.0, 1.0).vec2(size.x, size.y).vec2(ltr, lbr).vec2(rtr, rbr).float(s).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(rightBottom).end(),
-            vec3m(p2.x, p1.y, UIPipeline.depth).vec2(1.0, 0.0).vec2(size.x, size.y).vec2(ltr, lbr).vec2(rtr, rbr).float(s).vec2(scissor.x1, scissor.y1).vec2(scissor.x2, scissor.y2).color(rightTop).end()
+            vec3m(p1.x, p1.y, 0.0).vec2(0.0, 0.0).color(leftTop).end(),
+            vec3m(p1.x, p2.y, 0.0).vec2(0.0, 1.0).color(leftBottom).end(),
+            vec3m(p2.x, p2.y, 0.0).vec2(1.0, 1.0).color(rightBottom).end(),
+            vec3m(p2.x, p1.y, 0.0).vec2(1.0, 0.0).color(rightTop).end()
         )
-
-        UIPipeline.objectDrawn()
     }
 }

@@ -20,8 +20,9 @@ package com.lambda.graphics.renderer.gui.rect
 import com.lambda.graphics.buffer.IRenderContext
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.pipeline.ScissorAdapter
-import com.lambda.graphics.pipeline.UIPipeline
+import com.lambda.graphics.renderer.gui.AbstractGUIRenderer
 import com.lambda.graphics.shader.Shader
+import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.util.math.lerp
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.MathUtils.toRadian
@@ -33,8 +34,8 @@ import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 
-object OutlineRectRenderer : AbstractRectRenderer(
-    VertexAttrib.Group.RECT_OUTLINE, Shader("renderer/rect_outline")
+object OutlineRectRenderer : AbstractGUIRenderer(
+    VertexAttrib.Group.RECT_OUTLINE, shader("renderer/rect_outline")
 ) {
     private const val QUALITY = 8
     private const val VERTICES_COUNT = QUALITY * 4
@@ -56,12 +57,10 @@ object OutlineRectRenderer : AbstractRectRenderer(
         rightBottom: Color = Color.WHITE,
         leftBottom: Color = Color.WHITE,
         shade: Boolean = false,
-    ) = pipeline.use {
-        if (glowRadius < 1) return@use
+    ) = render(shade) {
+        if (glowRadius < 1) return@render
 
         grow(VERTICES_COUNT * 3)
-
-        val scissor = ScissorAdapter.scissorTest(rect.left, rect.top, rect.right, rect.bottom)
 
         fun IRenderContext.genVertices(size: Double, isGlow: Boolean): MutableList<Int> {
             val r = rect.expand(size)
@@ -78,18 +77,11 @@ object OutlineRectRenderer : AbstractRectRenderer(
                 val angle = lerp(p, min, max).toRadian()
 
                 val pos = base + Vec2d(cos(angle), -sin(angle)) * round
-                val s = shade.toInt().toDouble()
 
                 val uvx = transform(pos.x, rect.left, rect.right, 0.0, 1.0)
                 val uvy = transform(pos.y, rect.top, rect.bottom, 0.0, 1.0)
 
-                add(vec3m(pos.x, pos.y, UIPipeline.depth)
-                    .vec2(uvx, uvy)
-                    .float(a).float(s)
-                    .vec2(scissor.x1, scissor.y1)
-                    .vec2(scissor.x2, scissor.y2)
-                    .color(c).end()
-                )
+                add(vec3m(pos.x, pos.y, 0.0).vec2(uvx, uvy).float(a).color(c).end())
             }
 
             val rt = r.rightTop + Vec2d(-round, round)
@@ -118,7 +110,5 @@ object OutlineRectRenderer : AbstractRectRenderer(
 
         drawStripWith(genVertices(-(glowRadius.coerceAtMost(1.0)), true))
         drawStripWith(genVertices(glowRadius, true))
-
-        UIPipeline.objectDrawn()
     }
 }

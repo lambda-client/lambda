@@ -19,6 +19,7 @@ package com.lambda.module.modules.client
 
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.renderer.gui.font.FontRenderer
 import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag

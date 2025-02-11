@@ -24,39 +24,31 @@ import java.awt.Color
 
 class FilledRect(
     owner: Layout
-) : Layout(owner, true, true) {
-    var rectangle = Rect.ZERO
+) : Layout(owner) {
+    @UIRenderPr0p3rty var rectangle = Rect.ZERO
 
-    var leftTopRadius = 0.0
-    var rightTopRadius = 0.0
-    var rightBottomRadius = 0.0
-    var leftBottomRadius = 0.0
+    @UIRenderPr0p3rty var leftTopRadius = 0.0
+    @UIRenderPr0p3rty var rightTopRadius = 0.0
+    @UIRenderPr0p3rty var rightBottomRadius = 0.0
+    @UIRenderPr0p3rty var leftBottomRadius = 0.0
 
-    var leftTopColor: Color = Color.WHITE
-    var rightTopColor: Color = Color.WHITE
-    var rightBottomColor: Color = Color.WHITE
-    var leftBottomColor: Color = Color.WHITE
+    @UIRenderPr0p3rty var leftTopColor: Color = Color.WHITE
+    @UIRenderPr0p3rty var rightTopColor: Color = Color.WHITE
+    @UIRenderPr0p3rty var rightBottomColor: Color = Color.WHITE
+    @UIRenderPr0p3rty var leftBottomColor: Color = Color.WHITE
 
-    var shade = false
-
-    private val updateActions = mutableListOf<FilledRect.() -> Unit>()
-
-    fun onUpdate(block: FilledRect.() -> Unit) {
-        updateActions += block
-    }
+    @UIRenderPr0p3rty var shade = false
 
     init {
         properties.interactionPassthrough = true
 
-        onRender {
-            updateActions.forEach { action ->
-                action(this@FilledRect)
-            }
-
+        onUpdate {
             // make it pressable
             position = rectangle.leftTop
             size = rectangle.size
+        }
 
+        onRender {
             filledRect(
                 rectangle,
                 leftTopRadius,

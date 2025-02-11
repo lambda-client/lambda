@@ -19,3 +19,9 @@ package com.lambda.gui.component.core
 
 @DslMarker
 annotation class UIBuilder
+
+@DslMarker
+annotation class LayoutBuilder
+
+@DslMarker
+annotation class UIRenderPr0p3rty

@@ -21,9 +21,9 @@ import com.lambda.graphics.RenderMain
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 
-class ScreenLayout : Layout(owner = null, useBatching = false, batchChildren = true) {
+class ScreenLayout : Layout(owner = null) {
     init {
-        onRender {
+        onUpdate {
             size = RenderMain.screenSize
         }
     }

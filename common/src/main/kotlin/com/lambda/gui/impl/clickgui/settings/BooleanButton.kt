@@ -71,7 +71,7 @@ class BooleanButton(
 
             onUpdate {
                 val knobStart = Rect.basedOn(checkBox.leftTop, Vec2d.ONE * checkBox.renderHeight)
-                val knobEnd = Rect(checkBox.rightBottom -  checkBox.renderHeight, checkBox.rightBottom)
+                val knobEnd = Rect(checkBox.rightBottom - checkBox.renderHeight, checkBox.rightBottom)
                 rectangle = lerp(activeAnimation, knobStart, knobEnd).shrink(1.0)
                 shade = ClickGui.backgroundShade
                 setColor(Color.WHITE.setAlpha(0.25 * visibilityAnimation))

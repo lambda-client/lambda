@@ -6,24 +6,15 @@ uniform float u_SDFMin;
 uniform float u_SDFMax;
 
 in vec2 v_TexCoord;
-in vec2 v_Scissor1;
-in vec2 v_Scissor2;
-
 in vec4 v_Color;
 
 out vec4 color;
-
-bool scissorFailed(vec2 coord) {
-    return coord.x < v_Scissor1.x || coord.x > v_Scissor2.x || coord.y < v_Scissor1.y || coord.y > v_Scissor2.y;
-}
 
 void main() {
     vec2 coord = v_TexCoord;
 
     bool isEmoji = coord.x < 0.0;
     if (isEmoji) coord = -v_TexCoord;
-
-    if (scissorFailed(coord)) discard;
 
     if (isEmoji) {
         color = texture(u_EmojiTexture, coord) * v_Color;

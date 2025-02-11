@@ -1,19 +1,20 @@
 #version 330 core
 
-uniform float u_Time;
-uniform vec4 u_Color1;
-uniform vec4 u_Color2;
 uniform vec2 u_Size;
+uniform float u_RoundLeftTop;
+uniform float u_RoundLeftBottom;
+uniform float u_RoundRightBottom;
+uniform float u_RoundRightTop;
+
+uniform float u_Shade;
+uniform float u_ShadeTime;
+uniform vec4 u_ShadeColor1;
+uniform vec4 u_ShadeColor2;
+uniform vec2 u_ShadeSize;
 
 in vec2 v_Position;
 in vec2 v_TexCoord;
-in vec2 v_Scissor1;
-in vec2 v_Scissor2;
 in vec4 v_Color;
-in vec2 v_Size;
-in vec2 v_RoundRadiusL;
-in vec2 v_RoundRadiusR;
-in float v_Shade;
 
 out vec4 color;
 
@@ -28,15 +29,16 @@ vec4 noise() {
 }
 
 vec4 shade() {
-    if (v_Shade != 1.0) return v_Color;
+    if (u_Shade != 1.0) return v_Color;
 
-    vec2 pos = v_Position * u_Size;
-    float p = sin(pos.x - pos.y - u_Time) * 0.5 + 0.5;
+    vec2 pos = v_Position * u_ShadeSize;
+    float p = sin(pos.x - pos.y - u_ShadeTime) * 0.5 + 0.5;
 
-    return mix(u_Color1, u_Color2, p) * v_Color;
+    return mix(u_ShadeColor1, u_ShadeColor2, p) * v_Color;
 }
 
 float getRoundRadius() {
+    // ToDo: use step
     bool xcmp = v_TexCoord.x > 0.5;
     bool ycmp = v_TexCoord.y > 0.5;
 
@@ -44,19 +46,15 @@ float getRoundRadius() {
 
     if (xcmp) {
         if (ycmp) {
-            // Right bottom
-            r = v_RoundRadiusR.y;
+            r = u_RoundRightBottom;
         } else {
-            // Right top
-            r = v_RoundRadiusR.x;
+            r = u_RoundRightTop;
         }
     } else {
         if (ycmp) {
-            // Left bottom
-            r = v_RoundRadiusL.y;
+            r = u_RoundLeftBottom;
         } else {
-            // Left top
-            r = v_RoundRadiusL.x;
+            r = u_RoundLeftTop;
         }
     }
 
@@ -64,12 +62,12 @@ float getRoundRadius() {
 }
 
 vec4 round() {
-    vec2 halfSize = v_Size * 0.5;
+    vec2 halfSize = u_Size * 0.5;
 
     float radius = max(getRoundRadius(), SMOOTHING);
 
     vec2 smoothVec = vec2(SMOOTHING);
-    vec2 coord = mix(-smoothVec, v_Size + smoothVec, v_TexCoord);
+    vec2 coord = mix(-smoothVec, u_Size + smoothVec, v_TexCoord);
 
     vec2 center = halfSize - coord;
     float distance = length(max(abs(center) - halfSize + radius, 0.0)) - radius;
@@ -78,11 +76,6 @@ vec4 round() {
     return vec4(1.0, 1.0, 1.0, clamp(alpha, 0.0, 1.0));
 }
 
-bool scissorFailed(vec2 coord) {
-    return coord.x < v_Scissor1.x || coord.x > v_Scissor2.x || coord.y < v_Scissor1.y || coord.y > v_Scissor2.y;
-}
-
 void main() {
-    if (scissorFailed(v_TexCoord)) discard;
     color = shade() * round() + noise();
 }

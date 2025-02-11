@@ -32,18 +32,7 @@ class TitleBar(
     owner: Window,
     title: String,
     drag: Boolean
-) : Layout(owner, true, true) {
-    val textField = textField {
-        text = title
-
-        textHAlignment = HAlign.CENTER
-
-        onUpdate {
-            offsetX = ClickGui.fontOffset
-            scale = ClickGui.fontScale
-        }
-    }
-
+) : Layout(owner) {
     private var dragOffset: Vec2d? = null
 
     init {
@@ -66,6 +55,17 @@ class TitleBar(
             dragOffset?.let { drag ->
                 owner.position = mouse - drag
             }
+        }
+    }
+
+    val textField = textField {
+        text = title
+
+        textHAlignment = HAlign.CENTER
+
+        onUpdate {
+            offsetX = ClickGui.fontOffset
+            scale = ClickGui.fontScale
         }
     }
 

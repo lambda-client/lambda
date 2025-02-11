@@ -26,6 +26,7 @@ sealed class GuiEvent : Event {
     data object Show : GuiEvent()
     data object Hide : GuiEvent()
     data object Tick : GuiEvent()
+    data object Update : GuiEvent()
     data object Render : GuiEvent()
 
     class KeyPress(val key: KeyCode) : GuiEvent()

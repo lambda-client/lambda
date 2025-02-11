@@ -23,33 +23,23 @@ import java.awt.Color
 
 class OutlineRect(
     owner: Layout
-) : Layout(owner, true, true) {
-    var rectangle = owner.rect
+) : Layout(owner) {
+    @UIRenderPr0p3rty var rectangle = owner.rect
 
-    var roundRadius = 0.0
-    var glowRadius = 0.0
+    @UIRenderPr0p3rty var roundRadius = 0.0
+    @UIRenderPr0p3rty var glowRadius = 0.0
 
-    var leftTopColor: Color = Color.WHITE
-    var rightTopColor: Color = Color.WHITE
-    var rightBottomColor: Color = Color.WHITE
-    var leftBottomColor: Color = Color.WHITE
+    @UIRenderPr0p3rty var leftTopColor: Color = Color.WHITE
+    @UIRenderPr0p3rty var rightTopColor: Color = Color.WHITE
+    @UIRenderPr0p3rty var rightBottomColor: Color = Color.WHITE
+    @UIRenderPr0p3rty var leftBottomColor: Color = Color.WHITE
 
-    var shade = false
-
-    private val updateActions = mutableListOf<OutlineRect.() -> Unit>()
-
-    fun onUpdate(block: OutlineRect.() -> Unit) {
-        updateActions += block
-    }
+    @UIRenderPr0p3rty var shade = false
 
     init {
         properties.interactionPassthrough = true
 
         onRender {
-            updateActions.forEach { action ->
-                action(this@OutlineRect)
-            }
-
             outlineRect(
                 rectangle,
                 roundRadius,

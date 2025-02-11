@@ -29,15 +29,13 @@ import org.joml.Matrix4f
 import org.lwjgl.opengl.GL20C.*
 import java.awt.Color
 
-class Shader(fragmentPath: String, vertexPath: String) {
+class Shader private constructor(fragmentPath: String, vertexPath: String) {
     private val uniformCache: Object2IntMap<String> = Object2IntOpenHashMap()
 
     private val id = createShaderProgram(
         loadShader(ShaderType.VERTEX_SHADER, "shaders/vertex/$vertexPath.vert"),
         loadShader(ShaderType.FRAGMENT_SHADER, "shaders/fragment/$fragmentPath.frag")
     )
-
-    constructor(path: String) : this(path, path)
 
     fun use() {
         glUseProgram(id)
@@ -79,4 +77,16 @@ class Shader(fragmentPath: String, vertexPath: String) {
 
     operator fun set(name: String, mat: Matrix4f) =
         uniformMatrix(loc(name), mat)
+
+    companion object {
+        private val shaderCache = hashMapOf<Pair<String, String>, Shader>()
+
+        fun shader(path: String) =
+            shader(path, path)
+
+        fun shader(fragmentPath: String, vertexPath: String) =
+            shaderCache.getOrPut(fragmentPath to vertexPath) {
+                Shader(fragmentPath, vertexPath)
+            }
+    }
 }
