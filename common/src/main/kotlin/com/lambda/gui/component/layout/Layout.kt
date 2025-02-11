@@ -401,9 +401,8 @@ open class Layout(
                 if (renderChildren) children.forEach { it.onEvent(e) }
             }
 
-            block()
-            //if (!properties.scissor) block()
-            //else ScissorAdapter.scissor(rect, block)
+            if (!properties.scissor) block()
+            else ScissorAdapter.scissor(rect, block)
         }
     }
 
