@@ -49,7 +49,7 @@ data object CreativeContainer : MaterialContainer(Rank.CREATIVE) {
                 throw NotInCreativeModeException()
             }
 
-            TransactionExecutor.transfer {
+            TransactionExecutor.transfer(player.currentScreenHandler) {
                 player.currentScreenHandler?.slots?.let { slots ->
                     selection.filterSlots(slots).forEach {
                         clickCreativeStack(ItemStack.EMPTY, it.id)
@@ -75,7 +75,7 @@ data object CreativeContainer : MaterialContainer(Rank.CREATIVE) {
                     throw NotInCreativeModeException()
                 }
 
-                TransactionExecutor.transfer {
+                TransactionExecutor.transfer(player.currentScreenHandler) {
                     clickCreativeStack(optimalStack, 36 + player.inventory.selectedSlot)
                 }.finally {
                     success()

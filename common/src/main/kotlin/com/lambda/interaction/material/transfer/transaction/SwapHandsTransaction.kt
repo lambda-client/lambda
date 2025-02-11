@@ -45,9 +45,9 @@ class SwapHandsTransaction @Ta5kBuilder constructor() : InventoryTransaction() {
             confirming = true
         }
 
-        listen<InventoryEvent.SlotUpdate> {
-            // ToDo: Check slot
-            if (confirming) finish()
+        listen<InventoryEvent.HotbarSlot.Sync> {
+            if (it.slot != player.inventory.selectedSlot) return@listen
+            finish()
         }
     }
 }

@@ -115,7 +115,7 @@ class BuildTask @Ta5kBuilder constructor(
                         failure("No item in inventory to throw but inventory is full and cant pick up item drop")
                         return@listen
                     }
-                    transfer {
+                    transfer(player.currentScreenHandler) {
                         throwStack(stackToThrow.id)
                     }.execute(this@BuildTask)
                     return@listen

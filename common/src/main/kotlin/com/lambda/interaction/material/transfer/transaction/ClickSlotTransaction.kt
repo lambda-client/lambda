@@ -32,7 +32,12 @@ class ClickSlotTransaction @Ta5kBuilder constructor(
 
     init {
     	listen<TickEvent.Pre> {
-            clickSlot(slotId, button, actionType)
+            try {
+                clickSlot(slotId, button, actionType)
+            } catch (e: Exception) {
+                failure(e.message ?: "Unknown error")
+                return@listen
+            }
             finish()
         }
     }

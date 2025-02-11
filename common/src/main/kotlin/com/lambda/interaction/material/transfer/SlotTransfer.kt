@@ -71,7 +71,7 @@ class SlotTransfer @Ta5kBuilder constructor(
             val nextFrom = selectedFrom.firstOrNull() ?: return@listen
             val nextTo = selectedTo.firstOrNull() ?: return@listen
 
-            transfer {
+            transfer(screen) {
 //                moveSlot(nextFrom.id, nextTo.id)
                 swap(nextTo.id, 1)
                 swap(nextFrom.id, 1)

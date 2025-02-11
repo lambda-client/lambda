@@ -17,10 +17,8 @@
 
 package com.lambda.interaction.material.transfer.transaction
 
-import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.material.transfer.InventoryChanges
 import com.lambda.interaction.material.transfer.InventoryTransaction
 
 class SwapHotbarSlotTransaction @Ta5kBuilder constructor(
@@ -28,10 +26,10 @@ class SwapHotbarSlotTransaction @Ta5kBuilder constructor(
 ) : InventoryTransaction() {
     override val name: String get() = "Selecting slot #$slot"
 
-    override fun SafeContext.onStart() {
-        changes = InventoryChanges(player.currentScreenHandler.slots)
-        player.inventory.selectedSlot = slot
-        changes.detectChanges()
-        success(changes)
+    init {
+    	listen<TickEvent.Pre> {
+            player.inventory.selectedSlot = slot
+            finish()
+        }
     }
 }

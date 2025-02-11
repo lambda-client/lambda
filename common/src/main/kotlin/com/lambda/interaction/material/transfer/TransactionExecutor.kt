@@ -17,29 +17,31 @@
 
 package com.lambda.interaction.material.transfer
 
-import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.transfer.transaction.*
 import com.lambda.task.Task
 import net.minecraft.item.ItemStack
+import net.minecraft.screen.ScreenHandler
 import net.minecraft.screen.slot.SlotActionType
 
 class TransactionExecutor @Ta5kBuilder constructor(
+    private val screenHandler: ScreenHandler,
     private val transactions: MutableList<InventoryTransaction> = mutableListOf(),
 ) : Task<InventoryChanges>() {
     override val name: String get() = "Execution of ${transactions.size} transactions left"
 
-    private lateinit var changes: InventoryChanges
-
-    override fun SafeContext.onStart() {
-        changes = InventoryChanges(player.currentScreenHandler.slots)
-    }
+    private var changes = InventoryChanges(screenHandler.slots)
 
     init {
         listen<TickEvent.Pre> {
             if (transactions.isEmpty()) {
                 success(changes)
+                return@listen
+            }
+
+            if (player.currentScreenHandler != screenHandler) {
+                failure("Screen handler was closed")
                 return@listen
             }
 
@@ -140,8 +142,8 @@ class TransactionExecutor @Ta5kBuilder constructor(
 
     companion object {
         @InvTransfer
-        fun transfer(block: TransactionExecutor.() -> Unit) =
-            TransactionExecutor().apply {
+        fun transfer(screenHandler: ScreenHandler, block: TransactionExecutor.() -> Unit) =
+            TransactionExecutor(screenHandler).apply {
                 block(this)
             }
     }

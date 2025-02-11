@@ -17,10 +17,8 @@
 
 package com.lambda.interaction.material.transfer.transaction
 
-import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.material.transfer.InventoryChanges
 import com.lambda.interaction.material.transfer.InventoryTransaction
 import net.minecraft.util.Hand
 
@@ -29,12 +27,12 @@ class DropItemInHandTransaction @Ta5kBuilder constructor(
 ) : InventoryTransaction() {
     override val name: String get() = "Dropping ${if (entireStack) "stack" else "item"} in hand"
 
-    override fun SafeContext.onStart() {
-        changes = InventoryChanges(player.currentScreenHandler.slots)
-        if (!player.isSpectator && player.dropSelectedItem(entireStack)) {
-            player.swingHand(Hand.MAIN_HAND)
+    init {
+        listen<TickEvent.Pre> {
+            if (!player.isSpectator && player.dropSelectedItem(entireStack)) {
+                player.swingHand(Hand.MAIN_HAND)
+            }
+            finish()
         }
-        changes.detectChanges()
-        success(changes)
     }
 }
