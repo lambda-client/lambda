@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,25 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.visibilty
+package com.lambda.interaction.request.rotation.visibilty
 
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.config.groups.RotationConfig
 import com.lambda.context.SafeContext
-import com.lambda.interaction.RotationManager
 import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
-import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.rotation.RotationRequest
+import com.lambda.interaction.request.rotation.*
+import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.module.modules.client.TaskFlowModule
-import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.component6
 import com.lambda.util.math.distSq
-import com.lambda.util.world.raycast.RayCastUtils.blockResult
-import com.lambda.util.world.raycast.RayCastUtils.entityResult
-import net.minecraft.entity.Entity
+import com.lambda.util.world.raycast.InteractionMask
+import net.minecraft.entity.LivingEntity
 import net.minecraft.util.hit.HitResult
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
@@ -46,105 +41,115 @@ import kotlin.math.pow
 object VisibilityChecker {
 
     /**
-     * Attempts to rotate the player to look at a specified entity.
-     * The function calculates the best rotation to center the player's view on the bounding box of the given entity.
-     *
-     * @param rotationConfig Specifies the rotation configuration settings.
-     * @param interactionConfig Specifies interaction settings, such as range and resolution.
-     * @param entity The entity to be looked at.
-     * @return A [RotationRequest] if a valid rotation was found; otherwise, null.
-     */
-    fun SafeContext.lookAtEntity(
-        rotationConfig: RotationConfig,
-        interactionConfig: InteractionConfig,
-        entity: Entity,
-    ) = findRotation(listOf(entity.boundingBox), rotationConfig, interactionConfig) {
-        entityResult?.entity == entity
-    }
-
-    /**
-     * Attempts to rotate the player to look at a specific block position.
-     * The function computes the best rotation to focus on a target block's position and side.
-     *
-     * @param blockPos The position of the block to look at.
-     * @param rotationConfig Specifies rotation configuration settings.
-     * @param interactionConfig Specifies interaction settings, such as range and resolution.
-     * @param sides Specifies the set of block sides to consider for targeting.
-     * @return A [RotationRequest] if a valid rotation was found; otherwise, null.
-     */
-    fun SafeContext.lookAtBlock(
-        blockPos: BlockPos,
-        rotationConfig: RotationConfig = TaskFlowModule.rotation,
-        interactionConfig: InteractionConfig = TaskFlowModule.interact,
-        sides: Set<Direction> = Direction.entries.toSet(),
-    ): RotationRequest? {
-        val state = blockPos.blockState(world)
-        val voxelShape = state.getOutlineShape(world, blockPos)
-        val boundingBoxes = voxelShape.boundingBoxes.map { it.offset(blockPos) }
-        return findRotation(boundingBoxes, rotationConfig, interactionConfig, sides) {
-            blockResult?.blockPos == blockPos && (blockResult?.side in sides || sides.isEmpty())
-        }
-    }
-
-    /**
      * Finds a rotation that intersects with one of the specified bounding boxes, allowing the player to look at entities or blocks.
+     * To increase the stability, it will pause the rotation if eye position is within any of the bounding boxes
      *
      * @param boxes List of bounding boxes for potential targets.
-     * @param rotationConfig Specifies rotation configuration settings.
-     * @param interact Specifies interaction settings, such as range and resolution.
-     * @param sides Set of block sides to consider for targeting.
      * @param reach The maximum reach distance for the interaction.
      * @param eye The player's eye position.
-     * @param verify A lambda to verify if a [HitResult] meets the desired criteria.
-     * @return A [RotationRequest] if a valid rotation was found; otherwise, null.
+     * @param sides Set of block sides to consider for targeting.
+     * @param interaction Specifies interaction settings, such as side visibility and resolution.
+     * @param verify A lambda to verify if a [CheckedHit] meets the desired criteria.
+     *
+     * @return A [CheckedHit] if a valid rotation was found; otherwise, null.
      */
     fun SafeContext.findRotation(
         boxes: List<Box>,
-        rotationConfig: RotationConfig,
-        interact: InteractionConfig,
-        sides: Set<Direction> = Direction.entries.toSet(),
-        reach: Double = interact.reach,
-        eye: Vec3d = player.getCameraPosVec(1f),
-        verify: HitResult.() -> Boolean,
-    ): RotationRequest? {
+        reach: Double,
+        eye: Vec3d,
+        sides: Set<Direction>,
+        scan: SurfaceScan,
+        targetType: InteractionMask,
+        interaction: InteractionConfig,
+        verify: CheckedHit.() -> Boolean
+    ): CheckedHit? {
         val currentRotation = RotationManager.currentRotation
-        val currentCast = currentRotation.rayCast(reach, eye)
 
         if (boxes.any { it.contains(eye) }) {
-            return RotationRequest(currentRotation, rotationConfig, currentCast, verify)
+            currentRotation.rayCast(reach, eye)?.let { hit ->
+                return CheckedHit(hit, currentRotation, reach)
+            }
         }
 
-        val validHits = mutableMapOf<Vec3d, HitResult>()
-        val reachSq = reach.pow(2)
+        return interaction.pointSelection.select(
+            collectHitsFor(boxes, reach, eye, sides, scan, targetType, interaction, verify)
+        )
+    }
+
+    /**
+     * Finds a collection of [CheckedHit] that intersect with one of the specified bounding boxes, allowing the player to look at entities or blocks.
+     *
+     * @param boxes List of bounding boxes for potential targets.
+     * @param reach The maximum reach distance for the interaction.
+     * @param eye The player's eye position.
+     * @param sides Set of block sides to consider for targeting.
+     * @param scan Configuration specifying the axis and mode of the scan (default is `SurfaceScan.DEFAULT`).
+     * @param interaction Specifies interaction settings, such as side visibility and resolution.
+     * @param verify A lambda to verify if a [CheckedHit] meets the desired criteria.
+     *
+     * @return A collection of [CheckedHit] with valid angles found
+     */
+    fun SafeContext.collectHitsFor(
+        boxes: List<Box>,
+        reach: Double,
+        eye: Vec3d = player.eyePos,
+        sides: Set<Direction> = ALL_SIDES,
+        scan: SurfaceScan = SurfaceScan.DEFAULT,
+        targetType: InteractionMask,
+        interaction: InteractionConfig,
+        verify: CheckedHit.() -> Boolean,
+    ) = mutableListOf<CheckedHit>().apply {
+        val reachSq = interaction.scanReach.pow(2)
 
         boxes.forEach { box ->
-            val visible = visibleSides(box, eye, interact)
+            val visible = visibleSides(box, eye, interaction.checkSideVisibility)
 
-            scanSurfaces(box, visible.intersect(sides), interact.resolution) { _, vec ->
+            scanSurfaces(box, visible.intersect(sides), interaction.resolution, scan) { _, vec ->
                 if (eye distSq vec > reachSq) return@scanSurfaces
 
                 val newRotation = eye.rotationTo(vec)
 
-                val cast = newRotation.rayCast(reach, eye) ?: return@scanSurfaces
-                if (!cast.verify()) return@scanSurfaces
+                val mask = if (interaction.strictRayCast) InteractionMask.Both else targetType
+                val hit = newRotation.rayCast(reach, eye, mask = mask) ?: return@scanSurfaces
 
-                validHits[vec] = cast
+                val checked = CheckedHit(hit, newRotation, reach)
+                if (!checked.verify()) return@scanSurfaces
+
+                add(checked)
             }
         }
+    }
 
-        // Way stable
-        /*validHits.minByOrNull { eye.rotationTo(it.key) dist currentRotation }?.let { closest ->
-            return RotationContext(eye.rotationTo(closest.key), rotationConfig, closest.value, verify)
-        }*/
+    private fun SafeContext.collectHitsInternal(
+        boxes: List<Box>,
+        reach: Double,
+        eye: Vec3d,
+        sides: Set<Direction>,
+        scan: SurfaceScan,
+        targetType: InteractionMask,
+        entity: LivingEntity?,
+        interaction: InteractionConfig,
+        verify: CheckedHit.() -> Boolean,
+    ) = mutableListOf<CheckedHit>().apply {
+        val reachSq = interaction.scanReach.pow(2)
 
-        validHits.keys.optimum?.let { optimum ->
-            validHits.minByOrNull { optimum distSq it.key }?.let { closest ->
-                val optimumRotation = eye.rotationTo(closest.key)
-                return RotationRequest(optimumRotation, rotationConfig, closest.value, verify)
+        boxes.forEach { box ->
+            val visible = visibleSides(box, eye, interaction.checkSideVisibility)
+
+            scanSurfaces(box, visible.intersect(sides), interaction.resolution, scan) { _, vec ->
+                if (eye distSq vec > reachSq) return@scanSurfaces
+
+                val newRotation = eye.rotationTo(vec)
+
+                val mask = if (interaction.strictRayCast || entity == null) InteractionMask.Both else targetType
+                val hit = newRotation.rayCast(reach, eye, mask = mask) ?: return@scanSurfaces
+
+                val checked = CheckedHit(hit, newRotation, reach)
+                if (!checked.verify()) return@scanSurfaces
+
+                add(checked)
             }
         }
-
-        return null
     }
 
     /**
@@ -157,7 +162,7 @@ object VisibilityChecker {
      * @param scan Configuration specifying the axis and mode of the scan (default is `SurfaceScan.DEFAULT`).
      * @param check A callback function that performs an action for each surface point, receiving the direction of the surface and the current 3D vector.
      */
-    inline fun scanSurfaces(
+    fun scanSurfaces(
         box: Box,
         excludedSides: Set<Direction> = emptySet(),
         resolution: Int = 5,
@@ -166,7 +171,7 @@ object VisibilityChecker {
     ) {
         excludedSides.forEach { side ->
             if (excludedSides.isNotEmpty() && side !in excludedSides) return@forEach
-            val (minX, minY, minZ, maxX, maxY, maxZ) = box.shrink(0.01, 0.01, 0.01).bounds(side)
+            val (minX, minY, minZ, maxX, maxY, maxZ) = box.contract(TaskFlowModule.shrinkFactor).bounds(side)
             val stepX = (maxX - minX) / resolution
             val stepY = (maxY - minY) / resolution
             val stepZ = (maxZ - minZ) / resolution
@@ -214,23 +219,15 @@ object VisibilityChecker {
     }
 
     /**
-     * Determines the approximate central point (optimum) of a set of 3D vectors.
-     */
-    val Set<Vec3d>.optimum: Vec3d?
-        get() = reduceOrNull { acc, vec3d ->
-            acc.add(vec3d)
-        }?.multiply(1.0 / size.toDouble())
-
-    /**
      * Determines the sides of a box that are visible from a given position, based on interaction settings.
      *
      * @param box The box whose visible sides are to be determined.
      * @param eye The position (e.g., the player's eyes) to determine visibility from.
-     * @param interactionSettings The settings that define how visibility checks are handled.
+     * @param visibilityCheck Whether to check the visibility of the side.
      * @return A set of directions corresponding to the visible sides of the box.
      */
-    fun visibleSides(box: Box, eye: Vec3d, interactionSettings: InteractionConfig) =
-        if (interactionSettings.visibilityCheck) {
+    private fun visibleSides(box: Box, eye: Vec3d, visibilityCheck: Boolean) =
+        if (visibilityCheck) {
             box.getVisibleSurfaces(eye)
         } else Direction.entries.toSet()
 
@@ -240,7 +237,7 @@ object VisibilityChecker {
      * @param side The side of the box to calculate bounds for.
      * @return An array of doubles representing the side's bounds.
      */
-    fun Box.bounds(side: Direction) =
+    private fun Box.bounds(side: Direction) =
         when (side) {
             Direction.DOWN -> doubleArrayOf(minX, minY, minZ, maxX, minY, maxZ)
             Direction.UP -> doubleArrayOf(minX, maxY, minZ, maxX, maxY, maxZ)
@@ -276,4 +273,12 @@ object VisibilityChecker {
             diff > limit -> add(positiveSide)
         }
     }
+
+    val ALL_SIDES = Direction.entries.toSet()
+
+    class CheckedHit(
+        val hit: HitResult,
+        val targetRotation: Rotation,
+        val reach: Double
+    )
 }

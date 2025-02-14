@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,10 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.world.raycast
+package com.lambda.interaction.request
 
-enum class RayCastMask(val block: Boolean, val entity: Boolean) {
-    BOTH(true, true),
-    BLOCK(true, false),
-    ENTITY(false, true)
+abstract class Request (
+    val priority: Priority
+) {
+    abstract val done: Boolean
 }

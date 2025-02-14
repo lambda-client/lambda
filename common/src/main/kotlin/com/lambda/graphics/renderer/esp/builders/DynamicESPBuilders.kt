@@ -25,7 +25,7 @@ import com.lambda.util.extension.max
 import com.lambda.util.extension.min
 import java.awt.Color
 
-fun DynamicESPRenderer.build(
+fun DynamicESPRenderer.ofBox(
     box: DynamicAABB,
     filledColor: Color,
     outlineColor: Color,

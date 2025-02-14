@@ -18,7 +18,12 @@
 package com.lambda.event.events
 
 import com.lambda.event.Event
+import com.lambda.event.callback.Cancellable
+import com.lambda.event.callback.ICancellable
+import com.lambda.threading.runSafe
+import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
+import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.world.chunk.WorldChunk
@@ -41,7 +46,7 @@ sealed class WorldEvent {
      * These events can be used to listen for and respond to changes in the state
      * of chunks within the game world, providing contextual data for the operations.
      */
-    sealed class ChunkEvent : Event {
+    sealed class ChunkEvent {
         /**
          * Event triggering upon chunk loading
          */
@@ -59,17 +64,36 @@ sealed class WorldEvent {
     }
 
     /**
-     * Represents a block state change event within the world.
+     * Represents events related to block updates in the world.
      *
-     * @property pos The position of the block within the world where the change occurred.
-     * @property oldState The block state prior to the change.
-     * @property newState The block state after the change.
+     * This sealed class encapsulates different types of block update events,
+     * distinguishing between client-side state changes and server-side updates.
      */
-    data class BlockChange(
-        val pos: BlockPos,
-        val oldState: BlockState,
-        val newState: BlockState,
-    ) : Event
+    sealed class BlockUpdate {
+        /**
+         * Represents a client side block state change event within the world.
+         *
+         * @property pos The position of the block within the world where the change occurred.
+         * @property oldState The block state prior to the change.
+         * @property newState The block state after the change.
+         */
+        data class Client(
+            val pos: BlockPos,
+            val oldState: BlockState,
+            val newState: BlockState,
+        ) : Event
+
+        /**
+         * Represents a server block update event in the world.
+         *
+         * @property pos The position of the block in the world.
+         * @property newState The new state of the block after the update.
+         */
+        data class Server(
+            val pos: BlockPos,
+            val newState: BlockState,
+        ) : ICancellable by Cancellable()
+    }
 
     /**
      * Represents a collision event in the game world.

@@ -19,7 +19,7 @@ package com.lambda.mixin.entity;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
-import com.lambda.interaction.RotationManager;
+import com.lambda.interaction.request.rotation.RotationManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.player.PlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;

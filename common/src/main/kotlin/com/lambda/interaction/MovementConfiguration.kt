@@ -17,7 +17,7 @@
 
 package com.lambda.interaction
 
-import com.lambda.interaction.rotation.Rotation
+import com.lambda.interaction.request.rotation.Rotation
 import net.minecraft.util.math.Vec3d
 
 data class MovementConfiguration(

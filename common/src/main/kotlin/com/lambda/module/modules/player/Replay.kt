@@ -19,17 +19,17 @@ package com.lambda.module.modules.player
 
 import com.google.gson.*
 import com.lambda.brigadier.CommandResult
-import com.lambda.config.groups.RotationConfig
+import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
 import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.events.RotationEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.rotation.Rotation
-import com.lambda.interaction.rotation.RotationRequest
-import com.lambda.interaction.rotation.RotationMode
+import com.lambda.interaction.request.rotation.Rotation
+import com.lambda.interaction.request.rotation.RotationManager.onRotate
+import com.lambda.interaction.request.rotation.RotationMode
+import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.player.Replay.InputAction.Companion.toAction
@@ -56,6 +56,7 @@ import java.lang.reflect.Type
 import java.time.format.DateTimeFormatter
 import kotlin.io.path.pathString
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
@@ -79,8 +80,8 @@ object Replay : Module(
     private val deviationThreshold by setting("Deviation threshold", 0.1, 0.1..5.0, 0.1, description = "The threshold for the deviation to cancel the replay.") { cancelOnDeviation }
     private val lockCamera by setting("Lock Camera", true)
 
-    private val rotationConfig = object : RotationConfig.Instant {
-        override val rotationMode = if (lockCamera) RotationMode.LOCK else RotationMode.SYNC
+    private val rotationConfig = object : RotationConfig.Instant(RotationMode.Sync) {
+        override val rotationMode = if (lockCamera) RotationMode.Lock else RotationMode.Sync
     }
 
     enum class State {
@@ -157,7 +158,7 @@ object Replay : Module(
             }
         }
 
-        listen<RotationEvent.Update> { event ->
+        onRotate {
             when (state) {
                 State.RECORDING -> {
                     buffer?.rotation?.add(player.rotation)
@@ -165,7 +166,7 @@ object Replay : Module(
 
                 State.PLAYING -> {
                     buffer?.rotation?.removeFirstOrNull()?.let { rot ->
-                        event.request = RotationRequest(rot, rotationConfig)
+                        lookAt(rot).requestBy(rotationConfig)
                     }
                 }
 
@@ -571,7 +572,7 @@ object Replay : Module(
         val endPos: Vec3d
             get() = position.lastOrNull() ?: Vec3d.ZERO
         val pruneTimesave: Duration
-            get() = (position.findCyclicPaths(5).size * 50L).toDuration(DurationUnit.MILLISECONDS)
+            get() = (position.findCyclicPaths(5).size * 50L).milliseconds
 
         fun duplicate() = Recording(
             input.take(size).toMutableList(),

@@ -72,6 +72,14 @@ object CombatUtils {
 
     /**
      * Calculates the damage dealt by an explosion to a living entity
+     * @param position The position of the explosion
+     * @param entity The entity to calculate the damage for
+     */
+    fun SafeContext.crystalDamage(position: Vec3d, entity: LivingEntity) =
+        explosionDamage(position, entity, 6.0)
+
+    /**
+     * Calculates the damage dealt by an explosion to a living entity
      *
      * @param source The source of the explosion
      * @param entity The entity to calculate the damage for
@@ -113,7 +121,7 @@ object CombatUtils {
      * @param entity The entity to calculate the velocity for
      * @param explosion The explosion to calculate the velocity for
      */
-    fun SafeContext.explosionVelocity(entity: LivingEntity, explosion: Explosion) =
+    fun explosionVelocity(entity: LivingEntity, explosion: Explosion) =
         explosionVelocity(entity, explosion.position, explosion.power.toDouble())
 
     /**

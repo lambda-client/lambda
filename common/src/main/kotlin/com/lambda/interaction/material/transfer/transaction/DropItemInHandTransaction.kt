@@ -32,9 +32,6 @@ class DropItemInHandTransaction @Ta5kBuilder constructor(
             if (!player.isSpectator && player.dropSelectedItem(entireStack)) {
                 player.swingHand(Hand.MAIN_HAND)
             }
-        }
-
-        listen<TickEvent.Post> {
             finish()
         }
     }

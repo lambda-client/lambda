@@ -114,7 +114,7 @@ abstract class AbstractSetting<T : Any>(
         runCatching {
             value = gson.fromJson(serialized, type)
         }.onFailure {
-            LOG.warn("Failed to load setting ${this.name} with value $serialized. Resetting to default value $defaultValue", it)
+            LOG.warn("Failed to load setting ${this.name} with value $serialized. Resetting to default value $defaultValue")
             value = defaultValue
         }
     }

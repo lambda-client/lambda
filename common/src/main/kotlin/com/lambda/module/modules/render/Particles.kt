@@ -33,7 +33,7 @@ import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.buildWorldProjection
 import com.lambda.graphics.gl.Matrices.withVertexTransform
 import com.lambda.graphics.shader.Shader
-import com.lambda.interaction.rotation.Rotation
+import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.GuiSettings.colorSpeed
@@ -48,7 +48,7 @@ import com.lambda.util.math.lerp
 import com.lambda.util.math.multAlpha
 import com.lambda.util.math.transform
 import com.lambda.util.player.MovementUtils.moveDelta
-import com.lambda.util.world.raycast.RayCastMask
+import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d
 import org.lwjgl.opengl.GL11.GL_ONE
@@ -135,7 +135,7 @@ object Particles : Module(
         repeat(environmentSpawnAmount) {
             var particlePos = player.pos + Rotation(random(-180.0, 180.0), 0.0).vector * random(0.0, environmentRange)
 
-            Rotation.DOWN.rayCast(6.0, particlePos + UP * 2.0, true, RayCastMask.BLOCK)?.pos?.let {
+            Rotation.DOWN.rayCast(6.0, particlePos + UP * 2.0, true, InteractionMask.Block)?.pos?.let {
                 particlePos = it + UP * 0.03
             } ?: return@repeat
 

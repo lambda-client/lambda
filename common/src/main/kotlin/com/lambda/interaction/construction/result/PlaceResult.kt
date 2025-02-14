@@ -42,9 +42,13 @@ sealed class PlaceResult : BuildResult() {
      */
     data class Place(
         override val blockPos: BlockPos,
-        val context: PlaceContext,
-    ) : PlaceResult() {
+        override val context: PlaceContext,
+    ) : Contextual, Drawable, PlaceResult() {
         override val rank = Rank.PLACE_SUCCESS
+
+        override fun SafeContext.buildRenderer() {
+            with(context) { buildRenderer() }
+        }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
@@ -80,15 +84,16 @@ sealed class PlaceResult : BuildResult() {
     }
 
     /**
-     * Represents a scenario where block placement is obstructed by a player.
+     * Represents a scenario where block placement is obstructed by an entity.
      *
      * @property blockPos The position of the block that was attempted to be placed.
      */
-    data class BlockedByPlayer(
+    data class BlockedByEntity(
         override val blockPos: BlockPos,
     ) : Navigable, PlaceResult() {
         override val rank = Rank.PLACE_BLOCKED_BY_PLAYER
 
+        // ToDo: check what type of entity. player -> leave box, other entity -> kill?
         override val goal = GoalInverted(GoalBlock(blockPos))
     }
 

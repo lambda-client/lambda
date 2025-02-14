@@ -54,7 +54,7 @@ object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
                 return
             }
 
-            transfer {
+            transfer(player.currentScreenHandler) {
                 val stackInOffHand = moveStack.equal(player.offHandStack)
                 if (hand == Hand.MAIN_HAND && stackInOffHand) {
                     swapHands()

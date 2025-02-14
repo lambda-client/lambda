@@ -80,9 +80,9 @@ abstract class MaterialContainer(
         this.stacks = stacks
     }
 
-    class Nothing(override val name: String = "Nothing") : Task<Unit>() {
+    class FailureTask(override val name: String) : Task<Unit>() {
         override fun SafeContext.onStart() {
-            success()
+            failure(name)
         }
     }
 
@@ -90,13 +90,13 @@ abstract class MaterialContainer(
      * Withdraws items from the container to the player's inventory.
      */
     @Task.Ta5kBuilder
-    open fun withdraw(selection: StackSelection): Task<*> = Nothing(name)
+    open fun withdraw(selection: StackSelection): Task<*>? = null
 
     /**
      * Deposits items from the player's inventory into the container.
      */
     @Task.Ta5kBuilder
-    open fun deposit(selection: StackSelection): Task<*> = Nothing(name)
+    open fun deposit(selection: StackSelection): Task<*>? = null
 
     open fun matchingStacks(selection: StackSelection) =
         selection.filterStacks(stacks)

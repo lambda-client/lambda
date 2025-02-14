@@ -18,6 +18,9 @@
 package com.lambda.event.events
 
 import com.lambda.event.Event
+import com.lambda.event.callback.Cancellable
+import com.lambda.event.callback.ICancellable
+import com.lambda.interaction.request.hotbar.HotbarRequest
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.ScreenHandler
 
@@ -80,10 +83,33 @@ sealed class InventoryEvent {
         val stack: ItemStack,
     ) : Event
 
-    /**
-     * Represents an event triggered when a player switches their selected hotbar slot.
-     *
-     * @property slot The index of the newly selected hotbar slot.
-     */
-    data class SelectedHotbarSlotUpdate(val slot: Int) : Event
+    abstract class HotbarSlot: Event {
+
+        data class Request(var request: HotbarRequest? = null) : HotbarSlot()
+
+        /**
+         * Represents an event triggered when the client attempts to send slot update to the server.
+         *
+         * Updated slot id will come to the server if it defers from last reported slot.
+         */
+        data class Update(var slot: Int) : HotbarSlot()
+
+        /**
+         * Represents an event triggered when the client sends slot update to the server.
+         *
+         * This event happens when last slot defers from the previous one
+         */
+        data class Changed(var slot: Int) : HotbarSlot()
+
+        /**
+         * Represents an event triggered when the server forces the player to change active hotbar slot.
+         * (world load or anticheat flag).
+         *
+         * This event is [Cancellable], you may ignore the server with risk
+         * of unexpected behaviour depending on the strictness of the server/anticheat.
+         *
+         * @property slot The index of the newly selected hotbar slot.
+         */
+        data class Sync(val slot: Int) : HotbarSlot(), ICancellable by Cancellable()
+    }
 }

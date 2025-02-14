@@ -25,9 +25,10 @@ import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.global.DynamicESP
-import com.lambda.interaction.RotationManager
-import com.lambda.interaction.rotation.RotationRequest
-import com.lambda.interaction.visibilty.VisibilityChecker.findRotation
+import com.lambda.interaction.request.rotation.RotationManager
+import com.lambda.interaction.request.rotation.RotationManager.onRotate
+import com.lambda.interaction.request.rotation.RotationRequest
+import com.lambda.interaction.request.rotation.visibilty.lookAtBlock
 import com.lambda.module.Module
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.module.tag.ModuleTag
@@ -348,7 +349,7 @@ object PacketMine : Module(
 
                     mineTicks++
 
-                    val activeState = pos.blockState(world)
+                    val activeState = blockState(pos)
                     state = activeState
 
                     val empty = isStateEmpty(activeState)
@@ -513,10 +514,10 @@ object PacketMine : Module(
             }
         }
 
-        listen<WorldEvent.BlockChange> {
+        listen<WorldEvent.BlockUpdate.Client> {
             currentMiningBlock.forEach { ctx ->
                 ctx?.apply {
-                    if (it.pos != pos || !isStateBroken(pos.blockState(world), it.newState)) return@forEach
+                    if (it.pos != pos || !isStateBroken(blockState(pos), it.newState)) return@forEach
 
                     if (breakType.isPrimary()) {
                         runHandlers(ProgressStage.PacketReceiveBreak, pos, lastValidBestTool)
@@ -531,24 +532,18 @@ object PacketMine : Module(
             }
         }
 
-        listen<RotationEvent.Update> {
-            if (!rotate.isEnabled()) return@listen
+        onRotate {
+            if (!rotate.isEnabled()) return@onRotate
 
             rotationPosition?.let { pos ->
                 lastNonEmptyState?.let { state ->
-                    val boxList = state.getOutlineShape(world, pos).boundingBoxes.map { it.offset(pos) }
-                    val rotationRequest =
-                        findRotation(boxList, TaskFlowModule.rotation, TaskFlowModule.interact, emptySet()) { true }
-                    rotationRequest?.let { request ->
-                        it.request = request
-                        expectedRotation = request
-                    }
+                    expectedRotation = lookAtBlock(pos).requestBy(TaskFlowModule.rotation)
                 }
             } ?: run {
                 expectedRotation = null
             }
 
-            if (!rotated || !waitingToReleaseRotation) return@listen
+            if (!rotated || !waitingToReleaseRotation) return@onRotate
 
             releaseRotateDelayCounter--
 
@@ -573,7 +568,7 @@ object PacketMine : Module(
                     if (verifyRotation(
                             boxList,
                             RotationManager.currentRotation.vector,
-                            RotationManager.currentContext?.checkedResult
+                            RotationManager.currentRequest?.target?.hit?.hitIfValid()
                         )
                     ) {
                         onRotationComplete?.run()
@@ -601,7 +596,7 @@ object PacketMine : Module(
             if (renderQueueMode.isEnabled()) {
                 blockQueue.forEach { pos ->
                     var boxes = if (renderQueueMode == RenderQueueMode.Shape) {
-                        pos.blockState(world).getOutlineShape(world, pos).boundingBoxes
+                        blockState(pos).getOutlineShape(world, pos).boundingBoxes
                     } else {
                         listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
                     }
@@ -673,7 +668,7 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.startBreaking(pos: BlockPos) {
-        val state = pos.blockState(world)
+        val state = blockState(pos)
         val bestTool = getBestTool(state, pos)
         if (!isStateEmpty(state)) lastNonEmptyState = state
 
@@ -899,7 +894,7 @@ object PacketMine : Module(
         if (!verifyRotation(
                 lastNonEmptyState?.getOutlineShape(world, pos)?.boundingBoxes?.map { it.offset(pos) },
                 RotationManager.currentRotation.vector,
-                RotationManager.currentContext?.checkedResult
+                RotationManager.currentRequest?.target?.hit?.hitIfValid()
             )
         ) {
             pausedForRotation = true

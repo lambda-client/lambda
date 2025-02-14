@@ -27,10 +27,12 @@ import java.util.concurrent.ConcurrentLinkedQueue
  * @param E The type of elements held in this collection.
  * @property sizeLimit The maximum number of elements the queue can hold at any given time.
  * @property maxAge The age (in milliseconds) after which elements are considered expired and are removed from the queue.
+ * @property onDecay Lambda function that is executed on decay of element [E].
  */
 class LimitedDecayQueue<E>(
     private var sizeLimit: Int,
     private var maxAge: Long,
+    private val onDecay: (E) -> Unit = {}
 ) : AbstractMutableCollection<E>() {
     private val queue: ConcurrentLinkedQueue<Pair<E, Instant>> = ConcurrentLinkedQueue()
 
@@ -44,7 +46,17 @@ class LimitedDecayQueue<E>(
     @Synchronized
     override fun iterator(): MutableIterator<E> {
         cleanUp()
-        return queue.map { it.first }.iterator() as MutableIterator<E>
+        return object : MutableIterator<E> {
+            private val delegate = queue.iterator()
+
+            override fun hasNext(): Boolean = delegate.hasNext()
+
+            override fun next(): E = delegate.next().first
+
+            override fun remove() {
+                delegate.remove() // This affects the underlying queue directly
+            }
+        }
     }
 
     @Synchronized
@@ -116,7 +128,7 @@ class LimitedDecayQueue<E>(
     private fun cleanUp() {
         val now = Instant.now()
         while (queue.isNotEmpty() && now.minusMillis(maxAge).isAfter(queue.peek().second)) {
-            queue.poll()
+            onDecay(queue.poll().first)
         }
     }
 }

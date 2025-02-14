@@ -17,15 +17,13 @@
 
 package com.lambda.module.modules.client
 
-import com.lambda.config.groups.BuildSettings
-import com.lambda.config.groups.InteractionSettings
-import com.lambda.config.groups.InventorySettings
-import com.lambda.config.groups.RotationSettings
+import com.lambda.config.groups.*
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.world.raycast.InteractionMask
 
 object TaskFlowModule : Module(
     name = "TaskFlow",
@@ -33,16 +31,17 @@ object TaskFlowModule : Module(
     defaultTags = setOf(ModuleTag.CLIENT, ModuleTag.AUTOMATION)
 ) {
     enum class Page {
-        BUILD, ROTATION, INTERACTION, INVENTORY, DEBUG
+        Build, Rotation, Interaction, Inventory, Debug
     }
 
-    private val page by setting("Page", Page.BUILD)
-    val build = BuildSettings(this) { page == Page.BUILD }
-    val rotation = RotationSettings(this) { page == Page.ROTATION }
-    val interact = InteractionSettings(this) { page == Page.INTERACTION }
-    val inventory = InventorySettings(this) { page == Page.INVENTORY }
+    private val page by setting("Page", Page.Build)
+    val build = BuildSettings(this) { page == Page.Build }
+    val rotation = RotationSettings(this) { page == Page.Rotation }
+    val interact = InteractionSettings(this, InteractionMask.Both) { page == Page.Interaction }
+    val inventory = InventorySettings(this) { page == Page.Inventory }
 
-    val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree") { page == Page.DEBUG }
+    val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree") { page == Page.Debug }
+    val shrinkFactor by setting("Shrink Factor", 0.001, 0.0..1.0, 0.001) { page == Page.Debug }
 
     @Volatile
     var drawables = listOf<Drawable>()
