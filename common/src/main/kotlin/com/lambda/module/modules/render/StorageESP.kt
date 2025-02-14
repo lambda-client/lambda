@@ -64,8 +64,8 @@ object StorageESP : Module(
     private val distance by setting("Distance", 64.0, 10.0..256.0, 1.0, "Maximum distance for rendering") { page == Page.General }
 
     /* Render settings */
-    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks") { page == Page.Render }.apply { onValueSet { _, to -> if (!to) drawOutlines = true } }
-    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks") { page == Page.Render }.apply { onValueSet { _, to -> if (!to) drawFaces = true } }
+    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks") { page == Page.Render }.onValueSet { _, to -> if (!to) drawOutlines = true }
+    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks") { page == Page.Render }.onValueSet { _, to -> if (!to) drawFaces = true }
     private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode") { page == Page.Render }
     private val mesh by setting("Mesh", true, "Connect similar adjacent blocks") { page == Page.Render }
 
