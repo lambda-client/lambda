@@ -73,7 +73,7 @@ object LambdaAtlas : Loadable {
     private val heightCache = Object2DoubleArrayMap<Font>()
 
     operator fun LambdaFont.get(char: Char): GlyphInfo? = fontMap.getValue(this)[char]
-    operator fun LambdaEmoji.get(string: String): GlyphInfo? = emojiMap.getValue(this)[string]
+    operator fun LambdaEmoji.get(string: String): GlyphInfo? = emojiMap.getValue(this)[string.removeSurrounding(":")]
 
     val LambdaFont.height: Double
         get() = heightCache.getDouble(fontCache[this@height])

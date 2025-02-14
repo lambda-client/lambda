@@ -32,7 +32,7 @@ enum class LambdaEmoji(val url: String) {
      * @return A list of parsed strings that does not contain the colons
      */
     fun parse(text: String): MutableList<String> =
-        emojiRegex.findAll(text).map { it.value.drop(1).dropLast(1) }.toMutableList()
+        emojiRegex.findAll(text).map { it.value }.toMutableList()
 
     fun load(): String {
         entries.forEach { it.buildBuffer() }

@@ -19,12 +19,10 @@ package com.lambda.graphics.renderer.gui.font
 
 import com.lambda.graphics.buffer.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
-import com.lambda.graphics.pipeline.ScissorAdapter
 import com.lambda.graphics.renderer.gui.AbstractGUIRenderer
 import com.lambda.graphics.renderer.gui.font.core.GlyphInfo
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.get
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.height
-import com.lambda.graphics.shader.Shader
 import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.graphics.texture.TextureOwner.bind
 import com.lambda.module.modules.client.LambdaMoji
@@ -33,7 +31,6 @@ import com.lambda.util.math.Vec2d
 import com.lambda.util.math.a
 import com.lambda.util.math.setAlpha
 import java.awt.Color
-import java.awt.Font
 
 /**
  * Renders text and emoji glyphs using a shader-based font rendering system.
@@ -77,6 +74,29 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
         }
     }
 
+    fun drawGlyph(
+        glyph: GlyphInfo,
+        position: Vec2d,
+        color: Color = Color.WHITE,
+        scale: Double = 1.0
+    ) = render {
+        shader["u_FontTexture"] = 0
+        shader["u_EmojiTexture"] = 1
+        shader["u_SDFMin"] = 0.3
+        shader["u_SDFMax"] = 1.0
+
+        bind(chars, emojis)
+
+        val actualScale = getScaleFactor(scale)
+        val scaledSize = glyph.size * actualScale
+
+        val posY = getHeight(scale) * -0.5 + baselineOffset * actualScale
+        val pos1 = Vec2d(0.0, posY) * actualScale
+        val pos2 = pos1 + scaledSize
+
+        buildGlyph(glyph, position, pos1, pos2, color)
+    }
+
     /**
      * Renders a single glyph at a given position.
      *
@@ -89,9 +109,9 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
     private fun VertexPipeline.buildGlyph(
         glyph: GlyphInfo,
         origin: Vec2d = Vec2d.ZERO,
-        pos1: Vec2d = Vec2d.ZERO,
-        pos2: Vec2d = pos1 + glyph.size,
-        color: Color = Color.WHITE,
+        pos1: Vec2d,
+        pos2: Vec2d,
+        color: Color,
     ) {
         val x1 = pos1.x + origin.x
         val y1 = pos1.y + origin.y
@@ -198,9 +218,9 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
 
                 // Iterate the emojis from left to right
                 val start = section.indexOf(emoji)
-                val end = start + emoji.length + 1
+                val end = start + emoji.length
 
-                val preEmojiText = section.substring(0, start - 1)
+                val preEmojiText = section.substring(0, start)
                 val postEmojiText = section.substring(end)
 
                 // Draw the text without emoji
