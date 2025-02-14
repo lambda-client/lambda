@@ -17,9 +17,9 @@
 
 package com.lambda.http.api.rpc.v1.endpoints
 
-import com.lambda.http.Method
+import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.gson.responseObject
 import com.lambda.http.api.rpc.v1.models.Party
-import com.lambda.http.request
 
 fun editParty(
     endpoint: String,
@@ -35,14 +35,5 @@ fun editParty(
     // example: true
     // public: Boolean = true,
 ) =
-    request("$endpoint/api/$version/party/edit") {
-        method(Method.PATCH)
-
-        parameters(
-            mapOf("max_players" to maxPlayers)
-        )
-
-        headers(
-            mapOf("Authorization" to "Bearer $accessToken")
-        )
-    }.json<Party>()
+    Fuel.patch("$endpoint/api/$version/party/edit", listOf("max_players" to maxPlayers))
+        .responseObject<Party>().third

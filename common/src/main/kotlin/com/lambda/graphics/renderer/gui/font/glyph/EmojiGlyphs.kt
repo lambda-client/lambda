@@ -17,12 +17,18 @@
 
 package com.lambda.graphics.renderer.gui.font.glyph
 
+import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.core.FuelManager
+import com.github.kittinunf.fuel.core.Method
+import com.github.kittinunf.fuel.core.await
+import com.github.kittinunf.fuel.core.awaitResponse
+import com.github.kittinunf.fuel.core.awaitUnit
+import com.github.kittinunf.fuel.core.responseUnit
 import com.google.common.math.IntMath.pow
 import com.lambda.Lambda.LOG
 import com.lambda.graphics.texture.MipmapTexture
-import com.lambda.http.Method
-import com.lambda.http.request
 import com.lambda.module.modules.client.RenderSettings
+import com.lambda.util.FolderRegister.cache
 import com.lambda.util.math.Vec2d
 import java.awt.Color
 import java.awt.Graphics2D
@@ -33,7 +39,6 @@ import javax.imageio.ImageIO
 import kotlin.math.ceil
 import kotlin.math.log2
 import kotlin.math.sqrt
-import kotlin.time.Duration.Companion.days
 
 class EmojiGlyphs(zipUrl: String) {
     private val emojiMap = mutableMapOf<String, GlyphInfo>()
@@ -54,9 +59,11 @@ class EmojiGlyphs(zipUrl: String) {
     }
 
     private fun downloadAndProcessZip(zipUrl: String) {
-        val file = request(zipUrl) {
-            method(Method.GET)
-        }.maybeDownload("emojis.zip", maxAge = 30.days)
+        val file = cache.resolve("emojis.zip").toFile()
+
+        Fuel.download(zipUrl, Method.GET)
+            .fileDestination { _, _ -> file }
+            .responseUnit()
 
         fontTexture = MipmapTexture(processZip(file))
     }

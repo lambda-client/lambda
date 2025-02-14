@@ -17,11 +17,11 @@
 
 package com.lambda.module.modules.combat
 
+import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.gson.responseObject
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.http.Method
-import com.lambda.http.request
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.onShutdown
@@ -88,10 +88,9 @@ object FakePlayer : Module(
             period = 2000L
         ) {
             cachedProfiles[fetchKey] ?: runSafe {
-                val requestedProfile =
-                    request("https://api.mojang.com/users/profiles/minecraft/$fetchKey") {
-                        method(Method.GET)
-                    }.json<GameProfile>().data
+                val (requestedProfile, _) =
+                    Fuel.get("https://api.mojang.com/users/profiles/minecraft/$fetchKey")
+                        .responseObject<GameProfile>().third
 
                 val uuid = requestedProfile?.id ?: nilUuid
 
