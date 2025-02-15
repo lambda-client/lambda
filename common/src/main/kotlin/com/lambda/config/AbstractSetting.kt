@@ -39,6 +39,7 @@ import net.minecraft.command.CommandRegistryAccess
 import java.lang.reflect.Type
 import kotlin.properties.Delegates
 import kotlin.reflect.KProperty
+import kotlin.to
 
 /**
  * Represents a setting with a [defaultValue], [visibility] condition, and [description].
@@ -125,7 +126,7 @@ abstract class AbstractSetting<T : Any>(
      * Will only register changes of the variable, not the content of the variable!
      * E.g., if the variable is a list, it will only register if the list reference changes, not if the content of the list changes.
      */
-    fun onValueChange(block: SafeContext.(from: T, to: T) -> Unit) {
+    fun onValueChange(block: SafeContext.(from: T, to: T) -> Unit) = apply {
         listeners.add(ValueListener(true) { from, to ->
             runSafe {
                 block(from, to)
@@ -133,11 +134,11 @@ abstract class AbstractSetting<T : Any>(
         })
     }
 
-    fun onValueChangeUnsafe(block: (from: T, to: T) -> Unit) {
+    fun onValueChangeUnsafe(block: (from: T, to: T) -> Unit) = apply {
         listeners.add(ValueListener(true, block))
     }
 
-    fun onValueSet(block: (from: T, to: T) -> Unit) {
+    fun onValueSet(block: (from: T, to: T) -> Unit) = apply {
         listeners.add(ValueListener(false, block))
     }
 

@@ -49,11 +49,7 @@ object Speed : Module(
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
     @JvmStatic
-    val mode by setting("Mode", Mode.GRIM_STRAFE).apply {
-        onValueChange { _, _ ->
-            Speed.reset()
-        }
-    }
+    val mode by setting("Mode", Mode.GRIM_STRAFE).onValueChange { _, _ -> reset() }
 
     // Grim
     private val diagonal by setting("Diagonal", true) { mode == Mode.GRIM_STRAFE }
