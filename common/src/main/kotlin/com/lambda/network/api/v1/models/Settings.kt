@@ -15,25 +15,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.http.api.rpc.v1.endpoints
+package com.lambda.network.api.v1.models
 
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.gson.responseObject
-import com.lambda.http.api.rpc.v1.models.Party
+import com.google.gson.annotations.SerializedName
 
-fun editParty(
-    endpoint: String,
-    version: String,
-    accessToken: String,
-
+data class Settings(
     // The maximum number of players in the party.
     // example: 10
-    maxPlayers: Int = 10,
+    @SerializedName("max_players")
+    val maxPlayers: Int,
 
     // Whether the party is public or not.
     // If false can only be joined by invite.
     // example: true
-    // public: Boolean = true,
-) =
-    Fuel.patch("$endpoint/api/$version/party/edit", listOf("max_players" to maxPlayers))
-        .responseObject<Party>().third
+    // @SerializedName("public")
+    // val public: Boolean,
+)

@@ -15,27 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.http.api.rpc.v1.endpoints
+package com.lambda.network.api.v1.endpoints
 
 import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.core.extensions.authentication
 import com.github.kittinunf.fuel.gson.responseObject
-import com.lambda.http.api.rpc.v1.models.Party
+import com.lambda.module.modules.client.Network
+import com.lambda.network.api.v1.models.Party
 
-fun createParty(
-    endpoint: String,
-    version: String,
-    accessToken: String,
+fun editParty(
+	// The maximum number of players in the party.
+	// example: 10
+	maxPlayers: Int = 10,
 
-    // The maximum number of players in the party.
-    // example: 10
-    maxPlayers: Int = 10,
-
-    // Whether the party is public or not.
-    // If false can only be joined by invite.
-    // example: true
-    public: Boolean = true,
+	// Whether the party is public or not.
+	// If false can only be joined by invite.
+	// example: true
+	// public: Boolean = true,
 ) =
-    Fuel.post("$endpoint/api/$version/party/create", listOf(
-        "max_players" to maxPlayers,
-        "public" to public,
-    )).responseObject<Party>().third
+	Fuel.patch("/party/edit", listOf("max_players" to maxPlayers))
+		.authentication()
+		.bearer(Network.accessToken)
+		.responseObject<Party>().third

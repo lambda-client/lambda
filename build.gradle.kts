@@ -85,6 +85,12 @@ subprojects {
 
     if (path == ":common") return@subprojects
 
+    loom.runs {
+        all {
+            property("lambda.dev", "youtu.be/RYnFIRc0k6E")
+        }
+    }
+
     tasks {
         register<Exec>("renderDoc") {
             val javaHome = Jvm.current().javaHome
@@ -144,7 +150,7 @@ allprojects {
     tasks {
         compileKotlin {
             compilerOptions {
-                jvmTarget.set(JvmTarget.JVM_17)
+                jvmTarget = JvmTarget.JVM_17
             }
         }
     }

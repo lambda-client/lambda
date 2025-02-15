@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.http.api.rpc.v1.models
+package com.lambda.network.api.v1.models
 
 import com.google.gson.annotations.SerializedName
 import java.util.*

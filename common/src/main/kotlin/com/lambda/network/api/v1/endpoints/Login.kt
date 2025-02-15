@@ -15,23 +15,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.http.api.rpc.v1.models
+package com.lambda.network.api.v1.endpoints
 
-import com.google.gson.annotations.SerializedName
+import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.gson.responseObject
+import com.lambda.network.api.v1.models.Authentication
 
-data class Authentication(
-    // The access token to use for the API
-    // example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
-    @SerializedName("access_token")
-    val accessToken: String,
+fun login(
+	// The player's Discord token.
+	// example: OTk1MTU1NzcyMzYxMTQ2NDM4
+	discordToken: String,
 
-    // The duration of the token (in seconds).
-    // example: 3600
-    @SerializedName("expires_in")
-    val expiresIn: Long,
+	// The player's username.
+	// example: "Notch"
+	username: String,
 
-    // The type of the token.
-    // example: Bearer
-    @SerializedName("token_type")
-    val tokenType: String,
-)
+	// The player's Mojang session hash.
+	// example: 069a79f444e94726a5befca90e38aaf5
+	hash: String,
+) =
+	Fuel.post("/login", listOf("token" to discordToken, "username" to username, "hash" to hash))
+		.responseObject<Authentication>().third

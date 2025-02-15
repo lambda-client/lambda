@@ -15,20 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.http.api.rpc.v1.endpoints
+package com.lambda.network.api.v1.endpoints
 
 import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.core.extensions.authentication
 import com.github.kittinunf.fuel.gson.responseObject
-import com.lambda.http.api.rpc.v1.models.Party
+import com.lambda.module.modules.client.Network
+import com.lambda.network.api.v1.models.Party
 
 fun joinParty(
-    endpoint: String,
-    version: String,
-    accessToken: String,
-
-    // The ID of the party.
-    // example: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
-    partyId: String,
+	// The ID of the party.
+	// example: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+	partyId: String,
 ) =
-    Fuel.put("$endpoint/api/$version/party/join", listOf("id" to partyId))
-        .responseObject<Party>().third
+	Fuel.put("/party/join", listOf("id" to partyId))
+		.authentication()
+		.bearer(Network.accessToken)
+		.responseObject<Party>().third

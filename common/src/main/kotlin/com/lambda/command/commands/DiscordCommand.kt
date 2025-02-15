@@ -23,19 +23,19 @@ import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.module.modules.client.DiscordRPC
+import com.lambda.module.modules.client.Discord
 import com.lambda.util.extension.CommandBuilder
 
-object RpcCommand : LambdaCommand(
-    name = "rpc",
-    description = "Discord Rich Presence commands.",
-    usage = "rpc <join [id] | accept>"
+object DiscordCommand : LambdaCommand(
+    name = "discord",
+    description = "Discord Rich Presence commands",
+    usage = "rpc <join [id]>"
 ) {
     override fun CommandBuilder.create() {
         required(literal("join")) {
             required(word("id")) { id ->
                 execute {
-                    DiscordRPC.join(id().value())
+                    Discord.join(id().value())
                 }
             }
         }

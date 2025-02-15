@@ -35,7 +35,7 @@ architectury {
 }
 
 loom {
-    accessWidenerPath.set(project(":common").loom.accessWidenerPath)
+    accessWidenerPath = project(":common").loom.accessWidenerPath
     forge {
         // This is required to convert the access wideners to the forge
         // format, access transformers.

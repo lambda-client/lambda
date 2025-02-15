@@ -19,18 +19,24 @@ package com.lambda.module.modules.client
 
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
-import com.lambda.Lambda.mc
-import com.lambda.event.EventFlow
+import com.lambda.context.SafeContext
 import com.lambda.event.events.ConnectionEvent
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.http.api.rpc.v1.endpoints.*
-import com.lambda.http.api.rpc.v1.models.Authentication
-import com.lambda.http.api.rpc.v1.models.Party
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafeConcurrently
+import com.lambda.network.api.v1.models.Party
 import com.lambda.module.Module
+import com.lambda.module.modules.client.Network.discordAuth
+import com.lambda.module.modules.client.Network.isAuthenticated
+import com.lambda.module.modules.client.Network.rpc
+import com.lambda.module.modules.client.Network.apiAuth
 import com.lambda.module.tag.ModuleTag
+import com.lambda.network.api.v1.endpoints.createParty
+import com.lambda.network.api.v1.endpoints.editParty
+import com.lambda.network.api.v1.endpoints.joinParty
+import com.lambda.network.api.v1.endpoints.leaveParty
 import com.lambda.threading.runConcurrent
-import com.lambda.util.Communication.logError
-import com.lambda.util.Communication.warn
+import com.lambda.threading.runSafe
+import com.lambda.util.Communication
+import com.lambda.util.Communication.toast
 import com.lambda.util.Nameable
 import com.lambda.util.StringUtils.capitalize
 import dev.cbyrne.kdiscordipc.KDiscordIPC
@@ -39,15 +45,12 @@ import dev.cbyrne.kdiscordipc.core.event.impl.ActivityJoinEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ActivityJoinRequestEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ErrorEvent
 import dev.cbyrne.kdiscordipc.core.event.impl.ReadyEvent
-import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.AuthenticatePacket
 import dev.cbyrne.kdiscordipc.data.activity.*
 import kotlinx.coroutines.delay
 import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.network.encryption.NetworkEncryptionUtils
-import java.math.BigInteger
 
-object DiscordRPC : Module(
-    name = "DiscordRPC",
+object Discord : Module(
+    name = "Discord",
     description = "Discord Rich Presence configuration",
     defaultTags = setOf(ModuleTag.CLIENT),
 //    enabledByDefault = true, // ToDo: Bring this back on beta release
@@ -55,6 +58,7 @@ object DiscordRPC : Module(
     private val page by setting("Page", Page.General)
 
     /* General settings */
+    private val delay by setting("Update Delay", 15000L, 15000L..30000L, 100L, unit = "ms") { page == Page.General }
     private val showTime by setting("Show Time", true, description = "Show how long you have been playing for.") { page == Page.General }
     private val line1Left by setting("Line 1 Left", LineInfo.WORLD) { page == Page.General }
     private val line1Right by setting("Line 1 Right", LineInfo.USERNAME) { page == Page.General }
@@ -63,56 +67,34 @@ object DiscordRPC : Module(
     private val confirmCoordinates by setting("Show Coordinates", false, description = "Confirm display the player coordinates") { page == Page.General }
     private val confirmServer by setting("Show Server IP", false, description = "Confirm display the server IP") { page == Page.General }
 
-    /* Technical settings */
-    private var rpcServer by setting("RPC Server", "https://api.lambda-client.org") { page == Page.Settings }
-    private var apiVersion by setting("API Version", ApiVersion.V1) { page == Page.Settings }
-    private val delay by setting("Update Delay", 15000L, 15000L..30000L, 100L, unit = "ms") { page == Page.Settings }
-
     /* Party settings */
-    private val enableParty by setting("Enable Party", true, description = "Allows you to create parties.") { page == Page.Party }
-    private val maxPlayers by setting("Max Players", 10, 2..20) { page == Page.Party }.onValueChange { _, _ -> if (player.isPartyOwner) edit() }
+    private val enableParty by setting("Enable Party", true, description = "Allows you to create parties.") { page == Page.Party } // ToDo: Change this for create by default instead
+    private val maxPlayers by setting("Max Players", 10, 2..20) { page == Page.Party }.onValueChange { _, _ -> if (player.isPartyOwner) edit() } // ToDo: Avoid spam requests
 
-    private val rpc = KDiscordIPC(Lambda.APP_ID, scope = EventFlow.lambdaScope)
     private var startup = System.currentTimeMillis()
-    private val dimensionRegex = Regex("""\b\w+_\w+\b""")
+    private val dimensionRegex = Regex("""\b\w+_\w+\b""") // ToDo: Change this when combat is merged
 
     private var ready: ReadyEvent? = null
-    private var keyEvent: ConnectionEvent.Connect.Login.EncryptionResponse? = null
-
-    private var discordAuth: AuthenticatePacket.Data? = null
-    private var rpcAuth: Authentication? = null
     private var currentParty: Party? = null
-    private var connectionTime: Long = 0
-    private var serverId: String? = null
 
     private val isPartyInteractionAllowed: Boolean
-        get() = rpcAuth != null && discordAuth != null
+        get() = apiAuth != null && discordAuth != null
 
-    private val PlayerEntity.isPartyOwner
+    val PlayerEntity.isPartyOwner
         get() = uuid == currentParty?.leader?.uuid
 
-    private val PlayerEntity.isInParty
+    val PlayerEntity.isInParty
         get() = currentParty?.players?.any { it.uuid == this.uuid }
 
     init {
-        listenUnsafe<ConnectionEvent.Connect.Login.EncryptionRequest> {
-            connectionTime = System.currentTimeMillis()
-            serverId = it.serverId
+        listenUnsafeConcurrently<ConnectionEvent.Connect.Post> {
+            // FixMe: We have to wait even though this is the last event until toSafe() != null
+            //  because of timing
+            delay(3000)
+            runSafe { connect() }
         }
 
-        listenUnsafe<ConnectionEvent.Connect.Login.EncryptionResponse> {
-            if (it.secretKey.isDestroyed)
-                return@listenUnsafe logError(
-                    "Error during the login process",
-                    "The client secret key was destroyed by another listener"
-                )
-
-            keyEvent = it
-        }
-
-        listenUnsafe<ConnectionEvent.Connect.Post> { connect() }
-
-        // TODO: Exponential backoff up to 25 seconds
+        // TODO: Exponential backoff up to 25 seconds to avoid being rate limited by discord
         onEnable { connect() }
         onDisable { disconnect() }
     }
@@ -120,8 +102,8 @@ object DiscordRPC : Module(
     fun createParty() {
         if (!isPartyInteractionAllowed) return
 
-        val (party, error) = createParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return, maxPlayers, true)
-        if (error != null) warn(error.toString()) // TODO: Replace with network manager
+        val (party, error) = createParty(maxPlayers, true)
+        if (error != null) toast("Failed to create a party: ${error.message}", Communication.LogLevel.WARN)
 
         currentParty = party
     }
@@ -130,8 +112,8 @@ object DiscordRPC : Module(
     fun join(id: String) {
         if (!isPartyInteractionAllowed) return
 
-        val (party, error) = joinParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return, id)
-        if (error != null) warn("Failed to join the party", error.toString())
+        val (party, error) = joinParty(id)
+        if (error != null) toast("Failed to join the party: ${error.message}", Communication.LogLevel.WARN)
 
         currentParty = party
     }
@@ -140,22 +122,19 @@ object DiscordRPC : Module(
     private fun edit() {
         if (!isPartyInteractionAllowed) return
 
-        val (party, error) = editParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return, maxPlayers)
-        if (error != null) warn("Failed to edit the party", error.toString())
+        val (party, error) = editParty(maxPlayers)
+        if (error != null) toast("Failed to edit the party: ${error.message}", Communication.LogLevel.WARN)
 
         currentParty = party
     }
 
-    private fun connect() {
-        runConcurrent { rpc.connect() }
-
-        runConcurrent {
-            keyEvent?.let { rpc.register(it) }
-        }
-
+    private fun SafeContext.connect() {
+        // FixMe: Race condition
+        runConcurrent { rpc.connect() } // ToDo: Duplicate rpc connection network and discord
+        runConcurrent { rpc.register() }
         runConcurrent {
             while (rpc.connected) {
-                updateActivity()
+                update()
                 delay(delay)
             }
         }
@@ -164,28 +143,25 @@ object DiscordRPC : Module(
     private fun disconnect() {
         if (rpc.connected) {
             LOG.info("Gracefully disconnecting from Discord RPC.")
-            leaveParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return)
+            leaveParty()
             rpc.disconnect()
         }
 
         ready = null
-        discordAuth = null
-        rpcAuth = null
         currentParty = null
-        keyEvent = null
     }
 
-    private suspend fun updateActivity() {
+    private suspend fun SafeContext.update() {
         val party = currentParty
 
         rpc.activityManager.setActivity {
-            details = "${line1Left.value()} | ${line1Right.value()}".take(128)
-            state = "${line2Left.value()} | ${line2Right.value()}".take(128)
+            details = "${line1Left.value(this@update)} | ${line1Right.value(this@update)}".take(128)
+            state = "${line2Left.value(this@update)} | ${line2Right.value(this@update)}".take(128)
 
             largeImage("lambda", Lambda.VERSION)
             smallImage("https://mc-heads.net/avatar/${mc.gameProfile.id}/nohelm", mc.gameProfile.name)
 
-            if (isPartyInteractionAllowed && party != null) {
+            if (isAuthenticated && party != null) {
                 party(party.id.toString(), party.players.size, party.settings.maxPlayers)
                 secrets(party.joinSecret)
             } else {
@@ -196,7 +172,7 @@ object DiscordRPC : Module(
         }
     }
 
-    private suspend fun KDiscordIPC.register(auth: ConnectionEvent.Connect.Login.EncryptionResponse) {
+    private suspend fun KDiscordIPC.register() {
         on<ReadyEvent> {
             ready = this
 
@@ -204,29 +180,12 @@ object DiscordRPC : Module(
             subscribe(DiscordEvent.ActivityJoinRequest)
             subscribe(DiscordEvent.ActivityJoin)
 
-            if (System.currentTimeMillis() - connectionTime > 300000) {
-                warn("The authentication hash has expired, reconnect to the server.")
-                return@on
-            }
-
-            val hash = BigInteger(
-                NetworkEncryptionUtils.computeServerId(serverId ?: return@on, auth.publicKey, auth.secretKey)
-            ).toString(16)
-
-            // Prompt the user to authorize
-            discordAuth = rpc.applicationManager.authenticate()
-
-            val (authResponse, error) = login(rpcServer, apiVersion.value, discordAuth?.accessToken ?: "", mc.session.username, hash)
-            if (error != null) warn("Failed to authenticate with the RPC server: ${error.message}")
-
-            rpcAuth = authResponse
-
             if (enableParty) createParty()
         }
 
         // Event when someone would like to join your party
         on<ActivityJoinRequestEvent> {
-            LOG.info("The user ${data.userId} has invited you")
+            toast("The user ${data.userId} has invited you")
             rpc.activityManager.acceptJoinRequest(data.userId)
         }
 
@@ -241,10 +200,10 @@ object DiscordRPC : Module(
     }
 
     private enum class Page {
-        General, Settings, Party
+        General, Party
     }
 
-    private enum class LineInfo(val value: () -> String) : Nameable {
+    private enum class LineInfo(val value: SafeContext.() -> String) : Nameable {
         VERSION({ Lambda.VERSION }),
         WORLD({
             when {
@@ -270,10 +229,5 @@ object DiscordRPC : Module(
             else "[Redacted]"
         }),
         FPS({ "${mc.currentFps} FPS" });
-    }
-
-    private enum class ApiVersion(val value: String) {
-        // We can use @Deprecated("Not supported") to remove old API versions in the future
-        V1("v1"),
     }
 }

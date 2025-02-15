@@ -15,19 +15,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.http.api.rpc.v1.models
+package com.lambda.network.api.v1.endpoints
 
-import com.google.gson.annotations.SerializedName
+import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.core.extensions.authentication
+import com.github.kittinunf.fuel.gson.responseObject
+import com.lambda.module.modules.client.Network
+import com.lambda.network.api.v1.models.Party
 
-data class Settings(
-    // The maximum number of players in the party.
-    // example: 10
-    @SerializedName("max_players")
-    val maxPlayers: Int,
-
-    // Whether the party is public or not.
-    // If false can only be joined by invite.
-    // example: true
-    // @SerializedName("public")
-    // val public: Boolean,
-)
+fun deleteParty(
+	endpoint: String,
+	version: String,
+) =
+	Fuel.delete("$endpoint/api/$version/party/delete")
+		.authentication()
+		.bearer(Network.accessToken)
+		.responseObject<Party>().third

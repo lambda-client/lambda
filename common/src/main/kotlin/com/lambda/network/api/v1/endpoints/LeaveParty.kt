@@ -15,15 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.http.api.rpc.v1.endpoints
+package com.lambda.network.api.v1.endpoints
 
 import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.core.extensions.authentication
 import com.github.kittinunf.fuel.gson.responseObject
-import com.lambda.http.api.rpc.v1.models.Party
+import com.lambda.module.modules.client.Network
+import com.lambda.network.api.v1.models.Party
 
-fun deleteParty(
-    endpoint: String,
-    version: String,
-) =
-    Fuel.delete("$endpoint/api/$version/party/delete")
-        .responseObject<Party>().third
+fun leaveParty() =
+	Fuel.put("/party/leave")
+		.authentication()
+		.bearer(Network.accessToken)
+		.responseObject<Party>().third

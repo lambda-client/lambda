@@ -52,6 +52,8 @@ object Lambda {
     @JvmStatic
     val mc: MinecraftClient by lazy { MinecraftClient.getInstance() }
 
+    val isDebug = System.getProperty("lambda.dev") != null
+
     val gson: Gson = GsonBuilder()
         .setPrettyPrinting()
         .registerTypeAdapter(ModuleTag::class.java, ModuleTagSerializer)
