@@ -70,8 +70,7 @@ object DiscordRPC : Module(
 
     /* Party settings */
     private val enableParty by setting("Enable Party", true, description = "Allows you to create parties.") { page == Page.Party }
-    private val maxPlayers by setting("Max Players", 10, 2..20) { page == Page.Party }
-        .apply { onValueChange { _, _ -> if (player.isPartyOwner) edit() } }
+    private val maxPlayers by setting("Max Players", 10, 2..20) { page == Page.Party }.onValueChange { _, _ -> if (player.isPartyOwner) edit() }
 
     private val rpc = KDiscordIPC(Lambda.APP_ID, scope = EventFlow.lambdaScope)
     private var startup = System.currentTimeMillis()

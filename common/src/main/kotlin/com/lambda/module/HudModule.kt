@@ -52,25 +52,19 @@ abstract class HudModule(
         override val width get() = this@HudModule.width
         override val height get() = this@HudModule.height
 
-        override val autoDocking by setting("Auto Docking", true).apply {
-            onValueChange { _, _ ->
-                autoDocking()
-            }
-        }
+        override val autoDocking by setting("Auto Docking", true).onValueChange { _, _ -> autoDocking() }
 
-        override var dockingH by setting("Docking H", HAlign.LEFT) { !autoDocking }.apply {
-            onValueChange { from, to ->
+        override var dockingH by setting("Docking H", HAlign.LEFT) { !autoDocking }
+            .onValueChange { from, to ->
                 val delta = to.multiplier - from.multiplier
                 relativePosX += delta * (size.x - screenSize.x)
             }
-        }
 
-        override var dockingV by setting("Docking V", VAlign.TOP) { !autoDocking }.apply {
-            onValueChange { from, to ->
+        override var dockingV by setting("Docking V", VAlign.TOP) { !autoDocking }
+            .onValueChange { from, to ->
                 val delta = to.multiplier - from.multiplier
                 relativePosY += delta * (size.y - screenSize.y)
             }
-        }
     }
 
     var position by rectHandler::position

@@ -35,11 +35,8 @@ object GuiSettings : Module(
     private val page by setting("Page", Page.General)
 
     // General
-    private val scaleSetting by setting("Scale", 100, 50..300, 1, unit = "%", visibility = { page == Page.General }).apply {
-        onValueSet { _, _ ->
-            lastChange = System.currentTimeMillis()
-        }
-    }
+    private val scaleSetting by setting("Scale", 100, 50..300, 1, unit = "%", visibility = { page == Page.General })
+		.onValueSet { _, _ -> lastChange = System.currentTimeMillis() }
 
     // Colors
     val primaryColor by setting("Primary Color", Color(130, 200, 255), visibility = { page == Page.Colors })

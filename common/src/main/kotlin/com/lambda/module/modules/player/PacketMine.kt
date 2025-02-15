@@ -89,7 +89,9 @@ object PacketMine : Module(
     private val emptyReBreakDelay by setting("Empty Re-Break Delay", 0, 0..10, 1, "The delay between attempting to re-break the block if the block is currently empty", " ticks", visibility = { page == Page.ReBreak && reBreak.isFastAutomatic()})
     private val renderIfEmpty by setting("Render If Empty", false, "Draws the renders even if the re-break position is empty in the world", visibility = { page == Page.ReBreak && reBreak.isEnabled() })
 
-    private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue }).apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
+    private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue })
+        .onValueSet { _, to -> if (!to) blockQueue.clear() }
+
     private val reverseQueueOrder by setting("Reverse Queue Order", false, "Breaks the latest addition to the queue first", visibility = { page == Page.Queue && queueBlocks})
     private val queueBreakDelay by setting("Break Delay", 0, 0..5, 1, "The delay after breaking a block to break the next queue block", " ticks", visibility = { page == Page.Queue && queueBlocks })
 
