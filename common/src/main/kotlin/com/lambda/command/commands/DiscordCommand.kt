@@ -24,6 +24,8 @@ import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.module.modules.client.Discord
+import com.lambda.module.modules.client.Discord.rpc
+import com.lambda.threading.runConcurrent
 import com.lambda.util.extension.CommandBuilder
 
 object DiscordCommand : LambdaCommand(
@@ -37,6 +39,28 @@ object DiscordCommand : LambdaCommand(
                 execute {
                     Discord.join(id().value())
                 }
+            }
+        }
+
+        required(literal("accept")) {
+            required(word("user")) { user ->
+                execute {
+                    runConcurrent { rpc.activityManager.acceptJoinRequest(user().value()) }
+                }
+            }
+        }
+
+        required(literal("refuse")) {
+            required(word("user")) { user ->
+                execute {
+                    runConcurrent { rpc.activityManager.refuseJoinRequest(user().value()) }
+                }
+            }
+        }
+
+        required(literal("create")) {
+            execute {
+                Discord.createParty()
             }
         }
     }

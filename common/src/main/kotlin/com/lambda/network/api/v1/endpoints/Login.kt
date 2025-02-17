@@ -18,14 +18,13 @@
 package com.lambda.network.api.v1.endpoints
 
 import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.core.extensions.jsonBody
 import com.github.kittinunf.fuel.gson.responseObject
+import com.lambda.module.modules.client.Network.apiUrl
+import com.lambda.module.modules.client.Network.apiVersion
 import com.lambda.network.api.v1.models.Authentication
 
 fun login(
-	// The player's Discord token.
-	// example: OTk1MTU1NzcyMzYxMTQ2NDM4
-	discordToken: String,
-
 	// The player's username.
 	// example: "Notch"
 	username: String,
@@ -34,5 +33,6 @@ fun login(
 	// example: 069a79f444e94726a5befca90e38aaf5
 	hash: String,
 ) =
-	Fuel.post("/login", listOf("token" to discordToken, "username" to username, "hash" to hash))
+	Fuel.post("${apiUrl}/api/${apiVersion.value}/login")
+		.jsonBody("""{ "username": "$username", "hash": "$hash" }""")
 		.responseObject<Authentication>().third

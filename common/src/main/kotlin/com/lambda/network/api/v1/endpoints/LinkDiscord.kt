@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,20 +21,19 @@ import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.Headers
 import com.github.kittinunf.fuel.core.extensions.authentication
 import com.github.kittinunf.fuel.core.extensions.jsonBody
-import com.github.kittinunf.fuel.gson.jsonBody
 import com.github.kittinunf.fuel.gson.responseObject
 import com.lambda.module.modules.client.Network
 import com.lambda.module.modules.client.Network.apiUrl
 import com.lambda.module.modules.client.Network.apiVersion
-import com.lambda.network.api.v1.models.Party
+import com.lambda.network.api.v1.models.Authentication
 
-fun joinParty(
-	// The ID of the party.
-	// example: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
-	partyId: String,
+fun linkDiscord(
+	// The player's Discord token.
+	// example: OTk1MTU1NzcyMzYxMTQ2NDM4
+	discordToken: String,
 ) =
-	Fuel.put("${apiUrl}/api/${apiVersion.value}/party/join", listOf("id" to partyId))
-		.jsonBody("""{ "id": "$partyId" }""")
+	Fuel.post("${apiUrl}/api/${apiVersion.value}/link/discord")
+		.jsonBody("""{ "token": "$discordToken" }""")
 		.authentication()
 		.bearer(Network.accessToken)
-		.responseObject<Party>().third
+		.responseObject<Authentication>().third

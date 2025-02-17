@@ -19,15 +19,15 @@ package com.lambda.network.api.v1.endpoints
 
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.extensions.authentication
+import com.github.kittinunf.fuel.core.extensions.jsonBody
 import com.github.kittinunf.fuel.gson.responseObject
 import com.lambda.module.modules.client.Network
+import com.lambda.module.modules.client.Network.apiUrl
+import com.lambda.module.modules.client.Network.apiVersion
 import com.lambda.network.api.v1.models.Party
 
-fun deleteParty(
-	endpoint: String,
-	version: String,
-) =
-	Fuel.delete("$endpoint/api/$version/party/delete")
+fun deleteParty() =
+	Fuel.delete("${apiUrl}/api/${apiVersion.value}/party/delete")
 		.authentication()
 		.bearer(Network.accessToken)
 		.responseObject<Party>().third

@@ -19,8 +19,11 @@ package com.lambda.network.api.v1.endpoints
 
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.extensions.authentication
+import com.github.kittinunf.fuel.core.extensions.jsonBody
 import com.github.kittinunf.fuel.gson.responseObject
 import com.lambda.module.modules.client.Network
+import com.lambda.module.modules.client.Network.apiUrl
+import com.lambda.module.modules.client.Network.apiVersion
 import com.lambda.network.api.v1.models.Party
 
 fun editParty(
@@ -33,7 +36,8 @@ fun editParty(
 	// example: true
 	// public: Boolean = true,
 ) =
-	Fuel.patch("/party/edit", listOf("max_players" to maxPlayers))
+	Fuel.patch("${apiUrl}/api/${apiVersion.value}/party/edit")
+		.jsonBody("""{ "max_players": $maxPlayers }""")
 		.authentication()
 		.bearer(Network.accessToken)
 		.responseObject<Party>().third

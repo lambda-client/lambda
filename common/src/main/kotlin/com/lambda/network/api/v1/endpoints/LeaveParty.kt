@@ -21,10 +21,12 @@ import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.extensions.authentication
 import com.github.kittinunf.fuel.gson.responseObject
 import com.lambda.module.modules.client.Network
+import com.lambda.module.modules.client.Network.apiUrl
+import com.lambda.module.modules.client.Network.apiVersion
 import com.lambda.network.api.v1.models.Party
 
 fun leaveParty() =
-	Fuel.put("/party/leave")
+	Fuel.put("${apiUrl}/api/${apiVersion.value}/party/leave")
 		.authentication()
 		.bearer(Network.accessToken)
 		.responseObject<Party>().third

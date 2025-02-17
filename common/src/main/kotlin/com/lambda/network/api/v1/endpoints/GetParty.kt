@@ -21,10 +21,12 @@ import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.extensions.authentication
 import com.github.kittinunf.fuel.gson.responseObject
 import com.lambda.module.modules.client.Network
+import com.lambda.module.modules.client.Network.apiUrl
+import com.lambda.module.modules.client.Network.apiVersion
 import com.lambda.network.api.v1.models.Party
 
 fun getParty() =
-	Fuel.get("/party")
+	Fuel.get("${apiUrl}/api/${apiVersion.value}/party")
 		.authentication()
 		.bearer(Network.accessToken)
 		.responseObject<Party>().third
