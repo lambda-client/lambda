@@ -381,6 +381,7 @@ class BuildTask @Ta5kBuilder constructor(
             }
             BuildConfig.BreakConfirmationMode.AwaitThenBreak -> pendingInteractions.add(ctx)
         }
+        currentInteraction = null
     }
 
     private fun SafeContext.breakBlock(ctx: BreakContext): Boolean {
