@@ -412,7 +412,8 @@ object BuildSimulator {
                     rotationRequest,
                     state,
                     targetState,
-                    player.inventory.selectedSlot, instantBreakable(state, pos),
+                    player.inventory.selectedSlot,
+                    instantBreakable(state, pos),
                     build
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
@@ -455,7 +456,6 @@ object BuildSimulator {
 
         interact.pointSelection.select(validHits)?.let { checkedHit ->
             val blockHit = checkedHit.hit.blockResult ?: return@let
-            val bestTools = findBestAvailableTool(state)
 
             val breakContext = BreakContext(
                 eye,
