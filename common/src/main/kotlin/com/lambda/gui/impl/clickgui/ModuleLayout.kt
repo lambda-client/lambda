@@ -33,11 +33,13 @@ import java.awt.Color
 
 class ModuleLayout(
     owner: Layout,
-    module: Module
+    module: Module,
+    initialPosition: Vec2d = Vec2d.ZERO,
+    initialSize: Vec2d = Vec2d(100, 18)
 ) : Window(
     owner,
     module.name,
-    Vec2d.ZERO, Vec2d.ZERO,
+    initialPosition, initialSize,
     false, true, Minimizing.Relative, false,
     AutoResize.ForceEnabled
 ) {
@@ -117,12 +119,12 @@ class ModuleLayout(
             }
         }
 
-        titleBarRect.onUpdate {
+        titleBarBackground.onUpdate {
             setColor(lerp(enableAnimation, ClickGui.moduleDisabledColor, ClickGui.moduleEnabledColor))
             correctRadius()
         }
 
-        contentRect.onUpdate {
+        contentBackground.onUpdate {
             setColor(lerp(enableAnimation, ClickGui.moduleDisabledColor, ClickGui.moduleEnabledColor))
             correctRadius()
         }

@@ -19,7 +19,7 @@ in vec4 v_Color;
 out vec4 color;
 
 #define SMOOTHING 0.25
-#define NOISE_GRANULARITY 0.005
+#define NOISE_GRANULARITY 0.004
 
 vec4 noise() {
     // https://shader-tutorial.dev/advanced/color-banding-dithering/

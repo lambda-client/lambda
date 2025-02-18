@@ -27,6 +27,7 @@ import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.graphics.texture.TextureOwner.bind
 import com.lambda.module.modules.client.LambdaMoji
 import com.lambda.module.modules.client.RenderSettings
+import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.a
 import com.lambda.util.math.setAlpha
@@ -69,7 +70,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
 
         bind(chars, emojis)
 
-        processText(text, color, scale, shadow, parseEmoji) { char, pos1, pos2, col ->
+        processText(text, color, scale, shadow, parseEmoji) { char, pos1, pos2, col, _ ->
             buildGlyph(char, position, pos1, pos2, col)
         }
     }
@@ -142,7 +143,9 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
         parseEmoji: Boolean = LambdaMoji.isEnabled,
     ): Double {
         var width = 0.0
-        processText(text, scale = scale, parseEmoji = parseEmoji) { char, _, _, _ -> width += char.width }
+        processText(text, scale = scale, parseEmoji = parseEmoji) {
+                char, _, _, _, isShadow -> width += char.width * isShadow.toInt()
+        }
         return width * getScaleFactor(scale)
     }
 
@@ -170,7 +173,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
         scale: Double = 1.0,
         shadow: Boolean = RenderSettings.shadow,
         parseEmoji: Boolean = LambdaMoji.isEnabled,
-        block: (GlyphInfo, Vec2d, Vec2d, Color) -> Unit
+        block: (GlyphInfo, Vec2d, Vec2d, Color, Boolean) -> Unit
     ) {
         val actualScale = getScaleFactor(scale)
         val scaledGap = gap * actualScale
@@ -183,13 +186,14 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
 
         fun drawGlyph(info: GlyphInfo?, color: Color, offset: Double = 0.0) {
             if (info == null) return
+            val isShadow = offset != 0.0
 
             val scaledSize = info.size * actualScale
             val pos1 = Vec2d(posX, posY) + offset * actualScale
             val pos2 = pos1 + scaledSize
 
-            block(info, pos1, pos2, color)
-            if (offset == 0.0) posX += scaledSize.x + scaledGap
+            block(info, pos1, pos2, color, isShadow)
+            if (!isShadow) posX += scaledSize.x + scaledGap
         }
 
         val parsed = if (parseEmoji) emojis.parse(text) else mutableListOf()
@@ -244,7 +248,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
      * @param scale The base scale factor.
      * @return The adjusted scale factor.
      */
-    fun getScaleFactor(scale: Double): Double = scale * 9.0 / chars.height
+    fun getScaleFactor(scale: Double): Double = scale * 8.5 / chars.height
 
     /**
      * Calculates the shadow color by adjusting the brightness of the input color.

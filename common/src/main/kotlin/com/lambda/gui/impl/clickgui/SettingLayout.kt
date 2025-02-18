@@ -35,7 +35,7 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
     owner: Layout,
     val setting: T,
     expandable: Boolean = false
-) : Window( // going to use window to easily implement expandable settings (such as color picker)
+) : Window(
     owner,
     setting.name,
     Vec2d.ZERO, Vec2d.ZERO,
@@ -73,7 +73,12 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
             }
         }
 
-        children.removeAll(listOf(titleBarRect, contentRect, outlineRect))
+        listOf(
+            titleBarBackground,
+            contentBackground,
+            outlineRect
+        ).forEach(Layout::destroy)
+
         if (!expandable) children.remove(content)
     }
 }

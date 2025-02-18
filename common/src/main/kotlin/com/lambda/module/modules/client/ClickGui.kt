@@ -32,21 +32,21 @@ object ClickGui : Module(
     defaultTags = setOf(ModuleTag.CLIENT)
 ) {
     val titleBarHeight by setting("Title Bar Height", 18.0, 10.0..25.0, 0.1)
-    val moduleHeight by setting("Module Height", 18.0, 10.0..25.0, 0.1)
+    val moduleHeight by setting("Module Height", 16.0, 10.0..25.0, 0.1)
     val settingsHeight by setting("Settings Height", 14.0, 10.0..25.0, 0.1)
-    val padding by setting("Padding", 2.0, 1.0..6.0, 0.1)
-    val listStep by setting("List Step", 2.0, 0.0..6.0, 0.1)
-    val autoResize by setting("Auto Resize", false)
+    val padding by setting("Padding", 1.0, 1.0..6.0, 0.1)
+    val listStep by setting("List Step", 1.0, 0.0..6.0, 0.1)
+    val autoResize by setting("Auto Resize", true)
 
     val roundRadius by setting("Round Radius", 2.0, 0.0..10.0, 0.1)
 
     val backgroundTint by setting("Background Tint", Color.BLACK.setAlpha(0.4))
 
-    val titleBackgroundColor by setting("Title Background Color", Color.WHITE.setAlpha(0.4))
-    val backgroundColor by setting("Background Color", Color.WHITE.setAlpha(0.25))
+    val titleBackgroundColor by setting("Title Background Color", Color(40, 40, 40))
+    val backgroundColor by setting("Background Color", titleBackgroundColor)
     val backgroundShade by setting("Background Shade", true)
 
-    val outline by setting("Outline", true)
+    val outline by setting("Outline", false)
     val outlineWidth by setting("Outline Width", 10.0, 1.0..10.0, 0.1) { outline }
     val outlineColor by setting("Outline Color", Color.WHITE.setAlpha(0.6)) { outline }
     val outlineShade by setting("Outline Shade", true) { outline }

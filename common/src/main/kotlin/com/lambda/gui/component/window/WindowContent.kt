@@ -18,7 +18,6 @@
 package com.lambda.gui.component.window
 
 import com.lambda.graphics.animation.Animation.Companion.exp
-import com.lambda.event.events.GuiEvent
 import com.lambda.gui.component.core.LayoutBuilder
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.component.core.UIBuilder

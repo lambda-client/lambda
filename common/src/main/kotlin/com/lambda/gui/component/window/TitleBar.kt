@@ -19,11 +19,13 @@ package com.lambda.gui.component.window
 
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.component.HAlign
+import com.lambda.gui.component.core.FilledRect.Companion.rect
 import com.lambda.gui.component.core.TextField.Companion.textField
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.lerp
 
 /**
  * Represents a titlebar component
@@ -55,6 +57,23 @@ class TitleBar(
             dragOffset?.let { drag ->
                 owner.position = mouse - drag
             }
+        }
+    }
+
+    val backgroundRect = rect {
+        onUpdate {
+            rectangle = this@TitleBar.rect
+            setColor(ClickGui.titleBackgroundColor)
+
+            val radius = ClickGui.roundRadius
+            leftTopRadius = radius
+            rightTopRadius = radius
+
+            val bottomRadius = lerp(owner.content.renderHeight, radius, 0.0)
+            leftBottomRadius = bottomRadius
+            rightBottomRadius = bottomRadius
+
+            shade = ClickGui.backgroundShade
         }
     }
 

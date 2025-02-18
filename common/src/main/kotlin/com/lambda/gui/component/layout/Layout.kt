@@ -317,6 +317,19 @@ open class Layout(
         overrideHeight(overrideHeight)
     }
 
+    /**
+     * Removes this layout from its parent
+     */
+    fun destroy() {
+        check(owner != null) {
+            "Unable to destroy root layout. Owner is null."
+        }
+
+        check(owner.children.remove(this)) {
+            "destroy() called twice. The layout was already removed"
+        }
+    }
+
     init {
         onUpdate { // Update the layout
             screenSize = RenderMain.screenSize

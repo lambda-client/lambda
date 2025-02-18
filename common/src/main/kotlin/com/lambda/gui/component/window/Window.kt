@@ -41,7 +41,7 @@ open class Window(
     owner: Layout,
     initialTitle: String = "Untitled",
     initialPosition: Vec2d = Vec2d.ZERO,
-    initialSize: Vec2d = Vec2d(120.0, 300.0),
+    initialSize: Vec2d = Vec2d(110, 300),
     draggable: Boolean = true,
     scrollable: Boolean = true,
     private val minimizing: Minimizing = Minimizing.Relative,
@@ -52,26 +52,9 @@ open class Window(
     private val cursorController = cursorController()
 
     val titleBar = titleBar(initialTitle, draggable)
-    val content = windowContent(scrollable)
 
-    protected val titleBarRect = rect {
-        onUpdate {
-            rectangle = titleBar.rect
-            setColor(ClickGui.titleBackgroundColor)
-
-            val radius = ClickGui.roundRadius
-            leftTopRadius = radius
-            rightTopRadius = radius
-
-            val bottomRadius = lerp(content.renderHeight, radius, 0.0)
-            leftBottomRadius = bottomRadius
-            rightBottomRadius = bottomRadius
-
-            shade = ClickGui.backgroundShade
-        }
-    }
-
-    protected val contentRect = rect {
+    protected val titleBarBackground by titleBar::backgroundRect
+    protected val contentBackground = rect { // It's here because content cannot contain something by default
         onUpdate {
             rectangle = Rect(titleBar.leftBottom, this@Window.rightBottom)
             setColor(ClickGui.backgroundColor)
@@ -82,6 +65,8 @@ open class Window(
             shade = ClickGui.backgroundShade
         }
     }
+
+    val content = windowContent(scrollable)
 
     protected val outlineRect = outline {
         onUpdate {
