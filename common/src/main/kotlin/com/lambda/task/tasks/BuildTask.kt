@@ -451,12 +451,16 @@ class BuildTask @Ta5kBuilder constructor(
             }
         }
 
-        ctx.abortBreakPacket(sequence, connection)
-        ctx.stopBreakPacket(sequence + 1, connection)
-        ctx.startBreakPacket(sequence + 2, connection)
-        ctx.stopBreakPacket(sequence + 3, connection)
-        (0..3).forEach { i ->
-            pendingUpdateManager.incrementSequence()
+        if (ctx.buildConfig.breakMode == BuildConfig.BreakMode.Packet) {
+            ctx.abortBreakPacket(sequence, connection)
+            ctx.stopBreakPacket(sequence + 1, connection)
+            ctx.startBreakPacket(sequence + 2, connection)
+            ctx.stopBreakPacket(sequence + 3, connection)
+            (0..3).forEach { i ->
+                pendingUpdateManager.incrementSequence()
+            }
+        } else {
+            ctx.startBreakPacket(sequence, connection)
         }
 
         return true

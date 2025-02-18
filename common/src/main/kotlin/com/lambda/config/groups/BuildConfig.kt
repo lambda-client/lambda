@@ -49,7 +49,7 @@ interface BuildConfig {
     val placementsPerTick: Int
 
     enum class BreakMode {
-        Vanilla, Packets
+        Vanilla, Packet
     }
 
     enum class BreakConfirmationMode {
