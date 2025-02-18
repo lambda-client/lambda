@@ -37,7 +37,7 @@ class BuildSettings(
     override val maxPendingInteractions by c.setting("Max Pending Interactions", 1, 1..10, 1, "Dont wait for this many interactions for the server response") { vis() && page == Page.General }
 
     // Breaking
-    override val breakMode by c.setting("Break Mode", BuildConfig.BreakMode.Vanilla)
+    override val breakMode by c.setting("Break Mode", BuildConfig.BreakMode.Vanilla) { vis() && page == Page.Break }
     override val breakThreshold by c.setting("Break Threshold", 1.0f, 0.1f..1.0f, 0.1f, "The break amount at which the block is considered broken") { vis() && page == Page.Break }
     override val doubleBreak by c.setting("Double Break", false, "Allows breaking two blocks at once") { vis() && page == Page.Break }
     override val breakDelay by c.setting("Break Delay", 5, 0..5, 1, "The delay between breaking blocks", " ticks") { vis() && page == Page.Break }
