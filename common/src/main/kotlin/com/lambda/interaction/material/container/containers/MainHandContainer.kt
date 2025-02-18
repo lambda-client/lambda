@@ -43,7 +43,7 @@ object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
         override val name: String get() = "Depositing [$selection] to ${hand.name.lowercase().replace("_", " ")}"
 
         override fun SafeContext.onStart() {
-            val moveStack = InventoryContainer.matchingStacks(selection).firstOrNull() ?: run {
+            val moveStack = matchingStacks(selection).firstOrNull() ?: run {
                 failure("No matching stacks found in inventory")
                 return
             }

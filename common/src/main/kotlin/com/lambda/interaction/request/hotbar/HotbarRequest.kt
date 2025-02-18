@@ -22,7 +22,7 @@ import com.lambda.interaction.request.Request
 
 class HotbarRequest(
     val slot: Int,
-    priority: Priority,
+    priority: Priority = 0,
     var keepTicks: Int = 3,
     var switchPause: Int = 0,
 ) : Request(priority) {

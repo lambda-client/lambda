@@ -22,15 +22,20 @@ import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.rotation.RotationRequest
-import com.lambda.threading.runSafe
+import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.world.raycast.RayCastUtils.distanceTo
 import net.minecraft.block.BlockState
-import net.minecraft.util.Hand
+import net.minecraft.client.network.ClientPlayNetworkHandler
+import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
+import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
+import net.minecraft.world.BlockView
 import java.awt.Color
 
 data class BreakContext(
@@ -39,20 +44,12 @@ data class BreakContext(
     override val rotation: RotationRequest,
     override val checkedState: BlockState,
     override val targetState: TargetState,
-    override var hand: Hand,
+    override var slotIndex: Int?,
     val instantBreak: Boolean,
+    val buildConfig: BuildConfig,
 ) : BuildContext {
     private val baseColor = Color(222, 0, 0, 25)
     private val sideColor = Color(222, 0, 0, 100)
-
-    override fun interact(swingHand: Boolean) {
-        runSafe {
-            if (interaction.updateBlockBreakingProgress(result.blockPos, result.side)) {
-                if (player.isCreative) interaction.blockBreakingCooldown = 0
-                if (swingHand) player.swingHand(hand)
-            }
-        }
-    }
 
     override val expectedPos: BlockPos
         get() = result.blockPos
@@ -84,4 +81,33 @@ data class BreakContext(
         withState(checkedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side))
         withState(checkedState, expectedPos, sideColor, result.side)
     }
+
+    fun getBlockBreakingProgress(breakingTicks: Int, player: PlayerEntity, world: BlockView): Int {
+        val currentItemStack = HotbarManager.mainHandStack ?: return -1
+        val breakDelta = checkedState.calcItemBlockBreakingDelta(player, world, expectedPos, currentItemStack)
+        val progress = breakDelta * breakingTicks
+        return if (progress > 0.0f)
+            ((progress / buildConfig.breakThreshold) * 10.0f).toInt()
+        else
+            -1
+    }
+
+    fun startBreakPacket(sequence: Int, connection: ClientPlayNetworkHandler) =
+        breakPacket(Action.START_DESTROY_BLOCK, sequence, connection)
+
+    fun stopBreakPacket(sequence: Int, connection: ClientPlayNetworkHandler) =
+        breakPacket(Action.STOP_DESTROY_BLOCK, sequence, connection)
+
+    fun abortBreakPacket(sequence: Int, connection: ClientPlayNetworkHandler) =
+        breakPacket(Action.ABORT_DESTROY_BLOCK, sequence, connection)
+
+    private fun breakPacket(action: Action, sequence: Int, connection: ClientPlayNetworkHandler) =
+        connection.sendPacket(
+            PlayerActionC2SPacket(
+                action,
+                expectedPos,
+                result.side,
+                sequence
+            )
+        )
 }

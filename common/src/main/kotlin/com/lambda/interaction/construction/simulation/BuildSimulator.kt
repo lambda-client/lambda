@@ -29,7 +29,6 @@ import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.material.container.ContainerManager.findBestAvailableTool
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.RotationConfig
@@ -43,10 +42,12 @@ import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.BlockUtils.vecOf
 import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemStackUtils.equal
+import com.lambda.util.item.ItemUtils.findBestAvailableTool
 import com.lambda.util.math.distSq
 import com.lambda.util.player.copyPlayer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
@@ -291,7 +292,8 @@ object BuildSimulator {
                     eye.distanceTo(blockHit.pos),
                     resultState,
                     blockState(blockHit.blockPos),
-                    Hand.MAIN_HAND,
+                    //TODO: idk if this is the right input here
+                    player.inventory.selectedSlot,
                     context.blockPos,
                     target,
                     shouldSneak,
@@ -405,7 +407,13 @@ object BuildSimulator {
                     lookAtBlock(pos, config = interact), rotation
                 )
                 val breakContext = BreakContext(
-                    eye, blockHit, rotationRequest, state, targetState, player.activeHand, instantBreakable(state, pos)
+                    eye,
+                    blockHit,
+                    rotationRequest,
+                    state,
+                    targetState,
+                    player.inventory.selectedSlot, instantBreakable(state, pos),
+                    build
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
                 return acc
@@ -447,6 +455,7 @@ object BuildSimulator {
 
         interact.pointSelection.select(validHits)?.let { checkedHit ->
             val blockHit = checkedHit.hit.blockResult ?: return@let
+            val bestTools = findBestAvailableTool(state)
 
             val breakContext = BreakContext(
                 eye,
@@ -454,21 +463,26 @@ object BuildSimulator {
                 RotationRequest(lookAt(checkedHit.targetRotation, 0.001), rotation),
                 state,
                 targetState,
-                player.activeHand,
-                instantBreakable(state, pos)
+                player.inventory.selectedSlot,
+                instantBreakable(state, pos),
+                build
             )
 
             /* player has a better tool for the job available */
-            if (!player.isCreative) findBestAvailableTool(state)?.let { bestTool ->
-                Hand.entries.firstOrNull {
-                    val stack = player.getStackInHand(it)
-                    stack.item == bestTool
-                }?.let { hand ->
-                    breakContext.hand = hand
+            if (!player.isCreative) findBestAvailableTool(state).let { bestTools ->
+                Hand.entries.map {
+                    player.getStackInHand(it)
+                }.filter { stack ->
+                    bestTools.any { tool -> tool == stack.item }
+                }.sortedByDescending {
+                    state.calcItemBlockBreakingDelta(player, world, pos, it)
+                }.let { stackList ->
+                    if (stackList.isEmpty()) {
+                        acc.add(BuildResult.WrongItem(pos, breakContext, bestTools.first(), player.activeItem, inventory))
+                        return acc
+                    }
+                    breakContext.slotIndex = player.inventory.getSlotWithStack(stackList.first())
                     acc.add(BreakResult.Break(pos, breakContext))
-                    return acc
-                } ?: run {
-                    acc.add(BuildResult.WrongItem(pos, breakContext, bestTool, player.activeItem, inventory))
                     return acc
                 }
             }

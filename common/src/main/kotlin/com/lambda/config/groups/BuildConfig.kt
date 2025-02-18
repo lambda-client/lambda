@@ -28,15 +28,33 @@ interface BuildConfig {
     val interactionTimeout: Int
 
     // Breaking
+    val breakMode: BreakMode
+    val breakThreshold: Float
+    val doubleBreak: Boolean
+    val breakDelay: Int
+    val sounds: Boolean
+    val particles: Boolean
+    val breakingTexture: Boolean
     val rotateForBreak: Boolean
-    val breakConfirmation: Boolean
+    val breakConfirmation: BreakConfirmationMode
     val breaksPerTick: Int
-    val breakWeakBlocks: Boolean
     val forceSilkTouch: Boolean
     val ignoredBlocks: Set<Block>
+
+    val breakWeakBlocks: Boolean
 
     // Placing
     val rotateForPlace: Boolean
     val placeConfirmation: Boolean
     val placementsPerTick: Int
+
+    enum class BreakMode {
+        Vanilla, Packets
+    }
+
+    enum class BreakConfirmationMode {
+        None,
+        AwaitThenBreak,
+        BreakThenAwait
+    }
 }

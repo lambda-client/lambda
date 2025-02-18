@@ -22,9 +22,7 @@ import baritone.api.pathing.goals.GoalInverted
 import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.ContainerManager.findBestAvailableTool
 import com.lambda.interaction.material.container.ContainerManager.transfer
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.container.containers.MainHandContainer
@@ -99,12 +97,9 @@ sealed class BreakResult : BuildResult() {
         override val pausesParent get() = true
 
         override fun resolve() =
-            findBestAvailableTool(blockState, inventory = inventory)
-                ?.select()
-                ?.transfer(MainHandContainer, inventory)
-                ?: selectStack {
-                    isItem(badItem).not()
-                }.transfer(MainHandContainer, inventory)
+            selectStack {
+                isItem(badItem).not()
+            }.transfer(MainHandContainer, inventory)
                 ?: MaterialContainer.FailureTask("Couldn't find a tool for ${blockState.block.name.string} with $badItem in main hand.")
 
         override fun SafeContext.buildRenderer() {

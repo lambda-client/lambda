@@ -30,6 +30,8 @@ interface InventoryConfig {
     val providerPriority: Priority
     val storePriority: Priority
 
+    val silentSwap: Boolean
+
     enum class Priority {
         WithMinItems,
         WithMaxItems;

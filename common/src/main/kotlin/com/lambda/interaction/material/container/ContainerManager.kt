@@ -31,13 +31,10 @@ import com.lambda.util.BlockUtils.blockEntity
 import com.lambda.util.BlockUtils.item
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.containerStacks
-import com.lambda.util.item.ItemUtils
 import com.lambda.util.reflections.getInstances
-import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.block.entity.ChestBlockEntity
 import net.minecraft.block.entity.EnderChestBlockEntity
-import net.minecraft.item.Item
 import net.minecraft.screen.GenericContainerScreenHandler
 import net.minecraft.screen.ScreenHandlerType
 
@@ -93,17 +90,16 @@ object ContainerManager : Loadable {
     fun container() = container.flatMap { setOf(it) + it.shulkerContainer }.sorted()
 
     fun StackSelection.transfer(destination: MaterialContainer, inventory: InventoryConfig = TaskFlowModule.inventory) =
-        findContainerWithMaterial(this, inventory)?.transfer(this, destination)
+        this.findContainerWithMaterial(inventory)?.transfer(this, destination)
 
     fun findContainer(
         block: (MaterialContainer) -> Boolean,
     ): MaterialContainer? = container().find(block)
 
-    fun findContainerWithMaterial(
-        selection: StackSelection,
+    fun StackSelection.findContainerWithMaterial(
         inventory: InventoryConfig
     ): MaterialContainer? =
-        containerWithMaterial(selection, inventory).firstOrNull()
+        containerWithMaterial(this, inventory).firstOrNull()
 
     fun findContainerWithSpace(
         selection: StackSelection,
@@ -125,20 +121,6 @@ object ContainerManager : Loadable {
         container()
             .sortedWith(inventory.providerPriority.spaceComparator(selection))
             .filter { it.spaceAvailable(selection) >= selection.count }
-
-    fun findBestAvailableTool(
-        blockState: BlockState,
-        availableTools: Set<Item> = ItemUtils.tools,
-        inventory: InventoryConfig = TaskFlowModule.inventory,
-    ) = availableTools.map {
-        it to it.getMiningSpeedMultiplier(it.defaultStack, blockState)
-    }.filter { (item, speed) ->
-        speed > 1.0
-                && item.isSuitableFor(blockState)
-                && containerWithMaterial(item.select(), inventory).isNotEmpty()
-    }.maxByOrNull {
-        it.second
-    }?.first
 
     fun findDisposable(inventory: InventoryConfig = TaskFlowModule.inventory) = container().find { container ->
         inventory.disposables.any { container.materialAvailable(it.item.select()) >= 0 }

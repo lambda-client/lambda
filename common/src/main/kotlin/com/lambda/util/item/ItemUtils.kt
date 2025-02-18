@@ -18,6 +18,7 @@
 package com.lambda.util.item
 
 import net.minecraft.block.Block
+import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.item.Item
 import net.minecraft.item.Items
@@ -119,6 +120,19 @@ object ItemUtils {
     )
 
     val Item.block: Block get() = Block.getBlockFromItem(this)
+
+    fun findBestAvailableTool(
+        blockState: BlockState,
+        availableTools: Set<Item> = ItemUtils.tools,
+    ) = availableTools.map {
+        it to it.getMiningSpeedMultiplier(it.defaultStack, blockState)
+    }.filter { (item, speed) ->
+        speed > 1.0 && item.isSuitableFor(blockState)
+    }.sortedByDescending {
+        it.second
+    }.map {
+        it.first
+    }
 
     fun Int.toItemCount(): String {
         if (this < 0) {

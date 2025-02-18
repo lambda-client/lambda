@@ -31,7 +31,7 @@ object TaskFlowModule : Module(
     defaultTags = setOf(ModuleTag.CLIENT, ModuleTag.AUTOMATION)
 ) {
     enum class Page {
-        Build, Rotation, Interaction, Inventory, Debug
+        Build, Rotation, Interaction, Inventory, Hotbar, Debug
     }
 
     private val page by setting("Page", Page.Build)
@@ -39,6 +39,7 @@ object TaskFlowModule : Module(
     val rotation = RotationSettings(this) { page == Page.Rotation }
     val interact = InteractionSettings(this, InteractionMask.Both) { page == Page.Interaction }
     val inventory = InventorySettings(this) { page == Page.Inventory }
+    val hotbar = HotbarSettings(this) { page == Page.Hotbar }
 
     val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree") { page == Page.Debug }
     val shrinkFactor by setting("Shrink Factor", 0.001, 0.0..1.0, 0.001) { page == Page.Debug }

@@ -23,11 +23,15 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.threading.runSafe
+import com.lambda.util.player.SlotUtils.hotbar
 
 object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
     val serverSlot get() = runSafe {
         interaction.lastSelectedSlot
     } ?: -1
+    val mainHandStack get() = runSafe {
+        player.hotbar.getOrNull(serverSlot - 1)
+    }
 
     override fun load() = "Loaded Hotbar Manager"
 

@@ -19,7 +19,9 @@ package com.lambda.util.player
 
 import com.lambda.context.SafeContext
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.entity.player.PlayerInventory
 import net.minecraft.item.ItemStack
+import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
 
 object SlotUtils {
@@ -28,6 +30,7 @@ object SlotUtils {
     val ClientPlayerEntity.hotbarAndStorage: List<ItemStack> get() = inventory.main.subList(0, 36)
     val ClientPlayerEntity.combined: List<ItemStack> get() = inventory.main + inventory.armor + inventory.offHand
     val ClientPlayerEntity.offhand: ItemStack get() = offHandStack
+    val Slot.hotbarIndex: Int? get() = if (inventory is PlayerInventory) index + 1 else null
 
     fun SafeContext.clickSlot(
         slotId: Int,

@@ -33,7 +33,7 @@ class AcquireMaterial @Ta5kBuilder constructor(
         get() = "Acquiring $selection"
 
     override fun SafeContext.onStart() {
-        findContainerWithMaterial(selection, inventory)
+        selection.findContainerWithMaterial(inventory)
             ?.withdraw(selection)
             ?.finally {
                 success(selection)

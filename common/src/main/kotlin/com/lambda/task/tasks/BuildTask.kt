@@ -44,11 +44,13 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
+import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
-import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
+import com.lambda.util.BlockUtils.fluidState
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.Formatting.string
@@ -57,7 +59,16 @@ import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
+import net.minecraft.block.BlockState
+import net.minecraft.block.OperatorBlock
+import net.minecraft.client.sound.PositionedSoundInstance
+import net.minecraft.client.sound.SoundInstance
 import net.minecraft.entity.ItemEntity
+import net.minecraft.item.ItemStack
+import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
+import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
+import net.minecraft.sound.SoundCategory
+import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 
 class BuildTask @Ta5kBuilder constructor(
@@ -77,6 +88,10 @@ class BuildTask @Ta5kBuilder constructor(
     private var currentInteraction: BuildContext? = null
     private val instantBreaks = mutableSetOf<BreakContext>()
 
+    var breaking = false
+    var breakingTicks= 0
+    var soundsCooldown = 0.0f
+
     private var placements = 0
     private var breaks = 0
     private val dropsToCollect = mutableSetOf<ItemEntity>()
@@ -88,14 +103,23 @@ class BuildTask @Ta5kBuilder constructor(
 
     init {
         listen<TickEvent.Pre> {
+            val currentItemStack = HotbarManager.mainHandStack ?: return@listen
+
             currentInteraction?.let { context ->
 //                TaskFlowModule.drawables = listOf(context)
                 if (context.shouldRotate(build) && !context.rotation.done) return@let
-                if (context is PlaceContext && context.sneak && !player.isSneaking) return@let
-                context.interact(interact.swingHand)
+                when (context) {
+                    is PlaceContext -> {
+                        if (context.sneak && !player.isSneaking) return@let
+                        placeBlock(Hand.MAIN_HAND, context)
+                    }
+                    is BreakContext -> {
+                        updateBlockBreakingProgress(context, currentItemStack)
+                    }
+                }
             }
             instantBreaks.forEach { context ->
-                context.interact(interact.swingHand)
+                updateBlockBreakingProgress(context, currentItemStack)
                 pendingInteractions.add(context)
             }
             instantBreaks.clear()
@@ -215,22 +239,27 @@ class BuildTask @Ta5kBuilder constructor(
             if (context.sneak) it.input.sneaking = true
         }
 
-        listen<WorldEvent.BlockUpdate.Client> { event ->
-            val context = currentInteraction ?: return@listen
-            if (context.expectedPos != event.pos) return@listen
-            currentInteraction = null
-            pendingInteractions.add(context)
-        }
+//        listen<WorldEvent.BlockUpdate.Client> { event ->
+//            val context = currentInteraction ?: return@listen
+//            if (context.expectedPos != event.pos) return@listen
+//            currentInteraction = null
+//            pendingInteractions.add(context)
+//        }
 
         listen<WorldEvent.BlockUpdate.Server>(alwaysListen = true) { event ->
-            pendingInteractions.firstOrNull { it.expectedPos == event.pos }?.let { context ->
-                pendingInteractions.remove(context)
-                if (!context.targetState.matches(event.newState, event.pos, world)) {
-                    this@BuildTask.warn("Update at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${context.targetState}")
+            pendingInteractions.firstOrNull { it.expectedPos == event.pos }?.let { ctx ->
+                pendingInteractions.remove(ctx)
+                if (!ctx.targetState.matches(event.newState, event.pos, world)) {
+                    this@BuildTask.warn("Update at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${ctx.targetState}")
                     return@let
                 }
-                when (context) {
-                    is BreakContext -> breaks++
+                when (ctx) {
+                    is BreakContext -> {
+                        if (ctx.buildConfig.breakConfirmation == BuildConfig.BreakConfirmationMode.AwaitThenBreak) {
+                            breakBlock(ctx)
+                        }
+                        breaks++
+                    }
                     is PlaceContext -> placements++
                 }
             }
@@ -248,6 +277,189 @@ class BuildTask @Ta5kBuilder constructor(
                 dropsToCollect.add(it.entity)
             }
         }
+    }
+
+    fun SafeContext.placeBlock(hand: Hand, ctx: PlaceContext) {
+        with(ctx) {
+            val actionResult = interaction.interactBlock(
+                player, hand, result
+            )
+
+            if (actionResult.isAccepted) {
+                if (actionResult.shouldSwingHand() && interact.swingHand) {
+                    player.swingHand(hand)
+                }
+
+                if (!player.getStackInHand(hand).isEmpty && interaction.hasCreativeInventory()) {
+                    mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
+                }
+            } else {
+                warn("Internal interaction failed with $actionResult")
+            }
+        }
+    }
+
+    private fun SafeContext.updateBlockBreakingProgress(ctx: BreakContext, item: ItemStack): Boolean {
+        if (interaction.blockBreakingCooldown > 0) {
+            interaction.blockBreakingCooldown--
+            return true
+        }
+
+        val hitResult = ctx.result
+
+        if (interaction.currentGameMode.isCreative && world.worldBorder.contains(ctx.expectedPos)) {
+            interaction.blockBreakingCooldown = ctx.buildConfig.breakDelay
+            interaction.sendSequencedPacket(world) { sequence: Int ->
+                onBlockBreak(ctx)
+                PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
+            }
+            return true
+        }
+
+        if (!breaking) return attackBlock(ctx)
+
+        val blockState = blockState(ctx.expectedPos)
+        if (blockState.isAir) return false
+
+        breakingTicks++
+        val progress = blockState.calcItemBlockBreakingDelta(
+            player,
+            world,
+            ctx.expectedPos,
+            item
+        )
+
+        if (ctx.buildConfig.sounds) {
+            if (soundsCooldown % 4.0f == 0.0f) {
+                val blockSoundGroup = blockState.soundGroup
+                mc
+                    .soundManager
+                    .play(
+                        PositionedSoundInstance(
+                            blockSoundGroup.hitSound,
+                            SoundCategory.BLOCKS,
+                            (blockSoundGroup.getVolume() + 1.0f) / 8.0f,
+                            blockSoundGroup.getPitch() * 0.5f,
+                            SoundInstance.createRandom(),
+                            ctx.expectedPos
+                        )
+                    )
+            }
+            soundsCooldown++
+        }
+
+        if (ctx.buildConfig.particles) {
+            mc.particleManager.addBlockBreakingParticles(
+                ctx.expectedPos,
+                hitResult.side
+            )
+        }
+
+        if (progress >= ctx.buildConfig.breakThreshold) {
+            interaction.sendSequencedPacket(world) { sequence: Int ->
+                onBlockBreak(ctx)
+                PlayerActionC2SPacket(Action.STOP_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
+            }
+        }
+
+        if (ctx.buildConfig.breakingTexture) {
+            setBreakingTextureStage(ctx)
+        }
+
+        return true
+    }
+
+    private fun SafeContext.onBlockBreak(ctx: BreakContext) {
+        when (ctx.buildConfig.breakConfirmation) {
+            BuildConfig.BreakConfirmationMode.None -> {
+                breakBlock(ctx)
+                breaks++
+            }
+            BuildConfig.BreakConfirmationMode.BreakThenAwait -> {
+                breakBlock(ctx)
+                pendingInteractions.add(ctx)
+            }
+            BuildConfig.BreakConfirmationMode.AwaitThenBreak -> pendingInteractions.add(ctx)
+        }
+    }
+
+    private fun SafeContext.breakBlock(ctx: BreakContext): Boolean {
+        if (player.isBlockBreakingRestricted(world, ctx.expectedPos, interaction.currentGameMode)) return false
+
+        if (HotbarManager.mainHandStack?.item?.canMine(ctx.checkedState, world, ctx.expectedPos, player) == false)
+            return false
+        val block = ctx.checkedState.block;
+        if (block is OperatorBlock && !player.isCreativeLevelTwoOp) return false
+        if (ctx.checkedState.isAir) return false
+
+        block.onBreak(world, ctx.expectedPos, ctx.checkedState, player)
+        val fluidState = fluidState(ctx.expectedPos)
+        val setState = world.setBlockState(ctx.expectedPos, fluidState.blockState, 11)
+        if (setState) block.onBroken(world, ctx.expectedPos, ctx.checkedState)
+
+        if (ctx.buildConfig.breakingTexture) setBreakingTextureStage(ctx, -1)
+
+        return setState
+    }
+
+    private fun SafeContext.setBreakingTextureStage(
+        ctx: BreakContext,
+        stage: Int = ctx.getBlockBreakingProgress(
+            breakingTicks,
+            player, world
+        )
+    ) {
+        world.setBlockBreakingInfo(
+            player.id,
+            ctx.expectedPos,
+            stage
+        )
+    }
+
+    private fun SafeContext.attackBlock(ctx: BreakContext): Boolean {
+        if (player.isBlockBreakingRestricted(world, ctx.expectedPos, interaction.currentGameMode)) return false
+        if (!world.worldBorder.contains(ctx.expectedPos)) return false
+
+        if (interaction.currentGameMode.isCreative) {
+            interaction.sendSequencedPacket(world) { sequence: Int ->
+                onBlockBreak(ctx)
+                PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, ctx.expectedPos, ctx.result.side, sequence)
+            }
+            interaction.blockBreakingCooldown = 5
+            return true
+        }
+        if (breaking) return false
+
+        val blockState: BlockState = world.getBlockState(ctx.expectedPos)
+        var pendingUpdateManager = world.pendingUpdateManager.incrementSequence()
+        val sequence = pendingUpdateManager.sequence
+        val notAir = !blockState.isAir
+        if (notAir && breakingTicks == 0) {
+            blockState.onBlockBreakStart(world, ctx.expectedPos, player)
+        }
+
+        val currentItemStack = HotbarManager.mainHandStack ?: return false
+
+        if (notAir && blockState.calcItemBlockBreakingDelta(player, world, ctx.expectedPos, currentItemStack) >= build.breakThreshold) {
+            onBlockBreak(ctx)
+            return true
+        } else {
+            breaking = true
+            soundsCooldown = 0.0f
+            if (ctx.buildConfig.breakingTexture) {
+                setBreakingTextureStage(ctx)
+            }
+        }
+
+        ctx.abortBreakPacket(sequence, connection)
+        ctx.stopBreakPacket(sequence + 1, connection)
+        ctx.startBreakPacket(sequence + 2, connection)
+        ctx.stopBreakPacket(sequence + 3, connection)
+        (0..3).forEach { i ->
+            pendingUpdateManager.incrementSequence()
+        }
+
+        return true
     }
 
     companion object {

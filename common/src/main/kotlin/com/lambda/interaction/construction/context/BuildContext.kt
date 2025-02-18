@@ -22,7 +22,6 @@ import com.lambda.interaction.construction.result.Drawable
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.rotation.RotationRequest
 import net.minecraft.block.BlockState
-import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
@@ -35,9 +34,8 @@ interface BuildContext : Comparable<BuildContext>, Drawable {
     val targetState: TargetState
     val expectedPos: BlockPos
     val checkedState: BlockState
-    val hand: Hand
+    val slotIndex: Int?
     val rotation: RotationRequest
 
-    fun interact(swingHand: Boolean)
     fun shouldRotate(config: BuildConfig): Boolean
 }

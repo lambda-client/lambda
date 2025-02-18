@@ -29,4 +29,5 @@ class InventorySettings(
     override val swapWithDisposables by c.setting("Swap With Disposables", true, "Swap items with disposable ones", vis)
     override val providerPriority by c.setting("Provider Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when retrieving the item from", vis)
     override val storePriority by c.setting("Store Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when storing the item to", vis)
+    override val silentSwap by c.setting("Silent Swap", true, "", vis)
 }

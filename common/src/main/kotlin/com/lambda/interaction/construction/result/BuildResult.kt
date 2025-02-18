@@ -195,6 +195,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
     data class WrongItem(
         override val blockPos: BlockPos,
         val context: BuildContext,
+        //TODO: probably need to make this a list of items
         val neededItem: Item,
         val currentItem: ItemStack,
         val inventory: InventoryConfig
