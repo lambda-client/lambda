@@ -89,7 +89,7 @@ class BuildTask @Ta5kBuilder constructor(
     private val instantBreaks = mutableSetOf<BreakContext>()
 
     var breaking = false
-    var breakingTicks= 0
+    var breakingTicks = 0
     var soundsCooldown = 0.0f
 
     private var placements = 0
@@ -382,6 +382,8 @@ class BuildTask @Ta5kBuilder constructor(
             BuildConfig.BreakConfirmationMode.AwaitThenBreak -> pendingInteractions.add(ctx)
         }
         currentInteraction = null
+        breaking = false
+        breakingTicks = 0
     }
 
     private fun SafeContext.breakBlock(ctx: BreakContext): Boolean {
@@ -389,7 +391,7 @@ class BuildTask @Ta5kBuilder constructor(
 
         if (HotbarManager.mainHandStack?.item?.canMine(ctx.checkedState, world, ctx.expectedPos, player) == false)
             return false
-        val block = ctx.checkedState.block;
+        val block = ctx.checkedState.block
         if (block is OperatorBlock && !player.isCreativeLevelTwoOp) return false
         if (ctx.checkedState.isAir) return false
 
