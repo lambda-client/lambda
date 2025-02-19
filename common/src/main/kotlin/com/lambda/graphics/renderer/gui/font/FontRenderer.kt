@@ -41,7 +41,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
     private val chars get() = RenderSettings.textFont
     private val emojis get() = RenderSettings.emojiFont
 
-    private val shadowShift get() = RenderSettings.shadowShift * 5.0
+    private val shadowShift get() = RenderSettings.shadowShift * 10.0
     private val baselineOffset get() = RenderSettings.baselineOffset * 2.0f - 10f
     private val gap get() = RenderSettings.gap * 0.5f - 0.8f
 
@@ -65,7 +65,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
     ) = render {
         shader["u_FontTexture"] = 0
         shader["u_EmojiTexture"] = 1
-        shader["u_SDFMin"] = 0.3
+        shader["u_SDFMin"] = 0.4
         shader["u_SDFMax"] = 1.0
 
         bind(chars, emojis)
@@ -83,7 +83,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
     ) = render {
         shader["u_FontTexture"] = 0
         shader["u_EmojiTexture"] = 1
-        shader["u_SDFMin"] = 0.3
+        shader["u_SDFMin"] = 0.4
         shader["u_SDFMax"] = 1.0
 
         bind(chars, emojis)
@@ -143,10 +143,14 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
         parseEmoji: Boolean = LambdaMoji.isEnabled,
     ): Double {
         var width = 0.0
-        processText(text, scale = scale, parseEmoji = parseEmoji) {
-                char, _, _, _, isShadow -> width += char.width * isShadow.toInt()
+        var gaps = -1
+
+        processText(text, scale = scale, parseEmoji = parseEmoji) { char, _, _, _, isShadow ->
+            if (isShadow) return@processText
+            width += char.width; gaps++
         }
-        return width * getScaleFactor(scale)
+
+        return (width + gaps.coerceAtLeast(0) * gap) * getScaleFactor(scale)
     }
 
     /**
@@ -184,12 +188,11 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
         var posX = 0.0
         var posY = getHeight(scale) * -0.5 + baselineOffset * actualScale
 
-        fun drawGlyph(info: GlyphInfo?, color: Color, offset: Double = 0.0) {
+        fun drawGlyph(info: GlyphInfo?, color: Color, isShadow: Boolean = false) {
             if (info == null) return
-            val isShadow = offset != 0.0
 
             val scaledSize = info.size * actualScale
-            val pos1 = Vec2d(posX, posY) + offset * actualScale
+            val pos1 = Vec2d(posX, posY) + shadowShift * actualScale * isShadow.toInt()
             val pos2 = pos1 + scaledSize
 
             block(info, pos1, pos2, color, isShadow)
@@ -210,7 +213,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
 
                     val glyph = chars[char] ?: return@forEach
 
-                    if (shadow && shadowShift > 0.0) drawGlyph(glyph, shadowColor, shadowShift)
+                    if (shadow) drawGlyph(glyph, shadowColor, true)
                     drawGlyph(glyph, color)
                 }
             } else {
