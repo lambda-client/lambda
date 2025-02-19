@@ -23,8 +23,15 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.threading.runSafe
-import com.lambda.util.player.SlotUtils.hotbar
+import com.lambda.mixin.entity.PlayerInventoryMixin
+import com.lambda.mixin.render.InGameHudMixin
 
+/**
+ * See mixins:
+ * @see PlayerInventoryMixin.handleSpoofedMainHandStack
+ * @see PlayerInventoryMixin.handleSpoofedBlockBreakingSpeed
+ * @see InGameHudMixin.onTick
+ */
 object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
     val serverSlot get() = runSafe {
         interaction.lastSelectedSlot
