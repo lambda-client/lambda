@@ -20,15 +20,25 @@ package com.lambda.mixin.render;
 import com.lambda.graphics.RenderMain;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.InGameHud;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import static net.minecraft.entity.player.PlayerInventory.isValidHotbarIndex;
 
 @Mixin(InGameHud.class)
 public class InGameHudMixin {
     @Inject(method = "render", at = @At("TAIL"))
     private void onRender(DrawContext context, float tickDelta, CallbackInfo ci) {
         RenderMain.render2D();
+    }
+
+    @Redirect(method = "tick()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerInventory;getMainHandStack()Lnet/minecraft/item/ItemStack;"))
+    private ItemStack onTick(PlayerInventory inventory) {
+        return isValidHotbarIndex(inventory.selectedSlot) ? inventory.main.get(inventory.selectedSlot) : ItemStack.EMPTY;
     }
 }
