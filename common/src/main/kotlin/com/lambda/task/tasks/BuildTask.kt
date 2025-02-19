@@ -103,7 +103,7 @@ class BuildTask @Ta5kBuilder constructor(
 
     init {
         listen<TickEvent.Pre> {
-            val currentItemStack = HotbarManager.mainHandStack ?: return@listen
+            val currentItemStack = player.mainHandStack ?: return@listen
 
             currentInteraction?.let { context ->
 //                TaskFlowModule.drawables = listOf(context)
@@ -389,7 +389,7 @@ class BuildTask @Ta5kBuilder constructor(
     private fun SafeContext.breakBlock(ctx: BreakContext): Boolean {
         if (player.isBlockBreakingRestricted(world, ctx.expectedPos, interaction.currentGameMode)) return false
 
-        if (HotbarManager.mainHandStack?.item?.canMine(ctx.checkedState, world, ctx.expectedPos, player) == false)
+        if (!player.mainHandStack.item.canMine(ctx.checkedState, world, ctx.expectedPos, player))
             return false
         val block = ctx.checkedState.block
         if (block is OperatorBlock && !player.isCreativeLevelTwoOp) return false
@@ -441,9 +441,8 @@ class BuildTask @Ta5kBuilder constructor(
             blockState.onBlockBreakStart(world, ctx.expectedPos, player)
         }
 
-        val currentItemStack = HotbarManager.mainHandStack ?: return false
-
-        if (notAir && blockState.calcItemBlockBreakingDelta(player, world, ctx.expectedPos, currentItemStack) >= build.breakThreshold) {
+        val breakingDelta = blockState.calcItemBlockBreakingDelta(player, world, ctx.expectedPos, player.mainHandStack)
+        if (notAir && breakingDelta >= build.breakThreshold) {
             onBlockBreak(ctx)
             return true
         } else {

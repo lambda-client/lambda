@@ -83,7 +83,7 @@ data class BreakContext(
     }
 
     fun getBlockBreakingProgress(breakingTicks: Int, player: PlayerEntity, world: BlockView): Int {
-        val currentItemStack = HotbarManager.mainHandStack ?: return -1
+        val currentItemStack = player.mainHandStack ?: return -1
         val breakDelta = checkedState.calcItemBlockBreakingDelta(player, world, expectedPos, currentItemStack)
         val progress = breakDelta * breakingTicks
         return if (progress > 0.0f)
