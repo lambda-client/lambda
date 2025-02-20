@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.material
 
+import com.lambda.interaction.material.ContainerSelection.Companion.ContainerSelectionDsl
 import com.lambda.util.BlockUtils.item
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import net.minecraft.block.Block
@@ -103,6 +104,7 @@ class StackSelection {
      * @param item The [Item] to be matched.
      * @return A predicate that matches the [Item].
      */
+    @StackSelectionDsl
     fun isItem(item: Item): (ItemStack) -> Boolean {
         this.item = item
         return { it.item == item }
@@ -113,6 +115,7 @@ class StackSelection {
      * @param T The instance of [Item] to be matched.
      * @return A predicate that matches the [Item].
      */
+    @StackSelectionDsl
     inline fun <reified T : Item> isItem(): (ItemStack) -> Boolean {
         itemClass = T::class
         return { it.item is T }
@@ -123,6 +126,7 @@ class StackSelection {
      * @param block The [Block] to be matched.
      * @return A predicate that matches the [Block].
      */
+    @StackSelectionDsl
     fun isBlock(block: Block): (ItemStack) -> Boolean {
         item = block.item
         return { it.item == block.item }
@@ -133,6 +137,7 @@ class StackSelection {
      * @param stack The [ItemStack] to be matched.
      * @return A predicate that matches the [ItemStack].
      */
+    @StackSelectionDsl
     fun isItemStack(stack: ItemStack): (ItemStack) -> Boolean {
         this.itemStack = stack
         return { ItemStack.areEqual(it, stack) }
@@ -143,6 +148,7 @@ class StackSelection {
      * @param damage The damage value to be matched.
      * @return A predicate that matches the damage value.
      */
+    @StackSelectionDsl
     fun hasDamage(damage: Int): (ItemStack) -> Boolean {
         this.damage = damage
         return { it.damage == damage }
@@ -154,6 +160,7 @@ class StackSelection {
      * @param level The level to be matched (if -1 will look for any level above 0).
      * @return A predicate that matches the [Enchantment] and `level`.
      */
+    @StackSelectionDsl
     fun hasEnchantment(enchantment: Enchantment, level: Int = -1): (ItemStack) -> Boolean = {
         if (level < 0) {
             EnchantmentHelper.getLevel(enchantment, it) > 0
@@ -166,6 +173,7 @@ class StackSelection {
      * Returns the negation of the original predicate.
      * @return A new predicate that matches if the original predicate does not match.
      */
+    @StackSelectionDsl
     fun ((ItemStack) -> Boolean).not(): (ItemStack) -> Boolean {
         return { !this(it) }
     }
@@ -175,6 +183,7 @@ class StackSelection {
      * @param otherPredicate The second predicate.
      * @return A new predicate that matches if both inputs predicate match.
      */
+    @StackSelectionDsl
     infix fun ((ItemStack) -> Boolean).and(otherPredicate: (ItemStack) -> Boolean): (ItemStack) -> Boolean {
         return { this(it) && otherPredicate(it) }
     }
@@ -184,6 +193,7 @@ class StackSelection {
      * @param otherPredicate The second predicate.
      * @return A new predicate that matches if either input predicate matches.
      */
+    @StackSelectionDsl
     infix fun ((ItemStack) -> Boolean).or(otherPredicate: (ItemStack) -> Boolean): (ItemStack) -> Boolean {
         return { this(it) || otherPredicate(it) }
     }
@@ -197,6 +207,9 @@ class StackSelection {
     }
 
     companion object {
+        @DslMarker
+        annotation class StackSelectionDsl
+
         const val DEFAULT_AMOUNT = 1
         val FULL_SHULKERS: (ItemStack) -> Boolean = { stack ->
             stack.shulkerBoxContents.none { it.isEmpty }
@@ -206,8 +219,11 @@ class StackSelection {
         }
         val EVERYTHING: (ItemStack) -> Boolean = { true }
 
+        @ContainerSelectionDsl
         fun Item.select(): StackSelection = selectStack { isItem(this@select) }
+        @ContainerSelectionDsl
         fun ItemStack.select(): StackSelection = selectStack { isItemStack(this@select) }
+        @ContainerSelectionDsl
         fun ((ItemStack) -> Boolean).select() = selectStack { this@select }
 
         /**
@@ -216,6 +232,7 @@ class StackSelection {
          * @param block The predicate to be used to select the items.
          * @return A [StackSelection] with the given parameters.
          */
+        @StackSelectionDsl
         fun selectStack(
             count: Int = DEFAULT_AMOUNT,
             inShulkerBox: Boolean = false,

@@ -21,6 +21,7 @@ import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.item.Item
+import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 
 object ItemUtils {
@@ -121,9 +122,9 @@ object ItemUtils {
 
     val Item.block: Block get() = Block.getBlockFromItem(this)
 
-    fun findBestAvailableTool(
+    fun findBestToolsForBreaking(
         blockState: BlockState,
-        availableTools: Set<Item> = ItemUtils.tools,
+        availableTools: Set<Item> = tools,
     ) = availableTools.map {
         it to it.getMiningSpeedMultiplier(it.defaultStack, blockState)
     }.filter { (item, speed) ->
@@ -146,29 +147,19 @@ object ItemUtils {
 
             if (dubs > 0) {
                 append("$dubs dub")
-                if (dubs > 1) {
-                    append("s")
-                }
-                if (shulkers > 0 || remainingItems > 0) {
-                    append(" ")
-                }
+                if (dubs > 1) append("s")
+                if (shulkers > 0 || remainingItems > 0) append(" ")
             }
 
             if (shulkers > 0) {
                 append("$shulkers shulker")
-                if (shulkers > 1) {
-                    append("s")
-                }
-                if (remainingItems > 0) {
-                    append(" ")
-                }
+                if (shulkers > 1) append("s")
+                if (remainingItems > 0) append(" ")
             }
 
             if (remainingItems > 0) {
                 append("$remainingItems item")
-                if (remainingItems > 1) {
-                    append("s")
-                }
+                if (remainingItems > 1) append("s")
             }
         }
     }

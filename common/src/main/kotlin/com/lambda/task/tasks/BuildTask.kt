@@ -89,13 +89,13 @@ class BuildTask @Ta5kBuilder constructor(
     private val instantBreaks = mutableSetOf<BreakContext>()
 
     var breaking = false
-    var breakingTicks = 0
-    var soundsCooldown = 0.0f
+    private var breakingTicks = 0
+    private var soundsCooldown = 0.0f
 
     private var placements = 0
     private var breaks = 0
     private val dropsToCollect = mutableSetOf<ItemEntity>()
-//    private var goodPositions = setOf<BlockPos>()
+    //    private var goodPositions = setOf<BlockPos>()
 
     override fun SafeContext.onStart() {
         (blueprint as? PropagatingBlueprint)?.next()
@@ -106,7 +106,7 @@ class BuildTask @Ta5kBuilder constructor(
             val currentItemStack = player.mainHandStack ?: return@listen
 
             currentInteraction?.let { context ->
-//                TaskFlowModule.drawables = listOf(context)
+                //                TaskFlowModule.drawables = listOf(context)
                 if (context.shouldRotate(build) && !context.rotation.done) return@let
                 when (context) {
                     is PlaceContext -> {
@@ -161,17 +161,17 @@ class BuildTask @Ta5kBuilder constructor(
         onRotate {
             if (collectDrops && dropsToCollect.isNotEmpty()) return@onRotate
 
-//            val sim = blueprint.simulation(interact, rotation, inventory)
-//            BlockPos.iterateOutwards(player.blockPos, 5, 5, 5).forEach { pos ->
-//                sim.simulate(pos.toFastVec())
-//            }
+            //            val sim = blueprint.simulation(interact, rotation, inventory)
+            //            BlockPos.iterateOutwards(player.blockPos, 5, 5, 5).forEach { pos ->
+            //                sim.simulate(pos.toFastVec())
+            //            }
 
             // ToDo: Simulate for each pair player positions that work
             val results = blueprint.simulate(player.eyePos, interact, rotation, inventory, build)
 
             TaskFlowModule.drawables = results.filterIsInstance<Drawable>()
                 .plus(pendingInteractions.toList())
-//                .plus(sim.goodPositions())
+            //                .plus(sim.goodPositions())
 
             if (build.breaksPerTick > 1) {
                 val instantResults = results.filterIsInstance<BreakResult.Break>()
@@ -239,12 +239,12 @@ class BuildTask @Ta5kBuilder constructor(
             if (context.sneak) it.input.sneaking = true
         }
 
-//        listen<WorldEvent.BlockUpdate.Client> { event ->
-//            val context = currentInteraction ?: return@listen
-//            if (context.expectedPos != event.pos) return@listen
-//            currentInteraction = null
-//            pendingInteractions.add(context)
-//        }
+        //        listen<WorldEvent.BlockUpdate.Client> { event ->
+        //            val context = currentInteraction ?: return@listen
+        //            if (context.expectedPos != event.pos) return@listen
+        //            currentInteraction = null
+        //            pendingInteractions.add(context)
+        //        }
 
         listen<WorldEvent.BlockUpdate.Server>(alwaysListen = true) { event ->
             pendingInteractions.firstOrNull { it.expectedPos == event.pos }?.let { ctx ->
@@ -273,29 +273,27 @@ class BuildTask @Ta5kBuilder constructor(
                 val inRange = context.expectedPos.toCenterPos().isInRange(it.entity.pos, 0.5)
                 val correctMaterial = context.checkedState.block == it.entity.stack.item.block
                 inRange && correctMaterial
-            }?.let { context ->
+            }?.let { _ ->
                 dropsToCollect.add(it.entity)
             }
         }
     }
 
-    fun SafeContext.placeBlock(hand: Hand, ctx: PlaceContext) {
-        with(ctx) {
-            val actionResult = interaction.interactBlock(
-                player, hand, result
-            )
+    private fun SafeContext.placeBlock(hand: Hand, ctx: PlaceContext) {
+        val actionResult = interaction.interactBlock(
+            player, hand, ctx.result
+        )
 
-            if (actionResult.isAccepted) {
-                if (actionResult.shouldSwingHand() && interact.swingHand) {
-                    player.swingHand(hand)
-                }
-
-                if (!player.getStackInHand(hand).isEmpty && interaction.hasCreativeInventory()) {
-                    mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
-                }
-            } else {
-                warn("Internal interaction failed with $actionResult")
+        if (actionResult.isAccepted) {
+            if (actionResult.shouldSwingHand() && interact.swingHand) {
+                player.swingHand(hand)
             }
+
+            if (!player.getStackInHand(hand).isEmpty && interaction.hasCreativeInventory()) {
+                mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
+            }
+        } else {
+            warn("Internal interaction failed with $actionResult")
         }
     }
 
@@ -309,7 +307,7 @@ class BuildTask @Ta5kBuilder constructor(
 
         if (interaction.currentGameMode.isCreative && world.worldBorder.contains(ctx.expectedPos)) {
             interaction.blockBreakingCooldown = ctx.buildConfig.breakDelay
-            interaction.sendSequencedPacket(world) { sequence: Int ->
+            interaction.sendSequencedPacket(world) { sequence ->
                 onBlockBreak(ctx)
                 PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
             }
@@ -322,28 +320,21 @@ class BuildTask @Ta5kBuilder constructor(
         if (blockState.isAir) return false
 
         breakingTicks++
-        val progress = blockState.calcItemBlockBreakingDelta(
-            player,
-            world,
-            ctx.expectedPos,
-            item
-        )
+        val progress = blockState.calcItemBlockBreakingDelta(player, world, ctx.expectedPos, item)
 
         if (ctx.buildConfig.sounds) {
             if (soundsCooldown % 4.0f == 0.0f) {
                 val blockSoundGroup = blockState.soundGroup
-                mc
-                    .soundManager
-                    .play(
-                        PositionedSoundInstance(
-                            blockSoundGroup.hitSound,
-                            SoundCategory.BLOCKS,
-                            (blockSoundGroup.getVolume() + 1.0f) / 8.0f,
-                            blockSoundGroup.getPitch() * 0.5f,
-                            SoundInstance.createRandom(),
-                            ctx.expectedPos
-                        )
+                mc.soundManager.play(
+                    PositionedSoundInstance(
+                        blockSoundGroup.hitSound,
+                        SoundCategory.BLOCKS,
+                        (blockSoundGroup.getVolume() + 1.0f) / 8.0f,
+                        blockSoundGroup.getPitch() * 0.5f,
+                        SoundInstance.createRandom(),
+                        ctx.expectedPos
                     )
+                )
             }
             soundsCooldown++
         }
@@ -356,7 +347,7 @@ class BuildTask @Ta5kBuilder constructor(
         }
 
         if (progress >= ctx.buildConfig.breakThreshold) {
-            interaction.sendSequencedPacket(world) { sequence: Int ->
+            interaction.sendSequencedPacket(world) { sequence ->
                 onBlockBreak(ctx)
                 PlayerActionC2SPacket(Action.STOP_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
             }
@@ -407,10 +398,7 @@ class BuildTask @Ta5kBuilder constructor(
 
     private fun SafeContext.setBreakingTextureStage(
         ctx: BreakContext,
-        stage: Int = ctx.getBlockBreakingProgress(
-            breakingTicks,
-            player, world
-        )
+        stage: Int = ctx.getBlockBreakingProgress(breakingTicks, player, world)
     ) {
         world.setBlockBreakingInfo(
             player.id,
@@ -433,8 +421,8 @@ class BuildTask @Ta5kBuilder constructor(
         }
         if (breaking) return false
 
-        val blockState: BlockState = world.getBlockState(ctx.expectedPos)
-        var pendingUpdateManager = world.pendingUpdateManager.incrementSequence()
+        val blockState = blockState(ctx.expectedPos)
+        val pendingUpdateManager = world.pendingUpdateManager.incrementSequence()
         val sequence = pendingUpdateManager.sequence
         val notAir = !blockState.isAir
         if (notAir && breakingTicks == 0) {
@@ -458,7 +446,7 @@ class BuildTask @Ta5kBuilder constructor(
             ctx.stopBreakPacket(sequence + 1, connection)
             ctx.startBreakPacket(sequence + 2, connection)
             ctx.stopBreakPacket(sequence + 3, connection)
-            (0..3).forEach { i ->
+            repeat(3) {
                 pendingUpdateManager.incrementSequence()
             }
         } else {

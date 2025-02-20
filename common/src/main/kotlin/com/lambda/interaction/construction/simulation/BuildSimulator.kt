@@ -29,6 +29,13 @@ import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
+import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.interaction.material.StackSelection.Companion.selectStack
+import com.lambda.interaction.material.container.ContainerManager
+import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
+import com.lambda.interaction.material.container.ContainerManager.findContainerWithMaterial
+import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.RotationConfig
@@ -47,12 +54,13 @@ import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.BlockUtils.vecOf
 import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemStackUtils.equal
-import com.lambda.util.item.ItemUtils.findBestAvailableTool
+import com.lambda.util.item.ItemUtils.findBestToolsForBreaking
 import com.lambda.util.math.distSq
 import com.lambda.util.player.copyPlayer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.OperatorBlock
 import net.minecraft.block.pattern.CachedBlockPosition
+import net.minecraft.enchantment.Enchantments
 import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemUsageContext
@@ -280,7 +288,7 @@ object BuildSimulator {
 
                 val blockHit = checkedResult.blockResult ?: return@forEach
                 val hitBlock = blockState(blockHit.blockPos).block
-                val shouldSneak = hitBlock::class in BlockUtils.interactionClasses
+                val shouldSneak = hitBlock::class in BlockUtils.interactionBlocks
 
                 val primeDirection =
                     (target as? TargetState.State)?.blockState?.getOrEmpty(Properties.HORIZONTAL_FACING)?.getOrNull()
@@ -373,15 +381,6 @@ object BuildSimulator {
             return acc
         }
 
-        /* The current selected item cant mine the block */
-        Hand.entries.forEach {
-            val stack = player.getStackInHand(it)
-            if (stack.isEmpty) return@forEach
-            if (stack.item.canMine(state, world, pos, player)) return@forEach
-            acc.add(BreakResult.ItemCantMine(pos, state, stack.item, inventory))
-            return acc
-        }
-
         val currentRotation = RotationManager.currentRotation
         val currentCast = currentRotation.rayCast(interact.interactReach, eye)
 
@@ -412,7 +411,7 @@ object BuildSimulator {
                     rotationRequest,
                     state,
                     targetState,
-                    player.inventory.selectedSlot,
+                    player.inventory.selectedSlot + 1,
                     instantBreakable(state, pos),
                     build
                 )
@@ -426,6 +425,7 @@ object BuildSimulator {
         val reachSq = interact.interactReach.pow(2)
 
         boxes.forEach { box ->
+            // ToDo: Rewrite Rotation request system to allow support for all sim features and use the rotation finder
             scanSurfaces(box, Direction.entries.toSet(), interact.resolution) { side, vec ->
                 if (eye distSq vec > reachSq) {
                     misses.add(vec)
@@ -454,41 +454,62 @@ object BuildSimulator {
             return acc
         }
 
-        interact.pointSelection.select(validHits)?.let { checkedHit ->
-            val blockHit = checkedHit.hit.blockResult ?: return@let
+        val bestHit = interact.pointSelection.select(validHits) ?: return acc
+        val blockHit = bestHit.hit.blockResult ?: return acc
+        val target = lookAt(bestHit.targetRotation, 0.001)
+        val request = RotationRequest(target, rotation)
+        val instant = instantBreakable(state, pos)
+        val useSlotIndex = player.inventory.selectedSlot + 1
 
-            val breakContext = BreakContext(
-                eye,
-                blockHit,
-                RotationRequest(lookAt(checkedHit.targetRotation, 0.001), rotation),
-                state,
-                targetState,
-                player.inventory.selectedSlot,
-                instantBreakable(state, pos),
-                build
-            )
+        val breakContext = BreakContext(
+            eye, blockHit, request, state, targetState, useSlotIndex, instant, build
+        )
 
-            /* player has a better tool for the job available */
-            if (!player.isCreative) findBestAvailableTool(state).let { bestTools ->
-                Hand.entries.map {
-                    player.getStackInHand(it)
-                }.filter { stack ->
-                    bestTools.any { tool -> tool == stack.item }
-                }.sortedByDescending {
-                    state.calcItemBlockBreakingDelta(player, world, pos, it)
-                }.let { stackList ->
-                    if (stackList.isEmpty()) {
-                        acc.add(BuildResult.WrongItem(pos, breakContext, bestTools.first(), player.activeItem, inventory))
-                        return acc
-                    }
-                    breakContext.slotIndex = player.inventory.getSlotWithStack(stackList.first())
-                    acc.add(BreakResult.Break(pos, breakContext))
-                    return acc
-                }
-            }
-
+        if (player.isCreative) {
             acc.add(BreakResult.Break(pos, breakContext))
+            return acc
         }
+
+        val bestTools = findBestToolsForBreaking(state)
+
+        /* there is no good tool for the job */
+        if (bestTools.isEmpty()) {
+            /* The current selected item cant mine the block */
+            Hand.entries.forEach {
+                val stack = player.getStackInHand(it)
+                if (stack.isEmpty) return@forEach
+                if (stack.item.canMine(state, world, pos, player)) return@forEach
+                acc.add(BreakResult.ItemCantMine(pos, state, stack.item, inventory))
+                return acc
+            }
+            // ToDo: Switch to non destroyable item
+            acc.add(BreakResult.Break(pos, breakContext))
+            return acc
+        }
+
+        val bestTool = bestTools.firstOrNull() ?: return acc
+        val toolSelection = if (build.forceSilkTouch) {
+            selectStack { isItem(bestTool) and hasEnchantment(Enchantments.SILK_TOUCH) }
+        } else {
+            bestTool.select()
+        }
+        val containerSelection = selectContainer {
+            matches(toolSelection) and ofAnyType(MaterialContainer.Rank.OFF_HAND, MaterialContainer.Rank.HOTBAR)
+        }
+        val allContainersWithTools = toolSelection.containerWithMaterial(inventory, containerSelection)
+        val matchingStacks = allContainersWithTools.associateWith { it.matchingStacks(toolSelection) }
+        val bestDeltaTool = matchingStacks.mapValues { (_, stacks) ->
+	        stacks.associateWith { state.calcItemBlockBreakingDelta(player, world, pos, it) }
+                .maxByOrNull { it.value }
+                ?.toPair()
+        }.entries.maxByOrNull { it.value?.second ?: 0f }?.toPair() ?: return acc
+
+        if (bestDeltaTool.second == null) {
+            acc.add(BuildResult.WrongItem(pos, breakContext, bestTools.first(), player.activeItem, inventory))
+            return acc
+        }
+
+	    acc.add(BreakResult.Break(pos, breakContext))
         return acc
     }
 }

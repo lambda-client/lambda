@@ -22,6 +22,7 @@ import com.lambda.core.Loadable
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.material.ContainerSelection
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.container.containers.ChestContainer
@@ -90,7 +91,7 @@ object ContainerManager : Loadable {
     fun container() = container.flatMap { setOf(it) + it.shulkerContainer }.sorted()
 
     fun StackSelection.transfer(destination: MaterialContainer, inventory: InventoryConfig = TaskFlowModule.inventory) =
-        this.findContainerWithMaterial(inventory)?.transfer(this, destination)
+        findContainerWithMaterial(inventory)?.transfer(this, destination)
 
     fun findContainer(
         block: (MaterialContainer) -> Boolean,
@@ -99,20 +100,21 @@ object ContainerManager : Loadable {
     fun StackSelection.findContainerWithMaterial(
         inventory: InventoryConfig
     ): MaterialContainer? =
-        containerWithMaterial(this, inventory).firstOrNull()
+        containerWithMaterial(inventory).firstOrNull()
 
     fun findContainerWithSpace(
         selection: StackSelection,
     ): MaterialContainer? =
         containerWithSpace(selection).firstOrNull()
 
-    fun containerWithMaterial(
-        selection: StackSelection,
+    fun StackSelection.containerWithMaterial(
         inventory: InventoryConfig = TaskFlowModule.inventory,
+        containerSelection: ContainerSelection = ContainerSelection(),
     ): List<MaterialContainer> =
         container()
-            .sortedWith(inventory.providerPriority.materialComparator(selection))
-            .filter { it.materialAvailable(selection) >= selection.count }
+            .sortedWith(inventory.providerPriority.materialComparator(this))
+            .filter { it.materialAvailable(this) >= count }
+            .filter { containerSelection.matches(it) }
 
     fun containerWithSpace(
         selection: StackSelection,

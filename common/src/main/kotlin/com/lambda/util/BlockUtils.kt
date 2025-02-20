@@ -97,6 +97,12 @@ import net.minecraft.util.math.*
 import net.minecraft.world.BlockView
 
 object BlockUtils {
+    val Vec3i.blockPos: BlockPos get() = BlockPos(this)
+    val Block.item: Item get() = asItem()
+    val Vec3d.flooredPos: BlockPos get() = BlockPos(x.floorToInt(), y.floorToInt(), z.floorToInt())
+    fun BlockPos.vecOf(direction: Direction): Vec3d = toCenterPos().add(Vec3d.of(direction.vector).multiply(0.5))
+    fun BlockPos.offset(eightWayDirection: EightWayDirection, amount: Int): BlockPos =
+        add(eightWayDirection.offsetX * amount, 0, eightWayDirection.offsetZ * amount)
 
     val signs = setOf(
         Blocks.OAK_SIGN,
@@ -156,7 +162,7 @@ object BlockUtils {
 
     val allSigns = signs + wallSigns + hangingSigns + hangingWallSigns
 
-    val interactionClasses = setOf(
+    val interactionBlocks = setOf(
         AbstractCauldronBlock::class,
         AbstractFurnaceBlock::class,
         AbstractSignBlock::class,
@@ -293,11 +299,4 @@ object BlockUtils {
 
         return speedMultiplier
     }
-
-    val Vec3i.blockPos: BlockPos get() = BlockPos(this)
-    val Block.item: Item get() = asItem()
-    val Vec3d.flooredPos: BlockPos get() = BlockPos(x.floorToInt(), y.floorToInt(), z.floorToInt())
-    fun BlockPos.vecOf(direction: Direction): Vec3d = toCenterPos().add(Vec3d.of(direction.vector).multiply(0.5))
-    fun BlockPos.offset(eightWayDirection: EightWayDirection, amount: Int): BlockPos =
-        add(eightWayDirection.offsetX * amount, 0, eightWayDirection.offsetZ * amount)
 }

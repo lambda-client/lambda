@@ -28,6 +28,7 @@ import com.lambda.util.item.ItemStackUtils.empty
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import com.lambda.util.item.ItemStackUtils.spaceLeft
 import com.lambda.util.item.ItemUtils
+import com.lambda.util.item.ItemUtils.toItemCount
 import com.lambda.util.text.*
 import net.minecraft.item.ItemStack
 import net.minecraft.text.Text
@@ -44,13 +45,13 @@ abstract class MaterialContainer(
         literal("\n")
         literal("Contains ")
         val available = materialAvailable(selection)
-        highlighted(if (available == Int.MAX_VALUE) "∞" else available.toString())
+        highlighted(if (available == Int.MAX_VALUE) "∞" else available.toItemCount())
         literal(" of ")
         highlighted("${selection.optimalStack?.name?.string}")
         literal("\n")
         literal("Could store ")
         val left = spaceAvailable(selection)
-        highlighted(if (left == Int.MAX_VALUE) "∞" else left.toString())
+        highlighted(if (left == Int.MAX_VALUE) "∞" else left.toItemCount())
         literal(" of ")
         highlighted("${selection.optimalStack?.name?.string}")
     }
