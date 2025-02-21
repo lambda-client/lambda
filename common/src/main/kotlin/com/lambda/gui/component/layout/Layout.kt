@@ -130,16 +130,16 @@ open class Layout(
     var isHovered = false; get() = field && (owner?.isHovered ?: true)
 
     // Actions
-    private var showActions = mutableListOf<Layout.() -> Unit>()
-    private var hideActions = mutableListOf<Layout.() -> Unit>()
-    private var tickActions = mutableListOf<Layout.() -> Unit>()
-    private var updateActions = mutableListOf<Layout.() -> Unit>()
-    private var renderActions = mutableListOf<Layout.() -> Unit>()
-    private var keyPressActions = mutableListOf<Layout.(key: KeyCode) -> Unit>()
-    private var charTypedActions = mutableListOf<Layout.(char: Char) -> Unit>()
-    private var mouseClickActions = mutableListOf<Layout.(button: Mouse.Button, action: Mouse.Action) -> Unit>()
-    private var mouseMoveActions = mutableListOf<Layout.(mouse: Vec2d) -> Unit>()
-    private var mouseScrollActions = mutableListOf<Layout.(delta: Double) -> Unit>()
+    private val showActions = mutableListOf<Layout.() -> Unit>()
+    private val hideActions = mutableListOf<Layout.() -> Unit>()
+    private val tickActions = mutableListOf<Layout.() -> Unit>()
+    private val updateActions = mutableListOf<Layout.() -> Unit>()
+    private val renderActions = mutableListOf<Layout.() -> Unit>()
+    private val keyPressActions = mutableListOf<Layout.(key: KeyCode) -> Unit>()
+    private val charTypedActions = mutableListOf<Layout.(char: Char) -> Unit>()
+    private val mouseClickActions = mutableListOf<Layout.(button: Mouse.Button, action: Mouse.Action) -> Unit>()
+    private val mouseMoveActions = mutableListOf<Layout.(mouse: Vec2d) -> Unit>()
+    private val mouseScrollActions = mutableListOf<Layout.(delta: Double) -> Unit>()
 
     /**
      * Performs the action on this layout

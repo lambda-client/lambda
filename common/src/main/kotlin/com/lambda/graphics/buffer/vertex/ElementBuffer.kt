@@ -23,10 +23,10 @@ import com.lambda.graphics.gl.kibibyte
 import org.lwjgl.opengl.GL30C.*
 import java.nio.ByteBuffer
 
-class ElementBuffer(mode: VertexMode) :
-    Buffer(buffers = 1)
-{
-    override val usage: Int = GL_DYNAMIC_DRAW
+class ElementBuffer(
+    mode: VertexMode,
+    override val usage: Int = GL_DYNAMIC_DRAW,
+) : Buffer(buffers = 1) {
     override val target: Int = GL_ELEMENT_ARRAY_BUFFER
     override val access: Int = GL_MAP_WRITE_BIT
 

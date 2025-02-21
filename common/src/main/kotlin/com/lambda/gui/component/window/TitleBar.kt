@@ -79,7 +79,6 @@ class TitleBar(
 
     val textField = textField {
         text = title
-
         textHAlignment = HAlign.CENTER
 
         onUpdate {

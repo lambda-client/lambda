@@ -18,6 +18,7 @@
 package com.lambda.gui.component.core
 
 import com.lambda.graphics.renderer.gui.rect.OutlineRectRenderer.outlineRect
+import com.lambda.gui.component.core.FilledRect.Companion.rectBehind
 import com.lambda.gui.component.layout.Layout
 import java.awt.Color
 
@@ -62,10 +63,29 @@ class OutlineRect(
 
     companion object {
         /**
-         * Creates a [OutlineRect] component - layout-based rect representation
+         * Creates an [OutlineRect] component - layout-based rect representation
          */
         @UIBuilder
-        fun Layout.outline(block: OutlineRect.() -> Unit = {}) =
-            OutlineRect(this).apply(children::add).apply(block)
+        fun Layout.outline(
+            block: OutlineRect.() -> Unit = {}
+        ) = OutlineRect(this).apply(children::add).apply(block)
+
+        /**
+         * Adds a [OutlineRect] behind given [layout]
+         */
+        @UIBuilder
+        fun Layout.outlineBehind(
+            layout: Layout,
+            block: OutlineRect.() -> Unit = {}
+        ) = OutlineRect(this).relativeLayout(this, layout, false).apply(block)
+
+        /**
+         * Creates an [OutlineRect] component - layout-based rect representation
+         */
+        @UIBuilder
+        fun Layout.outlineOver(
+            layout: Layout,
+            block: OutlineRect.() -> Unit = {}
+        ) = OutlineRect(this).relativeLayout(this, layout, true).apply(block)
     }
 }

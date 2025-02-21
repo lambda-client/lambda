@@ -26,7 +26,7 @@ import kotlin.math.abs
 
 class WindowContent(
     owner: Window,
-    private val scrollable: Boolean
+    private val scrollableList: Boolean
 ) : Layout(owner) {
     private val animation = animationTicker(false)
 
@@ -34,7 +34,7 @@ class WindowContent(
     private var scrollOffset = 0.0
     private var rubberbandDelta = 0.0
 
-    var renderScrollOffset by animation.exp({ scrollOffset + rubberbandDelta }, 0.7)
+    var renderScrollOffset by animation.exp(0.7) { scrollOffset + rubberbandDelta }
     private var scrolling = false
 
     private var contentHeight = {
@@ -85,7 +85,7 @@ class WindowContent(
             rubberbandDelta = 0.0
             renderScrollOffset = 0.0
 
-            if (scrollable) reorder()
+            if (scrollableList) reorder()
         }
 
         onTick {
@@ -105,12 +105,14 @@ class WindowContent(
             if (abs(rubberbandDelta) < 0.05) rubberbandDelta = 0.0
 
             animation.tick()
+        }
 
-            if (scrollable) reorder()
+        onUpdate {
+            if (scrollableList) reorder()
         }
 
         onMouseScroll { delta ->
-            if (!scrollable) return@onMouseScroll
+            if (!scrollableList) return@onMouseScroll
             dwheel += delta * 10.0
         }
     }
@@ -121,11 +123,11 @@ class WindowContent(
         /**
          * Creates an empty [WindowContent] component
          *
-         * @param scrollable Whether to let user scroll this layout
+         * @param scrollableList Whether to let user scroll this layout
          * This will also make your elements be vertically ordered
          */
         @UIBuilder
-        fun Window.windowContent(scrollable: Boolean) =
-            WindowContent(this, scrollable).apply(children::add)
+        fun Window.windowContent(scrollableList: Boolean) =
+            WindowContent(this, scrollableList).apply(children::add)
     }
 }

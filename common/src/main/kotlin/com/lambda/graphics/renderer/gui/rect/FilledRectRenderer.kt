@@ -28,7 +28,7 @@ object FilledRectRenderer : AbstractGUIRenderer(
     VertexAttrib.Group.RECT_FILLED, shader("renderer/rect_filled")
 ) {
     private const val MIN_SIZE = 0.5
-    private const val MIN_ALPHA = 3
+    private const val MIN_ALPHA = 1
 
     fun filledRect(
         rect: Rect,

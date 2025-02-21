@@ -18,6 +18,7 @@
 package com.lambda.gui.component.core
 
 import com.lambda.graphics.renderer.gui.rect.FilledRectRenderer.filledRect
+import com.lambda.gui.component.core.FilledRect.Companion.rectBehind
 import com.lambda.gui.component.layout.Layout
 import com.lambda.util.math.Rect
 import java.awt.Color
@@ -97,7 +98,26 @@ class FilledRect(
          * Creates a [FilledRect] component - layout-based rect representation
          */
         @UIBuilder
-        fun Layout.rect(block: FilledRect.() -> Unit = {}) =
-            FilledRect(this).apply(children::add).apply(block)
+        fun Layout.rect(
+            block: FilledRect.() -> Unit = {}
+        ) = FilledRect(this).apply(children::add).apply(block)
+
+        /**
+         * Adds a [FilledRect] behind given [layout]
+         */
+        @UIBuilder
+        fun Layout.rectBehind(
+            layout: Layout,
+            block: FilledRect.() -> Unit = {}
+        ) = FilledRect(this).relativeLayout(this, layout, false).apply(block)
+
+        /**
+         * Adds a [FilledRect] over given [layout]
+         */
+        @UIBuilder
+        fun Layout.rectOver(
+            layout: Layout,
+            block: FilledRect.() -> Unit = {}
+        ) = FilledRect(this).relativeLayout(this, layout, true).apply(block)
     }
 }

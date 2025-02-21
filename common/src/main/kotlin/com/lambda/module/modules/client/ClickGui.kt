@@ -36,26 +36,30 @@ object ClickGui : Module(
     val settingsHeight by setting("Settings Height", 14.0, 10.0..25.0, 0.1)
     val padding by setting("Padding", 1.0, 1.0..6.0, 0.1)
     val listStep by setting("List Step", 1.0, 0.0..6.0, 0.1)
-    val autoResize by setting("Auto Resize", true)
+    val autoResize by setting("Auto Resize", false)
 
-    val roundRadius by setting("Round Radius", 2.0, 0.0..10.0, 0.1)
+    val roundRadius by setting("Round Radius", 3.0, 0.0..10.0, 0.1)
 
     val backgroundTint by setting("Background Tint", Color.BLACK.setAlpha(0.4))
 
-    val titleBackgroundColor by setting("Title Background Color", Color(40, 40, 40))
+    val titleBackgroundColor by setting("Title Background Color", Color(60, 60, 60))
     val backgroundColor by setting("Background Color", titleBackgroundColor)
     val backgroundShade by setting("Background Shade", true)
 
-    val outline by setting("Outline", false)
-    val outlineWidth by setting("Outline Width", 10.0, 1.0..10.0, 0.1) { outline }
+    val outline by setting("Outline", true)
+    val outlineWidth by setting("Outline Width", 6.0, 1.0..10.0, 0.1) { outline }
     val outlineColor by setting("Outline Color", Color.WHITE.setAlpha(0.6)) { outline }
     val outlineShade by setting("Outline Shade", true) { outline }
     val fontScale by setting("Font Scale", 1.0, 0.5..2.0, 0.1)
-    val fontOffset by setting("Font Offset", 2.0, 0.0..5.0, 0.1)
+    val fontOffset by setting("Font Offset", 4.0, 0.0..5.0, 0.1)
     val dockingGridSize by setting("Docking Grid Size", 1.0, 0.1..10.0, 0.1)
 
-    val moduleEnabledColor by setting("Module Enabled Color", Color.WHITE.setAlpha(0.25))
-    val moduleDisabledColor by setting("Module Disabled Color", Color.WHITE.setAlpha(0.05))
+    val moduleEnabledColor by setting("Module Enabled Color", Color.WHITE.setAlpha(0.5))
+    val moduleDisabledColor by setting("Module Disabled Color", Color.WHITE.setAlpha(0.0))
+    val moduleHoverAccent by setting("Module Hover Accent", 0.15, 0.0..0.3, 0.01)
+    val moduleOpenAccent by setting("Module Open Accent", 0.3, 0.0..0.5, 0.01)
+
+    val multipleSettingWindows by setting("Multiple Setting Windows", false)
 
     val SCREEN get() = gui("Click Gui") {
         rect {

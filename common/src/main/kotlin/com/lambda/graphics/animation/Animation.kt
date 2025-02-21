@@ -52,7 +52,7 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
         fun AnimationTicker.exp(min: Double, max: Double, speed: Double, flag: () -> Boolean) =
             exp({ min }, { max }, { speed }, flag)
 
-        fun AnimationTicker.exp(target: () -> Double, speed: Double) =
+        fun AnimationTicker.exp(speed: Double, target: () -> Double) =
             exp(target, target, { speed }, { true })
 
         fun AnimationTicker.exp(min: () -> Double, max: () -> Double, speed: () -> Double, flag: () -> Boolean) =

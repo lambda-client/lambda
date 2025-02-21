@@ -24,6 +24,7 @@ import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.component.window.Window
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
 import com.lambda.util.math.transform
 import java.awt.Color
@@ -53,8 +54,11 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
     var settingValue by setting
     val visible get() = setting.visibility()
 
+    override val renderChildren: Boolean
+        get() = visibilityAnimation > 0
+
     init {
-        minimized = true
+        isMinimized = true
 
         overrideWidth(owner::renderWidth)
         titleBar.overrideHeight(ClickGui::settingsHeight)
@@ -68,7 +72,7 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
             textHAlignment = HAlign.LEFT
 
             onUpdate {
-                scale = ClickGui.fontScale * 0.92
+                scale = ClickGui.fontScale * 0.92 * lerp(visibilityAnimation, 0.6, 1.0)
                 color = Color.WHITE.setAlpha(visibilityAnimation)
             }
         }
@@ -79,6 +83,6 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
             outlineRect
         ).forEach(Layout::destroy)
 
-        if (!expandable) children.remove(content)
+        if (!expandable) content.destroy()
     }
 }

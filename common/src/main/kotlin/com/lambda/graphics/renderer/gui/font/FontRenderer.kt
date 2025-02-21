@@ -60,7 +60,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
         position: Vec2d = Vec2d.ZERO,
         color: Color = Color.WHITE,
         scale: Double = 1.0,
-        shadow: Boolean = RenderSettings.shadow,
+        shadow: Boolean = true,
         parseEmoji: Boolean = LambdaMoji.isEnabled
     ) = render {
         shader["u_FontTexture"] = 0
@@ -213,7 +213,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
 
                     val glyph = chars[char] ?: return@forEach
 
-                    if (shadow) drawGlyph(glyph, shadowColor, true)
+                    if (shadow && RenderSettings.shadow) drawGlyph(glyph, shadowColor, true)
                     drawGlyph(glyph, color)
                 }
             } else {

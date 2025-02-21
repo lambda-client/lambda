@@ -39,7 +39,7 @@ class BooleanButton(
 
     init {
         val checkBox = rect { // Checkbox
-            val shrink = 2.0
+            val shrink = 3.0
             setRadius(100.0)
 
             onUpdate {

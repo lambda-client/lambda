@@ -21,6 +21,7 @@ import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.ScreenLayout
 import com.lambda.gui.component.core.FilledRect.Companion.rect
+import com.lambda.gui.component.core.LayoutBuilder
 import com.lambda.gui.component.core.OutlineRect.Companion.outline
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.component.core.UIBuilder
@@ -30,7 +31,6 @@ import com.lambda.util.Mouse
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
-import com.lambda.util.math.lerp
 
 /**
  * Represents a window component
@@ -41,7 +41,7 @@ open class Window(
     owner: Layout,
     initialTitle: String = "Untitled",
     initialPosition: Vec2d = Vec2d.ZERO,
-    initialSize: Vec2d = Vec2d(110, 300),
+    initialSize: Vec2d = Vec2d(110, 350),
     draggable: Boolean = true,
     scrollable: Boolean = true,
     private val minimizing: Minimizing = Minimizing.Relative,
@@ -80,6 +80,30 @@ open class Window(
         }
     }
 
+    // Actions
+    private val expandActions = mutableListOf<Window.() -> Unit>()
+    private val minimizeActions = mutableListOf<Window.() -> Unit>()
+
+    /**
+     * Sets the action to be performed when the window content gets opened.
+     *
+     * @param action The action to be performed.
+     */
+    @LayoutBuilder
+    fun <T : Window> T.onWindowExpand(action: T.() -> Unit) {
+        expandActions += { action() }
+    }
+
+    /**
+     * Sets the action to be performed when the window content gets closed.
+     *
+     * @param action The action to be performed.
+     */
+    @LayoutBuilder
+    fun <T : Window> T.onWindowMinimize(action: T.() -> Unit) {
+        minimizeActions += { action() }
+    }
+
     // Position
     // ToDo find a way to animate this only when dragging
     /*private val renderX by animation.exp(position::x, 0.8)
@@ -87,12 +111,19 @@ open class Window(
     private val renderPosition get() = Vec2d(renderX, renderY)*/
 
     // Minimizing
-    var minimized = false
+    var isMinimized = false; set(value) {
+        if (field == value) return
+        field = value
+
+        val actions = if (!value) expandActions else minimizeActions
+        actions.forEach { it(this) }
+    }
+
     private var heightAnimation by animation.exp(
         min = { 0.0 },
         max = { if (minimizing == Minimizing.Relative) targetHeight else 1.0 },
         speed = 0.8,
-        flag = { !minimized }
+        flag = { !isMinimized }
     )
 
     private val targetHeight get() = if (!autoResize.enabled) height - titleBar.renderHeight else content.getContentHeight()
@@ -107,7 +138,7 @@ open class Window(
         position = initialPosition
         size = initialSize
 
-        overrideSize(animation.exp(::width, 0.8)::value) {
+        overrideSize(animation.exp(0.8, ::width)::value) {
             titleBar.renderHeight + when (minimizing) {
                 Minimizing.Disabled -> targetHeight
                 Minimizing.Relative -> heightAnimation
@@ -123,7 +154,7 @@ open class Window(
             if (minimizing == Minimizing.Disabled) return@onMouseClick
             if (button != Mouse.Button.Right || action != Mouse.Action.Click) return@onMouseClick
 
-            minimized = !minimized
+            isMinimized = !isMinimized
         }
 
         onShow {
@@ -132,7 +163,7 @@ open class Window(
             resizeXHovered = false
             resizeYHovered = false
             heightAnimation = when {
-                minimized -> 0.0
+                isMinimized -> 0.0
                 minimizing == Minimizing.Relative -> targetHeight
                 else -> 1.0
             }
@@ -168,7 +199,7 @@ open class Window(
             resizeXHovered = false
             resizeYHovered = false
 
-            if (!resizable || minimized) return@onMouseMove
+            if (!resizable || isMinimized) return@onMouseMove
 
             // Hover state update
             if (selectedChild != titleBar && content.selectedChild == null && isHovered) {

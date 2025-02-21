@@ -72,7 +72,7 @@ object GuiSettings : Module(
             tick()
         }
 
-        exp({ targetScale }, 0.5).apply {
+        exp(0.5) { targetScale }.apply {
             listenUnsafe<ConnectionEvent.Connect.Pre>(alwaysListen = true) {
                 setValue(targetScale)
             }

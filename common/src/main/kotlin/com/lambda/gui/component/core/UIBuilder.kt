@@ -17,6 +17,9 @@
 
 package com.lambda.gui.component.core
 
+import com.lambda.gui.component.layout.Layout
+import com.lambda.util.math.MathUtils.toInt
+
 @DslMarker
 annotation class UIBuilder
 
@@ -25,3 +28,13 @@ annotation class LayoutBuilder
 
 @DslMarker
 annotation class UIRenderPr0p3rty
+
+fun <T : Layout> T.relativeLayout(
+    owner: Layout,
+    base: Layout,
+    next: Boolean
+) = apply {
+    val index = owner.children.indexOf(base)
+    check(index != -1 && base.owner == owner) { "Given layout belongs to different owner" }
+    owner.children.add(index + next.toInt(), this)
+}

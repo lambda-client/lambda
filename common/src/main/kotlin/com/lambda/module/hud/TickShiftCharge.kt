@@ -39,11 +39,11 @@ object TickShiftCharge : HudModule(
     private val isActive get() = TickShift.isEnabled && TickShift.isActive && TickShift.boost
     private val activeAnimation by animation.exp(0.0, 1.0, 0.6, ::isActive)
 
-    private val progress
-        get() = if (!TickShift.isActive) 0.0
-        else (TickShift.balance / TickShift.maxBalance.toDouble()).coerceIn(0.0..1.0)
+    private val renderProgress by animation.exp(0.8) {
+        if (!TickShift.isActive) return@exp 0.0
 
-    private val renderProgress by animation.exp(::progress, 0.8)
+        (TickShift.balance / TickShift.maxBalance.toDouble()).coerceIn(0.0..1.0)
+    }
 
     override val width = 70.0
     override val height = 14.0

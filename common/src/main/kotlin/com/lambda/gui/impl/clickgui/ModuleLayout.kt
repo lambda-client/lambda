@@ -22,14 +22,14 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.GuiManager.layoutOf
 import com.lambda.gui.component.HAlign
-import com.lambda.gui.component.core.FilledRect
-import com.lambda.gui.component.core.FilledRect.Companion.rect
+import com.lambda.gui.component.core.FilledRect.Companion.rectBehind
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.component.window.Window
 import com.lambda.util.Mouse
 import com.lambda.util.math.*
-import java.awt.Color
+import com.lambda.util.math.MathUtils.toInt
+import kotlin.math.pow
 
 class ModuleLayout(
     owner: Layout,
@@ -47,13 +47,20 @@ class ModuleLayout(
     private val cursorController = cursorController()
 
     private var enableAnimation by animation.exp(0.0, 1.0, 0.6, module::isEnabled)
-    private var openAnimation by animation.exp(1.0, 0.0, 0.6, ::minimized)
+    private var openAnimation by animation.exp(1.0, 0.0, 0.6, ::isMinimized)
+
+    private val longHovered get() = isHovered || System.currentTimeMillis() - lastHover < 80
+    private var hoverAnimation by animation.exp(0.0, 1.0, { if (longHovered) 0.7 else 0.2 }, this::longHovered)
+    private val shrink get() = hoverAnimation.pow(3) * lerp(openAnimation, 1.0, 0.5)
+
+    // ToDo: replace with timer
+    private var lastHover = 0L
 
     // Could be true only if owner is ModuleWindow
     var isLast = false
 
     init {
-        minimized = true
+        isMinimized = true
         height = 100.0
         openAnimation = 0.0
 
@@ -61,7 +68,6 @@ class ModuleLayout(
         overrideWidth { owner.renderWidth - ClickGui.padding * 2 }
 
         titleBar.use {
-            textField.textHAlignment = HAlign.LEFT
             overrideHeight(ClickGui::moduleHeight)
 
             onMouseClick { button, action ->
@@ -69,6 +75,80 @@ class ModuleLayout(
                     module.toggle()
                 }
             }
+
+            textField.onUpdate {
+                textHAlignment = HAlign.LEFT
+                offsetX = ClickGui.fontOffset + lerp(
+                    openAnimation,
+                    hoverAnimation * 2,
+                    1.0 + hoverAnimation
+                )
+            }
+        }
+
+        rectBehind(titleBar) {
+            onUpdate {
+                rectangle = this@ModuleLayout.rect.shrink(shrink)
+                shade = ClickGui.backgroundShade
+
+                val openRev = 1.0 - openAnimation     // 1.0  <->  0.0
+                val openRevSigned = openRev * 2 - 1   // 1.0  <-> -1.0
+                val enableRev = 1.0 - enableAnimation // 1.0  <->  0.0
+
+                var progress = enableAnimation
+
+                // hover: +0.1 to alpha if minimized, -0.1 to alpha if maximized
+                progress += hoverAnimation * ClickGui.moduleHoverAccent * openRevSigned
+
+                // +0.4 to alpha if opened and disabled
+                progress += openAnimation * ClickGui.moduleOpenAccent * enableRev
+
+                // interpolate and set the color
+                setColor(lerp(progress, ClickGui.moduleDisabledColor, ClickGui.moduleEnabledColor))
+            }
+
+            onUpdate {
+                setRadius(hoverAnimation)
+
+                if (isLast && ClickGui.autoResize) {
+                    leftBottomRadius = ClickGui.roundRadius - (ClickGui.padding + shrink)
+                    rightBottomRadius = leftBottomRadius
+                }
+            }
+        }
+
+        onShow {
+            enableAnimation = 0.0
+            hoverAnimation = 0.0
+            isMinimized = true
+        }
+
+        onTick {
+            val cursor = if (titleBar.isHovered) Mouse.Cursor.Pointer else Mouse.Cursor.Arrow
+            cursorController.setCursor(cursor)
+        }
+
+        onUpdate {
+            if (isHovered) lastHover = System.currentTimeMillis()
+        }
+
+        onWindowExpand {
+            if (ClickGui.multipleSettingWindows) return@onWindowExpand
+
+            val base = owner // window content
+                .owner // window
+                ?.owner  // environment with windows
+                ?: return@onWindowExpand
+
+            base.children.filterIsInstance<ModuleWindow>().forEach { window ->
+                window.content.children.filterIsInstance<ModuleLayout>().forEach { module ->
+                    if (module != this) module.isMinimized = true
+                }
+            }
+        }
+
+        module.settings.forEach { setting ->
+            content.layoutOf(setting)
         }
 
         content.overrideContentHeight {
@@ -79,8 +159,7 @@ class ModuleLayout(
                 (it.renderHeight + ClickGui.listStep) * it.visibilityAnimation
             } - ClickGui.listStep
 
-            val padding = ClickGui.padding * 2
-            components + if (settings.isNotEmpty()) padding else 0.0
+            components + ClickGui.padding * 2 * settings.isNotEmpty().toInt()
         }
 
         content.reorderChildren {
@@ -102,59 +181,11 @@ class ModuleLayout(
             }
         }
 
-        rect { // Separator
-            onUpdate {
-                val vec = Vec2d(
-                    lerp(openAnimation, titleBar.renderWidth * 0.5, ClickGui.fontOffset * 0.5),
-                    -0.25
-                )
-
-                rectangle = Rect(
-                    pos1 = titleBar.leftBottom + vec,
-                    pos2 = titleBar.rightBottom - vec
-                )
-
-                setColor(lerp(enableAnimation, Color.WHITE, Color.BLACK).setAlpha(0.2 * openAnimation))
-                shade = ClickGui.outlineShade
-            }
-        }
-
-        titleBarBackground.onUpdate {
-            setColor(lerp(enableAnimation, ClickGui.moduleDisabledColor, ClickGui.moduleEnabledColor))
-            correctRadius()
-        }
-
-        contentBackground.onUpdate {
-            setColor(lerp(enableAnimation, ClickGui.moduleDisabledColor, ClickGui.moduleEnabledColor))
-            correctRadius()
-        }
-
-        children.remove(outlineRect)
-
-        onShow {
-            enableAnimation = 0.0
-        }
-
-        onTick {
-            val cursor = if (titleBar.isHovered) Mouse.Cursor.Pointer else Mouse.Cursor.Arrow
-            cursorController.setCursor(cursor)
-        }
-
-        module.settings.forEach { setting ->
-            content.layoutOf(setting)
-        }
-    }
-
-    private fun FilledRect.correctRadius() {
-        if (!isLast || !ClickGui.autoResize) {
-            setRadius(0.0)
-            return
-        }
-
-        leftTopRadius = 0.0
-        rightTopRadius = 0.0
-        leftBottomRadius -= ClickGui.padding
-        rightBottomRadius -= ClickGui.padding
+        listOf(
+            titleBarBackground,
+            contentBackground,
+            outlineRect
+        ).forEach(Layout::destroy)
     }
 
     companion object {

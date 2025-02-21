@@ -27,8 +27,8 @@ import java.nio.ByteBuffer
 class VertexBuffer(
     mode: VertexMode,
     attributes: VertexAttrib.Group,
-) : Buffer(buffers = 1) {
     override val usage: Int = GL_DYNAMIC_DRAW
+) : Buffer(buffers = 1) {
     override val target: Int = GL_ARRAY_BUFFER
     override val access: Int = GL_MAP_WRITE_BIT
 
