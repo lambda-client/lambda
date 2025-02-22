@@ -28,6 +28,20 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(ChatHud.class)
 public class ChatHudMixin {
+    /**
+     * Redirects the chat HUD text rendering to apply custom text parsing and color adjustments.
+     *
+     * <p>This method intercepts calls to {@code DrawContext#drawTextWithShadow} during chat rendering.
+     * It processes the text using {@code LambdaMoji.INSTANCE.parse} to incorporate custom formatting (e.g., emoji support),
+     * overrides the x-coordinate by rendering at x = 0, and adjusts the text color by combining a white base (0xFFFFFF)
+     * with an alpha value derived from the provided {@code color} parameter.
+     *
+     * @param text the text to be rendered, processed for custom formatting
+     * @param x the original x-coordinate (ignored as rendering occurs at x = 0)
+     * @param y the y-coordinate for rendering the text
+     * @param color the original text color used to compute the alpha channel for the final rendered color
+     * @return the result of the underlying text rendering call
+     */
     @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;drawTextWithShadow(Lnet/minecraft/client/font/TextRenderer;Lnet/minecraft/text/OrderedText;III)I"))
     int redirectRenderCall(DrawContext instance, TextRenderer textRenderer, OrderedText text, int x, int y, int color) {
         return instance.drawTextWithShadow(textRenderer, LambdaMoji.INSTANCE.parse(text, x, y, color), 0, y, 16777215 + (color << 24));

@@ -113,4 +113,11 @@ val Long.kibibyte get() = this * 1024
 val Long.mebibyte get() = this * 1024 * 1024
 val Long.gibibyte get() = this * 1024 * 1024 * 1024
 
+/**
+ * Copies the contents of this ByteBuffer into the specified destination ByteBuffer.
+ *
+ * Data is transferred starting at the current positions of both buffers, and their positions are advanced by the number of bytes copied.
+ *
+ * @param dst the destination ByteBuffer to receive the copied bytes.
+ */
 fun ByteBuffer.putTo(dst: ByteBuffer) { dst.put(this) }

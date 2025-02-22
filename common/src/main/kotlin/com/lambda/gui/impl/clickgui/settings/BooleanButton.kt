@@ -81,8 +81,11 @@ class BooleanButton(
 
     companion object {
         /**
-         * Creates a [BooleanButton] - visual representation of the [BooleanSetting]
-         */
+             * Creates a [BooleanButton] representing the specified [BooleanSetting] and adds it to the layout.
+             *
+             * @param setting the boolean setting whose state is controlled by the button.
+             * @return the newly created [BooleanButton].
+             */
         @UIBuilder
         fun Layout.booleanSetting(setting: BooleanSetting) =
             BooleanButton(this, setting).apply(children::add)

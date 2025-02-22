@@ -89,11 +89,13 @@ object Matrices {
     }
 
     /**
-     * Translates the current matrix by the given x, y, and z values.
+     * Applies a translation to the top matrix on the transformation stack.
      *
-     * @param x The translation amount along the X axis.
-     * @param y The translation amount along the Y axis.
-     * @param z The translation amount along the Z axis. Defaults to `0f`.
+     * The given offsets are used to modify the current transformation matrix in-place.
+     *
+     * @param x the translation offset along the X axis.
+     * @param y the translation offset along the Y axis.
+     * @param z the translation offset along the Z axis (default is 0f).
      */
     fun translate(x: Float, y: Float, z: Float = 0f) {
         stack.last().translate(x, y, z)
@@ -152,12 +154,13 @@ object Matrices {
     }
 
     /**
-     * Temporarily sets a vertex offset vector for the duration of a block.
+     * Applies a temporary vertex offset to mitigate precision issues in matrix operations on large coordinates.
      *
-     * Use this to avoid precision loss when using matrices while being on huge coordinates.
+     * The provided `offset` is set prior to executing the block and then reset to null, ensuring that the transformation
+     * is only applied during the block's execution.
      *
-     * @param offset The transformation offset to apply to vertices.
-     * @param block The block of code to execute with the transformation applied.
+     * @param offset the offset to apply to vertices for reducing precision loss.
+     * @param block the block of code within which the vertex offset is active.
      */
     fun withVertexOffset(offset: Vec3d, block: () -> Unit) {
         vertexOffset = offset

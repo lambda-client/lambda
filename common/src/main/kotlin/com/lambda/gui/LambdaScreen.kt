@@ -57,6 +57,11 @@ class LambdaScreen(
         }
     }
 
+    /**
+     * Activates this screen.
+     *
+     * Closes any currently open screen and schedules a render call to set this instance as the active GUI.
+     */
     fun show() {
         mc.currentScreen?.close()
 
@@ -65,20 +70,55 @@ class LambdaScreen(
         }
     }
 
+    /**
+     * Called when the screen becomes visible.
+     *
+     * Triggers the layout's show event to notify that the GUI has been displayed.
+     */
     override fun onDisplayed() {
         layout.onEvent(GuiEvent.Show)
     }
 
+    /**
+     * Signals that the screen is being removed.
+     *
+     * Triggers a [GuiEvent.Hide] event in the layout system to handle any necessary cleanup or state updates when the screen is dismissed.
+     */
     override fun removed() {
         layout.onEvent(GuiEvent.Hide)
     }
 
-    override fun shouldPause() = false
+    /**
+ * Determines whether the game should pause when this screen is active.
+ *
+ * Always returns false so that gameplay continues uninterrupted.
+ *
+ * @return false
+ */
+override fun shouldPause() = false
 
+    /**
+     * Renders the screen without applying the default background tint.
+     *
+     * This override removes the background tint to ensure the custom layout is displayed as intended.
+     *
+     * @param context the drawing context used for rendering.
+     * @param mouseX the current mouse x-coordinate.
+     * @param mouseY the current mouse y-coordinate.
+     * @param delta the time elapsed since the last frame.
+     */
     override fun render(context: DrawContext?, mouseX: Int, mouseY: Int, delta: Float) {
         // Let's remove background tint
     }
 
+    /**
+     * Processes key press events by mapping the input key codes and dispatching them to the GUI layout.
+     *
+     * This method translates the provided keyCode and scanCode into a virtual key code using a US keyboard mapping,
+     * then triggers a corresponding key press event on the layout. When the escape key is pressed, it closes the screen.
+     *
+     * @return true, indicating the event was handled.
+     */
     override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
         val translated = KeyCode.virtualMapUS(keyCode, scanCode)
         layout.onEvent(GuiEvent.KeyPress(translated))
@@ -90,25 +130,66 @@ class LambdaScreen(
         return true
     }
 
+    /**
+     * Processes a character typing event by dispatching it to the layout.
+     *
+     * @param chr the character that was typed.
+     * @param modifiers modifier keys active during the event; currently not used.
+     * @return always true, indicating the event was handled.
+     */
     override fun charTyped(chr: Char, modifiers: Int): Boolean {
         layout.onEvent(GuiEvent.CharTyped(chr))
         return true
     }
 
+    /**
+     * Handles mouse click events by converting the click coordinates to the screen's coordinate system and dispatching a click event to the layout.
+     *
+     * @return true, indicating that the event was handled.
+     */
     override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
         layout.onEvent(GuiEvent.MouseClick(Mouse.Button.fromMouseCode(button), Mouse.Action.Click, rescaleMouse(mouseX, mouseY)))
         return true
     }
 
+    /**
+     * Handles mouse release events by dispatching a corresponding event to the layout system.
+     *
+     * This method rescales the provided mouse coordinates and converts the button code to trigger a mouse click event
+     * with a release action.
+     *
+     * @param mouseX the horizontal coordinate of the mouse pointer
+     * @param mouseY the vertical coordinate of the mouse pointer
+     * @param button the code of the mouse button that was released
+     * @return true indicating the event was handled
+     */
     override fun mouseReleased(mouseX: Double, mouseY: Double, button: Int): Boolean {
         layout.onEvent(GuiEvent.MouseClick(Mouse.Button.fromMouseCode(button), Mouse.Action.Release, rescaleMouse(mouseX, mouseY)))
         return true
     }
 
+    /**
+     * Handles mouse movement events by rescaling window coordinates and dispatching them to the layout.
+     *
+     * The method converts the given mouse coordinates from window space to the screen's coordinate system
+     * and then triggers a corresponding mouse move event in the layout system.
+     *
+     * @param mouseX the horizontal position of the mouse cursor in window coordinates.
+     * @param mouseY the vertical position of the mouse cursor in window coordinates.
+     */
     override fun mouseMoved(mouseX: Double, mouseY: Double) {
         layout.onEvent(GuiEvent.MouseMove(rescaleMouse(mouseX, mouseY)))
     }
 
+    /**
+     * Processes a mouse scroll event by rescaling the mouse coordinates and dispatching a vertical scroll event to the layout.
+     *
+     * @param mouseX The x-coordinate of the mouse in window space.
+     * @param mouseY The y-coordinate of the mouse in window space.
+     * @param horizontalAmount The horizontal scroll amount; this value is currently ignored.
+     * @param verticalAmount The vertical scroll delta.
+     * @return Always returns true to indicate the event was handled.
+     */
     override fun mouseScrolled(
         mouseX: Double,
         mouseY: Double,
@@ -119,6 +200,16 @@ class LambdaScreen(
         return true
     }
 
+    /**
+     * Rescales the provided mouse coordinates from the window's coordinate system to the screen's coordinate system.
+     *
+     * The function normalizes the mouse position by dividing it by the window dimensions, then scales 
+     * it using the current screen size.
+     *
+     * @param mouseX the x-coordinate of the mouse in window space.
+     * @param mouseY the y-coordinate of the mouse in window space.
+     * @return the rescaled mouse position as a Vec2d in the screen's coordinate system.
+     */
     private fun rescaleMouse(mouseX: Double, mouseY: Double): Vec2d {
         val mcMouse = Vec2d(mouseX, mouseY)
         val mcWindow = Vec2d(mc.window.scaledWidth, mc.window.scaledHeight)

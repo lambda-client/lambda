@@ -28,6 +28,17 @@ import com.mojang.blaze3d.systems.RenderSystem.enableScissor
 object ScissorAdapter {
     private var stack = ArrayDeque<Rect>()
 
+    /**
+     * Restricts rendering operations to the specified scissor rectangle.
+     *
+     * This function clamps the provided rectangle to the boundaries of the current scissor area (if one exists),
+     * pushes the resulting rectangle onto an internal stack, and sets the scissor test to that area. It then
+     * executes the given lambda block within this constrained context. After the block completes, the function
+     * restores the previous scissor state or disables scissor testing if no prior rectangle exists.
+     *
+     * @param rect The area to which rendering should be confined.
+     * @param block A lambda with rendering instructions to execute within the scissor area.
+     */
     fun scissor(rect: Rect, block: () -> Unit) {
         val processed = stack.lastOrNull()?.let(rect::clamp) ?: rect
 
@@ -40,6 +51,15 @@ object ScissorAdapter {
         stack.lastOrNull()?.let { scissorRect(it) } ?: disableScissor()
     }
 
+    /**
+     * Configures the scissor test region using the provided rectangle.
+     *
+     * The function scales the rectangle by the current rendering scale factor, computes the screen-space coordinates,
+     * and adjusts the y-coordinate relative to the framebuffer height. It then enables the scissor test with the computed
+     * integer bounds.
+     *
+     * @param rect The rectangle defining the area to restrict rendering.
+     */
     private fun scissorRect(rect: Rect) {
         val pos1 = rect.leftTop * RenderMain.scaleFactor
         val pos2 = rect.rightBottom * RenderMain.scaleFactor

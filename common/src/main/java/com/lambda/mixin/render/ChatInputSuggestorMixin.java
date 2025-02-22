@@ -55,19 +55,56 @@ public abstract class ChatInputSuggestorMixin {
     @Shadow
     private @Nullable CompletableFuture<Suggestions> pendingSuggestions;
 
+    /**
+     * Displays the current suggestion list.
+     *
+     * <p>This shadowed method should be overridden to update the suggestion display. If 
+     * {@code narrateFirstSuggestion} is {@code true}, the method should also provide narration
+     * for the first suggestion to enhance accessibility.
+     *
+     * @param narrateFirstSuggestion if {@code true}, the first suggestion is narrated; otherwise, it is not
+     */
     @Shadow
     public abstract void show(boolean narrateFirstSuggestion);
 
+    /**
+     * Determines if the current chat input text should be treated as a command.
+     *
+     * <p>This method overrides the provided <code>showCompletions</code> flag during the refresh
+     * process by evaluating the text currently entered in the chat input field. It returns
+     * <code>true</code> if the input is recognized as a command, and <code>false</code> otherwise.</p>
+     *
+     * @param showCompletions the initial flag indicating whether completions should be shown (its value is ignored)
+     * @return <code>true</code> if the chat input text is recognized as a command, <code>false</code> otherwise
+     */
     @ModifyVariable(method = "refresh", at = @At(value = "STORE"), index = 3)
     private boolean refreshModify(boolean showCompletions) {
         return CommandManager.INSTANCE.isCommand(textField.getText());
     }
 
+    /**
+     * Redirects the command dispatcher retrieval to use a custom dispatcher based on the current chat input.
+     * <p>
+     * Instead of invoking the default dispatcher from the network handler during a refresh, this method
+     * fetches a dispatcher tailored to the chat input text from the CommandManager.
+     *
+     * @return a command dispatcher that reflects the current chat input context
+     */
     @Redirect(method = "refresh", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;getCommandDispatcher()Lcom/mojang/brigadier/CommandDispatcher;"))
     private CommandDispatcher<CommandSource> refreshRedirect(ClientPlayNetworkHandler instance) {
         return CommandManager.INSTANCE.currentDispatcher(textField.getText());
     }
 
+    /**
+     * Injects emoji suggestion logic at the end of the chat refresh process.
+     *
+     * <p>This method verifies that emoji suggestions are enabled and that the current input is not a command.
+     * It extracts text up to the cursor, identifies the last colon to determine the start of the emoji query,
+     * and filters available emojis based on the subsequent substring. The resulting suggestions are then
+     * prepared and, once completed, are displayed.
+     *
+     * @param ci the callback information for the injection point
+     */
     @Inject(method = "refresh", at = @At("TAIL"))
     private void refreshEmojiSuggestion(CallbackInfo ci) {
         if (!LambdaMoji.INSTANCE.isEnabled() ||
@@ -105,6 +142,16 @@ public abstract class ChatInputSuggestorMixin {
     @Unique
     private static final Pattern COLON_PATTERN = Pattern.compile("(:[a-zA-Z0-9_]+)");
 
+    /**
+     * Returns the index of the last occurrence of a colon that precedes valid emoji key characters.
+     *
+     * <p>The method uses a regular expression to identify sequences starting with a colon
+     * followed by alphanumeric characters or underscores. If the input is null, empty, or no
+     * matching sequence is found, it returns -1.</p>
+     *
+     * @param input the string to be searched for a colon pattern
+     * @return the index of the last colon matching the pattern, or -1 if none is found
+     */
     @Unique
     private int neoLambda$getLastColon(String input) {
         if (Strings.isNullOrEmpty(input)) return -1;

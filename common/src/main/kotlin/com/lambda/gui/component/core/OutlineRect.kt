@@ -53,6 +53,13 @@ class OutlineRect(
         }
     }
 
+    /**
+     * Sets all the corner colors of the outline to the specified [color].
+     *
+     * This method assigns the given [color] to the top-left, top-right, bottom-right, and bottom-left corners.
+     *
+     * @param color the color to apply to all corners.
+     */
     fun setColor(color: Color) {
         leftTopColor = color
         rightTopColor = color
@@ -62,8 +69,10 @@ class OutlineRect(
 
     companion object {
         /**
-         * Creates a [OutlineRect] component - layout-based rect representation
-         */
+             * Creates an OutlineRect component, adds it to the parent layout's children, and applies the optional configuration.
+             *
+             * @param block an optional lambda to configure the [OutlineRect] after its creation.
+             */
         @UIBuilder
         fun Layout.outline(block: OutlineRect.() -> Unit = {}) =
             OutlineRect(this).apply(children::add).apply(block)

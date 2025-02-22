@@ -36,6 +36,13 @@ object RenderMain {
     var screenSize = Vec2d.ZERO
     var scaleFactor = 1.0
 
+    /**
+     * Renders the 2D interface elements.
+     *
+     * This function resets the transformation matrices with a translation along the z-axis to position the 2D 
+     * layer appropriately, then sets up the OpenGL state and posts rendering events for fixed GUI elements, 
+     * the HUD, and scaled elements using the default and current GUI scaling factors.
+     */
     @JvmStatic
     fun render2D() {
         resetMatrices(Matrix4f().translate(0f, 0f, -3000f))
@@ -50,6 +57,12 @@ object RenderMain {
         }
     }
 
+    /**
+     * Prepares the 3D rendering context by resetting matrices with the given transformation,
+     * updating the projection matrix, and posting a world render event.
+     *
+     * @param matrix the transformation matrix used to reset the rendering matrices.
+     */
     @JvmStatic
     fun render3D(matrix: Matrix4f) {
         resetMatrices(matrix)
@@ -60,6 +73,16 @@ object RenderMain {
         }
     }
 
+    /**
+     * Recalculates the screen dimensions and updates the orthographic projection matrix based on a scaling factor.
+     *
+     * This function retrieves the current framebuffer dimensions, computes the scaled width and height
+     * by dividing them by the provided factor, and then updates the global screen size and scale factor.
+     * It sets the projection matrix to an orthographic projection using the calculated dimensions with a
+     * near plane of 1000f and a far plane of 21000f.
+     *
+     * @param factor the scale factor used to adjust the framebuffer dimensions.
+     */
     private fun rescale(factor: Double) {
         val width = mc.window.framebufferWidth.toFloat()
         val height = mc.window.framebufferHeight.toFloat()

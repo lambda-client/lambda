@@ -35,6 +35,17 @@ abstract class AbstractGUIRenderer(
 ) {
     private val pipeline = VertexPipeline(VertexMode.TRIANGLES, attribGroup)
 
+    /**
+     * Renders GUI elements using the vertex pipeline and shader.
+     *
+     * This method clears the current vertex pipeline, activates the shader, and then executes the
+     * provided lambda [block] to customize vertex data. If [shade] is true, additional shader uniforms
+     * are configured for dynamic shading effects—such as time, colors, and size adjustments—for rendering.
+     * Finally, the pipeline data is uploaded to the GPU and rendered.
+     *
+     * @param shade Whether to apply shading effects (default is false).
+     * @param block A lambda that operates on the vertex pipeline to customize the rendering.
+     */
     protected fun render(
         shade: Boolean = false,
         block: VertexPipeline.() -> Unit

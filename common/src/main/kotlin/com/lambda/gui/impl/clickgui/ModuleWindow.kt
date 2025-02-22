@@ -44,7 +44,15 @@ class ModuleWindow(
 
     companion object {
         /**
-         * Creates a [ModuleWindow]
+         * Creates and attaches a [ModuleWindow] to the current layout.
+         *
+         * This extension function instantiates a [ModuleWindow] with the provided module [tag]
+         * and optional initial [position]. It adds the new window to the layout's children and applies
+         * the given [block] to configure the window's [WindowContent].
+         *
+         * @param tag the module tag used to filter the modules displayed in the window.
+         * @param position the window's initial position; defaults to [Vec2d.ZERO].
+         * @param block an optional lambda for configuring the window's content.
          */
         @UIBuilder
         fun Layout.moduleWindow(

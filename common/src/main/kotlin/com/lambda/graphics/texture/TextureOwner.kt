@@ -34,11 +34,13 @@ object TextureOwner {
         get() = textureMap.getValue(this@texture)[0]
 
     /**
-     * Retrieves a specific texture owned by the object by its index
-     *
-     * @param index The index of the texture to retrieve
-     * @return The texture [T] at the given index
-     */
+         * Retrieves the texture associated with the receiver object at the specified index.
+         *
+         * The returned texture is cast to the provided generic type [T], allowing for type-safe access.
+         *
+         * @param index the position of the texture in the object's associated texture list.
+         * @return the texture at the specified index, cast as type [T].
+         */
     @Suppress("unchecked_cast")
     fun <T : Texture> Any.texture(index: Int) =
         textureMap.getValue(this@texture)[index] as T
@@ -57,11 +59,12 @@ object TextureOwner {
     }
 
     /**
-     * Binds a list of textures to texture slots, ensuring no more than 32 textures
-     * are bound at once (to fit within the typical GPU limitations)
+     * Binds the provided textures to consecutive GPU slots starting at slot 0.
      *
-     * @param textures The list of textures to be bound
-     * @throws IllegalArgumentException If more than 32 textures are provided
+     * Ensures that no more than 32 textures are bound at once to comply with GPU limitations.
+     *
+     * @param textures the textures to be bound
+     * @throws IllegalArgumentException if more than 32 textures are provided
      */
     fun bind(vararg textures: Texture) {
         check(textures.size < 33) { "Texture slot overflow, expected to use less than 33 slots, got ${textures.size} slots" }
@@ -92,21 +95,23 @@ object TextureOwner {
         Texture(path.readImage(), levels = mipmaps).also { textureMap.computeIfAbsent(this@upload) { mutableListOf() }.add(it) }
 
     /**
-     * Uploads a distance field texture from image data and associates it with the object
-     * Distance field textures are commonly used for rendering fonts.
-     *
-     * @param data The image data as a [BufferedImage] to create the distance field texture
-     * @return The created distance field texture object
-     */
+         * Uploads a distance field texture from the provided image data and associates it with the calling object.
+         *
+         * Distance field textures are typically used for rendering high-quality fonts. The created texture is
+         * added to the object's texture list maintained in the texture map.
+         *
+         * @param data The image data used to create the distance field texture.
+         * @return The newly created distance field texture.
+         */
     fun Any.uploadField(data: BufferedImage) =
         DistanceFieldTexture(data).also { textureMap.computeIfAbsent(this@uploadField) { mutableListOf() }.add(it) }
 
     /**
-     * Uploads a GIF and associates it with the object as an animated texture
-     *
-     * @param path The resource path to the GIF file
-     * @return The created animated texture object
-     */
+         * Uploads an animated GIF as a texture and associates it with the calling object's texture list.
+         *
+         * @param path The resource path of the GIF file.
+         * @return The animated texture instance that was created.
+         */
     fun Any.uploadGif(path: String) =
         AnimatedTexture(path).also { textureMap.computeIfAbsent(this@uploadGif) { mutableListOf() }.add(it) }
 }

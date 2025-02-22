@@ -142,9 +142,12 @@ open class Layout(
     private var mouseScrollActions = mutableListOf<Layout.(delta: Double) -> Unit>()
 
     /**
-     * Performs the action on this layout
+     * Applies the provided configuration block to this layout.
      *
-     * @param action The action to be performed.
+     * This extension function executes the given lambda with the layout as its receiver,
+     * enabling convenient DSL-style configuration.
+     *
+     * @param action the configuration block to be executed on the layout.
      */
     @LayoutBuilder
     fun <T : Layout> T.use(action: T.() -> Unit) {
@@ -152,9 +155,12 @@ open class Layout(
     }
 
     /**
-     * Sets the action to be performed when the element gets shown.
+     * Registers an action to be executed when this layout is shown.
      *
-     * @param action The action to be performed.
+     * The provided lambda is added to the list of callbacks that trigger when the layout becomes visible.
+     * The action is executed with the layout as its receiver.
+     *
+     * @param action the lambda to execute when the layout is shown
      */
     @LayoutBuilder
     fun <T : Layout> T.onShow(action: T.() -> Unit) {
@@ -162,9 +168,12 @@ open class Layout(
     }
 
     /**
-     * Sets the action to be performed when the element gets hidden.
+     * Registers a callback to be executed when the layout is hidden.
      *
-     * @param action The action to be performed.
+     * The provided lambda is added to this layout's hide event actions, allowing you to define
+     * custom behavior that occurs when the layout transitions from visible to hidden.
+     *
+     * @param action the lambda to execute when the layout is hidden
      */
     @LayoutBuilder
     fun <T : Layout> T.onHide(action: T.() -> Unit) {
@@ -172,9 +181,11 @@ open class Layout(
     }
 
     /**
-     * Sets the action to be performed on each tick.
+     * Registers an action to be executed on every tick event for the layout.
      *
-     * @param action The action to be performed.
+     * Multiple tick actions can be registered, and each will be invoked during the tick update cycle.
+     *
+     * @param action a lambda function with receiver that specifies the operation to perform on each tick.
      */
     @LayoutBuilder
     fun <T : Layout> T.onTick(action: T.() -> Unit) {
@@ -182,9 +193,12 @@ open class Layout(
     }
 
     /**
-     * Sets the update action to be performed before each frame.
+     * Registers an update action to be executed before each frame.
      *
-     * @param action The action to be performed.
+     * The provided lambda is appended to the layout's update actions and is invoked during each update cycle,
+     * allowing dynamic modifications to the layout prior to rendering.
+     *
+     * @param action the lambda specifying the update behavior.
      */
     @LayoutBuilder
     fun <T : Layout> T.onUpdate(action: T.() -> Unit) {
@@ -192,9 +206,12 @@ open class Layout(
     }
 
     /**
-     * Sets the action to be performed on each frame.
+     * Registers a callback to be executed on every render frame.
      *
-     * @param action The action to be performed.
+     * This function adds the provided lambda to the layout's render actions, ensuring it is invoked
+     * during each frame when rendering the layout.
+     *
+     * @param action The lambda to execute during the layout's render cycle.
      */
     @LayoutBuilder
     fun <T : Layout> T.onRender(action: T.() -> Unit) {
@@ -202,9 +219,12 @@ open class Layout(
     }
 
     /**
-     * Sets the action to be performed when a key gets pressed.
+     * Registers a callback to handle key press events on the layout.
      *
-     * @param action The action to be performed.
+     * When a key press event occurs, the provided [action] is executed with the [KeyCode] corresponding
+     * to the pressed key.
+     *
+     * @param action Lambda to be invoked on key press, receiving a [KeyCode] as its parameter.
      */
     @LayoutBuilder
     fun <T : Layout> T.onKeyPress(action: T.(key: KeyCode) -> Unit) {
@@ -212,9 +232,11 @@ open class Layout(
     }
 
     /**
-     * Sets the action to be performed when user types a char.
+     * Registers an action to be executed when a character is typed.
      *
-     * @param action The action to be performed.
+     * The provided lambda is invoked with the typed character whenever a character input event occurs.
+     *
+     * @param action a lambda function executed with the character input.
      */
     @LayoutBuilder
     fun <T : Layout> T.onCharTyped(action: T.(char: Char) -> Unit) {
@@ -222,9 +244,11 @@ open class Layout(
     }
 
     /**
-     * Sets the action to be performed when mouse button gets clicked.
+     * Registers a mouse click event handler on this layout.
      *
-     * @param action The action to be performed.
+     * The provided lambda is executed when a mouse button is clicked, receiving both the mouse button and the associated click action.
+     *
+     * @param action the callback to invoke on a mouse click event, with the clicked button and action as parameters.
      */
     @LayoutBuilder
     fun <T : Layout> T.onMouseClick(action: T.(button: Mouse.Button, action: Mouse.Action) -> Unit) {
@@ -232,9 +256,11 @@ open class Layout(
     }
 
     /**
-     * Sets the action to be performed when mouse moves.
+     * Registers an action to execute when the mouse moves over the layout.
      *
-     * @param action The action to be performed.
+     * The provided lambda is invoked with the current mouse position (a Vec2d), allowing custom behavior in response to mouse movement.
+     *
+     * @param action A lambda that processes the mouse position during a mouse move event.
      */
     @LayoutBuilder
     fun <T : Layout> T.onMouseMove(action: T.(mouse: Vec2d) -> Unit) {
@@ -242,9 +268,12 @@ open class Layout(
     }
 
     /**
-     * Sets the action to be performed on mouse scroll.
+     * Registers a mouse scroll event handler for the layout.
      *
-     * @param action The action to be performed.
+     * The provided lambda receives the scroll delta, allowing you to define custom behavior in response
+     * to mouse scroll input.
+     *
+     * @param action the lambda to be executed on a mouse scroll event, with the scroll delta as its parameter.
      */
     @LayoutBuilder
     fun <T : Layout> T.onMouseScroll(action: T.(delta: Double) -> Unit) {
@@ -252,7 +281,12 @@ open class Layout(
     }
 
     /**
-     * Force overrides drawn x position of the layout
+     * Sets a custom lambda to override the layout's computed x position.
+     *
+     * The provided lambda is invoked during rendering to determine the x coordinate,
+     * allowing for custom horizontal positioning that bypasses the default layout logic.
+     *
+     * @param transform a lambda returning the x coordinate for the layout.
      */
     @LayoutBuilder
     fun overrideX(transform: () -> Double) {
@@ -260,7 +294,11 @@ open class Layout(
     }
 
     /**
-     * Force overrides drawn y position of the layout
+     * Overrides the layout's y-coordinate during rendering.
+     *
+     * Sets a transformation function to compute a forced y position for the layout, bypassing its default positioning.
+     *
+     * @param transform A lambda that calculates and returns the new y-coordinate.
      */
     @LayoutBuilder
     fun overrideY(transform: () -> Double) {
@@ -268,7 +306,13 @@ open class Layout(
     }
 
     /**
-     * Force overrides drawn position of the layout
+     * Overrides the layout's drawn position by applying custom transformation functions.
+     *
+     * The provided lambda functions compute new x and y coordinates that will be used during rendering,
+     * effectively bypassing the layout's default position calculation.
+     *
+     * @param x lambda function returning the new x-coordinate.
+     * @param y lambda function returning the new y-coordinate.
      */
     @LayoutBuilder
     fun overridePosition(x: () -> Double, y: () -> Double) {
@@ -277,7 +321,11 @@ open class Layout(
     }
 
     /**
-     * Force overrides drawn width of the layout
+     * Overrides the layout's drawn width with a custom computed value.
+     *
+     * This function sets a lambda that computes the width during rendering, enabling dynamic adjustments.
+     *
+     * @param transform A lambda that returns the desired width as a Double.
      */
     @LayoutBuilder
     fun overrideWidth(transform: () -> Double) {
@@ -285,7 +333,9 @@ open class Layout(
     }
 
     /**
-     * Force overrides drawn height of the layout
+     * Overrides the layout's drawn height using a custom transform function.
+     *
+     * @param transform A lambda returning the new height value to be applied during rendering.
      */
     @LayoutBuilder
     fun overrideHeight(transform: () -> Double) {
@@ -293,7 +343,13 @@ open class Layout(
     }
 
     /**
-     * Force overrides drawn size of the layout
+     * Overrides the layout's rendered dimensions.
+     *
+     * By supplying custom lambda expressions for width and height, this function
+     * forces the layout to use the specified dimensions instead of its default size.
+     *
+     * @param width Lambda that returns the new width value.
+     * @param height Lambda that returns the new height value.
      */
     @LayoutBuilder
     fun overrideSize(width: () -> Double, height: () -> Double) {
@@ -302,7 +358,20 @@ open class Layout(
     }
 
     /**
-     * Makes this layout expand up to parents rect
+     * Expands the layout to match its parent's bounding rectangle.
+     *
+     * This method sets override functions for the layout's x-position, y-position, width, and height,
+     * causing the layout to fill its parent's render area. By default, if a parent exists, the layout adopts
+     * the parent's render properties; otherwise, it falls back to the layout's existing dimensions.
+     *
+     * @param overrideX Lambda that computes the x-coordinate. Defaults to the parent's render x-position or
+     *        the layout's own x value if no parent is present.
+     * @param overrideY Lambda that computes the y-coordinate. Defaults to the parent's render y-position or
+     *        the layout's own y value if no parent is present.
+     * @param overrideWidth Lambda that computes the width. Defaults to the parent's render width or
+     *        the layout's own width if no parent is present.
+     * @param overrideHeight Lambda that computes the height. Defaults to the parent's render height or
+     *        the layout's own height if no parent is present.
      */
     @LayoutBuilder
     fun fillParent(
@@ -318,7 +387,12 @@ open class Layout(
     }
 
     /**
-     * Removes this layout from its parent
+     * Removes this layout from its parent.
+     *
+     * This function removes the layout from its parent's list of children, ensuring that it is not a root layout and preventing duplicate removals.
+     * It will throw an IllegalStateException if the layout has no owner (i.e., is a root layout) or if it has already been removed.
+     *
+     * @throws IllegalStateException if the layout is a root layout or if it has been destroyed previously.
      */
     fun destroy() {
         check(owner != null) {
@@ -352,6 +426,16 @@ open class Layout(
         }
     }
 
+    /**
+     * Processes a GUI event by updating the layout's state and dispatching the event to registered actions and child layouts.
+     *
+     * Depending on the event type, it updates internal properties such as mouse position, triggers specific action lists
+     * (e.g., show, hide, tick, key press, char typed, mouse move, mouse scroll, and mouse click), and propagates the event
+     * to its children. For mouse click events, the action is adjusted based on the child's hover or selection state.
+     * In the case of a render event, it executes render actions and conditionally applies scissor clipping before rendering children.
+     *
+     * @param e the GUI event to process
+     */
     fun onEvent(e: GuiEvent) {
         // Update self
         when (e) {
@@ -421,12 +505,12 @@ open class Layout(
 
     companion object {
         /**
-         * Creates an empty [Layout].
-         *
-         * @param block Actions to perform within this component.
-         *
-         * Check [Layout] description for more info about batching.
-         */
+             * Creates a new child [Layout] instance within the current layout.
+             *
+             * The new layout is added to the parent's children list and configured using the provided lambda.
+             *
+             * @param block Optional lambda to configure the newly created [Layout].
+             */
         @UIBuilder
         fun Layout.layout(
             block: Layout.() -> Unit = {},
@@ -434,14 +518,14 @@ open class Layout(
             .apply(children::add).apply(block)
 
         /**
-         * Creates new [AnimationTicker].
+         * Creates an [AnimationTicker] for the layout.
          *
-         * Use it to create and manage animations.
+         * The ticker manages animation updates and, if registered (default), is automatically
+         * ticked on the layout's tick events. Otherwise, you must invoke its tick() method manually.
+         * Multiple tickers can be attached to a layout to handle animations with distinct timings.
          *
-         * It's ok to have multiple tickers per component if you need to tick different animations at different timings.
-         *
-         * @param register Whether to tick this [AnimationTicker].
-         * Otherwise, you will have to tick it manually
+         * @param register whether the ticker should be automatically ticked on each layout tick.
+         * @return the newly created [AnimationTicker] instance.
          */
         @UIBuilder
         fun Layout.animationTicker(register: Boolean = true) = AnimationTicker().apply {
@@ -451,9 +535,10 @@ open class Layout(
         }
 
         /**
-         * Creates new [Mouse.CursorController].
+         * Creates a [Mouse.CursorController] for managing the mouse cursor state.
          *
-         * Use it to set the mouse cursor type for various conditions: hovering, resizing, typing etc...
+         * Use the returned controller to specify the cursor appearance for various UI conditions such as hovering,
+         * resizing, or typing. The controller is automatically reset when the layout is hidden.
          */
         @UIBuilder
         fun Layout.cursorController(): Mouse.CursorController {

@@ -45,6 +45,12 @@ open class ESPRenderer(tickedMode: Boolean) {
         outlines.upload()
     }
 
+    /**
+     * Renders the ESP effect.
+     *
+     * Activates the shader and updates its uniforms with the current tick delta and camera position,
+     * then applies face culling and a specific line width to render the faces and outlines.
+     */
     fun render() {
         shader.use()
         shader["u_TickDelta"] = Lambda.mc.partialTicks
@@ -54,6 +60,9 @@ open class ESPRenderer(tickedMode: Boolean) {
         GlStateUtils.withLineWidth(RenderSettings.outlineWidth, outlines::render)
     }
 
+    /**
+     * Clears the vertex data from both face and outline pipelines.
+     */
     open fun clear() {
         faces.clear()
         outlines.clear()

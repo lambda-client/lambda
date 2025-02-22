@@ -89,6 +89,15 @@ class TitleBar(
     }
 
     companion object {
+        /**
+         * Adds a title bar component to the window.
+         *
+         * This extension function creates a [TitleBar] with the specified title text and dragging capability,
+         * then adds it to the window's children.
+         *
+         * @param text The text to display on the title bar.
+         * @param drag If true, the title bar can be dragged.
+         */
         @UIBuilder
         fun Window.titleBar(
             text: String,

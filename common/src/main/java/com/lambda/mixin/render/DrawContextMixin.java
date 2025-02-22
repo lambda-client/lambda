@@ -45,8 +45,35 @@ import java.util.stream.Collectors;
 
 @Mixin(DrawContext.class)
 public abstract class DrawContextMixin {
-    @Shadow protected abstract void drawTooltip(TextRenderer textRenderer, List<TooltipComponent> components, int x, int y, TooltipPositioner positioner);
+    /**
+ * Renders a tooltip using the provided text renderer, tooltip components, and positioning strategy.
+ *
+ * <p>This shadowed method is implemented by the target class to draw tooltips at the specified coordinates.
+ * The tooltip components determine the content displayed, while the positioner defines how the tooltip is positioned on the screen.</p>
+ *
+ * @param textRenderer the renderer used for drawing the tooltip's text
+ * @param components the list of components forming the tooltip's content
+ * @param x the x-coordinate for the tooltip's starting position
+ * @param y the y-coordinate for the tooltip's starting position
+ * @param positioner the strategy that determines the tooltip's placement
+ */
+@Shadow protected abstract void drawTooltip(TextRenderer textRenderer, List<TooltipComponent> components, int x, int y, TooltipPositioner positioner);
 
+    /**
+     * Overrides the default tooltip rendering to include additional components.
+     * 
+     * <p>This injected method converts a list of text components into tooltip components. If optional tooltip data
+     * is present, it is inserted into the list, and if the currently focused item is a filled map, a map preview
+     * component is added. It then calls the shadowed tooltip drawing method with the modified components and cancels
+     * further execution of the original method.</p>
+     *
+     * @param textRenderer the renderer used to draw text
+     * @param text the list of text elements to be converted into tooltip components
+     * @param data an optional tooltip data element to be incorporated into the tooltip
+     * @param x the x-coordinate for tooltip positioning
+     * @param y the y-coordinate for tooltip positioning
+     * @param ci the callback information used to cancel the original tooltip rendering
+     */
     @Inject(method = "drawTooltip(Lnet/minecraft/client/font/TextRenderer;Ljava/util/List;Ljava/util/Optional;II)V", at = @At("HEAD"), cancellable = true)
     void drawItemTooltip(TextRenderer textRenderer, List<Text> text, Optional<TooltipData> data, int x, int y, CallbackInfo ci) {
         List<TooltipComponent> list = text.stream().map(Text::asOrderedText).map(TooltipComponent::of).collect(Collectors.toList());

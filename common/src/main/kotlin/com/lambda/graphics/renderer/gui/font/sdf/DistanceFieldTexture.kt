@@ -56,6 +56,13 @@ class DistanceFieldTexture(image: BufferedImage) : Texture(image, levels = 0) {
         }
     }
 
+    /**
+     * Binds the SDF texture's underlying frame to the specified texture slot.
+     *
+     * This ensures that the distance field texture is activated in the given slot for rendering.
+     *
+     * @param slot the texture slot index to bind the frame to.
+     */
     override fun bind(slot: Int) {
         frame.bind(slot)
     }

@@ -60,6 +60,15 @@ public class SplashOverlayMixin {
             super(location);
         }
 
+        /**
+         * Redirects the default texture loading to supply a custom banner texture.
+         *
+         * <p>This method intercepts the call to load texture data from the default resource pack and returns
+         * an InputSupplier that provides an InputStream for the custom texture located at "textures/lambda_banner.png".
+         * The provided resource pack, resource type, and identifier are ignored.</p>
+         *
+         * @return an InputSupplier that supplies the custom banner texture's input stream
+         */
         @Redirect(method = "loadTextureData", at = @At(value = "INVOKE", target = "Lnet/minecraft/resource/DefaultResourcePack;open(Lnet/minecraft/resource/ResourceType;Lnet/minecraft/util/Identifier;)Lnet/minecraft/resource/InputSupplier;"))
         InputSupplier<InputStream> loadTextureData(DefaultResourcePack instance, ResourceType type, Identifier id) {
             return () -> LambdaResourceKt.getStream("textures/lambda_banner.png");

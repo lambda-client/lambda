@@ -72,8 +72,26 @@ object LambdaAtlas : Loadable {
     private val metricCache = mutableMapOf<Font, FontMetrics>()
     private val heightCache = Object2DoubleArrayMap<Font>()
 
-    operator fun LambdaFont.get(char: Char): GlyphInfo? = fontMap.getValue(this)[char]
-    operator fun LambdaEmoji.get(string: String): GlyphInfo? = emojiMap.getValue(this)[string.removeSurrounding(":")]
+    /**
+ * Retrieves the glyph information for the specified character for this font.
+ *
+ * Returns the [GlyphInfo] from the font's internal glyph map corresponding to the provided character,
+ * or null if no glyph information is available.
+ *
+ * @param char The character to look up.
+ * @return The glyph information associated with the character, or null if it is not found.
+ */
+operator fun LambdaFont.get(char: Char): GlyphInfo? = fontMap.getValue(this)[char]
+    /**
+ * Retrieves the glyph information for an emoji based on the provided identifier.
+ *
+ * The input string is expected to be wrapped in colons (e.g., ":smile:"); the surrounding colons
+ * are removed before looking up the glyph in the emoji map.
+ *
+ * @param string the emoji identifier, potentially enclosed in colons.
+ * @return the corresponding glyph information, or null if it is not found.
+ */
+operator fun LambdaEmoji.get(string: String): GlyphInfo? = emojiMap.getValue(this)[string.removeSurrounding(":")]
 
     val LambdaFont.height: Double
         get() = heightCache.getDouble(fontCache[this@height])
@@ -147,6 +165,19 @@ object LambdaAtlas : Loadable {
         bufferPool[this@buildBuffer] = image
     }
 
+    /**
+     * Builds a texture atlas by rendering multiple glyphs from the font.
+     *
+     * The function loads the font (or retrieves it from a cache), calculates a texture image based on the given number
+     * of characters, and draws each glyph onto the image. It computes the UV coordinates for each character and stores
+     * the associated glyph metadata, while also updating a shared buffer pool with the generated image. An exception is
+     * thrown if the texture atlas is too small to accommodate all glyphs.
+     *
+     * @param characters The total number of characters to render into the atlas (default is 2048). This value also influences
+     *                   the calculated texture size.
+     *
+     * @throws IllegalStateException if the texture atlas is not large enough to fit the glyphs.
+     */
     fun LambdaFont.buildBuffer(
         characters: Int = 2048 // How many characters from that font should be used for the generation
     ) {
@@ -198,7 +229,15 @@ object LambdaAtlas : Loadable {
         bufferPool[this@buildBuffer] = image
     }
 
-    // TODO: Change this when we've refactored the loadables
+    /**
+     * Loads all font and emoji entries, schedules texture uploads, and returns a summary message.
+     *
+     * Iterates over all registered fonts and emojis to initialize their underlying resources, prepares a summary count based on
+     * the current buffer pool size, and schedules the upload of buffered images to their respective owners. The buffer pool is cleared
+     * after the upload to prevent race conditions.
+     *
+     * @return A summary string indicating the number of fonts loaded.
+     */
     override fun load(): String {
         LambdaFont.entries.forEach(LambdaFont::load)
         LambdaEmoji.entries.forEach(LambdaEmoji::load)
@@ -213,6 +252,17 @@ object LambdaAtlas : Loadable {
         return str
     }
 
+    /**
+     * Renders the specified character as a buffered image using the provided font.
+     *
+     * If the font cannot display the character, the function returns null. Otherwise, it retrieves or
+     * computes the font metrics to determine the image dimensions, creates a buffered image, applies
+     * anti-aliasing and default rendering hints, and draws the character in white.
+     *
+     * @param font the font used for rendering the character.
+     * @param codePoint the character to render.
+     * @return a BufferedImage with the rendered character, or null if the font cannot display it.
+     */
     private fun getCharImage(font: Font, codePoint: Char): BufferedImage? {
         if (!font.canDisplay(codePoint)) return null
 

@@ -159,6 +159,11 @@ abstract class Module(
         }
     }
 
+    /**
+     * Enables the module.
+     *
+     * Sets the module's enabled state to true, triggering any registered on-enable actions.
+     */
     fun enable() {
         isEnabled = true
     }

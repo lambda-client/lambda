@@ -177,6 +177,13 @@ class VertexPipeline(
         uploadedIndices = indicesCount
     }
 
+    /**
+     * Resets the vertex position and index counters to their initial state.
+     *
+     * This method sets the vertex position pointer back to its original location and resets
+     * the vertex index, indices count, and uploaded indices counters to zero, preparing the
+     * pipeline for a new rendering sequence.
+     */
     override fun clear() {
         verticesPosition = verticesPointer
         vertexIndex = 0
@@ -184,6 +191,11 @@ class VertexPipeline(
         uploadedIndices = 0
     }
 
+    /**
+     * Finalizes the vertex pipeline.
+     *
+     * Currently, this method is a placeholder reserved for future cleanup or resource finalization logic. It does not perform any actions.
+     */
     fun finalize() {
 
     }

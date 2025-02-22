@@ -145,6 +145,12 @@ class ModuleLayout(
         }
     }
 
+    /**
+     * Adjusts the corner radii of the filled rectangle based on its position and auto-resize configuration.
+     *
+     * If the rectangle is not the last element or auto-resizing is disabled, all corner radii are reset to 0.
+     * Otherwise, the top corner radii are reset and the bottom corner radii are reduced by the configured padding.
+     */
     private fun FilledRect.correctRadius() {
         if (!isLast || !ClickGui.autoResize) {
             setRadius(0.0)
@@ -159,8 +165,12 @@ class ModuleLayout(
 
     companion object {
         /**
-         * Creates a [ModuleLayout] - visual representation of the [Module]
-         */
+             * Creates a ModuleLayout that visually represents the specified module and appends it
+             * to the children of the current layout.
+             *
+             * @param module the module instance to be displayed.
+             * @return the newly created ModuleLayout that has been added to the layout.
+             */
         @UIBuilder
         fun Layout.moduleLayout(module: Module) =
             ModuleLayout(this, module).apply(children::add)

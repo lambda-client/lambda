@@ -55,7 +55,23 @@ object LambdaMoji : Module(
         }
     }
 
-    // FixMe: Doesn't render properly when the chat scale is modified
+    /**
+     * Parses the provided ordered text to replace emoji characters with whitespace placeholders while
+     * enqueuing their corresponding glyphs for later rendering.
+     *
+     * The function processes each character in the input text, preserving style information. Detected
+     * emoji characters are replaced with computed whitespace (based on current font metrics and scaling)
+     * to maintain text layout. For every emoji found, its glyph, along with positional and color
+     * adjustments, is added to the render queue.
+     *
+     * Note: This function may not render correctly when the chat scale is modified.
+     *
+     * @param text The ordered text containing the characters and associated style information.
+     * @param x The x-coordinate offset used for calculating the emoji rendering position.
+     * @param y The y-coordinate offset used for calculating the emoji rendering position.
+     * @param color The base color used for rendering, with its alpha component adjusted for emojis.
+     * @return An OrderedText object with emojis replaced by whitespace to preserve layout and styles.
+     */
     fun parse(text: OrderedText, x: Float, y: Float, color: Int): OrderedText {
         val saved = mutableMapOf<Int, Style>()
         val builder = StringBuilder()

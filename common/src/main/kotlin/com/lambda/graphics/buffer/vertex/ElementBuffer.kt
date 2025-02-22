@@ -30,6 +30,15 @@ class ElementBuffer(mode: VertexMode) :
     override val target: Int = GL_ELEMENT_ARRAY_BUFFER
     override val access: Int = GL_MAP_WRITE_BIT
 
+    /**
+     * Uploads data to the buffer.
+     *
+     * Delegates to the allocation routine to upload the provided data and returns any error encountered during this process.
+     *
+     * @param data the ByteBuffer containing the data to be uploaded.
+     * @param offset the offset within the data (currently not used).
+     * @return a Throwable if an error occurs during allocation, or null if the upload succeeds.
+     */
     override fun upload(
         data: ByteBuffer,
         offset: Long,

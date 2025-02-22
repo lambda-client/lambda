@@ -34,6 +34,15 @@ object TextureRenderer {
     private val mainShader = shader("renderer/pos_tex")
     private val coloredShader = shader("renderer/pos_tex_shady")
 
+    /**
+     * Draws the specified texture within the given rectangular area.
+     *
+     * This function binds the provided texture and activates the main shader before rendering
+     * a quad that corresponds to the area defined by the rectangle.
+     *
+     * @param texture the texture to render.
+     * @param rect the area within which the texture should be drawn.
+     */
     fun drawTexture(texture: Texture, rect: Rect) {
         texture.bind()
         mainShader.use()
@@ -41,6 +50,17 @@ object TextureRenderer {
         drawInternal(rect)
     }
 
+    /**
+     * Renders a texture with a dynamic shading effect.
+     *
+     * Binds the given texture and activates a specialized shader that applies animated color shading. 
+     * The shading parameters are determined using the current time (via glfwGetTime()) and the settings 
+     * from GuiSettings, including color speed, primary and secondary colors, and a size factor calculated 
+     * from the screen dimensions. The final rendering is delegated to the internal drawing routine.
+     *
+     * @param texture the texture to render with shading.
+     * @param rect the rectangular area defining where the texture should be drawn.
+     */
     fun drawTextureShaded(texture: Texture, rect: Rect) {
         texture.bind()
         coloredShader.use()

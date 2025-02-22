@@ -49,6 +49,19 @@ class PixelBuffer(
     private val channels = channelMapping[texture.format] ?: throw IllegalArgumentException("Invalid image format, expected OpenGL format, got ${texture.format} instead")
     private val size = texture.width * texture.height * channels * 1L
 
+    /**
+     * Uploads pixel data from the provided buffer to the associated texture via the Pixel Buffer Object.
+     *
+     * This method binds the pixel buffer and texture, then transfers pixel data using glTexSubImage2D,
+     * covering the texture's entire dimensions and using an offset for asynchronous transfers. Depending
+     * on the bufferMapping flag, it either maps the buffer for a memory-based update or performs a direct update.
+     * After swapping internal buffers and unbinding, it returns any error encountered during the upload,
+     * or null if the upload was successful.
+     *
+     * @param data The ByteBuffer containing the pixel data to upload.
+     * @param offset The offset within the pixel buffer from which to start the data transfer.
+     * @return A Throwable if an error occurred during the upload, or null on success.
+     */
     override fun upload(
         data: ByteBuffer,
         offset: Long,

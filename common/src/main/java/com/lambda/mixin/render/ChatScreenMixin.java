@@ -26,6 +26,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ChatScreen.class)
 public abstract class ChatScreenMixin {
+    /**
+     * Intercepts the chat message sending process to execute Lambda commands.
+     *
+     * <p>If the chat text is recognized as a Lambda command, the command is executed via the CommandManager,
+     * and the default message sending is canceled by setting the callback's return value to true.</p>
+     *
+     * @param chatText the text of the chat message being processed
+     * @param addToHistory flag indicating whether the message should be added to the chat history (not used for Lambda commands)
+     * @param cir callback used to override the normal sending behavior of the chat message
+     */
     @Inject(method = "sendMessage", at = @At("HEAD"), cancellable = true)
     void sendMessageInject(String chatText, boolean addToHistory, CallbackInfoReturnable<Boolean> cir) {
         if (!CommandManager.INSTANCE.isLambdaCommand(chatText)) return;

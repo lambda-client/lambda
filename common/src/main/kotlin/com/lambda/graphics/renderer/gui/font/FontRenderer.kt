@@ -46,14 +46,17 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
     private val gap get() = RenderSettings.gap * 0.5f - 0.8f
 
     /**
-     * Builds the vertex array for rendering the provided text string at a specified position.
+     * Renders a text string at a specified position with configurable color, scale, shadow, and emoji parsing.
      *
-     * @param text The text to render.
-     * @param position The position to render the text.
-     * @param color The color of the text.
-     * @param scale The scale factor of the text.
-     * @param shadow Whether to render a shadow for the text.
-     * @param parseEmoji Whether to parse and render emojis in the text.
+     * This function sets up shader parameters for font and emoji textures, binds the current font assets,
+     * and processes the text to generate glyph vertices for rendering.
+     *
+     * @param text the text string to render.
+     * @param position the position at which the text is drawn.
+     * @param color the color to use for the text.
+     * @param scale the scale factor for the text size.
+     * @param shadow if true, renders a shadow effect along with the text.
+     * @param parseEmoji if true, parses and renders emoji characters in the text.
      */
     fun drawString(
         text: String,
@@ -75,6 +78,18 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
         }
     }
 
+    /**
+     * Renders a single glyph at the specified position with the given scale and color.
+     *
+     * This function sets up shader parameters and binds the current font and emoji textures before
+     * computing the effective scale and adjusted positions based on the glyph’s dimensions and the current
+     * baseline offset. It then builds and renders the glyph’s quad.
+     *
+     * @param glyph the glyph information containing size and texture coordinates.
+     * @param position the rendering position where the glyph will be drawn.
+     * @param color the color applied to the glyph (default is [Color.WHITE]).
+     * @param scale the scale factor for the glyph (default is 1.0).
+     */
     fun drawGlyph(
         glyph: GlyphInfo,
         position: Vec2d,
@@ -99,13 +114,17 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
     }
 
     /**
-     * Renders a single glyph at a given position.
+     * Constructs and adds a quad for the specified glyph to the vertex pipeline.
      *
-     * @param glyph The glyph information to render.
-     * @param origin The position to start from
-     * @param pos1 The starting position of the glyph.
-     * @param pos2 The end position of the glyph
-     * @param color The color of the glyph.
+     * The quad's vertices are computed by offsetting the provided boundary positions (`pos1` and `pos2`)
+     * with the given `origin`. Each vertex is assigned texture coordinates derived from the glyph data and
+     * tinted with the specified color.
+     *
+     * @param glyph The glyph providing texture mapping coordinates.
+     * @param origin The positional offset applied to the glyph's vertices.
+     * @param pos1 One corner of the glyph's bounding rectangle.
+     * @param pos2 The diagonally opposite corner of the glyph's bounding rectangle.
+     * @param color The color to apply to the glyph.
      */
     private fun VertexPipeline.buildGlyph(
         glyph: GlyphInfo,
@@ -150,22 +169,35 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
     }
 
     /**
-     * Calculates the height of the text based on the specified scale.
-     *
-     * @param scale The scale factor for the height calculation.
-     * @return The height of the text at the specified scale.
-     */
+ * Computes the effective height of the rendered text.
+ *
+ * The height is derived from the current font's base height, adjusted by a scaling factor
+ * that ensures consistent visual proportions.
+ *
+ * @param scale the scaling factor to apply (default is 1.0)
+ * @return the effective height of the text for the provided scale
+ */
     fun getHeight(scale: Double = 1.0) = chars.height * getScaleFactor(scale) * 0.7
 
     /**
-     * Iterates over each character and emoji in the text and applies a block operation.
+     * Processes a text string by iterating over its characters and emojis, computing rendering positions, and invoking a block for each glyph.
      *
-     * @param text The text to iterate over.
-     * @param color The color of the text.
-     * @param scale The scale of the text.
-     * @param shadow Whether to render a shadow.
-     * @param parseEmoji Whether to parse and include emojis.
-     * @param block The function to apply to each character or emoji glyph.
+     * The function calculates an adjusted scale factor and applies a gap between glyphs as well as a baseline offset for proper
+     * vertical alignment. For every glyph, if shadow rendering is enabled, it first invokes the block for a shadow glyph (using an offset)
+     * followed by the main glyph. It handles control characters (such as newlines) to adjust positioning, and when emoji parsing is enabled,
+     * it recursively splits the text to separately process emoji sequences and regular characters.
+     *
+     * @param text the string to process.
+     * @param color the base color used for rendering the glyphs.
+     * @param scale the scale factor applied to the text size.
+     * @param shadow if true, renders a shadow glyph before the main glyph.
+     * @param parseEmoji if true, detects and processes emoji sequences in the text.
+     * @param block a function that is invoked for each glyph. It receives:
+     *              - GlyphInfo: the glyph information.
+     *              - Vec2d: the starting position of the glyph.
+     *              - Vec2d: the ending position of the glyph (computed from its size).
+     *              - Color: the color to render the glyph.
+     *              - Boolean: a flag indicating whether the glyph represents a shadow.
      */
     private fun processText(
         text: String,
@@ -184,6 +216,18 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
         var posX = 0.0
         var posY = getHeight(scale) * -0.5 + baselineOffset * actualScale
 
+        /**
+         * Renders a glyph with the provided information and styling.
+         *
+         * If the glyph information is null, no rendering occurs. The function calculates the glyph's scaled size
+         * and computes its drawing coordinates based on the current position and scale factor. A non-zero offset
+         * indicates that the glyph is rendered as a shadow; in this case, the horizontal drawing position remains
+         * unchanged. Otherwise, the drawing position is advanced based on the glyph's width and a predefined gap.
+         *
+         * @param info The glyph information containing its size and other rendering details; if null, the glyph is not drawn.
+         * @param color The color applied to the glyph.
+         * @param offset An optional offset for positioning; a non-zero value flags the glyph as a shadow.
+         */
         fun drawGlyph(info: GlyphInfo?, color: Color, offset: Double = 0.0) {
             if (info == null) return
             val isShadow = offset != 0.0
@@ -198,6 +242,16 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
 
         val parsed = if (parseEmoji) emojis.parse(text) else mutableListOf()
 
+        /**
+         * Processes a segment of text for rendering, handling regular characters and emojis.
+         *
+         * The function iterates over the given text section, drawing each glyph while managing control characters
+         * such as newlines and carriage returns to update the rendering position. When emojis are enabled and
+         * detected, it splits the text to render emoji characters separately, ensuring proper text layout.
+         *
+         * @param section The portion of text to be processed.
+         * @param hasEmojis Indicates whether the section may contain emojis that require special handling.
+         */
         fun processTextSection(section: String, hasEmojis: Boolean) {
             if (section.isEmpty()) return
             if (!parseEmoji || parsed.isEmpty() || !hasEmojis) {
@@ -243,11 +297,14 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
     }
 
     /**
-     * Calculates the scale factor for the text based on the provided scale.
-     *
-     * @param scale The base scale factor.
-     * @return The adjusted scale factor.
-     */
+ * Computes an adjusted scale factor for text rendering.
+ *
+ * This method applies a constant multiplier (8.5) to the base scale and normalizes it
+ * by the current text font's height, ensuring consistent text sizing across different fonts.
+ *
+ * @param scale the input base scale factor.
+ * @return the resulting adjusted scale factor.
+ */
     fun getScaleFactor(scale: Double): Double = scale * 8.5 / chars.height
 
     /**

@@ -56,7 +56,13 @@ class TextField(
 
     companion object {
         /**
-         * Creates a [TextField] component
+         * Creates a new [TextField] component.
+         *
+         * This function instantiates a [TextField] with the current [Layout] as its owner, automatically
+         * adds it to the layout's children list, and applies an optional configuration block.
+         *
+         * @param block an optional lambda that configures the [TextField] instance.
+         * @return the newly created and configured [TextField] component.
          */
         @UIBuilder
         fun Layout.textField(

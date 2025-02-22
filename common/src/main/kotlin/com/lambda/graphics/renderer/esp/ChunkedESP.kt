@@ -117,6 +117,13 @@ class ChunkedESP private constructor(
             }
         }
 
+        /**
+         * Asynchronously rebuilds the ESP renderer for the current chunk.
+         *
+         * A new [StaticESPRenderer] instance is created on the main thread with a specific configuration, then updated using
+         * the owner's update function for every coordinate within the chunk. Finally, an upload task is queued that uploads
+         * the new renderer and sets it as the active renderer for the chunk.
+         */
         suspend fun rebuild() {
             val newRenderer = awaitMainThread { StaticESPRenderer(false) }
 

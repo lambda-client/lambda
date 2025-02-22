@@ -24,6 +24,15 @@ object GlStateUtils {
     private var blendState = false
     private var cullState = true
 
+    /**
+     * Temporarily configures OpenGL states for rendering, executes the provided block, and then restores the previous state.
+     *
+     * This function saves the current depth testing, blending, and face culling states. It then sets up OpenGL by disabling depth testing,
+     * enabling blending, disabling face culling, setting the depth mask to false, and enabling line smoothing before executing the provided block.
+     * After the block completes, it restores the original depth testing, blending, face culling, depth mask, and line smoothing settings.
+     *
+     * @param block OpenGL operations to perform under the temporary state configuration.
+     */
     fun setupGL(block: () -> Unit) {
         val savedDepthTest = depthTestState
         val savedBlend = blendState
@@ -46,6 +55,15 @@ object GlStateUtils {
         cull(savedCull)
     }
 
+    /**
+     * Enables depth testing and optionally configures the depth mask during the execution of a code block.
+     *
+     * When invoked, depth testing is enabled. If [maskWrite] is true, the depth buffer is made writable before the
+     * block is executed and set back to non-writable afterward. Finally, depth testing is disabled once the block finishes.
+     *
+     * @param maskWrite if true, enables writing to the depth buffer for the duration of the block.
+     * @param block the code to execute with the modified depth state.
+     */
     fun withDepth(maskWrite: Boolean = false, block: () -> Unit) {
         depthTest(true)
         if (maskWrite) glDepthMask(true)
@@ -54,6 +72,14 @@ object GlStateUtils {
         depthTest(false)
     }
 
+    /**
+     * Executes the provided block with face culling enabled.
+     *
+     * This function turns on face culling, executes the given block of code, and then disables face culling,
+     * ensuring that the OpenGL state is restored after the block execution.
+     *
+     * @param block the code to run with face culling enabled.
+     */
     fun withFaceCulling(block: () -> Unit) {
         cull(true)
         block()

@@ -39,11 +39,26 @@ class AnimatedTexture(path: LambdaResource) : Texture(image = null) {
     private var currentFrame = 0
     private var lastUpload = 0L
 
+    /**
+     * Binds the animated texture to the specified texture slot.
+     *
+     * This method updates the texture's current frame via [update] before binding it,
+     * ensuring that the most recent frame is rendered.
+     *
+     * @param slot the texture unit to which the texture is bound.
+     */
     override fun bind(slot: Int) {
         update()
         super.bind(slot)
     }
 
+    /**
+     * Updates the animated texture by advancing to the next frame if its display duration has elapsed.
+     *
+     * This function checks if the elapsed time since the last frame upload meets or exceeds the current frame's duration.
+     * When the condition is met, it slices the GIF data to obtain the current frame's byte block, uploads it to the pixel buffer,
+     * resets the buffer, advances the frame counter (wrapping around at the end), and updates the timestamp for the last upload.
+     */
     fun update() {
         if (System.currentTimeMillis() - lastUpload >= frameDurations[currentFrame]) {
             // This is cool because instead of having a buffer for each frame we can

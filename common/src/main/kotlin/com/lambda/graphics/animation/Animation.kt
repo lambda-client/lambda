@@ -27,11 +27,43 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
     private var prevValue = initialValue
     private var currValue = initialValue
 
-    operator fun getValue(thisRef: Any?, property: KProperty<*>) = value()
-    operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: Double) = setValue(valueIn)
+    /**
+ * Retrieves the current interpolated animation value.
+ *
+ * This operator function enables property delegation by returning the animation's
+ * current value as computed by the [value] method, which interpolates between the previous
+ * and current states.
+ */
+operator fun getValue(thisRef: Any?, property: KProperty<*>) = value()
+    /**
+ * Delegated setter that updates the animation's value.
+ *
+ * This operator function is triggered when a delegated property is assigned a new value. It sets both the previous
+ * and current values of the animation to the provided [valueIn].
+ *
+ * @param thisRef The object owning the delegated property (unused).
+ * @param property Metadata for the property being assigned (unused).
+ * @param valueIn The new value to set for the animation.
+ */
+operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: Double) = setValue(valueIn)
 
-    fun value(): Double = lerp(mc.partialTicks, prevValue, currValue)
+    /**
+ * Computes and returns the current interpolated animation value.
+ *
+ * This function uses linear interpolation between the previous and current animation values,
+ * leveraging the partial tick value from the rendering context (mc.partialTicks) to ensure smooth transitions.
+ *
+ * @return the interpolated animation value.
+ */
+fun value(): Double = lerp(mc.partialTicks, prevValue, currValue)
 
+    /**
+     * Resets the animation state by updating both the previous and current values.
+     *
+     * This ensures that the animation starts from a consistent value without any interpolation.
+     *
+     * @param valueIn The new value to set as both the previous and current animation state.
+     */
     fun setValue(valueIn: Double) {
         prevValue = valueIn
         currValue = valueIn

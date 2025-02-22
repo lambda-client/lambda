@@ -59,6 +59,14 @@ object MapDownloader : Module(
     private val MapState.hash: String
         get() = colors.hash("SHA-256")
 
+    /**
+     * Converts the MapState into a 128x128 ARGB BufferedImage.
+     *
+     * This extension creates an image by iterating over each pixel in the map state's color array,
+     * retrieving the corresponding render color with [MapColor.getRenderColor], and assembling the ARGB value.
+     *
+     * @return the generated [BufferedImage] representing the map state.
+     */
     fun MapState.toBufferedImage(): BufferedImage {
         val image = BufferedImage(128, 128, BufferedImage.TYPE_INT_ARGB)
 

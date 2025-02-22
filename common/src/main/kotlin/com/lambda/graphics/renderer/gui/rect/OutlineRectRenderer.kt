@@ -40,6 +40,17 @@ object OutlineRectRenderer : AbstractGUIRenderer(
     private const val QUALITY = 8
     private const val VERTICES_COUNT = QUALITY * 4
 
+    /**
+     * Renders an outlined rectangle with optional rounded corners and glow effect using a uniform color.
+     *
+     * This overload applies the same color to every corner by delegating to the detailed outlineRect function.
+     *
+     * @param rect the rectangle defining the area for the outline.
+     * @param roundRadius the radius used to round the rectangle's corners (defaults to 0.0 for sharp corners).
+     * @param glowRadius the radius defining the glow effect; if below 1, rendering is skipped.
+     * @param color the color applied uniformly to all corners.
+     * @param shade if true, applies a shading effect during rendering.
+     */
     fun outlineRect(
         rect: Rect,
         roundRadius: Double = 0.0,
@@ -48,6 +59,22 @@ object OutlineRectRenderer : AbstractGUIRenderer(
         shade: Boolean = false,
     ) = outlineRect(rect, roundRadius, glowRadius, color, color, color, color, shade)
 
+    /**
+     * Renders an outlined rectangle with optional rounded corners and glow.
+     *
+     * The function computes the vertex data for the rectangle's outline—applying rounded
+     * corners and a glow effect if specified—and renders quads to form both the outline and
+     * its glow. Rendering is skipped entirely if the glow radius is below 1.
+     *
+     * @param rect The base rectangle for the outline.
+     * @param roundRadius The radius for rounded corners; if zero, the corners remain sharp.
+     * @param glowRadius The thickness of the glow effect; values below 1 disable rendering.
+     * @param leftTop Color for the top-left corner.
+     * @param rightTop Color for the top-right corner.
+     * @param rightBottom Color for the bottom-right corner.
+     * @param leftBottom Color for the bottom-left corner.
+     * @param shade When true, applies a shading effect during rendering.
+     */
     fun outlineRect(
         rect: Rect,
         roundRadius: Double = 0.0,

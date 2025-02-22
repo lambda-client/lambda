@@ -37,12 +37,28 @@ class Shader private constructor(fragmentPath: String, vertexPath: String) {
         loadShader(ShaderType.FRAGMENT_SHADER, "shaders/fragment/$fragmentPath.frag")
     )
 
+    /**
+     * Activates the shader program and updates the "u_ProjModel" uniform.
+     *
+     * This function sets the active OpenGL program to this shader and ensures that the
+     * current projection model matrix from RenderMain is applied by updating the corresponding uniform.
+     */
     fun use() {
         glUseProgram(id)
         set("u_ProjModel", RenderMain.projModel)
     }
 
-    private fun loc(name: String) =
+    /**
+             * Retrieves the location of the specified uniform variable.
+             *
+             * This function checks a cache for the uniform location. If the uniform location is already cached,
+             * it returns the cached value. Otherwise, it queries OpenGL for the location using `glGetUniformLocation`,
+             * caches the result, and then returns it.
+             *
+             * @param name the name of the uniform variable.
+             * @return the location of the uniform variable.
+             */
+            private fun loc(name: String) =
         if (uniformCache.containsKey(name))
             uniformCache.getInt(name)
         else
@@ -75,16 +91,43 @@ class Shader private constructor(fragmentPath: String, vertexPath: String) {
             color.alpha / 255f
         )
 
-    operator fun set(name: String, mat: Matrix4f) =
+    /**
+         * Assigns a 4x4 matrix value to a uniform variable in the shader program.
+         *
+         * This operator overload uses the uniform variable name to locate its position
+         * within the shader and updates it with the provided matrix data.
+         *
+         * @param name the name of the uniform variable.
+         * @param mat the 4x4 matrix to assign to the uniform.
+         */
+        operator fun set(name: String, mat: Matrix4f) =
         uniformMatrix(loc(name), mat)
 
     companion object {
         private val shaderCache = hashMapOf<Pair<String, String>, Shader>()
 
-        fun shader(path: String) =
+        /**
+             * Retrieves or creates a shader instance using a single shader path.
+             *
+             * This function returns a [Shader] by applying the provided file path for both the vertex and fragment shader sources.
+             *
+             * @param path the file path for the shader sources used for both vertex and fragment shaders.
+             * @return the corresponding [Shader] instance.
+             */
+            fun shader(path: String) =
             shader(path, path)
 
-        fun shader(fragmentPath: String, vertexPath: String) =
+        /**
+             * Retrieves a Shader instance for the specified fragment and vertex shader paths.
+             *
+             * This function checks the cache for an existing Shader corresponding to the given paths. If none is found,
+             * it creates a new Shader instance, caches it, and returns the instance.
+             *
+             * @param fragmentPath The file path to the fragment shader.
+             * @param vertexPath The file path to the vertex shader.
+             * @return The Shader instance associated with the provided shader paths.
+             */
+            fun shader(fragmentPath: String, vertexPath: String) =
             shaderCache.getOrPut(fragmentPath to vertexPath) {
                 Shader(fragmentPath, vertexPath)
             }

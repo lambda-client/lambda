@@ -58,7 +58,12 @@ class WindowContent(
     }
 
     /**
-     * Overrides the summary height of the content
+     * Overrides the default content height calculation.
+     *
+     * Allows specifying a custom lambda that computes the total height of the content,
+     * typically based on factors such as padding, spacing, and the dimensions of child elements.
+     *
+     * @param block a lambda that returns the new content height as a Double.
      */
     @LayoutBuilder
     fun overrideContentHeight(block: () -> Double) {
@@ -66,7 +71,12 @@ class WindowContent(
     }
 
     /**
-     * Overrides the action performed on ordering update
+     * Sets a custom reordering action for updating the positions of the window content's children.
+     *
+     * This function allows you to override the default layout update behavior by providing a lambda
+     * that will be executed when the children order is recalculated.
+     *
+     * @param block The lambda that defines the custom reordering logic.
      */
     @LayoutBuilder
     fun reorderChildren(block: () -> Unit) {
@@ -115,15 +125,25 @@ class WindowContent(
         }
     }
 
-    fun getContentHeight() = contentHeight()
+    /**
+ * Returns the calculated content height.
+ *
+ * This function computes the total height of the content by invoking the designated lambda,
+ * which factors in elements such as padding, spacing, and the dimensions of its child components.
+ *
+ * @return the total height of the content.
+ */
+fun getContentHeight() = contentHeight()
 
     companion object {
         /**
-         * Creates an empty [WindowContent] component
-         *
-         * @param scrollable Whether to let user scroll this layout
-         * This will also make your elements be vertically ordered
-         */
+             * Creates and attaches a [WindowContent] component to this [Window].
+             *
+             * The new component is automatically added to the window's children. It is configured to be scrollable if
+             * the [scrollable] parameter is true, which also enforces vertical ordering for its child elements.
+             *
+             * @param scrollable if true, enables user scrolling for the layout.
+             */
         @UIBuilder
         fun Window.windowContent(scrollable: Boolean) =
             WindowContent(this, scrollable).apply(children::add)

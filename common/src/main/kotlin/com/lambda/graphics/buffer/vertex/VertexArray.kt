@@ -27,19 +27,50 @@ class VertexArray : Buffer(isVertexArray = true) {
     override val target: Int = -1
     override val access: Int = -1
 
+    /**
+     * Throws an UnsupportedOperationException to indicate that memory mapping is not supported for vertex array objects.
+     *
+     * @param size the intended size of the memory mapping.
+     * @param offset the intended offset in the buffer.
+     * @param block the callback to process the mapped ByteBuffer (unused).
+     * @throws UnsupportedOperationException always thrown to indicate that mapping is not supported.
+     */
     override fun map(
         size: Long,
         offset: Long,
         block: (ByteBuffer) -> Unit
     ): Throwable = throw UnsupportedOperationException("Cannot map a vertex array object to memory")
 
+    /**
+     * Attempts to upload data to the vertex array object.
+     *
+     * This operation is not supported for vertex array objects and always throws an
+     * UnsupportedOperationException.
+     *
+     * @param data the buffer containing the data to upload (unused)
+     * @param offset the offset at which data would have been uploaded (unused)
+     * @throws UnsupportedOperationException always thrown to indicate that data uploads are not supported for vertex array objects.
+     */
     override fun upload(
         data: ByteBuffer,
         offset: Long,
     ): Throwable = throw UnsupportedOperationException("Data cannot be uploaded to a vertex array object")
 
-    override fun allocate(size: Long) = throw UnsupportedOperationException("Cannot grow a vertex array object")
+    /**
+ * Throws an UnsupportedOperationException because vertex array objects cannot be resized.
+ *
+ * @param size The requested allocation size, which is ignored because growing a vertex array is unsupported.
+ * @throws UnsupportedOperationException always thrown to indicate the operation is not supported.
+ */
+override fun allocate(size: Long) = throw UnsupportedOperationException("Cannot grow a vertex array object")
 
+    /**
+     * Binds the vertex array object using the specified identifier.
+     *
+     * This method calls `glBindVertexArray` to bind the vertex array and resets the current vertex buffer binding.
+     *
+     * @param id the OpenGL identifier of the vertex array.
+     */
     override fun bind(id: Int) {
         glBindVertexArray(id); BufferRenderer.currentVertexBuffer = null
     }

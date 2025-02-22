@@ -36,16 +36,41 @@ interface IRenderContext {
 
     fun render()
     fun upload()
-    fun clear()
+    /**
+ * Clears the current rendering context.
+ *
+ * This resets the context by removing any queued or rendered data,
+ * preparing it for new drawing commands.
+ */
+fun clear()
 
+    /**
+     * Executes an immediate draw by sequentially calling upload, render, and clear.
+     *
+     * This method provides a single entry point for performing the complete draw cycle without requiring separate calls for
+     * uploading data, rendering the content, and clearing the context.
+     */
     fun immediateDraw() {
         upload()
         render()
         clear()
     }
 
-    fun grow(amount: Int)
+    /**
+ * Increases the capacity of the rendering context by the specified amount.
+ *
+ * @param amount The additional capacity units to add.
+ */
+fun grow(amount: Int)
 
+    /**
+     * Executes the given block within the current rendering context.
+     *
+     * This method allows for scoping multiple rendering operations or configurations within
+     * a single lambda, using the current context as the receiver.
+     *
+     * @param block a lambda with receiver that encapsulates rendering commands.
+     */
     fun use(block: IRenderContext.() -> Unit) {
         block()
     }

@@ -75,25 +75,35 @@ open class Texture {
     var height = -1; protected set
 
     /**
-     * Binds the texture to a specific slot in the graphics pipeline.
+     * Binds this texture to the specified slot in the graphics pipeline.
+     *
+     * @param slot The slot to bind the texture to. Defaults to 0.
      */
     open fun bind(slot: Int = 0) {
         bindTexture(id, slot)
     }
 
     /**
-     * Unbinds the currently bound texture
+     * Unbinds any texture from the specified slot.
+     *
+     * This method removes the current texture binding on the given slot by binding a texture ID of 0.
+     * If no slot is explicitly provided, the operation defaults to slot 0.
+     *
+     * @param slot The slot index from which to unbind the texture.
      */
     open fun unbind(slot: Int = 0) {
         bindTexture(0, slot)
     }
 
     /**
-     * Uploads an image to the texture and generates mipmaps for the texture if applicable
-     * This function does not bind the texture
+     * Uploads the given image data to the texture at the specified mipmap level.
      *
-     * @param image     The image to upload to the texture
-     * @param offset    The mipmap level to upload the image to
+     * This function updates the texture's dimensions to match the image, marks it as initialized, and
+     * configures level-of-detail parameters before setting texture filtering options. If mipmapping is enabled,
+     * mipmaps are automatically generated. Note that the texture must be bound before calling this function.
+     *
+     * @param image  the BufferedImage containing the texture data.
+     * @param offset the mipmap level where the image data is applied (typically 0 for the base level).
      */
     fun upload(image: BufferedImage, offset: Int = 0) {
         // Store level_base +1 through `level` images and generate
@@ -111,13 +121,17 @@ open class Texture {
     }
 
     /**
-     * Uploads an image to the texture and generates mipmaps for the texture if applicable
-     * This function does not bind the texture
+     * Uploads image data from a ByteBuffer to the texture.
      *
-     * @param buffer    The image buffer to upload to the texture
-     * @param width     The width of the texture
-     * @param height    The height of the texture
-     * @param offset    The mipmap level to upload the image to
+     * This method updates the texture's dimensions, configures Level of Detail (LOD) parameters,
+     * and marks the texture as initialized. The image data is uploaded at the specified mipmap level,
+     * and if mipmap generation is enabled (i.e. when more than zero levels are configured), it triggers
+     * the creation of the full mipmap chain. Note that the texture is assumed to be bound before calling this method.
+     *
+     * @param buffer The image data to be uploaded.
+     * @param width The width of the texture image.
+     * @param height The height of the texture image.
+     * @param offset The mipmap level where the image data will be applied, typically 0 for the base level.
      */
     fun upload(buffer: ByteBuffer, width: Int, height: Int, offset: Int = 0) {
         // Store level_base +1 through `level` images and generate
@@ -135,13 +149,18 @@ open class Texture {
     }
 
     /**
-     * Updates the data of a texture
-     * This function does not bind the texture
+     * Updates the content of an existing texture with new image data.
      *
-     * @param image     The image to upload to the texture
-     * @param offset    The mipmap level to upload the image to
+     * If the texture is not yet initialized, this method delegates to [upload] to set up
+     * the texture data. When the texture is already initialized, it updates the texture
+     * at the specified mipmap level. Note that this method does not bind the texture;
+     * it assumes the texture is already bound.
      *
-     * @throws IllegalStateException If the texture has the consistency flag and is already initialized
+     * @param image The BufferedImage containing the new texture data.
+     * @param offset The mipmap level to update (default is 0).
+     *
+     * @throws IllegalStateException if the provided image data's dimensions are incompatible
+     *                               with the texture's existing dimensions.
      */
     fun update(image: BufferedImage, offset: Int = 0) {
         if (!initialized) return upload(image, offset)
@@ -151,15 +170,18 @@ open class Texture {
     }
 
     /**
-     * Updates the data of a texture
-     * This function does not bind the texture
+     * Updates the texture content with new image data from the provided ByteBuffer.
      *
-     * @param buffer    The image buffer to upload to the texture
-     * @param width     The width of the texture
-     * @param height    The height of the texture
-     * @param offset    The mipmap level to upload the image to
+     * If the texture is not yet initialized, this function delegates to the texture upload routine.
+     * For an already initialized texture, it checks that the new dimensions do not exceed the original ones
+     * and updates the specified mipmap level without binding the texture.
      *
-     * @throws IllegalStateException If the texture has the consistency flag and is already initialized
+     * @param buffer The ByteBuffer containing the new texture data.
+     * @param width The width of the new image data.
+     * @param height The height of the new image data.
+     * @param offset The mipmap level at which to update the texture.
+     *
+     * @throws IllegalStateException if the provided dimensions exceed those of the initialized texture.
      */
     fun update(buffer: ByteBuffer, width: Int, height: Int, offset: Int = 0) {
         if (!initialized) return upload(buffer, width, height, offset)
@@ -168,6 +190,17 @@ open class Texture {
         glTexSubImage2D(GL_TEXTURE_2D, offset, 0, 0, width, height, format, GL_UNSIGNED_BYTE, buffer)
     }
 
+    /**
+     * Configures the level-of-detail (LOD) parameters for the texture.
+     *
+     * This method sets the minimum and maximum LOD values, as well as the base and maximum mipmap levels,
+     * using the specified total number of mipmap levels. The [levels] parameter includes the base level (level 0),
+     * so the highest valid mipmap level is [levels] - 1.
+     *
+     * Note: This configuration may not work correctly with textures using immutable storage.
+     *
+     * @param levels The total number of mipmap levels, including the base level.
+     */
     private fun setupLOD(levels: Int) {
         // When you call glTextureStorage, you're specifying the total number of levels, including level 0
         // This is a 0-based index system, which means that the maximum mipmap level is n-1
@@ -180,7 +213,18 @@ open class Texture {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, levels)
     }
 
-    private fun checkDimensions(width: Int, height: Int) =
+    /**
+         * Validates that the dimensions of the new texture data do not exceed the allowed total dimensions.
+         *
+         * This method checks that the sum of the provided width and height does not exceed the sum of the texture's
+         * current width and height, and ensures that the texture has been initialized. If the condition fails, it
+         * throws an IllegalStateException with details about the expected and received total dimensions.
+         *
+         * @param width The width of the new texture data.
+         * @param height The height of the new texture data.
+         * @throws IllegalStateException if the texture is uninitialized or if the new data's dimensions exceed the allowed limits.
+         */
+        private fun checkDimensions(width: Int, height: Int) =
         check(width + height <= this.width + this.height && initialized) {
             "Client tried to update a texture with more data than allowed\n" +
                     "Expected ${this.width + this.height} bytes but got ${width + height}"

@@ -114,18 +114,29 @@ abstract class Buffer(
     private val bufferIds = IntArray(buffers)
 
     /**
-     * Binds the buffer id to the [target]
-     */
+ * Binds the specified buffer id to this buffer's target.
+ *
+ * This operation makes the buffer identified by [id] the active buffer for subsequent OpenGL operations
+ * on the target defined by this buffer.
+ *
+ * @param id the unique identifier of the buffer to bind.
+ */
     open fun bind(id: Int) = glBindBuffer(target, id)
 
     /**
-     * Binds current the buffer [index] to the [target]
-     */
+ * Binds the active buffer to its target.
+ *
+ * Retrieves the buffer ID associated with the current [index] using [bufferAt] and binds it
+ * by calling the overloaded [bind] method.
+ */
     fun bind() = bind(bufferAt(index))
 
     /**
-     * Returns the id of the buffer based on the index
-     */
+ * Retrieves the buffer identifier at the specified index.
+ *
+ * @param index The 0-based index of the buffer ID.
+ * @return The buffer identifier corresponding to the given index.
+ */
     fun bufferAt(index: Int) = bufferIds[index]
 
     /**
@@ -136,8 +147,17 @@ abstract class Buffer(
     }
 
     /**
-     * Update the current buffer without re-allocating
-     * Alternative to [map]
+     * Updates the current buffer's data at the given offset without reallocating its memory.
+     *
+     * This method uploads the provided data to the buffer using a sub-data update mechanism.
+     * It verifies that the buffer's target is valid and bound before performing the update;
+     * if either check fails, an IllegalArgumentException is returned.
+     *
+     * @param data the new data to upload into the buffer.
+     * @param offset the byte offset within the buffer at which the update should start.
+     * @return an IllegalArgumentException if the buffer is not valid or bound; otherwise, null.
+     *
+     * @see map
      */
     open fun update(
         data: ByteBuffer,
@@ -155,10 +175,14 @@ abstract class Buffer(
     }
 
     /**
-     * Allocates a region of memory for the buffer
-     * This function handles the buffer binding
+     * Allocates and initializes buffer storage using the provided data.
      *
-     * @param data The data to put in the new allocated buffer
+     * This function validates the buffer's target and usage before allocation. If the validation fails, it returns an
+     * IllegalArgumentException. Otherwise, it binds and allocates storage for each buffer in sequence, updating the current
+     * buffer index by swapping after each allocation, and finally resets the binding.
+     *
+     * @param data The ByteBuffer containing the initial data for the buffer.
+     * @return An IllegalArgumentException if validation fails; null if allocation succeeds.
      */
     open fun allocate(data: ByteBuffer): Throwable? {
         if (!bufferValid(target, access))
@@ -179,10 +203,14 @@ abstract class Buffer(
     }
 
     /**
-     * Grows the backing buffers
-     * This function handles the buffer binding
+     * Allocates memory for each backing buffer using the specified size.
      *
-     * @param size The size of the new buffer
+     * This method first validates that the buffer's target and usage are valid. If either check fails, it returns an
+     * [IllegalArgumentException] with a descriptive message. Otherwise, it binds each backing buffer in turn, allocates its
+     * memory storage, and updates to the next buffer before finally unbinding.
+     *
+     * @param size The desired size for each buffer allocation.
+     * @return An [IllegalArgumentException] if validation fails, or null if the allocation succeeds.
      */
     open fun allocate(size: Long): Throwable? {
         if (!bufferValid(target, access))
@@ -203,9 +231,14 @@ abstract class Buffer(
     }
 
     /**
-     * Create a new buffer storage
-     * This function cannot be called twice for the same buffer
-     * This function handles the buffer binding
+     * Allocates new storage for the OpenGL buffer using the provided data.
+     *
+     * This function validates the target and usage before creating storage for each buffer in a multi-buffer
+     * configuration. It handles the binding of each buffer and automatically swaps buffers during storage allocation.
+     * Note that this operation should only be performed once per buffer.
+     *
+     * @param data the ByteBuffer containing the data to initialize the buffer storage.
+     * @return an IllegalArgumentException for an invalid target or usage, or null if storage allocation is successful.
      */
     open fun storage(data: ByteBuffer): Throwable? {
         if (!bufferValid(target, access))
@@ -226,11 +259,14 @@ abstract class Buffer(
     }
 
     /**
-     * Create a new buffer storage
-     * This function cannot be called twice for the same buffer
-     * This function handles the buffer binding
+     * Allocates storage for the buffer object.
      *
-     * @param size The size of the storage buffer
+     * This function initializes storage for each allocated buffer using the specified size,
+     * automatically handling binding and unbinding. It validates the buffer's target, access flags,
+     * and usage before allocation. Note that it should only be called once per buffer.
+     *
+     * @param size the desired storage size in bytes (negative values are coerced to zero)
+     * @return an IllegalArgumentException if the target or usage is invalid; null if storage allocation succeeds
      */
     open fun storage(size: Long): Throwable? {
         if (!bufferValid(target, access))
@@ -251,12 +287,16 @@ abstract class Buffer(
     }
 
     /**
-     * Maps all or part of a buffer object's data store into the client's address space
+     * Maps a specified region of the buffer's data store into client memory, processes it using the provided lambda, and then unmaps the buffer.
      *
-     * @param size      Specifies the length of the range to be mapped.
-     * @param offset    Specifies the starting offset within the buffer of the range to be mapped.
-     * @param block     Lambda scope with the mapped buffer passed in
-     * @return          Error encountered during the mapping process
+     * The function validates the offset, size, and mapping access flags before mapping the buffer. It then passes the mapped ByteBuffer to the lambda,
+     * allowing for direct data manipulation. After the lambda completes, the buffer is unmapped. If any validation or operation fails, a Throwable
+     * describing the error is returned; otherwise, null is returned to indicate success.
+     *
+     * @param size the length of the memory region to map.
+     * @param offset the starting offset within the buffer for mapping.
+     * @param block a lambda function that receives the mapped ByteBuffer for data manipulation.
+     * @return null if the mapping and unmapping succeed; otherwise, a Throwable with the error details.
      */
     open fun map(
         size: Long,
@@ -311,12 +351,14 @@ abstract class Buffer(
     }
 
     /**
-     * Sets the given data into the client mapped memory and executes the provided processing function to manage data transfer.
-     *
-     * @param data      Data to set in memory
-     * @param offset    The starting offset within the buffer of the range to be mapped
-     * @return          Error encountered during the mapping process
-     */
+ * Uploads the specified data to the buffer starting at the given offset.
+ *
+ * This abstract function should be implemented to perform the actual data transfer into the buffer.
+ *
+ * @param data   The ByteBuffer containing the data to be uploaded.
+ * @param offset The offset within the buffer at which to begin the upload.
+ * @return A Throwable if an error occurs during the upload process, or null if the upload is successful.
+ */
     abstract fun upload(data: ByteBuffer, offset: Long): Throwable?
 
     init {

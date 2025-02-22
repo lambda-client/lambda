@@ -217,26 +217,20 @@ open class Window(
 
     companion object {
         /**
-         * Creates new empty [Window]
+         * Creates a new [Window] instance, adds it to the current layout, and configures it with the specified properties.
          *
-         * @param position The initial position of the window
+         * The window is initialized with the given position, size, title, and behavior settings. Its content can be customized
+         * further via the provided lambda.
          *
-         * @param size The initial size of the window
-         *
-         * @param title The title of the window
-         *
-         * @param draggable Whether to allow user to drag the window
-         *
-         * @param scrollable Whether to let user scroll the content
-         * This will also make your elements be vertically ordered
-         *
-         * @param minimizing The [Minimizing] mode.
-         *
-         * @param resizable Whether to allow user to resize the window
-         *
-         * @param autoResize Indicates if this window could be automatically resized based on content height
-         *
-         * @param block Actions to perform within content space of the window
+         * @param position the initial position of the window.
+         * @param size the initial size of the window.
+         * @param title the title displayed in the window's title bar.
+         * @param draggable if true, allows the window to be dragged.
+         * @param scrollable if true, enables vertical scrolling for the window’s content.
+         * @param minimizing the minimizing behavior of the window (e.g., [Minimizing.Relative]).
+         * @param resizable if true, permits the window to be resized.
+         * @param autoResize if enabled, allows the window to automatically adjust its size based on its content height.
+         * @param block a lambda to configure the window's content.
          */
         @UIBuilder
         fun Layout.window(

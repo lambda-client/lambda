@@ -68,6 +68,14 @@ abstract class DockingRect {
     private fun relativeToAbs(posIn: Vec2d) = posIn + dockingOffset
     private fun absToRelative(posIn: Vec2d) = posIn - dockingOffset
 
+    /**
+     * Automatically adjusts the docking alignment of the component based on its position relative to the screen center.
+     *
+     * This function calculates horizontal and vertical center ranges (approximately the middle third of the screen) and compares
+     * the component's center position (dockingBase) against these ranges. If the component is outside the center range and alignment is allowed,
+     * it sets the horizontal docking (dockingH) to LEFT or RIGHT and the vertical docking (dockingV) to TOP or BOTTOM accordingly.
+     * If horizontal or vertical alignment is disallowed, the docking defaults to LEFT or TOP respectively.
+     */
     fun autoDocking() {
         val screenCenterX = (screenSize.x * 0.3333)..(screenSize.x * 0.6666)
         val screenCenterY = (screenSize.y * 0.3333)..(screenSize.y * 0.6666)

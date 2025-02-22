@@ -25,15 +25,25 @@ enum class LambdaEmoji(val url: String) {
     private val emojiRegex = Regex(":[a-zA-Z0-9_]+:")
 
     /**
-     * Parses the emojis in the given text.
-     *
-     * @param text The text to parse.
-     *
-     * @return A list of parsed strings that does not contain the colons
-     */
+         * Extracts emoji names from the provided text.
+         *
+         * The function scans the input text for patterns matching emojis in the `:name:` format and returns a mutable list
+         * of the emoji names with the surrounding colons removed.
+         *
+         * @param text the input text containing potential emoji patterns
+         * @return a mutable list of extracted emoji names
+         */
     fun parse(text: String): MutableList<String> =
         emojiRegex.findAll(text).map { it.value }.toMutableList()
 
+    /**
+     * Triggers the build of buffers for all available emoji sets.
+     *
+     * Iterates through each entry in the enum, calling its buffer-building function, and returns
+     * a message indicating the total number of emoji sets processed.
+     *
+     * @return a string reporting the number of loaded emoji sets.
+     */
     fun load(): String {
         entries.forEach { it.buildBuffer() }
         return "Loaded ${entries.size} emoji sets"

@@ -32,6 +32,16 @@ class VertexBuffer(
     override val target: Int = GL_ARRAY_BUFFER
     override val access: Int = GL_MAP_WRITE_BIT
 
+    /**
+     * Uploads vertex data to the vertex buffer.
+     *
+     * This method allocates memory for the vertex buffer using the provided data.
+     * The offset parameter is not used in the current implementation.
+     *
+     * @param data the ByteBuffer containing the vertex data.
+     * @param offset the starting offset for the upload operation (currently ignored).
+     * @return a Throwable if an error occurs during allocation, otherwise null.
+     */
     override fun upload(
         data: ByteBuffer,
         offset: Long,

@@ -76,7 +76,15 @@ abstract class HudModule(
     val rect by rectHandler::rect
     val animation = AnimationTicker()
 
-    protected fun onRender(block: () -> Unit) =
+    /**
+         * Registers a callback to be executed when the HUD rendering event occurs.
+         *
+         * The supplied block is invoked each time a RenderEvent.GUI.HUD event is triggered,
+         * allowing for custom rendering logic during the HUD update phase.
+         *
+         * @param block Lambda to execute on each HUD render event.
+         */
+        protected fun onRender(block: () -> Unit) =
         listen<RenderEvent.GUI.HUD> { block() }
 
     init {

@@ -30,8 +30,15 @@ class ScreenLayout : Layout(owner = null) {
 
     companion object {
         /**
-         * Creates gui layout
-         */
+             * Creates a new GUI layout screen.
+             *
+             * This function instantiates a new ScreenLayout, applies the provided configuration block to it,
+             * and returns a LambdaScreen identified by the supplied name.
+             *
+             * @param name a unique identifier for the screen
+             * @param block a configuration block that customizes the new ScreenLayout instance
+             * @return a LambdaScreen instance containing the configured ScreenLayout
+             */
         @UIBuilder
         fun gui(name: String, block: ScreenLayout.() -> Unit) =
             LambdaScreen(name, ScreenLayout().apply(block))

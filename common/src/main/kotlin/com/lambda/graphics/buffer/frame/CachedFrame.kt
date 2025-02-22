@@ -43,12 +43,14 @@ class CachedFrame(val width: Int, val height: Int) {
     fun bind(slot: Int = 0) = frameBuffer.bindColorTexture(slot)
 
     /**
-     * Executes custom drawing operations on the framebuffer.
+     * Executes custom drawing operations within the cached framebuffer.
      *
-     * The method temporarily modifies the view and projection matrices, the viewport,
-     * and then restores them after the block is executed.
+     * This function temporarily adjusts the OpenGL state by saving the current view and projection matrices,
+     * as well as the viewport dimensions, then sets up a translation and an orthographic projection matching
+     * the framebuffer's size. After executing the provided drawing block, it restores all previous settings.
      *
-     * @param block A block of code that performs custom drawing operations on the framebuffer.
+     * @param block A lambda containing the drawing operations to be executed on the framebuffer.
+     * @return The current CachedFrame instance.
      */
     fun write(block: () -> Unit): CachedFrame {
         frameBuffer.write {

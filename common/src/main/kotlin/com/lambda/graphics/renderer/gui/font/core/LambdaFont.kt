@@ -23,6 +23,14 @@ enum class LambdaFont(val fontName: String) {
     FiraSansRegular("FiraSans-Regular"),
     FiraSansBold("FiraSans-Bold");
 
+    /**
+     * Loads all font entries by triggering their buffer-building routines and returns a summary message.
+     *
+     * Iterates through each font in the enumeration, invoking its [buildBuffer] method, and returns a string
+     * indicating the number of fonts loaded, formatted as "Loaded X fonts" where X is the total number.
+     *
+     * @return a string summarizing the count of loaded fonts.
+     */
     fun load(): String {
         entries.forEach { it.buildBuffer() }
         return "Loaded ${entries.size} fonts"

@@ -64,6 +64,13 @@ class FilledRect(
         }
     }
 
+    /**
+     * Sets a uniform radius for all four corners of the rectangle.
+     *
+     * This method assigns the given radius to each of the rectangle's corner properties.
+     *
+     * @param radius the radius value to apply to all corners.
+     */
     fun setRadius(radius: Double) {
         leftTopRadius = radius
         rightTopRadius = radius
@@ -71,6 +78,14 @@ class FilledRect(
         leftBottomRadius = radius
     }
 
+    /**
+     * Sets the same color for all corners of the filled rectangle.
+     *
+     * Updates the left top, right top, right bottom, and left bottom corner colors
+     * to the specified value.
+     *
+     * @param color the color to apply to all corners.
+     */
     fun setColor(color: Color) {
         leftTopColor = color
         rightTopColor = color
@@ -78,6 +93,12 @@ class FilledRect(
         leftBottomColor = color
     }
 
+    /**
+     * Applies a horizontal gradient by setting the left corners to [colorL] and the right corners to [colorR].
+     *
+     * @param colorL the color for the top-left and bottom-left corners.
+     * @param colorR the color for the top-right and bottom-right corners.
+     */
     fun setColorH(colorL: Color, colorR: Color) {
         leftTopColor = colorL
         rightTopColor = colorR
@@ -85,6 +106,14 @@ class FilledRect(
         leftBottomColor = colorL
     }
 
+    /**
+     * Updates the rectangle's corner colors with a vertical gradient.
+     *
+     * Sets both top corners to the specified [colorT] and both bottom corners to [colorB].
+     *
+     * @param colorT the color for the top corners.
+     * @param colorB the color for the bottom corners.
+     */
     fun setColorV(colorT: Color, colorB: Color) {
         leftTopColor = colorT
         rightTopColor = colorT
@@ -94,8 +123,14 @@ class FilledRect(
 
     companion object {
         /**
-         * Creates a [FilledRect] component - layout-based rect representation
-         */
+             * Creates and adds a new [FilledRect] component to the current layout.
+             *
+             * The function instantiates a [FilledRect] using the receiver as its owner, automatically adds it to the layout's children,
+             * and then applies an optional configuration block for further customization.
+             *
+             * @param block an optional lambda to configure the newly created [FilledRect].
+             * @return the newly created and configured [FilledRect] component.
+             */
         @UIBuilder
         fun Layout.rect(block: FilledRect.() -> Unit = {}) =
             FilledRect(this).apply(children::add).apply(block)
