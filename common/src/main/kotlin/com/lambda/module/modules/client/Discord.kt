@@ -102,9 +102,10 @@ object Discord : Module(
      */
     fun SafeContext.partyCreate() {
         if (!isDiscordLinked) return warn("You did not link your discord account")
-        if (!player.isInParty) {
+        if (player.isInParty) {
             if (player.isPartyOwner) deleteParty() else leaveParty()
             return
+        }
         }
 
         val (party, error) = createParty()
