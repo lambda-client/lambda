@@ -36,8 +36,8 @@ import net.minecraft.world.chunk.WorldChunk
  * occurrences in the game world.
  */
 sealed class WorldEvent {
-    // ToDo: Add doc
-    // Represents the player joining the client world
+    // ToDo: Add doc and determine if there's a better place for this event
+    // Represents the player joining the world
     class Join() : Event
 
     /**

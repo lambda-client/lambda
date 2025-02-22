@@ -41,11 +41,6 @@ import java.util.function.Supplier;
 
 @Mixin(ClientWorld.class)
 public class ClientWorldMixin {
-    @Inject(method = "<init>(Lnet/minecraft/client/network/ClientPlayNetworkHandler;Lnet/minecraft/client/world/ClientWorld$Properties;Lnet/minecraft/registry/RegistryKey;Lnet/minecraft/registry/entry/RegistryEntry;IILjava/util/function/Supplier;Lnet/minecraft/client/render/WorldRenderer;ZJ)V", at = @At("TAIL"))
-    void constructorMixin(ClientPlayNetworkHandler networkHandler, ClientWorld.Properties properties, RegistryKey registryRef, RegistryEntry dimensionTypeEntry, int loadDistance, int simulationDistance, Supplier profiler, WorldRenderer worldRenderer, boolean debugWorld, long seed, CallbackInfo ci) {
-        EventFlow.post(new WorldEvent.Join());
-    }
-
     @Inject(method = "addEntity", at = @At("HEAD"), cancellable = true)
     private void onAddEntity(Entity entity, CallbackInfo ci) {
         if (EventFlow.post(new EntityEvent.EntitySpawn(entity)).isCanceled()) ci.cancel();
