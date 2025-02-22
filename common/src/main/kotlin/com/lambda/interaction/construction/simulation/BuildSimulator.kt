@@ -23,6 +23,7 @@ import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.context.BreakContext
+import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.processing.ProcessorRegistry.findProcessorForState
 import com.lambda.interaction.construction.result.BreakResult
@@ -32,10 +33,9 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.ContainerManager
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
-import com.lambda.interaction.material.container.ContainerManager.findContainerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.RotationConfig
@@ -56,6 +56,7 @@ import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.item.ItemUtils.findBestToolsForBreaking
 import com.lambda.util.math.distSq
+import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.copyPlayer
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.OperatorBlock
@@ -300,7 +301,6 @@ object BuildSimulator {
                     eye.distanceTo(blockHit.pos),
                     resultState,
                     blockState(blockHit.blockPos),
-                    //TODO: idk if this is the right input here
                     player.inventory.selectedSlot,
                     context.blockPos,
                     target,
@@ -316,7 +316,7 @@ object BuildSimulator {
                 }
 
                 if (optimalStack.item != currentHandStack.item) {
-                    acc.add(BuildResult.WrongItem(pos, placeContext, optimalStack.item, currentHandStack, inventory))
+                    acc.add(BuildResult.WrongItemSelection(pos, placeContext, optimalStack.item.select(), currentHandStack, inventory))
                     return@forEach
                 }
 
@@ -411,9 +411,10 @@ object BuildSimulator {
                     rotationRequest,
                     state,
                     targetState,
-                    player.inventory.selectedSlot + 1,
+                    player.inventory.selectedSlot,
                     instantBreakable(state, pos),
-                    build
+                    build,
+					inventory
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
                 return acc
@@ -459,10 +460,9 @@ object BuildSimulator {
         val target = lookAt(bestHit.targetRotation, 0.001)
         val request = RotationRequest(target, rotation)
         val instant = instantBreakable(state, pos)
-        val useSlotIndex = player.inventory.selectedSlot + 1
 
         val breakContext = BreakContext(
-            eye, blockHit, request, state, targetState, useSlotIndex, instant, build
+            eye, blockHit, request, state, targetState, player.inventory.selectedSlot, instant, build, inventory
         )
 
         if (player.isCreative) {
@@ -470,7 +470,7 @@ object BuildSimulator {
             return acc
         }
 
-        val bestTools = findBestToolsForBreaking(state)
+        val bestTools = findBestToolsForBreaking(state, inventory.allowedTools)
 
         /* there is no good tool for the job */
         if (bestTools.isEmpty()) {
@@ -487,28 +487,36 @@ object BuildSimulator {
             return acc
         }
 
-        val bestTool = bestTools.firstOrNull() ?: return acc
         val toolSelection = if (build.forceSilkTouch) {
-            selectStack { isItem(bestTool) and hasEnchantment(Enchantments.SILK_TOUCH) }
+            selectStack { isOneOfItems(bestTools) and hasEnchantment(Enchantments.SILK_TOUCH) }
+        } else if (build.forceFortunePickaxe) {
+            selectStack { isOneOfItems(bestTools) and hasEnchantment(Enchantments.FORTUNE, build.minFortuneLevel) }
         } else {
-            bestTool.select()
+            bestTools.select()
         }
-        val containerSelection = selectContainer {
-            matches(toolSelection) and ofAnyType(MaterialContainer.Rank.OFF_HAND, MaterialContainer.Rank.HOTBAR)
+        val silentSwapSelection = selectContainer {
+            matches(toolSelection) and ofAnyType(MaterialContainer.Rank.HOTBAR)
         }
-        val allContainersWithTools = toolSelection.containerWithMaterial(inventory, containerSelection)
-        val matchingStacks = allContainersWithTools.associateWith { it.matchingStacks(toolSelection) }
-        val bestDeltaTool = matchingStacks.mapValues { (_, stacks) ->
+	    val fullSelection = selectContainer {
+			matches(toolSelection) and matches(inventory.containerSelection)
+	    }
+
+        val swapCandidates = toolSelection.containerWithMaterial(inventory, silentSwapSelection)
+        if (swapCandidates.isEmpty()) {
+            acc.add(BuildResult.WrongItemSelection(pos, breakContext, toolSelection, player.mainHandStack, inventory))
+            return acc
+        }
+
+        val matchingStacks = swapCandidates.associateWith { it.matchingStacks(toolSelection) }
+        val (container, toolPair) = matchingStacks.mapValues { (_, stacks) ->
 	        stacks.associateWith { state.calcItemBlockBreakingDelta(player, world, pos, it) }
                 .maxByOrNull { it.value }
                 ?.toPair()
         }.entries.maxByOrNull { it.value?.second ?: 0f }?.toPair() ?: return acc
 
-        if (bestDeltaTool.second == null) {
-            acc.add(BuildResult.WrongItem(pos, breakContext, bestTools.first(), player.activeItem, inventory))
-            return acc
-        }
+        if (toolPair == null) return acc
 
+        breakContext.hotbarIndex = player.hotbar.indexOf(toolPair.first)
 	    acc.add(BreakResult.Break(pos, breakContext))
         return acc
     }

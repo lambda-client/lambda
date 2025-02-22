@@ -18,6 +18,7 @@
 package com.lambda.interaction.construction.context
 
 import com.lambda.config.groups.BuildConfig
+import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
@@ -44,9 +45,10 @@ data class BreakContext(
     override val rotation: RotationRequest,
     override val checkedState: BlockState,
     override val targetState: TargetState,
-    override var slotIndex: Int?,
+    override var hotbarIndex: Int,
     val instantBreak: Boolean,
     val buildConfig: BuildConfig,
+    val inventoryConfig: InventoryConfig
 ) : BuildContext {
     private val baseColor = Color(222, 0, 0, 25)
     private val sideColor = Color(222, 0, 0, 100)

@@ -38,18 +38,20 @@ class BuildSettings(
 
     // Breaking
     override val breakMode by c.setting("Break Mode", BuildConfig.BreakMode.Vanilla) { vis() && page == Page.Break }
-    override val breakThreshold by c.setting("Break Threshold", 1.0f, 0.1f..1.0f, 0.1f, "The break amount at which the block is considered broken") { vis() && page == Page.Break }
+    override val breakThreshold by c.setting("Break Threshold", 1.0f, 0.1f..1.0f, 0.02f, "The break amount at which the block is considered broken") { vis() && page == Page.Break }
     override val doubleBreak by c.setting("Double Break", false, "Allows breaking two blocks at once") { vis() && page == Page.Break }
     override val breakDelay by c.setting("Break Delay", 5, 0..5, 1, "The delay between breaking blocks", " ticks") { vis() && page == Page.Break }
     override val sounds by c.setting("Sounds", true, "Plays the breaking sounds") { vis() && page == Page.Break }
     override val particles by c.setting("Particles", true, "Renders the breaking particles") { vis() && page == Page.Break }
     override val breakingTexture by c.setting("Breaking Overlay", true, "Overlays the breaking texture at its different stages") { vis() && page == Page.Break }
     override val rotateForBreak by c.setting("Rotate For Break", true, "Rotate towards block while breaking") { vis() && page == Page.Break }
+    override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, "Blocks that wont be broken") { vis() && page == Page.Break }
     override val breakConfirmation by c.setting("Break Confirmation", BuildConfig.BreakConfirmationMode.BreakThenAwait, "The style of confirmation used when breaking") { vis() && page == Page.Break }
     override val breaksPerTick by c.setting("Instant Breaks Per Tick", 5, 1..30, 1, "Maximum instant block breaks per tick") { vis() && page == Page.Break }
     override val breakWeakBlocks by c.setting("Break Weak Blocks", false, "Break blocks that dont have structural integrity (e.g: grass)") { vis() && page == Page.Break }
     override val forceSilkTouch by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks") { vis() && page == Page.Break }
-    override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, "Blocks that wont be broken") { vis() && page == Page.Break }
+    override val forceFortunePickaxe by c.setting("Force Fortune Pickaxe", false, "Force fortune pickaxe when breaking blocks") { vis() && page == Page.Break }
+    override val minFortuneLevel by c.setting("Min Fortune Level", 1, 1..3, 1, "The minimum fortune level to use") { vis() && page == Page.Break && forceFortunePickaxe }
 
     // Placing
     override val rotateForPlace by c.setting("Rotate For Place", true, "Rotate towards block while placing") { vis() && page == Page.Place }

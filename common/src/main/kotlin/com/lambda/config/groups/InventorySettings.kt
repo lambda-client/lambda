@@ -24,10 +24,28 @@ class InventorySettings(
     c: Configurable,
     vis: () -> Boolean = { true },
 ) : InventoryConfig {
-    override val disposables by c.setting("Disposables", ItemUtils.defaultDisposables, "Items that will be ignored when checking for a free slot", vis)
-    override val accessEnderChest by c.setting("Access Ender Chest", false, "Allow access to the player's ender chest", vis)
-    override val swapWithDisposables by c.setting("Swap With Disposables", true, "Swap items with disposable ones", vis)
-    override val providerPriority by c.setting("Provider Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when retrieving the item from", vis)
-    override val storePriority by c.setting("Store Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when storing the item to", vis)
-    override val silentSwap by c.setting("Silent Swap", true, "", vis)
+    val page by c.setting("Inventory Page", Page.Container, "The page to open when the module is enabled", vis)
+
+    override val disposables by c.setting("Disposables", ItemUtils.defaultDisposables, "Items that will be included when checking for a free slot / are allowed to be droped when inventory is full") { vis() && page == Page.Container}
+    override val swapWithDisposables by c.setting("Swap With Disposables", true, "Swap items with disposable ones") { vis() && page == Page.Container}
+    override val providerPriority by c.setting("Provider Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when retrieving the item from") { vis() && page == Page.Container}
+    override val storePriority by c.setting("Store Priority", InventoryConfig.Priority.WithMinItems, "What container to prefer when storing the item to") { vis() && page == Page.Container}
+
+    override val accessShulkerBoxes by c.setting("Access Shulker Boxes", true, "Allow access to the player's shulker boxes") { vis() && page == Page.Access}
+    override val accessEnderChest by c.setting("Access Ender Chest", false, "Allow access to the player's ender chest") { vis() && page == Page.Access}
+    override val accessChests by c.setting("Access Chests", false, "Allow access to the player's normal chests") { vis() && page == Page.Access}
+    override val accessStashes by c.setting("Access Stashes", false, "Allow access to the player's stashes") { vis() && page == Page.Access}
+
+    override val useWoodenTools by c.setting("Use Wooden Tools", false, "Use wooden tools to mine blocks") { vis() && page == Page.Tools}
+    override val useStoneTools by c.setting("Use Stone Tools", false, "Use stone tools to mine blocks") { vis() && page == Page.Tools}
+    override val useIronTools by c.setting("Use Iron Tools", false, "Use iron tools to mine blocks") { vis() && page == Page.Tools}
+    override val useDiamondTools by c.setting("Use Diamond Tools", true, "Use diamond tools to mine blocks") { vis() && page == Page.Tools}
+    override val useNetheriteTools by c.setting("Use Netherite Tools", true, "Use netherite tools to mine blocks") { vis() && page == Page.Tools}
+    override val useGoldTools by c.setting("Use Gold Tools", false, "Use gold tools to mine blocks") { vis() && page == Page.Tools}
+    override val useShears by c.setting("Use Shears", true, "Use shears to mine blocks") { vis() && page == Page.Tools}
+    override val useFlintAndSteel by c.setting("Use Flint and Steel", true, "Use flint and steel to mine blocks?") { vis() && page == Page.Tools}
+
+    enum class Page {
+        Container, Access, Tools
+    }
 }

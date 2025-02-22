@@ -41,6 +41,14 @@ class ContainerSelection {
 		{ container -> container.matchingStacks(stackSelection).isNotEmpty() }
 
 	/**
+	 * Returns a function that checks whether a given MaterialContainer matches the criteria
+	 * defined in the provided ContainerSelection.
+	 */
+	@ContainerSelectionDsl
+	fun matches(containerSelection: ContainerSelection): (MaterialContainer) -> Boolean =
+		{ container -> containerSelection.matches(container) }
+
+	/**
 	 * Returns a function that matches containers whose rank is any of the types provided.
 	 */
 	@ContainerSelectionDsl

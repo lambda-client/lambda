@@ -39,6 +39,8 @@ interface BuildConfig {
     val breakConfirmation: BreakConfirmationMode
     val breaksPerTick: Int
     val forceSilkTouch: Boolean
+    val forceFortunePickaxe: Boolean
+    val minFortuneLevel: Int
     val ignoredBlocks: Set<Block>
 
     val breakWeakBlocks: Boolean

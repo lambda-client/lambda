@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.material
 
-import com.lambda.interaction.material.ContainerSelection.Companion.ContainerSelectionDsl
 import com.lambda.util.BlockUtils.item
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import net.minecraft.block.Block
@@ -109,6 +108,24 @@ class StackSelection {
         this.item = item
         return { it.item == item }
     }
+
+    /**
+     * Returns a predicate that matches if the `ItemStack`'s item is one of the specified items in the collection.
+     *
+     * @param items The collection of `Item` instances to match against.
+     * @return A predicate that checks if the `ItemStack`'s item is contained in the provided collection.
+     */
+    @StackSelectionDsl
+    fun isOneOfItems(items: Collection<Item>): (ItemStack) -> Boolean = { it.item in items }
+
+    /**
+     * Returns a predicate that checks if a given `ItemStack` exists within the provided collection of `ItemStack`s.
+     *
+     * @param stacks A collection of `ItemStack` instances to be checked against.
+     * @return A predicate that evaluates to `true` if the given `ItemStack` is within the specified collection, otherwise `false`.
+     */
+    @StackSelectionDsl
+    fun isOneOfStacks(stacks: Collection<ItemStack>): (ItemStack) -> Boolean = { it in stacks }
 
     /**
      * [isItem] returns a predicate that matches a specific [Item] instance.
@@ -218,12 +235,20 @@ class StackSelection {
             stack.shulkerBoxContents.all { it.isEmpty }
         }
         val EVERYTHING: (ItemStack) -> Boolean = { true }
+        val NOTHING: (ItemStack) -> Boolean = { false }
 
-        @ContainerSelectionDsl
-        fun Item.select(): StackSelection = selectStack { isItem(this@select) }
-        @ContainerSelectionDsl
-        fun ItemStack.select(): StackSelection = selectStack { isItemStack(this@select) }
-        @ContainerSelectionDsl
+        @StackSelectionDsl
+        fun Item.select() = selectStack { isItem(this@select) }
+        @StackSelectionDsl
+        fun ItemStack.select() = selectStack { isItemStack(this@select) }
+        @StackSelectionDsl
+        @JvmName("selectStacks")
+        fun Collection<ItemStack>.select() = selectStack { isOneOfStacks(this@select) }
+        @StackSelectionDsl
+        @JvmName("selectItems")
+        fun Collection<Item>.select() = selectStack { isOneOfItems(this@select) }
+
+        @StackSelectionDsl
         fun ((ItemStack) -> Boolean).select() = selectStack { this@select }
 
         /**

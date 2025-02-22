@@ -39,7 +39,7 @@ data class PlaceContext(
     override val distance: Double,
     override val expectedState: BlockState,
     override val checkedState: BlockState,
-    override val slotIndex: Int?,
+    override val hotbarIndex: Int,
     override val expectedPos: BlockPos,
     override val targetState: TargetState,
     val sneak: Boolean,

@@ -44,7 +44,8 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
-import com.lambda.interaction.request.hotbar.HotbarManager
+import com.lambda.interaction.request.hotbar.HotbarConfig
+import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
@@ -58,8 +59,8 @@ import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
+import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
-import net.minecraft.block.BlockState
 import net.minecraft.block.OperatorBlock
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.client.sound.SoundInstance
@@ -79,6 +80,7 @@ class BuildTask @Ta5kBuilder constructor(
     private val rotation: RotationConfig = TaskFlowModule.rotation,
     private val interact: InteractionConfig = TaskFlowModule.interact,
     private val inventory: InventoryConfig = TaskFlowModule.inventory,
+    private val hotbar: HotbarConfig = TaskFlowModule.hotbar,
 ) : Task<Unit>() {
     override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).string} b/s ${(placements / (age / 20.0 + 0.001)).string} p/s"
 
@@ -108,18 +110,23 @@ class BuildTask @Ta5kBuilder constructor(
             currentInteraction?.let { context ->
                 //                TaskFlowModule.drawables = listOf(context)
                 if (context.shouldRotate(build) && !context.rotation.done) return@let
+                if (!hotbar.request(HotbarRequest(context.hotbarIndex)).done) return@let
                 when (context) {
                     is PlaceContext -> {
                         if (context.sneak && !player.isSneaking) return@let
                         placeBlock(Hand.MAIN_HAND, context)
                     }
                     is BreakContext -> {
-                        updateBlockBreakingProgress(context, currentItemStack)
+                        if (updateBlockBreakingProgress(context, currentItemStack)) {
+                            if (interact.swingHand) player.swingHand(Hand.MAIN_HAND)
+                        }
                     }
                 }
             }
             instantBreaks.forEach { context ->
-                updateBlockBreakingProgress(context, currentItemStack)
+                if (updateBlockBreakingProgress(context, currentItemStack)) {
+                    if (interact.swingHand) player.swingHand(Hand.MAIN_HAND)
+                }
                 pendingInteractions.add(context)
             }
             instantBreaks.clear()
@@ -256,7 +263,7 @@ class BuildTask @Ta5kBuilder constructor(
                 when (ctx) {
                     is BreakContext -> {
                         if (ctx.buildConfig.breakConfirmation == BuildConfig.BreakConfirmationMode.AwaitThenBreak) {
-                            breakBlock(ctx)
+                            destroyBlock(ctx)
                         }
                         breaks++
                     }
@@ -363,11 +370,11 @@ class BuildTask @Ta5kBuilder constructor(
     private fun SafeContext.onBlockBreak(ctx: BreakContext) {
         when (ctx.buildConfig.breakConfirmation) {
             BuildConfig.BreakConfirmationMode.None -> {
-                breakBlock(ctx)
+                destroyBlock(ctx)
                 breaks++
             }
             BuildConfig.BreakConfirmationMode.BreakThenAwait -> {
-                breakBlock(ctx)
+                destroyBlock(ctx)
                 pendingInteractions.add(ctx)
             }
             BuildConfig.BreakConfirmationMode.AwaitThenBreak -> pendingInteractions.add(ctx)
@@ -377,7 +384,7 @@ class BuildTask @Ta5kBuilder constructor(
         breakingTicks = 0
     }
 
-    private fun SafeContext.breakBlock(ctx: BreakContext): Boolean {
+    private fun SafeContext.destroyBlock(ctx: BreakContext): Boolean {
         if (player.isBlockBreakingRestricted(world, ctx.expectedPos, interaction.currentGameMode)) return false
 
         if (!player.mainHandStack.item.canMine(ctx.checkedState, world, ctx.expectedPos, player))
@@ -412,11 +419,11 @@ class BuildTask @Ta5kBuilder constructor(
         if (!world.worldBorder.contains(ctx.expectedPos)) return false
 
         if (interaction.currentGameMode.isCreative) {
-            interaction.sendSequencedPacket(world) { sequence: Int ->
+            interaction.sendSequencedPacket(world) { sequence ->
                 onBlockBreak(ctx)
                 PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, ctx.expectedPos, ctx.result.side, sequence)
             }
-            interaction.blockBreakingCooldown = 5
+            interaction.blockBreakingCooldown = 0
             return true
         }
         if (breaking) return false
