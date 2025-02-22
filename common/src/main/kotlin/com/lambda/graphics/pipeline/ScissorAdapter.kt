@@ -44,8 +44,8 @@ object ScissorAdapter {
         val pos1 = rect.leftTop * RenderMain.scaleFactor
         val pos2 = rect.rightBottom * RenderMain.scaleFactor
 
-        val width = pos2.x - pos1.x
-        val height = pos2.y - pos1.y
+        val width = (pos2.x - pos1.x).coerceAtLeast(0.0)
+        val height = (pos2.y - pos1.y).coerceAtLeast(0.0)
 
         val y = mc.window.framebufferHeight - pos1.y - height
 
