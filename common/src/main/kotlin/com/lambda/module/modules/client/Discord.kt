@@ -106,7 +106,6 @@ object Discord : Module(
             if (player.isPartyOwner) deleteParty() else leaveParty()
             return
         }
-        }
 
         val (party, error) = createParty()
         if (error != null) warn("Failed to create a party: ${error.errorData}")
