@@ -140,6 +140,20 @@ object Discord : Module(
         currentParty = null
     }
 
+    /**
+     * Deletes the current party
+     */
+    fun SafeContext.partyDelete() {
+        if (!isDiscordLinked) return warn("You did not link your discord account")
+        if (!player.isInParty) return warn("You are not in a party")
+
+        val (_, error) = deleteParty()
+        if (error != null) return warn("Failed to delete the party: ${error.errorData}")
+
+        currentParty = null
+
+    }
+
     private suspend fun start() {
         if (rpc.connected) return
 

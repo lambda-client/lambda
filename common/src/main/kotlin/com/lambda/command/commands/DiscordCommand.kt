@@ -24,9 +24,11 @@ import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.module.modules.client.Discord.partyCreate
+import com.lambda.module.modules.client.Discord.partyDelete
 import com.lambda.module.modules.client.Discord.partyJoin
 import com.lambda.module.modules.client.Discord.partyLeave
 import com.lambda.module.modules.client.Discord.rpc
+import com.lambda.network.api.v1.endpoints.deleteParty
 import com.lambda.network.api.v1.endpoints.leaveParty
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
@@ -52,7 +54,7 @@ object DiscordCommand : LambdaCommand(
 
         required(literal("delete")) {
             execute {
-                runSafe { partyCreate() }
+                runSafe { partyDelete() }
             }
         }
 
