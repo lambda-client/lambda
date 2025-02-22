@@ -18,6 +18,7 @@
 package com.lambda.module.modules.client
 
 import com.lambda.Lambda.LOG
+import com.lambda.Lambda.gson
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
@@ -31,6 +32,7 @@ import com.lambda.network.api.v1.endpoints.login
 import com.lambda.network.api.v1.models.Authentication
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.network.api.v1.models.Authentication.Data
 import com.lambda.util.extension.isOffline
 import net.minecraft.client.network.AllowedAddressResolver
 import net.minecraft.client.network.ClientLoginNetworkHandler
@@ -41,6 +43,7 @@ import net.minecraft.network.encryption.NetworkEncryptionUtils
 import net.minecraft.network.packet.c2s.login.LoginHelloC2SPacket
 import net.minecraft.text.Text
 import java.math.BigInteger
+import java.util.*
 
 object Network : Module(
     name = "Network",
@@ -49,15 +52,16 @@ object Network : Module(
     enabledByDefault = true,
 ) {
     val authServer by setting("Auth Server", "auth.lambda-client.org")
-    val apiUrl: String by setting("API Server", "https://api.lambda-client.org")
+    val apiUrl by setting("API Server", "https://api.lambda-client.org")
     val apiVersion by setting("API Version", ApiVersion.V1)
 
     var apiAuth: Authentication? = null; private set // TODO: Cache
+    var deserialized: Data? = null; private set // gson is too stupid
     val accessToken: String
         get() = apiAuth?.accessToken ?: ""
 
     val SafeContext.isDiscordLinked: Boolean
-        get() = apiAuth?.decoded?.data?.discordId != null
+        get() = deserialized?.data?.discordId != null
 
     private lateinit var serverId: String
     private lateinit var hash: String
@@ -79,11 +83,12 @@ object Network : Module(
             // and posted to the sessionserver api
             val (authResponse, error) = login(mc.session.username, hash)
             if (error != null) {
-                LOG.debug("Unable to authenticate with the API: {}", error.errorData)
+                LOG.debug("Unable to authenticate with the API: ${error.message}")
                 return@listenOnceUnsafe false
             }
 
             apiAuth = authResponse
+            deserialized = gson.fromJson(String(Base64.getUrlDecoder().decode(accessToken.split(".")[1])), Data::class.java)
 
             // Destroy the listener
             true

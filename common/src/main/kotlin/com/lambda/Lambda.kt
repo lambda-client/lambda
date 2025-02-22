@@ -17,10 +17,6 @@
 
 package com.lambda
 
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.await
-import com.github.kittinunf.fuel.core.awaitResponse
-import com.github.kittinunf.fuel.core.awaitUnit
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.lambda.config.serializer.*
