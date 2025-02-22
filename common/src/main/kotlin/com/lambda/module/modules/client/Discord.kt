@@ -108,7 +108,7 @@ object Discord : Module(
         }
 
         val (party, error) = createParty()
-        if (error != null) warn("Failed to create a party: ${error.errorData}")
+        if (error != null) return warn("Failed to create a party: ${error.errorData}")
 
         currentParty = party
         partyUpdates { currentParty = it }
@@ -121,7 +121,7 @@ object Discord : Module(
         if (!isDiscordLinked) return warn("You did not link your discord account")
 
         val (party, error) = joinParty(id)
-        if (error != null) warn("Failed to join the party: ${error.errorData}")
+        if (error != null) return warn("Failed to join the party: ${error.errorData}")
 
         currentParty = party
         partyUpdates { currentParty = it }
