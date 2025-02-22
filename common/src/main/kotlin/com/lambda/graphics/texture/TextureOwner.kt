@@ -34,7 +34,7 @@ object TextureOwner {
         get() = textureMap.getValue(this@texture)[0]
 
     /**
-     * Retrieves a specific texture owned by the object by its index
+     * Retrieves the texture associated with the receiver object at the specified index
      *
      * @param index The index of the texture to retrieve
      * @return The texture [T] at the given index

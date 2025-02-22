@@ -179,10 +179,11 @@ abstract class Buffer(
     }
 
     /**
-     * Grows the backing buffers
+     * Allocates memory for each backing buffer using the specified size
      * This function handles the buffer binding
      *
      * @param size The size of the new buffer
+     * @return An [IllegalArgumentException] if validation fails; null if the allocation succeeds
      */
     open fun allocate(size: Long): Throwable? {
         if (!bufferValid(target, access))
@@ -203,9 +204,11 @@ abstract class Buffer(
     }
 
     /**
-     * Create a new buffer storage
+     * Allocates new storage for the OpenGL buffer using the provided data
      * This function cannot be called twice for the same buffer
      * This function handles the buffer binding
+     *
+     * @return [IllegalArgumentException] for an invalid target or usage; null if storage allocation is successful
      */
     open fun storage(data: ByteBuffer): Throwable? {
         if (!bufferValid(target, access))
@@ -226,11 +229,12 @@ abstract class Buffer(
     }
 
     /**
-     * Create a new buffer storage
+     * Allocates storage for the buffer object
      * This function cannot be called twice for the same buffer
      * This function handles the buffer binding
      *
      * @param size The size of the storage buffer
+     * @return [IllegalArgumentException] if the target or usage is invalid; null if storage allocation succeeds
      */
     open fun storage(size: Long): Throwable? {
         if (!bufferValid(target, access))
@@ -251,12 +255,12 @@ abstract class Buffer(
     }
 
     /**
-     * Maps all or part of a buffer object's data store into the client's address space
+     * Maps a specified region of the buffer's data store into client memory, processes it using the provided lambda, and then unmaps the buffer
      *
      * @param size      Specifies the length of the range to be mapped.
      * @param offset    Specifies the starting offset within the buffer of the range to be mapped.
      * @param block     Lambda scope with the mapped buffer passed in
-     * @return          Error encountered during the mapping process
+     * @return          [IllegalArgumentException] if there were errors during the validation, mapping or unmapping, null otherwise
      */
     open fun map(
         size: Long,
@@ -311,7 +315,9 @@ abstract class Buffer(
     }
 
     /**
-     * Sets the given data into the client mapped memory and executes the provided processing function to manage data transfer.
+     * Uploads the specified data to the buffer starting at the given offset
+     *
+     * This abstract function should be implemented to perform the actual data transfer into the buffer
      *
      * @param data      Data to set in memory
      * @param offset    The starting offset within the buffer of the range to be mapped
