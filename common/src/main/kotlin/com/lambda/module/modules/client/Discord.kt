@@ -20,20 +20,22 @@ package com.lambda.module.modules.client
 import com.lambda.Lambda
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
-import com.lambda.event.events.ConnectionEvent
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafeConcurrently
+import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.WorldEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
 import com.lambda.network.api.v1.models.Party
 import com.lambda.module.Module
+import com.lambda.module.modules.client.Network.isDiscordLinked
 import com.lambda.module.modules.client.Network.updateToken
 import com.lambda.module.tag.ModuleTag
 import com.lambda.network.api.v1.endpoints.createParty
-import com.lambda.network.api.v1.endpoints.editParty
+import com.lambda.network.api.v1.endpoints.deleteParty
 import com.lambda.network.api.v1.endpoints.joinParty
 import com.lambda.network.api.v1.endpoints.leaveParty
 import com.lambda.network.api.v1.endpoints.linkDiscord
+import com.lambda.network.api.v1.endpoints.partyUpdates
 import com.lambda.threading.runConcurrent
-import com.lambda.threading.runSafe
-import com.lambda.util.Communication
 import com.lambda.util.Communication.toast
 import com.lambda.util.Communication.warn
 import com.lambda.util.Nameable
@@ -64,7 +66,6 @@ object Discord : Module(
 
     /* Party settings */
     private val createByDefault by setting("Create By Default", true, description = "Create parties on") { page == Page.Party }
-    private val maxPlayers by setting("Max Players", 10, 2..20) { page == Page.Party }.onValueChange { _, _ -> if (player.isPartyOwner) edit() } // ToDo: Avoid spam requests
 
     val rpc = KDiscordIPC(Lambda.APP_ID, scope = EventFlow.lambdaScope)
 
@@ -76,72 +77,72 @@ object Discord : Module(
     val PlayerEntity.isPartyOwner
         get() = uuid == currentParty?.leader?.uuid
 
-    val PlayerEntity.isInParty
-        get() = currentParty?.players?.any { it.uuid == uuid }
+    val PlayerEntity.isInParty: Boolean
+        get() = currentParty?.players?.any { it.uuid == uuid } ?: false
 
     init {
         rpc.subscribe()
 
-        listenUnsafeConcurrently<ConnectionEvent.Connect.Post> {
-            // FixMe: We have to wait even though this is the last event until toSafe() != null
-            //  because of timing
-            delay(3000)
-            runSafe { handleLoop() }
+        // ToDo: Nametag for friends when ref/ui is merged
+        // listen<RenderEvent.World>()
+
+        listenConcurrently<WorldEvent.Join> {
+            // If the player is in a party and this most likely means that the `onEnable`
+            // block ran and is already handling the activity
+            if (player.isInParty) return@listenConcurrently
+            handleLoop()
         }
 
-        onEnable { runConcurrent { startDiscord(); handleLoop() } }
-        onDisable { stopDiscord() }
+        onEnable { runConcurrent { start(); handleLoop() } }
+        onDisable { stop() }
     }
 
-    fun createParty() {
-        if (discordAuth == null) return toast("Can not interact with the api (are you offline?)")
+    /**
+     * Creates a new party, leaves or delete the current party if there is one
+     */
+    fun SafeContext.partyCreate() {
+        if (!isDiscordLinked) return warn("You did not link your discord account")
+        if (!player.isInParty) {
+            if (player.isPartyOwner) deleteParty() else leaveParty()
+            return
+        }
 
-        val (party, error) = createParty(maxPlayers, true)
-        if (error != null) toast("Failed to create a party: ${error.message}", Communication.LogLevel.WARN)
+        val (party, error) = createParty()
+        if (error != null) warn("Failed to create a party: ${error.errorData}")
 
         currentParty = party
+        partyUpdates { currentParty = it }
     }
 
     /**
      * Joins a new party with the invitation ID
      */
-    fun join(id: String) {
-        if (discordAuth == null) return toast("Can not interact with the api (are you offline?)")
+    fun SafeContext.partyJoin(id: String) {
+        if (!isDiscordLinked) return warn("You did not link your discord account")
 
         val (party, error) = joinParty(id)
-        if (error != null) toast("Failed to join the party: ${error.message}", Communication.LogLevel.WARN)
+        if (error != null) warn("Failed to join the party: ${error.errorData}")
 
         currentParty = party
-    }
-
-    /**
-     * Triggers a party edit request if you are the owner
-     */
-    fun edit() {
-        if (discordAuth == null) return toast("Can not interact with the api (are you offline?)")
-
-        val (party, error) = editParty(maxPlayers)
-        if (error != null) toast("Failed to edit the party: ${error.message}", Communication.LogLevel.WARN)
-
-        currentParty = party
+        partyUpdates { currentParty = it }
     }
 
     /**
      * Leaves the current party
      */
-    fun leave() {
-        if (discordAuth == null || currentParty == null) return toast("Can not interact with the api (are you offline?)")
+    fun SafeContext.partyLeave() {
+        if (!isDiscordLinked) return warn("You did not link your discord account")
+        if (!player.isInParty) return warn("You are not in a party")
 
         val (_, error) = leaveParty()
-        if (error != null) return toast("Failed to edit the party: ${error.message}", Communication.LogLevel.WARN)
+        if (error != null) return warn("Failed to leave the party: ${error.errorData}")
 
         currentParty = null
     }
 
-    private suspend fun startDiscord() {
+    private suspend fun start() {
         if (rpc.connected) return
 
-        rpc.subscribe()
         runConcurrent { rpc.connect() } // TODO: Create a function that will wait until x seconds has passed or if the connection is successful
         delay(1000)
 
@@ -152,18 +153,15 @@ object Discord : Module(
             return toast("Failed to link the discord account to the minecraft auth")
         }
 
-        authResp?.let { updateToken(it) }
+        updateToken(authResp)
         discordAuth = auth
     }
 
-    private fun stopDiscord() {
-        if (!rpc.connected) return
-
-        rpc.disconnect()
+    private fun stop() {
+        if (rpc.connected) rpc.disconnect()
     }
 
     private fun KDiscordIPC.subscribe() {
-        // ToDO: Get party on join event
         on<ReadyEvent> {
             subscribe(DiscordEvent.VoiceChannelSelect)
             subscribe(DiscordEvent.VoiceStateCreate)
@@ -181,14 +179,17 @@ object Discord : Module(
     }
 
     private suspend fun SafeContext.handleLoop() {
-        if (createByDefault) createParty(maxPlayers)
+        if (isDiscordLinked) {
+            if (createByDefault) createParty()
+            partyUpdates { currentParty = it }
+        }
 
         while (rpc.connected) {
             update()
             delay(delay)
         }
 
-        leave()
+        if (isDiscordLinked) leaveParty()
     }
 
     private suspend fun SafeContext.update() {
@@ -229,8 +230,6 @@ object Discord : Module(
         HEALTH({ "${mc.player?.health ?: 0} HP" }),
         HUNGER({ "${mc.player?.hungerManager?.foodLevel ?: 0} Hunger" }),
         DIMENSION({ dimensionName }),
-        COORDINATES({ "Coords: ${player.blockPos.toShortString()}" }),
-        SERVER({ mc.currentServerEntry?.address ?: "Not Connected" }),
         FPS({ "${mc.currentFps} FPS" });
     }
 }

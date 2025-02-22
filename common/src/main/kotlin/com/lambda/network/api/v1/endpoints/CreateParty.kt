@@ -18,28 +18,15 @@
 package com.lambda.network.api.v1.endpoints
 
 import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.Headers
 import com.github.kittinunf.fuel.core.extensions.authentication
-import com.github.kittinunf.fuel.core.extensions.jsonBody
-import com.github.kittinunf.fuel.gson.jsonBody
 import com.github.kittinunf.fuel.gson.responseObject
 import com.lambda.module.modules.client.Network
 import com.lambda.module.modules.client.Network.apiUrl
 import com.lambda.module.modules.client.Network.apiVersion
 import com.lambda.network.api.v1.models.Party
 
-fun createParty(
-	// The maximum number of players in the party.
-	// example: 10
-	maxPlayers: Int = 10,
-
-	// Whether the party is public or not.
-	// If false can only be joined by invite.
-	// example: true
-	public: Boolean = true,
-) =
+fun createParty() =
 	Fuel.post("${apiUrl}/api/${apiVersion.value}/party/create")
-		.jsonBody("""{ "max_players": $maxPlayers }""")
 		.authentication()
 		.bearer(Network.accessToken)
 		.responseObject<Party>().third

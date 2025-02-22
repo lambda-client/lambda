@@ -18,6 +18,10 @@
 package com.lambda.network.api.v1.models
 
 import com.google.gson.annotations.SerializedName
+import com.lambda.Lambda
+import java.time.Instant
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 data class Authentication(
     // The access token to use for the API
@@ -34,4 +38,21 @@ data class Authentication(
     // example: Bearer
     @SerializedName("token_type")
     val tokenType: String,
-)
+) {
+    @OptIn(ExperimentalEncodingApi::class)
+    val decoded = Lambda.gson.fromJson(Base64.decode(accessToken).toString(), Payload::class.java)
+
+    data class Payload(
+        @SerializedName("nbf")
+        val notBefore: Instant,
+
+        @SerializedName("iat")
+        val issuedAt: Instant,
+
+        @SerializedName("exp")
+        val expirationDate: Instant,
+
+        @SerializedName("data")
+        val data: Player,
+    )
+}

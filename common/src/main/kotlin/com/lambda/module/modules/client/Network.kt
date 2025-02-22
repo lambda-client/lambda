@@ -17,9 +17,9 @@
 
 package com.lambda.module.modules.client
 
-import com.github.kittinunf.fuel.core.FuelManager
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
+import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.ConnectionEvent.Connect.Login.EncryptionRequest
@@ -31,9 +31,7 @@ import com.lambda.network.api.v1.endpoints.login
 import com.lambda.network.api.v1.models.Authentication
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Communication
-import com.lambda.util.Communication.debug
-import com.lambda.util.Communication.toast
+import com.lambda.util.extension.isOffline
 import net.minecraft.client.network.AllowedAddressResolver
 import net.minecraft.client.network.ClientLoginNetworkHandler
 import net.minecraft.client.network.ServerAddress
@@ -43,7 +41,6 @@ import net.minecraft.network.encryption.NetworkEncryptionUtils
 import net.minecraft.network.packet.c2s.login.LoginHelloC2SPacket
 import net.minecraft.text.Text
 import java.math.BigInteger
-import java.sql.Time
 
 object Network : Module(
     name = "Network",
@@ -51,13 +48,16 @@ object Network : Module(
     defaultTags = setOf(ModuleTag.CLIENT),
     enabledByDefault = true,
 ) {
-    var authServer by setting("Auth Server", "auth.lambda-client.org")
-    var apiUrl: String by setting("API Server", "https://api.lambda-client.org")
-    var apiVersion by setting("API Version", ApiVersion.V1)
+    val authServer by setting("Auth Server", "auth.lambda-client.org")
+    val apiUrl: String by setting("API Server", "https://api.lambda-client.org")
+    val apiVersion by setting("API Version", ApiVersion.V1)
 
     var apiAuth: Authentication? = null; private set // TODO: Cache
     val accessToken: String
         get() = apiAuth?.accessToken ?: ""
+
+    val SafeContext.isDiscordLinked: Boolean
+        get() = apiAuth?.decoded?.data?.discordId != null
 
     private lateinit var serverId: String
     private lateinit var hash: String
@@ -90,7 +90,8 @@ object Network : Module(
         }
 
         listenUnsafeConcurrently<ClientEvent.Startup> {
-            // ToDo: Check if player is online before connecting
+            if (mc.gameProfile.isOffline) return@listenUnsafeConcurrently
+
             val addddd = ServerAddress.parse(authServer)
             val connection = ClientConnection(CLIENTBOUND)
             val addr = AllowedAddressResolver.DEFAULT.resolve(addddd)
@@ -106,7 +107,7 @@ object Network : Module(
         }
     }
 
-    internal fun updateToken(auth: Authentication) { apiAuth = auth }
+    internal fun updateToken(auth: Authentication?) { apiAuth = auth }
 
     enum class ApiVersion(val value: String) {
         // We can use @Deprecated("Not supported") to remove old API versions in the future

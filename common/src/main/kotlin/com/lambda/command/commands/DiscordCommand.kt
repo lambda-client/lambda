@@ -23,21 +23,43 @@ import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.module.modules.client.Discord
+import com.lambda.module.modules.client.Discord.partyCreate
+import com.lambda.module.modules.client.Discord.partyJoin
+import com.lambda.module.modules.client.Discord.partyLeave
 import com.lambda.module.modules.client.Discord.rpc
+import com.lambda.network.api.v1.endpoints.leaveParty
 import com.lambda.threading.runConcurrent
+import com.lambda.threading.runSafe
 import com.lambda.util.extension.CommandBuilder
 
 object DiscordCommand : LambdaCommand(
     name = "discord",
     description = "Discord Rich Presence commands",
-    usage = "rpc <join [id]>"
+    usage = "rpc <create | leave | delete | join [id] | accept [user] | refuse [user]>"
 ) {
     override fun CommandBuilder.create() {
+        required(literal("create")) {
+            execute {
+                runSafe { partyCreate() }
+            }
+        }
+
+        required(literal("leave")) {
+            execute {
+                runSafe { partyLeave() }
+            }
+        }
+
+        required(literal("delete")) {
+            execute {
+                runSafe { partyCreate() }
+            }
+        }
+
         required(literal("join")) {
             required(word("id")) { id ->
                 execute {
-                    Discord.join(id().value())
+                    runSafe { partyJoin(id().value()) }
                 }
             }
         }
@@ -55,12 +77,6 @@ object DiscordCommand : LambdaCommand(
                 execute {
                     runConcurrent { rpc.activityManager.refuseJoinRequest(user().value()) }
                 }
-            }
-        }
-
-        required(literal("create")) {
-            execute {
-                Discord.createParty()
             }
         }
     }

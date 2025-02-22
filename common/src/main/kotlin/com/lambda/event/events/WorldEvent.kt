@@ -36,6 +36,10 @@ import net.minecraft.world.chunk.WorldChunk
  * occurrences in the game world.
  */
 sealed class WorldEvent {
+    // ToDo: Add doc
+    // Represents the player joining the client world
+    class Join() : Event
+
     /**
      * Represents an event specific to chunk operations within the world.
      *

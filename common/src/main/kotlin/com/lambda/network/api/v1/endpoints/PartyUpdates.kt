@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,27 +17,30 @@
 
 package com.lambda.network.api.v1.endpoints
 
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.extensions.authentication
-import com.github.kittinunf.fuel.core.extensions.jsonBody
-import com.github.kittinunf.fuel.gson.responseObject
-import com.lambda.module.modules.client.Network
+import com.lambda.Lambda
 import com.lambda.module.modules.client.Network.apiUrl
 import com.lambda.module.modules.client.Network.apiVersion
 import com.lambda.network.api.v1.models.Party
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 
-fun editParty(
-	// The maximum number of players in the party.
-	// example: 10
-	maxPlayers: Int = 10,
+// Waiting for https://github.com/kittinunf/fuel/issues/989 before changing this
+fun partyUpdates(block: (Party) -> Unit) {
+	HttpClient.newHttpClient().sendAsync(
+		HttpRequest.newBuilder()
+			.uri(URI.create("${apiUrl}/api/${apiVersion.value}/party/listen"))
+			.header("Accept", "text/event-stream")
+			.build(),
+		HttpResponse.BodyHandlers.ofLines()
+	).thenAccept { response ->
+		response.body().forEach {
+			if (!it.startsWith("data:")) return@forEach
 
-	// Whether the party is public or not.
-	// If false can only be joined by invite.
-	// example: true
-	// public: Boolean = true,
-) =
-	Fuel.patch("${apiUrl}/api/${apiVersion.value}/party/edit")
-		.jsonBody("""{ "max_players": $maxPlayers }""")
-		.authentication()
-		.bearer(Network.accessToken)
-		.responseObject<Party>().third
+			val data = it.substring(5).trim()
+			val party = Lambda.gson.fromJson(data, Party::class.java)
+			block(party)
+		}
+	}.join()
+}
