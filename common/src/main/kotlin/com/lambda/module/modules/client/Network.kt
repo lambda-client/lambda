@@ -17,7 +17,6 @@
 
 package com.lambda.module.modules.client
 
-import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
 import com.lambda.Lambda.mc
@@ -34,7 +33,6 @@ import com.lambda.network.api.v1.models.Authentication
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.network.api.v1.models.Authentication.Data
-import com.lambda.util.Communication.info
 import com.lambda.util.extension.isOffline
 import net.minecraft.client.network.AllowedAddressResolver
 import net.minecraft.client.network.ClientLoginNetworkHandler
@@ -53,14 +51,14 @@ object Network : Module(
     defaultTags = setOf(ModuleTag.CLIENT),
     enabledByDefault = true,
 ) {
-    val authServer by setting("Auth Server", "auth.lambda-client.org")
-    val apiUrl by setting("API Server", "https://api.lambda-client.org")
-    val apiVersion by setting("API Version", ApiVersion.V1)
+    val authServer  by setting("Auth Server", "auth.lambda-client.org")
+    val apiUrl      by setting("API Server", "https://api.lambda-client.org")
+    val apiVersion  by setting("API Version", ApiVersion.V1)
 
-    var apiAuth: Authentication? = null; private set // TODO: Cache
-    var deserialized: Data? = null; private set // gson is too stupid
+    private var auth: Authentication? = null // TODO: Cache
+    private var deserialized: Data? = null
     val accessToken: String
-        get() = apiAuth?.accessToken ?: ""
+        get() = auth?.accessToken ?: ""
 
     val SafeContext.isDiscordLinked: Boolean
         get() = deserialized?.data?.discordId != null
@@ -80,53 +78,42 @@ object Network : Module(
         }
 
         listenOnceUnsafe<ConnectionEvent.Connect.Post> {
-            if (!::hash.isInitialized) {
-                if (!authenticate()) return@listenOnceUnsafe false
-            }
+            if (mc.gameProfile.isOffline) return@listenOnceUnsafe true
 
             // If we log in right as the client responds to the encryption request, we start
             // a race condition where the game server haven't acknowledged the packets
             // and posted to the sessionserver api
-            val (authResponse, error) = login(mc.session.username, hash)
+            val (resp, error) = login(mc.session.username, hash)
             if (error != null) {
                 LOG.debug("Unable to authenticate: ${error.message}")
                 return@listenOnceUnsafe false
             }
 
-            apiAuth = authResponse
+            auth = resp
             deserialized = gson.fromJson(String(Base64.getUrlDecoder().decode(accessToken.split(".")[1])), Data::class.java)
 
-            LOG.info("Successfully authenticated")
             true
         }
 
         listenUnsafeConcurrently<ClientEvent.Startup> { authenticate() }
     }
 
-    private fun authenticate(): Boolean {
-        if (mc.gameProfile.isOffline) return true
-
-        val addddd = ServerAddress.parse(authServer)
+    private fun authenticate() {
+        val address = ServerAddress.parse(authServer)
         val connection = ClientConnection(CLIENTBOUND)
-        val addr = AllowedAddressResolver.DEFAULT.resolve(addddd)
+        val resolved = AllowedAddressResolver.DEFAULT.resolve(address)
             .map { it.inetSocketAddress }.get()
 
-        runCatching {
-            ClientConnection.connect(addr, mc.options.shouldUseNativeTransport(), connection)
-                .syncUninterruptibly()
-        }.onFailure {
-            return false
-        }
+        ClientConnection.connect(resolved, mc.options.shouldUseNativeTransport(), connection)
+            .syncUninterruptibly()
 
         val handler = ClientLoginNetworkHandler(connection, mc, null, null, false, null) { Text.empty() }
 
-        connection.connect(addr.hostName, addr.port, handler)
+        connection.connect(resolved.hostName, resolved.port, handler)
         connection.send(LoginHelloC2SPacket(mc.session.username, mc.session.uuidOrNull))
-
-        return true
     }
 
-    internal fun updateToken(auth: Authentication?) { apiAuth = auth }
+    internal fun updateToken(auth: Authentication?) { this.auth = auth }
 
     enum class ApiVersion(val value: String) {
         // We can use @Deprecated("Not supported") to remove old API versions in the future
