@@ -43,8 +43,4 @@ data class Party(
     // The list of players in the party.
 	@SerializedName("players")
     val players: List<Player>,
-
-    // The settings of the party
-	@SerializedName("settings")
-    val settings: Settings,
 )

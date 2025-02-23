@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.client
 
+import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
 import com.lambda.Lambda.mc
@@ -33,6 +34,7 @@ import com.lambda.network.api.v1.models.Authentication
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.network.api.v1.models.Authentication.Data
+import com.lambda.util.Communication.info
 import com.lambda.util.extension.isOffline
 import net.minecraft.client.network.AllowedAddressResolver
 import net.minecraft.client.network.ClientLoginNetworkHandler
@@ -78,38 +80,50 @@ object Network : Module(
         }
 
         listenOnceUnsafe<ConnectionEvent.Connect.Post> {
+            if (!::hash.isInitialized) {
+                if (!authenticate()) return@listenOnceUnsafe false
+            }
+
             // If we log in right as the client responds to the encryption request, we start
             // a race condition where the game server haven't acknowledged the packets
             // and posted to the sessionserver api
             val (authResponse, error) = login(mc.session.username, hash)
             if (error != null) {
-                LOG.debug("Unable to authenticate with the API: ${error.message}")
+                LOG.debug("Unable to authenticate: ${error.message}")
                 return@listenOnceUnsafe false
             }
 
             apiAuth = authResponse
             deserialized = gson.fromJson(String(Base64.getUrlDecoder().decode(accessToken.split(".")[1])), Data::class.java)
 
-            // Destroy the listener
+            LOG.info("Successfully authenticated")
             true
         }
 
-        listenUnsafeConcurrently<ClientEvent.Startup> {
-            if (mc.gameProfile.isOffline) return@listenUnsafeConcurrently
+        listenUnsafeConcurrently<ClientEvent.Startup> { authenticate() }
+    }
 
-            val addddd = ServerAddress.parse(authServer)
-            val connection = ClientConnection(CLIENTBOUND)
-            val addr = AllowedAddressResolver.DEFAULT.resolve(addddd)
-                .map { it.inetSocketAddress }.get()
+    private fun authenticate(): Boolean {
+        if (mc.gameProfile.isOffline) return true
 
+        val addddd = ServerAddress.parse(authServer)
+        val connection = ClientConnection(CLIENTBOUND)
+        val addr = AllowedAddressResolver.DEFAULT.resolve(addddd)
+            .map { it.inetSocketAddress }.get()
+
+        runCatching {
             ClientConnection.connect(addr, mc.options.shouldUseNativeTransport(), connection)
                 .syncUninterruptibly()
-
-            val handler = ClientLoginNetworkHandler(connection, mc, null, null, false, null) { Text.empty() }
-
-            connection.connect(addr.hostName, addr.port, handler)
-            connection.send(LoginHelloC2SPacket(mc.session.username, mc.session.uuidOrNull))
+        }.onFailure {
+            return false
         }
+
+        val handler = ClientLoginNetworkHandler(connection, mc, null, null, false, null) { Text.empty() }
+
+        connection.connect(addr.hostName, addr.port, handler)
+        connection.send(LoginHelloC2SPacket(mc.session.username, mc.session.uuidOrNull))
+
+        return true
     }
 
     internal fun updateToken(auth: Authentication?) { apiAuth = auth }

@@ -89,12 +89,15 @@ object Discord : Module(
         listenConcurrently<WorldEvent.Join> {
             // If the player is in a party and this most likely means that the `onEnable`
             // block ran and is already handling the activity
-            if (player.isInParty) return@listenConcurrently
+            if (rpc.connected && player.isInParty) return@listenConcurrently
+
+            start()
             handleLoop()
+            stop()
         }
 
-        onEnable { runConcurrent { start(); handleLoop() } }
         onDisable { stop() }
+        onEnable { runConcurrent { start(); handleLoop() } }
     }
 
     /**
@@ -104,11 +107,10 @@ object Discord : Module(
         if (!isDiscordLinked) return warn("You did not link your discord account")
         if (player.isInParty) {
             if (player.isPartyOwner) deleteParty() else leaveParty()
-            return
         }
 
         val (party, error) = createParty()
-        if (error != null) return warn("Failed to create a party: ${error.errorData}")
+        if (error != null) return warn("Failed to create a party: ${error.exception}")
 
         currentParty = party
         partyUpdates { currentParty = it }
@@ -148,7 +150,7 @@ object Discord : Module(
         if (!player.isInParty) return warn("You are not in a party")
 
         val (_, error) = deleteParty()
-        if (error != null) return warn("Failed to delete the party: ${error.errorData}")
+        if (error != null) return warn("Failed to delete the party: ${error.exception}")
 
         currentParty = null
 
@@ -217,7 +219,7 @@ object Discord : Module(
             smallImage("https://mc-heads.net/avatar/${mc.gameProfile.id}/nohelm", mc.gameProfile.name)
 
             if (party != null) {
-                party(party.id.toString(), party.players.size, party.settings.maxPlayers)
+                party(party.id.toString(), party.players.size, 20) // Placeholder while
                 secrets(party.joinSecret)
             } else {
                 button("Download", "https://github.com/lambda-client/lambda")

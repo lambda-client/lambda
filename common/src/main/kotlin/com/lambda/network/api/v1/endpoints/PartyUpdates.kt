@@ -18,29 +18,35 @@
 package com.lambda.network.api.v1.endpoints
 
 import com.lambda.Lambda
+import com.lambda.module.modules.client.Network.accessToken
 import com.lambda.module.modules.client.Network.apiUrl
 import com.lambda.module.modules.client.Network.apiVersion
 import com.lambda.network.api.v1.models.Party
+import com.lambda.threading.runConcurrent
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 
 // Waiting for https://github.com/kittinunf/fuel/issues/989 before changing this
-fun partyUpdates(block: (Party) -> Unit) {
-	HttpClient.newHttpClient().sendAsync(
-		HttpRequest.newBuilder()
-			.uri(URI.create("${apiUrl}/api/${apiVersion.value}/party/listen"))
-			.header("Accept", "text/event-stream")
-			.build(),
-		HttpResponse.BodyHandlers.ofLines()
-	).thenAccept { response ->
-		response.body().forEach {
-			if (!it.startsWith("data:")) return@forEach
+fun partyUpdates(block: (Party?) -> Unit) {
+	runConcurrent {
+		HttpClient.newHttpClient().sendAsync(
+			HttpRequest.newBuilder()
+				.uri(URI.create("${apiUrl}/api/${apiVersion.value}/party/listen"))
+				.header("Accept", "text/event-stream")
+				.header("Authorization", "Bearer $accessToken")
+				.build(),
+			HttpResponse.BodyHandlers.ofLines()
+		).thenAccept { response ->
+			response.body().forEach {
+				if (!it.startsWith("data:")) return@forEach
 
-			val data = it.substring(5).trim()
-			val party = Lambda.gson.fromJson(data, Party::class.java)
-			block(party)
-		}
-	}.join()
+				val data = it.substring(5).trim()
+				val party = runCatching { Lambda.gson.fromJson(data, Party::class.java) }.getOrNull()
+
+				block(party)
+			}
+		}.join()
+	}
 }
