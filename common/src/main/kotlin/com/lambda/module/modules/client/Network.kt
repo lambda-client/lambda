@@ -47,7 +47,7 @@ import java.util.*
 
 object Network : Module(
     name = "Network",
-    description = "...",
+    description = "Lambda Authentication",
     defaultTags = setOf(ModuleTag.CLIENT),
     enabledByDefault = true,
 ) {
@@ -55,7 +55,7 @@ object Network : Module(
     val apiUrl      by setting("API Server", "https://api.lambda-client.org")
     val apiVersion  by setting("API Version", ApiVersion.V1)
 
-    private var auth: Authentication? = null // TODO: Cache
+    private var auth: Authentication? = null
     private var deserialized: Data? = null
     val accessToken: String
         get() = auth?.accessToken ?: ""
