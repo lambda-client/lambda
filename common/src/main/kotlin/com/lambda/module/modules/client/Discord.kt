@@ -76,7 +76,7 @@ object Discord : Module(
     private suspend fun start() {
         if (rpc.connected) return
 
-        runConcurrent { rpc.connect() } // TODO: Create a function that will wait until x seconds has passed or if the connection is successful
+        runConcurrent { rpc.connect() }
         delay(1000)
 
         val auth = rpc.applicationManager.authenticate()
