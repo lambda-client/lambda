@@ -18,25 +18,22 @@
 package com.lambda.interaction.construction.context
 
 import com.lambda.config.groups.BuildConfig
+import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.rotation.RotationRequest
-import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.world.raycast.RayCastUtils.distanceTo
 import net.minecraft.block.BlockState
 import net.minecraft.client.network.ClientPlayNetworkHandler
-import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
-import net.minecraft.world.BlockView
 import java.awt.Color
 
 data class BreakContext(
@@ -77,21 +74,11 @@ data class BreakContext(
         }
     }
 
-    override fun shouldRotate(config: BuildConfig) = config.rotateForBreak
+    override fun shouldRotate(config: BuildConfig) = config.breakSettings.rotateForBreak
 
     override fun SafeContext.buildRenderer() {
         withState(checkedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side))
         withState(checkedState, expectedPos, sideColor, result.side)
-    }
-
-    fun getBlockBreakingProgress(breakingTicks: Int, player: PlayerEntity, world: BlockView): Int {
-        val currentItemStack = player.mainHandStack ?: return -1
-        val breakDelta = checkedState.calcItemBlockBreakingDelta(player, world, expectedPos, currentItemStack)
-        val progress = breakDelta * breakingTicks
-        return if (progress > 0.0f)
-            ((progress / buildConfig.breakThreshold) * 10.0f).toInt()
-        else
-            -1
     }
 
     fun startBreakPacket(sequence: Int, connection: ClientPlayNetworkHandler) =

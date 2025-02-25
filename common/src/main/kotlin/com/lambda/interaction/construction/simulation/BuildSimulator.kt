@@ -118,7 +118,7 @@ object BuildSimulator {
         }
 
         /* block should be ignored */
-        if (state.block in build.ignoredBlocks && target.type == TargetState.Type.AIR) {
+        if (state.block in build.breakSettings.ignoredBlocks && target.type == TargetState.Type.AIR) {
             return BuildResult.Ignored(pos)
         }
 
@@ -339,7 +339,7 @@ object BuildSimulator {
         val state = blockState(pos)
 
         /* is a block that will be destroyed by breaking adjacent blocks */
-        if (build.breakWeakBlocks && state.block.hardness == 0f && !state.isAir) {
+        if (build.breakSettings.breakWeakBlocks && state.block.hardness == 0f && !state.isAir) {
             acc.add(BuildResult.Ignored(pos))
             return acc
         }
@@ -414,7 +414,7 @@ object BuildSimulator {
                     player.inventory.selectedSlot,
                     instantBreakable(state, pos),
                     build,
-					inventory
+                    inventory
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
                 return acc
@@ -487,10 +487,10 @@ object BuildSimulator {
             return acc
         }
 
-        val toolSelection = if (build.forceSilkTouch) {
+        val toolSelection = if (build.breakSettings.forceSilkTouch) {
             selectStack { isOneOfItems(bestTools) and hasEnchantment(Enchantments.SILK_TOUCH) }
-        } else if (build.forceFortunePickaxe) {
-            selectStack { isOneOfItems(bestTools) and hasEnchantment(Enchantments.FORTUNE, build.minFortuneLevel) }
+        } else if (build.breakSettings.forceFortunePickaxe) {
+            selectStack { isOneOfItems(bestTools) and hasEnchantment(Enchantments.FORTUNE, build.breakSettings.minFortuneLevel) }
         } else {
             bestTools.select()
         }

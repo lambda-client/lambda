@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,21 +15,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.groups
+package com.lambda.interaction.request.breaking
 
-interface BuildConfig {
-    // General
-    val pathing: Boolean
-    val stayInRange: Boolean
-    val collectDrops: Boolean
-    val maxPendingInteractions: Int
-    val interactionTimeout: Int
+import com.lambda.interaction.construction.context.BreakContext
+import com.lambda.interaction.request.Priority
+import com.lambda.interaction.request.Request
 
-    // Breaking
-    val breakSettings: BreakSettings
-
-    // Placing
-    val rotateForPlace: Boolean
-    val placeConfirmation: Boolean
-    val placementsPerTick: Int
+data class BreakRequest(
+    val primaryContext: BreakContext,
+    val secondaryContext: BreakContext? = null,
+    val prio: Priority = 0,
+    val onBreak: () -> Unit
+) : Request(prio) {
+    override val done: Boolean
+        get() = false
+    val contexts = listOf(primaryContext, secondaryContext)
 }
