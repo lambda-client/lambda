@@ -59,7 +59,9 @@ object BreakManager : RequestHandler<BreakRequest>() {
 
     init {
         listen<TickEvent.Pre>(Int.MIN_VALUE) {
-            updateRequest(true) { true }
+            info("${breakingInfos.count { it != null }}")
+
+            updateRequest { true }
 
             for (it in breakingInfos.reversed()) {
                 if (interaction.blockBreakingCooldown > 0) {
