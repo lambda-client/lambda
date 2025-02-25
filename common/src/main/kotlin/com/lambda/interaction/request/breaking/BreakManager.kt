@@ -59,7 +59,19 @@ object BreakManager : RequestHandler<BreakRequest>() {
 
     init {
         listen<TickEvent.Pre>(Int.MIN_VALUE) {
-            val updated = updateRequest(true) { true }
+            if (updateRequest(true) { true }) {
+                currentRequest?.contexts?.forEach { requestCtx ->
+                    if (requestCtx == null) return@forEach
+                    if (!canAccept(requestCtx)) return@forEach
+
+                    primaryBreakingInfo?.let { primaryInfo ->
+                        if (primaryInfo.startedWithSecondary) return@let
+                        secondaryBreakingInfo = BreakInfo.SecondaryBreakInfo(requestCtx)
+                    } ?: run {
+                        primaryBreakingInfo = BreakInfo.PrimaryBreakInfo(requestCtx)
+                    }
+                }
+            }
 
             for (it in breakingInfos.reversed()) {
                 if (interaction.blockBreakingCooldown > 0) {
@@ -71,20 +83,6 @@ object BreakManager : RequestHandler<BreakRequest>() {
                     updateBlockBreakingProgress(info, player.mainHandStack)
                     if (info is BreakInfo.SecondaryBreakInfo)
                         primaryBreakingInfo?.startedWithSecondary = true
-                }
-            }
-
-            if (!updated) return@listen
-
-            currentRequest?.contexts?.forEach { requestCtx ->
-                if (requestCtx == null) return@forEach
-                if (!canAccept(requestCtx)) return@forEach
-
-                primaryBreakingInfo?.let { primaryInfo ->
-                    if (primaryInfo.startedWithSecondary) return@let
-                    secondaryBreakingInfo = BreakInfo.SecondaryBreakInfo(requestCtx)
-                } ?: run {
-                    primaryBreakingInfo = BreakInfo.PrimaryBreakInfo(requestCtx)
                 }
             }
         }
@@ -326,7 +324,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 player.mainHandStack
             )
 
-            val progress = breakDelta * breakingTicks
+            val progress = (breakDelta * breakingTicks) / buildConfig.breakSettings.breakThreshold
             return if (progress > 0.0f) (progress * 10.0f).toInt() else -1
         }
 
