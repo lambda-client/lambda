@@ -58,11 +58,7 @@ import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
-import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
-import net.minecraft.block.OperatorBlock
-import net.minecraft.client.sound.PositionedSoundInstance
-import net.minecraft.client.sound.SoundInstance
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos

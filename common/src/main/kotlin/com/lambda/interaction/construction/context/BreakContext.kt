@@ -18,7 +18,6 @@
 package com.lambda.interaction.construction.context
 
 import com.lambda.config.groups.BuildConfig
-import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask

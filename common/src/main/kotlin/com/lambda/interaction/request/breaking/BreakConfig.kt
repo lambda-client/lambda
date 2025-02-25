@@ -17,13 +17,8 @@
 
 package com.lambda.interaction.request.breaking
 
-import com.lambda.config.Configurable
-import com.lambda.config.groups.BuildSettings.Page
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
-import com.lambda.interaction.request.hotbar.HotbarManager
-import com.lambda.interaction.request.hotbar.HotbarRequest
-import com.lambda.util.BlockUtils.allSigns
 import net.minecraft.block.Block
 
 abstract class BreakConfig(

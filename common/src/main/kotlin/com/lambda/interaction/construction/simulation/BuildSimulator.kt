@@ -23,7 +23,6 @@ import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.processing.ProcessorRegistry.findProcessorForState
 import com.lambda.interaction.construction.result.BreakResult
@@ -35,7 +34,6 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.RotationConfig
