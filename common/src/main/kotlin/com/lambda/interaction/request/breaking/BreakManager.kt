@@ -59,9 +59,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
 
     init {
         listen<TickEvent.Pre>(Int.MIN_VALUE) {
-            info("${breakingInfos.count { it != null }}")
-
-            updateRequest { true }
+            val updated = updateRequest(true) { true }
 
             for (it in breakingInfos.reversed()) {
                 if (interaction.blockBreakingCooldown > 0) {
@@ -76,9 +74,9 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 }
             }
 
-            val request = currentRequest ?: return@listen
+            if (!updated) return@listen
 
-            request.contexts.forEach { requestCtx ->
+            currentRequest?.contexts?.forEach { requestCtx ->
                 if (requestCtx == null) return@forEach
                 if (!canAccept(requestCtx)) return@forEach
 
@@ -92,15 +90,18 @@ object BreakManager : RequestHandler<BreakRequest>() {
         }
 
         listen<WorldEvent.BlockUpdate.Server>(alwaysListen = true) { event ->
-            var broken = false
+            var breakBlock = false
             val info = pendingInteractions
                 .firstOrNull { it.context.expectedPos == event.pos }
-                ?.also { pendingInteractions.remove(it) }
+                ?.also {
+                    pendingInteractions.remove(it)
+                    if (buildConfig.breakSettings.breakConfirmation == BreakConfirmationMode.AwaitThenBreak)
+                        breakBlock = true
+                }
                 ?: breakingInfos
                     .firstOrNull { it?.context?.expectedPos == event.pos }
                     ?.also {
-                        breakBlock(it)
-                        broken = true
+                        breakBlock = true
                     }
                 ?: return@listen
 
@@ -110,8 +111,8 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 this@BreakManager.warn("Update at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.targetState}")
                 return@listen
             }
-            if (buildConfig.breakSettings.breakConfirmation == BreakConfirmationMode.AwaitThenBreak) {
-                if (!broken) breakBlock(info)
+            if (breakBlock) {
+                breakBlock(info)
             }
             currentRequest?.onBreak()
         }
