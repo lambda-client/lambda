@@ -15,16 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.pathing.goal
+package com.lambda.pathing.move
 
+import com.lambda.context.SafeContext
 import com.lambda.util.world.FastVector
-import com.lambda.util.world.distManhattan
-import com.lambda.util.world.distSq
+import com.lambda.util.world.WorldUtils.traversable
+import com.lambda.util.world.toBlockPos
 
-class SimpleGoal(
-    val pos: FastVector,
-) : Goal {
-    override fun inGoal(pos: FastVector) = pos == this.pos
-
-    override fun heuristic(pos: FastVector) = pos distManhattan this.pos
+object MoveFinder {
+    fun SafeContext.moveOptions(origin: FastVector): List<Move> {
+        val originPos = origin.toBlockPos()
+        return Move.entries.filter { move ->
+            traversable(originPos.add(move.x, move.y, move.z))
+        }
+    }
 }

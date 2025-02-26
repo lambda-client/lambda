@@ -20,13 +20,11 @@ package com.lambda.pathing
 import com.lambda.context.SafeContext
 import com.lambda.pathing.Node.Companion.toNode
 import com.lambda.pathing.goal.Goal
-import com.lambda.pathing.move.Move
+import com.lambda.pathing.move.MoveFinder.moveOptions
 import com.lambda.util.world.FastVector
-import com.lambda.util.world.WorldUtils.traversable
-import com.lambda.util.world.toBlockPos
 import java.util.PriorityQueue
 
-object AStar {
+object Pathing {
     fun SafeContext.findPathAStar(start: FastVector, goal: Goal): Path {
         val openSet = PriorityQueue<Node>()
         val closedSet = mutableSetOf<Node>()
@@ -58,21 +56,4 @@ object AStar {
         println("No path found")
         return Path()
     }
-
-    private fun SafeContext.moveOptions(origin: FastVector): List<Move> {
-        val originPos = origin.toBlockPos()
-        return Move.entries.filter { move ->
-            traversable(originPos.add(move.x, move.y, move.z))
-        }
-    }
-
-//    class Move(
-//        private val origin: FastVector,
-//        val offset: FastVector,
-//    ) {
-//        val cost: Double = origin.distManhattan(offset).toDouble()
-//
-//        fun nextNode(goal: Goal) =
-//            origin.plus(offset).toNode(goal)
-//    }
 }

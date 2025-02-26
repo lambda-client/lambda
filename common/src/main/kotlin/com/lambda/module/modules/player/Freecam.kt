@@ -143,5 +143,9 @@ object Freecam : Module(
         listen<ConnectionEvent.Disconnect> {
             disable()
         }
+
+        listen<ClientEvent.Shutdown> {
+            disable()
+        }
     }
 }

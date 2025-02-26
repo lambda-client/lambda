@@ -43,7 +43,7 @@ data class Node(
         return path
     }
 
-    override fun toString() = "Node(pos=${pos.toBlockPos().toShortString()}, gCost=$gCost, hCost=$hCost)"
+    override fun toString() = "Node(pos=(${pos.toBlockPos().toShortString()}), gCost=$gCost, hCost=$hCost)"
 
     companion object {
         fun FastVector.toNode(goal: Goal) =

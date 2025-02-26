@@ -26,13 +26,13 @@ import kotlin.math.abs
 
 enum class Move(val x: Int, val y: Int, val z: Int) {
     TRAVERSE_NORTH(0, 0, -1),
-    TRAVERSE_NORTH_EAST(1, 0, -1),
+//    TRAVERSE_NORTH_EAST(1, 0, -1),
     TRAVERSE_EAST(1, 0, 0),
-    TRAVERSE_SOUTH_EAST(1, 0, 1),
+//    TRAVERSE_SOUTH_EAST(1, 0, 1),
     TRAVERSE_SOUTH(0, 0, 1),
-    TRAVERSE_SOUTH_WEST(-1, 0, 1),
+//    TRAVERSE_SOUTH_WEST(-1, 0, 1),
     TRAVERSE_WEST(-1, 0, 0),
-    TRAVERSE_NORTH_WEST(-1, 0, -1),
+//    TRAVERSE_NORTH_WEST(-1, 0, -1),
     PILLAR(0, 1, 0),
     ASCEND_NORTH(0, 1, -1),
     ASCEND_EAST(1, 1, 0),

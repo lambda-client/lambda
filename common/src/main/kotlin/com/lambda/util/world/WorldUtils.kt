@@ -25,8 +25,11 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 
 object WorldUtils {
+    fun SafeContext.traversable(from: BlockPos, to: BlockPos) =
+        BlockPos.stream(from, to).allMatch { traversable(it) }
+
     fun SafeContext.traversable(pos: BlockPos) =
-        blockState(pos.down()).isSideSolidFullSquare(world, pos, Direction.UP) && playerFitsIn(pos)
+        blockState(pos.down()).isSideSolidFullSquare(world, pos.down(), Direction.UP) && playerFitsIn(pos)
 
     fun SafeContext.playerFitsIn(pos: BlockPos) =
         world.isSpaceEmpty(Vec3d.ofBottomCenter(pos).playerBox())
