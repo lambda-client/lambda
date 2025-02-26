@@ -57,6 +57,7 @@ dependencies {
 
     // Baritone
     modImplementation("baritone-api:baritone-unoptimized-fabric:1.10.2") { isTransitive = false }
+    testImplementation(kotlin("test"))
 }
 
 tasks {
@@ -66,5 +67,11 @@ tasks {
 
     test {
         useJUnitPlatform()
+    }
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    kotlinOptions {
+        jvmTarget = "17"
     }
 }

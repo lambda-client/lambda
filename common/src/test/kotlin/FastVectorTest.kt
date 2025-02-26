@@ -1,0 +1,34 @@
+import com.lambda.util.world.FastVector
+import com.lambda.util.world.fastVectorOf
+import com.lambda.util.world.x
+import com.lambda.util.world.y
+import com.lambda.util.world.z
+import kotlin.test.Test
+
+/*
+ * Copyright 2025 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+class FastVectorTest {
+    @Test
+    fun testZero() {
+        val vec = fastVectorOf(0, 0, 0)
+        assert(vec.x == 0)
+        assert(vec.y == 0)
+        assert(vec.z == 0)
+    }
+}
