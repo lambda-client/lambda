@@ -110,7 +110,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 return@listen
             }
             if (breakBlock) {
-                breakBlock(info)
+                destroyBlock(info)
             }
             currentRequest?.onBreak()
         }
@@ -261,12 +261,12 @@ object BreakManager : RequestHandler<BreakRequest>() {
     private fun SafeContext.onBlockBreak(info: BreakInfo) {
         when (info.context.buildConfig.breakSettings.breakConfirmation) {
             BreakConfirmationMode.None -> {
-                breakBlock(info)
+                destroyBlock(info)
                 currentRequest?.onBreak()
                 info.nullify()
             }
             BreakConfirmationMode.BreakThenAwait -> {
-                breakBlock(info)
+                destroyBlock(info)
                 pendingInteractions.add(info)
             }
             BreakConfirmationMode.AwaitThenBreak -> {
@@ -275,7 +275,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
         }
     }
 
-    private fun SafeContext.breakBlock(info: BreakInfo): Boolean {
+    private fun SafeContext.destroyBlock(info: BreakInfo): Boolean {
         val ctx = info.context
 
         if (player.isBlockBreakingRestricted(world, ctx.expectedPos, interaction.currentGameMode)) return false
