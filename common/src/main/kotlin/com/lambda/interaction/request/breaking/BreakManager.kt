@@ -65,6 +65,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
                     if (!canAccept(requestCtx)) return@forEach
 
                     primaryBreakingInfo?.let { primaryInfo ->
+                        if (!buildConfig.breakSettings.doubleBreak) return@let
                         if (primaryInfo.startedWithSecondary) return@let
                         secondaryBreakingInfo = BreakInfo.SecondaryBreakInfo(requestCtx)
                     } ?: run {
