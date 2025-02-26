@@ -241,11 +241,10 @@ object BreakManager : RequestHandler<BreakRequest>() {
         }
 
         if (ctx.buildConfig.breakSettings.breakMode == BreakMode.Packet) {
-            ctx.abortBreakPacket(sequence, connection)
+            ctx.stopBreakPacket(sequence, connection)
+            ctx.startBreakPacket(sequence + 1, connection)
             ctx.stopBreakPacket(sequence + 1, connection)
-            ctx.startBreakPacket(sequence + 2, connection)
-            ctx.stopBreakPacket(sequence + 3, connection)
-            repeat(3) {
+            repeat(2) {
                 pendingUpdateManager.incrementSequence()
             }
         } else {

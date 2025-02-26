@@ -41,7 +41,15 @@ object PacketMineRewrite : Module(
 
     init {
         listen<PlayerEvent.Attack.Block> {
-            blueprint = setOf(player.blockPos.add(1, 0, 0), player.blockPos.add(1, 1, 0)).associateWith { TargetState.Air }.toBlueprint()
+            it.cancel()
+            blueprint = setOf(
+                player.blockPos.add(1, 0, 0),
+                player.blockPos.add(1, 1, 0),
+                player.blockPos.add(1, 0, 1),
+                player.blockPos.add(1, 1, 1),
+                player.blockPos.add(1, 0, -1),
+                player.blockPos.add(1, 1, -1),
+            ).associateWith { TargetState.Air }.toBlueprint()
             task?.cancel()
 
             task = blueprint?.build(build = buildConfig)?.run()
