@@ -21,6 +21,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
+import kotlin.math.abs
 
 /**
  * Represents a position in the world encoded as a long.
@@ -125,6 +126,8 @@ infix fun FastVector.addY(value: Int): FastVector = setY(y + value)
  */
 infix fun FastVector.addZ(value: Int): FastVector = setZ(z + value)
 
+fun FastVector.offset(x: Int, y: Int, z: Int): FastVector = fastVectorOf(this.x + x, this.y + y, this.z + z)
+
 /**
  * Adds the given vector to the position.
  */
@@ -198,6 +201,16 @@ infix fun FastVector.distSq(other: FastVector): Double {
     val dy = y - other.y
     val dz = z - other.z
     return (dx * dx + dy * dy + dz * dz).toDouble()
+}
+
+/**
+ * Returns the Manhattan distance between this position and the other.
+ */
+infix fun FastVector.distManhattan(other: FastVector): Int {
+    val dx = x - other.x
+    val dy = y - other.y
+    val dz = z - other.z
+    return abs(dx) + abs(dy) + abs(dz)
 }
 
 /**

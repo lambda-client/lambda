@@ -15,19 +15,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.world
+package com.lambda.pathing
 
-import com.lambda.context.SafeContext
-import com.lambda.interaction.construction.simulation.Simulation.Companion.playerBox
-import com.lambda.util.BlockUtils.blockState
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.Vec3d
+import com.lambda.util.world.toBlockPos
 
-object WorldUtils {
-    fun SafeContext.traversable(pos: BlockPos) =
-        blockState(pos.down()).isSideSolidFullSquare(world, pos, Direction.UP) && playerFitsIn(pos)
+data class Path(
+    val nodes: ArrayDeque<Node> = ArrayDeque(),
+) {
+    fun prepend(node: Node) {
+        nodes.addFirst(node)
+    }
 
-    fun SafeContext.playerFitsIn(pos: BlockPos) =
-        world.isSpaceEmpty(Vec3d.ofBottomCenter(pos).playerBox())
+    override fun toString() =
+        nodes.joinToString(" -> ") { "(${it.pos.toBlockPos().toShortString()})" }
 }

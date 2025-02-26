@@ -22,7 +22,7 @@ import com.lambda.core.annotations.InternalApi
 import com.lambda.util.math.dist
 import com.lambda.util.math.minus
 import com.lambda.util.math.times
-import com.lambda.util.world.WorldUtils.internalGetFastEntities
+import com.lambda.util.world.SearchUtils.internalGetFastEntities
 import com.lambda.util.world.fastEntitySearch
 import com.lambda.util.world.toFastVec
 import net.minecraft.enchantment.EnchantmentHelper

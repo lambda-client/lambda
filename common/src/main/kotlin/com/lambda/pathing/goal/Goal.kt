@@ -15,19 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.world
+package com.lambda.pathing.goal
 
-import com.lambda.context.SafeContext
-import com.lambda.interaction.construction.simulation.Simulation.Companion.playerBox
-import com.lambda.util.BlockUtils.blockState
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.Vec3d
+import com.lambda.util.world.FastVector
 
-object WorldUtils {
-    fun SafeContext.traversable(pos: BlockPos) =
-        blockState(pos.down()).isSideSolidFullSquare(world, pos, Direction.UP) && playerFitsIn(pos)
+interface Goal {
+    fun inGoal(pos: FastVector): Boolean
 
-    fun SafeContext.playerFitsIn(pos: BlockPos) =
-        world.isSpaceEmpty(Vec3d.ofBottomCenter(pos).playerBox())
+    fun heuristic(pos: FastVector): Double
 }

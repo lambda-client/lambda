@@ -20,11 +20,11 @@ package com.lambda.util.world
 import com.lambda.context.SafeContext
 import com.lambda.core.annotations.InternalApi
 import com.lambda.util.math.distSq
-import com.lambda.util.world.WorldUtils.internalGetBlockEntities
-import com.lambda.util.world.WorldUtils.internalGetEntities
-import com.lambda.util.world.WorldUtils.internalGetFastEntities
-import com.lambda.util.world.WorldUtils.internalSearchBlocks
-import com.lambda.util.world.WorldUtils.internalSearchFluids
+import com.lambda.util.world.SearchUtils.internalGetBlockEntities
+import com.lambda.util.world.SearchUtils.internalGetEntities
+import com.lambda.util.world.SearchUtils.internalGetFastEntities
+import com.lambda.util.world.SearchUtils.internalSearchBlocks
+import com.lambda.util.world.SearchUtils.internalSearchFluids
 import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity

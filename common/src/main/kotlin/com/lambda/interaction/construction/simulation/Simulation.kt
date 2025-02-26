@@ -30,12 +30,13 @@ import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.FastVector
+import com.lambda.util.world.WorldUtils.playerFitsIn
+import com.lambda.util.world.WorldUtils.traversable
 import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.toVec3d
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
-import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
@@ -57,10 +58,7 @@ data class Simulation(
         val isTooFar = blueprint.getClosestPointTo(view).distanceTo(view) > 10.0
         runSafe {
             if (isOutOfBounds && isTooFar) return@getOrPut emptySet()
-            val blockPos = pos.toBlockPos()
-            val isWalkable = blockState(blockPos.down()).isSideSolidFullSquare(world, blockPos, Direction.UP)
-            if (!isWalkable) return@getOrPut emptySet()
-            if (!playerFitsIn(blockPos)) return@getOrPut emptySet()
+            if (!traversable(pos.toBlockPos())) return@getOrPut emptySet()
         }
 
         blueprint.simulate(view, interact, rotation, inventory, build)
@@ -72,10 +70,6 @@ data class Simulation(
         override fun SafeContext.buildRenderer() {
             withBox(Vec3d.ofBottomCenter(pos).playerBox(), Color(0, 255, 0, 50))
         }
-    }
-
-    private fun SafeContext.playerFitsIn(pos: BlockPos): Boolean {
-        return world.isSpaceEmpty(Vec3d.ofBottomCenter(pos).playerBox())
     }
 
     companion object {

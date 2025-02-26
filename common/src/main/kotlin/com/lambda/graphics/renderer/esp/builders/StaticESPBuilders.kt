@@ -27,6 +27,7 @@ import com.lambda.util.extension.min
 import net.minecraft.block.BlockState
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
+import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShape
 import java.awt.Color
 
@@ -222,6 +223,18 @@ fun StaticESPRenderer.buildOutline(
     if (outlineMode.check(hasNorth, hasEast)) putLine(trb, brb)
     if (outlineMode.check(hasEast, hasSouth)) putLine(trf, brf)
     if (outlineMode.check(hasSouth, hasWest)) putLine(tlf, blf)
+
+    updateOutlines = true
+}
+
+fun StaticESPRenderer.buildLine(
+    start: Vec3d,
+    end: Vec3d,
+    color: Color,
+) = outlines.use {
+    val vertex1 by vertex(outlineVertices, start.x, start.y, start.z, color)
+    val vertex2 by vertex(outlineVertices, end.x, end.y, end.z, color)
+    putLine(vertex1, vertex2)
 
     updateOutlines = true
 }
