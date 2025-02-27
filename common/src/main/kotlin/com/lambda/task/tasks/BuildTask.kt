@@ -105,8 +105,6 @@ class BuildTask @Ta5kBuilder constructor(
 
     init {
         listen<TickEvent.Pre> {
-            val currentItemStack = player.mainHandStack ?: return@listen
-
             currentInteraction?.let { context ->
 //                TaskFlowModule.drawables = listOf(context)
                 if (context.shouldRotate(build) && !context.rotation.done) return@let
@@ -222,7 +220,7 @@ class BuildTask @Ta5kBuilder constructor(
                     val breakRequest = BreakRequest(
                         bestResult.context,
                         (resultsNotBlocked.getOrNull(1) as? BreakResult.Break)?.context,
-                        0
+                        prio = 0
                     ) { breaks++ }
                     BreakManager.registerRequest(build.breakSettings, breakRequest)
                 }
