@@ -309,7 +309,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
     }
 
     abstract class BreakInfo(
-        var context: BreakContext
+        val context: BreakContext
     ) {
         var breaking = false
         var breakingTicks = 0
