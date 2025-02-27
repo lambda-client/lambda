@@ -60,16 +60,18 @@ object BreakManager : RequestHandler<BreakRequest>() {
     init {
         listen<TickEvent.Pre>(Int.MIN_VALUE) {
             if (updateRequest(true) { true }) {
-                currentRequest?.contexts?.forEach { requestCtx ->
-                    if (requestCtx == null) return@forEach
-                    if (!canAccept(requestCtx)) return@forEach
+                currentRequest?.let { request ->
+                    request.contexts.forEach { requestCtx ->
+                        if (requestCtx == null) return@forEach
+                        if (!canAccept(requestCtx)) return@forEach
 
-                    primaryBreakingInfo?.let { primaryInfo ->
-                        if (!buildConfig.breakSettings.doubleBreak) return@let
-                        if (primaryInfo.startedWithSecondary) return@let
-                        secondaryBreakingInfo = BreakInfo.SecondaryBreakInfo(requestCtx)
-                    } ?: run {
-                        primaryBreakingInfo = BreakInfo.PrimaryBreakInfo(requestCtx)
+                        primaryBreakingInfo?.let { primaryInfo ->
+                            if (!buildConfig.breakSettings.doubleBreak) return@let
+                            if (primaryInfo.startedWithSecondary) return@let
+                            secondaryBreakingInfo = BreakInfo.SecondaryBreakInfo(requestCtx, request.onBreak)
+                        } ?: run {
+                            primaryBreakingInfo = BreakInfo.PrimaryBreakInfo(requestCtx, request.onBreak)
+                        }
                     }
                 }
             }
@@ -113,7 +115,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
             if (breakBlock) {
                 destroyBlock(info)
             }
-            currentRequest?.onBreak()
+            info.onBreak()
         }
     }
 
@@ -263,7 +265,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
         when (info.context.buildConfig.breakSettings.breakConfirmation) {
             BreakConfirmationMode.None -> {
                 destroyBlock(info)
-                currentRequest?.onBreak()
+                info.onBreak()
                 info.nullify()
             }
             BreakConfirmationMode.BreakThenAwait -> {
@@ -309,7 +311,8 @@ object BreakManager : RequestHandler<BreakRequest>() {
     }
 
     abstract class BreakInfo(
-        val context: BreakContext
+        val context: BreakContext,
+        val onBreak: () -> Unit
     ) {
         var breaking = false
         var breakingTicks = 0
@@ -334,16 +337,18 @@ object BreakManager : RequestHandler<BreakRequest>() {
         open fun nullify() {}
 
         class PrimaryBreakInfo(
-            ctx: BreakContext
-        ) : BreakInfo(ctx) {
+            ctx: BreakContext,
+            onBreak: () -> Unit
+        ) : BreakInfo(ctx, onBreak) {
             override fun nullify() {
                 primaryBreakingInfo = null
             }
         }
 
         class SecondaryBreakInfo(
-            ctx: BreakContext
-        ) : BreakInfo(ctx) {
+            ctx: BreakContext,
+            onBreak: () -> Unit
+        ) : BreakInfo(ctx, onBreak) {
             override fun getBreakThreshold() =
                 1.0f
 
