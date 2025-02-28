@@ -53,8 +53,8 @@ open class Window(
 
     val titleBar = titleBar(initialTitle, draggable)
 
-    protected val titleBarBackground by titleBar::backgroundRect
-    protected val contentBackground = rect { // It's here because content cannot contain something by default
+    val titleBarBackground by titleBar::backgroundRect
+    val contentBackground = rect { // It's here because content cannot contain something by default
         onUpdate {
             rectangle = Rect(titleBar.leftBottom, this@Window.rightBottom)
             setColor(ClickGui.backgroundColor)
@@ -68,7 +68,7 @@ open class Window(
 
     val content = windowContent(scrollable)
 
-    protected val outlineRect = outline {
+    val outlineRect = outline {
         onUpdate {
             rectangle = this@Window.rect
             setColor(ClickGui.outlineColor)

@@ -60,7 +60,7 @@ class WindowContent(
             }
 
             it.overrideY {
-                prev.renderPositionY + layoutHeight(prev, true) + ClickGui.listStep
+                prev.renderPositionY + layoutHeight(prev, true)
             }
         }
     }
@@ -75,9 +75,14 @@ class WindowContent(
 
         overrideWidth(owner::renderWidth)
         overrideHeight {
-            children.sumOf { layoutHeight(it, false) } +
-                    ClickGui.listStep * (children.size - 1).coerceAtLeast(0) +
-                    ClickGui.padding * 2
+            var height = ClickGui.padding * 2
+
+            val lastIndex = children.lastIndex
+            children.forEachIndexed { i, it ->
+                height += layoutHeight(it, false, i == lastIndex)
+            }
+
+            height
         }
 
         onShow {
@@ -111,8 +116,8 @@ class WindowContent(
         }
     }
 
-    private fun layoutHeight(layout: Layout, animate: Boolean): Double {
-        var height = layout.renderHeight
+    private fun layoutHeight(layout: Layout, animate: Boolean, isLast: Boolean = false): Double {
+        var height = layout.renderHeight + ClickGui.listStep * (!isLast).toInt()
         val animated = layout as? AnimatedWindowChild ?: return height
 
         height *= if (!animate) animated.staticShowAnimation

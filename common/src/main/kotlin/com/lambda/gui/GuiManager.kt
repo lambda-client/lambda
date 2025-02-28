@@ -18,10 +18,12 @@
 package com.lambda.gui
 
 import com.lambda.config.settings.comparable.BooleanSetting
+import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.core.Loadable
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.impl.clickgui.settings.BooleanButton.Companion.booleanSetting
+import com.lambda.gui.impl.clickgui.settings.EnumSelector.Companion.enumSetting
 import kotlin.reflect.KClass
 
 object GuiManager : Loadable {
@@ -34,6 +36,10 @@ object GuiManager : Loadable {
     override fun load(): String {
         typeAdapter<BooleanSetting> { owner, ref ->
             owner.booleanSetting(ref)
+        }
+
+        typeAdapter<EnumSetting<*>> { owner, ref ->
+            owner.enumSetting(ref)
         }
 
         return "Loaded ${typeMap.size} gui type adapters."

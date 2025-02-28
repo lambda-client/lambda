@@ -69,8 +69,8 @@ class BooleanButton(
             setRadius(100.0)
 
             onUpdate {
-                val knobStart = Rect.basedOn(checkBox.leftTop, Vec2d.ONE * checkBox.renderHeight)
-                val knobEnd = Rect(checkBox.rightBottom - checkBox.renderHeight, checkBox.rightBottom)
+                val knobStart = Rect.basedOn(checkBox.rectangle.leftTop, Vec2d.ONE * checkBox.rectangle.size.y)
+                val knobEnd = Rect(checkBox.rectangle.rightBottom - checkBox.rectangle.size.y, checkBox.rectangle.rightBottom)
 
                 rectangle = lerp(
                     lerp(showAnimation, 1.0 - activeAnimation, activeAnimation),

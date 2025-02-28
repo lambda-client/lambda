@@ -42,7 +42,7 @@ object ClickGui : Module(
 
     val backgroundTint by setting("Background Tint", Color.BLACK.setAlpha(0.4))
 
-    val titleBackgroundColor by setting("Title Background Color", Color(60, 60, 60))
+    val titleBackgroundColor by setting("Title Background Color", Color(80, 80, 80))
     val backgroundColor by setting("Background Color", titleBackgroundColor)
     val backgroundShade by setting("Background Shade", true)
 
@@ -54,7 +54,7 @@ object ClickGui : Module(
     val fontOffset by setting("Font Offset", 4.0, 0.0..5.0, 0.1)
     val dockingGridSize by setting("Docking Grid Size", 1.0, 0.1..10.0, 0.1)
 
-    val moduleEnabledColor by setting("Module Enabled Color", Color.WHITE.setAlpha(0.5))
+    val moduleEnabledColor by setting("Module Enabled Color", Color.WHITE.setAlpha(0.4))
     val moduleDisabledColor by setting("Module Disabled Color", Color.WHITE.setAlpha(0.0))
     val moduleHoverAccent by setting("Module Hover Accent", 0.15, 0.0..0.3, 0.01)
     val moduleOpenAccent by setting("Module Open Accent", 0.3, 0.0..0.5, 0.01)

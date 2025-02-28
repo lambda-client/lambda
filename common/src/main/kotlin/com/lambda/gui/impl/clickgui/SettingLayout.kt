@@ -22,6 +22,7 @@ import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.component.window.AnimatedWindowChild
+import com.lambda.gui.impl.clickgui.ModuleLayout.Companion.backgroundTint
 import com.lambda.util.math.*
 
 /**
@@ -56,7 +57,7 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
         if (!expandable) {
             overrideHeight(titleBar::renderHeight)
             content.destroy()
-        }
+        } else backgroundTint(true)
 
         titleBar.textField.use {
             text = setting.name

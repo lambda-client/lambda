@@ -27,6 +27,7 @@ import com.lambda.gui.component.core.FilledRect.Companion.rectBehind
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.component.window.AnimatedWindowChild
+import com.lambda.gui.component.window.Window
 import com.lambda.util.Mouse
 import com.lambda.util.math.*
 import java.awt.Color
@@ -56,59 +57,66 @@ class ModuleLayout(
     // ToDo: replace with timer
     private var lastHover = 0L
 
-    init {
-        rectBehind(titleBar) { // base rect with lowest y to avoid children overlying
-            onUpdate {
-                rectangle = this@ModuleLayout.rect.shrink(shrink)
-                shade = ClickGui.backgroundShade
+    val backgroundRect = rectBehind(titleBar) { // base rect with lowest y to avoid children overlying
+        onUpdate {
+            rectangle = this@ModuleLayout.rect.shrink(shrink)
+            shade = ClickGui.backgroundShade
 
-                val openRev = 1.0 - openAnimation     // 1.0  <->  0.0
-                val openRevSigned = openRev * 2 - 1   // 1.0  <-> -1.0
-                val enableRev = 1.0 - enableAnimation // 1.0  <->  0.0
+            val openRev = 1.0 - openAnimation     // 1.0  <->  0.0
+            val openRevSigned = openRev * 2 - 1   // 1.0  <-> -1.0
+            val enableRev = 1.0 - enableAnimation // 1.0  <->  0.0
 
-                var progress = enableAnimation
+            var progress = enableAnimation
 
-                // hover: +0.1 to alpha if minimized, -0.1 to alpha if maximized
-                progress += hoverAnimation * ClickGui.moduleHoverAccent * openRevSigned
+            // hover: +0.1 to alpha if minimized, -0.1 to alpha if maximized
+            progress += hoverAnimation * ClickGui.moduleHoverAccent * openRevSigned
 
-                // +0.4 to alpha if opened and disabled
-                progress += openAnimation * ClickGui.moduleOpenAccent * enableRev
+            // +0.4 to alpha if opened and disabled
+            progress += openAnimation * ClickGui.moduleOpenAccent * enableRev
 
-                // interpolate and set the color
-                setColor(lerp(progress, ClickGui.moduleDisabledColor, ClickGui.moduleEnabledColor))
-            }
+            // interpolate and set the color
+            setColor(
+                lerp(progress,
+                    ClickGui.moduleDisabledColor,
+                    ClickGui.moduleEnabledColor
+                ).multAlpha(showAnimation)
+            )
+        }
 
-            onUpdate {
-                setRadius(hoverAnimation)
+        onUpdate {
+            setRadius(hoverAnimation)
 
-                if (isLast && ClickGui.autoResize) {
-                    leftBottomRadius = ClickGui.roundRadius - (ClickGui.padding + shrink)
-                    rightBottomRadius = leftBottomRadius
-                }
-            }
-
-            rect { // hover fx
-                onUpdate {
-                    val base = this@rect.owner as FilledRect
-
-                    rectangle = base.rectangle
-                    shade = base.shade
-
-                    setRadius(
-                        base.leftTopRadius,
-                        base.rightTopRadius,
-                        base.rightBottomRadius,
-                        base.leftBottomRadius
-                    )
-
-                    val hoverColor = Color.WHITE.setAlpha(
-                        ClickGui.moduleHoverAccent * hoverAnimation * (1.0 - openAnimation)
-                    )
-
-                    setColorH(hoverColor.setAlpha(0.0), hoverColor)
-                }
+            if (isLast && ClickGui.autoResize) {
+                leftBottomRadius = ClickGui.roundRadius - (ClickGui.padding + shrink)
+                rightBottomRadius = leftBottomRadius
             }
         }
+
+        rect { // hover fx
+            onUpdate {
+                val base = this@rect.owner as FilledRect
+
+                rectangle = base.rectangle
+                shade = base.shade
+
+                setRadius(
+                    base.leftTopRadius,
+                    base.rightTopRadius,
+                    base.rightBottomRadius,
+                    base.leftBottomRadius
+                )
+
+                val hoverColor = Color.WHITE.setAlpha(
+                    ClickGui.moduleHoverAccent * hoverAnimation * (1.0 - openAnimation) * showAnimation
+                )
+
+                setColorH(hoverColor.setAlpha(0.0), hoverColor)
+            }
+        }
+    }
+
+    init {
+        backgroundTint()
 
         isMinimized = true
         height = 100.0
@@ -179,5 +187,47 @@ class ModuleLayout(
         @UIBuilder
         fun Layout.moduleLayout(module: Module) =
             ModuleLayout(this, module).apply(children::add)
+
+        /**
+         * Used to dark the background of the settings a bit
+         *
+         * Not for external usage
+         */
+        @UIBuilder
+        fun Window.backgroundTint(tintTitleBar: Boolean = false) {
+            check(this is SettingLayout<*, *> || this is ModuleLayout || this is ModuleWindow)
+
+            val base = this@backgroundTint
+
+            rectBehind(content) {
+                onUpdate {
+                    rectangle = if (tintTitleBar) base.rect
+                    else Rect(titleBar.leftBottom, base.rightBottom)
+
+                    setColor(Color.BLACK.setAlpha(0.08 * heightAnimation))
+
+                    val round = (base as? ModuleLayout?)?.backgroundRect
+                        ?: (base as? ModuleWindow)?.contentBackground
+
+                    round?.let {
+                        leftBottomRadius = it.leftBottomRadius
+                        rightBottomRadius = it.rightBottomRadius
+                    }
+                }
+
+                val bg = this
+
+                rect { // top shadow
+                    onUpdate {
+                        rectangle = Rect(
+                            bg.rectangle.leftTop,
+                            bg.rectangle.rightTop + Vec2d.BOTTOM * titleBar.renderHeight * 0.2
+                        )
+
+                        setColorV(Color.BLACK.setAlpha(0.1 * heightAnimation), Color.BLACK.setAlpha(0.0))
+                    }
+                }
+            }
+        }
     }
 }

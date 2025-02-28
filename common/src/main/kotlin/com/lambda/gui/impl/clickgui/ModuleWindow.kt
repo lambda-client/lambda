@@ -22,6 +22,7 @@ import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.component.window.Window
 import com.lambda.gui.component.window.WindowContent
+import com.lambda.gui.impl.clickgui.ModuleLayout.Companion.backgroundTint
 import com.lambda.gui.impl.clickgui.ModuleLayout.Companion.moduleLayout
 import com.lambda.module.ModuleRegistry
 import com.lambda.util.math.Vec2d
@@ -32,6 +33,8 @@ class ModuleWindow(
     initialPosition: Vec2d
 ) : Window(owner, tag.name, initialPosition, minimizing = Minimizing.Absolute, autoResize = AutoResize.ByConfig) {
     init {
+        backgroundTint()
+
         val modules = ModuleRegistry.modules
             .filter { it.defaultTags.firstOrNull() == tag }
             .map { module -> content.moduleLayout(module) }
