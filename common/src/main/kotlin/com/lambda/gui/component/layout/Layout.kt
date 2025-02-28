@@ -21,8 +21,6 @@ import com.lambda.graphics.RenderMain
 import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.event.events.GuiEvent
 import com.lambda.graphics.pipeline.ScissorAdapter
-import com.lambda.graphics.renderer.gui.font.FontRenderer
-import com.lambda.graphics.renderer.gui.rect.OutlineRectRenderer
 import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.VAlign
 import com.lambda.gui.component.core.*
@@ -30,7 +28,6 @@ import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
-import java.awt.Color
 
 /**
  * Represents a component for creating complex ui structures.
@@ -38,7 +35,9 @@ import java.awt.Color
 open class Layout(
     val owner: Layout?
 ) {
-    val rect get() = Rect.basedOn(renderPosition, renderSize)
+    var rect
+        get() = Rect.basedOn(position, size)
+        set(value) { position = value.leftTop; size = value.size }
 
     // ToDo: impl alignmentLayout: Layout, instead of being able to align to the owner only
     // Position of the component
@@ -46,28 +45,23 @@ open class Layout(
         get() = Vec2d(positionX, positionY)
         set(value) { positionX = value.x; positionY = value.y }
 
-    private var positionX: Double
+    var positionX: Double
         get() = ownerX + (relativePosX + dockingOffsetX).let {
             if (!properties.clampPosition) return@let it
-            it.coerceAtMost(ownerWidth - renderWidth).coerceAtLeast(0.0)
+            it.coerceAtMost(ownerWidth - width).coerceAtLeast(0.0)
         }; set(value) { relativePosX = value - ownerX - dockingOffsetX }
 
-    private var positionY: Double
+    var positionY: Double
         get() = ownerY + (relativePosY + dockingOffsetY).let {
             if (!properties.clampPosition) return@let it
-            it.coerceAtMost(ownerHeight - renderHeight).coerceAtLeast(0.0)
+            it.coerceAtMost(ownerHeight - height).coerceAtLeast(0.0)
         }; set(value) { relativePosY = value - ownerY - dockingOffsetY }
 
-    val leftTop get() = renderPosition
-    val rightTop get() = Vec2d(renderPositionX + renderWidth, renderPositionY)
-    val rightBottom get() = Vec2d(renderPositionX + renderWidth, renderPositionY + renderHeight)
-    val leftBottom get() = Vec2d(renderPositionX, renderPositionY + renderHeight)
+    val leftTop get() = position
+    val rightTop get() = Vec2d(positionX + width, positionY)
+    val rightBottom get() = Vec2d(positionX + width, positionY + height)
+    val leftBottom get() = Vec2d(positionX, positionY + height)
 
-    val renderPosition get() = Vec2d(renderPositionX, renderPositionY)
-    val renderPositionX get() = positionXTransform()
-    val renderPositionY get() = positionYTransform()
-    private var positionXTransform = { positionX }
-    private var positionYTransform = { positionY }
     private var relativePosX = 0.0
     private var relativePosY = 0.0
 
@@ -75,14 +69,6 @@ open class Layout(
     var size: Vec2d
         get() = Vec2d(width, height)
         set(value) { width = value.x; height = value.y }
-
-    val renderSize get() = Vec2d(renderWidth, renderHeight)
-
-    val renderWidth get() = widthTransform()
-    val renderHeight get() = heightTransform()
-
-    private var widthTransform = { width }
-    private var heightTransform = { height }
 
     var width = 0.0
     var height = 0.0
@@ -93,11 +79,11 @@ open class Layout(
         field = to
 
         val delta = to.multiplier - from.multiplier
-        relativePosX += delta * (renderWidth - ownerWidth)
+        relativePosX += delta * (width - ownerWidth)
     }
 
     private val dockingOffsetX get() = if (horizontalAlignment == HAlign.LEFT) 0.0
-    else (ownerWidth - renderWidth) * horizontalAlignment.multiplier
+    else (ownerWidth - width) * horizontalAlignment.multiplier
 
     // Vertical alignment
     var verticalAlignment = VAlign.TOP; set(to) {
@@ -105,11 +91,11 @@ open class Layout(
         field = to
 
         val delta = to.multiplier - from.multiplier
-        relativePosY += delta * (renderHeight - ownerHeight)
+        relativePosY += delta * (height - ownerHeight)
     }
 
     private val dockingOffsetY get() = if (verticalAlignment == VAlign.TOP) 0.0
-    else (ownerHeight - renderHeight) * verticalAlignment.multiplier
+    else (ownerHeight - height) * verticalAlignment.multiplier
 
     // Use screen limits if [owner] is null
     private var screenSize = Vec2d.ZERO
@@ -128,12 +114,12 @@ open class Layout(
     // Structure
     val children = mutableListOf<Layout>()
     var selectedChild: Layout? = null
-    protected open val renderSelf: Boolean get() = renderWidth > 1 && renderHeight > 1
+    protected open val renderSelf: Boolean get() = width > 1 && height > 1
     protected open val scissorRect get() = rect
 
     // Inputs
     protected var mousePosition = Vec2d.ZERO
-    var isHovered = false; get() = field && (owner?.isHovered ?: true)
+    open val isHovered get() = owner?.let { it.selectedChild == this } ?: true
 
     // Actions
     private val showActions = mutableListOf<Layout.() -> Unit>()
@@ -244,7 +230,7 @@ open class Layout(
      */
     @LayoutBuilder
     fun <T : Layout> T.onMouseClick(button: Mouse.Button, action: Mouse.Action, block: T.() -> Unit) {
-        mouseClickActions += { butt, act ->
+        onMouseClick { butt, act ->
             if (butt == button && act == action) block()
         }
     }
@@ -274,7 +260,11 @@ open class Layout(
      */
     @LayoutBuilder
     fun overrideX(transform: () -> Double) {
-        positionXTransform = transform
+        positionX = transform()
+
+        onUpdate {
+            positionX = transform()
+        }
     }
 
     /**
@@ -282,7 +272,11 @@ open class Layout(
      */
     @LayoutBuilder
     fun overrideY(transform: () -> Double) {
-        positionYTransform = transform
+        positionY = transform()
+
+        onUpdate {
+            positionY = transform()
+        }
     }
 
     /**
@@ -299,7 +293,11 @@ open class Layout(
      */
     @LayoutBuilder
     fun overrideWidth(transform: () -> Double) {
-        widthTransform = transform
+        width = transform()
+
+        onUpdate {
+            width = transform()
+        }
     }
 
     /**
@@ -307,7 +305,11 @@ open class Layout(
      */
     @LayoutBuilder
     fun overrideHeight(transform: () -> Double) {
-        heightTransform = transform
+        height = transform()
+
+        onUpdate {
+            height = transform()
+        }
     }
 
     /**
@@ -317,22 +319,6 @@ open class Layout(
     fun overrideSize(width: () -> Double, height: () -> Double) {
         overrideWidth(width)
         overrideHeight(height)
-    }
-
-    /**
-     * Makes this layout expand up to parents rect
-     */
-    @LayoutBuilder
-    fun fillParent(
-        overrideX: () -> Double = { owner?.renderPositionX ?: ownerX },
-        overrideY: () -> Double = { owner?.renderPositionY ?: ownerY },
-        overrideWidth: () -> Double = { owner?.renderWidth ?: ownerWidth },
-        overrideHeight: () -> Double = { owner?.renderHeight ?: ownerHeight }
-    ) {
-        overrideX(overrideX)
-        overrideY(overrideY)
-        overrideWidth(overrideWidth)
-        overrideHeight(overrideHeight)
     }
 
     /**
@@ -353,19 +339,17 @@ open class Layout(
             screenSize = RenderMain.screenSize
 
             // Update relative position and bounds
-            ownerX = owner?.renderPositionX ?: ownerX
-            ownerY = owner?.renderPositionY ?: ownerY
-            ownerWidth = owner?.renderWidth ?: screenSize.x
-            ownerHeight = owner?.renderHeight ?: screenSize.y
-
-            // Update hover state (don't mark as hovered if hovered pixel is outside the owner)
-            val xh = (mousePosition.x - renderPositionX) in 0.0..renderWidth
-            val yh = (mousePosition.y - renderPositionY) in 0.0..renderHeight
-            isHovered = xh && yh
+            ownerX = owner?.positionX ?: ownerX
+            ownerY = owner?.positionY ?: ownerY
+            ownerWidth = owner?.width ?: screenSize.x
+            ownerHeight = owner?.height ?: screenSize.y
 
             // Select an element that's on foreground
             selectedChild = if (isHovered) children.lastOrNull {
-                !it.properties.interactionPassthrough && mousePosition in it.rect
+                if (it.properties.interactionPassthrough) return@lastOrNull false
+                val xh = (mousePosition.x - it.positionX) in 0.0..it.width
+                val yh = (mousePosition.y - it.positionY) in 0.0..it.height
+                xh && yh
             } else null
         }
     }
@@ -415,8 +399,7 @@ open class Layout(
         children.forEach { child ->
             if (e is GuiEvent.Render) return@forEach
             if (e is GuiEvent.MouseClick) {
-                val hovered = child == selectedChild || (child.isHovered && child.properties.interactionPassthrough)
-                val newAction = if (hovered) e.action else Mouse.Action.Release
+                val newAction = if (child.isHovered) e.action else Mouse.Action.Release
 
                 val newEvent = GuiEvent.MouseClick(e.button, newAction, e.mouse)
                 child.onEvent(newEvent)
@@ -430,20 +413,6 @@ open class Layout(
             val block = {
                 renderActions.forEach { it(this) }
                 if (renderSelf) children.forEach { it.onEvent(e) }
-
-                /*if (this !is FilledRect && this !is OutlineRect && this !is TextField) {
-                    OutlineRectRenderer.outlineRect(
-                        rect,
-                        glowRadius = 0.5
-                    )
-
-                    FontRenderer.drawString(
-                        javaClass.simpleName,
-                        leftTop + FontRenderer.getHeight(0.5) * 0.5,
-                        Color.WHITE,
-                        0.5
-                    )
-                }*/
             }
 
             if (!properties.scissor) block()

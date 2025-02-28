@@ -43,12 +43,16 @@ class TextField(
     val textHeight get() = FontRenderer.getHeight(scale)
 
     init {
-        fillParent()
         properties.interactionPassthrough = true
 
+        onUpdate {
+            position = owner.position
+            size = owner.size
+        }
+
         onRender {
-            val rx = renderPositionX + lerp(textHAlignment.multiplier, offsetX, renderWidth - textWidth - offsetX)
-            val ry = renderPositionY + lerp(textVAlignment.multiplier, offsetY, renderHeight - textHeight - offsetY)
+            val rx = positionX + lerp(textHAlignment.multiplier, offsetX, width - textWidth - offsetX)
+            val ry = positionY + lerp(textVAlignment.multiplier, offsetY, height - textHeight - offsetY)
             val renderPos = Vec2d(rx, ry + textHeight * 0.5)
             drawString(text, renderPos, color, scale, shadow)
         }

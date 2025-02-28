@@ -25,8 +25,6 @@ import java.awt.Color
 class FilledRect(
     owner: Layout
 ) : Layout(owner) {
-    @UIRenderPr0p3rty var rectangle = Rect.ZERO
-
     @UIRenderPr0p3rty var leftTopRadius = 0.0
     @UIRenderPr0p3rty var rightTopRadius = 0.0
     @UIRenderPr0p3rty var rightBottomRadius = 0.0
@@ -42,15 +40,9 @@ class FilledRect(
     init {
         properties.interactionPassthrough = true
 
-        onUpdate {
-            // make it pressable
-            position = rectangle.leftTop
-            size = rectangle.size
-        }
-
         onRender {
             filledRect(
-                rectangle,
+                rect,
                 leftTopRadius,
                 rightTopRadius,
                 rightBottomRadius,

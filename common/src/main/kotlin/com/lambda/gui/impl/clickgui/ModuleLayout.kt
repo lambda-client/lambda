@@ -59,7 +59,7 @@ class ModuleLayout(
 
     val backgroundRect = rectBehind(titleBar) { // base rect with lowest y to avoid children overlying
         onUpdate {
-            rectangle = this@ModuleLayout.rect.shrink(shrink)
+            rect = this@ModuleLayout.rect.shrink(shrink)
             shade = ClickGui.backgroundShade
 
             val openRev = 1.0 - openAnimation     // 1.0  <->  0.0
@@ -96,7 +96,8 @@ class ModuleLayout(
             onUpdate {
                 val base = this@rect.owner as FilledRect
 
-                rectangle = base.rectangle
+                position = base.position
+                size = base.size
                 shade = base.shade
 
                 setRadius(
@@ -119,11 +120,10 @@ class ModuleLayout(
         backgroundTint()
 
         isMinimized = true
-        height = 100.0
         openAnimation = 0.0
 
-        overrideX { owner.renderPositionX + ClickGui.padding }
-        overrideWidth { owner.renderWidth - ClickGui.padding * 2 }
+        overrideX { owner.positionX + ClickGui.padding }
+        overrideWidth { owner.width - ClickGui.padding * 2 }
 
         titleBar.use {
             overrideHeight(ClickGui::moduleHeight)
@@ -167,10 +167,18 @@ class ModuleLayout(
             }
         }
 
-        module.settings.forEach { setting ->
+        val settings = module.settings.map { setting ->
             content.layoutOf(setting)
+        }.filterIsInstance<SettingLayout<*, *>>()
+
+        val minimizeSettings = {
+            settings.forEach {
+                it.isMinimized = true
+            }
         }
 
+        onWindowExpand { minimizeSettings() }
+        onWindowMinimize { minimizeSettings() }
         content.listify()
 
         listOf(
@@ -201,7 +209,7 @@ class ModuleLayout(
 
             rectBehind(content) {
                 onUpdate {
-                    rectangle = if (tintTitleBar) base.rect
+                    rect = if (tintTitleBar) base.rect
                     else Rect(titleBar.leftBottom, base.rightBottom)
 
                     setColor(Color.BLACK.setAlpha(0.08 * heightAnimation))
@@ -219,10 +227,9 @@ class ModuleLayout(
 
                 rect { // top shadow
                     onUpdate {
-                        rectangle = Rect(
-                            bg.rectangle.leftTop,
-                            bg.rectangle.rightTop + Vec2d.BOTTOM * titleBar.renderHeight * 0.2
-                        )
+                        position = bg.position
+                        width = bg.width
+                        height = titleBar.height * 0.2
 
                         setColorV(Color.BLACK.setAlpha(0.1 * heightAnimation), Color.BLACK.setAlpha(0.0))
                     }

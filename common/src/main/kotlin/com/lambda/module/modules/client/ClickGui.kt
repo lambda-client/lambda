@@ -64,7 +64,7 @@ object ClickGui : Module(
     val SCREEN get() = gui("Click Gui") {
         rect {
             onUpdate {
-                rectangle = owner!!.rect
+                rect = owner!!.rect
                 setColor(backgroundTint)
             }
         }
@@ -73,7 +73,7 @@ object ClickGui : Module(
         val y = x
 
         ModuleTag.defaults.forEach { tag ->
-            x += moduleWindow(tag, Vec2d(x, y)).renderWidth + 5
+            x += moduleWindow(tag, Vec2d(x, y)).width + 5
         }
     }
 

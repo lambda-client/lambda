@@ -56,7 +56,7 @@ open class Window(
     val titleBarBackground by titleBar::backgroundRect
     val contentBackground = rect { // It's here because content cannot contain something by default
         onUpdate {
-            rectangle = Rect(titleBar.leftBottom, this@Window.rightBottom)
+            rect = Rect(titleBar.leftBottom, this@Window.rightBottom)
             setColor(ClickGui.backgroundColor)
 
             leftBottomRadius = ClickGui.roundRadius
@@ -70,7 +70,9 @@ open class Window(
 
     val outlineRect = outline {
         onUpdate {
-            rectangle = this@Window.rect
+            position = this@Window.position
+            size = this@Window.size
+
             setColor(ClickGui.outlineColor)
 
             roundRadius = ClickGui.roundRadius
@@ -123,6 +125,10 @@ open class Window(
         get() = !isMinimized
         set(value) { isMinimized = !value }
 
+    var windowWidth = initialSize.x
+    var windowHeight = initialSize.y
+
+    var widthAnimation by animation.exp(0.8, ::windowWidth)
     var heightAnimation by animation.exp(
         min = { 0.0 },
         max = { if (minimizing == Minimizing.Relative) targetHeight else 1.0 },
@@ -130,7 +136,7 @@ open class Window(
         flag = { !isMinimized }
     )
 
-    val targetHeight get() = if (!autoResize.enabled) height - titleBar.renderHeight else content.renderHeight
+    val targetHeight get() = if (!autoResize.enabled) windowHeight - titleBar.height else content.height
 
     // Resizing
     private var resizeX: Double? = null
@@ -140,11 +146,10 @@ open class Window(
 
     init {
         position = initialPosition
-        size = initialSize
         properties.clampPosition = owner is ScreenLayout
 
-        overrideSize(animation.exp(0.8, ::width)::value) {
-            titleBar.renderHeight + when (minimizing) {
+        overrideSize(::widthAnimation) {
+            titleBar.height + when (minimizing) {
                 Minimizing.Disabled -> targetHeight
                 Minimizing.Relative -> heightAnimation
                 Minimizing.Absolute -> heightAnimation * targetHeight
@@ -206,8 +211,8 @@ open class Window(
 
             if (button != Mouse.Button.Left || action != Mouse.Action.Click) return@onMouseClick
 
-            if (resizeXHovered) resizeX = mousePosition.x - renderWidth
-            if (resizeYHovered) resizeY = mousePosition.y - renderHeight
+            if (resizeXHovered) resizeX = mousePosition.x - width
+            if (resizeYHovered) resizeY = mousePosition.y - height
         }
 
         onMouseMove {
@@ -232,11 +237,11 @@ open class Window(
             // Resize
             if (resizeX != null || resizeY != null) {
                 resizeX?.let { rx ->
-                    width = (mousePosition.x - rx).coerceIn(80.0, 1000.0)
+                    windowWidth = (mousePosition.x - rx).coerceIn(80.0, 1000.0)
                 }
 
                 resizeY?.let { ry ->
-                    height = (mousePosition.y - ry).coerceIn(titleBar.renderHeight + RESIZE_RANGE, 1000.0)
+                    windowHeight = (mousePosition.y - ry).coerceIn(titleBar.height + RESIZE_RANGE, 1000.0)
                 }
             }
         }

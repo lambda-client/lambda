@@ -62,7 +62,12 @@ abstract class AnimatedWindowChild(
     // Index for smooth "ordered" animation
     var index = 0
     var lastIndex = 0
-    protected val isLast get() = index == lastIndex
+
+    protected val isLast
+        get() = index == lastIndex
+
+    override val isHovered: Boolean
+        get() = super.isHovered && isShown
 
     override val renderSelf: Boolean
         get() = showAnimation > 0.0 && super.renderSelf
@@ -79,10 +84,6 @@ abstract class AnimatedWindowChild(
         onShow {
             showAnimation = 0.0
             staticShowAnimation = 0.0
-        }
-
-        onUpdate {
-            isHovered = isHovered && isShown
         }
 
         titleBar.textField.use {

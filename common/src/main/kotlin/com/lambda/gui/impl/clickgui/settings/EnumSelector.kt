@@ -22,7 +22,6 @@ import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.core.TextField.Companion.textField
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.impl.clickgui.ModuleLayout
 import com.lambda.gui.impl.clickgui.SettingLayout
 import com.lambda.util.Mouse
 
@@ -33,45 +32,31 @@ class EnumSelector <T : Enum<T>>(
 ) : SettingLayout<T, EnumSetting<T>>(owner, setting, true) {
 
     init {
-        (owner.owner as? ModuleLayout)?.let {
-            it.onWindowExpand {
-                this@EnumSelector.isMinimized = true
-            }
+        setting.enumValues.forEach { enumEntry ->
+            content.layout {
+                val base = this@EnumSelector
 
-            it.onWindowMinimize {
-                this@EnumSelector.isMinimized = true
-            }
-        }
+                overrideSize(base::width) {
+                    base.titleBar.height * 0.8
+                }
 
-        setting.enumValues.map { EnumEntry(this, it) }
-            .onEach(content.children::add)
+                textField {
+                    text = enumEntry.name
+                    textHAlignment = HAlign.CENTER
 
-        content.listify()
-    }
+                    onUpdate {
+                        scale = base.titleBar.textField.scale
+                        color = base.titleBar.textField.color
+                    }
+                }
 
-    class EnumEntry <T : Enum<T>>(
-        private val base: EnumSelector<T>,
-        private val entry: T
-    ) : Layout(base) {
-        init {
-            overrideSize(base::renderWidth) {
-                base.titleBar.renderHeight * 0.8
-            }
-
-            textField {
-                text = entry.name
-                textHAlignment = HAlign.CENTER
-
-                onUpdate {
-                    scale = base.titleBar.textField.scale
-                    color = base.titleBar.textField.color
+                onMouseClick(Mouse.Button.Left, Mouse.Action.Click) {
+                    base.settingDelegate = enumEntry
                 }
             }
-
-            onMouseClick(Mouse.Button.Left, Mouse.Action.Click) {
-                base.settingDelegate = entry
-            }
         }
+
+        content.listify()
     }
 
     companion object {

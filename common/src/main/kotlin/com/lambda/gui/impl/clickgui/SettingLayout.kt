@@ -31,7 +31,7 @@ import com.lambda.util.math.*
 abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
     owner: Layout,
     val setting: T,
-    expandable: Boolean = false
+    private val expandable: Boolean = false
 ) : AnimatedWindowChild(
     owner,
     setting.name,
@@ -51,13 +51,25 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
     init {
         isMinimized = true
 
-        overrideWidth(owner::renderWidth)
+        overrideWidth(owner::width)
         titleBar.overrideHeight(ClickGui::settingsHeight)
 
         if (!expandable) {
-            overrideHeight(titleBar::renderHeight)
+            overrideHeight(titleBar::height)
             content.destroy()
-        } else backgroundTint(true)
+        } else {
+            backgroundTint(true)
+
+            // Minimize other expandable settings when this one gets opened
+            onWindowExpand {
+                owner.children
+                    .filterIsInstance<SettingLayout<*, *>>()
+                    .filter { it.expandable }
+                    .forEach {
+                        if (it != this) it.isMinimized = true
+                    }
+            }
+        }
 
         titleBar.textField.use {
             text = setting.name

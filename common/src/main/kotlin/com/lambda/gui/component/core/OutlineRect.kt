@@ -24,8 +24,6 @@ import java.awt.Color
 class OutlineRect(
     owner: Layout
 ) : Layout(owner) {
-    @UIRenderPr0p3rty var rectangle = owner.rect
-
     @UIRenderPr0p3rty var roundRadius = 0.0
     @UIRenderPr0p3rty var glowRadius = 0.0
 
@@ -41,7 +39,7 @@ class OutlineRect(
 
         onRender {
             outlineRect(
-                rectangle,
+                rect,
                 roundRadius,
                 glowRadius,
                 leftTopColor,

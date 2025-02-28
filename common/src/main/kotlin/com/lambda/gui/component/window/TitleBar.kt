@@ -39,13 +39,13 @@ class TitleBar(
     private var dragOffset: Vec2d? = null
 
     init {
-        overrideSize(
-            owner::renderWidth,
-            ClickGui::titleBarHeight
-        )
-
         onShow {
             dragOffset = null
+        }
+
+        onUpdate {
+            width = owner.width
+            height = ClickGui.titleBarHeight
         }
 
         onMouseClick { _, _ -> dragOffset = null }
@@ -62,7 +62,8 @@ class TitleBar(
 
     val backgroundRect = rect {
         onUpdate {
-            rectangle = this@TitleBar.rect
+            position = this@TitleBar.position
+            size = this@TitleBar.size
             setColor(ClickGui.titleBackgroundColor)
 
             val radius = ClickGui.roundRadius
@@ -70,9 +71,9 @@ class TitleBar(
             rightTopRadius = radius
 
             val bottomRadius = transform(
-                owner.renderHeight,
-                this.renderHeight,
-                this.renderHeight + 1,
+                owner.height,
+                this.height,
+                this.height + 1,
                 radius,
                 0.0
             )

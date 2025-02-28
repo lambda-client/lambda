@@ -44,9 +44,9 @@ class BooleanButton(
 
             onUpdate {
                 val rb = this@BooleanButton.rightBottom
-                val h = this@BooleanButton.renderHeight
+                val h = this@BooleanButton.height
 
-                rectangle = Rect(rb - Vec2d(h * 1.65, h), rb)
+                rect = Rect(rb - Vec2d(h * 1.65, h), rb)
                     .shrink(shrink + (1.0 - showAnimation) * h * 0.2) +
                         Vec2d.RIGHT * lerp(showAnimation, 5.0, -ClickGui.fontOffset + shrink)
 
@@ -59,20 +59,16 @@ class BooleanButton(
                     if (isHovered) Mouse.Cursor.Pointer else Mouse.Cursor.Arrow
                 )
             }
-
-            onMouseClick(Mouse.Button.Left, Mouse.Action.Click) {
-                setting.value = !setting.value
-            }
         }
 
         rect { // Knob
             setRadius(100.0)
 
             onUpdate {
-                val knobStart = Rect.basedOn(checkBox.rectangle.leftTop, Vec2d.ONE * checkBox.rectangle.size.y)
-                val knobEnd = Rect(checkBox.rectangle.rightBottom - checkBox.rectangle.size.y, checkBox.rectangle.rightBottom)
+                val knobStart = Rect.basedOn(checkBox.leftTop, Vec2d.ONE * checkBox.size.y)
+                val knobEnd = Rect(checkBox.rightBottom - checkBox.size.y, checkBox.rightBottom)
 
-                rectangle = lerp(
+                rect = lerp(
                     lerp(showAnimation, 1.0 - activeAnimation, activeAnimation),
                     knobStart,
                     knobEnd
@@ -82,6 +78,10 @@ class BooleanButton(
 
                 setColor(Color.WHITE.setAlpha(0.25 * showAnimation))
             }
+        }
+
+        onMouseClick(Mouse.Button.Left, Mouse.Action.Click) {
+            setting.value = !setting.value
         }
     }
 

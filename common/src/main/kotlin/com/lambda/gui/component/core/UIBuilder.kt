@@ -17,6 +17,7 @@
 
 package com.lambda.gui.component.core
 
+import com.lambda.event.events.GuiEvent
 import com.lambda.gui.component.layout.Layout
 import com.lambda.util.math.MathUtils.toInt
 
@@ -37,4 +38,5 @@ fun <T : Layout> T.insertLayout(
     val index = owner.children.indexOf(base)
     check(index != -1 && base.owner == owner) { "Given layout belongs to different owner" }
     owner.children.add(index + next.toInt(), this)
+    this.onEvent(GuiEvent.Update)
 }

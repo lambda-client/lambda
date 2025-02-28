@@ -53,14 +53,14 @@ class WindowContent(
         children.forEachIndexed { i, it ->
             val prev = children.getOrNull(i - 1) ?: run {
                 it.overrideY {
-                    this.renderPositionY + ClickGui.padding
+                    this.positionY + ClickGui.padding
                 }
 
                 return@forEachIndexed
             }
 
             it.overrideY {
-                prev.renderPositionY + layoutHeight(prev, true)
+                prev.positionY + layoutHeight(prev, true)
             }
         }
     }
@@ -68,12 +68,12 @@ class WindowContent(
     init {
         properties.scissor = true
 
-        overrideX(owner.titleBar::renderPositionX)
+        overrideX(owner.titleBar::positionX)
         overrideY {
-            owner.titleBar.let { it.renderPositionY + it.renderHeight } + renderScrollOffset * scrollable.toInt()
+            owner.titleBar.let { it.positionY + it.height } + renderScrollOffset * scrollable.toInt()
         }
 
-        overrideWidth(owner::renderWidth)
+        overrideWidth(owner::width)
         overrideHeight {
             var height = ClickGui.padding * 2
 
@@ -101,7 +101,7 @@ class WindowContent(
 
             val prevOffset = scrollOffset
             scrollOffset = scrollOffset.coerceAtLeast(
-                owner.targetHeight - renderHeight
+                owner.targetHeight - height
             ).coerceAtMost(0.0)
 
             rubberbandDelta += prevOffset - scrollOffset
@@ -117,7 +117,7 @@ class WindowContent(
     }
 
     private fun layoutHeight(layout: Layout, animate: Boolean, isLast: Boolean = false): Double {
-        var height = layout.renderHeight + ClickGui.listStep * (!isLast).toInt()
+        var height = layout.height + ClickGui.listStep * (!isLast).toInt()
         val animated = layout as? AnimatedWindowChild ?: return height
 
         height *= if (!animate) animated.staticShowAnimation
