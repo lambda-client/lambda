@@ -32,14 +32,23 @@ class ModuleWindow(
     initialPosition: Vec2d
 ) : Window(owner, tag.name, initialPosition, minimizing = Minimizing.Absolute, autoResize = AutoResize.ByConfig) {
     init {
-        ModuleRegistry.modules
+        val modules = ModuleRegistry.modules
             .filter { it.defaultTags.firstOrNull() == tag }
             .map { module -> content.moduleLayout(module) }
-            .let { moduleLayouts ->
-                moduleLayouts.forEachIndexed { i, it ->
-                    it.isLast = moduleLayouts.lastIndex == i
-                }
+
+        content.listify()
+
+        onWindowExpand {
+            modules.forEach {
+                it.isMinimized = true
             }
+        }
+
+        onWindowMinimize {
+            modules.forEach {
+                it.isMinimized = true
+            }
+        }
     }
 
     companion object {

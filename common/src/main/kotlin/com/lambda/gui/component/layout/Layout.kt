@@ -21,14 +21,16 @@ import com.lambda.graphics.RenderMain
 import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.event.events.GuiEvent
 import com.lambda.graphics.pipeline.ScissorAdapter
+import com.lambda.graphics.renderer.gui.font.FontRenderer
+import com.lambda.graphics.renderer.gui.rect.OutlineRectRenderer
 import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.VAlign
-import com.lambda.gui.component.core.LayoutBuilder
-import com.lambda.gui.component.core.UIBuilder
+import com.lambda.gui.component.core.*
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
+import java.awt.Color
 
 /**
  * Represents a component for creating complex ui structures.
@@ -75,10 +77,13 @@ open class Layout(
         set(value) { width = value.x; height = value.y }
 
     val renderSize get() = Vec2d(renderWidth, renderHeight)
+
     val renderWidth get() = widthTransform()
     val renderHeight get() = heightTransform()
+
     private var widthTransform = { width }
     private var heightTransform = { height }
+
     var width = 0.0
     var height = 0.0
 
@@ -123,7 +128,8 @@ open class Layout(
     // Structure
     val children = mutableListOf<Layout>()
     var selectedChild: Layout? = null
-    protected open val renderChildren: Boolean get() = renderWidth > 0 && renderHeight > 0
+    protected open val renderSelf: Boolean get() = renderWidth > 1 && renderHeight > 1
+    protected open val scissorRect get() = rect
 
     // Inputs
     protected var mousePosition = Vec2d.ZERO
@@ -148,7 +154,7 @@ open class Layout(
      */
     @LayoutBuilder
     fun <T : Layout> T.use(action: T.() -> Unit) {
-        action(this).apply {  }
+        action(this)
     }
 
     /**
@@ -232,6 +238,18 @@ open class Layout(
     }
 
     /**
+     * Sets the action to be performed when mouse button gets clicked.
+     *
+     * @param action The action to be performed.
+     */
+    @LayoutBuilder
+    fun <T : Layout> T.onMouseClick(button: Mouse.Button, action: Mouse.Action, block: T.() -> Unit) {
+        mouseClickActions += { butt, act ->
+            if (butt == button && act == action) block()
+        }
+    }
+
+    /**
      * Sets the action to be performed when mouse moves.
      *
      * @param action The action to be performed.
@@ -272,8 +290,8 @@ open class Layout(
      */
     @LayoutBuilder
     fun overridePosition(x: () -> Double, y: () -> Double) {
-        positionXTransform = x
-        positionYTransform = y
+        overrideX(x)
+        overrideY(y)
     }
 
     /**
@@ -297,8 +315,8 @@ open class Layout(
      */
     @LayoutBuilder
     fun overrideSize(width: () -> Double, height: () -> Double) {
-        widthTransform = width
-        heightTransform = height
+        overrideWidth(width)
+        overrideHeight(height)
     }
 
     /**
@@ -374,17 +392,17 @@ open class Layout(
             is GuiEvent.Update -> {
                 updateActions.forEach { it(this) }
             }
-            is GuiEvent.Render -> {}
+            is GuiEvent.Render -> {
+                if (!renderSelf) return
+            }
             is GuiEvent.MouseMove -> {
                 mousePosition = e.mouse
                 mouseMoveActions.forEach { it(this, e.mouse) }
             }
             is GuiEvent.MouseScroll -> {
+                if (!isHovered) return
                 mousePosition = e.mouse
-
-                if (isHovered) {
-                    mouseScrollActions.forEach { it(this, e.delta) }
-                }
+                mouseScrollActions.forEach { it(this, e.delta) }
             }
             is GuiEvent.MouseClick -> {
                 mousePosition = e.mouse
@@ -411,11 +429,25 @@ open class Layout(
         if (e is GuiEvent.Render) {
             val block = {
                 renderActions.forEach { it(this) }
-                if (renderChildren) children.forEach { it.onEvent(e) }
+                if (renderSelf) children.forEach { it.onEvent(e) }
+
+                /*if (this !is FilledRect && this !is OutlineRect && this !is TextField) {
+                    OutlineRectRenderer.outlineRect(
+                        rect,
+                        glowRadius = 0.5
+                    )
+
+                    FontRenderer.drawString(
+                        javaClass.simpleName,
+                        leftTop + FontRenderer.getHeight(0.5) * 0.5,
+                        Color.WHITE,
+                        0.5
+                    )
+                }*/
             }
 
             if (!properties.scissor) block()
-            else ScissorAdapter.scissor(rect, block)
+            else ScissorAdapter.scissor(scissorRect, block)
         }
     }
 

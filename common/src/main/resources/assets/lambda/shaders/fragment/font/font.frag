@@ -10,19 +10,26 @@ in vec4 v_Color;
 
 out vec4 color;
 
-void main() {
-    vec2 coord = v_TexCoord;
+float sdf(float channel) {
+    return 1.0 - smoothstep(u_SDFMin, u_SDFMax, 1.0 - channel);
+}
 
-    bool isEmoji = coord.x < 0.0;
-    if (isEmoji) coord = -v_TexCoord;
+vec4 sdf(vec4 texture) {
+    return vec4(
+        sdf(texture.r),
+        sdf(texture.g),
+        sdf(texture.b),
+        sdf(texture.a)
+    );
+}
+
+void main() {
+    bool isEmoji = v_TexCoord.x < 0.0;
 
     if (isEmoji) {
-        color = texture(u_EmojiTexture, coord) * v_Color;
+        color = sdf(texture(u_EmojiTexture, -v_TexCoord)) * v_Color;
         return;
     }
 
-    float sdf = texture(u_FontTexture, coord).r;
-    float alpha = 1.0 - smoothstep(u_SDFMin, u_SDFMax, 1.0 - sdf);
-
-    color = vec4(1, 1, 1, alpha) * v_Color;
+    color = vec4(1.0, 1.0, 1.0, sdf(texture(u_FontTexture, v_TexCoord).r)) * v_Color;
 }

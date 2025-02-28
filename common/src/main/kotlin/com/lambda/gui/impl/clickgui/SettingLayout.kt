@@ -18,16 +18,11 @@
 package com.lambda.gui.impl.clickgui
 
 import com.lambda.config.AbstractSetting
-import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.component.window.Window
-import com.lambda.util.math.Vec2d
-import com.lambda.util.math.lerp
-import com.lambda.util.math.setAlpha
-import com.lambda.util.math.transform
-import java.awt.Color
+import com.lambda.gui.component.window.AnimatedWindowChild
+import com.lambda.util.math.*
 
 /**
  * A base class for setting layouts.
@@ -36,26 +31,21 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
     owner: Layout,
     val setting: T,
     expandable: Boolean = false
-) : Window(
+) : AnimatedWindowChild(
     owner,
     setting.name,
     Vec2d.ZERO, Vec2d.ZERO,
     false, false,
-    if (expandable) Minimizing.Relative else Minimizing.Disabled,
+    if (expandable) Minimizing.Absolute else Minimizing.Disabled,
     false,
     AutoResize.ForceEnabled
 ) {
-    protected val animation = animationTicker()
     protected val cursorController = cursorController()
 
-    var visibilityAnimation by animation.exp(0.0, 1.0, 0.8, ::visible)
-    var heightOffset = 0.0
-
-    var settingValue by setting
+    var settingDelegate by setting
     val visible get() = setting.visibility()
 
-    override val renderChildren: Boolean
-        get() = visibilityAnimation > 0
+    override val isShown: Boolean get() = super.isShown && visible
 
     init {
         isMinimized = true
@@ -63,8 +53,9 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
         overrideWidth(owner::renderWidth)
         titleBar.overrideHeight(ClickGui::settingsHeight)
 
-        overrideX {
-            owner.renderPositionX + transform(visibilityAnimation, 0.0, 1.0, -10.0, 0.0)
+        if (!expandable) {
+            overrideHeight(titleBar::renderHeight)
+            content.destroy()
         }
 
         titleBar.textField.use {
@@ -72,8 +63,7 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
             textHAlignment = HAlign.LEFT
 
             onUpdate {
-                scale = ClickGui.fontScale * 0.92 * lerp(visibilityAnimation, 0.6, 1.0)
-                color = Color.WHITE.setAlpha(visibilityAnimation)
+                scale *= 0.92
             }
         }
 
@@ -82,7 +72,5 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
             contentBackground,
             outlineRect
         ).forEach(Layout::destroy)
-
-        if (!expandable) content.destroy()
     }
 }

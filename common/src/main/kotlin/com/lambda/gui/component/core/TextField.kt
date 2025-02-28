@@ -21,7 +21,6 @@ import com.lambda.graphics.renderer.gui.font.FontRenderer
 import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
 import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.VAlign
-import com.lambda.gui.component.core.OutlineRect.Companion.outlineBehind
 import com.lambda.gui.component.layout.Layout
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
@@ -71,7 +70,7 @@ class TextField(
         fun Layout.textFieldBehind(
             layout: Layout,
             block: TextField.() -> Unit = {}
-        ) = TextField(this).relativeLayout(this, layout, false).apply(block)
+        ) = TextField(this).insertLayout(this, layout, false).apply(block)
 
         /**
          * Adds a [TextField] over given [layout]
@@ -80,6 +79,6 @@ class TextField(
         fun Layout.textFieldOver(
             layout: Layout,
             block: TextField.() -> Unit = {}
-        ) = TextField(this).relativeLayout(this, layout, true).apply(block)
+        ) = TextField(this).insertLayout(this, layout, true).apply(block)
     }
 }

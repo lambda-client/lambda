@@ -35,7 +35,7 @@ class BooleanButton(
     owner: Layout,
     setting: BooleanSetting
 ) : SettingLayout<Boolean, BooleanSetting>(owner, setting) {
-    private var activeAnimation by animation.exp(0.0, 1.0, 0.6, ::settingValue)
+    private var activeAnimation by animation.exp(0.0, 1.0, 0.6, ::settingDelegate)
 
     init {
         val checkBox = rect { // Checkbox
@@ -47,9 +47,10 @@ class BooleanButton(
                 val h = this@BooleanButton.renderHeight
 
                 rectangle = Rect(rb - Vec2d(h * 1.65, h), rb)
-                    .shrink(shrink) + Vec2d.LEFT * (ClickGui.fontOffset - shrink)
+                    .shrink(shrink + (1.0 - showAnimation) * h * 0.2) +
+                        Vec2d.RIGHT * lerp(showAnimation, 5.0, -ClickGui.fontOffset + shrink)
 
-                setColor(Color.BLACK.setAlpha(0.25 * visibilityAnimation))
+                setColor(Color.BLACK.setAlpha(0.25 * showAnimation))
                 shade = ClickGui.backgroundShade
             }
 
@@ -59,10 +60,8 @@ class BooleanButton(
                 )
             }
 
-            onMouseClick { button, action ->
-                if (button == Mouse.Button.Left && action == Mouse.Action.Click) {
-                    setting.value = !setting.value
-                }
+            onMouseClick(Mouse.Button.Left, Mouse.Action.Click) {
+                setting.value = !setting.value
             }
         }
 
@@ -72,9 +71,16 @@ class BooleanButton(
             onUpdate {
                 val knobStart = Rect.basedOn(checkBox.leftTop, Vec2d.ONE * checkBox.renderHeight)
                 val knobEnd = Rect(checkBox.rightBottom - checkBox.renderHeight, checkBox.rightBottom)
-                rectangle = lerp(activeAnimation, knobStart, knobEnd).shrink(1.0)
+
+                rectangle = lerp(
+                    lerp(showAnimation, 1.0 - activeAnimation, activeAnimation),
+                    knobStart,
+                    knobEnd
+                ).shrink(1.0)
+
                 shade = ClickGui.backgroundShade
-                setColor(Color.WHITE.setAlpha(0.25 * visibilityAnimation))
+
+                setColor(Color.WHITE.setAlpha(0.25 * showAnimation))
             }
         }
     }

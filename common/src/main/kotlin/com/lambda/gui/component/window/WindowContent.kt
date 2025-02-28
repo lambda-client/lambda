@@ -22,70 +22,69 @@ import com.lambda.gui.component.core.LayoutBuilder
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
+import com.lambda.util.math.MathUtils.toInt
+import com.lambda.util.math.Rect
 import kotlin.math.abs
 
 class WindowContent(
     owner: Window,
-    private val scrollableList: Boolean
+    scrollable: Boolean
 ) : Layout(owner) {
+    private val window = owner
     private val animation = animationTicker(false)
 
     private var dwheel = 0.0
     private var scrollOffset = 0.0
     private var rubberbandDelta = 0.0
 
-    var renderScrollOffset by animation.exp(0.7) { scrollOffset + rubberbandDelta }
-    private var scrolling = false
+    private var renderScrollOffset by animation.exp(0.7) { scrollOffset + rubberbandDelta }
 
-    private var contentHeight = {
-        ClickGui.padding * 2 +
-                children.sumOf(Layout::renderHeight) +
-                ClickGui.listStep * (children.size - 1).coerceAtLeast(0)
-    }
+    override val scissorRect: Rect
+        get() = Rect(window.titleBar.leftBottom, window.rightBottom)
 
-    private var reorder = block@ {
-        children.forEachIndexed { i, child ->
-            val prev by lazy { children[i - 1] }
+    override val renderSelf: Boolean
+        get() = window.heightAnimation > 0.05
 
-            child.overrideY {
-                if (i == 0) {
-                    renderPositionY + renderScrollOffset + ClickGui.padding
-                } else {
-                    prev.renderPositionY + prev.renderHeight + ClickGui.listStep
+    /**
+     * Orders the children set vertically
+     */
+    @LayoutBuilder
+    fun listify() {
+        children.forEachIndexed { i, it ->
+            val prev = children.getOrNull(i - 1) ?: run {
+                it.overrideY {
+                    this.renderPositionY + ClickGui.padding
                 }
+
+                return@forEachIndexed
+            }
+
+            it.overrideY {
+                prev.renderPositionY + layoutHeight(prev, true) + ClickGui.listStep
             }
         }
     }
 
-    /**
-     * Overrides the summary height of the content
-     */
-    @LayoutBuilder
-    fun overrideContentHeight(block: () -> Double) {
-        contentHeight = block
-    }
-
-    /**
-     * Overrides the action performed on ordering update
-     */
-    @LayoutBuilder
-    fun reorderChildren(block: () -> Unit) {
-        reorder = block
-    }
-
     init {
-        overrideX { owner.titleBar.renderPositionX }
-        overrideY { owner.titleBar.let { it.renderPositionY + it.renderHeight } }
-        overrideWidth { owner.renderWidth }
-        overrideHeight { owner.renderHeight - owner.titleBar.renderHeight }
+        properties.scissor = true
+
+        overrideX(owner.titleBar::renderPositionX)
+        overrideY {
+            owner.titleBar.let { it.renderPositionY + it.renderHeight } + renderScrollOffset * scrollable.toInt()
+        }
+
+        overrideWidth(owner::renderWidth)
+        overrideHeight {
+            children.sumOf { layoutHeight(it, false) } +
+                    ClickGui.listStep * (children.size - 1).coerceAtLeast(0) +
+                    ClickGui.padding * 2
+        }
 
         onShow {
             dwheel = 0.0
             scrollOffset = 0.0
             rubberbandDelta = 0.0
             renderScrollOffset = 0.0
-
-            if (scrollableList) reorder()
         }
 
         onTick {
@@ -93,12 +92,12 @@ class WindowContent(
                 scrollOffset + dwheel
             } else 0.0
 
-            scrolling = dwheel != 0.0
             dwheel = 0.0
 
             val prevOffset = scrollOffset
-            val maxScroll = renderHeight - getContentHeight() - ClickGui.padding
-            scrollOffset = scrollOffset.coerceAtLeast(maxScroll).coerceAtMost(0.0)
+            scrollOffset = scrollOffset.coerceAtLeast(
+                owner.targetHeight - renderHeight
+            ).coerceAtMost(0.0)
 
             rubberbandDelta += prevOffset - scrollOffset
             rubberbandDelta *= 0.5
@@ -107,27 +106,27 @@ class WindowContent(
             animation.tick()
         }
 
-        onUpdate {
-            if (scrollableList) reorder()
-        }
-
         onMouseScroll { delta ->
-            if (!scrollableList) return@onMouseScroll
             dwheel += delta * 10.0
         }
     }
 
-    fun getContentHeight() = contentHeight()
+    private fun layoutHeight(layout: Layout, animate: Boolean): Double {
+        var height = layout.renderHeight
+        val animated = layout as? AnimatedWindowChild ?: return height
+
+        height *= if (!animate) animated.staticShowAnimation
+        else animated.showAnimation
+
+        return height
+    }
 
     companion object {
         /**
          * Creates an empty [WindowContent] component
-         *
-         * @param scrollableList Whether to let user scroll this layout
-         * This will also make your elements be vertically ordered
          */
         @UIBuilder
-        fun Window.windowContent(scrollableList: Boolean) =
-            WindowContent(this, scrollableList).apply(children::add)
+        fun Window.windowContent(scrollable: Boolean) =
+            WindowContent(this, scrollable).apply(children::add)
     }
 }

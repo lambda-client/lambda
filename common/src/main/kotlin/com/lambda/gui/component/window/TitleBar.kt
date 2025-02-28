@@ -26,6 +26,7 @@ import com.lambda.gui.component.layout.Layout
 import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
+import com.lambda.util.math.transform
 
 /**
  * Represents a titlebar component
@@ -47,10 +48,9 @@ class TitleBar(
             dragOffset = null
         }
 
-        onMouseClick { button: Mouse.Button, action: Mouse.Action ->
-            dragOffset = if (drag && button == Mouse.Button.Left && action == Mouse.Action.Click) {
-                mousePosition - owner.position
-            } else null
+        onMouseClick { _, _ -> dragOffset = null }
+        onMouseClick(Mouse.Button.Left, Mouse.Action.Click) {
+            if (drag) dragOffset = mousePosition - owner.position
         }
 
         onMouseMove { mouse ->
@@ -69,7 +69,13 @@ class TitleBar(
             leftTopRadius = radius
             rightTopRadius = radius
 
-            val bottomRadius = lerp(owner.content.renderHeight, radius, 0.0)
+            val bottomRadius = transform(
+                owner.renderHeight,
+                this.renderHeight,
+                this.renderHeight + 1,
+                radius,
+                0.0
+            )
             leftBottomRadius = bottomRadius
             rightBottomRadius = bottomRadius
 

@@ -9,21 +9,20 @@ out vec4 color;
 #define SPHREAD 4
 
 void main() {
-    float alpha = 0.0;
-    float blurWeight = 0.0;
+    vec4 colors = vec4(0.0);
+    vec4 blurWeight = vec4(0.0);
 
     for (int x = -SPHREAD; x <= SPHREAD; ++x) {
         for (int y = -SPHREAD; y <= SPHREAD; ++y) {
             vec2 offset = vec2(x, y) * u_TexelSize;
 
-            float color = texture(u_Texture, v_TexCoord + offset).r;
-            float weight = exp(-color * color);
+            vec4 color = texture(u_Texture, v_TexCoord + offset);
+            vec4 weight = exp(-color * color);
 
-            alpha += color * weight;
+            colors += color * weight;
             blurWeight += weight;
         }
     }
 
-    alpha /= blurWeight;
-    color = vec4(alpha, 1.0, 1.0, 1.0);
+    color = colors / blurWeight;
 }

@@ -21,14 +21,15 @@ import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.Module
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.GuiManager.layoutOf
-import com.lambda.gui.component.HAlign
+import com.lambda.gui.component.core.FilledRect
+import com.lambda.gui.component.core.FilledRect.Companion.rect
 import com.lambda.gui.component.core.FilledRect.Companion.rectBehind
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.component.window.Window
+import com.lambda.gui.component.window.AnimatedWindowChild
 import com.lambda.util.Mouse
 import com.lambda.util.math.*
-import com.lambda.util.math.MathUtils.toInt
+import java.awt.Color
 import kotlin.math.pow
 
 class ModuleLayout(
@@ -36,14 +37,13 @@ class ModuleLayout(
     module: Module,
     initialPosition: Vec2d = Vec2d.ZERO,
     initialSize: Vec2d = Vec2d(100, 18)
-) : Window(
+) : AnimatedWindowChild(
     owner,
     module.name,
     initialPosition, initialSize,
-    false, true, Minimizing.Relative, false,
+    false, false, Minimizing.Absolute, false,
     AutoResize.ForceEnabled
 ) {
-    private val animation = animationTicker()
     private val cursorController = cursorController()
 
     private var enableAnimation by animation.exp(0.0, 1.0, 0.6, module::isEnabled)
@@ -56,37 +56,8 @@ class ModuleLayout(
     // ToDo: replace with timer
     private var lastHover = 0L
 
-    // Could be true only if owner is ModuleWindow
-    var isLast = false
-
     init {
-        isMinimized = true
-        height = 100.0
-        openAnimation = 0.0
-
-        overrideX { owner.renderPositionX + ClickGui.padding }
-        overrideWidth { owner.renderWidth - ClickGui.padding * 2 }
-
-        titleBar.use {
-            overrideHeight(ClickGui::moduleHeight)
-
-            onMouseClick { button, action ->
-                if (button == Mouse.Button.Left && action == Mouse.Action.Click) {
-                    module.toggle()
-                }
-            }
-
-            textField.onUpdate {
-                textHAlignment = HAlign.LEFT
-                offsetX = ClickGui.fontOffset + lerp(
-                    openAnimation,
-                    hoverAnimation * 2,
-                    1.0 + hoverAnimation
-                )
-            }
-        }
-
-        rectBehind(titleBar) {
+        rectBehind(titleBar) { // base rect with lowest y to avoid children overlying
             onUpdate {
                 rectangle = this@ModuleLayout.rect.shrink(shrink)
                 shade = ClickGui.backgroundShade
@@ -114,6 +85,47 @@ class ModuleLayout(
                     leftBottomRadius = ClickGui.roundRadius - (ClickGui.padding + shrink)
                     rightBottomRadius = leftBottomRadius
                 }
+            }
+
+            rect { // hover fx
+                onUpdate {
+                    val base = this@rect.owner as FilledRect
+
+                    rectangle = base.rectangle
+                    shade = base.shade
+
+                    setRadius(
+                        base.leftTopRadius,
+                        base.rightTopRadius,
+                        base.rightBottomRadius,
+                        base.leftBottomRadius
+                    )
+
+                    val hoverColor = Color.WHITE.setAlpha(
+                        ClickGui.moduleHoverAccent * hoverAnimation * (1.0 - openAnimation)
+                    )
+
+                    setColorH(hoverColor.setAlpha(0.0), hoverColor)
+                }
+            }
+        }
+
+        isMinimized = true
+        height = 100.0
+        openAnimation = 0.0
+
+        overrideX { owner.renderPositionX + ClickGui.padding }
+        overrideWidth { owner.renderWidth - ClickGui.padding * 2 }
+
+        titleBar.use {
+            overrideHeight(ClickGui::moduleHeight)
+
+            onMouseClick(Mouse.Button.Left,Mouse.Action.Click) {
+                module.toggle()
+            }
+
+            textField.onUpdate {
+                offsetX += hoverAnimation * 2
             }
         }
 
@@ -151,35 +163,7 @@ class ModuleLayout(
             content.layoutOf(setting)
         }
 
-        content.overrideContentHeight {
-            val settings = content.children
-                .filterIsInstance<SettingLayout<*, *>>()
-
-            val components = settings.sumOf {
-                (it.renderHeight + ClickGui.listStep) * it.visibilityAnimation
-            } - ClickGui.listStep
-
-            components + ClickGui.padding * 2 * settings.isNotEmpty().toInt()
-        }
-
-        content.reorderChildren {
-            val settings = content.children
-                .filterIsInstance<SettingLayout<*, *>>()
-
-            var y = 0.0
-
-            settings.forEach {
-                if (it.visible) {
-                    it.heightOffset = y
-                }
-
-                y += (it.renderHeight + ClickGui.listStep) * it.visibilityAnimation
-
-                it.overrideY {
-                    content.renderPositionY + content.renderScrollOffset + ClickGui.padding + it.heightOffset
-                }
-            }
-        }
+        content.listify()
 
         listOf(
             titleBarBackground,

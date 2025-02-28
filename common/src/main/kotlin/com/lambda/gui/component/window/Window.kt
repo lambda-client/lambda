@@ -48,7 +48,7 @@ open class Window(
     private val resizable: Boolean = true,
     val autoResize: AutoResize = AutoResize.Disabled
 ) : Layout(owner) {
-    private val animation = animationTicker()
+    protected val animation = animationTicker()
     private val cursorController = cursorController()
 
     val titleBar = titleBar(initialTitle, draggable)
@@ -119,14 +119,18 @@ open class Window(
         actions.forEach { it(this) }
     }
 
-    private var heightAnimation by animation.exp(
+    var isExpand
+        get() = !isMinimized
+        set(value) { isMinimized = !value }
+
+    var heightAnimation by animation.exp(
         min = { 0.0 },
         max = { if (minimizing == Minimizing.Relative) targetHeight else 1.0 },
-        speed = 0.8,
+        speed = 0.7,
         flag = { !isMinimized }
     )
 
-    private val targetHeight get() = if (!autoResize.enabled) height - titleBar.renderHeight else content.getContentHeight()
+    val targetHeight get() = if (!autoResize.enabled) height - titleBar.renderHeight else content.renderHeight
 
     // Resizing
     private var resizeX: Double? = null
@@ -137,6 +141,7 @@ open class Window(
     init {
         position = initialPosition
         size = initialSize
+        properties.clampPosition = owner is ScreenLayout
 
         overrideSize(animation.exp(0.8, ::width)::value) {
             titleBar.renderHeight + when (minimizing) {
@@ -146,9 +151,6 @@ open class Window(
             }
         }
 
-        properties.clampPosition = owner is ScreenLayout
-        content.properties.scissor = true
-
         titleBar.onMouseClick { button, action ->
             // Toggle minimizing state when right-clicking title bar
             if (minimizing == Minimizing.Disabled) return@onMouseClick
@@ -157,16 +159,29 @@ open class Window(
             isMinimized = !isMinimized
         }
 
+        content.onUpdate {
+            val animatedChildren = content.children
+                .filterIsInstance<AnimatedWindowChild>()
+                .filter { it.isShown }
+
+            animatedChildren.forEachIndexed { i, it ->
+                it.index = i
+                it.lastIndex = animatedChildren.lastIndex
+            }
+        }
+
         onShow {
             resizeX = null
             resizeY = null
             resizeXHovered = false
             resizeYHovered = false
-            heightAnimation = when {
+
+            heightAnimation = 0.0
+            /*heightAnimation = when {
                 isMinimized -> 0.0
                 minimizing == Minimizing.Relative -> targetHeight
                 else -> 1.0
-            }
+            }*/
         }
 
         onTick {
@@ -237,8 +252,8 @@ open class Window(
 
     /**
      * [Disabled] -> No ability to minimize the window
-     * [Relative] -> Animation follows the height of the component ( animation(0.0, height) )
-     * [Absolute] -> Animation does not depend on the height ( animation(0.0, 1.0) * height )
+     * [Relative] -> Animation follows the height of the component ( animation(0.0, height) ) (height change is animated)
+     * [Absolute] -> Animation does not depend on the height ( animation(0.0, 1.0) * height ) (height change instantly affects the height)
      */
     enum class Minimizing {
         Disabled,

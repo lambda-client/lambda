@@ -18,7 +18,6 @@
 package com.lambda.gui.component.core
 
 import com.lambda.graphics.renderer.gui.rect.FilledRectRenderer.filledRect
-import com.lambda.gui.component.core.FilledRect.Companion.rectBehind
 import com.lambda.gui.component.layout.Layout
 import com.lambda.util.math.Rect
 import java.awt.Color
@@ -72,6 +71,18 @@ class FilledRect(
         leftBottomRadius = radius
     }
 
+    fun setRadius(
+        leftTopRadius: Double,
+        rightTopRadius: Double,
+        rightBottomRadius: Double,
+        leftBottomRadius: Double,
+    ) {
+        this.leftTopRadius = leftTopRadius
+        this.rightTopRadius = rightTopRadius
+        this.rightBottomRadius = rightBottomRadius
+        this.leftBottomRadius = leftBottomRadius
+    }
+
     fun setColor(color: Color) {
         leftTopColor = color
         rightTopColor = color
@@ -109,7 +120,7 @@ class FilledRect(
         fun Layout.rectBehind(
             layout: Layout,
             block: FilledRect.() -> Unit = {}
-        ) = FilledRect(this).relativeLayout(this, layout, false).apply(block)
+        ) = FilledRect(this).insertLayout(this, layout, false).apply(block)
 
         /**
          * Adds a [FilledRect] over given [layout]
@@ -118,6 +129,6 @@ class FilledRect(
         fun Layout.rectOver(
             layout: Layout,
             block: FilledRect.() -> Unit = {}
-        ) = FilledRect(this).relativeLayout(this, layout, true).apply(block)
+        ) = FilledRect(this).insertLayout(this, layout, true).apply(block)
     }
 }
