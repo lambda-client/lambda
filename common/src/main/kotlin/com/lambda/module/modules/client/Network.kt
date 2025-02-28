@@ -28,10 +28,10 @@ import com.lambda.event.events.ConnectionEvent.Connect.Login.EncryptionResponse
 import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafeConcurrently
-import com.lambda.network.api.v1.endpoints.login
-import com.lambda.network.api.v1.models.Authentication
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.network.api.v1.endpoints.login
+import com.lambda.network.api.v1.models.Authentication
 import com.lambda.network.api.v1.models.Authentication.Data
 import com.lambda.util.extension.isOffline
 import net.minecraft.client.network.AllowedAddressResolver
@@ -44,6 +44,7 @@ import net.minecraft.network.packet.c2s.login.LoginHelloC2SPacket
 import net.minecraft.text.Text
 import java.math.BigInteger
 import java.util.*
+
 
 object Network : Module(
     name = "Network",
@@ -78,7 +79,7 @@ object Network : Module(
         }
 
         listenOnceUnsafe<ConnectionEvent.Connect.Post> {
-            if (mc.gameProfile.isOffline) return@listenOnceUnsafe true
+            if (mc.gameProfile.isOffline) return@listenOnceUnsafe true // ToDo: If the player have the properties but are invalid this doesn't work
 
             // If we log in right as the client responds to the encryption request, we start
             // a race condition where the game server haven't acknowledged the packets
@@ -89,8 +90,7 @@ object Network : Module(
                 return@listenOnceUnsafe false
             }
 
-            auth = resp
-            deserialized = gson.fromJson(String(Base64.getUrlDecoder().decode(accessToken.split(".")[1])), Data::class.java)
+            updateToken(resp)
 
             true
         }
@@ -113,7 +113,10 @@ object Network : Module(
         connection.send(LoginHelloC2SPacket(mc.session.username, mc.session.uuidOrNull))
     }
 
-    internal fun updateToken(auth: Authentication?) { this.auth = auth }
+    internal fun updateToken(resp: Authentication?) {
+        auth = resp
+        deserialized = gson.fromJson(String(Base64.getUrlDecoder().decode(accessToken.split(".")[1])), Data::class.java)
+    }
 
     enum class ApiVersion(val value: String) {
         // We can use @Deprecated("Not supported") to remove old API versions in the future

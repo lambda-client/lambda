@@ -28,6 +28,7 @@
     "render.BackgroundRendererMixin",
     "render.BlockRenderManagerMixin",
     "render.CameraMixin",
+    "render.CapeFeatureRendererMixin",
     "render.ChatInputSuggestorMixin",
     "render.ChatScreenMixin",
     "render.DebugHudMixin",
