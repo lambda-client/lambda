@@ -24,8 +24,7 @@ import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 
 object ProcessorRegistry : Loadable {
-    private const val PROCESSOR_PACKAGE = "com.lambda.interaction.construction.processing.processors"
-    private val processors = getInstances<PlacementProcessor> { forPackages(PROCESSOR_PACKAGE) }
+    private val processors = getInstances<PlacementProcessor>()
     private val processorCache = mutableMapOf<BlockState, PreprocessingStep>()
 
     override fun load() = "Loaded ${processors.size} pre processors"
