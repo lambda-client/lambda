@@ -46,7 +46,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
     private val gap get() = RenderSettings.gap * 0.5f - 0.8f
 
     /**
-     * Builds the vertex array for rendering the provided text string at a specified position.
+     * Renders a text string at a specified position with configurable color, scale, shadow, and emoji parsing
      *
      * @param text The text to render.
      * @param position The position to render the text.
@@ -75,6 +75,14 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
         }
     }
 
+    /**
+     * Renders a single glyph at the specified position with the given scale and color
+     *
+     * @param glyph The glyph information
+     * @param position The rendering position where the glyph will be drawn
+     * @param color The color of the glyph
+     * @param scale The scale factor of the glyph
+     */
     fun drawGlyph(
         glyph: GlyphInfo,
         position: Vec2d,
@@ -154,7 +162,10 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
     }
 
     /**
-     * Calculates the height of the text based on the specified scale.
+     * Computes the effective height of the rendered text
+     *
+     * The height is derived from the current font's base height, adjusted by a scaling factor
+     * that ensures consistent visual proportions
      *
      * @param scale The scale factor for the height calculation.
      * @return The height of the text at the specified scale.
@@ -162,7 +173,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
     fun getHeight(scale: Double = 1.0) = chars.height * getScaleFactor(scale) * 0.7
 
     /**
-     * Iterates over each character and emoji in the text and applies a block operation.
+     * Processes a text string by iterating over its characters and emojis, computing rendering positions, and invoking a block for each glyph
      *
      * @param text The text to iterate over.
      * @param color The color of the text.

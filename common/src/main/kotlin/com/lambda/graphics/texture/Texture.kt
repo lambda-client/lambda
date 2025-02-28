@@ -75,14 +75,14 @@ open class Texture {
     var height = -1; protected set
 
     /**
-     * Binds the texture to a specific slot in the graphics pipeline.
+     * Binds this texture to the specified slot in the graphics pipeline
      */
     open fun bind(slot: Int = 0) {
         bindTexture(id, slot)
     }
 
     /**
-     * Unbinds the currently bound texture
+     * Unbinds any texture from the specified slot
      */
     open fun unbind(slot: Int = 0) {
         bindTexture(0, slot)
@@ -90,7 +90,8 @@ open class Texture {
 
     /**
      * Uploads an image to the texture and generates mipmaps for the texture if applicable
-     * This function does not bind the texture
+     *
+     * Note that the texture must be bound before calling this function
      *
      * @param image     The image to upload to the texture
      * @param offset    The mipmap level to upload the image to
@@ -112,7 +113,8 @@ open class Texture {
 
     /**
      * Uploads an image to the texture and generates mipmaps for the texture if applicable
-     * This function does not bind the texture
+     *
+     * Note that the texture must be bound before calling this function
      *
      * @param buffer    The image buffer to upload to the texture
      * @param width     The width of the texture
@@ -136,7 +138,8 @@ open class Texture {
 
     /**
      * Updates the data of a texture
-     * This function does not bind the texture
+     *
+     * Note that the texture must be bound before calling this function
      *
      * @param image     The image to upload to the texture
      * @param offset    The mipmap level to upload the image to
