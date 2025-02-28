@@ -32,7 +32,7 @@ object CommandRegistry : Configurable(LambdaConfig), Loadable {
     override val name = "command"
     val prefix by setting("prefix", ';')
 
-    val commands = getInstances<LambdaCommand> { forPackages("com.lambda.command.commands") }.toMutableList()
+    val commands = getInstances<LambdaCommand>().toMutableList()
 
     override fun load() = "Loaded ${commands.size} commands with ${dispatcher.root.children()} possible command paths."
 

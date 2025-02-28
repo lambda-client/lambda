@@ -25,7 +25,7 @@ import com.lambda.util.reflections.getInstances
  */
 object ModuleRegistry : Loadable {
     override val priority = 1
-    val modules = getInstances<Module> { forPackages("com.lambda.module.modules") }.toMutableList()
+    val modules = getInstances<Module>().toMutableList()
 
     val moduleNames: Set<String>
         get() = modules.map { it.name }.toSet()
