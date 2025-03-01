@@ -17,35 +17,33 @@
 
 package com.lambda.pathing.move
 
-import com.lambda.pathing.Node
-import com.lambda.pathing.Node.Companion.toNode
-import com.lambda.pathing.goal.Goal
+import com.lambda.pathing.Path
+import com.lambda.task.Task
 import com.lambda.util.world.FastVector
-import com.lambda.util.world.offset
-import kotlin.math.abs
 
-enum class Move(val x: Int, val y: Int, val z: Int) {
-    TRAVERSE_NORTH(0, 0, -1),
-//    TRAVERSE_NORTH_EAST(1, 0, -1),
-    TRAVERSE_EAST(1, 0, 0),
-//    TRAVERSE_SOUTH_EAST(1, 0, 1),
-    TRAVERSE_SOUTH(0, 0, 1),
-//    TRAVERSE_SOUTH_WEST(-1, 0, 1),
-    TRAVERSE_WEST(-1, 0, 0),
-//    TRAVERSE_NORTH_WEST(-1, 0, -1),
-    PILLAR(0, 1, 0),
-    ASCEND_NORTH(0, 1, -1),
-    ASCEND_EAST(1, 1, 0),
-    ASCEND_SOUTH(0, 1, 1),
-    ASCEND_WEST(-1, 1, 0),
-    FALL(0, -1, 0),
-    DESCEND_NORTH(0, -1, -1),
-    DESCEND_EAST(1, -1, 0),
-    DESCEND_SOUTH(0, -1, 1),
-    DESCEND_WEST(-1, -1, 0);
+abstract class Move : Comparable<Move>, Task<Unit>() {
+    abstract val pos: FastVector
+    abstract val hCost: Double
+    abstract val nodeType: NodeType
+    abstract val feetY: Double
+    abstract val cost: Double
 
-    fun cost(): Int = abs(x) + abs(y) + abs(z)
+    var predecessor: Move? = null
+    var gCost: Double = Double.POSITIVE_INFINITY
 
-    // ToDo: Use DirectionMask
-    fun node(origin: FastVector, goal: Goal): Node = origin.offset(x, y, z).toNode(goal)
+    // use updateable lazy and recompute on gCost change
+    private val fCost get() = gCost + hCost
+
+    override fun compareTo(other: Move) =
+        fCost.compareTo(other.fCost)
+
+    fun createPathToSource(): Path {
+        val path = Path()
+        var current: Move? = this
+        while (current != null) {
+            path.prepend(current)
+            current = current.predecessor
+        }
+        return path
+    }
 }

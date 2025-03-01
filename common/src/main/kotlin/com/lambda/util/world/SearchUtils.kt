@@ -269,9 +269,7 @@ object SearchUtils {
         for (x in -range.x..range.x step step.x) {
             for (y in -range.y..range.y step step.y) {
                 for (z in -range.z..range.z step step.z) {
-                    iterator(
-                        pos plus fastVectorOf(x, y, z),
-                    )
+                    iterator(pos + fastVectorOf(x, y, z))
                 }
             }
         }

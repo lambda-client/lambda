@@ -15,19 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.pathing.goal
+package com.lambda.pathing.move
 
 import com.lambda.util.world.FastVector
-import com.lambda.util.world.distManhattan
-import com.lambda.util.world.distSq
-import com.lambda.util.world.toBlockPos
 
-class SimpleGoal(
-    val pos: FastVector,
-) : Goal {
-    override fun inGoal(pos: FastVector) = pos == this.pos
-
-    override fun heuristic(pos: FastVector) = pos distManhattan this.pos
-
-    override fun toString() = "Goal at (${pos.toBlockPos().toShortString()})"
+class ParkourMove(
+    override val pos: FastVector,
+    override val hCost: Double,
+    override val nodeType: NodeType,
+    override val feetY: Double,
+    override val cost: Double
+) : Move() {
+    override val name: String = "Parkour"
 }

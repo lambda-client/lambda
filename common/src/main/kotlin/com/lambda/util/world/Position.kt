@@ -129,20 +129,24 @@ infix fun FastVector.addZ(value: Int): FastVector = setZ(z + value)
 
 fun FastVector.offset(x: Int, y: Int, z: Int): FastVector = fastVectorOf(this.x + x, this.y + y, this.z + z)
 
-/**
- * Adds the given vector to the position.
- */
-infix fun FastVector.plus(vec: FastVector): FastVector = fastVectorOf(x + vec.x, y + vec.y, z + vec.z)
+fun FastVector.manhattanLength() = abs(x) + abs(y) + abs(z)
+
+fun FastVector.length() = sqrt((x * x + y * y + z * z).toDouble())
 
 /**
  * Adds the given vector to the position.
  */
-infix fun FastVector.plus(vec: Vec3i): FastVector = fastVectorOf(x + vec.x, y + vec.y, z + vec.z)
+infix fun FastVector.add(vec: FastVector): FastVector = fastVectorOf(x + vec.x, y + vec.y, z + vec.z)
 
 /**
  * Adds the given vector to the position.
  */
-infix fun FastVector.plus(vec: Vec3d): FastVector =
+operator fun FastVector.plus(vec: Vec3i): FastVector = fastVectorOf(x + vec.x, y + vec.y, z + vec.z)
+
+/**
+ * Adds the given vector to the position.
+ */
+operator fun FastVector.plus(vec: Vec3d): FastVector =
     fastVectorOf(x + vec.x.toLong(), y + vec.y.toLong(), z + vec.z.toLong())
 
 /**
@@ -153,12 +157,12 @@ infix fun FastVector.minus(vec: FastVector): FastVector = fastVectorOf(x - vec.x
 /**
  * Subtracts the given vector from the position.
  */
-infix fun FastVector.minus(vec: Vec3i): FastVector = fastVectorOf(x - vec.x, y - vec.y, z - vec.z)
+operator fun FastVector.minus(vec: Vec3i): FastVector = fastVectorOf(x - vec.x, y - vec.y, z - vec.z)
 
 /**
  * Subtracts the given vector from the position.
  */
-infix fun FastVector.minus(vec: Vec3d): FastVector =
+operator fun FastVector.minus(vec: Vec3d): FastVector =
     fastVectorOf(x - vec.x.toLong(), y - vec.y.toLong(), z - vec.z.toLong())
 
 /**

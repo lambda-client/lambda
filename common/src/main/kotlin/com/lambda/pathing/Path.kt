@@ -17,15 +17,16 @@
 
 package com.lambda.pathing
 
+import com.lambda.pathing.move.Move
 import com.lambda.util.world.toBlockPos
 
 data class Path(
-    val nodes: ArrayDeque<Node> = ArrayDeque(),
+    val moves: ArrayDeque<Move> = ArrayDeque(),
 ) {
-    fun prepend(node: Node) {
-        nodes.addFirst(node)
+    fun prepend(move: Move) {
+        moves.addFirst(move)
     }
 
     override fun toString() =
-        nodes.joinToString(" -> ") { "(${it.pos.toBlockPos().toShortString()})" }
+        moves.joinToString(" -> ") { "(${it.pos.toBlockPos().toShortString()})" }
 }

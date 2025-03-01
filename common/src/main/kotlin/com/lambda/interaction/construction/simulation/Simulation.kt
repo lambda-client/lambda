@@ -30,6 +30,7 @@ import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.FastVector
+import com.lambda.util.world.WorldUtils.playerBox
 import com.lambda.util.world.WorldUtils.playerFitsIn
 import com.lambda.util.world.WorldUtils.traversable
 import com.lambda.util.world.toBlockPos
@@ -73,8 +74,6 @@ data class Simulation(
     }
 
     companion object {
-        fun Vec3d.playerBox(): Box = Box(x - 0.3, y, z - 0.3, x + 0.3, y + 1.8, z + 0.3).contract(1.0E-6)
-
         fun Blueprint.simulation(
             interact: InteractionConfig = TaskFlowModule.interact,
             rotation: RotationConfig = TaskFlowModule.rotation,

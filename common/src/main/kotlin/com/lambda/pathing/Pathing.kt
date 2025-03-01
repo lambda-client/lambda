@@ -18,42 +18,55 @@
 package com.lambda.pathing
 
 import com.lambda.context.SafeContext
-import com.lambda.pathing.Node.Companion.toNode
 import com.lambda.pathing.goal.Goal
+import com.lambda.pathing.move.Move
+import com.lambda.pathing.move.MoveFinder
+import com.lambda.pathing.move.MoveFinder.findPathType
+import com.lambda.pathing.move.MoveFinder.getFeetY
 import com.lambda.pathing.move.MoveFinder.moveOptions
+import com.lambda.pathing.move.TraverseMove
+import com.lambda.util.Communication.warn
 import com.lambda.util.world.FastVector
+import com.lambda.util.world.toBlockPos
 import java.util.PriorityQueue
 
 object Pathing {
-    fun SafeContext.findPathAStar(start: FastVector, goal: Goal): Path {
-        val openSet = PriorityQueue<Node>()
-        val closedSet = mutableSetOf<Node>()
-        val startNode = start.toNode(goal)
+    fun SafeContext.findPathAStar(start: FastVector, goal: Goal, timeout: Long = 50L): Path {
+        MoveFinder.clean()
+        val startedAt = System.currentTimeMillis()
+        val openSet = PriorityQueue<Move>()
+        val closedSet = mutableSetOf<FastVector>()
+        val startFeetY = getFeetY(start.toBlockPos())
+        val startNode = TraverseMove(start, goal.heuristic(start), findPathType(start), startFeetY, 0.0)
         startNode.gCost = 0.0
         openSet.add(startNode)
 
-        while (openSet.isNotEmpty()) {
+        println("Starting pathfinding at ${start.toBlockPos().toShortString()} to $goal")
+
+        while (openSet.isNotEmpty() && startedAt + timeout > System.currentTimeMillis()) {
             val current = openSet.remove()
+            println("Considering node: ${current.pos.toBlockPos()}")
             if (goal.inGoal(current.pos)) {
-//                println("Not yet considered nodes: ${openSet.size}")
-//                println("Closed nodes: ${closedSet.size}")
+                println("Not yet considered nodes: ${openSet.size}")
+                println("Closed nodes: ${closedSet.size}")
                 return current.createPathToSource()
             }
 
-            closedSet.add(current)
+            closedSet.add(current.pos)
 
-            moveOptions(current.pos).forEach { move ->
-                val successor = move.node(current.pos, goal)
-                if (closedSet.contains(successor)) return@forEach
-                val tentativeGCost = current.gCost + move.cost()
-                if (tentativeGCost >= successor.gCost) return@forEach
-                successor.predecessor = current
-                successor.gCost = tentativeGCost
-                openSet.add(successor)
+            moveOptions(current, goal).forEach { move ->
+                println("Considering move: $move")
+                if (closedSet.contains(move.pos)) return@forEach
+                val tentativeGCost = current.gCost + move.cost
+                if (tentativeGCost >= move.gCost) return@forEach
+                move.predecessor = current
+                move.gCost = tentativeGCost
+                openSet.add(move)
+                println("Using move: $move")
             }
         }
 
-        println("No path found")
-        return Path()
+        warn("Only partial path found!")
+        return if (openSet.isNotEmpty()) openSet.remove().createPathToSource() else Path()
     }
 }

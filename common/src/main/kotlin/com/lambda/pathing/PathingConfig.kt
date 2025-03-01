@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Lambda
+ * Copyright 2024 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,19 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.pathing.goal
+package com.lambda.pathing
 
-import com.lambda.util.world.FastVector
-import com.lambda.util.world.distManhattan
-import com.lambda.util.world.distSq
-import com.lambda.util.world.toBlockPos
+interface PathingConfig {
+    val kP: Double
+    val kI: Double
+    val kD: Double
+    val tolerance: Double
+    val cutoffTimeout: Long
 
-class SimpleGoal(
-    val pos: FastVector,
-) : Goal {
-    override fun inGoal(pos: FastVector) = pos == this.pos
-
-    override fun heuristic(pos: FastVector) = pos distManhattan this.pos
-
-    override fun toString() = "Goal at (${pos.toBlockPos().toShortString()})"
+    val assumeJesus: Boolean
 }
