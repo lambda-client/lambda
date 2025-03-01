@@ -81,9 +81,7 @@ class BuildTask @Ta5kBuilder constructor(
     private var currentInteraction: BuildContext? = null
     private val instantBreaks = mutableSetOf<BreakContext>()
 
-    var breaking = false
-    private var breakingTicks = 0
-    private var soundsCooldown = 0.0f
+    var breakRequest: BreakRequest? = null
 
     private var placements = 0
     private var breaks = 0
@@ -105,6 +103,14 @@ class BuildTask @Ta5kBuilder constructor(
 
     init {
         listen<TickEvent.Pre> {
+            if (instantBreaks.isNotEmpty()) {
+                instantBreaks.forEach { context ->
+                    BreakManager.registerRequest(build.breakSettings, BreakRequest(context) { breaks++ })
+                }
+                instantBreaks.clear()
+                return@listen
+            }
+
             currentInteraction?.let { context ->
 //                TaskFlowModule.drawables = listOf(context)
                 if (context.shouldRotate(build) && !context.rotation.done) return@let
@@ -116,10 +122,6 @@ class BuildTask @Ta5kBuilder constructor(
                     }
                 }
             }
-            instantBreaks.forEach { context ->
-                BreakManager.registerRequest(build.breakSettings, BreakRequest(context) { breaks++ })
-            }
-            instantBreaks.clear()
 
             dropsToCollect.firstOrNull()?.let { itemDrop ->
                 if (!world.entities.contains(itemDrop)) {
@@ -215,6 +217,7 @@ class BuildTask @Ta5kBuilder constructor(
                     if (pendingInteractions.size >= build.maxPendingInteractions) return@onRotate
 
                     currentInteraction = bestResult.context
+                    if (instantBreaks.isNotEmpty()) return@onRotate
                     if (bestResult !is BreakResult.Break) return@onRotate
 
                     val breakRequest = BreakRequest(
@@ -223,6 +226,7 @@ class BuildTask @Ta5kBuilder constructor(
                         prio = 0
                     ) { breaks++ }
                     BreakManager.registerRequest(build.breakSettings, breakRequest)
+                    this@BuildTask.breakRequest = breakRequest
                 }
 
                 is Resolvable -> {
@@ -232,10 +236,12 @@ class BuildTask @Ta5kBuilder constructor(
                 }
             }
 
-            if (!build.rotateForPlace) return@onRotate
-            val rotateTo = currentInteraction?.rotation ?: return@onRotate
-
-            rotation.request(rotateTo)
+            currentInteraction?.let { currentInteraction ->
+                if (currentInteraction is BreakContext) return@let
+                if (!currentInteraction.shouldRotate(build)) return@onRotate
+                val rotateTo = currentInteraction.rotation
+                rotation.request(rotateTo)
+            }
         }
 
         listen<MovementEvent.InputUpdate> {

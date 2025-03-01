@@ -17,16 +17,16 @@
 
 package com.lambda.interaction.request.breaking
 
-import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.interaction.request.RequestConfig
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
+import com.lambda.interaction.request.rotation.RotationManager
+import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
@@ -44,44 +44,47 @@ import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.sound.SoundCategory
 
 object BreakManager : RequestHandler<BreakRequest>() {
-    var buildConfig: BuildConfig = TaskFlowModule.build
-    var primaryBreakingInfo: BreakInfo?
+    private var primaryBreakingInfo: BreakInfo?
         get() = breakingInfos[0]
         set(value) { breakingInfos[0] = value }
-    var secondaryBreakingInfo: BreakInfo?
+    private var secondaryBreakingInfo: BreakInfo?
         get() = breakingInfos[1]
         set(value) { breakingInfos[1] = value }
-    val breakingInfos = arrayOfNulls<BreakInfo>(2)
+    private val breakingInfos = arrayOfNulls<BreakInfo>(2)
 
-    val pendingInteractions = LimitedDecayQueue<BreakInfo>(
-        buildConfig.maxPendingInteractions, buildConfig.interactionTimeout * 50L
+    private val pendingInteractions = LimitedDecayQueue<BreakInfo>(
+        TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) { info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out"); it.nullify() }
 
     init {
-        listen<TickEvent.Pre>(Int.MIN_VALUE) {
+        listen<TickEvent.Pre>(Int.MIN_VALUE, alwaysListen = true) {
             if (updateRequest(true) { true }) {
                 currentRequest?.let { request ->
                     request.contexts.forEach { requestCtx ->
                         if (requestCtx == null) return@forEach
                         if (!canAccept(requestCtx)) return@forEach
 
-                        primaryBreakingInfo?.let { primaryInfo ->
-                            if (!buildConfig.breakSettings.doubleBreak) return@let
-                            if (primaryInfo.startedWithSecondary) return@let
+                        primaryBreakingInfo?.let primaryInfo@ { primaryInfo ->
+                            if (!primaryInfo.breakSettings.doubleBreak) return@primaryInfo
+                            if (primaryInfo.startedWithSecondary) return@primaryInfo
                             secondaryBreakingInfo = BreakInfo.SecondaryBreakInfo(requestCtx, request.onBreak)
                         } ?: run {
                             primaryBreakingInfo = BreakInfo.PrimaryBreakInfo(requestCtx, request.onBreak)
+                            pendingInteractions.setMaxSize(requestCtx.buildConfig.maxPendingInteractions)
+                            pendingInteractions.setDecayTime(requestCtx.buildConfig.interactionTimeout * 50L)
                         }
                     }
                 }
             }
 
-            for (it in breakingInfos.reversed()) {
+            for (info in breakingInfos.reversed()) {
                 if (interaction.blockBreakingCooldown > 0) {
                     interaction.blockBreakingCooldown--
                     break
                 }
-                it?.let { info ->
+
+                info?.let { info ->
+                    if (info.breakSettings.rotateForBreak && !info.context.rotation.done) return@listen
                     if (pendingInteractions.contains(info)) return@let
                     updateBlockBreakingProgress(info, player.mainHandStack)
                     if (info is BreakInfo.SecondaryBreakInfo)
@@ -90,13 +93,26 @@ object BreakManager : RequestHandler<BreakRequest>() {
             }
         }
 
+        onRotate {
+            run forLoop@ {
+                breakingInfos.forEach { info ->
+                    info?.let { info ->
+                        if (!info.breakSettings.rotateForBreak) return@let
+                        val rotate = info.context.rotation
+                        RotationManager.registerRequest(info.context.rotationConfig, rotate)
+                        return@forLoop
+                    }
+                }
+            }
+        }
+
         listen<WorldEvent.BlockUpdate.Server>(alwaysListen = true) { event ->
             var breakBlock = false
             val info = pendingInteractions
                 .firstOrNull { it.context.expectedPos == event.pos }
-                ?.also {
-                    pendingInteractions.remove(it)
-                    if (buildConfig.breakSettings.breakConfirmation == BreakConfirmationMode.AwaitThenBreak)
+                ?.also { pending ->
+                    pendingInteractions.remove(pending)
+                    if (pending.breakSettings.breakConfirmation == BreakConfirmationMode.AwaitThenBreak)
                         breakBlock = true
                 }
                 ?: breakingInfos
@@ -109,7 +125,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
             info.nullify()
 
             if (!info.context.targetState.matches(event.newState, event.pos, world)) {
-                this@BreakManager.warn("Update at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.targetState}")
+                this@BreakManager.warn("Break at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.targetState}")
                 return@listen
             }
             if (breakBlock) {
@@ -119,18 +135,9 @@ object BreakManager : RequestHandler<BreakRequest>() {
         }
     }
 
-    fun canAccept(ctx: BreakContext) =
+    private fun canAccept(ctx: BreakContext) =
         pendingInteractions.none { it.context.expectedPos == ctx.expectedPos }
                 && breakingInfos.none { info -> info?.context?.expectedPos == ctx.expectedPos }
-
-    override fun updateRequest(
-        keepIfNull: Boolean,
-        filter: (Map.Entry<RequestConfig<BreakRequest>, BreakRequest>) -> Boolean
-    ): Boolean {
-        val updatedCurrentRequest = super.updateRequest(keepIfNull, filter)
-        buildConfig = currentRequest?.primaryContext?.buildConfig ?: TaskFlowModule.build
-        return updatedCurrentRequest
-    }
 
     private fun SafeContext.updateBlockBreakingProgress(info: BreakInfo, item: ItemStack): Boolean {
         val ctx = info.context
@@ -216,7 +223,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 onBlockBreak(info)
                 PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, ctx.expectedPos, ctx.result.side, sequence)
             }
-            interaction.blockBreakingCooldown = buildConfig.breakSettings.breakDelay
+            interaction.blockBreakingCooldown = info.breakSettings.breakDelay
             return true
         }
         if (info.breaking) return false
@@ -262,7 +269,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
     }
 
     private fun SafeContext.onBlockBreak(info: BreakInfo) {
-        when (info.context.buildConfig.breakSettings.breakConfirmation) {
+        when (info.breakSettings.breakConfirmation) {
             BreakConfirmationMode.None -> {
                 destroyBlock(info)
                 info.onBreak()
@@ -318,6 +325,8 @@ object BreakManager : RequestHandler<BreakRequest>() {
         var breakingTicks = 0
         var soundsCooldown = 0.0f
         var startedWithSecondary = false
+        val buildConfig = context.buildConfig
+        val breakSettings = buildConfig.breakSettings
 
         fun getBreakTextureProgress(player: PlayerEntity, world: ClientWorld): Int {
             val breakDelta = context.checkedState.calcItemBlockBreakingDelta(
@@ -327,18 +336,17 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 player.mainHandStack
             )
 
-            val progress = (breakDelta * breakingTicks) / buildConfig.breakSettings.breakThreshold
+            val progress = (breakDelta * breakingTicks) / breakSettings.breakThreshold
             return if (progress > 0.0f) (progress * 10.0f).toInt() else -1
         }
 
-        open fun getBreakThreshold() =
-            context.buildConfig.breakSettings.breakThreshold
+        open fun getBreakThreshold() = breakSettings.breakThreshold
 
         open fun nullify() {}
 
         class PrimaryBreakInfo(
             ctx: BreakContext,
-            onBreak: () -> Unit
+            onBreak: () -> Unit,
         ) : BreakInfo(ctx, onBreak) {
             override fun nullify() {
                 primaryBreakingInfo = null
@@ -347,7 +355,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
 
         class SecondaryBreakInfo(
             ctx: BreakContext,
-            onBreak: () -> Unit
+            onBreak: () -> Unit,
         ) : BreakInfo(ctx, onBreak) {
             override fun getBreakThreshold() =
                 1.0f
