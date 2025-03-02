@@ -18,24 +18,29 @@
 package com.lambda.pathing
 
 import com.lambda.config.Configurable
+import com.lambda.interaction.request.Priority
 
 class PathingSettings(
     c: Configurable,
+    priority: Priority = 0,
     vis: () -> Boolean = { true }
-) : PathingConfig {
+) : PathingConfig(priority) {
     enum class Page {
-        Execution, Misc
+        Pathfinding, Movement, Misc
     }
 
-    private val page by c.setting("Pathing Page", Page.Execution, "Current page", vis)
+    private val page by c.setting("Pathing Page", Page.Pathfinding, "Current page", vis)
 
-    override val kP by c.setting("P Gain", 0.5, 0.0..2.0, 0.01) { vis() && page == Page.Execution }
-    override val kI by c.setting("I Gain", 0.0, 0.0..1.0, 0.01) { vis() && page == Page.Execution }
-    override val kD by c.setting("D Gain", 0.2, 0.0..1.0, 0.01) { vis() && page == Page.Execution }
-    override val tolerance by c.setting("Node Tolerance", 0.1, 0.01..1.0, 0.01) { vis() && page == Page.Execution }
-    override val cutoffTimeout by c.setting("Cutoff Timeout", 50L, 1L..2000L, 10L) { vis() && page == Page.Execution }
-    override val shortcutLength by c.setting("Shortcut Length", 10, 1..100, 1) { vis() && page == Page.Execution }
-    override val pathClearanceCheckDistance by c.setting("Path Clearance Check Distance", 0.3, 0.0..1.0, 0.01) { vis() && page == Page.Execution }
+    override val cutoffTimeout by c.setting("Cutoff Timeout", 500L, 1L..2000L, 10L, "Timeout of path calculation", " ms") { vis() && page == Page.Pathfinding }
+    override val shortcutLength by c.setting("Shortcut Length", 10, 1..100, 1) { vis() && page == Page.Pathfinding }
+    override val clearancePrecition by c.setting("Clearance Precition", 0.2, 0.0..1.0, 0.01) { vis() && page == Page.Pathfinding }
+    override val maxFallHeight by c.setting("Max Fall Height", 3.0, 0.0..30.0, 0.5) { vis() && page == Page.Pathfinding }
+
+    override val kP by c.setting("P Gain", 0.5, 0.0..2.0, 0.01) { vis() && page == Page.Movement }
+    override val kI by c.setting("I Gain", 0.0, 0.0..1.0, 0.01) { vis() && page == Page.Movement }
+    override val kD by c.setting("D Gain", 0.2, 0.0..1.0, 0.01) { vis() && page == Page.Movement }
+    override val tolerance by c.setting("Node Tolerance", 0.7, 0.01..2.0, 0.05) { vis() && page == Page.Movement }
+    override val allowSprint by c.setting("Allow Sprint", true) { vis() && page == Page.Movement }
 
     override val assumeJesus by c.setting("Assume Jesus", false) { vis() && page == Page.Misc }
 }

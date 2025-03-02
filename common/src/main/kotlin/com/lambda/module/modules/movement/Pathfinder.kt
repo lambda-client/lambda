@@ -19,6 +19,7 @@ package com.lambda.module.modules.movement
 
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
+import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
@@ -58,10 +59,15 @@ object Pathfinder : Module(
     description = "Get from A to B",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
-    private val pathing = PathingSettings(this)
-    private val rotation = RotationSettings(this)
+    enum class Page {
+        Pathing, Rotation
+    }
 
-    private val target = fastVectorOf(0, 78, 0)
+    private val page by setting("Page", Page.Pathing)
+    private val pathing = PathingSettings(this) { page == Page.Pathing }
+    private val rotation = RotationSettings(this) { page == Page.Rotation }
+
+    private val target = fastVectorOf(0, 91, -4)
     private var longPath = Path()
     private var shortPath = Path()
     private var currentTarget: Vec3d? = null
@@ -74,33 +80,17 @@ object Pathfinder : Module(
             integralError = Vec3d.ZERO
             lastError = Vec3d.ZERO
             calculating = false
+            longPath = Path()
+            shortPath = Path()
+            currentTarget = null
         }
 
         listen<TickEvent.Pre> {
             updateTargetNode()
 
             if (calculating) return@listen
-            calculating = true
 
-            runConcurrent {
-                val long: Path
-                val aStar = measureTimeMillis {
-                    long = findPathAStar(
-                        player.blockPos.toFastVec(),
-                        SimpleGoal(target),
-                        pathing
-                    )
-                }
-                val short: Path
-                val thetaStar = measureTimeMillis {
-                    short = thetaStarClearance(long, pathing)
-                }
-                info("A* (Length: ${long.length.string} Nodes: ${long.moves.size} T: $aStar ms) and Theta* (Length: ${short.length.string} Nodes: ${short.moves.size} T: $thetaStar ms)")
-                println("Long: $long | Short: $short")
-                longPath = long
-                shortPath = short
-//                calculating = false
-            }
+            updatePaths()
         }
 
         listen<RotationEvent.StrafeInput> { event ->
@@ -124,8 +114,6 @@ object Pathfinder : Module(
         }
 
         onRotate {
-//            val nextTarget = shortPath.moves.getOrNull(2)?.pos?.toBlockPos() ?: return@onRotate
-//            val part = player.eyePos.rotationTo(Vec3d.ofBottomCenter(nextTarget))
             val currentTarget = currentTarget ?: return@onRotate
             val part = player.eyePos.rotationTo(currentTarget)
             val targetRotation = Rotation(part.yaw, player.pitch.toDouble())
@@ -133,8 +121,15 @@ object Pathfinder : Module(
             lookAt(targetRotation).requestBy(rotation)
         }
 
+        listen<MovementEvent.Sprint> {
+            if (shortPath.moves.isEmpty()) return@listen
+
+            player.isSprinting = pathing.allowSprint
+            it.sprint = pathing.allowSprint
+        }
+
         listen<RenderEvent.StaticESP> { event ->
-            longPath.render(event.renderer, Color.YELLOW)
+//            longPath.render(event.renderer, Color.YELLOW)
             shortPath.render(event.renderer, Color.GREEN)
             event.renderer.buildFilled(Box(target.toBlockPos()), Color.PINK.setAlpha(0.25))
         }
@@ -149,16 +144,38 @@ object Pathfinder : Module(
     }
 
     private fun SafeContext.updateTargetNode() {
-        shortPath.moves.firstOrNull()?.let { firstNode ->
-            val nodeVec = Vec3d.ofBottomCenter(firstNode.pos.toBlockPos())
-            if (player.pos.distanceTo(nodeVec) < pathing.tolerance) {
+        shortPath.moves.firstOrNull()?.let { current ->
+            if (player.pos.distanceTo(current.bottomPos) < pathing.tolerance) {
                 shortPath.moves.removeFirst()
                 integralError = Vec3d.ZERO
             }
-            val next = shortPath.moves.firstOrNull()?.pos?.toBlockPos() ?: return
-            currentTarget = Vec3d.ofBottomCenter(next)
+            currentTarget = shortPath.moves.firstOrNull()?.bottomPos
         } ?: run {
             currentTarget = null
+        }
+    }
+
+    private fun SafeContext.updatePaths() {
+        runConcurrent {
+            calculating = true
+            val long: Path
+            val aStar = measureTimeMillis {
+                long = findPathAStar(
+                    player.blockPos.toFastVec(),
+                    SimpleGoal(target),
+                    pathing
+                )
+            }
+            val short: Path
+            val thetaStar = measureTimeMillis {
+                short = thetaStarClearance(long, pathing)
+            }
+            info("A* (Length: ${long.length.string} Nodes: ${long.moves.size} T: $aStar ms) and Theta* (Length: ${short.length.string} Nodes: ${short.moves.size} T: $thetaStar ms)")
+            println("Long: $long | Short: $short")
+            short.moves.removeFirstOrNull()
+            longPath = long
+            shortPath = short
+//            calculating = false
         }
     }
 

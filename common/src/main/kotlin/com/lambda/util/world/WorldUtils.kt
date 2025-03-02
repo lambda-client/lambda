@@ -20,6 +20,7 @@ package com.lambda.util.world
 import com.lambda.context.SafeContext
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.flooredBlockPos
+import net.fabricmc.loader.impl.lib.sat4j.core.Vec
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
@@ -60,9 +61,9 @@ object WorldUtils {
         var currentPos = start
 
         (0 until steps).forEach { _ ->
-            val blockPos = currentPos.flooredBlockPos
-            val playerNotFitting = !playerFitsIn(blockPos)
-            if (playerNotFitting || (supportCheck && !hasSupport(blockPos))) {
+            val playerNotFitting = !playerFitsIn(currentPos)
+            val hasNoSupport = !hasSupport(currentPos)
+            if (playerNotFitting || (supportCheck && hasNoSupport)) {
                 return false
             }
             currentPos = currentPos.add(stepDirection)
@@ -71,18 +72,21 @@ object WorldUtils {
         return playerFitsIn(end)
     }
 
-    fun SafeContext.playerFitsIn(pos: FastVector) =
-        playerFitsIn(pos.toBlockPos())
+    fun SafeContext.playerFitsIn(pos: BlockPos) =
+        playerFitsIn(Vec3d.ofBottomCenter(pos))
 
     fun SafeContext.playerFitsIn(pos: Vec3d) =
-        world.isSpaceEmpty(pos.playerBox())
+        world.isSpaceEmpty(pos.playerBox().contract(1.0E-6))
 
-    fun SafeContext.playerFitsIn(pos: BlockPos) =
-        world.isSpaceEmpty(Vec3d.ofBottomCenter(pos).playerBox())
+    fun SafeContext.hasSupport(pos: BlockPos) =
+          hasSupport(Vec3d.ofBottomCenter(pos))
 
-    private fun SafeContext.hasSupport(pos: BlockPos) =
-        blockState(pos.down()).isSideSolidFullSquare(world, pos.down(), Direction.UP)
+//    private fun SafeContext.hasSupport(pos: BlockPos) =
+//        blockState(pos.down()).isSideSolidFullSquare(world, pos.down(), Direction.UP)
+
+    fun SafeContext.hasSupport(pos: Vec3d) =
+        !world.isSpaceEmpty(pos.playerBox().expand(1.0E-6))
 
     fun Vec3d.playerBox(): Box =
-        Box(x - 0.3, y, z - 0.3, x + 0.3, y + 1.8, z + 0.3).contract(1.0E-6)
+        Box(x - 0.3, y, z - 0.3, x + 0.3, y + 1.8, z + 0.3)
 }

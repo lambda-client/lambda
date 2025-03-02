@@ -20,6 +20,8 @@ package com.lambda.pathing.move
 import com.lambda.pathing.Path
 import com.lambda.task.Task
 import com.lambda.util.world.FastVector
+import com.lambda.util.world.toBlockPos
+import net.minecraft.util.math.Vec3d
 
 abstract class Move : Comparable<Move>, Task<Unit>() {
     abstract val pos: FastVector
@@ -33,6 +35,8 @@ abstract class Move : Comparable<Move>, Task<Unit>() {
 
     // use updateable lazy and recompute on gCost change
     private val fCost get() = gCost + hCost
+
+    val bottomPos: Vec3d get() = Vec3d.ofBottomCenter(pos.toBlockPos())
 
     override fun compareTo(other: Move) =
         fCost.compareTo(other.fCost)

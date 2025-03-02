@@ -23,16 +23,13 @@ import com.lambda.pathing.goal.Goal
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.fluidState
 import com.lambda.util.world.FastVector
+import com.lambda.util.world.WorldUtils.hasSupport
 import com.lambda.util.world.WorldUtils.isPathClear
-import com.lambda.util.world.WorldUtils.playerFitsIn
-import com.lambda.util.world.WorldUtils.traversable
 import com.lambda.util.world.add
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.length
-import com.lambda.util.world.manhattanLength
 import com.lambda.util.world.offset
 import com.lambda.util.world.toBlockPos
-import com.lambda.util.world.y
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.block.CampfireBlock
@@ -43,7 +40,6 @@ import net.minecraft.block.TrapdoorBlock
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.enchantment.Enchantments
 import net.minecraft.entity.EquipmentSlot
-import net.minecraft.entity.ai.pathing.NavigationType
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.Items
 import net.minecraft.registry.tag.BlockTags
@@ -79,14 +75,14 @@ object MoveFinder {
         if (nodeType == NodeType.BLOCKED) return null
 
         val clear = when {
-            height == 0 -> isPathClear(originBlockPos, checkingBlockPos)
+            height == 0 -> isPathClear(originBlockPos, checkingBlockPos, config.clearancePrecition)
             height > 0 -> {
                 val between = origin.pos.offset(0, height, 0)
-                isPathClear(origin.pos, between, supportCheck = false) && isPathClear(between, checkingPos, supportCheck = false)
+                isPathClear(origin.pos, between, config.clearancePrecition, false) && isPathClear(between, checkingPos, config.clearancePrecition, false) && hasSupport(checkingBlockPos)
             }
             else -> {
                 val between = origin.pos.offset(direction.offsetX, 0, direction.offsetZ)
-                isPathClear(origin.pos, between, supportCheck = false) && isPathClear(between, checkingPos, supportCheck = false)
+                isPathClear(origin.pos, between, config.clearancePrecition, false) && isPathClear(between, checkingPos, config.clearancePrecition, false) && hasSupport(checkingBlockPos)
             }
         }
         if (!clear) return null

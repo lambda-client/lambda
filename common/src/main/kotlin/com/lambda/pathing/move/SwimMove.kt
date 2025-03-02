@@ -17,10 +17,7 @@
 
 package com.lambda.pathing.move
 
-import com.lambda.context.SafeContext
 import com.lambda.util.world.FastVector
-import com.lambda.util.world.WorldUtils.traversable
-import com.lambda.util.world.toBlockPos
 
 class SwimMove(
     override val pos: FastVector,

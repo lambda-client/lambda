@@ -17,14 +17,23 @@
 
 package com.lambda.pathing
 
-interface PathingConfig {
-    val kP: Double
-    val kI: Double
-    val kD: Double
-    val tolerance: Double
-    val cutoffTimeout: Long
-    val shortcutLength: Int
-    val pathClearanceCheckDistance: Double
+import com.lambda.interaction.request.Priority
+import com.lambda.interaction.request.RequestConfig
 
-    val assumeJesus: Boolean
+abstract class PathingConfig(priority: Priority) : RequestConfig<PathRequest>(priority) {
+    abstract val kP: Double
+    abstract val kI: Double
+    abstract val kD: Double
+    abstract val tolerance: Double
+    abstract val cutoffTimeout: Long
+    abstract val shortcutLength: Int
+    abstract val clearancePrecition: Double
+    abstract val allowSprint: Boolean
+    abstract val maxFallHeight: Double
+
+    abstract val assumeJesus: Boolean
+
+    override fun requestInternal(request: PathRequest) {
+        PathingManager.registerRequest(this, request)
+    }
 }

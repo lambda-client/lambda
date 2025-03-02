@@ -97,7 +97,7 @@ object Pathing {
                     isPathClear(
                         startMove.pos.toBlockPos(),
                         candidateMove.pos.toBlockPos(),
-                        config.pathClearanceCheckDistance
+                        config.clearancePrecition
                     )
                 ) nextIndex++ else break
             }
@@ -109,6 +109,4 @@ object Pathing {
 
         return cleanedPath
     }
-
-
 }
