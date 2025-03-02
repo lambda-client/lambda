@@ -34,6 +34,8 @@ class PathingSettings(
     override val kD by c.setting("D Gain", 0.2, 0.0..1.0, 0.01) { vis() && page == Page.Execution }
     override val tolerance by c.setting("Node Tolerance", 0.1, 0.01..1.0, 0.01) { vis() && page == Page.Execution }
     override val cutoffTimeout by c.setting("Cutoff Timeout", 50L, 1L..2000L, 10L) { vis() && page == Page.Execution }
+    override val shortcutLength by c.setting("Shortcut Length", 10, 1..100, 1) { vis() && page == Page.Execution }
+    override val pathClearanceCheckDistance by c.setting("Path Clearance Check Distance", 0.3, 0.0..1.0, 0.01) { vis() && page == Page.Execution }
 
     override val assumeJesus by c.setting("Assume Jesus", false) { vis() && page == Page.Misc }
 }

@@ -18,14 +18,21 @@
 package com.lambda.pathing
 
 import com.lambda.pathing.move.Move
+import com.lambda.util.world.dist
 import com.lambda.util.world.toBlockPos
 
 data class Path(
     val moves: ArrayDeque<Move> = ArrayDeque(),
 ) {
+    fun append(move: Move) {
+        moves.addLast(move)
+    }
+
     fun prepend(move: Move) {
         moves.addFirst(move)
     }
+
+    val length get() = moves.zipWithNext { a, b -> a.pos dist b.pos }.sum()
 
     override fun toString() =
         moves.joinToString(" -> ") { "(${it.pos.toBlockPos().toShortString()})" }

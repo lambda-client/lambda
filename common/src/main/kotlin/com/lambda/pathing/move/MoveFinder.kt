@@ -18,17 +18,21 @@
 package com.lambda.pathing.move
 
 import com.lambda.context.SafeContext
+import com.lambda.pathing.PathingConfig
 import com.lambda.pathing.goal.Goal
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.fluidState
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.WorldUtils.isPathClear
+import com.lambda.util.world.WorldUtils.playerFitsIn
 import com.lambda.util.world.WorldUtils.traversable
 import com.lambda.util.world.add
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.length
 import com.lambda.util.world.manhattanLength
+import com.lambda.util.world.offset
 import com.lambda.util.world.toBlockPos
+import com.lambda.util.world.y
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.block.CampfireBlock
@@ -51,10 +55,10 @@ import net.minecraft.util.math.EightWayDirection
 object MoveFinder {
     private val nodeTypeCache = HashMap<FastVector, NodeType>()
 
-    fun SafeContext.moveOptions(origin: Move, goal: Goal) =
+    fun SafeContext.moveOptions(origin: Move, goal: Goal, config: PathingConfig) =
         EightWayDirection.entries.flatMap { direction ->
             (-1..1).mapNotNull { y ->
-                getPathNode(goal, origin, direction, y)
+                getPathNode(goal, origin, direction, y, config)
             }
         }
 
@@ -63,21 +67,33 @@ object MoveFinder {
         origin: Move,
         direction: EightWayDirection,
         height: Int,
+        config: PathingConfig
     ): Move? {
         val offset = fastVectorOf(direction.offsetX, height, direction.offsetZ)
         val checkingPos = origin.pos.add(offset)
         val checkingBlockPos = checkingPos.toBlockPos()
+        val originBlockPos = origin.pos.toBlockPos()
         if (!world.worldBorder.contains(checkingBlockPos)) return null
 
         val nodeType = findPathType(checkingPos)
-        val hCost = goal.heuristic(checkingPos)/* * nodeType.penalty*/
-        val cost = offset.length()
-        val currentFeetY = getFeetY(checkingBlockPos)
-
         if (nodeType == NodeType.BLOCKED) return null
 
-//        // ToDo: Different for jumping etc
-        if (!isPathClear(origin.pos.toBlockPos(), checkingBlockPos)) return null
+        val clear = when {
+            height == 0 -> isPathClear(originBlockPos, checkingBlockPos)
+            height > 0 -> {
+                val between = origin.pos.offset(0, height, 0)
+                isPathClear(origin.pos, between, supportCheck = false) && isPathClear(between, checkingPos, supportCheck = false)
+            }
+            else -> {
+                val between = origin.pos.offset(direction.offsetX, 0, direction.offsetZ)
+                isPathClear(origin.pos, between, supportCheck = false) && isPathClear(between, checkingPos, supportCheck = false)
+            }
+        }
+        if (!clear) return null
+
+        val hCost = goal.heuristic(checkingPos) /** nodeType.penalty*/
+        val cost = offset.length()
+        val currentFeetY = getFeetY(checkingBlockPos)
 
         return when {
 //            (currentFeetY - origin.feetY) > player.stepHeight -> ParkourMove(checkingPos, hCost, nodeType, currentFeetY, cost)

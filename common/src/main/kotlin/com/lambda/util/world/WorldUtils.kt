@@ -31,44 +31,57 @@ object WorldUtils {
         blockState(pos.down()).isSideSolidFullSquare(world, pos.down(), Direction.UP) && playerFitsIn(pos)
 
     fun SafeContext.isPathClear(
+        start: FastVector,
+        end: FastVector,
+        stepSize: Double = 0.3,
+        supportCheck: Boolean = true,
+    ) = isPathClear(start.toBlockPos(), end.toBlockPos(), stepSize, supportCheck)
+
+    fun SafeContext.isPathClear(
         start: BlockPos,
         end: BlockPos,
         stepSize: Double = 0.3,
-    ) = isPathClear(Vec3d.ofBottomCenter(start), Vec3d.ofBottomCenter(end), stepSize)
+        supportCheck: Boolean = true,
+    ) = isPathClear(Vec3d.ofBottomCenter(start), Vec3d.ofBottomCenter(end), stepSize, supportCheck)
 
     fun SafeContext.isPathClear(
         start: Vec3d,
         end: Vec3d,
-        stepSize: Double = 0.3 // Step size based on player's hitbox radius
+        stepSize: Double = 0.3,
+        supportCheck: Boolean = true,
     ): Boolean {
         val direction = end.subtract(start)
         val distance = direction.length()
-        if (distance <= 0) return true // No movement needed
+        if (distance <= 0) return true
 
+        val steps = (distance / stepSize).toInt()
         val stepDirection = direction.normalize().multiply(stepSize)
+
         var currentPos = start
-        var remainingDistance = distance
 
-        while (remainingDistance > 0) {
+        (0 until steps).forEach { _ ->
             val blockPos = currentPos.flooredBlockPos
-            val goingDownwards = start.y > end.y
-            val hasSupport = blockState(blockPos.down()).isSideSolidFullSquare(world, blockPos.down(), Direction.UP)
-            if (!(playerFitsIn(currentPos) && (goingDownwards || hasSupport))) return false
-
-            val step = min(stepSize, remainingDistance)
-            currentPos = currentPos.add(stepDirection.multiply(step))
-            remainingDistance -= step
+            val playerNotFitting = !playerFitsIn(blockPos)
+            if (playerNotFitting || (supportCheck && !hasSupport(blockPos))) {
+                return false
+            }
+            currentPos = currentPos.add(stepDirection)
         }
 
-        // Final check at end position
         return playerFitsIn(end)
     }
+
+    fun SafeContext.playerFitsIn(pos: FastVector) =
+        playerFitsIn(pos.toBlockPos())
 
     fun SafeContext.playerFitsIn(pos: Vec3d) =
         world.isSpaceEmpty(pos.playerBox())
 
     fun SafeContext.playerFitsIn(pos: BlockPos) =
         world.isSpaceEmpty(Vec3d.ofBottomCenter(pos).playerBox())
+
+    private fun SafeContext.hasSupport(pos: BlockPos) =
+        blockState(pos.down()).isSideSolidFullSquare(world, pos.down(), Direction.UP)
 
     fun Vec3d.playerBox(): Box =
         Box(x - 0.3, y, z - 0.3, x + 0.3, y + 1.8, z + 0.3).contract(1.0E-6)

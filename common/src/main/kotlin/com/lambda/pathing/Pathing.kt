@@ -27,11 +27,13 @@ import com.lambda.pathing.move.MoveFinder.moveOptions
 import com.lambda.pathing.move.TraverseMove
 import com.lambda.util.Communication.warn
 import com.lambda.util.world.FastVector
+import com.lambda.util.world.WorldUtils.isPathClear
 import com.lambda.util.world.toBlockPos
+import com.lambda.util.world.y
 import java.util.PriorityQueue
 
 object Pathing {
-    fun SafeContext.findPathAStar(start: FastVector, goal: Goal, timeout: Long = 50L): Path {
+    fun SafeContext.findPathAStar(start: FastVector, goal: Goal, config: PathingConfig): Path {
         MoveFinder.clean()
         val startedAt = System.currentTimeMillis()
         val openSet = PriorityQueue<Move>()
@@ -43,9 +45,9 @@ object Pathing {
 
         println("Starting pathfinding at ${start.toBlockPos().toShortString()} to $goal")
 
-        while (openSet.isNotEmpty() && startedAt + timeout > System.currentTimeMillis()) {
+        while (openSet.isNotEmpty() && startedAt + config.cutoffTimeout > System.currentTimeMillis()) {
             val current = openSet.remove()
-            println("Considering node: ${current.pos.toBlockPos()}")
+            //            println("Considering node: ${current.pos.toBlockPos()}")
             if (goal.inGoal(current.pos)) {
                 println("Not yet considered nodes: ${openSet.size}")
                 println("Closed nodes: ${closedSet.size}")
@@ -54,19 +56,59 @@ object Pathing {
 
             closedSet.add(current.pos)
 
-            moveOptions(current, goal).forEach { move ->
-                println("Considering move: $move")
+            moveOptions(current, goal, config).forEach { move ->
+//                println("Considering move: $move")
                 if (closedSet.contains(move.pos)) return@forEach
                 val tentativeGCost = current.gCost + move.cost
                 if (tentativeGCost >= move.gCost) return@forEach
                 move.predecessor = current
                 move.gCost = tentativeGCost
                 openSet.add(move)
-                println("Using move: $move")
+//                println("Using move: $move")
             }
         }
 
         warn("Only partial path found!")
         return if (openSet.isNotEmpty()) openSet.remove().createPathToSource() else Path()
     }
+
+    fun SafeContext.thetaStarClearance(path: Path, config: PathingConfig): Path {
+        if (path.moves.isEmpty()) return Path()
+
+        val cleanedPath = Path()
+        var currentIndex = 0
+
+        while (currentIndex < path.moves.size) {
+            // Always add the current node to the cleaned path
+            val startMove = path.moves[currentIndex]
+            cleanedPath.append(startMove)
+
+            // Attempt to skip over as many nodes as possible
+            // by checking if they share the same Y and have a clear path
+            var nextIndex = currentIndex + 1
+            while (nextIndex < path.moves.size) {
+                val candidateMove = path.moves[nextIndex]
+
+                // Only try to skip if both moves are on the same Y level
+                if (startMove.pos.y != candidateMove.pos.y) break
+
+                // Verify there's a clear path from the start move to the candidate
+                if (
+                    isPathClear(
+                        startMove.pos.toBlockPos(),
+                        candidateMove.pos.toBlockPos(),
+                        config.pathClearanceCheckDistance
+                    )
+                ) nextIndex++ else break
+            }
+
+            // Move to the last node that was confirmed reachable
+            // (subtract 1 because 'nextIndex' might have gone one too far)
+            currentIndex = if (nextIndex > currentIndex + 1) nextIndex - 1 else nextIndex
+        }
+
+        return cleanedPath
+    }
+
+
 }

@@ -23,6 +23,8 @@ interface PathingConfig {
     val kD: Double
     val tolerance: Double
     val cutoffTimeout: Long
+    val shortcutLength: Int
+    val pathClearanceCheckDistance: Double
 
     val assumeJesus: Boolean
 }

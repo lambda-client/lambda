@@ -131,7 +131,7 @@ fun FastVector.offset(x: Int, y: Int, z: Int): FastVector = fastVectorOf(this.x 
 
 fun FastVector.manhattanLength() = abs(x) + abs(y) + abs(z)
 
-fun FastVector.length() = sqrt((x * x + y * y + z * z).toDouble())
+fun FastVector.length() = sqrt((abs(x * x) + abs(y * y) + abs(z * z)).toDouble())
 
 /**
  * Adds the given vector to the position.
