@@ -295,7 +295,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
         } else {
             info.apply {
                 breaking = true
-                breakingTicks = 0
+                breakingTicks = 1
                 soundsCooldown = 0.0f
             }
             if (info.breakConfig.breakingTexture) {
