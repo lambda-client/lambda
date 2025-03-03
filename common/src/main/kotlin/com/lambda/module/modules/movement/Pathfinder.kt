@@ -44,6 +44,7 @@ import com.lambda.util.Formatting.string
 import com.lambda.util.math.setAlpha
 import com.lambda.util.player.MovementUtils.buildMovementInput
 import com.lambda.util.player.MovementUtils.mergeFrom
+import com.lambda.util.world.WorldUtils.isPathClear
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.toFastVec
@@ -67,7 +68,7 @@ object Pathfinder : Module(
     private val pathing = PathingSettings(this) { page == Page.Pathing }
     private val rotation = RotationSettings(this) { page == Page.Rotation }
 
-    private val target = fastVectorOf(0, 91, -4)
+    private val target = fastVectorOf(0, 78, 0)
     private var longPath = Path()
     private var shortPath = Path()
     private var currentTarget: Vec3d? = null

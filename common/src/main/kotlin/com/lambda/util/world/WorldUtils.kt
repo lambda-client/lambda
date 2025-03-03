@@ -76,16 +76,19 @@ object WorldUtils {
         playerFitsIn(Vec3d.ofBottomCenter(pos))
 
     fun SafeContext.playerFitsIn(pos: Vec3d) =
-        world.isSpaceEmpty(pos.playerBox().contract(1.0E-6))
+        world.isSpaceEmpty(player, pos.playerBox().contract(1.0E-6))
 
     fun SafeContext.hasSupport(pos: BlockPos) =
-          hasSupport(Vec3d.ofBottomCenter(pos))
+        hasSupport(Vec3d.ofBottomCenter(pos))
 
 //    private fun SafeContext.hasSupport(pos: BlockPos) =
 //        blockState(pos.down()).isSideSolidFullSquare(world, pos.down(), Direction.UP)
 
     fun SafeContext.hasSupport(pos: Vec3d) =
-        !world.isSpaceEmpty(pos.playerBox().expand(1.0E-6))
+        !world.isSpaceEmpty(player, pos.playerBox().expand(1.0E-6))
+
+//    fun SafeContext.hasSupport(pos: Vec3d) =
+//        world.canCollide(null, pos.playerBox().expand(1.0E-6))
 
     fun Vec3d.playerBox(): Box =
         Box(x - 0.3, y, z - 0.3, x + 0.3, y + 1.8, z + 0.3)

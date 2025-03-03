@@ -18,13 +18,11 @@
 package com.lambda.pathing
 
 import com.lambda.config.Configurable
-import com.lambda.interaction.request.Priority
 
 class PathingSettings(
     c: Configurable,
-    priority: Priority = 0,
     vis: () -> Boolean = { true }
-) : PathingConfig(priority) {
+) : PathingConfig {
     enum class Page {
         Pathfinding, Movement, Misc
     }

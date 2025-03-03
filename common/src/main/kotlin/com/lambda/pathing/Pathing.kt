@@ -47,7 +47,7 @@ object Pathing {
 
         while (openSet.isNotEmpty() && startedAt + config.cutoffTimeout > System.currentTimeMillis()) {
             val current = openSet.remove()
-            //            println("Considering node: ${current.pos.toBlockPos()}")
+//            println("Considering node: ${current.pos.toBlockPos()}")
             if (goal.inGoal(current.pos)) {
                 println("Not yet considered nodes: ${openSet.size}")
                 println("Closed nodes: ${closedSet.size}")
