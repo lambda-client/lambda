@@ -6,6 +6,7 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.client.network.PlayerListEntry
 import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.util.Hand
 
 fun SafeContext.copyPlayer(entity: ClientPlayerEntity) =
     ClientPlayerEntity(mc, world, mc.networkHandler, null, null, entity.isSneaking, entity.isSprinting).apply {
@@ -38,4 +39,12 @@ fun SafeContext.spawnFakePlayer(
     if (addToWorld) world.addEntity(entity)
 
     return entity
+}
+
+fun SafeContext.swingHandClient(hand: Hand) {
+    if (!player.handSwinging || player.handSwingTicks >= player.handSwingDuration / 2 || player.handSwingTicks < 0) {
+        player.handSwingTicks = -1
+        player.handSwinging = true
+        player.preferredHand = hand
+    }
 }

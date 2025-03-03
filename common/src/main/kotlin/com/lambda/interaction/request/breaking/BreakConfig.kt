@@ -28,6 +28,8 @@ abstract class BreakConfig(
     abstract val breakThreshold: Float
     abstract val doubleBreak: Boolean
     abstract val breakDelay: Int
+    abstract val swing: SwingMode
+    abstract val swingType: SwingType
     abstract val sounds: Boolean
     abstract val particles: Boolean
     abstract val breakingTexture: Boolean
@@ -47,6 +49,19 @@ abstract class BreakConfig(
     enum class BreakMode {
         Vanilla,
         Packet
+    }
+
+    enum class SwingMode {
+        Constant,
+        StartAndEnd,
+        Start,
+        End
+    }
+
+    enum class SwingType {
+        Vanilla,
+        Server,
+        Client
     }
 
     enum class BreakConfirmationMode {
