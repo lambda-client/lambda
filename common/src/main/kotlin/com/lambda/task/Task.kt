@@ -23,7 +23,6 @@ import com.lambda.event.EventFlow.unsubscribe
 import com.lambda.event.Muteable
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.logError
 import com.lambda.util.Nameable
@@ -167,6 +166,7 @@ abstract class Task<Result> : Nameable, Muteable {
 
     @Ta5kBuilder
     fun cancel() {
+        runSafe { onCancel() }
         cancelSubTasks()
         if (this is RootTask) return
         if (state == State.COMPLETED || state == State.CANCELLED) return

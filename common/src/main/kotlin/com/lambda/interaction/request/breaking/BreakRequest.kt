@@ -17,17 +17,19 @@
 
 package com.lambda.interaction.request.breaking
 
+import com.lambda.config.groups.BuildConfig
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.Request
+import com.lambda.interaction.request.rotation.RotationConfig
 
 data class BreakRequest(
-    val primaryContext: BreakContext,
-    val secondaryContext: BreakContext? = null,
+    val contexts: List<BreakContext>,
+    val buildConfig: BuildConfig,
+    val rotationConfig: RotationConfig,
     val prio: Priority = 0,
     val onBreak: () -> Unit
 ) : Request(prio) {
     override val done: Boolean
         get() = false
-    val contexts = listOf(primaryContext, secondaryContext)
 }

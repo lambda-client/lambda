@@ -28,6 +28,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.tasks.BuildTask
 import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.util.Communication.info
 
 object PacketMineRewrite : Module(
     "Packet Mine Rewrite",
@@ -52,6 +53,7 @@ object PacketMineRewrite : Module(
             ).associateWith { TargetState.Air }.toBlueprint()
             task?.cancel()
 
+            info("requesting $blueprint")
             task = blueprint?.build(build = buildConfig)?.run()
         }
     }

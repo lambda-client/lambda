@@ -410,10 +410,7 @@ object BuildSimulator {
                     state,
                     targetState,
                     player.inventory.selectedSlot,
-                    instantBreakable(state, pos),
-                    build,
-                    rotation,
-                    inventory
+                    instantBreakable(state, pos)
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
                 return acc
@@ -461,7 +458,7 @@ object BuildSimulator {
         val instant = instantBreakable(state, pos)
 
         val breakContext = BreakContext(
-            eye, blockHit, request, state, targetState, player.inventory.selectedSlot, instant, build, rotation, inventory
+            eye, blockHit, request, state, targetState, player.inventory.selectedSlot, instant
         )
 
         if (player.isCreative) {

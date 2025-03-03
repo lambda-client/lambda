@@ -18,12 +18,10 @@
 package com.lambda.interaction.construction.context
 
 import com.lambda.config.groups.BuildConfig
-import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.util.world.raycast.RayCastUtils.distanceTo
 import net.minecraft.block.BlockState
@@ -44,9 +42,6 @@ data class BreakContext(
     override val targetState: TargetState,
     override var hotbarIndex: Int,
     val instantBreak: Boolean,
-    val buildConfig: BuildConfig,
-    val rotationConfig: RotationConfig,
-    val inventoryConfig: InventoryConfig
 ) : BuildContext {
     private val baseColor = Color(222, 0, 0, 25)
     private val sideColor = Color(222, 0, 0, 100)
