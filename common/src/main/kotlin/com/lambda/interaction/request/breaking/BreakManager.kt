@@ -75,7 +75,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
                     request.contexts
                         .sortedBy { it.instantBreak }
                         .forEach { requestCtx ->
-                            if (blockState(requestCtx.expectedPos).isAir) {
+                            if (!canAccept(requestCtx)) {
                                 return@forEach
                             }
                             val infoIndex = handleRequestContext(
@@ -144,8 +144,6 @@ object BreakManager : RequestHandler<BreakRequest>() {
         buildConfig: BuildConfig,
         rotationConfig: RotationConfig
     ): Int {
-        if (!canAccept(requestCtx)) return -1
-
         primaryBreakingInfo?.let { primaryInfo ->
             if (!primaryInfo.breakConfig.doubleBreak) return -1
             if (primaryInfo.startedWithSecondary) return -1
@@ -167,7 +165,9 @@ object BreakManager : RequestHandler<BreakRequest>() {
                     onBreak,
                     buildConfig.breakSettings,
                     rotationConfig
-                )
+                ).apply {
+                    startedWithSecondary = true
+                }
                 return 0
             }
         } ?: run {
@@ -177,16 +177,20 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 onBreak,
                 buildConfig.breakSettings,
                 rotationConfig
-            )
+            ).apply {
+                if (secondaryBreakingInfo != null)
+                    startedWithSecondary = true
+            }
             pendingInteractions.setMaxSize(buildConfig.maxPendingInteractions)
             pendingInteractions.setDecayTime(buildConfig.interactionTimeout * 50L)
             return 0
         }
     }
 
-    private fun canAccept(ctx: BreakContext) =
+    private fun SafeContext.canAccept(ctx: BreakContext) =
         pendingInteractions.none { it.context.expectedPos == ctx.expectedPos }
                 && breakingInfos.none { info -> info?.context?.expectedPos == ctx.expectedPos }
+                && !blockState(ctx.expectedPos).isAir
 
     private fun SafeContext.updateBlockBreakingProgress(info: BreakInfo, item: ItemStack): Boolean {
         val ctx = info.context
@@ -301,9 +305,9 @@ object BreakManager : RequestHandler<BreakRequest>() {
             if (info.breakConfig.breakingTexture) {
                 setBreakingTextureStage(info)
             }
+            if (info.type == BreakInfo.BreakType.Secondary)
+                primaryBreakingInfo?.startedWithSecondary = true
         }
-        if (info.type == BreakInfo.BreakType.Secondary)
-            primaryBreakingInfo?.startedWithSecondary = true
 
         if (info.breakConfig.breakMode == BreakMode.Packet) {
             ctx.stopBreakPacket(sequence, connection)
