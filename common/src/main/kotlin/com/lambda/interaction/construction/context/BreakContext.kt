@@ -41,7 +41,7 @@ data class BreakContext(
     override val checkedState: BlockState,
     override val targetState: TargetState,
     override var hotbarIndex: Int,
-    val instantBreak: Boolean,
+    var instantBreak: Boolean,
 ) : BuildContext {
     private val baseColor = Color(222, 0, 0, 25)
     private val sideColor = Color(222, 0, 0, 100)

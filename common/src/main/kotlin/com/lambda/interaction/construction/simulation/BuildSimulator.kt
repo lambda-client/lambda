@@ -410,7 +410,7 @@ object BuildSimulator {
                     state,
                     targetState,
                     player.inventory.selectedSlot,
-                    instantBreakable(state, pos)
+                    instantBreakable(state, pos, build.breakSettings.breakThreshold)
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
                 return acc
@@ -455,7 +455,7 @@ object BuildSimulator {
         val blockHit = bestHit.hit.blockResult ?: return acc
         val target = lookAt(bestHit.targetRotation, 0.001)
         val request = RotationRequest(target, rotation)
-        val instant = instantBreakable(state, pos)
+        val instant = instantBreakable(state, pos, build.breakSettings.breakThreshold)
 
         val breakContext = BreakContext(
             eye, blockHit, request, state, targetState, player.inventory.selectedSlot, instant
@@ -513,6 +513,7 @@ object BuildSimulator {
         if (toolPair == null) return acc
 
         breakContext.hotbarIndex = player.hotbar.indexOf(toolPair.first)
+        breakContext.instantBreak = instantBreakable(state, pos, toolPair.first, build.breakSettings.breakThreshold)
 	    acc.add(BreakResult.Break(pos, breakContext))
         return acc
     }

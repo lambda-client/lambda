@@ -166,7 +166,8 @@ class BuildTask @Ta5kBuilder constructor(
                     .sorted()
                     .take(build.breakSettings.breaksPerTick)
 
-                if (instantResults.isNotEmpty()) {
+                instantResults.firstOrNull()?.let { firstInstant ->
+                    if (!hotbar.request(HotbarRequest(firstInstant.context.hotbarIndex)).done) return@onRotate
                     build.breakSettings.request(BreakRequest(instantResults.map { it.context }, build, rotation) { breaks++ })
                     return@onRotate
                 }

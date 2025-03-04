@@ -235,13 +235,13 @@ object BlockUtils {
     fun SafeContext.fluidState(pos: BlockPos): FluidState = world.getFluidState(pos)
     fun SafeContext.blockEntity(pos: BlockPos) = world.getBlockEntity(pos)
 
-    fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos): Boolean {
-        val ticksNeeded = 1 / blockState.calcBlockBreakingDelta(player, world, blockPos)
+    fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos, breakThreshold: Float): Boolean {
+        val ticksNeeded = 1 / (blockState.calcBlockBreakingDelta(player, world, blockPos) / breakThreshold)
         return (ticksNeeded <= 1 && ticksNeeded != 0f) || player.isCreative
     }
 
-    fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos, item: ItemStack): Boolean {
-        val ticksNeeded = 1 / blockState.calcItemBlockBreakingDelta(player, world, blockPos, item)
+    fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos, item: ItemStack, breakThreshold: Float): Boolean {
+        val ticksNeeded = 1 / (blockState.calcItemBlockBreakingDelta(player, world, blockPos, item) / breakThreshold)
         return (ticksNeeded <= 1 && ticksNeeded != 0f) || player.isCreative
     }
 
