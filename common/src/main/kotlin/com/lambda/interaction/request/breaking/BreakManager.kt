@@ -27,6 +27,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
+import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.module.modules.client.TaskFlowModule
@@ -69,29 +70,35 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 return@listen
             }
 
-            if (updateRequest(false) { true }) {
+            var swapped = false
+
+            if (updateRequest(true) { true }) {
                 currentRequest?.let request@ { request ->
                     var instaBreaks = 0
                     request.contexts
                         .sortedBy { it.instantBreak }
                         .forEach { requestCtx ->
-                            if (!canAccept(requestCtx)) {
-                                return@forEach
-                            }
-                            val breakType = handleRequestContext(
-                                requestCtx,
-                                request.onBreak,
-                                request.buildConfig,
-                                request.rotationConfig
-                            )
+                            if (!canAccept(requestCtx)) return@forEach
+                            val breakType = handleRequestContext(requestCtx, request.onBreak, request.buildConfig, request.rotationConfig)
                             if (breakType == BreakType.Null) return@request
                             if (requestCtx.instantBreak && instaBreaks < request.buildConfig.breakSettings.breaksPerTick) {
                                 breakingInfos.getOrNull(breakType.index)?.let { info ->
+                                    if (!swapped) {
+                                        request.hotbarConfig.request(HotbarRequest(info.context.hotbarIndex))
+                                        swapped = true
+                                    }
                                     updateBlockBreakingProgress(info, player.mainHandStack)
                                     instaBreaks++
                                 }
                             }
                         }
+                }
+            }
+
+            currentRequest?.let { request ->
+                breakingInfos.firstOrNull()?.let { info ->
+                    if (!swapped && !request.hotbarConfig.request(HotbarRequest(info.context.hotbarIndex)).done)
+                        return@listen
                 }
             }
 
