@@ -51,7 +51,7 @@ abstract class RequestHandler<R : Request> {
      *
      * @return True, if the request was updated.
      */
-    protected open fun updateRequest(
+    protected fun updateRequest(
         keepIfNull: Boolean = false,
         filter: (Map.Entry<RequestConfig<R>, R>) -> Boolean = { true }
     ): Boolean {
