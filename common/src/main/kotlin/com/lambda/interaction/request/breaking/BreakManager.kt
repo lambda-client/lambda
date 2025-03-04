@@ -78,15 +78,15 @@ object BreakManager : RequestHandler<BreakRequest>() {
                             if (!canAccept(requestCtx)) {
                                 return@forEach
                             }
-                            val infoIndex = handleRequestContext(
+                            val breakType = handleRequestContext(
                                 requestCtx,
                                 request.onBreak,
                                 request.buildConfig,
                                 request.rotationConfig
                             )
-                            if (infoIndex == -1) return@request
+                            if (breakType == BreakType.Null) return@request
                             if (requestCtx.instantBreak && instaBreaks < request.buildConfig.breakSettings.breaksPerTick) {
-                                breakingInfos.getOrNull(infoIndex)?.let { info ->
+                                breakingInfos.getOrNull(breakType.index)?.let { info ->
                                     updateBlockBreakingProgress(info, player.mainHandStack)
                                     instaBreaks++
                                 }
@@ -143,47 +143,42 @@ object BreakManager : RequestHandler<BreakRequest>() {
         onBreak: () -> Unit,
         buildConfig: BuildConfig,
         rotationConfig: RotationConfig
-    ): Int {
+    ): BreakType {
         primaryBreakingInfo?.let { primaryInfo ->
-            if (!primaryInfo.breakConfig.doubleBreak) return -1
-            if (primaryInfo.startedWithSecondary) return -1
+            if (!primaryInfo.breakConfig.doubleBreak) return BreakType.Null
+            if (primaryInfo.startedWithSecondary) return BreakType.Null
             if (!primaryInfo.breaking) {
                 secondaryBreakingInfo = BreakInfo(
                     requestCtx,
-                    BreakInfo.BreakType.Secondary,
+                    BreakType.Secondary,
                     onBreak,
                     buildConfig.breakSettings,
                     rotationConfig
                 )
-                return 1
+                return BreakType.Secondary
             } else {
-                primaryInfo.type = BreakInfo.BreakType.Secondary
+                primaryInfo.type = BreakType.Secondary
                 secondaryBreakingInfo = primaryInfo
                 primaryBreakingInfo = BreakInfo(
                     requestCtx,
-                    BreakInfo.BreakType.Primary,
+                    BreakType.Primary,
                     onBreak,
                     buildConfig.breakSettings,
                     rotationConfig
-                ).apply {
-                    startedWithSecondary = true
-                }
-                return 0
+                )
+                return BreakType.Primary
             }
         } ?: run {
             primaryBreakingInfo = BreakInfo(
                 requestCtx,
-                BreakInfo.BreakType.Primary,
+                BreakType.Primary,
                 onBreak,
                 buildConfig.breakSettings,
                 rotationConfig
-            ).apply {
-                if (secondaryBreakingInfo != null)
-                    startedWithSecondary = true
-            }
+            )
             pendingInteractions.setMaxSize(buildConfig.maxPendingInteractions)
             pendingInteractions.setDecayTime(buildConfig.interactionTimeout * 50L)
-            return 0
+            return BreakType.Primary
         }
     }
 
@@ -305,7 +300,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
             if (info.breakConfig.breakingTexture) {
                 setBreakingTextureStage(info)
             }
-            if (info.type == BreakInfo.BreakType.Secondary)
+            if (secondaryBreakingInfo != null)
                 primaryBreakingInfo?.startedWithSecondary = true
         }
 
@@ -412,22 +407,25 @@ object BreakManager : RequestHandler<BreakRequest>() {
 
         fun getBreakThreshold() =
             type.getBreakThreshold(breakConfig)
+    }
 
-        enum class BreakType {
-            Primary,
-            Secondary;
+    enum class BreakType(val index: Int) {
+        Primary(0),
+        Secondary(1),
+        Null(-1);
 
-            fun getBreakThreshold(breakConfig: BreakConfig) =
-                when (this) {
-                    Primary -> breakConfig.breakThreshold
-                    Secondary -> 1.0f
-                }
+        fun getBreakThreshold(breakConfig: BreakConfig) =
+            when (this) {
+                Primary -> breakConfig.breakThreshold
+                Secondary -> 1.0f
+                else -> -1.0f
+            }
 
-            fun nullify() =
-                when (this) {
-                    Primary -> primaryBreakingInfo = null
-                    Secondary -> secondaryBreakingInfo = null
-                }
-        }
+        fun nullify() =
+            when (this) {
+                Primary -> primaryBreakingInfo = null
+                Secondary -> secondaryBreakingInfo = null
+                else -> {}
+            }
     }
 }
