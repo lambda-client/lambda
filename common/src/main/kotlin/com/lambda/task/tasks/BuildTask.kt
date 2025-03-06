@@ -25,19 +25,14 @@ import com.lambda.config.groups.InventoryConfig
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.EntityEvent
-import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
-import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.result.*
 import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
@@ -46,7 +41,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
 import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarConfig
-import com.lambda.interaction.request.hotbar.HotbarRequest
+import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
@@ -99,59 +94,7 @@ class BuildTask @Ta5kBuilder constructor(
 
     init {
         listen<TickEvent.Pre> {
-            currentInteraction?.let { context ->
-//                TaskFlowModule.drawables = listOf(context)
-                if (context.shouldRotate(build) && !context.rotation.done) return@let
-                if (!hotbar.request(HotbarRequest(context.hotbarIndex)).done) return@let
-                when (context) {
-                    is PlaceContext -> {
-                        if (context.sneak && !player.isSneaking) return@let
-                        placeBlock(Hand.MAIN_HAND, context)
-                    }
-                }
-            }
-
-            dropsToCollect.firstOrNull()?.let { itemDrop ->
-                if (!world.entities.contains(itemDrop)) {
-                    dropsToCollect.remove(itemDrop)
-                    BaritoneUtils.cancel()
-                    return@listen
-                }
-
-                val noInventorySpace = player.hotbarAndStorage.none { it.isEmpty }
-                if (noInventorySpace) {
-                    val stackToThrow = player.currentScreenHandler.inventorySlots.firstOrNull {
-                        it.stack.item.block in TaskFlowModule.inventory.disposables
-                    } ?: run {
-                        failure("No item in inventory to throw but inventory is full and cant pick up item drop")
-                        return@listen
-                    }
-                    transfer(player.currentScreenHandler) {
-                        throwStack(stackToThrow.id)
-                    }.execute(this@BuildTask)
-                    return@listen
-                }
-
-                BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
-            }
-        }
-
-        listen<TickEvent.Post> {
-            (blueprint as? TickingBlueprint)?.tick()
-
-            if (finishOnDone && blueprint.structure.isEmpty()) {
-                failure("Structure is empty")
-                return@listen
-            }
-        }
-
-        onRotate {
-            if (collectDrops && dropsToCollect.isNotEmpty()) return@onRotate
-
-//            val sim = blueprint.simulation(interact, rotation, inventory)
-//            BlockPos.iterateOutwards(player.blockPos, 5, 5, 5).forEach { pos ->
-//                sim.simulate(pos.toFastVec())
-//            }
+            if (collectDrops()) return@listen
 
             // ToDo: Simulate for each pair player positions that work
             val results = blueprint.simulate(player.eyePos, interact, rotation, inventory, build)
@@ -168,31 +111,31 @@ class BuildTask @Ta5kBuilder constructor(
 
                 instantResults.firstOrNull()?.let {
                     build.breakSettings.request(BreakRequest(instantResults.map { it.context }, build, rotation, hotbar) { breaks++ })
-                    return@onRotate
+                    return@listen
                 }
             }
 
-            val resultsNotBlocked= results.filterNot { result ->
+            val resultsNotBlocked = results.filterNot { result ->
                 result.blockPos in pendingInteractions.map { it.expectedPos }
             }.sorted()
-            val bestResult = resultsNotBlocked.firstOrNull() ?: return@onRotate
+            val bestResult = resultsNotBlocked.firstOrNull() ?: return@listen
             when (bestResult) {
                 is BuildResult.Done,
                 is BuildResult.Ignored,
                 is BuildResult.Unbreakable,
                 is BuildResult.Restricted,
                 is BuildResult.NoPermission -> {
-                    if (pendingInteractions.isNotEmpty()) return@onRotate
+                    if (pendingInteractions.isNotEmpty()) return@listen
                     if (blueprint is PropagatingBlueprint) {
                         blueprint.next()
-                        return@onRotate
+                        return@listen
                     }
                     if (finishOnDone) success()
                 }
 
                 is BuildResult.NotVisible,
                 is PlaceResult.NoIntegrity -> {
-                    if (!build.pathing) return@onRotate
+                    if (!build.pathing) return@listen
                     val sim = blueprint.simulation(interact, rotation, inventory, build)
                     val goal = BuildGoal(sim, player.blockPos)
                     BaritoneUtils.setGoalAndPath(goal)
@@ -203,14 +146,17 @@ class BuildTask @Ta5kBuilder constructor(
                 }
 
                 is BuildResult.Contextual -> {
-                    if (pendingInteractions.size >= build.maxPendingInteractions) return@onRotate
-
-                    currentInteraction = bestResult.context
-                    if (bestResult !is BreakResult.Break) return@onRotate
-
-                    val contexts = resultsNotBlocked.filterIsInstance<BreakResult.Break>().take(2).map { it.context }
-                    val request = BreakRequest(contexts, build, rotation, hotbar) { breaks++ }
-                    build.breakSettings.request(request)
+                    if (pendingInteractions.size >= build.maxPendingInteractions) return@listen
+                    val breakContexts = resultsNotBlocked.filterIsInstance<BreakResult.Break>().map { it.context }
+                    if (breakContexts.isNotEmpty()) {
+                        val request = BreakRequest(breakContexts, build, rotation, hotbar) { breaks++ }
+                        build.breakSettings.request(request)
+                        return@listen
+                    }
+                    if (bestResult !is PlaceResult.Place) return@listen
+                    build.placeSettings.request(
+                        PlaceRequest(bestResult.context, build, rotation, hotbar, interact) { placements++ }
+                    )
                 }
 
                 is Resolvable -> {
@@ -219,38 +165,14 @@ class BuildTask @Ta5kBuilder constructor(
                     bestResult.resolve().execute(this@BuildTask)
                 }
             }
-
-            currentInteraction?.let { currentInteraction ->
-                if (currentInteraction is BreakContext) return@let
-                if (!currentInteraction.shouldRotate(build)) return@onRotate
-                val rotateTo = currentInteraction.rotation
-                rotation.request(rotateTo)
-            }
         }
 
-        listen<MovementEvent.InputUpdate> {
-            val context = currentInteraction ?: return@listen
-            if (context !is PlaceContext) return@listen
-            if (context.sneak) it.input.sneaking = true
-        }
+        listen<TickEvent.Post> {
+            (blueprint as? TickingBlueprint)?.tick()
 
-//        listen<WorldEvent.BlockUpdate.Client> { event ->
-//            val context = currentInteraction ?: return@listen
-//            if (context.expectedPos != event.pos) return@listen
-//            currentInteraction = null
-//            pendingInteractions.add(context)
-//        }
-
-        listen<WorldEvent.BlockUpdate.Server>(alwaysListen = true) { event ->
-            pendingInteractions.firstOrNull { it.expectedPos == event.pos }?.let { ctx ->
-                pendingInteractions.remove(ctx)
-                if (!ctx.targetState.matches(event.newState, event.pos, world)) {
-                    this@BuildTask.warn("Update at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${ctx.targetState}")
-                    return@let
-                }
-                when (ctx) {
-                    is PlaceContext -> placements++
-                }
+            if (finishOnDone && blueprint.structure.isEmpty()) {
+                failure("Structure is empty")
+                return@listen
             }
         }
 
@@ -268,23 +190,31 @@ class BuildTask @Ta5kBuilder constructor(
         }
     }
 
-    private fun SafeContext.placeBlock(hand: Hand, ctx: PlaceContext) {
-        val actionResult = interaction.interactBlock(
-            player, hand, ctx.result
-        )
-
-        if (actionResult.isAccepted) {
-            if (actionResult.shouldSwingHand() && interact.swingHand) {
-                player.swingHand(hand)
+    private fun SafeContext.collectDrops() =
+        dropsToCollect.firstOrNull()?.let { itemDrop ->
+            if (!world.entities.contains(itemDrop)) {
+                dropsToCollect.remove(itemDrop)
+                BaritoneUtils.cancel()
+                return true
             }
 
-            if (!player.getStackInHand(hand).isEmpty && interaction.hasCreativeInventory()) {
-                mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
+            val noInventorySpace = player.hotbarAndStorage.none { it.isEmpty }
+            if (noInventorySpace) {
+                val stackToThrow = player.currentScreenHandler.inventorySlots.firstOrNull {
+                    it.stack.item.block in TaskFlowModule.inventory.disposables
+                } ?: run {
+                    failure("No item in inventory to throw but inventory is full and cant pick up item drop")
+                    return true
+                }
+                transfer(player.currentScreenHandler) {
+                    throwStack(stackToThrow.id)
+                }.execute(this@BuildTask)
+                return true
             }
-        } else {
-            warn("Internal interaction failed with $actionResult")
-        }
-    }
+
+            BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
+            return true
+        } ?: false
 
     companion object {
         @Ta5kBuilder

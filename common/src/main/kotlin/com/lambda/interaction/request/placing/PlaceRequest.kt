@@ -33,7 +33,7 @@ data class PlaceRequest(
     val rotationConfig: RotationConfig,
     val hotbarConfig: HotbarConfig,
     val interactionConfig: InteractionConfig,
-    val prio: Priority,
+    val prio: Priority = 0,
     val onPlace: () -> Unit
 ) : Request(prio) {
     override val done: Boolean
