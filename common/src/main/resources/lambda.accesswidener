@@ -29,6 +29,7 @@ accessible field net/minecraft/entity/LivingEntity jumpingCooldown I
 accessible field net/minecraft/entity/Entity pos Lnet/minecraft/util/math/Vec3d;
 accessible field net/minecraft/client/network/ClientPlayerInteractionManager lastSelectedSlot I
 accessible method net/minecraft/entity/LivingEntity getHandSwingDuration ()I
+accessible method net/minecraft/client/network/ClientPlayerInteractionManager syncSelectedSlot ()V
 
 # Camera
 accessible method net/minecraft/client/render/Camera setPos (DDD)V

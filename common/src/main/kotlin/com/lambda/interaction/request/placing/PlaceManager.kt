@@ -24,12 +24,20 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.RequestHandler
+import com.lambda.interaction.request.breaking.BreakManager.BreakInfo
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
+import com.lambda.module.modules.client.TaskFlowModule
+import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
+import com.lambda.util.collections.LimitedDecayQueue
 import net.minecraft.util.Hand
 
 object PlaceManager : RequestHandler<PlaceRequest>() {
+    private val pendingInteractions = LimitedDecayQueue<BreakInfo>(
+        TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
+    ) { info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out") }
+
     init {
         listen<TickEvent.Pre>(Int.MIN_VALUE) {
             preEvent()
@@ -47,6 +55,8 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
                     postEvent()
                     return@listen
                 }
+                pendingInteractions.setMaxSize(request.buildConfig.maxPendingInteractions)
+                pendingInteractions.setDecayTime(request.buildConfig.interactionTimeout * 50L)
                 placeBlock(request, Hand.MAIN_HAND)
             }
 
