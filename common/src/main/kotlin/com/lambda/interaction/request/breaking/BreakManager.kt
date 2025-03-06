@@ -63,10 +63,13 @@ object BreakManager : RequestHandler<BreakRequest>() {
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) { info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out") }
 
+    private var blockBreakingCooldown = 0
+
     init {
         listen<TickEvent.Pre>(Int.MIN_VALUE) {
-            if (interaction.blockBreakingCooldown > 0) {
-                interaction.blockBreakingCooldown--
+            if (isOnBreakCooldown()) {
+                blockBreakingCooldown--
+                updateRequest(true) { true }
                 return@listen
             }
 
@@ -199,7 +202,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
         val hitResult = ctx.result
 
         if (interaction.currentGameMode.isCreative && world.worldBorder.contains(ctx.expectedPos)) {
-            interaction.blockBreakingCooldown = info.breakConfig.breakDelay
+            setBreakCooldown(info.breakConfig.breakDelay)
             interaction.sendSequencedPacket(world) { sequence ->
                 onBlockBreak(info)
                 PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
@@ -264,6 +267,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
             }
             if (info.breakConfig.swing != BreakConfig.SwingMode.Start) swingHand(info)
+            setBreakCooldown(info.breakConfig.breakDelay)
         } else {
             if (info.breakConfig.swing == BreakConfig.SwingMode.Constant) swingHand(info)
         }
@@ -282,7 +286,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 onBlockBreak(info)
                 PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, ctx.expectedPos, ctx.result.side, sequence)
             }
-            interaction.blockBreakingCooldown = info.breakConfig.breakDelay
+            setBreakCooldown(info.breakConfig.breakDelay)
             return true
         }
         if (info.breaking) return false
@@ -384,6 +388,11 @@ object BreakManager : RequestHandler<BreakRequest>() {
             BreakConfig.SwingType.Server -> connection.sendPacket(HandSwingC2SPacket(player.activeHand))
             BreakConfig.SwingType.Client -> swingHandClient(player.activeHand)
         }
+    }
+
+    private fun isOnBreakCooldown() = blockBreakingCooldown > 0
+    private fun setBreakCooldown(cooldown: Int) {
+        blockBreakingCooldown = cooldown
     }
 
     data class BreakInfo(
