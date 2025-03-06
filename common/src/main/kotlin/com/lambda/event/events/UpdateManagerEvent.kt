@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,19 +15,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.groups
+package com.lambda.event.events
 
-interface BuildConfig {
-    // General
-    val pathing: Boolean
-    val stayInRange: Boolean
-    val collectDrops: Boolean
-    val maxPendingInteractions: Int
-    val interactionTimeout: Int
+import com.lambda.event.Event
 
-    // Breaking
-    val breakSettings: BreakSettings
+sealed class UpdateManagerEvent {
+    sealed class Rotation {
+        class Pre : Event
+        class Post : Event
+    }
 
-    // Placing
-    val placeSettings: PlaceSettings
+    sealed class Hotbar {
+        class Pre : Event
+        class Post : Event
+    }
+
+    sealed class Break {
+        class Pre : Event
+        class Post : Event
+    }
+
+    sealed class Place {
+        class Pre : Event
+        class Post : Event
+    }
 }

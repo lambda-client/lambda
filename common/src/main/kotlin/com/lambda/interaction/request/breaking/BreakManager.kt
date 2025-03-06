@@ -19,7 +19,9 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
+import com.lambda.event.EventFlow.post
 import com.lambda.event.events.TickEvent
+import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.BreakContext
@@ -27,6 +29,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
+import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
@@ -67,22 +70,32 @@ object BreakManager : RequestHandler<BreakRequest>() {
 
     init {
         listen<TickEvent.Pre>(Int.MIN_VALUE) {
+            preEvent()
+
             if (isOnBreakCooldown()) {
                 blockBreakingCooldown--
                 updateRequest(true) { true }
+                postEvent()
                 return@listen
             }
 
             var swapped = false
 
-            if (updateRequest(true) { true }) {
+            //ToDo: improve instamine / non instamine integration
+            if (updateRequest { true }) {
                 currentRequest?.let request@ { request ->
                     var instaBreaks = 0
                     request.contexts
                         .sortedBy { it.instantBreak }
                         .forEach { requestCtx ->
                             if (!canAccept(requestCtx)) return@forEach
-                            val breakType = handleRequestContext(requestCtx, request.onBreak, request.buildConfig, request.rotationConfig)
+                            val breakType = handleRequestContext(
+                                requestCtx,
+                                request.onBreak,
+                                request.buildConfig,
+                                request.rotationConfig,
+                                request.hotbarConfig
+                            )
                             if (breakType == BreakType.Null) return@request
                             if (requestCtx.instantBreak && instaBreaks < request.buildConfig.breakSettings.breaksPerTick) {
                                 breakingInfos.getOrNull(breakType.index)?.let { info ->
@@ -98,17 +111,19 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 }
             }
 
-            currentRequest?.let { request ->
-                breakingInfos.firstOrNull()?.let { info ->
-                    if (!swapped && !request.hotbarConfig.request(HotbarRequest(info.context.hotbarIndex)).done)
-                        return@listen
+            breakingInfos.firstOrNull()?.let { info ->
+                if ((!swapped && !info.hotbarConfig.request(HotbarRequest(info.context.hotbarIndex)).done)
+                    || (info.breakConfig.rotateForBreak && !info.context.rotation.done)) {
+                    postEvent()
+                    return@listen
                 }
             }
 
             breakingInfos.reversed().filterNotNull().forEach { info ->
-                if (info.breakConfig.rotateForBreak && !info.context.rotation.done) return@listen
                 updateBlockBreakingProgress(info, player.mainHandStack)
             }
+
+            postEvent()
         }
 
         onRotate {
@@ -152,7 +167,8 @@ object BreakManager : RequestHandler<BreakRequest>() {
         requestCtx: BreakContext,
         onBreak: () -> Unit,
         buildConfig: BuildConfig,
-        rotationConfig: RotationConfig
+        rotationConfig: RotationConfig,
+        hotbarConfig: HotbarConfig
     ): BreakType {
         primaryBreakingInfo?.let { primaryInfo ->
             if (!primaryInfo.breakConfig.doubleBreak) return BreakType.Null
@@ -163,7 +179,8 @@ object BreakManager : RequestHandler<BreakRequest>() {
                     BreakType.Secondary,
                     onBreak,
                     buildConfig.breakSettings,
-                    rotationConfig
+                    rotationConfig,
+                    hotbarConfig
                 )
                 return BreakType.Secondary
             } else {
@@ -174,7 +191,8 @@ object BreakManager : RequestHandler<BreakRequest>() {
                     BreakType.Primary,
                     onBreak,
                     buildConfig.breakSettings,
-                    rotationConfig
+                    rotationConfig,
+                    hotbarConfig
                 )
                 return BreakType.Primary
             }
@@ -184,7 +202,8 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 BreakType.Primary,
                 onBreak,
                 buildConfig.breakSettings,
-                rotationConfig
+                rotationConfig,
+                hotbarConfig
             )
             pendingInteractions.setMaxSize(buildConfig.maxPendingInteractions)
             pendingInteractions.setDecayTime(buildConfig.interactionTimeout * 50L)
@@ -400,7 +419,8 @@ object BreakManager : RequestHandler<BreakRequest>() {
         var type: BreakType,
         val onBreak: () -> Unit,
         val breakConfig: BreakConfig,
-        val rotationConfig: RotationConfig
+        val rotationConfig: RotationConfig,
+        val hotbarConfig: HotbarConfig
     ) {
         var breaking = false
         var breakingTicks = 0
@@ -444,4 +464,17 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 else -> {}
             }
     }
+
+    fun Any.onBreak(
+        alwaysListen: Boolean = false,
+        block: SafeContext.() -> Unit
+    ) = listen<UpdateManagerEvent.Break.Pre>(0, alwaysListen) { block() }
+
+    fun Any.onBreakPost(
+        alwaysListen: Boolean = false,
+        block: SafeContext.() -> Unit
+    ) = listen<UpdateManagerEvent.Break.Post>(0, alwaysListen) { block() }
+
+    override fun preEvent() = UpdateManagerEvent.Break.Pre().post()
+    override fun postEvent() = UpdateManagerEvent.Break.Post().post()
 }

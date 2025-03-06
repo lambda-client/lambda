@@ -32,7 +32,7 @@ class BreakSettings(
     override val doubleBreak by c.setting("Double Break", false, "Allows breaking two blocks at once") { vis() }
     override val breakDelay by c.setting("Break Delay", 5, 0..5, 1, "The delay between breaking blocks", " ticks") { vis() }
     override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand") { vis() }
-    override val swingType by c.setting("Swing Type", SwingType.Vanilla, "The style of swing")
+    override val swingType by c.setting("Swing Type", SwingType.Vanilla, "The style of swing") { vis() }
     override val sounds by c.setting("Sounds", true, "Plays the breaking sounds") { vis() }
     override val particles by c.setting("Particles", true, "Renders the breaking particles") { vis() }
     override val breakingTexture by c.setting("Breaking Overlay", true, "Overlays the breaking texture at its different stages") { vis() }

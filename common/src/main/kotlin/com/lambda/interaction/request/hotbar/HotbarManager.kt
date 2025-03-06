@@ -18,8 +18,10 @@
 package com.lambda.interaction.request.hotbar
 
 import com.lambda.core.Loadable
+import com.lambda.event.EventFlow.post
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
+import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.threading.runSafe
@@ -59,4 +61,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
             }
         }
     }
+
+    override fun preEvent() = UpdateManagerEvent.Hotbar.Pre().post()
+    override fun postEvent() = UpdateManagerEvent.Hotbar.Post().post()
 }

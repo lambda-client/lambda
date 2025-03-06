@@ -19,6 +19,7 @@ package com.lambda.config.groups
 
 import com.lambda.config.Configurable
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
+import com.lambda.interaction.request.placing.PlaceConfig
 
 class BuildSettings(
     c: Configurable,
@@ -40,9 +41,7 @@ class BuildSettings(
     override val breakSettings = BreakSettings(c) { page == Page.Break && vis() }
 
     // Placing
-    override val rotateForPlace by c.setting("Rotate For Place", true, "Rotate towards block while placing") { vis() && page == Page.Place }
-    override val placeConfirmation by c.setting("Place Confirmation", true, "Wait for block placement confirmation") { vis() && page == Page.Place }
-    override val placementsPerTick by c.setting("Instant Places Per Tick", 1, 1..30, 1, "Maximum instant block places per tick") { vis() && page == Page.Place }
+    override val placeSettings = PlaceSettings(c) { page == Page.Place && vis() }
 
-    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") { vis() && (page == Page.Place && placeConfirmation || page == Page.Break && breakSettings.breakConfirmation != BreakConfirmationMode.None) }
+    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") { vis() && (page == Page.Place && placeSettings.placeConfirmation != PlaceConfig.PlaceConfirmation.None || page == Page.Break && breakSettings.breakConfirmation != BreakConfirmationMode.None) }
 }

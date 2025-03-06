@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,19 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.groups
+package com.lambda.interaction.request.placing
 
-interface BuildConfig {
-    // General
-    val pathing: Boolean
-    val stayInRange: Boolean
-    val collectDrops: Boolean
-    val maxPendingInteractions: Int
-    val interactionTimeout: Int
+import com.lambda.interaction.request.Priority
+import com.lambda.interaction.request.RequestConfig
 
-    // Breaking
-    val breakSettings: BreakSettings
+abstract class PlaceConfig(
+    priority: Priority
+) : RequestConfig<PlaceRequest>(priority) {
+    abstract val rotateForPlace: Boolean
+    abstract val placeConfirmation: PlaceConfirmation
+    abstract val placementsPerTick: Int
 
-    // Placing
-    val placeSettings: PlaceSettings
+    override fun requestInternal(request: PlaceRequest) {
+        PlaceManager.registerRequest(this, request)
+    }
+
+    enum class PlaceConfirmation {
+        None,
+        PlaceThenAwait,
+        AwaitThenPlace
+    }
 }

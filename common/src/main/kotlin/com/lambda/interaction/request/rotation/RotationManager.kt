@@ -25,7 +25,6 @@ import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.request.RequestHandler
-import com.lambda.interaction.request.rotation.Rotation.Companion.fixSensitivity
 import com.lambda.interaction.request.rotation.Rotation.Companion.slerp
 import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.module.modules.client.Baritone
@@ -69,6 +68,8 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
         // For some reason we have to update AFTER sending player packets
         // instead of updating on TickEvent.Pre (am I doing something wrong?)
         listen<PlayerPacketEvent.Post>(Int.MIN_VALUE) {
+            preEvent()
+
             // Update the request
             val changed = updateRequest(true) { entry ->
                 // skip requests that have failed to build the rotation
@@ -109,6 +110,8 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
                 if (--it.decayTicks >= 0) return@let
                 currentRequest = null
             }
+
+            postEvent()
         }
 
         listen<PacketEvent.Send.Post> { event ->
@@ -259,4 +262,7 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
             }
         }
     }
+
+    override fun preEvent() = UpdateManagerEvent.Rotation.Pre()
+    override fun postEvent() = UpdateManagerEvent.Rotation.Post()
 }

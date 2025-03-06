@@ -73,5 +73,5 @@ data class PlaceContext(
         withState(blockState(result.blockPos), result.blockPos, sideColor, result.side)
     }
 
-    override fun shouldRotate(config: BuildConfig) = config.rotateForPlace
+    override fun shouldRotate(config: BuildConfig) = config.placeSettings.rotateForPlace
 }

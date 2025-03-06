@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request
 
+import com.lambda.event.Event
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -66,4 +67,7 @@ abstract class RequestHandler<R : Request> {
         requestMap.clear()
         return prev != currentRequest
     }
+
+    protected abstract fun preEvent(): Event
+    protected abstract fun postEvent(): Event
 }

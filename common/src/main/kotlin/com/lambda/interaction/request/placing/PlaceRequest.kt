@@ -15,10 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.breaking
+package com.lambda.interaction.request.placing
 
 import com.lambda.config.groups.BuildConfig
-import com.lambda.interaction.construction.context.BreakContext
+import com.lambda.config.groups.InteractionConfig
+import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
@@ -26,18 +27,17 @@ import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 
-data class BreakRequest(
-    val contexts: List<BreakContext>,
+data class PlaceRequest(
+    val placeContext: PlaceContext,
     val buildConfig: BuildConfig,
     val rotationConfig: RotationConfig,
     val hotbarConfig: HotbarConfig,
-    val prio: Priority = 0,
-    val onBreak: () -> Unit
+    val interactionConfig: InteractionConfig,
+    val prio: Priority,
+    val onPlace: () -> Unit
 ) : Request(prio) {
     override val done: Boolean
         get() = runSafe {
-            contexts.all {
-                ctx -> ctx.targetState.matches(blockState(ctx.expectedPos), ctx.expectedPos, world)
-            }
+            placeContext.targetState.matches(blockState(placeContext.expectedPos), placeContext.expectedPos, world)
         } == true
 }
