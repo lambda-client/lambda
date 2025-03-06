@@ -17,6 +17,7 @@
 
 package com.lambda.pathing.dstar
 
+import com.lambda.util.world.FastVector
 import kotlin.math.min
 
 /**
@@ -34,20 +35,20 @@ import kotlin.math.min
  */
 class DStarLite(
     private val graph: Graph,
-    private val heuristic: (Int, Int) -> Double,
-    var start: Int,
-    val goal: Int
+    private val heuristic: (FastVector, FastVector) -> Double,
+    var start: FastVector,
+    private val goal: FastVector
 ) {
     private val INF = Double.POSITIVE_INFINITY
 
     // gMap[u], rhsMap[u] store g(u) and rhs(u) or default to ∞ if not present
-    private val gMap = mutableMapOf<Int, Double>()
-    private val rhsMap = mutableMapOf<Int, Double>()
+    private val gMap = mutableMapOf<FastVector, Double>()
+    private val rhsMap = mutableMapOf<FastVector, Double>()
 
-    // Priority queue
+    // Priority queue holding inconsistent vertices.
     private val U = PriorityQueueDStar()
 
-    // Heuristic shift
+    // km accumulates heuristic differences as the start changes.
     private var km = 0.0
 
     init {
@@ -67,37 +68,36 @@ class DStarLite(
         U.insertOrUpdate(goal, calculateKey(goal))
     }
 
-    private fun g(u: Int): Double = gMap[u] ?: INF
-    private fun setG(u: Int, value: Double) {
-        gMap[u] = value
-    }
+    private fun g(u: FastVector): Double = gMap[u] ?: INF
+    private fun setG(u: FastVector, value: Double) { gMap[u] = value }
 
-    private fun rhs(u: Int): Double = rhsMap[u] ?: INF
-    private fun setRHS(u: Int, value: Double) {
-        rhsMap[u] = value
-    }
+    private fun rhs(u: FastVector): Double = rhsMap[u] ?: INF
+    private fun setRHS(u: FastVector, value: Double) { rhsMap[u] = value }
 
     /**
-     * Key(u) = ( min(g(u), rhs(u)) + h(start, u) + km ,  min(g(u), rhs(u)) ).
+     * Calculates the key for vertex u.
+     *   Key(u) = ( min(g(u), rhs(u)) + h(start, u) + km, min(g(u), rhs(u)) )
      */
-    private fun calculateKey(u: Int): Key {
+    private fun calculateKey(u: FastVector): Key {
         val minGRHS = min(g(u), rhs(u))
         return Key(minGRHS + heuristic(start, u) + km, minGRHS)
     }
 
     /**
-     * UpdateVertex(u):
-     *  1) If u != goal, rhs(u) = min_{v in Pred(u)} [g(v) + cost(v,u)]
-     *  2) Remove u from U
-     *  3) If g(u) != rhs(u), insertOrUpdate(u, calculateKey(u))
+     * Updates the vertex u.
+     *
+     * If u != goal, then:
+     *   rhs(u) = min_{v in Pred(u)} [g(v) + cost(v,u)]
+     *
+     * Then u is removed from the queue and reinserted if it is inconsistent.
      */
-    fun updateVertex(u: Int) {
+    fun updateVertex(u: FastVector) {
         if (u != goal) {
             var tmp = INF
-            graph.predecessors(u).forEach { (pred, c) ->
-                val valCandidate = g(pred) + c
-                if (valCandidate < tmp) {
-                    tmp = valCandidate
+            graph.predecessors(u).forEach { (pred, cost) ->
+                val candidate = g(pred) + cost
+                if (candidate < tmp) {
+                    tmp = candidate
                 }
             }
             setRHS(u, tmp)
@@ -109,15 +109,13 @@ class DStarLite(
     }
 
     /**
+     * Propagates changes until the start is locally consistent.
      * computeShortestPath():
      *   While the queue top is "less" than calculateKey(start)
      *   or g(start) < rhs(start), pop and process.
      */
     fun computeShortestPath() {
-        while (
-            (U.topKey() < calculateKey(start)) ||
-            (g(start) < rhs(start))
-        ) {
+        while ((U.topKey() < calculateKey(start)) || (g(start) < rhs(start))) {
             val u = U.top() ?: break
             val oldKey = U.topKey()
             val newKey = calculateKey(u)
@@ -126,24 +124,21 @@ class DStarLite(
                 // Priority out-of-date; update it
                 U.insertOrUpdate(u, newKey)
             } else {
-                // Remove it from queue
                 U.pop()
                 if (g(u) > rhs(u)) {
                     // We found a better path for u
                     setG(u, rhs(u))
-                    // Update successors of u
-                    graph.successors(u).forEach { (s, _) ->
-                        updateVertex(s)
+                    graph.successors(u).forEach { (succ, _) ->
+                        updateVertex(succ)
                     }
                 } else {
-                    // g(u) <= rhs(u)
-                    val gOld = g(u)
+                    val oldG = g(u)
                     setG(u, INF)
                     updateVertex(u)
                     // Update successors that may have relied on old g(u)
-                    graph.successors(u).forEach { (s, _) ->
-                        if (rhs(s) == gOld + graph.cost(u, s)) {
-                            updateVertex(s)
+                    graph.successors(u).forEach { (succ, _) ->
+                        if (rhs(succ) == oldG + graph.cost(u, succ)) {
+                            updateVertex(succ)
                         }
                     }
                 }
@@ -152,16 +147,15 @@ class DStarLite(
     }
 
     /**
-     * Called when the robot moves from oldStart to newStart.
-     * We increase km by h(oldStart, newStart), then re-key all queued vertices.
+     * When the robot moves, update the start.
+     * The variable km is increased by h(oldStart, newStart) and
+     * all vertices in the queue are re-keyed.
      */
-    fun updateStart(newStart: Int) {
+    fun updateStart(newStart: FastVector) {
         val oldStart = start
         start = newStart
         km += heuristic(oldStart, start)
-
-        // Re-key everything in U
-        val tmpList = mutableListOf<Int>()
+        val tmpList = mutableListOf<FastVector>()
         while (!U.isEmpty()) {
             U.top()?.let { tmpList.add(it) }
             U.pop()
@@ -172,34 +166,29 @@ class DStarLite(
     }
 
     /**
-     * Returns a path from 'start' to 'goal' by always choosing
-     * the successor s of the current vertex that minimizes g(s)+cost(current->s).
-     * If no path is found, the path ends prematurely.
+     * Retrieves a path from start to goal by always choosing the successor
+     * with the lowest g + cost value. If no path is found, the path stops early.
      */
-    fun getPath(): List<Int> {
-        val path = mutableListOf<Int>()
+    fun getPath(): List<FastVector> {
+        val path = mutableListOf<FastVector>()
         var current = start
         path.add(current)
-
         while (current != goal) {
             val successors = graph.successors(current)
             if (successors.isEmpty()) break
-
-            var bestNext: Int? = null
+            var bestNext: FastVector? = null
             var bestVal = INF
-            for ((s, c) in successors) {
-                val valCandidate = g(s) + c
-                if (valCandidate < bestVal) {
-                    bestVal = valCandidate
-                    bestNext = s
+            for ((succ, cost) in successors) {
+                val candidate = g(succ) + cost
+                if (candidate < bestVal) {
+                    bestVal = candidate
+                    bestNext = succ
                 }
             }
             // No path
             if (bestNext == null) break
             current = bestNext
             path.add(current)
-
-            // Safety net to avoid infinite loops
             if (path.size > 100000) break
         }
         return path

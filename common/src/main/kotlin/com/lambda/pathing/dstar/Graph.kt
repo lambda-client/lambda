@@ -17,41 +17,34 @@
 
 package com.lambda.pathing.dstar
 
-/**
- * Simple graph class that stores both forward and reverse adjacency.
- *
- * @param adjMap a map from each vertex u to a list of (successor, cost) pairs.
- */
-class Graph(private val adjMap: Map<Int, List<Pair<Int, Double>>>) {
+import com.lambda.util.world.FastVector
 
-    // Build reverse adjacency by scanning all forward edges
-    private val revAdjMap: Map<Int, List<Pair<Int, Double>>> by lazy {
-        val tmp = mutableMapOf<Int, MutableList<Pair<Int, Double>>>()
+/**
+ * A simple 3D graph that uses FastVector (a Long) to represent 3D nodes.
+ *
+ * @param adjMap A map from each vertex to a list of (neighbor, cost) pairs.
+ */
+class Graph(
+    private val adjMap: Map<FastVector, List<Pair<FastVector, Double>>>
+) {
+    // Build reverse adjacency from forward edges.
+    private val revAdjMap: Map<FastVector, List<Pair<FastVector, Double>>> by lazy {
+        val tmp = mutableMapOf<FastVector, MutableList<Pair<FastVector, Double>>>()
         adjMap.forEach { (u, edges) ->
             edges.forEach { (v, cost) ->
                 tmp.getOrPut(v) { mutableListOf() }.add(Pair(u, cost))
             }
         }
-        // Convert to immutable
         tmp.mapValues { it.value.toList() }
     }
 
-    /**
-     * Returns the successors of u, i.e., all (v, cost) for edges u->v.
-     */
-    fun successors(u: Int) = adjMap[u] ?: emptyList()
+    /** Returns the successors of a vertex. */
+    fun successors(u: FastVector) = adjMap[u] ?: emptyList()
 
-    /**
-     * Returns the predecessors of u, i.e., all (v, cost) for edges v->u.
-     */
-    fun predecessors(u: Int) = revAdjMap[u] ?: emptyList()
+    /** Returns the predecessors of a vertex. */
+    fun predecessors(u: FastVector) = revAdjMap[u] ?: emptyList()
 
-    /**
-     * Helper to get the cost of an edge u->v, or ∞ if none.
-     */
-    fun cost(u: Int, v: Int) =
-        adjMap[u]
-            ?.firstOrNull { it.first == v }
-            ?.second
-            ?: Double.POSITIVE_INFINITY
+    /** Returns the cost of the edge from u to v (or ∞ if none exists). */
+    fun cost(u: FastVector, v: FastVector) =
+        adjMap[u]?.firstOrNull { it.first == v }?.second ?: Double.POSITIVE_INFINITY
 }
