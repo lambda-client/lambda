@@ -47,8 +47,7 @@ object ContainerManager : Loadable {
         // ToDo: Filter containers based on a filter setting TaskFlowModule.inventory.accessEnderChest etc
         get() = compileContainers.filter { it !is EnderChestContainer } + runtimeContainers
 
-    private val compileContainers =
-        getInstances<MaterialContainer> { forPackages("com.lambda.interaction.material.container") }
+    private val compileContainers = getInstances<MaterialContainer>()
     private val runtimeContainers = mutableSetOf<MaterialContainer>()
 
     private var lastInteractedBlockEntity: BlockEntity? = null

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,22 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module
-
-import com.lambda.core.Loadable
-import com.lambda.util.reflections.getInstances
+package com.lambda.pathing.dstar
 
 /**
- * The [ModuleRegistry] object is responsible for managing all [Module] instances in the system.
+ * A Key is a pair (k1, k2) that is used to order vertices in the priority queue.
+ * They are compared lexicographically.
  */
-object ModuleRegistry : Loadable {
-    override val priority = 1
-    val modules = getInstances<Module>().toMutableList()
-
-    val moduleNames: Set<String>
-        get() = modules.map { it.name }.toSet()
-
-    override fun load(): String {
-        return "Loaded ${modules.size} modules with ${modules.sumOf { it.settings.size }} settings"
+data class Key(val k1: Double, val k2: Double) : Comparable<Key> {
+    override fun compareTo(other: Key): Int {
+        return when {
+            this.k1 < other.k1 -> -1
+            this.k1 > other.k1 -> 1
+            this.k2 < other.k2 -> -1
+            this.k2 > other.k2 -> 1
+            else -> 0
+        }
     }
 }

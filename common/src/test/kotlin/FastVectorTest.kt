@@ -1,5 +1,12 @@
+import com.lambda.util.world.FastVector
+import com.lambda.util.world.fastVectorOf
+import com.lambda.util.world.x
+import com.lambda.util.world.y
+import com.lambda.util.world.z
+import kotlin.test.Test
+
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,22 +22,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module
 
-import com.lambda.core.Loadable
-import com.lambda.util.reflections.getInstances
-
-/**
- * The [ModuleRegistry] object is responsible for managing all [Module] instances in the system.
- */
-object ModuleRegistry : Loadable {
-    override val priority = 1
-    val modules = getInstances<Module>().toMutableList()
-
-    val moduleNames: Set<String>
-        get() = modules.map { it.name }.toSet()
-
-    override fun load(): String {
-        return "Loaded ${modules.size} modules with ${modules.sumOf { it.settings.size }} settings"
+class FastVectorTest {
+    @Test
+    fun testZero() {
+        val vec = fastVectorOf(0, 0, 0)
+        assert(vec.x == 0)
+        assert(vec.y == 0)
+        assert(vec.z == 0)
     }
 }
