@@ -26,7 +26,7 @@ import java.awt.image.BufferedImage
 import java.nio.ByteBuffer
 
 object TextureUtils {
-    private const val COMPRESSION_LEVEL = 1
+    private const val COMPRESSION_LEVEL = -1
     private const val THREADED_COMPRESSION = false
 
     val encoderPreset = PngEncoder()
