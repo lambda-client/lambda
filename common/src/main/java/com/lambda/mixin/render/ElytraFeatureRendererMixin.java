@@ -20,20 +20,20 @@ package com.lambda.mixin.render;
 import com.lambda.module.modules.client.Capes;
 import com.lambda.network.CapeManager;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.entity.feature.CapeFeatureRenderer;
+import net.minecraft.client.render.entity.feature.ElytraFeatureRenderer;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-@Mixin(CapeFeatureRenderer.class)
-public class CapeFeatureRendererMixin {
-    @ModifyExpressionValue(method = "render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;ILnet/minecraft/client/network/AbstractClientPlayerEntity;FFFFFF)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/SkinTextures;capeTexture()Lnet/minecraft/util/Identifier;"))
-    Identifier renderCape(Identifier original, MatrixStack matrixStack, VertexConsumerProvider vertexConsumerProvider, int i, AbstractClientPlayerEntity player, float f, float g, float h, float j, float k, float l) {
-        if (!Capes.INSTANCE.isEnabled() || !CapeManager.INSTANCE.containsKey(player.getUuid())) return original;
+@Mixin(ElytraFeatureRenderer.class)
+public class ElytraFeatureRendererMixin<T extends LivingEntity> {
+    @ModifyExpressionValue(method = "render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;ILnet/minecraft/entity/LivingEntity;FFFFFF)V",  at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/SkinTextures;elytraTexture()Lnet/minecraft/util/Identifier;"))
+    Identifier renderElytra(Identifier original, MatrixStack matrixStack, VertexConsumerProvider vertexConsumerProvider, int i, T livingEntity, float f, float g, float h, float j, float k, float l) {
+        if (!Capes.INSTANCE.isEnabled() || !CapeManager.INSTANCE.containsKey(livingEntity.getUuid())) return original;
 
-        return Identifier.of("lambda", CapeManager.INSTANCE.get(player.getUuid()));
+        return Identifier.of("lambda", CapeManager.INSTANCE.get(livingEntity.getUuid()));
     }
 }

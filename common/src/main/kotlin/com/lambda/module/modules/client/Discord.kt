@@ -23,8 +23,8 @@ import com.lambda.event.EventFlow
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listenOnce
 import com.lambda.module.Module
-import com.lambda.module.modules.client.Network.updateToken
 import com.lambda.module.tag.ModuleTag
+import com.lambda.network.NetworkManager.updateToken
 import com.lambda.network.api.v1.endpoints.linkDiscord
 import com.lambda.threading.runConcurrent
 import com.lambda.util.Communication.warn
@@ -83,7 +83,7 @@ object Discord : Module(
         val (authResp, error) = linkDiscord(discordToken = auth.accessToken)
         if (error != null) return warn("Failed to link the discord account to the minecraft auth")
 
-        updateToken(authResp)
+        updateToken(authResp!!)
         discordAuth = auth
     }
 
@@ -115,8 +115,8 @@ object Discord : Module(
         VERSION({ Lambda.VERSION }),
         WORLD({ worldName }),
         USERNAME({ mc.session.username }),
-        HEALTH({ "${mc.player?.health ?: 0} HP" }),
-        HUNGER({ "${mc.player?.hungerManager?.foodLevel ?: 0} Hunger" }),
+        HEALTH({ "${player.health} HP" }),
+        HUNGER({ "${player.hungerManager.foodLevel} Hunger" }),
         DIMENSION({ dimensionName }),
         FPS({ "${mc.currentFps} FPS" });
     }

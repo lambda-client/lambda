@@ -24,15 +24,16 @@ import com.lambda.module.modules.client.Network.apiUrl
 import com.lambda.module.modules.client.Network.apiVersion
 import com.lambda.network.api.v1.models.Authentication
 
-fun login(
-	// The player's username.
-	// example: "Notch"
-	username: String,
-
-	// The player's Mojang session hash.
-	// example: 069a79f444e94726a5befca90e38aaf5
-	hash: String,
-) =
+/**
+ * Creates a new session account with mojang session hashes
+ *
+ * Example:
+ *  - username: Notch
+ *  - hash: 069a79f444e94726a5befca90e38aaf5
+ *
+ * response: [Authentication] or error
+ */
+fun login(username: String, hash: String) =
 	Fuel.post("${apiUrl}/api/${apiVersion.value}/login")
 		.jsonBody("""{ "username": "$username", "hash": "$hash" }""")
 		.responseObject<Authentication>().third

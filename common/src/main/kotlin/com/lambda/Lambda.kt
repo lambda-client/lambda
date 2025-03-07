@@ -27,7 +27,6 @@ import com.lambda.core.Loader
 import com.lambda.gui.impl.clickgui.windows.tag.CustomModuleWindow
 import com.lambda.gui.impl.clickgui.windows.tag.TagWindow
 import com.lambda.module.tag.ModuleTag
-import com.lambda.threading.runConcurrent
 import com.lambda.util.KeyCode
 import com.mojang.authlib.GameProfile
 import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
@@ -39,12 +38,7 @@ import net.minecraft.util.math.BlockPos
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.awt.Color
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
 import java.util.*
-import java.util.concurrent.CountDownLatch
 
 
 object Lambda {
@@ -76,39 +70,6 @@ object Lambda {
         .create()
 
     fun initialize(block: (Long) -> Unit) {
-        runConcurrent {
-            // Create an HttpClient
-            val client = HttpClient.newHttpClient()
-
-            // Define the URI for the SSE stream
-            val uri = URI.create("http://localhost:8080/api/v1/party/listen")
-
-            // Create an HttpRequest for the SSE stream
-            val request = HttpRequest.newBuilder()
-                .uri(uri)
-                .header("Accept", "text/event-stream")
-                .build()
-
-            // Create a CountDownLatch to wait for the events
-            val latch = CountDownLatch(1)
-
-            // Send the request and handle the response asynchronously
-            client.sendAsync(request, HttpResponse.BodyHandlers.ofLines())
-                .thenAccept { response ->
-                    println("Connected to SSE stream")
-                    response.body().forEach { line ->
-                        if (line.startsWith("data:")) {
-                            val data = line.substring(5).trim()
-                            println("Received event data: $data")
-                        }
-                    }
-                    latch.countDown()
-                }
-
-            // Wait until the response is received and handled
-            latch.await()
-        }
-
         recordRenderCall {
             block(Loader.initialize())
         }

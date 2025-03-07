@@ -24,9 +24,12 @@ import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
+import net.minecraft.client.network.PlayerListEntry
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.world.chunk.WorldChunk
+import java.util.UUID
+import kotlin.uuid.Uuid
 
 /**
  * Represents various events that can occur within the world.
@@ -39,6 +42,27 @@ sealed class WorldEvent {
     // ToDo: Add doc and determine if there's a better place for this event
     // Represents the player joining the world
     class Join() : Event
+
+    // ToDo: Maybe create a network event seal with some s2c events
+    sealed class Player {
+        /**
+         * Event triggered upon player joining
+         */
+        data class Join(
+            val name: String,
+            val uuid: UUID,
+            val entry: PlayerListEntry,
+        ) : Event
+
+        /**
+         * Event triggered upon player leaving
+         */
+        data class Leave(
+            val name: String,
+            val uuid: UUID,
+            val entry: PlayerListEntry,
+        ) : Event
+    }
 
     /**
      * Represents an event specific to chunk operations within the world.

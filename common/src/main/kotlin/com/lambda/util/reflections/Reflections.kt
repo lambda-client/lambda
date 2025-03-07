@@ -20,9 +20,11 @@ package com.lambda.util.reflections
 import com.lambda.util.extension.isObject
 import com.lambda.util.extension.objectInstance
 import org.reflections.Reflections
+import org.reflections.scanners.Scanners
 import org.reflections.util.ConfigurationBuilder
 import java.lang.reflect.Modifier
-import java.util.Objects
+import java.util.*
+
 
 val cache = mutableMapOf<Int, Reflections>()
 
@@ -59,7 +61,7 @@ inline fun <reified T : Any> getInstances(block: ConfigurationBuilder.() -> Unit
  *
  * @return A set of resource paths that match the specified pattern.
  */
-inline fun getResources(pattern: String, block: ConfigurationBuilder.() -> Unit = { forPackage("com.lambda") }): Set<String> {
+inline fun getResources(pattern: String, block: ConfigurationBuilder.() -> Unit = { forPackage("com.lambda"); addScanners(Scanners.Resources) }): Set<String> {
     val config = ConfigurationBuilder().apply(block)
     val cacheKey = Objects.hash(config.classLoaders, config.urls, config.scanners, config.inputsFilter)
 

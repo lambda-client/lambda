@@ -21,18 +21,22 @@ import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.extensions.authentication
 import com.github.kittinunf.fuel.core.extensions.jsonBody
 import com.github.kittinunf.fuel.gson.responseObject
-import com.lambda.module.modules.client.Network
 import com.lambda.module.modules.client.Network.apiUrl
 import com.lambda.module.modules.client.Network.apiVersion
+import com.lambda.network.NetworkManager
 import com.lambda.network.api.v1.models.Authentication
 
-fun linkDiscord(
-	// The player's Discord token.
-	// example: OTk1MTU1NzcyMzYxMTQ2NDM4
-	discordToken: String,
-) =
+/**
+ * Links a Discord account to a session account
+ *
+ * Example:
+ *  - token: OTk1MTU1NzcyMzYxMTQ2NDM4
+ *
+ * response: [Authentication] or error
+ */
+fun linkDiscord(discordToken: String) =
 	Fuel.post("${apiUrl}/api/${apiVersion.value}/link/discord")
 		.jsonBody("""{ "token": "$discordToken" }""")
 		.authentication()
-		.bearer(Network.accessToken)
+		.bearer(NetworkManager.accessToken)
 		.responseObject<Authentication>().third

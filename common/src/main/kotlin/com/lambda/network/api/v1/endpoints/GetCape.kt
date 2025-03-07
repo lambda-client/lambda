@@ -18,21 +18,21 @@
 package com.lambda.network.api.v1.endpoints
 
 import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.gson.responseObject
 import com.lambda.module.modules.client.Network.apiUrl
 import com.lambda.module.modules.client.Network.apiVersion
+import com.lambda.network.api.v1.models.Cape
 import java.util.UUID
 
 /**
- * Get the cape of the given player UUID.
+ * Gets the cape of the given player UUID
  *
- * input:
- *  - ab24f5d6-dcf1-45e4-897e-b50a7c5e7422
+ * Example:
+ *  - id: ab24f5d6-dcf1-45e4-897e-b50a7c5e7422
  *
- * output:
- *  - cape_1
+ * response: [Cape] or error
  */
-fun getCape(
-	uuid: UUID,
-) =
-	Fuel.put("$apiUrl/api/${apiVersion.value}/cape", listOf("id" to uuid.toString()))
-		.responseString()
+fun getCape(uuid: UUID) =
+	Fuel.get("$apiUrl/api/${apiVersion.value}/cape?id=$uuid")
+		.responseObject<Cape>()
+		.third

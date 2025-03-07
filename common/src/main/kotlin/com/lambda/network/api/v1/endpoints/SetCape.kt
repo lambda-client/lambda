@@ -19,18 +19,21 @@ package com.lambda.network.api.v1.endpoints
 
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.extensions.authentication
-import com.lambda.module.modules.client.Network
+import com.github.kittinunf.fuel.core.responseUnit
 import com.lambda.module.modules.client.Network.apiUrl
 import com.lambda.module.modules.client.Network.apiVersion
-import java.util.*
+import com.lambda.network.NetworkManager
 
-fun setCape(
-	// Get the cape of the given player UUID.
-	// example: ab24f5d6-dcf1-45e4-897e-b50a7c5e7422
-	// example: ab24f5d6dcf145e4897eb50a7c5e7422
-	uuid: UUID,
-) =
-	Fuel.put("$apiUrl/api/${apiVersion.value}/cape", listOf("id" to uuid.toString()))
+/**
+ * Sets the currently authenticated player's cape
+ *
+ * Example:
+ *  - id: galaxy
+ *
+ * response: [Unit] or error
+ */
+fun setCape(id: String) =
+	Fuel.put("$apiUrl/api/${apiVersion.value}/cape?id=$id")
 		.authentication()
-		.bearer(Network.accessToken)
-		.responseString()
+		.bearer(NetworkManager.accessToken)
+		.responseUnit().third

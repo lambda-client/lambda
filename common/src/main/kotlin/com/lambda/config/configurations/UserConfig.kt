@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,23 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.extension
+package com.lambda.config.configurations
 
-import com.mojang.authlib.GameProfile
+import com.lambda.config.Configuration
+import com.lambda.util.FolderRegister
 import java.io.File
-import java.nio.file.Path
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
 
-val GameProfile.isOffline
-    get() = properties.isEmpty
-
-val Class<*>.isObject: Boolean
-    get() = declaredFields.any { it.name == "INSTANCE" }
-
-val Class<*>.objectInstance: Any
-    get() = declaredFields.first { it.name == "INSTANCE" }.apply { isAccessible = true }.get(null)
-
-fun Path.resolveFile(other: String): File =
-    resolve(other).toFile()
+object UserConfig : Configuration() {
+    override val configName get() = "preferences"
+    override val primary: File = FolderRegister.config.resolve("$configName.json").toFile()
+}

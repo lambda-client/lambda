@@ -47,6 +47,7 @@ object FolderRegister : Loadable {
     val packetLogs: Path = lambda.resolve("packet-log")
     val replay: Path = lambda.resolve("replay")
     val cache: Path = lambda.resolve("cache")
+    val capes: Path = cache.resolve("capes")
     val structure: Path = lambda.resolve("structure")
 
     override fun load(): String {

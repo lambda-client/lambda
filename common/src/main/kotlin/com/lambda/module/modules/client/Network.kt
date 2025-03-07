@@ -18,32 +18,27 @@
 package com.lambda.module.modules.client
 
 import com.lambda.Lambda.LOG
-import com.lambda.Lambda.gson
 import com.lambda.Lambda.mc
-import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.ConnectionEvent
-import com.lambda.event.events.ConnectionEvent.Connect.Login.EncryptionRequest
 import com.lambda.event.events.ConnectionEvent.Connect.Login.EncryptionResponse
-import com.lambda.event.listener.UnsafeListener.Companion.listenOnceUnsafe
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafeConcurrently
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.network.NetworkManager
+import com.lambda.network.NetworkManager.updateToken
 import com.lambda.network.api.v1.endpoints.login
-import com.lambda.network.api.v1.models.Authentication
-import com.lambda.network.api.v1.models.Authentication.Data
+import com.lambda.util.StringUtils.hash
 import com.lambda.util.extension.isOffline
 import net.minecraft.client.network.AllowedAddressResolver
 import net.minecraft.client.network.ClientLoginNetworkHandler
 import net.minecraft.client.network.ServerAddress
 import net.minecraft.network.ClientConnection
 import net.minecraft.network.NetworkSide.CLIENTBOUND
-import net.minecraft.network.encryption.NetworkEncryptionUtils
 import net.minecraft.network.packet.c2s.login.LoginHelloC2SPacket
 import net.minecraft.text.Text
 import java.math.BigInteger
-import java.util.*
 
 
 object Network : Module(
@@ -56,30 +51,24 @@ object Network : Module(
     val apiUrl      by setting("API Server", "https://api.lambda-client.org")
     val apiVersion  by setting("API Version", ApiVersion.V1)
 
-    private var auth: Authentication? = null
-    private var deserialized: Data? = null
-    val accessToken: String
-        get() = auth?.accessToken ?: ""
-
-    val SafeContext.isDiscordLinked: Boolean
-        get() = deserialized?.data?.discordId != null
-
-    private lateinit var serverId: String
     private lateinit var hash: String
 
     init {
-        listenUnsafe<EncryptionRequest> { serverId = it.serverId }
+        listenUnsafeConcurrently<ClientEvent.Startup> { authenticate() }
 
         listenUnsafe<EncryptionResponse> { event ->
             if (event.secretKey.isDestroyed) return@listenUnsafe
 
-            hash = BigInteger(
-                NetworkEncryptionUtils.computeServerId(serverId, event.publicKey, event.secretKey)
-            ).toString(16)
+            // Server id is always empty when sent by the Notchian server
+            val computed = byteArrayOf()
+                .hash("SHA-1", event.secretKey.encoded, event.publicKey.encoded)
+
+            hash = BigInteger(computed).toString(16)
         }
 
-        listenOnceUnsafe<ConnectionEvent.Connect.Post> {
-            if (mc.gameProfile.isOffline) return@listenOnceUnsafe true // ToDo: If the player have the properties but are invalid this doesn't work
+        listenUnsafe<ConnectionEvent.Connect.Post> {
+            // FixMe: If the player have the properties but are invalid this doesn't work
+            if (NetworkManager.isValid || mc.gameProfile.isOffline) return@listenUnsafe
 
             // If we log in right as the client responds to the encryption request, we start
             // a race condition where the game server haven't acknowledged the packets
@@ -87,15 +76,11 @@ object Network : Module(
             val (resp, error) = login(mc.session.username, hash)
             if (error != null) {
                 LOG.debug("Unable to authenticate: ${error.message}")
-                return@listenOnceUnsafe false
+                return@listenUnsafe
             }
 
-            updateToken(resp)
-
-            true
+            updateToken(resp!!)
         }
-
-        listenUnsafeConcurrently<ClientEvent.Startup> { authenticate() }
     }
 
     private fun authenticate() {
@@ -111,11 +96,6 @@ object Network : Module(
 
         connection.connect(resolved.hostName, resolved.port, handler)
         connection.send(LoginHelloC2SPacket(mc.session.username, mc.session.uuidOrNull))
-    }
-
-    internal fun updateToken(resp: Authentication?) {
-        auth = resp
-        deserialized = gson.fromJson(String(Base64.getUrlDecoder().decode(accessToken.split(".")[1])), Data::class.java)
     }
 
     enum class ApiVersion(val value: String) {
