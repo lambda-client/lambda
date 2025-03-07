@@ -32,17 +32,9 @@ object NetworkManager : Configurable(UserConfig), Loadable {
     override val name = "network"
 
     var accessToken by setting("authentication", ""); private set
-    private var _cape by setting("cape", "")
 
     val isDiscordLinked: Boolean
         get() = deserialized?.data?.discordId != null
-
-    /**
-     * Returns the current cape id or null if there are none
-     */
-    var cape: String? = null
-        get() = _cape.ifEmpty { null }
-        set(value) { value?.let { CapeManager.put(mc.gameProfile.id, it) }; field = value }
 
     /**
      * Returns whether the auth has expired

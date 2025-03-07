@@ -17,15 +17,22 @@
 
 package com.lambda.network
 
-import com.github.kittinunf.fuel.core.FuelError
+import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.core.requests.CancellableRequest
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.texture.TextureUtils
 import com.lambda.network.api.v1.endpoints.getCape
+import com.lambda.network.api.v1.endpoints.setCape
+import com.lambda.network.api.v1.models.Cape
 import com.lambda.sound.SoundManager.toIdentifier
+import com.lambda.util.Communication.logError
 import com.lambda.util.FolderRegister.capes
+import com.lambda.util.extension.get
+import com.lambda.util.extension.resolveFile
 import net.minecraft.client.texture.NativeImage.read
 import net.minecraft.client.texture.NativeImageBackedTexture
 import java.util.UUID
@@ -48,26 +55,44 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
         .onEach { (key, value) -> mc.textureManager.registerTexture(key.toIdentifier(), value) }
 
     /**
-     * Fetches the cape of the given player id
-     *
-     * @throws FuelError if something wrong happens
+     * Sets the current player's cape
      */
-    fun SafeContext.fetch(uuid: UUID) = getOrPut(uuid) {
-        getCape(uuid)
-            .fold(
-                success = {
-                    if (!images.contains(it.cape)) it.fetch()
-                    put(uuid, it.cape)
-                },
-                failure = { throw it },
-            )
-    }
+    fun SafeContext.updateCape(cape: String) =
+        setCape(cape,
+            success = { fetchCape(player.uuid) },
+            failure = { logError("Could not update the player cape", it) }
+        )//.join()
+
+    /**
+     * Fetches the cape of the given player id
+     */
+    fun SafeContext.fetchCape(uuid: UUID): CancellableRequest =
+        getCape(uuid,
+            success = { mc.textureManager.get(it.identifier) ?: download(it); put(uuid, it.id) },
+            failure = { logError("Could not fetch the cape of the player", it) }
+        )
+
+    private fun SafeContext.download(cape: Cape): CancellableRequest =
+        Fuel.download(cape.url)
+            .fileDestination { _, _ -> capes.resolveFile("${cape.id}.png") }
+            .response { result ->
+                result.fold(
+                    success = {
+                        val image = TextureUtils.readImage(it)
+                        val native = NativeImageBackedTexture(image)
+                        val id = cape.identifier
+
+                        mc.textureManager.registerTexture(id, native)
+                    },
+                    failure = { logError("Could not download the cape", it) }
+                )
+            }
 
     override fun load() = "Loaded ${images.size} cached capes"
 
     init {
         listen<WorldEvent.Player.Join>(alwaysListen = true) {
-            fetch(it.uuid)
+            fetchCape(it.uuid)
         }
     }
 }

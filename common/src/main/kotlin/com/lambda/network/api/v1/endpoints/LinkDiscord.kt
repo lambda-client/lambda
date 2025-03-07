@@ -18,6 +18,7 @@
 package com.lambda.network.api.v1.endpoints
 
 import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.extensions.authentication
 import com.github.kittinunf.fuel.core.extensions.jsonBody
 import com.github.kittinunf.fuel.gson.responseObject
@@ -34,9 +35,9 @@ import com.lambda.network.api.v1.models.Authentication
  *
  * response: [Authentication] or error
  */
-fun linkDiscord(discordToken: String) =
+fun linkDiscord(discordToken: String, success: (Authentication) -> Unit, failure: (FuelError) -> Unit) =
 	Fuel.post("${apiUrl}/api/${apiVersion.value}/link/discord")
 		.jsonBody("""{ "token": "$discordToken" }""")
 		.authentication()
 		.bearer(NetworkManager.accessToken)
-		.responseObject<Authentication>().third
+		.responseObject<Authentication> { _, _, result -> result.fold(success, failure) }

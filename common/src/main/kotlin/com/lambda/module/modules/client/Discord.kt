@@ -81,11 +81,10 @@ object Discord : Module(
 
         val auth = rpc.applicationManager.authenticate()
 
-        linkDiscord(discordToken = auth.accessToken)
-            .fold(
-                success = { updateToken(it); discordAuth = auth },
-                failure = { warn("Failed to link the discord account to the minecraft auth") },
-            )
+        linkDiscord(discordToken = auth.accessToken,
+            success = { updateToken(it); discordAuth = auth },
+            failure = { warn("Failed to link the discord account to the minecraft auth") }
+        )
     }
 
     private fun stop() {

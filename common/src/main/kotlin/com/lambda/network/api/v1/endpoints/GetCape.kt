@@ -18,7 +18,11 @@
 package com.lambda.network.api.v1.endpoints
 
 import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.core.FuelError
+import com.github.kittinunf.fuel.core.ResultHandler
 import com.github.kittinunf.fuel.gson.responseObject
+import com.github.kittinunf.result.failure
+import com.github.kittinunf.result.success
 import com.lambda.module.modules.client.Network.apiUrl
 import com.lambda.module.modules.client.Network.apiVersion
 import com.lambda.network.api.v1.models.Cape
@@ -32,7 +36,6 @@ import java.util.UUID
  *
  * response: [Cape] or error
  */
-fun getCape(uuid: UUID) =
+fun getCape(uuid: UUID, success: (Cape) -> Unit, failure: (FuelError) -> Unit) =
 	Fuel.get("$apiUrl/api/${apiVersion.value}/cape?id=$uuid")
-		.responseObject<Cape>()
-		.third
+		.responseObject<Cape> { _, _, result -> result.fold(success, failure) }

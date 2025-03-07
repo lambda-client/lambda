@@ -17,15 +17,16 @@
 
 package com.lambda.command.commands
 
-import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.string
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
+import com.lambda.network.CapeManager.updateCape
 import com.lambda.network.NetworkManager
-import com.lambda.network.api.v1.endpoints.setCape
+import com.lambda.threading.runSafe
+import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 
 object CapeCommand : LambdaCommand(
@@ -43,12 +44,18 @@ object CapeCommand : LambdaCommand(
             }
 
             executeWithResult {
-                val cape = id().value()
-                setCape(cape)
-                    .fold(
-                        success = { NetworkManager.cape = cape; success() },
-                        failure = { failure(it) },
-                    )
+                runSafe {
+                    val cape = id().value()
+
+                    // FixMe:
+                    //  try-catch is stupid -
+                    //  cannot propagate errors correctly -
+                    //  spam the user and fuck off
+                    updateCape(cape)
+                    this@CapeCommand.info("Successfully updated the cape")
+
+                    success()
+                }!!
             }
         }
     }

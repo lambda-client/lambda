@@ -18,6 +18,9 @@
 package com.lambda.util.extension
 
 import com.mojang.authlib.GameProfile
+import net.minecraft.client.texture.AbstractTexture
+import net.minecraft.client.texture.TextureManager
+import net.minecraft.util.Identifier
 import java.io.File
 import java.nio.file.Path
 import kotlin.contracts.ExperimentalContracts
@@ -35,3 +38,6 @@ val Class<*>.objectInstance: Any
 
 fun Path.resolveFile(other: String): File =
     resolve(other).toFile()
+
+fun TextureManager.get(identifier: Identifier): AbstractTexture? =
+    getOrDefault(identifier, null)

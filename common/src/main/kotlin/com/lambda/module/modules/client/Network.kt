@@ -73,11 +73,10 @@ object Network : Module(
             // If we log in right as the client responds to the encryption request, we start
             // a race condition where the game server haven't acknowledged the packets
             // and posted to the sessionserver api
-            login(mc.session.username, hash)
-                .fold(
-                    success = { updateToken(it) },
-                    failure = { LOG.warn("Unable to authenticate: $it") },
-                )
+            login(mc.session.username, hash,
+                success = { updateToken(it) },
+                failure = { LOG.warn("Unable to authenticate: $it") }
+            )
         }
     }
 

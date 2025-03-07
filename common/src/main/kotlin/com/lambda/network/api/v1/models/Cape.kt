@@ -17,41 +17,18 @@
 
 package com.lambda.network.api.v1.models
 
-import com.github.kittinunf.fuel.Fuel
 import com.google.gson.annotations.SerializedName
-import com.lambda.graphics.texture.TextureUtils
 import com.lambda.sound.SoundManager.toIdentifier
-import com.lambda.threading.runSafe
-import com.lambda.util.Communication.logError
-import com.lambda.util.FolderRegister.capes
-import com.lambda.util.extension.resolveFile
-import net.minecraft.client.texture.NativeImage
-import net.minecraft.client.texture.NativeImageBackedTexture
-import org.lwjgl.BufferUtils
-import java.io.BufferedOutputStream
-import java.io.ByteArrayOutputStream
+import net.minecraft.util.Identifier
+import java.util.UUID
 
 class Cape(
     @SerializedName("url")
     val url: String,
 
     @SerializedName("type")
-    val cape: String,
+    val id: String,
 ) {
-    fun fetch() = runSafe {
-        Fuel.download(url)
-            .fileDestination { _, _ -> capes.resolveFile("$cape.png") }
-            .response { result ->
-                result.fold(
-                    success = {
-                        val image = TextureUtils.readImage(it)
-                        val native = NativeImageBackedTexture(image)
-                        val id = cape.toIdentifier()
-
-                        mc.textureManager.registerTexture(id, native)
-                    },
-                    failure = { logError("Error while downloading capes", it) }
-                )
-            }
-    }
+    val identifier: Identifier
+        get() = id.toIdentifier()
 }

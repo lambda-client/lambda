@@ -18,8 +18,9 @@
 package com.lambda.network.api.v1.endpoints
 
 import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.core.FuelError
+import com.github.kittinunf.fuel.core.awaitResult
 import com.github.kittinunf.fuel.core.extensions.authentication
-import com.github.kittinunf.fuel.core.responseUnit
 import com.lambda.module.modules.client.Network.apiUrl
 import com.lambda.module.modules.client.Network.apiVersion
 import com.lambda.network.NetworkManager
@@ -32,8 +33,8 @@ import com.lambda.network.NetworkManager
  *
  * response: [Unit] or error
  */
-fun setCape(id: String) =
+fun setCape(id: String, success: (ByteArray) -> Unit, failure: (FuelError) -> Unit) =
 	Fuel.put("$apiUrl/api/${apiVersion.value}/cape?id=$id")
 		.authentication()
 		.bearer(NetworkManager.accessToken)
-		.responseUnit().third
+		.response { _, _, resp -> resp.fold(success, failure) }
