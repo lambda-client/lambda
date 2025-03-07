@@ -72,6 +72,18 @@ object TextureUtils {
     }
 
     fun readImage(
+        bytes: ByteArray,
+        format: NativeImage.Format = NativeImage.Format.RGBA,
+    ): NativeImage {
+        val buffer = BufferUtils
+            .createByteBuffer(bytes.size)
+            .put(bytes)
+            .flip()
+
+        return NativeImage.read(format, buffer)
+    }
+
+    fun readImage(
         bufferedImage: BufferedImage,
         format: NativeImage.Format = NativeImage.Format.RGBA,
     ): Long {

@@ -18,7 +18,6 @@
 package com.lambda.network
 
 import com.github.kittinunf.fuel.core.FuelError
-import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
@@ -56,7 +55,10 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
     fun SafeContext.fetch(uuid: UUID) = getOrPut(uuid) {
         getCape(uuid)
             .fold(
-                success = { if (!images.contains(it.cape)) it.fetch(); put(uuid, it.cape) },
+                success = {
+                    if (!images.contains(it.cape)) it.fetch()
+                    put(uuid, it.cape)
+                },
                 failure = { throw it },
             )
     }
@@ -65,8 +67,7 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
 
     init {
         listen<WorldEvent.Player.Join>(alwaysListen = true) {
-            runCatching { fetch(it.uuid) }
-                .onFailure { LOG.error(it) }
+            fetch(it.uuid)
         }
     }
 }
