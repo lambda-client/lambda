@@ -25,6 +25,7 @@ import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
+import net.minecraft.entity.ItemEntity
 
 data class BreakRequest(
     val contexts: List<BreakContext>,
@@ -32,7 +33,8 @@ data class BreakRequest(
     val rotationConfig: RotationConfig,
     val hotbarConfig: HotbarConfig,
     val prio: Priority = 0,
-    val onBreak: () -> Unit
+    val onBreak: () -> Unit,
+    val onItemDrop: (ItemEntity) -> Unit,
 ) : Request(prio) {
     override val done: Boolean
         get() = runSafe {

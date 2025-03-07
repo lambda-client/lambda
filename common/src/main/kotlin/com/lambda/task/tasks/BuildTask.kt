@@ -46,7 +46,6 @@ import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.info
-import com.lambda.util.Communication.warn
 import com.lambda.util.Formatting.string
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.extension.Structure
@@ -54,7 +53,6 @@ import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import net.minecraft.entity.ItemEntity
-import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 
 class BuildTask @Ta5kBuilder constructor(
@@ -72,7 +70,6 @@ class BuildTask @Ta5kBuilder constructor(
     private val pendingInteractions = LimitedDecayQueue<BuildContext>(
         build.maxPendingInteractions, build.interactionTimeout * 50L
     ) { info("${it::class.simpleName} at ${it.expectedPos.toShortString()} timed out") }
-    private var currentInteraction: BuildContext? = null
 
     private var placements = 0
     private var breaks = 0
@@ -110,7 +107,12 @@ class BuildTask @Ta5kBuilder constructor(
                     .take(build.breakSettings.breaksPerTick)
 
                 instantResults.firstOrNull()?.let {
-                    build.breakSettings.request(BreakRequest(instantResults.map { it.context }, build, rotation, hotbar) { breaks++ })
+                    build.breakSettings.request(
+                        BreakRequest(
+                            instantResults.map { it.context }, build, rotation, hotbar,
+                            onBreak = { breaks++ }
+                        ) { item -> if (collectDrops) dropsToCollect.add(item) }
+                    )
                     return@listen
                 }
             }
@@ -149,7 +151,10 @@ class BuildTask @Ta5kBuilder constructor(
                     if (pendingInteractions.size >= build.maxPendingInteractions) return@listen
                     val breakContexts = resultsNotBlocked.filterIsInstance<BreakResult.Break>().map { it.context }
                     if (breakContexts.isNotEmpty()) {
-                        val request = BreakRequest(breakContexts, build, rotation, hotbar) { breaks++ }
+                        val request = BreakRequest(
+                            breakContexts, build, rotation, hotbar,
+                            onBreak = { breaks++ },
+                        ) { item -> if (collectDrops) dropsToCollect.add(item) }
                         build.breakSettings.request(request)
                         return@listen
                     }

@@ -40,12 +40,14 @@ import com.lambda.util.BlockUtils.fluidState
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
+import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.swingHandClient
 import net.minecraft.block.BlockState
 import net.minecraft.block.OperatorBlock
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.client.sound.SoundInstance
 import net.minecraft.client.world.ClientWorld
+import net.minecraft.entity.ItemEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
@@ -89,13 +91,12 @@ object BreakManager : RequestHandler<BreakRequest>() {
                         .sortedBy { it.instantBreak }
                         .forEach { requestCtx ->
                             if (!canAccept(requestCtx)) return@forEach
-                            val breakType = handleRequestContext(
-                                requestCtx,
-                                request.onBreak,
-                                request.buildConfig,
-                                request.rotationConfig,
-                                request.hotbarConfig
-                            )
+                            val breakType = with(request) {
+                                handleRequestContext(requestCtx,
+                                    buildConfig, rotationConfig, hotbarConfig,
+                                    onBreak, onItemDrop
+                                )
+                            }
                             if (breakType == BreakType.Null) return@request
                             if (requestCtx.instantBreak && instaBreaks < request.buildConfig.breakSettings.breaksPerTick) {
                                 breakingInfos.getOrNull(breakType.index)?.let { info ->
@@ -154,6 +155,24 @@ object BreakManager : RequestHandler<BreakRequest>() {
                         info.onBreak()
                     }
         }
+
+        //ToDo: drop callback stuff
+//        // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
+//        listen<EntityEvent.EntityUpdate> {
+//            if (it.entity !is ItemEntity) return@listen
+//            pendingInteractions
+//                .firstOrNull { info -> matchesBlockItem(info, it.entity) }
+//                ?.onItemDrop?.invoke(it.entity)
+//                ?: breakingInfos
+//                    .filterNotNull()
+//                    .firstOrNull { info -> matchesBlockItem(info, it.entity) }?.onItemDrop?.invoke(it.entity)
+//        }
+    }
+
+    private fun matchesBlockItem(info: BreakInfo, entity: ItemEntity): Boolean {
+        val inRange = info.context.expectedPos.toCenterPos().isInRange(entity.pos, 0.5)
+        val correctMaterial = info.context.checkedState.block == entity.stack.item.block
+        return inRange && correctMaterial
     }
 
     private fun SafeContext.matchesTargetState(pos: BlockPos, targetState: TargetState, newState: BlockState) =
@@ -165,50 +184,39 @@ object BreakManager : RequestHandler<BreakRequest>() {
 
     private fun handleRequestContext(
         requestCtx: BreakContext,
-        onBreak: () -> Unit,
         buildConfig: BuildConfig,
         rotationConfig: RotationConfig,
-        hotbarConfig: HotbarConfig
+        hotbarConfig: HotbarConfig,
+        onBreak: () -> Unit,
+        onItemDrop: (ItemEntity) -> Unit
     ): BreakType {
+        val breakInfo = BreakInfo(requestCtx, BreakType.Primary,
+            buildConfig.breakSettings, rotationConfig, hotbarConfig,
+            onBreak, onItemDrop
+        )
         primaryBreakingInfo?.let { primaryInfo ->
             if (!primaryInfo.breakConfig.doubleBreak) return BreakType.Null
             if (primaryInfo.startedWithSecondary) return BreakType.Null
             if (!primaryInfo.breaking) {
-                secondaryBreakingInfo = BreakInfo(
-                    requestCtx,
-                    BreakType.Secondary,
-                    onBreak,
-                    buildConfig.breakSettings,
-                    rotationConfig,
-                    hotbarConfig
-                )
+                secondaryBreakingInfo = breakInfo.apply { type = BreakType.Secondary }
                 return BreakType.Secondary
             } else {
                 primaryInfo.type = BreakType.Secondary
                 secondaryBreakingInfo = primaryInfo
-                primaryBreakingInfo = BreakInfo(
-                    requestCtx,
-                    BreakType.Primary,
-                    onBreak,
-                    buildConfig.breakSettings,
-                    rotationConfig,
-                    hotbarConfig
-                )
+                primaryBreakingInfo = breakInfo
+                setPendingInteractionsLimits(buildConfig)
                 return BreakType.Primary
             }
         } ?: run {
-            primaryBreakingInfo = BreakInfo(
-                requestCtx,
-                BreakType.Primary,
-                onBreak,
-                buildConfig.breakSettings,
-                rotationConfig,
-                hotbarConfig
-            )
-            pendingInteractions.setMaxSize(buildConfig.maxPendingInteractions)
-            pendingInteractions.setDecayTime(buildConfig.interactionTimeout * 50L)
+            primaryBreakingInfo = breakInfo
+            setPendingInteractionsLimits(buildConfig)
             return BreakType.Primary
         }
+    }
+
+    private fun setPendingInteractionsLimits(buildConfig: BuildConfig) {
+        pendingInteractions.setMaxSize(buildConfig.maxPendingInteractions)
+        pendingInteractions.setDecayTime(buildConfig.interactionTimeout * 50L)
     }
 
     private fun SafeContext.canAccept(ctx: BreakContext) =
@@ -417,10 +425,11 @@ object BreakManager : RequestHandler<BreakRequest>() {
     data class BreakInfo(
         val context: BreakContext,
         var type: BreakType,
-        val onBreak: () -> Unit,
         val breakConfig: BreakConfig,
         val rotationConfig: RotationConfig,
-        val hotbarConfig: HotbarConfig
+        val hotbarConfig: HotbarConfig,
+        val onBreak: () -> Unit,
+        val onItemDrop: (ItemEntity) -> Unit
     ) {
         var breaking = false
         var breakingTicks = 0
