@@ -91,6 +91,7 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
         } else {
             warn("Internal interaction failed with $actionResult")
         }
+        request.onPlace()
     }
 
     override fun preEvent() = UpdateManagerEvent.Place.Pre().post()
