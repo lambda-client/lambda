@@ -22,6 +22,7 @@ val mixinExtrasVersion: String by project
 val kotlinForgeVersion: String by project
 val discordIPCVersion: String by project
 val fuelVersion: String by project
+val resultVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-forge"
 
@@ -100,9 +101,10 @@ dependencies {
     includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:0.15.0")
 
-    // Fuel HTTP library
+    // Fuel HTTP library and dependencies
     includeLib("com.github.kittinunf.fuel:fuel:$fuelVersion")
     includeLib("com.github.kittinunf.fuel:fuel-gson:$fuelVersion")
+    includeLib("com.github.kittinunf.result:result-jvm:$resultVersion")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
