@@ -10,6 +10,7 @@ build/
 .idea/compiler.xml
 .idea/libraries/
 .idea/
+!.idea/scopes
 *.iws
 *.iml
 *.ipr
@@ -53,4 +54,3 @@ logs/
 
 ### Kotlin ###
 *.kotlin_module
-.kotlin/

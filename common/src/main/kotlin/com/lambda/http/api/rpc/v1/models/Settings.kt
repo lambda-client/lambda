@@ -28,6 +28,6 @@ data class Settings(
     // Whether the party is public or not.
     // If false can only be joined by invite.
     // example: true
-    @SerializedName("public")
-    val public: Boolean,
+    // @SerializedName("public")
+    // val public: Boolean,
 )

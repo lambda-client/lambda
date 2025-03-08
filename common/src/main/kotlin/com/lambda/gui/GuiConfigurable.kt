@@ -25,4 +25,6 @@ object GuiConfigurable : AbstractGuiConfigurable(
     LambdaClickGui, ModuleTag.defaults, "gui"
 ) {
     var customWindows by setting("custom windows", listOf<CustomModuleWindow>())
+
+    override fun load() = "Loaded GUI Configurable"
 }

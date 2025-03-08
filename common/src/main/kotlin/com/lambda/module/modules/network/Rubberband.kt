@@ -18,13 +18,13 @@
 package com.lambda.module.modules.network
 
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.PlayerPacketManager
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.warn
-import com.lambda.util.math.VecUtils.dist
-import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.dist
+import com.lambda.util.math.distSq
 import com.lambda.util.text.buildText
 import com.lambda.util.text.color
 import com.lambda.util.text.literal
@@ -45,13 +45,13 @@ object Rubberband : Module(
     private val showRubberbandInfo by setting("Show Rubberband Info", true)
 
     init {
-        listener<PacketEvent.Receive.Pre> { event ->
-            if (!showRubberbandInfo) return@listener
-            if (event.packet !is PlayerPositionLookS2CPacket) return@listener
+        listen<PacketEvent.Receive.Pre> { event ->
+            if (!showRubberbandInfo) return@listen
+            if (event.packet !is PlayerPositionLookS2CPacket) return@listen
 
             if (PlayerPacketManager.configurations.isEmpty()) {
                 this@Rubberband.warn("Position was reverted")
-                return@listener
+                return@listen
             }
 
             val newPos = event.packet.change.position

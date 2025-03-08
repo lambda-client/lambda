@@ -18,7 +18,7 @@
 package com.lambda.module.modules.network
 
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
@@ -34,16 +34,11 @@ object PacketLimiter : Module(
     defaultTags = setOf(ModuleTag.NETWORK)
 ) {
     private var packetQueue = LimitedDecayQueue<PacketEvent.Send.Pre>(99, 1000)
-    private val limit by setting("Limit", 99, 1..100, 1, "The maximum amount of packets to send per given time interval", unit = " packets").apply {
-        onValueChange { _, to ->
-            packetQueue.setMaxSize(to)
-        }
-    }
-    private val interval by setting("Duration", 1000L, 1L..1000L, 50L, "The interval / duration in milliseconds to limit packets for", unit = " ms").apply {
-        onValueChange { _, to ->
-            packetQueue.setInterval(to)
-        }
-    }
+    private val limit by setting("Limit", 99, 1..100, 1, "The maximum amount of packets to send per given time interval", unit = " packets")
+        .onValueChange { _, to -> packetQueue.setMaxSize(to) }
+    
+    private val interval by setting("Duration", 1000L, 1L..1000L, 50L, "The interval / duration in milliseconds to limit packets for", unit = " ms")
+        .onValueChange { _, to -> packetQueue.setDecayTime(to) }
 
     private val defaultIgnorePackets = setOf(
         CommonPongC2SPacket::class,
@@ -60,11 +55,11 @@ object PacketLimiter : Module(
             packetQueue = LimitedDecayQueue(limit, interval)
         }
 
-        listener<PacketEvent.Send.Pre>(Int.MAX_VALUE) {
-            if (it.packet::class.simpleName in ignorePackets) return@listener
+        listen<PacketEvent.Send.Pre>(Int.MAX_VALUE) {
+            if (it.packet::class.simpleName in ignorePackets) return@listen
 
 //            this@PacketLimiter.info("Packet sent: ${it.packet::class.simpleName} (${packetQueue.size} / $limit) ${Instant.now()}")
-            if (packetQueue.add(it)) return@listener
+            if (packetQueue.add(it)) return@listen
 
             it.cancel()
             this@PacketLimiter.info("Packet limit reached, dropping packet: ${it.packet::class.simpleName} (${packetQueue.size} / $limit)")

@@ -18,8 +18,20 @@
 package com.lambda.config.settings.comparable
 
 import com.google.gson.reflect.TypeToken
+import com.lambda.brigadier.CommandResult.Companion.failure
+import com.lambda.brigadier.CommandResult.Companion.success
+import com.lambda.brigadier.argument.value
+import com.lambda.brigadier.argument.word
+import com.lambda.brigadier.executeWithResult
+import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
+import com.lambda.util.StringUtils.capitalize
+import com.lambda.util.extension.CommandBuilder
+import net.minecraft.command.CommandRegistryAccess
 
+/**
+ * @see [com.lambda.config.Configurable]
+ */
 class EnumSetting<T : Enum<T>>(
     override val name: String,
     defaultValue: T,
@@ -35,5 +47,20 @@ class EnumSetting<T : Enum<T>>(
 
     fun next() {
         value = enumValues[((value.ordinal + 1) % enumValues.size)]
+    }
+
+    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+        required(word(name)) { parameter ->
+            suggests { _, builder ->
+                enumValues.forEach { builder.suggest(it.name.capitalize()) }
+                builder.buildFuture()
+            }
+            executeWithResult {
+                val newValue = enumValues.find { it.name.equals(parameter().value(), true) }
+                    ?: return@executeWithResult failure("Invalid value")
+                trySetValue(newValue)
+                return@executeWithResult success()
+            }
+        }
     }
 }

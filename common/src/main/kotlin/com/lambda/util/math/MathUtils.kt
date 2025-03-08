@@ -25,38 +25,37 @@ import kotlin.random.Random.Default.nextDouble
 object MathUtils {
     private const val PI_FLOAT = 3.141593f
 
-    fun Float.toRadian() = this / 180.0f * PI_FLOAT
+    inline val Int.sq: Int get() = this * this
 
+    fun Float.toRadian() = this / 180.0f * PI_FLOAT
     fun Double.toRadian() = this / 180.0 * PI
 
     fun Float.toDegree() = this * 180.0f / PI_FLOAT
-
     fun Double.toDegree() = this * 180.0 / PI
 
     fun Boolean.toInt() = if (this) 1 else 0
-
     fun Boolean.toIntSign() = if (this) 1 else -1
 
     fun Double.floorToInt() = floor(this).toInt()
-
     fun Double.ceilToInt() = ceil(this).toInt()
+    fun Int.logCap(minimum: Int) = max(minimum.toDouble(), ceil(log2(toDouble()))).toInt()
 
     fun <T : Number> T.roundToStep(step: T): T {
         val stepD = step.toDouble()
         if (stepD == 0.0) return this
 
         var value = round(toDouble() / stepD) * stepD
-        value = value.roundToPlaces(decimalPlaces(stepD))
+        value = value.roundToPlaces(stepD.decimals)
         if (abs(value) == 0.0) value = 0.0
 
         return typeConvert(value)
     }
 
-    fun Vec2d.roundToStep(step: Double): Vec2d =
-        Vec2d(x.roundToStep(step), y.roundToStep(step))
-
-    fun Double.roundToPlaces(places: Int) =
+    private fun Double.roundToPlaces(places: Int) =
         BigDecimal(this).setScale(places, RoundingMode.HALF_EVEN).toDouble()
+
+    private val Double.decimals: Int
+        get() = BigDecimal.valueOf(this).scale()
 
     fun <T : Number> T.typeConvert(valueIn: Double): T {
         @Suppress("UNCHECKED_CAST")
@@ -71,7 +70,8 @@ object MathUtils {
         } as T
     }
 
-    private fun decimalPlaces(value: Double) = BigDecimal.valueOf(value).scale()
+    fun Vec2d.roundToStep(step: Double) =
+        Vec2d(x.roundToStep(step), y.roundToStep(step))
 
     fun random(v1: Double, v2: Double): Double {
         if (v1 == v2) return v1
@@ -79,8 +79,4 @@ object MathUtils {
         val max = max(v1, v2)
         return nextDouble(min, max)
     }
-
-    fun Int.nextPowerOf2() = 2f.pow(ceil(log2(toFloat()))).toInt()
-
-    inline val Int.sq: Int get() = this * this
 }

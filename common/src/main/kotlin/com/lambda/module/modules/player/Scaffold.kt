@@ -20,29 +20,35 @@ package com.lambda.module.modules.player
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
-import com.lambda.event.events.*
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
-import com.lambda.graphics.renderer.esp.builders.build
-import com.lambda.interaction.RotationManager.currentRotation
-import com.lambda.interaction.RotationManager.requestRotation
+import com.lambda.graphics.renderer.esp.builders.ofBox
+import com.lambda.interaction.request.rotation.RotationManager.currentRotation
+import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.interaction.blockplace.PlaceFinder.Companion.buildPlaceInfo
 import com.lambda.interaction.blockplace.PlaceInfo
 import com.lambda.interaction.blockplace.PlaceInteraction.placeBlock
-import com.lambda.interaction.rotation.Rotation
-import com.lambda.interaction.rotation.Rotation.Companion.angleDifference
-import com.lambda.interaction.rotation.Rotation.Companion.dist
-import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.rotation.Rotation.Companion.wrap
-import com.lambda.interaction.rotation.RotationContext
-import com.lambda.interaction.visibilty.VisibilityChecker.scanVisibleSurfaces
+import com.lambda.interaction.request.rotation.Rotation
+import com.lambda.interaction.request.rotation.Rotation.Companion.angleDifference
+import com.lambda.interaction.request.rotation.Rotation.Companion.dist
+import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
+import com.lambda.interaction.request.rotation.Rotation.Companion.wrap
+import com.lambda.interaction.request.rotation.RotationRequest
+import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.scanSurfaces
+import com.lambda.interaction.request.rotation.visibilty.blockHit
+import com.lambda.interaction.request.rotation.visibilty.lookAtHit
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.MathUtils.floorToInt
-import com.lambda.util.math.VecUtils.dist
-import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.dist
+import com.lambda.util.math.distSq
 import com.lambda.util.math.multAlpha
 import com.lambda.util.math.step
 import com.lambda.util.math.transform
@@ -51,6 +57,7 @@ import com.lambda.util.player.MovementUtils.isInputting
 import com.lambda.util.player.MovementUtils.newMovementInput
 import com.lambda.util.player.MovementUtils.roundedForward
 import com.lambda.util.player.MovementUtils.roundedStrafing
+import com.lambda.util.world.raycast.InteractionMask
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import com.lambda.util.world.toFastVec
 import net.minecraft.util.Hand
@@ -79,13 +86,15 @@ object Scaffold : Module(
     private val direction by setting("Direction", LookingDirection.FREE) { page == Page.ROTATION }
     private val optimalPitch by setting("Optimal Pitch", 81.0, 70.0..85.0, 0.05) { page == Page.ROTATION }
 
-    private val interactionConfig = InteractionSettings(this) { page == Page.INTERACTION }
+    private val interactionConfig = InteractionSettings(this, InteractionMask.Block) { page == Page.INTERACTION }
 
     // Placement
     private var placeInfo: PlaceInfo? = null
     private var keepLevel: Int? = null
     private var lastRotation: Rotation? = null
     private var edjeDistance = 0.0
+
+    private var lastRequest: RotationRequest? = null
 
     // Sneaking
     private var placeInfoAge = 0
@@ -119,21 +128,21 @@ object Scaffold : Module(
     }
 
     init {
-        requestRotation(
-            onUpdate = {
-                lastRotation = null
-                val info = updatePlaceInfo() ?: return@requestRotation null
-                val rotation = rotate(info) ?: return@requestRotation null
+        onRotate {
+            lastRotation = null
+            lastRequest = null
+            val info = updatePlaceInfo() ?: return@onRotate
 
-                RotationContext(rotation, rotationConfig)
-            }
-        )
+            lastRequest = lookAtHit(
+                blockHit(info.clickPos, info.clickSide, interactionConfig.interactReach)
+            ) { rotate(info) }.requestBy(rotationConfig)
+        }
 
-        listener<MovementEvent.Sneak> {
+        listen<MovementEvent.Sneak> {
             if (sneakTicks > 0) it.sneak = true
         }
 
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             placeInfo?.let { info ->
                 tickPlacement(info)
             }
@@ -141,7 +150,7 @@ object Scaffold : Module(
             updateSneaking()
         }
 
-        listener<RenderEvent.StaticESP> { event ->
+        listen<RenderEvent.StaticESP> { event ->
             buildRenderer(event)
         }
 
@@ -150,6 +159,7 @@ object Scaffold : Module(
             renderInfo.clear()
 
             keepLevel = null
+            lastRequest = null
             sneakTicks = 0
         }
     }
@@ -168,7 +178,7 @@ object Scaffold : Module(
         // Getting the latest block of the placement sequence
         placeInfo = buildPlaceInfo(
             basePos = BlockPos(player.pos.x.floorToInt(), y, player.pos.z.floorToInt()),
-            range = interactionConfig.reach + 2,
+            range = interactionConfig.interactReach + 2,
             sides = builderSideMask
         )
 
@@ -191,7 +201,7 @@ object Scaffold : Module(
     private fun SafeContext.rotate(info: PlaceInfo): Rotation? {
         val eye = player.eyePos
 
-        val reach = interactionConfig.reach
+        val reach = interactionConfig.interactReach
         val reachSq = reach.pow(2)
 
         val input = newMovementInput()
@@ -212,15 +222,19 @@ object Scaffold : Module(
 
         // Dividing the surface by segments and iterating through them
         val pointScan = mutableSetOf<Rotation>().apply {
-            scanVisibleSurfaces(
-                eyes = eye,
-                box = Box(info.clickPos),
+            val box = Box(info.clickPos)
+            val sides = if (TaskFlowModule.interact.checkSideVisibility) {
+                box.getVisibleSurfaces(eye)
+            } else Direction.entries.toSet()
+            scanSurfaces(
+                box,
+                sides,
                 resolution = interactionConfig.resolution
             ) { _, vec ->
-                if (eye distSq vec > reachSq) return@scanVisibleSurfaces
+                if (eye distSq vec > reachSq) return@scanSurfaces
 
                 val rotation = eye.rotationTo(vec)
-                castRotation(rotation, info) ?: return@scanVisibleSurfaces
+                castRotation(rotation, info) ?: return@scanSurfaces
 
                 add(rotation)
             }
@@ -279,10 +293,10 @@ object Scaffold : Module(
         if (edjeDistance > 0 && edjeDistance < minPlaceDist) return
 
         // Raycast the rotation
-        var blockResult: BlockHitResult? = castRotation(currentRotation, info)
+        var blockResult: BlockHitResult? = lastRequest?.target?.hit?.hitIfValid()?.blockResult
 
         // Use fallback hit vec for nonstrict ac's
-        if (!interactionConfig.useRayCast && blockResult == null) {
+        if (!interactionConfig.strictRayCast && blockResult == null) {
             blockResult = BlockHitResult(info.hitVec, info.clickSide, info.clickPos, false)
         }
 
@@ -324,7 +338,7 @@ object Scaffold : Module(
             val box = Box(info.placedPos)
             val alpha = transform(seconds, 0.0, 0.5, 1.0, 0.0).coerceIn(0.0, 1.0)
 
-            event.renderer.build(
+            event.renderer.ofBox(
                 box,
                 c.multAlpha(0.3 * alpha),
                 c.multAlpha(alpha),
@@ -359,7 +373,7 @@ object Scaffold : Module(
 
     // Checks if the rotation matches the placement requirements
     private fun castRotation(rotation: Rotation, info: PlaceInfo): BlockHitResult? {
-        val blockResult = rotation.rayCast(interactionConfig.reach)?.blockResult ?: return null
+        val blockResult = rotation.rayCast(interactionConfig.interactReach)?.blockResult ?: return null
         if (blockResult.blockPos != info.clickPos || blockResult.side != info.clickSide) return null
         return blockResult
     }

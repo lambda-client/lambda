@@ -14,12 +14,6 @@
  * limitations under the License.
  */
 
-/*
- * Preserve binary compatibility when moving extensions between files
- */
-@file:JvmMultifileClass
-@file:JvmName("ArgumentsKt")
-
 package com.lambda.brigadier.argument
 
 import com.lambda.brigadier.*
@@ -79,11 +73,7 @@ fun <S> time(
 @BrigadierDsl
 fun <S> uuid(
     name: String,
-): RequiredArgumentConstructor<
-        S,
-        DefaultArgumentDescriptor<
-                UuidArgumentType>
-        > {
+): RequiredArgumentConstructor<S, DefaultArgumentDescriptor<UuidArgumentType>> {
     return argument(name, UuidArgumentType.uuid())
 }
 
@@ -98,10 +88,6 @@ fun <S> uuid(
 @BrigadierDsl
 fun <S> literal(
     name: String,
-): ArgumentConstructor<
-        S,
-        LiteralArgumentBuilder<S>,
-        LiteralDescriptor
-        > {
+): ArgumentConstructor<S, LiteralArgumentBuilder<S>, LiteralDescriptor> {
     return ArgumentConstructor(LiteralArgumentBuilder.literal(name), name, LiteralDescriptor)
 }

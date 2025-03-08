@@ -22,6 +22,7 @@ val fabricLoaderVersion: String by project
 val kotlinxCoroutinesVersion: String by project
 val discordIPCVersion: String by project
 val baritoneVersion: String by project
+val fuelVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-api"
 

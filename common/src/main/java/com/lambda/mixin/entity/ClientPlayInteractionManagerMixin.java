@@ -18,24 +18,25 @@
 package com.lambda.mixin.entity;
 
 import com.lambda.event.EventFlow;
-import com.lambda.event.events.AttackEvent;
-import com.lambda.event.events.InteractionEvent;
-import net.minecraft.client.MinecraftClient;
+import com.lambda.event.events.InventoryEvent;
+import com.lambda.event.events.PlayerEvent;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -44,53 +45,62 @@ public class ClientPlayInteractionManagerMixin {
 
     @Shadow
     public float currentBreakingProgress;
-    @Final
-    @Shadow
-    private MinecraftClient client;
 
-    @Inject(method = "interactBlock", at = @At("HEAD"))
+    @Inject(method = "interactBlock", at = @At("HEAD"), cancellable = true)
     public void interactBlockHead(final ClientPlayerEntity player, final Hand hand, final BlockHitResult hitResult, final CallbackInfoReturnable<ActionResult> cir) {
-        if (client.world == null) return;
-        EventFlow.post(new InteractionEvent.Block(client.world, hitResult));
+        if (EventFlow.post(new PlayerEvent.Interact.Block(hand, hitResult)).isCanceled()) {
+            cir.setReturnValue(ActionResult.FAIL);
+        }
+    }
+
+    @Inject(method = "interactEntityAtLocation", at = @At("HEAD"), cancellable = true)
+    public void interactEntityAtLocation(PlayerEntity player, Entity entity, EntityHitResult hitResult, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
+        if (EventFlow.post(new PlayerEvent.Interact.Entity(hand, entity, hitResult)).isCanceled()) {
+            cir.setReturnValue(ActionResult.FAIL);
+        }
+    }
+
+    @Inject(method = "interactItem", at = @At("HEAD"), cancellable = true)
+    public void interactItemHead(PlayerEntity player, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
+        if (EventFlow.post(new PlayerEvent.Interact.Item(hand)).isCanceled()) {
+            cir.setReturnValue(ActionResult.FAIL);
+        }
+    }
+
+    @Inject(method = "attackBlock", at = @At("HEAD"), cancellable = true)
+    public void onAttackBlock(BlockPos pos, Direction side, CallbackInfoReturnable<Boolean> cir) {
+        if (EventFlow.post(new PlayerEvent.Attack.Block(pos, side)).isCanceled()) {
+            cir.setReturnValue(false);
+        }
+    }
+
+    @Inject(method = "attackEntity", at = @At("HEAD"), cancellable = true)
+    void onAttackPre(PlayerEntity player, Entity target, CallbackInfo ci) {
+        if (EventFlow.post(new PlayerEvent.Attack.Entity(target)).isCanceled()) ci.cancel();
     }
 
     @Inject(method = "clickSlot", at = @At("HEAD"), cancellable = true)
     public void clickSlotHead(int syncId, int slotId, int button, SlotActionType actionType, PlayerEntity player, CallbackInfo ci) {
         if (syncId != player.currentScreenHandler.syncId) return;
-        var click = new InteractionEvent.SlotClick(syncId, slotId, button, actionType, player.currentScreenHandler);
+        var click = new PlayerEvent.SlotClick(syncId, slotId, button, actionType, player.currentScreenHandler);
         if (EventFlow.post(click).isCanceled()) ci.cancel();
     }
 
-    @Inject(method = "attackEntity", at = @At("HEAD"), cancellable = true)
-    void onAttackPre(PlayerEntity player, Entity target, CallbackInfo ci) {
-        if (EventFlow.post(new AttackEvent.Pre(target)).isCanceled()) ci.cancel();
-    }
-
-    @Inject(method = "attackEntity", at = @At("TAIL"))
-    void onAttackPost(PlayerEntity player, Entity target, CallbackInfo ci) {
-        EventFlow.post(new AttackEvent.Post(target));
-    }
-
-    @Inject(method = "attackBlock", at = @At("HEAD"), cancellable = true)
-    public void onAttackBlock(BlockPos pos, Direction side, CallbackInfoReturnable<Boolean> cir) {
-        if (EventFlow.post(new InteractionEvent.BlockAttack.Pre(pos, side)).isCanceled()) cir.cancel();
-    }
-
-    @Inject(method = "attackBlock", at = @At("TAIL"))
-    public void onAttackBlockPost(BlockPos pos, Direction side, CallbackInfoReturnable<Boolean> cir) {
-        EventFlow.post(new InteractionEvent.BlockAttack.Post(pos, side));
+    @Redirect(method = "syncSelectedSlot", at = @At(value = "FIELD", target = "Lnet/minecraft/entity/player/PlayerInventory;selectedSlot:I"))
+    public int overrideSelectedSlotSync(PlayerInventory instance) {
+        return EventFlow.post(new InventoryEvent.HotbarSlot.Update(instance.selectedSlot)).getSlot();
     }
 
     @Inject(method = "updateBlockBreakingProgress", at = @At("HEAD"), cancellable = true)
     private void updateBlockBreakingProgressPre(BlockPos pos, Direction side, CallbackInfoReturnable<Boolean> cir) {
-        var event = EventFlow.post(new InteractionEvent.BreakingProgress.Pre(pos, side, currentBreakingProgress));
-        if (event.isCanceled()) cir.cancel();
+        var event = EventFlow.post(new PlayerEvent.Breaking.Update(pos, side, currentBreakingProgress));
+        if (event.isCanceled()) cir.setReturnValue(false);
 
         currentBreakingProgress = event.getProgress();
     }
 
-    @Inject(method = "updateBlockBreakingProgress", at = @At("TAIL"))
-    private void updateBlockBreakingProgressPost(BlockPos pos, Direction side, CallbackInfoReturnable<Boolean> cir) {
-        EventFlow.post(new InteractionEvent.BreakingProgress.Post(pos, side, currentBreakingProgress));
+    @Inject(method = "cancelBlockBreaking", at = @At("HEAD"), cancellable = true)
+    private void cancelBlockBreakingPre(CallbackInfo ci) {
+        if (EventFlow.post(new PlayerEvent.Breaking.Cancel(currentBreakingProgress)).isCanceled()) ci.cancel();
     }
 }

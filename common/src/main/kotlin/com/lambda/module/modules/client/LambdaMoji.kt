@@ -19,7 +19,7 @@ package com.lambda.module.modules.client
 
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.api.RenderLayer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -37,7 +37,7 @@ object LambdaMoji : Module(
     private val renderQueue = hashMapOf<List<String>, List<Vec2d>>()
 
     init {
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             var index = 0
             renderQueue.forEach { (emojis, positions) ->
                 emojis.forEachIndexed { emojiIndex, emoji ->
@@ -54,7 +54,7 @@ object LambdaMoji : Module(
             }
         }
 
-        listener<RenderEvent.GUI.Fixed> {
+        listen<RenderEvent.GUI.Fixed> {
             renderer.render()
         }
     }

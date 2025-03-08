@@ -17,15 +17,35 @@
 
 package com.lambda.util.extension
 
-import com.lambda.util.world.FastVector
-import com.lambda.util.world.x
-import com.lambda.util.world.y
-import com.lambda.util.world.z
+import com.lambda.context.SafeContext
+import com.lambda.util.world.*
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
+import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
+import java.awt.Color
+
+val SafeContext.isOverworld: Boolean get() = world.registryKey == World.OVERWORLD
+val SafeContext.isNether: Boolean get() = world.registryKey == World.NETHER
+val SafeContext.isEnd: Boolean get() = world.registryKey == World.END
+val SafeContext.dimensionName: String
+    get() = when {
+        isOverworld -> "Overworld"
+        isNether -> "Nether"
+        isEnd -> "End"
+        else -> "Unknown"
+    }
+
+fun SafeContext.collisionShape(state: BlockState, pos: BlockPos) =
+    state.getCollisionShape(world, pos).offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+
+fun SafeContext.outlineShape(state: BlockState, pos: BlockPos) =
+    state.getOutlineShape(world, pos).offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+
+fun SafeContext.blockColor(state: BlockState, pos: BlockPos) =
+    Color(state.getMapColor(world, pos).color)
 
 fun World.getBlockState(x: Int, y: Int, z: Int): BlockState {
     if (isOutOfHeightLimit(y)) return Blocks.VOID_AIR.defaultState
@@ -50,4 +70,5 @@ fun World.getFluidState(x: Int, y: Int, z: Int): FluidState {
 }
 
 fun World.getBlockState(vec: FastVector): BlockState = getBlockState(vec.x, vec.y, vec.z)
+fun World.getBlockEntity(vec: FastVector) = getBlockEntity(vec.toBlockPos())
 fun World.getFluidState(vec: FastVector): FluidState = getFluidState(vec.x, vec.y, vec.z)

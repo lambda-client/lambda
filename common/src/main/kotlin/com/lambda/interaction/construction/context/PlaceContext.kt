@@ -17,32 +17,63 @@
 
 package com.lambda.interaction.construction.context
 
+import com.lambda.config.groups.BuildConfig
+import com.lambda.context.SafeContext
+import com.lambda.graphics.renderer.esp.DirectionMask
+import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.interaction.request.rotation.RotationRequest
+import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
+import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.Communication.warn
 import net.minecraft.block.BlockState
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
+import java.awt.Color
 
 data class PlaceContext(
     override val pov: Vec3d,
     override val result: BlockHitResult,
-    override val rotation: RotationContext,
+    override val rotation: RotationRequest,
     override val distance: Double,
     override val expectedState: BlockState,
     override val checkedState: BlockState,
     override val hand: Hand,
-    val targetState: TargetState,
+    override val expectedPos: BlockPos,
+    override val targetState: TargetState,
     val sneak: Boolean,
     val insideBlock: Boolean,
+    val primeDirection: Direction?,
 ) : BuildContext {
-    override val resultingPos: BlockPos
-        get() = result.blockPos.offset(result.side)
+    private val baseColor = Color(35, 188, 254, 25)
+    private val sideColor = Color(35, 188, 254, 100)
 
-    override fun compareTo(other: BuildContext): Int {
-        return when (other) {
+    override fun interact(swingHand: Boolean) {
+        runSafe {
+            val actionResult = interaction.interactBlock(
+                player, hand, result
+            )
+
+            if (actionResult.isAccepted) {
+                if (actionResult.shouldSwingHand() && swingHand) {
+                    player.swingHand(hand)
+                }
+
+                if (!player.getStackInHand(hand).isEmpty && interaction.hasCreativeInventory()) {
+                    mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
+                }
+            } else {
+                warn("Internal interaction failed with $actionResult")
+            }
+        }
+    }
+
+    override fun compareTo(other: BuildContext) =
+        when (other) {
             is PlaceContext -> compareBy<PlaceContext> {
                 BlockUtils.fluids.indexOf(it.checkedState.fluidState.fluid)
             }.thenByDescending {
@@ -52,6 +83,8 @@ data class PlaceContext(
             }.thenBy {
                 it.sneak
             }.thenBy {
+                it.rotation.target.angleDistance
+            }.thenBy {
                 it.distance
             }.thenBy {
                 it.insideBlock
@@ -59,5 +92,11 @@ data class PlaceContext(
 
             else -> 1
         }
+
+    override fun SafeContext.buildRenderer() {
+        withState(expectedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side.opposite))
+        withState(blockState(result.blockPos), result.blockPos, sideColor, result.side)
     }
+
+    override fun shouldRotate(config: BuildConfig) = config.rotateForPlace
 }

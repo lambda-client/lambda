@@ -11,14 +11,17 @@
     "entity.ClientPlayerEntityMixin",
     "entity.ClientPlayInteractionManagerMixin",
     "entity.EntityMixin",
+    "entity.FireworkRocketEntityMixin",
     "entity.LivingEntityMixin",
     "entity.PlayerEntityMixin",
     "input.KeyBindingMixin",
     "input.KeyboardMixin",
+    "input.MouseMixin",
     "items.BarrierBlockMixin",
     "items.TridentMixin",
     "network.ClientConnectionMixin",
     "network.ClientLoginNetworkMixin",
+    "network.ClientPlayNetworkHandlerMixin",
     "network.HandshakeC2SPacketMixin",
     "network.LoginHelloC2SPacketMixin",
     "network.LoginKeyC2SPacketMixin",
@@ -34,19 +37,25 @@
     "render.InGameOverlayRendererMixin",
     "render.LightmapTextureManagerMixin",
     "render.LivingEntityRendererMixin",
+    "render.PlayerListHudMixin",
     "render.RenderLayersMixin",
     "render.RenderSystemMixin",
     "render.RenderTickCounterMixin",
     "render.ScreenHandlerMixin",
     "render.SplashOverlayMixin",
+    "render.SplashOverlayMixin$LogoTextureMixin",
     "render.VertexBufferMixin",
     "render.WorldRendererMixin",
     "world.BlockCollisionSpliteratorMixin",
     "world.ClientChunkManagerMixin",
     "world.ClientWorldMixin",
-    "entity.FireworkRocketEntityMixin"
+    "world.StructureTemplateMixin",
+    "world.WorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "mixins": [
+    "entity.PlayerInventoryMixin"
+  ]
 }

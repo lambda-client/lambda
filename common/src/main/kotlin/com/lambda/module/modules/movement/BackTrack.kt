@@ -22,9 +22,9 @@ import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DynamicAABB
-import com.lambda.graphics.renderer.esp.builders.build
+import com.lambda.graphics.renderer.esp.builders.ofBox
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.combat.KillAura
@@ -33,22 +33,13 @@ import com.lambda.util.ClientPacket
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.ServerPacket
-import com.lambda.util.math.VecUtils.dist
-import com.lambda.util.math.VecUtils.minus
-import com.lambda.util.math.VecUtils.plus
+import com.lambda.util.math.dist
+import com.lambda.util.math.minus
+import com.lambda.util.math.plus
 import com.lambda.util.math.lerp
 import com.lambda.util.math.multAlpha
 import net.minecraft.entity.LivingEntity
-import net.minecraft.network.packet.s2c.play.EntityAnimationS2CPacket
-import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket
-import net.minecraft.network.packet.s2c.play.EntityS2CPacket
-import net.minecraft.network.packet.s2c.play.EntityStatusEffectS2CPacket
-import net.minecraft.network.packet.s2c.play.ParticleS2CPacket
-import net.minecraft.network.packet.s2c.play.PlaySoundFromEntityS2CPacket
-import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket
-import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket
-import net.minecraft.network.packet.s2c.play.WorldEventS2CPacket
-import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket
+import net.minecraft.network.packet.s2c.play.*
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -92,7 +83,7 @@ object BackTrack : Module(
     }
 
     init {
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             val prevTarget = target
             target = if (KillAura.isDisabled) null else KillAura.target
             val currentTarget = target
@@ -101,7 +92,7 @@ object BackTrack : Module(
                 poolPackets(true)
                 targetPos = null
                 box.reset()
-                return@listener
+                return@listen
             }
 
             val pos = targetPos ?: currentTarget.pos
@@ -111,25 +102,25 @@ object BackTrack : Module(
             poolPackets()
         }
 
-        listener<RenderEvent.DynamicESP> {
-            val target = target ?: return@listener
+        listen<RenderEvent.DynamicESP> {
+            val target = target ?: return@listen
 
             val c1 = GuiSettings.primaryColor
             val c2 = Color.RED
             val p = target.hurtTime / 10.0
             val c = lerp(p, c1, c2)
 
-            it.renderer.build(box, c.multAlpha(0.3), c.multAlpha(0.8))
+            it.renderer.ofBox(box, c.multAlpha(0.3), c.multAlpha(0.8))
         }
 
-        listener<PacketEvent.Send.Pre> { event ->
-            if (!outbound || target == null) return@listener
+        listen<PacketEvent.Send.Pre> { event ->
+            if (!outbound || target == null) return@listen
             sendPool.add(event.packet to currentTime)
             event.cancel()
         }
 
-        listener<PacketEvent.Receive.Pre> { event ->
-            val target = target ?: return@listener
+        listen<PacketEvent.Receive.Pre> { event ->
+            val target = target ?: return@listen
 
             val packet = event.packet
 
@@ -154,8 +145,9 @@ object BackTrack : Module(
 
                 is PlaySoundS2CPacket, is PlaySoundFromEntityS2CPacket, is StopSoundS2CPacket,
                     /*is EntityStatusS2CPacket,*/ is EntityStatusEffectS2CPacket, is EntityAnimationS2CPacket,
-                is ParticleS2CPacket, is WorldTimeUpdateS2CPacket, is WorldEventS2CPacket -> {
-                    return@listener
+                is ParticleS2CPacket, is WorldTimeUpdateS2CPacket, is WorldEventS2CPacket,
+                    -> {
+                    return@listen
                 }
             }
 
@@ -163,7 +155,7 @@ object BackTrack : Module(
             event.cancel()
         }
 
-        listener<ConnectionEvent.Connect.Pre> {
+        listen<ConnectionEvent.Connect.Pre> {
             receivePool.clear()
             sendPool.clear()
         }

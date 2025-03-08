@@ -30,7 +30,7 @@ object LambdaFabric : ClientModInitializer {
     override fun onInitializeClient() {
         Lambda.initialize {
             Registries.REGISTRIES.forEach(AgnosticRegistries::dump)
-            LOG.info("$MOD_NAME Fabric $VERSION initialized.")
+            LOG.info("$MOD_NAME Fabric $VERSION was successfully initialized after $it ms\n")
         }
     }
 }

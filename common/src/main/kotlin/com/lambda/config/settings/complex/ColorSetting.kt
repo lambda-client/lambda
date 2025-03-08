@@ -18,9 +18,19 @@
 package com.lambda.config.settings.complex
 
 import com.google.gson.reflect.TypeToken
+import com.lambda.brigadier.argument.integer
+import com.lambda.brigadier.argument.value
+import com.lambda.brigadier.execute
+import com.lambda.brigadier.optional
+import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
+import com.lambda.util.extension.CommandBuilder
+import net.minecraft.command.CommandRegistryAccess
 import java.awt.Color
 
+/**
+ * @see [com.lambda.config.Configurable]
+ */
 class ColorSetting(
     override val name: String,
     defaultValue: Color,
@@ -31,4 +41,19 @@ class ColorSetting(
     TypeToken.get(Color::class.java).type,
     description,
     visibility
-)
+) {
+    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+        required(integer("Red", 0, 255)) { red ->
+            required(integer("Green", 0, 255)) { green ->
+                required(integer("Blue", 0, 255)) { blue ->
+                    optional(integer("Alpha", 0, 255)) { alpha ->
+                        execute {
+                            val alphaValue = alpha?.let { it().value() } ?: 255
+                            trySetValue(Color(red().value(), green().value(), blue().value(), alphaValue))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -25,4 +25,5 @@ import net.minecraft.util.math.BlockPos
 interface StateMatcher {
     fun matches(state: BlockState, pos: BlockPos, world: ClientWorld): Boolean
     fun getStack(world: ClientWorld, pos: BlockPos): ItemStack
+    fun isAir(): Boolean
 }

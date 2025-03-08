@@ -19,11 +19,10 @@ package com.lambda.module.modules.movement
 
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
-import com.lambda.util.extension.isElytraFlying
 import com.lambda.util.player.MovementUtils.addSpeed
 import net.minecraft.entity.LivingEntity
 import net.minecraft.sound.SoundEvents
@@ -46,15 +45,15 @@ object ElytraFly : Module(
     val doBoost: Boolean get() = isEnabled && rocketBoost
 
     init {
-        listener<MovementEvent.Pre> {
+        listen<MovementEvent.Player.Pre> {
             if (playerBoost && player.isElytraFlying && !player.isUsingItem) {
                 addSpeed(playerSpeed)
             }
         }
 
-        listener<ClientEvent.Sound> { event ->
-            if (!mute) return@listener
-            if (event.sound.id != SoundEvents.ITEM_ELYTRA_FLYING.id) return@listener
+        listen<ClientEvent.Sound> { event ->
+            if (!mute) return@listen
+            if (event.sound.id != SoundEvents.ITEM_ELYTRA_FLYING.id) return@listen
             event.cancel()
         }
     }

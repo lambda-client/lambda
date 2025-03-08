@@ -20,18 +20,19 @@ package com.lambda.config.groups
 import com.lambda.config.Configurable
 import com.lambda.context.SafeContext
 import com.lambda.friend.FriendManager.isFriend
-import com.lambda.interaction.rotation.Rotation.Companion.dist
-import com.lambda.interaction.rotation.Rotation.Companion.rotation
-import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
+import com.lambda.interaction.request.rotation.Rotation.Companion.dist
+import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
+import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.threading.runSafe
-import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.distSq
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.ArmorStandEntity
 import net.minecraft.entity.mob.MobEntity
 import net.minecraft.entity.passive.PassiveEntity
-import net.minecraft.server.network.ServerPlayerEntity
+import java.util.UUID
 
 /**
  * Abstract class representing a targeting mechanism for entities in the game.
@@ -40,16 +41,16 @@ import net.minecraft.server.network.ServerPlayerEntity
  * based on player settings and entity characteristics. It allows for specifying which types of entities
  * are targetable, the range of targeting, and various other conditions for targeting.
  *
- * @property owner The [Configurable] instance used to get and set configuration options for targeting.
- * @property predicate The predicate used to determine whether the targeting settings are visible and active.
- * @property defaultRange The default range within which entities can be targeted.
- * @property maxRange The maximum range within which entities can be targeted.
+ * @param owner The [Configurable] instance used to get and set configuration options for targeting.
+ * @param predicate The predicate used to determine whether the targeting settings are visible and active.
+ * @param defaultRange The default range within which entities can be targeted.
+ * @param maxRange The maximum range within which entities can be targeted.
  */
 abstract class Targeting(
-    owner: Configurable,
-    predicate: () -> Boolean = { true },
-    defaultRange: Double,
-    maxRange: Double
+    private val owner: Configurable,
+    private val predicate: () -> Boolean = { true },
+    private val defaultRange: Double,
+    private val maxRange: Double,
 ) : TargetingConfig {
 
     /**
@@ -112,7 +113,7 @@ abstract class Targeting(
      * @return `true` if the entity is valid for targeting, `false` otherwise.
      */
     open fun validate(player: ClientPlayerEntity, entity: LivingEntity) = when {
-        !players && (entity is ServerPlayerEntity && entity.isFriend) -> false
+        !players || (entity is OtherClientPlayerEntity && entity.isFriend) -> false
         !animals && entity is PassiveEntity -> false
         !hostiles && entity is MobEntity -> false
         entity is ArmorStandEntity -> false
@@ -131,8 +132,10 @@ abstract class Targeting(
      */
     class Combat(
         owner: Configurable,
+        defaultRange: Double = 5.0,
+        maxRange: Double = 16.0,
         predicate: () -> Boolean = { true },
-    ) : Targeting(owner, predicate, 5.0, 16.0) {
+    ) : Targeting(owner, predicate, defaultRange, maxRange) {
 
         /**
          * The field of view limit for targeting entities. Configurable between 5 and 180 degrees.
@@ -153,6 +156,7 @@ abstract class Targeting(
          */
         override fun validate(player: ClientPlayerEntity, entity: LivingEntity): Boolean {
             if (fov < 180 && player.rotation dist player.eyePos.rotationTo(entity.pos) > fov) return false
+            if (entity.uuid in illegalTargets) return false
             return super.validate(player, entity)
         }
 
@@ -162,16 +166,16 @@ abstract class Targeting(
          * @return The best [LivingEntity] target, or `null` if no valid target is found.
          */
         fun target(): LivingEntity? = runSafe {
-            val predicate = { entity: LivingEntity ->
-                validate(player, entity)
-            }
-
             return@runSafe fastEntitySearch<LivingEntity>(targetingRange) {
-                predicate(it)
+                validate(player, it)
             }.minByOrNull {
                 priority.factor(this, it)
             }
         }
+
+        private val illegalTargets = setOf(
+            UUID(5706954458220675710, -6736729783554821869)
+        )
     }
 
     /**

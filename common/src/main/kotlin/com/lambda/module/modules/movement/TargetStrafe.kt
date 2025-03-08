@@ -19,12 +19,12 @@ package com.lambda.module.modules.movement
 
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.interaction.rotation.Rotation.Companion.rotationTo
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.distSq
 import com.lambda.util.player.MovementUtils.buildMovementInput
 import com.lambda.util.player.MovementUtils.mergeFrom
 import kotlin.math.pow
@@ -49,7 +49,7 @@ object TargetStrafe : Module(
     val isActive get() = isEnabled && KillAura.isEnabled && KillAura.target != null
 
     init {
-        listener<TickEvent.Post> {
+        listen<TickEvent.Post> {
             if (player.horizontalCollision) strafeDirection *= -1
 
             if (KillAura.target == null) {
@@ -58,7 +58,7 @@ object TargetStrafe : Module(
             }
         }
 
-        listener<RotationEvent.StrafeInput> { event ->
+        listen<RotationEvent.StrafeInput> { event ->
             KillAura.target?.let { target ->
                 event.strafeYaw = player.eyePos.rotationTo(target.boundingBox.center).yaw
 

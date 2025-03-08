@@ -17,8 +17,17 @@
 
 package com.lambda.config.settings.numeric
 
+import com.lambda.brigadier.argument.long
+import com.lambda.brigadier.argument.value
+import com.lambda.brigadier.execute
+import com.lambda.brigadier.required
 import com.lambda.config.settings.NumericSetting
+import com.lambda.util.extension.CommandBuilder
+import net.minecraft.command.CommandRegistryAccess
 
+/**
+ * @see [com.lambda.config.Configurable]
+ */
 class LongSetting(
     override val name: String,
     defaultValue: Long,
@@ -34,4 +43,12 @@ class LongSetting(
     description,
     visibility,
     unit
-)
+) {
+    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+        required(long(name, range.start, range.endInclusive)) { parameter ->
+            execute {
+                trySetValue(parameter().value())
+            }
+        }
+    }
+}

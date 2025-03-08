@@ -20,7 +20,7 @@ package com.lambda.mixin.entity;
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
-import com.lambda.interaction.RotationManager;
+import com.lambda.interaction.request.rotation.RotationManager;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -63,18 +63,15 @@ public abstract class LivingEntityMixin extends EntityMixin {
 
     @Inject(method = "travel", at = @At("HEAD"), cancellable = true)
     void onTravelPre(Vec3d movementInput, CallbackInfo ci) {
-        LivingEntity self = (LivingEntity) (Object) this;
-        if (self != Lambda.getMc().player) return;
-
-        if (EventFlow.post(new MovementEvent.Travel.Pre()).isCanceled()) ci.cancel();
+        LivingEntity entity = (LivingEntity) (Object) this;
+        if (EventFlow.post(new MovementEvent.Entity.Pre(entity, movementInput)).isCanceled()) {
+            ci.cancel();
+        }
     }
 
     @Inject(method = "travel", at = @At("TAIL"))
     void onTravelPost(Vec3d movementInput, CallbackInfo ci) {
-        LivingEntity self = (LivingEntity) (Object) this;
-        if (self != Lambda.getMc().player) return;
-
-        EventFlow.post(new MovementEvent.Travel.Post());
+        EventFlow.post(new MovementEvent.Entity.Post((LivingEntity) (Object) this, movementInput));
     }
 
     @Redirect(method = "calcGlidingVelocity(Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/util/math/Vec3d;", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getPitch()F"))

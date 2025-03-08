@@ -21,7 +21,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
@@ -64,7 +64,7 @@ object TickShift : Module(
     private var lastBoost = 0L
 
     init {
-        listener<TickEvent.Post> {
+        listen<TickEvent.Post> {
             if (Blink.isEnabled) {
                 this@TickShift.info("TickShift is incompatible with blink")
                 disable()
@@ -83,8 +83,8 @@ object TickShift : Module(
             }
         }
 
-        listener<PacketEvent.Send.Pre> {
-            if (it.packet !is PlayerMoveC2SPacket) return@listener
+        listen<PacketEvent.Send.Pre> {
+            if (it.packet !is PlayerMoveC2SPacket) return@listen
             if (!strict) balance--
         }
 
@@ -101,33 +101,33 @@ object TickShift : Module(
             }
         }
 
-        listener<ClientEvent.Timer> {
+        listen<ClientEvent.TimerUpdate> {
             if (!isActive) {
                 poolPackets()
-                return@listener
+                return@listen
             }
 
             it.speed = if (boost) boostAmount else slowdown
         }
 
-        listener<PacketEvent.Send.Pre> { event ->
-            if (!isActive || !grim || event.isCanceled()) return@listener
-            if (event.packet !is CommonPongC2SPacket) return@listener
+        listen<PacketEvent.Send.Pre> { event ->
+            if (!isActive || !grim || event.isCanceled()) return@listen
+            if (event.packet !is CommonPongC2SPacket) return@listen
 
             pingPool.add(event.packet)
             event.cancel()
-            return@listener
+            return@listen
         }
 
-        listener<PacketEvent.Receive.Pre> { event ->
-            if (!isActive || !grim || !shiftVelocity || event.isCanceled()) return@listener
+        listen<PacketEvent.Receive.Pre> { event ->
+            if (!isActive || !grim || !shiftVelocity || event.isCanceled()) return@listen
 
-            if (event.packet !is EntityVelocityUpdateS2CPacket) return@listener
-            if (event.packet.entityId != player.id) return@listener
+            if (event.packet !is EntityVelocityUpdateS2CPacket) return@listen
+            if (event.packet.entityId != player.id) return@listen
 
             lastVelocity = event.packet
             event.cancel()
-            return@listener
+            return@listen
         }
 
         onEnable {

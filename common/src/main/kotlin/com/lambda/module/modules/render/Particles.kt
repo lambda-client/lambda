@@ -19,11 +19,11 @@ package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.event.events.AttackEvent
 import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.buffer.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
@@ -33,21 +33,22 @@ import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.buildWorldProjection
 import com.lambda.graphics.gl.Matrices.withVertexTransform
 import com.lambda.graphics.shader.Shader
-import com.lambda.interaction.rotation.Rotation
+import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.GuiSettings.colorSpeed
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.extension.partialTicks
 import com.lambda.util.math.MathUtils.random
-import com.lambda.util.math.VecUtils
-import com.lambda.util.math.VecUtils.plus
-import com.lambda.util.math.VecUtils.times
+import com.lambda.util.math.UP
+import com.lambda.util.math.DOWN
+import com.lambda.util.math.plus
+import com.lambda.util.math.times
 import com.lambda.util.math.lerp
 import com.lambda.util.math.multAlpha
 import com.lambda.util.math.transform
 import com.lambda.util.player.MovementUtils.moveDelta
-import com.lambda.util.world.raycast.RayCastMask
+import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d
 import org.lwjgl.opengl.GL11.GL_ONE
@@ -83,12 +84,12 @@ object Particles : Module(
     private val shader = Shader("renderer/particle", "renderer/particle")
 
     init {
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             if (environment) spawnForEnvironment()
             particles.removeIf(Particle::update)
         }
 
-        listener<RenderEvent.World> {
+        listen<RenderEvent.World> {
             // Todo: interpolated tickbased upload?
             particles.forEach(Particle::build)
 
@@ -102,12 +103,12 @@ object Particles : Module(
             }
         }
 
-        listener<AttackEvent.Pre> { event ->
+        listen<PlayerEvent.Attack.Entity> { event ->
             spawnForEntity(event.entity)
         }
 
-        listener<MovementEvent.Post> {
-            if (!onMove || player.moveDelta < 0.05) return@listener
+        listen<MovementEvent.Player.Post> {
+            if (!onMove || player.moveDelta < 0.05) return@listen
             spawnForEntity(player)
         }
     }
@@ -134,8 +135,8 @@ object Particles : Module(
         repeat(environmentSpawnAmount) {
             var particlePos = player.pos + Rotation(random(-180.0, 180.0), 0.0).vector * random(0.0, environmentRange)
 
-            Rotation.DOWN.rayCast(6.0, particlePos + VecUtils.UP * 2.0, true, RayCastMask.BLOCK)?.pos?.let {
-                particlePos = it + VecUtils.UP * 0.03
+            Rotation.DOWN.rayCast(6.0, particlePos + UP * 2.0, true, InteractionMask.Block)?.pos?.let {
+                particlePos = it + UP * 0.03
             } ?: return@repeat
 
             val particleMotion = Rotation(
@@ -150,7 +151,7 @@ object Particles : Module(
     private class Particle(
         initialPosition: Vec3d,
         initialMotion: Vec3d,
-        val lay: Boolean
+        val lay: Boolean,
     ) {
         private val fadeTicks = fadeDuration
 
@@ -169,7 +170,7 @@ object Particles : Module(
 
             prevPos = position
 
-            if (!lay) motion += VecUtils.DOWN * gravity * 0.01
+            if (!lay) motion += DOWN * gravity * 0.01
             motion *= 0.9 + inertia * 0.1
 
             position += motion

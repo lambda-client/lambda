@@ -20,28 +20,36 @@ package com.lambda.util.math
 import kotlin.math.roundToInt
 
 data class Vec2d(val x: Double, val y: Double) {
-    constructor(x: Int, y: Int) : this(x.toDouble(), y.toDouble())
     constructor(x: Float, y: Float) : this(x.toDouble(), y.toDouble())
-
-    operator fun unaryPlus() = this
-    operator fun plus(vec2d: Vec2d) = plus(vec2d.x, vec2d.y)
-    operator fun plus(add: Double) = plus(add, add)
-    fun plus(x: Double, y: Double) = Vec2d(this.x + x, this.y + y)
+    constructor(x: Int, y: Int) : this(x.toDouble(), y.toDouble())
 
     operator fun unaryMinus() = Vec2d(-x, -y)
-    operator fun minus(vec2d: Vec2d) = minus(vec2d.x, vec2d.y)
-    operator fun minus(sub: Double) = minus(sub, sub)
-    fun minus(x: Double, y: Double) = plus(-x, -y)
 
-    operator fun times(vec2d: Vec2d) = times(vec2d.x, vec2d.y)
-    operator fun times(multiplier: Double) = times(multiplier, multiplier)
+    fun plus(x: Double, y: Double) = Vec2d(this.x + x, this.y + y)
+    infix operator fun plus(other: Vec2d) = plus(other.x, other.y)
+    infix operator fun plus(other: Double) = plus(other, other)
+    infix operator fun plus(other: Float): Vec2d = plus(other.toDouble(), other.toDouble())
+    infix operator fun plus(other: Int): Vec2d = plus(other.toDouble(), other.toDouble())
+
+    fun minus(x: Double, y: Double) = Vec2d(this.x - x, this.y - y)
+    infix operator fun minus(other: Vec2d): Vec2d = minus(other.x, other.y)
+    infix operator fun minus(other: Double): Vec2d = minus(other, other)
+    infix operator fun minus(other: Float): Vec2d = minus(other.toDouble(), other.toDouble())
+    infix operator fun minus(other: Int): Vec2d = minus(other.toDouble(), other.toDouble())
+
     fun times(x: Double, y: Double) = Vec2d(this.x * x, this.y * y)
+    infix operator fun times(other: Double) = times(other, other)
+    infix operator fun times(other: Vec2d) = times(other.x, other.y)
+    infix operator fun times(other: Float): Vec2d = times(other.toDouble(), other.toDouble())
+    infix operator fun times(other: Int): Vec2d = times(other.toDouble(), other.toDouble())
 
-    operator fun div(vec2d: Vec2d) = div(vec2d.x, vec2d.y)
-    operator fun div(divider: Double) = div(divider, divider)
     fun div(x: Double, y: Double) = Vec2d(this.x / x, this.y / y)
+    infix operator fun div(other: Vec2d) = div(other.x, other.y)
+    infix operator fun div(other: Double) = div(other, other)
+    infix operator fun div(other: Float): Vec2d = div(other.toDouble(), other.toDouble())
+    infix operator fun div(other: Int): Vec2d = div(other.toDouble(), other.toDouble())
 
-    fun roundToInt(): Vec2d = Vec2d(this.x.roundToInt(), this.y.roundToInt())
+    fun roundToInt() = Vec2d(x.roundToInt(), y.roundToInt())
 
     companion object {
         val ZERO = Vec2d(0.0, 0.0)

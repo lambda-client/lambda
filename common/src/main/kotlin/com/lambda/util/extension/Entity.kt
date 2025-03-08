@@ -17,8 +17,7 @@
 
 package com.lambda.util.extension
 
-import com.lambda.interaction.rotation.Rotation
-import com.lambda.util.math.lerp
+import com.lambda.interaction.request.rotation.Rotation
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.Vec3d

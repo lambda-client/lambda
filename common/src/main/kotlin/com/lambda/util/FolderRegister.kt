@@ -76,9 +76,9 @@ object FolderRegister {
         val path = resolve(
             hostName.sanitizeForFilename()
         ).resolve(
-            mc.world?.dimensionEntry.toString().sanitizeForFilename() // TODO: This is probably wong
+            mc.world?.dimensionEntry.toString().sanitizeForFilename() ?: "unknown"
         )
-        path.createIfNotExists()
+        path.mkdirs()
         return path
     }
 }

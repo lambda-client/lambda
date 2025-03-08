@@ -22,14 +22,21 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.*
 
 object Formatting {
     val Vec3d.string: String
         get() = asString()
 
+    val Float.string: String
+        get() = "%.2f".format(Locale.US, this)
+
+    val Double.string: String
+        get() = "%.2f".format(Locale.US, this)
+
     fun Vec3d.asString(decimals: Int = 2): String {
         val format = "%.${decimals}f"
-        return "(${format.format(x)}, ${format.format(y)}, ${format.format(z)})"
+        return "(${format.format(Locale.US, x)}, ${format.format(Locale.US, y)}, ${format.format(Locale.US, z)})"
     }
 
     fun getTime(formatter: DateTimeFormatter = DateTimeFormatter.RFC_1123_DATE_TIME): String {

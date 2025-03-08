@@ -22,4 +22,6 @@ import com.lambda.module.tag.ModuleTag
 
 object HudGuiConfigurable : AbstractGuiConfigurable(
     LambdaHudGui, ModuleTag.hudDefaults, "hudgui"
-)
+) {
+    override fun load() = "Loaded HUD GUI Configurable"
+}

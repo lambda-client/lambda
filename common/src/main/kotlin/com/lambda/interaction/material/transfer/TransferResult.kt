@@ -18,28 +18,44 @@
 package com.lambda.interaction.material.transfer
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.material.MaterialContainer
 import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.task.Task
 
 abstract class TransferResult : Task<Unit>() {
-    data class Transfer(
+    data class ContainerTransfer(
         val selection: StackSelection,
         val from: MaterialContainer,
-        val to: MaterialContainer
+        val to: MaterialContainer,
     ) : TransferResult() {
-        override fun SafeContext.onStart() {
-            from.withdraw(selection).thenRun(this@Transfer) { _, _ ->
-                to.deposit(selection).onSuccess { _, _ ->
-                    success(Unit)
-                }
-            }.start(this@Transfer)
-        }
+        override val name = "Container Transfer of [$selection] from [${from.name}] to [${to.name}]"
 
-        override fun toString() = "Transfer of [$selection] from [${from.name}] to [${to.name}]"
+        override fun SafeContext.onStart() {
+            val withdrawal = from.withdraw(selection)
+            val deposit = to.deposit(selection)
+
+            val task = when {
+                withdrawal != null && deposit != null -> {
+                    withdrawal.then {
+                        deposit.finally { success() }
+                    }
+                }
+                withdrawal != null -> {
+                    withdrawal.finally { success() }
+                }
+                deposit != null -> {
+                    deposit.finally { success() }
+                }
+                else -> null
+            }
+
+            task?.execute(this@ContainerTransfer)
+        }
     }
 
     data object NoSpace : TransferResult() {
+        override val name = "No space left in the target container"
+
         // ToDo: Needs inventory space resolver. compressing or disposing
         override fun SafeContext.onStart() {
             failure("No space left in the target container")
@@ -47,6 +63,8 @@ abstract class TransferResult : Task<Unit>() {
     }
 
     data class MissingItems(val missing: Int) : TransferResult() {
+        override val name = "Missing $missing items"
+
         // ToDo: Find other satisfying permutations
         override fun SafeContext.onStart() {
             failure("Missing $missing items")

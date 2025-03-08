@@ -20,7 +20,7 @@ package com.lambda.module.modules.network
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.RenderEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runConcurrent
@@ -51,14 +51,14 @@ object PacketDelay : Module(
     private var inboundLastUpdate = 0L
 
     init {
-        listener<RenderEvent.World> {
-            if (mode != Mode.STATIC) return@listener
+        listen<RenderEvent.World> {
+            if (mode != Mode.STATIC) return@listen
 
             flushPools(System.currentTimeMillis())
         }
 
-        listener<PacketEvent.Send.Pre>(Int.MIN_VALUE) { event ->
-            if (!packetScope.filter(event.packet)) return@listener
+        listen<PacketEvent.Send.Pre>(Int.MIN_VALUE) { event ->
+            if (!packetScope.filter(event.packet)) return@listen
 
             when (mode) {
                 Mode.STATIC -> {
@@ -78,8 +78,8 @@ object PacketDelay : Module(
             }
         }
 
-        listener<PacketEvent.Receive.Pre>(Int.MIN_VALUE) { event ->
-            if (!packetScope.filter(event.packet)) return@listener
+        listen<PacketEvent.Receive.Pre>(Int.MIN_VALUE) { event ->
+            if (!packetScope.filter(event.packet)) return@listen
 
             when (mode) {
                 Mode.STATIC -> {

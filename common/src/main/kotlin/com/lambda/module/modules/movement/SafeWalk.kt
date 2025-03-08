@@ -18,7 +18,7 @@
 package com.lambda.module.modules.movement
 
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import net.minecraft.entity.LivingEntity
@@ -33,14 +33,14 @@ object SafeWalk : Module(
     private val stepHeight by setting("Step Height", 1.1, 0.0..4.0, 0.05, unit = " blocks")
 
     init {
-        listener<MovementEvent.InputUpdate> {
+        listen<MovementEvent.InputUpdate> {
             if (sneakOnLedge && player.isOnGround && player.isNearLedge(ledgeDistance, stepHeight)) {
                 // TODO: lmao you can't sneak without reallocating the fucking class every time
                 //it.input.sneaking = true
             }
         }
 
-        listener<MovementEvent.ClipAtLedge> {
+        listen<MovementEvent.ClipAtLedge> {
             if (!sneakOnLedge) it.clip = true
         }
     }

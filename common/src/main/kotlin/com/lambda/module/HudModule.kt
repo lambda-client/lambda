@@ -19,9 +19,8 @@ package com.lambda.module
 
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.animation.AnimationTicker
-import com.lambda.gui.api.GuiEvent
 import com.lambda.gui.api.RenderLayer
 import com.lambda.gui.api.component.core.DockingRect
 import com.lambda.module.tag.ModuleTag
@@ -45,7 +44,7 @@ abstract class HudModule(
         private var relativePosX by setting("Position X", 0.0, -10000.0..10000.0, 0.1) { false }
         private var relativePosY by setting("Position Y", 0.0, -10000.0..10000.0, 0.1) { false }
         override var relativePos
-            get() = Vec2d(relativePosX, relativePosY);
+            get() = Vec2d(relativePosX, relativePosY)
             set(value) {
                 relativePosX = value.x; relativePosY = value.y
             }
@@ -53,25 +52,19 @@ abstract class HudModule(
         override val width get() = this@HudModule.width
         override val height get() = this@HudModule.height
 
-        override val autoDocking by setting("Auto Docking", true).apply {
-            onValueChange { _, _ ->
-                autoDocking()
-            }
-        }
+        override val autoDocking by setting("Auto Docking", true).onValueChange { _, _ -> autoDocking() }
 
-        override var dockingH by setting("Docking H", HAlign.LEFT) { !autoDocking }.apply {
-            onValueChange { from, to ->
+        override var dockingH by setting("Docking H", HAlign.LEFT) { !autoDocking }
+            .onValueChange { from, to ->
                 val delta = to.multiplier - from.multiplier
                 relativePosX += delta * (size.x - screenSize.x)
             }
-        }
 
-        override var dockingV by setting("Docking V", VAlign.TOP) { !autoDocking }.apply {
-            onValueChange { from, to ->
+        override var dockingV by setting("Docking V", VAlign.TOP) { !autoDocking }
+            .onValueChange { from, to ->
                 val delta = to.multiplier - from.multiplier
                 relativePosY += delta * (size.y - screenSize.y)
             }
-        }
     }
 
     var position by rectHandler::position
@@ -84,17 +77,17 @@ abstract class HudModule(
         renderCallables.add(block)
 
     init {
-        listener<RenderEvent.GUI.HUD> { event ->
+        listen<RenderEvent.GUI.HUD> { event ->
             rectHandler.screenSize = event.screenSize
 
             renderCallables.forEach { function ->
-                function.invoke(renderer)
+                function(renderer)
             }
 
             renderer.render()
         }
 
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             animation.tick()
         }
     }

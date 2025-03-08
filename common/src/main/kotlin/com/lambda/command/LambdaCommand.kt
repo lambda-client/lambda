@@ -17,31 +17,72 @@
 
 package com.lambda.command
 
+import com.lambda.brigadier.argument.literal
+import com.lambda.brigadier.execute
+import com.lambda.brigadier.required
 import com.lambda.command.CommandManager.dispatcher
+import com.lambda.core.Loadable
+import com.lambda.module.modules.client.GuiSettings
+import com.lambda.util.Communication.info
 import com.lambda.util.Nameable
 import com.lambda.util.extension.CommandBuilder
+import com.lambda.util.text.*
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
+import com.mojang.brigadier.tree.CommandNode
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.command.CommandSource
 import net.minecraft.registry.BuiltinRegistries
 import net.minecraft.server.command.CommandManager
+import net.minecraft.text.HoverEvent
 
 abstract class LambdaCommand(
     final override val name: String,
     val aliases: Set<String> = emptySet(),
     val usage: String = "",
     val description: String = "",
-) : Nameable {
+    val examples: List<String> = listOf()
+) : Nameable, Loadable {
+    override val priority get() = -1
+
     val registry: CommandRegistryAccess by lazy {
         CommandManager.createRegistryAccess(BuiltinRegistries.createWrapperLookup())
     }
 
-    // ToDo: Include usage and description in the help command
-    init {
-        (listOf(name) + aliases).forEach {
-            val argument = LiteralArgumentBuilder.literal<CommandSource>(it.lowercase())
-            argument.create()
-            dispatcher.register(argument)
+    override fun load(): String {
+        (aliases + name).forEach { alias ->
+            LiteralArgumentBuilder.literal<CommandSource>(alias.lowercase()).apply {
+                create()
+                help()
+                dispatcher.register(this)
+            }
+        }
+        return ""
+    }
+
+    private fun CommandBuilder.help() {
+        required(literal("help")) {
+            execute {
+                this@LambdaCommand.info(buildText {
+                    literal("Help\n")
+                    highlighted("Usage:\n")
+                    literal("${CommandRegistry.prefix}$usage\n")
+                    highlighted("Description:\n")
+                    literal(description)
+                    if (examples.isNotEmpty()) {
+                        literal("\n")
+                        highlighted("Examples:\n")
+                        examples.forEachIndexed { i, example ->
+                            val full = "${CommandRegistry.prefix}$example"
+                            hoverEvent(HoverEvents.showText(buildText { literal("Click to try this example!") })) {
+                                clickEvent(ClickEvents.suggestCommand(full)) {
+                                    literal(full)
+                                    if (i != examples.lastIndex) { literal("\n") }
+                                }
+                            }
+                        }
+                    }
+                })
+            }
         }
     }
 
