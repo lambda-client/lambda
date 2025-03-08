@@ -159,6 +159,14 @@ private fun StructureTemplate.readSpongeV3OrException(
 fun StructureTemplate.readLitematicaOrException(
     lookup: RegistryEntryLookup<Block>,
     nbt: NbtCompound,
+): Throwable? = when (val ver = nbt.getInt("Version")) {
+    1, 2, 3, 4 -> readLitematicaV4OrException(lookup, nbt)
+    else -> IllegalStateException("Unsupported litematica version $ver")
+}
+
+private fun StructureTemplate.readLitematicaV4OrException(
+    lookup: RegistryEntryLookup<Block>,
+    nbt: NbtCompound,
 ): Throwable? {
     val version = nbt.getInt("MinecraftDataVersion")
 
