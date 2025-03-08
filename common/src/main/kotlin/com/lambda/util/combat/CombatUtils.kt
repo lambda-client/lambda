@@ -18,13 +18,9 @@
 package com.lambda.util.combat
 
 import com.lambda.context.SafeContext
-import com.lambda.core.annotations.InternalApi
 import com.lambda.util.math.distSq
-import com.lambda.util.math.minus
-import com.lambda.util.math.times
-import com.lambda.util.world.WorldUtils.internalGetFastEntities
 import com.lambda.util.world.fastEntitySearch
-import com.lambda.util.world.toFastVec
+import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.damage.DamageSource
@@ -35,8 +31,10 @@ import net.minecraft.registry.tag.DamageTypeTags.IS_FIRE
 import net.minecraft.registry.tag.DamageTypeTags.IS_FREEZING
 import net.minecraft.registry.tag.EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES
 import net.minecraft.util.math.Vec3d
+import net.minecraft.world.Difficulty
+import net.minecraft.world.World
 import net.minecraft.world.explosion.Explosion
-import net.minecraft.world.explosion.ExplosionImpl
+import kotlin.math.min
 
 object CombatUtils {
     /**
@@ -45,11 +43,11 @@ object CombatUtils {
      * @param entity The entity to calculate the damage for
      * @param damage The damage to apply
      */
-    fun DamageSource.scale(entity: LivingEntity, damage: Double): Double {
+    fun DamageSource.scale(world: ClientWorld, entity: LivingEntity, damage: Double): Double {
         if (damage.isNaN() || damage.isInfinite())
             return Double.MAX_VALUE
 
-        if (entity.isAlwaysInvulnerableTo(this) ||
+        if (entity.isInvulnerableTo(this) ||
             entity.isDead ||
             entity.blockedByShield(this) ||
             isIn(IS_FIRE) && entity.hasStatusEffect(FIRE_RESISTANCE)) return 0.0
@@ -60,9 +58,21 @@ object CombatUtils {
         if (isIn(DAMAGES_HELMET) && !entity.getEquippedStack(EquipmentSlot.HEAD).isEmpty)
             return damage * 0.75
 
-        return entity.applyArmorToDamage(this,
-            entity.modifyAppliedDamage(this, damage.toFloat())).toDouble()
+        return world.scaleDamage(
+            entity.applyArmorToDamage(this,
+                entity.modifyAppliedDamage(this, damage.toFloat())).toDouble()
+        )
     }
+
+    /**
+     * Scales the damage depending on the world difficulty
+     */
+    fun World.scaleDamage(damage: Double): Double =
+        when (difficulty) {
+            Difficulty.EASY -> min(damage / 2 + 1, damage)
+            Difficulty.HARD -> damage * 3 / 2
+            else -> damage
+        }
 
     /**
      * Returns whether there is a deadly end crystal in proximity of the player
@@ -101,9 +111,9 @@ object CombatUtils {
         val distance = entity distSq position
 
         val range = power * 2
-        val impact = (1 - distance / range) * ExplosionImpl.calculateReceivedDamage(position, entity) * 0.4
+        val impact = (1 - distance / range) * Explosion.getExposure(position, entity) * 0.4
         val damage = (impact * impact + impact) / 2.0 * 7.0 * range + 1
 
-        return Explosion.createDamageSource(world, null).scale(entity, damage)
+        return Explosion.createDamageSource(world, null).scale(world, entity, damage)
     }
 }
