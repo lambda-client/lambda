@@ -18,6 +18,8 @@
 package com.lambda.interaction.request
 
 import com.lambda.event.Event
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -30,9 +32,22 @@ abstract class RequestHandler<R : Request> {
     private val requestMap = ConcurrentHashMap<RequestConfig<R>, R>()
 
     /**
+     * Represents if the handler performed any external actions within this tick
+     */
+    protected var activeThisTick = false
+
+    /**
      * The currently active request.
      */
     var currentRequest: R? = null; protected set
+
+    init {
+        listen<TickEvent.Post>(Int.MIN_VALUE) {
+            activeThisTick = false
+        }
+    }
+
+    fun activeThisTick() = activeThisTick
 
     /**
      * Registers a new request with the given configuration.

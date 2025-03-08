@@ -28,6 +28,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.RequestHandler
+import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.module.modules.client.TaskFlowModule
@@ -65,9 +66,16 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
                 return@listen
             }
 
+            if (BreakManager.activeThisTick()) {
+                postEvent()
+                return@listen
+            }
+
             currentRequest?.let request@ { request ->
                 if (pendingInteractions.size >= request.buildConfig.placeSettings.maxPendingPlacements)
                     return@request
+
+                activeThisTick = true
 
                 if (request.placeContext.sneak && !player.isSneaking
                     || (request.buildConfig.placeSettings.rotateForPlace && !request.placeContext.rotation.done)
@@ -79,7 +87,7 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
                 pendingInteractions.setMaxSize(request.buildConfig.maxPendingInteractions)
                 pendingInteractions.setDecayTime(request.buildConfig.interactionTimeout * 50L)
                 placeBlock(request, Hand.MAIN_HAND)
-             }
+            }
 
             postEvent()
         }

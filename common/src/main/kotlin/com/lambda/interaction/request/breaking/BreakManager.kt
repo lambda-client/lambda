@@ -31,6 +31,7 @@ import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.hotbar.HotbarRequest
+import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.module.modules.client.TaskFlowModule
@@ -80,6 +81,12 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 return@listen
             }
 
+            if (PlaceManager.activeThisTick()) {
+                updateRequest(true) { true }
+                postEvent()
+                return@listen
+            }
+
             var swapped = false
 
             //ToDo: improve instamine / non instamine integration
@@ -106,25 +113,33 @@ object BreakManager : RequestHandler<BreakRequest>() {
                                         request.hotbarConfig.request(HotbarRequest(info.context.hotbarIndex))
                                         swapped = true
                                     }
-                                    updateBlockBreakingProgress(info, player.mainHandStack)
-                                    instaBreaks++
+                                    if (updateBlockBreakingProgress(info, player.mainHandStack)) {
+                                        instaBreaks++
+                                        activeThisTick = true
+                                    }
                                 }
                             }
                         }
                 }
             }
 
-            breakingInfos.firstOrNull()?.let { info ->
-                if ((!swapped && !info.hotbarConfig.request(HotbarRequest(info.context.hotbarIndex)).done)
-                    || (info.breakConfig.rotateForBreak && !info.context.rotation.done)) {
-                    postEvent()
-                    return@listen
+            breakingInfos
+                .filterNotNull()
+                .firstOrNull()?.let { info ->
+                    activeThisTick = true
+                    if ((!swapped && !info.hotbarConfig.request(HotbarRequest(info.context.hotbarIndex)).done)
+                        || (info.breakConfig.rotateForBreak && !info.context.rotation.done)) {
+                        postEvent()
+                        return@listen
+                    }
                 }
-            }
 
-            breakingInfos.reversed().filterNotNull().forEach { info ->
-                updateBlockBreakingProgress(info, player.mainHandStack)
-            }
+            breakingInfos
+                .filterNotNull()
+                .reversed()
+                .forEach { info ->
+                    updateBlockBreakingProgress(info, player.mainHandStack)
+                }
 
             postEvent()
         }

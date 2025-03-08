@@ -48,8 +48,8 @@ object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
 
         listen<TickEvent.Pre> {
             preEvent()
-            updateRequest()
-            interaction.syncSelectedSlot()
+            if (updateRequest()) interaction.syncSelectedSlot()
+            if (currentRequest != null) activeThisTick = true
             postEvent()
         }
 

@@ -77,6 +77,8 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
                 entry.value.target.targetRotation.value != null
             }
 
+            if (currentRequest != null) activeThisTick = true
+
             if (!changed) { // rebuild the rotation if the same context gets used again
                 currentRequest?.target?.targetRotation?.update()
             }
