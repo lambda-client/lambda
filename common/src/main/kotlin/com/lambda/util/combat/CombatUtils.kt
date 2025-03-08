@@ -18,13 +18,8 @@
 package com.lambda.util.combat
 
 import com.lambda.context.SafeContext
-import com.lambda.core.annotations.InternalApi
 import com.lambda.util.math.distSq
-import com.lambda.util.math.minus
-import com.lambda.util.math.times
-import com.lambda.util.world.WorldUtils.internalGetFastEntities
 import com.lambda.util.world.fastEntitySearch
-import com.lambda.util.world.toFastVec
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.damage.DamageSource

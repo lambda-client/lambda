@@ -47,7 +47,7 @@ abstract class ESPRenderer(tickedMode: Boolean) {
 
     fun render() {
         shader.use()
-        shader["u_TickDelta"] = mc.partialTicks
+        shader["u_TickDelta"] = mc.partialTicks.toDouble()
         shader["u_CameraPosition"] = mc.gameRenderer.camera.pos
 
         withFaceCulling(faces::render)

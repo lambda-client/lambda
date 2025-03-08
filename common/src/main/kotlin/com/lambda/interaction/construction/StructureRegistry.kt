@@ -45,7 +45,6 @@ import kotlin.io.path.*
  * It extends [ConcurrentHashMap] to allow concurrent access to structure templates by their names.
  * This registry supports multiple structure formats and automatically monitors changes in the structure directory.
  */
-@OptIn(ExperimentalPathApi::class)
 @Suppress("JavaIoSerializableObjectMustHaveReadResolve")
 object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loadable {
     private val pathWatcher by lazy {
@@ -148,7 +147,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
     private fun createStructure(nbt: NbtCompound, suffix: String): StructureTemplate =
         StructureTemplate().apply {
             serializers[suffix]
-                ?.invoke(this, Registries.BLOCK.readOnlyWrapper, nbt)
+                ?.invoke(this, Registries.BLOCK, nbt)
                 ?.let { throw it } // ToDo: Maybe use propagation instead of errors as values
         }
 

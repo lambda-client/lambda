@@ -23,6 +23,7 @@ import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.flooredPos
+import com.lambda.util.extension.jumping
 import com.lambda.util.math.DOWN
 import com.lambda.util.math.MathUtils.toIntSign
 import com.lambda.util.math.MathUtils.toRadian
@@ -73,7 +74,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
         tick(true, 1f)
     }
 
-    private val pressingJump = input.playerInput.jump
+    private val pressingJump = input.jumping
     private val forwardMovement = input.movementForward.toDouble()
     private val strafeMovement = input.movementSideways.toDouble()
     private val verticalMovement = pressingJump.toIntSign().toDouble()

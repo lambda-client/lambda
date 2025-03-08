@@ -100,7 +100,7 @@ object Communication {
             text(message)
         }.let { log ->
             runSafeGameScheduled {
-                player.sendMessage(log)
+                player.sendMessage(log, false)
             }
         }
     }

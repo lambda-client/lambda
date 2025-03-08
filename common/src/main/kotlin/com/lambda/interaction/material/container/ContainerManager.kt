@@ -130,10 +130,10 @@ object ContainerManager : Loadable {
         availableTools: Set<Item> = ItemUtils.tools,
         inventory: InventoryConfig = TaskFlowModule.inventory,
     ) = availableTools.map {
-        it to it.getMiningSpeedMultiplier(it.defaultStack, blockState)
+        it to it.getMiningSpeed(it.defaultStack, blockState)
     }.filter { (item, speed) ->
         speed > 1.0
-                && item.isSuitableFor(blockState)
+                && item.defaultStack.isSuitableFor(blockState)
                 && containerWithMaterial(item.select(), inventory).isNotEmpty()
     }.maxByOrNull {
         it.second

@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.construction.context
 
+import com.lambda.brigadier.argument.integer
 import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
@@ -57,6 +58,8 @@ data class PlaceContext(
             val actionResult = interaction.interactBlock(
                 player, hand, result
             )
+
+            actionResult.
 
             if (actionResult.isAccepted) {
                 if (actionResult.shouldSwingHand() && swingHand) {

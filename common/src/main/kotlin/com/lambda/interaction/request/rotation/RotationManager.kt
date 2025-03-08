@@ -18,6 +18,7 @@
 package com.lambda.interaction.request.rotation
 
 import com.lambda.Lambda
+import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
@@ -134,7 +135,7 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
 
     private val smoothRotation
         get() =
-            lerp(Lambda.mc.partialTicks, prevRotation, currentRotation)
+            lerp(mc.partialTicks.toDouble(), prevRotation, currentRotation)
 
     @JvmStatic
     val lockRotation

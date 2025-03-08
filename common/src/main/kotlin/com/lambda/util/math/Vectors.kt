@@ -53,6 +53,7 @@ val Entity.netherCoord: Vec3d get() = pos.multiply(0.125, 1.0, 0.125)
 val Entity.overworldCoord: Vec3d get() = pos.multiply(8.0, 1.0, 8.0)
 
 fun Vec3d.interpolate(value: Double, max: Vec3d) = lerp(value, this, max)
+fun Vec3d.interpolate(value: Float, max: Vec3d) = lerp(value.toDouble(), this, max)
 
 operator fun Vec3d.component1() = x
 operator fun Vec3d.component2() = y

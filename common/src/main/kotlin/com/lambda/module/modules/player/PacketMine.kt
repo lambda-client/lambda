@@ -33,6 +33,7 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.extension.tickDelta
 import com.lambda.util.math.lerp
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap
 import net.minecraft.block.BlockState
@@ -1441,7 +1442,9 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.getBlockBreakingSpeed(state: BlockState, toolSlot: Int): Float {
-        var f: Float = player.inventory.getStack(toolSlot).getMiningSpeedMultiplier(state)
+        // Im breaking your shit, plz fix
+        return 0f
+        /*var f: Float = player.inventory.getStack(toolSlot).getMiningSpeedMultiplier(state)
         if (f > 1.0f) {
             val itemStack: ItemStack = player.inventory.getStack(toolSlot)
             val i = EnchantmentHelper.getLevel(Enchantments.EFFICIENCY, itemStack)
@@ -1475,6 +1478,6 @@ object PacketMine : Module(
             f /= 5.0f
         }
 
-        return f
+        return f*/
     }
 }

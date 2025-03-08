@@ -18,25 +18,29 @@
 package com.lambda.config.serializer
 
 import com.google.gson.*
+import com.mojang.serialization.JsonOps
+import com.mojang.serialization.RecordBuilder
 import net.minecraft.block.Block
+import net.minecraft.block.Blocks
 import net.minecraft.registry.Registries
 import net.minecraft.util.Identifier
 import java.lang.reflect.Type
+import kotlin.jvm.optionals.getOrElse
 
 object BlockSerializer : JsonSerializer<Block>, JsonDeserializer<Block> {
     override fun serialize(
-        src: Block?,
-        typeOfSrc: Type?,
-        context: JsonSerializationContext?,
+        src: Block,
+        typeOfSrc: Type,
+        context: JsonSerializationContext,
     ): JsonElement =
-        src?.let {
-            JsonPrimitive(Registries.BLOCK.getId(it).toString())
-        } ?: JsonNull.INSTANCE
+        Registries.BLOCK.codec.encodeStart(JsonOps.INSTANCE, src)
+            .orThrow
 
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type?,
         context: JsonDeserializationContext?,
     ): Block =
-        Registries.BLOCK.get(Identifier.of(json?.asString))
+        Registries.BLOCK.codec.parse(JsonOps.INSTANCE, json)
+            .orThrow
 }

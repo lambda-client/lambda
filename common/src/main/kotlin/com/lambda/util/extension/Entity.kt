@@ -33,5 +33,3 @@ var LivingEntity.isElytraFlying
     set(value) {
         setFlag(7, value)
     }
-
-fun Vec3d.interpolate(other: Vec3d, t: Double) = lerp(t, this, other)

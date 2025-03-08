@@ -19,6 +19,10 @@ package com.lambda.brigadier.argument
 import com.lambda.brigadier.*
 import net.minecraft.advancement.AdvancementEntry
 import net.minecraft.command.argument.IdentifierArgumentType
+import net.minecraft.command.argument.ItemPredicateArgumentType
+import net.minecraft.command.argument.ItemStackArgumentType
+import net.minecraft.command.argument.RegistryEntryArgumentType
+import net.minecraft.command.argument.RegistryKeyArgumentType
 import net.minecraft.loot.condition.LootCondition
 import net.minecraft.loot.function.LootFunction
 import net.minecraft.recipe.RecipeEntry
@@ -42,7 +46,7 @@ fun DefaultArgumentReader<IdentifierArgumentType>.value(): Identifier {
  * argument in the receiver [ArgumentReader]
  * as an [AdvancementEntry].
  *
- * @see IdentifierArgumentType.getAdvancementArgument
+ * @see RegistryKeyArgumentType.getAdvancementEntry
  */
 @BrigadierDsl
 fun ArgumentReader<
@@ -51,7 +55,7 @@ fun ArgumentReader<
                 IdentifierArgumentType
                 >
         >.asAdvancement(): AdvancementEntry {
-    return IdentifierArgumentType.getAdvancementArgument(context, name)
+    return RegistryKeyArgumentType.getAdvancementEntry(context, name)
 }
 
 /**
@@ -61,15 +65,15 @@ fun ArgumentReader<
  *
  * @see IdentifierArgumentType.getPredicateArgument
  */
-@BrigadierDsl
-fun ArgumentReader<
-        ServerCommandSource,
-        DefaultArgumentDescriptor<
-                IdentifierArgumentType
-                >
-        >.asPredicate(): LootCondition {
-    return IdentifierArgumentType.getPredicateArgument(context, name)
-}
+//@BrigadierDsl
+//fun ArgumentReader<
+//        ServerCommandSource,
+//        DefaultArgumentDescriptor<
+//                IdentifierArgumentType
+//                >
+//        >.asPredicate(): LootCondition {
+//    return IdentifierArgumentType.getPredicateArgument(context, name)
+//}
 
 /**
  * Reads the [Identifier] value from the
@@ -78,15 +82,15 @@ fun ArgumentReader<
  *
  * @see IdentifierArgumentType.getItemModifierArgument
  */
-@BrigadierDsl
-fun ArgumentReader<
-        ServerCommandSource,
-        DefaultArgumentDescriptor<
-                IdentifierArgumentType
-                >
-        >.asItemModifier(): LootFunction {
-    return IdentifierArgumentType.getItemModifierArgument(context, name)
-}
+//@BrigadierDsl
+//fun ArgumentReader<
+//        ServerCommandSource,
+//        DefaultArgumentDescriptor<
+//                IdentifierArgumentType
+//                >
+//        >.asItemModifier(): LootFunction {
+//    return IdentifierArgumentType.getItemModifierArgument(context, name)
+//}
 
 /**
  * Reads the [Identifier] value from the
@@ -102,7 +106,7 @@ fun ArgumentReader<
                 IdentifierArgumentType
                 >
         >.asRecipe(): RecipeEntry<*> {
-    return IdentifierArgumentType.getRecipeArgument(context, name)
+    return RegistryKeyArgumentType.getRecipeEntry(context, name)
 }
 
 /**

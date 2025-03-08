@@ -28,6 +28,8 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.contains
+import com.lambda.util.extension.isElytraFlying
+import com.lambda.util.extension.jumping
 import com.lambda.util.player.MovementUtils.addSpeed
 import com.lambda.util.player.MovementUtils.calcMoveYaw
 import com.lambda.util.player.MovementUtils.handledByBaritone
@@ -120,6 +122,7 @@ object Speed : Module(
 
             // Delay jumping key state by 1 tick to let the rotation predict jump timing
             it.input.apply {
+                // We can't do this anymore
                 val jump = jumping
                 jumping = prevTickJumping
                 prevTickJumping = jump
@@ -137,7 +140,7 @@ object Speed : Module(
 
             run {
                 if (!diagonal) return@run
-                if (player.isOnGround && input.jumping) return@run
+                if (player.isOnGround && input.playerInput.jump) return@run
 
                 val forward = input.roundedForward.toFloat()
                 var strafe = input.roundedStrafing.toFloat()
@@ -180,7 +183,7 @@ object Speed : Module(
     }
 
     private fun SafeContext.handleStrafe() {
-        val shouldJump = player.input.jumping || (ncpAutoJump && isInputting)
+        val shouldJump = player.input.playerInput.jump || (ncpAutoJump && isInputting)
 
         if (player.isOnGround && shouldJump) {
             ncpPhase = NCPPhase.JUMP
@@ -223,7 +226,7 @@ object Speed : Module(
     }
 
     private fun SafeContext.shouldWork(): Boolean {
-        if (player.abilities.flying || player.isFallFlying || player.isTouchingWater || player.isInLava) return false
+        if (player.abilities.flying || player.isElytraFlying || player.isTouchingWater || player.isInLava) return false
 
         return when (mode) {
             Mode.GRIM_STRAFE -> {

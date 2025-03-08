@@ -53,7 +53,7 @@ fun DefaultArgumentReader<RotationArgumentType>.value(): PosArgument =
  */
 @BrigadierDsl
 fun ArgumentReader<ServerCommandSource, DefaultArgumentDescriptor<RotationArgumentType>>.absolute(): Vec2f =
-    RotationArgumentType.getRotation(context, name).toAbsoluteRotation(context.source)
+    RotationArgumentType.getRotation(context, name).getRotation(context.source)
 
 /**
  * Reads the set of [Direction.Axis] from the

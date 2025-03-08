@@ -94,7 +94,7 @@ object Blink : Module(
             if (!isActive || !shiftVelocity) return@listen
 
             if (event.packet !is EntityVelocityUpdateS2CPacket) return@listen
-            if (event.packet.id != player.id) return@listen
+            if (event.packet.entityId != player.id) return@listen
 
             lastVelocity = event.packet
             event.cancel()

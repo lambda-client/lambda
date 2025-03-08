@@ -28,14 +28,13 @@ import com.lambda.sound.SoundManager.playSound
 import com.lambda.util.Communication
 import com.lambda.util.Communication.prefix
 import com.lambda.util.Formatting.string
-import com.lambda.util.combat.CombatUtils.explosionDamage
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
+import com.lambda.util.extension.tickDelta
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.text.*
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.damage.DamageTypes
-import net.minecraft.entity.decoration.EndCrystalEntity
 import net.minecraft.entity.mob.CreeperEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Items

@@ -73,7 +73,7 @@ object MovementUtils {
             strafe > 0.0,
             jump,
             sneak,
-            true, // TODO: We can know sprint this way
+            true, // ToDo: We can now use this to sprint
         )
     }
 

@@ -18,29 +18,26 @@
 package com.lambda.config.serializer
 
 import com.google.gson.*
+import com.mojang.serialization.JsonOps
 import net.minecraft.util.math.BlockPos
 import java.lang.reflect.Type
+import kotlin.jvm.optionals.getOrElse
 
 object BlockPosSerializer : JsonSerializer<BlockPos>, JsonDeserializer<BlockPos> {
     override fun serialize(
-        src: BlockPos?,
-        typeOfSrc: Type?,
-        context: JsonSerializationContext?,
+        src: BlockPos,
+        typeOfSrc: Type,
+        context: JsonSerializationContext,
     ): JsonElement =
-        src?.let {
-            JsonObject().apply {
-                addProperty("x", it.x)
-                addProperty("y", it.y)
-                addProperty("z", it.z)
-            }
-        } ?: JsonNull.INSTANCE
+        BlockPos.CODEC.encodeStart(JsonOps.INSTANCE, src)
+            .orThrow
 
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type?,
         context: JsonDeserializationContext?,
     ): BlockPos =
-        json?.asJsonObject?.let {
-            BlockPos(it["x"].asInt, it["y"].asInt, it["z"].asInt)
-        } ?: BlockPos.ORIGIN
+        BlockPos.CODEC.parse(JsonOps.INSTANCE, json)
+            .result()
+            .getOrElse { BlockPos.ORIGIN }
 }

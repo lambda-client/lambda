@@ -179,7 +179,7 @@ object Particles : Module(
         }
 
         fun build() {
-            val smoothAge = age + mc.partialTicks
+            val smoothAge = age + mc.partialTicks.toDouble()
             val colorTicks = smoothAge * 0.1 / colorSpeed
 
             val alpha = when {
@@ -195,7 +195,7 @@ object Particles : Module(
             val (c1, c2) = GuiSettings.primaryColor to GuiSettings.secondaryColor
             val color = lerp(sin(colorTicks) * 0.5 + 0.5, c1, c2).multAlpha(alpha * alphaSetting)
 
-            val position = lerp(mc.partialTicks, prevPos, position)
+            val position = lerp(mc.partialTicks.toDouble(), prevPos, position)
             val size = if (lay) environmentSize else sizeSetting * lerp(alpha, 0.5, 1.0)
 
             withVertexTransform(buildWorldProjection(position, size, projRotation)) {
