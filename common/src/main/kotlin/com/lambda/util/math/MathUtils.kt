@@ -38,6 +38,7 @@ object MathUtils {
 
     fun Double.floorToInt() = floor(this).toInt()
     fun Double.ceilToInt() = ceil(this).toInt()
+    fun Int.logCap(minimum: Int) = max(minimum.toDouble(), ceil(log2(toDouble()))).toInt()
 
     fun <T : Number> T.roundToStep(step: T): T {
         val stepD = step.toDouble()

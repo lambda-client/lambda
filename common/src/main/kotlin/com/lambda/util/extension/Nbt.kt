@@ -30,6 +30,13 @@ fun NbtCompound.putIntList(key: String, vararg values: Int) {
 }
 
 /**
+ * Deletes all the keys in a compound
+ */
+fun NbtCompound.clear() {
+    keys.forEach { remove(it) }
+}
+
+/**
  * Retrieves a vector from a tuple
  */
 fun NbtCompound.getVector(key: String): Vec3i {
