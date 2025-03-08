@@ -43,5 +43,5 @@ class BuildSettings(
     // Placing
     override val placeSettings = PlaceSettings(c) { page == Page.Place && vis() }
 
-    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") { vis() && (page == Page.Place && placeSettings.placeConfirmation != PlaceConfig.PlaceConfirmation.None || page == Page.Break && breakSettings.breakConfirmation != BreakConfirmationMode.None) }
+    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") { vis() && (page == Page.Place && placeSettings.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None || page == Page.Break && breakSettings.breakConfirmation != BreakConfirmationMode.None) }
 }

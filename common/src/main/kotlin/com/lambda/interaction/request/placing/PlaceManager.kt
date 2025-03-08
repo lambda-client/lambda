@@ -17,13 +17,16 @@
 
 package com.lambda.interaction.request.placing
 
+import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
+import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
@@ -41,20 +44,18 @@ import net.minecraft.item.ItemUsageContext
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.registry.RegistryKeys
 import net.minecraft.sound.SoundCategory
-import net.minecraft.stat.Stats
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.math.BlockPos
 import net.minecraft.world.GameMode
-import net.minecraft.world.event.GameEvent
 import org.apache.commons.lang3.mutable.MutableObject
 
 object PlaceManager : RequestHandler<PlaceRequest>() {
-    private val pendingInteractions = LimitedDecayQueue<PlaceContext>(
+    private val pendingInteractions = LimitedDecayQueue<PlaceInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
-    ) { info("${it::class.simpleName} at ${it.expectedPos.toShortString()} timed out") }
+    ) { info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out") }
 
-    //ToDo: Add server response check for pending interactions
     init {
         listen<TickEvent.Pre>(Int.MIN_VALUE) {
             preEvent()
@@ -65,9 +66,8 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
             }
 
             currentRequest?.let request@ { request ->
-                if (pendingInteractions.size >= request.buildConfig.placeSettings.maxPendingPlacements) {
+                if (pendingInteractions.size >= request.buildConfig.placeSettings.maxPendingPlacements)
                     return@request
-                }
 
                 if (request.placeContext.sneak && !player.isSneaking
                     || (request.buildConfig.placeSettings.rotateForPlace && !request.placeContext.rotation.done)
@@ -79,15 +79,28 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
                 pendingInteractions.setMaxSize(request.buildConfig.maxPendingInteractions)
                 pendingInteractions.setDecayTime(request.buildConfig.interactionTimeout * 50L)
                 placeBlock(request, Hand.MAIN_HAND)
-            }
+             }
 
             postEvent()
         }
 
+        listen<WorldEvent.BlockUpdate.Server> { event ->
+            pendingInteractions
+                .firstOrNull { it.context.expectedPos == event.pos }
+                ?.let { pending ->
+                    pendingInteractions.remove(pending)
+                    if (!matchesTargetState(event.pos, pending.context.targetState, event.newState)) return@listen
+                    if (pending.buildConfig.placeSettings.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
+                        placeSound(pending.item, pending.context.expectedState, pending.context.expectedPos)
+                    pending.onPlace()
+                }
+        }
+
         onRotate {
             currentRequest?.let { request ->
-                if (request.buildConfig.placeSettings.rotateForPlace)
+                if (request.buildConfig.placeSettings.rotateForPlace) {
                     request.rotationConfig.request(request.placeContext.rotation)
+                }
             }
         }
 
@@ -96,24 +109,43 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
         }
     }
 
+    private fun SafeContext.matchesTargetState(pos: BlockPos, targetState: TargetState, newState: BlockState) =
+        if (targetState.matches(newState, pos, world)) true
+        else {
+            this@PlaceManager.warn("Place at ${pos.toShortString()} was rejected with $newState instead of $targetState")
+            false
+        }
+
     private fun SafeContext.placeBlock(request: PlaceRequest, hand: Hand) {
         val stackInHand = player.getStackInHand(hand)
+        val item = stackInHand.item as? BlockItem ?: return
         val stackCountPre = stackInHand.count
         val actionResult = interactBlock(request.buildConfig.placeSettings, hand, request.placeContext.result)
 
         if (actionResult.isAccepted) {
-            if (request.buildConfig.placeSettings.placeConfirmation != PlaceConfig.PlaceConfirmation.None)
-                pendingInteractions.add(request.placeContext)
+            if (request.buildConfig.placeSettings.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.None)
+                request.onPlace()
+            else {
+                pendingInteractions.add(
+                    PlaceInfo(
+                        request.placeContext,
+                        item,
+                        request.buildConfig,
+                        request.onPlace
+                    )
+                )
+            }
 
-            if (actionResult.shouldSwingHand() && request.buildConfig.placeSettings.swing)
+            if (actionResult.shouldSwingHand() && request.buildConfig.placeSettings.swing) {
                 swingHand(request.buildConfig.placeSettings.swingType)
+            }
 
-            if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || interaction.hasCreativeInventory()))
+            if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || interaction.hasCreativeInventory())) {
                 mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
+            }
         } else {
             warn("Placement interaction failed with $actionResult")
         }
-        request.onPlace()
     }
 
     private fun SafeContext.interactBlock(placeConfig: PlaceConfig, hand: Hand, hitResult: BlockHitResult): ActionResult {
@@ -121,12 +153,12 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
         if (!world.worldBorder.contains(hitResult.blockPos)) {
             return ActionResult.FAIL
         } else {
-            val mutableObject = MutableObject<ActionResult>()
+            val mutableActionResult = MutableObject<ActionResult>()
             interaction.sendSequencedPacket(world) { sequence: Int ->
-                mutableObject.value = interactBlockInternal(placeConfig, hand, hitResult)
+                mutableActionResult.value = interactBlockInternal(placeConfig, hand, hitResult)
                 PlayerInteractBlockC2SPacket(hand, hitResult, sequence)
             }
-            return mutableObject.value
+            return mutableActionResult.value
         }
     }
 
@@ -169,18 +201,11 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
             ) {
             return ActionResult.PASS
         }
-        val item: BlockItem = (itemStack.item as? BlockItem) ?: return ActionResult.PASS
-        val actionResult = useOnBlock(placeConfig, item, context)
-        if (actionResult.shouldIncrementStat()) player.incrementStat(Stats.USED.getOrCreateStat(item))
+        val item = (itemStack.item as? BlockItem) ?: return ActionResult.PASS
+        val actionResult = place(placeConfig, item, ItemPlacementContext(context))
 
         return actionResult
     }
-
-    private fun SafeContext.useOnBlock(
-        placeConfig: PlaceConfig,
-        item: BlockItem,
-        context: ItemUsageContext
-    ) = place(placeConfig, item, ItemPlacementContext(context))
 
     private fun SafeContext.place(
         placeConfig: PlaceConfig,
@@ -190,15 +215,15 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
         if (!item.block.isEnabled(world.enabledFeatures)) return ActionResult.FAIL
         if (!context.canPlace()) return ActionResult.FAIL
 
-        val itemPlacementContext: ItemPlacementContext = item.getPlacementContext(context) ?: return ActionResult.FAIL
-        val blockState: BlockState = item.getPlacementState(itemPlacementContext) ?: return ActionResult.FAIL
+        val itemPlacementContext = item.getPlacementContext(context) ?: return ActionResult.FAIL
+        val blockState = item.getPlacementState(itemPlacementContext) ?: return ActionResult.FAIL
 
-        if (placeConfig.placeConfirmation == PlaceConfig.PlaceConfirmation.AwaitThenPlace)
+        if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
             return ActionResult.success(world.isClient)
 
-        //ToDo: Add restriction checks, like world height, to avoid needlessly awaiting a server response which will never return
-        // if the user has the AwaitThenPlace confirmation setting enabled, as none of the state-setting methods which check these rules
-        // are called
+        // TODO: Implement restriction checks (e.g., world height) to prevent unnecessary server requests when the
+        //  "AwaitThenPlace" confirmation setting is enabled, as the block state setting methods that validate these
+        //  rules are not called.
         if (!item.place(itemPlacementContext, blockState)) return ActionResult.FAIL
 
         val blockPos = itemPlacementContext.blockPos
@@ -210,22 +235,30 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
             hitState.block.onPlaced(world, blockPos, hitState, player, itemStack)
         }
 
-        if (placeConfig.sounds) {
-            val blockSoundGroup = hitState.soundGroup
-            world.playSound(
-                player,
-                blockPos,
-                item.getPlaceSound(hitState),
-                SoundCategory.BLOCKS,
-                (blockSoundGroup.getVolume() + 1.0f) / 2.0f,
-                blockSoundGroup.getPitch() * 0.8f
-            )
-        }
-        world.emitGameEvent(GameEvent.BLOCK_PLACE, blockPos, GameEvent.Emitter.of(player, hitState))
+        if (placeConfig.sounds) placeSound(item, hitState, blockPos)
         if (!player.abilities.creativeMode) itemStack.decrement(1)
 
         return ActionResult.success(world.isClient)
     }
+
+    private fun SafeContext.placeSound(item: BlockItem, state: BlockState, pos: BlockPos) {
+        val blockSoundGroup = state.soundGroup
+        world.playSound(
+            player,
+            pos,
+            item.getPlaceSound(state),
+            SoundCategory.BLOCKS,
+            (blockSoundGroup.getVolume() + 1.0f) / 2.0f,
+            blockSoundGroup.getPitch() * 0.8f
+        )
+    }
+
+    data class PlaceInfo(
+        val context: PlaceContext,
+        val item: BlockItem,
+        val buildConfig: BuildConfig,
+        val onPlace: () -> Unit
+    )
 
     override fun preEvent() = UpdateManagerEvent.Place.Pre().post()
     override fun postEvent() = UpdateManagerEvent.Place.Post().post()

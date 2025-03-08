@@ -25,7 +25,7 @@ abstract class PlaceConfig(
     priority: Priority
 ) : RequestConfig<PlaceRequest>(priority) {
     abstract val rotateForPlace: Boolean
-    abstract val placeConfirmation: PlaceConfirmation
+    abstract val placeConfirmationMode: PlaceConfirmationMode
     abstract val maxPendingPlacements: Int
     abstract val placementsPerTick: Int
     abstract val swing: Boolean
@@ -36,7 +36,7 @@ abstract class PlaceConfig(
         PlaceManager.registerRequest(this, request)
     }
 
-    enum class PlaceConfirmation {
+    enum class PlaceConfirmationMode {
         None,
         PlaceThenAwait,
         AwaitThenPlace
