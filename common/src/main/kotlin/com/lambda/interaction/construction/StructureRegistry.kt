@@ -59,8 +59,6 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
     private val serializers = mapOf(
         "nbt" to StructureTemplate::readNbtOrException,
         "schem" to StructureTemplate::readSpongeOrException,
-
-        // Not supported due to the clusterfuck codebase of litematica and basically zero documentation
         "litematic" to StructureTemplate::readLitematicaOrException,
 
         // Not supported, who could've guess that converting a format from 15 years ago would be hard? :clueless:
@@ -151,9 +149,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
         StructureTemplate().apply {
             serializers[suffix]
                 ?.invoke(this, Registries.BLOCK.readOnlyWrapper, nbt)
-                ?.let { error ->
-                    throw IllegalStateException("Could not create structure: ${error.message}")
-                }
+                ?.let { throw it } // ToDo: Maybe use propagation instead of errors as values
         }
 
     /**
@@ -182,13 +178,14 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
         contains("DataVersion") && contains("blocks") && contains("palette") && contains("size")
 
     override fun load(): String {
-        runCatching {
-            structure.walk()
-                .filter { it.extension in serializers.keys }
-                .sortedBy { it.extension.length } // Don’t walk lexicographically -Constructor
-                .distinctBy { it.nameWithoutExtension }
-                .forEach { loadStructureByRelativePath(structure.relativize(it)) }
-        }.onFailure { LOG.warn("Error while loading a structure:", it) }
+        structure.walk()
+            .filter { it.extension in serializers.keys }
+            .sortedBy { it.extension.length } // Don’t walk lexicographically -Constructor
+            .distinctBy { it.nameWithoutExtension } // Pick the first structure in the priority list nbt > litematica > schematica
+            .forEach { struct ->
+                runCatching { loadStructureByRelativePath(structure.relativize(struct)) }
+                    .onFailure { LOG.warn("Unable to load the structure $struct: ${it.message}") }
+            }
 
         return "Loaded $size structure templates"
     }
