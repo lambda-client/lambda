@@ -30,6 +30,7 @@ import net.minecraft.nbt.NbtIo
 import net.minecraft.nbt.NbtSizeTracker
 import net.minecraft.registry.Registries
 import net.minecraft.structure.StructureTemplate
+import java.io.FileNotFoundException
 import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
@@ -74,17 +75,18 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
      * @param convert Whether to replace the file after converting it.
      *
      * @throws IllegalStateException if there was an error while parsing the data
+     * @throws FileNotFoundException when the given path doesn't exist
      */
     fun loadStructureByRelativePath(
         relativePath: Path,
         convert: Boolean = true,
     ): StructureTemplate {
-        updateFileWatcher()
+        updateFileWatcher(convert)
 
-        val struct = loadFileAndCreate(relativePath, convert)
-        putIfAbsent(relativePath.pathString.lowercase(), struct)
+        val structure = loadFileAndCreate(relativePath, convert)
+        putIfAbsent(relativePath.pathString, structure)
 
-        return struct
+        return structure
     }
 
     /**
@@ -92,7 +94,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
      * They might not show up in the command suggestion, but they are
      * present in the map.
      */
-    private fun updateFileWatcher() {
+    private fun updateFileWatcher(convert: Boolean) {
         pathWatcher.poll()?.let { key ->
             key.pollEvents()
                 ?.filterIsInstance<WatchEvent<Path>>()
@@ -102,8 +104,8 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
                     when (event.kind()) {
                         ENTRY_DELETE -> remove(newPath.pathString)
                         ENTRY_CREATE -> {
-                            putIfAbsent(newPath.pathString,
-                                loadStructureByRelativePath(newPath, convert = true))
+                            put(newPath.pathString,
+                                loadFileAndCreate(newPath, convert))
                         }
                     }
 
