@@ -81,9 +81,10 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
     ): StructureTemplate {
         updateFileWatcher()
 
-        return computeIfAbsent(relativePath.pathString.lowercase()) {
-            loadFileAndCreate(relativePath, convert)
-        }
+        val struct = loadFileAndCreate(relativePath, convert)
+        putIfAbsent(relativePath.pathString.lowercase(), struct)
+
+        return struct
     }
 
     /**
@@ -101,9 +102,8 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
                     when (event.kind()) {
                         ENTRY_DELETE -> remove(newPath.pathString)
                         ENTRY_CREATE -> {
-                            computeIfAbsent(newPath.pathString) {
-                                loadStructureByRelativePath(newPath, convert = true)
-                            }
+                            putIfAbsent(newPath.pathString,
+                                loadStructureByRelativePath(newPath, convert = true))
                         }
                     }
 
@@ -186,7 +186,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
                 .sortedBy { it.extension.length } // Don’t walk lexicographically -Constructor
                 .distinctBy { it.nameWithoutExtension }
                 .forEach { loadStructureByRelativePath(structure.relativize(it)) }
-        }.onFailure { LOG.warn(it.message) }
+        }.onFailure { LOG.warn("Error while loading a structure:", it) }
 
         return "Loaded $size structure templates"
     }
