@@ -24,10 +24,9 @@ import com.lambda.threading.runSafe
 import com.lambda.util.Formatting.asString
 import com.lambda.util.Formatting.string
 import com.lambda.util.extension.dimensionName
+import com.lambda.util.extension.isNether
 import com.lambda.util.math.netherCoord
 import com.lambda.util.math.overworldCoord
-import net.minecraft.registry.RegistryKey
-import net.minecraft.world.World
 
 object Coordinates : HudModule(
     name = "Coordinates",
@@ -38,7 +37,7 @@ object Coordinates : HudModule(
     private val decimals by setting("Decimals", 2, 0..4, 1)
 
     private val SafeContext.text: String
-        get() = "XYZ ${if (showDimension) dimensionName else ""} ${positionForDimension(world.registryKey)}"
+        get() = "XYZ ${if (showDimension) dimensionName else ""} ${positionForDimension()}"
 
     // TODO: Replace by LambdaAtlas height cache and actually build a proper text with highlighted parameters
 
@@ -53,9 +52,9 @@ object Coordinates : HudModule(
         }
     }
 
-    private fun SafeContext.positionForDimension(dimension: RegistryKey<World>) =
-        when (dimension) {
-            World.NETHER -> "[${player.netherCoord.asString(decimals)}, ${player.netherCoord.z.string}] ${player.overworldCoord.asString(decimals)}"
-            else -> "${player.overworldCoord.asString(decimals)} [${player.netherCoord.x.string}, ${player.netherCoord.z.string}]"
+    private fun SafeContext.positionForDimension() =
+        when {
+            isNether -> "${player.pos.asString(decimals)} [${player.overworldCoord.x.string}; ${player.overworldCoord.z.string}]"
+            else -> "${player.pos.asString(decimals)} [${player.netherCoord.x.string}; ${player.netherCoord.z.string}]"
         }
 }
