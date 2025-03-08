@@ -16,6 +16,10 @@ accessible field net/minecraft/client/world/ClientChunkManager$ClientChunkMap ch
 accessible field net/minecraft/client/network/ClientPlayerInteractionManager currentBreakingProgress F
 accessible field net/minecraft/client/network/ClientPlayerInteractionManager blockBreakingCooldown I
 accessible field net/minecraft/client/network/ClientPlayerInteractionManager currentBreakingPos Lnet/minecraft/util/math/BlockPos;
+accessible method net/minecraft/item/BlockItem place (Lnet/minecraft/item/ItemPlacementContext;Lnet/minecraft/block/BlockState;)Z
+accessible method net/minecraft/item/BlockItem placeFromNbt (Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/World;Lnet/minecraft/item/ItemStack;Lnet/minecraft/block/BlockState;)Lnet/minecraft/block/BlockState;
+accessible method net/minecraft/item/BlockItem postPlacement (Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/world/World;Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/item/ItemStack;Lnet/minecraft/block/BlockState;)Z
+accessible method net/minecraft/item/BlockItem getPlaceSound (Lnet/minecraft/block/BlockState;)Lnet/minecraft/sound/SoundEvent;
 
 # Entity
 accessible field net/minecraft/entity/projectile/FireworkRocketEntity shooter Lnet/minecraft/entity/LivingEntity;

@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.breaking
 
+import com.lambda.config.groups.BuildConfig
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
 import net.minecraft.block.Block
@@ -29,12 +30,13 @@ abstract class BreakConfig(
     abstract val doubleBreak: Boolean
     abstract val breakDelay: Int
     abstract val swing: SwingMode
-    abstract val swingType: SwingType
+    abstract val swingType: BuildConfig.SwingType
     abstract val sounds: Boolean
     abstract val particles: Boolean
     abstract val breakingTexture: Boolean
     abstract val rotateForBreak: Boolean
     abstract val breakConfirmation: BreakConfirmationMode
+    abstract val maxPendingBreaks: Int
     abstract val breaksPerTick: Int
     abstract val breakWeakBlocks: Boolean
     abstract val forceSilkTouch: Boolean
@@ -56,12 +58,6 @@ abstract class BreakConfig(
         StartAndEnd,
         Start,
         End
-    }
-
-    enum class SwingType {
-        Vanilla,
-        Server,
-        Client
     }
 
     enum class BreakConfirmationMode {

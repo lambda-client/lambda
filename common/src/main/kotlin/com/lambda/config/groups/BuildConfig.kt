@@ -30,4 +30,10 @@ interface BuildConfig {
 
     // Placing
     val placeSettings: PlaceSettings
+
+    enum class SwingType {
+        Vanilla,
+        Server,
+        Client
+    }
 }

@@ -41,7 +41,7 @@ import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.item.ItemUtils.block
-import com.lambda.util.player.swingHandClient
+import com.lambda.util.player.swingHand
 import net.minecraft.block.BlockState
 import net.minecraft.block.OperatorBlock
 import net.minecraft.client.sound.PositionedSoundInstance
@@ -50,7 +50,6 @@ import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.ItemEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
-import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.math.BlockPos
@@ -87,8 +86,11 @@ object BreakManager : RequestHandler<BreakRequest>() {
             if (updateRequest { true }) {
                 currentRequest?.let request@ { request ->
                     var instaBreaks = 0
+                    val config = breakingInfos.firstOrNull()?.breakConfig ?: request.buildConfig.breakSettings
+                    val takeCount = config.maxPendingBreaks - (breakingInfos.count { it != null } + pendingInteractions.size)
                     request.contexts
                         .sortedBy { it.instantBreak }
+                        .take(takeCount)
                         .forEach { requestCtx ->
                             if (!canAccept(requestCtx)) return@forEach
                             val breakType = with(request) {
@@ -242,7 +244,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 info.nullify()
                 return false
             }
-            if (info.breakConfig.swing != BreakConfig.SwingMode.End) swingHand(info)
+            if (info.breakConfig.swing != BreakConfig.SwingMode.End) swingHand(info.breakConfig.swingType)
             return true
         }
 
@@ -293,10 +295,10 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 onBlockBreak(info)
                 PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
             }
-            if (info.breakConfig.swing != BreakConfig.SwingMode.Start) swingHand(info)
+            if (info.breakConfig.swing != BreakConfig.SwingMode.Start) swingHand(info.breakConfig.swingType)
             setBreakCooldown(info.breakConfig.breakDelay)
         } else {
-            if (info.breakConfig.swing == BreakConfig.SwingMode.Constant) swingHand(info)
+            if (info.breakConfig.swing == BreakConfig.SwingMode.Constant) swingHand(info.breakConfig.swingType)
         }
 
         return true
@@ -407,14 +409,6 @@ object BreakManager : RequestHandler<BreakRequest>() {
             info.context.expectedPos,
             stage
         )
-    }
-
-    private fun SafeContext.swingHand(info: BreakInfo) {
-        when (info.breakConfig.swingType) {
-            BreakConfig.SwingType.Vanilla -> player.swingHand(player.activeHand)
-            BreakConfig.SwingType.Server -> connection.sendPacket(HandSwingC2SPacket(player.activeHand))
-            BreakConfig.SwingType.Client -> swingHandClient(player.activeHand)
-        }
     }
 
     private fun isOnBreakCooldown() = blockBreakingCooldown > 0

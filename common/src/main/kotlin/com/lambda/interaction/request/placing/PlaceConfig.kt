@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.placing
 
+import com.lambda.config.groups.BuildConfig
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
 
@@ -25,7 +26,11 @@ abstract class PlaceConfig(
 ) : RequestConfig<PlaceRequest>(priority) {
     abstract val rotateForPlace: Boolean
     abstract val placeConfirmation: PlaceConfirmation
+    abstract val maxPendingPlacements: Int
     abstract val placementsPerTick: Int
+    abstract val swing: Boolean
+    abstract val swingType: BuildConfig.SwingType
+    abstract val sounds: Boolean
 
     override fun requestInternal(request: PlaceRequest) {
         PlaceManager.registerRequest(this, request)
