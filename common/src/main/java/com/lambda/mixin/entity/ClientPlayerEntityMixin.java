@@ -28,6 +28,7 @@ import net.minecraft.client.input.Input;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.MovementType;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
@@ -124,10 +125,8 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         if (EventFlow.post(new PlayerEvent.SwingHand(hand)).isCanceled()) ci.cancel();
     }
 
-    @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
-    public void damage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-        if (EventFlow.post(new PlayerEvent.Damage(source, amount)).isCanceled()) {
-            cir.setReturnValue(false);
-        }
+    @Inject(method = "updateHealth", at = @At("HEAD"))
+    public void damage(float health, CallbackInfo ci) {
+        EventFlow.post(new PlayerEvent.Damage(health));
     }
 }

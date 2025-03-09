@@ -17,6 +17,7 @@
 
 package com.lambda.event.events
 
+import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import net.minecraft.entity.damage.DamageSource
@@ -52,15 +53,11 @@ sealed class PlayerEvent {
     ) : ICancellable by Cancellable()
 
     /**
-     * Represents a damage event for entities.
+     * Represents a damage event for the player.
      *
-     * @property source The source of the damage, which identifies what caused the damage.
      * @property amount The amount of damage dealt.
      */
-    data class Damage(
-        val source: DamageSource,
-        val amount: Float,
-    ) : ICancellable by Cancellable()
+    data class Damage(val amount: Float) : Event
 
     sealed class Interact {
         /**

@@ -98,14 +98,4 @@ public abstract class EntityMixin {
 
         EventFlow.post(new EntityEvent.EntityUpdate(entity, data));
     }
-
-    // ToDo: Does not trigger for some reason.
-    @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
-    public void damage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-        Entity entity = (Entity) (Object) this;
-
-        if (EventFlow.post(new EntityEvent.Damage(entity, source, amount)).isCanceled()) {
-            cir.setReturnValue(false);
-        }
-    }
 }

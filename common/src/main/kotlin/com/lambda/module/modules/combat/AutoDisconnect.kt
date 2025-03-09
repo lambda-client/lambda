@@ -103,10 +103,12 @@ object AutoDisconnect : Module(
                 trident to DamageTypes.TRIDENT
             )
 
-            damageHandlers.firstOrNull { (enabled, damageSource) ->
-                enabled && event.source.isOf(damageSource)
-            }?.let {
-                damageDisconnect(event.source, event.amount)
+            player.recentDamageSource?.let { source ->
+                damageHandlers.firstOrNull { (enabled, damageSource) ->
+                    enabled && source.isOf(damageSource)
+                }?.let {
+                    damageDisconnect(source, event.amount)
+                }
             }
         }
     }
