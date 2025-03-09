@@ -19,13 +19,9 @@ package com.lambda.mixin.render;
 
 import com.lambda.Lambda;
 import com.lambda.interaction.request.rotation.RotationManager;
-import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.LivingEntityRenderer;
-import net.minecraft.client.render.entity.model.EntityModel;
 import net.minecraft.client.render.entity.state.LivingEntityRenderState;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.util.math.MathHelper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -35,27 +31,29 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Objects;
 
+// This mixin's purpose is to set the player's pitch the current render pitch to correctly show the rotation
+// regardless of the camera position
 @Mixin(LivingEntityRenderer.class)
-public class LivingEntityRendererMixin<T extends LivingEntity, S extends LivingEntityRenderState, M extends EntityModel<? super S>> {
+public class LivingEntityRendererMixin<T extends LivingEntity, S extends LivingEntityRenderState> {
     @Unique
     private Float lambda$pitch = null;
 
-    // TODO: Fix all of this
-    @Inject(method = "render(Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V", at = @At("HEAD"))
-    private void injectRender(S livingEntityRenderState, MatrixStack matrixStack, VertexConsumerProvider vertexConsumerProvider, int i, CallbackInfo ci) {
+    @Inject(method = "updateRenderState(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;F)V", at = @At("HEAD"))
+    private void injectRender(T livingEntity, S livingEntityRenderState, float f, CallbackInfo ci) {
         Float rotationPitch = RotationManager.getRenderPitch();
 
         this.lambda$pitch = null;
 
-        /*if (livingEntity != Lambda.getMc().player || rotationPitch == null) {
+        if (livingEntity != Lambda.getMc().player || rotationPitch == null) {
             return;
-        }*/
+        }
 
         this.lambda$pitch = rotationPitch;
     }
 
-    /*@Redirect(method = "render(Lnet/minecraft/entity/LivingEntity;FFLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/MathHelper;lerp(FFF)F", ordinal = 0), require = 0)
-    private float injectRotationPitch(float g, float f, float s) {
-        return Objects.requireNonNullElseGet(lambda$pitch, () -> MathHelper.lerp(g, f, s));
-    }*/
+    // FixMe: When there are no rotations, the pitch is always set to 0
+    @Redirect(method = "updateRenderState(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getLerpedPitch(F)F", ordinal = 0), require = 0)
+    private float injectRotationPitch(LivingEntity instance, float v) {
+        return Objects.requireNonNullElse(lambda$pitch, v);
+    }
 }
