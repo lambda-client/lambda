@@ -22,7 +22,7 @@ import com.google.gson.JsonNull
 import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
 
-open class FunctionSetting<T : Any>(
+open class FunctionSetting<T>(
     override val name: String,
     private val defaultValue: () -> T,
     description: String,

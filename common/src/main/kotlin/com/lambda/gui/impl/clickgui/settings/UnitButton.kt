@@ -20,15 +20,15 @@ package com.lambda.gui.impl.clickgui.settings
 import com.lambda.config.settings.FunctionSetting
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.impl.clickgui.SettingLayout
+import com.lambda.gui.impl.clickgui.module.SettingLayout
 import com.lambda.util.Mouse
 
-class UnitButton(
+class UnitButton <T> (
     owner: Layout,
-    setting: FunctionSetting<Unit>,
-) : SettingLayout<() -> Unit, FunctionSetting<Unit>>(owner, setting) {
+    setting: FunctionSetting<T>,
+) : SettingLayout<() -> T, FunctionSetting<T>>(owner, setting) {
     init {
-        onMouseClick(Mouse.Button.Left, Mouse.Action.Click) {
+        onMouse(Mouse.Button.Left, Mouse.Action.Click) {
             setting.value()
         }
     }
@@ -38,7 +38,7 @@ class UnitButton(
          * Creates a [UnitButton] - visual representation of the [FunctionSetting]
          */
         @UIBuilder
-        fun Layout.unitSetting(setting: FunctionSetting<Unit>) =
+        fun <T> Layout.unitSetting(setting: FunctionSetting<T>) =
             UnitButton(this, setting).apply(children::add)
     }
 }

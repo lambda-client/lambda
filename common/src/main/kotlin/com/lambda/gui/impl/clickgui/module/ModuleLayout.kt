@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.impl.clickgui
+package com.lambda.gui.impl.clickgui.module
 
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.Module
@@ -26,19 +26,19 @@ import com.lambda.gui.component.core.FilledRect.Companion.rect
 import com.lambda.gui.component.core.FilledRect.Companion.rectBehind
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.component.window.AnimatedWindowChild
 import com.lambda.gui.component.window.Window
+import com.lambda.gui.impl.clickgui.ModuleWindow
+import com.lambda.gui.impl.clickgui.core.AnimatedChild
 import com.lambda.util.Mouse
 import com.lambda.util.math.*
 import java.awt.Color
-import kotlin.math.pow
 
 class ModuleLayout(
     owner: Layout,
     module: Module,
     initialPosition: Vec2d = Vec2d.ZERO,
     initialSize: Vec2d = Vec2d(100, 18)
-) : AnimatedWindowChild(
+) : AnimatedChild(
     owner,
     module.name,
     initialPosition, initialSize,
@@ -48,14 +48,6 @@ class ModuleLayout(
     private val cursorController = cursorController()
 
     private var enableAnimation by animation.exp(0.0, 1.0, 0.6, module::isEnabled)
-    private var openAnimation by animation.exp(1.0, 0.0, 0.6, ::isMinimized)
-
-    private val longHovered get() = isHovered || System.currentTimeMillis() - lastHover < 80
-    private var hoverAnimation by animation.exp(0.0, 1.0, { if (longHovered) 0.7 else 0.2 }, this::longHovered)
-    private val shrink get() = hoverAnimation.pow(3) * lerp(openAnimation, 1.0, 0.5)
-
-    // ToDo: replace with timer
-    private var lastHover = 0L
 
     val backgroundRect = rectBehind(titleBar) { // base rect with lowest y to avoid children overlying
         onUpdate {
@@ -68,8 +60,9 @@ class ModuleLayout(
 
             var progress = enableAnimation
 
-            // hover: +0.1 to alpha if minimized, -0.1 to alpha if maximized
-            progress += hoverAnimation * ClickGui.moduleHoverAccent * openRevSigned
+            // hover: +0.1 to alpha if minimized, -0.1 to alpha if maximized and enabled
+            progress += hoverAnimation * ClickGui.moduleHoverAccent *
+                    lerp(enableAnimation, 1.0, openRevSigned)
 
             // +0.4 to alpha if opened and disabled
             progress += openAnimation * ClickGui.moduleOpenAccent * enableRev
@@ -81,9 +74,7 @@ class ModuleLayout(
                     ClickGui.moduleEnabledColor
                 ).multAlpha(showAnimation)
             )
-        }
 
-        onUpdate {
             setRadius(hoverAnimation)
 
             if (isLast && ClickGui.autoResize) {
@@ -119,21 +110,18 @@ class ModuleLayout(
     init {
         backgroundTint()
 
-        isMinimized = true
-        openAnimation = 0.0
-
-        overrideX { owner.positionX + ClickGui.padding }
-        overrideWidth { owner.width - ClickGui.padding * 2 }
+        onUpdate {
+            positionX = owner.positionX + ClickGui.padding
+            width = owner.width - ClickGui.padding * 2
+        }
 
         titleBar.use {
-            overrideHeight(ClickGui::moduleHeight)
-
-            onMouseClick(Mouse.Button.Left,Mouse.Action.Click) {
-                module.toggle()
+            onUpdate {
+                height = ClickGui.moduleHeight
             }
 
-            textField.onUpdate {
-                offsetX += hoverAnimation * 2
+            onMouseAction(Mouse.Button.Left) {
+                module.toggle()
             }
         }
 
@@ -146,10 +134,6 @@ class ModuleLayout(
         onTick {
             val cursor = if (titleBar.isHovered) Mouse.Cursor.Pointer else Mouse.Cursor.Arrow
             cursorController.setCursor(cursor)
-        }
-
-        onUpdate {
-            if (isHovered) lastHover = System.currentTimeMillis()
         }
 
         onWindowExpand {
@@ -180,12 +164,6 @@ class ModuleLayout(
         onWindowExpand { minimizeSettings() }
         onWindowMinimize { minimizeSettings() }
         content.listify()
-
-        listOf(
-            titleBarBackground,
-            contentBackground,
-            outlineRect
-        ).forEach(Layout::destroy)
     }
 
     companion object {

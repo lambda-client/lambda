@@ -27,6 +27,7 @@ import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.window.TitleBar.Companion.titleBar
 import com.lambda.gui.component.window.WindowContent.Companion.windowContent
+import com.lambda.gui.impl.clickgui.core.AnimatedChild
 import com.lambda.util.Mouse
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
@@ -54,7 +55,7 @@ open class Window(
     val titleBar = titleBar(initialTitle, draggable)
 
     val titleBarBackground by titleBar::backgroundRect
-    val contentBackground = rect { // It's here because content cannot contain something by default
+    val contentBackground = rect {
         onUpdate {
             rect = Rect(titleBar.leftBottom, this@Window.rightBottom)
             setColor(ClickGui.backgroundColor)
@@ -148,25 +149,24 @@ open class Window(
         position = initialPosition
         properties.clampPosition = owner is ScreenLayout
 
-        overrideSize(::widthAnimation) {
-            titleBar.height + when (minimizing) {
+        onUpdate {
+            width = widthAnimation
+            height = titleBar.height + when (minimizing) {
                 Minimizing.Disabled -> targetHeight
                 Minimizing.Relative -> heightAnimation
                 Minimizing.Absolute -> heightAnimation * targetHeight
             }
         }
 
-        titleBar.onMouseClick { button, action ->
+        titleBar.onMouseAction(Mouse.Button.Right) {
             // Toggle minimizing state when right-clicking title bar
-            if (minimizing == Minimizing.Disabled) return@onMouseClick
-            if (button != Mouse.Button.Right || action != Mouse.Action.Click) return@onMouseClick
-
+            if (minimizing == Minimizing.Disabled) return@onMouseAction
             isMinimized = !isMinimized
         }
 
         content.onUpdate {
             val animatedChildren = content.children
-                .filterIsInstance<AnimatedWindowChild>()
+                .filterIsInstance<AnimatedChild>()
                 .filter { it.isShown }
 
             animatedChildren.forEachIndexed { i, it ->
@@ -204,13 +204,9 @@ open class Window(
             cursorController.setCursor(cursor)
         }
 
-        onMouseClick { button: Mouse.Button, action: Mouse.Action ->
-            // Update resize dragging offsets
-            resizeX = null
-            resizeY = null
-
-            if (button != Mouse.Button.Left || action != Mouse.Action.Click) return@onMouseClick
-
+        // Update resize dragging offsets
+        onMouse { resizeX = null; resizeY = null }
+        onMouse(Mouse.Button.Left, Mouse.Action.Click) {
             if (resizeXHovered) resizeX = mousePosition.x - width
             if (resizeYHovered) resizeY = mousePosition.y - height
         }

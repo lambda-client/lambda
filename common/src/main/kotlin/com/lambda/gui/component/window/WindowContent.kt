@@ -22,6 +22,7 @@ import com.lambda.gui.component.core.LayoutBuilder
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
+import com.lambda.gui.impl.clickgui.core.AnimatedChild
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
 import kotlin.math.abs
@@ -52,15 +53,15 @@ class WindowContent(
     fun listify() {
         children.forEachIndexed { i, it ->
             val prev = children.getOrNull(i - 1) ?: run {
-                it.overrideY {
-                    this.positionY + ClickGui.padding
+                it.onUpdate {
+                    positionY = this@WindowContent.positionY + ClickGui.padding
                 }
 
                 return@forEachIndexed
             }
 
-            it.overrideY {
-                prev.positionY + layoutHeight(prev, true)
+            it.onUpdate {
+                positionY = prev.positionY + layoutHeight(prev, true)
             }
         }
     }
@@ -68,21 +69,17 @@ class WindowContent(
     init {
         properties.scissor = true
 
-        overrideX(owner.titleBar::positionX)
-        overrideY {
-            owner.titleBar.let { it.positionY + it.height } + renderScrollOffset * scrollable.toInt()
-        }
+        onUpdate {
+            positionX = owner.titleBar.positionX
+            positionY = owner.titleBar.let { it.positionY + it.height } + renderScrollOffset * scrollable.toInt()
+            width = owner.width
 
-        overrideWidth(owner::width)
-        overrideHeight {
-            var height = ClickGui.padding * 2
+            height = ClickGui.padding * 2
 
             val lastIndex = children.lastIndex
             children.forEachIndexed { i, it ->
                 height += layoutHeight(it, false, i == lastIndex)
             }
-
-            height
         }
 
         onShow {
@@ -118,7 +115,7 @@ class WindowContent(
 
     private fun layoutHeight(layout: Layout, animate: Boolean, isLast: Boolean = false): Double {
         var height = layout.height + ClickGui.listStep * (!isLast).toInt()
-        val animated = layout as? AnimatedWindowChild ?: return height
+        val animated = layout as? AnimatedChild ?: return height
 
         height *= if (!animate) animated.staticShowAnimation
         else animated.showAnimation

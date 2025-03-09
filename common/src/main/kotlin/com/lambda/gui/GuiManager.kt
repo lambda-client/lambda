@@ -17,14 +17,16 @@
 
 package com.lambda.gui
 
+import com.lambda.config.settings.NumericSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.config.settings.FunctionSetting
 import com.lambda.core.Loadable
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.impl.clickgui.settings.BooleanButton.Companion.booleanSetting
-import com.lambda.gui.impl.clickgui.settings.EnumSelector.Companion.enumSetting
+import com.lambda.gui.impl.clickgui.module.settings.BooleanButton.Companion.booleanSetting
+import com.lambda.gui.impl.clickgui.module.settings.EnumSlider.Companion.enumSetting
+import com.lambda.gui.impl.clickgui.module.settings.NumberSlider.Companion.numericSetting
 import com.lambda.gui.impl.clickgui.settings.UnitButton.Companion.unitSetting
 import kotlin.reflect.KClass
 
@@ -44,8 +46,12 @@ object GuiManager : Loadable {
             owner.enumSetting(ref)
         }
 
-        typeAdapter<FunctionSetting<Unit>> { owner, ref ->
+        typeAdapter<FunctionSetting<*>> { owner, ref ->
             owner.unitSetting(ref)
+        }
+
+        typeAdapter<NumericSetting<*>> { owner, ref ->
+            owner.numericSetting(ref)
         }
 
         return "Loaded ${typeMap.size} gui type adapters."
@@ -59,5 +65,7 @@ object GuiManager : Loadable {
         reference: Any,
         block: Layout.() -> Unit = {}
     ): Layout? =
-        typeMap[reference::class]?.invoke(this, reference)?.apply(block)
+        (typeMap[reference::class] ?: typeMap.entries.firstOrNull {
+            reference::class.java.superclass == it.key.java
+        }?.value)?.invoke(this, reference)?.apply(block)
 }

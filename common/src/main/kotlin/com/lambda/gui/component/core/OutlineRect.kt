@@ -25,7 +25,7 @@ class OutlineRect(
     owner: Layout
 ) : Layout(owner) {
     @UIRenderPr0p3rty var roundRadius = 0.0
-    @UIRenderPr0p3rty var glowRadius = 0.0
+    @UIRenderPr0p3rty var glowRadius = 1.0
 
     @UIRenderPr0p3rty var leftTopColor: Color = Color.WHITE
     @UIRenderPr0p3rty var rightTopColor: Color = Color.WHITE
@@ -56,6 +56,20 @@ class OutlineRect(
         rightTopColor = color
         rightBottomColor = color
         leftBottomColor = color
+    }
+
+    fun setColorH(colorL: Color, colorR: Color) {
+        leftTopColor = colorL
+        rightTopColor = colorR
+        rightBottomColor = colorR
+        leftBottomColor = colorL
+    }
+
+    fun setColorV(colorT: Color, colorB: Color) {
+        leftTopColor = colorT
+        rightTopColor = colorT
+        rightBottomColor = colorB
+        leftBottomColor = colorB
     }
 
     companion object {

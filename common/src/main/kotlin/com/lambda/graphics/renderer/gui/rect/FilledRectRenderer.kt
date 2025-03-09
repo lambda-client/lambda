@@ -29,6 +29,7 @@ object FilledRectRenderer : AbstractGUIRenderer(
 ) {
     private const val MIN_SIZE = 0.5
     private const val MIN_ALPHA = 1
+    private const val EXPAND = 0.3
 
     fun filledRect(
         rect: Rect,
@@ -100,8 +101,8 @@ object FilledRectRenderer : AbstractGUIRenderer(
         val rbr = rightBottomRadius.coerceAtMost(maxRadius).coerceAtLeast(0.0)
         val rtr = rightTopRadius.coerceAtMost(maxRadius).coerceAtLeast(0.0)
 
-        val p1 = pos1 - 0.25
-        val p2 = pos2 + 0.25
+        val p1 = pos1 - EXPAND
+        val p2 = pos2 + EXPAND
 
         shader["u_Size"] = size
         shader["u_RoundLeftTop"] = ltr

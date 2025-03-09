@@ -58,7 +58,7 @@ object OutlineRectRenderer : AbstractGUIRenderer(
         leftBottom: Color = Color.WHITE,
         shade: Boolean = false,
     ) = render(shade) {
-        if (glowRadius < 1) return@render
+        if (glowRadius < 0.1) return@render
 
         grow(VERTICES_COUNT * 3)
 

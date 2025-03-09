@@ -41,16 +41,19 @@ open class Layout(
 
     // ToDo: impl alignmentLayout: Layout, instead of being able to align to the owner only
     // Position of the component
+    @UIRenderPr0p3rty
     var position: Vec2d
         get() = Vec2d(positionX, positionY)
         set(value) { positionX = value.x; positionY = value.y }
 
+    @UIRenderPr0p3rty
     var positionX: Double
         get() = ownerX + (relativePosX + dockingOffsetX).let {
             if (!properties.clampPosition) return@let it
             it.coerceAtMost(ownerWidth - width).coerceAtLeast(0.0)
         }; set(value) { relativePosX = value - ownerX - dockingOffsetX }
 
+    @UIRenderPr0p3rty
     var positionY: Double
         get() = ownerY + (relativePosY + dockingOffsetY).let {
             if (!properties.clampPosition) return@let it
@@ -66,12 +69,13 @@ open class Layout(
     private var relativePosY = 0.0
 
     // Size of the component
+    @UIRenderPr0p3rty
     var size: Vec2d
         get() = Vec2d(width, height)
         set(value) { width = value.x; height = value.y }
 
-    var width = 0.0
-    var height = 0.0
+    @UIRenderPr0p3rty var width = 0.0
+    @UIRenderPr0p3rty var height = 0.0
 
     // Horizontal alignment
     var horizontalAlignment = HAlign.LEFT; set(to) {
@@ -118,8 +122,21 @@ open class Layout(
     protected open val scissorRect get() = rect
 
     // Inputs
-    protected var mousePosition = Vec2d.ZERO
+    protected var mousePosition = Vec2d.ZERO; set(value) {
+        if (field == value) return
+        field = value
+
+        selectedChild = if (isHovered) children.lastOrNull {
+            if (it.properties.interactionPassthrough) return@lastOrNull false
+            val xh = (value.x - it.positionX) in 0.0..it.width
+            val yh = (value.y - it.positionY) in 0.0..it.height
+            xh && yh
+        } else null
+    }
     open val isHovered get() = owner?.let { it.selectedChild == this } ?: true
+
+    var pressedButton: Mouse.Button? = null
+    protected val isPressed get() = pressedButton != null
 
     // Actions
     private val showActions = mutableListOf<Layout.() -> Unit>()
@@ -130,6 +147,7 @@ open class Layout(
     private val keyPressActions = mutableListOf<Layout.(key: KeyCode) -> Unit>()
     private val charTypedActions = mutableListOf<Layout.(char: Char) -> Unit>()
     private val mouseClickActions = mutableListOf<Layout.(button: Mouse.Button, action: Mouse.Action) -> Unit>()
+    private val mouseActions = mutableListOf<Layout.(button: Mouse.Button) -> Unit>()
     private val mouseMoveActions = mutableListOf<Layout.(mouse: Vec2d) -> Unit>()
     private val mouseScrollActions = mutableListOf<Layout.(delta: Double) -> Unit>()
 
@@ -180,6 +198,7 @@ open class Layout(
      */
     @LayoutBuilder
     fun <T : Layout> T.onUpdate(action: T.() -> Unit) {
+        action(this)
         updateActions += { action() }
     }
 
@@ -219,19 +238,21 @@ open class Layout(
      * @param action The action to be performed.
      */
     @LayoutBuilder
-    fun <T : Layout> T.onMouseClick(action: T.(button: Mouse.Button, action: Mouse.Action) -> Unit) {
-        mouseClickActions += { button, mouseAction ->  action(button, mouseAction) }
+    fun <T : Layout> T.onMouse(button: Mouse.Button? = null, action: Mouse.Action? = null, block: T.(Mouse.Button) -> Unit) {
+        mouseClickActions += { butt, act ->
+            if ((butt == button || button == null) && (act == action || action == null)) block(butt)
+        }
     }
 
     /**
-     * Sets the action to be performed when mouse button gets clicked.
+     * Sets the action to be performed when mouse button gets released and this layout was clicked.
      *
      * @param action The action to be performed.
      */
     @LayoutBuilder
-    fun <T : Layout> T.onMouseClick(button: Mouse.Button, action: Mouse.Action, block: T.() -> Unit) {
-        onMouseClick { butt, act ->
-            if (butt == button && act == action) block()
+    fun <T : Layout> T.onMouseAction(button: Mouse.Button? = null, acceptNotHovered: Boolean = false, action: T.(Mouse.Button) -> Unit) {
+        mouseActions += {
+            if (it == button || button == null && (isHovered || !acceptNotHovered)) action(it)
         }
     }
 
@@ -256,72 +277,6 @@ open class Layout(
     }
 
     /**
-     * Force overrides drawn x position of the layout
-     */
-    @LayoutBuilder
-    fun overrideX(transform: () -> Double) {
-        positionX = transform()
-
-        onUpdate {
-            positionX = transform()
-        }
-    }
-
-    /**
-     * Force overrides drawn y position of the layout
-     */
-    @LayoutBuilder
-    fun overrideY(transform: () -> Double) {
-        positionY = transform()
-
-        onUpdate {
-            positionY = transform()
-        }
-    }
-
-    /**
-     * Force overrides drawn position of the layout
-     */
-    @LayoutBuilder
-    fun overridePosition(x: () -> Double, y: () -> Double) {
-        overrideX(x)
-        overrideY(y)
-    }
-
-    /**
-     * Force overrides drawn width of the layout
-     */
-    @LayoutBuilder
-    fun overrideWidth(transform: () -> Double) {
-        width = transform()
-
-        onUpdate {
-            width = transform()
-        }
-    }
-
-    /**
-     * Force overrides drawn height of the layout
-     */
-    @LayoutBuilder
-    fun overrideHeight(transform: () -> Double) {
-        height = transform()
-
-        onUpdate {
-            height = transform()
-        }
-    }
-
-    /**
-     * Force overrides drawn size of the layout
-     */
-    @LayoutBuilder
-    fun overrideSize(width: () -> Double, height: () -> Double) {
-        overrideWidth(width)
-        overrideHeight(height)
-    }
-
-    /**
      * Removes this layout from its parent
      */
     fun destroy() {
@@ -343,14 +298,6 @@ open class Layout(
             ownerY = owner?.positionY ?: ownerY
             ownerWidth = owner?.width ?: screenSize.x
             ownerHeight = owner?.height ?: screenSize.y
-
-            // Select an element that's on foreground
-            selectedChild = if (isHovered) children.lastOrNull {
-                if (it.properties.interactionPassthrough) return@lastOrNull false
-                val xh = (mousePosition.x - it.positionX) in 0.0..it.width
-                val yh = (mousePosition.y - it.positionY) in 0.0..it.height
-                xh && yh
-            } else null
         }
     }
 
@@ -358,6 +305,8 @@ open class Layout(
         // Update self
         when (e) {
             is GuiEvent.Show -> {
+                pressedButton = null
+                selectedChild = null
                 mousePosition = Vec2d.ONE * -1000.0
                 showActions.forEach { it(this) }
             }
@@ -381,16 +330,29 @@ open class Layout(
             }
             is GuiEvent.MouseMove -> {
                 mousePosition = e.mouse
+
                 mouseMoveActions.forEach { it(this, e.mouse) }
             }
             is GuiEvent.MouseScroll -> {
-                if (!isHovered) return
                 mousePosition = e.mouse
+
+                if (!isHovered) return
                 mouseScrollActions.forEach { it(this, e.delta) }
             }
             is GuiEvent.MouseClick -> {
                 mousePosition = e.mouse
+
                 val action = if (isHovered) e.action else Mouse.Action.Release
+
+                val prevPressed = pressedButton
+                pressedButton = e.button.takeIf { action == Mouse.Action.Click }
+
+                if (pressedButton == null) prevPressed?.let { button ->
+                    mouseActions.forEach {
+                        it.invoke(this, button)
+                    }
+                }
+
                 mouseClickActions.forEach { it(this, e.button, action) }
             }
         }
@@ -433,6 +395,34 @@ open class Layout(
             block: Layout.() -> Unit = {},
         ) = Layout(this)
             .apply(children::add).apply(block)
+
+        /**
+         * Creates an empty [Layout] behind given [layout]
+         *
+         * @param block Actions to perform within this component.
+         *
+         * Check [Layout] description for more info about batching.
+         */
+        @UIBuilder
+        fun Layout.layoutBehind(
+            layout: Layout,
+            block: Layout.() -> Unit = {},
+        ) = Layout(this)
+            .insertLayout(this, layout, false).apply(block)
+
+        /**
+         * Creates an empty [Layout] over given [layout].
+         *
+         * @param block Actions to perform within this component.
+         *
+         * Check [Layout] description for more info about batching.
+         */
+        @UIBuilder
+        fun Layout.layoutOver(
+            layout: Layout,
+            block: Layout.() -> Unit = {},
+        ) = Layout(this)
+            .insertLayout(this, layout, true).apply(block)
 
         /**
          * Creates new [AnimationTicker].

@@ -185,10 +185,6 @@ class VertexPipeline(
         uploadedIndices = 0
     }
 
-    fun finalize() {
-
-    }
-
     init {
         // All the buffers have been generated, all we have to
         // do now it bind them correctly and populate them

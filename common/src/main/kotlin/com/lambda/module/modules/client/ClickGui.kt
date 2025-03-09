@@ -60,6 +60,8 @@ object ClickGui : Module(
     val moduleOpenAccent by setting("Module Open Accent", 0.3, 0.0..0.5, 0.01)
 
     val multipleSettingWindows by setting("Multiple Setting Windows", false)
+    val animationCurve by setting("List Animation Curve", AnimationCurve.Normal)
+    val smoothness by setting("Smoothness", 0.4, 0.3..0.7, 0.01) { animationCurve != AnimationCurve.Static }
 
     val SCREEN get() = gui("Click Gui") {
         rect {
@@ -75,6 +77,12 @@ object ClickGui : Module(
         ModuleTag.defaults.forEach { tag ->
             x += moduleWindow(tag, Vec2d(x, y)).width + 5
         }
+    }
+
+    enum class AnimationCurve {
+        Normal,
+        Static,
+        Reverse
     }
 
     init {

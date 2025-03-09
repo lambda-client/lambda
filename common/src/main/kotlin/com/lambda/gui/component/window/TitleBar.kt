@@ -25,7 +25,6 @@ import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
-import com.lambda.util.math.lerp
 import com.lambda.util.math.transform
 
 /**
@@ -48,8 +47,8 @@ class TitleBar(
             height = ClickGui.titleBarHeight
         }
 
-        onMouseClick { _, _ -> dragOffset = null }
-        onMouseClick(Mouse.Button.Left, Mouse.Action.Click) {
+        onMouse { dragOffset = null }
+        onMouse(Mouse.Button.Left, Mouse.Action.Click) {
             if (drag) dragOffset = mousePosition - owner.position
         }
 
@@ -72,8 +71,8 @@ class TitleBar(
 
             val bottomRadius = transform(
                 owner.height,
-                this.height,
-                this.height + 1,
+                height,
+                height + 1,
                 radius,
                 0.0
             )

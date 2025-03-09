@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,14 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.impl.clickgui
+package com.lambda.gui.impl.clickgui.module
 
 import com.lambda.config.AbstractSetting
 import com.lambda.module.modules.client.ClickGui
-import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.component.window.AnimatedWindowChild
-import com.lambda.gui.impl.clickgui.ModuleLayout.Companion.backgroundTint
+import com.lambda.gui.impl.clickgui.module.ModuleLayout.Companion.backgroundTint
+import com.lambda.gui.impl.clickgui.core.AnimatedChild
 import com.lambda.util.math.*
 
 /**
@@ -32,7 +31,7 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
     owner: Layout,
     val setting: T,
     private val expandable: Boolean = false
-) : AnimatedWindowChild(
+) : AnimatedChild(
     owner,
     setting.name,
     Vec2d.ZERO, Vec2d.ZERO,
@@ -44,18 +43,25 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
     protected val cursorController = cursorController()
 
     var settingDelegate by setting
-    val visible get() = setting.visibility()
+    val isVisible get() = setting.visibility()
 
-    override val isShown: Boolean get() = super.isShown && visible
+    override val isShown: Boolean get() = super.isShown && isVisible
 
     init {
         isMinimized = true
 
-        overrideWidth(owner::width)
-        titleBar.overrideHeight(ClickGui::settingsHeight)
+        onUpdate {
+            width = owner.width
+        }
+
+        titleBar.onUpdate {
+            height = ClickGui.settingsHeight
+        }
 
         if (!expandable) {
-            overrideHeight(titleBar::height)
+            onUpdate {
+                height = titleBar.height
+            }
             content.destroy()
         } else {
             backgroundTint(true)
@@ -71,19 +77,8 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
             }
         }
 
-        titleBar.textField.use {
-            text = setting.name
-            textHAlignment = HAlign.LEFT
-
-            onUpdate {
-                scale *= 0.92
-            }
+        titleBar.textField.onUpdate {
+            scale *= 0.92
         }
-
-        listOf(
-            titleBarBackground,
-            contentBackground,
-            outlineRect
-        ).forEach(Layout::destroy)
     }
 }

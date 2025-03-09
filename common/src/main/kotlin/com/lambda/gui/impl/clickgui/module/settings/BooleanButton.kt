@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,15 +15,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.impl.clickgui.settings
+package com.lambda.gui.impl.clickgui.module.settings
 
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.component.core.FilledRect.Companion.rect
+import com.lambda.gui.component.core.OutlineRect.Companion.outline
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.impl.clickgui.SettingLayout
+import com.lambda.gui.impl.clickgui.module.SettingLayout
 import com.lambda.util.Mouse
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
@@ -35,7 +36,7 @@ class BooleanButton(
     owner: Layout,
     setting: BooleanSetting
 ) : SettingLayout<Boolean, BooleanSetting>(owner, setting) {
-    private var activeAnimation by animation.exp(0.0, 1.0, 0.6, ::settingDelegate)
+    private val activeAnimation by animation.exp(0.0, 1.0, 0.6, ::settingDelegate)
 
     init {
         val checkBox = rect { // Checkbox
@@ -47,10 +48,10 @@ class BooleanButton(
                 val h = this@BooleanButton.height
 
                 rect = Rect(rb - Vec2d(h * 1.65, h), rb)
-                    .shrink(shrink + (1.0 - showAnimation) * h * 0.2) +
+                    .shrink(shrink + (1.0 - showAnimation)) +
                         Vec2d.RIGHT * lerp(showAnimation, 5.0, -ClickGui.fontOffset + shrink)
 
-                setColor(Color.BLACK.setAlpha(0.25 * showAnimation))
+                setColor(lerp(activeAnimation, Color.BLACK, Color.WHITE).setAlpha(0.25 * showAnimation))
                 shade = ClickGui.backgroundShade
             }
 
@@ -76,11 +77,20 @@ class BooleanButton(
 
                 shade = ClickGui.backgroundShade
 
-                setColor(Color.WHITE.setAlpha(0.25 * showAnimation))
+                setColor(lerp(activeAnimation, Color.WHITE, Color.BLACK).setAlpha(lerp(activeAnimation, 0.25, 0.4) * showAnimation))
             }
         }
 
-        onMouseClick(Mouse.Button.Left, Mouse.Action.Click) {
+        outline {
+            onUpdate {
+                rect = checkBox.rect
+                roundRadius = 100.0
+                glowRadius = 5.0
+                setColor(Color.BLACK.setAlpha(0.1 * showAnimation))
+            }
+        }
+
+        onMouseAction(Mouse.Button.Left) {
             setting.value = !setting.value
         }
     }

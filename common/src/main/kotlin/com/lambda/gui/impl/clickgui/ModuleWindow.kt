@@ -22,8 +22,8 @@ import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.component.window.Window
 import com.lambda.gui.component.window.WindowContent
-import com.lambda.gui.impl.clickgui.ModuleLayout.Companion.backgroundTint
-import com.lambda.gui.impl.clickgui.ModuleLayout.Companion.moduleLayout
+import com.lambda.gui.impl.clickgui.module.ModuleLayout.Companion.backgroundTint
+import com.lambda.gui.impl.clickgui.module.ModuleLayout.Companion.moduleLayout
 import com.lambda.module.ModuleRegistry
 import com.lambda.util.math.Vec2d
 
@@ -41,17 +41,14 @@ class ModuleWindow(
 
         content.listify()
 
-        onWindowExpand {
+        val minimize = {
             modules.forEach {
                 it.isMinimized = true
             }
         }
 
-        onWindowMinimize {
-            modules.forEach {
-                it.isMinimized = true
-            }
-        }
+        onWindowExpand { minimize() }
+        onWindowMinimize { minimize() }
     }
 
     companion object {
