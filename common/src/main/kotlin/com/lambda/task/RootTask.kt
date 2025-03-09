@@ -17,13 +17,21 @@
 
 package com.lambda.task
 
+import com.lambda.threading.runSafe
+
 object RootTask : Task<Unit>() {
-    init {
-        name = "RootTask"
+    override val name get() = "Root Task"
+
+    @Ta5kBuilder
+    inline fun <reified T : Task<*>> T.run(): T {
+        execute(this@RootTask)
+        return this
     }
 
-    fun addInfo(debugText: MutableList<String>) {
-        debugText.add("")
-        debugText.addAll(info.string.split("\n"))
+    @Ta5kBuilder
+    fun Task<*>.run(task: TaskGenerator<Unit>) {
+        runSafe {
+            task(Unit).execute(this@run)
+        }
     }
 }

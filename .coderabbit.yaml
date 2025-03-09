@@ -1,0 +1,11 @@
+language: "en-US"
+early_access: false
+reviews:
+  profile: "chill"
+  high_level_summary: false
+  poem: false
+  review_status: false
+  auto_review:
+    enabled: false
+chat:
+  auto_reply: false

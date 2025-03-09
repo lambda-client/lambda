@@ -24,4 +24,4 @@ val MinecraftClient.partialTicks
     get() = tickDelta //(if (paused) pausedTickDelta else tickDelta).toDouble()
 
 val MinecraftClient.tickDelta
-    get() = renderTickCounter.getTickDelta(true).toDouble()
+    get() = renderTickCounter.getTickDelta(true)

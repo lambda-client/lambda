@@ -38,7 +38,7 @@ object LambdaForge {
     @SubscribeEvent
     fun onClient(event: FMLClientSetupEvent) {
         Lambda.initialize {
-            LOG.info("$MOD_NAME Forge $VERSION initialized.")
+            LOG.info("$MOD_NAME Forge $VERSION was successfully initialized after $it ms\n")
         }
     }
 

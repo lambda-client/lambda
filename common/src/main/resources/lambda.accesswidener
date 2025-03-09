@@ -4,6 +4,7 @@ accessible field net/minecraft/client/MinecraftClient itemUseCooldown I
 accessible field net/minecraft/client/MinecraftClient attackCooldown I
 accessible field net/minecraft/client/MinecraftClient paused Z
 accessible field net/minecraft/client/MinecraftClient thread Ljava/lang/Thread;
+accessible field net/minecraft/client/MinecraftClient uptimeInTicks J
 
 # World
 accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minecraft/world/entity/ClientEntityManager;
@@ -24,6 +25,10 @@ accessible method net/minecraft/entity/Entity setFlag (IZ)V
 accessible field net/minecraft/client/network/AbstractClientPlayerEntity playerListEntry Lnet/minecraft/client/network/PlayerListEntry;
 accessible field net/minecraft/entity/LivingEntity jumpingCooldown I
 accessible field net/minecraft/entity/Entity pos Lnet/minecraft/util/math/Vec3d;
+accessible field net/minecraft/client/network/ClientPlayerInteractionManager lastSelectedSlot I
+accessible method net/minecraft/entity/Entity isAlwaysInvulnerableTo (Lnet/minecraft/entity/damage/DamageSource;)Z
+accessible method net/minecraft/entity/LivingEntity modifyAppliedDamage (Lnet/minecraft/entity/damage/DamageSource;F)F
+accessible method net/minecraft/entity/LivingEntity applyArmorToDamage (Lnet/minecraft/entity/damage/DamageSource;F)F
 
 # Camera
 accessible method net/minecraft/client/render/Camera setPos (DDD)V
@@ -32,6 +37,7 @@ accessible method net/minecraft/client/render/Camera setRotation (FF)V
 # Renderer
 accessible field net/minecraft/client/render/BufferRenderer currentVertexBuffer Lnet/minecraft/client/gl/VertexBuffer;
 accessible field net/minecraft/client/texture/NativeImage pointer J
+accessible class net/minecraft/client/gui/screen/SplashOverlay$LogoTexture
 accessible field com/mojang/blaze3d/systems/RenderSystem$ShapeIndexBuffer buffer Lnet/minecraft/client/gl/GpuBuffer;
 accessible field net/minecraft/client/gl/GpuBuffer target Lnet/minecraft/client/gl/GlBufferTarget;
 
@@ -60,7 +66,14 @@ accessible field net/minecraft/network/ClientConnection packetsSentCounter I
 accessible field net/minecraft/network/ClientConnection packetsReceivedCounter I
 accessible field net/minecraft/network/packet/c2s/login/LoginKeyC2SPacket encryptedSecretKey [B
 accessible field net/minecraft/network/packet/c2s/login/LoginKeyC2SPacket nonce [B
+accessible method net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket <init> (IZLnet/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler;)V
+accessible field net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket ATTACK Lnet/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPacket$InteractTypeHandler;
 accessible method net/minecraft/network/packet/BrandCustomPayload write (Lnet/minecraft/network/PacketByteBuf;)V
+
+# Math
+accessible method net/minecraft/util/math/Vec3i setX (I)Lnet/minecraft/util/math/Vec3i;
+accessible method net/minecraft/util/math/Vec3i setY (I)Lnet/minecraft/util/math/Vec3i;
+accessible method net/minecraft/util/math/Vec3i setZ (I)Lnet/minecraft/util/math/Vec3i;
 
 # Other
 accessible field net/minecraft/structure/StructureTemplate blockInfoLists Ljava/util/List;

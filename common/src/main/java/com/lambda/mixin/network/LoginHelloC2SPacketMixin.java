@@ -19,18 +19,28 @@ package com.lambda.mixin.network;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.ConnectionEvent;
-import net.minecraft.network.packet.c2s.login.LoginHelloC2SPacket;
+import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.encryption.NetworkEncryptionException;
+import net.minecraft.network.packet.s2c.login.LoginHelloS2CPacket;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.UUID;
+import java.security.PublicKey;
 
-@Mixin(LoginHelloC2SPacket.class)
-public class LoginHelloC2SPacketMixin {
-    @Inject(method = "<init>(Ljava/lang/String;Ljava/util/UUID;)V", at = @At("TAIL"))
-    private void onLoginHelloC2SPacket(String string, UUID uUID, CallbackInfo ci) {
-        EventFlow.post(new ConnectionEvent.Connect.Login.Hello(string, uUID));
+@Mixin(LoginHelloS2CPacket.class)
+public abstract class LoginHelloC2SPacketMixin {
+    @Shadow @Final private String serverId;
+
+    @Shadow @Final private byte[] nonce;
+
+    @Shadow public abstract PublicKey getPublicKey() throws NetworkEncryptionException;
+
+    @Inject(method = "<init>(Lnet/minecraft/network/PacketByteBuf;)V", at = @At("TAIL"))
+    private void onLoginHelloC2SPacket(PacketByteBuf buf, CallbackInfo ci) throws NetworkEncryptionException {
+        EventFlow.post(new ConnectionEvent.Connect.Login.EncryptionRequest(serverId, getPublicKey(), nonce));
     }
 }

@@ -16,6 +16,7 @@
 
 package com.lambda.util.text
 
+import com.lambda.module.modules.client.RenderSettings
 import net.minecraft.text.*
 import net.minecraft.util.Identifier
 import java.awt.Color
@@ -114,6 +115,19 @@ fun TextBuilder.literal(value: String) {
 }
 
 /**
+ * Adds a literal text.
+ *
+ * @param value The text.
+ * @see StyleBuilder for action
+ */
+@TextDsl
+fun TextBuilder.literal(color: Color = Color.WHITE, value: String) {
+    color(color) {
+        literal(value)
+    }
+}
+
+/**
  * Adds a mutable key bind text.
  *
  * @param key The key of the Key bind
@@ -194,6 +208,13 @@ fun TextBuilder.empty() {
 @TextDsl
 inline fun TextBuilder.color(color: Color?, action: TextBuilder.() -> Unit) {
     withProp(color, { this.color }, { this.color = it }, action)
+}
+
+@TextDsl
+fun TextBuilder.highlighted(value: String) {
+    color(RenderSettings.highlightColor) {
+        literal(value)
+    }
 }
 
 /**

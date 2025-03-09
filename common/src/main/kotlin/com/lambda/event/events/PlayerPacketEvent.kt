@@ -20,22 +20,22 @@ package com.lambda.event.events
 import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import com.lambda.interaction.rotation.Rotation
+import com.lambda.interaction.request.rotation.Rotation
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.util.math.Vec3d
 
-abstract class PlayerPacketEvent : Event {
-    class Pre(
+sealed class PlayerPacketEvent {
+    data class Pre(
         var position: Vec3d,
         var rotation: Rotation,
         var onGround: Boolean,
         var isSprinting: Boolean,
         var isSneaking: Boolean,
-    ) : PlayerPacketEvent(), ICancellable by Cancellable()
+    ) : ICancellable by Cancellable()
 
-    class Post : PlayerPacketEvent()
+    class Post : Event
 
-    class Send(
+    data class Send(
         val packet: PlayerMoveC2SPacket,
-    ) : PlayerPacketEvent(), ICancellable by Cancellable()
+    ) : ICancellable by Cancellable()
 }

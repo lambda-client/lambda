@@ -18,12 +18,12 @@
 package com.lambda.module.modules.movement
 
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.extension.component1
-import com.lambda.util.extension.component2
-import com.lambda.util.extension.component3
+import com.lambda.util.math.component1
+import com.lambda.util.math.component2
+import com.lambda.util.math.component3
 import com.lambda.util.player.MovementUtils.motion
 import com.lambda.util.player.MovementUtils.motionY
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
@@ -46,10 +46,10 @@ object NoFall : Module(
     }
 
     init {
-        listener<MovementEvent.Post> {
+        listen<MovementEvent.Player.Post> {
             when (mode) {
                 Mode.Grim -> {
-                    if (player.fallDistance + player.motionY < 3.0) return@listener
+                    if (player.fallDistance + player.motionY < 3.0) return@listen
 
                     val (x, y, z) = player.pos
                     connection.sendPacket(PlayerMoveC2SPacket.Full(x, y + 0.0000000001, z, 0.01f, 90f, false, true)) // TODO: Check this after update

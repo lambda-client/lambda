@@ -17,47 +17,82 @@
 
 package com.lambda.command.commands
 
+import com.lambda.brigadier.CommandResult.Companion.failure
+import com.lambda.brigadier.CommandResult.Companion.success
+import com.lambda.brigadier.argument.greedyString
 import com.lambda.brigadier.argument.literal
-import com.lambda.brigadier.execute
+import com.lambda.brigadier.argument.value
+import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.interaction.construction.Blueprint.Companion.toStructure
-import com.lambda.interaction.construction.DynamicBlueprint.Companion.toBlueprint
-import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.construction.StructureRegistry
+import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
+import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
+import com.lambda.task.RootTask.run
+import com.lambda.task.tasks.BuildTask
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.threading.runSafe
+import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
-import net.minecraft.block.Blocks
-import net.minecraft.util.math.BlockBox
+import com.lambda.util.extension.move
+import java.nio.file.InvalidPathException
+import java.nio.file.NoSuchFileException
+import java.nio.file.Path
 
 object BuildCommand : LambdaCommand(
     name = "Build",
     description = "Builds a structure",
     usage = "build <structure>"
 ) {
+    private var lastBuildTask: BuildTask? = null
+
     override fun CommandBuilder.create() {
         required(literal("place")) {
-            execute {
-                runSafe {
-                    val materials = setOf(
-                        TargetState.Block(Blocks.NETHERRACK),
-                        TargetState.Block(Blocks.AIR),
-                        TargetState.Block(Blocks.COBBLESTONE),
-                        TargetState.Block(Blocks.AIR),
-                    )
-                    val facing = player.horizontalFacing
-                    val pos = player.blockPos.add(facing.vector.multiply(2))
-
-                    BlockBox.create(pos, pos.add(facing.rotateYClockwise().vector.multiply(3)))
-                        .toStructure(TargetState.Block(Blocks.NETHERRACK))
-                        .toBlueprint {
-                            it.mapValues { (_, _) ->
-                                materials.elementAt((System.currentTimeMillis() / 5000).toInt() % materials.size)
-                            }
-                        }
-                        .build(finishOnDone = false)
-                        .start(null)
+            required(greedyString("structure")) { structure ->
+                suggests { _, builder ->
+                    StructureRegistry.forEach { key, _ -> builder.suggest(key) }
+                    builder.buildFuture()
                 }
+                executeWithResult {
+                    val pathString = structure().value()
+                    runSafe<Unit> {
+                        try {
+                            StructureRegistry
+                                .loadStructureByRelativePath(Path.of(pathString))
+                                .let { template ->
+                                    info("Building structure $pathString with dimensions ${template.size.toShortString()} created by ${template.author}")
+                                    lastBuildTask = template.toStructure()
+                                        .move(player.blockPos)
+                                        .toBlueprint()
+                                        .build()
+                                        .run()
+
+                                    return@executeWithResult success()
+                                }
+                        } catch (e: InvalidPathException) {
+                            return@executeWithResult failure("Invalid path $pathString")
+                        } catch (e: NoSuchFileException) {
+                            return@executeWithResult failure("Structure $pathString not found")
+                        } catch (e: Exception) {
+                            return@executeWithResult failure(
+                                e.message ?: "Failed to load structure $pathString"
+                            )
+                        }
+                    }
+
+                    failure("Structure $pathString not found")
+                }
+            }
+        }
+
+        required(literal("cancel")) {
+            executeWithResult {
+                lastBuildTask?.cancel() ?: run {
+                    return@executeWithResult failure("No build task to cancel")
+                }
+                this@BuildCommand.info("$lastBuildTask cancelled")
+                lastBuildTask = null
+                success()
             }
         }
     }

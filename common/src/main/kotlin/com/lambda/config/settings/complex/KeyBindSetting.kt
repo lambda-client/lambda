@@ -18,9 +18,19 @@
 package com.lambda.config.settings.complex
 
 import com.google.gson.reflect.TypeToken
+import com.lambda.brigadier.argument.value
+import com.lambda.brigadier.argument.word
+import com.lambda.brigadier.execute
+import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
 import com.lambda.util.KeyCode
+import com.lambda.util.StringUtils.capitalize
+import com.lambda.util.extension.CommandBuilder
+import net.minecraft.command.CommandRegistryAccess
 
+/**
+ * @see [com.lambda.config.Configurable]
+ */
 class KeyBindSetting(
     override val name: String,
     defaultValue: KeyCode,
@@ -31,4 +41,16 @@ class KeyBindSetting(
     TypeToken.get(KeyCode::class.java).type,
     description,
     visibility
-)
+) {
+    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+        required(word(name)) { parameter ->
+            suggests { _, builder ->
+                KeyCode.entries.forEach { builder.suggest(it.name.capitalize()) }
+                builder.buildFuture()
+            }
+            execute {
+                trySetValue(KeyCode.valueOf(parameter().value()))
+            }
+        }
+    }
+}

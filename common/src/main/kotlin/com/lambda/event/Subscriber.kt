@@ -35,7 +35,6 @@ class Subscriber : ConcurrentHashMap<KClass<out Event>, ConcurrentSkipListSet<Li
     val defaultListenerSet: ConcurrentSkipListSet<Listener<out Event>>
         get() = ConcurrentSkipListSet(Listener.comparator.reversed())
 
-
     /** Allows a [Listener] to start receiving a specific type of [Event] */
     inline fun <reified T : Event> subscribe(listener: Listener<T>) =
         getOrPut(T::class) { defaultListenerSet }.add(listener)
@@ -54,6 +53,18 @@ class Subscriber : ConcurrentHashMap<KClass<out Event>, ConcurrentSkipListSet<Li
     /** Allows a [Listener] to stop receiving a specific type of [Event] */
     inline fun <reified T : Event> unsubscribe(listener: Listener<T>) =
         getOrElse(T::class) { defaultListenerSet }.remove(listener)
+
+    /**
+     * Unsubscribes all listeners associated with the current instance (the caller object).
+     * This method iterates over all values in the `Subscriber`'s map and removes listeners
+     * whose `owner` property matches the caller object.
+     *
+     * Use this method when you want to clean up listeners that were registered with the
+     * current instance, preventing further event notifications.
+     */
+    fun unsubscribe(owner: Any) {
+        values.forEach { it.removeAll { listener -> listener.owner == owner } }
+    }
 
     /** Allows a [Subscriber] to stop receiving all [Event]s of another [Subscriber] */
     infix fun unsubscribe(subscriber: Subscriber) {

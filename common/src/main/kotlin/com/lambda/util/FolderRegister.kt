@@ -17,29 +17,50 @@
 
 package com.lambda.util
 
+
 import com.lambda.Lambda.mc
+import com.lambda.core.Loadable
+import com.lambda.util.FolderRegister.config
+import com.lambda.util.FolderRegister.lambda
+import com.lambda.util.FolderRegister.minecraft
+import com.lambda.util.FolderRegister.packetLogs
+import com.lambda.util.FolderRegister.replay
 import com.lambda.util.StringUtils.sanitizeForFilename
 import java.io.File
 import java.net.InetSocketAddress
+import java.nio.file.Path
+import kotlin.io.path.createDirectories
+import kotlin.io.path.notExists
 
 /**
  * The [FolderRegister] object is responsible for managing the directory structure of the application.
  *
  * @property minecraft The root directory of the Minecraft client.
  * @property lambda The directory for the Lambda client, located within the Minecraft directory.
- * @property mods The directory for storing mods, located within the Minecraft directory.
  * @property config The directory for storing configuration files, located within the Lambda directory.
  * @property packetLogs The directory for storing packet logs, located within the Lambda directory.
  * @property replay The directory for storing replay files, located within the Lambda directory.
  */
-object FolderRegister {
-    val minecraft: File = mc.runDirectory
-    val lambda: File = File(minecraft, "lambda")
-    val mods: File = File(minecraft, "mods")
-    val config: File = File(lambda, "config")
-    val packetLogs: File = File(lambda, "packet-log")
-    val replay: File = File(lambda, "replay")
-    val cache: File = File(lambda, "cache")
+object FolderRegister : Loadable {
+    val minecraft: Path = mc.runDirectory.toPath()
+    val lambda: Path = minecraft.resolve("lambda")
+    val config: Path = lambda.resolve("config")
+    val packetLogs: Path = lambda.resolve("packet-log")
+    val replay: Path = lambda.resolve("replay")
+    val cache: Path = lambda.resolve("cache")
+    val structure: Path = lambda.resolve("structure")
+
+    override fun load(): String {
+        val folders = listOf(lambda, config, packetLogs, replay, cache, structure)
+        val createdFolders = folders.mapNotNull {
+            if (it.notExists()) {
+                it.createDirectories()
+            } else null
+        }
+        return if (createdFolders.isNotEmpty()) {
+            "Created directories: ${createdFolders.joinToString { minecraft.parent.relativize(it).toString() }}"
+        } else "Loaded ${folders.size} directories"
+    }
 
     /**
      * Ensures the current file exists by creating it if it does not.
@@ -76,9 +97,9 @@ object FolderRegister {
         val path = resolve(
             hostName.sanitizeForFilename()
         ).resolve(
-            mc.world?.dimensionEntry.toString().sanitizeForFilename() // TODO: This is probably wong
+            mc.world?.dimensionEntry?.toString()?.sanitizeForFilename() ?: "unknown" // FixMe: Test if this is right
         )
-        path.createIfNotExists()
+        path.mkdirs()
         return path
     }
 }

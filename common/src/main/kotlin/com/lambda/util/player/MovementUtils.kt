@@ -18,11 +18,11 @@
 package com.lambda.util.player
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.RotationManager
+import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.util.math.MathUtils.toDegree
 import com.lambda.util.math.MathUtils.toRadian
-import com.lambda.util.math.VecUtils.plus
-import com.lambda.util.math.VecUtils.times
+import com.lambda.util.math.plus
+import com.lambda.util.math.times
 import net.minecraft.client.input.Input
 import net.minecraft.client.input.KeyboardInput
 import net.minecraft.client.network.ClientPlayerEntity
@@ -43,7 +43,7 @@ object MovementUtils {
 
     fun SafeContext.newMovementInput(
         assumeBaritoneUsage: Boolean = true,
-        slowDownCheck: Boolean = true
+        slowDownCheck: Boolean = true,
     ): Input = if (assumeBaritoneUsage && player.input.handledByBaritone) {
         player.input
     } else {
@@ -61,7 +61,7 @@ object MovementUtils {
         forward: Double,
         strafe: Double,
         jump: Boolean = false,
-        sneak: Boolean = false
+        sneak: Boolean = false,
     ) = Input().apply {
         movementForward = forward.toFloat()
         movementSideways = strafe.toFloat()
@@ -73,7 +73,7 @@ object MovementUtils {
             strafe > 0.0,
             jump,
             sneak,
-            true, // TODO: We can know sprint this way
+            true, // ToDo: We can now use this to sprint
         )
     }
 
@@ -106,19 +106,19 @@ object MovementUtils {
 
     private fun inputMoveOffset(
         moveForward: Double,
-        moveStrafe: Double
+        moveStrafe: Double,
     ) = atan2(-moveStrafe, moveForward)
 
     fun SafeContext.calcMoveYaw(
         yawIn: Float = player.moveYaw,
         moveForward: Double = player.input.roundedForward,
-        moveStrafe: Double = player.input.roundedStrafing
+        moveStrafe: Double = player.input.roundedStrafing,
     ) = yawIn + inputMoveOffset(moveForward, moveStrafe).toDegree()
 
     fun SafeContext.calcMoveRad(
         yawIn: Float = player.moveYaw,
         moveForward: Double = player.input.roundedForward,
-        moveStrafe: Double = player.input.roundedStrafing
+        moveStrafe: Double = player.input.roundedStrafing,
     ) = yawIn.toRadian() + inputMoveOffset(moveForward, moveStrafe)
 
     fun SafeContext.movementVector(radDir: Double = calcMoveRad(), y: Double = 0.0) =

@@ -17,25 +17,21 @@
 
 package com.lambda.config.settings.collections
 
-import com.google.gson.JsonElement
 import com.lambda.config.AbstractSetting
 import java.lang.reflect.Type
 
+/**
+ * @see [com.lambda.config.Configurable]
+ */
 class ListSetting<T : Any>(
     override val name: String,
-    private val defaultValue: MutableList<T>,
+    defaultValue: MutableList<T>,
     type: Type,
     description: String,
-    private val hackDelegates: Boolean,
     visibility: () -> Boolean,
 ) : AbstractSetting<MutableList<T>>(
     defaultValue,
     type,
     description,
     visibility
-) {
-    override fun toJson(): JsonElement {
-        if (hackDelegates) value = defaultValue
-        return super.toJson()
-    }
-}
+)

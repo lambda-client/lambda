@@ -19,14 +19,16 @@ package com.lambda.mixin.entity;
 
 import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
-import com.lambda.event.events.EntityEvent;
 import com.lambda.event.events.MovementEvent;
+import com.lambda.event.events.PlayerEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.interaction.PlayerPacketManager;
-import com.lambda.interaction.RotationManager;
+import com.lambda.interaction.request.rotation.RotationManager;
 import net.minecraft.client.input.Input;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.MovementType;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
@@ -50,9 +52,6 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
     @Shadow
     protected abstract void autoJump(float dx, float dz);
 
-    @Shadow
-    public abstract boolean isUsingItem();
-
     @Inject(method = "move", at = @At("HEAD"), cancellable = true)
     void onMove(MovementType movementType, Vec3d movement, CallbackInfo ci) {
         ClientPlayerEntity self = (ClientPlayerEntity) (Object) this;
@@ -63,9 +62,9 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         float prevX = (float) self.getX();
         float prevZ = (float) self.getZ();
 
-        EventFlow.post(new MovementEvent.Pre());
+        EventFlow.post(new MovementEvent.Player.Pre(movementType, movement));
         super.move(movementType, self.getVelocity());
-        EventFlow.post(new MovementEvent.Post());
+        EventFlow.post(new MovementEvent.Player.Post(movementType, movement));
 
         float currX = (float) self.getX();
         float currZ = (float) self.getZ();
@@ -99,8 +98,6 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         ci.cancel();
         PlayerPacketManager.sendPlayerPackets();
         autoJumpEnabled = Lambda.getMc().options.getAutoJump().getValue();
-
-        RotationManager.update();
     }
 
     @Inject(method = "tick", at = @At(value = "HEAD"))
@@ -125,6 +122,11 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
 
     @Inject(method = "swingHand", at = @At("HEAD"), cancellable = true)
     void onSwingHandPre(Hand hand, CallbackInfo ci) {
-        if (EventFlow.post(new EntityEvent.SwingHand(hand)).isCanceled()) ci.cancel();
+        if (EventFlow.post(new PlayerEvent.SwingHand(hand)).isCanceled()) ci.cancel();
+    }
+
+    @Inject(method = "updateHealth", at = @At("HEAD"))
+    public void damage(float health, CallbackInfo ci) {
+        EventFlow.post(new PlayerEvent.Damage(health));
     }
 }

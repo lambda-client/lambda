@@ -18,19 +18,19 @@
 package com.lambda.config.settings
 
 import com.google.gson.reflect.TypeToken
+import com.lambda.brigadier.argument.*
+import com.lambda.brigadier.execute
+import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
+import com.lambda.util.extension.CommandBuilder
+import net.minecraft.command.CommandRegistryAccess
 
 /**
- * Represents a [String] setting.
- *
- * @property name The [name] of the setting.
- * @property defaultValue The default [String] [value] of the setting.
- * @property description A [description] of the setting.
- * @property visibility A function that determines whether the setting [isVisible].
+ * @see [com.lambda.config.Configurable]
  */
 class StringSetting(
     override val name: String,
-    defaultValue: String,
+    val defaultValue: String,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<String>(
@@ -38,4 +38,12 @@ class StringSetting(
     TypeToken.get(String::class.java).type,
     description,
     visibility
-)
+) {
+    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+        required(greedyString(name)) { parameter ->
+            execute {
+                trySetValue(parameter().value())
+            }
+        }
+    }
+}

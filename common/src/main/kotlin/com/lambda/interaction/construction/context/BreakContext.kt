@@ -17,8 +17,13 @@
 
 package com.lambda.interaction.construction.context
 
+import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
-import com.lambda.interaction.rotation.RotationContext
+import com.lambda.graphics.renderer.esp.DirectionMask
+import com.lambda.graphics.renderer.esp.DirectionMask.exclude
+import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.request.rotation.RotationRequest
+import com.lambda.threading.runSafe
 import com.lambda.util.world.raycast.RayCastUtils.distanceTo
 import net.minecraft.block.BlockState
 import net.minecraft.util.Hand
@@ -26,16 +31,30 @@ import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
+import java.awt.Color
 
 data class BreakContext(
     override val pov: Vec3d,
     override val result: BlockHitResult,
-    override val rotation: RotationContext,
+    override val rotation: RotationRequest,
     override val checkedState: BlockState,
+    override val targetState: TargetState,
     override var hand: Hand,
     val instantBreak: Boolean,
 ) : BuildContext {
-    override val resultingPos: BlockPos
+    private val baseColor = Color(222, 0, 0, 25)
+    private val sideColor = Color(222, 0, 0, 100)
+
+    override fun interact(swingHand: Boolean) {
+        runSafe {
+            if (interaction.updateBlockBreakingProgress(result.blockPos, result.side)) {
+                if (player.isCreative) interaction.blockBreakingCooldown = 0
+                if (swingHand) player.swingHand(hand)
+            }
+        }
+    }
+
+    override val expectedPos: BlockPos
         get() = result.blockPos
 
     override val distance: Double by lazy {
@@ -52,10 +71,17 @@ data class BreakContext(
     override fun compareTo(other: BuildContext): Int {
         return when (other) {
             is BreakContext -> compareBy<BreakContext> {
-                it.distance
+                it.rotation.target.angleDistance
             }.compare(this, other)
 
             else -> 1
         }
+    }
+
+    override fun shouldRotate(config: BuildConfig) = config.rotateForBreak
+
+    override fun SafeContext.buildRenderer() {
+        withState(checkedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side))
+        withState(checkedState, expectedPos, sideColor, result.side)
     }
 }

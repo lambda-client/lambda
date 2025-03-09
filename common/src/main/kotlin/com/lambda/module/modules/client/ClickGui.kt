@@ -18,9 +18,9 @@
 package com.lambda.module.modules.client
 
 import com.lambda.event.events.ClientEvent
-import com.lambda.event.events.KeyPressEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.event.events.KeyboardEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.gui.impl.hudgui.LambdaHudGui
 import com.lambda.module.Module
@@ -62,15 +62,15 @@ object ClickGui : Module(
             LambdaHudGui.close()
         }
 
-        listener<KeyPressEvent>(priority = Int.MAX_VALUE) { event ->
-            if (mc.options.commandKey.isPressed) return@listener
-            if (keybind == KeyCode.UNBOUND) return@listener
-            if (event.translated != keybind) return@listener
+        listen<KeyboardEvent.Press>(priority = Int.MAX_VALUE) { event ->
+            if (mc.options.commandKey.isPressed) return@listen
+            if (keybind == KeyCode.UNBOUND) return@listen
+            if (event.translated != keybind) return@listen
             // ToDo: Exception for ui text input
             toggle()
         }
 
-        unsafeListener<ClientEvent.Shutdown> {
+        listenUnsafe<ClientEvent.Shutdown> {
             disable()
         }
     }

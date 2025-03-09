@@ -27,7 +27,7 @@ import com.lambda.util.extension.CommandBuilder
 
 object TaskCommand : LambdaCommand(
     name = "task",
-    usage = "task <cancel>",
+    usage = "task <cancel|clear>",
     description = "Control tasks"
 ) {
     override fun CommandBuilder.create() {
@@ -35,6 +35,14 @@ object TaskCommand : LambdaCommand(
             execute {
                 this@TaskCommand.info("Cancelling all tasks")
                 RootTask.cancel()
+            }
+        }
+
+        required(literal("clear")) {
+            execute {
+                this@TaskCommand.info("Clearing all tasks")
+                RootTask.cancel()
+                RootTask.clear()
             }
         }
     }

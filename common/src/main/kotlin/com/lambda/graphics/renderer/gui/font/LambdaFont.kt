@@ -37,7 +37,7 @@ enum class LambdaFont(private val fontName: String) {
         glyphs = FontGlyphs(font)
     }
 
-    object Loader : Loadable {
+    object FontLoader : Loadable {
         override fun load(): String {
             entries.forEach(LambdaFont::loadGlyphs)
             return "Loaded ${entries.size} fonts"

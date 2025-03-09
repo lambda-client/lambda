@@ -17,20 +17,19 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.config.groups.IRotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.interaction.RotationManager.requestRotation
-import com.lambda.interaction.rotation.Rotation
-import com.lambda.interaction.rotation.RotationContext
-import com.lambda.interaction.rotation.RotationMode
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.request.rotation.*
+import com.lambda.interaction.request.rotation.RotationManager.onRotate
+import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Nameable
+import com.lambda.util.NamedEnum
 import com.lambda.util.extension.contains
 import com.lambda.util.extension.isElytraFlying
+import com.lambda.util.extension.jumping
 import com.lambda.util.player.MovementUtils.addSpeed
 import com.lambda.util.player.MovementUtils.calcMoveYaw
 import com.lambda.util.player.MovementUtils.handledByBaritone
@@ -52,11 +51,7 @@ object Speed : Module(
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
     @JvmStatic
-    val mode by setting("Mode", Mode.GRIM_STRAFE).apply {
-        onValueChange { _, _ ->
-            reset()
-        }
-    }
+    val mode by setting("Mode", Mode.GRIM_STRAFE).onValueChange { _, _ -> reset() }
 
     // Grim
     private val diagonal by setting("Diagonal", true) { mode == Mode.GRIM_STRAFE }
@@ -72,9 +67,7 @@ object Speed : Module(
     private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01) { mode == Mode.NCP_STRAFE }
 
     // Grim
-    private val rotationConfig = object : IRotationConfig.Instant {
-        override val rotationMode = RotationMode.SYNC
-    }
+    private val rotationConfig = RotationConfig.Instant(RotationMode.Sync, Int.MIN_VALUE + 1)
 
     private var prevTickJumping = false
 
@@ -86,7 +79,7 @@ object Speed : Module(
     private var ncpSpeed = NCP_BASE_SPEED
     private var lastDistance = 0.0
 
-    enum class Mode(override val displayName: String) : Nameable.NamedEnum {
+    enum class Mode(override val displayName: String) : NamedEnum {
         GRIM_STRAFE("Grim Strafe"),
         NCP_STRAFE("NCP Strafe"),
     }
@@ -98,10 +91,10 @@ object Speed : Module(
     }
 
     init {
-        listener<MovementEvent.Pre> {
+        listen<MovementEvent.Player.Pre> {
             if (!shouldWork()) {
                 reset()
-                return@listener
+                return@listen
             }
 
             when (mode) {
@@ -110,62 +103,60 @@ object Speed : Module(
             }
         }
 
-        listener<MovementEvent.Post> {
+        listen<MovementEvent.Player.Post> {
             lastDistance = player.moveDelta
         }
 
-        listener<ClientEvent.Timer> {
-            if (mode != Mode.NCP_STRAFE) return@listener
-            if (!shouldWork() || !isInputting) return@listener
+        listen<ClientEvent.TimerUpdate> {
+            if (mode != Mode.NCP_STRAFE) return@listen
+            if (!shouldWork() || !isInputting) return@listen
             it.speed = ncpTimerBoost
         }
 
-        listener<MovementEvent.Jump> {
+        listen<MovementEvent.Jump> {
             if (mode == Mode.NCP_STRAFE && shouldWork()) it.cancel()
         }
 
-        listener<MovementEvent.InputUpdate>(Int.MIN_VALUE) {
-            if (mode != Mode.GRIM_STRAFE || !shouldWork()) return@listener
+        listen<MovementEvent.InputUpdate>(Int.MIN_VALUE) {
+            if (mode != Mode.GRIM_STRAFE || !shouldWork()) return@listen
 
             // Delay jumping key state by 1 tick to let the rotation predict jump timing
             it.input.apply {
-                val jump = playerInput.jump
-
-                // TODO: lmao you can't do this anymore
-                // jumping = prevTickJumping
+                // We can't do this anymore
+                val jump = jumping
+                jumping = prevTickJumping
                 prevTickJumping = jump
             }
         }
 
-        requestRotation(100, alwaysListen = false,
-            onUpdate = { lastContext ->
-                if (mode != Mode.GRIM_STRAFE) return@requestRotation null
-                if (!shouldWork()) return@requestRotation null
+        onRotate {
+            if (mode != Mode.GRIM_STRAFE) return@onRotate
+            if (!shouldWork()) return@onRotate
 
-                var yaw = player.yaw
-                val input = newMovementInput()
+            var yaw = player.yaw
+            val input = newMovementInput()
 
-                if (!input.isInputting) return@requestRotation null
+            if (!input.isInputting) return@onRotate
 
-                run {
-                    if (!diagonal) return@run
-                    if (player.isOnGround && input.playerInput.jump) return@run
+            run {
+                if (!diagonal) return@run
+                if (player.isOnGround && input.playerInput.jump) return@run
 
-                    val forward = input.roundedForward.toFloat()
-                    var strafe = input.roundedStrafing.toFloat()
+                val forward = input.roundedForward.toFloat()
+                var strafe = input.roundedStrafing.toFloat()
 
-                    if (strafe == 0f) strafe = -1f
-                    if (forward == 0f) strafe *= -1
+                if (strafe == 0f) strafe = -1f
+                if (forward == 0f) strafe *= -1
 
-                    yaw -= 45 * strafe
-                }
+                yaw -= 45 * strafe
+            }
 
-                val moveYaw = calcMoveYaw(yaw, input.roundedForward, input.roundedStrafing)
-                val rotation = Rotation(moveYaw, lastContext?.rotation?.pitch ?: player.pitch.toDouble())
+            val moveYaw = calcMoveYaw(yaw, input.roundedForward, input.roundedStrafing)
 
-                RotationContext(rotation, rotationConfig)
-            }, {}
-        )
+            lookAt(
+                Rotation(moveYaw, 0.0)
+            ).requestBy(rotationConfig)
+        }
 
         onEnable {
             reset()

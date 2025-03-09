@@ -17,10 +17,11 @@
 
 package com.lambda.command.commands
 
-import com.lambda.brigadier.*
 import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.argument.word
+import com.lambda.brigadier.execute
+import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.module.modules.client.DiscordRPC
 import com.lambda.util.extension.CommandBuilder
@@ -36,12 +37,6 @@ object RpcCommand : LambdaCommand(
                 execute {
                     DiscordRPC.join(id().value())
                 }
-            }
-        }
-
-        required(literal("accept")) {
-            execute {
-                DiscordRPC.join()
             }
         }
     }

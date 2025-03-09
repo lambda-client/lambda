@@ -17,9 +17,9 @@
 
 package com.lambda.http.api.rpc.v1.endpoints
 
-import com.lambda.http.Method
+import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.gson.responseObject
 import com.lambda.http.api.rpc.v1.models.Party
-import com.lambda.http.request
 
 fun createParty(
     endpoint: String,
@@ -35,17 +35,7 @@ fun createParty(
     // example: true
     public: Boolean = true,
 ) =
-    request("$endpoint/api/$version/party/create") {
-        method(Method.POST)
-
-        parameters(
-            mapOf(
-                "max_players" to maxPlayers,
-                "public" to public,
-            )
-        )
-
-        headers(
-            mapOf("Authorization" to "Bearer $accessToken")
-        )
-    }.json<Party>()
+    Fuel.post("$endpoint/api/$version/party/create", listOf(
+        "max_players" to maxPlayers,
+        "public" to public,
+    )).responseObject<Party>().third

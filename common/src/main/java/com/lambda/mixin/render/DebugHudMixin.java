@@ -29,13 +29,13 @@ import java.util.List;
 
 @Mixin(DebugHud.class)
 public class DebugHudMixin {
-    @Inject(method = "getRightText", at = @At(value = "TAIL"))
+    @Inject(method = "getRightText", at = @At("TAIL"))
     private void onGetRightText(CallbackInfoReturnable<List<String>> cir) {
         DebugInfoHud.addDebugInfo(cir.getReturnValue());
     }
 
-    @Inject(method = "getLeftText", at = @At(value = "TAIL"))
+    @Inject(method = "getLeftText", at = @At("TAIL"))
     private void onGetLeftText(CallbackInfoReturnable<List<String>> cir) {
-        RootTask.INSTANCE.addInfo(cir.getReturnValue());
+        cir.getReturnValue().addAll(List.of(RootTask.INSTANCE.toString().split("\n")));
     }
 }

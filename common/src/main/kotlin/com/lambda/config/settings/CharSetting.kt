@@ -18,15 +18,18 @@
 package com.lambda.config.settings
 
 import com.google.gson.reflect.TypeToken
+import com.lambda.brigadier.CommandResult.Companion.failure
+import com.lambda.brigadier.CommandResult.Companion.success
+import com.lambda.brigadier.argument.value
+import com.lambda.brigadier.argument.word
+import com.lambda.brigadier.executeWithResult
+import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
+import com.lambda.util.extension.CommandBuilder
+import net.minecraft.command.CommandRegistryAccess
 
 /**
- * Represents a [Char] setting.
- *
- * @property name The [name] of the setting.
- * @property defaultValue The default [Char] [value] of the setting.
- * @property visibility A function that determines whether the setting [isVisible].
- * @property description A [description] of the setting.
+ * @see [com.lambda.config.Configurable]
  */
 class CharSetting(
     override val name: String,
@@ -38,4 +41,14 @@ class CharSetting(
     TypeToken.get(Char::class.java).type,
     description,
     visibility
-)
+) {
+    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+        required(word(name)) { parameter ->
+            executeWithResult {
+                val char = parameter().value().firstOrNull() ?: return@executeWithResult failure("Cant parse char type")
+                trySetValue(char)
+                return@executeWithResult success()
+            }
+        }
+    }
+}

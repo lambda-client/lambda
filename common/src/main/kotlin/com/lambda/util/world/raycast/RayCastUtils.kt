@@ -19,9 +19,9 @@ package com.lambda.util.world.raycast
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.interaction.rotation.Rotation
+import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.threading.runSafe
-import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.distSq
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.projectile.ProjectileUtil
@@ -40,12 +40,12 @@ object RayCastUtils {
 
     fun SafeContext.rayCast(
         start: Vec3d,
-        end: Vec3d,
+        direction: Vec3d,
         reach: Double,
-        mask: RayCastMask,
+        mask: InteractionMask,
         fluids: Boolean = false,
     ): HitResult? {
-        val vec = end.multiply(reach)
+        val vec = direction.multiply(reach)
         val point = start.add(vec)
 
         val block = run {
@@ -73,7 +73,7 @@ object RayCastUtils {
     // ToDo: Should rather move player hitbox down and check collision
     fun distanceToGround(maxDist: Double = 100.0) = runSafe {
         val pos = player.pos.add(0.0, 0.1, 0.0)
-        val cast = Rotation.DOWN.rayCast(maxDist, pos, false, RayCastMask.BLOCK) ?: return@runSafe maxDist
+        val cast = Rotation.DOWN.rayCast(maxDist, pos, false, InteractionMask.Block) ?: return@runSafe maxDist
 
         return@runSafe max(0.0, pos.y - cast.pos.y)
     }
