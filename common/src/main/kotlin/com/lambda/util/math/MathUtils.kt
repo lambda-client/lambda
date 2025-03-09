@@ -51,12 +51,6 @@ object MathUtils {
         return typeConvert(scaled.toDouble())
     }
 
-    private fun Double.roundToPlaces(places: Int) =
-        BigDecimal(this).setScale(places, RoundingMode.HALF_EVEN).toDouble()
-
-    private val Double.decimals: Int
-        get() = BigDecimal.valueOf(this).scale()
-
     fun <T : Number> T.typeConvert(valueIn: Double): T {
         @Suppress("UNCHECKED_CAST")
         return when (this) {
