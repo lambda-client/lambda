@@ -30,6 +30,7 @@ import com.lambda.task.Task
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.warn
 import net.minecraft.block.BlockState
+import net.minecraft.util.ActionResult
 
 class PlaceBlock @Ta5kBuilder constructor(
     private val ctx: PlaceContext,
@@ -96,19 +97,20 @@ class PlaceBlock @Ta5kBuilder constructor(
     }
 
     private fun SafeContext.placeBlock() {
+        val stack = player.getStackInHand(ctx.hand)
+        val stackCount = stack.count
         val actionResult = interaction.interactBlock(
             player,
             ctx.hand,
             ctx.result
         )
 
-        if (actionResult.isAccepted) {
-            if (interact.swingHand) {
+        if (actionResult is ActionResult.Success) {
+            if (actionResult.swingSource() == ActionResult.SwingSource.CLIENT && interact.swingHand) {
                 player.swingHand(ctx.hand)
-            }
-
-            if (!player.getStackInHand(ctx.hand).isEmpty && interaction.hasCreativeInventory()) {
-                mc.gameRenderer.firstPersonRenderer.resetEquipProgress(ctx.hand)
+                if (!player.getStackInHand(ctx.hand).isEmpty && (stack.count != stackCount || interaction.hasCreativeInventory())) {
+                    mc.gameRenderer.firstPersonRenderer.resetEquipProgress(ctx.hand)
+                }
             }
 
             state = State.CONFIRMING
