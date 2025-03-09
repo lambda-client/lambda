@@ -28,6 +28,7 @@ import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.warn
 import net.minecraft.block.BlockState
+import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
@@ -58,8 +59,8 @@ data class PlaceContext(
                 player, hand, result
             )
 
-            if (actionResult.isAccepted) {
-                if (swingHand) {
+            if (actionResult is ActionResult.Success) {
+                if (actionResult.swingSource() == ActionResult.SwingSource.CLIENT && swingHand) {
                     player.swingHand(hand)
                 }
 
