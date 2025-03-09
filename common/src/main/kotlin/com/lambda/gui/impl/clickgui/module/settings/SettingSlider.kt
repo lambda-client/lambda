@@ -61,7 +61,7 @@ abstract class SettingSlider <V : Any, T: AbstractSetting<V>>(
             }
 
             textField {
-                var lastValue = ""
+                var lastValue: String
 
                 onUpdate {
                     lastValue = text

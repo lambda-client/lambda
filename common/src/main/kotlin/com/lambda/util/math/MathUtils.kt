@@ -40,14 +40,15 @@ object MathUtils {
     fun Double.ceilToInt() = ceil(this).toInt()
 
     fun <T : Number> T.roundToStep(step: T): T {
-        val stepD = step.toDouble()
-        if (stepD == 0.0) return this
+        val valueBD = BigDecimal(toString())
+        val stepBD = BigDecimal(step.toString())
+        if (stepBD.compareTo(BigDecimal.ZERO) == 0) return this
+        val scaled = valueBD.divide(stepBD, stepBD.scale(), RoundingMode.HALF_UP)
+            .setScale(0, RoundingMode.HALF_UP)
+            .multiply(stepBD)
+            .setScale(stepBD.scale(), RoundingMode.HALF_UP)
 
-        var value = round(toDouble() / stepD) * stepD
-        value = value.roundToPlaces(stepD.decimals)
-        if (abs(value) == 0.0) value = 0.0
-
-        return typeConvert(value)
+        return typeConvert(scaled.toDouble())
     }
 
     private fun Double.roundToPlaces(places: Int) =
