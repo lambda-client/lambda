@@ -126,7 +126,7 @@ abstract class AbstractSetting<T : Any>(
         listeners.add(ValueListener(false, block))
     }
 
-    private fun reset() {
+    fun reset() {
         value = defaultValue
     }
 
