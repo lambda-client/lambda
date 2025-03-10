@@ -42,7 +42,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
     private val emojis get() = RenderSettings.emojiFont
 
     private val shadowShift get() = RenderSettings.shadowShift * 10.0
-    private val baselineOffset get() = RenderSettings.baselineOffset * 2.0f - 10f
+    private val baselineOffset get() = RenderSettings.baselineOffset * 2.0f - 16f
     private val gap get() = RenderSettings.gap * 0.5f - 0.8f
 
     /**
@@ -65,8 +65,8 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
     ) = render {
         shader["u_FontTexture"] = 0
         shader["u_EmojiTexture"] = 1
-        shader["u_SDFMin"] = 0.4
-        shader["u_SDFMax"] = 1.0
+        shader["u_SDFMin"] = RenderSettings.sdfMin
+        shader["u_SDFMax"] = RenderSettings.sdfMax
 
         bind(chars, emojis)
 
@@ -91,8 +91,8 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
     ) = render {
         shader["u_FontTexture"] = 0
         shader["u_EmojiTexture"] = 1
-        shader["u_SDFMin"] = 0.4
-        shader["u_SDFMax"] = 1.0
+        shader["u_SDFMin"] = RenderSettings.sdfMin
+        shader["u_SDFMax"] = RenderSettings.sdfMax
 
         bind(chars, emojis)
 

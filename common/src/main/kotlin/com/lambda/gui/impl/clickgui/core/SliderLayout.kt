@@ -28,6 +28,7 @@ import com.lambda.gui.impl.clickgui.module.settings.SettingSlider
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
+import com.lambda.util.math.multAlpha
 import com.lambda.util.math.setAlpha
 import com.lambda.util.math.transform
 import java.awt.Color
@@ -89,7 +90,7 @@ class SliderLayout(
             setProgressBlock(dragProgress)
         }
 
-        val progress = rect {
+        rect {
             onUpdate { // progress
                 rect = bg.rect
                 width *= renderProgress
@@ -102,8 +103,10 @@ class SliderLayout(
 
         outline {
             onUpdate {
-                rect = progress.rect
-                setColor(bg.leftTopColor)
+                rect = bg.rect
+                val c = Color.BLACK.setAlpha(0.3 * showAnim)
+                val a = transform(renderProgress, 0.5, 1.0, 0.0, 1.0).coerceIn(0.0, 1.0)
+                setColorH(c, c.multAlpha(a))
                 roundRadius = 100.0
             }
         }

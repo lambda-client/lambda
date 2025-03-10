@@ -27,9 +27,6 @@ import com.lambda.gui.impl.clickgui.core.SliderLayout.Companion.sliderBehind
 import com.lambda.gui.impl.clickgui.module.SettingLayout
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.math.lerp
-import kotlin.math.PI
-import kotlin.math.pow
-import kotlin.math.sin
 
 abstract class SettingSlider <V : Any, T: AbstractSetting<V>>(
     owner: Layout, setting: T
@@ -61,7 +58,7 @@ abstract class SettingSlider <V : Any, T: AbstractSetting<V>>(
             }
 
             textField {
-                var lastValue = ""
+                var lastValue: String
 
                 onUpdate {
                     lastValue = text
@@ -77,7 +74,6 @@ abstract class SettingSlider <V : Any, T: AbstractSetting<V>>(
                     color = textField.color
 
                     scale = textField.scale * lerp(changeAnimation, 1.1, 1.0)
-
                 }
             }
         }

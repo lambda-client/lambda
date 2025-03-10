@@ -39,6 +39,8 @@ object RenderSettings : Module(
     val gap by setting("Gap", 1.5, -10.0..10.0, 0.5) { page == Page.Font }
     val baselineOffset by setting("Vertical Offset", 0.0, -10.0..10.0, 0.5) { page == Page.Font }
     val highlightColor by setting("Text Highlight Color", Color(214, 55, 87), visibility = { page == Page.Font })
+    val sdfMin by setting("SDF Min", 0.4, 0.0..1.0, 0.01, visibility = { page == Page.Font })
+    val sdfMax by setting("SDF Max", 1.0, 0.0..1.0, 0.01, visibility = { page == Page.Font })
 
     // ESP
     val uploadsPerTick by setting("Uploads", 16, 1..256, 1, unit = " chunk/tick") { page == Page.ESP }
