@@ -61,7 +61,9 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
         listen<TickEvent.Pre>(Int.MIN_VALUE) {
             preEvent()
 
-            if (!updateRequest { true }) {
+            if (!updateRequest { request ->
+                pendingInteractions.none { pending -> pending.context.expectedPos == request.value.placeContext.expectedPos }
+            }) {
                 postEvent()
                 return@listen
             }
@@ -178,9 +180,11 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
         val itemStack = player.getStackInHand(hand)
         if (interaction.currentGameMode == GameMode.SPECTATOR) return ActionResult.SUCCESS
 
-        val handNotEmpty = !player.getStackInHand(hand).isEmpty
-        val cantInteract = player.shouldCancelInteraction() && handNotEmpty
-        if (!cantInteract) return ActionResult.PASS
+        // checks if the player should be able to interact with the block for if its something
+        // like a furnace or chest where an action would happen
+//        val handNotEmpty = player.getStackInHand(hand).isEmpty.not()
+//        val cantInteract = player.shouldCancelInteraction() && handNotEmpty
+//        if (!cantInteract) return ActionResult.PASS
 
         if (!itemStack.isEmpty && !player.itemCooldownManager.isCoolingDown(itemStack.item)) {
             val itemUsageContext = ItemUsageContext(player, hand, hitResult)
