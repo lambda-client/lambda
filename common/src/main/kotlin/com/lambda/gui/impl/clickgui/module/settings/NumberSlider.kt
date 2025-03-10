@@ -42,7 +42,7 @@ class NumberSlider <V> (
 
         slider.onSlide {
             settingDelegate = settingDelegate.typeConvert(
-                lerp(it, min, max).roundToStep(setting.step.toDouble())
+                lerp(it, min, max).roundToStep(setting.step).toDouble()
             )
         }
     }

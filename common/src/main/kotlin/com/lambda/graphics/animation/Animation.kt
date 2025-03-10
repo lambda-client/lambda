@@ -57,11 +57,11 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
 
         fun AnimationTicker.exp(min: () -> Double, max: () -> Double, speed: () -> Double, flag: () -> Boolean) =
             Animation(min()) {
-                val min = min()
-                val max = max()
-                val target = if (flag()) max else min
+                val minVal = min()
+                val maxVal = max()
+                val target = if (flag()) maxVal else minVal
 
-                if (abs(target - it) < CLAMP * abs(max - min)) target
+                if (abs(target - it) < CLAMP * abs(maxVal - minVal)) target
                 else lerp(speed(), it, target)
             }.apply(::register)
 
