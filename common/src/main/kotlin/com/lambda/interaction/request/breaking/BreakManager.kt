@@ -87,8 +87,6 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 return@listen
             }
 
-            var swapped = false
-
             //ToDo: improve instamine / non instamine integration
             if (updateRequest { true }) {
                 currentRequest?.let request@ { request ->
@@ -109,10 +107,8 @@ object BreakManager : RequestHandler<BreakRequest>() {
                             if (breakType == BreakType.Null) return@request
                             if (requestCtx.instantBreak && instaBreaks < request.buildConfig.breakSettings.breaksPerTick) {
                                 breakingInfos.getOrNull(breakType.index)?.let { info ->
-                                    if (!swapped) {
-                                        request.hotbarConfig.request(HotbarRequest(info.context.hotbarIndex))
-                                        swapped = true
-                                    }
+                                    if (request.hotbarConfig.request(HotbarRequest(info.context.hotbarIndex)).done.not())
+                                        return@forEach
                                     if (updateBlockBreakingProgress(info, player.mainHandStack)) {
                                         instaBreaks++
                                         activeThisTick = true
@@ -127,8 +123,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 .filterNotNull()
                 .firstOrNull()?.let { info ->
                     activeThisTick = true
-                    if ((!swapped && !info.hotbarConfig.request(HotbarRequest(info.context.hotbarIndex)).done)
-                        || (info.breakConfig.rotateForBreak && !info.context.rotation.done)) {
+                    if (info.breakConfig.rotateForBreak && !info.context.rotation.done) {
                         postEvent()
                         return@listen
                     }
@@ -138,6 +133,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 .filterNotNull()
                 .reversed()
                 .forEach { info ->
+                    if (info.hotbarConfig.request(HotbarRequest(info.context.hotbarIndex)).done.not()) return@forEach
                     updateBlockBreakingProgress(info, player.mainHandStack)
                 }
 
@@ -152,6 +148,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 }
         }
 
+        //ToDo: Clean this up
         listen<WorldEvent.BlockUpdate.Server> { event ->
             pendingInteractions
                 .firstOrNull { it.context.expectedPos == event.pos }
