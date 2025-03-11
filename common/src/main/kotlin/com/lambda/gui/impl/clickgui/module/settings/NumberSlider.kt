@@ -31,6 +31,9 @@ class NumberSlider <V> (
     private val min = setting.range.start.toDouble()
     private val max = setting.range.endInclusive.toDouble()
 
+    override val settingValue: String
+        get() = "${setting.value}${setting.unit}"
+
     init {
         slider.progress {
             transform(
