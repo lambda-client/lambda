@@ -31,6 +31,8 @@ import com.lambda.util.math.lerp
 abstract class SettingSlider <V : Any, T: AbstractSetting<V>>(
     owner: Layout, setting: T
 ) : SettingLayout<V, T>(owner, setting, false) {
+    abstract val settingValue: String
+
     private var changeAnimation by animation.exp(0.0, 1.0, 0.5) { true }
 
     private val sliderHeight = 3.0
@@ -62,7 +64,7 @@ abstract class SettingSlider <V : Any, T: AbstractSetting<V>>(
 
                 onUpdate {
                     lastValue = text
-                    text = settingDelegate.toString()
+                    text = settingValue
                     if (lastValue != text) changeAnimation = 0.0
 
                     offsetX = textField.offsetX

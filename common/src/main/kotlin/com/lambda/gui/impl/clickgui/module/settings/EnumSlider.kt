@@ -27,6 +27,9 @@ class EnumSlider <T : Enum<T>>(
     owner: Layout,
     setting: EnumSetting<T>
 ) : SettingSlider<T, EnumSetting<T>>(owner, setting) {
+    override val settingValue: String
+        get() = settingDelegate.name
+
     init {
         slider.progress {
             transform(
