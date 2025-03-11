@@ -5,6 +5,7 @@ import com.mojang.authlib.GameProfile
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.client.network.PlayerListEntry
+import net.minecraft.entity.player.PlayerEntity
 
 fun SafeContext.copyPlayer(entity: ClientPlayerEntity) =
     ClientPlayerEntity(mc, world, mc.networkHandler, null, null, entity.isSneaking, entity.isSprinting).apply {
@@ -22,15 +23,19 @@ fun SafeContext.copyPlayer(entity: ClientPlayerEntity) =
         isOnGround = entity.isOnGround
     }
 
-fun SafeContext.spawnFakePlayer(profile: GameProfile): OtherClientPlayerEntity {
+fun SafeContext.spawnFakePlayer(
+    profile: GameProfile,
+    reference: PlayerEntity = player,
+    addToWorld: Boolean = true
+): OtherClientPlayerEntity {
     val entity = OtherClientPlayerEntity(world, profile).apply {
-            copyFrom(player)
+            copyFrom(reference)
 
             playerListEntry = PlayerListEntry(profile, false)
             id = -2024 - 4 - 20
         }
 
-    world.addEntity(entity)
+    if (addToWorld) world.addEntity(entity)
 
     return entity
 }

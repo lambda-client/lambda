@@ -28,7 +28,7 @@ import com.lambda.command.LambdaCommand
 import com.lambda.interaction.construction.StructureRegistry
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
-import com.lambda.task.TaskFlow.run
+import com.lambda.task.RootTask.run
 import com.lambda.task.tasks.BuildTask
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.threading.runSafe

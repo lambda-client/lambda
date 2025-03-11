@@ -26,5 +26,5 @@ object Baritone : Module(
     description = "Baritone configuration",
     defaultTags = setOf(ModuleTag.CLIENT)
 ) {
-    val rotation = RotationSettings(this)
+    val rotation = RotationSettings(this, Int.MAX_VALUE)
 }

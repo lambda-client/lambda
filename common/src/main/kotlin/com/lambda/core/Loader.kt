@@ -22,26 +22,25 @@ import com.lambda.Lambda.LOG
 import com.lambda.util.Communication.ascii
 import com.lambda.util.reflections.getInstances
 import kotlin.system.measureTimeMillis
-import kotlin.time.DurationUnit
-import kotlin.time.toDuration
+import kotlin.time.Duration.Companion.milliseconds
 
 object Loader {
     private val started = System.currentTimeMillis()
 
     val runtime: String
-        get() = "${(System.currentTimeMillis() - started).toDuration(DurationUnit.MILLISECONDS)}"
+        get() = "${(System.currentTimeMillis() - started).milliseconds}"
 
-    private val loadables = getInstances<Loadable> { forPackages("com.lambda") }
+    private val loadables = getInstances<Loadable>()
 
     fun initialize(): Long {
         ascii.split("\n").forEach { LOG.info(it) }
         LOG.info("Initializing ${Lambda.MOD_NAME} ${Lambda.VERSION} (${loadables.size} loaders)...")
 
         val initTime = measureTimeMillis {
-            loadables.forEach {
+            loadables.sortedByDescending { it.priority }.forEach {
                 var response: String
                 val time = measureTimeMillis { response = it.load() }
-                LOG.info("$response ($time ms)")
+                if (response.isNotBlank()) LOG.info("$response ($time ms)")
             }
         }
 

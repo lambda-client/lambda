@@ -17,8 +17,8 @@
 
 package com.lambda.util.world.raycast
 
-enum class RayCastMask(val block: Boolean, val entity: Boolean) {
-    BOTH(true, true),
-    BLOCK(true, false),
-    ENTITY(false, true)
+enum class InteractionMask(val block: Boolean, val entity: Boolean) {
+    Both(true, true),
+    Block(true, false),
+    Entity(false, true)
 }

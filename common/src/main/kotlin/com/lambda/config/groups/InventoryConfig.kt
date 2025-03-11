@@ -25,34 +25,33 @@ interface InventoryConfig {
     val disposables: Set<Block>
     val accessEnderChest: Boolean
 
-    val actionTimout: Int
     val swapWithDisposables: Boolean
 
     val providerPriority: Priority
     val storePriority: Priority
 
     enum class Priority {
-        WITH_MIN_ITEMS,
-        WITH_MAX_ITEMS;
+        WithMinItems,
+        WithMaxItems;
 
         fun materialComparator(selection: StackSelection) =
             when (this) {
-                WITH_MAX_ITEMS -> compareBy<MaterialContainer> { it.rank }
+                WithMaxItems -> compareBy<MaterialContainer> { it.rank }
                     .thenByDescending { it.materialAvailable(selection) }
                     .thenBy { it.name }
 
-                WITH_MIN_ITEMS -> compareBy<MaterialContainer> { it.rank }
+                WithMinItems -> compareBy<MaterialContainer> { it.rank }
                     .thenBy { it.materialAvailable(selection) }
                     .thenBy { it.name }
             }
 
         fun spaceComparator(selection: StackSelection) =
             when (this) {
-                WITH_MAX_ITEMS -> compareBy<MaterialContainer> { it.rank }
+                WithMaxItems -> compareBy<MaterialContainer> { it.rank }
                     .thenByDescending { it.spaceAvailable(selection) }
                     .thenBy { it.name }
 
-                WITH_MIN_ITEMS -> compareBy<MaterialContainer> { it.rank }
+                WithMinItems -> compareBy<MaterialContainer> { it.rank }
                     .thenBy { it.spaceAvailable(selection) }
                     .thenBy { it.name }
             }

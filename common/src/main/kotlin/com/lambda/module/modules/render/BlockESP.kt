@@ -21,8 +21,8 @@ import com.lambda.Lambda.mc
 import com.lambda.graphics.renderer.esp.ChunkedESP.Companion.newChunkedESP
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
-import com.lambda.graphics.renderer.esp.builders.buildFilledMesh
-import com.lambda.graphics.renderer.esp.builders.buildOutlineMesh
+import com.lambda.graphics.renderer.esp.builders.buildFilledShape
+import com.lambda.graphics.renderer.esp.builders.buildOutlineShape
 import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -43,17 +43,17 @@ object BlockESP : Module(
     description = "Render block ESP",
     defaultTags = setOf(ModuleTag.RENDER)
 ) {
-    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks").apply { onValueSet(::rebuildMesh); onValueSet { _, to -> if (!to) drawOutlines = true } }
-    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks").apply { onValueSet(::rebuildMesh); onValueSet { _, to -> if (!to) drawFaces = true } }
-    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").apply { onValueSet(::rebuildMesh) }
+    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks").onValueSet(::rebuildMesh).onValueSet { _, to -> if (!to) drawOutlines = true }
+    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks").onValueSet(::rebuildMesh).onValueSet { _, to -> if (!to) drawFaces = true }
+    private val mesh by setting("Mesh", true, "Connect similar adjacent blocks").onValueSet(::rebuildMesh)
 
-    private val useBlockColor by setting("Use Block Color", false, "Use the color of the block instead").apply { onValueSet(::rebuildMesh) }
-    private val faceColor by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") { drawFaces && !useBlockColor }.apply { onValueSet(::rebuildMesh) }
-    private val outlineColor by setting("Outline Color", Color(100, 150, 255, 128), "Color of the outlines") { drawOutlines && !useBlockColor }.apply { onValueSet(::rebuildMesh) }
+    private val useBlockColor by setting("Use Block Color", false, "Use the color of the block instead").onValueSet(::rebuildMesh)
+    private val faceColor by setting("Face Color", Color(100, 150, 255, 51), "Color of the surfaces") { drawFaces && !useBlockColor }.onValueSet(::rebuildMesh)
+    private val outlineColor by setting("Outline Color", Color(100, 150, 255, 128), "Color of the outlines") { drawOutlines && !useBlockColor }.onValueSet(::rebuildMesh)
 
-    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode").apply { onValueSet(::rebuildMesh) }
+    private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode").onValueSet(::rebuildMesh)
 
-    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), "Render blocks").apply { onValueSet(::rebuildMesh) }
+    private val blocks by setting("Blocks", setOf(Blocks.BEDROCK), "Render blocks").onValueSet(::rebuildMesh)
 
     @JvmStatic
     val barrier by setting("Solid Barrier Block", true, "Render barrier blocks")
@@ -93,8 +93,8 @@ object BlockESP : Module(
         val shape = outlineShape(state, pos)
         val blockColor = blockColor(state, pos)
 
-        if (drawFaces) buildFilledMesh(shape, if (useBlockColor) blockColor else faceColor, sides)
-        if (drawOutlines) buildOutlineMesh(shape, if (useBlockColor) blockColor else outlineColor, sides, outlineMode)
+        if (drawFaces) buildFilledShape(shape, if (useBlockColor) blockColor else faceColor, sides)
+        if (drawOutlines) buildOutlineShape(shape, if (useBlockColor) blockColor else outlineColor, sides, outlineMode)
     }
 
     private fun rebuildMesh(from: Any, to: Any): Unit = esp.rebuild()

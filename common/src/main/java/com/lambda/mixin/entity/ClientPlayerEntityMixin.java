@@ -23,7 +23,7 @@ import com.lambda.event.events.MovementEvent;
 import com.lambda.event.events.PlayerEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.interaction.PlayerPacketManager;
-import com.lambda.interaction.RotationManager;
+import com.lambda.interaction.request.rotation.RotationManager;
 import net.minecraft.client.input.Input;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.MovementType;
@@ -97,8 +97,6 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         ci.cancel();
         PlayerPacketManager.sendPlayerPackets();
         autoJumpEnabled = Lambda.getMc().options.getAutoJump().getValue();
-
-        RotationManager.update();
     }
 
     @Inject(method = "tick", at = @At(value = "HEAD"))

@@ -14,12 +14,6 @@
  * limitations under the License.
  */
 
-/*
- * Preserve binary compatibility when moving extensions between files
- */
-@file:JvmMultifileClass
-@file:JvmName("ArgumentsKt")
-
 package com.lambda.brigadier.argument
 
 import com.lambda.brigadier.*
@@ -52,14 +46,11 @@ object ListEntityArgumentDescriptor : ArgumentDescriptor<EntityArgumentType>
  *
  * @see EntityAnchorArgumentType.getEntityAnchor
  */
-@JvmName("valueEntityAnchorArg")
 @BrigadierDsl
-fun DefaultArgumentReader<EntityAnchorArgumentType>.value(): EntityAnchorArgumentType.EntityAnchor {
-    return EntityAnchorArgumentType.getEntityAnchor(
-        context.assumeSourceNotUsed(),
-        name
+fun DefaultArgumentReader<EntityAnchorArgumentType>.value() =
+    EntityAnchorArgumentType.getEntityAnchor(
+        context.assumeSourceNotUsed(), name
     )
-}
 
 /**
  * Reads the collection of entities from the argument in
@@ -69,14 +60,9 @@ fun DefaultArgumentReader<EntityAnchorArgumentType>.value(): EntityAnchorArgumen
  *
  * @see EntityArgumentType.getEntities
  */
-@JvmName("requiredEntityArg")
 @BrigadierDsl
-fun ArgumentReader<
-        ServerCommandSource,
-        ListEntityArgumentDescriptor
-        >.required(): Collection<Entity> {
-    return EntityArgumentType.getEntities(context, name)
-}
+fun ArgumentReader<ServerCommandSource, ListEntityArgumentDescriptor>.required() =
+    EntityArgumentType.getEntities(context, name)
 
 /**
  * Reads the collection of entities from the argument in
@@ -86,14 +72,9 @@ fun ArgumentReader<
  *
  * @see EntityArgumentType.getOptionalEntities
  */
-@JvmName("optionalEntityArg")
 @BrigadierDsl
-fun ArgumentReader<
-        ServerCommandSource,
-        ListEntityArgumentDescriptor
-        >.optional(): Collection<Entity> {
-    return EntityArgumentType.getOptionalEntities(context, name)
-}
+fun ArgumentReader<ServerCommandSource, ListEntityArgumentDescriptor>.optional(): Collection<Entity> =
+    EntityArgumentType.getOptionalEntities(context, name)
 
 /**
  * Reads the [Entity] value from the argument in
@@ -101,14 +82,9 @@ fun ArgumentReader<
  *
  * @see EntityArgumentType.getEntity
  */
-@JvmName("valueSingleEntityArg")
 @BrigadierDsl
-fun ArgumentReader<
-        ServerCommandSource,
-        SingleEntityArgumentDescriptor
-        >.value(): Entity {
-    return EntityArgumentType.getEntity(context, name)
-}
+fun ArgumentReader<ServerCommandSource, SingleEntityArgumentDescriptor>.value(): Entity =
+    EntityArgumentType.getEntity(context, name)
 
 /**
  * Creates an entity anchor argument with [name] as the parameter name.
@@ -126,12 +102,8 @@ fun <S> entityAnchor(
 @BrigadierDsl
 fun <S> entities(
     name: String,
-): RequiredArgumentConstructor<
-        S,
-        ListEntityArgumentDescriptor
-        > {
-    return argument(name, EntityArgumentType.entities(), ListEntityArgumentDescriptor)
-}
+): RequiredArgumentConstructor<S, ListEntityArgumentDescriptor> =
+    argument(name, EntityArgumentType.entities(), ListEntityArgumentDescriptor)
 
 /**
  * Creates an entity selector argument with [name] as the parameter name.
@@ -139,9 +111,5 @@ fun <S> entities(
 @BrigadierDsl
 fun <S> entity(
     name: String,
-): RequiredArgumentConstructor<
-        S,
-        SingleEntityArgumentDescriptor
-        > {
-    return argument(name, EntityArgumentType.entity(), SingleEntityArgumentDescriptor)
-}
+): RequiredArgumentConstructor<S, SingleEntityArgumentDescriptor> =
+    argument(name, EntityArgumentType.entity(), SingleEntityArgumentDescriptor)

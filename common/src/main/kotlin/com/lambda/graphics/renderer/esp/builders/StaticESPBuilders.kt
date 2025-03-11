@@ -30,7 +30,18 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.shape.VoxelShape
 import java.awt.Color
 
-fun StaticESPRenderer.buildMesh(
+fun StaticESPRenderer.ofShape(
+    pos: BlockPos,
+    filledColor: Color,
+    outlineColor: Color,
+    sides: Int = DirectionMask.ALL,
+    outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
+) = runSafe {
+    val shape = blockState(pos).getOutlineShape(world, pos)
+    ofShape(pos, shape, filledColor, outlineColor, sides, outlineMode)
+}
+
+fun StaticESPRenderer.ofShape(
     pos: BlockPos,
     state: BlockState,
     filledColor: Color,
@@ -39,33 +50,23 @@ fun StaticESPRenderer.buildMesh(
     outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
 ) = runSafe {
     val shape = state.getOutlineShape(world, pos)
-    buildMesh(shape, filledColor, outlineColor, sides, outlineMode)
+    ofShape(pos, shape, filledColor, outlineColor, sides, outlineMode)
 }
 
-fun StaticESPRenderer.buildMesh(
+fun StaticESPRenderer.ofShape(
     pos: BlockPos,
-    filledColor: Color,
-    outlineColor: Color,
-    sides: Int = DirectionMask.ALL,
-    outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
-) = runSafe {
-    val shape = pos.blockState(world).getOutlineShape(world, pos)
-    buildMesh(shape, filledColor, outlineColor, sides, outlineMode)
-}
-
-fun StaticESPRenderer.buildMesh(
     shape: VoxelShape,
     filledColor: Color,
     outlineColor: Color,
     sides: Int = DirectionMask.ALL,
     outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
 ) {
-    shape.boundingBoxes
-        .forEach { build(it,filledColor, outlineColor, sides, outlineMode) }
+    shape.boundingBoxes.forEach {
+        ofBox(it.offset(pos), filledColor, outlineColor, sides, outlineMode)
+    }
 }
 
-
-fun StaticESPRenderer.build(
+fun StaticESPRenderer.ofBox(
     box: Box,
     filledColor: Color,
     outlineColor: Color,
@@ -76,26 +77,26 @@ fun StaticESPRenderer.build(
     buildOutline(box, outlineColor, sides, outlineMode)
 }
 
-fun StaticESPRenderer.buildFilledMesh(
+fun StaticESPRenderer.buildFilledShape(
     pos: BlockPos,
     state: BlockState,
     color: Color,
     sides: Int = DirectionMask.ALL,
 ) = runSafe {
     val shape = state.getOutlineShape(world, pos)
-    buildFilledMesh(shape, color, sides)
+    buildFilledShape(shape, color, sides)
 }
 
-fun StaticESPRenderer.buildFilledMesh(
+fun StaticESPRenderer.buildFilledShape(
     pos: BlockPos,
     color: Color,
     sides: Int = DirectionMask.ALL,
 ) = runSafe {
-    val shape = pos.blockState(world).getOutlineShape(world, pos)
-    buildFilledMesh(shape, color, sides)
+    val shape = blockState(pos).getOutlineShape(world, pos)
+    buildFilledShape(shape, color, sides)
 }
 
-fun StaticESPRenderer.buildFilledMesh(
+fun StaticESPRenderer.buildFilledShape(
     shape: VoxelShape,
     color: Color,
     sides: Int = DirectionMask.ALL,
@@ -111,7 +112,7 @@ fun StaticESPRenderer.buildFilled(
     sides: Int = DirectionMask.ALL
 ) = buildFilled(box, color, color, sides)
 
-fun StaticESPRenderer.buildOutlineMesh(
+fun StaticESPRenderer.buildOutlineShape(
     pos: BlockPos,
     state: BlockState,
     color: Color,
@@ -119,20 +120,20 @@ fun StaticESPRenderer.buildOutlineMesh(
     outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
 ) = runSafe {
     val shape = state.getOutlineShape(world, pos)
-    buildOutlineMesh(shape, color, sides, outlineMode)
+    buildOutlineShape(shape, color, sides, outlineMode)
 }
 
-fun StaticESPRenderer.buildOutlineMesh(
+fun StaticESPRenderer.buildOutlineShape(
     pos: BlockPos,
     color: Color,
     sides: Int = DirectionMask.ALL,
     outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
 ) = runSafe {
-    val shape = pos.blockState(world).getOutlineShape(world, pos)
-    buildOutlineMesh(shape, color, sides, outlineMode)
+    val shape = blockState(pos).getOutlineShape(world, pos)
+    buildOutlineShape(shape, color, sides, outlineMode)
 }
 
-fun StaticESPRenderer.buildOutlineMesh(
+fun StaticESPRenderer.buildOutlineShape(
     shape: VoxelShape,
     color: Color,
     sides: Int = DirectionMask.ALL,

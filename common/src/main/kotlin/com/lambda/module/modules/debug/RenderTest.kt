@@ -19,22 +19,15 @@ package com.lambda.module.modules.debug
 
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.buffer.frame.FrameBuffer
 import com.lambda.graphics.renderer.esp.DynamicAABB.Companion.dynamicBox
-import com.lambda.graphics.renderer.esp.builders.build
-import com.lambda.graphics.renderer.gui.font.FontRenderer
-import com.lambda.graphics.buffer.frame.CachedFrame
-import com.lambda.graphics.texture.TextureOwner.texture
+import com.lambda.graphics.renderer.esp.builders.ofBox
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.Vec2d
 import com.lambda.util.math.setAlpha
 import com.lambda.util.world.entitySearch
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.Box
-import org.lwjgl.glfw.GLFW.glfwGetTime
 import java.awt.Color
-import kotlin.math.sin
 
 object RenderTest : Module(
     name = "Render:shrimp:Test:canned_food:",
@@ -55,12 +48,12 @@ object RenderTest : Module(
         listen<RenderEvent.DynamicESP> {
             entitySearch<LivingEntity>(8.0)
                 .forEach { entity ->
-                    it.renderer.build(entity.dynamicBox, filledColor, outlineColor)
+                    it.renderer.ofBox(entity.dynamicBox, filledColor, outlineColor)
                 }
         }
 
         listen<RenderEvent.StaticESP> {
-            it.renderer.build(Box.of(player.pos, 0.3, 0.3, 0.3), filledColor, outlineColor)
+            it.renderer.ofBox(Box.of(player.pos, 0.3, 0.3, 0.3), filledColor, outlineColor)
         }
     }
 }

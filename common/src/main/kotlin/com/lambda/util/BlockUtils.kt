@@ -18,49 +18,74 @@
 package com.lambda.util
 
 import com.lambda.context.SafeContext
-import com.lambda.util.item.ItemUtils.block
-import com.lambda.util.item.ItemUtils.shulkerBoxes
 import com.lambda.util.math.MathUtils.floorToInt
+import net.minecraft.block.AbstractCauldronBlock
+import net.minecraft.block.AbstractFurnaceBlock
+import net.minecraft.block.AbstractSignBlock
+import net.minecraft.block.AnvilBlock
+import net.minecraft.block.BarrelBlock
+import net.minecraft.block.BeaconBlock
+import net.minecraft.block.BedBlock
+import net.minecraft.block.BeehiveBlock
+import net.minecraft.block.BellBlock
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
+import net.minecraft.block.BrewingStandBlock
+import net.minecraft.block.ButtonBlock
+import net.minecraft.block.CakeBlock
+import net.minecraft.block.CampfireBlock
+import net.minecraft.block.CandleBlock
+import net.minecraft.block.CandleCakeBlock
+import net.minecraft.block.CartographyTableBlock
+import net.minecraft.block.CaveVinesBodyBlock
+import net.minecraft.block.CaveVinesHeadBlock
+import net.minecraft.block.ChestBlock
+import net.minecraft.block.ChiseledBookshelfBlock
+import net.minecraft.block.CommandBlock
+import net.minecraft.block.ComparatorBlock
+import net.minecraft.block.ComposterBlock
+import net.minecraft.block.CrafterBlock
+import net.minecraft.block.CraftingTableBlock
+import net.minecraft.block.DaylightDetectorBlock
+import net.minecraft.block.DecoratedPotBlock
+import net.minecraft.block.DispenserBlock
+import net.minecraft.block.DoorBlock
+import net.minecraft.block.DragonEggBlock
+import net.minecraft.block.EnchantingTableBlock
+import net.minecraft.block.EnderChestBlock
+import net.minecraft.block.FenceBlock
+import net.minecraft.block.FenceGateBlock
+import net.minecraft.block.FletchingTableBlock
+import net.minecraft.block.FlowerPotBlock
+import net.minecraft.block.GrindstoneBlock
+import net.minecraft.block.HopperBlock
+import net.minecraft.block.JigsawBlock
+import net.minecraft.block.JukeboxBlock
+import net.minecraft.block.LecternBlock
+import net.minecraft.block.LeverBlock
+import net.minecraft.block.LightBlock
+import net.minecraft.block.LoomBlock
+import net.minecraft.block.NoteBlock
+import net.minecraft.block.PistonExtensionBlock
+import net.minecraft.block.PumpkinBlock
+import net.minecraft.block.RedstoneOreBlock
+import net.minecraft.block.RedstoneWireBlock
+import net.minecraft.block.RepeaterBlock
+import net.minecraft.block.RespawnAnchorBlock
+import net.minecraft.block.ShulkerBoxBlock
+import net.minecraft.block.SmithingTableBlock
+import net.minecraft.block.StonecutterBlock
+import net.minecraft.block.StructureBlock
+import net.minecraft.block.SweetBerryBushBlock
+import net.minecraft.block.TntBlock
+import net.minecraft.block.TrapdoorBlock
 import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
 import net.minecraft.item.Item
 import net.minecraft.util.math.*
-import net.minecraft.world.BlockView
 
 object BlockUtils {
-    val shulkerBlocks = shulkerBoxes.map { it.block }
-
-    val interactionBlacklist = mutableSetOf(
-        Blocks.CHEST,
-        Blocks.TRAPPED_CHEST,
-        Blocks.ENDER_CHEST,
-        Blocks.BARREL,
-        Blocks.REPEATER,
-        Blocks.COMPARATOR,
-        Blocks.DISPENSER,
-        Blocks.DROPPER,
-        Blocks.HOPPER,
-        Blocks.BREWING_STAND,
-        Blocks.FURNACE,
-        Blocks.BLAST_FURNACE,
-        Blocks.SMOKER,
-        Blocks.CRAFTING_TABLE,
-        Blocks.ANVIL,
-        Blocks.CHIPPED_ANVIL,
-        Blocks.DAMAGED_ANVIL,
-        Blocks.ENCHANTING_TABLE,
-        Blocks.BEACON,
-        Blocks.BELL,
-        Blocks.CAMPFIRE,
-        Blocks.SOUL_CAMPFIRE,
-        Blocks.JUKEBOX,
-        Blocks.NOTE_BLOCK,
-        Blocks.STRUCTURE_BLOCK,
-        Blocks.COMMAND_BLOCK,
-    ).apply { addAll(shulkerBlocks) }
 
     val signs = setOf(
         Blocks.OAK_SIGN,
@@ -118,6 +143,69 @@ object BlockUtils {
         Blocks.SPRUCE_WALL_HANGING_SIGN
     )
 
+    val allSigns = signs + wallSigns + hangingSigns + hangingWallSigns
+
+    val interactionClasses = setOf(
+        AbstractCauldronBlock::class,
+        AbstractFurnaceBlock::class,
+        AbstractSignBlock::class,
+        AnvilBlock::class,
+        BarrelBlock::class,
+        BeaconBlock::class,
+        BedBlock::class,
+        BeehiveBlock::class,
+        BellBlock::class,
+        BrewingStandBlock::class,
+        ButtonBlock::class,
+        CakeBlock::class,
+        CampfireBlock::class,
+        CandleBlock::class,
+        CandleCakeBlock::class,
+        CartographyTableBlock::class,
+        CaveVinesBodyBlock::class,
+        CaveVinesHeadBlock::class,
+        ChestBlock::class,
+        ChiseledBookshelfBlock::class,
+        CommandBlock::class,
+        ComparatorBlock::class,
+        ComposterBlock::class,
+        CrafterBlock::class,
+        CraftingTableBlock::class,
+        DaylightDetectorBlock::class,
+        DecoratedPotBlock::class,
+        DispenserBlock::class,
+        DoorBlock::class,
+        DragonEggBlock::class,
+        EnchantingTableBlock::class,
+        EnderChestBlock::class,
+        FenceBlock::class,
+        FenceGateBlock::class,
+        FletchingTableBlock::class,
+        FlowerPotBlock::class,
+        GrindstoneBlock::class,
+        HopperBlock::class,
+        JigsawBlock::class,
+        JukeboxBlock::class,
+        LecternBlock::class,
+        LeverBlock::class,
+        LightBlock::class,
+        LoomBlock::class,
+        NoteBlock::class,
+        PistonExtensionBlock::class,
+        PumpkinBlock::class,
+        RedstoneOreBlock::class,
+        RedstoneWireBlock::class,
+        RepeaterBlock::class,
+        RespawnAnchorBlock::class,
+        ShulkerBoxBlock::class,
+        SmithingTableBlock::class,
+        StonecutterBlock::class,
+        StructureBlock::class,
+        SweetBerryBushBlock::class,
+        TntBlock::class,
+        TrapdoorBlock::class
+    )
+
     val fluids = listOf(
         Fluids.LAVA,
         Fluids.FLOWING_LAVA,
@@ -126,11 +214,10 @@ object BlockUtils {
         Fluids.EMPTY,
     )
 
-    val allSigns = signs + wallSigns + hangingSigns + hangingWallSigns
+    fun SafeContext.blockState(pos: BlockPos): BlockState = world.getBlockState(pos)
+    fun SafeContext.fluidState(pos: BlockPos): FluidState = world.getFluidState(pos)
+    fun SafeContext.blockEntity(pos: BlockPos) = world.getBlockEntity(pos)
 
-    fun BlockPos.blockState(world: BlockView): BlockState = world.getBlockState(this)
-    fun BlockPos.fluidState(world: BlockView): FluidState = world.getFluidState(this)
-    fun BlockPos.blockEntity(world: BlockView) = world.getBlockEntity(this)
     fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos): Boolean {
         val ticksNeeded = 1 / blockState.calcBlockBreakingDelta(player, world, blockPos)
         return (ticksNeeded <= 1 && ticksNeeded != 0f) || player.isCreative

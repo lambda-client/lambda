@@ -55,6 +55,17 @@ sealed class EntityEvent {
     ) : ICancellable by Cancellable()
 
     /**
+     * Represents an event triggered when an entity is removed from the game world.
+     *
+     * @property entity The entity being removed from the world.
+     * @property removalReason The reason for the removal of the entity.
+     */
+    data class EntityRemoval(
+        val entity: Entity,
+        val removalReason: Entity.RemovalReason,
+    ) : Event
+
+    /**
      * Represents an event triggered when an entity's tracked data is updated.
      *
      * This event is cancellable, allowing handlers to prevent the propagation

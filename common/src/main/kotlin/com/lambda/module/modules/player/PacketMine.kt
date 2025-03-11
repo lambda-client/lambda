@@ -25,9 +25,10 @@ import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.global.DynamicESP
-import com.lambda.interaction.RotationManager
-import com.lambda.interaction.rotation.RotationRequest
-import com.lambda.interaction.visibilty.VisibilityChecker.findRotation
+import com.lambda.interaction.request.rotation.RotationManager
+import com.lambda.interaction.request.rotation.RotationManager.onRotate
+import com.lambda.interaction.request.rotation.RotationRequest
+import com.lambda.interaction.request.rotation.visibilty.lookAtBlock
 import com.lambda.module.Module
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.module.tag.ModuleTag
@@ -88,7 +89,9 @@ object PacketMine : Module(
     private val emptyReBreakDelay by setting("Empty Re-Break Delay", 0, 0..10, 1, "The delay between attempting to re-break the block if the block is currently empty", " ticks", visibility = { page == Page.ReBreak && reBreak.isFastAutomatic()})
     private val renderIfEmpty by setting("Render If Empty", false, "Draws the renders even if the re-break position is empty in the world", visibility = { page == Page.ReBreak && reBreak.isEnabled() })
 
-    private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue }).apply { this.onValueSet { _, to -> if (!to) blockQueue.clear() } }
+    private val queueBlocks by setting("Queue Blocks", false, "Queues any blocks you click for breaking", visibility = { page == Page.Queue })
+        .onValueSet { _, to -> if (!to) blockQueue.clear() }
+
     private val reverseQueueOrder by setting("Reverse Queue Order", false, "Breaks the latest addition to the queue first", visibility = { page == Page.Queue && queueBlocks})
     private val queueBreakDelay by setting("Break Delay", 0, 0..5, 1, "The delay after breaking a block to break the next queue block", " ticks", visibility = { page == Page.Queue && queueBlocks })
 
@@ -348,7 +351,7 @@ object PacketMine : Module(
 
                     mineTicks++
 
-                    val activeState = pos.blockState(world)
+                    val activeState = blockState(pos)
                     state = activeState
 
                     val empty = isStateEmpty(activeState)
@@ -513,10 +516,10 @@ object PacketMine : Module(
             }
         }
 
-        listen<WorldEvent.BlockChange> {
+        listen<WorldEvent.BlockUpdate.Client> {
             currentMiningBlock.forEach { ctx ->
                 ctx?.apply {
-                    if (it.pos != pos || !isStateBroken(pos.blockState(world), it.newState)) return@forEach
+                    if (it.pos != pos || !isStateBroken(blockState(pos), it.newState)) return@forEach
 
                     if (breakType.isPrimary()) {
                         runHandlers(ProgressStage.PacketReceiveBreak, pos, lastValidBestTool)
@@ -531,24 +534,18 @@ object PacketMine : Module(
             }
         }
 
-        listen<RotationEvent.Update> {
-            if (!rotate.isEnabled()) return@listen
+        onRotate {
+            if (!rotate.isEnabled()) return@onRotate
 
             rotationPosition?.let { pos ->
                 lastNonEmptyState?.let { state ->
-                    val boxList = state.getOutlineShape(world, pos).boundingBoxes.map { it.offset(pos) }
-                    val rotationRequest =
-                        findRotation(boxList, TaskFlowModule.rotation, TaskFlowModule.interact, emptySet()) { true }
-                    rotationRequest?.let { request ->
-                        it.request = request
-                        expectedRotation = request
-                    }
+                    expectedRotation = lookAtBlock(pos).requestBy(TaskFlowModule.rotation)
                 }
             } ?: run {
                 expectedRotation = null
             }
 
-            if (!rotated || !waitingToReleaseRotation) return@listen
+            if (!rotated || !waitingToReleaseRotation) return@onRotate
 
             releaseRotateDelayCounter--
 
@@ -573,7 +570,7 @@ object PacketMine : Module(
                     if (verifyRotation(
                             boxList,
                             RotationManager.currentRotation.vector,
-                            RotationManager.currentContext?.checkedResult
+                            RotationManager.currentRequest?.target?.hit?.hitIfValid()
                         )
                     ) {
                         onRotationComplete?.run()
@@ -601,7 +598,7 @@ object PacketMine : Module(
             if (renderQueueMode.isEnabled()) {
                 blockQueue.forEach { pos ->
                     var boxes = if (renderQueueMode == RenderQueueMode.Shape) {
-                        pos.blockState(world).getOutlineShape(world, pos).boundingBoxes
+                        blockState(pos).getOutlineShape(world, pos).boundingBoxes
                     } else {
                         listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
                     }
@@ -673,7 +670,7 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.startBreaking(pos: BlockPos) {
-        val state = pos.blockState(world)
+        val state = blockState(pos)
         val bestTool = getBestTool(state, pos)
         if (!isStateEmpty(state)) lastNonEmptyState = state
 
@@ -899,7 +896,7 @@ object PacketMine : Module(
         if (!verifyRotation(
                 lastNonEmptyState?.getOutlineShape(world, pos)?.boundingBoxes?.map { it.offset(pos) },
                 RotationManager.currentRotation.vector,
-                RotationManager.currentContext?.checkedResult
+                RotationManager.currentRequest?.target?.hit?.hitIfValid()
             )
         ) {
             pausedForRotation = true

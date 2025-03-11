@@ -31,6 +31,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class WorldMixin {
     @Inject(method = "onBlockChanged", at = @At("TAIL"))
     void onBlockChanged(BlockPos pos, BlockState oldBlock, BlockState newBlock, CallbackInfo ci) {
-        EventFlow.post(new WorldEvent.BlockChange(pos, oldBlock, newBlock));
+        EventFlow.post(new WorldEvent.BlockUpdate.Client(pos, oldBlock, newBlock));
     }
 }

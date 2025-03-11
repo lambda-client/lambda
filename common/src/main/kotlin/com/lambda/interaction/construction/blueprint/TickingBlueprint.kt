@@ -22,26 +22,19 @@ import com.lambda.threading.runSafe
 import com.lambda.util.extension.Structure
 import net.minecraft.util.math.Vec3i
 
-data class DynamicBlueprint(
-    val init: SafeContext.(Structure) -> Structure = { emptyMap() },
-    val update: SafeContext.(Structure) -> Structure = { it },
+data class TickingBlueprint(
+    val onTick: SafeContext.(Structure) -> Structure = { it },
 ) : Blueprint() {
-    fun update() {
+    fun tick() {
         runSafe {
-            structure = update(structure)
-        }
-    }
-
-    fun create() {
-        runSafe {
-            structure = init(structure)
+            structure = onTick(structure)
         }
     }
 
     override var structure: Structure = emptyMap()
         private set(value) {
             field = value
-            bounds.reset()
+            bounds.update()
         }
 
     override fun toString() = "Dynamic Blueprint at ${center?.toShortString()}"
@@ -53,9 +46,8 @@ data class DynamicBlueprint(
             }.toMap()
         }
 
-        fun Structure.toBlueprint(
-            init: SafeContext.(Structure) -> Structure = { this@toBlueprint },
+        fun tickingBlueprint(
             onTick: SafeContext.(Structure) -> Structure,
-        ) = DynamicBlueprint(init = init, update = onTick)
+        ) = TickingBlueprint(onTick)
     }
 }

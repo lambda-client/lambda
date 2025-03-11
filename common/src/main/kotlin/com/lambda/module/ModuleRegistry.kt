@@ -24,7 +24,8 @@ import com.lambda.util.reflections.getInstances
  * The [ModuleRegistry] object is responsible for managing all [Module] instances in the system.
  */
 object ModuleRegistry : Loadable {
-    val modules = getInstances<Module> { forPackages("com.lambda.module.modules") }.toMutableList()
+    override val priority = 1
+    val modules = getInstances<Module>().toMutableList()
 
     val moduleNames: Set<String>
         get() = modules.map { it.name }.toSet()

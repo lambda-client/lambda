@@ -17,7 +17,13 @@
 
 package com.lambda.config.settings.numeric
 
+import com.lambda.brigadier.argument.integer
+import com.lambda.brigadier.argument.value
+import com.lambda.brigadier.execute
+import com.lambda.brigadier.required
 import com.lambda.config.settings.NumericSetting
+import com.lambda.util.extension.CommandBuilder
+import net.minecraft.command.CommandRegistryAccess
 
 /**
  * @see [com.lambda.config.Configurable]
@@ -37,4 +43,12 @@ class IntegerSetting(
     description,
     visibility,
     unit
-)
+) {
+    override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
+        required(integer(name, range.start, range.endInclusive)) { parameter ->
+            execute {
+                trySetValue(parameter().value())
+            }
+        }
+    }
+}

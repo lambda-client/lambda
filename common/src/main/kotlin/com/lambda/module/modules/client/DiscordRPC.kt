@@ -70,8 +70,7 @@ object DiscordRPC : Module(
 
     /* Party settings */
     private val enableParty by setting("Enable Party", true, description = "Allows you to create parties.") { page == Page.Party }
-    private val maxPlayers by setting("Max Players", 10, 2..20) { page == Page.Party }
-        .apply { onValueChange { _, _ -> if (player.isPartyOwner) edit() } }
+    private val maxPlayers by setting("Max Players", 10, 2..20) { page == Page.Party }.onValueChange { _, _ -> if (player.isPartyOwner) edit() }
 
     private val rpc = KDiscordIPC(Lambda.APP_ID, scope = EventFlow.lambdaScope)
     private var startup = System.currentTimeMillis()
@@ -121,33 +120,30 @@ object DiscordRPC : Module(
     fun createParty() {
         if (!isPartyInteractionAllowed) return
 
-        createParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return, maxPlayers, true)
-            .also { response ->
-                if (response.error != null) warn(response.toString())
-                currentParty = response.data
-            }
+        val (party, error) = createParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return, maxPlayers, true)
+        if (error != null) warn(error.toString()) // TODO: Replace with network manager
+
+        currentParty = party
     }
 
     // Join a party using the ID
     fun join(id: String) {
         if (!isPartyInteractionAllowed) return
 
-        joinParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return, id)
-            .also { response ->
-                response.error?.let { return@also warn("Failed to join the party", it.toString()) }
-                currentParty = response.data
-            }
+        val (party, error) = joinParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return, id)
+        if (error != null) warn("Failed to join the party", error.toString())
+
+        currentParty = party
     }
 
     // Edit the current party if you are the owner
     private fun edit() {
         if (!isPartyInteractionAllowed) return
 
-        editParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return, maxPlayers)
-            .also { response ->
-                response.error?.let { return@also warn("Failed to edit the party", it.toString()) }
-                currentParty = response.data
-            }
+        val (party, error) = editParty(rpcServer, apiVersion.value, rpcAuth?.accessToken ?: return, maxPlayers)
+        if (error != null) warn("Failed to edit the party", error.toString())
+
+        currentParty = party
     }
 
     private fun connect() {
@@ -220,11 +216,10 @@ object DiscordRPC : Module(
             // Prompt the user to authorize
             discordAuth = rpc.applicationManager.authenticate()
 
-            login(rpcServer, apiVersion.value, discordAuth?.accessToken ?: "", mc.session.username, hash)
-                .also { response ->
-                    response.error?.let { warn("Failed to authenticate with the RPC server: ${it.message}") }
-                    rpcAuth = response.data
-                }
+            val (authResponse, error) = login(rpcServer, apiVersion.value, discordAuth?.accessToken ?: "", mc.session.username, hash)
+            if (error != null) warn("Failed to authenticate with the RPC server: ${error.message}")
+
+            rpcAuth = authResponse
 
             if (enableParty) createParty()
         }

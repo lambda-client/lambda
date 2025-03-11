@@ -20,7 +20,7 @@ package com.lambda.graphics.renderer.gui.font.core
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.buildBuffer
 
 enum class LambdaEmoji(val url: String) {
-    Twemoji("https://github.com/Edouard127/emoji-generator/releases/latest/download/emojis.zip");
+    Twemoji("fonts/emojis.zip");
 
     private val emojiRegex = Regex(":[a-zA-Z0-9_]+:")
 

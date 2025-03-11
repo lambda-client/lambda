@@ -17,18 +17,16 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.config.groups.RotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.RotationManager.rotate
-import com.lambda.interaction.rotation.Rotation
-import com.lambda.interaction.rotation.RotationRequest
-import com.lambda.interaction.rotation.RotationMode
+import com.lambda.interaction.request.rotation.*
+import com.lambda.interaction.request.rotation.RotationManager.onRotate
+import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Nameable
+import com.lambda.util.NamedEnum
 import com.lambda.util.extension.contains
 import com.lambda.util.player.MovementUtils.addSpeed
 import com.lambda.util.player.MovementUtils.calcMoveYaw
@@ -51,11 +49,7 @@ object Speed : Module(
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
     @JvmStatic
-    val mode by setting("Mode", Mode.GRIM_STRAFE).apply {
-        onValueChange { _, _ ->
-            reset()
-        }
-    }
+    val mode by setting("Mode", Mode.GRIM_STRAFE).onValueChange { _, _ -> reset() }
 
     // Grim
     private val diagonal by setting("Diagonal", true) { mode == Mode.GRIM_STRAFE }
@@ -71,9 +65,7 @@ object Speed : Module(
     private val ncpTimerBoost by setting("Timer Boost", 1.08, 1.0..1.1, 0.01) { mode == Mode.NCP_STRAFE }
 
     // Grim
-    private val rotationConfig = object : RotationConfig.Instant {
-        override val rotationMode = RotationMode.SYNC
-    }
+    private val rotationConfig = RotationConfig.Instant(RotationMode.Sync, Int.MIN_VALUE + 1)
 
     private var prevTickJumping = false
 
@@ -85,7 +77,7 @@ object Speed : Module(
     private var ncpSpeed = NCP_BASE_SPEED
     private var lastDistance = 0.0
 
-    enum class Mode(override val displayName: String) : Nameable.NamedEnum {
+    enum class Mode(override val displayName: String) : NamedEnum {
         GRIM_STRAFE("Grim Strafe"),
         NCP_STRAFE("NCP Strafe"),
     }
@@ -134,34 +126,33 @@ object Speed : Module(
             }
         }
 
-        rotate(100, alwaysListen = false) {
-            request { lastContext ->
-                if (mode != Mode.GRIM_STRAFE) return@request null
-                if (!shouldWork()) return@request null
+        onRotate {
+            if (mode != Mode.GRIM_STRAFE) return@onRotate
+            if (!shouldWork()) return@onRotate
 
-                var yaw = player.yaw
-                val input = newMovementInput()
+            var yaw = player.yaw
+            val input = newMovementInput()
 
-                if (!input.isInputting) return@request null
+            if (!input.isInputting) return@onRotate
 
-                run {
-                    if (!diagonal) return@run
-                    if (player.isOnGround && input.jumping) return@run
+            run {
+                if (!diagonal) return@run
+                if (player.isOnGround && input.jumping) return@run
 
-                    val forward = input.roundedForward.toFloat()
-                    var strafe = input.roundedStrafing.toFloat()
+                val forward = input.roundedForward.toFloat()
+                var strafe = input.roundedStrafing.toFloat()
 
-                    if (strafe == 0f) strafe = -1f
-                    if (forward == 0f) strafe *= -1
+                if (strafe == 0f) strafe = -1f
+                if (forward == 0f) strafe *= -1
 
-                    yaw -= 45 * strafe
-                }
-
-                val moveYaw = calcMoveYaw(yaw, input.roundedForward, input.roundedStrafing)
-                val rotation = Rotation(moveYaw, lastContext?.rotation?.pitch ?: player.pitch.toDouble())
-
-                RotationRequest(rotation, rotationConfig)
+                yaw -= 45 * strafe
             }
+
+            val moveYaw = calcMoveYaw(yaw, input.roundedForward, input.roundedStrafing)
+
+            lookAt(
+                Rotation(moveYaw, 0.0)
+            ).requestBy(rotationConfig)
         }
 
         onEnable {

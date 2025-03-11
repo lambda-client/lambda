@@ -19,11 +19,19 @@ package com.lambda.interaction.construction.simulation
 
 import baritone.api.pathing.goals.Goal
 import com.lambda.util.world.fastVectorOf
+import com.lambda.util.world.toFastVec
+import net.minecraft.util.math.BlockPos
 
-class BuildGoal(private val sim: Simulation) : Goal {
-    override fun isInGoal(x: Int, y: Int, z: Int) =
-        sim.simulate(fastVectorOf(x, y, z))
-            .any { it.rank.ordinal < 4 }
+class BuildGoal(
+    private val sim: Simulation,
+    blocked: BlockPos
+) : Goal {
+    private val blockedVec = blocked.toFastVec()
+
+    override fun isInGoal(x: Int, y: Int, z: Int): Boolean {
+        val pos = fastVectorOf(x, y, z)
+        return sim.simulate(pos).any { it.rank.ordinal < 4 } && blockedVec != pos
+    }
 
     override fun heuristic(x: Int, y: Int, z: Int): Double {
         val bestRank = sim.simulate(fastVectorOf(x, y, z))

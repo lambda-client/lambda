@@ -21,7 +21,6 @@ import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.TaskFlow
 import com.lambda.util.math.Vec2d
 
 object ModuleList : HudModule(

@@ -65,7 +65,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun toString() = "Support for ${direction.name}"
 
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
-            pos.offset(direction).blockState(world).isSolidBlock(world, pos.offset(direction))
+            world.getBlockState(pos.offset(direction)).isSolidBlock(world, pos.offset(direction))
                     || state.isSolidBlock(world, pos)
 
         override fun getStack(world: ClientWorld, pos: BlockPos) =

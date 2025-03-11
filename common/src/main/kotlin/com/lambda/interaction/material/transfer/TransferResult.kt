@@ -31,11 +31,25 @@ abstract class TransferResult : Task<Unit>() {
         override val name = "Container Transfer of [$selection] from [${from.name}] to [${to.name}]"
 
         override fun SafeContext.onStart() {
-            from.withdraw(selection).then {
-                to.deposit(selection).finally {
-                    success()
+            val withdrawal = from.withdraw(selection)
+            val deposit = to.deposit(selection)
+
+            val task = when {
+                withdrawal != null && deposit != null -> {
+                    withdrawal.then {
+                        deposit.finally { success() }
+                    }
                 }
-            }.execute(this@ContainerTransfer)
+                withdrawal != null -> {
+                    withdrawal.finally { success() }
+                }
+                deposit != null -> {
+                    deposit.finally { success() }
+                }
+                else -> null
+            }
+
+            task?.execute(this@ContainerTransfer)
         }
     }
 

@@ -20,7 +20,7 @@ package com.lambda.interaction.blockplace
 import com.lambda.context.SafeContext
 import com.lambda.interaction.blockplace.PlaceInteraction.canPlaceAt
 import com.lambda.interaction.blockplace.PlaceInteraction.isClickable
-import com.lambda.interaction.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.distSq
 import com.lambda.util.math.getHitVec
@@ -86,7 +86,7 @@ class PlaceFinder(
         val distSq = eyes distSq hitVec
 
         if (distSq > rangeSq) return null
-        if (clickPos.blockState(world).isClickable) return null
+        if (blockState(clickPos).isClickable) return null
 
         if (visibleCheck) {
             val box = Box(clickPos)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,18 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.http
+package com.lambda.interaction.request
 
-/**
- * Enum representing HTTP methods.
- */
-enum class Method {
-    GET,
-    HEAD,
-    POST,
-    PUT,
-    DELETE,
-    OPTIONS,
-    TRACE,
-    PATCH;
+abstract class Request (
+    val priority: Priority
+) {
+    abstract val done: Boolean
 }

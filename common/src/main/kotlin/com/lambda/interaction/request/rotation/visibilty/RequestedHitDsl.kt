@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,23 +15,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.task
+package com.lambda.interaction.request.rotation.visibilty
 
-import com.lambda.threading.runSafe
+import net.minecraft.entity.LivingEntity
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 
-object TaskFlow : Task<Unit>() {
-    override val name get() = "TaskFlow"
+@DslMarker
+annotation class RequestedHitDsl
 
-    @Ta5kBuilder
-    inline fun <reified T : Task<*>> T.run(): T {
-        execute(this@TaskFlow)
-        return this
-    }
+@RequestedHitDsl
+fun blockHit(
+    blockPos: BlockPos,
+    sides: Set<Direction>,
+    reach: Double
+) = RequestedHit.Block(blockPos, sides, reach)
 
-    @Ta5kBuilder
-    fun Task<*>.run(task: TaskGenerator<Unit>) {
-        runSafe {
-            task(Unit).execute(this@run)
-        }
-    }
-}
+@RequestedHitDsl
+fun blockHit(
+    blockPos: BlockPos,
+    side: Direction,
+    reach: Double
+) = RequestedHit.Block(blockPos, setOf(side), reach)
+
+@RequestedHitDsl
+fun entityHit(
+    entity: LivingEntity,
+    reach: Double
+) = RequestedHit.Entity(entity, reach)

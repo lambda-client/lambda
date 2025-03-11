@@ -15,23 +15,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.rotation
+package com.lambda.task
 
-import com.lambda.config.groups.RotationConfig
-import com.lambda.interaction.RotationManager
 import com.lambda.threading.runSafe
-import com.lambda.util.world.raycast.RayCastUtils.orMiss
-import net.minecraft.util.hit.HitResult
 
-data class RotationRequest(
-    val rotation: Rotation,
-    val config: RotationConfig,
-    val checkedResult: HitResult? = null,
-    val verify: HitResult.() -> Boolean = { true },
-) {
-    val isValid: Boolean get() = runSafe {
-        // ToDo: Use proper reach
-        val result = RotationManager.currentRotation.rayCast(10.0, player.eyePos)
-        verify(result.orMiss)
-    } ?: false
+object RootTask : Task<Unit>() {
+    override val name get() = "Root Task"
+
+    @Ta5kBuilder
+    inline fun <reified T : Task<*>> T.run(): T {
+        execute(this@RootTask)
+        return this
+    }
+
+    @Ta5kBuilder
+    fun Task<*>.run(task: TaskGenerator<Unit>) {
+        runSafe {
+            task(Unit).execute(this@run)
+        }
+    }
 }

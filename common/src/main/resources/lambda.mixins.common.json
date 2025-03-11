@@ -56,5 +56,8 @@
   ],
   "injectors": {
     "defaultRequire": 1
-  }
+  },
+  "mixins": [
+    "entity.PlayerInventoryMixin"
+  ]
 }

@@ -20,22 +20,21 @@ package com.lambda.graphics.renderer.gui.font.core
 import com.google.common.math.IntMath
 import com.lambda.core.Loadable
 import com.lambda.graphics.texture.TextureOwner.uploadField
-import com.lambda.http.Method
-import com.lambda.http.request
 import com.lambda.threading.runGameScheduled
 import com.lambda.util.math.Vec2d
 import com.lambda.util.stream
+import com.lambda.util.url
 import it.unimi.dsi.fastutil.objects.Object2DoubleArrayMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import java.awt.*
 import java.awt.image.BufferedImage
+import java.io.File
 import java.util.zip.ZipFile
 import javax.imageio.ImageIO
 import kotlin.math.ceil
 import kotlin.math.log2
 import kotlin.math.max
 import kotlin.math.sqrt
-import kotlin.time.Duration.Companion.days
 
 /**
  * The [LambdaAtlas] manages the creation and binding of texture atlases for fonts, emojis and user defined atlases
@@ -81,7 +80,7 @@ object LambdaAtlas : Loadable {
     val LambdaEmoji.keys
         get() = emojiMap.getValue(this)
 
-    const val CHAR_SPACE = 8
+    private const val CHAR_SPACE = 8
 
     /**
      * Builds the buffer for an emoji set by reading a ZIP file containing emoji images.
@@ -90,12 +89,9 @@ object LambdaAtlas : Loadable {
      * @throws IllegalStateException If the texture size is too small to fit the emojis.
      */
     fun LambdaEmoji.buildBuffer() {
-        val file = request(url) {
-            method(Method.GET)
-        }.maybeDownload("emojis.zip", maxAge = 30.days)
-
         var image: BufferedImage
-
+        val file = File.createTempFile("emoji", "zip")
+        url.stream.copyTo(file.outputStream())
         ZipFile(file).use { zip ->
             val firstImage = ImageIO.read(zip.getInputStream(zip.entries().nextElement()))
             val length = zip.size().toDouble()

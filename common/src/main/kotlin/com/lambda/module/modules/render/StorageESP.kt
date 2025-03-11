@@ -23,9 +23,9 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
 import com.lambda.graphics.renderer.esp.builders.buildFilled
-import com.lambda.graphics.renderer.esp.builders.buildFilledMesh
+import com.lambda.graphics.renderer.esp.builders.buildFilledShape
 import com.lambda.graphics.renderer.esp.builders.buildOutline
-import com.lambda.graphics.renderer.esp.builders.buildOutlineMesh
+import com.lambda.graphics.renderer.esp.builders.buildOutlineShape
 import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -64,8 +64,8 @@ object StorageESP : Module(
     private val distance by setting("Distance", 64.0, 10.0..256.0, 1.0, "Maximum distance for rendering") { page == Page.General }
 
     /* Render settings */
-    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks") { page == Page.Render }.apply { onValueSet { _, to -> if (!to) drawOutlines = true } }
-    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks") { page == Page.Render }.apply { onValueSet { _, to -> if (!to) drawFaces = true } }
+    private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks") { page == Page.Render }.onValueSet { _, to -> if (!to) drawOutlines = true }
+    private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks") { page == Page.Render }.onValueSet { _, to -> if (!to) drawFaces = true }
     private val outlineMode by setting("Outline Mode", DirectionMask.OutlineMode.AND, "Outline mode") { page == Page.Render }
     private val mesh by setting("Mesh", true, "Connect similar adjacent blocks") { page == Page.Render }
 
@@ -152,8 +152,8 @@ object StorageESP : Module(
         } else getBlockEntityColor(block) ?: return@runSafe
         val shape = outlineShape(block.cachedState, pos)
 
-        if (drawFaces) buildFilledMesh(shape, color.setAlpha(alpha), sides)
-        if (drawOutlines) buildOutlineMesh(shape, color, sides, outlineMode)
+        if (drawFaces) buildFilledShape(shape, color.setAlpha(alpha), sides)
+        if (drawOutlines) buildOutlineShape(shape, color, sides, outlineMode)
     }
 
     private fun StaticESPRenderer.build(

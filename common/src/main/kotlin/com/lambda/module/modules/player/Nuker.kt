@@ -17,13 +17,12 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
-import com.lambda.interaction.construction.blueprint.DynamicBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.Task
-import com.lambda.task.TaskFlow.run
+import com.lambda.task.RootTask.run
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
@@ -44,22 +43,21 @@ object Nuker : Module(
 
     init {
         onEnable {
-            task = emptyStructure()
-                .toBlueprint {
+            task = tickingBlueprint {
                     val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
                         .asSequence()
                         .map { it.blockPos }
                         .filter { !world.isAir(it) }
                         .filter { !flatten || it.y >= player.blockPos.y }
-                        .filter { !onlyBreakInstant || it.blockState(world).getHardness(world, it) <= 1 }
-                        .filter { it.blockState(world).getHardness(world, it) >= 0 }
+                        .filter { !onlyBreakInstant || blockState(it).getHardness(world, it) <= 1 }
+                        .filter { blockState(it).getHardness(world, it) >= 0 }
                         .associateWith { TargetState.Air }
 
                     if (fillFloor) {
                         val floor = BlockPos.iterateOutwards(player.blockPos.down(), width, 0, width)
                             .map { it.blockPos }
                             .associateWith { TargetState.Solid }
-                        return@toBlueprint selection + floor
+                        return@tickingBlueprint selection + floor
                     }
 
                     selection

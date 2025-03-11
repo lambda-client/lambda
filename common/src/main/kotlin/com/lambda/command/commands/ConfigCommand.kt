@@ -17,26 +17,27 @@
 
 package com.lambda.command.commands
 
-import com.google.gson.JsonParser
-import com.lambda.brigadier.CommandResult
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.argument.string
 import com.lambda.brigadier.argument.value
-import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Configuration
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
+import com.lambda.util.text.buildText
+import com.lambda.util.text.highlighted
+import com.lambda.util.text.literal
 
 object ConfigCommand : LambdaCommand(
     name = "config",
     aliases = setOf("cfg", "settings", "setting"),
     usage = "config <save | load | set> <configurable> <setting> <value>",
-    description = "Save or load the configuration files"
+    description = "Save or load configuration files, or set any settings value",
+    examples = listOf("config save", "config load", "config set HighwayTools Pavement_Material minecraft:obsidian")
 ) {
     override fun CommandBuilder.create() {
         required(literal("save")) {
@@ -57,11 +58,11 @@ object ConfigCommand : LambdaCommand(
                 return@executeWithResult success()
             }
         }
-        required(literal("set")) {
-            required(string("configurable")) { config ->
+        required(literal("reset")) {
+            required(string("config")) { config ->
                 suggests { _, builder ->
                     Configuration.configurables.forEach {
-                        builder.suggest("\"${it.name}\"")
+                        builder.suggest(it.commandName)
                     }
                     builder.buildFuture()
                 }
@@ -70,34 +71,34 @@ object ConfigCommand : LambdaCommand(
                         val conf = config(ctx).value()
                         Configuration.configurableByName(conf)?.let { configurable ->
                             configurable.settings.forEach {
-                                builder.suggest("\"${it.name}\"")
+                                builder.suggest(it.commandName)
                             }
                         }
                         builder.buildFuture()
                     }
-                    required(string("value as JSON")) { value ->
-                        executeWithResult {
-                            val valueString = value().value()
-                            val confName = config().value()
-                            val settingName = setting().value()
-                            val conf = Configuration.configurableByName(confName) ?: run {
-                                return@executeWithResult failure("$confName is not a valid configurable.")
+                    executeWithResult {
+                        val confName = config().value()
+                        val settingName = setting().value()
+                        val conf = Configuration.configurableByCommandName(confName) ?: run {
+                            return@executeWithResult failure("$confName is not a valid configurable.")
+                        }
+                        val set = Configuration.settingByCommandName(conf, settingName) ?: run {
+                            return@executeWithResult failure("$settingName is not a valid setting for $confName.")
+                        }
+                        set.reset()
+                        return@executeWithResult success()
+                    }
+                }
+            }
+        }
+        required(literal("set")) {
+            Configuration.configurables.forEach { configurable ->
+                required(literal(configurable.commandName)) {
+                    configurable.settings.forEach { setting ->
+                        required(literal(setting.commandName)) {
+                            with(setting) {
+                                buildCommand(registry)
                             }
-                            val set = Configuration.settingByName(conf, settingName) ?: run {
-                                return@executeWithResult failure("$settingName is not a valid setting for $confName.")
-                            }
-                            val parsed = try {
-                                JsonParser.parseString("\"$valueString\"")
-                            } catch (e: Exception) {
-                                return@executeWithResult failure("$valueString is not a valid JSON string.")
-                            }
-                            try {
-                                set.loadFromJson(parsed)
-                            } catch (e: Exception) {
-                                return@executeWithResult failure("Failed to load $valueString as a ${set.type::class.simpleName} for $settingName in $confName.")
-                            }
-                            this@ConfigCommand.info("Set $settingName to ${set.value} for $confName.")
-                            return@executeWithResult success()
                         }
                     }
                 }
