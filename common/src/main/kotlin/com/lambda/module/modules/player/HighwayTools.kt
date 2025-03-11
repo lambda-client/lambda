@@ -167,7 +167,7 @@ object HighwayTools : Module(
                 1,
             ).associateWith { target(pavement, pavementMaterial) }
 
-            if (cornerBlock == Corner.None) {
+            if (cornerBlock == Corner.None && rimHeight > 0) {
                 // Support for the left rim
                 structure += generateDirectionalTube(
                     orthogonal,
