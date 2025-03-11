@@ -31,6 +31,7 @@ import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
+import com.lambda.module.hud.ModuleList
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.playSoundRandomly
@@ -116,9 +117,9 @@ abstract class Module(
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
     private val isEnabledSetting = setting("Enabled", enabledByDefault, visibility = { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)
-    private val isVisible = setting("Visible", true)
+    val isVisible = setting("Visible", true) { ModuleList.isEnabled }
     val reset by setting("Reset", { settings.forEach { it.reset() }; this@Module.info("Settings set to default") })
-    val customTags = setting("Tags", setOf<ModuleTag>(), visibility = { false })
+    val customTags = setting("Tags", setOf<ModuleTag>()) { false }
 
     var isEnabled by isEnabledSetting
     val isDisabled get() = !isEnabled
