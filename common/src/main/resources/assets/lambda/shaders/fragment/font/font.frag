@@ -14,20 +14,12 @@ float sdf(float channel) {
     return 1.0 - smoothstep(u_SDFMin, u_SDFMax, 1.0 - channel);
 }
 
-vec4 sdf(vec4 texture) {
-    return vec4(
-        sdf(texture.r),
-        sdf(texture.g),
-        sdf(texture.b),
-        sdf(texture.a)
-    );
-}
-
 void main() {
     bool isEmoji = v_TexCoord.x < 0.0;
 
     if (isEmoji) {
-        color = sdf(texture(u_EmojiTexture, -v_TexCoord)) * v_Color;
+        vec4 c = texture(u_EmojiTexture, -v_TexCoord);
+        color = vec4(c.rgb, sdf(c.a)) * v_Color;
         return;
     }
 

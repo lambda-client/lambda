@@ -136,7 +136,8 @@ object LambdaAtlas : Loadable {
                 val uv1 = Vec2d(x, y) * texelSize
                 val uv2 = Vec2d(x, y).plus(size) * texelSize
 
-                constructed[name] = GlyphInfo(size, -uv1, -uv2)
+                val normalized = 128.0 / size.y
+                constructed[name] = GlyphInfo(size * normalized, -uv1, -uv2)
 
                 x += emoji.width + 2
             }
