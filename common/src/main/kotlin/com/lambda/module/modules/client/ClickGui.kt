@@ -17,11 +17,13 @@
 
 package com.lambda.module.modules.client
 
+import com.lambda.Lambda.mc
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.gui.ScreenLayout.Companion.gui
 import com.lambda.gui.component.core.FilledRect.Companion.rect
 import com.lambda.gui.impl.clickgui.ModuleWindow.Companion.moduleWindow
+import com.lambda.util.KeyCode
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.setAlpha
 import java.awt.Color
@@ -64,6 +66,11 @@ object ClickGui : Module(
     val smoothness by setting("Smoothness", 0.4, 0.3..0.7, 0.01) { animationCurve != AnimationCurve.Static }
 
     val SCREEN get() = gui("Click Gui") {
+        onKeyPress {
+            if (it.keyCode != keybind.keyCode || keybind == KeyCode.UNBOUND) return@onKeyPress
+            mc.currentScreen?.close()
+        }
+
         rect {
             onUpdate {
                 rect = owner!!.rect
