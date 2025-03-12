@@ -20,6 +20,7 @@ package com.lambda.interaction.request.breaking
 import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
+import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -75,8 +76,21 @@ object BreakManager : RequestHandler<BreakRequest>() {
     private var blockBreakingCooldown = 0
 
     private var rotation: RotationRequest? = null
+    private var validRotation = false
 
     init {
+        listen<TickEvent.Pre> {
+            if (!validRotation) return@listen
+
+            breakingInfos
+                .filterNotNull()
+                .reversed()
+                .forEach { info ->
+                    if (info.hotbarConfig.request(HotbarRequest(info.context.hotbarIndex)).done.not()) return@forEach
+                    updateBlockBreakingProgress(info, player.mainHandStack)
+                }
+        }
+
         onRotate(priority = Int.MIN_VALUE) {
             preEvent()
 
@@ -134,22 +148,11 @@ object BreakManager : RequestHandler<BreakRequest>() {
         }
 
         onRotatePost {
-            val notNullInfos = breakingInfos.filterNotNull()
-
-            notNullInfos
+            breakingInfos
+                .filterNotNull()
                 .firstOrNull()?.let { info ->
                     activeThisTick = true
-                    if (info.breakConfig.rotateForBreak && rotation?.done != true) {
-                        postEvent()
-                        return@onRotatePost
-                    }
-                }
-
-            notNullInfos
-                .reversed()
-                .forEach { info ->
-                    if (info.hotbarConfig.request(HotbarRequest(info.context.hotbarIndex)).done.not()) return@forEach
-                    updateBlockBreakingProgress(info, player.mainHandStack)
+                    validRotation = info.breakConfig.rotateForBreak && rotation?.done == true
                 }
 
             postEvent()

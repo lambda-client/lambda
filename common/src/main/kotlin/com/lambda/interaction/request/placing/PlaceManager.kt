@@ -21,6 +21,7 @@ import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -59,11 +60,24 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
     ) { info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out") }
 
     private var rotation: RotationRequest? = null
+    private var validRotation = false
 
     val blockedPositions
         get() = pendingInteractions.map { it.context.expectedPos }
 
     init {
+        listen<TickEvent.Pre> {
+            currentRequest?.let { request ->
+                val notSneaking = !player.isSneaking
+                val hotbarRequest = request.hotbarConfig.request(HotbarRequest(request.placeContext.hotbarIndex))
+                val invalidRotation = request.buildConfig.placeSettings.rotateForPlace && !validRotation
+                if ((request.placeContext.sneak && notSneaking) || !hotbarRequest.done || invalidRotation)
+                    return@listen
+
+                placeBlock(request, Hand.MAIN_HAND)
+            }
+        }
+
         onRotate(priority = Int.MIN_VALUE) {
             preEvent()
 
@@ -95,18 +109,8 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
         }
 
         onRotatePost {
-            currentRequest?.let { request ->
-                val notSneaking = !player.isSneaking
-                val hotbarRequest = request.hotbarConfig.request(HotbarRequest(request.placeContext.hotbarIndex))
-                val invalidRotation = request.buildConfig.placeSettings.rotateForPlace && rotation?.done != true
-                if ((request.placeContext.sneak && notSneaking) || !hotbarRequest.done || invalidRotation) {
-                    postEvent()
-                    return@onRotatePost
-                }
-
-                placeBlock(request, Hand.MAIN_HAND)
-                postEvent()
-            }
+            validRotation = rotation?.done == true
+            postEvent()
         }
 
         listen<MovementEvent.InputUpdate> {
