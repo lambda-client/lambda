@@ -31,11 +31,11 @@ import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
-import com.lambda.gui.impl.clickgui.buttons.ModuleButton
-import com.lambda.module.modules.client.ClickGui
+import com.lambda.module.hud.ModuleList
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
 import com.lambda.sound.SoundManager.playSoundRandomly
+import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 
@@ -117,8 +117,9 @@ abstract class Module(
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
     private val isEnabledSetting = setting("Enabled", enabledByDefault, visibility = { false })
     private val keybindSetting = setting("Keybind", defaultKeybind)
-    private val isVisible = setting("Visible", true)
-    val customTags = setting("Tags", setOf<ModuleTag>(), visibility = { false })
+    val isVisible = setting("Visible", true) { ModuleList.isEnabled }
+    val reset by setting("Reset", { settings.forEach { it.reset() }; this@Module.info("Settings set to default") })
+    val customTags = setting("Tags", setOf<ModuleTag>()) { false }
 
     var isEnabled by isEnabledSetting
     val isDisabled get() = !isEnabled
@@ -134,6 +135,14 @@ abstract class Module(
             if (mc.currentScreen != null) return@listen
 
             toggle()
+        }
+
+        onEnable {
+            playSoundRandomly(LambdaSound.MODULE_ON.event)
+        }
+
+        onDisable {
+            playSoundRandomly(LambdaSound.MODULE_OFF.event)
         }
 
         onEnable {

@@ -32,19 +32,21 @@ import com.lambda.graphics.gl.Memory.vector2f
 import com.lambda.graphics.gl.Memory.vector3f
 import com.lambda.graphics.gl.kibibyte
 import org.joml.Vector4d
+import org.lwjgl.opengl.GL15C
 import org.lwjgl.opengl.GL20C.*
 import java.awt.Color
 
 class VertexPipeline(
     private val mode: VertexMode,
     attributes: VertexAttrib.Group,
+    usage: Int = GL_DYNAMIC_DRAW
 ) : IRenderContext {
     private val stride = attributes.stride
     private val size = stride * mode.indicesCount
 
     private val vao = VertexArray()
-    private val vbo = VertexBuffer(mode, attributes)
-    private val ebo = ElementBuffer(mode)
+    private val vbo = VertexBuffer(mode, attributes, usage)
+    private val ebo = ElementBuffer(mode, usage)
 
     private var vertices = byteBuffer(size * 1.kibibyte)
     private var verticesPointer = address(vertices)

@@ -17,6 +17,8 @@
 
 package com.lambda.util
 
+import java.security.MessageDigest
+
 object StringUtils {
     /**
      * Returns a sanitized file path for both Unix and Linux systems
@@ -89,4 +91,32 @@ object StringUtils {
 
         return cost[len0 - 1]
     }
+
+    /**
+     * See [MessageDigest section](https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html#messagedigest-algorithms) of the Java Security Standard Algorithm Names Specification
+     *
+     * @receiver        The string to hash
+     * @param algorithm The algorithm instance to use
+     *
+     * @return          The string representation of the hash
+     */
+    fun String.hash(algorithm: String): String =
+        MessageDigest
+            .getInstance(algorithm)
+            .digest(toByteArray())
+            .joinToString(separator = "") { "%02x".format(it) }
+
+    /**
+     * See [MessageDigest section](https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html#messagedigest-algorithms) of the Java Security Standard Algorithm Names Specification
+     *
+     * @receiver        The byte array to hash
+     * @param algorithm The algorithm instance to use
+     *
+     * @return          The string representation of the hash
+     */
+    fun ByteArray.hash(algorithm: String): String =
+        MessageDigest
+            .getInstance(algorithm)
+            .digest(this)
+            .joinToString(separator = "") { "%02x".format(it) }
 }

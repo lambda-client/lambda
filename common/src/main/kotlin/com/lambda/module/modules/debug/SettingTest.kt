@@ -19,6 +19,7 @@ package com.lambda.module.modules.debug
 
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
 import net.minecraft.block.Blocks
 import net.minecraft.util.math.BlockPos
@@ -60,6 +61,9 @@ object SettingTest : Module(
     private val blockList by setting("Block List", listOf(Blocks.OBSIDIAN))
     private val colorMap by setting("Color Map", mapOf("Primary" to Color.GREEN))
     private val keyBindSet by setting("Key Bind Set", setOf(KeyCode.T))
+
+    // Other
+    private val unitSetting by setting("Unit Test", { this@SettingTest.info("Unit setting") })
 
     enum class ExampleEnum {
         VALUE_ONE,

@@ -27,10 +27,10 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
     private var prevValue = initialValue
     private var currValue = initialValue
 
-    operator fun getValue(thisRef: Any?, property: KProperty<*>) =
-        lerp(mc.partialTicks, prevValue, currValue)
-
+    operator fun getValue(thisRef: Any?, property: KProperty<*>) = value()
     operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: Double) = setValue(valueIn)
+
+    fun value(): Double = lerp(mc.partialTicks, prevValue, currValue)
 
     fun setValue(valueIn: Double) {
         prevValue = valueIn
@@ -52,16 +52,16 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
         fun AnimationTicker.exp(min: Double, max: Double, speed: Double, flag: () -> Boolean) =
             exp({ min }, { max }, { speed }, flag)
 
-        fun AnimationTicker.exp(target: () -> Double, speed: Double) =
+        fun AnimationTicker.exp(speed: Double, target: () -> Double) =
             exp(target, target, { speed }, { true })
 
         fun AnimationTicker.exp(min: () -> Double, max: () -> Double, speed: () -> Double, flag: () -> Boolean) =
             Animation(min()) {
-                val min = min()
-                val max = max()
-                val target = if (flag()) max else min
+                val minVal = min()
+                val maxVal = max()
+                val target = if (flag()) maxVal else minVal
 
-                if (abs(target - it) < CLAMP * abs(max - min)) target
+                if (abs(target - it) < CLAMP * abs(maxVal - minVal)) target
                 else lerp(speed(), it, target)
             }.apply(::register)
 
