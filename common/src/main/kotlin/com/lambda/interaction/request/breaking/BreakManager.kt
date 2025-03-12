@@ -69,6 +69,9 @@ object BreakManager : RequestHandler<BreakRequest>() {
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) { info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out") }
 
+    val blockedPositions
+        get() = breakingInfos.mapNotNull { it?.context?.expectedPos } + pendingInteractions.map { it.context.expectedPos }
+
     private var blockBreakingCooldown = 0
 
     private var rotation: RotationRequest? = null
@@ -175,7 +178,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
         }
 
         //ToDo: drop callback stuff
-//        // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
+        // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
 //        listen<EntityEvent.EntityUpdate> {
 //            if (it.entity !is ItemEntity) return@listen
 //            pendingInteractions

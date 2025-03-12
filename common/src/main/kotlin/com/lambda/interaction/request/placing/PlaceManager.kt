@@ -60,6 +60,9 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
 
     private var rotation: RotationRequest? = null
 
+    val blockedPositions
+        get() = pendingInteractions.map { it.context.expectedPos }
+
     init {
         onRotate(priority = Int.MIN_VALUE) {
             preEvent()
