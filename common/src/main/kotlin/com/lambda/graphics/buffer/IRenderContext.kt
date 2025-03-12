@@ -38,6 +38,12 @@ interface IRenderContext {
     fun upload()
     fun clear()
 
+    fun immediateDraw() {
+        upload()
+        render()
+        clear()
+    }
+
     fun grow(amount: Int)
 
     fun use(block: IRenderContext.() -> Unit) {

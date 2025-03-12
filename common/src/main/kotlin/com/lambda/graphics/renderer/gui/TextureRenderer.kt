@@ -21,7 +21,7 @@ import com.lambda.graphics.RenderMain
 import com.lambda.graphics.buffer.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
-import com.lambda.graphics.shader.Shader
+import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.graphics.texture.Texture
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.math.Rect
@@ -30,24 +30,25 @@ import org.lwjgl.glfw.GLFW.glfwGetTime
 
 object TextureRenderer {
     private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.POS_UV)
-    private val shader = Shader("renderer/pos_tex")
-    private val shaderColored = Shader("renderer/pos_tex_shady")
+
+    private val mainShader = shader("renderer/pos_tex")
+    private val coloredShader = shader("renderer/pos_tex_shady")
 
     fun drawTexture(texture: Texture, rect: Rect) {
         texture.bind()
-        shader.use()
+        mainShader.use()
 
         drawInternal(rect)
     }
 
     fun drawTextureShaded(texture: Texture, rect: Rect) {
         texture.bind()
-        shaderColored.use()
+        coloredShader.use()
 
-        shaderColored["u_Time"] = glfwGetTime() * GuiSettings.colorSpeed * 5.0
-        shaderColored["u_Color1"] = GuiSettings.shadeColor1
-        shaderColored["u_Color2"] = GuiSettings.shadeColor2
-        shaderColored["u_Size"] = RenderMain.screenSize / Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
+        coloredShader["u_Time"] = glfwGetTime() * GuiSettings.colorSpeed * 5.0
+        coloredShader["u_Color1"] = GuiSettings.shadeColor1
+        coloredShader["u_Color2"] = GuiSettings.shadeColor2
+        coloredShader["u_Size"] = RenderMain.screenSize / Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
 
         drawInternal(rect)
     }

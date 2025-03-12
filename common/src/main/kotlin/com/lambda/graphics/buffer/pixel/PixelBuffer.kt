@@ -17,110 +17,81 @@
 
 package com.lambda.graphics.buffer.pixel
 
-import com.lambda.graphics.buffer.IBuffer
-import com.lambda.graphics.gl.padding
+import com.lambda.graphics.buffer.Buffer
 import com.lambda.graphics.gl.putTo
 import com.lambda.graphics.texture.Texture
+import com.lambda.util.math.MathUtils.toInt
 import org.lwjgl.opengl.GL45C.*
 import java.nio.ByteBuffer
 
 /**
  * Represents a Pixel Buffer Object (PBO) that facilitates asynchronous data transfer to the GPU.
- * This class manages the creation, usage, and cleanup of PBOs and provides methods to upload (map) data efficiently.
  *
- * **Process**:
  * Every function that performs a pixel transfer operation can use buffer objects instead of client memory.
  * Functions that perform an upload operation, a pixel unpack, will use the buffer object bound to the target GL_PIXEL_UNPACK_BUFFER.
  * If a buffer is bound, then the pointer value that those functions take is not a pointer, but an offset from the beginning of that buffer.
  *
- * @property width      The width of the texture
- * @property height     The height of the texture
- * @property texture    The [Texture] instance
- * @property format     The image format that will be uploaded
+ * @property texture        The [Texture] instance to use
+ * @property asynchronous   Whether to use 2 buffers or not
+ * @property bufferMapping  Whether to map a block in memory to upload or not
  *
- * @see <a href="https://www.khronos.org/opengl/wiki/Pixel_Buffer_Object">Pixel Buffer Object</a>
+ * @see <a href="https://www.khronos.org/opengl/wiki/Pixel_Buffer_Object">Reference</a>
  */
 class PixelBuffer(
-    private val width: Int,
-    private val height: Int,
     private val texture: Texture,
-    private val format: Int,
-) : IBuffer {
-    override val buffers: Int = 2
+    private val asynchronous: Boolean = false,
+    private val bufferMapping: Boolean = false,
+) : Buffer(buffers = asynchronous.toInt() + 1) {
     override val usage: Int = GL_STATIC_DRAW
     override val target: Int = GL_PIXEL_UNPACK_BUFFER
-    override val access: Int = GL_MAP_WRITE_BIT or GL_MAP_COHERENT_BIT
-    override var index = 0
-    override val bufferIds = IntArray(buffers).apply { glGenBuffers(this) }
+    override val access: Int = GL_MAP_WRITE_BIT
 
-    private val channels = channelMapping[format] ?: throw IllegalArgumentException("Image format unsupported")
-    private val internalFormat = reverseChannelMapping[channels] ?: throw IllegalArgumentException("Image internal format unsupported")
-    private val size = width * height * channels * 1L
+    private val channels = channelMapping[texture.format] ?: throw IllegalArgumentException("Invalid image format, expected OpenGL format, got ${texture.format} instead")
+    private val size = texture.width * texture.height * channels * 1L
 
     override fun upload(
         data: ByteBuffer,
         offset: Long,
     ): Throwable? {
-        // Bind PBO to unpack the data into the texture
         bind()
-
-        // Bind the texture and PBO
         glBindTexture(GL_TEXTURE_2D, texture.id)
 
         // Copy pixels from PBO to texture object
         // Use offset instead of pointer
         glTexSubImage2D(
             GL_TEXTURE_2D,        // Target
-            0,                    // Mipmap level
-            0, 0,                 // x and y offset
-            width, height,        // width and height of the texture (set to your size)
-            format,               // Format (depends on your data)
+            0,               // Mipmap level
+            0, 0,    // x and y offset
+            texture.width,        // Width of the texture
+            texture.height,       // Height of the texture
+            texture.format,       // Format of your texture (depends on your data)
             GL_UNSIGNED_BYTE,     // Type (depends on your data)
-            0,                    // PBO offset (for asynchronous transfer)
+            0,              // PBO offset (for asynchronous transfer)
         )
 
-        // Unbind the texture
-        glBindTexture(GL_TEXTURE_2D, 0)
-
-        // Swap the buffer
         swap()
-
-        // Bind PBO to update pixel source
         bind()
 
-        // Map the buffer into the client's memory
-        val error = map(offset, size, data::putTo)
+        val error =
+            if (bufferMapping) map(size, offset, data::putTo)
+            else update(data, offset)
 
-        // Unbind
         bind(0)
 
         return error
     }
 
     init {
-        // Bind the texture
+        if (!texture.initialized) throw IllegalStateException("Cannot use uninitialized textures for pixel buffers")
+
+        // We can't call the texture's bind method because the animated texture updates the
+        // data when binding the texture, causing a null pointer exception due to the animated
+        // texture object not being initialized
         glBindTexture(GL_TEXTURE_2D, texture.id)
-
-        // Calculate memory padding in the case we are using tightly
-        // packed data in order to save memory and satisfy the computer's
-        // architecture memory alignment
-        // https://en.wikipedia.org/wiki/Data_structure_alignment
-        // In this case we calculate the padding and subtract this to 4
-        // in order to tell the padding size
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 4 - padding(channels))
-
-        // Allocate texture storage
-        // TODO: Might want to figure out the data type based on the input
-        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, 0)
-
-        // Set the texture parameters
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture.width, texture.height, 0, texture.format, GL_UNSIGNED_BYTE, 0)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
 
-        // Unbind the texture
-        glBindTexture(GL_TEXTURE_2D, 0)
-
-        // Fill the storage with null
         storage(size)
     }
 
@@ -138,16 +109,6 @@ class PixelBuffer(
             GL_BGR to 3,
             GL_RGBA to 4,
             GL_BGRA to 4,
-        )
-
-        /**
-         * Returns an internal format based on how many channels there are
-         */
-        private val reverseChannelMapping = mapOf(
-            1 to GL_RED,
-            2 to GL_RG,
-            3 to GL_RGB,
-            4 to GL_RGBA,
         )
     }
 }

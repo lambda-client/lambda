@@ -18,6 +18,7 @@
 package com.lambda.graphics.renderer.esp.impl
 
 import com.lambda.graphics.buffer.IRenderContext
+import com.lambda.graphics.renderer.esp.ESPRenderer
 import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
 

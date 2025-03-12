@@ -21,10 +21,10 @@ import kotlin.math.max
 import kotlin.math.min
 
 data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
-    val left = pos1.x
-    val top = pos1.y
-    val right = pos2.x
-    val bottom = pos2.y
+    val left get() = pos1.x
+    val top get() = pos1.y
+    val right get() = pos2.x
+    val bottom get() = pos2.y
 
     val leftTop get() = Vec2d(left, top)
     val rightTop get() = Vec2d(right, top)
@@ -63,6 +63,9 @@ data class Rect(private val pos1: Vec2d, private val pos2: Vec2d) {
         val ZERO = Rect(Vec2d.ZERO, Vec2d.ZERO)
 
         fun basedOn(base: Vec2d, width: Double, height: Double) =
+            Rect(base, base + Vec2d(width, height))
+
+        fun basedOn(base: Vec2d, width: Int, height: Int) =
             Rect(base, base + Vec2d(width, height))
 
         fun basedOn(base: Vec2d, size: Vec2d) =

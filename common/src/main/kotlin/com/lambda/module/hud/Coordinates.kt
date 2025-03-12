@@ -18,6 +18,7 @@
 package com.lambda.module.hud
 
 import com.lambda.context.SafeContext
+import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -47,7 +48,7 @@ object Coordinates : HudModule(
     init {
         onRender {
             runSafe {
-                font.build(text, position)
+                drawString(text, position)
             }
         }
     }
