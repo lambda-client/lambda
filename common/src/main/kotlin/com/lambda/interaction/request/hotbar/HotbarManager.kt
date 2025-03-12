@@ -46,7 +46,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
             it.slot = currentRequest?.slot ?: return@listen
         }
 
-        listen<TickEvent.Pre> {
+        listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
             preEvent()
             if (updateRequest()) interaction.syncSelectedSlot()
             if (currentRequest != null) activeThisTick = true

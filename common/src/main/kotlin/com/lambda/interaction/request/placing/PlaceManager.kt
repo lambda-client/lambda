@@ -21,7 +21,6 @@ import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -31,6 +30,8 @@ import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
+import com.lambda.interaction.request.rotation.RotationManager.onRotatePost
+import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
@@ -57,41 +58,56 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) { info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out") }
 
+    private var rotation: RotationRequest? = null
+
     init {
-        listen<TickEvent.Pre>(Int.MIN_VALUE) {
+        onRotate(priority = Int.MIN_VALUE) {
             preEvent()
 
-            if (!updateRequest { request ->
-                pendingInteractions.none { pending -> pending.context.expectedPos == request.value.placeContext.expectedPos }
-            }) {
+            if (!updateRequest { request -> canPlace(request.value.placeContext) }) {
                 postEvent()
-                return@listen
+                return@onRotate
             }
 
             if (BreakManager.activeThisTick()) {
                 postEvent()
-                return@listen
+                return@onRotate
             }
 
             currentRequest?.let request@ { request ->
-                if (pendingInteractions.size >= request.buildConfig.placeSettings.maxPendingPlacements)
-                    return@request
+                if (pendingInteractions.size >= request.buildConfig.placeSettings.maxPendingPlacements) {
+                    postEvent()
+                    return@onRotate
+                }
 
                 activeThisTick = true
 
-                if (request.placeContext.sneak && !player.isSneaking
-                    || (request.buildConfig.placeSettings.rotateForPlace && !request.placeContext.rotation.done)
-                    || (!request.hotbarConfig.request(HotbarRequest(request.placeContext.hotbarIndex)).done)
-                    ) {
-                    postEvent()
-                    return@listen
+                if (request.buildConfig.placeSettings.rotateForPlace) {
+                    rotation = request.rotationConfig.request(request.placeContext.rotation)
                 }
+
                 pendingInteractions.setMaxSize(request.buildConfig.maxPendingInteractions)
                 pendingInteractions.setDecayTime(request.buildConfig.interactionTimeout * 50L)
-                placeBlock(request, Hand.MAIN_HAND)
             }
+        }
 
-            postEvent()
+        onRotatePost {
+            currentRequest?.let { request ->
+                val notSneaking = !player.isSneaking
+                val hotbarRequest = request.hotbarConfig.request(HotbarRequest(request.placeContext.hotbarIndex))
+                val invalidRotation = request.buildConfig.placeSettings.rotateForPlace && rotation?.done != true
+                if ((request.placeContext.sneak && notSneaking) || !hotbarRequest.done || invalidRotation) {
+                    postEvent()
+                    return@onRotatePost
+                }
+
+                placeBlock(request, Hand.MAIN_HAND)
+                postEvent()
+            }
+        }
+
+        listen<MovementEvent.InputUpdate> {
+            if (currentRequest?.placeContext?.sneak == true) it.input.sneaking = true
         }
 
         listen<WorldEvent.BlockUpdate.Server> { event ->
@@ -105,19 +121,12 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
                     pending.onPlace()
                 }
         }
-
-        onRotate {
-            currentRequest?.let { request ->
-                if (request.buildConfig.placeSettings.rotateForPlace) {
-                    request.rotationConfig.request(request.placeContext.rotation)
-                }
-            }
-        }
-
-        listen<MovementEvent.InputUpdate> {
-            if (currentRequest?.placeContext?.sneak == true) it.input.sneaking = true
-        }
     }
+
+    private fun canPlace(placeContext: PlaceContext) =
+        pendingInteractions.none { pending ->
+            pending.context.expectedPos == placeContext.expectedPos
+        }
 
     private fun SafeContext.matchesTargetState(pos: BlockPos, targetState: TargetState, newState: BlockState) =
         if (targetState.matches(newState, pos, world)) true
@@ -160,16 +169,14 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
 
     private fun SafeContext.interactBlock(placeConfig: PlaceConfig, hand: Hand, hitResult: BlockHitResult): ActionResult {
         interaction.syncSelectedSlot()
-        if (!world.worldBorder.contains(hitResult.blockPos)) {
-            return ActionResult.FAIL
-        } else {
-            val mutableActionResult = MutableObject<ActionResult>()
-            interaction.sendSequencedPacket(world) { sequence: Int ->
-                mutableActionResult.value = interactBlockInternal(placeConfig, hand, hitResult)
-                PlayerInteractBlockC2SPacket(hand, hitResult, sequence)
-            }
-            return mutableActionResult.value
+        if (!world.worldBorder.contains(hitResult.blockPos)) return ActionResult.FAIL
+
+        val mutableActionResult = MutableObject<ActionResult>()
+        interaction.sendSequencedPacket(world) { sequence: Int ->
+            mutableActionResult.value = interactBlockInternal(placeConfig, hand, hitResult)
+            PlayerInteractBlockC2SPacket(hand, hitResult, sequence)
         }
+        return mutableActionResult.value
     }
 
     private fun SafeContext.interactBlockInternal(
@@ -188,15 +195,14 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
 
         if (!itemStack.isEmpty && !player.itemCooldownManager.isCoolingDown(itemStack.item)) {
             val itemUsageContext = ItemUsageContext(player, hand, hitResult)
-            val itemUseResult: ActionResult
-            if (interaction.currentGameMode.isCreative) {
+            return if (interaction.currentGameMode.isCreative) {
                 val i = itemStack.count
-                itemUseResult = useOnBlock(placeConfig, itemStack, itemUsageContext)
-                itemStack.count = i
+                useOnBlock(placeConfig, itemStack, itemUsageContext)
+                    .also {
+                        itemStack.count = i
+                    }
             } else
-                itemUseResult = useOnBlock(placeConfig, itemStack, itemUsageContext)
-
-            return itemUseResult
+                useOnBlock(placeConfig, itemStack, itemUsageContext)
         }
         return ActionResult.PASS
     }
@@ -206,13 +212,12 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
         itemStack: ItemStack,
         context: ItemUsageContext
     ): ActionResult {
-        val blockPos = context.blockPos
-        val cachedBlockPosition = CachedBlockPosition(context.world, blockPos, false)
-        if (!player.abilities.allowModifyWorld
-            && !itemStack.canPlaceOn(context.world.registryManager.get(RegistryKeys.BLOCK), cachedBlockPosition)
-            ) {
-            return ActionResult.PASS
-        }
+        val cachedBlockPosition = CachedBlockPosition(context.world, context.blockPos, false)
+
+        val cantModifyWorld = !player.abilities.allowModifyWorld
+        val cantPlaceOn = !itemStack.canPlaceOn(context.world.registryManager.get(RegistryKeys.BLOCK), cachedBlockPosition)
+        if (cantModifyWorld && cantPlaceOn) return ActionResult.PASS
+
         val item = (itemStack.item as? BlockItem) ?: return ActionResult.PASS
         val actionResult = place(placeConfig, item, ItemPlacementContext(context))
 

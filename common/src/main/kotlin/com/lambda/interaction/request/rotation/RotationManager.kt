@@ -24,6 +24,7 @@ import com.lambda.event.EventFlow.post
 import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.rotation.Rotation.Companion.slerp
 import com.lambda.interaction.request.rotation.visibilty.lookAt
@@ -59,8 +60,17 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
      */
     fun Any.onRotate(
         alwaysListen: Boolean = false,
-        block: SafeContext.() -> Unit,
-    ) = this.listen<PlayerPacketEvent.Post>(0, alwaysListen) {
+        priority: Priority = 0,
+        block: SafeContext.() -> Unit
+    ) = this.listen<UpdateManagerEvent.Rotation.Pre>(priority, alwaysListen) {
+        block()
+    }
+
+    fun Any.onRotatePost(
+        alwaysListen: Boolean = false,
+        priority: Priority = 0,
+        block: SafeContext.() -> Unit
+    ) = this.listen<UpdateManagerEvent.Rotation.Post>(priority, alwaysListen) {
         block()
     }
 
@@ -265,6 +275,6 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
         }
     }
 
-    override fun preEvent() = UpdateManagerEvent.Rotation.Pre()
-    override fun postEvent() = UpdateManagerEvent.Rotation.Post()
+    override fun preEvent() = UpdateManagerEvent.Rotation.Pre().post()
+    override fun postEvent() = UpdateManagerEvent.Rotation.Post().post()
 }

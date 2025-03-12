@@ -20,7 +20,6 @@ package com.lambda.interaction.request.breaking
 import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
-import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -34,6 +33,8 @@ import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
+import com.lambda.interaction.request.rotation.RotationManager.onRotatePost
+import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
@@ -70,21 +71,23 @@ object BreakManager : RequestHandler<BreakRequest>() {
 
     private var blockBreakingCooldown = 0
 
+    private var rotation: RotationRequest? = null
+
     init {
-        listen<TickEvent.Pre>(Int.MIN_VALUE) {
+        onRotate(priority = Int.MIN_VALUE) {
             preEvent()
 
             if (isOnBreakCooldown()) {
                 blockBreakingCooldown--
                 updateRequest(true) { true }
                 postEvent()
-                return@listen
+                return@onRotate
             }
 
             if (PlaceManager.activeThisTick()) {
                 updateRequest(true) { true }
                 postEvent()
-                return@listen
+                return@onRotate
             }
 
             //ToDo: improve instamine / non instamine integration
@@ -121,16 +124,25 @@ object BreakManager : RequestHandler<BreakRequest>() {
 
             breakingInfos
                 .filterNotNull()
+                .firstOrNull { it.breakConfig.rotateForBreak }
+                ?.let { info ->
+                    rotation = info.rotationConfig.request(info.context.rotation)
+                }
+        }
+
+        onRotatePost {
+            val notNullInfos = breakingInfos.filterNotNull()
+
+            notNullInfos
                 .firstOrNull()?.let { info ->
                     activeThisTick = true
-                    if (info.breakConfig.rotateForBreak && !info.context.rotation.done) {
+                    if (info.breakConfig.rotateForBreak && rotation?.done != true) {
                         postEvent()
-                        return@listen
+                        return@onRotatePost
                     }
                 }
 
-            breakingInfos
-                .filterNotNull()
+            notNullInfos
                 .reversed()
                 .forEach { info ->
                     if (info.hotbarConfig.request(HotbarRequest(info.context.hotbarIndex)).done.not()) return@forEach
@@ -138,14 +150,6 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 }
 
             postEvent()
-        }
-
-        onRotate {
-            breakingInfos
-                .filterNotNull()
-                .firstOrNull { it.breakConfig.rotateForBreak }?.let { info ->
-                    info.rotationConfig.request(info.context.rotation)
-                }
         }
 
         //ToDo: Clean this up
