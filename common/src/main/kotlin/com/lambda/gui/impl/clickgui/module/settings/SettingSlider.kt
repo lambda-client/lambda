@@ -64,18 +64,12 @@ abstract class SettingSlider <V : Any, T: AbstractSetting<V>>(
 
                 onUpdate {
                     lastValue = text
+                    mergeFrom(textField)
                     text = settingValue
+
                     if (lastValue != text) changeAnimation = 0.0
-
-                    offsetX = textField.offsetX
-                    offsetY = textField.offsetY
-
                     textHAlignment = HAlign.RIGHT
-                    textVAlignment = textField.textVAlignment
-                    shadow = textField.shadow
-                    color = textField.color
-
-                    scale = textField.scale * lerp(changeAnimation, 1.1, 1.0)
+                    scale *= lerp(changeAnimation, 1.1, 1.0)
                 }
             }
         }

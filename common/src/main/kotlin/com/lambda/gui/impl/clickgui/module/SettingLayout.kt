@@ -47,6 +47,8 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
 
     override val isShown: Boolean get() = super.isShown && isVisible
 
+
+
     init {
         isMinimized = true
 
@@ -65,16 +67,6 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
             content.destroy()
         } else {
             backgroundTint(true)
-
-            // Minimize other expandable settings when this one gets opened
-            onWindowExpand {
-                owner.children
-                    .filterIsInstance<SettingLayout<*, *>>()
-                    .filter { it.expandable }
-                    .forEach {
-                        if (it != this) it.isMinimized = true
-                    }
-            }
         }
 
         titleBar.textField.onUpdate {

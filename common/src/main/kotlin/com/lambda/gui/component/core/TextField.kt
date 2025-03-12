@@ -42,6 +42,18 @@ class TextField(
     val textWidth get() = FontRenderer.getWidth(text, scale)
     val textHeight get() = FontRenderer.getHeight(scale)
 
+    fun mergeFrom(other: TextField) {
+        text = other.text
+        color = other.color
+        scale = other.scale
+        shadow = other.shadow
+
+        textHAlignment = HAlign.RIGHT
+        textVAlignment = other.textVAlignment
+        offsetX = other.offsetX
+        offsetY = other.offsetY
+    }
+
     init {
         properties.interactionPassthrough = true
 

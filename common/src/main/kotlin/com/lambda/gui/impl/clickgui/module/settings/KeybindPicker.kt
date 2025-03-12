@@ -22,19 +22,45 @@ import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.core.TextField.Companion.textField
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
+import com.lambda.gui.impl.clickgui.module.ModuleLayout
 import com.lambda.gui.impl.clickgui.module.SettingLayout
 import com.lambda.util.KeyCode
+import com.lambda.util.Mouse
 import com.lambda.util.extension.displayValue
 
 class KeybindPicker(
     owner: Layout,
     setting: KeyBindSetting
 ) : SettingLayout<KeyCode, KeyBindSetting>(owner, setting) {
+    private var isListening = false
 
     init {
         textField {
-            text = setting.value.displayValue
-            textHAlignment = HAlign.RIGHT
+            onUpdate {
+                mergeFrom(titleBar.textField)
+                text = if (isListening) "..." else setting.value.displayValue
+                textHAlignment = HAlign.RIGHT
+            }
+        }
+
+        onMouseAction(Mouse.Button.Left) {
+            isListening = !isListening
+        }
+
+        onKeyPress { key ->
+            if (!isListening) return@onKeyPress
+
+            settingDelegate = key
+            isListening = false
+        }
+
+        onShow {
+            isListening = false
+        }
+
+        onTick {
+            val module = (owner.owner as? ModuleLayout) ?: return@onTick
+            if (module.isMinimized) isListening = false
         }
     }
 
