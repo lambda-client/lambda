@@ -79,6 +79,16 @@ object BreakManager : RequestHandler<BreakRequest>() {
     private var rotation: RotationRequest? = null
     private var validRotation = false
 
+    fun Any.onBreak(
+        alwaysListen: Boolean = false,
+        block: SafeContext.() -> Unit
+    ) = listen<UpdateManagerEvent.Break.Pre>(0, alwaysListen) { block() }
+
+    fun Any.onBreakPost(
+        alwaysListen: Boolean = false,
+        block: SafeContext.() -> Unit
+    ) = listen<UpdateManagerEvent.Break.Post>(0, alwaysListen) { block() }
+
     init {
         listen<TickEvent.Pre>(Int.MIN_VALUE) {
             if (isOnBreakCooldown()) {
@@ -514,16 +524,6 @@ object BreakManager : RequestHandler<BreakRequest>() {
                 Secondary -> secondaryBreakingInfo = null
             }
     }
-
-    fun Any.onBreak(
-        alwaysListen: Boolean = false,
-        block: SafeContext.() -> Unit
-    ) = listen<UpdateManagerEvent.Break.Pre>(0, alwaysListen) { block() }
-
-    fun Any.onBreakPost(
-        alwaysListen: Boolean = false,
-        block: SafeContext.() -> Unit
-    ) = listen<UpdateManagerEvent.Break.Post>(0, alwaysListen) { block() }
 
     override fun preEvent() = UpdateManagerEvent.Break.Pre().post()
     override fun postEvent() = UpdateManagerEvent.Break.Post().post()
