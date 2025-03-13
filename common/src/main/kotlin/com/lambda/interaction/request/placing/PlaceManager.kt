@@ -68,7 +68,7 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
         get() = pendingInteractions.map { it.context.expectedPos }
 
     init {
-        listen<TickEvent.Pre> {
+        listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
             currentRequest?.let { request ->
                 val notSneaking = !player.isSneaking
                 val hotbarRequest = request.hotbarConfig.request(HotbarRequest(request.placeContext.hotbarIndex))
@@ -110,7 +110,7 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
             }
         }
 
-        onRotatePost {
+        onRotatePost(priority = Int.MIN_VALUE) {
             validRotation = rotation?.done ?: true
             postEvent()
         }

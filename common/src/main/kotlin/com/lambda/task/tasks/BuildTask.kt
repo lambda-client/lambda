@@ -42,6 +42,7 @@ import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.tr
 import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.placing.PlaceRequest
+import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
@@ -90,15 +91,15 @@ class BuildTask @Ta5kBuilder constructor(
     }
 
     init {
-        listen<TickEvent.Pre> {
-            if (collectDrops()) return@listen
+        onRotate {
+            if (collectDrops()) return@onRotate
 
             // ToDo: Simulate for each pair player positions that work
             val results = blueprint.simulate(player.eyePos, interact, rotation, inventory, build)
 
             TaskFlowModule.drawables = results.filterIsInstance<Drawable>()
                 .plus(pendingInteractions.toList())
-//                .plus(sim.goodPositions())
+            //                .plus(sim.goodPositions())
 
             if (build.breakSettings.breaksPerTick > 1) {
                 val instantResults = results.filterIsInstance<BreakResult.Break>()
@@ -113,31 +114,31 @@ class BuildTask @Ta5kBuilder constructor(
                             onBreak = { breaks++ }
                         ) { item -> if (collectDrops) dropsToCollect.add(item) }
                     )
-                    return@listen
+                    return@onRotate
                 }
             }
 
             val resultsNotBlocked = results.filterNot { result ->
                 result.blockPos in pendingInteractions.map { it.expectedPos }
             }.sorted()
-            val bestResult = resultsNotBlocked.firstOrNull() ?: return@listen
+            val bestResult = resultsNotBlocked.firstOrNull() ?: return@onRotate
             when (bestResult) {
                 is BuildResult.Done,
                 is BuildResult.Ignored,
                 is BuildResult.Unbreakable,
                 is BuildResult.Restricted,
                 is BuildResult.NoPermission -> {
-                    if (pendingInteractions.isNotEmpty()) return@listen
+                    if (pendingInteractions.isNotEmpty()) return@onRotate
                     if (blueprint is PropagatingBlueprint) {
                         blueprint.next()
-                        return@listen
+                        return@onRotate
                     }
                     if (finishOnDone) success()
                 }
 
                 is BuildResult.NotVisible,
                 is PlaceResult.NoIntegrity -> {
-                    if (!build.pathing) return@listen
+                    if (!build.pathing) return@onRotate
                     val sim = blueprint.simulation(interact, rotation, inventory, build)
                     val goal = BuildGoal(sim, player.blockPos)
                     BaritoneUtils.setGoalAndPath(goal)
@@ -148,7 +149,7 @@ class BuildTask @Ta5kBuilder constructor(
                 }
 
                 is BuildResult.Contextual -> {
-                    if (pendingInteractions.size >= build.maxPendingInteractions) return@listen
+                    if (pendingInteractions.size >= build.maxPendingInteractions) return@onRotate
                     val breakContexts = resultsNotBlocked.filterIsInstance<BreakResult.Break>().map { it.context }
                     if (breakContexts.isNotEmpty()) {
                         val request = BreakRequest(
@@ -156,9 +157,9 @@ class BuildTask @Ta5kBuilder constructor(
                             onBreak = { breaks++ },
                         ) { item -> if (collectDrops) dropsToCollect.add(item) }
                         build.breakSettings.request(request)
-                        return@listen
+                        return@onRotate
                     }
-                    if (bestResult !is PlaceResult.Place) return@listen
+                    if (bestResult !is PlaceResult.Place) return@onRotate
                     build.placeSettings.request(
                         PlaceRequest(bestResult.context, build, rotation, hotbar, interact) { placements++ }
                     )

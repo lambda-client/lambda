@@ -91,7 +91,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
     ) = listen<UpdateManagerEvent.Break.Post>(0, alwaysListen) { block() }
 
     init {
-        listen<TickEvent.Pre>(Int.MIN_VALUE) {
+        listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
             if (isOnBreakCooldown()) {
                 blockBreakingCooldown--
                 return@listen
@@ -169,7 +169,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
             requestRotate()
         }
 
-        onRotatePost {
+        onRotatePost(priority = Int.MIN_VALUE) {
             validRotation = rotation?.done ?: true
             postEvent()
         }
