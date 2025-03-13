@@ -7,8 +7,12 @@ import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.client.network.PlayerListEntry
 import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.item.Item
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.util.Hand
+
+val SafeContext.gamemode
+    get() = interaction.currentGameMode
 
 fun SafeContext.copyPlayer(entity: ClientPlayerEntity) =
     ClientPlayerEntity(mc, world, mc.networkHandler, null, null, entity.isSneaking, entity.isSprinting).apply {
@@ -57,3 +61,5 @@ fun SafeContext.swingHandClient(hand: Hand) {
         player.preferredHand = hand
     }
 }
+
+fun SafeContext.isItemOnCooldown(item: Item) = player.itemCooldownManager.isCoolingDown(item)

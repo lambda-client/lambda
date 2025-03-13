@@ -56,6 +56,7 @@ import com.lambda.util.item.ItemUtils.findBestToolsForBreaking
 import com.lambda.util.math.distSq
 import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.copyPlayer
+import com.lambda.util.player.gamemode
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.OperatorBlock
 import net.minecraft.block.pattern.CachedBlockPosition
@@ -121,7 +122,7 @@ object BuildSimulator {
         }
 
         /* the player is in the wrong game mode to alter the block state */
-        if (player.isBlockBreakingRestricted(world, pos, interaction.currentGameMode)) {
+        if (player.isBlockBreakingRestricted(world, pos, gamemode)) {
             return BuildResult.Restricted(pos)
         }
 
@@ -136,7 +137,7 @@ object BuildSimulator {
         }
 
         /* block is unbreakable, so it cant be broken or replaced */
-        if (state.getHardness(world, pos) < 0 && !player.isCreative) {
+        if (state.getHardness(world, pos) < 0 && !gamemode.isCreative) {
             return BuildResult.Unbreakable(pos, state)
         }
 
@@ -461,7 +462,7 @@ object BuildSimulator {
             eye, blockHit, request, state, targetState, player.inventory.selectedSlot, instant
         )
 
-        if (player.isCreative) {
+        if (gamemode.isCreative) {
             acc.add(BreakResult.Break(pos, breakContext))
             return acc
         }

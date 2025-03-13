@@ -37,6 +37,8 @@ import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
+import com.lambda.util.player.gamemode
+import com.lambda.util.player.isItemOnCooldown
 import com.lambda.util.player.swingHand
 import net.minecraft.block.BlockState
 import net.minecraft.block.pattern.CachedBlockPosition
@@ -192,7 +194,7 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
         hitResult: BlockHitResult
     ): ActionResult {
         val itemStack = player.getStackInHand(hand)
-        if (interaction.currentGameMode == GameMode.SPECTATOR) return ActionResult.SUCCESS
+        if (gamemode == GameMode.SPECTATOR) return ActionResult.SUCCESS
 
         // checks if the player should be able to interact with the block for if its something
         // like a furnace or chest where an action would happen
@@ -200,9 +202,9 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
 //        val cantInteract = player.shouldCancelInteraction() && handNotEmpty
 //        if (!cantInteract) return ActionResult.PASS
 
-        if (!itemStack.isEmpty && !player.itemCooldownManager.isCoolingDown(itemStack.item)) {
+        if (!itemStack.isEmpty && !isItemOnCooldown(itemStack.item)) {
             val itemUsageContext = ItemUsageContext(player, hand, hitResult)
-            return if (interaction.currentGameMode.isCreative) {
+            return if (gamemode.isCreative) {
                 val i = itemStack.count
                 useOnBlock(placeConfig, itemStack, itemUsageContext)
                     .also {
@@ -219,7 +221,7 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
         itemStack: ItemStack,
         context: ItemUsageContext
     ): ActionResult {
-        val cachedBlockPosition = CachedBlockPosition(context.world, context.blockPos, false)
+        val cachedBlockPosition = CachedBlockPosition(world, context.blockPos, false)
 
         val cantModifyWorld = !player.abilities.allowModifyWorld
         val cantPlaceOn = !itemStack.canPlaceOn(context.world.registryManager.get(RegistryKeys.BLOCK), cachedBlockPosition)

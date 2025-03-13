@@ -19,6 +19,7 @@ package com.lambda.util
 
 import com.lambda.context.SafeContext
 import com.lambda.util.math.MathUtils.floorToInt
+import com.lambda.util.player.gamemode
 import net.minecraft.block.AbstractCauldronBlock
 import net.minecraft.block.AbstractFurnaceBlock
 import net.minecraft.block.AbstractSignBlock
@@ -237,12 +238,12 @@ object BlockUtils {
 
     fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos, breakThreshold: Float): Boolean {
         val ticksNeeded = 1 / (blockState.calcBlockBreakingDelta(player, world, blockPos) / breakThreshold)
-        return (ticksNeeded <= 1 && ticksNeeded != 0f) || player.isCreative
+        return (ticksNeeded <= 1 && ticksNeeded != 0f) || gamemode.isCreative
     }
 
     fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos, item: ItemStack, breakThreshold: Float): Boolean {
         val ticksNeeded = 1 / (blockState.calcItemBlockBreakingDelta(player, world, blockPos, item) / breakThreshold)
-        return (ticksNeeded <= 1 && ticksNeeded != 0f) || player.isCreative
+        return (ticksNeeded <= 1 && ticksNeeded != 0f) || gamemode.isCreative
     }
 
     fun BlockState.calcItemBlockBreakingDelta(

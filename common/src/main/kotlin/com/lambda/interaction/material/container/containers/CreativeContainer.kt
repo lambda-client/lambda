@@ -22,9 +22,9 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
 import com.lambda.interaction.material.transfer.TransactionExecutor
-import com.lambda.interaction.material.transfer.TransactionExecutor.Companion
 import com.lambda.task.Task
 import com.lambda.util.item.ItemStackUtils.equal
+import com.lambda.util.player.gamemode
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import net.minecraft.item.ItemStack
@@ -44,7 +44,7 @@ data object CreativeContainer : MaterialContainer(Rank.CREATIVE) {
         override val name: String get() = "Removing $selection from creative inventory"
 
         override fun SafeContext.onStart() {
-            if (!player.isCreative) {
+            if (!gamemode.isCreative) {
                 // ToDo: Maybe switch gamemode?
                 throw NotInCreativeModeException()
             }
@@ -70,7 +70,7 @@ data object CreativeContainer : MaterialContainer(Rank.CREATIVE) {
             selection.optimalStack?.let { optimalStack ->
                 if (player.mainHandStack.equal(optimalStack)) return
 
-                if (!player.isCreative) {
+                if (!gamemode.isCreative) {
                     // ToDo: Maybe switch gamemode?
                     throw NotInCreativeModeException()
                 }

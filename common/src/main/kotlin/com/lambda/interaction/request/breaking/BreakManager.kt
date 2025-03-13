@@ -44,6 +44,7 @@ import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.item.ItemUtils.block
+import com.lambda.util.player.gamemode
 import com.lambda.util.player.swingHand
 import net.minecraft.block.BlockState
 import net.minecraft.block.OperatorBlock
@@ -281,7 +282,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
         val ctx = info.context
         val hitResult = ctx.result
 
-        if (interaction.currentGameMode.isCreative && world.worldBorder.contains(ctx.expectedPos)) {
+        if (gamemode.isCreative && world.worldBorder.contains(ctx.expectedPos)) {
             setBreakCooldown(info.breakConfig.breakDelay)
             interaction.sendSequencedPacket(world) { sequence ->
                 onBlockBreak(info)
@@ -358,10 +359,10 @@ object BreakManager : RequestHandler<BreakRequest>() {
     private fun SafeContext.attackBlock(info: BreakInfo): Boolean {
         val ctx = info.context
 
-        if (player.isBlockBreakingRestricted(world, ctx.expectedPos, interaction.currentGameMode)) return false
+        if (player.isBlockBreakingRestricted(world, ctx.expectedPos, gamemode)) return false
         if (!world.worldBorder.contains(ctx.expectedPos)) return false
 
-        if (interaction.currentGameMode.isCreative) {
+        if (gamemode.isCreative) {
             interaction.sendSequencedPacket(world) { sequence: Int ->
                 onBlockBreak(info)
                 PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, ctx.expectedPos, ctx.result.side, sequence)
@@ -433,7 +434,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
     private fun SafeContext.destroyBlock(info: BreakInfo): Boolean {
         val ctx = info.context
 
-        if (player.isBlockBreakingRestricted(world, ctx.expectedPos, interaction.currentGameMode)) return false
+        if (player.isBlockBreakingRestricted(world, ctx.expectedPos, gamemode)) return false
 
         if (!player.mainHandStack.item.canMine(ctx.checkedState, world, ctx.expectedPos, player))
             return false
