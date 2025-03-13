@@ -39,4 +39,7 @@ object NoRender : Module(
 
     @JvmStatic
     val noInWall by setting("No In Wall Overlay", true)
+
+    @JvmStatic
+    val noChatVerificationToast by setting("No Chat Verification Toast", true)
 }

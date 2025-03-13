@@ -17,6 +17,8 @@
 
 package com.lambda.module.modules.combat
 
+import com.lambda.Lambda
+import com.lambda.Lambda.mc
 import com.lambda.config.groups.RotationSettings
 import com.lambda.config.groups.Targeting
 import com.lambda.context.SafeContext
@@ -28,8 +30,7 @@ import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.buildWorldProjection
 import com.lambda.graphics.gl.Matrices.withVertexTransform
 import com.lambda.graphics.renderer.gui.font.FontRenderer
-import com.lambda.graphics.renderer.gui.font.LambdaEmoji
-import com.lambda.graphics.renderer.gui.font.LambdaFont
+import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
@@ -130,8 +131,6 @@ object CrystalAura : Module(
         }
     }
 
-    private val font = FontRenderer(LambdaFont.FiraSansRegular, LambdaEmoji.Twemoji)
-
     init {
         // Async ticking
         fixedRateTimer(
@@ -179,16 +178,13 @@ object CrystalAura : Module(
         listen<RenderEvent.World> {
             if (!debug) return@listen
 
-            // Build the buffer
-            blueprint.values.forEach {
-                it.buildDebug()
-            }
-
-            // Draw the font
             Matrices.push {
-                val c = mc.gameRenderer.camera.pos.negate()
+                val c = Lambda.mc.gameRenderer.camera.pos.negate()
                 translate(c.x, c.y, c.z)
-                font.render()
+                // Build the buffer
+                blueprint.values.forEach {
+                    it.buildDebug()
+                }
             }
         }
 
@@ -513,11 +509,11 @@ object CrystalAura : Module(
                     "Self Damage: ${self.roundToStep(0.01)}"
                 )
 
-                var height = -0.5 * lines.size * (font.getHeight() + 2)
+                var height = -0.5 * lines.size * (FontRenderer.getHeight() + 2)
 
                 lines.forEach {
-                    font.build(it, Vec2d(-font.getWidth(it) * 0.5, height))
-                    height += font.getHeight() + 2
+                    drawString(it, Vec2d(-FontRenderer.getWidth(it) * 0.5, height))
+                    height += FontRenderer.getHeight() + 2
                 }
             }
         }

@@ -32,6 +32,8 @@ accessible field net/minecraft/client/network/AbstractClientPlayerEntity playerL
 accessible field net/minecraft/entity/LivingEntity jumpingCooldown I
 accessible field net/minecraft/entity/Entity pos Lnet/minecraft/util/math/Vec3d;
 accessible field net/minecraft/client/network/ClientPlayerInteractionManager lastSelectedSlot I
+accessible method net/minecraft/entity/LivingEntity modifyAppliedDamage (Lnet/minecraft/entity/damage/DamageSource;F)F
+accessible method net/minecraft/entity/LivingEntity applyArmorToDamage (Lnet/minecraft/entity/damage/DamageSource;F)F
 accessible method net/minecraft/entity/LivingEntity getHandSwingDuration ()I
 accessible method net/minecraft/client/network/ClientPlayerInteractionManager syncSelectedSlot ()V
 
@@ -75,7 +77,13 @@ accessible field net/minecraft/network/packet/c2s/play/PlayerInteractEntityC2SPa
 accessible method net/minecraft/client/network/ClientPlayerInteractionManager sendSequencedPacket (Lnet/minecraft/client/world/ClientWorld;Lnet/minecraft/client/network/SequencedPacketCreator;)V
 accessible field net/minecraft/client/world/ClientWorld pendingUpdateManager Lnet/minecraft/client/network/PendingUpdateManager;
 
+# Math
+accessible method net/minecraft/util/math/Vec3i setX (I)Lnet/minecraft/util/math/Vec3i;
+accessible method net/minecraft/util/math/Vec3i setY (I)Lnet/minecraft/util/math/Vec3i;
+accessible method net/minecraft/util/math/Vec3i setZ (I)Lnet/minecraft/util/math/Vec3i;
+
 # Other
 accessible field net/minecraft/world/explosion/Explosion behavior Lnet/minecraft/world/explosion/ExplosionBehavior;
 accessible field net/minecraft/structure/StructureTemplate blockInfoLists Ljava/util/List;
 accessible method net/minecraft/item/BlockItem getPlacementState (Lnet/minecraft/item/ItemPlacementContext;)Lnet/minecraft/block/BlockState;
+accessible field net/minecraft/client/gui/screen/ingame/HandledScreen focusedSlot Lnet/minecraft/screen/slot/Slot;

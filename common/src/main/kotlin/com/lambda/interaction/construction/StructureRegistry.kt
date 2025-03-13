@@ -30,6 +30,7 @@ import net.minecraft.nbt.NbtIo
 import net.minecraft.nbt.NbtSizeTracker
 import net.minecraft.registry.Registries
 import net.minecraft.structure.StructureTemplate
+import java.io.FileNotFoundException
 import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
@@ -58,8 +59,6 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
     private val serializers = mapOf(
         "nbt" to StructureTemplate::readNbtOrException,
         "schem" to StructureTemplate::readSpongeOrException,
-
-        // Not supported due to the clusterfuck codebase of litematica and basically zero documentation
         "litematic" to StructureTemplate::readLitematicaOrException,
 
         // Not supported, who could've guess that converting a format from 15 years ago would be hard? :clueless:
@@ -74,16 +73,18 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
      * @param convert Whether to replace the file after converting it.
      *
      * @throws IllegalStateException if there was an error while parsing the data
+     * @throws FileNotFoundException when the given path doesn't exist
      */
     fun loadStructureByRelativePath(
         relativePath: Path,
         convert: Boolean = true,
     ): StructureTemplate {
-        updateFileWatcher()
+        updateFileWatcher(convert)
 
-        return computeIfAbsent(relativePath.pathString.lowercase()) {
-            loadFileAndCreate(relativePath, convert)
-        }
+        val structure = loadFileAndCreate(relativePath, convert)
+        putIfAbsent(relativePath.pathString, structure)
+
+        return structure
     }
 
     /**
@@ -91,7 +92,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
      * They might not show up in the command suggestion, but they are
      * present in the map.
      */
-    private fun updateFileWatcher() {
+    private fun updateFileWatcher(convert: Boolean) {
         pathWatcher.poll()?.let { key ->
             key.pollEvents()
                 ?.filterIsInstance<WatchEvent<Path>>()
@@ -101,9 +102,8 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
                     when (event.kind()) {
                         ENTRY_DELETE -> remove(newPath.pathString)
                         ENTRY_CREATE -> {
-                            computeIfAbsent(newPath.pathString) {
-                                loadStructureByRelativePath(newPath, convert = true)
-                            }
+                            put(newPath.pathString,
+                                loadFileAndCreate(newPath, convert))
                         }
                     }
 
@@ -149,9 +149,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
         StructureTemplate().apply {
             serializers[suffix]
                 ?.invoke(this, Registries.BLOCK.readOnlyWrapper, nbt)
-                ?.let { error ->
-                    throw IllegalStateException("Could not create structure: ${error.message}")
-                }
+                ?.let { throw it } // ToDo: Maybe use propagation instead of errors as values
         }
 
     /**
@@ -180,13 +178,14 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
         contains("DataVersion") && contains("blocks") && contains("palette") && contains("size")
 
     override fun load(): String {
-        runCatching {
-            structure.walk()
-                .filter { it.extension in serializers.keys }
-                .sortedBy { it.extension.length } // Don’t walk lexicographically -Constructor
-                .distinctBy { it.nameWithoutExtension }
-                .forEach { loadStructureByRelativePath(structure.relativize(it)) }
-        }.onFailure { LOG.warn(it.message) }
+        structure.walk()
+            .filter { it.extension in serializers.keys }
+            .sortedBy { it.extension.length } // Don’t walk lexicographically -Constructor
+            .distinctBy { it.nameWithoutExtension } // Pick the first structure in the priority list nbt > litematica > schematica
+            .forEach { struct ->
+                runCatching { loadStructureByRelativePath(structure.relativize(struct)) }
+                    .onFailure { LOG.warn("Unable to load the structure $struct: ${it.message}") }
+            }
 
         return "Loaded $size structure templates"
     }

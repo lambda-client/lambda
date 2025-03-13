@@ -19,177 +19,261 @@ package com.lambda.graphics.renderer.gui.font
 
 import com.lambda.graphics.buffer.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
-import com.lambda.graphics.buffer.vertex.attributes.VertexMode
-import com.lambda.graphics.renderer.gui.font.glyph.GlyphInfo
-import com.lambda.graphics.shader.Shader
+import com.lambda.graphics.renderer.gui.AbstractGUIRenderer
+import com.lambda.graphics.renderer.gui.font.core.GlyphInfo
+import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.get
+import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.height
+import com.lambda.graphics.shader.Shader.Companion.shader
+import com.lambda.graphics.texture.TextureOwner.bind
 import com.lambda.module.modules.client.LambdaMoji
 import com.lambda.module.modules.client.RenderSettings
+import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.a
 import com.lambda.util.math.setAlpha
 import java.awt.Color
 
-class FontRenderer(
-    private val font: LambdaFont,
-    private val emojis: LambdaEmoji
-) {
-    private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.FONT)
+/**
+ * Renders text and emoji glyphs using a shader-based font rendering system.
+ * This class handles text and emoji rendering, shadow effects, and text scaling.
+ */
+object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/font")) {
+    private val chars get() = RenderSettings.textFont
+    private val emojis get() = RenderSettings.emojiFont
 
-    var scaleMultiplier = 1.0
+    private val shadowShift get() = RenderSettings.shadowShift * 10.0
+    private val baselineOffset get() = RenderSettings.baselineOffset * 2.0f - 16f
+    private val gap get() = RenderSettings.gap * 0.5f - 0.8f
 
     /**
-     * Builds the vertex array for rendering the text.
+     * Renders a text string at a specified position with configurable color, scale, shadow, and emoji parsing
+     *
+     * @param text The text to render.
+     * @param position The position to render the text.
+     * @param color The color of the text.
+     * @param scale The scale factor of the text.
+     * @param shadow Whether to render a shadow for the text.
+     * @param parseEmoji Whether to parse and render emojis in the text.
      */
-    fun build(
+    fun drawString(
         text: String,
-        position: Vec2d,
+        position: Vec2d = Vec2d.ZERO,
         color: Color = Color.WHITE,
         scale: Double = 1.0,
         shadow: Boolean = true,
-    ) = pipeline.use {
-        iterateText(text, scale, shadow, color) { char, pos1, pos2, color ->
-            grow(4)
-            putQuad(
-                vec3m(pos1.x + position.x, pos1.y + position.y, 0.0).vec2(char.uv1.x, char.uv1.y).color(color).end(),
-                vec3m(pos1.x + position.x, pos2.y + position.y, 0.0).vec2(char.uv1.x, char.uv2.y).color(color).end(),
-                vec3m(pos2.x + position.x, pos2.y + position.y, 0.0).vec2(char.uv2.x, char.uv2.y).color(color).end(),
-                vec3m(pos2.x + position.x, pos1.y + position.y, 0.0).vec2(char.uv2.x, char.uv1.y).color(color).end()
-            )
+        parseEmoji: Boolean = LambdaMoji.isEnabled
+    ) = render {
+        shader["u_FontTexture"] = 0
+        shader["u_EmojiTexture"] = 1
+        shader["u_SDFMin"] = RenderSettings.sdfMin
+        shader["u_SDFMax"] = RenderSettings.sdfMax
+
+        bind(chars, emojis)
+
+        processText(text, color, scale, shadow, parseEmoji) { char, pos1, pos2, col, _ ->
+            buildGlyph(char, position, pos1, pos2, col)
         }
     }
 
     /**
-     * Calculates the width of the given text.
+     * Renders a single glyph at the specified position with the given scale and color
+     *
+     * @param glyph The glyph information
+     * @param position The rendering position where the glyph will be drawn
+     * @param color The color of the glyph
+     * @param scale The scale factor of the glyph
      */
-    fun getWidth(text: String, scale: Double = 1.0): Double {
-        var width = 0.0
-        iterateText(text, scale, false) { char, _, _, _ -> width += char.width + gap }
-        return width * getScaleFactor(scale)
+    fun drawGlyph(
+        glyph: GlyphInfo,
+        position: Vec2d,
+        color: Color = Color.WHITE,
+        scale: Double = 1.0
+    ) = render {
+        shader["u_FontTexture"] = 0
+        shader["u_EmojiTexture"] = 1
+        shader["u_SDFMin"] = RenderSettings.sdfMin
+        shader["u_SDFMax"] = RenderSettings.sdfMax
+
+        bind(chars, emojis)
+
+        val actualScale = getScaleFactor(scale)
+        val scaledSize = glyph.size * actualScale
+
+        val posY = getHeight(scale) * -0.5 + baselineOffset * actualScale
+        val pos1 = Vec2d(0.0, posY) * actualScale
+        val pos2 = pos1 + scaledSize
+
+        buildGlyph(glyph, position, pos1, pos2, color)
     }
 
     /**
-     * Calculates the height of the text.
+     * Renders a single glyph at a given position.
      *
-     * The values are hardcoded
-     * We do not need to ask the emoji font since the height is smaller
+     * @param glyph The glyph information to render.
+     * @param origin The position to start from
+     * @param pos1 The starting position of the glyph.
+     * @param pos2 The end position of the glyph
+     * @param color The color of the glyph.
      */
-    fun getHeight(scale: Double = 1.0) = font.glyphs.fontHeight * getScaleFactor(scale) * 0.7
+    private fun VertexPipeline.buildGlyph(
+        glyph: GlyphInfo,
+        origin: Vec2d = Vec2d.ZERO,
+        pos1: Vec2d,
+        pos2: Vec2d,
+        color: Color,
+    ) {
+        val x1 = pos1.x + origin.x
+        val y1 = pos1.y + origin.y
+        val x2 = pos2.x + origin.x
+        val y2 = pos2.y + origin.y
+
+        grow(4)
+
+        putQuad(
+            vec3m(x1, y1, 0.0).vec2(glyph.uv1.x, glyph.uv1.y).color(color).end(),
+            vec3m(x1, y2, 0.0).vec2(glyph.uv1.x, glyph.uv2.y).color(color).end(),
+            vec3m(x2, y2, 0.0).vec2(glyph.uv2.x, glyph.uv2.y).color(color).end(),
+            vec3m(x2, y1, 0.0).vec2(glyph.uv2.x, glyph.uv1.y).color(color).end()
+        )
+    }
 
     /**
-     * Iterates over each character and emoji in the text.
+     * Calculates the width of the specified text.
+     *
+     * @param text The text to measure.
+     * @param scale The scale factor for the width calculation.
+     * @param parseEmoji Whether to include emojis in the width calculation.
+     * @return The width of the text at the specified scale.
+     */
+    fun getWidth(
+        text: String,
+        scale: Double = 1.0,
+        parseEmoji: Boolean = LambdaMoji.isEnabled,
+    ): Double {
+        var width = 0.0
+        var gaps = -1
+
+        processText(text, scale = scale, parseEmoji = parseEmoji) { char, _, _, _, isShadow ->
+            if (isShadow) return@processText
+            width += char.width; gaps++
+        }
+
+        return (width + gaps.coerceAtLeast(0) * gap) * getScaleFactor(scale)
+    }
+
+    /**
+     * Computes the effective height of the rendered text
+     *
+     * The height is derived from the current font's base height, adjusted by a scaling factor
+     * that ensures consistent visual proportions
+     *
+     * @param scale The scale factor for the height calculation.
+     * @return The height of the text at the specified scale.
+     */
+    fun getHeight(scale: Double = 1.0) = chars.height * getScaleFactor(scale) * 0.7
+
+    /**
+     * Processes a text string by iterating over its characters and emojis, computing rendering positions, and invoking a block for each glyph
      *
      * @param text The text to iterate over.
+     * @param color The color of the text.
      * @param scale The scale of the text.
      * @param shadow Whether to render a shadow.
-     * @param color The color of the text.
-     * @param block The block to execute for each character.
-     *
-     * @see GlyphInfo
+     * @param parseEmoji Whether to parse and include emojis.
+     * @param block The function to apply to each character or emoji glyph.
      */
-    private fun iterateText(
+    private fun processText(
         text: String,
-        scale: Double,
-        shadow: Boolean,
         color: Color = Color.WHITE,
-        block: (GlyphInfo, Vec2d, Vec2d, Color) -> Unit
+        scale: Double = 1.0,
+        shadow: Boolean = RenderSettings.shadow,
+        parseEmoji: Boolean = LambdaMoji.isEnabled,
+        block: (GlyphInfo, Vec2d, Vec2d, Color, Boolean) -> Unit
     ) {
         val actualScale = getScaleFactor(scale)
         val scaledGap = gap * actualScale
 
         val shadowColor = getShadowColor(color)
-        val emojiColor = Color.WHITE.setAlpha(color.a)
+        val emojiColor = color.setAlpha(color.a)
 
         var posX = 0.0
-        val posY = getHeight(scale) * -0.5 + baselineOffset * actualScale
+        var posY = getHeight(scale) * -0.5 + baselineOffset * actualScale
 
-        val emojis = parseEmojis(text, emojis)
+        fun drawGlyph(info: GlyphInfo?, color: Color, isShadow: Boolean = false) {
+            if (info == null) return
 
-        fun draw(info: GlyphInfo, color: Color, offset: Double = 0.0) {
             val scaledSize = info.size * actualScale
-            val pos1 = Vec2d(posX, posY) + offset * actualScale
+            val pos1 = Vec2d(posX, posY) + shadowShift * actualScale * isShadow.toInt()
             val pos2 = pos1 + scaledSize
 
-            block(info, pos1, pos2, color)
-            if (offset == 0.0) posX += scaledSize.x + scaledGap
+            block(info, pos1, pos2, color, isShadow)
+            if (!isShadow) posX += scaledSize.x + scaledGap
         }
 
-        var index = 0
-        textProcessor@ while (index < text.length) {
-            var innerLoopContact = false // Instead of using BreakContinueInInlineLambdas, we use this
+        val parsed = if (parseEmoji) emojis.parse(text) else mutableListOf()
 
-            if (LambdaMoji.isEnabled) {
-                // Check if there are emojis to render
-                emojis.firstOrNull { index in it.second }?.let { emoji ->
-                    if (index == emoji.second.first) draw(emoji.first, emojiColor)
+        fun processTextSection(section: String, hasEmojis: Boolean) {
+            if (section.isEmpty()) return
+            if (!parseEmoji || parsed.isEmpty() || !hasEmojis) {
+                // Draw simple characters if no emojis are present
+                section.forEach { char ->
+                    // Logic for control characters
+                    when (char) {
+                        '\n', '\r' -> { posX = 0.0; posY += chars.height * actualScale; return@forEach }
+                    }
 
-                    // Skip the emoji
-                    index = emoji.second.last + 1
-                    innerLoopContact = true
+                    val glyph = chars[char] ?: return@forEach
+
+                    if (shadow && RenderSettings.shadow) drawGlyph(glyph, shadowColor, true)
+                    drawGlyph(glyph, color)
                 }
+            } else {
+                // Only compute the first parsed emoji to avoid duplication
+                // This is important in order to keep the parsed ranges valid
+                // If you do not this, you will get out of bounds positions
+                // due to slicing
+                val emoji = parsed.removeFirstOrNull() ?: return
+
+                // Iterate the emojis from left to right
+                val start = section.indexOf(emoji)
+                val end = start + emoji.length
+
+                val preEmojiText = section.substring(0, start)
+                val postEmojiText = section.substring(end)
+
+                // Draw the text without emoji
+                processTextSection(preEmojiText, hasEmojis = false)
+
+                // Draw the emoji
+                drawGlyph(emojis[emoji], emojiColor)
+
+                // Process the rest of the text after the emoji
+                processTextSection(postEmojiText, hasEmojis = true)
             }
-
-            if (innerLoopContact) continue@textProcessor
-
-            // Render chars
-            val charInfo = font[text[index]] ?: continue@textProcessor
-
-            // Draw a shadow before
-            if (shadow && RenderSettings.shadow && shadowShift > 0.0) {
-                draw(charInfo, shadowColor, shadowShift)
-            }
-
-            // Draw actual char over the shadow
-            draw(charInfo, color)
-
-            index++
         }
+
+        // Start processing the full text
+        processTextSection(text, hasEmojis = parsed.isNotEmpty())
     }
 
-    private fun getScaleFactor(scale: Double) = scaleMultiplier * scale * 0.12
+    /**
+     * Calculates the scale factor for the text based on the provided scale.
+     *
+     * @param scale The base scale factor.
+     * @return The adjusted scale factor.
+     */
+    fun getScaleFactor(scale: Double): Double = scale * 8.5 / chars.height
 
-    private fun getShadowColor(color: Color): Color {
-        return Color(
-            (color.red * RenderSettings.shadowBrightness).toInt(),
-            (color.green * RenderSettings.shadowBrightness).toInt(),
-            (color.blue * RenderSettings.shadowBrightness).toInt(),
-            color.alpha
-        )
-    }
-
-    fun render() {
-        shader.use()
-        shader["u_EmojiTexture"] = 1
-
-        font.glyphs.bind()
-        emojis.glyphs.bind()
-
-        pipeline.upload()
-        pipeline.render()
-        pipeline.clear()
-    }
-
-    companion object {
-        private val shader = Shader("renderer/font")
-
-        val shadowShift get() = RenderSettings.shadowShift * 5.0
-        val baselineOffset get() = RenderSettings.baselineOffset * 2.0f - 10f
-        val gap get() = RenderSettings.gap * 0.5f - 0.8f
-
-        private val emojiRegex = Regex(":[a-zA-Z0-9_]+:")
-
-        /**
-         * Parses the emojis in the given text.
-         *
-         * @param text The text to parse.
-         * @return A list of pairs containing the glyph info and the range of the emoji in the text.
-         */
-        fun parseEmojis(text: String, emojis: LambdaEmoji) =
-            mutableListOf<Pair<GlyphInfo, IntRange>>().apply {
-                emojiRegex.findAll(text).forEach { match ->
-                    val emojiKey = match.value.substring(1, match.value.length - 1)
-                    val charInfo = emojis[emojiKey] ?: return@forEach
-                    add(charInfo to match.range)
-                }
-            }
-    }
+    /**
+     * Calculates the shadow color by adjusting the brightness of the input color.
+     *
+     * @param color The original color.
+     * @return The modified shadow color.
+     */
+    fun getShadowColor(color: Color): Color = Color(
+        (color.red * RenderSettings.shadowBrightness).toInt(),
+        (color.green * RenderSettings.shadowBrightness).toInt(),
+        (color.blue * RenderSettings.shadowBrightness).toInt(),
+        color.alpha
+    )
 }
