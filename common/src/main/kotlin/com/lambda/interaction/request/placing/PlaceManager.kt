@@ -99,9 +99,9 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
 
                 activeThisTick = true
 
-                if (request.buildConfig.placeSettings.rotateForPlace) {
-                    rotation = request.rotationConfig.request(request.placeContext.rotation)
-                }
+                rotation = if (request.buildConfig.placeSettings.rotateForPlace)
+                    request.rotationConfig.request(request.placeContext.rotation)
+                else null
 
                 pendingInteractions.setMaxSize(request.buildConfig.maxPendingInteractions)
                 pendingInteractions.setDecayTime(request.buildConfig.interactionTimeout * 50L)
@@ -109,7 +109,7 @@ object PlaceManager : RequestHandler<PlaceRequest>() {
         }
 
         onRotatePost {
-            validRotation = rotation?.done == true
+            validRotation = rotation?.done ?: true
             postEvent()
         }
 

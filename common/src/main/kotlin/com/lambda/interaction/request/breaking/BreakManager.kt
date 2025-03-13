@@ -169,13 +169,7 @@ object BreakManager : RequestHandler<BreakRequest>() {
         }
 
         onRotatePost {
-            validRotation = breakingInfos
-                .filterNotNull()
-                .firstOrNull()
-                ?.let { info ->
-                    !info.breakConfig.rotateForBreak || rotation?.done == true
-                } ?: true
-
+            validRotation = rotation?.done ?: true
             postEvent()
         }
 
