@@ -39,8 +39,10 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
+import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarConfig
+import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.module.modules.client.TaskFlowModule
@@ -101,13 +103,21 @@ class BuildTask @Ta5kBuilder constructor(
                 .plus(pendingInteractions.toList())
             //                .plus(sim.goodPositions())
 
+            val resultsNotBlocked = results.filter { result ->
+                    when(result) {
+                        is BreakResult.Break -> { BreakManager.blockedPositions.none { blocked -> blocked == result.blockPos } }
+                        is PlaceResult.Place -> { PlaceManager.blockedPositions.none { blocked -> blocked == result.blockPos } }
+                        else -> true
+                    }
+                }
+                .sorted()
+
             if (build.breakSettings.breaksPerTick > 1) {
-                val instantResults = results.filterIsInstance<BreakResult.Break>()
+                val instantResults = resultsNotBlocked.filterIsInstance<BreakResult.Break>()
                     .filter { it.context.instantBreak }
-                    .sorted()
                     .take(build.breakSettings.breaksPerTick)
 
-                instantResults.firstOrNull()?.let {
+                if (instantResults.isNotEmpty()) {
                     build.breakSettings.request(
                         BreakRequest(
                             instantResults.map { it.context }, build, rotation, hotbar,
@@ -118,9 +128,6 @@ class BuildTask @Ta5kBuilder constructor(
                 }
             }
 
-            val resultsNotBlocked = results.filterNot { result ->
-                result.blockPos in pendingInteractions.map { it.expectedPos }
-            }.sorted()
             val bestResult = resultsNotBlocked.firstOrNull() ?: return@onRotate
             when (bestResult) {
                 is BuildResult.Done,
@@ -150,19 +157,25 @@ class BuildTask @Ta5kBuilder constructor(
 
                 is BuildResult.Contextual -> {
                     if (pendingInteractions.size >= build.maxPendingInteractions) return@onRotate
-                    val breakContexts = resultsNotBlocked.filterIsInstance<BreakResult.Break>().map { it.context }
-                    if (breakContexts.isNotEmpty()) {
-                        val request = BreakRequest(
-                            breakContexts, build, rotation, hotbar,
-                            onBreak = { breaks++ },
-                        ) { item -> if (collectDrops) dropsToCollect.add(item) }
-                        build.breakSettings.request(request)
-                        return@onRotate
+                    when (bestResult) {
+                        is BreakResult.Break -> {
+                            val breakContexts = resultsNotBlocked
+                                .filterIsInstance<BreakResult.Break>()
+                                .map { it.context }
+
+                            val request = BreakRequest(
+                                breakContexts, build, rotation, hotbar,
+                                onBreak = { breaks++ }
+                            ) { item -> if (collectDrops) dropsToCollect.add(item) }
+                            build.breakSettings.request(request)
+                            return@onRotate
+                        }
+                        is PlaceResult.Place -> {
+                            build.placeSettings.request(
+                                PlaceRequest(bestResult.context, build, rotation, hotbar, interact) { placements++ }
+                            )
+                        }
                     }
-                    if (bestResult !is PlaceResult.Place) return@onRotate
-                    build.placeSettings.request(
-                        PlaceRequest(bestResult.context, build, rotation, hotbar, interact) { placements++ }
-                    )
                 }
 
                 is Resolvable -> {
