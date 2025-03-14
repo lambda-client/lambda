@@ -52,7 +52,7 @@ object FolderRegister : Loadable {
     val maps: Path = lambda.resolve("maps")
 
     override fun load(): String {
-        val folders = listOf(lambda, config, packetLogs, replay, cache, structure)
+        val folders = listOf(lambda, config, packetLogs, replay, cache, capes, structure, maps)
         val createdFolders = folders.mapNotNull {
             if (it.notExists()) {
                 it.createDirectories()
