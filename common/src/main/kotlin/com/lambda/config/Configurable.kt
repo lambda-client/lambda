@@ -23,16 +23,14 @@ import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.config.settings.CharSetting
+import com.lambda.config.settings.FunctionSetting
 import com.lambda.config.settings.StringSetting
 import com.lambda.config.settings.collections.ListSetting
 import com.lambda.config.settings.collections.MapSetting
 import com.lambda.config.settings.collections.SetSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
-import com.lambda.config.settings.complex.BlockPosSetting
-import com.lambda.config.settings.complex.BlockSetting
-import com.lambda.config.settings.complex.ColorSetting
-import com.lambda.config.settings.complex.KeyBindSetting
+import com.lambda.config.settings.complex.*
 import com.lambda.config.settings.numeric.*
 import com.lambda.util.Communication.logError
 import com.lambda.util.KeyCode
@@ -173,7 +171,6 @@ abstract class Configurable(
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [List] value of type [T] for the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
-     * @param hackDelegates A flag that determines whether the setting should be serialized with the default value.
      * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
@@ -204,7 +201,6 @@ abstract class Configurable(
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Map] value of type [K] and [V] for the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
-     * @param hackDelegates A flag that determines whether the setting should be serialized with the default value.
      * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
@@ -424,4 +420,11 @@ abstract class Configurable(
         description: String = "",
         visibility: () -> Boolean = { true },
     ) = BlockSetting(name, defaultValue, description, visibility).register()
+
+    fun setting(
+        name: String,
+        defaultValue: () -> Unit,
+        description: String = "",
+        visibility: () -> Boolean = { true }
+    ) = FunctionSetting(name, defaultValue, description, visibility).register()
 }

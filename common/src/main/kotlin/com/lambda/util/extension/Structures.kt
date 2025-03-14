@@ -51,8 +51,11 @@ fun StructureTemplate.readNbtOrException(
 fun StructureTemplate.readSpongeOrException(
     lookup: RegistryEntryLookup<Block>,
     nbt: NbtCompound,
-): Throwable? = when (nbt.getInt("Version")) {
-    1, 2, 3 -> readSpongeV1OrException(lookup, nbt)
+): Throwable? = when (nbt.getInt("Version") +
+        nbt.getCompound("Schematic").getInt("Version"))
+{
+    1, 2 -> readSpongeV1OrException(lookup, nbt)
+    3 -> readSpongeV3OrException(lookup, nbt)
     else -> IllegalStateException("Invalid sponge schematic version")
 }
 
@@ -88,11 +91,7 @@ private fun StructureTemplate.readSpongeV1OrException(
     //     ?.takeIf { 274945015809L times 16 < it } ?: 0L
 
     val palette = nbt.getCompound("Palette")
-
-    val paletteMax = nbt.getInt("PaletteMax")
     val newPalette = NbtList()
-
-    if (palette.size != paletteMax) return IllegalStateException("Block palette size does not match the provided size (corrupted?)")
 
     palette.keys
         .sortedBy { palette.getInt(it) }
@@ -145,16 +144,27 @@ private fun StructureTemplate.readSpongeV3OrException(
     lookup: RegistryEntryLookup<Block>,
     nbt: NbtCompound,
 ): Throwable? {
-    // Third revision
-    // - 3D Biome support
-    // - Rename Palette to BlockPalette
-    // - Wordsmithing varint and palette usages
-    nbt.put("Palette", nbt.getCompound("BlockPalette"))
+    val schematic = nbt.getCompound("Schematic")
+    val blocks = schematic.getCompound("Blocks")
+
+    schematic.put("Palette", blocks.getCompound("Palette"))
+    schematic.putByteArray("BlockData", blocks.getByteArray("Data"))
+
+    nbt.clear()
+    nbt.copyFrom(schematic)
 
     return readSpongeV1OrException(lookup, nbt)
 }
 
 fun StructureTemplate.readLitematicaOrException(
+    lookup: RegistryEntryLookup<Block>,
+    nbt: NbtCompound,
+): Throwable? = when (val ver = nbt.getInt("Version")) {
+    1, 2, 3, 4 -> readLitematicaV4OrException(lookup, nbt)
+    else -> IllegalStateException("Unsupported litematica version $ver")
+}
+
+private fun StructureTemplate.readLitematicaV4OrException(
     lookup: RegistryEntryLookup<Block>,
     nbt: NbtCompound,
 ): Throwable? {
@@ -189,9 +199,9 @@ fun StructureTemplate.readLitematicaOrException(
             val bits = palette.size.logCap(2)
             val maxEntryValue = (1 shl bits) - 1L
 
-            for (y in 0 until ySizeAbs) {
-                for (z in 0 until zSizeAbs) {
-                    for (x in 0 until xSizeAbs) {
+            for (x in 0 until xSizeAbs) {
+                for (y in 0 until ySizeAbs) {
+                    for (z in 0 until zSizeAbs) {
                         val index = (y * xSizeAbs * zSizeAbs) + z * xSizeAbs + x
 
                         val startOffset = index * bits
@@ -199,9 +209,12 @@ fun StructureTemplate.readLitematicaOrException(
                         val endArrIndex = ((index + 1) * bits - 1) / 64
                         val startBitOffset = startOffset % 64
 
-                        val stateId =
-                            if (startArrIndex == endArrIndex) palette[startArrIndex] ushr startBitOffset and maxEntryValue
-                            else (palette[startArrIndex] ushr startBitOffset or palette[endArrIndex] shl (64 - startBitOffset)) and maxEntryValue
+
+                        val stateId = if (startArrIndex == endArrIndex) {
+                            palette[startArrIndex] ushr startBitOffset and maxEntryValue
+                        } else {
+                            (palette[startArrIndex] ushr startBitOffset or palette[endArrIndex] shl (64 - startBitOffset)) and maxEntryValue
+                        }
 
                         newBlocks.add(NbtCompound().apply {
                             putIntList("pos", x, y, z)

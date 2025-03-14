@@ -27,7 +27,7 @@ object DynamicESP : DynamicESPRenderer() {
     init {
         listen<TickEvent.Post> {
             clear()
-            RenderEvent.DynamicESP().post()
+            RenderEvent.StaticESP().post()
             upload()
         }
     }

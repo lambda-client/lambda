@@ -1,21 +1,25 @@
 #version 330 core
 
-uniform float u_Time;
-uniform vec4 u_Color1;
-uniform vec4 u_Color2;
 uniform vec2 u_Size;
+uniform float u_RoundLeftTop;
+uniform float u_RoundLeftBottom;
+uniform float u_RoundRightBottom;
+uniform float u_RoundRightTop;
+
+uniform float u_Shade;
+uniform float u_ShadeTime;
+uniform vec4 u_ShadeColor1;
+uniform vec4 u_ShadeColor2;
+uniform vec2 u_ShadeSize;
 
 in vec2 v_Position;
 in vec2 v_TexCoord;
 in vec4 v_Color;
-in vec2 v_Size;
-in float v_RoundRadius;
-in float v_Shade;
 
 out vec4 color;
 
 #define SMOOTHING 0.25
-#define NOISE_GRANULARITY 0.005
+#define NOISE_GRANULARITY 0.004
 
 vec4 noise() {
     // https://shader-tutorial.dev/advanced/color-banding-dithering/
@@ -25,21 +29,45 @@ vec4 noise() {
 }
 
 vec4 shade() {
-    if (v_Shade != 1.0) return v_Color;
+    if (u_Shade != 1.0) return v_Color;
 
-    vec2 pos = v_Position * u_Size;
-    float p = sin(pos.x - pos.y - u_Time) * 0.5 + 0.5;
+    vec2 pos = v_Position * u_ShadeSize;
+    float p = sin(pos.x - pos.y - u_ShadeTime) * 0.5 + 0.5;
 
-    return mix(u_Color1, u_Color2, p) * v_Color;
+    return mix(u_ShadeColor1, u_ShadeColor2, p) * v_Color;
+}
+
+float getRoundRadius() {
+    // ToDo: use step
+    bool xcmp = v_TexCoord.x > 0.5;
+    bool ycmp = v_TexCoord.y > 0.5;
+
+    float r = 0.0;
+
+    if (xcmp) {
+        if (ycmp) {
+            r = u_RoundRightBottom;
+        } else {
+            r = u_RoundRightTop;
+        }
+    } else {
+        if (ycmp) {
+            r = u_RoundLeftBottom;
+        } else {
+            r = u_RoundLeftTop;
+        }
+    }
+
+    return r;
 }
 
 vec4 round() {
-    vec2 halfSize = v_Size * 0.5;
+    vec2 halfSize = u_Size * 0.5;
 
-    float radius = max(v_RoundRadius, SMOOTHING);
+    float radius = max(getRoundRadius(), SMOOTHING);
 
     vec2 smoothVec = vec2(SMOOTHING);
-    vec2 coord = mix(-smoothVec, v_Size + smoothVec, v_TexCoord);
+    vec2 coord = mix(-smoothVec, u_Size + smoothVec, v_TexCoord);
 
     vec2 center = halfSize - coord;
     float distance = length(max(abs(center) - halfSize + radius, 0.0)) - radius;

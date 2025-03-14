@@ -17,4 +17,6 @@
 
 package com.lambda.graphics.renderer.esp.impl
 
+import com.lambda.graphics.renderer.esp.ESPRenderer
+
 open class DynamicESPRenderer : ESPRenderer(true)

@@ -30,14 +30,36 @@ fun NbtCompound.putIntList(key: String, vararg values: Int) {
 }
 
 /**
+ * Deletes all the keys in a compound
+ */
+fun NbtCompound.clear() {
+    keys.forEach { remove(it) }
+}
+
+/**
  * Retrieves a vector from a tuple
  */
 fun NbtCompound.getVector(key: String): Vec3i {
-    // TODO: Handle other cases like array of values, capitalized keys, etc
     val compound = getCompound(key)
-    val x = compound.getInt("x")
-    val y = compound.getInt("y")
-    val z = compound.getInt("z")
+
+    var x = compound.getInt("x")
+    var y = compound.getInt("y")
+    var z = compound.getInt("z")
+
+    if (x == 0 && y == 0 && z == 0) {
+        x = compound.getInt("X")
+        y = compound.getInt("Y")
+        z = compound.getInt("Z")
+    }
+
+    if (compound.isEmpty) {
+        val arr = getIntArray(key)
+        if (arr.size == 3) {
+            x = arr[0]
+            y = arr[1]
+            z = arr[2]
+        }
+    }
 
     return Vec3i(x, y, z)
 }

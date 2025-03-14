@@ -41,21 +41,16 @@ object MathUtils {
     fun Int.logCap(minimum: Int) = max(minimum.toDouble(), ceil(log2(toDouble()))).toInt()
 
     fun <T : Number> T.roundToStep(step: T): T {
-        val stepD = step.toDouble()
-        if (stepD == 0.0) return this
+        val valueBD = BigDecimal(toString())
+        val stepBD = BigDecimal(step.toString())
+        if (stepBD.compareTo(BigDecimal.ZERO) == 0) return this
+        val scaled = valueBD.divide(stepBD, stepBD.scale(), RoundingMode.HALF_UP)
+            .setScale(0, RoundingMode.HALF_UP)
+            .multiply(stepBD)
+            .setScale(stepBD.scale(), RoundingMode.HALF_UP)
 
-        var value = round(toDouble() / stepD) * stepD
-        value = value.roundToPlaces(stepD.decimals)
-        if (abs(value) == 0.0) value = 0.0
-
-        return typeConvert(value)
+        return typeConvert(scaled.toDouble())
     }
-
-    private fun Double.roundToPlaces(places: Int) =
-        BigDecimal(this).setScale(places, RoundingMode.HALF_EVEN).toDouble()
-
-    private val Double.decimals: Int
-        get() = BigDecimal.valueOf(this).scale()
 
     fun <T : Number> T.typeConvert(valueIn: Double): T {
         @Suppress("UNCHECKED_CAST")

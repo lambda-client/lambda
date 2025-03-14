@@ -21,9 +21,10 @@ import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.animation.AnimationTicker
-import com.lambda.gui.api.RenderLayer
-import com.lambda.gui.api.component.core.DockingRect
+import com.lambda.gui.component.DockingRect
 import com.lambda.module.tag.ModuleTag
+import com.lambda.gui.component.HAlign
+import com.lambda.gui.component.VAlign
 import com.lambda.util.KeyCode
 import com.lambda.util.math.Vec2d
 
@@ -35,8 +36,6 @@ abstract class HudModule(
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.UNBOUND,
 ) : Module(name, description, defaultTags, alwaysListening, enabledByDefault, defaultKeybind) {
-    private val renderCallables = mutableListOf<RenderLayer.() -> Unit>()
-
     protected abstract val width: Double
     protected abstract val height: Double
 
@@ -71,22 +70,10 @@ abstract class HudModule(
     val rect by rectHandler::rect
     val animation = AnimationTicker()
 
-    private val renderer = RenderLayer()
-
-    protected fun onRender(block: RenderLayer.() -> Unit) =
-        renderCallables.add(block)
+    protected fun onRender(block: () -> Unit) =
+        listen<RenderEvent.GUI.HUD> { block() }
 
     init {
-        listen<RenderEvent.GUI.HUD> { event ->
-            rectHandler.screenSize = event.screenSize
-
-            renderCallables.forEach { function ->
-                function(renderer)
-            }
-
-            renderer.render()
-        }
-
         listen<TickEvent.Pre> {
             animation.tick()
         }

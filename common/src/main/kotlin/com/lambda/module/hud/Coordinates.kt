@@ -18,16 +18,17 @@
 package com.lambda.module.hud
 
 import com.lambda.context.SafeContext
+import com.lambda.graphics.renderer.gui.font.FontRenderer
+import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.Formatting.asString
 import com.lambda.util.Formatting.string
 import com.lambda.util.extension.dimensionName
+import com.lambda.util.extension.isNether
 import com.lambda.util.math.netherCoord
 import com.lambda.util.math.overworldCoord
-import net.minecraft.registry.RegistryKey
-import net.minecraft.world.World
 
 object Coordinates : HudModule(
     name = "Coordinates",
@@ -37,25 +38,23 @@ object Coordinates : HudModule(
     private val showDimension by setting("Show Dimension", true)
     private val decimals by setting("Decimals", 2, 0..4, 1)
 
-    private val SafeContext.text: String
-        get() = "XYZ ${if (showDimension) dimensionName else ""} ${positionForDimension(world.registryKey)}"
+    private val text: String
+        get() = runSafe { "XYZ ${if (showDimension) dimensionName else ""} ${positionForDimension()}" } ?: ""
 
-    // TODO: Replace by LambdaAtlas height cache and actually build a proper text with highlighted parameters
-
-    override val height: Double get() = 20.0
-    override val width: Double get() = 50.0
+    override val height: Double get() = FontRenderer.getHeight()
+    override val width: Double get() = FontRenderer.getWidth(text)
 
     init {
         onRender {
             runSafe {
-                font.build(text, position)
+                drawString(text, position)
             }
         }
     }
 
-    private fun SafeContext.positionForDimension(dimension: RegistryKey<World>) =
-        when (dimension) {
-            World.NETHER -> "[${player.netherCoord.asString(decimals)}, ${player.netherCoord.z.string}] ${player.overworldCoord.asString(decimals)}"
-            else -> "${player.overworldCoord.asString(decimals)} [${player.netherCoord.x.string}, ${player.netherCoord.z.string}]"
+    private fun SafeContext.positionForDimension() =
+        when {
+            isNether -> "${player.pos.asString(decimals)} [${player.overworldCoord.x.string}; ${player.overworldCoord.z.string}]"
+            else -> "${player.pos.asString(decimals)} [${player.netherCoord.x.string}; ${player.netherCoord.z.string}]"
         }
 }
