@@ -39,6 +39,7 @@ import net.minecraft.network.NetworkSide.CLIENTBOUND
 import net.minecraft.network.packet.c2s.login.LoginHelloC2SPacket
 import net.minecraft.text.Text
 import java.math.BigInteger
+import kotlin.jvm.optionals.getOrElse
 
 
 object Network : Module(
@@ -84,7 +85,7 @@ object Network : Module(
         val address = ServerAddress.parse(authServer)
         val connection = ClientConnection(CLIENTBOUND)
         val resolved = AllowedAddressResolver.DEFAULT.resolve(address)
-            .map { it.inetSocketAddress }.get()
+            .map { it.inetSocketAddress }.getOrElse { return }
 
         ClientConnection.connect(resolved, mc.options.shouldUseNativeTransport(), connection)
             .syncUninterruptibly()
