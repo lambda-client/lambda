@@ -30,7 +30,7 @@ object Loader {
     val runtime: String
         get() = "${(System.currentTimeMillis() - started).milliseconds}"
 
-    private val loadables = getInstances<Loadable> { forPackages("com.lambda") }
+    private val loadables = getInstances<Loadable>()
 
     fun initialize(): Long {
         ascii.split("\n").forEach { LOG.info(it) }

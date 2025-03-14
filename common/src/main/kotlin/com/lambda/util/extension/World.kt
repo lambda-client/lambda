@@ -27,6 +27,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 import java.awt.Color
 
+val SafeContext.worldName: String get() = when { mc.currentServerEntry != null -> "Multiplayer"; mc.isIntegratedServerRunning -> "Singleplayer"; else -> "Main Menu" }
 val SafeContext.isOverworld: Boolean get() = world.registryKey == World.OVERWORLD
 val SafeContext.isNether: Boolean get() = world.registryKey == World.NETHER
 val SafeContext.isEnd: Boolean get() = world.registryKey == World.END

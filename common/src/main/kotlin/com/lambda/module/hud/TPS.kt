@@ -17,6 +17,8 @@
 
 package com.lambda.module.hud
 
+import com.lambda.graphics.renderer.gui.font.FontRenderer
+import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Formatting.string
@@ -34,12 +36,12 @@ object TPS : HudModule(
 
     // TODO: Replace by LambdaAtlas height cache and actually build a proper text with highlighted parameters
 
-    override val height: Double get() = 20.0
-    override val width: Double get() = 50.0
+    override val height: Double get() = FontRenderer.getHeight()
+    override val width: Double get() = FontRenderer.getWidth(text)
 
     init {
         onRender {
-            font.build(text, position)
+            drawString(text, position)
         }
     }
 

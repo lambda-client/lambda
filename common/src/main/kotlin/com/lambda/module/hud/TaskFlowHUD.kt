@@ -17,6 +17,7 @@
 
 package com.lambda.module.hud
 
+import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask
@@ -31,9 +32,7 @@ object TaskFlowHUD : HudModule(
 
     init {
         onRender {
-            RootTask.toString().lines().forEachIndexed { index, line ->
-                font.build(line, Vec2d(position.x, position.y + index * (font.getHeight(font.scaleMultiplier) + 2.0)))
-            }
+            drawString(RootTask.toString(), Vec2d.ZERO)
         }
     }
 }
