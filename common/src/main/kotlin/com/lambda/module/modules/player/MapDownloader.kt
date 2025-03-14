@@ -23,7 +23,6 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.FolderRegister
 import com.lambda.util.FolderRegister.locationBoundDirectory
-import com.lambda.util.StringUtils.hash
 import com.lambda.util.StringUtils.hashString
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.world.entitySearch
