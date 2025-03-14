@@ -57,8 +57,6 @@ object Discord : Module(
 
     init {
         listenOnce<WorldEvent.Join> {
-            // If the player is in a party and this most likely means that the `onEnable`
-            // block ran and is already handling the activity
             if (rpc.connected) return@listenOnce false
 
             runConcurrent {
