@@ -91,7 +91,6 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
     override fun load() = "Loaded ${images.size} cached capes"
 
     init {
-        // FixMe: This works up until the server limit - need to find an alternative
         listen<WorldEvent.Player.Join>(alwaysListen = true) {
             fetchCape(it.uuid)
         }
