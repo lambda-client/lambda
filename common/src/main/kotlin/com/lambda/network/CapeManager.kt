@@ -29,6 +29,7 @@ import com.lambda.network.api.v1.endpoints.getCape
 import com.lambda.network.api.v1.endpoints.setCape
 import com.lambda.network.api.v1.models.Cape
 import com.lambda.sound.SoundManager.toIdentifier
+import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
 import com.lambda.util.FolderRegister.capes
 import com.lambda.util.extension.get
@@ -57,11 +58,11 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
     /**
      * Sets the current player's cape
      */
-    fun SafeContext.updateCape(cape: String) =
+    fun SafeContext.updateCape(cape: String): CancellableRequest =
         setCape(cape,
-            success = { fetchCape(player.uuid) },
+            success = { fetchCape(player.uuid); info("Successfully update your cape to $cape") },
             failure = { logError("Could not update the player cape", it) }
-        )//.join()
+        )
 
     /**
      * Fetches the cape of the given player id
