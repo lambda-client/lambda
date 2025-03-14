@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.http.api.rpc.v1.models
+package com.lambda.network.api.v1.models
 
 import com.google.gson.annotations.SerializedName
 
@@ -34,4 +34,18 @@ data class Authentication(
     // example: Bearer
     @SerializedName("token_type")
     val tokenType: String,
-)
+) {
+    data class Data(
+        @SerializedName("nbf")
+        val notBefore: Long,
+
+        @SerializedName("iat")
+        val issuedAt: Long,
+
+        @SerializedName("exp")
+        val expirationDate: Long,
+
+        @SerializedName("data")
+        val data: Player,
+    )
+}

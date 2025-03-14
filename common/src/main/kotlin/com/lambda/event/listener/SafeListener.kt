@@ -132,8 +132,8 @@ class SafeListener<T : Event>(
 
         /**
          * This function registers a new [SafeListener] for a generic [Event] type [T].
-         * The [transform] is executed on the same thread where the [Event] was dispatched.
-         * The [transform] will only be executed when the context satisfies certain safety conditions.
+         * The [predicate] is executed on the same thread where the [Event] was dispatched.
+         * The [predicate] will only be executed when the context satisfies certain safety conditions.
          * These conditions are met when none of the following [SafeContext] properties are null:
          * - [SafeContext.world]
          * - [SafeContext.player]
@@ -142,7 +142,7 @@ class SafeListener<T : Event>(
          *
          * This typically occurs when the user is in-game.
          *
-         * After the [transform] is executed once, the [SafeListener] will be automatically unsubscribed.
+         * After the [predicate] is executed once, the [SafeListener] will be automatically unsubscribed.
          *
          * Usage:
          * ```kotlin
@@ -156,24 +156,20 @@ class SafeListener<T : Event>(
          * @param T The type of the event to listen for. This should be a subclass of Event.
          * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is 0.
          * @param alwaysListen If true, the listener will be executed even if it is muted. The Default value is false.
-         * @param transform The function used to transform the event into a value.
          * @return The newly created and registered [SafeListener].
          */
-        inline fun <reified T : Event, reified E> Any.listenOnce(
+        inline fun <reified T : Event> Any.listenOnce(
             priority: Int = 0,
             alwaysListen: Boolean = false,
             noinline predicate: SafeContext.(T) -> Boolean = { true },
-            noinline transform: SafeContext.(T) -> E? = { null },
-        ): ReadWriteProperty<Any?, E?> {
-            val pointer = Pointer<E>()
+        ): ReadWriteProperty<Any?, T?> {
+            val pointer = Pointer<T>()
 
             val destroyable by selfReference<SafeListener<T>> {
                 SafeListener(priority, this@listenOnce, alwaysListen) { event ->
-                    pointer.value = transform(event)
+                    pointer.value = event
 
-                    if (predicate(event) &&
-                        pointer.value != null
-                    ) {
+                    if (predicate(event)) {
                         val self by this@selfReference
                         EventFlow.syncListeners.unsubscribe(self)
                     }

@@ -97,13 +97,12 @@ object StringUtils {
      *
      * @receiver        The string to hash
      * @param algorithm The algorithm instance to use
+     * @param extra     Additional data to digest with the string
      *
      * @return          The string representation of the hash
      */
-    fun String.hash(algorithm: String): String =
-        MessageDigest
-            .getInstance(algorithm)
-            .digest(toByteArray())
+    fun String.hashString(algorithm: String, vararg extra: ByteArray): String =
+        toByteArray().hash(algorithm, *extra)
             .joinToString(separator = "") { "%02x".format(it) }
 
     /**
@@ -111,12 +110,26 @@ object StringUtils {
      *
      * @receiver        The byte array to hash
      * @param algorithm The algorithm instance to use
+     * @param extra     Additional data to digest with the byte array
      *
      * @return          The string representation of the hash
      */
-    fun ByteArray.hash(algorithm: String): String =
+    fun ByteArray.hashString(algorithm: String, vararg extra: ByteArray): String =
+        hash(algorithm, *extra)
+            .joinToString(separator = "") { "%02x".format(it) }
+
+    /**
+     * See [MessageDigest section](https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html#messagedigest-algorithms) of the Java Security Standard Algorithm Names Specification
+     *
+     * @receiver        The byte array to hash
+     * @param algorithm The algorithm instance to use
+     * @param extra     Additional data to digest with the byte array
+     *
+     * @return          The digested data
+     */
+    fun ByteArray.hash(algorithm: String, vararg extra: ByteArray): ByteArray =
         MessageDigest
             .getInstance(algorithm)
-            .digest(this)
-            .joinToString(separator = "") { "%02x".format(it) }
+            .apply { update(this@hash); extra.forEach(::update) }
+            .digest()
 }

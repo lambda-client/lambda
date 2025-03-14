@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,24 +18,36 @@
 package com.lambda.command.commands
 
 import com.lambda.brigadier.argument.literal
+import com.lambda.brigadier.argument.string
 import com.lambda.brigadier.argument.value
-import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
-import com.lambda.module.modules.client.DiscordRPC
+import com.lambda.network.CapeManager.updateCape
+import com.lambda.network.NetworkManager
+import com.lambda.threading.runSafe
 import com.lambda.util.extension.CommandBuilder
 
-object RpcCommand : LambdaCommand(
-    name = "rpc",
-    description = "Discord Rich Presence commands.",
-    usage = "rpc <join [id] | accept>"
-) {
+object CapeCommand : LambdaCommand(
+    name = "cape",
+    usage = "set <id>",
+    description = "Sets your cape",
+)  {
     override fun CommandBuilder.create() {
-        required(literal("join")) {
-            required(word("id")) { id ->
+        required(literal("set")) {
+            required(string("id")) { id ->
+                suggests { _, builder ->
+                    NetworkManager.capes
+                        .forEach { builder.suggest(it) }
+
+                    builder.buildFuture()
+                }
+
                 execute {
-                    DiscordRPC.join(id().value())
+                    runSafe {
+                        val cape = id().value()
+                        updateCape(cape)
+                    }
                 }
             }
         }
