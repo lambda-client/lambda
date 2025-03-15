@@ -28,6 +28,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.PositionBlocking
+import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
@@ -67,6 +68,22 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
 
     private var rotation: RotationRequest? = null
     private var validRotation = false
+
+    fun Any.onPlace(
+        alwaysListen: Boolean = false,
+        priority: Priority = 0,
+        block: SafeContext.() -> Unit
+    ) = this.listen<UpdateManagerEvent.Place.Pre>(priority, alwaysListen) {
+        block()
+    }
+
+    fun Any.onPlacePost(
+        alwaysListen: Boolean = false,
+        priority: Priority = 0,
+        block: SafeContext.() -> Unit
+    ) = this.listen<UpdateManagerEvent.Place.Post>(priority, alwaysListen) {
+        block()
+    }
 
     init {
         listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {

@@ -17,12 +17,14 @@
 
 package com.lambda.interaction.request.hotbar
 
+import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.threading.runSafe
 import com.lambda.mixin.entity.PlayerInventoryMixin
@@ -40,6 +42,22 @@ object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
     } ?: 0
 
     override fun load() = "Loaded Hotbar Manager"
+
+    fun Any.onHotbarUpdate(
+        alwaysListen: Boolean = false,
+        priority: Priority = 0,
+        block: SafeContext.() -> Unit
+    ) = this.listen<UpdateManagerEvent.Hotbar.Pre>(priority, alwaysListen) {
+        block()
+    }
+
+    fun Any.onHotbarUpdatePost(
+        alwaysListen: Boolean = false,
+        priority: Priority = 0,
+        block: SafeContext.() -> Unit
+    ) = this.listen<UpdateManagerEvent.Hotbar.Post>(priority, alwaysListen) {
+        block()
+    }
 
     init {
         listen<InventoryEvent.HotbarSlot.Update> {
