@@ -43,6 +43,15 @@ class KeybindPicker(
             }
         }
 
+        onShow {
+            isListening = false
+        }
+
+        onTick {
+            val module = (owner.owner as? ModuleLayout) ?: return@onTick
+            if (module.isMinimized) isListening = false
+        }
+
         onMouseAction(Mouse.Button.Left) {
             isListening = !isListening
         }
@@ -52,15 +61,6 @@ class KeybindPicker(
 
             settingDelegate = key
             isListening = false
-        }
-
-        onShow {
-            isListening = false
-        }
-
-        onTick {
-            val module = (owner.owner as? ModuleLayout) ?: return@onTick
-            if (module.isMinimized) isListening = false
         }
     }
 

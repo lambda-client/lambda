@@ -29,7 +29,7 @@ import com.lambda.gui.impl.clickgui.module.settings.BooleanButton.Companion.bool
 import com.lambda.gui.impl.clickgui.module.settings.EnumSlider.Companion.enumSetting
 import com.lambda.gui.impl.clickgui.module.settings.KeybindPicker.Companion.keybindSetting
 import com.lambda.gui.impl.clickgui.module.settings.NumberSlider.Companion.numericSetting
-import com.lambda.gui.impl.clickgui.settings.UnitButton.Companion.unitSetting
+import com.lambda.gui.impl.clickgui.module.settings.UnitButton.Companion.unitSetting
 import kotlin.reflect.KClass
 
 object GuiManager : Loadable {
