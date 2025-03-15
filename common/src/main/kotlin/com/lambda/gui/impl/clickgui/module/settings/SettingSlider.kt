@@ -34,7 +34,6 @@ abstract class SettingSlider <V : Any, T: AbstractSetting<V>>(
     abstract val settingValue: String
 
     private var changeAnimation by animation.exp(0.0, 1.0, 0.5) { true }
-
     private val sliderHeight = 3.0
 
     protected val slider = sliderBehind(titleBar) {

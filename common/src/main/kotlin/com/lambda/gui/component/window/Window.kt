@@ -150,6 +150,9 @@ open class Window(
         properties.clampPosition = owner is ScreenLayout
 
         onUpdate {
+            // Update it here
+            content.updateHeight()
+
             width = widthAnimation
             height = titleBar.height + when (minimizing) {
                 Minimizing.Disabled -> targetHeight

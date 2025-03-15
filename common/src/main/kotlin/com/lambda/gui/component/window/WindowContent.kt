@@ -73,13 +73,6 @@ class WindowContent(
             positionX = owner.titleBar.positionX
             positionY = owner.titleBar.let { it.positionY + it.height } + renderScrollOffset * scrollable.toInt()
             width = owner.width
-
-            height = ClickGui.padding * 2
-
-            val lastIndex = children.lastIndex
-            children.forEachIndexed { i, it ->
-                height += layoutHeight(it, false, i == lastIndex)
-            }
         }
 
         onShow {
@@ -110,6 +103,15 @@ class WindowContent(
 
         onMouseScroll { delta ->
             dwheel += delta * 10.0
+        }
+    }
+
+    fun updateHeight() {
+        height = ClickGui.padding * 2
+
+        val lastIndex = children.lastIndex
+        children.forEachIndexed { i, it ->
+            height += layoutHeight(it, false, i == lastIndex)
         }
     }
 

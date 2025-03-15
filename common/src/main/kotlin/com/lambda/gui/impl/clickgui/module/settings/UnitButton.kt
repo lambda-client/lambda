@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.impl.clickgui.settings
+package com.lambda.gui.impl.clickgui.module.settings
 
 import com.lambda.config.settings.FunctionSetting
 import com.lambda.gui.component.core.UIBuilder
@@ -28,7 +28,7 @@ class UnitButton <T> (
     setting: FunctionSetting<T>,
 ) : SettingLayout<() -> T, FunctionSetting<T>>(owner, setting) {
     init {
-        onMouse(Mouse.Button.Left, Mouse.Action.Click) {
+        onMouseAction(Mouse.Button.Left) {
             setting.value()
         }
     }
