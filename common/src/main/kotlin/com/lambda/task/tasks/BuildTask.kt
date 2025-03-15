@@ -39,6 +39,7 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
+import com.lambda.interaction.request.ManagerUtils.positionBlockingManagers
 import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarConfig
@@ -140,7 +141,9 @@ class BuildTask @Ta5kBuilder constructor(
                         blueprint.next()
                         return@onRotate
                     }
-                    if (finishOnDone) success()
+
+                    val managersStillRunning = positionBlockingManagers.any { it.blockedPositions.isNotEmpty() }
+                    if (finishOnDone && !managersStillRunning) success()
                 }
 
                 is BuildResult.NotVisible,

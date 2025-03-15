@@ -26,6 +26,7 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
@@ -57,7 +58,7 @@ import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.math.BlockPos
 
-object BreakManager : RequestHandler<BreakRequest>() {
+object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
     private var primaryBreakingInfo: BreakInfo?
         get() = breakingInfos[0]
         set(value) { breakingInfos[0] = value }
@@ -70,15 +71,15 @@ object BreakManager : RequestHandler<BreakRequest>() {
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) { info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out") }
 
-    val blockedPositions
+    override val blockedPositions
         get() = breakingInfos.mapNotNull { it?.context?.expectedPos } + pendingInteractions.map { it.context.expectedPos }
+
+    private var rotation: RotationRequest? = null
+    private var validRotation = false
 
     private var blockBreakingCooldown = 0
 
     private var instantBreaks = listOf<BreakContext>()
-
-    private var rotation: RotationRequest? = null
-    private var validRotation = false
 
     fun Any.onBreak(
         alwaysListen: Boolean = false,

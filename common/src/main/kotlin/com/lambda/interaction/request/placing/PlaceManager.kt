@@ -27,6 +27,7 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
@@ -56,16 +57,16 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.world.GameMode
 import org.apache.commons.lang3.mutable.MutableObject
 
-object PlaceManager : RequestHandler<PlaceRequest>() {
+object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
     private val pendingInteractions = LimitedDecayQueue<PlaceInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) { info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out") }
 
+    override val blockedPositions
+        get() = pendingInteractions.map { it.context.expectedPos }
+
     private var rotation: RotationRequest? = null
     private var validRotation = false
-
-    val blockedPositions
-        get() = pendingInteractions.map { it.context.expectedPos }
 
     init {
         listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
