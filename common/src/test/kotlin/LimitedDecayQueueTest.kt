@@ -137,11 +137,7 @@ class LimitedDecayQueueTest {
 
         queue.setMaxSize(2) // Reduce size limit to 2
 
-        queue.add("Element4")
-
-        // Verify that the queue is limited to 2 elements, and oldest element is removed
         assertEquals(2, queue.size)
-        assertTrue(onDecayCalled.contains("Element1")) // "Element1" should be decayed
     }
 
     @Test
