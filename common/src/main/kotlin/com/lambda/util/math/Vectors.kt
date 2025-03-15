@@ -84,9 +84,9 @@ infix operator fun Vec3d.times(other: Int): Vec3d = multiply(other.toDouble())
 
 infix operator fun Vec3d.div(other: Vec3d): Vec3d = multiply(1.0 / other.x, 1.0 / other.y, 1.0 / other.z)
 infix operator fun Vec3d.div(other: Vec3i): Vec3d = Vec3d(x / other.x, y / other.y, z / other.z)
-infix operator fun Vec3d.div(other: Double): Vec3d = times(1 / other)
-infix operator fun Vec3d.div(other: Float): Vec3d = times(1 / other)
-infix operator fun Vec3d.div(other: Int): Vec3d = times(1 / other)
+infix operator fun Vec3d.div(other: Double): Vec3d = times(1.0 / other)
+infix operator fun Vec3d.div(other: Float): Vec3d = times(1.0 / other)
+infix operator fun Vec3d.div(other: Int): Vec3d = times(1.0 / other)
 
 /* Vec3i */
 val Vec3i.vec3d get() =
