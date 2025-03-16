@@ -47,10 +47,10 @@ jobs:
           all: true
 
       - name: Build Lambda
-        run: ./gradlew build --no-daemon
+        run: ./gradlew build
 
       - name: Test Lambda
-        run: ./gradlew common:test --no-daemon
+        run: ./gradlew :common:test
 
       - name: Rename Files with Commit Hash
         run: |
