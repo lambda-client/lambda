@@ -23,6 +23,8 @@ val kotlinxCoroutinesVersion: String by project
 val discordIPCVersion: String by project
 val fuelVersion: String by project
 val resultVersion: String by project
+val mockitoKotlin: String by project
+val mockitoInline: String by project
 
 base.archivesName = "${base.archivesName.get()}-api"
 
@@ -58,6 +60,8 @@ dependencies {
     // Baritone
     modImplementation("baritone-api:baritone-unoptimized-fabric:1.10.2") { isTransitive = false }
     testImplementation(kotlin("test"))
+    testImplementation("org.mockito.kotlin:mockito-kotlin:$mockitoKotlin")
+    testImplementation("org.mockito:mockito-inline:$mockitoInline")
 }
 
 tasks {

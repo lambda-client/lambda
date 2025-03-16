@@ -110,7 +110,7 @@ class LimitedDecayQueue<E>(
      *
      * @param newSize The new maximum size for the queue. Must be a non-negative integer.
      */
-    fun setMaxSize(newSize: Int) {
+    fun setSizeLimit(newSize: Int) {
         sizeLimit = newSize
         cleanUp()
 

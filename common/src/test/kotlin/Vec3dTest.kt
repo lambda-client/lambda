@@ -32,7 +32,7 @@ import kotlin.test.assertEquals
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-class Vec3Test {
+class Vec3dTest {
 
     @Test
     fun `test dist with another Vec3d`() {

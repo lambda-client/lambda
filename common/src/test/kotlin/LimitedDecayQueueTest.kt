@@ -135,7 +135,7 @@ class LimitedDecayQueueTest {
         queue.add("Element2")
         queue.add("Element3")
 
-        queue.setMaxSize(2) // Reduce size limit to 2
+        queue.setSizeLimit(2) // Reduce size limit to 2
 
         assertEquals(2, queue.size)
     }
