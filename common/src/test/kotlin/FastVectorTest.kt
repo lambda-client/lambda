@@ -47,7 +47,6 @@ class FastVectorTest {
 
         val fastVec = fastVectorOf(x, y, z)
 
-        assertEquals(true, false)
         assertEquals(x, fastVec.x)
         assertEquals(y, fastVec.y)
         assertEquals(z, fastVec.z)
