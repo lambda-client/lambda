@@ -144,8 +144,6 @@ class Vec3dTest {
 
     @Test
     fun `test division with scalar (Int)`() {
-        println(1 / 2.0)
-
         val vector = Vec3d(4.0, 8.0, 12.0)
         val result = vector / 2
 
