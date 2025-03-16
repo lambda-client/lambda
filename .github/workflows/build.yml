@@ -21,6 +21,9 @@ jobs:
     env:
       SEGMENT_DOWNLOAD_TIMEOUT_MINS: '5'
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Set current date as env variable
         run: echo "DATE=$(date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_ENV
 
@@ -28,14 +31,11 @@ jobs:
         id: vars
         run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
       - name: Set-Up JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
           architecture: x64
           cache: 'gradle'
 
@@ -77,8 +77,6 @@ jobs:
           ### [Lambda Forge ${{ steps.all.outputs.modVersion }} ${{ steps.all.outputs.minecraftVersion }} (${{ env.COMMIT_HASH }})](https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-forge-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
           
           #### [API (Developer Dependency)](https://r2-bucket.edouard127.christmas/${{ env.DATE }}-${{ env.COMMIT_HASH }}/lambda-api-${{ steps.all.outputs.modVersion }}+${{ steps.all.outputs.minecraftVersion }}-${{ env.COMMIT_HASH }}.jar)
-
-          **Runner:** \`${{ needs.check-runner.outputs.runner-label }}\`
           EOF
 
       - name: Failover Upload
