@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.impl.clickgui.module.settings
+package com.lambda.gui.impl.clickgui.module.settings.impl
 
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.graphics.animation.Animation.Companion.exp
@@ -24,7 +24,7 @@ import com.lambda.gui.component.core.FilledRect.Companion.rect
 import com.lambda.gui.component.core.OutlineRect.Companion.outline
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.impl.clickgui.module.SettingLayout
+import com.lambda.gui.impl.clickgui.module.settings.SettingLayout
 import com.lambda.util.Mouse
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d

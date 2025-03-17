@@ -29,6 +29,7 @@ import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.component.window.Window
 import com.lambda.gui.impl.clickgui.ModuleWindow
 import com.lambda.gui.impl.clickgui.core.AnimatedChild
+import com.lambda.gui.impl.clickgui.module.settings.SettingLayout
 import com.lambda.util.Mouse
 import com.lambda.util.math.*
 import java.awt.Color

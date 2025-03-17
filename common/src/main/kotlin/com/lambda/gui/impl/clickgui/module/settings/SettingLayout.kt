@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.impl.clickgui.module
+package com.lambda.gui.impl.clickgui.module.settings
 
 import com.lambda.config.AbstractSetting
 import com.lambda.module.modules.client.ClickGui
@@ -30,7 +30,7 @@ import com.lambda.util.math.*
 abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
     owner: Layout,
     val setting: T,
-    private val expandable: Boolean = false
+    expandable: Boolean = false
 ) : AnimatedChild(
     owner,
     setting.name,
@@ -46,8 +46,6 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
     val isVisible get() = setting.visibility()
 
     override val isShown: Boolean get() = super.isShown && isVisible
-
-
 
     init {
         isMinimized = true

@@ -126,7 +126,12 @@ open class Window(
         get() = !isMinimized
         set(value) { isMinimized = !value }
 
-    var windowWidth = initialSize.x
+    var windowWidth = initialSize.x; set(value) {
+        if (field == value) return
+        field = value
+
+        if (resizeX == null) widthAnimation = value
+    }
     var windowHeight = initialSize.y
 
     var widthAnimation by animation.exp(0.8, ::windowWidth)

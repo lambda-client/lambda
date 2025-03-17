@@ -18,7 +18,7 @@ in vec4 v_Color;
 
 out vec4 color;
 
-#define SMOOTHING 0.25
+#define SMOOTHING 0.2
 #define NOISE_GRANULARITY 0.004
 
 vec4 noise() {
