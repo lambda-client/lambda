@@ -15,47 +15,46 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.impl.clickgui.module.settings
+package com.lambda.gui.impl.clickgui.module.settings.impl
 
-import com.lambda.config.settings.NumericSetting
+import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
-import com.lambda.util.math.MathUtils.roundToStep
-import com.lambda.util.math.MathUtils.typeConvert
-import com.lambda.util.math.lerp
+import com.lambda.gui.impl.clickgui.module.settings.SettingSlider
+import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.transform
 
-class NumberSlider <V> (
-    owner: Layout, setting: NumericSetting<V>
-) : SettingSlider<V, NumericSetting<V>>(owner, setting) where V : Number, V : Comparable<V> {
-    private val min = setting.range.start.toDouble()
-    private val max = setting.range.endInclusive.toDouble()
-
+class EnumSlider <T : Enum<T>>(
+    owner: Layout,
+    setting: EnumSetting<T>
+) : SettingSlider<T, EnumSetting<T>>(owner, setting) {
     override val settingValue: String
-        get() = "${setting.value}${setting.unit}"
+        get() = settingDelegate.name
 
     init {
         slider.progress {
             transform(
-                settingDelegate.toDouble(),
-                min, max,
-                0.0, 1.0
+                value = settingDelegate.ordinal.toDouble(),
+                ogStart = 0.0, ogEnd = setting.enumValues.lastIndex.toDouble(),
+                nStart = 0.0, nEnd = 1.0
             )
         }
 
         slider.onSlide {
-            settingDelegate = settingDelegate.typeConvert(
-                lerp(it, min, max).roundToStep(setting.step).toDouble()
-            )
+            settingDelegate = setting.enumValues.let { entries ->
+                entries[(it * entries.size)
+                    .floorToInt()
+                    .coerceIn(0, entries.size - 1)]
+            }
         }
     }
 
     companion object {
         /**
-         * Creates an [NumberSlider] - visual representation of the [NumericSetting]
+         * Creates an [EnumSlider] - visual representation of the [EnumSetting]
          */
         @UIBuilder
-        fun <T> Layout.numericSetting(setting: NumericSetting<T>) where T : Number, T : Comparable<T> =
-            NumberSlider(this, setting).apply(children::add)
+        fun <T: Enum<T>> Layout.enumSetting(setting: EnumSetting<T>) =
+            EnumSlider(this, setting).apply(children::add)
     }
 }

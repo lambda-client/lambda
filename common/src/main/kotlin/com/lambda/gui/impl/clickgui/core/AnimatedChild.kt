@@ -21,7 +21,7 @@ import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.component.window.Window
-import com.lambda.gui.impl.clickgui.module.SettingLayout
+import com.lambda.gui.impl.clickgui.module.settings.SettingLayout
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Vec2d

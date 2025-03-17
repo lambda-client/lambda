@@ -21,6 +21,7 @@ import com.lambda.graphics.RenderMain
 import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.event.events.GuiEvent
 import com.lambda.graphics.pipeline.ScissorAdapter
+import com.lambda.gui.ScreenLayout
 import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.VAlign
 import com.lambda.gui.component.core.*
@@ -118,12 +119,22 @@ open class Layout(
     // Structure
     val children = mutableListOf<Layout>()
     var selectedChild: Layout? = null
+    val root = run {
+        var own: Layout = owner ?: this
+
+        while (true) {
+            own = own.owner ?: break
+        }
+
+        own as? ScreenLayout ?: throw IllegalStateException("Root layout is not a ScreenLayout class")
+    }
+
     protected open val renderSelf: Boolean get() = width > 1 && height > 1
     protected open val scissorRect get() = rect
 
     // Inputs
     protected var mousePosition = Vec2d.ZERO; set(value) {
-        if (field == value) return
+        //if (field == value) return
         field = value
 
         selectedChild = if (isHovered) children.lastOrNull {
@@ -157,8 +168,9 @@ open class Layout(
      * @param action The action to be performed.
      */
     @LayoutBuilder
-    fun <T : Layout> T.use(action: T.() -> Unit) {
+    fun <T : Layout> T.use(action: T.() -> Unit): T {
         action(this)
+        return this@use
     }
 
     /**
@@ -289,18 +301,6 @@ open class Layout(
         }
     }
 
-    init {
-        onUpdate { // Update the layout
-            screenSize = RenderMain.screenSize
-
-            // Update relative position and bounds
-            ownerX = owner?.positionX ?: ownerX
-            ownerY = owner?.positionY ?: ownerY
-            ownerWidth = owner?.width ?: screenSize.x
-            ownerHeight = owner?.height ?: screenSize.y
-        }
-    }
-
     fun onEvent(e: GuiEvent) {
         // Update self
         when (e) {
@@ -314,6 +314,8 @@ open class Layout(
                 hideActions.forEach { it(this) }
             }
             is GuiEvent.Tick -> {
+                // hack to update hover state once a tick if not moving the mouse
+                mousePosition = mousePosition
                 tickActions.forEach { it(this) }
             }
             is GuiEvent.KeyPress -> {
@@ -323,6 +325,14 @@ open class Layout(
                 charTypedActions.forEach { it(this, e.char) }
             }
             is GuiEvent.Update -> {
+                screenSize = RenderMain.screenSize
+
+                // Update relative position and bounds
+                ownerX = owner?.positionX ?: ownerX
+                ownerY = owner?.positionY ?: ownerY
+                ownerWidth = owner?.width ?: screenSize.x
+                ownerHeight = owner?.height ?: screenSize.y
+
                 updateActions.forEach { it(this) }
             }
             is GuiEvent.Render -> {

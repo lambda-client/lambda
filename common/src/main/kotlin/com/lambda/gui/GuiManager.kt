@@ -21,15 +21,17 @@ import com.lambda.config.settings.NumericSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.config.settings.FunctionSetting
+import com.lambda.config.settings.complex.ColorSetting
 import com.lambda.config.settings.complex.KeyBindSetting
 import com.lambda.core.Loadable
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.impl.clickgui.module.settings.BooleanButton.Companion.booleanSetting
-import com.lambda.gui.impl.clickgui.module.settings.EnumSlider.Companion.enumSetting
-import com.lambda.gui.impl.clickgui.module.settings.KeybindPicker.Companion.keybindSetting
-import com.lambda.gui.impl.clickgui.module.settings.NumberSlider.Companion.numericSetting
-import com.lambda.gui.impl.clickgui.module.settings.UnitButton.Companion.unitSetting
+import com.lambda.gui.impl.clickgui.module.settings.impl.BooleanButton.Companion.booleanSetting
+import com.lambda.gui.impl.clickgui.module.settings.impl.ColorPicker.Companion.colorPicker
+import com.lambda.gui.impl.clickgui.module.settings.impl.EnumSlider.Companion.enumSetting
+import com.lambda.gui.impl.clickgui.module.settings.impl.KeybindPicker.Companion.keybindSetting
+import com.lambda.gui.impl.clickgui.module.settings.impl.NumberSlider.Companion.numericSetting
+import com.lambda.gui.impl.clickgui.module.settings.impl.UnitButton.Companion.unitSetting
 import kotlin.reflect.KClass
 
 object GuiManager : Loadable {
@@ -58,6 +60,10 @@ object GuiManager : Loadable {
 
         typeAdapter<KeyBindSetting> { owner, ref ->
             owner.keybindSetting(ref)
+        }
+
+        typeAdapter<ColorSetting> { owner, ref ->
+            owner.colorPicker(ref)
         }
 
         return "Loaded ${typeMap.size} gui type adapters."

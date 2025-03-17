@@ -29,7 +29,7 @@ object FilledRectRenderer : AbstractGUIRenderer(
 ) {
     private const val MIN_SIZE = 0.5
     private const val MIN_ALPHA = 1
-    private const val EXPAND = 0.3
+    private const val EXPAND = 0.35
 
     fun filledRect(
         rect: Rect,

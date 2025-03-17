@@ -24,7 +24,6 @@ import com.lambda.gui.component.VAlign
 import com.lambda.gui.component.core.TextField.Companion.textField
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.impl.clickgui.core.SliderLayout.Companion.sliderBehind
-import com.lambda.gui.impl.clickgui.module.SettingLayout
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.math.lerp
 

@@ -15,30 +15,39 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.impl.clickgui.module.settings
+package com.lambda.gui.impl.clickgui.module.settings.impl
 
-import com.lambda.config.settings.FunctionSetting
+import com.lambda.config.settings.complex.ColorSetting
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.impl.clickgui.module.SettingLayout
+import com.lambda.gui.component.popup.Popup
+import com.lambda.gui.impl.clickgui.module.settings.SettingLayout
 import com.lambda.util.Mouse
+import java.awt.Color
 
-class UnitButton <T> (
+class ColorPicker(
     owner: Layout,
-    setting: FunctionSetting<T>,
-) : SettingLayout<() -> T, FunctionSetting<T>>(owner, setting) {
+    setting: ColorSetting
+) : SettingLayout<Color, ColorSetting>(owner, setting) {
+    private val popup = Popup(this, setting.name).apply {
+        window.use {
+            windowWidth = 200.0
+            windowHeight = 100.0
+        }
+    }
+
     init {
         onMouseAction(Mouse.Button.Left) {
-            setting.value()
+            popup.show()
         }
     }
 
     companion object {
         /**
-         * Creates a [UnitButton] - visual representation of the [FunctionSetting]
+         * Creates a [ColorPicker] - visual representation of the [ColorSetting]
          */
         @UIBuilder
-        fun <T> Layout.unitSetting(setting: FunctionSetting<T>) =
-            UnitButton(this, setting).apply(children::add)
+        fun Layout.colorPicker(setting: ColorSetting) =
+            ColorPicker(this, setting).apply(children::add)
     }
 }
