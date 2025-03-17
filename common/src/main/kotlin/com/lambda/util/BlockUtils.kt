@@ -236,6 +236,11 @@ object BlockUtils {
     fun SafeContext.fluidState(pos: BlockPos): FluidState = world.getFluidState(pos)
     fun SafeContext.blockEntity(pos: BlockPos) = world.getBlockEntity(pos)
 
+    fun BlockState.matches(state: BlockState) =
+         this.block == state.block && this.properties.all {
+            /*it in TaskFlowModule.defaultIgnoreTags ||*/ this[it] == state[it]
+        }
+
     fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos, breakThreshold: Float): Boolean {
         val ticksNeeded = 1 / (blockState.calcBlockBreakingDelta(player, world, blockPos) / breakThreshold)
         return (ticksNeeded <= 1 && ticksNeeded != 0f) || gamemode.isCreative

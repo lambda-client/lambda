@@ -19,7 +19,7 @@ package com.lambda.interaction.construction.verify
 
 import com.lambda.interaction.material.container.ContainerManager.findDisposable
 import com.lambda.module.modules.client.TaskFlowModule
-import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.matches
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.item.ItemUtils.block
 import net.minecraft.block.BlockState
@@ -80,9 +80,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun toString() = "State of $blockState"
 
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
-            state.block == blockState.block && state.properties.all {
-                /*it in TaskFlowModule.defaultIgnoreTags ||*/ state[it] == blockState[it]
-            }
+            state.matches(blockState)
 
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             blockState.block.getPickStack(world, pos, blockState)

@@ -38,7 +38,7 @@ data class BreakContext(
     override val pov: Vec3d,
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
-    override val checkedState: BlockState,
+    override var checkedState: BlockState,
     override val targetState: TargetState,
     override var hotbarIndex: Int,
     var instantBreak: Boolean,

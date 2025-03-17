@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.breaking
 
+import com.lambda.Lambda.mc
 import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
@@ -42,6 +43,7 @@ import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.fluidState
+import com.lambda.util.BlockUtils.matches
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
@@ -70,7 +72,10 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
 
     private val pendingInteractions = LimitedDecayQueue<BreakInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
-    ) { info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out") }
+    ) {
+        info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out")
+        mc.world?.setBlockState(it.context.expectedPos, it.context.checkedState)
+    }
 
     override val blockedPositions
         get() = breakingInfos.mapNotNull { it?.context?.expectedPos } + pendingInteractions.map { it.context.expectedPos }
@@ -187,21 +192,36 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             pendingInteractions
                 .firstOrNull { it.context.expectedPos == event.pos }
                 ?.let { pending ->
+                    // return if the state hasn't changed
+                    if (event.newState.matches(pending.context.checkedState))
+                        return@listen
+
                     pendingInteractions.remove(pending)
-                    if (!matchesTargetState(event.pos, pending.context.targetState, event.newState)) return@listen
-                    if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak)
+                    // return if the block's not broken
+                    if (!matchesTargetState(event.pos, pending.context.targetState, event.newState))
+                        return@listen
+
+                    if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak) {
                         destroyBlock(pending)
-                    pending.onBreak()
-                }
-                ?: breakingInfos
-                    .filterNotNull()
-                    .firstOrNull { it.context.expectedPos == event.pos }
-                    ?.let { info ->
-                        if (!matchesTargetState(event.pos, info.context.targetState, event.newState)) return@listen
-                        info.nullify()
-                        destroyBlock(info)
-                        info.onBreak()
                     }
+                    pending.onBreak()
+                    return@listen
+                }
+
+            breakingInfos
+                .filterNotNull()
+                .firstOrNull { it.context.expectedPos == event.pos }
+                ?.let { info ->
+                    // if not broken
+                    if (!matchesTargetState(event.pos, info.context.targetState, event.newState)) {
+                        // update the checked state
+                        info.context.checkedState = event.newState
+                        return@listen
+                    }
+                    destroyBlock(info)
+                    info.onBreak()
+                    info.nullify()
+                }
         }
 
         //ToDo: drop callback stuff
