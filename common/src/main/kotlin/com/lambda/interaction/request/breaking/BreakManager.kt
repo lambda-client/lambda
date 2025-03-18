@@ -187,7 +187,6 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             postEvent()
         }
 
-        //ToDo: Clean this up
         listen<WorldEvent.BlockUpdate.Server> { event ->
             pendingInteractions
                 .firstOrNull { it.context.expectedPos == event.pos }
@@ -265,7 +264,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         rotationConfig: RotationConfig,
         hotbarConfig: HotbarConfig,
         onBreak: () -> Unit,
-        onItemDrop: (ItemEntity) -> Unit
+        onItemDrop: ((ItemEntity) -> Unit)?
     ): BreakInfo? {
         val breakInfo = BreakInfo(requestCtx, BreakType.Primary,
             buildConfig.breakSettings, rotationConfig, hotbarConfig,
@@ -503,7 +502,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         val rotationConfig: RotationConfig,
         val hotbarConfig: HotbarConfig,
         val onBreak: () -> Unit,
-        val onItemDrop: (ItemEntity) -> Unit
+        val onItemDrop: ((ItemEntity) -> Unit)?
     ) {
         var breaking = false
         var breakingTicks = 0

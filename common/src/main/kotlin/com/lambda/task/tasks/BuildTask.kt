@@ -80,6 +80,11 @@ class BuildTask @Ta5kBuilder constructor(
     private val dropsToCollect = mutableSetOf<ItemEntity>()
 //    private var goodPositions = setOf<BlockPos>()
 
+    private val onItemDrop: ((item: ItemEntity) -> Unit)?
+        get() = if (collectDrops) {
+            item -> dropsToCollect.add(item)
+        } else null
+
     override fun SafeContext.onStart() {
         (blueprint as? PropagatingBlueprint)?.next()
     }
@@ -122,8 +127,9 @@ class BuildTask @Ta5kBuilder constructor(
                     build.breakSettings.request(
                         BreakRequest(
                             instantResults.map { it.context }, build, rotation, hotbar,
-                            onBreak = { breaks++ }
-                        ) { item -> if (collectDrops) dropsToCollect.add(item) }
+                            onBreak = { breaks++ },
+                            onItemDrop = onItemDrop
+                        )
                     )
                     return@onRotate
                 }
@@ -168,8 +174,9 @@ class BuildTask @Ta5kBuilder constructor(
 
                             val request = BreakRequest(
                                 breakContexts, build, rotation, hotbar,
-                                onBreak = { breaks++ }
-                            ) { item -> if (collectDrops) dropsToCollect.add(item) }
+                                onBreak = { breaks++ },
+                                onItemDrop = onItemDrop
+                            )
                             build.breakSettings.request(request)
                             return@onRotate
                         }

@@ -34,7 +34,7 @@ data class BreakRequest(
     val hotbarConfig: HotbarConfig,
     val prio: Priority = 0,
     val onBreak: () -> Unit,
-    val onItemDrop: (ItemEntity) -> Unit,
+    val onItemDrop: ((ItemEntity) -> Unit)?,
 ) : Request(prio) {
     override val done: Boolean
         get() = runSafe {
