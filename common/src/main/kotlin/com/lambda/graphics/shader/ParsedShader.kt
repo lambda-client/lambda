@@ -79,8 +79,8 @@ class ParsedShader(path: String) {
                     val name = fieldMatch.groupValues[2]
 
                     val flag = fieldMatch.groupValues[3]
+                        .removePrefix("#").trim()
                         .takeIf { it.isNotEmpty() }
-                        ?.removePrefix("#")
 
                     Field(type, name, flag)
                 }.toMutableSet()
