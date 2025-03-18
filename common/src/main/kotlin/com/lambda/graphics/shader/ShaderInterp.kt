@@ -45,12 +45,11 @@ fun buildShaderSource(path: String): Pair<String, String> {
         forEach { uniform ->
             val line = "uniform ${uniform.type} ${uniform.name};"
 
-            when (uniform.flag?.trim()) {
+            when (uniform.flag) {
                 "vertex" -> vertex += line
                 "fragment" -> fragment += line
-                else -> {
-                    vertex += line; fragment += line
-                }
+                "global" -> { vertex += line; fragment += line }
+                else -> throw IllegalStateException("Destination of \"$line\" is not specified")
             }
         }
 
@@ -86,7 +85,7 @@ fun buildShaderSource(path: String): Pair<String, String> {
             }
 
             export.flag?.let { expr -> /* Add assignment if present */
-                autoAssignment.appendLine("    ${export.name} = ${expr.trim()};")
+                autoAssignment.appendLine("    ${export.name} = ${expr};")
             }
         }
 
@@ -122,6 +121,5 @@ fun buildShaderSource(path: String): Pair<String, String> {
 private fun MutableSet<ParsedShader.Method>.takeMain(name: String) = firstOrNull {
     it.name == name && it.returnType == "void" && it.parameters.isEmpty()
 }.apply(this::remove) ?: ParsedShader.Method(name, "void", "", "")
-
 
 private const val HEADER = "#version 330 core"
