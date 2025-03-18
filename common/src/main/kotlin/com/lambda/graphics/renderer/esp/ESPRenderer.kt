@@ -61,12 +61,10 @@ open class ESPRenderer(tickedMode: Boolean) {
 
     companion object {
         private val staticMode = shader(
-            "renderer/pos_color",
             "renderer/box_static"
         ) to VertexAttrib.Group.STATIC_RENDERER
 
         private val dynamicMode = shader(
-            "renderer/pos_color",
             "renderer/box_dynamic"
         ) to VertexAttrib.Group.DYNAMIC_RENDERER
     }

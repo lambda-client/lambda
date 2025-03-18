@@ -34,7 +34,7 @@ import java.awt.image.BufferedImage
  * @param image Image data to upload
  */
 class DistanceFieldTexture(image: BufferedImage) : Texture(image, levels = 0) {
-    private val shader = shader("signed_distance_field", "renderer/pos_tex")
+    private val shader = shader("post/sdf")
 
     private val frame = CachedFrame(width, height).write {
         FrameBuffer.pipeline.use {

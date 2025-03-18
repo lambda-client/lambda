@@ -81,7 +81,7 @@ object Particles : Module(
 
     private var particles = mutableListOf<Particle>()
     private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.PARTICLE)
-    private val shader = shader("renderer/particle", "renderer/particle")
+    private val shader = shader("renderer/particle")
 
     init {
         listen<TickEvent.Pre> {

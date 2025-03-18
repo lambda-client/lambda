@@ -1,20 +1,26 @@
-#version 330 core
+attributes {
+    vec4 pos;
+    vec2 uv;
+    vec4 color;
+};
 
-uniform sampler2D u_FontTexture;
-uniform sampler2D u_EmojiTexture;
-uniform float u_SDFMin;
-uniform float u_SDFMax;
+uniforms {
+    sampler2D u_FontTexture;  # fragment
+    sampler2D u_EmojiTexture; # fragment
+    float u_SDFMin;           # fragment
+    float u_SDFMax;           # fragment
+};
 
-in vec2 v_TexCoord;
-in vec4 v_Color;
-
-out vec4 color;
+export {
+    vec2 v_TexCoord; # uv
+    vec4 v_Color;    # color
+};
 
 float sdf(float channel) {
     return 1.0 - smoothstep(u_SDFMin, u_SDFMax, 1.0 - channel);
-}
+}#
 
-void main() {
+void fragment() {
     bool isEmoji = v_TexCoord.x < 0.0;
 
     if (isEmoji) {
@@ -24,4 +30,4 @@ void main() {
     }
 
     color = vec4(1.0, 1.0, 1.0, sdf(texture(u_FontTexture, v_TexCoord).r)) * v_Color;
-}
+}#

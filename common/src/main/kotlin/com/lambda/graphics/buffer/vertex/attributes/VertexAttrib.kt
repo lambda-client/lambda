@@ -69,7 +69,8 @@ enum class VertexAttrib(
             Color
         ),
 
-        PARTICLE(Vec3,
+        PARTICLE(
+            Vec3,
             Vec2, // pos
             Color
         );

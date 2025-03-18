@@ -1,19 +1,25 @@
-#version 330 core
+attributes {
+    vec4 pos;
+    vec2 uv;
+};
 
-uniform sampler2D u_Texture;
-uniform vec2 u_TexelSize;
+uniforms {
+    sampler2D u_Texture; # fragment
+    vec2 u_TexelSize;    # fragment
+};
 
-in vec2 v_TexCoord;
-out vec4 color;
+export {
+    vec2 v_TexCoord; # uv
+};
 
-#define SPHREAD 4
+#define SPREAD 4
 
-void main() {
+void fragment() {
     vec4 colors = vec4(0.0);
     vec4 blurWeight = vec4(0.0);
 
-    for (int x = -SPHREAD; x <= SPHREAD; ++x) {
-        for (int y = -SPHREAD; y <= SPHREAD; ++y) {
+    for (int x = -SPREAD; x <= SPREAD; ++x) {
+        for (int y = -SPREAD; y <= SPREAD; ++y) {
             vec2 offset = vec2(x, y) * u_TexelSize;
 
             vec4 color = texture(u_Texture, v_TexCoord + offset);
@@ -25,4 +31,4 @@ void main() {
     }
 
     color = colors / blurWeight;
-}
+}#
