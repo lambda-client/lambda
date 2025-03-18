@@ -37,7 +37,7 @@ import java.awt.Color
  * Renders text and emoji glyphs using a shader-based font rendering system.
  * This class handles text and emoji rendering, shadow effects, and text scaling.
  */
-object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/font")) {
+object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("renderer/font")) {
     private val chars get() = RenderSettings.textFont
     private val emojis get() = RenderSettings.emojiFont
 

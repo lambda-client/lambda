@@ -19,9 +19,7 @@ package com.lambda.graphics.renderer.gui.rect
 
 import com.lambda.graphics.buffer.IRenderContext
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
-import com.lambda.graphics.pipeline.ScissorAdapter
 import com.lambda.graphics.renderer.gui.AbstractGUIRenderer
-import com.lambda.graphics.shader.Shader
 import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.util.math.lerp
 import com.lambda.util.math.MathUtils.toInt
