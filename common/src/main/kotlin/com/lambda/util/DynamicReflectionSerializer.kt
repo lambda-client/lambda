@@ -17,7 +17,15 @@
 
 package com.lambda.util
 
+import com.lambda.Lambda.LOG
+import com.lambda.core.Loadable
+import com.lambda.network.api.v1.endpoints.getMappings
+import com.lambda.util.FileUtils.getIfNotPresent
+import com.lambda.util.FileUtils.ifNotExists
+import com.lambda.util.FolderRegister.cache
+import com.lambda.util.extension.resolveFile
 import com.mojang.serialization.Codec
+import net.minecraft.SharedConstants
 import net.minecraft.block.BlockState
 import net.minecraft.client.resource.language.TranslationStorage
 import net.minecraft.item.ItemStack
@@ -34,7 +42,7 @@ import java.lang.reflect.Field
 import java.lang.reflect.InaccessibleObjectException
 import java.util.*
 
-object DynamicReflectionSerializer {
+object DynamicReflectionSerializer : Loadable {
     // Classes that should not be recursively serialized
     private val skipables = setOf(
         Codec::class.java,
@@ -62,6 +70,19 @@ object DynamicReflectionSerializer {
 
     private const val INDENT = 2
 
+    val mappings = cache.resolveFile("mappings-${SharedConstants.getProtocolVersion()}.m")
+        .ifNotExists { getMappings(success = it.getIfNotPresent(), failure = { LOG.error("Could not download the required files for the dynamic remapper") }).join() }
+        .let { file ->
+            file.readLines()
+                .map { it.split('\t') }
+                .associate { it[0] to it[1] }
+        }
+
+    inline val <T : Any> Class<T>.dynamicName: String get() = mappings.getOrDefault(simpleName, simpleName)
+
+    inline val Field.dynamicName: String get() = mappings.getOrDefault(name, name)
+
+
     // ToDo: To make this work in production, every field could be remapped.
     fun Any.dynamicString(
         maxRecursionDepth: Int = 6,
@@ -71,12 +92,12 @@ object DynamicReflectionSerializer {
         builder: StringBuilder = StringBuilder(),
     ): String {
         if (visitedObjects.contains(this)) {
-            builder.appendLine("$indent${javaClass.simpleName} (Circular Reference)")
+            builder.appendLine("$indent${javaClass.dynamicName} (Circular Reference)")
             return builder.toString()
         }
 
         visitedObjects.add(this)
-        builder.appendLine("$indent${javaClass.simpleName}")
+        builder.appendLine("$indent${javaClass.dynamicName}")
 
         val fields = javaClass.declaredFields + javaClass.superclass?.declaredFields.orEmpty()
         fields.forEach { field ->
@@ -103,7 +124,7 @@ object DynamicReflectionSerializer {
         }
         val fieldValue = field.get(this)
         val fieldIndent = indent + " ".repeat(INDENT)
-        builder.appendLine("$fieldIndent${field.name}: ${fieldValue.formatFieldValue()}")
+        builder.appendLine("$fieldIndent${field.dynamicName}: ${fieldValue.formatFieldValue()}")
 
         if (currentDepth < maxRecursionDepth
             && fieldValue != null
@@ -139,4 +160,8 @@ object DynamicReflectionSerializer {
             is RegistryEntry<*> -> "${value()}"
             else -> this?.toString() ?: "null"
         }
+
+    override fun load(): String {
+        return "Loaded ${mappings.size} remapped named"
+    }
 }

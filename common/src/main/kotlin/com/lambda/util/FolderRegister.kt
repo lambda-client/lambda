@@ -24,9 +24,6 @@ import com.lambda.util.FolderRegister.lambda
 import com.lambda.util.FolderRegister.minecraft
 import com.lambda.util.FolderRegister.packetLogs
 import com.lambda.util.FolderRegister.replay
-import com.lambda.util.StringUtils.sanitizeForFilename
-import java.io.File
-import java.net.InetSocketAddress
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.notExists
@@ -61,46 +58,5 @@ object FolderRegister : Loadable {
         return if (createdFolders.isNotEmpty()) {
             "Created directories: ${createdFolders.joinToString { minecraft.parent.relativize(it).toString() }}"
         } else "Loaded ${folders.size} directories"
-    }
-
-    /**
-     * Ensures the current file exists by creating it if it does not.
-     *
-     * If the file already exists, it will not be recreated. The necessary
-     * parent directories will be created if they do not exist.
-     */
-    fun File.createIfNotExists(): File = also { parentFile.mkdirs(); createNewFile() }
-
-    /**
-     * Returns a sequence of all the files in a tree that matches the [predicate]
-     */
-    fun File.listRecursive(predicate: (File) -> Boolean) = walk().filter(predicate)
-
-    /**
-     * Retrieves or creates a directory based on the current network connection and world dimension.
-     *
-     * The directory is determined by the host name of the current network connection (or "singleplayer" if offline)
-     * and the dimension key of the current world. These values are sanitized for use as filenames and combined
-     * to form a path under the current file. If the directory does not exist, it will be created.
-     *
-     * @receiver The base directory where the location-bound directory will be created.
-     * @return A `File` object representing the location-bound directory.
-     *
-     * The path is structured as:
-     * - `[base directory]/[host name]/[dimension key]`
-     *
-     * Example:
-     * If playing on a server with hostname "example.com" and in the "overworld" dimension, the path would be:
-     * - `[base directory]/example.com/overworld`
-     */
-    fun File.locationBoundDirectory(): File {
-        val hostName = (mc.networkHandler?.connection?.address as? InetSocketAddress)?.hostName ?: "singleplayer"
-        val path = resolve(
-            hostName.sanitizeForFilename()
-        ).resolve(
-            mc.world?.dimensionKey?.value?.path?.sanitizeForFilename() ?: "unknown" // TODO: Change with utils when merged to master
-        )
-        path.mkdirs()
-        return path
     }
 }

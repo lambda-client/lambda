@@ -19,6 +19,7 @@ package com.lambda.network
 
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.requests.CancellableRequest
+import com.lambda.Lambda
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
@@ -31,11 +32,13 @@ import com.lambda.network.api.v1.models.Cape
 import com.lambda.sound.SoundManager.toIdentifier
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
+import com.lambda.util.FileUtils.downloadIfNotPresent
 import com.lambda.util.FolderRegister.capes
 import com.lambda.util.extension.get
 import com.lambda.util.extension.resolveFile
 import net.minecraft.client.texture.NativeImage.read
 import net.minecraft.client.texture.NativeImageBackedTexture
+import java.io.File
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.ExperimentalPathApi
@@ -73,21 +76,18 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
             failure = { logError("Could not fetch the cape of the player", it) }
         )
 
-    private fun SafeContext.download(cape: Cape): CancellableRequest =
-        Fuel.download(cape.url)
-            .fileDestination { _, _ -> capes.resolveFile("${cape.id}.png") }
-            .response { result ->
-                result.fold(
-                    success = {
-                        val image = TextureUtils.readImage(it)
-                        val native = NativeImageBackedTexture(image)
-                        val id = cape.identifier
+    private fun SafeContext.download(cape: Cape): File =
+        capes.resolveFile("${cape.id}.png")
+            .downloadIfNotPresent(cape.url,
+                success = {
+                    val image = TextureUtils.readImage(it)
+                    val native = NativeImageBackedTexture(image)
+                    val id = cape.identifier
 
-                        mc.textureManager.registerTexture(id, native)
-                    },
-                    failure = { logError("Could not download the cape", it) }
-                )
-            }
+                    Lambda.mc.textureManager.registerTexture(id, native)
+                },
+                failure = { logError("Could not download the cape", it) },
+            )
 
     override fun load() = "Loaded ${images.size} cached capes"
 
