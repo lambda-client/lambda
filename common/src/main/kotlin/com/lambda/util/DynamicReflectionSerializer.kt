@@ -84,11 +84,11 @@ object DynamicReflectionSerializer : Loadable {
                     .associate { it[0].split('$').last() to it[1] }
             }
 
-    private val String.remappedName get() = mappings.getOrDefault(this, this)
+    val String.remappedName get() = mappings.getOrDefault(this, this)
 
-    private fun <T : Any> Class<T>.dynamicName(remap: Boolean) =
-        if (remap) simpleName.remappedName else simpleName
-    private fun Field.dynamicName(remap: Boolean) =
+    fun <T : Any> Class<T>.dynamicName(remap: Boolean) =
+        if (remap) canonicalName.remappedName else simpleName
+    fun Field.dynamicName(remap: Boolean) =
         if (remap) name.remappedName else name
 
     fun Any.dynamicString(
@@ -133,7 +133,7 @@ object DynamicReflectionSerializer : Loadable {
         }
         val fieldValue = field.get(this)
         val fieldIndent = "$indent${" ".repeat(INDENT)}"
-        builder.appendLine("$fieldIndent${field.dynamicName(remap)}: ${fieldValue.formatFieldValue()}")
+        builder.appendLine("$fieldIndent${field.dynamicName(remap)}: ${fieldValue.formatFieldValue(remap)}")
 
         if (currentDepth < maxRecursionDepth
             && fieldValue != null
@@ -153,14 +153,14 @@ object DynamicReflectionSerializer : Loadable {
         }
     }
 
-    private fun Any?.formatFieldValue(): String =
+    private fun Any?.formatFieldValue(remap: Boolean): String =
         when (this) {
             is String -> "\"${this}\""
-            is Collection<*> -> "[${joinToString(", ") { it.formatFieldValue() }}]"
-            is Array<*> -> "[${joinToString(", ") { it.formatFieldValue() }}]"
+            is Collection<*> -> "[${joinToString(", ") { it.formatFieldValue(remap) }}]"
+            is Array<*> -> "[${joinToString(", ") { it.formatFieldValue(remap) }}]"
             is Map<*, *> -> "{${
                 entries.joinToString(", ") { (k, v) ->
-                    "${k.formatFieldValue()}: ${v.formatFieldValue()}"
+                    "${k.formatFieldValue(remap)}: ${v.formatFieldValue(remap)}"
                 }
             }}"
 
@@ -168,7 +168,11 @@ object DynamicReflectionSerializer : Loadable {
             is Identifier -> "$namespace:$path"
             is NbtCompound -> asString()
             is RegistryEntry<*> -> "${value()}"
-            else -> this?.toString() ?: "null"
+            else -> {
+                if (this?.javaClass?.canonicalName?.contains("minecraft") == true)
+                    "${this.javaClass.dynamicName(remap).substringAfterLast('.')}@${Integer.toHexString(hashCode())}"
+                else this?.toString() ?: "null"
+            }
         }
 
     override fun load() = "Loaded ${mappings.size} deobfuscated qualifier"
