@@ -247,9 +247,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             breakingInfos
                 .filterNotNull()
                 .firstOrNull { info -> matchesBlockItem(info, it.entity) }
-                ?.let { info ->
-                    info.internalOnItemDrop(it.entity)
-                }
+                ?.internalOnItemDrop(it.entity)
         }
     }
 
