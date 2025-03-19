@@ -79,6 +79,7 @@ object DynamicReflectionSerializer : Loadable {
                     failure = { LOG.error("Could not download the required files for the dynamic remapper") }
                 ).join()
             }.let { file ->
+                if (!file.exists()) emptyMap<String, String>()
                 file.readLines()
                     .map { it.split('\t') }
                     .associate { it[0].split('$').last() to it[1] }
@@ -138,9 +139,9 @@ object DynamicReflectionSerializer : Loadable {
         if (currentDepth < maxRecursionDepth
             && fieldValue != null
             && !field.type.isPrimitive
-            && !field.type.isArray &&
-            !field.type.isEnum &&
-            skipables.none { it.isAssignableFrom(field.type) }
+            && !field.type.isArray
+            && !field.type.isEnum
+            && skipables.none { it.isAssignableFrom(field.type) }
         ) {
             fieldValue.dynamicString(
                 maxRecursionDepth,
@@ -170,7 +171,7 @@ object DynamicReflectionSerializer : Loadable {
             is RegistryEntry<*> -> "${value()}"
             else -> {
                 if (this?.javaClass?.canonicalName?.contains("minecraft") == true)
-                    "${this.javaClass.dynamicName(remap).substringAfterLast('.')}@${Integer.toHexString(hashCode())}"
+                    "${this.javaClass.dynamicName(remap)}@${Integer.toHexString(hashCode())}"
                 else this?.toString() ?: "null"
             }
         }
