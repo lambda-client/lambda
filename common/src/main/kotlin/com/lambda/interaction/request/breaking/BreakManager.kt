@@ -21,6 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
+import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
@@ -195,15 +196,19 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                     if (event.newState.matches(pending.context.checkedState))
                         return@listen
 
-                    pendingBreaks.remove(pending)
                     // return if the block's not broken
-                    if (!matchesTargetState(event.pos, pending.context.targetState, event.newState))
+                    if (!matchesTargetState(event.pos, pending.context.targetState, event.newState)) {
+                        pendingBreaks.remove(pending)
                         return@listen
+                    }
 
                     if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak) {
                         destroyBlock(pending)
                     }
-                    pending.onBreak()
+                    pending.internalOnBreak()
+                    if (pending.callbacksCompleted) {
+                        pendingBreaks.remove(pending)
+                    }
                     return@listen
                 }
 
@@ -218,22 +223,34 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                         return@listen
                     }
                     destroyBlock(info)
-                    info.onBreak()
+                    info.internalOnBreak()
                     info.nullify()
+                    if (!info.callbacksCompleted) {
+                        pendingBreaks.add(info)
+                    }
                 }
         }
 
-        //ToDo: drop callback stuff
         // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
-//        listen<EntityEvent.EntityUpdate> {
-//            if (it.entity !is ItemEntity) return@listen
-//            pendingBreaks
-//                .firstOrNull { info -> matchesBlockItem(info, it.entity) }
-//                ?.onItemDrop?.invoke(it.entity)
-//                ?: breakingInfos
-//                    .filterNotNull()
-//                    .firstOrNull { info -> matchesBlockItem(info, it.entity) }?.onItemDrop?.invoke(it.entity)
-//        }
+        listen<EntityEvent.EntityUpdate> {
+            if (it.entity !is ItemEntity) return@listen
+            pendingBreaks
+                .firstOrNull { info -> matchesBlockItem(info, it.entity) }
+                ?.let { pending ->
+                    pending.internalOnItemDrop(it.entity)
+                    if (pending.callbacksCompleted) {
+                        pendingBreaks.remove(pending)
+                    }
+                    return@listen
+                }
+
+            breakingInfos
+                .filterNotNull()
+                .firstOrNull { info -> matchesBlockItem(info, it.entity) }
+                ?.let { info ->
+                    info.internalOnItemDrop(it.entity)
+                }
+        }
     }
 
     private fun matchesBlockItem(info: BreakInfo, entity: ItemEntity): Boolean {
@@ -508,6 +525,32 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         var breakingTicks = 0
         var soundsCooldown = 0.0f
         var startedWithSecondary = false
+
+        @Volatile
+        private var broken = false
+        private var item: ItemEntity? = null
+
+        val callbacksCompleted
+            @Synchronized get() = broken && (onItemDrop == null || item != null)
+
+        fun internalOnBreak() {
+            synchronized(this) {
+                broken = true
+                onBreak()
+                item?.let { item ->
+                    onItemDrop?.invoke(item)
+                }
+            }
+        }
+
+        fun internalOnItemDrop(item: ItemEntity) {
+            synchronized(this) {
+                this.item = item
+                if (broken) {
+                    onItemDrop?.invoke(item)
+                }
+            }
+        }
 
         fun requestHotbarSwap() =
             hotbarConfig.request(HotbarRequest(context.hotbarIndex)).done

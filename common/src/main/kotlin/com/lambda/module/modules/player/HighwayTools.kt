@@ -119,6 +119,7 @@ object HighwayTools : Module(
                 emptyStructure()
             }
         }.build(
+            collectDrops = build.collectDrops,
             build = build,
             rotation = rotation,
             interact = interact,

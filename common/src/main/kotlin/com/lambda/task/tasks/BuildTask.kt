@@ -24,7 +24,6 @@ import com.lambda.config.groups.InteractionConfig
 import com.lambda.config.groups.InventoryConfig
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.context.SafeContext
-import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.blueprint.Blueprint
@@ -204,46 +203,37 @@ class BuildTask @Ta5kBuilder constructor(
                 return@listen
             }
         }
-
-        // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
-        listen<EntityEvent.EntityUpdate> {
-            if (!collectDrops) return@listen
-            if (it.entity !is ItemEntity) return@listen
-            pendingInteractions.find { context ->
-                val inRange = context.expectedPos.toCenterPos().isInRange(it.entity.pos, 0.5)
-                val correctMaterial = context.checkedState.block == it.entity.stack.item.block
-                inRange && correctMaterial
-            }?.let { _ ->
-                dropsToCollect.add(it.entity)
-            }
-        }
     }
 
     private fun SafeContext.collectDrops() =
-        dropsToCollect.firstOrNull()?.let { itemDrop ->
-            if (!world.entities.contains(itemDrop)) {
-                dropsToCollect.remove(itemDrop)
-                BaritoneUtils.cancel()
-                return true
-            }
+        dropsToCollect
+            .firstOrNull()
+            ?.let { itemDrop ->
+                if (positionBlockingManagers.any { it.blockedPositions.isNotEmpty() }) return true
 
-            val noInventorySpace = player.hotbarAndStorage.none { it.isEmpty }
-            if (noInventorySpace) {
-                val stackToThrow = player.currentScreenHandler.inventorySlots.firstOrNull {
-                    it.stack.item.block in TaskFlowModule.inventory.disposables
-                } ?: run {
-                    failure("No item in inventory to throw but inventory is full and cant pick up item drop")
+                if (!world.entities.contains(itemDrop)) {
+                    dropsToCollect.remove(itemDrop)
+                    BaritoneUtils.cancel()
                     return true
                 }
-                transfer(player.currentScreenHandler) {
-                    throwStack(stackToThrow.id)
-                }.execute(this@BuildTask)
-                return true
-            }
 
-            BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
-            return true
-        } ?: false
+                val noInventorySpace = player.hotbarAndStorage.none { it.isEmpty }
+                if (noInventorySpace) {
+                    val stackToThrow = player.currentScreenHandler.inventorySlots.firstOrNull {
+                        it.stack.item.block in TaskFlowModule.inventory.disposables
+                    } ?: run {
+                        failure("No item in inventory to throw but inventory is full and cant pick up item drop")
+                        return true
+                    }
+                    transfer(player.currentScreenHandler) {
+                        throwStack(stackToThrow.id)
+                    }.execute(this@BuildTask)
+                    return true
+                }
+
+                BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
+                return true
+            } ?: false
 
     companion object {
         @Ta5kBuilder
