@@ -70,7 +70,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         set(value) { breakingInfos[1] = value }
     private val breakingInfos = arrayOfNulls<BreakInfo>(2)
 
-    private val pendingInteractions = LimitedDecayQueue<BreakInfo>(
+    private val pendingBreaks = LimitedDecayQueue<BreakInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) {
         info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out")
@@ -78,7 +78,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
     }
 
     override val blockedPositions
-        get() = breakingInfos.mapNotNull { it?.context?.expectedPos } + pendingInteractions.map { it.context.expectedPos }
+        get() = breakingInfos.mapNotNull { it?.context?.expectedPos } + pendingBreaks.map { it.context.expectedPos }
 
     private var rotation: RotationRequest? = null
     private var validRotation = false
@@ -153,7 +153,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
 
             currentRequest?.let request@ { request ->
                 val breakConfig = request.buildConfig.breakSettings
-                val takeCount = breakConfig.maxPendingBreaks - (breakingInfos.count { it != null } + pendingInteractions.size)
+                val takeCount = breakConfig.maxPendingBreaks - (breakingInfos.count { it != null } + pendingBreaks.size)
                 val validContexts = request.contexts
                     .filter { ctx -> canAccept(ctx) }
                     .sortedBy { it.instantBreak }
@@ -188,14 +188,14 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         }
 
         listen<WorldEvent.BlockUpdate.Server> { event ->
-            pendingInteractions
+            pendingBreaks
                 .firstOrNull { it.context.expectedPos == event.pos }
                 ?.let { pending ->
                     // return if the state hasn't changed
                     if (event.newState.matches(pending.context.checkedState))
                         return@listen
 
-                    pendingInteractions.remove(pending)
+                    pendingBreaks.remove(pending)
                     // return if the block's not broken
                     if (!matchesTargetState(event.pos, pending.context.targetState, event.newState))
                         return@listen
@@ -227,7 +227,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
 //        listen<EntityEvent.EntityUpdate> {
 //            if (it.entity !is ItemEntity) return@listen
-//            pendingInteractions
+//            pendingBreaks
 //                .firstOrNull { info -> matchesBlockItem(info, it.entity) }
 //                ?.onItemDrop?.invoke(it.entity)
 //                ?: breakingInfos
@@ -296,12 +296,12 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
     }
 
     private fun setPendingInteractionsLimits(buildConfig: BuildConfig) {
-        pendingInteractions.setMaxSize(buildConfig.maxPendingInteractions)
-        pendingInteractions.setDecayTime(buildConfig.interactionTimeout * 50L)
+        pendingBreaks.setMaxSize(buildConfig.maxPendingInteractions)
+        pendingBreaks.setDecayTime(buildConfig.interactionTimeout * 50L)
     }
 
     private fun SafeContext.canAccept(ctx: BreakContext) =
-        pendingInteractions.none { it.context.expectedPos == ctx.expectedPos }
+        pendingBreaks.none { it.context.expectedPos == ctx.expectedPos }
                 && breakingInfos.none { info -> info?.context?.expectedPos == ctx.expectedPos }
                 && !blockState(ctx.expectedPos).isAir
 
@@ -449,10 +449,10 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             }
             BreakConfirmationMode.BreakThenAwait -> {
                 destroyBlock(info)
-                pendingInteractions.add(info)
+                pendingBreaks.add(info)
             }
             BreakConfirmationMode.AwaitThenBreak -> {
-                pendingInteractions.add(info)
+                pendingBreaks.add(info)
             }
         }
         info.nullify()

@@ -59,7 +59,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.world.GameMode
 
 object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
-    private val pendingInteractions = LimitedDecayQueue<PlaceRequest>(
+    private val pendingPlacements = LimitedDecayQueue<PlaceRequest>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) {
         info("${it::class.simpleName} at ${it.placeContext.expectedPos.toShortString()} timed out")
@@ -67,7 +67,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
     }
 
     override val blockedPositions
-        get() = pendingInteractions.map { it.placeContext.expectedPos }
+        get() = pendingPlacements.map { it.placeContext.expectedPos }
 
     private var rotation: RotationRequest? = null
     private var validRotation = false
@@ -116,7 +116,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
             }
 
             currentRequest?.let request@ { request ->
-                if (pendingInteractions.size >= request.buildConfig.placeSettings.maxPendingPlacements) {
+                if (pendingPlacements.size >= request.buildConfig.placeSettings.maxPendingPlacements) {
                     postEvent()
                     return@onRotate
                 }
@@ -125,8 +125,8 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
                     request.rotationConfig.request(request.placeContext.rotation)
                 else null
 
-                pendingInteractions.setMaxSize(request.buildConfig.maxPendingInteractions)
-                pendingInteractions.setDecayTime(request.buildConfig.interactionTimeout * 50L)
+                pendingPlacements.setMaxSize(request.buildConfig.maxPendingInteractions)
+                pendingPlacements.setDecayTime(request.buildConfig.interactionTimeout * 50L)
             }
         }
 
@@ -140,10 +140,10 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
         }
 
         listen<WorldEvent.BlockUpdate.Server> { event ->
-            pendingInteractions
+            pendingPlacements
                 .firstOrNull { it.placeContext.expectedPos == event.pos }
                 ?.let { request ->
-                    pendingInteractions.remove(request)
+                    pendingPlacements.remove(request)
 
                     // return if the block wasn't placed
                     if (!matchesTargetState(event.pos, request.placeContext.targetState, event.newState))
@@ -160,7 +160,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
     }
 
     private fun canPlace(placeContext: PlaceContext) =
-        pendingInteractions.none { pending ->
+        pendingPlacements.none { pending ->
             pending.placeContext.expectedPos == placeContext.expectedPos
         }
 
@@ -186,7 +186,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
                 if (request.buildConfig.placeSettings.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.None)
                     request.onPlace()
                 else
-                    pendingInteractions.add(request)
+                    pendingPlacements.add(request)
 
                 if (actionResult.shouldSwingHand() && request.buildConfig.placeSettings.swing) {
                     swingHand(request.buildConfig.placeSettings.swingType)
