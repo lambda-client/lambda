@@ -29,8 +29,8 @@
     "render.BackgroundRendererMixin",
     "render.BlockRenderManagerMixin",
     "render.CameraMixin",
-    "render.ChatHudMixin",
     "render.CapeFeatureRendererMixin",
+    "render.ChatHudMixin",
     "render.ChatInputSuggestorMixin",
     "render.ChatScreenMixin",
     "render.DebugHudMixin",
@@ -55,7 +55,8 @@
     "world.ClientChunkManagerMixin",
     "world.ClientWorldMixin",
     "world.StructureTemplateMixin",
-    "world.WorldMixin"
+    "world.WorldMixin",
+    "CrashReportMixin"
   ],
   "injectors": {
     "defaultRequire": 1
