@@ -38,7 +38,7 @@ object FileUtils {
      * If the file already exists, it will not be recreated. The necessary
      * parent directories will be created if they do not exist.
      */
-    fun File.createIfNotExists(): File = also { parentFile.mkdirs(); createNewFile() }
+    fun File.createIfNotExists() = also { parentFile.mkdirs(); createNewFile() }
 
     /**
      * Retrieves or creates a directory based on the current network connection and world dimension.
@@ -89,29 +89,36 @@ object FileUtils {
      *
      * This function does not guarantee that the given file will be created
      */
-    fun File.downloadIfNotPresent(url: String, success: (ByteArray) -> Unit = {}, failure: (FuelError) -> Unit = {}): File =
-        ifNotExists { url.httpDownload().fileDestination { _, _ -> it }.response { _, _, result -> result.fold(success, failure) } }
+    fun File.downloadIfNotPresent(
+        url: String,
+        success: (ByteArray) -> Unit = {},
+        failure: (FuelError) -> Unit = {}
+    ) = ifNotExists { url.httpDownload().fileDestination { _, _ -> it }.response { _, _, result -> result.fold(success, failure) } }
 
     /**
      * Downloads the given file url if the file is not present
      *
      * This function does not guarantee that the given file will be created
      */
-    fun String.downloadIfNotPresent(file: File, success: (ByteArray) -> Unit = {}, failure: (FuelError) -> Unit = {}): File =
-        file.ifNotExists { httpDownload().fileDestination { _, _ -> it }.response { _, _, result -> result.fold(success, failure) } }
+    fun String.downloadIfNotPresent(
+        file: File,
+        success: (ByteArray) -> Unit = {},
+        failure: (FuelError) -> Unit = {}
+    ) = file.ifNotExists { httpDownload().fileDestination { _, _ -> it }.response { _, _, result -> result.fold(success, failure) } }
 
     /**
      * Downloads the given file url if the file is not present
      *
      * This function does not guarantee that the given file will be created
      */
-    fun File.downloadIfNotPresent(): (String) -> Unit {
-        return { url -> ifNotExists { url.httpDownload().fileDestination { _, _ -> it }.response { _, _, _ -> } } } }
+    fun File.downloadIfNotPresent(): (String) -> Unit =
+        { url -> ifNotExists { url.httpDownload().fileDestination { _, _ -> it }.response { _, _, _ -> } } }
 
     /**
      * Gets the given url if the file is not present
      *
      * This function does not guarantee that the given file will be created
      */
-    fun File.getIfNotPresent(): (String) -> Unit { return { url -> ifNotExists { url.httpGet().responseString().third.getOrNull()?.let { writeText(it) } } } }
+    fun File.getIfNotPresent(): (String) -> Unit =
+        { url -> ifNotExists { url.httpGet().responseString().third.getOrNull()?.let { writeText(it) } } }
 }

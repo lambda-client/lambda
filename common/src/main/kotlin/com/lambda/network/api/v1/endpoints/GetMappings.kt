@@ -32,6 +32,9 @@ import net.minecraft.SharedConstants
  *
  * response: File or error
  */
-fun getMappings(version: String = SharedConstants.VERSION_NAME, success: (String) -> Unit, failure: (FuelError) -> Unit): CancellableRequest =
-    Fuel.get("$apiUrl/api/${apiVersion.value}/mappings?version=$version")
+fun getMappings(
+    version: String = SharedConstants.getGameVersion().name,
+    success: (String) -> Unit,
+    failure: (FuelError) -> Unit
+) = Fuel.get("$apiUrl/api/${apiVersion.value}/mappings?version=$version")
         .responseString { _, _, result -> result.fold(success, failure) }

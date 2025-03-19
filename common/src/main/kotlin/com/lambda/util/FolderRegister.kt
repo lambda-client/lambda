@@ -24,6 +24,7 @@ import com.lambda.util.FolderRegister.lambda
 import com.lambda.util.FolderRegister.minecraft
 import com.lambda.util.FolderRegister.packetLogs
 import com.lambda.util.FolderRegister.replay
+import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.notExists
@@ -47,6 +48,8 @@ object FolderRegister : Loadable {
     val capes: Path = cache.resolve("capes")
     val structure: Path = lambda.resolve("structure")
     val maps: Path = lambda.resolve("maps")
+
+    val File.relativeMCPath: Path get() = minecraft.relativize(toPath())
 
     override fun load(): String {
         val folders = listOf(lambda, config, packetLogs, replay, cache, capes, structure, maps)

@@ -17,6 +17,7 @@
 
 package com.lambda.util
 
+import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.core.Loadable
 import com.lambda.network.api.v1.endpoints.getMappings
@@ -70,38 +71,45 @@ object DynamicReflectionSerializer : Loadable {
 
     private const val INDENT = 2
 
-    val mappings = cache.resolveFile("mappings-${SharedConstants.getProtocolVersion()}.m")
-        .ifNotExists { getMappings(success = it.getIfNotPresent(), failure = { LOG.error("Could not download the required files for the dynamic remapper") }).join() }
-        .let { file ->
-            file.readLines()
-                .map { it.split('\t') }
-                .associate { it[0] to it[1] }
-        }
+    private val mappings =
+        cache.resolveFile("${SharedConstants.getProtocolVersion()}.mappings")
+            .ifNotExists {
+                getMappings(
+                    success = it.getIfNotPresent(),
+                    failure = { LOG.error("Could not download the required files for the dynamic remapper") }
+                ).join()
+            }.let { file ->
+                file.readLines()
+                    .map { it.split('\t') }
+                    .associate { it[0].split('$').last() to it[1] }
+            }
 
-    inline val <T : Any> Class<T>.dynamicName: String get() = mappings.getOrDefault(simpleName, simpleName)
+    private val String.remappedName get() = mappings.getOrDefault(this, this)
 
-    inline val Field.dynamicName: String get() = mappings.getOrDefault(name, name)
+    private fun <T : Any> Class<T>.dynamicName(remap: Boolean) =
+        if (remap) simpleName.remappedName else simpleName
+    private fun Field.dynamicName(remap: Boolean) =
+        if (remap) name.remappedName else name
 
-
-    // ToDo: To make this work in production, every field could be remapped.
     fun Any.dynamicString(
         maxRecursionDepth: Int = 6,
         currentDepth: Int = 0,
         indent: String = "",
         visitedObjects: MutableSet<Any> = HashSet(),
         builder: StringBuilder = StringBuilder(),
+        remap: Boolean = !Lambda.isDebug,
     ): String {
         if (visitedObjects.contains(this)) {
-            builder.appendLine("$indent${javaClass.dynamicName} (Circular Reference)")
+            builder.appendLine("$indent${javaClass.dynamicName(remap)} (Circular Reference)")
             return builder.toString()
         }
 
         visitedObjects.add(this)
-        builder.appendLine("$indent${javaClass.dynamicName}")
+        builder.appendLine("$indent${javaClass.dynamicName(remap)}")
 
         val fields = javaClass.declaredFields + javaClass.superclass?.declaredFields.orEmpty()
         fields.forEach { field ->
-            processField(field, indent, builder, currentDepth, maxRecursionDepth, visitedObjects)
+            processField(field, indent, builder, currentDepth, maxRecursionDepth, visitedObjects, remap)
         }
 
         return builder.toString()
@@ -114,6 +122,7 @@ object DynamicReflectionSerializer : Loadable {
         currentDepth: Int,
         maxRecursionDepth: Int,
         visitedObjects: MutableSet<Any>,
+        remap: Boolean,
     ) {
         if (skipFields.any { it.isAssignableFrom(field.type) }) return
 
@@ -123,8 +132,8 @@ object DynamicReflectionSerializer : Loadable {
             return
         }
         val fieldValue = field.get(this)
-        val fieldIndent = indent + " ".repeat(INDENT)
-        builder.appendLine("$fieldIndent${field.dynamicName}: ${fieldValue.formatFieldValue()}")
+        val fieldIndent = "$indent${" ".repeat(INDENT)}"
+        builder.appendLine("$fieldIndent${field.dynamicName(remap)}: ${fieldValue.formatFieldValue()}")
 
         if (currentDepth < maxRecursionDepth
             && fieldValue != null
@@ -136,9 +145,10 @@ object DynamicReflectionSerializer : Loadable {
             fieldValue.dynamicString(
                 maxRecursionDepth,
                 currentDepth + 1,
-                fieldIndent + " ".repeat(INDENT),
+                "$fieldIndent${" ".repeat(INDENT)}",
                 visitedObjects,
                 builder,
+                remap
             )
         }
     }
@@ -161,7 +171,5 @@ object DynamicReflectionSerializer : Loadable {
             else -> this?.toString() ?: "null"
         }
 
-    override fun load(): String {
-        return "Loaded ${mappings.size} remapped named"
-    }
+    override fun load() = "Loaded ${mappings.size} deobfuscated qualifier"
 }
