@@ -175,18 +175,12 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
             false
         }
 
-    private fun SafeContext.placeBlock(request: PlaceRequest, hand: Hand) =
-        interactBlock(request, request.buildConfig.placeSettings, hand, request.placeContext.result)
-
-    private fun SafeContext.interactBlock(
-        request: PlaceRequest,
-        placeConfig: PlaceConfig,
-        hand: Hand,
-        hitResult: BlockHitResult
-    ): ActionResult {
+    private fun SafeContext.placeBlock(request: PlaceRequest, hand: Hand): ActionResult {
         interaction.syncSelectedSlot()
+        val hitResult = request.placeContext.result
         if (!world.worldBorder.contains(hitResult.blockPos)) return ActionResult.FAIL
-        return interactBlockInternal(request, placeConfig, hand, hitResult)
+        if (gamemode == GameMode.SPECTATOR) return ActionResult.PASS
+        return interactBlockInternal(request, request.buildConfig.placeSettings, hand, hitResult)
     }
 
     private fun SafeContext.interactBlockInternal(
@@ -195,9 +189,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
         hand: Hand,
         hitResult: BlockHitResult
     ): ActionResult {
-        val itemStack = player.getStackInHand(hand)
-        if (gamemode == GameMode.SPECTATOR) return ActionResult.PASS
-
         val handNotEmpty = player.getStackInHand(hand).isEmpty.not()
         val cantInteract = player.shouldCancelInteraction() && handNotEmpty
         if (!cantInteract) {
@@ -213,6 +204,8 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
 //                return actionResult
 //            }
         }
+
+        val itemStack = player.getStackInHand(hand)
 
         if (!itemStack.isEmpty && !isItemOnCooldown(itemStack.item)) {
             val itemUsageContext = ItemUsageContext(player, hand, hitResult)
