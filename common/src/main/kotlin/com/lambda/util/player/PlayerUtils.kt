@@ -47,11 +47,11 @@ fun SafeContext.spawnFakePlayer(
     return entity
 }
 
-fun SafeContext.swingHand(swingType: BuildConfig.SwingType) =
+fun SafeContext.swingHand(swingType: BuildConfig.SwingType, hand: Hand) =
     when (swingType) {
-        BuildConfig.SwingType.Vanilla -> player.swingHand(player.activeHand)
-        BuildConfig.SwingType.Server -> connection.sendPacket(HandSwingC2SPacket(player.activeHand))
-        BuildConfig.SwingType.Client -> swingHandClient(player.activeHand)
+        BuildConfig.SwingType.Vanilla -> player.swingHand(hand)
+        BuildConfig.SwingType.Server -> connection.sendPacket(HandSwingC2SPacket(hand))
+        BuildConfig.SwingType.Client -> swingHandClient(hand)
     }
 
 fun SafeContext.swingHandClient(hand: Hand) {

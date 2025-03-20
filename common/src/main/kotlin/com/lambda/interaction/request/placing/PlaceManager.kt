@@ -50,6 +50,7 @@ import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemUsageContext
+import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.registry.RegistryKeys
 import net.minecraft.sound.SoundCategory
@@ -57,6 +58,7 @@ import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
 import net.minecraft.world.GameMode
 
 object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
@@ -197,12 +199,10 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
                 return ActionResult.FAIL
             }
 
-            // checks if the player should be able to interact with the block for if its something
-            // like a furnace or chest where an action would happen
-//            val actionResult = blockState.onUse(world, player, hand, hitResult)
-//            if (actionResult.isAccepted) {
-//                return actionResult
-//            }
+            val actionResult = blockState.onUse(world, player, hand, hitResult)
+            if (actionResult.isAccepted) {
+                return actionResult
+            }
         }
 
         val itemStack = player.getStackInHand(hand)
@@ -261,12 +261,16 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
         else
             pendingPlacements.add(request)
 
-        interaction.sendSequencedPacket(world) { sequence: Int ->
-            PlayerInteractBlockC2SPacket(hand, hitResult, sequence)
+        if (request.buildConfig.placeSettings.airPlace == PlaceConfig.AirPlaceMode.Grim) {
+            airPlaceOffhandSwap()
+            sendPlacePacket(hand, hitResult)
+            airPlaceOffhandSwap()
+        } else {
+            sendPlacePacket(hand, hitResult)
         }
 
         if (request.buildConfig.placeSettings.swing) {
-            swingHand(request.buildConfig.placeSettings.swingType)
+            swingHand(request.buildConfig.placeSettings.swingType, hand)
         }
 
         if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || interaction.hasCreativeInventory())) {
@@ -296,6 +300,11 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
         return ActionResult.success(world.isClient)
     }
 
+    private fun SafeContext.sendPlacePacket(hand: Hand, hitResult: BlockHitResult) =
+        interaction.sendSequencedPacket(world) { sequence: Int ->
+            PlayerInteractBlockC2SPacket(hand, hitResult, sequence)
+        }
+
     private fun SafeContext.placeSound(item: BlockItem, state: BlockState, pos: BlockPos) {
         val blockSoundGroup = state.soundGroup
         world.playSound(
@@ -305,6 +314,16 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
             SoundCategory.BLOCKS,
             (blockSoundGroup.getVolume() + 1.0f) / 2.0f,
             blockSoundGroup.getPitch() * 0.8f
+        )
+    }
+
+    private fun SafeContext.airPlaceOffhandSwap() {
+        connection.sendPacket(
+            PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
+                BlockPos.ORIGIN,
+                Direction.DOWN
+            )
         )
     }
 

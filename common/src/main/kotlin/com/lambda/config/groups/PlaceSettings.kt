@@ -27,6 +27,7 @@ class PlaceSettings(
     vis: () -> Boolean = { true }
 ) : PlaceConfig(priority) {
     override val rotateForPlace by c.setting("Rotate For Place", true, "Rotate towards block while placing") { vis() }
+    override val airPlace by c.setting("Air Place", AirPlaceMode.None, "Allows for placing blocks without adjacent faces") { vis() }
     override val placeConfirmationMode by c.setting("Place Confirmation", PlaceConfirmationMode.PlaceThenAwait, "Wait for block placement confirmation") { vis() }
     override val maxPendingPlacements by c.setting("Max Pending Placements", 2, 0..5, 1, "The maximum amount of pending placements") { vis() }
     override val placementsPerTick by c.setting("Instant Places Per Tick", 1, 1..30, 1, "Maximum instant block places per tick") { vis() }

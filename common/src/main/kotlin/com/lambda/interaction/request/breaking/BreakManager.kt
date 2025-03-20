@@ -60,6 +60,7 @@ import net.minecraft.entity.ItemEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.sound.SoundCategory
+import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 
 object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
@@ -338,7 +339,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                 info.nullify()
                 return false
             }
-            if (info.breakConfig.swing != BreakConfig.SwingMode.End) swingHand(info.breakConfig.swingType)
+            if (info.breakConfig.swing != BreakConfig.SwingMode.End) swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
             return true
         }
 
@@ -389,10 +390,10 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                 onBlockBreak(info)
                 PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
             }
-            if (info.breakConfig.swing != BreakConfig.SwingMode.Start) swingHand(info.breakConfig.swingType)
+            if (info.breakConfig.swing != BreakConfig.SwingMode.Start) swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
             setBreakCooldown(info.breakConfig.breakDelay)
         } else {
-            if (info.breakConfig.swing == BreakConfig.SwingMode.Constant) swingHand(info.breakConfig.swingType)
+            if (info.breakConfig.swing == BreakConfig.SwingMode.Constant) swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
         }
 
         return true

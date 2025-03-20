@@ -25,6 +25,7 @@ abstract class PlaceConfig(
     priority: Priority
 ) : RequestConfig<PlaceRequest>(priority) {
     abstract val rotateForPlace: Boolean
+    abstract val airPlace: AirPlaceMode
     abstract val placeConfirmationMode: PlaceConfirmationMode
     abstract val maxPendingPlacements: Int
     abstract val placementsPerTick: Int
@@ -34,6 +35,12 @@ abstract class PlaceConfig(
 
     override fun requestInternal(request: PlaceRequest) {
         PlaceManager.registerRequest(this, request)
+    }
+
+    enum class AirPlaceMode {
+        None,
+        Standard,
+        Grim
     }
 
     enum class PlaceConfirmationMode {
