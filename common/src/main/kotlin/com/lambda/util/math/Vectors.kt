@@ -88,6 +88,13 @@ infix operator fun Vec3d.div(other: Double): Vec3d = times(1 / other)
 infix operator fun Vec3d.div(other: Float): Vec3d = times(1 / other)
 infix operator fun Vec3d.div(other: Int): Vec3d = times(1 / other)
 
+infix operator fun ClosedRange<Double>.rangeTo(other: Double) = Vec3d(start, endInclusive, other)
+infix operator fun ClosedRange<Float>.rangeTo(other: Float) = Vec3d(start.toDouble(), endInclusive.toDouble(), other.toDouble())
+infix operator fun ClosedRange<Int>.rangeTo(other: Int) = Vec3d(start.toDouble(), endInclusive.toDouble(), other.toDouble())
+infix operator fun OpenEndRange<Double>.rangeTo(other: Double) = Vec3d(start, endExclusive, other)
+infix operator fun OpenEndRange<Float>.rangeTo(other: Float) = Vec3d(start.toDouble(), endExclusive.toDouble(), other.toDouble())
+infix operator fun OpenEndRange<Int>.rangeTo(other: Int) = BlockPos.Mutable(start, endExclusive, other)
+
 /* Vec3i */
 val Vec3i.vec3d get() =
     Vec3d(x.toDouble(), y.toDouble(), z.toDouble())
