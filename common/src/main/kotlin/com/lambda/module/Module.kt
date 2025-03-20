@@ -115,7 +115,7 @@ abstract class Module(
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.UNBOUND,
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
-    private val isEnabledSetting = setting("Enabled", enabledByDefault, visibility = { false })
+    private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     private val keybindSetting = setting("Keybind", defaultKeybind)
     val isVisible = setting("Visible", true) { ModuleList.isEnabled }
     val reset by setting("Reset", { settings.forEach { it.reset() }; this@Module.info("Settings set to default") })
