@@ -36,6 +36,7 @@ import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.interaction.request.rotation.RotationManager.onRotatePost
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.module.modules.client.TaskFlowModule
+import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.item
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
@@ -97,7 +98,10 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
                 if ((request.placeContext.sneak && notSneaking) || !hotbarRequest.done || invalidRotation)
                     return@listen
 
-                placeBlock(request, Hand.MAIN_HAND)
+                val actionResult = placeBlock(request, Hand.MAIN_HAND)
+                if (!actionResult.isAccepted) {
+                    warn("Placement interaction failed with $actionResult")
+                }
                 activeThisTick = true
             }
         }
@@ -174,35 +178,19 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
     private fun SafeContext.placeBlock(request: PlaceRequest, hand: Hand) =
         interactBlock(request, request.buildConfig.placeSettings, hand, request.placeContext.result)
 
-    private fun SafeContext.interactBlock(request: PlaceRequest, placeConfig: PlaceConfig, hand: Hand, hitResult: BlockHitResult) {
+    private fun SafeContext.interactBlock(
+        request: PlaceRequest,
+        placeConfig: PlaceConfig,
+        hand: Hand,
+        hitResult: BlockHitResult
+    ): ActionResult {
         interaction.syncSelectedSlot()
-        if (!world.worldBorder.contains(hitResult.blockPos)) return
-
-        interaction.sendSequencedPacket(world) { sequence: Int ->
-            val stackInHand = player.getStackInHand(hand)
-            val stackCountPre = stackInHand.count
-            val actionResult = interactBlockInternal(placeConfig, hand, hitResult)
-            if (actionResult.isAccepted) {
-                if (request.buildConfig.placeSettings.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.None)
-                    request.onPlace()
-                else
-                    pendingPlacements.add(request)
-
-                if (actionResult.shouldSwingHand() && request.buildConfig.placeSettings.swing) {
-                    swingHand(request.buildConfig.placeSettings.swingType)
-                }
-
-                if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || interaction.hasCreativeInventory())) {
-                    mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
-                }
-            } else {
-                warn("Placement interaction failed with $actionResult")
-            }
-            PlayerInteractBlockC2SPacket(hand, hitResult, sequence)
-        }
+        if (!world.worldBorder.contains(hitResult.blockPos)) return ActionResult.FAIL
+        return interactBlockInternal(request, placeConfig, hand, hitResult)
     }
 
     private fun SafeContext.interactBlockInternal(
+        request: PlaceRequest,
         placeConfig: PlaceConfig,
         hand: Hand,
         hitResult: BlockHitResult
@@ -210,27 +198,40 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
         val itemStack = player.getStackInHand(hand)
         if (gamemode == GameMode.SPECTATOR) return ActionResult.PASS
 
-        // checks if the player should be able to interact with the block for if its something
-        // like a furnace or chest where an action would happen
-//        val handNotEmpty = player.getStackInHand(hand).isEmpty.not()
-//        val cantInteract = player.shouldCancelInteraction() && handNotEmpty
-//        if (!cantInteract) return ActionResult.PASS
+        val handNotEmpty = player.getStackInHand(hand).isEmpty.not()
+        val cantInteract = player.shouldCancelInteraction() && handNotEmpty
+        if (!cantInteract) {
+            val blockState = blockState(hitResult.blockPos)
+            if (!connection.hasFeature(blockState.block.requiredFeatures)) {
+                return ActionResult.FAIL
+            }
+
+            // checks if the player should be able to interact with the block for if its something
+            // like a furnace or chest where an action would happen
+//            val actionResult = blockState.onUse(world, player, hand, hitResult)
+//            if (actionResult.isAccepted) {
+//                return actionResult
+//            }
+        }
 
         if (!itemStack.isEmpty && !isItemOnCooldown(itemStack.item)) {
             val itemUsageContext = ItemUsageContext(player, hand, hitResult)
             return if (gamemode.isCreative) {
                 val i = itemStack.count
-                useOnBlock(placeConfig, itemStack, itemUsageContext)
+                useOnBlock(request, hand, hitResult, placeConfig, itemStack, itemUsageContext)
                     .also {
                         itemStack.count = i
                     }
             } else
-                useOnBlock(placeConfig, itemStack, itemUsageContext)
+                useOnBlock(request, hand, hitResult, placeConfig, itemStack, itemUsageContext)
         }
         return ActionResult.PASS
     }
 
     private fun SafeContext.useOnBlock(
+        request: PlaceRequest,
+        hand: Hand,
+        hitResult: BlockHitResult,
         placeConfig: PlaceConfig,
         itemStack: ItemStack,
         context: ItemUsageContext
@@ -242,12 +243,14 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
         if (cantModifyWorld && cantPlaceOn) return ActionResult.PASS
 
         val item = (itemStack.item as? BlockItem) ?: return ActionResult.PASS
-        val actionResult = place(placeConfig, item, ItemPlacementContext(context))
 
-        return actionResult
+        return place(request, hand, hitResult, placeConfig, item, ItemPlacementContext(context))
     }
 
     private fun SafeContext.place(
+        request: PlaceRequest,
+        hand: Hand,
+        hitResult: BlockHitResult,
         placeConfig: PlaceConfig,
         item: BlockItem,
         context: ItemPlacementContext
@@ -257,6 +260,25 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
 
         val itemPlacementContext = item.getPlacementContext(context) ?: return ActionResult.FAIL
         val blockState = item.getPlacementState(itemPlacementContext) ?: return ActionResult.FAIL
+
+        val stackInHand = player.getStackInHand(hand)
+        val stackCountPre = stackInHand.count
+        if (request.buildConfig.placeSettings.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.None)
+            request.onPlace()
+        else
+            pendingPlacements.add(request)
+
+        interaction.sendSequencedPacket(world) { sequence: Int ->
+            PlayerInteractBlockC2SPacket(hand, hitResult, sequence)
+        }
+
+        if (request.buildConfig.placeSettings.swing) {
+            swingHand(request.buildConfig.placeSettings.swingType)
+        }
+
+        if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || interaction.hasCreativeInventory())) {
+            mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
+        }
 
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
             return ActionResult.success(world.isClient)
