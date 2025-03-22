@@ -17,19 +17,20 @@
 
 package com.lambda.gui.impl.clickgui.module.settings.impl
 
-import com.lambda.config.settings.complex.ColorSetting
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.component.popup.Popup
 import com.lambda.gui.impl.clickgui.module.settings.SettingLayout
 import com.lambda.util.Mouse
 import java.awt.Color
+import kotlin.reflect.KMutableProperty0
 
 class ColorPicker(
     owner: Layout,
-    setting: ColorSetting
-) : SettingLayout<Color, ColorSetting>(owner, setting) {
-    private val popup = Popup(this, setting.name).apply {
+    name: String,
+    field: KMutableProperty0<Color>,
+) : SettingLayout<Color>(owner, name, field) {
+    private val popup = Popup(this, name).apply {
         window.use {
             windowWidth = 200.0
             windowHeight = 100.0
@@ -44,10 +45,10 @@ class ColorPicker(
 
     companion object {
         /**
-         * Creates a [ColorPicker] - visual representation of the [ColorSetting]
+         * Creates a [ColorPicker]
          */
         @UIBuilder
-        fun Layout.colorPicker(setting: ColorSetting) =
-            ColorPicker(this, setting).apply(children::add)
+        fun Layout.colorPicker(name: String, field: KMutableProperty0<Color>) =
+            ColorPicker(this, name, field).apply(children::add)
     }
 }

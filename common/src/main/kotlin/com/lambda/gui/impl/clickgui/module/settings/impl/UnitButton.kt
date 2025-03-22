@@ -17,28 +17,40 @@
 
 package com.lambda.gui.impl.clickgui.module.settings.impl
 
-import com.lambda.config.settings.FunctionSetting
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.impl.clickgui.module.settings.SettingLayout
 import com.lambda.util.Mouse
+import kotlin.reflect.KMutableProperty0
 
 class UnitButton <T> (
     owner: Layout,
-    setting: FunctionSetting<T>,
-) : SettingLayout<() -> T, FunctionSetting<T>>(owner, setting) {
+    name: String,
+    field: KMutableProperty0<() -> T>,
+) : SettingLayout<() -> T>(owner, name, field) {
     init {
         onMouseAction(Mouse.Button.Left) {
-            setting.value()
+            settingDelegate()
         }
     }
 
     companion object {
         /**
-         * Creates a [UnitButton] - visual representation of the [FunctionSetting]
+         * Creates a [UnitButton]
          */
         @UIBuilder
-        fun <T> Layout.unitSetting(setting: FunctionSetting<T>) =
-            UnitButton(this, setting).apply(children::add)
+        fun <T> Layout.unitButton(name: String, field: KMutableProperty0<() -> T>) =
+            UnitButton(this, name, field).apply(children::add)
+
+        /**
+         * Creates a [UnitButton]
+         */
+        @UIBuilder
+        fun <T> Layout.unitButton(name: String, block: () -> T) =
+            UnitButton(this, name, CapturedUnit(block)::block).apply(children::add)
+
+        private class CapturedUnit <T> (
+            var block: () -> T
+        )
     }
 }

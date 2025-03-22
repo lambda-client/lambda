@@ -152,9 +152,13 @@ class ModuleLayout(
             }
         }
 
-        val settings = module.settings.map { setting ->
+        val settings = module.settings.mapNotNull { setting ->
             content.layoutOf(setting)
-        }.filterIsInstance<SettingLayout<*, *>>()
+        }.map { it as SettingLayout<*> }.onEach {
+            it.onUpdate {
+                width = this@ModuleLayout.content.width
+            }
+        }
 
         val minimizeSettings = {
             settings.forEach {
@@ -182,7 +186,7 @@ class ModuleLayout(
          */
         @UIBuilder
         fun Window.backgroundTint(tintTitleBar: Boolean = false) {
-            check(this is SettingLayout<*, *> || this is ModuleLayout || this is ModuleWindow)
+            check(this is SettingLayout<*> || this is ModuleLayout || this is ModuleWindow)
 
             val base = this@backgroundTint
 

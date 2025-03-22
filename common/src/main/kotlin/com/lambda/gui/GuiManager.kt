@@ -17,22 +17,27 @@
 
 package com.lambda.gui
 
-import com.lambda.config.settings.NumericSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.config.settings.FunctionSetting
 import com.lambda.config.settings.complex.ColorSetting
 import com.lambda.config.settings.complex.KeyBindSetting
+import com.lambda.config.settings.numeric.DoubleSetting
+import com.lambda.config.settings.numeric.FloatSetting
+import com.lambda.config.settings.numeric.IntegerSetting
+import com.lambda.config.settings.numeric.LongSetting
 import com.lambda.core.Loadable
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.impl.clickgui.module.settings.impl.BooleanButton.Companion.booleanSetting
 import com.lambda.gui.impl.clickgui.module.settings.impl.ColorPicker.Companion.colorPicker
+import com.lambda.gui.impl.clickgui.module.settings.impl.EnumSlider
 import com.lambda.gui.impl.clickgui.module.settings.impl.EnumSlider.Companion.enumSetting
 import com.lambda.gui.impl.clickgui.module.settings.impl.KeybindPicker.Companion.keybindSetting
 import com.lambda.gui.impl.clickgui.module.settings.impl.NumberSlider.Companion.numericSetting
-import com.lambda.gui.impl.clickgui.module.settings.impl.UnitButton.Companion.unitSetting
+import com.lambda.gui.impl.clickgui.module.settings.impl.UnitButton.Companion.unitButton
 import kotlin.reflect.KClass
+import kotlin.reflect.KMutableProperty0
 
 object GuiManager : Loadable {
     val typeMap = mutableMapOf<KClass<*>, (owner: Layout, converted: Any) -> Layout>()
@@ -43,27 +48,73 @@ object GuiManager : Loadable {
 
     override fun load(): String {
         typeAdapter<BooleanSetting> { owner, ref ->
-            owner.booleanSetting(ref)
+            owner.booleanSetting(ref.name, ref::value).apply {
+                visibility { ref.visibility() }
+            }
         }
 
         typeAdapter<EnumSetting<*>> { owner, ref ->
-            owner.enumSetting(ref)
+            owner.enumSetting(ref.name, ref::value).apply {
+                visibility { ref.visibility() }
+            }
         }
 
         typeAdapter<FunctionSetting<*>> { owner, ref ->
-            owner.unitSetting(ref)
+            owner.unitButton(ref.name, ref::value).apply {
+                visibility { ref.visibility() }
+            }
         }
 
-        typeAdapter<NumericSetting<*>> { owner, ref ->
-            owner.numericSetting(ref)
+        typeAdapter<DoubleSetting> { owner, ref ->
+            owner.numericSetting(
+                ref.name, ref.unit,
+                ref.range.start, ref.range.endInclusive, ref.step,
+                ref::value
+            ).apply {
+                visibility { ref.visibility() }
+            }
+        }
+
+        typeAdapter<FloatSetting> { owner, ref ->
+            owner.numericSetting(
+                ref.name, ref.unit,
+                ref.range.start, ref.range.endInclusive, ref.step,
+                ref::value
+            ).apply {
+                visibility { ref.visibility() }
+            }
+        }
+
+        typeAdapter<IntegerSetting> { owner, ref ->
+            owner.numericSetting(
+                ref.name, ref.unit,
+                ref.range.start, ref.range.endInclusive, ref.step,
+                ref::value
+            ).apply {
+                visibility { ref.visibility() }
+            }
+        }
+
+        typeAdapter<LongSetting> { owner, ref ->
+            owner.numericSetting(
+                ref.name, ref.unit,
+                ref.range.start, ref.range.endInclusive, ref.step,
+                ref::value
+            ).apply {
+                visibility { ref.visibility() }
+            }
         }
 
         typeAdapter<KeyBindSetting> { owner, ref ->
-            owner.keybindSetting(ref)
+            owner.keybindSetting(ref.name, ref::value).apply {
+                visibility { ref.visibility() }
+            }
         }
 
         typeAdapter<ColorSetting> { owner, ref ->
-            owner.colorPicker(ref)
+            owner.colorPicker(ref.name, ref::value).apply {
+                visibility { ref.visibility() }
+            }
         }
 
         return "Loaded ${typeMap.size} gui type adapters."
