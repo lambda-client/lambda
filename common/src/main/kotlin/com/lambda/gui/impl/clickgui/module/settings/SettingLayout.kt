@@ -31,7 +31,7 @@ import kotlin.reflect.KMutableProperty0
 abstract class SettingLayout <V : Any> (
     owner: Layout,
     name: String,
-    field: KMutableProperty0<V>,
+    private val property: KMutableProperty0<V>,
     expandable: Boolean = false
 ) : AnimatedChild(
     owner,
@@ -44,7 +44,14 @@ abstract class SettingLayout <V : Any> (
 ) {
     protected val cursorController = cursorController()
 
-    protected var settingDelegate by field
+    protected var settingDelegate: V
+        get() = property.get()
+        set(value) {
+            if (property.get() == value) return
+            property.set(value)
+            onValueSet.forEach { it(value) }
+        }
+
     private var onValueSet = mutableListOf<(V) -> Unit>()
     private var getVisibilityBlock = { true }
     val isVisible get() = getVisibilityBlock()
@@ -55,7 +62,7 @@ abstract class SettingLayout <V : Any> (
     }
 
     @LayoutBuilder
-    fun valueSet(action: (V) -> Unit) {
+    fun onValueSet(action: (V) -> Unit) {
         onValueSet += action
     }
 

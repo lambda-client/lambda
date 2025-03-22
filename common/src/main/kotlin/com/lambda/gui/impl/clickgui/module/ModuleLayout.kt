@@ -137,21 +137,6 @@ class ModuleLayout(
             cursorController.setCursor(cursor)
         }
 
-        onWindowExpand {
-            if (ClickGui.multipleSettingWindows) return@onWindowExpand
-
-            val base = owner // window content
-                .owner // window
-                ?.owner  // environment with windows
-                ?: return@onWindowExpand
-
-            base.children.filterIsInstance<ModuleWindow>().forEach { window ->
-                window.content.children.filterIsInstance<ModuleLayout>().forEach { module ->
-                    if (module != this) module.isMinimized = true
-                }
-            }
-        }
-
         val settings = module.settings.mapNotNull { setting ->
             content.layoutOf(setting)
         }.map { it as SettingLayout<*> }.onEach {

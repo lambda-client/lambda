@@ -8,7 +8,7 @@ uniforms {
 };
 
 export {
-    vec4 v_TexCoord; # uv
+    vec2 v_TexCoord; # uv
 };
 
 #include "shade"

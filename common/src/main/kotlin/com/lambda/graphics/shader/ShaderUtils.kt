@@ -44,6 +44,8 @@ object ShaderUtils {
                 .append("Failed to compile ${type.name} shader").appendLine()
                 .append("Compiler output:").appendLine()
                 .append(err)
+                .appendLine().appendLine("CODE:")
+                .append(text)
 
             throw RuntimeException(builder.toString())
         }
