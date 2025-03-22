@@ -129,7 +129,7 @@ class ColorPicker(
 
                 onUpdate {
                     val uv = if (circle.pressedButton == Mouse.Button.Left) clampToCircle(Vec2d(getU(), getV()))
-                    else hueToUv(hue * 360, saturation)
+                    else hueToUv(hue, saturation)
 
                     positionX = transform(uv.x, 0.0, 1.0, circle.positionX, circle.positionX + circle.width) - knobSize * 0.5
                     positionY = transform(uv.y, 0.0, 1.0, circle.positionY, circle.positionY + circle.height) - knobSize * 0.5
@@ -163,7 +163,7 @@ class ColorPicker(
         }
 
         private fun hueToUv(hue: Double, radius: Double): Vec2d {
-            val angle = (hue - 90.0).toRadian()
+            val angle = (hue * 360 - 90.0).toRadian()
 
             val x = cos(angle) * radius
             val y = sin(angle) * radius
@@ -177,7 +177,7 @@ class ColorPicker(
         private fun clampToCircle(uv: Vec2d): Vec2d {
             val center = Vec2d(0.5f, 0.5f)
             val radius = 0.5f
-            val dx = uv.x- center.x
+            val dx = uv.x - center.x
             val dy = uv.y - center.y
             val dist = sqrt(dx * dx + dy * dy)
 
