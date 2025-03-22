@@ -262,8 +262,9 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
         }
 
         if (request.buildConfig.placeSettings.airPlace == PlaceConfig.AirPlaceMode.Grim) {
+            val placeHand = if (hand == Hand.MAIN_HAND) Hand.OFF_HAND else Hand.MAIN_HAND
             airPlaceOffhandSwap()
-            sendPlacePacket(hand, hitResult)
+            sendPlacePacket(placeHand, hitResult)
             airPlaceOffhandSwap()
         } else {
             sendPlacePacket(hand, hitResult)
