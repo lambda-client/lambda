@@ -67,6 +67,10 @@ class BuildTask @Ta5kBuilder constructor(
     override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).string} b/s ${(placements / (age / 20.0 + 0.001)).string} p/s"
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
+    private val emptyPendingInteractionSlots
+        get() = (build.maxPendingInteractions - pendingInteractions.size).coerceAtLeast(0)
+    private val atMaxPendingInteractions
+        get() = pendingInteractions.size >= build.maxPendingInteractions
 
     private var placements = 0
     private var breaks = 0
@@ -127,7 +131,7 @@ class BuildTask @Ta5kBuilder constructor(
                 }
 
                 is BuildResult.Contextual -> {
-                    if (pendingInteractions.size >= build.maxPendingInteractions) return@onRotate
+                    if (atMaxPendingInteractions) return@onRotate
                     when (bestResult) {
                         is BreakResult.Break -> {
                             val breakResults = resultsNotBlocked
@@ -136,10 +140,10 @@ class BuildTask @Ta5kBuilder constructor(
                             if (build.breakSettings.breaksPerTick > 1) {
                                 val takeCount = build.breakSettings
                                     .breaksPerTick
-                                    .coerceAtMost((build.maxPendingInteractions - pendingInteractions.size))
+                                    .coerceAtMost(emptyPendingInteractionSlots)
                                 val instantResults = breakResults
                                     .filter { it.context.instantBreak }
-                                    .take(takeCount.coerceAtLeast(0))
+                                    .take(takeCount)
 
                                 if (instantResults.isNotEmpty()) {
                                     build.breakSettings.request(
