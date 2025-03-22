@@ -77,7 +77,9 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) {
         info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out")
-        mc.world?.setBlockState(it.context.expectedPos, it.context.checkedState)
+        if (!it.broken && it.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
+            mc.world?.setBlockState(it.context.expectedPos, it.context.checkedState)
+        }
         it.pendingInteractionsList.remove(it.context)
     }
 
@@ -543,7 +545,8 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         var startedWithSecondary = false
 
         @Volatile
-        private var broken = false
+        var broken = false
+            private set
         private var item: ItemEntity? = null
 
         val callbacksCompleted
