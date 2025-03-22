@@ -299,7 +299,7 @@ object BuildSimulator {
                     RotationRequest(lookAt(checkedHit.targetRotation, 0.001), rotation),
                     eye.distanceTo(blockHit.pos),
                     resultState,
-                    blockState(blockHit.blockPos),
+                    blockState(blockHit.blockPos.offset(blockHit.side)),
                     player.inventory.selectedSlot,
                     context.blockPos,
                     target,
