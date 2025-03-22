@@ -425,8 +425,6 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         if (info.breaking) return false
 
         val blockState = blockState(ctx.expectedPos)
-        val pendingUpdateManager = world.pendingUpdateManager.incrementSequence()
-        val sequence = pendingUpdateManager.sequence
         val notAir = !blockState.isAir
         if (notAir && info.breakingTicks == 0) {
             blockState.onBlockBreakStart(world, ctx.expectedPos, player)
@@ -449,17 +447,13 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         }
 
         if (info.breakConfig.breakMode == BreakMode.Packet) {
-            ctx.stopBreakPacket(sequence, connection)
-            ctx.startBreakPacket(sequence + 1, connection)
-            ctx.stopBreakPacket(sequence + 1, connection)
-            repeat(2) {
-                pendingUpdateManager.incrementSequence()
-            }
+            ctx.stopBreakPacket(world, interaction)
+            ctx.startBreakPacket(world, interaction)
+            ctx.stopBreakPacket(world, interaction)
         } else {
-            ctx.startBreakPacket(sequence, connection)
+            ctx.startBreakPacket(world, interaction)
             if (breakingDelta < 1  && (breakingDelta >= 0.7 || info.breakConfig.doubleBreak)) {
-                ctx.stopBreakPacket(sequence + 1, connection)
-                pendingUpdateManager.incrementSequence()
+                ctx.stopBreakPacket(world, interaction)
             }
         }
 
