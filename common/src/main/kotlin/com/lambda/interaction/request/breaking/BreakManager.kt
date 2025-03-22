@@ -108,7 +108,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
     }
 
     init {
-        listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
+        listen<TickEvent.Pre>(priority = Int.MIN_VALUE + 1) {
             if (isOnBreakCooldown()) {
                 blockBreakingCooldown--
                 return@listen
