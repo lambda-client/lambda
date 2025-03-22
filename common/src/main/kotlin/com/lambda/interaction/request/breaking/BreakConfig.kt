@@ -57,7 +57,10 @@ abstract class BreakConfig(
         Constant,
         StartAndEnd,
         Start,
-        End
+        End,
+        None;
+
+        fun isEnabled() = this != None
     }
 
     enum class BreakConfirmationMode {

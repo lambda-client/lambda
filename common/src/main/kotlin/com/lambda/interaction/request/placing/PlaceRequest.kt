@@ -19,6 +19,7 @@ package com.lambda.interaction.request.placing
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
+import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.Request
@@ -33,6 +34,7 @@ data class PlaceRequest(
     val rotationConfig: RotationConfig,
     val hotbarConfig: HotbarConfig,
     val interactionConfig: InteractionConfig,
+    val pendingInteractionsList: MutableCollection<BuildContext>,
     val prio: Priority = 0,
     val onPlace: () -> Unit
 ) : Request(prio) {

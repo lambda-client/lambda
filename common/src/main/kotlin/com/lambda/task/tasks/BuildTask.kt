@@ -38,25 +38,21 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
-import com.lambda.interaction.request.ManagerUtils.positionBlockingManagers
-import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarConfig
-import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
-import com.lambda.util.Communication.info
 import com.lambda.util.Formatting.string
-import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
+import java.util.concurrent.ConcurrentLinkedQueue
 
 class BuildTask @Ta5kBuilder constructor(
     private val blueprint: Blueprint,
@@ -70,9 +66,7 @@ class BuildTask @Ta5kBuilder constructor(
 ) : Task<Unit>() {
     override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).string} b/s ${(placements / (age / 20.0 + 0.001)).string} p/s"
 
-    private val pendingInteractions = LimitedDecayQueue<BuildContext>(
-        build.maxPendingInteractions, build.interactionTimeout * 50L
-    ) { info("${it::class.simpleName} at ${it.expectedPos.toShortString()} timed out") }
+    private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 
     private var placements = 0
     private var breaks = 0
@@ -88,15 +82,6 @@ class BuildTask @Ta5kBuilder constructor(
         (blueprint as? PropagatingBlueprint)?.next()
     }
 
-    override fun SafeContext.onCancel() {
-//        currentInteraction?.let { ctx ->
-//            if (ctx !is BreakContext) return
-//            if (ctx.buildConfig.breakSettings.breakingTexture) {
-//                setBreakingTextureStage(ctx, -1)
-//            }
-//        }
-    }
-
     init {
         onRotate {
             if (collectDrops()) return@onRotate
@@ -104,35 +89,14 @@ class BuildTask @Ta5kBuilder constructor(
             // ToDo: Simulate for each pair player positions that work
             val results = blueprint.simulate(player.eyePos, interact, rotation, inventory, build)
 
-            TaskFlowModule.drawables = results.filterIsInstance<Drawable>()
+            TaskFlowModule.drawables = results
+                .filterIsInstance<Drawable>()
                 .plus(pendingInteractions.toList())
             //                .plus(sim.goodPositions())
 
-            val resultsNotBlocked = results.filter { result ->
-                    when(result) {
-                        is BreakResult.Break -> { BreakManager.blockedPositions.none { blocked -> blocked == result.blockPos } }
-                        is PlaceResult.Place -> { PlaceManager.blockedPositions.none { blocked -> blocked == result.blockPos } }
-                        else -> true
-                    }
-                }
+            val resultsNotBlocked = results
+                .filter { result -> pendingInteractions.none { it.expectedPos == result.blockPos } }
                 .sorted()
-
-            if (build.breakSettings.breaksPerTick > 1) {
-                val instantResults = resultsNotBlocked.filterIsInstance<BreakResult.Break>()
-                    .filter { it.context.instantBreak }
-                    .take(build.breakSettings.breaksPerTick)
-
-                if (instantResults.isNotEmpty()) {
-                    build.breakSettings.request(
-                        BreakRequest(
-                            instantResults.map { it.context }, build, rotation, hotbar,
-                            onBreak = { breaks++ },
-                            onItemDrop = onItemDrop
-                        )
-                    )
-                    return@onRotate
-                }
-            }
 
             val bestResult = resultsNotBlocked.firstOrNull() ?: return@onRotate
             when (bestResult) {
@@ -147,8 +111,7 @@ class BuildTask @Ta5kBuilder constructor(
                         return@onRotate
                     }
 
-                    val managersStillRunning = positionBlockingManagers.any { it.blockedPositions.isNotEmpty() }
-                    if (finishOnDone && !managersStillRunning) success()
+                    if (finishOnDone) success()
                 }
 
                 is BuildResult.NotVisible,
@@ -167,12 +130,33 @@ class BuildTask @Ta5kBuilder constructor(
                     if (pendingInteractions.size >= build.maxPendingInteractions) return@onRotate
                     when (bestResult) {
                         is BreakResult.Break -> {
-                            val breakContexts = resultsNotBlocked
+                            val breakResults = resultsNotBlocked
                                 .filterIsInstance<BreakResult.Break>()
-                                .map { it.context }
+
+                            if (build.breakSettings.breaksPerTick > 1) {
+                                val takeCount = build.breakSettings
+                                    .breaksPerTick
+                                    .coerceAtMost((build.maxPendingInteractions - pendingInteractions.size))
+                                val instantResults = breakResults
+                                    .filter { it.context.instantBreak }
+                                    .take(takeCount.coerceAtLeast(0))
+
+                                if (instantResults.isNotEmpty()) {
+                                    build.breakSettings.request(
+                                        BreakRequest(
+                                            instantResults.map { it.context }, build, rotation, hotbar,
+                                            pendingInteractionsList = pendingInteractions,
+                                            onBreak = { breaks++ },
+                                            onItemDrop = onItemDrop
+                                        )
+                                    )
+                                    return@onRotate
+                                }
+                            }
 
                             val request = BreakRequest(
-                                breakContexts, build, rotation, hotbar,
+                                breakResults.map { it.context }, build, rotation, hotbar,
+                                pendingInteractionsList = pendingInteractions,
                                 onBreak = { breaks++ },
                                 onItemDrop = onItemDrop
                             )
@@ -181,7 +165,7 @@ class BuildTask @Ta5kBuilder constructor(
                         }
                         is PlaceResult.Place -> {
                             build.placeSettings.request(
-                                PlaceRequest(bestResult.context, build, rotation, hotbar, interact) { placements++ }
+                                PlaceRequest(bestResult.context, build, rotation, hotbar, interact, pendingInteractions) { placements++ }
                             )
                         }
                     }
@@ -209,7 +193,7 @@ class BuildTask @Ta5kBuilder constructor(
         dropsToCollect
             .firstOrNull()
             ?.let { itemDrop ->
-                if (positionBlockingManagers.any { it.blockedPositions.isNotEmpty() }) return true
+                if (pendingInteractions.isNotEmpty()) return true
 
                 if (!world.entities.contains(itemDrop)) {
                     dropsToCollect.remove(itemDrop)

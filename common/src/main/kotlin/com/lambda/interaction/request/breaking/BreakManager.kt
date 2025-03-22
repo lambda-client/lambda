@@ -27,6 +27,7 @@ import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.BreakContext
+import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.Priority
@@ -77,6 +78,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
     ) {
         info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out")
         mc.world?.setBlockState(it.context.expectedPos, it.context.checkedState)
+        it.pendingInteractionsList.remove(it.context)
     }
 
     override val blockedPositions
@@ -121,7 +123,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                         handleRequestContext(
                             ctx,
                             buildConfig, rotationConfig, hotbarConfig,
-                            onBreak, onItemDrop
+                            pendingInteractionsList, onBreak, onItemDrop
                         )
                     } ?: return@request
                     if (!breakInfo.requestHotbarSwap()) return@forEach
@@ -156,6 +158,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             currentRequest?.let request@ { request ->
                 val breakConfig = request.buildConfig.breakSettings
                 val takeCount = breakConfig.maxPendingBreaks - (breakingInfos.count { it != null } + pendingBreaks.size)
+                if (takeCount <= 0) return@request
                 val validContexts = request.contexts
                     .filter { ctx -> canAccept(ctx) }
                     .sortedBy { it.instantBreak }
@@ -174,7 +177,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                             handleRequestContext(
                                 ctx,
                                 buildConfig, rotationConfig, hotbarConfig,
-                                onBreak, onItemDrop
+                                pendingInteractionsList, onBreak, onItemDrop
                             )
                         }
                         if (breakInfo == null) return@request
@@ -199,7 +202,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
 
                     // return if the block's not broken
                     if (!matchesTargetState(event.pos, pending.context.targetState, event.newState)) {
-                        pendingBreaks.remove(pending)
+                        removePendingBreak(pending)
                         return@listen
                     }
 
@@ -208,7 +211,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                     }
                     pending.internalOnBreak()
                     if (pending.callbacksCompleted) {
-                        pendingBreaks.remove(pending)
+                        removePendingBreak(pending)
                     }
                     return@listen
                 }
@@ -225,10 +228,10 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                     }
                     destroyBlock(info)
                     info.internalOnBreak()
-                    info.nullify()
                     if (!info.callbacksCompleted) {
-                        pendingBreaks.add(info)
+                        addPendingBreak(info)
                     }
+                    info.nullify()
                 }
         }
 
@@ -240,7 +243,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                 ?.let { pending ->
                     pending.internalOnItemDrop(it.entity)
                     if (pending.callbacksCompleted) {
-                        pendingBreaks.remove(pending)
+                        removePendingBreak(pending)
                     }
                     return@listen
                 }
@@ -279,12 +282,13 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         buildConfig: BuildConfig,
         rotationConfig: RotationConfig,
         hotbarConfig: HotbarConfig,
+        pendingInteractionsList: MutableCollection<BuildContext>,
         onBreak: () -> Unit,
         onItemDrop: ((ItemEntity) -> Unit)?
     ): BreakInfo? {
         val breakInfo = BreakInfo(requestCtx, BreakType.Primary,
             buildConfig.breakSettings, rotationConfig, hotbarConfig,
-            onBreak, onItemDrop
+            pendingInteractionsList, onBreak, onItemDrop
         )
         primaryBreakingInfo?.let { primaryInfo ->
             if (!primaryInfo.breakConfig.doubleBreak
@@ -312,7 +316,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
     }
 
     private fun setPendingInteractionsLimits(buildConfig: BuildConfig) {
-        pendingBreaks.setMaxSize(buildConfig.maxPendingInteractions)
+        pendingBreaks.setMaxSize(buildConfig.breakSettings.maxPendingBreaks)
         pendingBreaks.setDecayTime(buildConfig.interactionTimeout * 50L)
     }
 
@@ -339,7 +343,10 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                 info.nullify()
                 return false
             }
-            if (info.breakConfig.swing != BreakConfig.SwingMode.End) swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
+            val swing = info.breakConfig.swing
+            if (swing.isEnabled() && swing != BreakConfig.SwingMode.End) {
+                swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
+            }
             return true
         }
 
@@ -385,15 +392,17 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             setBreakingTextureStage(info)
         }
 
+        val swing = info.breakConfig.swing
+
         if (progress >= info.getBreakThreshold()) {
             interaction.sendSequencedPacket(world) { sequence ->
                 onBlockBreak(info)
                 PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
             }
-            if (info.breakConfig.swing != BreakConfig.SwingMode.Start) swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
+            if (swing.isEnabled() && swing != BreakConfig.SwingMode.Start) swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
             setBreakCooldown(info.breakConfig.breakDelay)
         } else {
-            if (info.breakConfig.swing == BreakConfig.SwingMode.Constant) swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
+            if (swing == BreakConfig.SwingMode.Constant) swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
         }
 
         return true
@@ -461,17 +470,30 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         when (info.breakConfig.breakConfirmation) {
             BreakConfirmationMode.None -> {
                 destroyBlock(info)
-                info.onBreak()
+                info.internalOnBreak()
+                if (!info.callbacksCompleted) {
+                    addPendingBreak(info)
+                }
             }
             BreakConfirmationMode.BreakThenAwait -> {
                 destroyBlock(info)
-                pendingBreaks.add(info)
+                addPendingBreak(info)
             }
             BreakConfirmationMode.AwaitThenBreak -> {
-                pendingBreaks.add(info)
+                addPendingBreak(info)
             }
         }
         info.nullify()
+    }
+
+    private fun addPendingBreak(info: BreakInfo) {
+        pendingBreaks.add(info)
+        info.pendingInteractionsList.add(info.context)
+    }
+
+    private fun removePendingBreak(info: BreakInfo) {
+        pendingBreaks.remove(info)
+        info.pendingInteractionsList.remove(info.context)
     }
 
     private fun SafeContext.destroyBlock(info: BreakInfo): Boolean {
@@ -517,6 +539,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         val breakConfig: BreakConfig,
         val rotationConfig: RotationConfig,
         val hotbarConfig: HotbarConfig,
+        val pendingInteractionsList: MutableCollection<BuildContext>,
         val onBreak: () -> Unit,
         val onItemDrop: ((ItemEntity) -> Unit)?
     ) {

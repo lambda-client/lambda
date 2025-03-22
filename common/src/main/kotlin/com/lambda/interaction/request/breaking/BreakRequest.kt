@@ -19,6 +19,7 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.interaction.construction.context.BreakContext
+import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
@@ -33,6 +34,7 @@ data class BreakRequest(
     val rotationConfig: RotationConfig,
     val hotbarConfig: HotbarConfig,
     val prio: Priority = 0,
+    val pendingInteractionsList: MutableCollection<BuildContext>,
     val onBreak: () -> Unit,
     val onItemDrop: ((ItemEntity) -> Unit)?,
 ) : Request(prio) {

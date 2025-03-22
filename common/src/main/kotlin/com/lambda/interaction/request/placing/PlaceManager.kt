@@ -67,6 +67,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
     ) {
         info("${it::class.simpleName} at ${it.placeContext.expectedPos.toShortString()} timed out")
         mc.world?.setBlockState(it.placeContext.expectedPos, it.placeContext.checkedState)
+        it.pendingInteractionsList.remove(it.placeContext)
     }
 
     override val blockedPositions
@@ -131,7 +132,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
                     request.rotationConfig.request(request.placeContext.rotation)
                 else null
 
-                pendingPlacements.setMaxSize(request.buildConfig.maxPendingInteractions)
+                pendingPlacements.setMaxSize(request.buildConfig.placeSettings.maxPendingPlacements)
                 pendingPlacements.setDecayTime(request.buildConfig.interactionTimeout * 50L)
             }
         }
@@ -149,7 +150,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
             pendingPlacements
                 .firstOrNull { it.placeContext.expectedPos == event.pos }
                 ?.let { request ->
-                    pendingPlacements.remove(request)
+                    removePendingPlace(request)
 
                     // return if the block wasn't placed
                     if (!matchesTargetState(event.pos, request.placeContext.targetState, event.newState))
@@ -256,10 +257,9 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
 
         val stackInHand = player.getStackInHand(hand)
         val stackCountPre = stackInHand.count
-        if (request.buildConfig.placeSettings.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.None)
-            request.onPlace()
-        else
-            pendingPlacements.add(request)
+        if (placeConfig.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None) {
+            addPendingPlace(request)
+        }
 
         if (request.buildConfig.placeSettings.airPlace == PlaceConfig.AirPlaceMode.Grim) {
             airPlaceOffhandSwap()
@@ -297,6 +297,10 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
         if (placeConfig.sounds) placeSound(item, hitState, blockPos)
         if (!player.abilities.creativeMode) itemStack.decrement(1)
 
+        if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.None) {
+            request.onPlace()
+        }
+
         return ActionResult.success(world.isClient)
     }
 
@@ -325,6 +329,16 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
                 Direction.DOWN
             )
         )
+    }
+
+    private fun addPendingPlace(request: PlaceRequest) {
+        pendingPlacements.add(request)
+        request.pendingInteractionsList.add(request.placeContext)
+    }
+
+    private fun removePendingPlace(request: PlaceRequest) {
+        pendingPlacements.remove(request)
+        request.pendingInteractionsList.remove(request.placeContext)
     }
 
     override fun preEvent() = UpdateManagerEvent.Place.Pre().post()

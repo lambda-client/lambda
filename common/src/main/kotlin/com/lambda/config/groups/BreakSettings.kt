@@ -32,14 +32,14 @@ class BreakSettings(
     override val doubleBreak by c.setting("Double Break", false, "Allows breaking two blocks at once") { vis() }
     override val breakDelay by c.setting("Break Delay", 5, 0..5, 1, "The delay between breaking blocks", " ticks") { vis() }
     override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand") { vis() }
-    override val swingType by c.setting("Break Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { vis() }
+    override val swingType by c.setting("Break Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { vis() && swing != SwingMode.None }
     override val sounds by c.setting("Break Sounds", true, "Plays the breaking sounds") { vis() }
     override val particles by c.setting("Particles", true, "Renders the breaking particles") { vis() }
     override val breakingTexture by c.setting("Breaking Overlay", true, "Overlays the breaking texture at its different stages") { vis() }
     override val rotateForBreak by c.setting("Rotate For Break", true, "Rotate towards block while breaking") { vis() }
     override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, "Blocks that wont be broken") { vis() }
     override val breakConfirmation by c.setting("Break Confirmation", BreakConfirmationMode.BreakThenAwait, "The style of confirmation used when breaking") { vis() }
-    override val maxPendingBreaks by c.setting("Max Pending Breaks", 2, 0..5, 1, "The maximum amount of pending breaks") { vis() }
+    override val maxPendingBreaks by c.setting("Max Pending Breaks", 5, 1..30, 1, "The maximum amount of pending breaks") { vis() }
     override val breaksPerTick by c.setting("Instant Breaks Per Tick", 5, 1..30, 1, "Maximum instant block breaks per tick") { vis() }
     override val breakWeakBlocks by c.setting("Break Weak Blocks", false, "Break blocks that dont have structural integrity (e.g: grass)") { vis() }
     override val forceSilkTouch by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks") { vis() }
