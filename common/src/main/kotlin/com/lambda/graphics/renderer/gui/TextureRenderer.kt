@@ -33,8 +33,8 @@ import org.lwjgl.glfw.GLFW.glfwGetTime
 object TextureRenderer {
     private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.POS_UV)
 
-    private val mainShader = shader("renderer/pos_tex")
-    private val coloredShader = shader("renderer/pos_tex_shady")
+    private val mainShader = shader("pos_tex")
+    private val coloredShader = shader("pos_tex_shady")
 
     fun drawTexture(texture: Texture, rect: Rect) {
         texture.bind()
@@ -57,7 +57,7 @@ object TextureRenderer {
         drawInternal(rect)
     }
 
-    private fun drawInternal(rect: Rect) {
+    fun drawInternal(rect: Rect) {
         val pos1 = rect.leftTop
         val pos2 = rect.rightBottom
 
@@ -72,8 +72,6 @@ object TextureRenderer {
             )
         }
 
-        pipeline.upload()
-        pipeline.render()
-        pipeline.clear()
+        pipeline.immediateDraw()
     }
 }

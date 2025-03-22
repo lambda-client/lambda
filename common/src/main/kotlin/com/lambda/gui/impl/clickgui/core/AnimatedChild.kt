@@ -21,6 +21,7 @@ import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.component.window.Window
+import com.lambda.gui.impl.clickgui.module.ModuleLayout
 import com.lambda.gui.impl.clickgui.module.settings.SettingLayout
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.math.MathUtils.toInt
@@ -105,6 +106,26 @@ abstract class AnimatedChild(
 
         onUpdate {
             if (isHovered) lastHover = System.currentTimeMillis()
+        }
+
+        onWindowExpand {
+            if (ClickGui.multipleSettingWindows) return@onWindowExpand
+
+            val close = if (this !is ModuleLayout) {
+                owner.children.filterIsInstance<AnimatedChild>()
+            } else {
+                val base = owner // window content
+                    .owner // window
+                    ?.owner  // environment with windows
+
+                base?.children?.filterIsInstance<Window>()?.flatMap { window ->
+                    window.content.children.filterIsInstance<AnimatedChild>()
+                } ?: mutableListOf()
+            }
+
+            close.forEach {
+                if (it != this) it.isMinimized = true
+            }
         }
 
         titleBar.textField.use {

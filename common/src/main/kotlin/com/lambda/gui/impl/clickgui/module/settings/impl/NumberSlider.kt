@@ -33,12 +33,15 @@ class NumberSlider <V> (
     minV: V, maxV: V, stepV: V,
     field: KMutableProperty0<V>
 ) : SettingSlider<V>(owner, name, field) where V : Number, V : Comparable<V> {
-    private val min = minV.toDouble()
-    private val max = maxV.toDouble()
-    private val step = stepV.toDouble()
+    var min = minV.toDouble()
+    var max = maxV.toDouble()
+    var step = stepV.toDouble()
+    var forceRoundDisplayValue = false
 
     override val settingValue: String
-        get() = "${settingDelegate}${unit}"
+        get() = "${settingDelegate.let { 
+            if (forceRoundDisplayValue) it.roundToStep(step) else it
+        }}${unit}"
 
     init {
         slider.progress {
@@ -61,7 +64,7 @@ class NumberSlider <V> (
          * Creates an [NumberSlider] - visual representation of the [NumericSetting]
          */
         @UIBuilder
-        fun <T> Layout.numericSetting(
+        fun <T> Layout.numberSlider(
             name: String, unit: String,
             minV: T, maxV: T, stepV: T,
             field: KMutableProperty0<T>

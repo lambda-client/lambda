@@ -31,13 +31,11 @@ import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.impl.clickgui.module.settings.impl.BooleanButton.Companion.booleanSetting
 import com.lambda.gui.impl.clickgui.module.settings.impl.ColorPicker.Companion.colorPicker
-import com.lambda.gui.impl.clickgui.module.settings.impl.EnumSlider
 import com.lambda.gui.impl.clickgui.module.settings.impl.EnumSlider.Companion.enumSetting
 import com.lambda.gui.impl.clickgui.module.settings.impl.KeybindPicker.Companion.keybindSetting
-import com.lambda.gui.impl.clickgui.module.settings.impl.NumberSlider.Companion.numericSetting
+import com.lambda.gui.impl.clickgui.module.settings.impl.NumberSlider.Companion.numberSlider
 import com.lambda.gui.impl.clickgui.module.settings.impl.UnitButton.Companion.unitButton
 import kotlin.reflect.KClass
-import kotlin.reflect.KMutableProperty0
 
 object GuiManager : Loadable {
     val typeMap = mutableMapOf<KClass<*>, (owner: Layout, converted: Any) -> Layout>()
@@ -66,7 +64,7 @@ object GuiManager : Loadable {
         }
 
         typeAdapter<DoubleSetting> { owner, ref ->
-            owner.numericSetting(
+            owner.numberSlider(
                 ref.name, ref.unit,
                 ref.range.start, ref.range.endInclusive, ref.step,
                 ref::value
@@ -76,7 +74,7 @@ object GuiManager : Loadable {
         }
 
         typeAdapter<FloatSetting> { owner, ref ->
-            owner.numericSetting(
+            owner.numberSlider(
                 ref.name, ref.unit,
                 ref.range.start, ref.range.endInclusive, ref.step,
                 ref::value
@@ -86,7 +84,7 @@ object GuiManager : Loadable {
         }
 
         typeAdapter<IntegerSetting> { owner, ref ->
-            owner.numericSetting(
+            owner.numberSlider(
                 ref.name, ref.unit,
                 ref.range.start, ref.range.endInclusive, ref.step,
                 ref::value
@@ -96,7 +94,7 @@ object GuiManager : Loadable {
         }
 
         typeAdapter<LongSetting> { owner, ref ->
-            owner.numericSetting(
+            owner.numberSlider(
                 ref.name, ref.unit,
                 ref.range.start, ref.range.endInclusive, ref.step,
                 ref::value
