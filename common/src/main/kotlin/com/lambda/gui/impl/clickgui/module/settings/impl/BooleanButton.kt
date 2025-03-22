@@ -17,7 +17,6 @@
 
 package com.lambda.gui.impl.clickgui.module.settings.impl
 
-import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.component.core.FilledRect.Companion.rect
@@ -31,11 +30,13 @@ import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
 import com.lambda.util.math.setAlpha
 import java.awt.Color
+import kotlin.reflect.KMutableProperty0
 
 class BooleanButton(
     owner: Layout,
-    setting: BooleanSetting
-) : SettingLayout<Boolean, BooleanSetting>(owner, setting) {
+    name: String,
+    field: KMutableProperty0<Boolean>
+) : SettingLayout<Boolean>(owner, name, field) {
     private val activeAnimation by animation.exp(0.0, 1.0, 0.6, ::settingDelegate)
 
     init {
@@ -91,16 +92,16 @@ class BooleanButton(
         }
 
         onMouseAction(Mouse.Button.Left) {
-            setting.value = !setting.value
+            settingDelegate = !settingDelegate
         }
     }
 
     companion object {
         /**
-         * Creates a [BooleanButton] - visual representation of the [BooleanSetting]
+         * Creates a [BooleanButton]
          */
         @UIBuilder
-        fun Layout.booleanSetting(setting: BooleanSetting) =
-            BooleanButton(this, setting).apply(children::add)
+        fun Layout.booleanSetting(name: String, field: KMutableProperty0<Boolean>) =
+            BooleanButton(this, name, field).apply(children::add)
     }
 }

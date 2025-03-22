@@ -17,7 +17,6 @@
 
 package com.lambda.gui.impl.clickgui.module.settings
 
-import com.lambda.config.AbstractSetting
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.VAlign
@@ -26,10 +25,13 @@ import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.impl.clickgui.core.SliderLayout.Companion.sliderBehind
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.math.lerp
+import kotlin.reflect.KMutableProperty0
 
-abstract class SettingSlider <V : Any, T: AbstractSetting<V>>(
-    owner: Layout, setting: T
-) : SettingLayout<V, T>(owner, setting, false) {
+abstract class SettingSlider <V : Any>(
+    owner: Layout,
+    name: String,
+    field: KMutableProperty0<V>
+) : SettingLayout<V>(owner, name, field) {
     abstract val settingValue: String
 
     private var changeAnimation by animation.exp(0.0, 1.0, 0.5) { true }

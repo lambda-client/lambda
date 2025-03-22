@@ -25,15 +25,20 @@ import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.MathUtils.typeConvert
 import com.lambda.util.math.lerp
 import com.lambda.util.math.transform
+import kotlin.reflect.KMutableProperty0
 
 class NumberSlider <V> (
-    owner: Layout, setting: NumericSetting<V>
-) : SettingSlider<V, NumericSetting<V>>(owner, setting) where V : Number, V : Comparable<V> {
-    private val min = setting.range.start.toDouble()
-    private val max = setting.range.endInclusive.toDouble()
+    owner: Layout,
+    name: String, private val unit: String,
+    minV: V, maxV: V, stepV: V,
+    field: KMutableProperty0<V>
+) : SettingSlider<V>(owner, name, field) where V : Number, V : Comparable<V> {
+    private val min = minV.toDouble()
+    private val max = maxV.toDouble()
+    private val step = stepV.toDouble()
 
     override val settingValue: String
-        get() = "${setting.value}${setting.unit}"
+        get() = "${settingDelegate}${unit}"
 
     init {
         slider.progress {
@@ -46,7 +51,7 @@ class NumberSlider <V> (
 
         slider.onSlide {
             settingDelegate = settingDelegate.typeConvert(
-                lerp(it, min, max).roundToStep(setting.step).toDouble()
+                lerp(it, min, max).roundToStep(step).toDouble()
             )
         }
     }
@@ -56,7 +61,11 @@ class NumberSlider <V> (
          * Creates an [NumberSlider] - visual representation of the [NumericSetting]
          */
         @UIBuilder
-        fun <T> Layout.numericSetting(setting: NumericSetting<T>) where T : Number, T : Comparable<T> =
-            NumberSlider(this, setting).apply(children::add)
+        fun <T> Layout.numericSetting(
+            name: String, unit: String,
+            minV: T, maxV: T, stepV: T,
+            field: KMutableProperty0<T>
+        ) where T : Number, T : Comparable<T> =
+            NumberSlider(this, name, unit, minV, maxV, stepV, field).apply(children::add)
     }
 }

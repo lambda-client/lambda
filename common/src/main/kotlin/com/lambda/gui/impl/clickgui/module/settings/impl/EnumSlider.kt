@@ -18,17 +18,20 @@
 package com.lambda.gui.impl.clickgui.module.settings.impl
 
 import com.lambda.config.settings.comparable.EnumSetting
+import com.lambda.config.settings.comparable.EnumSetting.Companion.enumValues
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.util.NamedEnum
 import com.lambda.gui.impl.clickgui.module.settings.SettingSlider
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.transform
+import kotlin.reflect.KMutableProperty0
 
 class EnumSlider <T : Enum<T>>(
     owner: Layout,
-    setting: EnumSetting<T>
-) : SettingSlider<T, EnumSetting<T>>(owner, setting) {
+    name: String,
+    field: KMutableProperty0<T>
+) : SettingSlider<T>(owner, name, field) {
     override val settingValue: String
         get() = (settingDelegate as? NamedEnum)?.displayName ?: settingDelegate.name
 
@@ -36,13 +39,13 @@ class EnumSlider <T : Enum<T>>(
         slider.progress {
             transform(
                 value = settingDelegate.ordinal.toDouble(),
-                ogStart = 0.0, ogEnd = setting.enumValues.lastIndex.toDouble(),
+                ogStart = 0.0, ogEnd = settingDelegate.enumValues.lastIndex.toDouble(),
                 nStart = 0.0, nEnd = 1.0
             )
         }
 
         slider.onSlide {
-            settingDelegate = setting.enumValues.let { entries ->
+            settingDelegate = settingDelegate.enumValues.let { entries ->
                 entries[(it * entries.size)
                     .floorToInt()
                     .coerceIn(0, entries.size - 1)]
@@ -55,7 +58,10 @@ class EnumSlider <T : Enum<T>>(
          * Creates an [EnumSlider] - visual representation of the [EnumSetting]
          */
         @UIBuilder
-        fun <T: Enum<T>> Layout.enumSetting(setting: EnumSetting<T>) =
-            EnumSlider(this, setting).apply(children::add)
+        @Suppress("UNCHECKED_CAST")
+        fun <T: Enum<T>> Layout.enumSetting(
+            name: String,
+            field: KMutableProperty0<Enum<*>>
+        ) = EnumSlider(this, name, field as KMutableProperty0<T>).apply(children::add)
     }
 }

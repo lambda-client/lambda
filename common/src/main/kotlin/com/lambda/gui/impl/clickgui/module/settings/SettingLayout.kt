@@ -17,24 +17,26 @@
 
 package com.lambda.gui.impl.clickgui.module.settings
 
-import com.lambda.config.AbstractSetting
+import com.lambda.gui.component.core.LayoutBuilder
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.impl.clickgui.module.ModuleLayout.Companion.backgroundTint
 import com.lambda.gui.impl.clickgui.core.AnimatedChild
 import com.lambda.util.math.*
+import kotlin.reflect.KMutableProperty0
 
 /**
  * A base class for setting layouts.
  */
-abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
+abstract class SettingLayout <V : Any> (
     owner: Layout,
-    val setting: T,
+    name: String,
+    field: KMutableProperty0<V>,
     expandable: Boolean = false
 ) : AnimatedChild(
     owner,
-    setting.name,
-    Vec2d.ZERO, Vec2d.ZERO,
+    name,
+    Vec2d.ZERO, Vec2d(110.0, 0.0),
     false, false,
     if (expandable) Minimizing.Absolute else Minimizing.Disabled,
     false,
@@ -42,17 +44,25 @@ abstract class SettingLayout <V : Any, T: AbstractSetting<V>> (
 ) {
     protected val cursorController = cursorController()
 
-    var settingDelegate by setting
-    val isVisible get() = setting.visibility()
+    protected var settingDelegate by field
+    private var onValueSet = mutableListOf<(V) -> Unit>()
+    private var getVisibilityBlock = { true }
+    val isVisible get() = getVisibilityBlock()
+
+    @LayoutBuilder
+    fun visibility(action: () -> Boolean) {
+        getVisibilityBlock = { action() }
+    }
+
+    @LayoutBuilder
+    fun valueSet(action: (V) -> Unit) {
+        onValueSet += action
+    }
 
     override val isShown: Boolean get() = super.isShown && isVisible
 
     init {
         isMinimized = true
-
-        onUpdate {
-            width = owner.width
-        }
 
         titleBar.onUpdate {
             height = ClickGui.settingsHeight

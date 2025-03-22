@@ -27,18 +27,20 @@ import com.lambda.gui.impl.clickgui.module.settings.SettingLayout
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.extension.displayValue
+import kotlin.reflect.KMutableProperty0
 
 class KeybindPicker(
     owner: Layout,
-    setting: KeyBindSetting
-) : SettingLayout<KeyCode, KeyBindSetting>(owner, setting) {
+    name: String,
+    field: KMutableProperty0<KeyCode>
+) : SettingLayout<KeyCode>(owner, name, field) {
     private var isListening = false
 
     init {
         textField {
             onUpdate {
                 mergeFrom(titleBar.textField)
-                text = if (isListening) "..." else setting.value.displayValue
+                text = if (isListening) "..." else settingDelegate.displayValue
                 textHAlignment = HAlign.RIGHT
             }
         }
@@ -69,7 +71,7 @@ class KeybindPicker(
          * Creates a [KeybindPicker] - visual representation of the [KeyBindSetting]
          */
         @UIBuilder
-        fun Layout.keybindSetting(setting: KeyBindSetting) =
-            KeybindPicker(this, setting).apply(children::add)
+        fun Layout.keybindSetting(name: String, field: KMutableProperty0<KeyCode>) =
+            KeybindPicker(this, name, field).apply(children::add)
     }
 }

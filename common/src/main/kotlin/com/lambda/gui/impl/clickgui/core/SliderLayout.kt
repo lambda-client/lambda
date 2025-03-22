@@ -39,7 +39,7 @@ class SliderLayout(
     private val isVertical: Boolean
 ) : AnimatedChild(owner, "") {
     // Not a great solution
-    private val setting = owner as? SettingSlider<*, *>
+    private val setting = owner as? SettingSlider<*>
     private val showAnim get() = setting?.showAnimation ?: showAnimation
     private val pressedBut get() = setting?.pressedButton ?: pressedButton
 

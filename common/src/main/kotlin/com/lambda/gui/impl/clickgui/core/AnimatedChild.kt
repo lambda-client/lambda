@@ -71,7 +71,7 @@ abstract class AnimatedChild(
             speed = transform(index.toDouble(), 0.0, lastIndex.toDouble(), start, end)
         }
 
-        if ((this as? SettingLayout<*, *>)?.isVisible == true) speed *= 0.8
+        if ((this as? SettingLayout<*>)?.isVisible == true) speed *= 0.8
 
         speed + isShownInternal.toInt() * 0.1
     }) { isShownInternal }.apply {
