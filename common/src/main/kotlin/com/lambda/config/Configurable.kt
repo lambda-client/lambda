@@ -37,6 +37,7 @@ import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
 /**
@@ -386,6 +387,40 @@ abstract class Configurable(
         description: String = "",
         visibility: () -> Boolean = { true },
     ) = ColorSetting(name, defaultValue, description, visibility).register()
+
+    /**
+     * Creates a [Vec3dSetting] with the provided parameters and adds it to the [settings].
+     *
+     * @param name The unique identifier for the setting.
+     * @param defaultValue The default [Vec3d] value of the setting.
+     * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
+     *
+     * @return The created [Vec3dSetting].
+     */
+    fun setting(
+        name: String,
+        defaultValue: Vec3d,
+        description: String = "",
+        visibility: () -> Boolean = { true },
+    ) = Vec3dSetting(name, defaultValue, description, visibility).register()
+
+    /**
+     * Creates a [BlockPosSetting] with the provided parameters and adds it to the [settings].
+     *
+     * @param name The unique identifier for the setting.
+     * @param defaultValue The default [BlockPos.Mutable] value of the setting.
+     * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
+     *
+     * @return The created [BlockPosSetting].
+     */
+    fun setting(
+        name: String,
+        defaultValue: BlockPos.Mutable,
+        description: String = "",
+        visibility: () -> Boolean = { true },
+    ) = BlockPosSetting(name, defaultValue, description, visibility).register()
 
     /**
      * Creates a [BlockPosSetting] with the provided parameters and adds it to the [settings].
