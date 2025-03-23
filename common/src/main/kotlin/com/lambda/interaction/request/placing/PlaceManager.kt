@@ -272,10 +272,10 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
 
         if (request.buildConfig.placeSettings.swing) {
             swingHand(request.buildConfig.placeSettings.swingType, hand)
-        }
 
-        if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || interaction.hasCreativeInventory())) {
-            mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
+            if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || interaction.hasCreativeInventory())) {
+                mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
+            }
         }
 
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
