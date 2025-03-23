@@ -25,6 +25,7 @@ import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.get
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.height
 import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.graphics.texture.TextureOwner.bind
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.LambdaMoji
 import com.lambda.module.modules.client.RenderSettings
 import com.lambda.util.math.MathUtils.toInt
@@ -59,7 +60,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
         text: String,
         position: Vec2d = Vec2d.ZERO,
         color: Color = Color.WHITE,
-        scale: Double = 1.0,
+        scale: Double = ClickGui.fontScale,
         shadow: Boolean = true,
         parseEmoji: Boolean = LambdaMoji.isEnabled
     ) = render {
@@ -87,7 +88,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
         glyph: GlyphInfo,
         position: Vec2d,
         color: Color = Color.WHITE,
-        scale: Double = 1.0
+        scale: Double = ClickGui.fontScale,
     ) = render {
         shader["u_FontTexture"] = 0
         shader["u_EmojiTexture"] = 1
@@ -147,7 +148,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("font/
      */
     fun getWidth(
         text: String,
-        scale: Double = 1.0,
+        scale: Double = ClickGui.fontScale,
         parseEmoji: Boolean = LambdaMoji.isEnabled,
     ): Double {
         var width = 0.0

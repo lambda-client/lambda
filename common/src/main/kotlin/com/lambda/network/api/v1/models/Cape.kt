@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,20 +15,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.http.api.rpc.v1.endpoints
+package com.lambda.network.api.v1.models
 
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.gson.responseObject
-import com.lambda.http.api.rpc.v1.models.Party
+import com.google.gson.annotations.SerializedName
+import com.lambda.sound.SoundManager.toIdentifier
+import net.minecraft.util.Identifier
+import java.util.UUID
 
-fun joinParty(
-    endpoint: String,
-    version: String,
-    accessToken: String,
+class Cape(
+    @SerializedName("url")
+    val url: String,
 
-    // The ID of the party.
-    // example: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
-    partyId: String,
-) =
-    Fuel.put("$endpoint/api/$version/party/join", listOf("id" to partyId))
-        .responseObject<Party>().third
+    @SerializedName("type")
+    val id: String,
+) {
+    val identifier: Identifier
+        get() = id.toIdentifier()
+}

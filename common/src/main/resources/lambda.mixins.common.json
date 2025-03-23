@@ -14,6 +14,7 @@
     "entity.FireworkRocketEntityMixin",
     "entity.LivingEntityMixin",
     "entity.PlayerEntityMixin",
+    "entity.PlayerInventoryMixin",
     "input.KeyBindingMixin",
     "input.KeyboardMixin",
     "input.MouseMixin",
@@ -29,10 +30,12 @@
     "render.BlockRenderManagerMixin",
     "render.CameraMixin",
     "render.ChatHudMixin",
+    "render.CapeFeatureRendererMixin",
     "render.ChatInputSuggestorMixin",
     "render.ChatScreenMixin",
     "render.DebugHudMixin",
     "render.DrawContextMixin",
+    "render.ElytraFeatureRendererMixin",
     "render.GameRendererMixin",
     "render.GlStateManagerMixin",
     "render.InGameHudMixin",
@@ -56,8 +59,5 @@
   ],
   "injectors": {
     "defaultRequire": 1
-  },
-  "mixins": [
-    "entity.PlayerInventoryMixin"
-  ]
+  }
 }

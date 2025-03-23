@@ -27,26 +27,29 @@ import java.util.Objects
 val cache = mutableMapOf<Int, Reflections>()
 
 /**
- * Retrieves all instances of the specified type `T`.
+ * This function retrieves or create a reflection instance to avoid redundant
+ * reflection calls
  *
- * The function caches the results based on the configuration provided via the [block] lambda to avoid redundant
- * reflection calls.
+ * Every time you instantiate a [Reflections] class, it scans the entire classloader and caches its result in a store
+ */
+inline fun reflectionCache(block: ConfigurationBuilder.() -> Unit): Reflections {
+    val config = ConfigurationBuilder().apply(block)
+    val cacheKey = Objects.hash(config.classLoaders, config.urls, config.scanners, config.inputsFilter)
+
+    return cache.getOrPut(cacheKey) { Reflections(config) }
+}
+
+/**
+ * Retrieves all instances of the specified type `T`.
  *
  * @param T The type of instances to retrieve.
  * @param block A configuration lambda to customize the [ConfigurationBuilder] used to configure Reflections.
  *
  * @return A list of instances of type `T`
  */
-inline fun <reified T : Any> getInstances(block: ConfigurationBuilder.() -> Unit = { forPackage("com.lambda") }): List<T> {
-    val config = ConfigurationBuilder().apply(block)
-    val cacheKey = Objects.hash(config.classLoaders, config.urls, config.scanners, config.inputsFilter)
-
-    // Use previously scanned classes or create a new reflections
-    val reflections = cache.getOrPut(cacheKey) { Reflections(config) }
-
-    return reflections.getSubTypesOf(T::class.java)
-        .mapNotNull { clazz -> createInstance<T>(clazz) }
-}
+inline fun <reified T : Any> getInstances(block: ConfigurationBuilder.() -> Unit = { forPackage("com.lambda") }) =
+    reflectionCache(block).getSubTypesOf(T::class.java)
+        .mapNotNull { createInstance<T>(it) }
 
 /**
  * Retrieves all resource paths that match the given pattern.
@@ -59,15 +62,8 @@ inline fun <reified T : Any> getInstances(block: ConfigurationBuilder.() -> Unit
  *
  * @return A set of resource paths that match the specified pattern.
  */
-inline fun getResources(pattern: String, block: ConfigurationBuilder.() -> Unit = { forPackage("com.lambda") }): Set<String> {
-    val config = ConfigurationBuilder().apply(block)
-    val cacheKey = Objects.hash(config.classLoaders, config.urls, config.scanners, config.inputsFilter)
-
-    // Use previously scanned classes or create a new reflections
-    val reflections = cache.getOrPut(cacheKey) { Reflections(config) }
-
-    return reflections.getResources(pattern)
-}
+inline fun getResources(pattern: String, block: ConfigurationBuilder.() -> Unit = { forPackage("com.lambda") }) =
+    reflectionCache(block).getResources(pattern)
 
 inline fun <reified T : Any> createInstance(clazz: Class<*>): T? {
     return when {

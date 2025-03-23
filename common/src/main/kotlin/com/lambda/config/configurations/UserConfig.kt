@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,28 +15,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.http.api.rpc.v1.models
+package com.lambda.config.configurations
 
-import com.google.gson.annotations.SerializedName
-import java.util.*
+import com.lambda.config.Configuration
+import com.lambda.util.FolderRegister
+import java.io.File
 
-data class Player(
-    // The player's name.
-    // example: Notch
-    @SerializedName("name")
-    val name: String,
-
-    // The player's UUID.
-    // example: 069a79f4-44e9-4726-a5be-fca90e38aaf5
-    @SerializedName("id")
-    val uuid: UUID,
-
-    // The player's Discord ID.
-    // example: "385441179069579265"
-    @SerializedName("discord_id")
-    val discordId: String,
-
-    // Whether the player is verified or not
-    @SerializedName("unsafe")
-    val unsafe: Boolean,
-)
+object UserConfig : Configuration() {
+    override val configName get() = "preferences"
+    override val primary: File = FolderRegister.config.resolve("$configName.json").toFile()
+}
