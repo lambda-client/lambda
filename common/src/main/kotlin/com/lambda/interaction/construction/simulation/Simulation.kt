@@ -28,16 +28,13 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
-import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.WorldUtils.playerBox
-import com.lambda.util.world.WorldUtils.playerFitsIn
 import com.lambda.util.world.WorldUtils.traversable
 import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.toVec3d
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 

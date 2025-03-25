@@ -19,24 +19,14 @@ package com.lambda.util.world
 
 import com.lambda.context.SafeContext
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.math.flooredBlockPos
-import net.fabricmc.loader.impl.lib.sat4j.core.Vec
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
-import kotlin.math.min
 
 object WorldUtils {
     fun SafeContext.traversable(pos: BlockPos) =
-        blockState(pos.down()).isSideSolidFullSquare(world, pos.down(), Direction.UP) && playerFitsIn(pos)
-
-    fun SafeContext.isPathClear(
-        start: FastVector,
-        end: FastVector,
-        stepSize: Double = 0.3,
-        supportCheck: Boolean = true,
-    ) = isPathClear(start.toBlockPos(), end.toBlockPos(), stepSize, supportCheck)
+        hasSupport(pos) && hasClearance(pos)
 
     fun SafeContext.isPathClear(
         start: BlockPos,
@@ -61,7 +51,7 @@ object WorldUtils {
         var currentPos = start
 
         (0 until steps).forEach { _ ->
-            val playerNotFitting = !playerFitsIn(currentPos)
+            val playerNotFitting = !hasClearance(currentPos)
             val hasNoSupport = !hasSupport(currentPos)
             if (playerNotFitting || (supportCheck && hasNoSupport)) {
                 return false
@@ -69,26 +59,20 @@ object WorldUtils {
             currentPos = currentPos.add(stepDirection)
         }
 
-        return playerFitsIn(end)
+        return hasClearance(end)
     }
 
-    fun SafeContext.playerFitsIn(pos: BlockPos) =
-        playerFitsIn(Vec3d.ofBottomCenter(pos))
-
-    fun SafeContext.playerFitsIn(pos: Vec3d) =
+    private fun SafeContext.hasClearance(pos: Vec3d) =
         world.isSpaceEmpty(player, pos.playerBox().contract(1.0E-6))
 
-    fun SafeContext.hasSupport(pos: BlockPos) =
-        hasSupport(Vec3d.ofBottomCenter(pos))
-
-//    private fun SafeContext.hasSupport(pos: BlockPos) =
-//        blockState(pos.down()).isSideSolidFullSquare(world, pos.down(), Direction.UP)
-
     fun SafeContext.hasSupport(pos: Vec3d) =
-        !world.isSpaceEmpty(player, pos.playerBox().expand(1.0E-6))
+        !world.isSpaceEmpty(player, pos.playerBox().expand(1.0E-6).contract(0.05, 0.0, 0.05))
 
-//    fun SafeContext.hasSupport(pos: Vec3d) =
-//        world.canCollide(null, pos.playerBox().expand(1.0E-6))
+    private fun SafeContext.hasClearance(pos: BlockPos) =
+        blockState(pos).isAir && blockState(pos.up()).isAir
+
+    private fun SafeContext.hasSupport(pos: BlockPos) =
+        blockState(pos.down()).isSideSolidFullSquare(world, pos.down(), Direction.UP)
 
     fun Vec3d.playerBox(): Box =
         Box(x - 0.3, y, z - 0.3, x + 0.3, y + 1.8, z + 0.3)

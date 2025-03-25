@@ -23,12 +23,10 @@ import com.lambda.pathing.goal.Goal
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.fluidState
 import com.lambda.util.world.FastVector
-import com.lambda.util.world.WorldUtils.hasSupport
-import com.lambda.util.world.WorldUtils.isPathClear
+import com.lambda.util.world.WorldUtils.traversable
 import com.lambda.util.world.add
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.length
-import com.lambda.util.world.offset
 import com.lambda.util.world.toBlockPos
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
@@ -45,8 +43,10 @@ import net.minecraft.item.Items
 import net.minecraft.registry.tag.BlockTags
 import net.minecraft.registry.tag.FluidTags
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.EightWayDirection
+import kotlin.reflect.KFunction1
 
 object MoveFinder {
     private val nodeTypeCache = HashMap<FastVector, NodeType>()
@@ -54,18 +54,19 @@ object MoveFinder {
     fun SafeContext.moveOptions(origin: Move, goal: Goal, config: PathingConfig) =
         EightWayDirection.entries.flatMap { direction ->
             (-1..1).mapNotNull { y ->
-                getPathNode(goal, origin, direction, y, config)
+                getPathNode(goal::heuristic, origin, direction, y, config)
             }
         }
 
     private fun SafeContext.getPathNode(
-        goal: Goal,
+        heuristic: KFunction1<FastVector, Double>,
         origin: Move,
         direction: EightWayDirection,
         height: Int,
         config: PathingConfig
     ): Move? {
         val offset = fastVectorOf(direction.offsetX, height, direction.offsetZ)
+        val diagonal = direction.ordinal.mod(2) == 1
         val checkingPos = origin.pos.add(offset)
         val checkingBlockPos = checkingPos.toBlockPos()
         val originBlockPos = origin.pos.toBlockPos()
@@ -74,20 +75,19 @@ object MoveFinder {
         val nodeType = findPathType(checkingPos)
         if (nodeType == NodeType.BLOCKED) return null
 
-        val clear = when {
-            height == 0 -> isPathClear(originBlockPos, checkingBlockPos, config.clearancePrecition)
-            height > 0 -> {
-                val between = origin.pos.offset(0, height, 0)
-                isPathClear(origin.pos, between, config.clearancePrecition, false) && isPathClear(between, checkingPos, config.clearancePrecition, false) && hasSupport(checkingBlockPos)
+        val clear = if (diagonal) {
+            val enclose = when {
+                checkingBlockPos.y == originBlockPos.y -> Box.enclosing(originBlockPos.up(), checkingBlockPos)
+                checkingBlockPos.y < originBlockPos.y -> Box.enclosing(originBlockPos.up(), checkingBlockPos.up())
+                else -> Box.enclosing(originBlockPos.up(2), checkingBlockPos)
             }
-            else -> {
-                val between = origin.pos.offset(direction.offsetX, 0, direction.offsetZ)
-                isPathClear(origin.pos, between, config.clearancePrecition, false) && isPathClear(between, checkingPos, config.clearancePrecition, false) && hasSupport(checkingBlockPos)
-            }
+            traversable(checkingBlockPos) && world.isSpaceEmpty(enclose)
+        } else {
+            traversable(checkingBlockPos)
         }
         if (!clear) return null
 
-        val hCost = goal.heuristic(checkingPos) /** nodeType.penalty*/
+        val hCost = heuristic(checkingPos) /** nodeType.penalty*/
         val cost = offset.length()
         val currentFeetY = getFeetY(checkingBlockPos)
 

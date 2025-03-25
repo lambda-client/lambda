@@ -28,7 +28,7 @@ class PriorityQueueDStar {
     private val pq = PriorityQueue<Pair<FastVector, Key>>(compareBy { it.second })
     private val vertexToKey = mutableMapOf<FastVector, Key>()
 
-    fun isEmpty(): Boolean = pq.isEmpty()
+    fun isEmpty() = pq.isEmpty()
 
     fun topKey(): Key {
         return if (pq.isEmpty()) Key(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY)

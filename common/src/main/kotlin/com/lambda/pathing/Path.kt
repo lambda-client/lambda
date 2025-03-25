@@ -17,22 +17,40 @@
 
 package com.lambda.pathing
 
+import com.lambda.graphics.renderer.esp.builders.buildLine
+import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.pathing.move.Move
+import com.lambda.util.collections.updatableLazy
 import com.lambda.util.world.dist
 import com.lambda.util.world.toBlockPos
+import java.awt.Color
 
 data class Path(
     val moves: ArrayDeque<Move> = ArrayDeque(),
 ) {
     fun append(move: Move) {
         moves.addLast(move)
+        length.clear()
     }
 
     fun prepend(move: Move) {
         moves.addFirst(move)
+        length.clear()
     }
 
-    val length get() = moves.zipWithNext { a, b -> a.pos dist b.pos }.sum()
+    private val length = updatableLazy {
+        moves.zipWithNext { a, b -> a.pos dist b.pos }.sum()
+    }
+
+    fun render(renderer: StaticESP, color: Color) {
+        moves.zipWithNext { current, next ->
+            val currentPos = current.pos.toBlockPos().toCenterPos()
+            val nextPos = next.pos.toBlockPos().toCenterPos()
+            renderer.buildLine(currentPos, nextPos, color)
+        }
+    }
+
+    fun length() = length.value
 
     override fun toString() =
         moves.joinToString(" -> ") { "(${it.pos.toBlockPos().toShortString()})" }

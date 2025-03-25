@@ -136,14 +136,6 @@ object Pathfinder : Module(
         }
     }
 
-    private fun Path.render(renderer: StaticESP, color: Color) {
-        moves.zipWithNext { current, next ->
-            val currentPos = current.pos.toBlockPos().toCenterPos()
-            val nextPos = next.pos.toBlockPos().toCenterPos()
-            renderer.buildLine(currentPos, nextPos, color)
-        }
-    }
-
     private fun SafeContext.updateTargetNode() {
         shortPath.moves.firstOrNull()?.let { current ->
             if (player.pos.distanceTo(current.bottomPos) < pathing.tolerance) {
@@ -171,7 +163,7 @@ object Pathfinder : Module(
             val thetaStar = measureTimeMillis {
                 short = thetaStarClearance(long, pathing)
             }
-            info("A* (Length: ${long.length.string} Nodes: ${long.moves.size} T: $aStar ms) and Theta* (Length: ${short.length.string} Nodes: ${short.moves.size} T: $thetaStar ms)")
+            info("A* (Length: ${long.length().string} Nodes: ${long.moves.size} T: $aStar ms) and Theta* (Length: ${short.length().string} Nodes: ${short.moves.size} T: $thetaStar ms)")
             println("Long: $long | Short: $short")
             short.moves.removeFirstOrNull()
             longPath = long

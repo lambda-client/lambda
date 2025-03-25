@@ -189,7 +189,7 @@ class DStarLite(
             if (bestNext == null) break
             current = bestNext
             path.add(current)
-            if (path.size > 100000) break
+            if (path.size > 100_000) break
         }
         return path
     }
