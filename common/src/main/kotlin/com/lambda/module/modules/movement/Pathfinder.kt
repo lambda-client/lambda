@@ -25,8 +25,6 @@ import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.builders.buildFilled
-import com.lambda.graphics.renderer.esp.builders.buildLine
-import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
@@ -36,6 +34,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.pathing.Path
 import com.lambda.pathing.Pathing.findPathAStar
 import com.lambda.pathing.Pathing.thetaStarClearance
+import com.lambda.pathing.PathingConfig
 import com.lambda.pathing.PathingSettings
 import com.lambda.pathing.goal.SimpleGoal
 import com.lambda.threading.runConcurrent
@@ -44,7 +43,6 @@ import com.lambda.util.Formatting.string
 import com.lambda.util.math.setAlpha
 import com.lambda.util.player.MovementUtils.buildMovementInput
 import com.lambda.util.player.MovementUtils.mergeFrom
-import com.lambda.util.world.WorldUtils.isPathClear
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.toFastVec
@@ -69,8 +67,8 @@ object Pathfinder : Module(
     private val rotation = RotationSettings(this) { page == Page.Rotation }
 
     private val target = fastVectorOf(0, 91, -4)
-    private var longPath = Path()
-    private var shortPath = Path()
+    private var coarsePath = Path()
+    private var refinedPath = Path()
     private var currentTarget: Vec3d? = null
     private var integralError = Vec3d.ZERO
     private var lastError = Vec3d.ZERO
@@ -81,8 +79,8 @@ object Pathfinder : Module(
             integralError = Vec3d.ZERO
             lastError = Vec3d.ZERO
             calculating = false
-            longPath = Path()
-            shortPath = Path()
+            coarsePath = Path()
+            refinedPath = Path()
             currentTarget = null
         }
 
@@ -123,7 +121,7 @@ object Pathfinder : Module(
         }
 
         listen<MovementEvent.Sprint> {
-            if (shortPath.moves.isEmpty()) return@listen
+            if (refinedPath.moves.isEmpty()) return@listen
 
             player.isSprinting = pathing.allowSprint
             it.sprint = pathing.allowSprint
@@ -131,44 +129,52 @@ object Pathfinder : Module(
 
         listen<RenderEvent.StaticESP> { event ->
 //            longPath.render(event.renderer, Color.YELLOW)
-            shortPath.render(event.renderer, Color.GREEN)
+            refinedPath.render(event.renderer, Color.GREEN)
             event.renderer.buildFilled(Box(target.toBlockPos()), Color.PINK.setAlpha(0.25))
         }
     }
 
     private fun SafeContext.updateTargetNode() {
-        shortPath.moves.firstOrNull()?.let { current ->
+        refinedPath.moves.firstOrNull()?.let { current ->
             if (player.pos.distanceTo(current.bottomPos) < pathing.tolerance) {
-                shortPath.moves.removeFirst()
+                refinedPath.moves.removeFirst()
                 integralError = Vec3d.ZERO
             }
-            currentTarget = shortPath.moves.firstOrNull()?.bottomPos
+            currentTarget = refinedPath.moves.firstOrNull()?.bottomPos
         } ?: run {
             currentTarget = null
         }
     }
 
     private fun SafeContext.updatePaths() {
-        runConcurrent {
-            calculating = true
-            val long: Path
-            val aStar = measureTimeMillis {
-                long = findPathAStar(
-                    player.blockPos.toFastVec(),
-                    SimpleGoal(target),
-                    pathing
-                )
+        val goal = SimpleGoal(target)
+        when (pathing.algorithm) {
+            PathingConfig.PathingAlgorithm.A_STAR -> {
+                runConcurrent {
+                    calculating = true
+                    val long: Path
+                    val aStar = measureTimeMillis {
+                        long = findPathAStar(player.blockPos.toFastVec(), goal, pathing)
+                    }
+                    val short: Path
+                    val thetaStar = measureTimeMillis {
+                        short = if (pathing.pathRefining) {
+                            thetaStarClearance(long, pathing)
+                        } else long
+                    }
+                    info("A* (Length: ${long.length().string} Nodes: ${long.moves.size} T: $aStar ms) and Theta* (Length: ${short.length().string} Nodes: ${short.moves.size} T: $thetaStar ms)")
+                    println("Long: $long | Short: $short")
+                    short.moves.removeFirstOrNull()
+                    coarsePath = long
+                    refinedPath = short
+                    //            calculating = false
+                }
             }
-            val short: Path
-            val thetaStar = measureTimeMillis {
-                short = thetaStarClearance(long, pathing)
+            PathingConfig.PathingAlgorithm.D_STAR_LITE -> {
+                runConcurrent {
+                    // 1. Build graph from goal to target
+                }
             }
-            info("A* (Length: ${long.length().string} Nodes: ${long.moves.size} T: $aStar ms) and Theta* (Length: ${short.length().string} Nodes: ${short.moves.size} T: $thetaStar ms)")
-            println("Long: $long | Short: $short")
-            short.moves.removeFirstOrNull()
-            longPath = long
-            shortPath = short
-//            calculating = false
         }
     }
 

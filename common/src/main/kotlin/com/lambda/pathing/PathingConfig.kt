@@ -17,16 +17,28 @@
 
 package com.lambda.pathing
 
+import com.lambda.util.NamedEnum
+
 interface PathingConfig {
+    val algorithm: PathingAlgorithm
+    val cutoffTimeout: Long
+    val maxFallHeight: Double
+
+    val pathRefining: Boolean
+    val shortcutLength: Int
+    val clearancePrecision: Double
+    val findShortcutJumps: Boolean
+
     val kP: Double
     val kI: Double
     val kD: Double
     val tolerance: Double
-    val cutoffTimeout: Long
-    val shortcutLength: Int
-    val clearancePrecition: Double
     val allowSprint: Boolean
-    val maxFallHeight: Double
 
     val assumeJesus: Boolean
+
+    enum class PathingAlgorithm(override val displayName: String) : NamedEnum {
+        A_STAR("A*"),
+        D_STAR_LITE("D* Lite"),
+    }
 }

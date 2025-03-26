@@ -24,15 +24,19 @@ class PathingSettings(
     vis: () -> Boolean = { true }
 ) : PathingConfig {
     enum class Page {
-        Pathfinding, Movement, Misc
+        Pathfinding, Refinement, Movement, Misc
     }
 
     private val page by c.setting("Pathing Page", Page.Pathfinding, "Current page", vis)
 
+    override val algorithm by c.setting("Pathfinding Algorithm", PathingConfig.PathingAlgorithm.A_STAR) { vis() && page == Page.Pathfinding }
     override val cutoffTimeout by c.setting("Cutoff Timeout", 500L, 1L..2000L, 10L, "Timeout of path calculation", " ms") { vis() && page == Page.Pathfinding }
-    override val shortcutLength by c.setting("Shortcut Length", 10, 1..100, 1) { vis() && page == Page.Pathfinding }
-    override val clearancePrecition by c.setting("Clearance Precition", 0.2, 0.0..1.0, 0.01) { vis() && page == Page.Pathfinding }
     override val maxFallHeight by c.setting("Max Fall Height", 3.0, 0.0..30.0, 0.5) { vis() && page == Page.Pathfinding }
+
+    override val pathRefining by c.setting("Path Refining", true) { vis() && page == Page.Refinement }
+    override val shortcutLength by c.setting("Shortcut Length", 10, 1..100, 1) { vis() && pathRefining && page == Page.Refinement }
+    override val clearancePrecision by c.setting("Clearance Precision", 0.2, 0.0..1.0, 0.01) { vis() && pathRefining && page == Page.Refinement }
+    override val findShortcutJumps by c.setting("Find Shortcut Jumps", true) { vis() && pathRefining && page == Page.Refinement }
 
     override val kP by c.setting("P Gain", 0.5, 0.0..2.0, 0.01) { vis() && page == Page.Movement }
     override val kI by c.setting("I Gain", 0.0, 0.0..1.0, 0.01) { vis() && page == Page.Movement }
