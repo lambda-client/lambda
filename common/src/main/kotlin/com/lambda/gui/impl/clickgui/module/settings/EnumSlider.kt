@@ -20,6 +20,7 @@ package com.lambda.gui.impl.clickgui.module.settings
 import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
+import com.lambda.util.NamedEnum
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.transform
 
@@ -28,7 +29,7 @@ class EnumSlider <T : Enum<T>>(
     setting: EnumSetting<T>
 ) : SettingSlider<T, EnumSetting<T>>(owner, setting) {
     override val settingValue: String
-        get() = settingDelegate.name
+        get() = (settingDelegate as? NamedEnum)?.displayName ?: settingDelegate.name
 
     init {
         slider.progress {
