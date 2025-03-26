@@ -34,19 +34,17 @@ import kotlin.math.min
  * @param goal       The fixed goal vertex.
  */
 class DStarLite(
-    private val graph: Graph,
+    private val graph: LazyGraph,
     private val heuristic: (FastVector, FastVector) -> Double,
     var start: FastVector,
     private val goal: FastVector
 ) {
-    private val INF = Double.POSITIVE_INFINITY
-
     // gMap[u], rhsMap[u] store g(u) and rhs(u) or default to ∞ if not present
     private val gMap = mutableMapOf<FastVector, Double>()
     private val rhsMap = mutableMapOf<FastVector, Double>()
 
     // Priority queue holding inconsistent vertices.
-    private val U = PriorityQueueDStar()
+    private val U = PriorityQueueDStar<FastVector>()
 
     // km accumulates heuristic differences as the start changes.
     private var km = 0.0
@@ -192,5 +190,9 @@ class DStarLite(
             if (path.size > 100_000) break
         }
         return path
+    }
+
+    companion object {
+        private const val INF = Double.POSITIVE_INFINITY
     }
 }

@@ -36,8 +36,12 @@ import com.lambda.pathing.Pathing.findPathAStar
 import com.lambda.pathing.Pathing.thetaStarClearance
 import com.lambda.pathing.PathingConfig
 import com.lambda.pathing.PathingSettings
+import com.lambda.pathing.dstar.DStarLite
+import com.lambda.pathing.dstar.LazyGraph
 import com.lambda.pathing.goal.SimpleGoal
+import com.lambda.pathing.move.MoveFinder.moveOptions
 import com.lambda.threading.runConcurrent
+import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
 import com.lambda.util.Formatting.string
 import com.lambda.util.math.setAlpha
@@ -162,7 +166,7 @@ object Pathfinder : Module(
                             thetaStarClearance(long, pathing)
                         } else long
                     }
-                    info("A* (Length: ${long.length().string} Nodes: ${long.moves.size} T: $aStar ms) and Theta* (Length: ${short.length().string} Nodes: ${short.moves.size} T: $thetaStar ms)")
+                    info("A* (Length: ${long.length().string} Nodes: ${long.size} T: $aStar ms) and Theta* (Length: ${short.length().string} Nodes: ${short.size} T: $thetaStar ms)")
                     println("Long: $long | Short: $short")
                     short.moves.removeFirstOrNull()
                     coarsePath = long
@@ -172,7 +176,7 @@ object Pathfinder : Module(
             }
             PathingConfig.PathingAlgorithm.D_STAR_LITE -> {
                 runConcurrent {
-                    // 1. Build graph from goal to target
+
                 }
             }
         }

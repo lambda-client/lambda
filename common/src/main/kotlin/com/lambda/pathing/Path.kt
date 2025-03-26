@@ -52,6 +52,8 @@ data class Path(
 
     fun length() = length.value
 
+    val size get() = moves.size
+
     override fun toString() =
         moves.joinToString(" -> ") { "(${it.pos.toBlockPos().toShortString()})" }
 }

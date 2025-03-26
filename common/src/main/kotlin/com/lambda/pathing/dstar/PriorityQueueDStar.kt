@@ -17,16 +17,14 @@
 
 package com.lambda.pathing.dstar
 
-import com.lambda.util.world.FastVector
 import java.util.*
 
 /**
  * Priority queue for D* Lite 3D.
- * Supports: topKey, top, pop, insertOrUpdate, and remove.
  */
-class PriorityQueueDStar {
-    private val pq = PriorityQueue<Pair<FastVector, Key>>(compareBy { it.second })
-    private val vertexToKey = mutableMapOf<FastVector, Key>()
+class PriorityQueueDStar<T : Any> {
+    private val pq = PriorityQueue<Pair<T, Key>>(compareBy { it.second })
+    private val vertexToKey = mutableMapOf<T, Key>()
 
     fun isEmpty() = pq.isEmpty()
 
@@ -35,16 +33,16 @@ class PriorityQueueDStar {
         else pq.peek().second
     }
 
-    fun top() = pq.peek()?.first
+    fun top(): T? = pq.peek()?.first
 
-    fun pop(): FastVector? {
+    fun pop(): T? {
         if (pq.isEmpty()) return null
         val (v, _) = pq.poll()
         vertexToKey.remove(v)
         return v
     }
 
-    fun insertOrUpdate(v: FastVector, key: Key) {
+    fun insertOrUpdate(v: T, key: Key) {
         val oldKey = vertexToKey[v]
         if (oldKey == null || oldKey != key) {
             remove(v)
@@ -53,7 +51,7 @@ class PriorityQueueDStar {
         }
     }
 
-    fun remove(v: FastVector) {
+    fun remove(v: T) {
         val oldKey = vertexToKey[v] ?: return
         vertexToKey.remove(v)
         pq.remove(Pair(v, oldKey))

@@ -56,7 +56,7 @@ object Pathing {
 
             closedSet.add(current.pos)
 
-            moveOptions(current, goal, config).forEach { move ->
+            moveOptions(current.pos, goal::heuristic, config).forEach { move ->
 //                println("Considering move: $move")
                 if (closedSet.contains(move.pos)) return@forEach
                 val tentativeGCost = current.gCost + move.cost
