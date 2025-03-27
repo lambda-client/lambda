@@ -59,7 +59,7 @@ class DStarLiteTest {
         val graph = createLazy3DGridGraph()
         val start = fastVectorOf(0, 0, 0)
         val goal = fastVectorOf(2, 2, 2)
-        val dstar = DStarLite(graph, ::heuristic, start, goal)
+        val dstar = DStarLite(graph, start, goal, ::heuristic)
 
         dstar.computeShortestPath()
         val path = dstar.getPath()
@@ -75,7 +75,7 @@ class DStarLiteTest {
         val graph = createLazy3DGridGraph()
         var start = fastVectorOf(0, 0, 0)
         val goal = fastVectorOf(2, 2, 2)
-        val dstar = DStarLite(graph, ::heuristic, start, goal)
+        val dstar = DStarLite(graph, start, goal, ::heuristic)
 
         dstar.computeShortestPath()
 

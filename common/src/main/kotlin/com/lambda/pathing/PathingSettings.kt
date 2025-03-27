@@ -18,31 +18,38 @@
 package com.lambda.pathing
 
 import com.lambda.config.Configurable
+import com.lambda.config.groups.RotationSettings
 
 class PathingSettings(
     c: Configurable,
     vis: () -> Boolean = { true }
 ) : PathingConfig {
     enum class Page {
-        Pathfinding, Refinement, Movement, Misc
+        Pathfinding, Refinement, Movement, Rotation, Misc
     }
 
     private val page by c.setting("Pathing Page", Page.Pathfinding, "Current page", vis)
 
-    override val algorithm by c.setting("Pathfinding Algorithm", PathingConfig.PathingAlgorithm.A_STAR) { vis() && page == Page.Pathfinding }
+    override val algorithm by c.setting("Algorithm", PathingConfig.PathingAlgorithm.A_STAR) { vis() && page == Page.Pathfinding }
     override val cutoffTimeout by c.setting("Cutoff Timeout", 500L, 1L..2000L, 10L, "Timeout of path calculation", " ms") { vis() && page == Page.Pathfinding }
     override val maxFallHeight by c.setting("Max Fall Height", 3.0, 0.0..30.0, 0.5) { vis() && page == Page.Pathfinding }
 
-    override val pathRefining by c.setting("Path Refining", true) { vis() && page == Page.Refinement }
-    override val shortcutLength by c.setting("Shortcut Length", 10, 1..100, 1) { vis() && pathRefining && page == Page.Refinement }
-    override val clearancePrecision by c.setting("Clearance Precision", 0.2, 0.0..1.0, 0.01) { vis() && pathRefining && page == Page.Refinement }
-    override val findShortcutJumps by c.setting("Find Shortcut Jumps", true) { vis() && pathRefining && page == Page.Refinement }
+    override val refinePath by c.setting("Refine Path with θ*", true) { vis() && page == Page.Refinement }
+    override val shortcutLength by c.setting("Shortcut Length", 15, 1..100, 1) { vis() && refinePath && page == Page.Refinement }
+    override val clearancePrecision by c.setting("Clearance Precision", 0.1, 0.0..1.0, 0.01) { vis() && refinePath && page == Page.Refinement }
+    override val findShortcutJumps by c.setting("Find Shortcut Jumps", true) { vis() && refinePath && page == Page.Refinement }
 
-    override val kP by c.setting("P Gain", 0.5, 0.0..2.0, 0.01) { vis() && page == Page.Movement }
-    override val kI by c.setting("I Gain", 0.0, 0.0..1.0, 0.01) { vis() && page == Page.Movement }
-    override val kD by c.setting("D Gain", 0.2, 0.0..1.0, 0.01) { vis() && page == Page.Movement }
-    override val tolerance by c.setting("Node Tolerance", 0.7, 0.01..2.0, 0.05) { vis() && page == Page.Movement }
-    override val allowSprint by c.setting("Allow Sprint", true) { vis() && page == Page.Movement }
+    override val moveAlongPath by c.setting("Move Along Path", true) { vis() && page == Page.Movement }
+    override val kP by c.setting("P Gain", 0.5, 0.0..2.0, 0.01) { vis() && moveAlongPath && page == Page.Movement }
+    override val kI by c.setting("I Gain", 0.0, 0.0..1.0, 0.01) { vis() && moveAlongPath && page == Page.Movement }
+    override val kD by c.setting("D Gain", 0.2, 0.0..1.0, 0.01) { vis() && moveAlongPath && page == Page.Movement }
+    override val tolerance by c.setting("Node Tolerance", 0.6, 0.01..2.0, 0.05) { vis() && moveAlongPath && page == Page.Movement }
+    override val allowSprint by c.setting("Allow Sprint", true) { vis() && moveAlongPath && page == Page.Movement }
 
+    override val rotation = RotationSettings(c) { page == Page.Rotation }
+
+    override val renderCoarsePath by c.setting("Render Coarse Path", false) { vis() && page == Page.Misc }
+    override val renderRefinedPath by c.setting("Render Refined Path", true) { vis() && page == Page.Misc }
+    override val renderGoal by c.setting("Render Goal", true) { vis() && page == Page.Misc }
     override val assumeJesus by c.setting("Assume Jesus", false) { vis() && page == Page.Misc }
 }

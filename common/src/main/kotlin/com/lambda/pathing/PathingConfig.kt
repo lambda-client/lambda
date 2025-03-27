@@ -17,6 +17,7 @@
 
 package com.lambda.pathing
 
+import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.util.NamedEnum
 
 interface PathingConfig {
@@ -24,21 +25,27 @@ interface PathingConfig {
     val cutoffTimeout: Long
     val maxFallHeight: Double
 
-    val pathRefining: Boolean
+    val refinePath: Boolean
     val shortcutLength: Int
     val clearancePrecision: Double
     val findShortcutJumps: Boolean
 
+    val moveAlongPath: Boolean
     val kP: Double
     val kI: Double
     val kD: Double
     val tolerance: Double
     val allowSprint: Boolean
 
+    val rotation: RotationConfig
+
+    val renderCoarsePath: Boolean
+    val renderRefinedPath: Boolean
+    val renderGoal: Boolean
     val assumeJesus: Boolean
 
     enum class PathingAlgorithm(override val displayName: String) : NamedEnum {
         A_STAR("A*"),
-        D_STAR_LITE("D* Lite"),
+        D_STAR_LITE("Lazy D* Lite"),
     }
 }

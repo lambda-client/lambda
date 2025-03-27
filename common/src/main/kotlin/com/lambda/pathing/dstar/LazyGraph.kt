@@ -17,7 +17,6 @@
 
 package com.lambda.pathing.dstar
 
-import com.lambda.context.SafeContext
 import com.lambda.util.world.FastVector
 
 /**
@@ -33,12 +32,14 @@ import com.lambda.util.world.FastVector
  * - O(V + E), where V = number of nodes (vertices) initialized and E = number of edges stored.
  * - Additional memory overhead is based on the dynamically expanding hash maps.
  */
-
 class LazyGraph(
     private val nodeInitializer: (FastVector) -> Map<FastVector, Double>
 ) {
     private val successors = hashMapOf<FastVector, MutableMap<FastVector, Double>>()
     private val predecessors = hashMapOf<FastVector, MutableMap<FastVector, Double>>()
+    private val dirtyNodes = mutableSetOf<FastVector>()
+
+    val size get() = successors.size
 
     /** Initializes a node if not already initialized, then returns successors. */
     fun successors(u: FastVector) =
@@ -55,6 +56,15 @@ class LazyGraph(
         successors(u)
         return predecessors[u] ?: emptyMap()
     }
+
+    fun markDirty(pos: FastVector) {
+        dirtyNodes.add(pos)
+        predecessors[pos]?.keys?.let { pred ->
+            dirtyNodes.addAll(pred)
+        }
+    }
+
+    fun clearDirty() = dirtyNodes.clear()
 
     /** Returns the cost of the edge from u to v (or ∞ if none exists) */
     fun cost(u: FastVector, v: FastVector): Double = successors(u)[v] ?: Double.POSITIVE_INFINITY

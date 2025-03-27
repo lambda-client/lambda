@@ -17,7 +17,6 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RenderEvent
@@ -40,6 +39,8 @@ import com.lambda.pathing.dstar.DStarLite
 import com.lambda.pathing.dstar.LazyGraph
 import com.lambda.pathing.goal.SimpleGoal
 import com.lambda.pathing.move.MoveFinder.moveOptions
+import com.lambda.pathing.move.NodeType
+import com.lambda.pathing.move.TraverseMove
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
@@ -47,12 +48,17 @@ import com.lambda.util.Formatting.string
 import com.lambda.util.math.setAlpha
 import com.lambda.util.player.MovementUtils.buildMovementInput
 import com.lambda.util.player.MovementUtils.mergeFrom
+import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.toFastVec
+import com.lambda.util.world.x
+import com.lambda.util.world.y
+import com.lambda.util.world.z
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.system.measureTimeMillis
@@ -62,15 +68,21 @@ object Pathfinder : Module(
     description = "Get from A to B",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
-    enum class Page {
-        Pathing, Rotation
-    }
+    private val pathing = PathingSettings(this)
 
-    private val page by setting("Page", Page.Pathing)
-    private val pathing = PathingSettings(this) { page == Page.Pathing }
-    private val rotation = RotationSettings(this) { page == Page.Rotation }
+    private fun heuristic(u: FastVector): Double =
+        (abs(u.x) + abs(u.y) + abs(u.z)).toDouble()
+
+    private fun heuristic(u: FastVector, v: FastVector): Double =
+        (abs(u.x - v.x) + abs(u.y - v.y) + abs(u.z - v.z)).toDouble()
 
     private val target = fastVectorOf(0, 91, -4)
+    private val graph = LazyGraph { origin ->
+        runSafe {
+            moveOptions(origin, ::heuristic, pathing).associate { it.pos to it.cost }
+        } ?: emptyMap()
+    }
+    private val dStar = DStarLite(graph, fastVectorOf(0, 0, 0), target, ::heuristic)
     private var coarsePath = Path()
     private var refinedPath = Path()
     private var currentTarget: Vec3d? = null
@@ -86,6 +98,9 @@ object Pathfinder : Module(
             coarsePath = Path()
             refinedPath = Path()
             currentTarget = null
+            graph.clear()
+            dStar.initialize()
+            dStar.updateStart(player.pos.toFastVec())
         }
 
         listen<TickEvent.Pre> {
@@ -96,7 +111,15 @@ object Pathfinder : Module(
             updatePaths()
         }
 
+//        listen<WorldEvent.BlockUpdate.Client> {
+//            val pos = it.pos.toFastVec()
+//            graph.markDirty(pos)
+//            info("Updated block at ${it.pos} to ${it.newState.block.name.string} rescheduled D*Lite.")
+//        }
+
         listen<RotationEvent.StrafeInput> { event ->
+            if (!pathing.moveAlongPath) return@listen
+
             currentTarget?.let { target ->
                 event.strafeYaw = player.eyePos.rotationTo(target).yaw
                 val adjustment = calculatePID(target)
@@ -117,14 +140,17 @@ object Pathfinder : Module(
         }
 
         onRotate {
+            if (!pathing.moveAlongPath) return@onRotate
+
             val currentTarget = currentTarget ?: return@onRotate
             val part = player.eyePos.rotationTo(currentTarget)
             val targetRotation = Rotation(part.yaw, player.pitch.toDouble())
 
-            lookAt(targetRotation).requestBy(rotation)
+            lookAt(targetRotation).requestBy(pathing.rotation)
         }
 
         listen<MovementEvent.Sprint> {
+            if (!pathing.moveAlongPath) return@listen
             if (refinedPath.moves.isEmpty()) return@listen
 
             player.isSprinting = pathing.allowSprint
@@ -132,53 +158,75 @@ object Pathfinder : Module(
         }
 
         listen<RenderEvent.StaticESP> { event ->
-//            longPath.render(event.renderer, Color.YELLOW)
-            refinedPath.render(event.renderer, Color.GREEN)
-            event.renderer.buildFilled(Box(target.toBlockPos()), Color.PINK.setAlpha(0.25))
+            if (pathing.renderCoarsePath) coarsePath.render(event.renderer, Color.YELLOW)
+            if (pathing.renderRefinedPath) refinedPath.render(event.renderer, Color.GREEN)
+            if (pathing.renderGoal) event.renderer.buildFilled(Box(target.toBlockPos()), Color.PINK.setAlpha(0.25))
         }
     }
 
     private fun SafeContext.updateTargetNode() {
-        refinedPath.moves.firstOrNull()?.let { current ->
+        currentTarget = refinedPath.moves.firstOrNull()?.let { current ->
             if (player.pos.distanceTo(current.bottomPos) < pathing.tolerance) {
                 refinedPath.moves.removeFirst()
                 integralError = Vec3d.ZERO
             }
-            currentTarget = refinedPath.moves.firstOrNull()?.bottomPos
-        } ?: run {
-            currentTarget = null
+            refinedPath.moves.firstOrNull()?.bottomPos
         }
     }
 
     private fun SafeContext.updatePaths() {
         val goal = SimpleGoal(target)
+        val start = player.blockPos.toFastVec()
         when (pathing.algorithm) {
-            PathingConfig.PathingAlgorithm.A_STAR -> {
-                runConcurrent {
-                    calculating = true
-                    val long: Path
-                    val aStar = measureTimeMillis {
-                        long = findPathAStar(player.blockPos.toFastVec(), goal, pathing)
-                    }
-                    val short: Path
-                    val thetaStar = measureTimeMillis {
-                        short = if (pathing.pathRefining) {
-                            thetaStarClearance(long, pathing)
-                        } else long
-                    }
-                    info("A* (Length: ${long.length().string} Nodes: ${long.size} T: $aStar ms) and Theta* (Length: ${short.length().string} Nodes: ${short.size} T: $thetaStar ms)")
-                    println("Long: $long | Short: $short")
-                    short.moves.removeFirstOrNull()
-                    coarsePath = long
-                    refinedPath = short
-                    //            calculating = false
-                }
-            }
-            PathingConfig.PathingAlgorithm.D_STAR_LITE -> {
-                runConcurrent {
+            PathingConfig.PathingAlgorithm.A_STAR -> updateAStar(start, goal)
+            PathingConfig.PathingAlgorithm.D_STAR_LITE -> updateDStar()
+        }
+    }
 
-                }
+    private fun SafeContext.updateAStar(start: FastVector, goal: SimpleGoal) {
+        runConcurrent {
+            calculating = true
+            val long: Path
+            val aStar = measureTimeMillis {
+                long = findPathAStar(start, goal, pathing)
             }
+            val short: Path
+            val thetaStar = measureTimeMillis {
+                short = if (pathing.refinePath) {
+                    thetaStarClearance(long, pathing)
+                } else long
+            }
+            info("A* (Length: ${long.length().string} Nodes: ${long.size} T: $aStar ms) and \u03b8* (Length: ${short.length().string} Nodes: ${short.size} T: $thetaStar ms)")
+            println("Long: $long | Short: $short")
+            short.moves.removeFirstOrNull()
+            coarsePath = long
+            refinedPath = short
+            //                    calculating = false
+        }
+    }
+
+    private fun SafeContext.updateDStar() {
+        runConcurrent {
+            calculating = true
+            val long: Path
+            val dStar = measureTimeMillis {
+//                        if (start dist dstar.start > 3) dstar.updateStart(start)
+                dStar.computeShortestPath()
+                val nodes = dStar.getPath().map { TraverseMove(it, 0.0, NodeType.OPEN, 0.0, 0.0) }
+                long = Path(ArrayDeque(nodes))
+            }
+            val short: Path
+            val thetaStar = measureTimeMillis {
+                short = if (pathing.refinePath) {
+                    thetaStarClearance(long, pathing)
+                } else long
+            }
+            info("Lazy D* Lite (Length: ${long.length().string} Nodes: ${long.size} Graph Size: ${graph.size} T: $dStar ms) and \u03b8* (Length: ${short.length().string} Nodes: ${short.size} T: $thetaStar ms)")
+            println("Long: $long | Short: $short")
+            short.moves.removeFirstOrNull()
+            coarsePath = long
+            refinedPath = short
+            //                    calculating = false
         }
     }
 

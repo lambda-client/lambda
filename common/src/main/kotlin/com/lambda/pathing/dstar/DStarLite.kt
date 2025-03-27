@@ -35,9 +35,9 @@ import kotlin.math.min
  */
 class DStarLite(
     private val graph: LazyGraph,
-    private val heuristic: (FastVector, FastVector) -> Double,
     var start: FastVector,
-    private val goal: FastVector
+    private val goal: FastVector,
+    private val heuristic: (FastVector, FastVector) -> Double,
 ) {
     // gMap[u], rhsMap[u] store g(u) and rhs(u) or default to ∞ if not present
     private val gMap = mutableMapOf<FastVector, Double>()
@@ -58,7 +58,7 @@ class DStarLite(
      *  - g(goal)=∞, rhs(goal)=0
      *  - Insert goal into U with key = calculateKey(goal).
      */
-    private fun initialize() {
+    fun initialize() {
         gMap.clear()
         rhsMap.clear()
         setG(goal, INF)
