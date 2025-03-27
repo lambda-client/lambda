@@ -17,12 +17,17 @@
 
 package com.lambda.pathing
 
-import com.lambda.graphics.renderer.esp.builders.buildLine
+import com.lambda.graphics.renderer.esp.builders.ofBox
 import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.pathing.move.Move
 import com.lambda.util.collections.updatableLazy
+import com.lambda.util.math.component1
+import com.lambda.util.math.component2
+import com.lambda.util.math.component3
+import com.lambda.util.math.setAlpha
 import com.lambda.util.world.dist
 import com.lambda.util.world.toBlockPos
+import net.minecraft.util.math.Box
 import java.awt.Color
 
 data class Path(
@@ -44,9 +49,25 @@ data class Path(
 
     fun render(renderer: StaticESP, color: Color) {
         moves.zipWithNext { current, next ->
-            val currentPos = current.pos.toBlockPos().toCenterPos()
-            val nextPos = next.pos.toBlockPos().toCenterPos()
-            renderer.buildLine(currentPos, nextPos, color)
+            val start = current.pos.toBlockPos().toCenterPos()
+            val end = next.pos.toBlockPos().toCenterPos()
+            val direction = end.subtract(start)
+            val distance = direction.length()
+            if (distance <= 0) return@zipWithNext
+
+            val stepSize = 0.2
+            val steps = (distance / stepSize).toInt()
+            val stepDirection = direction.normalize().multiply(stepSize)
+
+            var currentPos = start
+
+            (0 until steps).forEach { _ ->
+                val (x, y, z) = currentPos
+                val d = 0.03
+                val box = Box(x - d, y - d, z - d, x + d, y + d, z + d)
+                renderer.ofBox(box, color.brighter().setAlpha(0.25), color.darker())
+                currentPos = currentPos.add(stepDirection)
+            }
         }
     }
 
