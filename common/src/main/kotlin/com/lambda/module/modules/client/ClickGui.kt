@@ -18,15 +18,25 @@
 package com.lambda.module.modules.client
 
 import com.lambda.Lambda.mc
+import com.lambda.gui.LambdaScreen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.gui.ScreenLayout.Companion.gui
+import com.lambda.gui.RootLayout.Companion.gui
+import com.lambda.gui.component.HAlign
+import com.lambda.gui.component.VAlign
 import com.lambda.gui.component.core.FilledRect.Companion.rect
+import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.impl.clickgui.ModuleWindow.Companion.moduleWindow
+import com.lambda.gui.impl.clickgui.core.AnimatedChild.Companion.animatedBackground
+import com.lambda.gui.impl.clickgui.module.setting.settings.UnitButton.Companion.unitButton
+import com.lambda.module.HudModule
+import com.lambda.module.ModuleRegistry
 import com.lambda.util.KeyCode
+import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.setAlpha
 import java.awt.Color
+import kotlin.math.hypot
 
 object ClickGui : Module(
     name = "ClickGui",
@@ -49,7 +59,7 @@ object ClickGui : Module(
     val backgroundShade by setting("Background Shade", true)
 
     val outline by setting("Outline", true)
-    val outlineWidth by setting("Outline Width", 6.0, 1.0..10.0, 0.1) { outline }
+    val outlineWidth by setting("Outline Width", 10.0, 1.0..20.0, 0.1) { outline }
     val outlineColor by setting("Outline Color", Color.WHITE.setAlpha(0.6)) { outline }
     val outlineShade by setting("Outline Shade", true) { outline }
     val fontScale by setting("Font Scale", 1.0, 0.5..2.0, 0.1)
@@ -65,24 +75,65 @@ object ClickGui : Module(
     val animationCurve by setting("List Animation Curve", AnimationCurve.Normal)
     val smoothness by setting("Smoothness", 0.4, 0.3..0.7, 0.01) { animationCurve != AnimationCurve.Static }
 
-    val SCREEN get() = gui("Click Gui") {
-        onKeyPress {
-            if (it.keyCode != keybind.keyCode || keybind == KeyCode.UNBOUND) return@onKeyPress
-            mc.currentScreen?.close()
-        }
+    val hudPadding by setting("Hud Padding", 3.0, 0.0..10.0, 0.1)
 
-        rect {
-            onUpdate {
-                rect = owner!!.rect
-                setColor(backgroundTint)
+    val SCREEN: LambdaScreen by lazy {
+        gui("Click Gui") {
+            onKeyPress {
+                if (it.keyCode != keybind.keyCode || keybind == KeyCode.UNBOUND) return@onKeyPress
+                mc.currentScreen?.close()
             }
+
+            rect {
+                onUpdate {
+                    rect = owner!!.rect
+                    setColor(backgroundTint)
+                }
+            }
+
+            var x = 10.0
+            val y = x
+
+            ModuleTag.defaults.forEach { tag ->
+                x += moduleWindow(tag, Vec2d(x, y)).width + 5
+            }
+
+            switchButton("HUD", ::HUD)
         }
+    }
 
-        var x = 10.0
-        val y = x
+    val HUD: LambdaScreen by lazy {
+        gui("Hud GUI") {
+            switchButton("Back", ::SCREEN)
 
-        ModuleTag.defaults.forEach { tag ->
-            x += moduleWindow(tag, Vec2d(x, y)).width + 5
+            var dragInfo: Pair<HudModule, Vec2d>? = null
+
+            onShow {
+                dragInfo = null
+            }
+
+            onMouse(action = Mouse.Action.Click, button = Mouse.Button.Left) {
+                dragInfo = null
+            }
+
+            onMouseMove { mouse ->
+                if (pressedButton != Mouse.Button.Left) return@onMouseMove
+
+                ModuleRegistry.modules
+                    .filterIsInstance<HudModule>()
+                    .filter { mouse in it.getRootLayout().rect }
+                    .minByOrNull {
+                        val (x, y) = it.getRootLayout().rect.center
+                        hypot(x - mouse.x, y - mouse.y)
+                    }?.let { module ->
+                        dragInfo = dragInfo ?: (module to (mouse - module.getRootLayout().position))
+
+                    }
+
+                dragInfo?.let { drag ->
+                    drag.first.getRootLayout().position = mouse - drag.second
+                }
+            }
         }
     }
 
@@ -96,6 +147,27 @@ object ClickGui : Module(
         onEnable {
             SCREEN.show()
             toggle()
+        }
+    }
+
+    private fun Layout.switchButton(text: String, gui: () -> LambdaScreen) {
+        unitButton(text) {
+            gui().show()
+        }.apply {
+            animatedBackground {
+                hoverAnimation * 0.5 + 0.5
+            }
+
+            horizontalAlignment = HAlign.RIGHT
+            verticalAlignment = VAlign.BOTTOM
+            titleBar.textField.textHAlignment = HAlign.CENTER
+
+            positionX = owner!!.positionX - width - 10.0
+            positionY = owner.positionY - height - 10.0
+
+            onUpdate {
+                width = height * 1.5
+            }
         }
     }
 }

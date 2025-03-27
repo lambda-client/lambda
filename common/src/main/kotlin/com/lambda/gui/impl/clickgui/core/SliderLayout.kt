@@ -24,7 +24,7 @@ import com.lambda.gui.component.core.OutlineRect.Companion.outline
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.core.insertLayout
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.impl.clickgui.module.settings.SettingSlider
+import com.lambda.gui.impl.clickgui.module.setting.SettingSlider
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.Mouse
 import com.lambda.util.math.MathUtils.toInt

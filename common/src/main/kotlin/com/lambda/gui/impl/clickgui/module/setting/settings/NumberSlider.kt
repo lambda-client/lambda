@@ -15,12 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.impl.clickgui.module.settings.impl
+package com.lambda.gui.impl.clickgui.module.setting.settings
 
 import com.lambda.config.settings.NumericSetting
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.impl.clickgui.module.settings.SettingSlider
+import com.lambda.gui.impl.clickgui.module.setting.SettingSlider
 import com.lambda.util.math.MathUtils.roundToStep
 import com.lambda.util.math.MathUtils.typeConvert
 import com.lambda.util.math.lerp

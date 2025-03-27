@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.impl.clickgui.module.settings
+package com.lambda.gui.impl.clickgui.module.setting
 
 import com.lambda.gui.component.core.LayoutBuilder
 import com.lambda.module.modules.client.ClickGui

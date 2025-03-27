@@ -20,6 +20,7 @@ package com.lambda.module.hud
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.gui.font.FontRenderer
 import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
+import com.lambda.gui.component.core.TextField.Companion.textField
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -30,7 +31,7 @@ import com.lambda.util.extension.isNether
 import com.lambda.util.math.netherCoord
 import com.lambda.util.math.overworldCoord
 
-object Coordinates : HudModule(
+object Coordinates : HudModule.Text(
     name = "Coordinates",
     description = "Show your coordinates",
     defaultTags = setOf(ModuleTag.CLIENT),

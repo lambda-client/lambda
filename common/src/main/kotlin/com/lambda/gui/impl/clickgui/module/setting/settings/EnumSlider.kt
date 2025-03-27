@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.impl.clickgui.module.settings.impl
+package com.lambda.gui.impl.clickgui.module.setting.settings
 
 import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.config.settings.comparable.EnumSetting.Companion.enumValues
@@ -23,6 +23,7 @@ import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.util.NamedEnum
 import com.lambda.gui.impl.clickgui.module.settings.SettingSlider
+import com.lambda.gui.impl.clickgui.module.setting.SettingSlider
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.transform
 import kotlin.reflect.KMutableProperty0

@@ -19,6 +19,7 @@ package com.lambda.module.hud
 
 import com.lambda.graphics.renderer.gui.TextureRenderer.drawTexture
 import com.lambda.graphics.texture.TextureOwner.uploadGif
+import com.lambda.gui.component.layout.Layout.Companion.layout
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 
@@ -26,14 +27,16 @@ object GifTest : HudModule(
     name = "GifTest",
     defaultTags = setOf(ModuleTag.CLIENT),
 ) {
-    val test = uploadGif("chika.gif")
-
-    override val width = 100.0
-    override val height = 100.0
+    private val test = uploadGif("chika.gif")
 
     init {
-        onRender {
-            drawTexture(test, rect)
+        build {
+            width = 100.0
+            height = 100.0
+
+            customDrawable {
+                drawTexture(test, rect)
+            }
         }
     }
 }

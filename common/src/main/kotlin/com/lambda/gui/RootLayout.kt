@@ -21,7 +21,7 @@ import com.lambda.graphics.RenderMain
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 
-class ScreenLayout : Layout(owner = null) {
+class RootLayout : Layout(owner = null) {
     init {
         onUpdate {
             size = RenderMain.screenSize
@@ -33,7 +33,7 @@ class ScreenLayout : Layout(owner = null) {
          * Creates gui layout
          */
         @UIBuilder
-        fun gui(name: String, block: ScreenLayout.() -> Unit) =
-            LambdaScreen(name, ScreenLayout().apply(block))
+        fun gui(name: String, block: RootLayout.() -> Unit) =
+            LambdaScreen(name, RootLayout().apply(block))
     }
 }

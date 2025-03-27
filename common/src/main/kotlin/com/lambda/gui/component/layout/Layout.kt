@@ -21,12 +21,13 @@ import com.lambda.graphics.RenderMain
 import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.event.events.GuiEvent
 import com.lambda.graphics.pipeline.ScissorAdapter
-import com.lambda.gui.ScreenLayout
+import com.lambda.gui.RootLayout
 import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.VAlign
 import com.lambda.gui.component.core.*
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
+import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 
@@ -126,7 +127,7 @@ open class Layout(
             own = own.owner ?: break
         }
 
-        own as? ScreenLayout ?: throw IllegalStateException("Root layout is not a ScreenLayout class")
+        own// as? RootLayout ?: throw IllegalStateException("Root layout is not a ScreenLayout class")
     }
 
     protected open val renderSelf: Boolean get() = width > 1 && height > 1
@@ -390,6 +391,21 @@ open class Layout(
             if (!properties.scissor) block()
             else ScissorAdapter.scissor(scissorRect, block)
         }
+    }
+
+    fun buildTree(builder: StringBuilder = StringBuilder(), level: Int = 0): String {
+        val space = "  ".repeat(level)
+        builder.appendLine(
+            space + this::class.java.simpleName + " {".repeat(children.isNotEmpty().toInt())
+        )
+
+        children.forEach {
+            it.buildTree(builder, level + 1)
+        }
+
+        if (children.isNotEmpty()) builder.appendLine("$space}")
+
+        return builder.toString()
     }
 
     companion object {

@@ -29,7 +29,7 @@ import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.component.window.Window
 import com.lambda.gui.impl.clickgui.ModuleWindow
 import com.lambda.gui.impl.clickgui.core.AnimatedChild
-import com.lambda.gui.impl.clickgui.module.settings.SettingLayout
+import com.lambda.gui.impl.clickgui.module.setting.SettingLayout
 import com.lambda.util.Mouse
 import com.lambda.util.math.*
 import java.awt.Color
@@ -50,63 +50,7 @@ class ModuleLayout(
 
     private var enableAnimation by animation.exp(0.0, 1.0, 0.6, module::isEnabled)
 
-    val backgroundRect = rectBehind(titleBar) { // base rect with lowest y to avoid children overlying
-        onUpdate {
-            rect = this@ModuleLayout.rect.shrink(shrink)
-            shade = ClickGui.backgroundShade
-
-            val openRev = 1.0 - openAnimation     // 1.0  <->  0.0
-            val openRevSigned = openRev * 2 - 1   // 1.0  <-> -1.0
-            val enableRev = 1.0 - enableAnimation // 1.0  <->  0.0
-
-            var progress = enableAnimation
-
-            // hover: +0.1 to alpha if minimized, -0.1 to alpha if maximized and enabled
-            progress += hoverAnimation * ClickGui.moduleHoverAccent *
-                    lerp(enableAnimation, 1.0, openRevSigned)
-
-            // +0.4 to alpha if opened and disabled
-            progress += openAnimation * ClickGui.moduleOpenAccent * enableRev
-
-            // interpolate and set the color
-            setColor(
-                lerp(progress,
-                    ClickGui.moduleDisabledColor,
-                    ClickGui.moduleEnabledColor
-                ).multAlpha(showAnimation)
-            )
-
-            setRadius(hoverAnimation)
-
-            if (isLast && ClickGui.autoResize) {
-                leftBottomRadius = ClickGui.roundRadius - (ClickGui.padding + shrink)
-                rightBottomRadius = leftBottomRadius
-            }
-        }
-
-        rect { // hover fx
-            onUpdate {
-                val base = this@rect.owner as FilledRect
-
-                position = base.position
-                size = base.size
-                shade = base.shade
-
-                setRadius(
-                    base.leftTopRadius,
-                    base.rightTopRadius,
-                    base.rightBottomRadius,
-                    base.leftBottomRadius
-                )
-
-                val hoverColor = Color.WHITE.setAlpha(
-                    ClickGui.moduleHoverAccent * hoverAnimation * (1.0 - openAnimation) * showAnimation
-                )
-
-                setColorH(hoverColor.setAlpha(0.0), hoverColor)
-            }
-        }
-    }
+    val backgroundRect = animatedBackground(::enableAnimation)
 
     init {
         backgroundTint()

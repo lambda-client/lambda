@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.impl.clickgui.module.settings.impl
+package com.lambda.gui.impl.clickgui.module.setting.settings
 
 import com.lambda.config.settings.complex.KeyBindSetting
 import com.lambda.gui.component.HAlign
@@ -23,7 +23,7 @@ import com.lambda.gui.component.core.TextField.Companion.textField
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.impl.clickgui.module.ModuleLayout
-import com.lambda.gui.impl.clickgui.module.settings.SettingLayout
+import com.lambda.gui.impl.clickgui.module.setting.SettingLayout
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.extension.displayValue
