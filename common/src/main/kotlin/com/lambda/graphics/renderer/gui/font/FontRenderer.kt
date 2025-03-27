@@ -17,8 +17,8 @@
 
 package com.lambda.graphics.renderer.gui.font
 
-import com.lambda.graphics.buffer.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.pipeline.VertexBuilder
 import com.lambda.graphics.renderer.gui.AbstractGUIRenderer
 import com.lambda.graphics.renderer.gui.font.core.GlyphInfo
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.get
@@ -71,8 +71,10 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
 
         bind(chars, emojis)
 
-        processText(text, color, scale, shadow, parseEmoji) { char, pos1, pos2, col, _ ->
-            buildGlyph(char, position, pos1, pos2, col)
+        upload {
+            processText(text, color, scale, shadow, parseEmoji) { char, pos1, pos2, col, _ ->
+                buildGlyph(char, position, pos1, pos2, col)
+            }
         }
     }
 
@@ -104,7 +106,9 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
         val pos1 = Vec2d(0.0, posY) * actualScale
         val pos2 = pos1 + scaledSize
 
-        buildGlyph(glyph, position, pos1, pos2, color)
+        upload {
+            buildGlyph(glyph, position, pos1, pos2, color)
+        }
     }
 
     /**
@@ -116,7 +120,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
      * @param pos2 The end position of the glyph
      * @param color The color of the glyph.
      */
-    private fun VertexPipeline.buildGlyph(
+    private fun VertexBuilder.buildGlyph(
         glyph: GlyphInfo,
         origin: Vec2d = Vec2d.ZERO,
         pos1: Vec2d,
@@ -128,13 +132,19 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
         val x2 = pos2.x + origin.x
         val y2 = pos2.y + origin.y
 
-        grow(4)
-
-        putQuad(
-            vec3m(x1, y1, 0.0).vec2(glyph.uv1.x, glyph.uv1.y).color(color).end(),
-            vec3m(x1, y2, 0.0).vec2(glyph.uv1.x, glyph.uv2.y).color(color).end(),
-            vec3m(x2, y2, 0.0).vec2(glyph.uv2.x, glyph.uv2.y).color(color).end(),
-            vec3m(x2, y1, 0.0).vec2(glyph.uv2.x, glyph.uv1.y).color(color).end()
+        buildQuad(
+            vertex {
+                vec3m(x1, y1).vec2(glyph.uv1.x, glyph.uv1.y).color(color)
+            },
+            vertex {
+                vec3m(x1, y2).vec2(glyph.uv1.x, glyph.uv2.y).color(color)
+            },
+            vertex {
+                vec3m(x2, y2).vec2(glyph.uv2.x, glyph.uv2.y).color(color)
+            },
+            vertex {
+                vec3m(x2, y1).vec2(glyph.uv2.x, glyph.uv1.y).color(color)
+            }
         )
     }
 

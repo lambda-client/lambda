@@ -155,6 +155,30 @@ abstract class Buffer(
     }
 
     /**
+     * Update the current buffer without re-allocating
+     * This function handles the buffer binding
+     * Alternative to [map]
+     */
+    open fun update(
+        offset: Long,
+        size: Long,
+        dataPointer: Long
+    ): Throwable? {
+        if (!bufferValid(target, access))
+            return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
+
+        repeat(buffers) {
+            bind()
+            nglBufferSubData(target, offset, size, dataPointer)
+            swap()
+        }
+
+        bind(0)
+
+        return null
+    }
+
+    /**
      * Allocates a region of memory for the buffer
      * This function handles the buffer binding
      *
@@ -331,5 +355,33 @@ abstract class Buffer(
 
         if (isVertexArray) glGenVertexArrays(bufferIds) // If there are more than 1 buffer you should expect undefined behavior, this is not the way to do it
         else glGenBuffers(bufferIds)
+    }
+
+    companion object {
+        @JvmField
+        var lastIbo = 0
+        var prevIbo = 0
+
+        fun createPipelineBuffer(bufferTarget: Int) = object : Buffer(buffers = 1) {
+            override val target: Int = bufferTarget
+
+            override val usage: Int = GL_STATIC_DRAW
+            override val access: Int = GL_MAP_WRITE_BIT
+
+            override fun bind(id: Int) {
+                if (bufferTarget != GL_ELEMENT_ARRAY_BUFFER) {
+                    super.bind(id)
+                    return
+                }
+
+                if (id != 0) prevIbo = lastIbo
+                super.bind(if (id != 0) id else prevIbo)
+            }
+
+            override fun upload(
+                data: ByteBuffer,
+                offset: Long,
+            ): Throwable = UnsupportedOperationException()
+        }
     }
 }

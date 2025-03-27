@@ -20,8 +20,7 @@ package com.lambda.gui.component.layout
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.event.events.GuiEvent
-import com.lambda.graphics.pipeline.ScissorAdapter
-import com.lambda.gui.RootLayout
+import com.lambda.graphics.renderer.ScissorAdapter
 import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.VAlign
 import com.lambda.gui.component.core.*
@@ -131,6 +130,7 @@ open class Layout(
     }
 
     protected open val renderSelf: Boolean get() = width > 1 && height > 1
+    protected open val updateChildren: Boolean get() = true
     protected open val scissorRect get() = rect
 
     // Inputs
@@ -371,6 +371,8 @@ open class Layout(
         // Update children
         children.forEach { child ->
             if (e is GuiEvent.Render) return@forEach
+            if (e is GuiEvent.Update && !updateChildren) return@forEach
+
             if (e is GuiEvent.MouseClick) {
                 val newAction = if (child.isHovered) e.action else Mouse.Action.Release
 
@@ -385,7 +387,7 @@ open class Layout(
         if (e is GuiEvent.Render) {
             val block = {
                 renderActions.forEach { it(this) }
-                if (renderSelf) children.forEach { it.onEvent(e) }
+                children.forEach { it.onEvent(e) }
             }
 
             if (!properties.scissor) block()

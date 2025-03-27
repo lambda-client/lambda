@@ -24,6 +24,7 @@ import com.lambda.graphics.gl.GlStateUtils.setupGL
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.resetMatrices
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.util.Communication.info
 import com.lambda.util.math.Vec2d
 import com.mojang.blaze3d.systems.RenderSystem.getProjectionMatrix
 import org.joml.Matrix4f

@@ -17,22 +17,28 @@
 
 package com.lambda.graphics.buffer.vertex.attributes
 
-import com.lambda.graphics.gl.GLObject
 import org.lwjgl.opengl.GL11C.GL_FLOAT
 import org.lwjgl.opengl.GL11C.GL_UNSIGNED_BYTE
+import org.lwjgl.opengl.GL20C.glEnableVertexAttribArray
+import org.lwjgl.opengl.GL20C.glVertexAttribPointer
 
 enum class VertexAttrib(
-    val componentCount: Int,
+    private val componentCount: Int,
     componentSize: Int,
-    val normalized: Boolean,
-    override val gl: Int
-) : GLObject {
+    private val normalized: Boolean,
+    private val type: Int
+) {
     Float(1, 4, false, GL_FLOAT),
     Vec2(2, 4, false, GL_FLOAT),
     Vec3(3, 4, false, GL_FLOAT),
     Color(4, 1, true, GL_UNSIGNED_BYTE);
 
     val size = componentCount * componentSize
+
+    fun pointer(index: Int, pointer: Long, stride: Int) {
+        glEnableVertexAttribArray(index)
+        glVertexAttribPointer(index, componentCount, type, normalized, stride, pointer)
+    }
 
     enum class Group(vararg val attributes: VertexAttrib) {
         POS_UV(Vec2, Vec2),
@@ -75,6 +81,16 @@ enum class VertexAttrib(
             Color
         );
 
-        val stride = attributes.sumOf { attribute -> attribute.size }
+        val stride = attributes.sumOf { attribute ->
+            attribute.size
+        }
+
+        fun link() {
+            attributes.foldIndexed(0L) { index, pointer, attrib ->
+                attrib.pointer(index, pointer, stride)
+                pointer + attrib.size
+            }
+        }
     }
 }
+

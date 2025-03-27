@@ -46,6 +46,9 @@ class WindowContent(
     override val renderSelf: Boolean
         get() = window.heightAnimation > 0.05
 
+    override val updateChildren: Boolean
+        get() = window.heightAnimation > 0.05
+
     /**
      * Orders the children set vertically
      */

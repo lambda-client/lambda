@@ -17,8 +17,8 @@
 
 package com.lambda.graphics.renderer.gui.rect
 
-import com.lambda.graphics.buffer.IRenderContext
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.pipeline.VertexBuilder
 import com.lambda.graphics.renderer.gui.AbstractGUIRenderer
 import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.util.math.lerp
@@ -58,9 +58,7 @@ object OutlineRectRenderer : AbstractGUIRenderer(
     ) = render(shade) {
         if (glowRadius < 0.1) return@render
 
-        grow(VERTICES_COUNT * 3)
-
-        fun IRenderContext.genVertices(size: Double, isGlow: Boolean): MutableList<Int> {
+        fun VertexBuilder.genIndices(size: Double, isGlow: Boolean): MutableList<Int> {
             val r = rect.expand(size)
             val a = (!isGlow).toInt().toDouble()
 
@@ -68,10 +66,10 @@ object OutlineRectRenderer : AbstractGUIRenderer(
             val maxRadius = min(halfSize.x, halfSize.y) - 0.5
             val round = (roundRadius + size).coerceAtMost(maxRadius).coerceAtLeast(0.0)
 
-            fun MutableList<Int>.buildCorners(base: Vec2d, c: Color, angleRange: IntRange) = repeat(QUALITY) {
+            fun MutableList<Int>.buildCorners(base: Vec2d, c: Color, angleRange: IntRange) = repeat(QUALITY) { i ->
                 val min = angleRange.first.toDouble()
                 val max = angleRange.last.toDouble()
-                val p = it.toDouble() / QUALITY
+                val p = i.toDouble() / QUALITY
                 val angle = lerp(p, min, max).toRadian()
 
                 val pos = base + Vec2d(cos(angle), -sin(angle)) * round
@@ -79,7 +77,9 @@ object OutlineRectRenderer : AbstractGUIRenderer(
                 val uvx = transform(pos.x, rect.left, rect.right, 0.0, 1.0)
                 val uvy = transform(pos.y, rect.top, rect.bottom, 0.0, 1.0)
 
-                add(vec3m(pos.x, pos.y, 0.0).vec2(uvx, uvy).float(a).color(c).end())
+                vertex {
+                    vec3m(pos.x, pos.y, 0.0).vec2(uvx, uvy).float(a).color(c)
+                }.let { add(it) }
             }
 
             val rt = r.rightTop + Vec2d(-round, round)
@@ -95,18 +95,20 @@ object OutlineRectRenderer : AbstractGUIRenderer(
             }
         }
 
-        val main = genVertices(0.0, false)
+        upload {
+            val main = genIndices(0.0, false)
 
-        fun drawStripWith(vertices: MutableList<Int>) {
-            var prev = main.last() to vertices.last()
-            repeat(VERTICES_COUNT) {
-                val new = main[it] to vertices[it]
-                putQuad(new.first, new.second, prev.second, prev.first)
-                prev = new
+            fun drawStripWith(vertices: MutableList<Int>) {
+                var prev = main.last() to vertices.last()
+                repeat(VERTICES_COUNT) {
+                    val new = main[it] to vertices[it]
+                    buildQuad(new.first, new.second, prev.second, prev.first)
+                    prev = new
+                }
             }
-        }
 
-        drawStripWith(genVertices(-(glowRadius.coerceAtMost(1.0)), true))
-        drawStripWith(genVertices(glowRadius, true))
+            drawStripWith(genIndices(-(glowRadius.coerceAtMost(1.0)), true))
+            drawStripWith(genIndices(glowRadius, true))
+        }
     }
 }
