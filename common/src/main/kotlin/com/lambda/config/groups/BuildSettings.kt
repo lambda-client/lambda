@@ -35,7 +35,7 @@ class BuildSettings(
     override val pathing by c.setting("Pathing", true, "Path to blocks") { vis() && page == Page.General }
     override val stayInRange by c.setting("Stay In Range", true, "Stay in range of blocks") { vis() && page == Page.General && pathing }
     override val collectDrops by c.setting("Collect All Drops", false, "Collect all drops when breaking blocks") { vis() && page == Page.General }
-    override val maxPendingInteractions by c.setting("Max Pending Interactions", 1, 1..10, 1, "Dont wait for this many interactions for the server response") { vis() && page == Page.General }
+    override val maxPendingInteractions by c.setting("Max Pending Interactions", 10, 1..30, 1, "Dont wait for this many interactions for the server response") { vis() && page == Page.General }
 
     // Breaking
     override val breakSettings = BreakSettings(c) { page == Page.Break && vis() }
