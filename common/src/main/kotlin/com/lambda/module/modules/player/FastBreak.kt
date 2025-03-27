@@ -152,13 +152,8 @@ object FastBreak : Module(
                 val dynamicAABB = DynamicAABB()
                 dynamicAABB.update(renderBox)
 
-                if (renderSetting != RenderSetting.Outline) {
-                    renderer.buildFilled(dynamicAABB, fillColour)
-                }
-
-                if (renderSetting != RenderSetting.Fill) {
-                    renderer.buildOutline(dynamicAABB, outlineColour)
-                }
+                if (renderSetting != RenderSetting.Outline) renderer.buildFilled(dynamicAABB, fillColour)
+                if (renderSetting != RenderSetting.Fill) renderer.buildOutline(dynamicAABB, outlineColour)
             }
             renderer.upload()
         }
@@ -166,34 +161,18 @@ object FastBreak : Module(
 
     private fun getLerpBox(box: Box, factor: Float): Box {
         val boxCenter = Box(box.center, box.center)
-        when (renderMode) {
-            RenderMode.Out -> {
-                return lerp(factor.toDouble(), boxCenter, box)
-            }
-
-            RenderMode.In -> {
-                return lerp(factor.toDouble(), box, boxCenter)
-            }
-
+        return when (renderMode) {
+            RenderMode.Out -> lerp(factor.toDouble(), boxCenter, box)
+            RenderMode.In -> lerp(factor.toDouble(), box, boxCenter)
             RenderMode.InOut -> {
-                return if (factor >= 0.5f) {
-                    lerp((factor.toDouble() - 0.5) * 2, boxCenter, box)
-                } else {
-                    lerp(factor.toDouble() * 2, box, boxCenter)
-                }
+                if (factor >= 0.5f) lerp((factor.toDouble() - 0.5) * 2, boxCenter, box)
+                else lerp(factor.toDouble() * 2, box, boxCenter)
             }
-
             RenderMode.OutIn -> {
-                return if (factor >= 0.5f) {
-                    lerp((factor.toDouble() - 0.5) * 2, box, boxCenter)
-                } else {
-                    lerp(factor.toDouble() * 2, boxCenter, box)
-                }
+                if (factor >= 0.5f) lerp((factor.toDouble() - 0.5) * 2, box, boxCenter)
+                else lerp(factor.toDouble() * 2, boxCenter, box)
             }
-
-            else -> {
-                return box
-            }
+            else -> box
         }
     }
 
