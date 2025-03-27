@@ -17,14 +17,17 @@
 
 package com.lambda.graphics.renderer.gui
 
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.RenderMain
-import com.lambda.graphics.buffer.VertexPipeline
+import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.GuiSettings.primaryColor
 import com.lambda.module.modules.client.GuiSettings.secondaryColor
+import com.lambda.module.modules.client.RenderSettings
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Vec2d
 import org.lwjgl.glfw.GLFW
@@ -34,12 +37,22 @@ abstract class AbstractGUIRenderer(
     val shader: Shader
 ) {
     private val pipeline = VertexPipeline(VertexMode.TRIANGLES, attribGroup)
+    private var memoryMapping = true
+
+    init {
+        listen<TickEvent.Render.Pre>(alwaysListen = true) {
+            memoryMapping = RenderSettings.useMemoryMapping
+        }
+
+        listen<TickEvent.Render.Post>(alwaysListen = true) {
+            if (memoryMapping) pipeline.sync()
+        }
+    }
 
     protected fun render(
         shade: Boolean = false,
         block: VertexPipeline.() -> Unit
     ) {
-        pipeline.clear()
         shader.use()
 
         block(pipeline)
@@ -53,7 +66,9 @@ abstract class AbstractGUIRenderer(
             shader["u_ShadeSize"] = RenderMain.screenSize / Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
         }
 
-        pipeline.upload()
-        pipeline.render()
+        pipeline.apply {
+            render()
+            if (memoryMapping) end() else clear()
+        }
     }
 }

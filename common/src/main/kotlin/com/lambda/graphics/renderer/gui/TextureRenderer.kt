@@ -18,7 +18,7 @@
 package com.lambda.graphics.renderer.gui
 
 import com.lambda.graphics.RenderMain
-import com.lambda.graphics.buffer.VertexPipeline
+import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.shader.Shader.Companion.shader
@@ -61,17 +61,25 @@ object TextureRenderer {
         val pos1 = rect.leftTop
         val pos2 = rect.rightBottom
 
-        pipeline.use {
-            grow(4)
-
-            putQuad(
-                vec2(pos1.x, pos1.y).vec2(0.0, 0.0).end(),
-                vec2(pos1.x, pos2.y).vec2(0.0, 1.0).end(),
-                vec2(pos2.x, pos2.y).vec2(1.0, 1.0).end(),
-                vec2(pos2.x, pos1.y).vec2(1.0, 0.0).end()
+        pipeline.immediate {
+            buildQuad(
+                vertex {
+                    vec2(pos1.x, pos1.y)
+                    vec2(0.0, 0.0)
+                },
+                vertex {
+                    vec2(pos1.x, pos2.y)
+                    vec2(0.0, 1.0)
+                },
+                vertex {
+                    vec2(pos2.x, pos2.y)
+                    vec2(1.0, 1.0)
+                },
+                vertex {
+                    vec2(pos2.x, pos1.y)
+                    vec2(1.0, 0.0)
+                }
             )
         }
-
-        pipeline.immediateDraw()
     }
 }

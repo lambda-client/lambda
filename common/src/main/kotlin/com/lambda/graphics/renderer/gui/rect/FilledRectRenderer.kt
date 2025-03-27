@@ -27,8 +27,6 @@ import kotlin.math.min
 object FilledRectRenderer : AbstractGUIRenderer(
     VertexAttrib.Group.RECT_FILLED, shader("renderer/rect_filled")
 ) {
-    private const val MIN_SIZE = 0.5
-    private const val MIN_ALPHA = 1
     private const val EXPAND = 0.35
 
     fun filledRect(
@@ -85,14 +83,6 @@ object FilledRectRenderer : AbstractGUIRenderer(
 
         val size = pos2 - pos1
 
-        if (leftTop.alpha < MIN_ALPHA &&
-            rightTop.alpha < MIN_ALPHA &&
-            rightBottom.alpha < MIN_ALPHA &&
-            leftBottom.alpha < MIN_ALPHA
-        ) return@render
-
-        if (size.x < MIN_SIZE || size.y < MIN_SIZE) return@render
-
         val halfSize = size * 0.5
         val maxRadius = min(halfSize.x, halfSize.y)
 
@@ -110,12 +100,21 @@ object FilledRectRenderer : AbstractGUIRenderer(
         shader["u_RoundRightBottom"] = rbr
         shader["u_RoundRightTop"] = rtr
 
-        grow(4)
-        putQuad(
-            vec3m(p1.x, p1.y, 0.0).vec2(0.0, 0.0).color(leftTop).end(),
-            vec3m(p1.x, p2.y, 0.0).vec2(0.0, 1.0).color(leftBottom).end(),
-            vec3m(p2.x, p2.y, 0.0).vec2(1.0, 1.0).color(rightBottom).end(),
-            vec3m(p2.x, p1.y, 0.0).vec2(1.0, 0.0).color(rightTop).end()
-        )
+        upload {
+            buildQuad(
+                vertex {
+                    vec3m(p1.x, p1.y, 0.0).vec2(0.0, 0.0).color(leftTop)
+                },
+                vertex {
+                    vec3m(p1.x, p2.y, 0.0).vec2(0.0, 1.0).color(leftBottom)
+                },
+                vertex {
+                    vec3m(p2.x, p2.y, 0.0).vec2(1.0, 1.0).color(rightBottom)
+                },
+                vertex {
+                    vec3m(p2.x, p1.y, 0.0).vec2(1.0, 0.0).color(rightTop)
+                }
+            )
+        }
     }
 }
