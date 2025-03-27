@@ -19,6 +19,7 @@ package com.lambda.module.hud
 
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
+import com.lambda.gui.component.core.TextField.Companion.textField
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -29,7 +30,7 @@ import com.lambda.util.extension.isNether
 import com.lambda.util.math.netherCoord
 import com.lambda.util.math.overworldCoord
 
-object Coordinates : HudModule(
+object Coordinates : HudModule.Text(
     name = "Coordinates",
     description = "Show your coordinates",
     defaultTags = setOf(ModuleTag.CLIENT),
@@ -37,21 +38,9 @@ object Coordinates : HudModule(
     private val showDimension by setting("Show Dimension", true)
     private val decimals by setting("Decimals", 2, 0..4, 1)
 
-    private val SafeContext.text: String
-        get() = "XYZ ${if (showDimension) dimensionName else ""} ${positionForDimension()}"
-
-    // TODO: Replace by LambdaAtlas height cache and actually build a proper text with highlighted parameters
-
-    override val height: Double get() = 20.0
-    override val width: Double get() = 50.0
-
-    init {
-        onRender {
-            runSafe {
-                drawString(text, position)
-            }
-        }
-    }
+    override fun getText() = runSafe {
+        "XYZ ${if (showDimension) dimensionName else ""} ${positionForDimension()}"
+    } ?: ""
 
     private fun SafeContext.positionForDimension() =
         when {

@@ -38,7 +38,7 @@ import net.minecraft.text.Text
  */
 class LambdaScreen(
     override val name: String,
-    val layout: ScreenLayout
+    val layout: RootLayout
 ) : Screen(Text.of(name)), Nameable, Muteable {
     override val isMuted: Boolean get() = !isOpen
 

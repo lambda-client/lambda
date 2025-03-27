@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.impl.clickgui.module.settings.impl
+package com.lambda.gui.impl.clickgui.module.setting.settings
 
 import com.lambda.graphics.renderer.gui.TextureRenderer
 import com.lambda.graphics.shader.Shader.Companion.shader
@@ -23,8 +23,8 @@ import com.lambda.gui.component.core.FilledRect.Companion.rect
 import com.lambda.gui.component.core.OutlineRect.Companion.outline
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.impl.clickgui.module.settings.SettingLayout
-import com.lambda.gui.impl.clickgui.module.settings.impl.NumberSlider.Companion.numberSlider
+import com.lambda.gui.impl.clickgui.module.setting.SettingLayout
+import com.lambda.gui.impl.clickgui.module.setting.settings.NumberSlider.Companion.numberSlider
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.Mouse
 import com.lambda.util.StringUtils.capitalize
@@ -113,7 +113,7 @@ class ColorPicker(
                 if (pressedButton != Mouse.Button.Left) return@onMouseMove
 
                 val (u, v) = getU() to getV()
-                hue = uvToHue(u, v).div(360.0).coerceIn(0.0, 1.0)
+                hue = uvToHue(u, v)
                 saturation = hypot(u - 0.5, v - 0.5).coerceIn(0.0, 0.5) * 2
             }
 
@@ -159,7 +159,7 @@ class ColorPicker(
 
             var hue = atan2(y, x).toDegree() + 90.0
             if (hue < 0) hue += 360.0
-            return hue
+            return hue.div(360.0).coerceIn(0.0, 1.0)
         }
 
         private fun hueToUv(hue: Double, radius: Double): Vec2d {

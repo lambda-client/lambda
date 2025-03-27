@@ -19,7 +19,7 @@ package com.lambda.gui.component.window
 
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.modules.client.ClickGui
-import com.lambda.gui.ScreenLayout
+import com.lambda.gui.RootLayout
 import com.lambda.gui.component.core.FilledRect.Companion.rect
 import com.lambda.gui.component.core.LayoutBuilder
 import com.lambda.gui.component.core.OutlineRect.Companion.outline
@@ -152,7 +152,7 @@ open class Window(
 
     init {
         position = initialPosition
-        properties.clampPosition = owner is ScreenLayout
+        properties.clampPosition = owner is RootLayout
 
         onUpdate {
             // Update it here

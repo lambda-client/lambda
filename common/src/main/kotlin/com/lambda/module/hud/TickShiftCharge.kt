@@ -45,11 +45,12 @@ object TickShiftCharge : HudModule(
         (TickShift.balance / TickShift.maxBalance.toDouble()).coerceIn(0.0..1.0)
     }
 
-    override val width = 70.0
-    override val height = 14.0
-
     init {
-        onRender {
+        build {
+
+        }
+
+        /*onRender {
             filledRect(
                 rect = rect,
                 roundRadius = ClickGui.roundRadius,
@@ -74,6 +75,6 @@ object TickShiftCharge : HudModule(
                     shade = true
                 )
             }
-        }
+        }*/
     }
 }

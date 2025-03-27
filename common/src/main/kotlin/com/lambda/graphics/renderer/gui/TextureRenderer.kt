@@ -24,10 +24,10 @@ import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.graphics.texture.Texture
 import com.lambda.module.modules.client.GuiSettings
-import com.lambda.util.math.MathUtils.toInt
+import com.lambda.module.modules.client.GuiSettings.primaryColor
+import com.lambda.module.modules.client.GuiSettings.secondaryColor
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
-import org.lwjgl.glfw.GLFW
 import org.lwjgl.glfw.GLFW.glfwGetTime
 
 object TextureRenderer {
@@ -49,8 +49,8 @@ object TextureRenderer {
 
         coloredShader["u_Shade"] = 1.0
         coloredShader["u_ShadeTime"] = glfwGetTime() * GuiSettings.colorSpeed * 5.0
-        coloredShader["u_ShadeColor1"] = GuiSettings.shadeColor1
-        coloredShader["u_ShadeColor2"] = GuiSettings.shadeColor2
+        coloredShader["u_ShadeColor1"] = primaryColor
+        coloredShader["u_ShadeColor2"] = secondaryColor
 
         coloredShader["u_ShadeSize"] = RenderMain.screenSize / Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
 

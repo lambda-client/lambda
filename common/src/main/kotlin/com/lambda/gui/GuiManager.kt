@@ -29,12 +29,12 @@ import com.lambda.config.settings.numeric.LongSetting
 import com.lambda.core.Loadable
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.impl.clickgui.module.settings.impl.BooleanButton.Companion.booleanSetting
-import com.lambda.gui.impl.clickgui.module.settings.impl.ColorPicker.Companion.colorPicker
-import com.lambda.gui.impl.clickgui.module.settings.impl.EnumSlider.Companion.enumSetting
-import com.lambda.gui.impl.clickgui.module.settings.impl.KeybindPicker.Companion.keybindSetting
-import com.lambda.gui.impl.clickgui.module.settings.impl.NumberSlider.Companion.numberSlider
-import com.lambda.gui.impl.clickgui.module.settings.impl.UnitButton.Companion.unitButton
+import com.lambda.gui.impl.clickgui.module.setting.settings.BooleanButton.Companion.booleanSetting
+import com.lambda.gui.impl.clickgui.module.setting.settings.ColorPicker.Companion.colorPicker
+import com.lambda.gui.impl.clickgui.module.setting.settings.EnumSlider.Companion.enumSetting
+import com.lambda.gui.impl.clickgui.module.setting.settings.KeybindPicker.Companion.keybindSetting
+import com.lambda.gui.impl.clickgui.module.setting.settings.NumberSlider.Companion.numberSlider
+import com.lambda.gui.impl.clickgui.module.setting.settings.UnitButton.Companion.unitButton
 import kotlin.reflect.KClass
 
 object GuiManager : Loadable {

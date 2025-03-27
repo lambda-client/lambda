@@ -21,11 +21,11 @@ import com.lambda.graphics.RenderMain
 import com.lambda.graphics.buffer.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
-import com.lambda.graphics.pipeline.ScissorAdapter
 import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.module.modules.client.GuiSettings.primaryColor
+import com.lambda.module.modules.client.GuiSettings.secondaryColor
 import com.lambda.util.math.MathUtils.toInt
-import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 import org.lwjgl.glfw.GLFW
 
@@ -47,8 +47,8 @@ abstract class AbstractGUIRenderer(
         shader["u_Shade"] = shade.toInt().toDouble()
         if (shade) {
             shader["u_ShadeTime"] = GLFW.glfwGetTime() * GuiSettings.colorSpeed * 5.0
-            shader["u_ShadeColor1"] = GuiSettings.shadeColor1
-            shader["u_ShadeColor2"] = GuiSettings.shadeColor2
+            shader["u_ShadeColor1"] = primaryColor
+            shader["u_ShadeColor2"] = secondaryColor
 
             shader["u_ShadeSize"] = RenderMain.screenSize / Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
         }

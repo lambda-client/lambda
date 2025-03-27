@@ -15,11 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.gui.impl.clickgui.module.settings.impl
+package com.lambda.gui.impl.clickgui.module.setting.settings
 
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.impl.clickgui.module.settings.SettingLayout
+import com.lambda.gui.impl.clickgui.module.setting.SettingLayout
 import com.lambda.util.Mouse
 import kotlin.reflect.KMutableProperty0
 
