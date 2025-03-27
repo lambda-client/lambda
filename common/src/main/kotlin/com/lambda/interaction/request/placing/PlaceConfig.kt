@@ -40,7 +40,9 @@ abstract class PlaceConfig(
     enum class AirPlaceMode {
         None,
         Standard,
-        Grim
+        Grim;
+
+        fun isEnabled() = this != None
     }
 
     enum class PlaceConfirmationMode {

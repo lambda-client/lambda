@@ -34,6 +34,7 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.request.placing.PlaceConfig
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.RotationConfig
@@ -72,6 +73,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
+import net.minecraft.util.shape.VoxelShapes
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.pow
 
@@ -87,11 +89,11 @@ object BuildSimulator {
             checkRequirements(pos, target, build)?.let {
                 return@flatMap setOf(it)
             }
-            checkPlaceResults(pos, target, eye, interact, rotation, inventory).let {
+            checkPlaceResults(pos, target, eye, build.placeSettings, interact, rotation, inventory).let {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
-            checkBreakResults(pos, eye, interact, rotation, inventory, build).let {
+            checkBreakResults(pos, eye, build.placeSettings, interact, rotation, inventory, build).let {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
@@ -148,6 +150,7 @@ object BuildSimulator {
         pos: BlockPos,
         target: TargetState,
         eye: Vec3d,
+        place: PlaceConfig,
         interact: InteractionConfig,
         rotation: RotationConfig,
         inventory: InventoryConfig
@@ -160,10 +163,15 @@ object BuildSimulator {
         val preprocessing = target.findProcessorForState()
 
         preprocessing.sides.forEach { neighbor ->
-            val hitPos = if (targetPosState.isAir || targetPosState.isLiquid) pos.offset(neighbor) else pos
+            val hitPos = if (!place.airPlace.isEnabled() && targetPosState.isAir || targetPosState.isLiquid)
+                pos.offset(neighbor)
+            else pos
             val hitSide = neighbor.opposite
 
-            val voxelShape = blockState(hitPos).getOutlineShape(world, hitPos)
+            val voxelShape = blockState(hitPos).getOutlineShape(world, hitPos).let { outlineShape ->
+                if (!outlineShape.isEmpty || !place.airPlace.isEnabled()) outlineShape
+                else VoxelShapes.fullCube()
+            }
             if (voxelShape.isEmpty) return@forEach
 
             val boxes = voxelShape.boundingBoxes.map { it.offset(hitPos) }
@@ -220,7 +228,7 @@ object BuildSimulator {
                 // ToDo: For each hand and sneak or not?
                 val fakePlayer = copyPlayer(player).apply {
                     setPos(eye.x, eye.y - standingEyeHeight, eye.z)
-                    this.rotation = checkedHit.targetRotation
+                    if (place.rotateForPlace) this.rotation = checkedHit.targetRotation
                 }
 
                 val checkedResult = checkedHit.hit
@@ -329,6 +337,7 @@ object BuildSimulator {
     private fun SafeContext.checkBreakResults(
         pos: BlockPos,
         eye: Vec3d,
+        place: PlaceConfig,
         interact: InteractionConfig,
         rotation: RotationConfig,
         inventory: InventoryConfig,
@@ -356,7 +365,7 @@ object BuildSimulator {
 
         /* liquid needs to be submerged first to be broken */
         if (!state.fluidState.isEmpty && state.isReplaceable) {
-            val submerge = checkPlaceResults(pos, TargetState.Solid, eye, interact, rotation, inventory)
+            val submerge = checkPlaceResults(pos, TargetState.Solid, eye, place, interact, rotation, inventory)
             acc.add(BreakResult.Submerge(pos, state, submerge))
             acc.addAll(submerge)
             return acc
@@ -371,9 +380,9 @@ object BuildSimulator {
             acc.add(BreakResult.BlockedByLiquid(pos, state))
             adjacentLiquids.forEach { liquidPos ->
                 val submerge = if (blockState(liquidPos).isReplaceable) {
-                    checkPlaceResults(liquidPos, TargetState.Solid, eye, interact, rotation, inventory)
+                    checkPlaceResults(liquidPos, TargetState.Solid, eye, place, interact, rotation, inventory)
                 } else {
-                    checkBreakResults(liquidPos, eye, interact, rotation, inventory, build)
+                    checkBreakResults(liquidPos, eye, place, interact, rotation, inventory, build)
                 }
                 acc.addAll(submerge)
             }

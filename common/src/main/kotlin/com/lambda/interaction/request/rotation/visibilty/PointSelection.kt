@@ -28,9 +28,11 @@ enum class PointSelection(val select: (MutableList<VisibilityChecker.CheckedHit>
         }
     }),
     Optimum( optimum@ { hits ->
-        val optimum = hits.map { it.hit.pos }.reduceOrNull { acc, vec3d ->
-            acc.add(vec3d)
-        }?.multiply(1.0 / hits.size.toDouble()) ?: return@optimum null
+        val optimum = hits
+            .map { it.hit.pos }.reduceOrNull { acc, vec3d ->
+                acc?.let { it.add(vec3d) } ?: acc
+            }
+            ?.multiply(1.0 / hits.size.toDouble()) ?: return@optimum null
 
         hits.minByOrNull {
             it.hit.pos distSq optimum
