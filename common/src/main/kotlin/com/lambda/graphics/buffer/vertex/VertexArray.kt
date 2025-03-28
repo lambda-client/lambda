@@ -49,18 +49,8 @@ class VertexArray(
         bind(0)
     }
 
-    override fun map(
-        size: Long,
-        offset: Long,
-        block: (ByteBuffer) -> Unit
-    ): Throwable = throw UnsupportedOperationException("Cannot map a vertex array object to memory")
-
-    override fun upload(
-        data: ByteBuffer,
-        offset: Long,
-    ): Throwable = throw UnsupportedOperationException("Data cannot be uploaded to a vertex array object")
-
-    override fun allocate(size: Long) = throw UnsupportedOperationException("Cannot grow a vertex array object")
+    override fun map(size: Long, offset: Long, block: (ByteBuffer) -> Unit) = throw UnsupportedOperationException()
+    override fun upload(data: ByteBuffer, offset: Long) = throw UnsupportedOperationException()
 
     override fun bind(id: Int) {
         glBindVertexArray(id); BufferRenderer.currentVertexBuffer = null

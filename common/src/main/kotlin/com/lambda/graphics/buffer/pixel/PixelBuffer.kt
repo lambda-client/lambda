@@ -42,17 +42,14 @@ class PixelBuffer(
     private val asynchronous: Boolean = false,
     private val bufferMapping: Boolean = false,
 ) : Buffer(buffers = asynchronous.toInt() + 1) {
-    override val usage: Int = GL_STATIC_DRAW
-    override val target: Int = GL_PIXEL_UNPACK_BUFFER
-    override val access: Int = GL_MAP_WRITE_BIT
+    override val usage = GL_STATIC_DRAW
+    override val target = GL_PIXEL_UNPACK_BUFFER
+    override val access = GL_MAP_WRITE_BIT or GL_DYNAMIC_STORAGE_BIT or GL_MAP_PERSISTENT_BIT
 
     private val channels = channelMapping[texture.format] ?: throw IllegalArgumentException("Invalid image format, expected OpenGL format, got ${texture.format} instead")
     private val size = texture.width * texture.height * channels * 1L
 
-    override fun upload(
-        data: ByteBuffer,
-        offset: Long,
-    ): Throwable? {
+    override fun upload(data: ByteBuffer, offset: Long) {
         bind()
         glBindTexture(GL_TEXTURE_2D, texture.id)
 
@@ -72,13 +69,10 @@ class PixelBuffer(
         swap()
         bind()
 
-        val error =
-            if (bufferMapping) map(size, offset, data::putTo)
-            else update(data, offset)
+        if (bufferMapping) map(size, offset, data::putTo)
+        else update(data, offset)
 
         bind(0)
-
-        return error
     }
 
     init {
