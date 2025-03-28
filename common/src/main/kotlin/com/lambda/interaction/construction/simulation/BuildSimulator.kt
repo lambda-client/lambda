@@ -191,7 +191,8 @@ object BuildSimulator {
                 }
 
                 scanSurfaces(box, sides, interact.resolution, preprocessing.surfaceScan) { _, vec ->
-                    if (eye distSq vec > reachSq) {
+                    val distSquared = eye distSq vec
+                    if (distSquared > reachSq) {
                         misses.add(vec)
                         return@scanSurfaces
                     }
@@ -199,7 +200,18 @@ object BuildSimulator {
                     val newRotation = eye.rotationTo(vec)
 
                     val hit = if (interact.strictRayCast) {
-                        newRotation.rayCast(interact.interactReach, eye)?.blockResult
+                        val rayCast = newRotation.rayCast(interact.interactReach, eye)
+                        when {
+                            rayCast != null && (!place.airPlace.isEnabled() || eye distSq rayCast.pos <= distSquared) ->
+                                rayCast.blockResult
+
+                            place.airPlace.isEnabled() -> {
+                                val hitVec = newRotation.castBox(box, interact.interactReach, eye)
+                                BlockHitResult(hitVec, hitSide, hitPos, false)
+                            }
+
+                            else -> null
+                        }
                     } else {
                         val hitVec = newRotation.castBox(box, interact.interactReach, eye)
                         BlockHitResult(hitVec, hitSide, hitPos, false)
