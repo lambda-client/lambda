@@ -112,8 +112,10 @@ class DStarLite(
      *   While the queue top is "less" than calculateKey(start)
      *   or g(start) < rhs(start), pop and process.
      */
-    fun computeShortestPath() {
-        while ((U.topKey() < calculateKey(start)) || (g(start) < rhs(start))) {
+    fun computeShortestPath(cutoffTimeout: Long = 500L) {
+        val startTime = System.currentTimeMillis()
+
+        while ((U.topKey() < calculateKey(start)) || (g(start) < rhs(start)) && (System.currentTimeMillis() - startTime) < cutoffTimeout) {
             val u = U.top() ?: break
             val oldKey = U.topKey()
             val newKey = calculateKey(u)
@@ -169,6 +171,9 @@ class DStarLite(
      */
     fun getPath(): List<FastVector> {
         val path = mutableListOf<FastVector>()
+
+        if (!graph.contains(start)) return path.toList()
+
         var current = start
         path.add(current)
         while (current != goal) {

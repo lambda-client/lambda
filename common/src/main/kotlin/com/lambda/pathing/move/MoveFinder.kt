@@ -81,17 +81,18 @@ object MoveFinder {
                 checkingBlockPos.y < originBlockPos.y -> Box.enclosing(originBlockPos.up(), checkingBlockPos.up())
                 else -> Box.enclosing(originBlockPos.up(2), checkingBlockPos)
             }
-            traversable(checkingBlockPos) && world.isSpaceEmpty(enclose)
+            traversable(checkingBlockPos) && world.isSpaceEmpty(enclose.contract(0.01))
         } else {
             traversable(checkingBlockPos)
         }
+        if (!clear) return null
 
         val hCost = heuristic(checkingPos) /** nodeType.penalty*/
-        val cost = if (clear) offset.length() else Double.POSITIVE_INFINITY
+        val cost = offset.length()
         val currentFeetY = getFeetY(checkingBlockPos)
 
         return when {
-            cost == Double.POSITIVE_INFINITY -> BreakMove(checkingPos, hCost, nodeType, currentFeetY, cost)
+//            cost == Double.POSITIVE_INFINITY -> BreakMove(checkingPos, hCost, nodeType, currentFeetY, cost)
 //            (currentFeetY - origin.feetY) > player.stepHeight -> ParkourMove(checkingPos, hCost, nodeType, currentFeetY, cost)
             else -> TraverseMove(checkingPos, hCost, nodeType, currentFeetY, cost)
         }

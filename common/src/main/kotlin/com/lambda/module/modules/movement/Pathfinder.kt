@@ -206,12 +206,12 @@ object Pathfinder : Module(
     }
 
     private fun SafeContext.updateDStar() {
+        calculating = true
         runConcurrent {
-            calculating = true
             val long: Path
             val dStar = measureTimeMillis {
 //                        if (start dist dstar.start > 3) dstar.updateStart(start)
-                dStar.computeShortestPath()
+                dStar.computeShortestPath(pathing.cutoffTimeout)
                 val nodes = dStar.getPath().map { TraverseMove(it, 0.0, NodeType.OPEN, 0.0, 0.0) }
                 long = Path(ArrayDeque(nodes))
             }
