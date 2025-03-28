@@ -17,10 +17,7 @@
 
 package com.lambda.graphics.buffer
 
-import com.lambda.graphics.gl.bufferBound
-import com.lambda.graphics.gl.bufferUsageValid
-import com.lambda.graphics.gl.bufferValid
-import org.lwjgl.opengl.GL44.*
+import org.lwjgl.opengl.GL46.*
 import java.nio.ByteBuffer
 
 abstract class Buffer(
@@ -29,15 +26,9 @@ abstract class Buffer(
      *
      * | Number of Buffers | Purpose                                                                                                       |
      * |-------------------|---------------------------------------------------------------------------------------------------------------|
-     * | 1 Buffer          | Simple operations like storing vertex data or a single texture.                                               |
-     * | 2 Buffers         | Double buffering for smooth rendering (alternating between writing to one buffer while reading from another). |
-     * | 3 Buffers         | Triple buffering for improved frame rate and reduced screen tearing at the cost of memory usage.              |
-     *
-     * In double buffering, you have a front buffer (A) and a back buffer (B). While one is displayed (A), the other (B) is being drawn to. After drawing, the buffers are swapped. However, during the swap (often synchronized with vertical retrace to avoid tearing), drawing cannot resume until it completes, potentially causing delays.
-     *
-     * In triple buffering, there is a front buffer (A) and two back buffers (B and C). This allows drawing to continue on the second back buffer (C) while waiting for the swap to finish between the front (A) and the first back buffer (B). This reduces idle time and improves frame rates, especially if the app runs slower than the monitor's refresh rate.
-     *
-     * Triple buffering helps maintain smoother frame rates, but if your app runs faster than the monitor's refresh rate, it offers little benefit as you eventually still wait for vblank synchronization.
+     * | 1 Buffer          | Simple operations like storing vertex data, reading from the framebuffer, etc.                                |
+     * | 2 Buffers         | Increase throughput by not having to explicitly sync memory.                                                  |
+     * | 3 Buffers         | If the driver run alongside the CPU and GPU, then each must have their own buffer to avoid stalling.          |
      */
     val buffers: Int = 1,
 
@@ -60,6 +51,8 @@ abstract class Buffer(
      * | GL_DYNAMIC_DRAW                | Data is modified repeatedly and used many times for drawing.    |
      * | GL_DYNAMIC_READ                | Data is modified repeatedly and used many times for reading.    |
      * | GL_DYNAMIC_COPY                | Data is modified repeatedly and used many times for copying.    |
+     *
+     * @see <a href="https://www.khronos.org/opengl/wiki/Buffer_Object">Buffer object</a>
      */
     abstract val usage: Int
 
@@ -83,6 +76,8 @@ abstract class Buffer(
      * | GL_TEXTURE_BUFFER             | Texture data buffer                  |
      * | GL_TRANSFORM_FEEDBACK_BUFFER  | Transform feedback buffer            |
      * | GL_UNIFORM_BUFFER             | Uniform block storage                |
+     *
+     * @see <a href="https://www.khronos.org/opengl/wiki/Buffer_Object">Buffer object</a>
      */
     abstract val target: Int
 
@@ -100,96 +95,81 @@ abstract class Buffer(
      * | GL_MAP_INVALIDATE_BUFFER_BIT  | Discards previous contents of the entire buffer.    | Cannot be used with GL_MAP_READ_BIT.                          |
      * | GL_MAP_FLUSH_EXPLICIT_BIT     | Requires explicit flushing of modified sub-ranges.  | Only with GL_MAP_WRITE_BIT. Data may be undefined if skipped. |
      * | GL_MAP_UNSYNCHRONIZED_BIT     | Skips synchronization before mapping.               | May cause data corruption if regions overlap.                 |
+     *
+     * @see <a href="https://www.khronos.org/opengl/wiki/Buffer_Object">Buffer object</a>
      */
     abstract val access: Int
 
     /**
-     * Index of the current buffer
+     * Index of the current buffer.
      */
     var index: Int = 0; private set
 
     /**
-     * List of all the buffers
+     * List of all the buffers.
      */
     private val bufferIds = IntArray(buffers)
 
     /**
-     * Binds the buffer id to the [target]
+     * Binds the buffer id to the [target].
      */
     open fun bind(id: Int) = glBindBuffer(target, id)
 
     /**
-     * Binds current the buffer [index] to the [target]
+     * Binds current the buffer [index] to the [target].
      */
     fun bind() = bind(bufferAt(index))
 
     /**
-     * Returns the id of the buffer based on the index
+     * Returns the id of the buffer based on the index.
      */
     fun bufferAt(index: Int) = bufferIds[index]
 
     /**
-     * Swaps the buffer [index] if [buffers] is greater than 1
+     * Swaps the buffer [index] if [buffers] is greater than 1.
      */
-    fun swap() {
-        index = (index + 1) % buffers
-    }
+    fun swap() { index = (index + 1) % buffers }
 
     /**
-     * Update the current buffer without re-allocating
-     * Alternative to [map]
+     * Update the current buffer without re-allocating.
+     *
+     * @throws [IllegalArgumentException] if the target or usage is invalid
+     *
+     * @see <a href="https://registry.khronos.org/OpenGL-Refpages/gl4/html/glBufferSubData.xhtml">glBufferSubData</a>
      */
-    open fun update(
-        data: ByteBuffer,
-        offset: Long,
-    ): Throwable? {
-        if (!bufferValid(target, access))
-            return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
+    open fun update(data: ByteBuffer, offset: Long) {
+        validate()
 
-        if (!bufferBound(target))
-            return IllegalArgumentException("Target is zero bound for glBufferSubData")
-
+        bind()
         glBufferSubData(target, offset, data)
-
-        return null
-    }
-
-    /**
-     * Update the current buffer without re-allocating
-     * This function handles the buffer binding
-     * Alternative to [map]
-     */
-    open fun update(
-        offset: Long,
-        size: Long,
-        dataPointer: Long
-    ): Throwable? {
-        if (!bufferValid(target, access))
-            return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
-
-        repeat(buffers) {
-            bind()
-            nglBufferSubData(target, offset, size, dataPointer)
-            swap()
-        }
-
         bind(0)
-
-        return null
     }
 
     /**
-     * Allocates a region of memory for the buffer
-     * This function handles the buffer binding
+     * Update the current buffer without re-allocating.
+     *
+     * @throws [IllegalArgumentException] if the target or usage is invalid
+     *
+     * @see <a href="https://registry.khronos.org/OpenGL-Refpages/gl4/html/glBufferSubData.xhtml">glBufferSubData</a>
+     */
+    open fun update(offset: Long, size: Long, data: Long) {
+        validate()
+
+        bind()
+        nglBufferSubData(target, offset, size, data)
+        bind(0)
+    }
+
+    /**
+     * Allocates each backing buffer with the specified data.
      *
      * @param data The data to put in the new allocated buffer
+     * @throws [IllegalArgumentException] if the target or usage is invalid
+     *
+     * @see <a href="https://registry.khronos.org/OpenGL-Refpages/gl4/html/glBufferData.xhtml">glBufferData</a>
      */
-    open fun allocate(data: ByteBuffer): Throwable? {
-        if (!bufferValid(target, access))
-            return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
-
-        if (!bufferUsageValid(usage))
-            return IllegalArgumentException("Buffer usage is invalid")
+    open fun allocate(data: ByteBuffer) {
+        validate()
 
         repeat(buffers) {
             bind()
@@ -198,23 +178,18 @@ abstract class Buffer(
         }
 
         bind(0)
-
-        return null
     }
 
     /**
-     * Allocates memory for each backing buffer using the specified size
-     * This function handles the buffer binding
+     * Allocates memory for each backing buffer of specified size.
      *
      * @param size The size of the new buffer
-     * @return An [IllegalArgumentException] if validation fails; null if the allocation succeeds
+     * @throws [IllegalArgumentException] if the target or usage is invalid
+     *
+     * @see <a href="https://registry.khronos.org/OpenGL-Refpages/gl4/html/glBufferData.xhtml">glBufferData</a>
      */
-    open fun allocate(size: Long): Throwable? {
-        if (!bufferValid(target, access))
-            return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
-
-        if (!bufferUsageValid(usage))
-            return IllegalArgumentException("Buffer usage is invalid")
+    open fun allocate(size: Long) {
+        validate()
 
         repeat(buffers) {
             bind()
@@ -223,134 +198,138 @@ abstract class Buffer(
         }
 
         bind(0)
-
-        return null
     }
 
     /**
-     * Allocates new storage for the OpenGL buffer using the provided data
-     * This function cannot be called twice for the same buffer
-     * This function handles the buffer binding
+     * Allocates new storage for the OpenGL buffer using the provided data.
      *
-     * @return [IllegalArgumentException] for an invalid target or usage; null if storage allocation is successful
+     * This function cannot be called twice for the same buffer.
+     *
+     * You cannot update the content of the buffer directly unless you are pinning memory
+     * or have GL_DYNAMIC_STORAGE_BIT in the access flags.
+     *
+     * @throws [IllegalArgumentException] if the target or usage is invalid
+     *
+     * @see <a href="https://registry.khronos.org/OpenGL-Refpages/gl4/html/glBufferStorage.xhtml">glBufferStorage</a>
      */
-    open fun storage(data: ByteBuffer): Throwable? {
-        if (!bufferValid(target, access))
-            return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
-
-        if (!bufferUsageValid(usage))
-            return IllegalArgumentException("Buffer usage is invalid")
+    open fun storage(data: ByteBuffer) {
+        validate()
 
         repeat(buffers) {
             bind()
-            glBufferStorage(target, data, access or GL_DYNAMIC_STORAGE_BIT)
+            glBufferStorage(target, data, access)
             swap()
         }
 
         bind(0)
-
-        return null
     }
 
     /**
-     * Allocates storage for the buffer object
-     * This function cannot be called twice for the same buffer
-     * This function handles the buffer binding
+     * Allocates storage for the buffer object.
+     *
+     * This function cannot be called twice for the same buffer.
+     *
+     * You cannot update the content of the buffer directly unless you are pinning memory
+     * or have GL_DYNAMIC_STORAGE_BIT in the access flags.
      *
      * @param size The size of the storage buffer
-     * @return [IllegalArgumentException] if the target or usage is invalid; null if storage allocation succeeds
+     * @throws [IllegalArgumentException] if the target or usage is invalid
+     *
+     * @see <a href="https://registry.khronos.org/OpenGL-Refpages/gl4/html/glBufferStorage.xhtml">glBufferStorage</a>
      */
-    open fun storage(size: Long): Throwable? {
-        if (!bufferValid(target, access))
-            return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
-
-        if (!bufferUsageValid(usage))
-            return IllegalArgumentException("Buffer usage is invalid")
+    open fun storage(size: Long) {
+        validate()
 
         repeat(buffers) {
             bind()
-            glBufferStorage(target, size.coerceAtLeast(0), access or GL_DYNAMIC_STORAGE_BIT)
+            glBufferStorage(target, size.coerceAtLeast(0), access)
             swap()
         }
 
         bind(0)
-
-        return null
     }
 
+    // TODO:
+    //  GL_MAP_COHERENT_BIT makes it so changes in the mapped memory are automatically visible to the gpu, no memory barrier and syncing required, but a bit slower
+    //  You still need to swap after each update or you will risk having conflicting reads and writes
+    //  glFlushMappedBufferRange
+
     /**
-     * Maps a specified region of the buffer's data store into client memory, processes it using the provided lambda, and then unmaps the buffer
+     * Maps a specified region of the buffer's data store into client memory, processes it using the provided lambda, and then unmaps the buffer.
+     *
+     * This function does not handle the binding.
+     *
+     * If [access] contains the `GL_MAP_PERSISTENT_BIT` flag, the buffer will not be unmapped.
      *
      * @param size      Specifies the length of the range to be mapped.
      * @param offset    Specifies the starting offset within the buffer of the range to be mapped.
      * @param block     Lambda scope with the mapped buffer passed in
-     * @return          [IllegalArgumentException] if there were errors during the validation, mapping or unmapping, null otherwise
+     *
+     * @see <a href="https://en.wikipedia.org/wiki/Direct_memory_access">Direct memory access</a>
      */
-    open fun map(
-        size: Long,
-        offset: Long,
-        block: (ByteBuffer) -> Unit
-    ): Throwable? {
-        if (
-            offset < 0 ||
-            size < 0
-        ) return IllegalArgumentException("Invalid offset or size parameter offset: $offset size: $size")
+    open fun map(size: Long, offset: Long, block: (ByteBuffer) -> Unit = {}): ByteBuffer {
+        validate()
 
-        if (!bufferValid(target, access))
-            return IllegalArgumentException("Target is not valid. Refer to the table in the documentation")
+        check(offset >= 0 || size >= 0)
+        { "Invalid offset or size parameter offset: $offset size: $size." }
 
-        if (!bufferBound(target))
-            return IllegalArgumentException("Target is zero bound for glMapBufferRange")
+        check(offset + size <= glGetBufferParameteri(target, GL_BUFFER_SIZE))
+        { "Out of bound (is the buffer initialized?) $size + $offset > ${glGetBufferParameteri(target, GL_BUFFER_SIZE)}." }
 
-        if (
-            offset + size > glGetBufferParameteri(target, GL_BUFFER_SIZE)
-        ) return IllegalArgumentException("Out of bound (is the buffer initialized?) $size + $offset > ${glGetBufferParameteri(target, GL_BUFFER_SIZE)}")
+        check(glGetInteger(bindingCheckMappings.getValue(target)) == GL_TRUE)
+        { "Target is zero bound." }
 
-        if (
-            glGetBufferParameteri(target, GL_BUFFER_MAPPED)
-            == GL_TRUE
-        ) return IllegalStateException("Buffer is already mapped, something wrong happened")
+        check(glGetBufferParameteri(target, GL_BUFFER_MAPPED) == GL_FALSE)
+        { "Buffer is already mapped." }
 
-        if (
-            access and GL_MAP_WRITE_BIT == 0 &&
-            access and GL_MAP_READ_BIT == 0
-        ) return IllegalArgumentException("Neither GL_MAP_READ_BIT nor GL_MAP_WRITE_BIT is set")
+        check(access and GL_MAP_WRITE_BIT != 0 && access and GL_MAP_READ_BIT != 0)
+        { "Neither GL_MAP_READ_BIT nor GL_MAP_WRITE_BIT is set." }
 
-        if (
-            access and GL_MAP_READ_BIT != 0         &&
-            (access and GL_MAP_INVALIDATE_RANGE_BIT == 0 ||
-            access and GL_MAP_INVALIDATE_BUFFER_BIT == 0 ||
-            access and GL_MAP_UNSYNCHRONIZED_BIT    == 0
-            )
-        ) return IllegalArgumentException("GL_MAP_READ_BIT is set and any of GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT or GL_MAP_UNSYNCHRONIZED_BIT is set.")
+        check(access and GL_MAP_READ_BIT != 0  &&
+                (access and GL_MAP_INVALIDATE_RANGE_BIT != 0 ||
+                        access and GL_MAP_INVALIDATE_BUFFER_BIT != 0 ||
+                        access and GL_MAP_UNSYNCHRONIZED_BIT    != 0)
+        )
+        { "GL_MAP_READ_BIT is set and any of GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT or GL_MAP_UNSYNCHRONIZED_BIT is set." }
 
-        // Map the buffer into the client's memory
         val sharedRegion = glMapBufferRange(target, offset, size, access)
-            ?: return IllegalStateException("Failed to map buffer")
+            ?: throw IllegalStateException("Failed to map buffer.")
 
-        // Update data on the shared buffer
         block(sharedRegion)
 
-        // Release the buffer
-        if (!glUnmapBuffer(target))
-            return IllegalStateException("An unknown error occurred due to GPU memory availability of buffer corruption")
+        if (access and GL_MAP_PERSISTENT_BIT == 0) {
+            if (!glUnmapBuffer(target))
+                throw IllegalStateException("An unknown error occurred due to GPU memory availability of buffer corruption.")
+        }
 
-        return null
+        return sharedRegion
     }
 
     /**
-     * Uploads the specified data to the buffer starting at the given offset
+     * Uploads the specified data to the buffer starting at the given offset.
      *
-     * This abstract function should be implemented to perform the actual data transfer into the buffer
+     * This abstract function should be implemented to perform the actual data transfer into the buffer.
      *
      * @param data      Data to set in memory
      * @param offset    The starting offset within the buffer of the range to be mapped
-     * @return          Error encountered during the mapping process
      */
-    abstract fun upload(data: ByteBuffer, offset: Long): Throwable?
+    abstract fun upload(data: ByteBuffer, offset: Long)
+
+    private fun validate() {
+        check(usage in GL_STREAM_DRAW..GL_DYNAMIC_COPY)
+        { "Usage is invalid, refer to the documentation table." }
+
+        check(target in bindingCheckMappings)
+        { "Target is invalid, refer to the documentation table." }
+
+        check(access and GL_MAP_COHERENT_BIT == 0 || access and GL_MAP_PERSISTENT_BIT != 0)
+        { "GL_MAP_COHERENT_BIT requires GL_MAP_PERSISTENT_BIT flag." }
+
+        check(access and GL_MAP_PERSISTENT_BIT == 0 || (access and (GL_MAP_READ_BIT or GL_MAP_WRITE_BIT) != 0))
+        { "GL_MAP_PERSISTENT_BIT requires GL_MAP_READ_BIT or GL_MAP_WRITE_BIT." }
+    }
 
     init {
-        // Special edge case for vertex arrays
         check(buffers > 0) { "Cannot generate less than one buffer" }
 
         if (isVertexArray) glGenVertexArrays(bufferIds) // If there are more than 1 buffer you should expect undefined behavior, this is not the way to do it
@@ -358,6 +337,23 @@ abstract class Buffer(
     }
 
     companion object {
+        val bindingCheckMappings = mapOf(
+            GL_ARRAY_BUFFER to GL_ARRAY_BUFFER_BINDING,
+            GL_ATOMIC_COUNTER_BUFFER to GL_ATOMIC_COUNTER_BUFFER_BINDING,
+            GL_COPY_READ_BUFFER_BINDING to GL_COPY_READ_BUFFER_BINDING,
+            GL_COPY_WRITE_BUFFER_BINDING to GL_COPY_WRITE_BUFFER_BINDING,
+            GL_DISPATCH_INDIRECT_BUFFER to GL_DISPATCH_INDIRECT_BUFFER_BINDING,
+            GL_DRAW_INDIRECT_BUFFER to GL_DRAW_INDIRECT_BUFFER_BINDING,
+            GL_ELEMENT_ARRAY_BUFFER to GL_ELEMENT_ARRAY_BUFFER_BINDING,
+            GL_PIXEL_PACK_BUFFER to GL_PIXEL_PACK_BUFFER_BINDING,
+            GL_PIXEL_UNPACK_BUFFER to GL_PIXEL_UNPACK_BUFFER_BINDING,
+            GL_QUERY_BUFFER to GL_QUERY_BUFFER_BINDING,
+            GL_SHADER_STORAGE_BUFFER to GL_SHADER_STORAGE_BUFFER_BINDING,
+            GL_TEXTURE_BUFFER to GL_TEXTURE_BUFFER_BINDING,
+            GL_TRANSFORM_FEEDBACK_BUFFER to GL_TRANSFORM_FEEDBACK_BUFFER_BINDING,
+            GL_UNIFORM_BUFFER to GL_UNIFORM_BUFFER_BINDING,
+        )
+
         @JvmField
         var lastIbo = 0
         var prevIbo = 0
@@ -378,10 +374,7 @@ abstract class Buffer(
                 super.bind(if (id != 0) id else prevIbo)
             }
 
-            override fun upload(
-                data: ByteBuffer,
-                offset: Long,
-            ): Throwable = UnsupportedOperationException()
+            override fun upload(data: ByteBuffer, offset: Long) = throw UnsupportedOperationException()
         }
     }
 }
