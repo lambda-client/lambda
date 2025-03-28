@@ -73,7 +73,7 @@ class VertexPipeline(
      */
     fun immediate(block: VertexBuilder.() -> Unit) {
         VertexBuilder(this).apply(block)
-        upload(); render(); clear()
+        uploadInternal(); render(); clear()
     }
 
     /**
@@ -88,7 +88,7 @@ class VertexPipeline(
      */
     fun upload(block: VertexBuilder.() -> Unit) {
         VertexBuilder(this).apply(block)
-        upload()
+        uploadInternal()
     }
 
     /**
@@ -100,7 +100,7 @@ class VertexPipeline(
      */
     fun upload(builder: VertexBuilder) {
         builder.uploadTo(this)
-        upload()
+        uploadInternal()
     }
 
     /**
@@ -114,7 +114,7 @@ class VertexPipeline(
     /**
      * Uploads buffered data to GPU memory
      */
-    fun upload() {
+    private fun uploadInternal() {
         vbo.upload()
         ibo.upload()
     }

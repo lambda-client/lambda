@@ -75,7 +75,7 @@ object ClickGui : Module(
     val animationCurve by setting("List Animation Curve", AnimationCurve.Normal)
     val smoothness by setting("Smoothness", 0.4, 0.3..0.7, 0.01) { animationCurve != AnimationCurve.Static }
 
-    val hudPadding by setting("Hud Padding", 3.0, 0.0..10.0, 0.1)
+    val hudPadding by setting("Hud Padding", 2.0, 0.0..10.0, 0.1)
 
     val SCREEN: LambdaScreen by lazy {
         gui("Click Gui") {

@@ -27,7 +27,7 @@ import kotlin.math.min
 object FilledRectRenderer : AbstractGUIRenderer(
     VertexAttrib.Group.RECT_FILLED, shader("renderer/rect_filled")
 ) {
-    private const val EXPAND = 0.35
+    private const val EXPAND = 0.4
 
     fun filledRect(
         rect: Rect,

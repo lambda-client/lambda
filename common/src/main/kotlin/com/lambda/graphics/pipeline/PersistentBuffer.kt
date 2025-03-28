@@ -51,6 +51,7 @@ class PersistentBuffer(
     fun upload() {
         val dataStart = byteBuffer.pointer + uploadOffset
         val dataCount = byteBuffer.bytesPut - uploadOffset
+        if (dataCount <= 0) return
 
         if (glSize != byteBuffer.capacity) {
             glSize = byteBuffer.capacity
@@ -73,7 +74,6 @@ class PersistentBuffer(
         }
 
         glBuffer.update(uploadOffset.toLong(), dataCount, dataStart)
-        println(dataCount)
     }
 
     fun end() {
