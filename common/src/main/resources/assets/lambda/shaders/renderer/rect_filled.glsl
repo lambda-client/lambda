@@ -13,41 +13,18 @@ uniforms {
 };
 
 #include "rect"
-#define SMOOTHING 0.2
-#define round getRoundAlpha()
+#define SMOOTHING 0.5
 
-float getRoundRadius() {
-    bool xcmp = v_TexCoord.x > 0.5;
-    bool ycmp = v_TexCoord.y > 0.5;
+float roundedRectSDF() {
+    vec4 r = vec4(u_RoundRightBottom, u_RoundRightTop, u_RoundLeftBottom, u_RoundLeftTop);
+    r.xy = (v_TexCoord.x > 0.5) ? r.xy : r.zw;
+    r.x  = (v_TexCoord.y > 0.5) ? r.x  : r.y;
 
-    float r = 0.0;
-
-    if (xcmp) {
-        if (ycmp) { r = u_RoundRightBottom; }
-        else { r = u_RoundRightTop; }
-    } else {
-        if (ycmp) { r = u_RoundLeftBottom; }
-        else { r = u_RoundLeftTop; }
-    }
-
-    return r;
-}#
-
-vec4 getRoundAlpha() {
-    vec2 halfSize = u_Size * 0.5;
-
-    float radius = max(getRoundRadius(), SMOOTHING);
-
-    vec2 smoothVec = vec2(SMOOTHING);
-    vec2 coord = mix(-smoothVec, u_Size + smoothVec, v_TexCoord);
-
-    vec2 center = halfSize - coord;
-    float distance = length(max(abs(center) - halfSize + radius, 0.0)) - radius;
-
-    float alpha = 1.0 - smoothstep(-SMOOTHING, SMOOTHING, distance);
-    return vec4(1.0, 1.0, 1.0, clamp(alpha, 0.0, 1.0));
+    vec2 q = u_Size * (abs(v_TexCoord - 0.5) - 0.5) + r.x;
+    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r.x;
 }#
 
 void fragment() {
-    color = v_Color * shade * round + noise;
+    float a = 1.0 - smoothstep(-SMOOTHING, 0.0, roundedRectSDF());
+    color = v_Color * vec4(shade.rgb, shade.a * a) + noise;
 }#

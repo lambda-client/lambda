@@ -101,7 +101,7 @@ object Particles : Module(
                 shader.use()
                 shader["u_CameraPosition"] = mc.gameRenderer.camera.pos
 
-                pipeline.upload()
+                pipeline.upload(builder)
                 withDepth(false, pipeline::render)
                 pipeline.clear()
             }
