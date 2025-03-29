@@ -21,11 +21,13 @@ import com.lambda.Lambda.mc
 import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
+import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.PositionBlocking
@@ -238,6 +240,12 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                 .filterNotNull()
                 .firstOrNull { info -> matchesBlockItem(info, it.entity) }
                 ?.internalOnItemDrop(it.entity)
+        }
+
+        listenUnsafe<ConnectionEvent.Connect.Pre> {
+            breakingInfos.forEach { it?.nullify() }
+            pendingBreaks.clear()
+            setBreakCooldown(0)
         }
     }
 
