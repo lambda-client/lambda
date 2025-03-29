@@ -115,7 +115,7 @@ abstract class HudModule(
 
         listen<RenderEvent.GUI.HUD> {
             while (scheduled.isNotEmpty()) {
-                scheduled.removeFirst().invoke()
+                scheduled.removeAt(0).invoke()
             }
 
             base.onEvent(GuiEvent.Update)
