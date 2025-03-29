@@ -97,8 +97,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
             currentRequest?.let { request ->
                 val notSneaking = !player.isSneaking
                 val hotbarRequest = request.hotbarConfig.request(HotbarRequest(request.placeContext.hotbarIndex))
-                val invalidRotation = request.buildConfig.placeSettings.rotateForPlace && !validRotation
-                if ((request.placeContext.sneak && notSneaking) || !hotbarRequest.done || invalidRotation)
+                if ((request.placeContext.sneak && notSneaking) || !hotbarRequest.done || !validRotation)
                     return@listen
 
                 val actionResult = placeBlock(request, Hand.MAIN_HAND)
@@ -128,7 +127,8 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
                     return@onRotate
                 }
 
-                rotation = if (request.buildConfig.placeSettings.rotateForPlace)
+                val placeConfig = request.buildConfig.placeSettings
+                rotation = if (placeConfig.rotateForPlace || placeConfig.axisRotate)
                     request.rotationConfig.request(request.placeContext.rotation)
                 else null
 

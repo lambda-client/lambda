@@ -60,6 +60,7 @@ import com.lambda.util.player.copyPlayer
 import com.lambda.util.player.gamemode
 import com.lambda.util.player.placementRotations
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
+import net.minecraft.block.BlockState
 import net.minecraft.block.OperatorBlock
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.enchantment.Enchantments
@@ -293,10 +294,7 @@ object BuildSimulator {
                     context = checked
                 }
 
-                var resultState = blockItem.getPlacementState(context) ?: run {
-                    acc.add(PlaceResult.BlockedByEntity(pos))
-                    return@forEach
-                }
+                lateinit var resultState: BlockState
                 var rot = fakePlayer.rotation
 
                 val simulatePlaceState = placeState@ {
@@ -308,14 +306,13 @@ object BuildSimulator {
                             pos, resultState, context, (target as? TargetState.State)?.blockState
                         )
                     } else {
-                        rot = fakePlayer.rotation
                         return@placeState null
                     }
                 }
 
-                simulatePlaceState()?.let simulatePlaceState@ { placeResult ->
+                simulatePlaceState()?.let simulatePlaceState@ { basePlaceResult ->
                     if (!place.axisRotate) {
-                        acc.add(placeResult)
+                        acc.add(basePlaceResult)
                         return@forEach
                     }
                     placementRotations.forEachIndexed direction@ { index, angle ->
@@ -334,6 +331,7 @@ object BuildSimulator {
                             }
 
                             else -> {
+                                rot = fakePlayer.rotation
                                 return@simulatePlaceState
                             }
                         }
