@@ -297,7 +297,7 @@ object BuildSimulator {
                     acc.add(PlaceResult.BlockedByEntity(pos))
                     return@forEach
                 }
-                var rot = checkedHit.targetRotation
+                var rot = fakePlayer.rotation
 
                 val simulatePlaceState = placeState@ {
                     resultState = blockItem.getPlacementState(context)
@@ -313,7 +313,7 @@ object BuildSimulator {
                     }
                 }
 
-                if (!place.axisRotate && place.rotateForPlace) {
+                if (!place.axisRotate) {
                     simulatePlaceState()?.let { placeResult ->
                         acc.add(placeResult)
                         return@forEach
