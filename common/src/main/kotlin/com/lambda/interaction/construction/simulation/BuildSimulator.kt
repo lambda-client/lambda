@@ -58,6 +58,7 @@ import com.lambda.util.math.distSq
 import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.copyPlayer
 import com.lambda.util.player.gamemode
+import com.lambda.util.player.placementRotations
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.OperatorBlock
 import net.minecraft.block.pattern.CachedBlockPosition
@@ -292,18 +293,52 @@ object BuildSimulator {
                     context = checked
                 }
 
-                val resultState = blockItem.getPlacementState(context) ?: run {
+                var resultState = blockItem.getPlacementState(context) ?: run {
                     acc.add(PlaceResult.BlockedByEntity(pos))
                     return@forEach
                 }
+                var rot = checkedHit.targetRotation
 
-                if (!target.matches(resultState, pos, world)) {
-                    acc.add(
-                        PlaceResult.NoIntegrity(
+                val simulatePlaceState = placeState@ {
+                    resultState = blockItem.getPlacementState(context)
+                        ?: return@placeState PlaceResult.BlockedByEntity(pos)
+
+                    if (!target.matches(resultState, pos, world)) {
+                        return@placeState PlaceResult.NoIntegrity(
                             pos, resultState, context, (target as? TargetState.State)?.blockState
                         )
-                    )
-                    return@forEach
+                    } else {
+                        rot = fakePlayer.rotation
+                        return@placeState null
+                    }
+                }
+
+                if (!place.axisRotate && place.rotateForPlace) {
+                    simulatePlaceState()?.let { placeResult ->
+                        acc.add(placeResult)
+                        return@forEach
+                    }
+                } else if (place.rotateForPlace) run axisRotate@ {
+                    placementRotations.forEachIndexed direction@ { index, angle ->
+                        fakePlayer.rotation = angle
+
+                        when (val placeResult = simulatePlaceState()) {
+                            is PlaceResult.BlockedByEntity -> {
+                                acc.add(placeResult)
+                                return@forEach
+                            }
+
+                            is PlaceResult.NoIntegrity -> {
+                                if (index != placementRotations.lastIndex) return@direction
+                                acc.add(placeResult)
+                                return@forEach
+                            }
+
+                            else -> {
+                                return@axisRotate
+                            }
+                        }
+                    }
                 }
 
                 val blockHit = checkedResult.blockResult ?: return@forEach
@@ -316,7 +351,7 @@ object BuildSimulator {
                 val placeContext = PlaceContext(
                     eye,
                     blockHit,
-                    RotationRequest(lookAt(checkedHit.targetRotation, 0.001), rotation),
+                    RotationRequest(lookAt(rot, 0.001), rotation),
                     eye.distanceTo(blockHit.pos),
                     resultState,
                     blockState(blockHit.blockPos.offset(blockHit.side)),

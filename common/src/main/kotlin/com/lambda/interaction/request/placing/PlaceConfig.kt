@@ -26,6 +26,8 @@ abstract class PlaceConfig(
 ) : RequestConfig<PlaceRequest>(priority) {
     abstract val rotateForPlace: Boolean
     abstract val airPlace: AirPlaceMode
+    protected abstract val axisRotateSetting: Boolean
+    abstract val axisRotate: Boolean
     abstract val placeConfirmationMode: PlaceConfirmationMode
     abstract val maxPendingPlacements: Int
     abstract val placementsPerTick: Int
