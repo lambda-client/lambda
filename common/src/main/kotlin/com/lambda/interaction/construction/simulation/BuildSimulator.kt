@@ -318,7 +318,7 @@ object BuildSimulator {
                         acc.add(placeResult)
                         return@forEach
                     }
-                } else if (place.rotateForPlace) run axisRotate@ {
+                } else run axisRotate@ {
                     placementRotations.forEachIndexed direction@ { index, angle ->
                         fakePlayer.rotation = angle
 
