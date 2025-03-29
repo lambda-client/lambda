@@ -80,7 +80,7 @@ class ColorPicker(
     }
 
     init {
-        rect {
+        val preview = rect {
             val shrink = 3.0
 
             onUpdate {
@@ -91,6 +91,15 @@ class ColorPicker(
 
                 setColor(settingDelegate.multAlpha(showAnimation))
                 setRadius(100.0)
+            }
+        }
+
+        outline {
+            onUpdate {
+                rect = preview.rect
+                roundRadius = 100.0
+                glowRadius = 5.0
+                setColor(Color.BLACK.setAlpha(0.1 * showAnimation))
             }
         }
 
