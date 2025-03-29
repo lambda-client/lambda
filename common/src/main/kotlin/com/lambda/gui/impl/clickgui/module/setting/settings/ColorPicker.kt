@@ -97,8 +97,8 @@ class ColorPicker(
         outline {
             onUpdate {
                 rect = preview.rect
-                roundRadius = 100.0
-                glowRadius = 5.0
+                setRadius(100.0)
+                outlineWidth = 0.5
                 setColor(Color.BLACK.setAlpha(0.1 * showAnimation))
             }
         }
@@ -133,8 +133,8 @@ class ColorPicker(
                 width = knobSize; height = knobSize
 
                 setColor(Color.BLACK)
-                glowRadius = 1.0
-                roundRadius = 100.0
+                outlineWidth = 1.0
+                setRadius(100.0)
 
                 onUpdate {
                     val uv = if (circle.pressedButton == Mouse.Button.Left) clampToCircle(Vec2d(getU(), getV()))

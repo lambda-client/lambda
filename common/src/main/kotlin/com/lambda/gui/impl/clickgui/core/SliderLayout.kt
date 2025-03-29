@@ -113,8 +113,9 @@ class SliderLayout(
                 rect = bg.rect
                 val c = Color.BLACK.setAlpha(0.3 * showAnim)
                 val a = transform(renderProgress, 0.5, 1.0, 0.0, 1.0).coerceIn(0.0, 1.0)
+                outlineWidth = 0.5
                 setColorH(c, c.multAlpha(a))
-                roundRadius = 100.0
+                setRadius(100.0)
             }
         }
     }

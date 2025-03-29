@@ -153,7 +153,8 @@ abstract class AnimatedChild(
         listOf(
             titleBarBackground,
             contentBackground,
-            outlineRect
+            outlineRect,
+            glowRect
         ).forEach(Layout::destroy)
     }
 
@@ -161,7 +162,7 @@ abstract class AnimatedChild(
         fun AnimatedChild.animatedBackground(
             enableProgress: () -> Double = { hoverAnimation }
         ) = rectBehind(titleBar) {
-            // base rect with lowest y to avoid children overlying
+            // base rect with lowest z to avoid children overlying
             onUpdate {
                 val enableAnimation = enableProgress()
 
@@ -205,12 +206,10 @@ abstract class AnimatedChild(
                     size = base.size
                     shade = base.shade
 
-                    setRadius(
-                        base.leftTopRadius,
-                        base.rightTopRadius,
-                        base.rightBottomRadius,
-                        base.leftBottomRadius
-                    )
+                    leftTopRadius = base.leftTopRadius
+                    rightTopRadius = base.rightTopRadius
+                    rightBottomRadius = base.rightBottomRadius
+                    leftBottomRadius = base.leftBottomRadius
 
                     val hoverColor = Color.WHITE.setAlpha(
                         ClickGui.moduleHoverAccent * hoverAnimation * (1.0 - openAnimation) * showAnimation

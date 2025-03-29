@@ -18,19 +18,9 @@
 package com.lambda.module.hud
 
 import com.lambda.graphics.animation.Animation.Companion.exp
-import com.lambda.graphics.renderer.gui.rect.FilledRectRenderer
-import com.lambda.graphics.renderer.gui.rect.FilledRectRenderer.filledRect
-import com.lambda.graphics.renderer.gui.rect.OutlineRectRenderer
-import com.lambda.graphics.renderer.gui.rect.OutlineRectRenderer.outlineRect
 import com.lambda.module.HudModule
-import com.lambda.module.modules.client.ClickGui
-import com.lambda.module.modules.client.GuiSettings
-import com.lambda.module.modules.client.GuiSettings.primaryColor
 import com.lambda.module.modules.movement.TickShift
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.Rect
-import com.lambda.util.math.multAlpha
-import java.awt.Color
 
 object TickShiftCharge : HudModule(
     name = "TickShiftCharge",

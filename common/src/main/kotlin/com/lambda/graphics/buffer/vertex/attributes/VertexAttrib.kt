@@ -64,12 +64,16 @@ sealed class VertexAttrib(
 
     @Suppress("ClassName")
     open class Group(vararg val attributes: VertexAttrib) {
-        object POS_UV : Group(Vec2, Vec2)
+        object POS_UV : Group(
+            Vec2, Vec2
+        )
 
         // GUI
-        object FONT : Group(Vec3, Vec2, Color)
+        object FONT : Group(
+            Vec3, Vec2, Color
+        )
 
-        object RECT_FILLED : Group(
+        object RECT : Group(
             Vec3, Vec2, Color
         )
 
@@ -86,7 +90,9 @@ sealed class VertexAttrib(
             Vec3, Color
         )
 
-        object PARTICLE : Group(Vec3, Vec2, Color)
+        object PARTICLE : Group(
+            Vec3, Vec2, Color
+        )
 
         val stride = attributes.sumOf { attribute ->
             attribute.size

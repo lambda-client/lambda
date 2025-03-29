@@ -32,7 +32,7 @@ import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Vec2d
 import org.lwjgl.glfw.GLFW
 
-abstract class AbstractGUIRenderer(
+open class AbstractGUIRenderer(
     attribGroup: VertexAttrib.Group,
     val shader: Shader
 ) {
@@ -49,13 +49,13 @@ abstract class AbstractGUIRenderer(
         }
     }
 
-    protected fun render(
+    fun render(
         shade: Boolean = false,
-        block: VertexPipeline.() -> Unit
+        block: VertexPipeline.(Shader) -> Unit
     ) {
         shader.use()
 
-        block(pipeline)
+        block(pipeline, shader)
 
         shader["u_Shade"] = shade.toInt().toDouble()
         if (shade) {

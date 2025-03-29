@@ -25,6 +25,7 @@ import com.lambda.gui.RootLayout.Companion.gui
 import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.VAlign
 import com.lambda.gui.component.core.FilledRect.Companion.rect
+import com.lambda.gui.component.core.GlowRect.Companion.glow
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.impl.clickgui.ModuleWindow.Companion.moduleWindow
 import com.lambda.gui.impl.clickgui.core.AnimatedChild.Companion.animatedBackground
@@ -53,15 +54,24 @@ object ClickGui : Module(
     val roundRadius by setting("Round Radius", 3.0, 0.0..10.0, 0.1)
 
     val backgroundTint by setting("Background Tint", Color.BLACK.setAlpha(0.4))
+    val backgroundCornerTint by setting("Background Corner Tint", Color.WHITE.setAlpha(0.4))
+    val cornerTintWidth by setting("Corner Tint Width", 100.0, 1.0..500.0, 0.1)
+    val cornerTintShade by setting("Corner Tint Shade", true)
 
     val titleBackgroundColor by setting("Title Background Color", Color(80, 80, 80))
     val backgroundColor by setting("Background Color", titleBackgroundColor)
     val backgroundShade by setting("Background Shade", true)
 
     val outline by setting("Outline", true)
-    val outlineWidth by setting("Outline Width", 10.0, 1.0..20.0, 0.1) { outline }
-    val outlineColor by setting("Outline Color", Color.WHITE.setAlpha(0.6)) { outline }
+    val outlineWidth by setting("Outline Width", 0.5, 0.5..5.0, 0.1) { outline }
+    val outlineColor by setting("Outline Color", Color.WHITE) { outline }
     val outlineShade by setting("Outline Shade", true) { outline }
+
+    val glow by setting("Glow", true)
+    val glowWidth by setting("Glow Width", 8.0, 1.0..20.0, 0.1) { glow }
+    val glowColor by setting("Glow Color", Color.WHITE.setAlpha(0.35)) { glow }
+    val glowShade by setting("Glow Shade", true) { glow }
+
     val fontScale by setting("Font Scale", 1.0, 0.5..2.0, 0.1)
     val fontOffset by setting("Font Offset", 4.0, 0.0..5.0, 0.1)
     val dockingGridSize by setting("Docking Grid Size", 1.0, 0.1..10.0, 0.1)
@@ -72,10 +82,10 @@ object ClickGui : Module(
     val moduleOpenAccent by setting("Module Open Accent", 0.3, 0.0..0.5, 0.01)
 
     val multipleSettingWindows by setting("Multiple Setting Windows", false)
-    val animationCurve by setting("List Animation Curve", AnimationCurve.Normal)
+    val animationCurve by setting("List Animation Curve", AnimationCurve.Reverse)
     val smoothness by setting("Smoothness", 0.4, 0.3..0.7, 0.01) { animationCurve != AnimationCurve.Static }
 
-    val hudPadding by setting("Hud Padding", 2.0, 0.0..10.0, 0.1)
+    val hudPadding by setting("Hud Padding", 3.0, 0.0..10.0, 0.1)
 
     val SCREEN: LambdaScreen by lazy {
         gui("Click Gui") {
@@ -88,6 +98,17 @@ object ClickGui : Module(
                 onUpdate {
                     rect = owner!!.rect
                     setColor(backgroundTint)
+                }
+            }
+
+            glow {
+                onUpdate {
+                    rect = owner!!.rect
+                    innerSpread = cornerTintWidth
+                    shade = cornerTintShade
+
+                    setColor(backgroundCornerTint)
+                    setInnerRadius(cornerTintWidth)
                 }
             }
 
