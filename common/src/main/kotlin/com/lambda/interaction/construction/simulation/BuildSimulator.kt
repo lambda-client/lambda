@@ -457,13 +457,10 @@ object BuildSimulator {
         /* the player is buried inside the block */
         if (boxes.any { it.contains(eye) }) {
             currentCast?.blockResult?.let { blockHit ->
-                val rotationRequest = RotationRequest(
-                    lookAtBlock(pos, config = interact), rotation
-                )
                 val breakContext = BreakContext(
                     eye,
                     blockHit,
-                    rotationRequest,
+                    lookAtBlock(pos, config = interact),
                     state,
                     targetState,
                     player.inventory.selectedSlot,
@@ -511,11 +508,10 @@ object BuildSimulator {
         val bestHit = interact.pointSelection.select(validHits) ?: return acc
         val blockHit = bestHit.hit.blockResult ?: return acc
         val target = lookAt(bestHit.targetRotation, 0.001)
-        val request = RotationRequest(target, rotation)
         val instant = instantBreakable(state, pos, build.breakSettings.breakThreshold)
 
         val breakContext = BreakContext(
-            eye, blockHit, request, state, targetState, player.inventory.selectedSlot, instant
+            eye, blockHit, target, state, targetState, player.inventory.selectedSlot, instant
         )
 
         if (gamemode.isCreative) {

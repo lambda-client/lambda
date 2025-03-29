@@ -21,7 +21,6 @@ import com.lambda.config.groups.BuildConfig
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.request.rotation.RotationRequest
 import net.minecraft.block.BlockState
 import net.minecraft.item.ItemStack
 import net.minecraft.util.hit.BlockHitResult
@@ -37,7 +36,6 @@ interface BuildContext : Comparable<BuildContext>, Drawable {
     val expectedPos: BlockPos
     val checkedState: BlockState
     val hotbarIndex: Int
-    val rotation: RotationRequest
 
     fun shouldRotate(config: BuildConfig): Boolean
 

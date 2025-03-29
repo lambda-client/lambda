@@ -35,7 +35,7 @@ import java.awt.Color
 data class PlaceContext(
     override val pov: Vec3d,
     override val result: BlockHitResult,
-    override val rotation: RotationRequest,
+    val rotation: RotationRequest,
     override val distance: Double,
     override val expectedState: BlockState,
     override val checkedState: BlockState,

@@ -267,7 +267,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             .filterNotNull()
             .firstOrNull { it.breakConfig.rotateForBreak }
             ?.let { info ->
-                info.rotationConfig.request(info.context.rotation)
+                info.rotationConfig.request(RotationRequest(info.context.rotation, info.rotationConfig))
             }
     }
 
