@@ -17,8 +17,8 @@
 
 package com.lambda.gui.component.core
 
-import com.lambda.graphics.renderer.gui.font.FontRenderer
-import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
+import com.lambda.graphics.renderer.gui.FontRenderer
+import com.lambda.graphics.renderer.gui.FontRenderer.drawString
 import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.VAlign
 import com.lambda.gui.component.layout.Layout

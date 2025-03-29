@@ -20,7 +20,7 @@ package com.lambda.module.modules.client
 import com.lambda.Lambda.mc
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.renderer.gui.font.FontRenderer.drawGlyph
+import com.lambda.graphics.renderer.gui.FontRenderer.drawGlyph
 import com.lambda.graphics.renderer.gui.font.core.GlyphInfo
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.get
 import com.lambda.module.Module

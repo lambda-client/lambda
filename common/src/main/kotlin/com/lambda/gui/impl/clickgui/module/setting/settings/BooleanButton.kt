@@ -20,7 +20,7 @@ package com.lambda.gui.impl.clickgui.module.setting.settings
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.component.core.FilledRect.Companion.rect
-import com.lambda.gui.component.core.OutlineRect.Companion.outline
+import com.lambda.gui.component.core.GlowRect.Companion.glow
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.impl.clickgui.module.setting.SettingLayout
@@ -82,11 +82,11 @@ class BooleanButton(
             }
         }
 
-        outline {
+        glow {
             onUpdate {
                 rect = checkBox.rect
-                roundRadius = 100.0
-                glowRadius = 5.0
+                setRadius(100.0)
+                outerSpread = 5.0
                 setColor(Color.BLACK.setAlpha(0.1 * showAnimation))
             }
         }

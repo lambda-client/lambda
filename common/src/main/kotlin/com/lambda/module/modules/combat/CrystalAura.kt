@@ -18,7 +18,6 @@
 package com.lambda.module.modules.combat
 
 import com.lambda.Lambda
-import com.lambda.Lambda.mc
 import com.lambda.config.groups.RotationSettings
 import com.lambda.config.groups.Targeting
 import com.lambda.context.SafeContext
@@ -29,8 +28,8 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.buildWorldProjection
 import com.lambda.graphics.gl.Matrices.withVertexTransform
-import com.lambda.graphics.renderer.gui.font.FontRenderer
-import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
+import com.lambda.graphics.renderer.gui.FontRenderer
+import com.lambda.graphics.renderer.gui.FontRenderer.drawString
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces

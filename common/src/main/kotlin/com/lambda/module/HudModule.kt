@@ -23,6 +23,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.animation.AnimationTicker
 import com.lambda.gui.component.core.FilledRect.Companion.rect
+import com.lambda.gui.component.core.GlowRect.Companion.glow
 import com.lambda.gui.component.core.OutlineRect.Companion.outline
 import com.lambda.gui.component.core.TextField.Companion.textField
 import com.lambda.gui.component.core.UIBuilder
@@ -64,16 +65,28 @@ abstract class HudModule(
                 }
             }
 
+            glow {
+                onUpdate {
+                    position = this@apply.position
+                    size = this@apply.size
+
+                    setColor(ClickGui.glowColor)
+                    setRadius(ClickGui.roundRadius)
+
+                    outerSpread = ClickGui.glowWidth * ClickGui.glow.toInt().toDouble()
+                    shade = ClickGui.glowShade
+                }
+            }
+
             outline {
                 onUpdate {
                     position = this@apply.position
                     size = this@apply.size
 
                     setColor(ClickGui.outlineColor)
+                    setRadius(ClickGui.roundRadius)
 
-                    roundRadius = ClickGui.roundRadius
-                    glowRadius = ClickGui.outlineWidth * ClickGui.outline.toInt().toDouble()
-
+                    outlineWidth = ClickGui.outlineWidth * ClickGui.outline.toInt().toDouble()
                     shade = ClickGui.outlineShade
                 }
             }
@@ -111,7 +124,6 @@ abstract class HudModule(
 
         onEnable {
             base.onEvent(GuiEvent.Show)
-            println(base.buildTree())
         }
 
         onDisable {
