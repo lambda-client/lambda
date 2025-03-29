@@ -313,12 +313,11 @@ object BuildSimulator {
                     }
                 }
 
-                if (!place.axisRotate) {
-                    simulatePlaceState()?.let { placeResult ->
+                simulatePlaceState()?.let simulatePlaceState@ { placeResult ->
+                    if (!place.axisRotate) {
                         acc.add(placeResult)
                         return@forEach
                     }
-                } else run axisRotate@ {
                     placementRotations.forEachIndexed direction@ { index, angle ->
                         fakePlayer.rotation = angle
 
@@ -335,7 +334,7 @@ object BuildSimulator {
                             }
 
                             else -> {
-                                return@axisRotate
+                                return@simulatePlaceState
                             }
                         }
                     }
