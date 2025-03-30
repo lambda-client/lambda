@@ -24,6 +24,7 @@ import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.client.font.TextRenderer
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.tooltip.TooltipComponent
+import net.minecraft.client.item.TooltipData
 import net.minecraft.item.FilledMapItem
 import net.minecraft.item.ItemStack
 import net.minecraft.item.map.MapState
@@ -37,18 +38,15 @@ object MapPreview : Module(
 ) {
     private val background = Identifier("textures/map/map_background.png")
 
-    // The map component is added via the draw context mixin, thanks mojang
-    class MapComponent(val stack: ItemStack) : TooltipComponent {
+    class MapComponent(val stack: ItemStack) : TooltipData, TooltipComponent {
         val state: MapState?
             get() = FilledMapItem.getMapState(stack, mc.world)
 
         val mapId: Int?
             get() = FilledMapItem.getMapId(stack)
 
-        override fun drawItems(fontRenderer: TextRenderer, x: Int, y: Int, context: DrawContext) {
+        override fun drawItems(textRenderer: TextRenderer, x: Int, y: Int, context: DrawContext) {
             mapId?.let { id ->
-                // Values taken from net.minecraft.client.render.item.HeldItemRenderer.renderFirstPersonMap
-
                 val matrices = context.matrices
 
                 matrices.push()
@@ -59,7 +57,9 @@ object MapPreview : Module(
                 context.drawTexture(background, -7, -7, 0f, 0f, 142, 142, 142, 142)
 
                 matrices.translate(0.0, 0.0, 1.0)
+
                 mc.gameRenderer.mapRenderer.draw(matrices, context.vertexConsumers, id, state, true, 240)
+                matrices.pop()
             }
         }
 
