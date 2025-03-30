@@ -30,7 +30,7 @@ class Animation(initialValue: Double, val update: (Double) -> Double) {
     operator fun getValue(thisRef: Any?, property: KProperty<*>) = value()
     operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: Double) = setValue(valueIn)
 
-    fun value(): Double = lerp(mc.partialTicks.toDouble(), prevValue, currValue)
+    fun value(): Double = lerp(mc.partialTicks, prevValue, currValue)
 
     fun setValue(valueIn: Double) {
         prevValue = valueIn

@@ -52,7 +52,7 @@ object Network : Module(
     val apiUrl      by setting("API Server", "https://api.lambda-client.org")
     val apiVersion  by setting("API Version", ApiVersion.V1)
 
-    private lateinit var hash: String
+    private var hash: String? = null
 
     init {
         listenUnsafeConcurrently<ClientEvent.Startup> { authenticate() }
@@ -74,10 +74,12 @@ object Network : Module(
             // If we log in right as the client responds to the encryption request, we start
             // a race condition where the game server haven't acknowledged the packets
             // and posted to the sessionserver api
-            login(mc.session.username, hash,
-                success = { updateToken(it) },
-                failure = { LOG.warn("Unable to authenticate: $it") }
-            )
+            hash?.let { hash ->
+                login(mc.session.username, hash,
+                    success = { updateToken(it) },
+                    failure = { LOG.warn("Unable to authenticate: $it") }
+                )
+            }
         }
     }
 
@@ -90,7 +92,7 @@ object Network : Module(
         ClientConnection.connect(resolved, mc.options.shouldUseNativeTransport(), connection)
             .syncUninterruptibly()
 
-        val handler = ClientLoginNetworkHandler(connection, mc, null, null, false, null) { Text.empty() }
+        val handler = ClientLoginNetworkHandler(connection, mc, null, null, false, null, { Text.empty() }, null)
 
         connection.connect(resolved.hostName, resolved.port, handler)
         connection.send(LoginHelloC2SPacket(mc.session.username, mc.session.uuidOrNull))

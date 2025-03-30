@@ -19,18 +19,39 @@ package com.lambda.core
 
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ClientEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import net.minecraft.client.render.RenderTickCounter
 import kotlin.concurrent.fixedRateTimer
+import kotlin.time.Duration.Companion.milliseconds
 
 object TimerManager : Loadable {
-    var lastTickLength: Float = 50f
+    var lastTickLength = 50.0
 
     override fun load() = "Loaded Timer Manager"
 
     private const val TICK_DELAY = 50L
     private var start = 0L
-    val fixedTickDelta get() = (System.currentTimeMillis() - start).mod(TICK_DELAY).toDouble() / TICK_DELAY
+
+    val length: Double
+        get() {
+            var length = 50.0
+
+            ClientEvent.TimerUpdate(1.0).post {
+                length /= speed
+            }
+
+            lastTickLength = length
+            return length
+        }
 
     init {
+        listen<TickEvent.Pre> {
+            (mc.renderTickCounter as RenderTickCounter.Dynamic)
+                .beginRenderTick(length.milliseconds.inWholeNanoseconds, false)
+        }
+
+        // ToDo: Use minecraft fixed tick counter
         fixedRateTimer(
             daemon = true,
             name = "Scheduler-Lambda-Tick",
@@ -40,16 +61,5 @@ object TimerManager : Loadable {
             if (start == 0L) start = System.currentTimeMillis()
             ClientEvent.FixedTick(this).post()
         }
-    }
-
-    fun getLength(): Float {
-        var length = 50f
-
-        ClientEvent.TimerUpdate(1.0).post {
-            length /= speed.toFloat()
-        }
-
-        lastTickLength = length
-        return length
     }
 }

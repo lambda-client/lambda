@@ -19,9 +19,8 @@ package com.lambda.util.extension
 
 import net.minecraft.client.MinecraftClient
 
-// TODO: lmao idk what pausedTickDelta equivalent is
 val MinecraftClient.partialTicks
-    get() = tickDelta //(if (paused) pausedTickDelta else tickDelta).toDouble()
+    get() = tickDelta.toDouble()
 
 val MinecraftClient.tickDelta
-    get() = renderTickCounter.getTickDelta(true)
+    get() = renderTickCounter.getTickDelta(false)

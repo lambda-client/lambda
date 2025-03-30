@@ -22,15 +22,13 @@ import net.minecraft.client.gui.screen.ChatScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ChatScreen.class)
 public abstract class ChatScreenMixin {
-    @Inject(method = "sendMessage", at = @At("HEAD"), cancellable = true)
-    void sendMessageInject(String chatText, boolean addToHistory, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "sendMessage", at = @At("HEAD"))
+    void sendMessageInject(String chatText, boolean addToHistory, CallbackInfo ci) {
         if (!CommandManager.INSTANCE.isLambdaCommand(chatText)) return;
         CommandManager.INSTANCE.executeCommand(chatText);
-
-        cir.setReturnValue(true);
     }
 }

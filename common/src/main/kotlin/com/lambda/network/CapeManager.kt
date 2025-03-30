@@ -44,7 +44,6 @@ import kotlin.io.path.inputStream
 import kotlin.io.path.nameWithoutExtension
 import kotlin.io.path.walk
 
-@OptIn(ExperimentalPathApi::class)
 @Suppress("JavaIoSerializableObjectMustHaveReadResolve")
 object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
     /**

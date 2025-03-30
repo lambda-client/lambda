@@ -63,8 +63,10 @@ public class ClientPlayNetworkHandlerMixin {
         EventFlow.post(new InventoryEvent.SlotUpdate(packet.getSyncId(), packet.getRevision(), packet.getSlot(), packet.getStack()));
     }
 
+    // FixMe: This is now initialized in the constructor
+    /*
     @Redirect(method = "onServerMetadata", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;displayedUnsecureChatWarning:Z", ordinal = 0))
     public boolean onServerMetadata(ClientPlayNetworkHandler clientPlayNetworkHandler) {
         return NoRender.getNoChatVerificationToast();
-    }
+    }*/
 }

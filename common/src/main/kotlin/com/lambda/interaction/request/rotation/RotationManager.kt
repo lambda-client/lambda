@@ -135,7 +135,7 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
 
     private val smoothRotation
         get() =
-            lerp(mc.partialTicks.toDouble(), prevRotation, currentRotation)
+            lerp(mc.partialTicks, prevRotation, currentRotation)
 
     @JvmStatic
     val lockRotation
