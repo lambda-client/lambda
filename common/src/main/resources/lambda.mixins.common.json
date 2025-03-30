@@ -20,7 +20,6 @@
     "input.MouseMixin",
     "items.BarrierBlockMixin",
     "items.FilledMapItemMixin",
-    "items.TridentMixin",
     "network.ClientConnectionMixin",
     "network.ClientLoginNetworkMixin",
     "network.ClientPlayNetworkHandlerMixin",
