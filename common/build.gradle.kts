@@ -23,6 +23,7 @@ val kotlinxCoroutinesVersion: String by project
 val discordIPCVersion: String by project
 val baritoneVersion: String by project
 val fuelVersion: String by project
+val resultVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-api"
 
@@ -47,9 +48,10 @@ dependencies {
     implementation("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
     implementation("com.pngencoder:pngencoder:0.15.0")
 
-    // Fuel HTTP library
+    // Fuel HTTP library and dependencies
     implementation("com.github.kittinunf.fuel:fuel:$fuelVersion")
     implementation("com.github.kittinunf.fuel:fuel-gson:$fuelVersion")
+    implementation("com.github.kittinunf.result:result-jvm:$resultVersion")
 
     // Add Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")

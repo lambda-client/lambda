@@ -21,8 +21,11 @@ import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Muteable
+import com.lambda.threading.runConcurrent
 import com.lambda.util.Pointer
 import com.lambda.util.selfReference
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -136,24 +139,20 @@ class UnsafeListener<T : Event>(
          * @param T The type of the event to listen for. This should be a subclass of Event.
          * @param priority The priority of the listener. Listeners with higher priority will be executed first.
          * @param alwaysListen If true, the listener will be executed even if it is muted.
-         * @param transform The function used to transform the event into a value.
          * @return The newly created and registered [UnsafeListener].
          */
-        inline fun <reified T : Event, reified E> Any.listenOnceUnsafe(
+        inline fun <reified T : Event> Any.listenOnceUnsafe(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline transform: (T) -> E? = { null },
-            noinline predicate: (T) -> Boolean = { true },
-        ): ReadWriteProperty<Any?, E?> {
-            val pointer = Pointer<E>()
+            noinline function: (T) -> Boolean = { true },
+        ): ReadWriteProperty<Any?, T?> {
+            val pointer = Pointer<T>()
 
             val destroyable by selfReference<UnsafeListener<T>> {
                 UnsafeListener(priority, this@listenOnceUnsafe, alwaysListen) { event ->
-                    pointer.value = transform(event)
+                    pointer.value = event
 
-                    if (predicate(event) &&
-                        pointer.value != null
-                    ) {
+                    if (function(event)) {
                         val self by this@selfReference
                         EventFlow.syncListeners.unsubscribe(self)
                     }
@@ -194,10 +193,13 @@ class UnsafeListener<T : Event>(
         inline fun <reified T : Event> Any.listenUnsafeConcurrently(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: (T) -> Unit = {},
+            scheduler: CoroutineDispatcher = Dispatchers.Default,
+            noinline function: suspend (T) -> Unit = {},
         ): UnsafeListener<T> {
             val listener = UnsafeListener<T>(priority, this, alwaysListen) { event ->
-                function(event)
+                runConcurrent(scheduler) {
+                    function(event)
+                }
             }
 
             EventFlow.concurrentListeners.subscribe<T>(listener)

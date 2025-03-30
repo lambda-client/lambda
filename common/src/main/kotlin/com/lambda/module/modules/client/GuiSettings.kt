@@ -22,7 +22,6 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.graphics.animation.AnimationTicker
-import com.lambda.gui.impl.clickgui.LambdaClickGui
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import java.awt.Color
@@ -44,9 +43,9 @@ object GuiSettings : Module(
     val backgroundColor by setting("Background Color", Color(50, 50, 50, 150), visibility = { page == Page.Colors })
     val shade by setting("Shade", true, visibility = { page == Page.Colors })
     val shadeBackground by setting("Shade Background", true, visibility = { page == Page.Colors })
-    val colorWidth by setting("Shade Width", 400.0, 10.0..1000.0, 10.0, visibility = { page == Page.Colors })
-    val colorHeight by setting("Shade Height", 400.0, 10.0..1000.0, 10.0, visibility = { page == Page.Colors })
-    val colorSpeed by setting("Color Speed", 1.0, 0.1..10.0, 0.1, visibility = { page == Page.Colors })
+    val colorWidth by setting("Shade Width", 200.0, 10.0..1000.0, 10.0, visibility = { page == Page.Colors })
+    val colorHeight by setting("Shade Height", 200.0, 10.0..1000.0, 10.0, visibility = { page == Page.Colors })
+    val colorSpeed by setting("Color Speed", 1.0, 0.1..5.0, 0.1, visibility = { page == Page.Colors })
 
     val mainColor: Color get() = if (shade) Color.WHITE else primaryColor
 
@@ -60,7 +59,7 @@ object GuiSettings : Module(
 
     private var targetScale = 2.0
         get() {
-            val update = System.currentTimeMillis() - lastChange > 200 || !LambdaClickGui.isOpen
+            val update = System.currentTimeMillis() - lastChange > 200 || !ClickGui.SCREEN.isOpen
             if (update) field = scaleSetting / 100.0 * 2.0
             return field
         }
@@ -70,7 +69,7 @@ object GuiSettings : Module(
             tick()
         }
 
-        exp({ targetScale }, 0.5).apply {
+        exp(0.5) { targetScale }.apply {
             listenUnsafe<ConnectionEvent.Connect.Pre>(alwaysListen = true) {
                 setValue(targetScale)
             }

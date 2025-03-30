@@ -62,7 +62,7 @@ object Rubberband : Module(
             this@Rubberband.warn(buildText {
                 literal("Reverted position by ")
                 color(Color.YELLOW) {
-                    literal("${PlayerPacketManager.configurations.reversed().indexOf(last) + 1}")
+                    literal("${PlayerPacketManager.configurations.toList().asReversed().indexOf(last) + 1}")
                 }
                 literal(" ticks (deviation: ")
                 color(Color.YELLOW) {

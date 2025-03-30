@@ -18,6 +18,11 @@
 package com.lambda.util.extension
 
 import com.mojang.authlib.GameProfile
+import net.minecraft.client.texture.AbstractTexture
+import net.minecraft.client.texture.TextureManager
+import net.minecraft.util.Identifier
+import java.io.File
+import java.nio.file.Path
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -30,3 +35,9 @@ val Class<*>.isObject: Boolean
 
 val Class<*>.objectInstance: Any
     get() = declaredFields.first { it.name == "INSTANCE" }.apply { isAccessible = true }.get(null)
+
+fun Path.resolveFile(other: String): File =
+    resolve(other).toFile()
+
+fun TextureManager.get(identifier: Identifier): AbstractTexture? =
+    getOrDefault(identifier, null)
