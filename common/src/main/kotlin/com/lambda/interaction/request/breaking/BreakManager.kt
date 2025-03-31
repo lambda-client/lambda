@@ -89,8 +89,6 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
 
     private var blockBreakingCooldown = 0
 
-    private var instantBreaks = listOf<BreakContext>()
-
     fun Any.onBreak(
         alwaysListen: Boolean = false,
         priority: Priority = 0,
@@ -126,7 +124,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                     .sortedBy { it.instantBreak }
                     .take(maxBreaksThisTick)
 
-                instantBreaks = validContexts
+                val instantBreaks = validContexts
                     .take(breakConfig.instantBreaksPerTick)
                     .filter { it.instantBreak }
                     .sortedBy { it.hotbarIndex == HotbarManager.serverSlot }
@@ -140,11 +138,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                         updateBlockBreakingProgress(breakInfo)
                         activeThisTick = true
                     }
-                    if (instantBreaks.size == breakConfig.instantBreaksPerTick) {
-                        instantBreaks = emptyList()
-                        return@request
-                    }
-                    instantBreaks = emptyList()
+                    if (instantBreaks.size == breakConfig.instantBreaksPerTick) return@request
                 }
 
                 validContexts
