@@ -35,4 +35,4 @@ val Long.kibibyte get() = this * 1024
 val Long.mebibyte get() = this * 1024 * 1024
 val Long.gibibyte get() = this * 1024 * 1024 * 1024
 
-fun ByteBuffer.putTo(dst: ByteBuffer) { dst.put(this) }
+fun ByteBuffer.putTo(dst: ByteBuffer?) { dst?.put(this) }

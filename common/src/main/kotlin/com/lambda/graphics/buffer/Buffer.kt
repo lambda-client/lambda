@@ -40,17 +40,17 @@ abstract class Buffer(
     /**
      * Specifies how the buffers are used
      *
-     * | Buffer Usage                   | Description                                                     |
-     * |--------------------------------|-----------------------------------------------------------------|
-     * | GL_STREAM_DRAW                 | Data is set once and used a few times for drawing.              |
-     * | GL_STREAM_READ                 | Data is set once and used a few times for reading.              |
-     * | GL_STREAM_COPY                 | Data is set once and used a few times for copying.              |
-     * | GL_STATIC_DRAW                 | Data is set once and used many times for drawing.               |
-     * | GL_STATIC_READ                 | Data is set once and used many times for reading.               |
-     * | GL_STATIC_COPY                 | Data is set once and used many times for copying.               |
-     * | GL_DYNAMIC_DRAW                | Data is modified repeatedly and used many times for drawing.    |
-     * | GL_DYNAMIC_READ                | Data is modified repeatedly and used many times for reading.    |
-     * | GL_DYNAMIC_COPY                | Data is modified repeatedly and used many times for copying.    |
+     * | Buffer Usage                     | Description                                                     |
+     * |----------------------------------|-----------------------------------------------------------------|
+     * | [GL_STREAM_DRAW]                 | Data is set once and used a few times for drawing.              |
+     * | [GL_STREAM_READ]                 | Data is set once and used a few times for reading.              |
+     * | [GL_STREAM_COPY]                 | Data is set once and used a few times for copying.              |
+     * | [GL_STATIC_DRAW]                 | Data is set once and used many times for drawing.               |
+     * | [GL_STATIC_READ]                 | Data is set once and used many times for reading.               |
+     * | [GL_STATIC_COPY]                 | Data is set once and used many times for copying.               |
+     * | [GL_DYNAMIC_DRAW]                | Data is modified repeatedly and used many times for drawing.    |
+     * | [GL_DYNAMIC_READ]                | Data is modified repeatedly and used many times for reading.    |
+     * | [GL_DYNAMIC_COPY]                | Data is modified repeatedly and used many times for copying.    |
      *
      * @see <a href="https://www.khronos.org/opengl/wiki/Buffer_Object">Buffer object</a>
      */
@@ -60,22 +60,22 @@ abstract class Buffer(
      * Specifies the target to which the buffer object is bound which must be one
      * of the following:
      *
-     * | Buffer Binding Target         | Purpose                              |
-     * |-------------------------------|--------------------------------------|
-     * | GL_ARRAY_BUFFER               | Vertex attributes                    |
-     * | GL_ATOMIC_COUNTER_BUFFER      | Atomic counter storage               |
-     * | GL_COPY_READ_BUFFER           | Buffer copy source                   |
-     * | GL_COPY_WRITE_BUFFER          | Buffer copy destination              |
-     * | GL_DISPATCH_INDIRECT_BUFFER   | Indirect compute dispatch commands   |
-     * | GL_DRAW_INDIRECT_BUFFER       | Indirect command arguments           |
-     * | GL_ELEMENT_ARRAY_BUFFER       | Vertex array indices                 |
-     * | GL_PIXEL_PACK_BUFFER          | Pixel read target                    |
-     * | GL_PIXEL_UNPACK_BUFFER        | Texture data source                  |
-     * | GL_QUERY_BUFFER               | Query result buffer                  |
-     * | GL_SHADER_STORAGE_BUFFER      | Read-write storage for shaders       |
-     * | GL_TEXTURE_BUFFER             | Texture data buffer                  |
-     * | GL_TRANSFORM_FEEDBACK_BUFFER  | Transform feedback buffer            |
-     * | GL_UNIFORM_BUFFER             | Uniform block storage                |
+     * | Buffer Binding Target           | Purpose                              |
+     * |---------------------------------|--------------------------------------|
+     * | [GL_ARRAY_BUFFER]               | Vertex attributes                    |
+     * | [GL_ATOMIC_COUNTER_BUFFER]      | Atomic counter storage               |
+     * | [GL_COPY_READ_BUFFER]           | Buffer copy source                   |
+     * | [GL_COPY_WRITE_BUFFER]          | Buffer copy destination              |
+     * | [GL_DISPATCH_INDIRECT_BUFFER]   | Indirect compute dispatch commands   |
+     * | [GL_DRAW_INDIRECT_BUFFER]       | Indirect command arguments           |
+     * | [GL_ELEMENT_ARRAY_BUFFER]       | Vertex array indices                 |
+     * | [GL_PIXEL_PACK_BUFFER]          | Pixel read target                    |
+     * | [GL_PIXEL_UNPACK_BUFFER]        | Texture data source                  |
+     * | [GL_QUERY_BUFFER]               | Query result buffer                  |
+     * | [GL_SHADER_STORAGE_BUFFER]      | Read-write storage for shaders       |
+     * | [GL_TEXTURE_BUFFER]             | Texture data buffer                  |
+     * | [GL_TRANSFORM_FEEDBACK_BUFFER]  | Transform feedback buffer            |
+     * | [GL_UNIFORM_BUFFER]             | Uniform block storage                |
      *
      * @see <a href="https://www.khronos.org/opengl/wiki/Buffer_Object">Buffer object</a>
      */
@@ -85,16 +85,18 @@ abstract class Buffer(
      * Specifies a combination of access flags indicating the desired
      * access to the mapping range and must contain one or more of the following:
      *
-     * | Flag                          | Description                                         | Disclaimer                                                    |
-     * |-------------------------------|-----------------------------------------------------|---------------------------------------------------------------|
-     * | GL_MAP_READ_BIT               | Allows reading buffer data.                         | Undefined if used without this flag.                          |
-     * | GL_MAP_WRITE_BIT              | Allows modifying buffer data.                       | Undefined if used without this flag.                          |
-     * | GL_MAP_PERSISTENT_BIT         | Enables persistent mapping during GL operations.    | Requires proper allocation with GL_MAP_PERSISTENT_BIT.        |
-     * | GL_MAP_COHERENT_BIT           | Ensures changes are visible without extra steps.    | Without this, explicit sync is needed.                        |
-     * | GL_MAP_INVALIDATE_RANGE_BIT   | Discards previous contents of the mapped range.     | Cannot be used with GL_MAP_READ_BIT.                          |
-     * | GL_MAP_INVALIDATE_BUFFER_BIT  | Discards previous contents of the entire buffer.    | Cannot be used with GL_MAP_READ_BIT.                          |
-     * | GL_MAP_FLUSH_EXPLICIT_BIT     | Requires explicit flushing of modified sub-ranges.  | Only with GL_MAP_WRITE_BIT. Data may be undefined if skipped. |
-     * | GL_MAP_UNSYNCHRONIZED_BIT     | Skips synchronization before mapping.               | May cause data corruption if regions overlap.                 |
+     * | Flag                           | Description                                         | Information                                                                               |
+     * |--------------------------------|-----------------------------------------------------|-------------------------------------------------------------------------------------------|
+     * | [GL_MAP_READ_BIT]              | Allows reading buffer data.                         | Buffer must be created with this flag. Undefined if not included in access.               |
+     * | [GL_MAP_WRITE_BIT]             | Allows modifying buffer data.                       | Buffer must be created with this flag. Undefined if not included in access.               |
+     * | [GL_MAP_PERSISTENT_BIT]        | Enables persistent mapping during GL operations.    | Requires buffer to be created with [GL_MAP_PERSISTENT_BIT].                               |
+     * | [GL_MAP_COHERENT_BIT]          | Ensures changes are visible to the GPU.             | Requires buffer creation with [GL_MAP_PERSISTENT_BIT] or explicit sync.                   |
+     * | [GL_MAP_INVALIDATE_RANGE_BIT]  | Discards previous contents of the mapped range.     | Cannot be used with [GL_MAP_READ_BIT].                                                    |
+     * | [GL_MAP_INVALIDATE_BUFFER_BIT] | Discards previous contents of the entire buffer.    | Cannot be used with [GL_MAP_READ_BIT].                                                    |
+     * | [GL_MAP_FLUSH_EXPLICIT_BIT]    | Requires explicit flushing of modified sub-ranges.  | Only valid with [GL_MAP_WRITE_BIT]. Data may be undefined if flushing is skipped.         |
+     * | [GL_MAP_UNSYNCHRONIZED_BIT]    | Skips synchronization before mapping.               | May cause data corruption if buffer is accessed concurrently.                             |
+     * | [GL_DYNAMIC_STORAGE_BIT]       | Allows updates via [glBufferSubData].               | If omitted, [glBufferSubData] will fail.                                                  |
+     * | [GL_CLIENT_STORAGE_BIT]        | Hints that the buffer should prefer client storage. | Implementation-dependent optimization.                                                    |
      *
      * @see <a href="https://www.khronos.org/opengl/wiki/Buffer_Object">Buffer object</a>
      */
@@ -257,8 +259,6 @@ abstract class Buffer(
     /**
      * Maps a specified region of the buffer's data store into client memory, processes it using the provided lambda, and then unmaps the buffer.
      *
-     * This function does not handle the binding.
-     *
      * If [access] contains the `GL_MAP_PERSISTENT_BIT` flag, the buffer will not be unmapped.
      *
      * @param size      Specifies the length of the range to be mapped.
@@ -269,6 +269,7 @@ abstract class Buffer(
      */
     open fun map(size: Long, offset: Long, block: (ByteBuffer) -> Unit = {}): ByteBuffer {
         validate()
+        bind()
 
         check(offset >= 0 || size >= 0)
         { "Invalid offset or size parameter offset: $offset size: $size." }
@@ -276,19 +277,17 @@ abstract class Buffer(
         check(offset + size <= glGetBufferParameteri(target, GL_BUFFER_SIZE))
         { "Out of bound (is the buffer initialized?) $size + $offset > ${glGetBufferParameteri(target, GL_BUFFER_SIZE)}." }
 
-        check(glGetInteger(bindingCheckMappings.getValue(target)) == GL_TRUE)
-        { "Target is zero bound." }
-
         check(glGetBufferParameteri(target, GL_BUFFER_MAPPED) == GL_FALSE)
         { "Buffer is already mapped." }
 
-        check(access and GL_MAP_WRITE_BIT != 0 && access and GL_MAP_READ_BIT != 0)
+        check(access and GL_MAP_WRITE_BIT != 0 || access and GL_MAP_READ_BIT != 0)
         { "Neither GL_MAP_READ_BIT nor GL_MAP_WRITE_BIT is set." }
 
-        check(access and GL_MAP_READ_BIT != 0  &&
+        check((access and GL_MAP_READ_BIT != 0 &&
                 (access and GL_MAP_INVALIDATE_RANGE_BIT != 0 ||
                         access and GL_MAP_INVALIDATE_BUFFER_BIT != 0 ||
-                        access and GL_MAP_UNSYNCHRONIZED_BIT    != 0)
+                        access and GL_MAP_UNSYNCHRONIZED_BIT != 0)) ||
+                access and GL_MAP_WRITE_BIT != 0
         )
         { "GL_MAP_READ_BIT is set and any of GL_MAP_INVALIDATE_RANGE_BIT, GL_MAP_INVALIDATE_BUFFER_BIT or GL_MAP_UNSYNCHRONIZED_BIT is set." }
 
@@ -301,6 +300,8 @@ abstract class Buffer(
             if (!glUnmapBuffer(target))
                 throw IllegalStateException("An unknown error occurred due to GPU memory availability of buffer corruption.")
         }
+
+        bind(0)
 
         return sharedRegion
     }
