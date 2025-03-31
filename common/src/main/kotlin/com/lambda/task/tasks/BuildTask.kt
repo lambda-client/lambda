@@ -152,7 +152,7 @@ class BuildTask @Ta5kBuilder constructor(
                                 if (instantBreakResults.isNotEmpty()) {
                                     build.breakSettings.request(
                                         BreakRequest(
-                                            instantBreakResults.map { it.context }, build, rotation, hotbar,
+                                            instantBreakResults.map { it.context }, build, rotation, interact, inventory, hotbar,
                                             pendingInteractionsList = pendingInteractions,
                                             onBreak = { breaks++ },
                                             onItemDrop = onItemDrop
@@ -163,7 +163,7 @@ class BuildTask @Ta5kBuilder constructor(
                             }
 
                             val request = BreakRequest(
-                                breakResults.map { it.context }, build, rotation, hotbar,
+                                breakResults.map { it.context }, build, rotation, interact, inventory, hotbar,
                                 pendingInteractionsList = pendingInteractions,
                                 onBreak = { breaks++ },
                                 onItemDrop = onItemDrop

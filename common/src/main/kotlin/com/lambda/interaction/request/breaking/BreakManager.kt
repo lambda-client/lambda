@@ -28,7 +28,11 @@ import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
+import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
+import com.lambda.interaction.construction.result.BreakResult
+import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.Priority
@@ -51,6 +55,7 @@ import com.lambda.util.player.gamemode
 import com.lambda.util.player.swingHand
 import net.minecraft.block.BlockState
 import net.minecraft.block.OperatorBlock
+import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.client.sound.SoundInstance
 import net.minecraft.client.world.ClientWorld
@@ -84,8 +89,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         get() = breakingInfos.mapNotNull { it?.context?.expectedPos } + pendingBreaks.map { it.context.expectedPos }
 
     private var rotation: RotationRequest? = null
-    private val validRotation
-        get() = rotation?.done ?: true
+    private var validRotation = false
 
     private var blockBreakingCooldown = 0
 
@@ -108,6 +112,10 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
     init {
         listen<TickEvent.Pre>(priority = Int.MIN_VALUE + 1) {
             preEvent()
+
+            breakingInfos.forEach {
+                it?.simulate(player)
+            }
 
             if (updateRequest()) currentRequest?.let request@ { request ->
                 if (isOnBreakCooldown()) {
@@ -149,12 +157,11 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             }
 
             requestRotate()
-            if (!validRotation) {
+            if (!validRotation && rotation != null) {
                 postEvent()
                 return@listen
             }
 
-            // ToDo: dynamically update hotbarIndex as contexts are persistent and don't get updated by new requests each tick
             // Reversed so that the breaking order feels natural to the user as the primary break has to
             // be started after the secondary
             breakingInfos
@@ -167,6 +174,10 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                 }
 
             postEvent()
+        }
+
+        listen<UpdateManagerEvent.Rotation.Post>(priority = Int.MIN_VALUE) {
+            validRotation = rotation?.done ?: true
         }
 
         listen<WorldEvent.BlockUpdate.Server> { event ->
@@ -253,8 +264,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
 
     private fun requestRotate() {
         rotation = breakingInfos
-            .filterNotNull()
-            .firstOrNull { it.breakConfig.rotateForBreak }
+            .firstOrNull { it?.breakConfig?.rotateForBreak == true }
             ?.let { info ->
                 info.rotationConfig.request(RotationRequest(info.context.rotation, info.rotationConfig))
             }
@@ -497,13 +507,18 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
     }
 
     data class BreakInfo(
-        val context: BreakContext,
+        var context: BreakContext,
         var type: BreakType,
         val request: BreakRequest
     ) {
+        // I hate this...
         val breakConfig = request.buildConfig.breakSettings
         val rotationConfig = request.rotationConfig
+        private val interactionConfig = request.interactionConfig
+        private val buildConfig = request.buildConfig
+        private val inventoryConfig = request.inventoryConfig
         private val hotbarConfig = request.hotbarConfig
+
         val pendingInteractionsList = request.pendingInteractionsList
         private val onBreak = request.onBreak
         private val onItemDrop = request.onItemDrop
@@ -542,6 +557,19 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
 
         fun requestHotbarSwap() =
             hotbarConfig.request(HotbarRequest(context.hotbarIndex)).done
+
+        fun simulate(player: ClientPlayerEntity) {
+            val result = context.expectedPos
+                .toStructure(context.targetState)
+                .toBlueprint()
+                .simulate(player.eyePos, interactionConfig, rotationConfig, inventoryConfig, buildConfig)
+                .firstOrNull()
+                ?: return
+
+            if (result is BreakResult.Break) {
+                context = result.context
+            }
+        }
 
         fun getBreakTextureProgress(player: PlayerEntity, world: ClientWorld): Int {
             val breakDelta = context.checkedState.calcItemBlockBreakingDelta(player, world, context.expectedPos, player.mainHandStack)
