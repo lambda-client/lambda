@@ -46,7 +46,6 @@ import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.interaction.request.rotation.RotationConfig
-import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
@@ -92,8 +91,8 @@ class BuildTask @Ta5kBuilder constructor(
     }
 
     init {
-        onRotate {
-            if (collectDrops()) return@onRotate
+        listen<TickEvent.Pre> {
+            if (collectDrops()) return@listen
 
             // ToDo: Simulate for each pair player positions that work
             val results = blueprint.simulate(player.eyePos, interact, rotation, inventory, build)
@@ -107,17 +106,17 @@ class BuildTask @Ta5kBuilder constructor(
                 .filter { result -> pendingInteractions.none { it.expectedPos == result.blockPos } }
                 .sorted()
 
-            val bestResult = resultsNotBlocked.firstOrNull() ?: return@onRotate
+            val bestResult = resultsNotBlocked.firstOrNull() ?: return@listen
             when (bestResult) {
                 is BuildResult.Done,
                 is BuildResult.Ignored,
                 is BuildResult.Unbreakable,
                 is BuildResult.Restricted,
                 is BuildResult.NoPermission -> {
-                    if (pendingInteractions.isNotEmpty()) return@onRotate
+                    if (pendingInteractions.isNotEmpty()) return@listen
                     if (blueprint is PropagatingBlueprint) {
                         blueprint.next()
-                        return@onRotate
+                        return@listen
                     }
 
                     if (finishOnDone) success()
@@ -125,7 +124,7 @@ class BuildTask @Ta5kBuilder constructor(
 
                 is BuildResult.NotVisible,
                 is PlaceResult.NoIntegrity -> {
-                    if (!build.pathing) return@onRotate
+                    if (!build.pathing) return@listen
                     val sim = blueprint.simulation(interact, rotation, inventory, build)
                     val goal = BuildGoal(sim, player.blockPos)
                     BaritoneUtils.setGoalAndPath(goal)
@@ -136,7 +135,7 @@ class BuildTask @Ta5kBuilder constructor(
                 }
 
                 is BuildResult.Contextual -> {
-                    if (atMaxPendingInteractions) return@onRotate
+                    if (atMaxPendingInteractions) return@listen
                     when (bestResult) {
                         is BreakResult.Break -> {
                             val breakResults = resultsNotBlocked
@@ -159,7 +158,7 @@ class BuildTask @Ta5kBuilder constructor(
                                             onItemDrop = onItemDrop
                                         )
                                     )
-                                    return@onRotate
+                                    return@listen
                                 }
                             }
 
@@ -170,7 +169,7 @@ class BuildTask @Ta5kBuilder constructor(
                                 onItemDrop = onItemDrop
                             )
                             build.breakSettings.request(request)
-                            return@onRotate
+                            return@listen
                         }
                         is PlaceResult.Place -> {
                             val takeCount = build.placeSettings
