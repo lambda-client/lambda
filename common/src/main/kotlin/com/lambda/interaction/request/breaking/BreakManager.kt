@@ -266,7 +266,9 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         rotation = breakingInfos
             .firstOrNull { it?.breakConfig?.rotateForBreak == true }
             ?.let { info ->
-                info.rotationConfig.request(RotationRequest(info.context.rotation, info.rotationConfig))
+                // If the simulation cant find a valid rotation to break the block, the existing break context stays and the keep ticks deplete until
+                if (info.context.rotation.keepTicks <= 0) null
+                else info.rotationConfig.request(info.context.rotation)
             }
     }
 
@@ -560,7 +562,13 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
 
         fun simulate(player: ClientPlayerEntity) {
             val result = context.expectedPos
-                .toStructure(context.targetState)
+                .toStructure(
+                    if (!context.checkedState.fluidState.isEmpty) {
+                        TargetState.State(context.checkedState.fluidState.blockState)
+                    } else {
+                        TargetState.Air
+                    }
+                )
                 .toBlueprint()
                 .simulate(player.eyePos, interactionConfig, rotationConfig, inventoryConfig, buildConfig)
                 .firstOrNull()

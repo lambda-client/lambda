@@ -40,10 +40,11 @@ import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.interaction.request.rotation.RotationRequest
-import com.lambda.interaction.request.rotation.visibilty.*
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.CheckedHit
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.scanSurfaces
+import com.lambda.interaction.request.rotation.visibilty.lookAt
+import com.lambda.interaction.request.rotation.visibilty.lookAtBlock
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
@@ -454,10 +455,13 @@ object BuildSimulator {
         /* the player is buried inside the block */
         if (boxes.any { it.contains(eye) }) {
             currentCast?.blockResult?.let { blockHit ->
+                val rotationRequest = RotationRequest(
+                    lookAtBlock(pos, config = interact), rotation
+                )
                 val breakContext = BreakContext(
                     eye,
                     blockHit,
-                    lookAtBlock(pos, config = interact),
+                    rotationRequest,
                     state,
                     targetState,
                     player.inventory.selectedSlot,
@@ -505,10 +509,11 @@ object BuildSimulator {
         val bestHit = interact.pointSelection.select(validHits) ?: return acc
         val blockHit = bestHit.hit.blockResult ?: return acc
         val target = lookAt(bestHit.targetRotation, 0.001)
+        val request = RotationRequest(target, rotation)
         val instant = instantBreakable(state, pos, build.breakSettings.breakThreshold)
 
         val breakContext = BreakContext(
-            eye, blockHit, target, state, targetState, player.inventory.selectedSlot, instant
+            eye, blockHit, request, state, targetState, player.inventory.selectedSlot, instant
         )
 
         if (gamemode.isCreative) {

@@ -22,7 +22,7 @@ import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.rotation.visibilty.RotationTarget
+import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.util.world.raycast.RayCastUtils.distanceTo
 import net.minecraft.block.BlockState
 import net.minecraft.client.network.ClientPlayerInteractionManager
@@ -38,7 +38,7 @@ import java.awt.Color
 data class BreakContext(
     override val pov: Vec3d,
     override val result: BlockHitResult,
-    val rotation: RotationTarget,
+    override val rotation: RotationRequest,
     override var checkedState: BlockState,
     override val targetState: TargetState,
     override var hotbarIndex: Int,
@@ -64,7 +64,7 @@ data class BreakContext(
     override fun compareTo(other: BuildContext): Int {
         return when (other) {
             is BreakContext -> compareBy<BreakContext> {
-                it.rotation.angleDistance
+                it.rotation.target.angleDistance
             }.compare(this, other)
 
             else -> 1
