@@ -37,9 +37,6 @@ import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
-import com.lambda.interaction.request.placing.PlaceManager
-import com.lambda.interaction.request.rotation.RotationManager.onRotate
-import com.lambda.interaction.request.rotation.RotationManager.onRotatePost
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockState
@@ -87,7 +84,8 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         get() = breakingInfos.mapNotNull { it?.context?.expectedPos } + pendingBreaks.map { it.context.expectedPos }
 
     private var rotation: RotationRequest? = null
-    private var validRotation = false
+    private val validRotation
+        get() = rotation?.done ?: true
 
     private var blockBreakingCooldown = 0
 
@@ -111,28 +109,55 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
 
     init {
         listen<TickEvent.Pre>(priority = Int.MIN_VALUE + 1) {
-            if (isOnBreakCooldown()) {
-                blockBreakingCooldown--
-                return@listen
-            }
-            if (PlaceManager.activeThisTick()) return@listen
+            preEvent()
 
-            currentRequest?.let request@ { request ->
-                if (instantBreaks.isEmpty()) return@request
+            if (updateRequest()) currentRequest?.let request@ { request ->
+                if (isOnBreakCooldown()) {
+                    blockBreakingCooldown--
+                    return@request
+                }
 
-                instantBreaks
-                    .sortedBy { HotbarManager.serverSlot == it.hotbarIndex }
-                    .forEach { ctx ->
+                val breakConfig = request.buildConfig.breakSettings
+                val maxBreaksThisTick = breakConfig.maxPendingBreaks - (breakingInfos.count { it != null } + pendingBreaks.size)
+                if (maxBreaksThisTick <= 0) return@request
+
+                val validContexts = request.contexts
+                    .filter { ctx -> canAccept(ctx) }
+                    .sortedBy { it.instantBreak }
+                    .take(maxBreaksThisTick)
+
+                instantBreaks = validContexts
+                    .take(breakConfig.instantBreaksPerTick)
+                    .filter { it.instantBreak }
+                    .sortedBy { it.hotbarIndex == HotbarManager.serverSlot }
+
+                if (instantBreaks.isNotEmpty()) {
+                    instantBreaks.forEach { ctx ->
+                        if (ctx.hotbarIndex != HotbarManager.serverSlot) {
+                            if (!request.hotbarConfig.request(HotbarRequest(ctx.hotbarIndex)).done) return@request
+                        }
                         val breakInfo = handleRequestContext(ctx, request) ?: return@request
-                        if (!breakInfo.requestHotbarSwap()) return@forEach
                         updateBlockBreakingProgress(breakInfo)
                         activeThisTick = true
                     }
-                instantBreaks = emptyList()
+                    if (instantBreaks.size == breakConfig.instantBreaksPerTick) {
+                        instantBreaks = emptyList()
+                        return@request
+                    }
+                    instantBreaks = emptyList()
+                }
+
+                validContexts
+                    .filter { it.instantBreak.not() }
+                    .forEach { ctx ->
+                        if (handleRequestContext(ctx, request) == null) return@request
+                    }
             }
 
+            requestRotate()
             if (!validRotation) return@listen
 
+            // ToDo: dynamically update hotbarIndex as contexts are persistent and don't get updated by new requests each tick
             // Reversed so that the breaking order feels natural to the user as the primary break has to
             // be started after the secondary
             breakingInfos
@@ -143,44 +168,6 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                     updateBlockBreakingProgress(info)
                     activeThisTick = true
                 }
-        }
-
-        onRotate(priority = Int.MIN_VALUE) {
-            preEvent()
-
-            if (!updateRequest()) {
-                requestRotate()
-                return@onRotate
-            }
-
-            currentRequest?.let request@ { request ->
-                val breakConfig = request.buildConfig.breakSettings
-                val takeCount = breakConfig.maxPendingBreaks - (breakingInfos.count { it != null } + pendingBreaks.size)
-                if (takeCount <= 0) return@request
-                val validContexts = request.contexts
-                    .filter { ctx -> canAccept(ctx) }
-                    .sortedBy { it.instantBreak }
-                    .take(takeCount)
-
-                instantBreaks = validContexts
-                    .take(breakConfig.breaksPerTick)
-                    .filter { it.instantBreak }
-
-                if (instantBreaks.isNotEmpty()) return@request
-
-                validContexts
-                    .filter { it.instantBreak.not() }
-                    .forEach { ctx ->
-                        if (handleRequestContext(ctx, request) == null) return@request
-                    }
-            }
-
-            requestRotate()
-        }
-
-        onRotatePost(priority = Int.MIN_VALUE) {
-            validRotation = rotation?.done ?: true
-            postEvent()
         }
 
         listen<WorldEvent.BlockUpdate.Server> { event ->
@@ -282,7 +269,8 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         primaryBreakingInfo?.let { primaryInfo ->
             if (!primaryInfo.breakConfig.doubleBreak
                 || primaryInfo.startedWithSecondary
-                || secondaryBreakingInfo != null) {
+                || secondaryBreakingInfo != null
+                || requestCtx.hotbarIndex != primaryInfo.context.hotbarIndex) {
                 return null
             }
 

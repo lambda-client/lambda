@@ -142,9 +142,9 @@ class BuildTask @Ta5kBuilder constructor(
                             val breakResults = resultsNotBlocked
                                 .filterIsInstance<BreakResult.Break>()
 
-                            if (build.breakSettings.breaksPerTick > 1) {
+                            if (build.breakSettings.instantBreaksPerTick > 1) {
                                 val takeCount = build.breakSettings
-                                    .breaksPerTick
+                                    .instantBreaksPerTick
                                     .coerceAtMost(emptyPendingInteractionSlots)
                                 val instantBreakResults = breakResults
                                     .filter { it.context.instantBreak }
