@@ -20,9 +20,13 @@ package com.lambda.graphics
 import com.lambda.Lambda.mc
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.RenderEvent
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.gl.GlStateUtils.setupGL
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.resetMatrices
+import com.lambda.graphics.renderer.esp.global.DynamicESP
+import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.Communication.info
 import com.lambda.util.math.Vec2d
@@ -58,6 +62,20 @@ object RenderMain {
 
         setupGL {
             RenderEvent.World().post()
+            StaticESP.render()
+            DynamicESP.render()
+        }
+    }
+
+    init {
+        listen<TickEvent.Post> {
+            StaticESP.clear()
+            RenderEvent.StaticESP().post()
+            StaticESP.upload()
+
+            DynamicESP.clear()
+            RenderEvent.DynamicESP().post()
+            DynamicESP.upload()
         }
     }
 
