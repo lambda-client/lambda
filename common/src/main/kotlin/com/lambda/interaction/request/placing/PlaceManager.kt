@@ -132,12 +132,19 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
                     val hotbarRequest = request.hotbarConfig.request(HotbarRequest(ctx.hotbarIndex))
                     if (ctx.sneak && notSneaking) {
                         shouldCrouch = true
+                        postEvent()
                         return@listen
                     }
                     rotation?.let { rotation ->
-                        if (rotation !== ctx.rotation || !validRotation) return@listen
+                        if (rotation !== ctx.rotation || !validRotation) {
+                            postEvent()
+                            return@listen
+                        }
                     }
-                    if (!hotbarRequest.done) return@listen
+                    if (!hotbarRequest.done) {
+                        postEvent()
+                        return@listen
+                    }
 
                     val actionResult = placeBlock(ctx, request, Hand.MAIN_HAND)
                     if (!actionResult.isAccepted) {
