@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+val modId: String by project
 val modVersion: String by project
 val minecraftVersion: String by project
 val forgeVersion: String by project
@@ -47,7 +48,7 @@ loom {
         // different mod loaders, you can add them using the
         // `extraAccessWideners` property.
         // And then add them to the `mixinConfig` function.
-        mixinConfig("lambda.mixins.common.json")
+        mixinConfig("$modId.mixins.common.json")
     }
 }
 

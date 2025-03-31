@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,19 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.module.modules.movement
+package com.lambda.mixin.items;
 
-import com.lambda.module.Module
-import com.lambda.module.tag.ModuleTag
+import com.lambda.module.modules.render.MapPreview;
+import net.minecraft.client.item.TooltipData;
+import net.minecraft.item.FilledMapItem;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import org.spongepowered.asm.mixin.Mixin;
 
-object TridentBoost : Module(
-    name = "TridentBoost",
-    description = "Boosts you with tridents",
-    defaultTags = setOf(ModuleTag.MOVEMENT)
-) {
-    @JvmStatic
-    val tridentSpeed by setting("Speed Factor", 1.0, 0.1..3.0, 0.1, description = "Speed factor of the trident boost")
+import java.util.Optional;
 
-    @JvmStatic
-    val forceUse by setting("Force Use", true, description = "Try to use the trident outside of water or rain")
+@Mixin(FilledMapItem.class)
+public class FilledMapItemMixin extends Item {
+    public FilledMapItemMixin(Item.Settings settings) {
+        super(settings);
+    }
+
+    @Override
+    public Optional<TooltipData> getTooltipData(ItemStack stack) {
+        return Optional.of(new MapPreview.MapComponent(stack));
+    }
 }
