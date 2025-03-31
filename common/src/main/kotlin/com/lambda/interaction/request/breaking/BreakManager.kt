@@ -176,11 +176,11 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             postEvent()
         }
 
-        listen<UpdateManagerEvent.Rotation.Post>(priority = Int.MIN_VALUE) {
+        listen<UpdateManagerEvent.Rotation.Post>(priority = Int.MIN_VALUE + 1) {
             validRotation = rotation?.done ?: true
         }
 
-        listen<WorldEvent.BlockUpdate.Server> { event ->
+        listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE + 1) { event ->
             pendingBreaks
                 .firstOrNull { it.context.expectedPos == event.pos }
                 ?.let { pending ->
@@ -224,7 +224,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         }
 
         // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
-        listen<EntityEvent.EntityUpdate> {
+        listen<EntityEvent.EntityUpdate>(priority = Int.MIN_VALUE + 1) {
             if (it.entity !is ItemEntity) return@listen
             pendingBreaks
                 .firstOrNull { info -> matchesBlockItem(info, it.entity) }
@@ -242,7 +242,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                 ?.internalOnItemDrop(it.entity)
         }
 
-        listenUnsafe<ConnectionEvent.Connect.Pre> {
+        listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE + 1) {
             breakingInfos.forEach { it?.nullify() }
             pendingBreaks.clear()
             setBreakCooldown(0)
