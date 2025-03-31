@@ -155,7 +155,10 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             }
 
             requestRotate()
-            if (!validRotation) return@listen
+            if (!validRotation) {
+                postEvent()
+                return@listen
+            }
 
             // ToDo: dynamically update hotbarIndex as contexts are persistent and don't get updated by new requests each tick
             // Reversed so that the breaking order feels natural to the user as the primary break has to
@@ -168,6 +171,8 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                     updateBlockBreakingProgress(info)
                     activeThisTick = true
                 }
+
+            postEvent()
         }
 
         listen<WorldEvent.BlockUpdate.Server> { event ->
