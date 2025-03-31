@@ -25,16 +25,16 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
+import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
-import com.lambda.interaction.request.rotation.RotationManager.onRotatePost
-import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.item
@@ -62,19 +62,18 @@ import net.minecraft.util.math.Direction
 import net.minecraft.world.GameMode
 
 object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
-    private val pendingPlacements = LimitedDecayQueue<PlaceRequest>(
+    private val pendingPlacements = LimitedDecayQueue<PlaceInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) {
-        info("${it::class.simpleName} at ${it.placeContext.expectedPos.toShortString()} timed out")
-        mc.world?.setBlockState(it.placeContext.expectedPos, it.placeContext.checkedState)
-        it.pendingInteractionsList.remove(it.placeContext)
+        info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out")
+        mc.world?.setBlockState(it.context.expectedPos, it.context.checkedState)
+        it.pendingInteractionsList.remove(it.context)
     }
 
-    override val blockedPositions
-        get() = pendingPlacements.map { it.placeContext.expectedPos }
+    private var placeContexts = emptyList<PlaceContext>()
 
-    private var rotation: RotationRequest? = null
-    private var validRotation = false
+    override val blockedPositions
+        get() = pendingPlacements.map { it.context.expectedPos }
 
     fun Any.onPlace(
         alwaysListen: Boolean = false,
@@ -95,23 +94,27 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
     init {
         listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
             currentRequest?.let { request ->
-                val notSneaking = !player.isSneaking
-                val hotbarRequest = request.hotbarConfig.request(HotbarRequest(request.placeContext.hotbarIndex))
-                if ((request.placeContext.sneak && notSneaking) || !hotbarRequest.done || !validRotation)
-                    return@listen
+                placeContexts
+                    .forEach { ctx ->
+                        val notSneaking = !player.isSneaking
+                        val hotbarRequest = request.hotbarConfig.request(HotbarRequest(ctx.hotbarIndex))
+                        if ((ctx.sneak && notSneaking) || !hotbarRequest.done || !ctx.rotation.done)
+                            return@listen
 
-                val actionResult = placeBlock(request, Hand.MAIN_HAND)
-                if (!actionResult.isAccepted) {
-                    warn("Placement interaction failed with $actionResult")
-                }
-                activeThisTick = true
+                        val actionResult = placeBlock(ctx, request, Hand.MAIN_HAND)
+                        if (!actionResult.isAccepted) {
+                            warn("Placement interaction failed with $actionResult")
+                        }
+                        activeThisTick = true
+                    }
+                placeContexts = emptyList()
             }
         }
 
         onRotate(priority = Int.MIN_VALUE) {
             preEvent()
 
-            if (!updateRequest { request -> canPlace(request.value.placeContext) }) {
+            if (!updateRequest()) {
                 postEvent()
                 return@onRotate
             }
@@ -122,45 +125,48 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
             }
 
             currentRequest?.let request@ { request ->
-                if (pendingPlacements.size >= request.buildConfig.placeSettings.maxPendingPlacements) {
-                    postEvent()
-                    return@onRotate
-                }
-
-                val placeConfig = request.buildConfig.placeSettings
-                rotation = if (placeConfig.rotateForPlace || placeConfig.axisRotate)
-                    request.rotationConfig.request(request.placeContext.rotation)
-                else null
-
                 pendingPlacements.setMaxSize(request.buildConfig.placeSettings.maxPendingPlacements)
                 pendingPlacements.setDecayTime(request.buildConfig.interactionTimeout * 50L)
-            }
-        }
 
-        onRotatePost(priority = Int.MIN_VALUE) {
-            validRotation = rotation?.done ?: true
+                val placeConfig = request.buildConfig.placeSettings
+
+                val maxPlacementsThisTick =  (placeConfig.maxPendingPlacements - pendingPlacements.size).coerceAtLeast(0)
+                val takeCount = (placeConfig.placementsPerTick.coerceAtMost(maxPlacementsThisTick))
+                val isSneaking = player.isSneaking
+                val currentHotbarIndex = HotbarManager.serverSlot
+                placeContexts = request.placeContexts
+                    .filter { canPlace(it) }
+                    .sortedBy { isSneaking == it.sneak && currentHotbarIndex == it.hotbarIndex }
+                    .take(takeCount)
+
+                request.placeContexts.firstOrNull()?.let { ctx ->
+                    if (placeConfig.rotateForPlace || placeConfig.axisRotate)
+                        request.rotationConfig.request(ctx.rotation)
+                }
+            }
+
             postEvent()
         }
 
         listen<MovementEvent.InputUpdate> {
-            if (currentRequest?.placeContext?.sneak == true) it.input.sneaking = true
+            if (placeContexts.firstOrNull()?.sneak == true) it.input.sneaking = true
         }
 
         listen<WorldEvent.BlockUpdate.Server> { event ->
             pendingPlacements
-                .firstOrNull { it.placeContext.expectedPos == event.pos }
-                ?.let { request ->
-                    removePendingPlace(request)
+                .firstOrNull { it.context.expectedPos == event.pos }
+                ?.let { info ->
+                    removePendingPlace(info)
 
                     // return if the block wasn't placed
-                    if (!matchesTargetState(event.pos, request.placeContext.targetState, event.newState))
+                    if (!matchesTargetState(event.pos, info.context.targetState, event.newState))
                         return@listen
 
-                    if (request.buildConfig.placeSettings.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
-                        with (request.placeContext) {
+                    if (info.placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
+                        with (info.context) {
                             placeSound(expectedState.block.item as BlockItem, expectedState, expectedPos)
                         }
-                    request.onPlace()
+                    info.onPlace()
                     return@listen
                 }
         }
@@ -168,7 +174,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
 
     private fun canPlace(placeContext: PlaceContext) =
         pendingPlacements.none { pending ->
-            pending.placeContext.expectedPos == placeContext.expectedPos
+            pending.context.expectedPos == placeContext.expectedPos
         }
 
     private fun SafeContext.matchesTargetState(pos: BlockPos, targetState: TargetState, newState: BlockState) =
@@ -178,15 +184,16 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
             false
         }
 
-    private fun SafeContext.placeBlock(request: PlaceRequest, hand: Hand): ActionResult {
+    private fun SafeContext.placeBlock(placeContext: PlaceContext, request: PlaceRequest, hand: Hand): ActionResult {
         interaction.syncSelectedSlot()
-        val hitResult = request.placeContext.result
+        val hitResult = placeContext.result
         if (!world.worldBorder.contains(hitResult.blockPos)) return ActionResult.FAIL
         if (gamemode == GameMode.SPECTATOR) return ActionResult.PASS
-        return interactBlockInternal(request, request.buildConfig.placeSettings, hand, hitResult)
+        return interactBlockInternal(placeContext, request, request.buildConfig.placeSettings, hand, hitResult)
     }
 
     private fun SafeContext.interactBlockInternal(
+        placeContext: PlaceContext,
         request: PlaceRequest,
         placeConfig: PlaceConfig,
         hand: Hand,
@@ -212,17 +219,18 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
             val itemUsageContext = ItemUsageContext(player, hand, hitResult)
             return if (gamemode.isCreative) {
                 val i = itemStack.count
-                useOnBlock(request, hand, hitResult, placeConfig, itemStack, itemUsageContext)
+                useOnBlock(placeContext, request, hand, hitResult, placeConfig, itemStack, itemUsageContext)
                     .also {
                         itemStack.count = i
                     }
             } else
-                useOnBlock(request, hand, hitResult, placeConfig, itemStack, itemUsageContext)
+                useOnBlock(placeContext, request, hand, hitResult, placeConfig, itemStack, itemUsageContext)
         }
         return ActionResult.PASS
     }
 
     private fun SafeContext.useOnBlock(
+        placeContext: PlaceContext,
         request: PlaceRequest,
         hand: Hand,
         hitResult: BlockHitResult,
@@ -238,10 +246,11 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
 
         val item = (itemStack.item as? BlockItem) ?: return ActionResult.PASS
 
-        return place(request, hand, hitResult, placeConfig, item, ItemPlacementContext(context))
+        return place(placeContext, request, hand, hitResult, placeConfig, item, ItemPlacementContext(context))
     }
 
     private fun SafeContext.place(
+        placeContext: PlaceContext,
         request: PlaceRequest,
         hand: Hand,
         hitResult: BlockHitResult,
@@ -258,10 +267,12 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
         val stackInHand = player.getStackInHand(hand)
         val stackCountPre = stackInHand.count
         if (placeConfig.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None) {
-            addPendingPlace(request)
+            addPendingPlace(
+                PlaceInfo(placeContext, request.onPlace, request.pendingInteractionsList, placeConfig)
+            )
         }
 
-        if (request.buildConfig.placeSettings.airPlace == PlaceConfig.AirPlaceMode.Grim) {
+        if (placeConfig.airPlace == PlaceConfig.AirPlaceMode.Grim) {
             val placeHand = if (hand == Hand.MAIN_HAND) Hand.OFF_HAND else Hand.MAIN_HAND
             airPlaceOffhandSwap()
             sendPlacePacket(placeHand, hitResult)
@@ -270,8 +281,8 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
             sendPlacePacket(hand, hitResult)
         }
 
-        if (request.buildConfig.placeSettings.swing) {
-            swingHand(request.buildConfig.placeSettings.swingType, hand)
+        if (placeConfig.swing) {
+            swingHand(placeConfig.swingType, hand)
 
             if (!stackInHand.isEmpty && (stackInHand.count != stackCountPre || interaction.hasCreativeInventory())) {
                 mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
@@ -332,15 +343,22 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
         )
     }
 
-    private fun addPendingPlace(request: PlaceRequest) {
-        pendingPlacements.add(request)
-        request.pendingInteractionsList.add(request.placeContext)
+    private fun addPendingPlace(info: PlaceInfo) {
+        pendingPlacements.add(info)
+        info.pendingInteractionsList.add(info.context)
     }
 
-    private fun removePendingPlace(request: PlaceRequest) {
-        pendingPlacements.remove(request)
-        request.pendingInteractionsList.remove(request.placeContext)
+    private fun removePendingPlace(info: PlaceInfo) {
+        pendingPlacements.remove(info)
+        info.pendingInteractionsList.remove(info.context)
     }
+
+    private data class PlaceInfo(
+        val context: PlaceContext,
+        val onPlace: () -> Unit,
+        val pendingInteractionsList: MutableCollection<BuildContext>,
+        val placeConfig: PlaceConfig
+    )
 
     override fun preEvent() = UpdateManagerEvent.Place.Pre().post()
     override fun postEvent() = UpdateManagerEvent.Place.Post().post()

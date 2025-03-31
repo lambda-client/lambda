@@ -22,17 +22,21 @@ import com.lambda.Lambda.LOG
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.config.groups.InventoryConfig
-import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
-import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.blueprint.TickingBlueprint
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.result.*
+import com.lambda.interaction.construction.result.BreakResult
+import com.lambda.interaction.construction.result.BuildResult
+import com.lambda.interaction.construction.result.Drawable
+import com.lambda.interaction.construction.result.Navigable
+import com.lambda.interaction.construction.result.PlaceResult
+import com.lambda.interaction.construction.result.Resolvable
 import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
@@ -41,6 +45,7 @@ import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.tr
 import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.placing.PlaceRequest
+import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
@@ -141,14 +146,14 @@ class BuildTask @Ta5kBuilder constructor(
                                 val takeCount = build.breakSettings
                                     .breaksPerTick
                                     .coerceAtMost(emptyPendingInteractionSlots)
-                                val instantResults = breakResults
+                                val instantBreakResults = breakResults
                                     .filter { it.context.instantBreak }
                                     .take(takeCount)
 
-                                if (instantResults.isNotEmpty()) {
+                                if (instantBreakResults.isNotEmpty()) {
                                     build.breakSettings.request(
                                         BreakRequest(
-                                            instantResults.map { it.context }, build, rotation, hotbar,
+                                            instantBreakResults.map { it.context }, build, rotation, hotbar,
                                             pendingInteractionsList = pendingInteractions,
                                             onBreak = { breaks++ },
                                             onItemDrop = onItemDrop
@@ -168,8 +173,18 @@ class BuildTask @Ta5kBuilder constructor(
                             return@onRotate
                         }
                         is PlaceResult.Place -> {
+                            val takeCount = build.placeSettings
+                                .placementsPerTick
+                                .coerceAtMost(emptyPendingInteractionSlots)
+                            val placeResults = resultsNotBlocked
+                                .filterIsInstance<PlaceResult.Place>()
+                                .distinctBy { it.blockPos }
+                                .take(takeCount)
+
                             build.placeSettings.request(
-                                PlaceRequest(bestResult.context, build, rotation, hotbar, interact, pendingInteractions) { placements++ }
+                                PlaceRequest(
+                                    placeResults.map { it.context }, build, rotation, hotbar, interact, pendingInteractions
+                                ) { placements++ }
                             )
                         }
                     }

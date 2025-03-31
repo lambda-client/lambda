@@ -35,6 +35,7 @@ import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
+import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
@@ -119,12 +120,14 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             currentRequest?.let request@ { request ->
                 if (instantBreaks.isEmpty()) return@request
 
-                instantBreaks.forEach { ctx ->
-                    val breakInfo = handleRequestContext(ctx, request) ?: return@request
-                    if (!breakInfo.requestHotbarSwap()) return@forEach
-                    updateBlockBreakingProgress(breakInfo)
-                    activeThisTick = true
-                }
+                instantBreaks
+                    .sortedBy { HotbarManager.serverSlot == it.hotbarIndex }
+                    .forEach { ctx ->
+                        val breakInfo = handleRequestContext(ctx, request) ?: return@request
+                        if (!breakInfo.requestHotbarSwap()) return@forEach
+                        updateBlockBreakingProgress(breakInfo)
+                        activeThisTick = true
+                    }
                 instantBreaks = emptyList()
             }
 

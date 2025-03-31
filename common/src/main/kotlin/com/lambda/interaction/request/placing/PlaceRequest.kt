@@ -29,7 +29,7 @@ import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 
 data class PlaceRequest(
-    val placeContext: PlaceContext,
+    val placeContexts: Collection<PlaceContext>,
     val buildConfig: BuildConfig,
     val rotationConfig: RotationConfig,
     val hotbarConfig: HotbarConfig,
@@ -40,6 +40,6 @@ data class PlaceRequest(
 ) : Request(prio) {
     override val done: Boolean
         get() = runSafe {
-            placeContext.targetState.matches(blockState(placeContext.expectedPos), placeContext.expectedPos, world)
+            placeContexts.all { it.targetState.matches(blockState(it.expectedPos), it.expectedPos, world) }
         } == true
 }

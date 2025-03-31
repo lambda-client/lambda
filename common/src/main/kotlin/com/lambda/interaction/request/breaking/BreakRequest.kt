@@ -29,7 +29,7 @@ import com.lambda.util.BlockUtils.blockState
 import net.minecraft.entity.ItemEntity
 
 data class BreakRequest(
-    val contexts: List<BreakContext>,
+    val contexts: Collection<BreakContext>,
     val buildConfig: BuildConfig,
     val rotationConfig: RotationConfig,
     val hotbarConfig: HotbarConfig,
