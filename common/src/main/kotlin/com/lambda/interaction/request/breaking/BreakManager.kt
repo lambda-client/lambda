@@ -129,13 +129,15 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
 
                 val validContexts = request.contexts
                     .filter { ctx -> canAccept(ctx) }
-                    .sortedBy { it.instantBreak }
+                    .sortedWith(
+                        compareByDescending<BreakContext> { it.instantBreak }
+                            .thenByDescending { it.hotbarIndex == HotbarManager.serverSlot }
+                    )
                     .take(maxBreaksThisTick)
 
                 val instantBreaks = validContexts
                     .take(breakConfig.instantBreaksPerTick)
                     .filter { it.instantBreak }
-                    .sortedBy { it.hotbarIndex == HotbarManager.serverSlot }
 
                 if (instantBreaks.isNotEmpty()) {
                     instantBreaks.forEach { ctx ->

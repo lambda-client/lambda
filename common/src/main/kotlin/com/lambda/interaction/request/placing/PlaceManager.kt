@@ -117,7 +117,10 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
                 val currentHotbarIndex = HotbarManager.serverSlot
                 val placeContexts = request.placeContexts
                     .filter { canPlace(it) }
-                    .sortedBy { isSneaking == it.sneak && currentHotbarIndex == it.hotbarIndex }
+                    .sortedWith(
+                        compareByDescending<PlaceContext> { it.hotbarIndex == currentHotbarIndex }
+                            .thenByDescending { it.sneak == isSneaking }
+                    )
                     .take(takeCount)
 
                 rotation = if (placeConfig.rotateForPlace || placeConfig.axisRotate) {
