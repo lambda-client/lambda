@@ -573,7 +573,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                 )
                 .toBlueprint()
                 .simulate(player.eyePos, interactionConfig, rotationConfig, inventoryConfig, buildConfig)
-                .firstOrNull()
+                .minOrNull()
                 ?: return
 
             if (result is BreakResult.Break) {
