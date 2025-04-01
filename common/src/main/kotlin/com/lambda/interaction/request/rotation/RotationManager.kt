@@ -23,7 +23,6 @@ import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
@@ -80,57 +79,6 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
     }
 
     init {
-        // For some reason we have to update AFTER sending player packets
-        // instead of updating on TickEvent.Pre (am I doing something wrong?)
-        listen<PlayerPacketEvent.Post>(Int.MIN_VALUE) {
-            preEvent()
-
-            // Update the request
-            val changed = updateRequest(true) { entry ->
-                // skip requests that have failed to build the rotation
-                // to free the request place for others
-                entry.value.target.targetRotation.value != null
-            }
-
-            if (currentRequest != null) activeThisTick = true
-
-            if (!changed) { // rebuild the rotation if the same context gets used again
-                currentRequest?.target?.targetRotation?.update()
-            }
-
-            // Calculate the target rotation
-            val targetRotation = currentRequest?.let { request ->
-                val rotationTo = if (request.keepTicks >= 0)
-                    request.target.targetRotation.value
-                        ?: currentRotation // same context gets used again && the rotation is null this tick
-                else player.rotation
-
-                val speedMultiplier = if (request.keepTicks < 0) 1.0 else request.speedMultiplier
-                val turnSpeed = request.turnSpeed() * speedMultiplier
-
-                currentRotation.slerp(rotationTo, turnSpeed)
-            } ?: player.rotation
-
-            // Update the current rotation
-            prevRotation = currentRotation
-            currentRotation = targetRotation/*.fixSensitivity(prevRotation)*/
-
-            // Handle LOCK mode
-            if (currentRequest?.mode == RotationMode.Lock) {
-                player.yaw = currentRotation.yawF
-                player.pitch = currentRotation.pitchF
-            }
-
-            // Tick and reset the context
-            currentRequest?.let {
-                if (--it.keepTicks > 0) return@let
-                if (--it.decayTicks >= 0) return@let
-                currentRequest = null
-            }
-
-            postEvent()
-        }
-
         listen<PacketEvent.Send.Post> { event ->
             val packet = event.packet
             if (packet !is PlayerPositionLookS2CPacket) return@listen
@@ -143,6 +91,56 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
         listenUnsafe<ConnectionEvent.Connect.Pre> {
             reset(Rotation.ZERO)
         }
+    }
+
+    @JvmStatic
+    fun processRotations() = runSafe {
+        preEvent()
+
+        // Update the request
+        val changed = updateRequest(true) { entry ->
+            // skip requests that have failed to build the rotation
+            // to free the request place for others
+            entry.value.target.targetRotation.value != null
+        }
+
+        if (currentRequest != null) activeThisTick = true
+
+        if (!changed) { // rebuild the rotation if the same context gets used again
+            currentRequest?.target?.targetRotation?.update()
+        }
+
+        // Calculate the target rotation
+        val targetRotation = currentRequest?.let { request ->
+            val rotationTo = if (request.keepTicks >= 0)
+                request.target.targetRotation.value
+                    ?: currentRotation // same context gets used again && the rotation is null this tick
+            else player.rotation
+
+            val speedMultiplier = if (request.keepTicks < 0) 1.0 else request.speedMultiplier
+            val turnSpeed = request.turnSpeed() * speedMultiplier
+
+            currentRotation.slerp(rotationTo, turnSpeed)
+        } ?: player.rotation
+
+        // Update the current rotation
+        prevRotation = currentRotation
+        currentRotation = targetRotation/*.fixSensitivity(prevRotation)*/
+
+        // Handle LOCK mode
+        if (currentRequest?.mode == RotationMode.Lock) {
+            player.yaw = currentRotation.yawF
+            player.pitch = currentRotation.pitchF
+        }
+
+        // Tick and reset the context
+        currentRequest?.let {
+            if (--it.keepTicks > 0) return@let
+            if (--it.decayTicks >= 0) return@let
+            currentRequest = null
+        }
+
+        postEvent()
     }
 
     private fun reset(rotation: Rotation) {
