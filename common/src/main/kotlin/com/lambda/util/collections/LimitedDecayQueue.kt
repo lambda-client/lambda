@@ -125,7 +125,7 @@ class LimitedDecayQueue<E>(
         cleanUp()
     }
 
-    private fun cleanUp() {
+    fun cleanUp() {
         val now = Instant.now()
         while (queue.isNotEmpty() && now.minusMillis(maxAge).isAfter(queue.peek().second)) {
             onDecay(queue.poll().first)

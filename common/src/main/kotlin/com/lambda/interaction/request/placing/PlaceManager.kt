@@ -98,6 +98,8 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
         listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
             preEvent()
 
+            pendingPlacements.cleanUp()
+
             if (!updateRequest()) {
                 postEvent()
                 return@listen

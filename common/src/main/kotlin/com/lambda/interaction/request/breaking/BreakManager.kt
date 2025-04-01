@@ -113,6 +113,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         listen<TickEvent.Pre>(priority = Int.MIN_VALUE + 1) {
             preEvent()
 
+            pendingBreaks.cleanUp()
             breakingInfos.forEach {
                 it?.simulate(player)
             }
