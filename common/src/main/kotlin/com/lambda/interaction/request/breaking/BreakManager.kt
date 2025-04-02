@@ -41,7 +41,6 @@ import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
-import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
@@ -87,10 +86,6 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
 
     override val blockedPositions
         get() = breakingInfos.mapNotNull { it?.context?.expectedPos } + pendingBreaks.map { it.context.expectedPos }
-
-    private var rotation: RotationRequest? = null
-    private val validRotation
-        get() = rotation?.done ?: true
 
     private var blockBreakingCooldown = 0
 
@@ -160,11 +155,19 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                     }
             }
 
-            requestRotate()
-            if (!validRotation) {
-                postEvent()
-                return@listen
-            }
+            breakingInfos
+                .firstOrNull { it?.breakConfig?.rotateForBreak == true }
+                ?.let { info ->
+                    // If the simulation cant find a valid rotation to break the block, the existing break context stays and the keep ticks deplete until
+                    if (info.context.rotation.keepTicks <= 0) null
+                    else info.rotationConfig.request(info.context.rotation)
+                }
+                ?.let { rot ->
+                    if (!rot.done) {
+                        postEvent()
+                        return@listen
+                    }
+                }
 
             // Reversed so that the breaking order feels natural to the user as the primary break has to
             // be started after the secondary
@@ -261,16 +264,6 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             this@BreakManager.warn("Break at ${pos.toShortString()} was rejected with $newState instead of $targetState")
             false
         }
-
-    private fun requestRotate() {
-        rotation = breakingInfos
-            .firstOrNull { it?.breakConfig?.rotateForBreak == true }
-            ?.let { info ->
-                // If the simulation cant find a valid rotation to break the block, the existing break context stays and the keep ticks deplete until
-                if (info.context.rotation.keepTicks <= 0) null
-                else info.rotationConfig.request(info.context.rotation)
-            }
-    }
 
     private fun handleRequestContext(
         requestCtx: BreakContext,

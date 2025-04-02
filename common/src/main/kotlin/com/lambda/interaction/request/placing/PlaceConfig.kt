@@ -25,9 +25,12 @@ abstract class PlaceConfig(
     priority: Priority
 ) : RequestConfig<PlaceRequest>(priority) {
     abstract val rotateForPlace: Boolean
+    val rotate
+        get() = rotateForPlace || axisRotate
     abstract val airPlace: AirPlaceMode
     protected abstract val axisRotateSetting: Boolean
-    abstract val axisRotate: Boolean
+    val axisRotate
+        get() = airPlace.isEnabled() && axisRotateSetting
     abstract val placeConfirmationMode: PlaceConfirmationMode
     abstract val maxPendingPlacements: Int
     abstract val placementsPerTick: Int

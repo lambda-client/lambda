@@ -172,13 +172,10 @@ class BuildTask @Ta5kBuilder constructor(
                             return@listen
                         }
                         is PlaceResult.Place -> {
-                            val takeCount = build.placeSettings
-                                .placementsPerTick
-                                .coerceAtMost(emptyPendingInteractionSlots)
                             val placeResults = resultsNotBlocked
                                 .filterIsInstance<PlaceResult.Place>()
                                 .distinctBy { it.blockPos }
-                                .take(takeCount)
+                                .take(emptyPendingInteractionSlots)
 
                             build.placeSettings.request(
                                 PlaceRequest(

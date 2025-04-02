@@ -111,9 +111,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
                 pendingPlacements.setDecayTime(request.buildConfig.interactionTimeout * 50L)
 
                 val placeConfig = request.buildConfig.placeSettings
-
-                val maxPlacementsThisTick =  (placeConfig.maxPendingPlacements - pendingPlacements.size).coerceAtLeast(0)
-                val takeCount = (placeConfig.placementsPerTick.coerceAtMost(maxPlacementsThisTick))
                 val isSneaking = player.isSneaking
                 val currentHotbarIndex = HotbarManager.serverSlot
                 val placeContexts = request.placeContexts
@@ -122,33 +119,42 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
                         compareByDescending<PlaceContext> { it.hotbarIndex == currentHotbarIndex }
                             .thenByDescending { it.sneak == isSneaking }
                     )
-                    .take(takeCount)
 
-                placeContexts.forEach { ctx ->
-                    val notSneaking = !player.isSneaking
-                    val hotbarRequest = request.hotbarConfig.request(HotbarRequest(ctx.hotbarIndex))
-                    if (ctx.sneak && notSneaking) {
-                        shouldCrouch = true
-                        postEvent()
-                        return@listen
-                    }
-                    if ((placeConfig.rotateForPlace || placeConfig.axisRotate)) {
-                        rotation = request.rotationConfig.request(ctx.rotation)
-                        if (!ctx.rotation.target.verify()) {
+                val maxPlacementsThisTick =  (placeConfig.maxPendingPlacements - pendingPlacements.size).coerceAtLeast(0)
+                val takeCount = (placeConfig.placementsPerTick.coerceAtMost(maxPlacementsThisTick))
+                val nextRotationPrediction = placeContexts.getOrNull(takeCount)?.rotation
+
+                placeContexts
+                    .take(takeCount)
+                    .forEach { ctx ->
+                        val notSneaking = !player.isSneaking
+                        val hotbarRequest = request.hotbarConfig.request(HotbarRequest(ctx.hotbarIndex))
+                        if (placeConfig.rotate) {
+                            val rot = request.rotationConfig.request(ctx.rotation)
+                            if (!rot.done) {
+                                postEvent()
+                                return@listen
+                            }
+                        }
+                        if (ctx.sneak && notSneaking) {
+                            shouldCrouch = true
                             postEvent()
                             return@listen
                         }
-                    }
-                    if (!hotbarRequest.done) {
-                        postEvent()
-                        return@listen
+                        if (!hotbarRequest.done) {
+                            postEvent()
+                            return@listen
+                        }
+
+                        val actionResult = placeBlock(ctx, request, Hand.MAIN_HAND)
+                        if (!actionResult.isAccepted) {
+                            warn("Placement interaction failed with $actionResult")
+                        }
+                        activeThisTick = true
                     }
 
-                    val actionResult = placeBlock(ctx, request, Hand.MAIN_HAND)
-                    if (!actionResult.isAccepted) {
-                        warn("Placement interaction failed with $actionResult")
-                    }
-                    activeThisTick = true
+                nextRotationPrediction?.let { rot ->
+                    request.rotationConfig.request(rot)
                 }
             }
 
