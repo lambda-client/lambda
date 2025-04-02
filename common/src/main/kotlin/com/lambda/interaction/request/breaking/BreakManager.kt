@@ -89,7 +89,8 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         get() = breakingInfos.mapNotNull { it?.context?.expectedPos } + pendingBreaks.map { it.context.expectedPos }
 
     private var rotation: RotationRequest? = null
-    private var validRotation = false
+    private val validRotation
+        get() = rotation?.done ?: true
 
     private var blockBreakingCooldown = 0
 
@@ -160,7 +161,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             }
 
             requestRotate()
-            if (!validRotation && rotation != null) {
+            if (!validRotation) {
                 postEvent()
                 return@listen
             }
@@ -177,10 +178,6 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                 }
 
             postEvent()
-        }
-
-        listen<UpdateManagerEvent.Rotation.Post>(priority = Int.MIN_VALUE + 1) {
-            validRotation = rotation?.done ?: true
         }
 
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE + 1) { event ->

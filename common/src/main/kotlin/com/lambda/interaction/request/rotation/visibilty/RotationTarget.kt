@@ -35,7 +35,7 @@ import com.lambda.util.collections.updatableLazy
  */
 data class RotationTarget(
     val hit: RequestedHit? = null,
-    val verify: RotationTarget.() -> Boolean = { hit?.verifyRotation() ?: true },
+    val verify: () -> Boolean = { hit?.verifyRotation() ?: true },
     private val buildRotation: SafeContext.() -> Rotation?,
 ) {
     val targetRotation = updatableLazy {

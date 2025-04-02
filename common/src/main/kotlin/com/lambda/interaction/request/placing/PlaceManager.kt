@@ -71,7 +71,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
     }
 
     private var rotation: RotationRequest? = null
-    private var validRotation = false
 
     private var shouldCrouch = false
 
@@ -125,13 +124,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
                     )
                     .take(takeCount)
 
-                rotation = if (placeConfig.rotateForPlace || placeConfig.axisRotate) {
-                    placeContexts.firstOrNull()?.let { ctx ->
-                        if (ctx.rotation.target.angleDistance == 0.0) null
-                        else request.rotationConfig.request(ctx.rotation)
-                    }
-                } else null
-
                 placeContexts.forEach { ctx ->
                     val notSneaking = !player.isSneaking
                     val hotbarRequest = request.hotbarConfig.request(HotbarRequest(ctx.hotbarIndex))
@@ -140,8 +132,9 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
                         postEvent()
                         return@listen
                     }
-                    rotation?.let { rotation ->
-                        if (rotation !== ctx.rotation || !validRotation) {
+                    if ((placeConfig.rotateForPlace || placeConfig.axisRotate)) {
+                        rotation = request.rotationConfig.request(ctx.rotation)
+                        if (!ctx.rotation.target.verify()) {
                             postEvent()
                             return@listen
                         }
@@ -160,10 +153,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
             }
 
             postEvent()
-        }
-
-        listen<UpdateManagerEvent.Rotation.Post>(priority = Int.MIN_VALUE) {
-            validRotation = rotation?.done ?: true
         }
 
         listen<MovementEvent.InputUpdate>(priority = Int.MIN_VALUE) {
