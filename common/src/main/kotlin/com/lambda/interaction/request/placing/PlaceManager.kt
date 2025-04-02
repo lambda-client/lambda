@@ -34,7 +34,6 @@ import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
-import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.item
@@ -69,8 +68,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
         mc.world?.setBlockState(it.context.expectedPos, it.context.checkedState)
         it.pendingInteractionsList.remove(it.context)
     }
-
-    private var rotation: RotationRequest? = null
 
     private var shouldCrouch = false
 
