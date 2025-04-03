@@ -316,6 +316,10 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                 onBlockBreak(info)
                 PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
             }
+            val swing = info.breakConfig.swing
+            if (swing.isEnabled()) {
+                swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
+            }
             return true
         }
 
