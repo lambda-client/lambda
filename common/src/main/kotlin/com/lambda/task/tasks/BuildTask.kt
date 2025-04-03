@@ -107,13 +107,14 @@ class BuildTask @Ta5kBuilder constructor(
                 .sorted()
 
             val bestResult = resultsNotBlocked.firstOrNull() ?: return@listen
+            if (bestResult !is BuildResult.Contextual && pendingInteractions.isNotEmpty())
+                return@listen
             when (bestResult) {
                 is BuildResult.Done,
                 is BuildResult.Ignored,
                 is BuildResult.Unbreakable,
                 is BuildResult.Restricted,
                 is BuildResult.NoPermission -> {
-                    if (pendingInteractions.isNotEmpty()) return@listen
                     if (blueprint is PropagatingBlueprint) {
                         blueprint.next()
                         return@listen
