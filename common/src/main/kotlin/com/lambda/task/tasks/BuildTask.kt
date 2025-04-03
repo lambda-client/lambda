@@ -30,6 +30,7 @@ import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStruc
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.blueprint.TickingBlueprint
+import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.result.BuildResult
@@ -139,32 +140,27 @@ class BuildTask @Ta5kBuilder constructor(
                     if (atMaxPendingInteractions) return@listen
                     when (bestResult) {
                         is BreakResult.Break -> {
-                            val breakResults = resultsNotBlocked
-                                .filterIsInstance<BreakResult.Break>()
+                            val breakResults = resultsNotBlocked.filterIsInstance<BreakResult.Break>()
+                            val requestContexts = arrayListOf<BreakContext>()
 
                             if (build.breakSettings.instantBreaksPerTick > 1) {
                                 val takeCount = build.breakSettings
                                     .instantBreaksPerTick
                                     .coerceAtMost(emptyPendingInteractionSlots)
-                                val instantBreakResults = breakResults
+                                breakResults
                                     .filter { it.context.instantBreak }
                                     .take(takeCount)
+                                    .let { instantBreakResults ->
+                                        requestContexts.addAll(instantBreakResults.map { it.context })
+                                    }
+                            }
 
-                                if (instantBreakResults.isNotEmpty()) {
-                                    build.breakSettings.request(
-                                        BreakRequest(
-                                            instantBreakResults.map { it.context }, build, rotation, interact, inventory, hotbar,
-                                            pendingInteractionsList = pendingInteractions,
-                                            onBreak = { breaks++ },
-                                            onItemDrop = onItemDrop
-                                        )
-                                    )
-                                    return@listen
-                                }
+                            if (requestContexts.isEmpty()) {
+                                requestContexts.addAll(breakResults.map { it.context })
                             }
 
                             val request = BreakRequest(
-                                breakResults.map { it.context }, build, rotation, interact, inventory, hotbar,
+                                requestContexts, build, rotation, interact, inventory, hotbar,
                                 pendingInteractionsList = pendingInteractions,
                                 onBreak = { breaks++ },
                                 onItemDrop = onItemDrop
