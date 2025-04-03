@@ -17,29 +17,13 @@
 
 package com.lambda.gui.component.core
 
-import com.lambda.graphics.renderer.gui.rect.FilledRectRenderer.filledRect
+import com.lambda.graphics.renderer.gui.RectRenderer.filledRect
 import com.lambda.gui.component.layout.Layout
-import com.lambda.util.math.Rect
-import java.awt.Color
 
 class FilledRect(
     owner: Layout
-) : Layout(owner) {
-    @UIRenderPr0p3rty var leftTopRadius = 0.0
-    @UIRenderPr0p3rty var rightTopRadius = 0.0
-    @UIRenderPr0p3rty var rightBottomRadius = 0.0
-    @UIRenderPr0p3rty var leftBottomRadius = 0.0
-
-    @UIRenderPr0p3rty var leftTopColor: Color = Color.WHITE
-    @UIRenderPr0p3rty var rightTopColor: Color = Color.WHITE
-    @UIRenderPr0p3rty var rightBottomColor: Color = Color.WHITE
-    @UIRenderPr0p3rty var leftBottomColor: Color = Color.WHITE
-
-    @UIRenderPr0p3rty var shade = false
-
+) : RectLayout(owner) {
     init {
-        properties.interactionPassthrough = true
-
         onRender {
             filledRect(
                 rect,
@@ -54,46 +38,6 @@ class FilledRect(
                 shade
             )
         }
-    }
-
-    fun setRadius(radius: Double) {
-        leftTopRadius = radius
-        rightTopRadius = radius
-        rightBottomRadius = radius
-        leftBottomRadius = radius
-    }
-
-    fun setRadius(
-        leftTopRadius: Double,
-        rightTopRadius: Double,
-        rightBottomRadius: Double,
-        leftBottomRadius: Double,
-    ) {
-        this.leftTopRadius = leftTopRadius
-        this.rightTopRadius = rightTopRadius
-        this.rightBottomRadius = rightBottomRadius
-        this.leftBottomRadius = leftBottomRadius
-    }
-
-    fun setColor(color: Color) {
-        leftTopColor = color
-        rightTopColor = color
-        rightBottomColor = color
-        leftBottomColor = color
-    }
-
-    fun setColorH(colorL: Color, colorR: Color) {
-        leftTopColor = colorL
-        rightTopColor = colorR
-        rightBottomColor = colorR
-        leftBottomColor = colorL
-    }
-
-    fun setColorV(colorT: Color, colorB: Color) {
-        leftTopColor = colorT
-        rightTopColor = colorT
-        rightBottomColor = colorB
-        leftBottomColor = colorB
     }
 
     companion object {

@@ -17,25 +17,20 @@
 
 package com.lambda.module.hud
 
-import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
 import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.Vec2d
 
-object ModuleList : HudModule(
+object ModuleList : HudModule.Text(
     name = "ModuleList",
     defaultTags = setOf(ModuleTag.CLIENT),
 ) {
-    override val width = 200.0
-    override val height = 200.0
 
-    init {
-        onRender {
-            val enabled = ModuleRegistry.modules
-                .filter { it.isEnabled }
-                .filter { it.isVisible.value }
-            drawString(enabled.joinToString("\n") { "${it.name} [${it.keybind.name}]" }, Vec2d.ZERO)
-        }
+    override fun getText(): String {
+        val enabled = ModuleRegistry.modules
+            .filter { it.isEnabled }
+            .filter { it.isVisible.value }
+
+        return enabled.joinToString("\n") { "${it.name} [${it.keybind.name}]" }
     }
 }

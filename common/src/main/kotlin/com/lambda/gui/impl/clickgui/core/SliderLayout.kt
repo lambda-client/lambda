@@ -24,9 +24,10 @@ import com.lambda.gui.component.core.OutlineRect.Companion.outline
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.core.insertLayout
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.impl.clickgui.module.settings.SettingSlider
+import com.lambda.gui.impl.clickgui.module.setting.SettingSlider
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.Mouse
+import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.multAlpha
 import com.lambda.util.math.setAlpha
@@ -34,12 +35,12 @@ import com.lambda.util.math.transform
 import java.awt.Color
 
 class SliderLayout(
-    owner: Layout
+    owner: Layout,
+    private val isVertical: Boolean
 ) : AnimatedChild(owner, "") {
     // Not a great solution
-    private val setting = owner as? SettingSlider<*, *>
+    private val setting = owner as? SettingSlider<*>
     private val showAnim get() = setting?.showAnimation ?: showAnimation
-    private val hoverAnim get() = setting?.hoverAnimation ?: hoverAnimation
     private val pressedBut get() = setting?.pressedButton ?: pressedButton
 
     // Actions
@@ -74,9 +75,9 @@ class SliderLayout(
     }
 
     private val dragProgress: Double get() = transform(
-        mousePosition.x - bg.positionX,
-        0.0, bg.width,
-        0.0, 1.0
+        if (isVertical) mousePosition.y - bg.positionY else mousePosition.x - bg.positionX,
+        0.0, if (isVertical) bg.height else bg.width,
+        isVertical.toInt().toDouble(), 1.0 - isVertical.toInt().toDouble()
     ).coerceIn(0.0, 1.0)
 
     init {
@@ -93,7 +94,13 @@ class SliderLayout(
         rect {
             onUpdate { // progress
                 rect = bg.rect
-                width *= renderProgress
+
+                if (isVertical) {
+                    height *= renderProgress
+                    positionY = bg.positionY + bg.height - height
+                } else {
+                    width *= renderProgress
+                }
 
                 shade = ClickGui.backgroundShade
                 setColor(Color.WHITE.setAlpha(0.25 * showAnim))
@@ -106,8 +113,9 @@ class SliderLayout(
                 rect = bg.rect
                 val c = Color.BLACK.setAlpha(0.3 * showAnim)
                 val a = transform(renderProgress, 0.5, 1.0, 0.0, 1.0).coerceIn(0.0, 1.0)
+                outlineWidth = 0.5
                 setColorH(c, c.multAlpha(a))
-                roundRadius = 100.0
+                setRadius(100.0)
             }
         }
     }
@@ -118,8 +126,9 @@ class SliderLayout(
          */
         @UIBuilder
         fun Layout.slider(
+            isVertical: Boolean = false,
             block: SliderLayout.() -> Unit = {}
-        ) = SliderLayout(this).apply(children::add).apply(block)
+        ) = SliderLayout(this, isVertical).apply(children::add).apply(block)
 
         /**
          * Adds a [SliderLayout] behind given [layout]
@@ -127,8 +136,9 @@ class SliderLayout(
         @UIBuilder
         fun Layout.sliderBehind(
             layout: Layout,
+            isVertical: Boolean = false,
             block: SliderLayout.() -> Unit = {}
-        ) = SliderLayout(this).insertLayout(this, layout, false).apply(block)
+        ) = SliderLayout(this, isVertical).insertLayout(this, layout, false).apply(block)
 
         /**
          * Adds a [SliderLayout] over given [layout]
@@ -136,7 +146,8 @@ class SliderLayout(
         @UIBuilder
         fun Layout.sliderOver(
             layout: Layout,
+            isVertical: Boolean = false,
             block: SliderLayout.() -> Unit = {}
-        ) = SliderLayout(this).insertLayout(this, layout, true).apply(block)
+        ) = SliderLayout(this, isVertical).insertLayout(this, layout, true).apply(block)
     }
 }

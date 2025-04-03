@@ -20,7 +20,7 @@ package com.lambda.module.modules.client
 import com.lambda.Lambda.mc
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.renderer.gui.font.FontRenderer.drawGlyph
+import com.lambda.graphics.renderer.gui.FontRenderer.drawGlyph
 import com.lambda.graphics.renderer.gui.font.core.GlyphInfo
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.get
 import com.lambda.module.Module
@@ -37,11 +37,7 @@ object LambdaMoji : Module(
     defaultTags = setOf(ModuleTag.CLIENT, ModuleTag.RENDER),
     enabledByDefault = true,
 ) {
-    val scale by setting("Emoji Scale", 1.0, 0.5..1.5, 0.1)
     val suggestions by setting("Chat Suggestions", true)
-
-    private val emojiWhitespace: String
-        get() = " ".repeat(((mc.textRenderer.fontHeight / 2 / mc.textRenderer.getWidth(" ")) * scale).toInt())
 
     private val renderQueue = mutableListOf<Triple<GlyphInfo, Vec2d, Color>>()
 
@@ -73,7 +69,6 @@ object LambdaMoji : Module(
                 val index = raw.indexOf(emoji)
                 if (index == -1) return@forEach
 
-                val height = mc.textRenderer.fontHeight
                 val width = mc.textRenderer.getWidth(raw.substring(0, index))
 
                 // Dude I'm sick of working with the shitcode that is minecraft's codebase :sob:
@@ -82,19 +77,19 @@ object LambdaMoji : Module(
                     else -> Color(255, 255, 255, (color shr 24 and 0xFF))
                 }
 
-                val glyph = RenderSettings.emojiFont[emoji]!!
-                renderQueue.add(Triple(glyph, Vec2d(x + width, y + height / 2), trueColor))
+                val glyph = RenderSettings.emojiFont[emoji] ?: return@forEach
+                renderQueue.add(Triple(glyph, Vec2d(x + width, y), trueColor))
 
                 // Replace the emoji with whitespaces depending on the player's settings
-                raw = raw.replaceFirst(emoji, emojiWhitespace)
+                raw = raw.replaceFirst(emoji, " ")
             }
 
         val constructed = mutableListOf<OrderedText>()
 
         // Will not work properly if the emoji is part of the style
-        saved.forEach { (charIndex: Int, style: Style) ->
-            if (charIndex >= raw.length) return@forEach
-            constructed.add(OrderedText.styledForwardsVisitedString(raw.substring(charIndex, charIndex + 1), style))
+        saved.forEach { (index, style) ->
+            if (index >= raw.length) return@forEach
+            constructed.add(OrderedText.styledForwardsVisitedString(raw.substring(index, index + 1), style))
         }
 
         return OrderedText.concat(constructed)

@@ -17,33 +17,21 @@
 
 package com.lambda.module.hud
 
-import com.lambda.graphics.renderer.gui.font.FontRenderer
-import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Formatting.string
 import com.lambda.util.NamedEnum
 import com.lambda.util.ServerTPS.averageMSPerTick
 
-object TPS : HudModule(
+object TPS : HudModule.Text(
     name = "TPS",
     description = "Display the server's tick rate",
     defaultTags = setOf(ModuleTag.CLIENT, ModuleTag.NETWORK),
 ) {
     private val format by setting("Tick format", TickFormat.TPS)
 
-    private val text: String get() = "${format.displayName}: ${format.output().string}${format.unit}"
-
-    // TODO: Replace by LambdaAtlas height cache and actually build a proper text with highlighted parameters
-
-    override val height: Double get() = FontRenderer.getHeight()
-    override val width: Double get() = FontRenderer.getWidth(text)
-
-    init {
-        onRender {
-            drawString(text, position)
-        }
-    }
+    override fun getText() =
+        "${format.displayName}: ${format.output().string}${format.unit}"
 
     @Suppress("unused")
     private enum class TickFormat(

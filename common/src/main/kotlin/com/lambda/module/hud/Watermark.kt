@@ -20,6 +20,7 @@ package com.lambda.module.hud
 import com.lambda.graphics.renderer.gui.TextureRenderer.drawTexture
 import com.lambda.graphics.renderer.gui.TextureRenderer.drawTextureShaded
 import com.lambda.graphics.texture.TextureOwner.upload
+import com.lambda.gui.component.layout.Layout.Companion.layout
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 
@@ -29,16 +30,18 @@ object Watermark : HudModule(
 ) {
     private val shade by setting("Shade", true)
 
-    override val width = 50.0
-    override val height = 50.0
-
     private val normalTexture = upload("textures/lambda.png")
     private val monoTexture = upload("textures/lambda_mono.png")
 
     init {
-        onRender {
-            if (shade) drawTextureShaded(monoTexture, rect)
-            else drawTexture(normalTexture, rect)
+        build {
+            width = 50.0
+            height = 50.0
+
+            customDrawable {
+                if (shade) drawTextureShaded(monoTexture, rect)
+                else drawTexture(normalTexture, rect)
+            }
         }
     }
 }

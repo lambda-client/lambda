@@ -20,6 +20,8 @@ package com.lambda.graphics.texture
 import com.lambda.graphics.texture.TextureUtils.bindTexture
 import com.lambda.graphics.texture.TextureUtils.readImage
 import com.lambda.graphics.texture.TextureUtils.setupTexture
+import com.lambda.util.LambdaResource
+import com.lambda.util.readImage
 import net.minecraft.client.texture.NativeImage
 import org.lwjgl.opengl.GL45C.*
 import java.awt.image.BufferedImage
@@ -35,6 +37,21 @@ open class Texture {
     val format: Int
     private val levels: Int
     private val nativeFormat: NativeImage.Format // For mojang native images
+
+    /**
+     * @param path              Lambda resource path
+     * @param format            The format of the image passed in
+     * @param levels            Number of mipmap levels to generate for the texture
+     */
+    constructor(path: LambdaResource, format: Int = GL_RGBA, levels: Int = 4) {
+        val image = path.readImage()
+        this.format = bufferedMapping[image.type] ?: format
+        this.levels = levels
+        this.nativeFormat = nativeMapping.getOrDefault(format, NativeImage.Format.RGBA)
+
+        bindTexture(id)
+        upload(image)
+    }
 
     /**
      * @param image             Optional initial image to upload to the texture
