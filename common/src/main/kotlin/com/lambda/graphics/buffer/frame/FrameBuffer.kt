@@ -18,13 +18,10 @@
 package com.lambda.graphics.buffer.frame
 
 import com.lambda.Lambda.mc
-import com.lambda.graphics.RenderMain.projectionMatrix
-import com.lambda.graphics.buffer.VertexPipeline
+import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
-import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.texture.TextureUtils
-import org.joml.Matrix4f
 import org.lwjgl.opengl.GL12C.GL_CLAMP_TO_EDGE
 import org.lwjgl.opengl.GL30C.*
 import java.nio.IntBuffer

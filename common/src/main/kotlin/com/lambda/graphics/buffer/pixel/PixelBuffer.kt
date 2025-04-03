@@ -20,6 +20,7 @@ package com.lambda.graphics.buffer.pixel
 import com.lambda.graphics.buffer.Buffer
 import com.lambda.graphics.gl.putTo
 import com.lambda.graphics.texture.Texture
+import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.math.MathUtils.toInt
 import org.lwjgl.opengl.GL45C.*
 import java.nio.ByteBuffer
@@ -31,28 +32,38 @@ import java.nio.ByteBuffer
  * Functions that perform an upload operation, a pixel unpack, will use the buffer object bound to the target GL_PIXEL_UNPACK_BUFFER.
  * If a buffer is bound, then the pointer value that those functions take is not a pointer, but an offset from the beginning of that buffer.
  *
+ * Asynchronous should only be used for medium-size blocks of data being updated one time or less per frame
+ * Persistent should only be used for streaming operations with large blocks of data updated once or more per frame
+ *
  * @property texture        The [Texture] instance to use
  * @property asynchronous   Whether to use 2 buffers or not
- * @property bufferMapping  Whether to map a block in memory to upload or not
+ * @property persistent     Whether to map a block in memory to upload or not
  *
- * @see <a href="https://www.khronos.org/opengl/wiki/Pixel_Buffer_Object">Reference</a>
+ * @see <a href="https://www.khronos.org/opengl/wiki/Pixel_Buffer_Object">Pixel buffer object</a>
  */
 class PixelBuffer(
     private val texture: Texture,
     private val asynchronous: Boolean = false,
-    private val bufferMapping: Boolean = false,
+    private val persistent: Boolean = false,
 ) : Buffer(buffers = asynchronous.toInt() + 1) {
-    override val usage: Int = GL_STATIC_DRAW
-    override val target: Int = GL_PIXEL_UNPACK_BUFFER
-    override val access: Int = GL_MAP_WRITE_BIT
+    override val usage = GL_STATIC_DRAW
+    override val target = GL_PIXEL_UNPACK_BUFFER
+    override val access =
+        if (persistent) GL_MAP_WRITE_BIT or GL_DYNAMIC_STORAGE_BIT or GL_MAP_PERSISTENT_BIT or GL_MAP_COHERENT_BIT
+        else GL_MAP_WRITE_BIT or GL_DYNAMIC_STORAGE_BIT
 
     private val channels = channelMapping[texture.format] ?: throw IllegalArgumentException("Invalid image format, expected OpenGL format, got ${texture.format} instead")
     private val size = texture.width * texture.height * channels * 1L
+//    private var sharedRegion: ByteBuffer? = null
 
-    override fun upload(
-        data: ByteBuffer,
-        offset: Long,
-    ): Throwable? {
+    override fun upload(data: ByteBuffer, offset: Long) {
+        if (!asynchronous) {
+            glBindTexture(GL_TEXTURE_2D, texture.id)
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texture.width, texture.height, texture.format, GL_UNSIGNED_BYTE, data)
+            glBindTexture(GL_TEXTURE_2D, 0)
+            return
+        }
+
         bind()
         glBindTexture(GL_TEXTURE_2D, texture.id)
 
@@ -72,13 +83,11 @@ class PixelBuffer(
         swap()
         bind()
 
-        val error =
-            if (bufferMapping) map(size, offset, data::putTo)
-            else update(data, offset)
+//        if (persistent) data.putTo(sharedRegion)
+//        else update(data, offset)
+        update(data, offset)
 
         bind(0)
-
-        return error
     }
 
     init {
@@ -93,6 +102,10 @@ class PixelBuffer(
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
 
         storage(size)
+
+//        bind()
+//        sharedRegion = if (persistent) map(size, 0) else null
+//        bind(0)
     }
 
     companion object {

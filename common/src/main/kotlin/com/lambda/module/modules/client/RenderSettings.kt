@@ -30,6 +30,9 @@ object RenderSettings : Module(
 ) {
     private val page by setting("Page", Page.Font)
 
+    // General
+    val useMemoryMapping by setting("Use Memory Mapping", true) { page == Page.General}
+
     // Font
     val textFont by setting("Text Font", LambdaFont.FiraSansRegular) { page == Page.Font }
     val emojiFont by setting("Emoji Font", LambdaEmoji.Twemoji) { page == Page.Font }
@@ -49,6 +52,7 @@ object RenderSettings : Module(
     val outlineWidth by setting("Outline Width", 1.0, 0.1..5.0, 0.1, "Width of block outlines", unit = "px") { page == Page.ESP }
 
     private enum class Page {
+        General,
         Font,
         ESP,
     }
