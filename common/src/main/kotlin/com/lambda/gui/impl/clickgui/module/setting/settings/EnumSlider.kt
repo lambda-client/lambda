@@ -22,7 +22,6 @@ import com.lambda.config.settings.comparable.EnumSetting.Companion.enumValues
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.util.NamedEnum
-import com.lambda.gui.impl.clickgui.module.settings.SettingSlider
 import com.lambda.gui.impl.clickgui.module.setting.SettingSlider
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.transform

@@ -18,9 +18,7 @@
 package com.lambda.module.hud
 
 import com.lambda.context.SafeContext
-import com.lambda.graphics.renderer.gui.font.FontRenderer
-import com.lambda.graphics.renderer.gui.font.FontRenderer.drawString
-import com.lambda.gui.component.core.TextField.Companion.textField
+import com.lambda.graphics.renderer.gui.FontRenderer
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -39,19 +37,7 @@ object Coordinates : HudModule.Text(
     private val showDimension by setting("Show Dimension", true)
     private val decimals by setting("Decimals", 2, 0..4, 1)
 
-    private val text: String
-        get() = runSafe { "XYZ ${if (showDimension) dimensionName else ""} ${positionForDimension()}" } ?: ""
-
-    override val height: Double get() = FontRenderer.getHeight()
-    override val width: Double get() = FontRenderer.getWidth(text)
-
-    init {
-        onRender {
-            runSafe {
-                drawString(text, position)
-            }
-        }
-    }
+    override fun getText() = runSafe { "XYZ ${if (showDimension) dimensionName else ""} ${positionForDimension()}" } ?: ""
 
     private fun SafeContext.positionForDimension() =
         when {
