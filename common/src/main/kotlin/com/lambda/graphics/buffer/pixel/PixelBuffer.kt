@@ -18,9 +18,7 @@
 package com.lambda.graphics.buffer.pixel
 
 import com.lambda.graphics.buffer.Buffer
-import com.lambda.graphics.gl.putTo
 import com.lambda.graphics.texture.Texture
-import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.math.MathUtils.toInt
 import org.lwjgl.opengl.GL45C.*
 import java.nio.ByteBuffer

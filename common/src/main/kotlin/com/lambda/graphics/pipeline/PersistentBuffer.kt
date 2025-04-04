@@ -95,11 +95,7 @@ class PersistentBuffer(
         cacheSize = 0
     }
 
-    fun use(block: () -> Unit) {
-        glBuffer.bind()
-        block()
-        glBuffer.bind(0)
-    }
+    fun use(block: () -> Unit) = glBuffer.bind { block() }
 
     private fun memcmp(a: ByteBuffer, b: ByteBuffer, pointer: Int, size: Int): Boolean {
         for (i in pointer..<(pointer + size)) {

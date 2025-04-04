@@ -37,17 +37,15 @@ class VertexArray(
         indicesSize: Long,
         indicesPointer: Long,
         verticesOffset: Int
-    ) {
-        bind()
-        glDrawElementsBaseVertex(
-            vertexMode.mode,
-            indicesSize.toInt() / UInt.SIZE_BYTES,
-            GL_UNSIGNED_INT,
-            indicesPointer,
-            verticesOffset / attributes.stride
-        )
-        bind(0)
-    }
+    ) = bind {
+            glDrawElementsBaseVertex(
+                vertexMode.mode,
+                indicesSize.toInt() / UInt.SIZE_BYTES,
+                GL_UNSIGNED_INT,
+                indicesPointer,
+                verticesOffset / attributes.stride
+            )
+        }
 
     override fun map(size: Long, offset: Long, block: (ByteBuffer) -> Unit) = throw UnsupportedOperationException()
     override fun upload(data: ByteBuffer, offset: Long) = throw UnsupportedOperationException()

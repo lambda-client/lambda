@@ -145,8 +145,6 @@ class VertexPipeline(
     }
 
     init {
-        vao.bind()
-        vbo.use(attributes::link)
-        vao.bind(0)
+        vao.bind { vbo.use(attributes::link) }
     }
 }
