@@ -18,6 +18,7 @@
 package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
+import baritone.api.pathing.goals.GoalNear
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
@@ -55,6 +56,7 @@ import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
+import com.lambda.util.world.toFastVec
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -95,13 +97,26 @@ class BuildTask @Ta5kBuilder constructor(
         listen<TickEvent.Pre> {
             if (collectDrops()) return@listen
 
-            // ToDo: Simulate for each pair player positions that work
             val results = blueprint.simulate(player.eyePos, interact, rotation, inventory, build)
+            val resultPostions = results.map { it.blockPos }
 
-            TaskFlowModule.drawables = results
+            val sim = blueprint.simulation(interact, rotation, inventory, build)
+            BlockPos.iterateOutwards(player.blockPos, 2, 2, 2).forEach {
+                sim.simulate(it.toFastVec())
+            }
+            val bestPos = sim.goodPositions()
+                .filter { it.pos !in resultPostions }
+                .maxByOrNull { it.interactions }
+
+            val drawables = results
                 .filterIsInstance<Drawable>()
                 .plus(pendingInteractions.toList())
-            //                .plus(sim.goodPositions())
+                .toMutableList()
+
+            if (bestPos != null) {
+                drawables.add(bestPos)
+            }
+            TaskFlowModule.drawables = drawables
 
             val resultsNotBlocked = results
                 .filter { result -> pendingInteractions.none { it.expectedPos == result.blockPos } }
@@ -127,7 +142,6 @@ class BuildTask @Ta5kBuilder constructor(
                 is BuildResult.NotVisible,
                 is PlaceResult.NoIntegrity -> {
                     if (!build.pathing) return@listen
-                    val sim = blueprint.simulation(interact, rotation, inventory, build)
                     val goal = BuildGoal(sim, player.blockPos)
                     BaritoneUtils.setGoalAndPath(goal)
                 }
@@ -137,6 +151,10 @@ class BuildTask @Ta5kBuilder constructor(
                 }
 
                 is BuildResult.Contextual -> {
+                    bestPos?.let {
+                        BaritoneUtils.setGoalAndPath(GoalNear(it.pos, 1))
+                    }
+
                     if (atMaxPendingInteractions) return@listen
                     when (bestResult) {
                         is BreakResult.Break -> {
