@@ -29,7 +29,7 @@ import kotlin.math.abs
 
 class WindowContent(
     owner: Window,
-    scrollable: Boolean
+    var scrollable: Boolean
 ) : Layout(owner) {
     private val window = owner
     private val animation = animationTicker(false)
@@ -39,6 +39,8 @@ class WindowContent(
     private var rubberbandDelta = 0.0
 
     private var renderScrollOffset by animation.exp(0.7) { scrollOffset + rubberbandDelta }
+
+    var freeScroll = false
 
     override val scissorRect: Rect
         get() = Rect(window.titleBar.leftBottom, window.rightBottom)
@@ -93,9 +95,11 @@ class WindowContent(
             dwheel = 0.0
 
             val prevOffset = scrollOffset
-            scrollOffset = scrollOffset.coerceAtLeast(
-                owner.targetHeight - height
-            ).coerceAtMost(0.0)
+            if (!freeScroll) {
+                scrollOffset = scrollOffset.coerceAtLeast(
+                    owner.targetHeight - height
+                ).coerceAtMost(0.0)
+            }
 
             rubberbandDelta += prevOffset - scrollOffset
             rubberbandDelta *= 0.5
@@ -104,8 +108,10 @@ class WindowContent(
             animation.tick()
         }
 
-        onMouseScroll { delta ->
-            dwheel += delta * 10.0
+        owner.onMouseScroll { delta ->
+            if (owner.autoResize.enabled) return@onMouseScroll
+            if (!scrollable) return@onMouseScroll
+            dwheel += delta * 15.0
         }
     }
 

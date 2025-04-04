@@ -17,6 +17,7 @@
 
 package com.lambda.gui.impl.clickgui
 
+import com.lambda.graphics.renderer.gui.BlurRenderer
 import com.lambda.module.tag.ModuleTag
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
@@ -25,6 +26,7 @@ import com.lambda.gui.component.window.WindowContent
 import com.lambda.gui.impl.clickgui.module.ModuleLayout.Companion.backgroundTint
 import com.lambda.gui.impl.clickgui.module.ModuleLayout.Companion.moduleLayout
 import com.lambda.module.ModuleRegistry
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.math.Vec2d
 
 class ModuleWindow(
@@ -49,6 +51,16 @@ class ModuleWindow(
 
         onWindowExpand { minimize() }
         onWindowMinimize { minimize() }
+
+        layoutBehind(titleBar) {
+            onUpdate {
+                rect = this@ModuleWindow.rect
+            }
+
+            onRender {
+                BlurRenderer.blur(rect, ClickGui.blurStrength)
+            }
+        }
     }
 
     companion object {

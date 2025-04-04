@@ -88,7 +88,7 @@ object GlStateUtils {
         field.set(flag)
     }
 
-    private fun blend(flag: Boolean) {
+    fun blend(flag: Boolean) {
         if (flag) {
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)

@@ -22,6 +22,7 @@ import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.animation.AnimationTicker
+import com.lambda.graphics.renderer.gui.BlurRenderer
 import com.lambda.gui.component.core.FilledRect.Companion.rect
 import com.lambda.gui.component.core.GlowRect.Companion.glow
 import com.lambda.gui.component.core.OutlineRect.Companion.outline
@@ -52,6 +53,17 @@ abstract class HudModule(
     private val base by lazy {
         Layout(null).apply {
             if (!background) return@apply
+
+            layout {
+                onUpdate {
+                    rect = this@apply.rect
+                }
+
+                onRender {
+                    if (!ClickGui.hudBlur) return@onRender
+                    BlurRenderer.blur(rect, ClickGui.blurStrength)
+                }
+            }
 
             rect {
                 onUpdate {

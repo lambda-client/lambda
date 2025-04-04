@@ -17,6 +17,7 @@ export {
 };
 
 #include "sdf"
+#include "shade"
 
 void fragment() {
     bool isEmoji = v_TexCoord.x < 0.0;
@@ -28,5 +29,5 @@ void fragment() {
     }
 
     float sdf = sdf(texture(u_FontTexture, v_TexCoord).r, u_SDFMin, u_SDFMax);
-    color = vec4(1.0, 1.0, 1.0, sdf) * v_Color;
+    color = vec4(1.0, 1.0, 1.0, sdf) * shade * v_Color;
 }#

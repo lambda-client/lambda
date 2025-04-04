@@ -61,8 +61,9 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
         color: Color = Color.WHITE,
         scale: Double = ClickGui.fontScale,
         shadow: Boolean = true,
-        parseEmoji: Boolean = LambdaMoji.isEnabled
-    ) = render {
+        parseEmoji: Boolean = LambdaMoji.isEnabled,
+        shade: Boolean = false
+    ) = render(shade) {
         shader["u_FontTexture"] = 0
         shader["u_EmojiTexture"] = 1
         shader["u_SDFMin"] = RenderSettings.sdfMin
@@ -90,7 +91,8 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
         position: Vec2d,
         color: Color = Color.WHITE,
         scale: Double = ClickGui.fontScale,
-    ) = render {
+        shade: Boolean = false
+    ) = render(shade) {
         shader["u_FontTexture"] = 0
         shader["u_EmojiTexture"] = 1
         shader["u_SDFMin"] = RenderSettings.sdfMin

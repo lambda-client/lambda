@@ -71,7 +71,7 @@ object RectRenderer {
 
         outline.putRect(
             rect,
-            width * 0.5,
+            width * 0.25,
             shade,
             leftTopRadius,
             rightTopRadius,
@@ -154,7 +154,7 @@ object RectRenderer {
         val pos2 = rect.rightBottom
 
         val expand = expandIn.coerceAtLeast(0.0) + 1
-        val smoothing = 0.5
+        val smoothing = 0.3
 
         val p1 = pos1 - expand - smoothing
         val p2 = pos2 + expand + smoothing
@@ -192,16 +192,16 @@ object RectRenderer {
         upload {
             buildQuad(
                 vertex {
-                    vec3m(p1.x, p1.y, 0.0).vec2(uv1.x, uv1.y).color(leftTop)
+                    vec3m(p1.x, p1.y).vec2(uv1.x, uv1.y).color(leftTop)
                 },
                 vertex {
-                    vec3m(p1.x, p2.y, 0.0).vec2(uv1.x, uv2.y).color(leftBottom)
+                    vec3m(p1.x, p2.y).vec2(uv1.x, uv2.y).color(leftBottom)
                 },
                 vertex {
-                    vec3m(p2.x, p2.y, 0.0).vec2(uv2.x, uv2.y).color(rightBottom)
+                    vec3m(p2.x, p2.y).vec2(uv2.x, uv2.y).color(rightBottom)
                 },
                 vertex {
-                    vec3m(p2.x, p1.y, 0.0).vec2(uv2.x, uv1.y).color(rightTop)
+                    vec3m(p2.x, p1.y).vec2(uv2.x, uv1.y).color(rightTop)
                 }
             )
         }

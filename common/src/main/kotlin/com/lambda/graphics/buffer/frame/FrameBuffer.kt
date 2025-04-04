@@ -27,14 +27,14 @@ import org.lwjgl.opengl.GL30C.*
 import java.nio.IntBuffer
 
 open class FrameBuffer(
-    protected var width: Int = 1,
-    protected var height: Int = 1,
+    var width: Int = 1,
+    var height: Int = 1,
     private val depth: Boolean = false
 ) {
-    private val fbo = glGenFramebuffers()
+    val fbo = glGenFramebuffers()
 
-    private val colorAttachment = glGenTextures()
-    private val depthAttachment by lazy(::glGenTextures)
+    val colorAttachment = glGenTextures()
+    val depthAttachment by lazy(::glGenTextures)
 
     private val clearMask = if (!depth) GL_COLOR_BUFFER_BIT
     else GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT
@@ -57,8 +57,18 @@ open class FrameBuffer(
         return this
     }
 
-    private fun update() {
-        if (width == lastWidth && height == lastWidth) {
+    fun bind() {
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo)
+    }
+
+    fun updateScreenSized() {
+        width = mc.framebuffer.viewportWidth
+        height = mc.framebuffer.viewportHeight
+        update()
+    }
+
+    fun update() {
+        if (width == lastWidth && height == lastHeight) {
             glClear(clearMask)
             return
         }
@@ -113,6 +123,10 @@ open class FrameBuffer(
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        }
+
+        fun unbind() {
+            glBindFramebuffer(GL_FRAMEBUFFER, mc.framebuffer.fbo)
         }
     }
 }

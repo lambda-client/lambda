@@ -63,7 +63,9 @@ open class AbstractGUIRenderer(
             shader["u_ShadeColor1"] = primaryColor
             shader["u_ShadeColor2"] = secondaryColor
 
-            shader["u_ShadeSize"] = RenderMain.screenSize / Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
+            var size = RenderMain.screenSize / Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
+            //if (this is FontRenderer) size *= 5.0
+            shader["u_ShadeSize"] = size
         }
 
         pipeline.apply {

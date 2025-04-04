@@ -24,6 +24,7 @@ import com.lambda.graphics.shader.ShaderUtils.uniformMatrix
 import com.lambda.util.math.Vec2d
 import it.unimi.dsi.fastutil.objects.Object2IntMap
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
 import org.lwjgl.opengl.GL20C.*
@@ -49,13 +50,9 @@ class Shader private constructor(name: String) {
     }
 
     private fun loc(name: String) =
-        if (uniformCache.containsKey(name))
-            uniformCache.getInt(name)
-        else
-            glGetUniformLocation(id, name).let { location ->
-                uniformCache.put(name, location)
-                location
-            }
+        uniformCache.getOrPut(name) {
+            glGetUniformLocation(id, name)
+        }
 
     operator fun set(name: String, v: Boolean) =
         glUniform1i(loc(name), if (v) 1 else 0)
@@ -85,7 +82,7 @@ class Shader private constructor(name: String) {
         uniformMatrix(loc(name), mat)
 
     companion object {
-        private val shaderCache = hashMapOf<String, Shader>()
+        private val shaderCache = Object2ObjectOpenHashMap<String, Shader>()
 
         fun shader(path: String) =
             shaderCache.getOrPut(path) {

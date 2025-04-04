@@ -18,6 +18,7 @@
 package com.lambda.module.modules.client
 
 import com.lambda.Lambda.mc
+import com.lambda.graphics.RenderMain
 import com.lambda.gui.LambdaScreen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
@@ -27,6 +28,8 @@ import com.lambda.gui.component.VAlign
 import com.lambda.gui.component.core.FilledRect.Companion.rect
 import com.lambda.gui.component.core.GlowRect.Companion.glow
 import com.lambda.gui.component.layout.Layout
+import com.lambda.gui.component.window.Window
+import com.lambda.gui.component.window.Window.Companion.window
 import com.lambda.gui.impl.clickgui.ModuleWindow.Companion.moduleWindow
 import com.lambda.gui.impl.clickgui.core.AnimatedChild.Companion.animatedBackground
 import com.lambda.gui.impl.clickgui.module.setting.settings.UnitButton.Companion.unitButton
@@ -49,21 +52,24 @@ object ClickGui : Module(
     val settingsHeight by setting("Settings Height", 16.0, 10.0..25.0, 0.1)
     val padding by setting("Padding", 1.0, 1.0..6.0, 0.1)
     val listStep by setting("List Step", 1.0, 0.0..6.0, 0.1)
-    val autoResize by setting("Auto Resize", false)
+    val autoResize by setting("Auto Resize", true)
 
     val roundRadius by setting("Round Radius", 3.0, 0.0..10.0, 0.1)
 
+    val blurStrength by setting("Blur Strength", 2, 0..10, 1)
+    val hudBlur by setting("HUD Blur", true) { blurStrength > 0 }
+
     val backgroundTint by setting("Background Tint", Color.BLACK.setAlpha(0.4))
     val backgroundCornerTint by setting("Background Corner Tint", Color.WHITE.setAlpha(0.4))
-    val cornerTintWidth by setting("Corner Tint Width", 100.0, 1.0..500.0, 0.1)
+    val cornerTintWidth by setting("Corner Tint Width", 1.0, 1.0..500.0, 0.1)
     val cornerTintShade by setting("Corner Tint Shade", true)
 
-    val titleBackgroundColor by setting("Title Background Color", Color(80, 80, 80))
+    val titleBackgroundColor by setting("Title Background Color", Color(80, 80, 80, 180))
     val backgroundColor by setting("Background Color", titleBackgroundColor)
     val backgroundShade by setting("Background Shade", true)
 
     val outline by setting("Outline", true)
-    val outlineWidth by setting("Outline Width", 0.5, 0.5..5.0, 0.1) { outline }
+    val outlineWidth by setting("Outline Width", 1.0, 0.5..5.0, 0.1) { outline }
     val outlineColor by setting("Outline Color", Color.WHITE) { outline }
     val outlineShade by setting("Outline Shade", true) { outline }
 
@@ -74,9 +80,8 @@ object ClickGui : Module(
 
     val fontScale by setting("Font Scale", 1.0, 0.5..2.0, 0.1)
     val fontOffset by setting("Font Offset", 4.0, 0.0..5.0, 0.1)
-    val dockingGridSize by setting("Docking Grid Size", 1.0, 0.1..10.0, 0.1)
 
-    val moduleEnabledColor by setting("Module Enabled Color", Color.WHITE.setAlpha(0.4))
+    val moduleEnabledColor by setting("Module Enabled Color", Color.WHITE.setAlpha(0.6))
     val moduleDisabledColor by setting("Module Disabled Color", Color.WHITE.setAlpha(0.0))
     val moduleHoverAccent by setting("Module Hover Accent", 0.15, 0.0..0.3, 0.01)
     val moduleOpenAccent by setting("Module Open Accent", 0.3, 0.0..0.5, 0.01)
@@ -115,8 +120,35 @@ object ClickGui : Module(
             var x = 10.0
             val y = x
 
-            ModuleTag.defaults.forEach { tag ->
-                x += moduleWindow(tag, Vec2d(x, y)).width + 5
+            window( // wrap module windows within a scrollable window
+                draggable = false,
+                minimizing = Window.Minimizing.Disabled
+            ) { window ->
+                window.use {
+                    titleBar.onUpdate {
+                        height = 0.0
+                    }
+
+                    onUpdate {
+                        position = Vec2d.ZERO
+                        size = RenderMain.screenSize
+
+                        content.freeScroll = true
+                        content.scrollable = ClickGui.autoResize
+                    }
+
+                    listOf(
+                        titleBar.textField,
+                        titleBarBackground,
+                        contentBackground,
+                        outlineRect,
+                        glowRect
+                    ).forEach(Layout::destroy)
+                }
+
+                ModuleTag.defaults.forEach { tag ->
+                    x += moduleWindow(tag, Vec2d(x, y)).width + 5
+                }
             }
 
             switchButton("HUD", ::HUD)

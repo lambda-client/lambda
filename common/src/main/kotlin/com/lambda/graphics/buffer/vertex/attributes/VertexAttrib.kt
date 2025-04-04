@@ -77,8 +77,8 @@ sealed class VertexAttrib(
             Vec3, Vec2, Color
         )
 
-        object RECT_OUTLINE : Group(
-            Vec3, Vec2, Float, Color
+        object BLUR : Group(
+            Vec2, Vec2
         )
 
         // WORLD

@@ -165,7 +165,7 @@ open class Window(
 
     init {
         position = initialPosition
-        properties.clampPosition = owner is RootLayout
+        //properties.clampPosition = owner is RootLayout
 
         onUpdate {
             // Update it here
@@ -275,7 +275,7 @@ open class Window(
     /**
      * [Disabled] -> No ability to minimize the window
      * [Relative] -> Animation follows the height of the component ( animation(0.0, height) ) (height change is animated)
-     * [Absolute] -> Animation does not depend on the height ( animation(0.0, 1.0) * height ) (height change instantly affects the height)
+     * [Absolute] -> Animation does not depend on the height ( animation(0.0, 1.0) * height ) (height change instantly affects the output height)
      */
     enum class Minimizing {
         Disabled,
@@ -316,14 +316,14 @@ open class Window(
             minimizing: Minimizing = Minimizing.Relative,
             resizable: Boolean = true,
             autoResize: AutoResize = AutoResize.Disabled,
-            block: WindowContent.() -> Unit = {}
+            block: WindowContent.(Window) -> Unit = {}
         ) = Window(
             this, title,
             position, size,
             draggable, scrollable, minimizing, resizable,
             autoResize
         ).apply(children::add).apply {
-            block(this.content)
+            block(this.content, this)
         }
 
         private const val RESIZE_RANGE = 5.0
