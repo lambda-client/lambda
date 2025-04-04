@@ -23,10 +23,14 @@ import com.lambda.event.events.ClientEvent;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.TickEvent;
 import com.lambda.module.modules.player.Interact;
+import com.lambda.module.modules.player.PacketMine;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.ScreenHandlerProvider;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
+import net.minecraft.util.Hand;
+import net.minecraft.util.hit.HitResult;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -40,6 +44,10 @@ public class MinecraftClientMixin {
     @Shadow
     @Nullable
     public Screen currentScreen;
+
+    @Shadow @Nullable public HitResult crosshairTarget;
+
+    @Shadow @Nullable public ClientPlayerEntity player;
 
     @Inject(method = "tick", at = @At("HEAD"))
     void onTickPre(CallbackInfo ci) {
@@ -90,8 +98,16 @@ public class MinecraftClientMixin {
         }
     }
 
+    @Redirect(method = "doAttack()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
+    private void redirectHandSwing(ClientPlayerEntity instance, Hand hand) {
+        if (this.crosshairTarget == null || this.player != null) return;
+        if (this.crosshairTarget.getType() != HitResult.Type.BLOCK || PacketMine.INSTANCE.isDisabled()) {
+            this.player.swingHand(hand);
+        }
+    }
+
     @Redirect(method = "doItemUse", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;isBreakingBlock()Z"))
-    boolean injectMultiActon(ClientPlayerInteractionManager instance) {
+    boolean redirectMultiActon(ClientPlayerInteractionManager instance) {
         if (instance == null) return true;
 
         if (Interact.INSTANCE.isEnabled() && Interact.getMultiAction()) return false;
