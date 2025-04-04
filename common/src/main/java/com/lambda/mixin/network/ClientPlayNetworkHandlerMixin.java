@@ -19,14 +19,12 @@ package com.lambda.mixin.network;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.InventoryEvent;
+import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.render.NoRender;
 import com.lambda.event.events.WorldEvent;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket;
-import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
-import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket;
-import net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket;
+import net.minecraft.network.packet.s2c.play.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -66,5 +64,16 @@ public class ClientPlayNetworkHandlerMixin {
     @Redirect(method = "onServerMetadata", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;displayedUnsecureChatWarning:Z", ordinal = 0))
     public boolean onServerMetadata(ClientPlayNetworkHandler clientPlayNetworkHandler) {
         return NoRender.getNoChatVerificationToast();
+    }
+
+    // Cancel player velocity if Velocity module is enabled
+    // Reference net.minecraft.client.network.ClientPlayNetworkHandler.onExplosion
+    //
+    // Explosion explosion = new Explosion(this.client.world, (Entity)null, packet.getX(), packet.getY(), packet.getZ(), packet.getRadius(), packet.getAffectedBlocks(), packet.getDestructionType(), packet.getParticle(), packet.getEmitterParticle(), packet.getSoundEvent());
+    // explosion.affectWorld(true);
+    // this.client.player.setVelocity(this.client.player.getVelocity().add((double)packet.getPlayerVelocityX(), (double)packet.getPlayerVelocityY(), (double)packet.getPlayerVelocityZ()));
+    @Inject(method = "onExplosion(Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;setVelocity(Lnet/minecraft/util/math/Vec3d;)V"), cancellable = true)
+    void injectVelocity(ExplosionS2CPacket packet, CallbackInfo ci) {
+        if (Velocity.INSTANCE.isEnabled()) ci.cancel();
     }
 }
