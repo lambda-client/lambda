@@ -25,6 +25,8 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.util.world.raycast.RayCastUtils.distanceTo
 import net.minecraft.block.BlockState
+import net.minecraft.block.Blocks
+import net.minecraft.block.FallingBlock
 import net.minecraft.client.network.ClientPlayerInteractionManager
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
@@ -56,14 +58,16 @@ data class BreakContext(
 
     fun exposedSides(ctx: SafeContext) =
         Direction.entries.filter {
-            ctx.world.isAir(result.blockPos.offset(it))
+            ctx.world.isAir(expectedPos.offset(it))
         }
 
     override val expectedState: BlockState = checkedState.fluidState.blockState
 
     override fun compareTo(other: BuildContext): Int {
         return when (other) {
-            is BreakContext -> compareBy<BreakContext> {
+            is BreakContext -> compareByDescending<BreakContext> {
+                if (it.checkedState.block is FallingBlock) it.expectedPos.y else 0
+            }.thenBy {
                 it.rotation.target.angleDistance
             }.compare(this, other)
 

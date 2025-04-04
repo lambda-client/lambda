@@ -66,9 +66,11 @@ data class Simulation(
         blueprint.simulate(view, interact, rotation, inventory, build)
     }
 
-    fun goodPositions() = cache.filter { it.value.any { it.rank.ordinal < 4 } }.map { PossiblePos(it.key.toBlockPos()) }
+    fun goodPositions() = cache
+        .filter { entry -> entry.value.any { it.rank.ordinal < 4 } }
+        .map { PossiblePos(it.key.toBlockPos(), it.value.count { it.rank.ordinal < 4 }) }
 
-    class PossiblePos(val pos: BlockPos): Drawable {
+    class PossiblePos(val pos: BlockPos, val interactions: Int): Drawable {
         override fun SafeContext.buildRenderer() {
             withBox(Vec3d.ofBottomCenter(pos).playerBox(), Color(0, 255, 0, 50))
         }
