@@ -74,6 +74,6 @@ public class ClientPlayNetworkHandlerMixin {
     // this.client.player.setVelocity(this.client.player.getVelocity().add((double)packet.getPlayerVelocityX(), (double)packet.getPlayerVelocityY(), (double)packet.getPlayerVelocityZ()));
     @Inject(method = "onExplosion(Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;setVelocity(Lnet/minecraft/util/math/Vec3d;)V"), cancellable = true)
     void injectVelocity(ExplosionS2CPacket packet, CallbackInfo ci) {
-        if (Velocity.INSTANCE.isEnabled()) ci.cancel();
+        if (Velocity.getExplosion()) ci.cancel();
     }
 }

@@ -17,11 +17,29 @@
 
 package com.lambda.module.modules.movement
 
+import com.lambda.event.events.PacketEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 
 object Velocity : Module(
     name = "Velocity",
     description = "Modifies your velocity",
     defaultTags = setOf(ModuleTag.MOVEMENT),
-)
+) {
+    private val knockback by setting("Knockback", true)
+
+    private val explosionSetting by setting("Explosion", true)
+    @JvmStatic val explosion get() = isEnabled && explosionSetting
+
+    init {
+        listen<PacketEvent.Receive.Pre> { event ->
+            if (!knockback) return@listen
+            if (event.packet !is EntityVelocityUpdateS2CPacket) return@listen
+            if (event.packet.id != player.id) return@listen
+
+            event.cancel()
+        }
+    }
+}
