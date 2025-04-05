@@ -28,7 +28,6 @@ import net.minecraft.client.input.Input;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.MovementType;
 import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -118,11 +117,6 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
     @Redirect(method = "tickNewAi", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getPitch()F"))
     float fixHeldItemPitch(ClientPlayerEntity instance) {
         return Objects.requireNonNullElse(RotationManager.getHandPitch(), instance.getPitch());
-    }
-
-    @Inject(method = "swingHand", at = @At("HEAD"), cancellable = true)
-    void onSwingHandPre(Hand hand, CallbackInfo ci) {
-        if (EventFlow.post(new PlayerEvent.SwingHand(hand)).isCanceled()) ci.cancel();
     }
 
     @Inject(method = "damage", at = @At("HEAD"), cancellable = true)

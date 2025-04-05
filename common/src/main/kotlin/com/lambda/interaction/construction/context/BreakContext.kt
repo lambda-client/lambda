@@ -25,12 +25,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.util.world.raycast.RayCastUtils.distanceTo
 import net.minecraft.block.BlockState
-import net.minecraft.block.Blocks
 import net.minecraft.block.FallingBlock
-import net.minecraft.client.network.ClientPlayerInteractionManager
-import net.minecraft.client.world.ClientWorld
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
@@ -81,23 +76,4 @@ data class BreakContext(
         withState(checkedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side))
         withState(checkedState, expectedPos, sideColor, result.side)
     }
-
-    fun startBreakPacket(world: ClientWorld, interaction: ClientPlayerInteractionManager) =
-        breakPacket(Action.START_DESTROY_BLOCK, world, interaction)
-
-    fun stopBreakPacket(world: ClientWorld, interaction: ClientPlayerInteractionManager) =
-        breakPacket(Action.STOP_DESTROY_BLOCK, world, interaction)
-
-    fun abortBreakPacket(world: ClientWorld, interaction: ClientPlayerInteractionManager) =
-        breakPacket(Action.ABORT_DESTROY_BLOCK, world, interaction)
-
-    private fun breakPacket(action: Action, world: ClientWorld, interaction: ClientPlayerInteractionManager) =
-        interaction.sendSequencedPacket(world) { sequence: Int ->
-            PlayerActionC2SPacket(
-                action,
-                expectedPos,
-                result.side,
-                sequence
-            )
-        }
 }

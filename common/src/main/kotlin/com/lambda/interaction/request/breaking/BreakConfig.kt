@@ -26,6 +26,7 @@ abstract class BreakConfig(
     priority: Priority = 0
 ) : RequestConfig<BreakRequest>(priority) {
     abstract val breakMode: BreakMode
+    abstract val unsafeCancels: Boolean
     abstract val breakThreshold: Float
     abstract val doubleBreak: Boolean
     abstract val breakDelay: Int

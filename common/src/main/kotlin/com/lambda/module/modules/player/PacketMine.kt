@@ -22,9 +22,10 @@ import com.lambda.config.groups.HotbarSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
+import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
+import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.result.BreakResult
@@ -35,6 +36,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.raycast.InteractionMask
+import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object PacketMine : Module(
@@ -45,6 +47,7 @@ object PacketMine : Module(
     private val page by setting("Page", Page.Build)
 
     private val build = BuildSettings(this) { page == Page.Build }
+    private val breakConfig = build.breakSettings
     private val rotation = RotationSettings(this) { page == Page.Rotation }
     private val interact = InteractionSettings(this, InteractionMask.Block) { page == Page.Interaction }
     private val inventory = InventorySettings(this) { page == Page.Inventory }
@@ -55,32 +58,61 @@ object PacketMine : Module(
     private var breaks = 0
     private var itemDrops = 0
 
+    private val breakingPositions = arrayOfNulls<BlockPos>(2)
+    private var hitPos: BlockPos? = null
+
     init {
-        listen<PlayerEvent.Attack.Block> { event ->
+        listen<PlayerEvent.Attack.Block> { it.cancel() }
+        listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
+            if (breakingPositions.any { it == event.pos }) return@listen
+            if (breakConfig.doubleBreak && breakingPositions[1] == null) {
+                breakingPositions[1] = breakingPositions[0]
+            }
+            breakingPositions[0] = null
+            hitPos = event.pos
+        }
 
-            val blockState = blockState(event.pos)
-            val buildResult = event.pos
-                .toStructure(TargetState.State(blockState.fluidState.blockState))
-                .toBlueprint()
-                .simulate(
-                    player.eyePos,
-                    interact = interact,
-                    rotation = rotation,
-                    inventory = inventory,
-                    build = build
-                )
-                .minOrNull() ?: return@listen
+        listen<TickEvent.Pre> {
+            val requestPositions = arrayListOf<BlockPos>().apply { addAll(breakingPositions.filterNotNull()) }
+            hitPos?.let { pos ->
+                requestPositions.add(pos)
+                hitPos = null
+            }
 
-            if (buildResult !is BreakResult.Break) return@listen
             val request = BreakRequest(
-                listOf(buildResult.context), build, rotation, interact, inventory, hotbar,
+                breakContexts(requestPositions), build, rotation, interact, inventory, hotbar,
                 pendingInteractionsList = pendingInteractionsList,
-                onBreak = { breaks++ }
+                onAccept = { breakingPositions[0] = it },
+                onCancel = { nullifyBreakPos(it) },
+                onBreak = { breaks++; nullifyBreakPos(it) }
             ) { _ -> itemDrops++ }
-            build.breakSettings.request(request)
+            breakConfig.request(request)
         }
     }
+
+    private fun nullifyBreakPos(pos: BlockPos) {
+        breakingPositions.forEachIndexed { index, breakPos ->
+            if (breakPos == pos) {
+                breakingPositions[index] = null
+                return
+            }
+        }
+    }
+
+    private fun SafeContext.breakContexts(breakPositions: Collection<BlockPos>) =
+        breakPositions
+            .associateWith { TargetState.State(blockState(it).fluidState.blockState) }
+            .toBlueprint()
+            .simulate(
+                player.eyePos,
+                interact = interact,
+                rotation = rotation,
+                inventory = inventory,
+                build = build
+            )
+            .filterIsInstance<BreakResult.Break>()
+            .map { it.context }
 
     enum class Page {
         Build, Rotation, Interaction, Inventory, Hotbar

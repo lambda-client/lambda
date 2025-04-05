@@ -44,10 +44,9 @@ public class MinecraftClientMixin {
     @Shadow
     @Nullable
     public Screen currentScreen;
-
-    @Shadow @Nullable public HitResult crosshairTarget;
-
-    @Shadow @Nullable public ClientPlayerEntity player;
+    @Shadow
+    @Nullable
+    public HitResult crosshairTarget;
 
     @Inject(method = "tick", at = @At("HEAD"))
     void onTickPre(CallbackInfo ci) {
@@ -100,9 +99,9 @@ public class MinecraftClientMixin {
 
     @Redirect(method = "doAttack()Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;swingHand(Lnet/minecraft/util/Hand;)V"))
     private void redirectHandSwing(ClientPlayerEntity instance, Hand hand) {
-        if (this.crosshairTarget == null || this.player != null) return;
+        if (this.crosshairTarget == null) return;
         if (this.crosshairTarget.getType() != HitResult.Type.BLOCK || PacketMine.INSTANCE.isDisabled()) {
-            this.player.swingHand(hand);
+            instance.swingHand(hand);
         }
     }
 

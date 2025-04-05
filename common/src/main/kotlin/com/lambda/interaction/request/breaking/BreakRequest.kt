@@ -29,6 +29,7 @@ import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.entity.ItemEntity
+import net.minecraft.util.math.BlockPos
 
 data class BreakRequest(
     val contexts: Collection<BreakContext>,
@@ -39,8 +40,10 @@ data class BreakRequest(
     val hotbarConfig: HotbarConfig,
     val prio: Priority = 0,
     val pendingInteractionsList: MutableCollection<BuildContext>,
-    val onBreak: () -> Unit,
-    val onItemDrop: ((ItemEntity) -> Unit)?,
+    val onAccept: ((BlockPos) -> Unit)? = null,
+    val onCancel: ((BlockPos) -> Unit)? = null,
+    val onBreak: ((BlockPos) -> Unit)? = null,
+    val onItemDrop: ((ItemEntity) -> Unit)? = null,
 ) : Request(prio) {
     override val done: Boolean
         get() = runSafe {
