@@ -51,6 +51,16 @@ public class LivingEntityRendererMixin<T extends LivingEntity> {
         this.lambda$pitch = rotationPitch;
     }
 
+    /**
+     * Uses the current rotation render pitch
+     * <pre>{@code
+     * float m = MathHelper.lerp(g, livingEntity.prevPitch, livingEntity.getPitch());
+     *     if (shouldFlipUpsideDown(livingEntity)) {
+     *     m *= -1.0F;
+     *     k *= -1.0F;
+     * }
+     * }</pre>
+     */
     @Redirect(method = "render(Lnet/minecraft/entity/LivingEntity;FFLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/MathHelper;lerp(FFF)F", ordinal = 0), require = 0)
     private float injectRotationPitch(float g, float f, float s) {
         return Objects.requireNonNullElseGet(lambda$pitch, () -> MathHelper.lerp(g, f, s));

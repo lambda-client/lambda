@@ -29,7 +29,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(BarrierBlock.class)
 public class BarrierBlockMixin {
-
+    /**
+     * Modifies barrier block render type to {@link BlockRenderType#MODEL} when {@link BlockESP} is enabled and {@link BlockESP#getBarrier()} is true
+     */
     @Inject(method = "getRenderType", at = @At("RETURN"), cancellable = true)
     private void getRenderType(BlockState state, CallbackInfoReturnable<BlockRenderType> cir) {
         if (BlockESP.INSTANCE.isEnabled()

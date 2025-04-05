@@ -27,6 +27,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.ScreenHandlerProvider;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
+import net.minecraft.util.thread.ThreadExecutor;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -67,7 +68,7 @@ public class MinecraftClientMixin {
     }
 
     /**
-     * Inject after the thread field is set so `ThreadExecutor#getThread` is available
+     * Inject after the thread field is set so that {@link ThreadExecutor#getThread} is available
      */
     @Inject(at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;thread:Ljava/lang/Thread;", shift = At.Shift.AFTER, ordinal = 0), method = "run")
     private void onStartup(CallbackInfo ci) {

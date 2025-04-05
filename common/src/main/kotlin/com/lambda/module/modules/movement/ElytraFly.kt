@@ -24,7 +24,6 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.player.MovementUtils.addSpeed
-import net.minecraft.entity.LivingEntity
 import net.minecraft.sound.SoundEvents
 
 object ElytraFly : Module(
@@ -59,22 +58,18 @@ object ElytraFly : Module(
     }
 
     @JvmStatic
-    fun boostRocket(shooter: LivingEntity) {
-        runSafe {
-            if (shooter != player) return@runSafe
+    fun boostRocket() = runSafe {
+        val vec = player.rotationVector
+        val velocity = player.velocity
 
-            val vec = player.rotationVector
-            val velocity = player.velocity
+        val d = 1.5 * rocketSpeed
+        val e = 0.1 * rocketSpeed
 
-            val d = 1.5 * rocketSpeed
-            val e = 0.1 * rocketSpeed
-
-            player.velocity = velocity.add(
-                vec.x * e + (vec.x * d - velocity.x) * 0.5,
-                vec.y * e + (vec.y * d - velocity.y) * 0.5,
-                vec.z * e + (vec.z * d - velocity.z) * 0.5
-            )
-        }
+        player.velocity = velocity.add(
+            vec.x * e + (vec.x * d - velocity.x) * 0.5,
+            vec.y * e + (vec.y * d - velocity.y) * 0.5,
+            vec.z * e + (vec.z * d - velocity.z) * 0.5
+        )
     }
 
     private enum class Page {

@@ -51,6 +51,9 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
     @Shadow
     protected abstract void autoJump(float dx, float dz);
 
+    /**
+     * Post movement events and applies the modified player velocity
+     */
     @Inject(method = "move", at = @At("HEAD"), cancellable = true)
     void onMove(MovementType movementType, Vec3d movement, CallbackInfo ci) {
         ClientPlayerEntity self = (ClientPlayerEntity) (Object) this;
@@ -78,6 +81,22 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         EventFlow.post(new MovementEvent.InputUpdate(input, slowDown, slowDownFactor));
     }
 
+    /**
+     * Posts the {@link MovementEvent.Sprint} event
+     * <pre>{@code
+     * if (this.isSprinting()) {
+     *     boolean bl8 = !this.input.hasForwardMovement() || !this.canSprint();
+     *     boolean bl9 = bl8 || this.horizontalCollision && !this.collidedSoftly || this.isTouchingWater() && !this.isSubmergedInWater();
+     *     if (this.isSwimming()) {
+     *         if (!this.isOnGround() && !this.input.sneaking && bl8 || !this.isTouchingWater()) {
+     *             this.setSprinting(false);
+     *         }
+     *     } else if (bl9) {
+     *         this.setSprinting(false);
+     *     }
+     * }
+     * }</pre>
+     */
     @Redirect(method = "tickMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isSprinting()Z"))
     boolean isSprinting(ClientPlayerEntity entity) {
         return EventFlow.post(new MovementEvent.Sprint(entity.isSprinting())).getSprint();
@@ -92,6 +111,9 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         cir.setReturnValue(EventFlow.post(new MovementEvent.Sneak(self.input.sneaking)).getSneak());
     }
 
+    /**
+     * Overwrites the movement packet update function to use our code
+     */
     @Inject(method = "sendMovementPackets", at = @At(value = "HEAD"), cancellable = true)
     void sendBegin(CallbackInfo ci) {
         ci.cancel();
@@ -126,8 +148,6 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
 
     @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
     public void damage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-        if (EventFlow.post(new PlayerEvent.Damage(source, amount)).isCanceled()) {
-            cir.setReturnValue(false);
-        }
+        if (EventFlow.post(new PlayerEvent.Damage(source, amount)).isCanceled()) cir.setReturnValue(false);
     }
 }

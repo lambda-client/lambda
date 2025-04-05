@@ -17,6 +17,7 @@
 
 package com.lambda.mixin.entity;
 
+import com.lambda.Lambda;
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.MovementEvent;
 import com.lambda.interaction.request.rotation.RotationManager;
@@ -38,7 +39,7 @@ public class PlayerEntityMixin {
 
     @Redirect(method = "tickNewAi", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;getYaw()F"))
     private float injectHeadYaw(PlayerEntity instance) {
-        if ((Object) this != MinecraftClient.getInstance().player) {
+        if ((Object) this != Lambda.getMc().player) {
             return instance.getYaw();
         }
 
@@ -48,7 +49,7 @@ public class PlayerEntityMixin {
 
     @Redirect(method = "attack", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;getYaw()F"))
     private float injectAttackFix(PlayerEntity instance) {
-        if ((Object) this != MinecraftClient.getInstance().player) {
+        if ((Object) this != Lambda.getMc().player) {
             return instance.getYaw();
         }
 
