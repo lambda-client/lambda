@@ -63,7 +63,8 @@ object MainHandContainer : MaterialContainer(Rank.MAIN_HAND) {
 
                 when (moveStack) {
                     in player.hotbar -> swapToHotbarSlot(player.hotbar.indexOf(moveStack))
-                    in player.storage -> pickFromInventory(player.combined.indexOf(moveStack))
+                    // ToDo: Use pickFromInventory
+                    in player.storage -> swap(player.combined.indexOf(moveStack), 0)
                 }
 
                 if (hand == Hand.OFF_HAND) swapHands()
