@@ -36,7 +36,7 @@ class LimitedOrderedSetTest {
     fun `test adding elements to the set`() {
         val added = set.add("Element1")
         assertTrue(added)
-        assertEquals(2, set.size)
+        assertEquals(1, set.size)
     }
 
     @Test
