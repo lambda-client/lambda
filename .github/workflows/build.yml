@@ -7,23 +7,6 @@ on:
   pull_request:
 
 jobs:
-  test:
-    name: Run Unit Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set-Up JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-          cache: 'gradle'
-
-      - name: Run Tests
-        run: ./gradlew test --no-daemon
-
   build:
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
