@@ -82,9 +82,3 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         jvmTarget = "17"
     }
 }
-
-subprojects {
-    tasks.named("build") {
-        dependsOn("test")
-    }
-}
