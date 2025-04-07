@@ -25,6 +25,7 @@ val fuelVersion: String by project
 val resultVersion: String by project
 val mockitoKotlin: String by project
 val mockitoInline: String by project
+val mockkVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-api"
 
@@ -62,6 +63,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation("org.mockito.kotlin:mockito-kotlin:$mockitoKotlin")
     testImplementation("org.mockito:mockito-inline:$mockitoInline")
+    testImplementation("io.mockk:mockk:${mockkVersion}")
 }
 
 tasks {

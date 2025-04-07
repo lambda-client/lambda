@@ -37,7 +37,7 @@ typealias TaskGeneratorOrNull<R> = SafeContext.(R) -> Task<*>?
 typealias TaskGeneratorUnit<R> = SafeContext.(R) -> Unit
 
 abstract class Task<Result> : Nameable, Muteable {
-    private var parent: Task<*>? = null
+    var parent: Task<*>? = null
     val subTasks = mutableListOf<Task<*>>()
     var state = State.INIT
     override val isMuted: Boolean get() = state == State.PAUSED || state == State.INIT
