@@ -19,8 +19,6 @@ package com.lambda.util
 
 class VarIntIterator(
     private val bytes: ByteArray,
-    private val bitsPerEntry: Int = 7,
-    private val maxGroups: Int = 5,
 ) : Iterator<Int> {
     private var index: Int = 0
 
@@ -31,23 +29,23 @@ class VarIntIterator(
             throw NoSuchElementException("No more elements to read")
 
         var value = 0
-        var bitsRead = 0
+        var size = 0
 
-        val groupMask = (1 shl bitsPerEntry) - 1
-        val continuationBit = 1 shl bitsPerEntry
-
-        var b: Byte
         do {
-            if (index >= bytes.size)
-                throw NoSuchElementException("Unexpected end of byte array while reading VarInt")
+            val b = bytes[index++].toInt()
+            value = value or ((b and SEGMENT_BIT) shl (size++ * 7))
 
-            b = bytes[index++]
-            value = value or ((b.toInt() and groupMask) shl bitsRead)
-            bitsRead += bitsPerEntry
-
-            require(bitsRead <= bitsPerEntry * maxGroups) { "VarInt size cannot exceed $maxGroups bytes" }
-        } while ((b.toInt() and continuationBit) != 0)
+            if (size > 5) throw IllegalArgumentException("VarInt size cannot exceed 5 bytes")
+        } while ((b and CONTINUE_BIT) != 0)
 
         return value
     }
+
+    companion object {
+        const val SEGMENT_BIT = 127
+        const val CONTINUE_BIT = 128
+    }
 }
+
+inline fun ByteArray.varIterator(block: (Int) -> Unit) =
+    VarIntIterator(this).forEach(block)

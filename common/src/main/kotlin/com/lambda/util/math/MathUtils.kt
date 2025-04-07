@@ -26,6 +26,8 @@ object MathUtils {
     private const val PI_FLOAT = 3.141593f
 
     inline val Int.sq: Int get() = this * this
+    inline val Float.sq: Float get() = this * this
+    inline val Double.sq: Double get() = this * this
 
     fun Float.toRadian() = this / 180.0f * PI_FLOAT
     fun Double.toRadian() = this / 180.0 * PI

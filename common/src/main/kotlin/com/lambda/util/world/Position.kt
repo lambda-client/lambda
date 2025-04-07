@@ -179,12 +179,12 @@ infix fun FastVector.div(scalar: Double): FastVector =
 /**
  * Modulo the position by the given scalar.
  */
-infix fun FastVector.mod(scalar: Int): FastVector = fastVectorOf(x % scalar, y % scalar, z % scalar)
+infix fun FastVector.remainder(scalar: Int): FastVector = fastVectorOf(x % scalar, y % scalar, z % scalar)
 
 /**
  * Modulo the position by the given scalar.
  */
-infix fun FastVector.mod(scalar: Double): FastVector =
+infix fun FastVector.remainder(scalar: Double): FastVector =
     fastVectorOf((x % scalar).toLong(), (y % scalar).toLong(), (z % scalar).toLong())
 
 /**

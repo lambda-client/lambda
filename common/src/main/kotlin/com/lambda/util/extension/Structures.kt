@@ -20,6 +20,7 @@ package com.lambda.util.extension
 import com.lambda.Lambda.mc
 import com.lambda.util.VarIntIterator
 import com.lambda.util.math.MathUtils.logCap
+import com.lambda.util.varIterator
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.x
@@ -117,8 +118,8 @@ private fun StructureTemplate.readSpongeV1OrException(
 
     val newBlocks = NbtList()
     var blockIndex = 0
-    VarIntIterator(nbt.getByteArray("BlockData"))
-        .forEach { blockId ->
+    nbt.getByteArray("BlockData")
+        .varIterator { blockId ->
             val blockpos = positionFromIndex(width, length, blockIndex++)
 
             newBlocks.add(NbtCompound().apply {
