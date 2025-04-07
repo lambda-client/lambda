@@ -49,17 +49,14 @@ internal const val Y_MASK = (1L shl Y_BITS) - 1L
 
 internal const val MIN_X = -(1L shl X_BITS - 1)
 internal const val MIN_Z = -(1L shl Z_BITS - 1)
-internal const val MIN_Y = -(1L shl Y_BITS - 1)
 internal const val MAX_X = (1L shl X_BITS - 1) - 1L
 internal const val MAX_Z = (1L shl Z_BITS - 1) - 1L
-internal const val MAX_Y = (1L shl Y_BITS - 1) - 1L
 
 /**
  * Creates a new position from the given coordinates.
  */
 fun fastVectorOf(x: Long, y: Long, z: Long): FastVector {
     require(x in MIN_X..MAX_X) { "X coordinate out of bounds for $X_BITS bits: $x" }
-    require(y in MIN_Y..MAX_Y) { "Y coordinate out of bounds for $Y_BITS bits: $y" }
     require(z in MIN_Z..MAX_Z) { "Z coordinate out of bounds for $Z_BITS bits: $z" }
 
     return ((x and X_MASK) shl X_SHIFT) or ((z and Z_MASK) shl Z_SHIFT) or (y and Y_MASK)
@@ -190,12 +187,12 @@ infix fun FastVector.div(scalar: Double): FastVector =
 /**
  * Modulo the position by the given scalar.
  */
-infix fun FastVector.mod(scalar: Int): FastVector = fastVectorOf(x % scalar, y % scalar, z % scalar)
+infix fun FastVector.remainder(scalar: Int): FastVector = fastVectorOf(x % scalar, y % scalar, z % scalar)
 
 /**
  * Modulo the position by the given scalar.
  */
-infix fun FastVector.mod(scalar: Double): FastVector =
+infix fun FastVector.remainder(scalar: Double): FastVector =
     fastVectorOf((x % scalar).toLong(), (y % scalar).toLong(), (z % scalar).toLong())
 
 infix fun FastVector.dist(other: FastVector): Double = sqrt(distSq(other))

@@ -17,37 +17,92 @@
 
 package com.lambda.graphics.buffer.vertex.attributes
 
-import com.lambda.graphics.gl.GLObject
 import org.lwjgl.opengl.GL11C.GL_FLOAT
 import org.lwjgl.opengl.GL11C.GL_UNSIGNED_BYTE
+import org.lwjgl.opengl.GL20C.glEnableVertexAttribArray
+import org.lwjgl.opengl.GL20C.glVertexAttribPointer
+import org.lwjgl.opengl.GL33.glVertexAttribDivisor
 
-enum class VertexAttrib(
-    val componentCount: Int,
+sealed class VertexAttrib(
+    private val componentCount: Int,
     componentSize: Int,
-    val normalized: Boolean,
-    override val gl: Int
-) : GLObject {
-    Float(1, 4, false, GL_FLOAT),
-    Vec2(2, 4, false, GL_FLOAT),
-    Vec3(3, 4, false, GL_FLOAT),
-    Color(4, 1, true, GL_UNSIGNED_BYTE);
+    private val normalized: Boolean,
+    private val single: Boolean,
+    private val type: Int
+) {
+    open class Float(
+        normalized: Boolean = false, single: Boolean = false
+    ) : VertexAttrib(1, 4, normalized, single, GL_FLOAT) {
+        companion object : Float()
+    }
+
+    open class Vec2(
+        normalized: Boolean = false, single: Boolean = false
+    ) : VertexAttrib(2, 4, normalized, single, GL_FLOAT) {
+        companion object : Vec2()
+    }
+
+    open class Vec3(
+        normalized: Boolean = false, single: Boolean = false
+    ) : VertexAttrib(3, 4, normalized, single, GL_FLOAT) {
+        companion object : Vec3()
+    }
+
+    open class Color(
+        normalized: Boolean = true, single: Boolean = false
+    ) : VertexAttrib(4, 1, normalized, single, GL_UNSIGNED_BYTE) {
+        companion object : Color()
+    }
 
     val size = componentCount * componentSize
 
-    enum class Group(vararg val attributes: VertexAttrib) {
-        POS_UV(Vec2, Vec2),
+    fun link(index: Int, pointer: Long, stride: Int) {
+        glEnableVertexAttribArray(index)
+        glVertexAttribPointer(index, componentCount, type, normalized, stride, pointer)
+        if (single) glVertexAttribDivisor(index, 1)
+    }
+
+    @Suppress("ClassName")
+    open class Group(vararg val attributes: VertexAttrib) {
+        object POS_UV : Group(
+            Vec2, Vec2
+        )
 
         // GUI
-        FONT(Vec3, Vec2, Color), // pos, uv, color
-        RECT_FILLED(Vec2, Vec2, Vec2, Float, Float, Color), // pos, uv, size, roundRadius, shade, color
-        RECT_OUTLINE(Vec2, Float, Float, Color), // pos, alpha, shade, color
+        object FONT : Group(
+            Vec3, Vec2, Color
+        )
+
+        object RECT : Group(
+            Vec3, Vec2, Color
+        )
+
+        object RECT_OUTLINE : Group(
+            Vec3, Vec2, Float, Color
+        )
 
         // WORLD
-        DYNAMIC_RENDERER(Vec3, Vec3, Color), // prev pos, pos, color
-        STATIC_RENDERER(Vec3, Color), // pos, color
+        object DYNAMIC_RENDERER : Group(
+            Vec3, Vec3, Color
+        )
 
-        PARTICLE(Vec3, Vec2, Color); // pos, uv, color
+        object STATIC_RENDERER : Group(
+            Vec3, Color
+        )
 
-        val stride = attributes.sumOf { attribute -> attribute.size }
+        object PARTICLE : Group(
+            Vec3, Vec2, Color
+        )
+
+        val stride = attributes.sumOf { attribute ->
+            attribute.size
+        }
+
+        fun link() {
+            attributes.foldIndexed(0L) { index, pointer, attrib ->
+                attrib.link(index, pointer, stride)
+                pointer + attrib.size
+            }
+        }
     }
 }

@@ -19,11 +19,23 @@ package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.WorldColors;
 import net.minecraft.client.render.BackgroundRenderer;
+import net.minecraft.util.CubicSampler;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
+/**
+ * <pre>{@code
+ * Vec3d vec3d2 = camera.getPos().subtract(2.0, 2.0, 2.0).multiply(0.25);
+ * Vec3d vec3d3 = CubicSampler.sampleColor(
+ *         vec3d2, (x, y, z) -> world.getDimensionEffects().adjustFogColor(Vec3d.unpackRgb(biomeAccess.getBiomeForNoiseGen(x, y, z).value().getFogColor()), v)
+ * );
+ * red = (float)vec3d3.getX();
+ * green = (float)vec3d3.getY();
+ * blue = (float)vec3d3.getZ();
+ * }</pre>
+ */
 @Mixin(BackgroundRenderer.class)
 public class BackgroundRendererMixin {
     @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;getX()D"))

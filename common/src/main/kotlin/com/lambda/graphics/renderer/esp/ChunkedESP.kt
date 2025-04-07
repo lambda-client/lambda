@@ -22,7 +22,6 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.renderer.esp.impl.ESPRenderer
 import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 import com.lambda.module.modules.client.RenderSettings
 import com.lambda.threading.awaitMainThread
@@ -100,7 +99,7 @@ class ChunkedESP private constructor(
     }
 
     private class EspChunk(val chunk: WorldChunk, val owner: ChunkedESP) {
-        var renderer: ESPRenderer? = null
+        var renderer: StaticESPRenderer? = null
 
         private val chunkOffsets = listOf(1 to 0, 0 to 1, -1 to 0, 0 to -1)
 

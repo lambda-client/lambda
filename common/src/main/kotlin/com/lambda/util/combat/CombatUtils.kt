@@ -18,23 +18,22 @@
 package com.lambda.util.combat
 
 import com.lambda.context.SafeContext
-import com.lambda.core.annotations.InternalApi
-import com.lambda.util.math.dist
-import com.lambda.util.math.minus
-import com.lambda.util.math.times
-import com.lambda.util.world.SearchUtils.internalGetFastEntities
+import com.lambda.util.math.distSq
 import com.lambda.util.world.fastEntitySearch
-import com.lambda.util.world.toFastVec
-import net.minecraft.enchantment.EnchantmentHelper
-import net.minecraft.enchantment.ProtectionEnchantment
+import net.minecraft.client.world.ClientWorld
+import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.decoration.EndCrystalEntity
-import net.minecraft.entity.effect.StatusEffects
-import net.minecraft.registry.tag.DamageTypeTags
+import net.minecraft.entity.effect.StatusEffects.FIRE_RESISTANCE
+import net.minecraft.registry.tag.DamageTypeTags.DAMAGES_HELMET
+import net.minecraft.registry.tag.DamageTypeTags.IS_FIRE
+import net.minecraft.registry.tag.DamageTypeTags.IS_FREEZING
+import net.minecraft.registry.tag.EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES
 import net.minecraft.util.math.Vec3d
+import net.minecraft.world.Difficulty
+import net.minecraft.world.World
 import net.minecraft.world.explosion.Explosion
-import kotlin.math.max
 import kotlin.math.min
 
 object CombatUtils {
@@ -44,22 +43,36 @@ object CombatUtils {
      * @param entity The entity to calculate the damage for
      * @param damage The damage to apply
      */
-    fun DamageSource.scale(entity: LivingEntity, damage: Double): Double {
-        if (entity.blockedByShield(this)) return 0.0
-        val resistanceAmplifier = entity.getStatusEffect(StatusEffects.RESISTANCE)?.amplifier ?: -1
+    fun DamageSource.scale(world: ClientWorld, entity: LivingEntity, damage: Double): Double {
+        if (damage.isNaN() || damage.isInfinite())
+            return Double.MAX_VALUE
 
-        if (isIn(DamageTypeTags.BYPASSES_EFFECTS)) return damage
+        if (entity.isInvulnerableTo(this) ||
+            entity.isDead ||
+            entity.blockedByShield(this) ||
+            isIn(IS_FIRE) && entity.hasStatusEffect(FIRE_RESISTANCE)) return 0.0
 
-        if (entity.hasStatusEffect(StatusEffects.RESISTANCE) && !isIn(DamageTypeTags.BYPASSES_RESISTANCE))
-            return (damage - max(damage * (25 - (resistanceAmplifier + 1) * 5) / 25.0, 0.0)).coerceAtLeast(0.0)
+        if (isIn(IS_FREEZING) && entity.type.isIn(FREEZE_HURTS_EXTRA_TYPES))
+            return damage * 5
 
-        if (isIn(DamageTypeTags.BYPASSES_ENCHANTMENTS)) return damage
+        if (isIn(DAMAGES_HELMET) && !entity.getEquippedStack(EquipmentSlot.HEAD).isEmpty)
+            return damage * 0.75
 
-        val protectionAmount = EnchantmentHelper.getProtectionAmount(entity.armorItems, this)
-        if (protectionAmount > 0) return damage * (1.0 - min(protectionAmount, 20) / 25.0)
-
-        return damage
+        return world.scaleDamage(
+            entity.applyArmorToDamage(this,
+                entity.modifyAppliedDamage(this, damage.toFloat())).toDouble()
+        )
     }
+
+    /**
+     * Scales the damage depending on the world difficulty
+     */
+    fun World.scaleDamage(damage: Double): Double =
+        when (difficulty) {
+            Difficulty.EASY -> min(damage / 2 + 1, damage)
+            Difficulty.HARD -> damage * 3 / 2
+            else -> damage
+        }
 
     /**
      * Returns whether there is a deadly end crystal in proximity of the player
@@ -68,7 +81,7 @@ object CombatUtils {
      */
     fun SafeContext.hasDeadlyCrystal(minHealth: Double) =
         fastEntitySearch<EndCrystalEntity>(12.0)
-            .any { player.health - explosionDamage(it.pos, player, 6.0) <= minHealth}
+            .any { player.health - crystalDamage(it.pos, player) <= minHealth }
 
     /**
      * Calculates the damage dealt by an explosion to a living entity
@@ -95,52 +108,12 @@ object CombatUtils {
      * @param power The [power of the explosion](https://minecraft.wiki/w/Explosion#Damage)
      */
     fun SafeContext.explosionDamage(position: Vec3d, entity: LivingEntity, power: Double): Double {
-        val distance = entity dist position
+        val distance = entity distSq position
 
-        val impact = (1.0 - distance / (power * 2.0)) * Explosion.getExposure(position, entity) * 0.4
-        val damage = world.difficulty.id * 3 * power * (impact * impact + impact) + 1
+        val range = power * 2
+        val impact = (1 - distance / range) * Explosion.getExposure(position, entity) * 0.4
+        val damage = (impact * impact + impact) / 2.0 * 7.0 * range + 1
 
-        return Explosion.createDamageSource(world, null).scale(entity, damage)
-    }
-
-    /**
-     * Calculates the velocity of entities in the explosion
-     *
-     * @param explosion The explosion to calculate the velocity for
-     */
-    @OptIn(InternalApi::class)
-    fun SafeContext.explosionVelocity(explosion: Explosion): Map<LivingEntity, Vec3d> {
-        val ref = ArrayList<LivingEntity>()
-        internalGetFastEntities(explosion.position.toFastVec(), explosion.power * 2.0, ref)
-        return ref.associateWith { entity -> explosionVelocity(entity, explosion) }
-    }
-
-    /**
-     * Calculates the velocity of a living entity affected by an explosion
-     *
-     * @param entity The entity to calculate the velocity for
-     * @param explosion The explosion to calculate the velocity for
-     */
-    fun explosionVelocity(entity: LivingEntity, explosion: Explosion) =
-        explosionVelocity(entity, explosion.position, explosion.power.toDouble())
-
-    /**
-     * Calculates the velocity of a living entity affected by an explosion
-     *
-     * @param entity The entity to calculate the velocity for
-     * @param position The position of the explosion
-     * @param power The strength of the explosion
-     */
-    fun explosionVelocity(entity: LivingEntity, position: Vec3d, power: Double): Vec3d {
-        val distance = entity.pos.distanceTo(position)
-
-        val size = power * 2.0
-        val vel = ProtectionEnchantment.transformExplosionKnockback(
-            entity,
-            (1.0 - distance / size) * Explosion.getExposure(position, entity)
-        )
-
-        val diff = entity.eyePos - position
-        return diff.normalize() * vel
+        return Explosion.createDamageSource(world, null).scale(world, entity, damage)
     }
 }

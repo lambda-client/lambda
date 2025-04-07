@@ -17,15 +17,25 @@
 
 package com.lambda.module
 
+import com.lambda.event.events.GuiEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.animation.AnimationTicker
-import com.lambda.gui.api.RenderLayer
-import com.lambda.gui.api.component.core.DockingRect
+import com.lambda.gui.component.core.FilledRect.Companion.rect
+import com.lambda.gui.component.core.GlowRect.Companion.glow
+import com.lambda.gui.component.core.OutlineRect.Companion.outline
+import com.lambda.gui.component.core.TextField.Companion.textField
+import com.lambda.gui.component.core.UIBuilder
+import com.lambda.gui.component.layout.Layout
+import com.lambda.gui.component.layout.Layout.Companion.layout
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
+import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Vec2d
+import kotlin.math.max
+import kotlin.math.min
 
 abstract class HudModule(
     name: String,
@@ -34,61 +44,137 @@ abstract class HudModule(
     alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.UNBOUND,
+    background: Boolean = true
 ) : Module(name, description, defaultTags, alwaysListening, enabledByDefault, defaultKeybind) {
-    private val renderCallables = mutableListOf<RenderLayer.() -> Unit>()
 
-    protected abstract val width: Double
-    protected abstract val height: Double
+    protected val animation = AnimationTicker()
 
-    private val rectHandler = object : DockingRect() {
-        private var relativePosX by setting("Position X", 0.0, -10000.0..10000.0, 0.1) { false }
-        private var relativePosY by setting("Position Y", 0.0, -10000.0..10000.0, 0.1) { false }
-        override var relativePos
-            get() = Vec2d(relativePosX, relativePosY)
-            set(value) {
-                relativePosX = value.x; relativePosY = value.y
+    private val base by lazy {
+        Layout(null).apply {
+            if (!background) return@apply
+
+            rect {
+                onUpdate {
+                    position = this@apply.position
+                    size = this@apply.size
+
+                    setColor(ClickGui.backgroundColor)
+                    setRadius(ClickGui.roundRadius)
+
+                    shade = ClickGui.backgroundShade
+                }
             }
 
-        override val width get() = this@HudModule.width
-        override val height get() = this@HudModule.height
+            glow {
+                onUpdate {
+                    position = this@apply.position
+                    size = this@apply.size
 
-        override val autoDocking by setting("Auto Docking", true).onValueChange { _, _ -> autoDocking() }
+                    setColor(ClickGui.glowColor)
+                    setRadius(ClickGui.roundRadius)
 
-        override var dockingH by setting("Docking H", HAlign.LEFT) { !autoDocking }
-            .onValueChange { from, to ->
-                val delta = to.multiplier - from.multiplier
-                relativePosX += delta * (size.x - screenSize.x)
+                    outerSpread = ClickGui.glowWidth * ClickGui.glow.toInt().toDouble()
+                    shade = ClickGui.glowShade
+                }
             }
 
-        override var dockingV by setting("Docking V", VAlign.TOP) { !autoDocking }
-            .onValueChange { from, to ->
-                val delta = to.multiplier - from.multiplier
-                relativePosY += delta * (size.y - screenSize.y)
+            outline {
+                onUpdate {
+                    position = this@apply.position
+                    size = this@apply.size
+
+                    setColor(ClickGui.outlineColor)
+                    setRadius(ClickGui.roundRadius)
+
+                    outlineWidth = ClickGui.outlineWidth * ClickGui.outline.toInt().toDouble()
+                    shade = ClickGui.outlineShade
+                }
             }
+        }
     }
 
-    var position by rectHandler::position
-    val rect by rectHandler::rect
-    val animation = AnimationTicker()
+    protected val content by lazy {
+        base.layout {
+            onUpdate {
+                val maxRadius = min(size.x, size.y)
+                val w = ClickGui.roundRadius.coerceAtMost(maxRadius)
+                val h = if (this@HudModule is Text) 0.0 else ClickGui.roundRadius.coerceAtMost(maxRadius)
+                val padding = Vec2d(max(ClickGui.hudPadding, w), max(ClickGui.hudPadding, h))
+                base.size = size + padding * 2
+                position = base.position + padding
+            }
+        }
+    }
 
-    private val renderer = RenderLayer()
-
-    protected fun onRender(block: RenderLayer.() -> Unit) =
-        renderCallables.add(block)
+    private val scheduled = mutableListOf<() -> Unit>()
 
     init {
-        listen<RenderEvent.GUI.HUD> { event ->
-            rectHandler.screenSize = event.screenSize
-
-            renderCallables.forEach { function ->
-                function(renderer)
-            }
-
-            renderer.render()
-        }
-
         listen<TickEvent.Pre> {
             animation.tick()
+        }
+
+        listen<RenderEvent.GUI.HUD> {
+            while (scheduled.isNotEmpty()) {
+                scheduled.removeAt(0).invoke()
+            }
+
+            base.onEvent(GuiEvent.Update)
+            base.onEvent(GuiEvent.Render)
+        }
+
+        onEnable {
+            base.onEvent(GuiEvent.Show)
+        }
+
+        onDisable {
+            base.onEvent(GuiEvent.Hide)
+        }
+    }
+
+    @UIBuilder
+    protected fun build(block: Layout.() -> Unit) {
+        scheduled += { content.apply(block) }
+    }
+
+    @UIBuilder
+    protected fun Layout.customDrawable(render: Layout.() -> Unit) {
+        layout {
+            onUpdate {
+                width = this@customDrawable.width
+                height = this@customDrawable.height
+            }
+
+            onRender {
+                render(this@layout)
+            }
+        }
+    }
+
+    fun getRootLayout() = base
+
+    abstract class Text(
+        name: String,
+        description: String = "",
+        defaultTags: Set<ModuleTag> = setOf(),
+        alwaysListening: Boolean = false,
+        enabledByDefault: Boolean = false,
+        defaultKeybind: KeyCode = KeyCode.UNBOUND
+    ) : HudModule(name, description, defaultTags, alwaysListening, enabledByDefault, defaultKeybind) {
+        abstract fun getText(): String
+
+        init {
+            build {
+                val text = textField {
+                    onUpdate {
+                        text = getText()
+                    }
+                }
+
+                onUpdate {
+                    content.width = text.textWidth
+                    content.height = text.textHeight
+                }
+            }
         }
     }
 }

@@ -20,20 +20,10 @@ package com.lambda.module.hud
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask
-import com.lambda.util.math.Vec2d
 
-object TaskFlowHUD : HudModule(
+object TaskFlowHUD : HudModule.Text(
     name = "TaskFlowHud",
     defaultTags = setOf(ModuleTag.CLIENT),
 ) {
-    override val width = 200.0
-    override val height = 200.0
-
-    init {
-        onRender {
-            RootTask.toString().lines().forEachIndexed { index, line ->
-                font.build(line, Vec2d(position.x, position.y + index * (font.getHeight(font.scaleMultiplier) + 2.0)))
-            }
-        }
-    }
+    override fun getText() = RootTask.toString()
 }

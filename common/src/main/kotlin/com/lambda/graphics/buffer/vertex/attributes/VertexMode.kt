@@ -17,11 +17,10 @@
 
 package com.lambda.graphics.buffer.vertex.attributes
 
-import com.lambda.graphics.gl.GLObject
 import org.lwjgl.opengl.GL11C.GL_LINES
 import org.lwjgl.opengl.GL11C.GL_TRIANGLES
 
-enum class VertexMode(val indicesCount: Int, override val gl: Int) : GLObject {
-    LINES(2, GL_LINES),
-    TRIANGLES(3, GL_TRIANGLES)
+enum class VertexMode(val mode: Int) {
+    LINES(GL_LINES),
+    TRIANGLES(GL_TRIANGLES)
 }

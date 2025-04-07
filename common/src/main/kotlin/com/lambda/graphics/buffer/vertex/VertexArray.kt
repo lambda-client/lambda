@@ -17,31 +17,40 @@
 
 package com.lambda.graphics.buffer.vertex
 
-import com.lambda.graphics.buffer.IBuffer
+import com.lambda.graphics.buffer.Buffer
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import net.minecraft.client.render.BufferRenderer
 import org.lwjgl.opengl.GL30C.*
+import org.lwjgl.opengl.GL32C.glDrawElementsBaseVertex
 import java.nio.ByteBuffer
 
-class VertexArray : IBuffer {
-    override val buffers: Int = 1
+class VertexArray(
+    private val vertexMode: VertexMode,
+    private val attributes: VertexAttrib.Group
+) : Buffer(isVertexArray = true) {
     override val usage: Int = -1
     override val target: Int = -1
     override val access: Int = -1
-    override var index = 0
-    override val bufferIds = intArrayOf(glGenVertexArrays())
 
-    override fun map(
-        offset: Long,
-        size: Long,
-        block: (ByteBuffer) -> Unit
-    ): Throwable? = throw UnsupportedOperationException("Cannot map a vertex array object to memory")
+    fun render(
+        indicesSize: Long,
+        indicesPointer: Long,
+        verticesOffset: Int
+    ) {
+        bind()
+        glDrawElementsBaseVertex(
+            vertexMode.mode,
+            indicesSize.toInt() / UInt.SIZE_BYTES,
+            GL_UNSIGNED_INT,
+            indicesPointer,
+            verticesOffset / attributes.stride
+        )
+        bind(0)
+    }
 
-    override fun upload(
-        data: ByteBuffer,
-        offset: Long,
-    ): Throwable? = throw UnsupportedOperationException("Data cannot be uploaded to a vertex array object")
-
-    override fun allocate(size: Long) = throw UnsupportedOperationException("Cannot grow a vertex array object")
+    override fun map(size: Long, offset: Long, block: (ByteBuffer) -> Unit) = throw UnsupportedOperationException()
+    override fun upload(data: ByteBuffer, offset: Long) = throw UnsupportedOperationException()
 
     override fun bind(id: Int) {
         glBindVertexArray(id); BufferRenderer.currentVertexBuffer = null

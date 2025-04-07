@@ -46,9 +46,11 @@ object GlStateUtils {
         cull(savedCull)
     }
 
-    fun withDepth(block: () -> Unit) {
+    fun withDepth(maskWrite: Boolean = false, block: () -> Unit) {
         depthTest(true)
+        if (maskWrite) glDepthMask(true)
         block()
+        if (maskWrite) glDepthMask(false)
         depthTest(false)
     }
 

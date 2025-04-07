@@ -2,8 +2,8 @@ name: Publish Dokka Documentation
 
 on:
   push:
-    branches:
-      - 'master'
+    tags:
+      - '*'
 
 jobs:
   build:

@@ -14,11 +14,12 @@
     "entity.FireworkRocketEntityMixin",
     "entity.LivingEntityMixin",
     "entity.PlayerEntityMixin",
+    "entity.PlayerInventoryMixin",
     "input.KeyBindingMixin",
     "input.KeyboardMixin",
     "input.MouseMixin",
     "items.BarrierBlockMixin",
-    "items.TridentMixin",
+    "items.FilledMapItemMixin",
     "network.ClientConnectionMixin",
     "network.ClientLoginNetworkMixin",
     "network.ClientPlayNetworkHandlerMixin",
@@ -28,9 +29,12 @@
     "render.BackgroundRendererMixin",
     "render.BlockRenderManagerMixin",
     "render.CameraMixin",
+    "render.CapeFeatureRendererMixin",
+    "render.ChatHudMixin",
     "render.ChatInputSuggestorMixin",
     "render.ChatScreenMixin",
     "render.DebugHudMixin",
+    "render.ElytraFeatureRendererMixin",
     "render.GameRendererMixin",
     "render.GlStateManagerMixin",
     "render.InGameHudMixin",
@@ -44,18 +48,17 @@
     "render.ScreenHandlerMixin",
     "render.SplashOverlayMixin",
     "render.SplashOverlayMixin$LogoTextureMixin",
+    "render.TooltipComponentMixin",
     "render.VertexBufferMixin",
     "render.WorldRendererMixin",
     "world.BlockCollisionSpliteratorMixin",
     "world.ClientChunkManagerMixin",
     "world.ClientWorldMixin",
     "world.StructureTemplateMixin",
-    "world.WorldMixin"
+    "world.WorldMixin",
+    "world.ExplosionMixin"
   ],
   "injectors": {
     "defaultRequire": 1
-  },
-  "mixins": [
-    "entity.PlayerInventoryMixin"
-  ]
+  }
 }

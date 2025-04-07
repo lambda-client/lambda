@@ -6,10 +6,10 @@ issueTrackerURL = "https://github.com/lambda-client/lambda/issues"
 [[mods]]
 modId = "${modId}"
 version = "${modVersion}"
-displayName = "Lambda"
+displayName = "${modName}"
 authors = "${modAuthors}"
 description = "${modDescription}"
-logoFile = "assets/lambda/lambda.png"
+logoFile = "${modIcon}"
 displayTest = "IGNORE_ALL_VERSION"
 
 [[dependencies.${modId}]]

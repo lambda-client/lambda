@@ -23,22 +23,21 @@ import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.config.settings.CharSetting
+import com.lambda.config.settings.FunctionSetting
 import com.lambda.config.settings.StringSetting
 import com.lambda.config.settings.collections.ListSetting
 import com.lambda.config.settings.collections.MapSetting
 import com.lambda.config.settings.collections.SetSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
-import com.lambda.config.settings.complex.BlockPosSetting
-import com.lambda.config.settings.complex.BlockSetting
-import com.lambda.config.settings.complex.ColorSetting
-import com.lambda.config.settings.complex.KeyBindSetting
+import com.lambda.config.settings.complex.*
 import com.lambda.config.settings.numeric.*
 import com.lambda.util.Communication.logError
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
 import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
 /**
@@ -173,7 +172,6 @@ abstract class Configurable(
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [List] value of type [T] for the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
-     * @param hackDelegates A flag that determines whether the setting should be serialized with the default value.
      * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
@@ -204,7 +202,6 @@ abstract class Configurable(
      * @param name The unique identifier for the setting.
      * @param defaultValue The default [Map] value of type [K] and [V] for the setting.
      * @param description A brief explanation of the setting's purpose and behavior.
-     * @param hackDelegates A flag that determines whether the setting should be serialized with the default value.
      * @param visibility A lambda expression that determines the visibility status of the setting.
      *
      * ```kotlin
@@ -392,6 +389,40 @@ abstract class Configurable(
     ) = ColorSetting(name, defaultValue, description, visibility).register()
 
     /**
+     * Creates a [Vec3dSetting] with the provided parameters and adds it to the [settings].
+     *
+     * @param name The unique identifier for the setting.
+     * @param defaultValue The default [Vec3d] value of the setting.
+     * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
+     *
+     * @return The created [Vec3dSetting].
+     */
+    fun setting(
+        name: String,
+        defaultValue: Vec3d,
+        description: String = "",
+        visibility: () -> Boolean = { true },
+    ) = Vec3dSetting(name, defaultValue, description, visibility).register()
+
+    /**
+     * Creates a [BlockPosSetting] with the provided parameters and adds it to the [settings].
+     *
+     * @param name The unique identifier for the setting.
+     * @param defaultValue The default [BlockPos.Mutable] value of the setting.
+     * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
+     *
+     * @return The created [BlockPosSetting].
+     */
+    fun setting(
+        name: String,
+        defaultValue: BlockPos.Mutable,
+        description: String = "",
+        visibility: () -> Boolean = { true },
+    ) = BlockPosSetting(name, defaultValue, description, visibility).register()
+
+    /**
      * Creates a [BlockPosSetting] with the provided parameters and adds it to the [settings].
      *
      * @param name The unique identifier for the setting.
@@ -424,4 +455,11 @@ abstract class Configurable(
         description: String = "",
         visibility: () -> Boolean = { true },
     ) = BlockSetting(name, defaultValue, description, visibility).register()
+
+    fun setting(
+        name: String,
+        defaultValue: () -> Unit,
+        description: String = "",
+        visibility: () -> Boolean = { true }
+    ) = FunctionSetting(name, defaultValue, description, visibility).register()
 }
