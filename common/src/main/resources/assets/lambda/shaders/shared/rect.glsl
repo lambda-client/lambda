@@ -1,21 +1,29 @@
 attributes {
-    vec4 pos;
     vec2 uv;
-    vec4 color;
 };
 
 uniforms {
-    vec2 u_Size; # fragment
-
     float u_RoundLeftTop;     # fragment
     float u_RoundLeftBottom;  # fragment
     float u_RoundRightBottom; # fragment
     float u_RoundRightTop;    # fragment
+
+    vec4 u_ColorLeftTop;     # vertex
+    vec4 u_ColorLeftBottom;  # vertex
+    vec4 u_ColorRightBottom; # vertex
+    vec4 u_ColorRightTop;    # vertex
+
+    vec2 u_Pos; # vertex
+    vec2 u_Size; # global
+
+    float u_Expand; # vertex
 };
 
 export {
-    vec2 v_TexCoord; # uv
-    vec4 v_Color;    # color
+    vec2 v_TexCoord;  # mix(-u_Expand / u_Size, 1.0 + (u_Expand / u_Size), uv)
+    core gl_Position; # u_ProjModel * vec4(mix(u_Pos - 0.3, u_Pos + u_Size + 0.3, v_TexCoord), 0.0, 1.0)
+
+    vec4 v_Color; # mix(mix(u_ColorLeftTop, u_ColorRightTop, uv.x), mix(u_ColorLeftBottom, u_ColorRightBottom, uv.x), uv.y)
 };
 
 #include "shade"

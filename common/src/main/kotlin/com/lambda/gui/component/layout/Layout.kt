@@ -370,28 +370,37 @@ open class Layout(
 
         // Update children
         children.forEach { child ->
-            if (e is GuiEvent.Render) return@forEach
-            if (e is GuiEvent.Update && !updateChildren) return@forEach
-
-            if (e is GuiEvent.MouseClick) {
-                val newAction = if (child.isHovered) e.action else Mouse.Action.Release
-
-                val newEvent = GuiEvent.MouseClick(e.button, newAction, e.mouse)
-                child.onEvent(newEvent)
-                return@forEach
+            when(e) {
+                is GuiEvent.Render -> return@forEach
+                is GuiEvent.Update -> {
+                    if (!updateChildren) return@forEach
+                }
+                is GuiEvent.MouseMove -> {
+                    if (!isHovered && !isPressed) return@forEach
+                }
+                is GuiEvent.MouseClick -> {
+                    val newAction = if (child.isHovered) e.action else Mouse.Action.Release
+                    val newEvent = GuiEvent.MouseClick(e.button, newAction, e.mouse)
+                    child.onEvent(newEvent)
+                    return@forEach
+                }
+                else -> {}
             }
 
             child.onEvent(e)
         }
 
-        if (e is GuiEvent.Render) {
-            val block = {
-                renderActions.forEach { it(this) }
-                children.forEach { it.onEvent(e) }
-            }
+        when (e) {
+            is GuiEvent.Render -> {
+                val block = {
+                    renderActions.forEach { it(this) }
+                    children.forEach { it.onEvent(e) }
+                }
 
-            if (!properties.scissor) block()
-            else ScissorAdapter.scissor(scissorRect, block)
+                if (!properties.scissor) block()
+                else ScissorAdapter.scissor(scissorRect, block)
+            }
+            else -> {}
         }
     }
 

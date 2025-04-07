@@ -1,7 +1,5 @@
 attributes {
-    vec4 pos;
     vec2 uv;
-    vec4 color;
 };
 
 uniforms {
@@ -17,6 +15,8 @@ uniforms {
 #include "rect"
 
 void fragment() {
+    if (v_Color.a == 0.0) discard;
+
     float distance = signedDistance();
     float innerDistance = signedDistance(vec4(
         u_InnerRoundRightBottom,

@@ -36,6 +36,7 @@ abstract class Buffer(
      * Edge case to handle vertex arrays
      */
     val isVertexArray: Boolean = false,
+    val validate: Boolean = true
 ) {
     /**
      * Specifies how the buffers are used
@@ -105,7 +106,19 @@ abstract class Buffer(
     /**
      * Index of the current buffer.
      */
-    var index: Int = 0; private set
+    private var index: Int = 0; private set(value) {
+        if (field == value) return
+        field = value
+        id = bufferIds[value]
+    }
+
+    /**
+     * ID of the current buffer.
+     */
+    var id: Int = 0; get() {
+        if (field == 0) field = bufferIds[0]
+        return field
+    } private set
 
     /**
      * List of all the buffers.
@@ -129,7 +142,7 @@ abstract class Buffer(
     /**
      * Binds current the buffer [index] to the [target].
      */
-    fun bind() = bind(bufferIds[index])
+    fun bind() = bind(id)
 
     /**
      * Swaps the buffer [index] if [buffers] is greater than 1.
@@ -321,6 +334,8 @@ abstract class Buffer(
     abstract fun upload(data: ByteBuffer, offset: Long)
 
     private fun validate() {
+        if (!validate) return
+
         check(usage in GL_STREAM_DRAW..GL_DYNAMIC_COPY)
         { "Usage is invalid, refer to the documentation table." }
 
@@ -363,7 +378,7 @@ abstract class Buffer(
         var lastIbo = 0
         var prevIbo = 0
 
-        fun createPipelineBuffer(bufferTarget: Int) = object : Buffer(buffers = 1) {
+        fun createPipelineBuffer(bufferTarget: Int) = object : Buffer(buffers = 1, validate = false) {
             override val target: Int = bufferTarget
 
             override val usage: Int = GL_STATIC_DRAW

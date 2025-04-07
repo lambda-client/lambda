@@ -20,9 +20,8 @@ package com.lambda.module.modules.client
 import com.lambda.Lambda.mc
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.renderer.gui.FontRenderer.drawGlyph
-import com.lambda.graphics.renderer.gui.font.core.GlyphInfo
-import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.get
+import com.lambda.graphics.renderer.gui.FontRenderer
+import com.lambda.graphics.renderer.gui.FontRenderer.drawString
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.Vec2d
@@ -39,15 +38,19 @@ object LambdaMoji : Module(
 ) {
     val suggestions by setting("Chat Suggestions", true)
 
-    private val renderQueue = mutableListOf<Triple<GlyphInfo, Vec2d, Color>>()
+    private val renderQueue = mutableListOf<Triple<String, Vec2d, Color>>()
 
     init {
         listen<RenderEvent.GUI.Scaled> {
-            renderQueue.forEach { (glyph, position, color) ->
-                drawGlyph(glyph, position, color)
+            renderQueue.forEach { (string, position, color) ->
+                drawString(string, position, color)
             }
 
             renderQueue.clear()
+        }
+
+        onToggle {
+            FontRenderer.invalidate()
         }
     }
 
@@ -77,8 +80,7 @@ object LambdaMoji : Module(
                     else -> Color(255, 255, 255, (color shr 24 and 0xFF))
                 }
 
-                val glyph = RenderSettings.emojiFont[emoji] ?: return@forEach
-                renderQueue.add(Triple(glyph, Vec2d(x + width, y), trueColor))
+                renderQueue.add(Triple(emoji, Vec2d(x + width, y), trueColor))
 
                 // Replace the emoji with whitespaces depending on the player's settings
                 raw = raw.replaceFirst(emoji, " ")

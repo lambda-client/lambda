@@ -41,35 +41,25 @@ object BlurRenderer {
     private val fbo2 = FrameBuffer()
     private val base get() = mc.framebuffer
 
-    private val vao = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.BLUR)
-
     private val hShader = shader("post/gaussian_h")
     private val vShader = shader("post/gaussian_v")
 
     fun blur(rect: Rect, iterations: Int) {
         if (iterations <= 0) return
 
-        vao.upload {
-            val p1 = rect.leftTop
-            val p2 = rect.rightBottom
-
-            buildQuad(
-                vertex {
-                    vec2(p1.x, p1.y).vec2(0.0, 0.0)
-                },
-                vertex {
-                    vec2(p1.x, p2.y).vec2(0.0, 1.0)
-                },
-                vertex {
-                    vec2(p2.x, p2.y).vec2(1.0, 1.0)
-                },
-                vertex {
-                    vec2(p2.x, p1.y).vec2(1.0, 0.0)
-                }
-            )
-        }
-
         val i = iterations.toDouble()
+        val texelSize = Vec2d(1.0 / base.viewportWidth, 1.0 / base.viewportHeight)
+        val (pos1, pos2) = rect.leftTop to rect.rightBottom
+
+        hShader.use()
+        hShader["u_TexelSize"] = texelSize
+        hShader["u_Position1"] = pos1
+        hShader["u_Position2"] = pos2
+
+        vShader.use()
+        vShader["u_TexelSize"] = texelSize
+        vShader["u_Position1"] = pos1
+        vShader["u_Position2"] = pos2
 
         GlStateUtils.blend(false)
         render(null, fbo1, false, i - 1.0, i)
@@ -81,13 +71,6 @@ object BlurRenderer {
 
         render(fbo1, null, true)
         GlStateUtils.blend(true)
-        vao.end()
-    }
-
-    init {
-        listen<TickEvent.Render.Post>(alwaysListen = true) {
-            vao.sync()
-        }
     }
 
     private fun render(
@@ -104,11 +87,10 @@ object BlurRenderer {
 
         (if (vertical) vShader else hShader).let { shader ->
             shader.use()
-            shader["u_TexelSize"] = Vec2d(1.0 / base.viewportWidth, 1.0 / base.viewportHeight)
             shader["u_Extend"] = Vec2d(extendX, extendY)
-            // if (vertical) shader["u_Final"] = frameBuffer == null
+            // if (vertical) shader["u_IsFinal"] = frameBuffer == null
         }
 
-        vao.render()
+        VertexPipeline.renderStaticRect()
     }
 }

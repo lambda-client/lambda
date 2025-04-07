@@ -1,12 +1,12 @@
 attributes {
-    vec4 pos;
     vec2 uv;
-    vec4 color;
 };
 
 #include "rect"
 
 void fragment() {
+    if (v_Color.a == 0.0) discard;
+
     float distance = signedDistance();
     float alpha = 1 - smoothstep(-SMOOTHING, SMOOTHING, distance);
     color = v_Color * vec4(1.0, 1.0, 1.0, alpha) * shade + noise;

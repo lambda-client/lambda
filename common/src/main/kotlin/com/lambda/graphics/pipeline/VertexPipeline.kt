@@ -19,6 +19,7 @@ package com.lambda.graphics.pipeline
 
 import com.lambda.graphics.buffer.vertex.VertexArray
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib.Vec2
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import org.lwjgl.opengl.GL32C.*
 
@@ -38,8 +39,13 @@ class VertexPipeline(
     private val attributes: VertexAttrib.Group
 ) {
     private val vao = VertexArray(vertexMode, attributes)
+
     private val vbo = PersistentBuffer(GL_ARRAY_BUFFER, attributes.stride)
     private val ibo = PersistentBuffer(GL_ELEMENT_ARRAY_BUFFER, UInt.SIZE_BYTES)
+
+    init {
+        vao.linkVbo(vbo)
+    }
 
     /**
      * Direct access to the vertex buffer's underlying byte storage
@@ -55,11 +61,7 @@ class VertexPipeline(
      * Submits a draw call to the GPU using currently uploaded data
      * Binds VAO and issues glDrawElementsBaseVertex command
      */
-    fun render() = vao.render(
-        indicesSize = indices.bytesPut - ibo.uploadOffset,
-        indicesPointer = indices.pointer + ibo.uploadOffset,
-        verticesOffset = vbo.uploadOffset
-    )
+    fun render() = vao.renderIndices(ibo)
 
     /**
      * Builds and renders data constructed by [VertexBuilder]
@@ -144,7 +146,18 @@ class VertexPipeline(
         ibo.clear()
     }
 
-    init {
-        vao.bind { vbo.use(attributes::link) }
+    companion object {
+        private val UI_RECT = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group(Vec2)).apply {
+            upload {
+                buildQuad(
+                    vertex { vec2(0.0, 0.0) },
+                    vertex { vec2(0.0, 1.0) },
+                    vertex { vec2(1.0, 1.0) },
+                    vertex { vec2(1.0, 0.0) }
+                )
+            }
+        }
+
+        fun renderStaticRect() = UI_RECT.render()
     }
 }

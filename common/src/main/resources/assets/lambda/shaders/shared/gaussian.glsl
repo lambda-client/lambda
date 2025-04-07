@@ -1,5 +1,4 @@
 attributes {
-    vec2 pos;
     vec2 uv;
 };
 
@@ -7,10 +6,13 @@ uniforms {
     sampler2D u_Texture; # fragment
     vec2 u_TexelSize;    # global
     vec2 u_Extend;       # vertex
+
+    vec2 u_Position1; # vertex
+    vec2 u_Position2; # vertex
 };
 
 export {
-    core gl_Position; # u_ProjModel * vec4(pos, 0.0, 1.0) + vec4(u_TexelSize * u_Extend * vec2(uv.x - 0.5, 0.5 - uv.y) * 2 * 12, 0.0, 0.0)
+    core gl_Position; # u_ProjModel * vec4(mix(u_Position1, u_Position2, uv), 0.0, 1.0) + vec4(u_TexelSize * u_Extend * vec2(uv.x - 0.5, 0.5 - uv.y) * 2 * 12, 0.0, 0.0)
     vec2 v_TexCoord;  # gl_Position.xy * 0.5 + 0.5
 };
 

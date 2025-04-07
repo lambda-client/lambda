@@ -21,12 +21,17 @@ import com.lambda.graphics.RenderMain
 import com.lambda.graphics.shader.ShaderUtils.createShaderProgram
 import com.lambda.graphics.shader.ShaderUtils.loadShader
 import com.lambda.graphics.shader.ShaderUtils.uniformMatrix
+import com.lambda.module.modules.client.GuiSettings
+import com.lambda.module.modules.client.GuiSettings.primaryColor
+import com.lambda.module.modules.client.GuiSettings.secondaryColor
+import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Vec2d
 import it.unimi.dsi.fastutil.objects.Object2IntMap
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
+import org.lwjgl.glfw.GLFW
 import org.lwjgl.opengl.GL20C.*
 import java.awt.Color
 
@@ -88,5 +93,20 @@ class Shader private constructor(name: String) {
             shaderCache.getOrPut(path) {
                 Shader(path)
             }
+
+        fun Shader.shadeUniforms(shade: Boolean) {
+            val shader = this
+
+            shader["u_Shade"] = shade.toInt().toDouble()
+            if (shade) {
+                shader["u_ShadeTime"] = GLFW.glfwGetTime() * GuiSettings.colorSpeed * 5.0
+                shader["u_ShadeColor1"] = primaryColor
+                shader["u_ShadeColor2"] = secondaryColor
+
+                val size = RenderMain.screenSize / Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
+                //if (this is FontRenderer) size *= 5.0
+                shader["u_ShadeSize"] = size
+            }
+        }
     }
 }

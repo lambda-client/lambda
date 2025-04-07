@@ -1,7 +1,5 @@
 attributes {
-    vec4 pos;
     vec2 uv;
-    vec4 color;
 };
 
 uniforms {
@@ -11,6 +9,8 @@ uniforms {
 #include "rect"
 
 void fragment() {
+    if (v_Color.a == 0.0) discard;
+
     float distance = signedDistance();
     float innerAlpha = smoothstep(-u_RectWidth - SMOOTHING, -u_RectWidth + SMOOTHING, distance);
     float outerAlpha = 1 - smoothstep(u_RectWidth - SMOOTHING, u_RectWidth + SMOOTHING, distance);

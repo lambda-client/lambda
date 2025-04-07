@@ -1,5 +1,5 @@
 attributes {
-    vec4 pos;
+    vec2 pos;
     vec2 uv;
     vec4 color;
 };
@@ -7,13 +7,17 @@ attributes {
 uniforms {
     sampler2D u_FontTexture;  # fragment
     sampler2D u_EmojiTexture; # fragment
-    float u_SDFMin;           # fragment
-    float u_SDFMax;           # fragment
+
+    float u_SDFMin; # fragment
+    float u_SDFMax; # fragment
+
+    vec4 u_Color;  # vertex
 };
 
 export {
-    vec2 v_TexCoord; # uv
-    vec4 v_Color;    # color
+    core gl_Position; # u_ProjModel * vec4(pos, 0.0, 1.0)
+    vec2 v_TexCoord;  # uv
+    vec4 v_Color;     # color * u_Color
 };
 
 #include "sdf"

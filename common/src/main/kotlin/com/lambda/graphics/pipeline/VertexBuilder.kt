@@ -29,8 +29,8 @@ import org.joml.Vector4d
 class VertexBuilder(
     private val direct: VertexPipeline? = null
 ) {
-    private val vertices by lazy { mutableListOf<Attribute>() }
-    private val indices by lazy { mutableListOf<Int>() }
+    val vertices by lazy { mutableListOf<Attribute>() }
+    val indices by lazy { mutableListOf<Int>() }
 
     private var verticesCounter = 0
 
@@ -97,9 +97,8 @@ class VertexBuilder(
     fun collect(vararg indices: Int) =
         indices
 
-    fun use(block: VertexBuilder.() -> Unit) {
+    fun use(block: VertexBuilder.() -> Unit) =
         apply(block)
-    }
 
     /**
      * Creates a new vertex with specified attributes
@@ -120,14 +119,19 @@ class VertexBuilder(
             "Builder is already associated with a rendering pipeline. Cannot upload data again."
         }
 
-        /* Upload vertices */
-        vertices.forEach { attribute ->
-            attribute.upload(pipeline.vertices)
-        }
+        uploadVertices(pipeline.vertices)
+        uploadIndices(pipeline.indices)
+    }
 
-        /* Upload indices */
+    fun uploadVertices(buffer: DynamicByteBuffer) {
+        vertices.forEach { attribute ->
+            attribute.upload(buffer)
+        }
+    }
+
+    fun uploadIndices(buffer: DynamicByteBuffer) {
         indices.forEach {
-            pipeline.indices.putInt(it)
+            buffer.putInt(it)
         }
     }
 

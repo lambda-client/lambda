@@ -497,7 +497,11 @@ object CrystalAura : Module(
         }
 
         fun buildDebug() {
-            withVertexTransform(buildWorldProjection(blockPos.crystalPosition, 0.4, Matrices.ProjRotationMode.TO_CAMERA)) {
+            Matrices.push {
+                peek().mul(
+                    buildWorldProjection(blockPos.crystalPosition, 0.4, Matrices.ProjRotationMode.TO_CAMERA)
+                )
+
                 val lines = arrayOf(
                     "Decision: ${actionType.name} ${priority.roundToStep(0.01)}",
                     "",

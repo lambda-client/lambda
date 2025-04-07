@@ -1,5 +1,4 @@
 attributes {
-    vec2 pos;
     vec2 uv;
 };
 

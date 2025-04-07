@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.client
 
+import com.lambda.graphics.renderer.gui.FontRenderer
 import com.lambda.graphics.renderer.gui.font.core.LambdaEmoji
 import com.lambda.graphics.renderer.gui.font.core.LambdaFont
 import com.lambda.module.Module
@@ -30,17 +31,34 @@ object RenderSettings : Module(
 ) {
     private val page by setting("Page", Page.Font)
 
-    // General
-    val useMemoryMapping by setting("Use Memory Mapping", true) { page == Page.General}
-
     // Font
-    val textFont by setting("Text Font", LambdaFont.FiraSansRegular) { page == Page.Font }
-    val emojiFont by setting("Emoji Font", LambdaEmoji.Twemoji) { page == Page.Font }
-    val shadow by setting("Shadow", true) { page == Page.Font }
-    val shadowBrightness by setting("Shadow Brightness", 0.35, 0.0..0.5, 0.01) { page == Page.Font && shadow }
-    val shadowShift by setting("Shadow Shift", 1.0, 0.0..2.0, 0.05) { page == Page.Font && shadow }
-    val gap by setting("Gap", 1.5, -10.0..10.0, 0.5) { page == Page.Font }
-    val baselineOffset by setting("Vertical Offset", 0.0, -10.0..10.0, 0.5) { page == Page.Font }
+    val textFont by setting("Text Font", LambdaFont.FiraSansRegular) { page == Page.Font }.onValueSet { _, _ ->
+        FontRenderer.invalidate()
+    }
+
+    val emojiFont by setting("Emoji Font", LambdaEmoji.Twemoji) { page == Page.Font }.onValueSet { _, _ ->
+        FontRenderer.invalidate()
+    }
+
+    val shadowBrightness by setting("Shadow Brightness", 0.35, 0.0..0.5, 0.01) { page == Page.Font }.onValueSet { _, _ ->
+        FontRenderer.invalidate()
+    }
+
+    val shadowShift get() = shadowShift0 * 10.0
+    private val shadowShift0 by setting("Shadow Shift", 1.0, 0.0..2.0, 0.05) { page == Page.Font }.onValueSet { _, _ ->
+        FontRenderer.invalidate()
+    }
+
+    val gap get() = gap0 * 0.5f - 0.8f
+    private val gap0 by setting("Gap", 1.5, -10.0..10.0, 0.5) { page == Page.Font }.onValueSet { _, _ ->
+        FontRenderer.invalidate()
+    }
+
+    val baselineOffset get() = baselineOffset0 * 2.0f - 16f
+    private val baselineOffset0 by setting("Vertical Offset", 0.0, -10.0..10.0, 0.5) { page == Page.Font }.onValueSet { _, _ ->
+        FontRenderer.invalidate()
+    }
+
     val highlightColor by setting("Text Highlight Color", Color(214, 55, 87), visibility = { page == Page.Font })
     val sdfMin by setting("SDF Min", 0.4, 0.0..1.0, 0.01, visibility = { page == Page.Font })
     val sdfMax by setting("SDF Max", 1.0, 0.0..1.0, 0.01, visibility = { page == Page.Font })
@@ -52,7 +70,6 @@ object RenderSettings : Module(
     val outlineWidth by setting("Outline Width", 1.0, 0.1..5.0, 0.1, "Width of block outlines", unit = "px") { page == Page.ESP }
 
     private enum class Page {
-        General,
         Font,
         ESP,
     }

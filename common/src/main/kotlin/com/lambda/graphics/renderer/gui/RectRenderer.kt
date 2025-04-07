@@ -17,17 +17,18 @@
 
 package com.lambda.graphics.renderer.gui
 
-import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.pipeline.VertexPipeline
+import com.lambda.graphics.shader.Shader
+import com.lambda.graphics.shader.Shader.Companion.shadeUniforms
 import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.util.math.Rect
-import com.lambda.util.math.Vec2d
 import java.awt.Color
 import kotlin.math.min
 
 object RectRenderer {
-    private val filled  = AbstractGUIRenderer(VertexAttrib.Group.RECT, shader("renderer/rect_filled"))
-    private val outline = AbstractGUIRenderer(VertexAttrib.Group.RECT, shader("renderer/rect_outline"))
-    private val glow    = AbstractGUIRenderer(VertexAttrib.Group.RECT, shader("renderer/rect_glow"))
+    private val filled  = shader("renderer/rect_filled")
+    private val outline = shader("renderer/rect_outline")
+    private val glow    = shader("renderer/rect_glow")
 
     fun filledRect(
         rect: Rect,
@@ -40,7 +41,8 @@ object RectRenderer {
         rightBottom: Color = Color.WHITE,
         leftBottom: Color = Color.WHITE,
         shade: Boolean = false,
-    ) = filled.putRect(
+    ) = putRect(
+        filled,
         rect,
         0.0,
         shade,
@@ -69,7 +71,8 @@ object RectRenderer {
     ) {
         if (width < 0.01) return
 
-        outline.putRect(
+        putRect(
+            outline,
             rect,
             width * 0.25,
             shade,
@@ -115,14 +118,15 @@ object RectRenderer {
             this.coerceAtMost(maxRadius)
                 .coerceAtLeast(0.0)
 
-        glow.shader.use()
-        glow.shader["u_InnerRectWidth"] = innerSpread.coerceAtLeast(1.0)
-        glow.shader["u_InnerRoundLeftTop"]     = leftTopInnerRadius    .coerceAtLeast(leftTopOuterRadius)    .clampRadius()
-        glow.shader["u_InnerRoundLeftBottom"]  = leftBottomInnerRadius .coerceAtLeast(leftBottomOuterRadius) .clampRadius()
-        glow.shader["u_InnerRoundRightBottom"] = rightBottomInnerRadius.coerceAtLeast(rightBottomOuterRadius).clampRadius()
-        glow.shader["u_InnerRoundRightTop"]    = rightTopInnerRadius   .coerceAtLeast(rightTopOuterRadius)   .clampRadius()
+        glow.use()
+        glow["u_InnerRectWidth"] = innerSpread.coerceAtLeast(1.0)
+        glow["u_InnerRoundLeftTop"]     = leftTopInnerRadius    .coerceAtLeast(leftTopOuterRadius)    .clampRadius()
+        glow["u_InnerRoundLeftBottom"]  = leftBottomInnerRadius .coerceAtLeast(leftBottomOuterRadius) .clampRadius()
+        glow["u_InnerRoundRightBottom"] = rightBottomInnerRadius.coerceAtLeast(rightBottomOuterRadius).clampRadius()
+        glow["u_InnerRoundRightTop"]    = rightTopInnerRadius   .coerceAtLeast(rightTopOuterRadius)   .clampRadius()
 
-        glow.putRect(
+        putRect(
+            glow,
             rect,
             outerSpread.coerceAtLeast(1.0),
             shade,
@@ -137,7 +141,8 @@ object RectRenderer {
         )
     }
 
-    private fun AbstractGUIRenderer.putRect(
+    private fun putRect(
+        shader: Shader,
         rect: Rect,
         expandIn: Double,
         shade: Boolean,
@@ -149,36 +154,29 @@ object RectRenderer {
         rightTop: Color,
         rightBottom: Color,
         leftBottom: Color,
-    )  = render(shade) { shader ->
-        val pos1 = rect.leftTop
-        val pos2 = rect.rightBottom
+    ) {
+        if (leftTop.alpha + rightTop.alpha + leftBottom.alpha + rightBottom.alpha == 0) return
+
+        shader.use()
+        shader.shadeUniforms(shade)
 
         val expand = expandIn.coerceAtLeast(0.0) + 1
-        val smoothing = 0.3
 
-        val p1 = pos1 - expand - smoothing
-        val p2 = pos2 + expand + smoothing
+        val pos1 = rect.leftTop
+        val pos2 = rect.rightBottom
 
         val size = pos2 - pos1
         val halfSize = size * 0.5
         val maxRadius = min(halfSize.x, halfSize.y)
-
-        val uv1 = Vec2d(
-            -expand / size.x,
-            -expand / size.y
-        )
-
-        val uv2 = Vec2d(
-            1.0 + (expand / size.x),
-            1.0 + (expand / size.y)
-        )
 
         fun Double.clampRadius() =
             this.coerceAtMost(maxRadius)
                 .coerceAtLeast(0.0)
 
         // Size of the rectangle
+        shader["u_Pos"] = pos1
         shader["u_Size"] = size
+        shader["u_Expand"] = expand
 
         // Round radius
         shader["u_RoundLeftTop"] = leftTopRadius.clampRadius()
@@ -186,24 +184,15 @@ object RectRenderer {
         shader["u_RoundRightBottom"] = rightBottomRadius.clampRadius()
         shader["u_RoundRightTop"] = rightTopRadius.clampRadius()
 
+        // Color
+        shader["u_ColorLeftTop"] = leftTop
+        shader["u_ColorLeftBottom"] = leftBottom
+        shader["u_ColorRightBottom"] = rightBottom
+        shader["u_ColorRightTop"] = rightTop
+
         // For glow & outline only
         shader["u_RectWidth"] = expandIn
 
-        upload {
-            buildQuad(
-                vertex {
-                    vec3m(p1.x, p1.y).vec2(uv1.x, uv1.y).color(leftTop)
-                },
-                vertex {
-                    vec3m(p1.x, p2.y).vec2(uv1.x, uv2.y).color(leftBottom)
-                },
-                vertex {
-                    vec3m(p2.x, p2.y).vec2(uv2.x, uv2.y).color(rightBottom)
-                },
-                vertex {
-                    vec3m(p2.x, p1.y).vec2(uv2.x, uv1.y).color(rightTop)
-                }
-            )
-        }
+        VertexPipeline.renderStaticRect()
     }
 }

@@ -68,6 +68,7 @@ object BlockESP : Module(
     init {
         onToggle {
             if (barrier) mc.worldRenderer.reload()
+            esp.rebuild()
         }
     }
 
@@ -77,8 +78,8 @@ object BlockESP : Module(
         if (state.block !in blocks) return@newChunkedESP
 
         val sides = if (mesh) {
-            buildSideMesh(position) {
-                world.getBlockState(it).block in blocks
+            buildSideMesh(position) { neighbour ->
+                world.getBlockState(neighbour).block in blocks
             }
         } else DirectionMask.ALL
 

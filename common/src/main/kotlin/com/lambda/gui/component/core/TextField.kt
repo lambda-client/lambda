@@ -30,8 +30,9 @@ class TextField(
     owner: Layout,
 ) : Layout(owner) {
     @UIRenderPr0p3rty var text = ""
-    @UIRenderPr0p3rty var color: Color = Color.WHITE
     @UIRenderPr0p3rty var scale = 1.0
+
+    @UIRenderPr0p3rty var color: Color = Color.WHITE
     @UIRenderPr0p3rty var shadow = true
 
     @UIRenderPr0p3rty var textHAlignment = HAlign.LEFT
