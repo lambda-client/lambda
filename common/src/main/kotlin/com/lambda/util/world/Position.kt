@@ -259,6 +259,11 @@ fun Vec3d.toFastVec(): FastVector = fastVectorOf(x.toLong(), y.toLong(), z.toLon
 fun FastVector.toVec3d(): Vec3d = Vec3d(x.toDouble(), y.toDouble(), z.toDouble())
 
 /**
+ * [FastVector] to a centered [Vec3d]
+ */
+fun FastVector.toCenterVec3d(): Vec3d = Vec3d(x + 0.5, y + 0.5, z + 0.5)
+
+/**
  * Converts the [FastVector] into a [BlockPos].
  */
 fun FastVector.toBlockPos(): BlockPos = BlockPos(x, y, z)

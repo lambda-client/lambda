@@ -17,7 +17,14 @@
 
 package com.lambda.pathing.dstar
 
+import com.lambda.graphics.renderer.esp.builders.buildLine
+import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.util.world.FastVector
+import com.lambda.util.world.toCenterVec3d
+import com.lambda.util.world.toVec3d
+import java.awt.Color
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
 
 /**
  * A 3D graph that uses FastVector (a Long) to represent 3D nodes.
@@ -35,8 +42,8 @@ import com.lambda.util.world.FastVector
 class LazyGraph(
     private val nodeInitializer: (FastVector) -> Map<FastVector, Double>
 ) {
-    private val successors = hashMapOf<FastVector, MutableMap<FastVector, Double>>()
-    private val predecessors = hashMapOf<FastVector, MutableMap<FastVector, Double>>()
+    private val successors = ConcurrentHashMap<FastVector, MutableMap<FastVector, Double>>()
+    private val predecessors = ConcurrentHashMap<FastVector, MutableMap<FastVector, Double>>()
     private val dirtyNodes = mutableSetOf<FastVector>()
 
     val size get() = successors.size
@@ -69,10 +76,34 @@ class LazyGraph(
     /** Returns the cost of the edge from u to v (or ∞ if none exists) */
     fun cost(u: FastVector, v: FastVector): Double = successors(u)[v] ?: Double.POSITIVE_INFINITY
 
-    fun contains(u: FastVector): Boolean = u in successors
+    fun contains(u: FastVector): Boolean = successors.containsKey(u)
 
     fun clear() {
         successors.clear()
         predecessors.clear()
+    }
+
+    fun render(renderer: StaticESP) {
+        successors.entries.take(1000).forEach { (origin, neighbors) ->
+            neighbors.forEach { (neighbor, cost) ->
+                renderer.buildLine(origin.toCenterVec3d(), neighbor.toCenterVec3d(), Color.PINK)
+            }
+        }
+    }
+
+    fun buildDebugInfo() {
+//        val projection = buildWorldProjection(blockPos, 0.4, Matrices.ProjRotationMode.TO_CAMERA)
+//        withVertexTransform(projection) {
+//            val lines = arrayOf(
+//                ""
+//            )
+//
+//            var height = -0.5 * lines.size * (FontRenderer.getHeight() + 2)
+//
+//            lines.forEach {
+//                drawString(it, Vec2d(-FontRenderer.getWidth(it) * 0.5, height))
+//                height += FontRenderer.getHeight() + 2
+//            }
+//        }
     }
 }

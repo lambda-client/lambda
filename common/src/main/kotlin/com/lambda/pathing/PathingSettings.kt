@@ -51,5 +51,6 @@ class PathingSettings(
     override val renderCoarsePath by c.setting("Render Coarse Path", false) { vis() && page == Page.Misc }
     override val renderRefinedPath by c.setting("Render Refined Path", true) { vis() && page == Page.Misc }
     override val renderGoal by c.setting("Render Goal", true) { vis() && page == Page.Misc }
+    override val renderGraph by c.setting("Render Graph", false) { vis() && page == Page.Misc }
     override val assumeJesus by c.setting("Assume Jesus", false) { vis() && page == Page.Misc }
 }

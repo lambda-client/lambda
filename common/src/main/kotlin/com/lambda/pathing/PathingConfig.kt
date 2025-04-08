@@ -42,6 +42,7 @@ interface PathingConfig {
     val renderCoarsePath: Boolean
     val renderRefinedPath: Boolean
     val renderGoal: Boolean
+    val renderGraph: Boolean
     val assumeJesus: Boolean
 
     enum class PathingAlgorithm(override val displayName: String) : NamedEnum {

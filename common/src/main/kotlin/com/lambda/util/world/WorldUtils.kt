@@ -71,7 +71,7 @@ object WorldUtils {
     private fun SafeContext.hasClearance(pos: BlockPos) =
         blockState(pos).isAir && blockState(pos.up()).isAir
 
-    private fun SafeContext.hasSupport(pos: BlockPos) =
+    fun SafeContext.hasSupport(pos: BlockPos) =
         blockState(pos.down()).isSideSolidFullSquare(world, pos.down(), Direction.UP)
 
     fun Vec3d.playerBox(): Box =

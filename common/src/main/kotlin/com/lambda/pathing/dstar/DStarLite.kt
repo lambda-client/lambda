@@ -152,6 +152,7 @@ class DStarLite(
      * all vertices in the queue are re-keyed.
      */
     fun updateStart(newStart: FastVector) {
+        if (newStart == start) return
         val oldStart = start
         start = newStart
         km += heuristic(oldStart, start)
