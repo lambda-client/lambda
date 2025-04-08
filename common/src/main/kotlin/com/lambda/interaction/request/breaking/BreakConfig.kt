@@ -30,6 +30,7 @@ abstract class BreakConfig(
     abstract val breakThreshold: Float
     abstract val doubleBreak: Boolean
     abstract val breakDelay: Int
+    abstract val sequenceMode: BuildConfig.InteractSequenceMode
     abstract val swing: SwingMode
     abstract val swingType: BuildConfig.SwingType
     abstract val sounds: Boolean

@@ -36,4 +36,10 @@ interface BuildConfig {
         Server,
         Client
     }
+
+    enum class InteractSequenceMode {
+        TickStart,
+        Vanilla,
+        PostMovement,
+    }
 }

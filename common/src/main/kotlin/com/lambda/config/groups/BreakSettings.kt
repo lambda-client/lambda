@@ -32,6 +32,7 @@ class BreakSettings(
     override val breakThreshold by c.setting("Break Threshold", 1.0f, 0.1f..1.0f, 0.02f, "The break amount at which the block is considered broken") { vis() }
     override val doubleBreak by c.setting("Double Break", false, "Allows breaking two blocks at once") { vis() }
     override val breakDelay by c.setting("Break Delay", 5, 0..5, 1, "The delay between breaking blocks", " ticks") { vis() }
+    override val sequenceMode by c.setting("Break Sequence Mode", BuildConfig.InteractSequenceMode.PostMovement, "The sub-tick timing at which break actions are performed", vis)
     override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand") { vis() }
     override val swingType by c.setting("Break Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { vis() && swing != SwingMode.None }
     override val sounds by c.setting("Break Sounds", true, "Plays the breaking sounds") { vis() }

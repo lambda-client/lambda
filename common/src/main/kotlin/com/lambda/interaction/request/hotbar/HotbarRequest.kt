@@ -29,7 +29,7 @@ class HotbarRequest(
 
     var instantActionsComplete = false
     override val done: Boolean
-        get() = swapSlot?.let { it.slot == HotbarManager.serverSlot && it.swapPauseAge >= it.swapPause } ?: true
+        get() = swapSlot?.let { it.slot == HotbarManager.serverSlot && !it.swapPaused } ?: true
 
     constructor (
         slot: Int,

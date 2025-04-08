@@ -31,6 +31,7 @@ abstract class PlaceConfig(
     protected abstract val axisRotateSetting: Boolean
     val axisRotate
         get() = airPlace.isEnabled() && axisRotateSetting
+    abstract val sequenceMode: BuildConfig.InteractSequenceMode
     abstract val placeConfirmationMode: PlaceConfirmationMode
     abstract val maxPendingPlacements: Int
     abstract val placementsPerTick: Int

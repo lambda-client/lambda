@@ -69,7 +69,6 @@ object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
         listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
             preEvent()
 
-            swapsThisTick = 0
             if (swapDelay > 0) swapDelay--
 
             if (requestMap.isNotEmpty()) {
@@ -122,14 +121,14 @@ object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
             slot: Int,
             keepTicks: Int = request.hotbarConfig.keepTicks
         ): Boolean {
-            request.swapSlot = SlotInfo(slot, keepTicks, request.hotbarConfig.swapDelay)
+            request.swapSlot = SlotInfo(slot, keepTicks, request.hotbarConfig.swapPause)
             if (slot != currentSlotInfo?.slot) {
                 if (swapsThisTick + 1 > maxSwapsThisTick || swapDelay > 0) {
                     return false
                 }
 
                 currentSlotInfo?.let { current ->
-                    if (current.activeRequestAge == 0 && (current.keepTicks > 0 || current.swapPause > 0)) {
+                    if (current.activeRequestAge == 0 && current.keepTicks > 0) {
                         return false
                     }
                 }
@@ -141,7 +140,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
             }
             currentSlotInfo = request.swapSlot
             mc.interactionManager?.syncSelectedSlot()
-            return true
+            return request.done
         }
 
         @ActionSequence
@@ -152,11 +151,12 @@ object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
 
     data class SlotInfo(
         val slot: Int,
-        var keepTicks: Int = 3,
-        var swapPause: Int = 0
+        var keepTicks: Int,
+        var swapPause: Int
     ) {
         var activeRequestAge = 0
         var swapPauseAge = 0
+        val swapPaused get() = swapPauseAge < swapPause
     }
 
     override fun preEvent() = UpdateManagerEvent.Hotbar.Pre().post()
