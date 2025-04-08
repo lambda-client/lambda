@@ -35,11 +35,23 @@ abstract class HotbarConfig(
     abstract val keepTicks: Int
 
     /**
+     * The delay, in ticks, between swapping hotbar selections
+     */
+    abstract val swapDelay: Int
+
+    /**
+     * The amount of hotbar selection swaps that can happen per tick
+     *
+     * Only makes a difference if swapDelay is set to 0
+     */
+    abstract val swapsPerTick: Int
+
+    /**
      * The delay in ticks to pause actions after switching to the slot.
      *
      * Affects the validity state of the request
      */
-    abstract var switchPause: Int
+    abstract var swapPause: Int
 
     /**
      * Registers a hotbar request with the HotbarManager.

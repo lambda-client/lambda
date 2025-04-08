@@ -29,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 abstract class RequestHandler<R : Request> {
 
-    private val requestMap = ConcurrentHashMap<RequestConfig<R>, R>()
+    protected val requestMap = ConcurrentHashMap<RequestConfig<R>, R>()
 
     /**
      * Represents if the handler performed any external actions within this tick

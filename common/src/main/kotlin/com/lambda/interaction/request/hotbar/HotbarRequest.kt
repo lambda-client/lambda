@@ -21,13 +21,24 @@ import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.Request
 
 class HotbarRequest(
-    val slot: Int,
+    val hotbarConfig: HotbarConfig,
     priority: Priority = 0,
-    var keepTicks: Int = 3,
-    var switchPause: Int = 0,
+    val actionSequence: HotbarManager.HotbarActionSequence.() -> Unit,
 ) : Request(priority) {
-    override val done: Boolean get() =
-        // The request has to be valid at least for 1 tick
-        // (if for some dumb reason the switch pause is bigger than the decay time)
-        HotbarManager.serverSlot == slot && (switchPause <= 0 || keepTicks <= 0)
+    var failedSwap = false
+    var swapSlot: HotbarManager.SlotInfo? = null
+
+    var instantActionsComplete = false
+    override val done: Boolean
+        get() = swapSlot?.let { it.slot == HotbarManager.serverSlot && it.activeRequestAge >= it.swapPause } ?: true
+
+    constructor (
+        slot: Int,
+        hotbarConfig: HotbarConfig,
+        priority: Priority = 0
+    ) : this(
+        hotbarConfig,
+        priority,
+        { if (swapTo(slot, hotbarConfig.keepTicks.coerceAtLeast(1))) done() }
+    )
 }

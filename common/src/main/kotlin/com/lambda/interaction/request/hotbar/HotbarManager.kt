@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.hotbar
 
+import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
@@ -26,9 +27,9 @@ import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
-import com.lambda.threading.runSafe
 import com.lambda.mixin.entity.PlayerInventoryMixin
 import com.lambda.mixin.render.InGameHudMixin
+import com.lambda.threading.runSafe
 
 /**
  * See mixins:
@@ -42,6 +43,11 @@ object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
     } ?: 0
 
     override fun load() = "Loaded Hotbar Manager"
+
+    private var currentSlotInfo: SlotInfo? = null
+    private var maxSwapsThisTick = 0
+    private var swapsThisTick = 0
+    private var swapDelay = 0
 
     fun Any.onHotbarUpdate(
         alwaysListen: Boolean = false,
@@ -60,27 +66,96 @@ object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
     }
 
     init {
-        listen<InventoryEvent.HotbarSlot.Update> {
-            it.slot = currentRequest?.slot ?: return@listen
-        }
-
         listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
             preEvent()
-            if (updateRequest()) interaction.syncSelectedSlot()
-            if (currentRequest != null) activeThisTick = true
+
+            swapsThisTick = 0
+            if (swapDelay > 0) swapDelay--
+
+            if (requestMap.isNotEmpty()) {
+                val sortedRequests = requestMap.toSortedMap(compareByDescending { it.priority }).values
+
+                sortedRequests.first().let { request ->
+                    maxSwapsThisTick = request.hotbarConfig.swapsPerTick
+                }
+
+                sortedRequests.forEach { request ->
+                    val actionSequence = request.actionSequence
+                    HotbarActionSequence(request).apply { actionSequence() }
+                }
+            }
+            currentSlotInfo?.let { current ->
+                if (current.keepTicks <= 0) {
+                    currentSlotInfo = null
+                    interaction.syncSelectedSlot()
+                }
+            }
+            requestMap.clear()
             postEvent()
         }
 
-        listen<TickEvent.Post> {
-            val request = currentRequest ?: return@listen
+        listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
+            swapsThisTick = 0
+            val slotInfo = currentSlotInfo ?: return@listen
 
-            request.keepTicks--
-            request.switchPause--
+            slotInfo.swapPauseAge++
+            slotInfo.activeRequestAge++
+            slotInfo.keepTicks--
 
-            if (request.keepTicks <= 0) {
+            if (slotInfo.keepTicks <= 0) {
                 currentRequest = null
             }
         }
+
+        listen<InventoryEvent.HotbarSlot.Update>(priority = Int.MIN_VALUE) {
+            it.slot = currentSlotInfo?.slot ?: return@listen
+        }
+    }
+
+    @DslMarker
+    private annotation class ActionSequence
+
+    @ActionSequence
+    class HotbarActionSequence(val request: HotbarRequest) {
+        @ActionSequence
+        fun swapTo(
+            slot: Int,
+            keepTicks: Int = request.hotbarConfig.keepTicks
+        ): Boolean {
+            request.swapSlot = SlotInfo(slot, keepTicks, request.hotbarConfig.swapDelay)
+            if (slot != currentSlotInfo?.slot) {
+                if (swapsThisTick + 1 > maxSwapsThisTick || swapDelay > 0) return false
+
+                currentSlotInfo?.let { current ->
+                    if (current.activeRequestAge == 0 && (current.keepTicks > 0 || current.swapPause > 0)) {
+                        request.failedSwap = true
+                        return false
+                    }
+                }
+
+                swapsThisTick++
+                swapDelay = request.hotbarConfig.swapDelay
+            } else currentSlotInfo?.let { current ->
+                request.swapSlot?.swapPauseAge = current.swapPauseAge
+            }
+            currentSlotInfo = request.swapSlot
+            mc.interactionManager?.syncSelectedSlot()
+            return true
+        }
+
+        @ActionSequence
+        fun done() {
+            request.instantActionsComplete = true
+        }
+    }
+
+    data class SlotInfo(
+        val slot: Int,
+        var keepTicks: Int = 3,
+        var swapPause: Int = 0
+    ) {
+        var activeRequestAge = 0
+        var swapPauseAge = 0
     }
 
     override fun preEvent() = UpdateManagerEvent.Hotbar.Pre().post()

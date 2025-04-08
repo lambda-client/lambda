@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
  *
  * @param E The type of elements held in this collection.
  * @property sizeLimit The maximum number of elements the queue can hold at any given time.
- * @property maxAge The age (in milliseconds) after which elements are considered expired and are removed from the queue.
+ * @property maxAge The activeRequestAge (in milliseconds) after which elements are considered expired and are removed from the queue.
  * @property onDecay Lambda function that is executed on decay of element [E].
  */
 class LimitedDecayQueue<E>(
@@ -115,7 +115,7 @@ class LimitedDecayQueue<E>(
 
     /**
      * Sets the decay time for the elements in the queue. The decay time determines the
-     * maximum age that any element in the queue can have before being considered expired
+     * maximum activeRequestAge that any element in the queue can have before being considered expired
      * and removed. Updates the internal state and triggers a cleanup of expired elements.
      *
      * @param decayTime The decay time in milliseconds. Must be a non-negative value.

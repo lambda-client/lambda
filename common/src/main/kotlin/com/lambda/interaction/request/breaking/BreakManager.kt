@@ -23,7 +23,6 @@ import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.EntityEvent
-import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -113,94 +112,100 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
     }
 
     init {
-        listen<TickEvent.Pre>(priority = Int.MIN_VALUE + 1) {
+        listen<UpdateManagerEvent.Hotbar.Pre> {
             preEvent()
 
             pendingBreaks.cleanUp()
             updateRequest()
-            if (isOnBreakCooldown()) {
-                blockBreakingCooldown--
-            } else if (currentRequest == null) {
-                breakingInfos.forEach { it?.cancelBreak(player, world, interaction) }
-            } else currentRequest?.let request@ { request ->
-                val breakConfig = request.buildConfig.breakSettings
+            val request = currentRequest ?: breakingInfos.filterNotNull().firstOrNull()?.request ?: return@listen
 
-                val validNewContexts = request.contexts
-                    .filter { ctx -> canAccept(ctx) }
-                    .sortedWith(
-                        compareByDescending<BreakContext> { it.instantBreak }
-                            .thenByDescending { it.hotbarIndex == HotbarManager.serverSlot }
-                    ).toMutableList()
+            val hotbarRequest = HotbarRequest(request.hotbarConfig) {
+                if (isOnBreakCooldown()) {
+                    blockBreakingCooldown--
+                } else if (currentRequest == null) {
+                    breakingInfos.forEach { it?.cancelBreak(player, world, interaction) }
+                } else currentRequest?.let request@ { currentRequest ->
+                    val breakConfig = currentRequest.buildConfig.breakSettings
+                    val validNewContexts = currentRequest.contexts
+                        .filter { ctx -> canAccept(ctx) }
+                        .sortedWith(
+                            compareByDescending<BreakContext> { it.instantBreak }
+                                .thenByDescending { it.hotbarIndex == HotbarManager.serverSlot }
+                        ).toMutableList()
+
+                    breakingInfos
+                        .filterNotNull()
+                        .forEach { info ->
+                            validNewContexts.find {
+                                ctx -> ctx.expectedPos == info.context.expectedPos
+                            }?.let { ctx ->
+                                info.updateInfo(ctx, currentRequest)
+                                validNewContexts.remove(ctx)
+                                return@forEach
+                            }
+
+                            info.cancelBreak(player, world, interaction)
+                        }
+                    if (atMaxBreakingInfos(currentRequest.buildConfig.breakSettings)) return@request
+
+                    val maxBreaksThisTick = breakConfig.maxPendingBreaks - (breakingInfos.count { it != null } + pendingBreaks.size)
+                    if (maxBreaksThisTick <= 0) return@request
+                    val instantBreaks = validNewContexts
+                        .take(breakConfig.instantBreaksPerTick.coerceAtMost(maxBreaksThisTick))
+                        .filter { it.instantBreak }
+
+                    if (instantBreaks.isNotEmpty()) {
+                        instantBreaks.forEach { ctx ->
+                            if (ctx.hotbarIndex != HotbarManager.serverSlot) {
+                                if (!swapTo(ctx.hotbarIndex)) return@request
+                            }
+                            val breakInfo = handleRequestContext(ctx, currentRequest) ?: return@request
+                            currentRequest.onAccept?.invoke(ctx.expectedPos)
+                            updateBlockBreakingProgress(breakInfo)
+                            activeThisTick = true
+                        }
+                        if (instantBreaks.size == breakConfig.instantBreaksPerTick) return@request
+                    }
+
+                    validNewContexts
+                        .filter { !it.instantBreak }
+                        .forEach { ctx ->
+                            handleRequestContext(ctx, currentRequest) ?: return@request
+                            currentRequest.onAccept?.invoke(ctx.expectedPos)
+                            if (atMaxBreakingInfos(currentRequest.buildConfig.breakSettings)) return@request
+                        }
+                }
 
                 breakingInfos
+                    .firstOrNull { it?.breakConfig?.rotateForBreak == true && !it.redundant }
+                    ?.let { info ->
+                        // If the simulation cant find a valid rotation to the block,
+                        // the existing break context stays and the keep ticks deplete until rotations stop
+                        if (info.context.rotation.keepTicks <= 0) null
+                        else info.rotationConfig.request(info.context.rotation)
+                    }
+                    ?.let { rot ->
+                        if (!rot.done) {
+                            return@HotbarRequest
+                        }
+                    }
+
+                // Reversed so that the breaking order feels natural to the user as the primary break has to
+                // be started after the secondary
+                breakingInfos
                     .filterNotNull()
+                    .reversed()
                     .forEach { info ->
-                        validNewContexts.find {
-                            ctx -> ctx.expectedPos == info.context.expectedPos
-                        }?.let { ctx ->
-                            info.updateInfo(ctx, request)
-                            validNewContexts.remove(ctx)
-                            return@forEach
-                        }
-
-                        info.cancelBreak(player, world, interaction)
+                        if (!info.redundant && !swapTo(info.context.hotbarIndex)) return@HotbarRequest
+                        updateBlockBreakingProgress(info)
+                        if (!info.redundant) activeThisTick = true
                     }
-                if (atMaxBreakingInfos(request.buildConfig.breakSettings)) return@request
-
-                val maxBreaksThisTick = breakConfig.maxPendingBreaks - (breakingInfos.count { it != null } + pendingBreaks.size)
-                if (maxBreaksThisTick <= 0) return@request
-                val instantBreaks = validNewContexts
-                    .take(breakConfig.instantBreaksPerTick.coerceAtMost(maxBreaksThisTick))
-                    .filter { it.instantBreak }
-
-                if (instantBreaks.isNotEmpty()) {
-                    instantBreaks.forEach { ctx ->
-                        if (ctx.hotbarIndex != HotbarManager.serverSlot) {
-                            if (!request.hotbarConfig.request(HotbarRequest(ctx.hotbarIndex)).done) return@request
-                        }
-                        val breakInfo = handleRequestContext(ctx, request) ?: return@request
-                        request.onAccept?.invoke(ctx.expectedPos)
-                        updateBlockBreakingProgress(breakInfo)
-                        activeThisTick = true
-                    }
-                    if (instantBreaks.size == breakConfig.instantBreaksPerTick) return@request
-                }
-
-                validNewContexts
-                    .filter { !it.instantBreak }
-                    .forEach { ctx ->
-                        handleRequestContext(ctx, request) ?: return@request
-                        request.onAccept?.invoke(ctx.expectedPos)
-                        if (atMaxBreakingInfos(request.buildConfig.breakSettings)) return@request
-                    }
+                done()
             }
+            request.hotbarConfig.request(hotbarRequest)
+        }
 
-            breakingInfos
-                .firstOrNull { it?.breakConfig?.rotateForBreak == true && !it.redundant }
-                ?.let { info ->
-                    // If the simulation cant find a valid rotation to the block,
-                    // the existing break context stays and the keep ticks deplete until rotations stop
-                    if (info.context.rotation.keepTicks <= 0) null
-                    else info.rotationConfig.request(info.context.rotation)
-                }
-                ?.let { rot ->
-                    if (!rot.done) {
-                        postEvent()
-                        return@listen
-                    }
-                }
-
-            // Reversed so that the breaking order feels natural to the user as the primary break has to
-            // be started after the secondary
-            breakingInfos
-                .filterNotNull()
-                .reversed()
-                .forEach { info ->
-                    if (!info.redundant && !info.requestHotbarSwap()) return@forEach
-                    updateBlockBreakingProgress(info)
-                    if (!info.redundant) activeThisTick = true
-                }
-
+        listen<UpdateManagerEvent.Hotbar.Post> {
             postEvent()
         }
 
@@ -345,7 +350,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             setBreakCooldown(info.breakConfig.breakDelay)
             interaction.sendSequencedPacket(world) { sequence ->
                 onBlockBreak(info)
-                PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
+                PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
             }
             val swing = info.breakConfig.swing
             if (swing.isEnabled()) {
@@ -419,7 +424,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             if (info.type == BreakType.Primary) {
                 interaction.sendSequencedPacket(world) { sequence ->
                     onBlockBreak(info)
-                    PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
+                    PlayerActionC2SPacket(Action.STOP_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
                 }
             } else {
                 onBlockBreak(info)
@@ -442,7 +447,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
         if (gamemode.isCreative) {
             interaction.sendSequencedPacket(world) { sequence: Int ->
                 onBlockBreak(info)
-                PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, ctx.expectedPos, ctx.result.side, sequence)
+                PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, ctx.expectedPos, ctx.result.side, sequence)
             }
             setBreakCooldown(info.breakConfig.breakDelay)
             return true
@@ -590,9 +595,6 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                 type = BreakType.Secondary
             }
         }
-
-        fun requestHotbarSwap() =
-            request.hotbarConfig.request(HotbarRequest(context.hotbarIndex)).done
 
         fun setBreakingTextureStage(
             player: ClientPlayerEntity,

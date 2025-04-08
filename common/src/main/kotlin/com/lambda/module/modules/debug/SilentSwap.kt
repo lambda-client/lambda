@@ -19,18 +19,11 @@ package com.lambda.module.modules.debug
 
 import com.lambda.config.groups.HotbarSettings
 import com.lambda.event.events.PlayerEvent
-import com.lambda.event.events.RenderEvent
-import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.renderer.esp.builders.ofBox
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
-import com.lambda.util.world.blockSearch
-import net.minecraft.block.Blocks
-import net.minecraft.util.math.Vec3i
-import java.awt.Color
 
 object SilentSwap : Module(
     name = "SilentSwap",
@@ -41,7 +34,7 @@ object SilentSwap : Module(
 
     init {
         listen<PlayerEvent.Attack.Block> {
-            if (!hotbar.request(HotbarRequest(0)).done) {
+            if (!hotbar.request(HotbarRequest(0, hotbar)).done) {
                 it.cancel()
                 return@listen
             }
