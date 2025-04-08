@@ -124,11 +124,12 @@ object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
         ): Boolean {
             request.swapSlot = SlotInfo(slot, keepTicks, request.hotbarConfig.swapDelay)
             if (slot != currentSlotInfo?.slot) {
-                if (swapsThisTick + 1 > maxSwapsThisTick || swapDelay > 0) return false
+                if (swapsThisTick + 1 > maxSwapsThisTick || swapDelay > 0) {
+                    return false
+                }
 
                 currentSlotInfo?.let { current ->
                     if (current.activeRequestAge == 0 && (current.keepTicks > 0 || current.swapPause > 0)) {
-                        request.failedSwap = true
                         return false
                     }
                 }

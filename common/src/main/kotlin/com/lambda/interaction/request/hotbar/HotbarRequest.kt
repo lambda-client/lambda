@@ -25,12 +25,11 @@ class HotbarRequest(
     priority: Priority = 0,
     val actionSequence: HotbarManager.HotbarActionSequence.() -> Unit,
 ) : Request(priority) {
-    var failedSwap = false
     var swapSlot: HotbarManager.SlotInfo? = null
 
     var instantActionsComplete = false
     override val done: Boolean
-        get() = swapSlot?.let { it.slot == HotbarManager.serverSlot && it.activeRequestAge >= it.swapPause } ?: true
+        get() = swapSlot?.let { it.slot == HotbarManager.serverSlot && it.swapPauseAge >= it.swapPause } ?: true
 
     constructor (
         slot: Int,
