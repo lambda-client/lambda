@@ -101,7 +101,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
             }
 
             currentRequest?.let request@ { request ->
-                if (BreakManager.activeThisTick()) return@request
+                if (BreakManager.activeThisTick) return@request
 
                 pendingPlacements.setMaxSize(request.buildConfig.placeSettings.maxPendingPlacements)
                 pendingPlacements.setDecayTime(request.buildConfig.interactionTimeout * 50L)

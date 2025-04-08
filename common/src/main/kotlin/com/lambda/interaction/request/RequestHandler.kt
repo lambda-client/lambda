@@ -34,7 +34,8 @@ abstract class RequestHandler<R : Request> {
     /**
      * Represents if the handler performed any external actions within this tick
      */
-    protected var activeThisTick = false
+    var activeThisTick = false
+        protected set
 
     /**
      * The currently active request.
@@ -46,8 +47,6 @@ abstract class RequestHandler<R : Request> {
             activeThisTick = false
         }
     }
-
-    fun activeThisTick() = activeThisTick
 
     /**
      * Registers a new request with the given configuration.
