@@ -176,7 +176,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
             val placeConfig = request.buildConfig.placeSettings
 
             if (tickPre) {
-                pendingPlacements.setMaxSize(placeConfig.maxPendingPlacements)
+                pendingPlacements.setSizeLimit(placeConfig.maxPendingPlacements)
                 pendingPlacements.setDecayTime(request.buildConfig.interactionTimeout * 50L)
 
                 val isSneaking = player.isSneaking

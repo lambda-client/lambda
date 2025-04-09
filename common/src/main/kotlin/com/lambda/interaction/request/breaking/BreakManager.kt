@@ -285,22 +285,24 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
 
     private fun refreshOrCancelBreaks(newContexts: MutableCollection<BreakContext>, request: BreakRequest) {
         breakInfos
-            .forEachNotNull { info ->
+            .filterNotNull()
+            .forEach { info ->
                 newContexts.find { ctx -> ctx.expectedPos == info.context.expectedPos }?.let { ctx ->
                     info.updateInfo(ctx, request)
                     newContexts.remove(ctx)
-                    return@forEachNotNull
+                    return@forEach
                 }
 
                 info.cancelBreak()
             }
     }
 
-    private fun SafeContext.processNewBreaks(newBreaks: Collection<BreakContext>, request: BreakRequest) {
+    private fun SafeContext.processNewBreaks(newBreaks: MutableCollection<BreakContext>, request: BreakRequest) {
         newBreaks
             .filter { !it.instantBreak }
             .forEach { ctx ->
                 handleNewBreak(ctx, request) ?: return
+                newBreaks.remove(ctx)
                 request.onAccept?.invoke(ctx.expectedPos)
                 if (atMaxBreakInfos(request.buildConfig.breakSettings)) return
             }
@@ -365,7 +367,7 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
     }
 
     private fun setPendingBreaksLimits(buildConfig: BuildConfig) {
-        pendingBreaks.setMaxSize(buildConfig.breakSettings.maxPendingBreaks)
+        pendingBreaks.setSizeLimit(buildConfig.breakSettings.maxPendingBreaks)
         pendingBreaks.setDecayTime(buildConfig.interactionTimeout * 50L)
     }
 
@@ -620,10 +622,6 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
             Primary -> primaryBreak = null
             else -> secondaryBreak = null
         }
-
-    private fun Array<BreakInfo?>.forEachNotNull(block: (BreakInfo) -> Unit) {
-        for (info in this) info?.run(block)
-    }
 
     override fun preEvent() = UpdateManagerEvent.Break.Pre().post()
     override fun postEvent() = UpdateManagerEvent.Break.Post().post()
