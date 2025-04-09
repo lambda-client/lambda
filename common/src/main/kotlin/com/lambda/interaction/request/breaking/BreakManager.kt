@@ -132,7 +132,9 @@ object BreakManager : RequestHandler<BreakRequest>(), PositionBlocking {
                 ?: breakInfos.firstOrNull { it != null }?.request?.hotbarConfig
                 ?: return@listen
 
-            hotbarRequest = HotbarRequest(hotbarConfig) { if (update(::swapTo, tickPre = true)) done() }
+            hotbarRequest = HotbarRequest(hotbarConfig) {
+                if (update(::swapTo, tickPre = true)) done()
+            }
             hotbarRequest?.let { hotbarRequest ->
                 hotbarConfig.request(hotbarRequest)
             }
