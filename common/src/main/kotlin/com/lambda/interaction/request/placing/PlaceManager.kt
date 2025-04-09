@@ -21,10 +21,12 @@ import com.lambda.Lambda.mc
 import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow.post
+import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.verify.TargetState
@@ -115,43 +117,43 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
                 return@listen
             }
 
-            currentRequest?.let request@ { request ->
-                if (BreakManager.activeThisTick) return@request
-                val placeConfig = request.buildConfig.placeSettings
+            val request = currentRequest ?: return@listen
 
-                pendingPlacements.setMaxSize(placeConfig.maxPendingPlacements)
-                pendingPlacements.setDecayTime(request.buildConfig.interactionTimeout * 50L)
+            if (BreakManager.activeThisTick) return@listen
+            val placeConfig = request.buildConfig.placeSettings
 
-                val isSneaking = player.isSneaking
-                val currentHotbarIndex = HotbarManager.serverSlot
-                val placeContexts = request.placeContexts
-                    .filter { canPlace(it) }
-                    .sortedWith(
-                        compareByDescending<PlaceContext> { it.hotbarIndex == currentHotbarIndex }
-                            .thenByDescending { it.sneak == isSneaking }
-                    )
+            pendingPlacements.setMaxSize(placeConfig.maxPendingPlacements)
+            pendingPlacements.setDecayTime(request.buildConfig.interactionTimeout * 50L)
 
-                val maxPlacementsThisTick =  (placeConfig.maxPendingPlacements - pendingPlacements.size).coerceAtLeast(0)
-                val takeCount = (placeConfig.placementsPerTick.coerceAtMost(maxPlacementsThisTick))
-                nextPredictedRotation = if (request.rotationConfig.rotate) placeContexts.getOrNull(takeCount)?.rotation else null
+            val isSneaking = player.isSneaking
+            val currentHotbarIndex = HotbarManager.serverSlot
+            val placeContexts = request.placeContexts
+                .filter { canPlace(it) }
+                .sortedWith(
+                    compareByDescending<PlaceContext> { it.hotbarIndex == currentHotbarIndex }
+                        .thenByDescending { it.sneak == isSneaking }
+                )
 
-                hotbarRequest = HotbarRequest(request.hotbarConfig) {
-                    potentialPlacements = placeContexts.take(takeCount)
-                    potentialPlacements.forEach { ctx ->
-                        swapTo(ctx.hotbarIndex)
-                        if (request.buildConfig.placeSettings.rotate) request.rotationConfig.request(ctx.rotation)
-                        if (ctx.sneak) shouldSneak = true
-                        if (placeConfig.sequenceMode != BuildConfig.InteractSequenceMode.TickStart) return@HotbarRequest
-                        if (!attemptContextPlace(ctx, request)) return@HotbarRequest
-                    }
-                    requestNextPredictedRotation(request)
-                    done()
+            val maxPlacementsThisTick =  (placeConfig.maxPendingPlacements - pendingPlacements.size).coerceAtLeast(0)
+            val takeCount = (placeConfig.placementsPerTick.coerceAtMost(maxPlacementsThisTick))
+            nextPredictedRotation = if (request.rotationConfig.rotate) placeContexts.getOrNull(takeCount)?.rotation else null
+
+            hotbarRequest = HotbarRequest(request.hotbarConfig) {
+                potentialPlacements = placeContexts.take(takeCount)
+                potentialPlacements.forEach { ctx ->
+                    swapTo(ctx.hotbarIndex)
+                    if (request.buildConfig.placeSettings.rotate) request.rotationConfig.request(ctx.rotation)
+                    if (ctx.sneak) shouldSneak = true
+                    if (placeConfig.sequenceMode != BuildConfig.InteractSequenceMode.TickStart) return@HotbarRequest
+                    if (!attemptContextPlace(ctx, request)) return@HotbarRequest
                 }
-                hotbarRequest?.let { hotbarRequest ->
-                    request.hotbarConfig.request(hotbarRequest)
-                }
-                if (potentialPlacements.isNotEmpty()) activeThisTick = true
+                requestNextPredictedRotation(request)
+                done()
             }
+            hotbarRequest?.let { hotbarRequest ->
+                request.hotbarConfig.request(hotbarRequest)
+            }
+            if (potentialPlacements.isNotEmpty()) activeThisTick = true
         }
 
         //ToDo: add mixin for vanilla place timings
@@ -189,6 +191,10 @@ object PlaceManager : RequestHandler<PlaceRequest>(), PositionBlocking {
                     info.onPlace()
                     return@listen
                 }
+        }
+
+        listenUnsafe<ConnectionEvent.Connect.Pre> {
+            pendingPlacements.clear()
         }
     }
 

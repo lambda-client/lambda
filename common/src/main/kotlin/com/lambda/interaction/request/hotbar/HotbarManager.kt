@@ -68,7 +68,6 @@ object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
     init {
         listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
             preEvent()
-
             if (swapDelay > 0) swapDelay--
 
             if (requestMap.isNotEmpty()) {
