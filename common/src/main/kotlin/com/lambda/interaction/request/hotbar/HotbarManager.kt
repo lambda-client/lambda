@@ -148,16 +148,6 @@ object HotbarManager : RequestHandler<HotbarRequest>(), Loadable {
         }
     }
 
-    data class SlotInfo(
-        val slot: Int,
-        var keepTicks: Int,
-        var swapPause: Int
-    ) {
-        var activeRequestAge = 0
-        var swapPauseAge = 0
-        val swapPaused get() = swapPauseAge < swapPause
-    }
-
     override fun preEvent() = UpdateManagerEvent.Hotbar.Pre().post()
     override fun postEvent() = UpdateManagerEvent.Hotbar.Post().post()
 }
