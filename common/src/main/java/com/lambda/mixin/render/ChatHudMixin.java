@@ -28,6 +28,14 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(ChatHud.class)
 public class ChatHudMixin {
+    /**
+     * Draws emojis at the given chat position
+     * <pre>{@code
+     * context.getMatrices().translate(0.0F, 0.0F, 50.0F);
+     * context.drawTextWithShadow(this.client.textRenderer, visible.content(), 0, y, 16777215 + (u << 24));
+     * context.getMatrices().pop();
+     * }</pre>
+     */
     @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/DrawContext;drawTextWithShadow(Lnet/minecraft/client/font/TextRenderer;Lnet/minecraft/text/OrderedText;III)I"))
     int redirectRenderCall(DrawContext instance, TextRenderer textRenderer, OrderedText text, int x, int y, int color) {
         return instance.drawTextWithShadow(textRenderer, LambdaMoji.INSTANCE.parse(text, x, y, color), 0, y, 16777215 + (color << 24));

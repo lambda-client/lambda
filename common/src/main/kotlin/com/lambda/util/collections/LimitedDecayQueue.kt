@@ -106,11 +106,17 @@ class LimitedDecayQueue<E>(
      * Updates the maximum allowed size for the queue and triggers a cleanup operation
      * to remove elements exceeding the new size or falling outside the allowed time interval.
      *
+     * Elements starting from the head will be removed.
+     *
      * @param newSize The new maximum size for the queue. Must be a non-negative integer.
      */
-    fun setMaxSize(newSize: Int) {
+    fun setSizeLimit(newSize: Int) {
         sizeLimit = newSize
         cleanUp()
+
+        while (queue.size > newSize) {
+            queue.poll()
+        }
     }
 
     /**

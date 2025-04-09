@@ -32,6 +32,9 @@ import static net.minecraft.entity.player.PlayerInventory.isValidHotbarIndex;
 
 @Mixin(InGameHud.class)
 public class InGameHudMixin {
+    /**
+     * Begins our 2d render after the game has rendered all 2d elements
+     */
     @Inject(method = "render", at = @At("TAIL"))
     private void onRender(DrawContext context, float tickDelta, CallbackInfo ci) {
         RenderMain.render2D();
