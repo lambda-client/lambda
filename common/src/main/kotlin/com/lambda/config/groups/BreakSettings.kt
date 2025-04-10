@@ -27,11 +27,11 @@ class BreakSettings(
     priority: Priority = 0,
     vis: () -> Boolean = { true }
 ) : BreakConfig(priority) {
-    override val breakMode by c.setting("Break Mode", BreakMode.Vanilla) { vis() }
+    override val breakMode by c.setting("Break Mode", BreakMode.Packet) { vis() }
     override val unsafeCancels by c.setting("Unsafe Cancels", true, "Allows cancelling block breaking even if the server might continue breaking sever side, potentially causing unexpected state changes") { vis() }
-    override val breakThreshold by c.setting("Break Threshold", 1.0f, 0.1f..1.0f, 0.02f, "The break amount at which the block is considered broken") { vis() }
-    override val doubleBreak by c.setting("Double Break", false, "Allows breaking two blocks at once") { vis() }
-    override val breakDelay by c.setting("Break Delay", 5, 0..5, 1, "The delay between breaking blocks", " ticks") { vis() }
+    override val breakThreshold by c.setting("Break Threshold", 0.7f, 0.1f..1.0f, 0.02f, "The break amount at which the block is considered broken") { vis() }
+    override val doubleBreak by c.setting("Double Break", true, "Allows breaking two blocks at once") { vis() }
+    override val breakDelay by c.setting("Break Delay", 0, 0..5, 1, "The delay between breaking blocks", " ticks") { vis() }
     override val sequenceMode by c.setting("Break Sequence Mode", BuildConfig.InteractSequenceMode.PostMovement, "The sub-tick timing at which break actions are performed", vis)
     override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand") { vis() }
     override val swingType by c.setting("Break Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { vis() && swing != SwingMode.None }
@@ -41,7 +41,7 @@ class BreakSettings(
     override val rotateForBreak by c.setting("Rotate For Break", true, "Rotate towards block while breaking") { vis() }
     override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, "Blocks that wont be broken") { vis() }
     override val breakConfirmation by c.setting("Break Confirmation", BreakConfirmationMode.BreakThenAwait, "The style of confirmation used when breaking") { vis() }
-    override val maxPendingBreaks by c.setting("Max Pending Breaks", 5, 1..30, 1, "The maximum amount of pending breaks") { vis() }
+    override val maxPendingBreaks by c.setting("Max Pending Breaks", 15, 1..30, 1, "The maximum amount of pending breaks") { vis() }
     override val instantBreaksPerTick by c.setting("Instant Breaks Per Tick", 5, 1..30, 1, "Maximum instant block breaks per tick") { vis() }
     override val breakWeakBlocks by c.setting("Break Weak Blocks", false, "Break blocks that dont have structural integrity (e.g: grass)") { vis() }
     override val forceSilkTouch by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks") { vis() }

@@ -35,7 +35,7 @@ class BuildSettings(
     override val pathing by c.setting("Pathing", true, "Path to blocks") { vis() && page == Page.General }
     override val stayInRange by c.setting("Stay In Range", true, "Stay in range of blocks") { vis() && page == Page.General && pathing }
     override val collectDrops by c.setting("Collect All Drops", false, "Collect all drops when breaking blocks") { vis() && page == Page.General }
-    override val maxPendingInteractions by c.setting("Max Pending Interactions", 10, 1..30, 1, "Dont wait for this many interactions for the server response") { vis() && page == Page.General }
+    override val maxPendingInteractions by c.setting("Max Pending Interactions", 20, 1..30, 1, "Dont wait for this many interactions for the server response") { vis() && page == Page.General }
 
     // Breaking
     override val breakSettings = BreakSettings(c) { page == Page.Break && vis() }
@@ -43,5 +43,5 @@ class BuildSettings(
     // Placing
     override val placeSettings = PlaceSettings(c) { page == Page.Place && vis() }
 
-    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") { vis() && (page == Page.Place && placeSettings.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None || page == Page.Break && breakSettings.breakConfirmation != BreakConfirmationMode.None) }
+    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") { vis() && ((page == Page.Place && placeSettings.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None) || (page == Page.Break && breakSettings.breakConfirmation != BreakConfirmationMode.None)) }
 }
