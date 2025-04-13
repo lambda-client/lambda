@@ -40,6 +40,7 @@ import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.info
+import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.Timer
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.combat.CombatUtils.crystalDamage
@@ -188,13 +189,13 @@ object CrystalAura : Module(
         }
 
         // Update last received entity spawn
-        listen<EntityEvent.EntitySpawn>(alwaysListen = true) { event ->
+        listen<EntityEvent.Spawn>(alwaysListen = true) { event ->
             lastEntityId = event.entity.id
             predictionTimer.reset()
         }
 
         // Prediction
-        listen<EntityEvent.EntitySpawn> { event ->
+        listen<EntityEvent.Spawn> { event ->
             val crystal = event.entity as? EndCrystalEntity ?: return@listen
             val pos = crystal.baseBlockPos
 
@@ -217,7 +218,7 @@ object CrystalAura : Module(
             if (placePostPause) placeTimer.reset()
         }
 
-        listen<EntityEvent.EntityRemoval> { event ->
+        listen<EntityEvent.Removal> { event ->
             val crystal = event.entity as? EndCrystalEntity ?: return@listen
             val pos = crystal.baseBlockPos
 
@@ -272,21 +273,21 @@ object CrystalAura : Module(
     }
 
     private fun SafeContext.placeInternal(opportunity: Opportunity, hand: Hand) {
-        connection.sendPacket(
+        connection.sendPacket {
             PlayerInteractBlockC2SPacket(
                 hand, BlockHitResult(opportunity.crystalPosition, opportunity.side, opportunity.blockPos, false), 0
             )
-        )
+        }
 
         player.swingHand(hand)
     }
 
     private fun SafeContext.explodeInternal(id: Int) {
-        connection.sendPacket(
+        connection.sendPacket {
             PlayerInteractEntityC2SPacket(
                 id, player.isSneaking, PlayerInteractEntityC2SPacket.ATTACK
             )
-        )
+        }
 
         player.swingHand(Hand.MAIN_HAND)
     }
