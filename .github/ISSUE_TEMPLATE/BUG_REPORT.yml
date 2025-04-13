@@ -1,6 +1,6 @@
 name: Bug Report
 description: File a bug report.
-title: "[Version] [Mod loader] Bug: "
+title: "[Version] Bug: "
 assignees:
   - Edouard127
 body:
