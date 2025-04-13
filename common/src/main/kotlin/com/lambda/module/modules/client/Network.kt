@@ -67,17 +67,18 @@ object Network : Module(
             hash = BigInteger(computed).toString(16)
         }
 
-        listenUnsafe<ConnectionEvent.Connect.Post> {
+        listenUnsafeConcurrently<ConnectionEvent.Connect.Post> {
             // FixMe: If the player have the properties but are invalid this doesn't work
-            if (NetworkManager.isValid || mc.gameProfile.isOffline) return@listenUnsafe
+            if (NetworkManager.isValid || mc.gameProfile.isOffline) return@listenUnsafeConcurrently
 
             // If we log in right as the client responds to the encryption request, we start
             // a race condition where the game server haven't acknowledged the packets
             // and posted to the sessionserver api
-            login(mc.session.username, hash ?: return@listenUnsafe,
-                success = { updateToken(it) },
-                failure = { LOG.warn("Unable to authenticate: $it") }
-            )
+            login(mc.session.username, hash ?: return@listenUnsafeConcurrently)
+                .fold(
+                    onSuccess = { updateToken(it) },
+                    onFailure = { LOG.warn("Unable to authenticate: $it") }
+                )
         }
     }
 

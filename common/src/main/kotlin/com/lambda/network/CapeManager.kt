@@ -17,8 +17,6 @@
 
 package com.lambda.network
 
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.requests.CancellableRequest
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
@@ -29,13 +27,13 @@ import com.lambda.network.api.v1.endpoints.getCape
 import com.lambda.network.api.v1.endpoints.setCape
 import com.lambda.network.api.v1.models.Cape
 import com.lambda.sound.SoundManager.toIdentifier
-import com.lambda.util.Communication.info
-import com.lambda.util.Communication.logError
+import com.lambda.threading.runIO
 import com.lambda.util.FolderRegister.capes
 import com.lambda.util.extension.get
 import com.lambda.util.extension.resolveFile
 import net.minecraft.client.texture.NativeImage.read
 import net.minecraft.client.texture.NativeImageBackedTexture
+import java.io.ByteArrayOutputStream
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.ExperimentalPathApi
@@ -58,36 +56,35 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
     /**
      * Sets the current player's cape
      */
-    fun SafeContext.updateCape(cape: String): CancellableRequest =
-        setCape(cape,
-            success = { fetchCape(player.uuid); info("Successfully update your cape to $cape") },
-            failure = { logError("Could not update the player cape", it) }
-        )
+    fun updateCape(cape: String, block: () -> Unit = {}) = runIO {
+        setCape(cape)
+    }.invokeOnCompletion { block() }
 
     /**
      * Fetches the cape of the given player id
      */
-    fun SafeContext.fetchCape(uuid: UUID): CancellableRequest =
-        getCape(uuid,
-            success = { mc.textureManager.get(it.identifier) ?: download(it); put(uuid, it.id) },
-            failure = { logError("Could not fetch the cape of the player", it) }
-        )
+    fun SafeContext.fetchCape(uuid: UUID, block: () -> Unit = {}) = runIO {
+        val cape = getCape(uuid).getOrThrow()
 
-    private fun SafeContext.download(cape: Cape): CancellableRequest =
-        Fuel.download(cape.url)
-            .fileDestination { _, _ -> capes.resolveFile("${cape.id}.png") }
-            .response { result ->
-                result.fold(
-                    success = {
-                        val image = TextureUtils.readImage(it)
-                        val native = NativeImageBackedTexture(image)
-                        val id = cape.identifier
+        mc.textureManager.get(cape.identifier) ?: download(cape)
+        put(uuid, cape.id)
+    }.invokeOnCompletion { block() }
 
-                        mc.textureManager.registerTexture(id, native)
-                    },
-                    failure = { logError("Could not download the cape", it) }
-                )
-            }
+    private fun SafeContext.download(cape: Cape, block: () -> Unit = {}) = runIO {
+        val destination = capes.resolveFile("${cape.id}.png")
+        val output = ByteArrayOutputStream()
+
+        LambdaHttp.download(cape.url, output)
+
+        val bytes = output.toByteArray()
+        destination.writeBytes(bytes)
+
+        val image = TextureUtils.readImage(bytes)
+        val native = NativeImageBackedTexture(image)
+        val id = cape.identifier
+
+        mc.textureManager.registerTexture(id, native)
+    }.invokeOnCompletion { block() }
 
     override fun load() = "Loaded ${images.size} cached capes"
 
