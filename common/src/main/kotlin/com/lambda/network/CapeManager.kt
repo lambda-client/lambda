@@ -36,13 +36,11 @@ import net.minecraft.client.texture.NativeImageBackedTexture
 import java.io.ByteArrayOutputStream
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.extension
 import kotlin.io.path.inputStream
 import kotlin.io.path.nameWithoutExtension
 import kotlin.io.path.walk
 
-@OptIn(ExperimentalPathApi::class)
 @Suppress("JavaIoSerializableObjectMustHaveReadResolve")
 object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
     /**
@@ -55,22 +53,26 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
 
     /**
      * Sets the current player's cape
+     *
+     * @param block Lambda called once the coroutine completes, it contains the throwable if any
      */
-    fun updateCape(cape: String, block: () -> Unit = {}) = runIO {
-        setCape(cape)
-    }.invokeOnCompletion { block() }
+    fun updateCape(cape: String, block: (Throwable?) -> Unit = {}) = runIO {
+        setCape(cape).getOrThrow()
+    }.invokeOnCompletion { block(it) }
 
     /**
      * Fetches the cape of the given player id
+     *
+     * @param block Lambda called once the coroutine completes, it contains the throwable if any
      */
-    fun SafeContext.fetchCape(uuid: UUID, block: () -> Unit = {}) = runIO {
+    fun SafeContext.fetchCape(uuid: UUID, block: (Throwable?) -> Unit = {}) = runIO {
         val cape = getCape(uuid).getOrThrow()
 
         mc.textureManager.get(cape.identifier) ?: download(cape)
         put(uuid, cape.id)
-    }.invokeOnCompletion { block() }
+    }.invokeOnCompletion { block(it) }
 
-    private fun SafeContext.download(cape: Cape, block: () -> Unit = {}) = runIO {
+    private fun SafeContext.download(cape: Cape, block: (Throwable?) -> Unit = {}) = runIO {
         val destination = capes.resolveFile("${cape.id}.png")
         val output = ByteArrayOutputStream()
 
@@ -84,7 +86,7 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
         val id = cape.identifier
 
         mc.textureManager.registerTexture(id, native)
-    }.invokeOnCompletion { block() }
+    }.invokeOnCompletion { block(it) }
 
     override fun load() = "Loaded ${images.size} cached capes"
 
