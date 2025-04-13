@@ -60,21 +60,27 @@ val common: Configuration by configurations.creating {
 
 val includeLib: Configuration by configurations.creating
 val includeMod: Configuration by configurations.creating
-val shadowBundle: Configuration by configurations.creating {
-    isCanBeResolved = true
-    isCanBeConsumed = false
-}
+val shadowLib: Configuration by configurations.creating { isCanBeConsumed = false }
+val shadowMod: Configuration by configurations.creating { isCanBeConsumed = false }
+val shadowBundle: Configuration by configurations.creating { isCanBeConsumed = false }
 
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
         implementation(it)
         include(it)
-        // shadowBundle(it)
     }
 
     includeMod.dependencies.forEach {
         modImplementation(it)
         // include(it)
+    }
+
+    shadowLib.dependencies.forEach {
+        implementation(it)
+    }
+
+    shadowMod.dependencies.forEach {
+        modImplementation(it)
     }
 }
 
@@ -91,7 +97,7 @@ dependencies {
 
     // Ktor
     includeLib("io.ktor:ktor-client-core:$ktorVersion")
-    shadowBundle("io.ktor:ktor-client-cio:$ktorVersion") { exclude(group = "org.jetbrains.kotlin"); exclude(group = "org.jetbrains.kotlinx"); exclude(group = "org.slf4j") }
+    shadowLib("io.ktor:ktor-client-cio:$ktorVersion") { exclude(group = "org.jetbrains.kotlin"); exclude(group = "org.jetbrains.kotlinx"); exclude(group = "org.slf4j") }
     includeLib("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     includeLib("io.ktor:ktor-serialization-gson:$ktorVersion")
 
@@ -111,7 +117,7 @@ dependencies {
 tasks {
     shadowJar {
         archiveVersion = "$modVersion+$minecraftVersion"
-        configurations = listOf(shadowBundle)
+        configurations = listOf(shadowLib, shadowMod, shadowBundle)
         archiveClassifier = "dev-shadow"
     }
 
