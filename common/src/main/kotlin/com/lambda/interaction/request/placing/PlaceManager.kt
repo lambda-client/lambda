@@ -173,7 +173,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         if (!request.rotation.rotate) return
 
         // In case you cant rotate and place within the same tick
-        potentialPlacements.getOrNull(maxPlacementsThisTick)?.let { nextPredictedPlacement ->
+        potentialPlacements.getOrNull(maxPlacementsThisTick - 1)?.let { nextPredictedPlacement ->
             request.rotation.request(nextPredictedPlacement.rotation)
         }
     }

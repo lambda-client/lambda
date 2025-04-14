@@ -51,7 +51,7 @@ import kotlin.math.sign
 import kotlin.math.sin
 
 object RotationManager : RequestHandler<RotationRequest>(
-    TickStage.PreMovement,
+    TickStage.TickStart,
     preOpen = { preEvent() }
 ), Loadable {
     var currentRotation = Rotation.ZERO
@@ -69,7 +69,6 @@ object RotationManager : RequestHandler<RotationRequest>(
     ) = this.listen<UpdateManagerEvent.Rotation>(priority, alwaysListen) {
         block()
     }
-
 
     init {
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {

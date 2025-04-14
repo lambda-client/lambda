@@ -40,7 +40,7 @@ data class BreakRequest(
     val onBreak: ((BlockPos) -> Unit)? = null,
     val onItemDrop: ((ItemEntity) -> Unit)? = null,
     private val prio: Priority = 0
-) : Request(prio) {
+) : Request(prio, build.breaking) {
     override val done: Boolean
         get() = runSafe {
             contexts.all {

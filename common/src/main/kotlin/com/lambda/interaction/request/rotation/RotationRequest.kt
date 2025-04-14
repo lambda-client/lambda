@@ -26,12 +26,12 @@ data class RotationRequest(
     val target: RotationTarget,
     val prio: Priority,
     val mode: RotationMode,
-    val rotationConfig: RotationConfig,
+    val rot: RotationConfig,
     var keepTicks: Int = 3,
     var decayTicks: Int = 0,
     val turnSpeed: () -> Double = { 180.0 },
     val speedMultiplier: Double = 1.0
-) : Request(prio) {
+) : Request(prio, rot) {
     var age = 0
 
     constructor(

@@ -21,6 +21,5 @@ enum class TickStage {
     TickStart,
     PostHotbar,
     PostInteract,
-    PreMovement,
     PostMovement,
 }

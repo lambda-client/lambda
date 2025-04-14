@@ -62,7 +62,6 @@ abstract class RequestHandler<R : Request>(
                 TickStage.TickStart -> openRequestsFor<TickEvent.Pre>(TickStage.TickStart)
                 TickStage.PostHotbar -> { /*ToDo*/ }
                 TickStage.PostInteract -> { /*ToDo*/ }
-                TickStage.PreMovement -> openRequestsFor<MovementEvent.Player.Pre>(TickStage.PreMovement)
                 TickStage.PostMovement -> openRequestsFor<MovementEvent.Player.Post>(TickStage.PostMovement)
             }
         }
@@ -102,7 +101,8 @@ abstract class RequestHandler<R : Request>(
      */
     fun request(request: R, queueIfClosed: Boolean = true): R {
         if (!acceptingRequests) {
-            if (queueIfClosed && queuedRequest == null) {
+            val canOverrideQueued = queuedRequest?.run { config === request.config } ?: true
+            if (queueIfClosed && canOverrideQueued) {
                 queuedRequest = request
             }
             return request

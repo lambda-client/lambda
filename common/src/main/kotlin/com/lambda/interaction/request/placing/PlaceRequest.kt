@@ -35,7 +35,7 @@ data class PlaceRequest(
     val pendingInteractions: MutableCollection<BuildContext>,
     val prio: Priority = 0,
     val onPlace: () -> Unit
-) : Request(prio) {
+) : Request(prio, build.placing) {
     override val done: Boolean
         get() = runSafe {
             contexts.all { it.targetState.matches(blockState(it.expectedPos), it.expectedPos, world) }
