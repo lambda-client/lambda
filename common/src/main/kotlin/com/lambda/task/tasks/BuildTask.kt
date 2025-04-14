@@ -113,7 +113,7 @@ class BuildTask @Ta5kBuilder constructor(
                 .plus(pendingInteractions.toList())
                 .toMutableList()
 
-            if (bestPos != null) {
+            if (bestPos != null && build.pathing) {
                 drawables.add(bestPos)
             }
             TaskFlowModule.drawables = drawables
@@ -152,7 +152,7 @@ class BuildTask @Ta5kBuilder constructor(
 
                 is BuildResult.Contextual -> {
                     bestPos?.let {
-                        BaritoneUtils.setGoalAndPath(GoalNear(it.pos, 1))
+                        if (build.pathing) BaritoneUtils.setGoalAndPath(GoalNear(it.pos, 1))
                     }
 
                     if (atMaxPendingInteractions) return@listen
