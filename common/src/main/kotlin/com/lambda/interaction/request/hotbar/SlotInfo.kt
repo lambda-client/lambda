@@ -24,5 +24,8 @@ data class SlotInfo(
 ) {
     var activeRequestAge = 0
     var swapPauseAge = 0
+
     val swapPaused get() = swapPauseAge < swapPause
+    val swappedThisTick get() = activeRequestAge <= 0
+    val keeping get() = keepTicks > 0
 }

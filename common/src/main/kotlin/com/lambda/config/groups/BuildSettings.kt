@@ -38,10 +38,10 @@ class BuildSettings(
     override val maxPendingInteractions by c.setting("Max Pending Interactions", 20, 1..30, 1, "Dont wait for this many interactions for the server response") { vis() && page == Page.General }
 
     // Breaking
-    override val breakSettings = BreakSettings(c) { page == Page.Break && vis() }
+    override val breaking = BreakSettings(c) { page == Page.Break && vis() }
 
     // Placing
-    override val placeSettings = PlaceSettings(c) { page == Page.Place && vis() }
+    override val placing = PlaceSettings(c) { page == Page.Place && vis() }
 
-    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") { vis() && ((page == Page.Place && placeSettings.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None) || (page == Page.Break && breakSettings.breakConfirmation != BreakConfirmationMode.None)) }
+    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") { vis() && ((page == Page.Place && placing.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None) || (page == Page.Break && breaking.breakConfirmation != BreakConfirmationMode.None)) }
 }

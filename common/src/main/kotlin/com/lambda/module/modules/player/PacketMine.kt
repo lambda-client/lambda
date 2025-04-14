@@ -47,7 +47,7 @@ object PacketMine : Module(
     private val page by setting("Page", Page.Build)
 
     private val build = BuildSettings(this) { page == Page.Build }
-    private val breakConfig = build.breakSettings
+    private val breakConfig = build.breaking
     private val rotation = RotationSettings(this) { page == Page.Rotation }
     private val interact = InteractionSettings(this, InteractionMask.Block) { page == Page.Interaction }
     private val inventory = InventorySettings(this) { page == Page.Inventory }
@@ -81,12 +81,11 @@ object PacketMine : Module(
             }
 
             val request = BreakRequest(
-                breakContexts(requestPositions), build, rotation, interact, inventory, hotbar,
-                pendingInteractionsList = pendingInteractionsList,
-                onAccept = { breakingPositions[0] = it },
+                breakContexts(requestPositions), build, rotation, hotbar, pendingInteractions = pendingInteractionsList, onAccept = { breakingPositions[0] = it },
                 onCancel = { nullifyBreakPos(it) },
-                onBreak = { breaks++; nullifyBreakPos(it) }
-            ) { _ -> itemDrops++ }
+                onBreak = { breaks++; nullifyBreakPos(it) },
+                { _ -> itemDrops++ }
+            )
             breakConfig.request(request)
         }
     }

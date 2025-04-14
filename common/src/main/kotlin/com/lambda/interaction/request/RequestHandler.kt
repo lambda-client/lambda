@@ -17,71 +17,107 @@
 
 package com.lambda.interaction.request
 
+import com.lambda.config.groups.TickStage
+import com.lambda.context.SafeContext
 import com.lambda.event.Event
+import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import java.util.concurrent.ConcurrentHashMap
+import com.lambda.threading.runSafe
 
 /**
- * This class manages a collection of requests, each associated with a `RequestConfig`.
- * It provides a mechanism to register requests and select the highest priority request
- * for processing.
+ * This class handles requests, offering specific opening times, and an option to queue a request for the
+ * next opening if closed
  */
-abstract class RequestHandler<R : Request> {
+abstract class RequestHandler<R : Request>(
+    vararg openStages: TickStage,
+    val preOpen: (SafeContext.() -> Unit)? = null,
+    val onOpen: (SafeContext.() -> Unit)? = null,
+    val postClose: (SafeContext.() -> Unit)? = null
+) {
+    /**
+     * Represents if the handler is accepting requests at any given time
+     */
+    private var acceptingRequests = false
 
-    protected val requestMap = ConcurrentHashMap<RequestConfig<R>, R>()
+    /**
+     * Represents the sequence stage the current tick is at
+     */
+    var tickStage = TickStage.TickStart; private set
+
+    /**
+     * If a request is made while the handler isn't accepting requests, it is placed into [queuedRequest] and run
+     * at the start of the next open request timeframe
+     */
+    var queuedRequest: R? = null; protected set
 
     /**
      * Represents if the handler performed any external actions within this tick
      */
-    var activeThisTick = false
-        protected set
-
-    /**
-     * The currently active request.
-     */
-    var currentRequest: R? = null; protected set
+    var activeThisTick = false; protected set
 
     init {
+        openStages.forEach { stage ->
+            when(stage) {
+                TickStage.TickStart -> openRequestsFor<TickEvent.Pre>(TickStage.TickStart)
+                TickStage.PostHotbar -> TODO()
+                TickStage.PostInteract -> TODO()
+                TickStage.PreMovement -> openRequestsFor<MovementEvent.Player.Pre>(TickStage.PreMovement)
+                TickStage.PostMovement -> openRequestsFor<MovementEvent.Player.Post>(TickStage.PostMovement)
+            }
+        }
+
         listen<TickEvent.Post>(Int.MIN_VALUE) {
             activeThisTick = false
         }
     }
 
     /**
-     * Registers a new request with the given configuration.
+     * opens the handler for requests for the duration of the given event
+     */
+    private inline fun <reified T : Event> openRequestsFor(stage: TickStage) {
+        listen<T>(priority = Int.MAX_VALUE) {
+            tickStage = stage
+            preOpen?.invoke(this)
+            queuedRequest?.let { request ->
+                handleRequest(request)
+                queuedRequest = null
+            }
+            acceptingRequests = true
+            onOpen?.invoke(this)
+        }
+        listen<T>(priority = Int.MIN_VALUE) {
+            acceptingRequests = false
+            postClose?.invoke(this)
+        }
+    }
+
+    /**
+     * Registers a new request
      *
-     * @param config The configuration for the request.
      * @param request The request to register.
+     * @param queueIfClosed queues the request for the next time the handlers accepting requests
      * @return The registered request.
      */
-    fun registerRequest(config: RequestConfig<R>, request: R): R {
-        requestMap[config] = request
+    fun request(request: R, queueIfClosed: Boolean = true): R {
+        if (!acceptingRequests) {
+            if (queueIfClosed && queuedRequest == null) {
+                queuedRequest = request
+            }
+            return request
+        }
+
+        runSafe {
+            handleRequest(request)
+            request.fresh = false
+        }
         return request
     }
 
     /**
-     * Updates the current request to the highest priority registered request.
-     * Clears the internal request map after updating.
-     *
-     * @return True, if the request was updated.
+     * Handles a request
      */
-    protected fun updateRequest(
-        keepIfNull: Boolean = false,
-        filter: (Map.Entry<RequestConfig<R>, R>) -> Boolean = { true }
-    ): Boolean {
-        val prev = currentRequest
-
-        currentRequest = requestMap.entries
-                .filter(filter)
-                .maxByOrNull { it.key.priority }?.value
-
-        if (keepIfNull && currentRequest == null) currentRequest = prev
-
-        requestMap.clear()
-        return prev != currentRequest
-    }
+    abstract fun SafeContext.handleRequest(request: R)
 
     protected abstract fun preEvent(): Event
-    protected abstract fun postEvent(): Event
 }

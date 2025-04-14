@@ -26,20 +26,14 @@ interface BuildConfig {
     val interactionTimeout: Int
 
     // Breaking
-    val breakSettings: BreakSettings
+    val breaking: BreakSettings
 
     // Placing
-    val placeSettings: PlaceSettings
+    val placing: PlaceSettings
 
     enum class SwingType {
         Vanilla,
         Server,
         Client
-    }
-
-    enum class InteractSequenceMode {
-        TickStart,
-        Vanilla,
-        PostMovement,
     }
 }

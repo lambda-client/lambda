@@ -161,13 +161,11 @@ class BuildTask @Ta5kBuilder constructor(
                             val breakResults = resultsNotBlocked.filterIsInstance<BreakResult.Break>()
                             val requestContexts = arrayListOf<BreakContext>()
 
-                            if (build.breakSettings.instantBreaksPerTick > 1) {
-                                val takeCount = build.breakSettings
-                                    .instantBreaksPerTick
-                                    .coerceAtMost(emptyPendingInteractionSlots)
+                            if (build.breaking.breaksPerTick > 1) {
+                                val take = emptyPendingInteractionSlots.coerceAtLeast(0)
                                 breakResults
                                     .filter { it.context.instantBreak }
-                                    .take(takeCount)
+                                    .take(take)
                                     .let { instantBreakResults ->
                                         requestContexts.addAll(instantBreakResults.map { it.context })
                                     }
@@ -178,12 +176,12 @@ class BuildTask @Ta5kBuilder constructor(
                             }
 
                             val request = BreakRequest(
-                                requestContexts, build, rotation, interact, inventory, hotbar,
-                                pendingInteractionsList = pendingInteractions,
+                                requestContexts, build, rotation, hotbar,
+                                pendingInteractions = pendingInteractions,
                                 onBreak = { breaks++ },
                                 onItemDrop = onItemDrop
                             )
-                            build.breakSettings.request(request)
+                            build.breaking.request(request)
                             return@listen
                         }
                         is PlaceResult.Place -> {
@@ -192,9 +190,9 @@ class BuildTask @Ta5kBuilder constructor(
                                 .distinctBy { it.blockPos }
                                 .take(emptyPendingInteractionSlots)
 
-                            build.placeSettings.request(
+                            build.placing.request(
                                 PlaceRequest(
-                                    placeResults.map { it.context }, build, rotation, hotbar, interact, pendingInteractions
+                                    placeResults.map { it.context }, build, rotation, hotbar, pendingInteractions
                                 ) { placements++ }
                             )
                         }

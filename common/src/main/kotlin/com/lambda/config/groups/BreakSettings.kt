@@ -32,7 +32,7 @@ class BreakSettings(
     override val breakThreshold by c.setting("Break Threshold", 0.7f, 0.1f..1.0f, 0.02f, "The break amount at which the block is considered broken") { vis() }
     override val doubleBreak by c.setting("Double Break", true, "Allows breaking two blocks at once") { vis() }
     override val breakDelay by c.setting("Break Delay", 0, 0..5, 1, "The delay between breaking blocks", " ticks") { vis() }
-    override val sequenceMode by c.setting("Break Sequence Mode", BuildConfig.InteractSequenceMode.PostMovement, "The sub-tick timing at which break actions are performed", vis)
+    override val breakStageMask by c.setting("Break Stage Mask", setOf(*TickStage.entries.toTypedArray()), "The sub-tick timing at which break actions can be performed", vis)
     override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand") { vis() }
     override val swingType by c.setting("Break Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { vis() && swing != SwingMode.None }
     override val sounds by c.setting("Break Sounds", true, "Plays the breaking sounds") { vis() }
@@ -42,7 +42,7 @@ class BreakSettings(
     override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, "Blocks that wont be broken") { vis() }
     override val breakConfirmation by c.setting("Break Confirmation", BreakConfirmationMode.BreakThenAwait, "The style of confirmation used when breaking") { vis() }
     override val maxPendingBreaks by c.setting("Max Pending Breaks", 15, 1..30, 1, "The maximum amount of pending breaks") { vis() }
-    override val instantBreaksPerTick by c.setting("Instant Breaks Per Tick", 5, 1..30, 1, "Maximum instant block breaks per tick") { vis() }
+    override val breaksPerTick by c.setting("Breaks Per Tick", 5, 1..30, 1, "Maximum instant block breaks per tick") { vis() }
     override val breakWeakBlocks by c.setting("Break Weak Blocks", false, "Break blocks that dont have structural integrity (e.g: grass)") { vis() }
     override val forceSilkTouch by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks") { vis() }
     override val forceFortunePickaxe by c.setting("Force Fortune Pickaxe", false, "Force fortune pickaxe when breaking blocks") { vis() }

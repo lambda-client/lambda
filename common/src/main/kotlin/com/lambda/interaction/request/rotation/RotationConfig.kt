@@ -52,7 +52,7 @@ abstract class RotationConfig(priority: Priority) : RequestConfig<RotationReques
     val rotate: Boolean get() = rotationMode != RotationMode.None
 
     override fun requestInternal(request: RotationRequest) {
-        RotationManager.registerRequest(this, request)
+        RotationManager.request(request)
     }
 
     open class Instant(mode: RotationMode, priority: Priority = 0) : RotationConfig(priority) {

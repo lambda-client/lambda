@@ -92,11 +92,11 @@ object BuildSimulator {
             checkRequirements(pos, target, build)?.let {
                 return@flatMap setOf(it)
             }
-            checkPlaceResults(pos, target, eye, build.placeSettings, interact, rotation, inventory).let {
+            checkPlaceResults(pos, target, eye, build.placing, interact, rotation, inventory).let {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
-            checkBreakResults(pos, eye, build.placeSettings, interact, rotation, inventory, build).let {
+            checkBreakResults(pos, eye, build.placing, interact, rotation, inventory, build).let {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
@@ -122,7 +122,7 @@ object BuildSimulator {
         }
 
         /* block should be ignored */
-        if (state.block in build.breakSettings.ignoredBlocks && target.type == TargetState.Type.AIR) {
+        if (state.block in build.breaking.ignoredBlocks && target.type == TargetState.Type.AIR) {
             return BuildResult.Ignored(pos)
         }
 
@@ -392,7 +392,7 @@ object BuildSimulator {
         val state = blockState(pos)
 
         /* is a block that will be destroyed by breaking adjacent blocks */
-        if (build.breakSettings.breakWeakBlocks && state.block.hardness == 0f && !state.isAir) {
+        if (build.breaking.breakWeakBlocks && state.block.hardness == 0f && !state.isAir) {
             acc.add(BuildResult.Ignored(pos))
             return acc
         }
@@ -465,7 +465,7 @@ object BuildSimulator {
                     state,
                     targetState,
                     player.inventory.selectedSlot,
-                    instantBreakable(state, pos, build.breakSettings.breakThreshold)
+                    instantBreakable(state, pos, build.breaking.breakThreshold)
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
                 return acc
@@ -510,7 +510,7 @@ object BuildSimulator {
         val blockHit = bestHit.hit.blockResult ?: return acc
         val target = lookAt(bestHit.targetRotation, 0.001)
         val request = RotationRequest(target, rotation)
-        val instant = instantBreakable(state, pos, build.breakSettings.breakThreshold)
+        val instant = instantBreakable(state, pos, build.breaking.breakThreshold)
 
         val breakContext = BreakContext(
             eye, blockHit, request, state, targetState, player.inventory.selectedSlot, instant
@@ -538,10 +538,10 @@ object BuildSimulator {
             return acc
         }
 
-        val toolSelection = if (build.breakSettings.forceSilkTouch) {
+        val toolSelection = if (build.breaking.forceSilkTouch) {
             selectStack { isOneOfItems(bestTools) and hasEnchantment(Enchantments.SILK_TOUCH) }
-        } else if (build.breakSettings.forceFortunePickaxe) {
-            selectStack { isOneOfItems(bestTools) and hasEnchantment(Enchantments.FORTUNE, build.breakSettings.minFortuneLevel) }
+        } else if (build.breaking.forceFortunePickaxe) {
+            selectStack { isOneOfItems(bestTools) and hasEnchantment(Enchantments.FORTUNE, build.breaking.minFortuneLevel) }
         } else {
             bestTools.select()
         }
@@ -568,7 +568,7 @@ object BuildSimulator {
         if (toolPair == null) return acc
 
         breakContext.hotbarIndex = player.hotbar.indexOf(toolPair.first)
-        breakContext.instantBreak = instantBreakable(state, pos, toolPair.first, build.breakSettings.breakThreshold)
+        breakContext.instantBreak = instantBreakable(state, pos, toolPair.first, build.breaking.breakThreshold)
 	    acc.add(BreakResult.Break(pos, breakContext))
         return acc
     }

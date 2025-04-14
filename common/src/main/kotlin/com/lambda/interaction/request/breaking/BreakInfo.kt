@@ -32,35 +32,34 @@ data class BreakInfo(
     var type: BreakType,
     var request: BreakRequest
 ) {
-    val breakConfig get() = request.buildConfig.breakSettings
-    val rotationConfig get() = request.rotationConfig
+    val breakConfig get() = request.build.breaking
+    val pendingInteractions get() = request.pendingInteractions
 
-    val pendingInteractionsList get() = request.pendingInteractionsList
-    private val onCancel get() = request.onCancel
-    private val onBreak get() = request.onBreak
-    private val onItemDrop get() = request.onItemDrop
+    var activeAge = 0
+    var updatedThisTick = true
+    var updatedProgressThisTick = false
 
     var breaking = false
     var breakingTicks = 0
     var soundsCooldown = 0.0f
 
-    val redundant
-        get() = type == BreakType.RedundantSecondary
+    val isPrimary get() = type == BreakType.Primary
+    val isSecondary get() = type == BreakType.Secondary
+    val isRedundant get() = type == BreakType.RedundantSecondary
 
     @Volatile
-    var broken = false
-        private set
+    var broken = false; private set
     private var item: ItemEntity? = null
 
     val callbacksCompleted
-        @Synchronized get() = broken && (onItemDrop == null || item != null)
+        @Synchronized get() = broken && (request.onItemDrop == null || item != null)
 
     fun internalOnBreak() {
         synchronized(this) {
             broken = true
-            onBreak?.invoke(context.expectedPos)
+            request.onBreak?.invoke(context.expectedPos)
             item?.let { item ->
-                onItemDrop?.invoke(item)
+                request.onItemDrop?.invoke(item)
             }
         }
     }
@@ -69,19 +68,20 @@ data class BreakInfo(
         synchronized(this) {
             this.item = item
             if (broken) {
-                onItemDrop?.invoke(item)
+                request.onItemDrop?.invoke(item)
             }
         }
     }
 
     fun internalOnCancel() {
-        onCancel?.invoke(context.expectedPos)
+        request.onCancel?.invoke(context.expectedPos)
     }
 
     fun updateInfo(context: BreakContext, request: BreakRequest) {
+        updatedThisTick = true
         this.context = context
         this.request = request
-        if (redundant) {
+        if (isRedundant) {
             type = BreakType.Secondary
         }
     }

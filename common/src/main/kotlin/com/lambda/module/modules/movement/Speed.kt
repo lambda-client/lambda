@@ -21,8 +21,10 @@ import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.request.rotation.*
+import com.lambda.interaction.request.rotation.Rotation
+import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
+import com.lambda.interaction.request.rotation.RotationMode
 import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag

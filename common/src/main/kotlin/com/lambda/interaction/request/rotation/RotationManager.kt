@@ -18,8 +18,10 @@
 package com.lambda.interaction.request.rotation
 
 import com.lambda.Lambda
+import com.lambda.config.groups.TickStage
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
+import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.PacketEvent
@@ -31,6 +33,7 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.rotation.Rotation.Companion.slerp
+import com.lambda.interaction.request.rotation.RotationManager.preEvent
 import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
@@ -47,38 +50,32 @@ import kotlin.math.round
 import kotlin.math.sign
 import kotlin.math.sin
 
-object RotationManager : RequestHandler<RotationRequest>(), Loadable {
+object RotationManager : RequestHandler<RotationRequest>(
+    TickStage.PreMovement,
+    preOpen = { preEvent() }
+), Loadable {
     var currentRotation = Rotation.ZERO
     private var prevRotation = Rotation.ZERO
 
+    private var changedThisTick = false
+    private var activeRequest: RotationRequest? = null
+
     override fun load() = "Loaded Rotation Manager"
 
-    /**
-     * Registers a listener called immediately before [RotationManager] handles its context and applies rotation updates.
-     *
-     * This is useful if you need to synchronize with the latest player state (including inputs and movement),
-     * or if you must place your rotation requests as the tick is completed and just before the new rotation is processed.
-     *
-     * @param alwaysListen Whether to keep this listener active at all times. Defaults to false.
-     * @param block A callback providing a [SafeContext] where you can place rotation-related operations or other logic.
-     */
     fun Any.onRotate(
         alwaysListen: Boolean = false,
         priority: Priority = 0,
         block: SafeContext.() -> Unit
-    ) = this.listen<UpdateManagerEvent.Rotation.Pre>(priority, alwaysListen) {
+    ) = this.listen<UpdateManagerEvent.Rotation>(priority, alwaysListen) {
         block()
     }
 
-    fun Any.onRotatePost(
-        alwaysListen: Boolean = false,
-        priority: Priority = 0,
-        block: SafeContext.() -> Unit
-    ) = this.listen<UpdateManagerEvent.Rotation.Post>(priority, alwaysListen) {
-        block()
-    }
 
     init {
+        listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
+            changedThisTick = false
+        }
+
         listen<PacketEvent.Send.Post> { event ->
             val packet = event.packet
             if (packet !is PlayerPositionLookS2CPacket) return@listen
@@ -93,25 +90,24 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
         }
     }
 
+    override fun SafeContext.handleRequest(request: RotationRequest) {
+        if (activeRequest != null) return
+        if (request.target.targetRotation.value != null) {
+            activeRequest = request
+            changedThisTick = true
+        }
+    }
+
     @JvmStatic
     fun processRotations() = runSafe {
-        preEvent()
+        if (activeRequest != null) activeThisTick = true
 
-        // Update the request
-        val changed = updateRequest(true) { entry ->
-            // skip requests that have failed to build the rotation
-            // to free the request place for others
-            entry.value.target.targetRotation.value != null
-        }
-
-        if (currentRequest != null) activeThisTick = true
-
-        if (!changed) { // rebuild the rotation if the same context gets used again
-            currentRequest?.target?.targetRotation?.update()
+        if (!changedThisTick) { // rebuild the rotation if the same context gets used again
+            activeRequest?.target?.targetRotation?.update()
         }
 
         // Calculate the target rotation
-        val targetRotation = currentRequest?.let { request ->
+        val targetRotation = activeRequest?.let { request ->
             val rotationTo = if (request.keepTicks >= 0)
                 request.target.targetRotation.value
                     ?: currentRotation // same context gets used again && the rotation is null this tick
@@ -128,25 +124,23 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
         currentRotation = targetRotation/*.fixSensitivity(prevRotation)*/
 
         // Handle LOCK mode
-        if (currentRequest?.mode == RotationMode.Lock) {
+        if (activeRequest?.mode == RotationMode.Lock) {
             player.yaw = currentRotation.yawF
             player.pitch = currentRotation.pitchF
         }
 
         // Tick and reset the context
-        currentRequest?.let {
+        activeRequest?.let {
             if (--it.keepTicks > 0) return@let
             if (--it.decayTicks >= 0) return@let
-            currentRequest = null
+            activeRequest = null
         }
-
-        postEvent()
     }
 
     private fun reset(rotation: Rotation) {
         prevRotation = rotation
         currentRotation = rotation
-        currentRequest = null
+        activeRequest = null
     }
 
     private val smoothRotation
@@ -156,45 +150,45 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
     @JvmStatic
     val lockRotation
         get() =
-            if (currentRequest?.mode == RotationMode.Lock) smoothRotation else null
+            if (activeRequest?.mode == RotationMode.Lock) smoothRotation else null
 
     @JvmStatic
     val renderYaw
         get() =
-            if (currentRequest == null) null else smoothRotation.yaw.toFloat()
+            if (activeRequest == null) null else smoothRotation.yaw.toFloat()
 
     @JvmStatic
     val renderPitch
         get() =
-            if (currentRequest == null) null else smoothRotation.pitch.toFloat()
+            if (activeRequest == null) null else smoothRotation.pitch.toFloat()
 
     @JvmStatic
     val handYaw
         get() =
-            if (currentRequest?.mode == RotationMode.Lock) currentRotation.yaw.toFloat() else null
+            if (activeRequest?.mode == RotationMode.Lock) currentRotation.yaw.toFloat() else null
 
     @JvmStatic
     val handPitch
         get() =
-            if (currentRequest?.mode == RotationMode.Lock) currentRotation.pitch.toFloat() else null
+            if (activeRequest?.mode == RotationMode.Lock) currentRotation.pitch.toFloat() else null
 
     @JvmStatic
     val movementYaw: Float?
         get() {
-            if (currentRequest?.mode == RotationMode.Silent) return null
+            if (activeRequest?.mode == RotationMode.Silent) return null
             return currentRotation.yaw.toFloat()
         }
 
     @JvmStatic
     val movementPitch: Float?
         get() {
-            if (currentRequest?.mode == RotationMode.Silent) return null
+            if (activeRequest?.mode == RotationMode.Silent) return null
             return currentRotation.pitch.toFloat()
         }
 
     @JvmStatic
     fun getRotationForVector(deltaTime: Double): Vec2d? {
-        if (currentRequest?.mode == RotationMode.Silent) return null
+        if (activeRequest?.mode == RotationMode.Silent) return null
 
         val rot = lerp(deltaTime, prevRotation, currentRotation)
         return Vec2d(rot.yaw, rot.pitch)
@@ -242,7 +236,7 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
             // Actual yaw used by the physics engine
             var actualYaw = currentRotation.yaw
 
-            if (currentRequest?.mode == RotationMode.Silent) {
+            if (activeRequest?.mode == RotationMode.Silent) {
                 actualYaw = player.yaw.toDouble()
             }
 
@@ -278,6 +272,5 @@ object RotationManager : RequestHandler<RotationRequest>(), Loadable {
         }
     }
 
-    override fun preEvent() = UpdateManagerEvent.Rotation.Pre().post()
-    override fun postEvent() = UpdateManagerEvent.Rotation.Post().post()
+    override fun preEvent(): Event = UpdateManagerEvent.Rotation().post()
 }

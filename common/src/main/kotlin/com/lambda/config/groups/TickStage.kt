@@ -15,13 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.event.events
+package com.lambda.config.groups
 
-import com.lambda.event.Event
-
-sealed class UpdateManagerEvent {
-    class Rotation : Event
-    class Hotbar : Event
-    class Break : Event
-    class Place : Event
+enum class TickStage {
+    TickStart,
+    PostHotbar,
+    PostInteract,
+    PreMovement,
+    PostMovement,
 }

@@ -18,8 +18,6 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.config.groups.BuildConfig
-import com.lambda.config.groups.InteractionConfig
-import com.lambda.config.groups.InventoryConfig
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.request.Priority
@@ -33,17 +31,15 @@ import net.minecraft.util.math.BlockPos
 
 data class BreakRequest(
     val contexts: Collection<BreakContext>,
-    val buildConfig: BuildConfig,
-    val rotationConfig: RotationConfig,
-    val interactionConfig: InteractionConfig,
-    val inventoryConfig: InventoryConfig,
-    val hotbarConfig: HotbarConfig,
-    val prio: Priority = 0,
-    val pendingInteractionsList: MutableCollection<BuildContext>,
+    val build: BuildConfig,
+    val rotation: RotationConfig,
+    val hotbar: HotbarConfig,
+    val pendingInteractions: MutableCollection<BuildContext>,
     val onAccept: ((BlockPos) -> Unit)? = null,
     val onCancel: ((BlockPos) -> Unit)? = null,
     val onBreak: ((BlockPos) -> Unit)? = null,
     val onItemDrop: ((ItemEntity) -> Unit)? = null,
+    private val prio: Priority = 0
 ) : Request(prio) {
     override val done: Boolean
         get() = runSafe {

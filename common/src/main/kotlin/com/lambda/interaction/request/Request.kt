@@ -20,5 +20,7 @@ package com.lambda.interaction.request
 abstract class Request (
     val priority: Priority
 ) {
+    var fresh = true
+
     abstract val done: Boolean
 }

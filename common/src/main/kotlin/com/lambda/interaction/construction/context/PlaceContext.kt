@@ -22,6 +22,8 @@ import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.request.hotbar.HotbarRequest
+import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
@@ -73,5 +75,11 @@ data class PlaceContext(
         withState(blockState(result.blockPos), result.blockPos, sideColor, result.side)
     }
 
-    override fun shouldRotate(config: BuildConfig) = config.placeSettings.rotateForPlace
+    override fun shouldRotate(config: BuildConfig) = config.placing.rotate
+
+    fun requestDependencies(request: PlaceRequest): Boolean {
+        val hotbarRequest = request.hotbar.request(HotbarRequest(hotbarIndex, request.hotbar))
+        val validRotation = if (request.build.placing.rotate) request.rotation.request(rotation).done else true
+        return hotbarRequest.done && validRotation
+    }
 }

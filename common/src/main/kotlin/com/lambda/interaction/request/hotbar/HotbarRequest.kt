@@ -21,23 +21,19 @@ import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.Request
 
 class HotbarRequest(
+    val slot: Int,
     val hotbarConfig: HotbarConfig,
+    var keepTicks: Int = hotbarConfig.keepTicks,
+    var swapPause: Int = hotbarConfig.swapPause,
     priority: Priority = 0,
-    val actionSequence: HotbarManager.HotbarActionSequence.() -> Unit,
 ) : Request(priority) {
-    var swapSlot: SlotInfo? = null
+    var activeRequestAge = 0
+    var swapPauseAge = 0
 
-    var instantActionsComplete = false
+    val swapPaused get() = swapPauseAge < swapPause
+    val swappedThisTick get() = activeRequestAge <= 0
+    val keeping get() = keepTicks > 0
+
     override val done: Boolean
-        get() = swapSlot?.let { it.slot == HotbarManager.serverSlot && !it.swapPaused } ?: true
-
-    constructor (
-        slot: Int,
-        hotbarConfig: HotbarConfig,
-        priority: Priority = 0
-    ) : this(
-        hotbarConfig,
-        priority,
-        { if (swapTo(slot, hotbarConfig.keepTicks.coerceAtLeast(1))) done() }
-    )
+        get() = slot == HotbarManager.serverSlot && !swapPaused
 }

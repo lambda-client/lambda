@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.hotbar
 
+import com.lambda.config.groups.TickStage
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
 
@@ -51,7 +52,12 @@ abstract class HotbarConfig(
      *
      * Affects the validity state of the request
      */
-    abstract var swapPause: Int
+    abstract val swapPause: Int
+
+    /**
+     * The sub-tick timings at which hotbar actions can be performed
+     */
+    abstract val sequenceStageMask: Set<TickStage>
 
     /**
      * Registers a hotbar request with the HotbarManager.
@@ -59,6 +65,6 @@ abstract class HotbarConfig(
      * @param request The hotbar request to register.
      */
     override fun requestInternal(request: HotbarRequest) {
-        HotbarManager.registerRequest(this, request)
+        HotbarManager.request(request)
     }
 }

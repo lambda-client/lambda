@@ -18,6 +18,7 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.config.groups.BuildConfig
+import com.lambda.config.groups.TickStage
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
 import net.minecraft.block.Block
@@ -30,7 +31,7 @@ abstract class BreakConfig(
     abstract val breakThreshold: Float
     abstract val doubleBreak: Boolean
     abstract val breakDelay: Int
-    abstract val sequenceMode: BuildConfig.InteractSequenceMode
+    abstract val breakStageMask: Set<TickStage>
     abstract val swing: SwingMode
     abstract val swingType: BuildConfig.SwingType
     abstract val sounds: Boolean
@@ -39,7 +40,7 @@ abstract class BreakConfig(
     abstract val rotateForBreak: Boolean
     abstract val breakConfirmation: BreakConfirmationMode
     abstract val maxPendingBreaks: Int
-    abstract val instantBreaksPerTick: Int
+    abstract val breaksPerTick: Int
     abstract val breakWeakBlocks: Boolean
     abstract val forceSilkTouch: Boolean
     abstract val forceFortunePickaxe: Boolean
@@ -47,7 +48,7 @@ abstract class BreakConfig(
     abstract val ignoredBlocks: Set<Block>
 
     override fun requestInternal(request: BreakRequest) {
-        BreakManager.registerRequest(this, request)
+        BreakManager.request(request)
     }
 
     enum class BreakMode {
