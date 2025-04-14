@@ -81,6 +81,7 @@ abstract class RequestHandler<R : Request>(
             preOpen?.invoke(this)
             queuedRequest?.let { request ->
                 handleRequest(request)
+                request.fresh = false
                 queuedRequest = null
             }
             acceptingRequests = true

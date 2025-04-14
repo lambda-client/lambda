@@ -73,6 +73,9 @@ object RotationManager : RequestHandler<RotationRequest>(
 
     init {
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
+            activeRequest?.let { request ->
+                request.age++
+            }
             changedThisTick = false
         }
 
@@ -91,7 +94,7 @@ object RotationManager : RequestHandler<RotationRequest>(
     }
 
     override fun SafeContext.handleRequest(request: RotationRequest) {
-        if (activeRequest != null) return
+        activeRequest?.let { if (it.age <= 0) return }
         if (request.target.targetRotation.value != null) {
             activeRequest = request
             changedThisTick = true

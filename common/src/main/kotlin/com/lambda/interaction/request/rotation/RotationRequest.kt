@@ -31,6 +31,7 @@ data class RotationRequest(
     val turnSpeed: () -> Double = { 180.0 },
     val speedMultiplier: Double = 1.0
 ) : Request(prio) {
+    var age = 0
 
     constructor(
         target: RotationTarget,
