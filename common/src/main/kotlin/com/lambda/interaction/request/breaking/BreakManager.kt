@@ -320,10 +320,12 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see atMaxBreakInfos
      */
     private fun SafeContext.processNewBreaks(request: BreakRequest): Boolean {
-        breaks.forEach { ctx ->
+        val iterator = breaks.iterator()
+        while (iterator.hasNext()) {
+            val ctx = iterator.next()
             initNewBreak(ctx, request) ?: return false
             request.onAccept?.invoke(ctx.expectedPos)
-            breaks.remove(ctx)
+            iterator.remove()
             if (atMaxBreakInfos(request.build.breaking)) return false
         }
         return true
