@@ -422,7 +422,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      * callback will be triggered.
      *
      * @see destroyBlock
-     * @see addPendingBreak
+     * @see startPending
      */
     private fun SafeContext.onBlockBreak(info: BreakInfo) {
         when (info.breakConfig.breakConfirmation) {
