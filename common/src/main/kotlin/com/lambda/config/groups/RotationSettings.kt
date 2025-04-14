@@ -21,7 +21,11 @@ import com.lambda.config.Configurable
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationMode
-import kotlin.math.*
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.ln
+import kotlin.math.sqrt
 import kotlin.random.Random
 
 class RotationSettings(
@@ -36,6 +40,11 @@ class RotationSettings(
 
     /** How many ticks to wait before resetting the rotation */
     override val decayTicks by c.setting("Reset Rotation", 3, 1..10, 1, "Ticks before rotation is reset", " ticks") { rotate && vis() }
+
+    /**
+     * At what sub-tick stages rotations can be performed
+     */
+    override val rotationStageMask by c.setting("Rotation Stage Mask", setOf(*TickStage.entries.toTypedArray()), "The sub-tick stages at which rotations can be performed", vis)
 
     /** Whether the rotation is instant */
     var instant by c.setting("Instant Rotation", true, "Instantly rotate") { rotate && vis() }

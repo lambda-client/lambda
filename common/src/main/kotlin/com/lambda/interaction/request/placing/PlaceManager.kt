@@ -68,8 +68,7 @@ import net.minecraft.util.math.Direction
 import net.minecraft.world.GameMode
 
 object PlaceManager : RequestHandler<PlaceRequest>(
-    TickStage.TickStart,
-    TickStage.PostMovement,
+    *TickStage.entries.toTypedArray(),
     preOpen =  { activeRequest?.let { processRequest(it) } },
     onOpen = { preEvent() }
 ), PositionBlocking {

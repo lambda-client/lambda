@@ -40,8 +40,7 @@ import com.lambda.threading.runSafe
  * @see InGameHudMixin.onTick
  */
 object HotbarManager : RequestHandler<HotbarRequest>(
-    TickStage.TickStart,
-    TickStage.PostMovement,
+    *TickStage.entries.toTypedArray(),
     postClose = { checkResetSwap() },
     onOpen = { preEvent() }
 ), Loadable {

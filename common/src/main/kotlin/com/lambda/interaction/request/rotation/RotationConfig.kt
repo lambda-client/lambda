@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.request.rotation
 
+import com.lambda.config.groups.TickStage
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
 
@@ -49,6 +50,11 @@ abstract class RotationConfig(priority: Priority) : RequestConfig<RotationReques
      */
     abstract val decayTicks: Int
 
+    /**
+     * The sub-tick stages at which rotations can take place
+     */
+    abstract val rotationStageMask: Set<TickStage>
+
     val rotate: Boolean get() = rotationMode != RotationMode.None
 
     override fun requestInternal(request: RotationRequest) {
@@ -59,6 +65,7 @@ abstract class RotationConfig(priority: Priority) : RequestConfig<RotationReques
         override val turnSpeed get() = 360.0
         override val keepTicks get() = 1
         override val decayTicks get() = 1
+        override val rotationStageMask = setOf(*TickStage.entries.toTypedArray())
         override val rotationMode = mode
     }
 }

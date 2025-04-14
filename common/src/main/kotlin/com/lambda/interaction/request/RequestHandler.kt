@@ -60,8 +60,8 @@ abstract class RequestHandler<R : Request>(
         openStages.forEach { stage ->
             when(stage) {
                 TickStage.TickStart -> openRequestsFor<TickEvent.Pre>(TickStage.TickStart)
-                TickStage.PostHotbar -> TODO()
-                TickStage.PostInteract -> TODO()
+                TickStage.PostHotbar -> { /*ToDo*/ }
+                TickStage.PostInteract -> { /*ToDo*/ }
                 TickStage.PreMovement -> openRequestsFor<MovementEvent.Player.Pre>(TickStage.PreMovement)
                 TickStage.PostMovement -> openRequestsFor<MovementEvent.Player.Post>(TickStage.PostMovement)
             }

@@ -26,6 +26,7 @@ data class RotationRequest(
     val target: RotationTarget,
     val prio: Priority,
     val mode: RotationMode,
+    val rotationConfig: RotationConfig,
     var keepTicks: Int = 3,
     var decayTicks: Int = 0,
     val turnSpeed: () -> Double = { 180.0 },
@@ -37,7 +38,7 @@ data class RotationRequest(
         target: RotationTarget,
         config: RotationConfig,
         speedMultiplier: Double = 1.0
-    ) : this(target, config.priority, config.rotationMode, config.keepTicks, config.decayTicks, config::turnSpeed, speedMultiplier)
+    ) : this(target, config.priority, config.rotationMode, config, config.keepTicks, config.decayTicks, config::turnSpeed, speedMultiplier)
 
     override val done: Boolean get() =
         mode == RotationMode.None || runSafe {

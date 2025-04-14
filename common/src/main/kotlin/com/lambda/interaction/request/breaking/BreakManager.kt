@@ -68,8 +68,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkSectionPos
 
 object BreakManager : RequestHandler<BreakRequest>(
-    TickStage.TickStart,
-    TickStage.PostMovement,
+    *TickStage.entries.toTypedArray(),
     preOpen =  { activeRequest?.let { processRequest(it) } },
     onOpen = { preEvent() }
 ), PositionBlocking {
