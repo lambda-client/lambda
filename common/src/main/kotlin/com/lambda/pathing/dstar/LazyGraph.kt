@@ -112,10 +112,7 @@ class LazyGraph(
             }
         }
         dirtyNodes.take(maxElements).forEach { node ->
-            renderer.buildOutline(
-                Box.of(node.toCenterVec3d(), 0.3, 0.3, 0.3),
-                Color.RED
-            )
+            renderer.buildOutline(Box.of(node.toCenterVec3d(), 0.2, 0.2, 0.2), Color.RED)
         }
     }
 

@@ -51,6 +51,7 @@ import com.lambda.util.player.MovementUtils.buildMovementInput
 import com.lambda.util.player.MovementUtils.mergeFrom
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.WorldUtils.hasSupport
+import com.lambda.util.world.WorldUtils.isPathClear
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.toFastVec
@@ -120,7 +121,8 @@ object Pathfinder : Module(
                 currentStart = playerPos.toFastVec()
                 needsUpdate = true
             }
-            updateTargetNode()
+            if (pathing.moveAlongPath) updateTargetNode()
+//            info("${isPathClear(playerPos, targetPos)}")
         }
 
 //        listen<WorldEvent.BlockUpdate.Client> {
@@ -231,7 +233,6 @@ object Pathfinder : Module(
         }
         info("A* (Length: ${long.length().string} Nodes: ${long.size} T: $aStar ms) and \u03b8* (Length: ${short.length().string} Nodes: ${short.size} T: $thetaStar ms)")
 //        println("Long: $long | Short: $short")
-        short.moves.removeFirstOrNull()
         coarsePath = long
         refinedPath = short
     }
@@ -252,7 +253,6 @@ object Pathfinder : Module(
         }
         info("Lazy D* Lite (Length: ${long.length().string} Nodes: ${long.size} Graph Size: ${graph.size} T: $dStar ms) and \u03b8* (Length: ${short.length().string} Nodes: ${short.size} T: $thetaStar ms)")
 //        println("Long: $long | Short: $short")
-        short.moves.removeFirstOrNull()
         coarsePath = long
         refinedPath = short
     }

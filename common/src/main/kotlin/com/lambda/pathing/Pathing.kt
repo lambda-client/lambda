@@ -73,7 +73,7 @@ object Pathing {
     }
 
     fun SafeContext.thetaStarClearance(path: Path, config: PathingConfig): Path {
-        if (path.moves.isEmpty()) return Path()
+        if (path.moves.isEmpty()) return path
 
         val cleanedPath = Path()
         var currentIndex = 0
@@ -84,22 +84,18 @@ object Pathing {
             cleanedPath.append(startMove)
 
             // Attempt to skip over as many nodes as possible
-            // by checking if they share the same Y and have a clear path
             var nextIndex = currentIndex + 1
             while (nextIndex < path.moves.size) {
                 val candidateMove = path.moves[nextIndex]
+                val startPos = startMove.pos.toBlockPos()
+                val candidatePos = candidateMove.pos.toBlockPos()
 
                 // Only try to skip if both moves are on the same Y level
-                if (startMove.pos.y != candidateMove.pos.y) break
+                if (startPos.y != candidatePos.y) break
 
                 // Verify there's a clear path from the start move to the candidate
-                if (
-                    isPathClear(
-                        startMove.pos.toBlockPos(),
-                        candidateMove.pos.toBlockPos(),
-                        config.clearancePrecision
-                    )
-                ) nextIndex++ else break
+                val isClear = isPathClear(startPos, candidatePos, config.clearancePrecision)
+                if (isClear) nextIndex++ else break
             }
 
             // Move to the last node that was confirmed reachable
