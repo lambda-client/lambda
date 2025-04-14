@@ -24,8 +24,10 @@ import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.module.modules.movement.Pathfinder
+import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.world.fastVectorOf
+import com.lambda.util.world.string
 
 object PathCommand : LambdaCommand(
     name = "path",
@@ -41,9 +43,24 @@ object PathCommand : LambdaCommand(
                             val dirty = fastVectorOf(x().value(), y().value(), z().value())
                             Pathfinder.graph.markDirty(dirty)
                             Pathfinder.graph.updateDirtyNode(dirty)
+                            this@PathCommand.info("Marked ${dirty.string} as dirty")
                         }
                     }
                 }
+            }
+        }
+
+        required(literal("reset")) {
+            execute {
+                Pathfinder.graph.clear()
+                this@PathCommand.info("Reset graph")
+            }
+        }
+
+        required(literal("update")) {
+            execute {
+                Pathfinder.needsUpdate = true
+                this@PathCommand.info("Updating graph")
             }
         }
     }

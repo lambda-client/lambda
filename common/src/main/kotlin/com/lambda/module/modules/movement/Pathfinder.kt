@@ -51,7 +51,6 @@ import com.lambda.util.player.MovementUtils.buildMovementInput
 import com.lambda.util.player.MovementUtils.mergeFrom
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.WorldUtils.hasSupport
-import com.lambda.util.world.WorldUtils.isPathClear
 import com.lambda.util.world.dist
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.toBlockPos
@@ -89,7 +88,7 @@ object Pathfinder : Module(
     private var currentTarget: Vec3d? = null
     private var integralError = Vec3d.ZERO
     private var lastError = Vec3d.ZERO
-    private var needsUpdate = false
+    var needsUpdate = false
     private var currentStart = BlockPos.ORIGIN.toFastVec()
 
     private fun heuristic(u: FastVector): Double =
@@ -119,7 +118,8 @@ object Pathfinder : Module(
         listen<TickEvent.Pre> {
             val playerPos = player.blockPos
             val currentPos = playerPos.toFastVec()
-            if (player.isOnGround && hasSupport(playerPos) && currentPos dist currentStart > pathing.tolerance) {
+            val positionOutdated = currentPos dist currentStart > pathing.tolerance
+            if (player.isOnGround && hasSupport(playerPos) && positionOutdated) {
                 currentStart = currentPos
                 needsUpdate = true
             }
@@ -177,7 +177,7 @@ object Pathfinder : Module(
             if (pathing.renderCoarsePath) coarsePath.render(event.renderer, Color.YELLOW)
             if (pathing.renderRefinedPath) refinedPath.render(event.renderer, Color.GREEN)
             if (pathing.renderGoal) event.renderer.buildFilled(Box(target.toBlockPos()), Color.PINK.setAlpha(0.25))
-            if (pathing.renderGraph) graph.render(event.renderer, pathing.maxRenderObjects)
+            graph.render(event.renderer, pathing)
         }
 
         listen<RenderEvent.World> {
@@ -186,7 +186,7 @@ object Pathfinder : Module(
             Matrices.push {
                 val c = mc.gameRenderer.camera.pos.negate()
                 translate(c.x, c.y, c.z)
-                graph.buildDebugInfoRenderer(pathing.maxRenderObjects)
+                graph.buildDebugInfoRenderer(pathing)
             }
         }
     }

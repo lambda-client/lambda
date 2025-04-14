@@ -43,7 +43,7 @@ interface PathingConfig {
     val renderRefinedPath: Boolean
     val renderGoal: Boolean
     val renderGraph: Boolean
-    val renderWeights: Boolean
+    val renderCost: Boolean
     val renderPositions: Boolean
     val maxRenderObjects: Int
     val assumeJesus: Boolean

@@ -25,6 +25,7 @@ import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.graphics.renderer.gui.FontRenderer
 import com.lambda.graphics.renderer.gui.FontRenderer.drawString
+import com.lambda.pathing.PathingSettings
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.div
 import com.lambda.util.math.plus
@@ -105,35 +106,40 @@ class LazyGraph(
         predecessors.clear()
     }
 
-    fun render(renderer: StaticESP, maxElements: Int = 1000) {
-        successors.entries.take(maxElements).forEach { (origin, neighbors) ->
+    fun render(renderer: StaticESP, config: PathingSettings) {
+        if (!config.renderGraph) return
+        successors.entries.take(config.maxRenderObjects).forEach { (origin, neighbors) ->
             neighbors.forEach { (neighbor, _) ->
                 renderer.buildLine(origin.toCenterVec3d(), neighbor.toCenterVec3d(), Color.PINK)
             }
         }
-        dirtyNodes.take(maxElements).forEach { node ->
+        dirtyNodes.take(config.maxRenderObjects).forEach { node ->
             renderer.buildOutline(Box.of(node.toCenterVec3d(), 0.2, 0.2, 0.2), Color.RED)
         }
     }
 
-    fun buildDebugInfoRenderer(maxElements: Int = 1000) {
-        successors.entries.take(maxElements).forEach { (v, u) ->
+    fun buildDebugInfoRenderer(config: PathingSettings) {
+        successors.entries.take(config.maxRenderObjects).forEach { (v, u) ->
             val mode = Matrices.ProjRotationMode.TO_CAMERA
             val scale = 0.4
-            val pos = v.toCenterVec3d()
-            val nodeProjection = buildWorldProjection(pos, scale, mode)
-            withVertexTransform(nodeProjection) {
-                val msg = v.string
-                drawString(msg, Vec2d(-FontRenderer.getWidth(msg) * 0.5, 0.0))
-            }
-            u.forEach { (neighbor, cost) ->
-                val centerV = v.toCenterVec3d()
-                val centerN = neighbor.toCenterVec3d()
-                val center = (centerV + centerN) / 2.0
-                val projection = buildWorldProjection(center, scale, mode)
-                withVertexTransform(projection) {
-                    val msg = "c: %.3f".format(cost)
+            if (config.renderPositions) {
+                val pos = v.toCenterVec3d()
+                val nodeProjection = buildWorldProjection(pos, scale, mode)
+                withVertexTransform(nodeProjection) {
+                    val msg = v.string
                     drawString(msg, Vec2d(-FontRenderer.getWidth(msg) * 0.5, 0.0))
+                }
+            }
+            if (config.renderCost) {
+                u.forEach { (neighbor, cost) ->
+                    val centerV = v.toCenterVec3d()
+                    val centerN = neighbor.toCenterVec3d()
+                    val center = (centerV + centerN) / 2.0
+                    val projection = buildWorldProjection(center, scale, mode)
+                    withVertexTransform(projection) {
+                        val msg = "c: %.3f".format(cost)
+                        drawString(msg, Vec2d(-FontRenderer.getWidth(msg) * 0.5, 0.0))
+                    }
                 }
             }
         }

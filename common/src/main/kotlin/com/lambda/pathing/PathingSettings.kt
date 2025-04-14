@@ -52,7 +52,7 @@ class PathingSettings(
     override val renderRefinedPath by c.setting("Render Refined Path", true) { vis() && page == Page.Misc }
     override val renderGoal by c.setting("Render Goal", true) { vis() && page == Page.Misc }
     override val renderGraph by c.setting("Render Graph", false) { vis() && page == Page.Misc }
-    override val renderWeights by c.setting("Render Weights", false) { vis() && page == Page.Misc && renderGraph }
+    override val renderCost by c.setting("Render Cost", false) { vis() && page == Page.Misc && renderGraph }
     override val renderPositions by c.setting("Render Positions", false) { vis() && page == Page.Misc && renderGraph }
     override val maxRenderObjects by c.setting("Max Render Objects", 1000, 0..100_000) { vis() && page == Page.Misc && renderGraph }
     override val assumeJesus by c.setting("Assume Jesus", false) { vis() && page == Page.Misc }
