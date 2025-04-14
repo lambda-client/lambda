@@ -52,6 +52,7 @@ import com.lambda.util.player.MovementUtils.mergeFrom
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.WorldUtils.hasSupport
 import com.lambda.util.world.WorldUtils.isPathClear
+import com.lambda.util.world.dist
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.toFastVec
@@ -117,8 +118,9 @@ object Pathfinder : Module(
 
         listen<TickEvent.Pre> {
             val playerPos = player.blockPos
-            if (player.isOnGround && hasSupport(playerPos)) {
-                currentStart = playerPos.toFastVec()
+            val currentPos = playerPos.toFastVec()
+            if (player.isOnGround && hasSupport(playerPos) && currentPos dist currentStart > pathing.tolerance) {
+                currentStart = currentPos
                 needsUpdate = true
             }
             if (pathing.moveAlongPath) updateTargetNode()
