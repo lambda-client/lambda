@@ -17,7 +17,6 @@
 
 package com.lambda.module.modules.movement
 
-import com.lambda.Lambda
 import com.lambda.context.SafeContext
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RenderEvent
@@ -77,7 +76,7 @@ object Pathfinder : Module(
     private val pathing = PathingSettings(this)
 
     private val target: FastVector get() = targetPos.toFastVec()
-    private val graph = LazyGraph { origin ->
+    val graph = LazyGraph { origin ->
         runSafe {
             moveOptions(origin, ::heuristic, pathing).associate { it.pos to it.cost }
         } ?: emptyMap()
@@ -174,7 +173,7 @@ object Pathfinder : Module(
             if (pathing.renderCoarsePath) coarsePath.render(event.renderer, Color.YELLOW)
             if (pathing.renderRefinedPath) refinedPath.render(event.renderer, Color.GREEN)
             if (pathing.renderGoal) event.renderer.buildFilled(Box(target.toBlockPos()), Color.PINK.setAlpha(0.25))
-            if (pathing.renderGraph) graph.render(event.renderer)
+            if (pathing.renderGraph) graph.render(event.renderer, pathing.maxRenderObjects)
         }
 
         listen<RenderEvent.World> {
@@ -183,7 +182,7 @@ object Pathfinder : Module(
             Matrices.push {
                 val c = mc.gameRenderer.camera.pos.negate()
                 translate(c.x, c.y, c.z)
-                graph.buildDebugInfo()
+                graph.buildDebugInfoRenderer(pathing.maxRenderObjects)
             }
         }
     }
@@ -242,7 +241,7 @@ object Pathfinder : Module(
         val dStar = measureTimeMillis {
             dStar.updateStart(start)
             dStar.computeShortestPath(pathing.cutoffTimeout)
-            val nodes = dStar.getPath().map { TraverseMove(it, 0.0, NodeType.OPEN, 0.0, 0.0) }
+            val nodes = dStar.path.map { TraverseMove(it, 0.0, NodeType.OPEN, 0.0, 0.0) }
             long = Path(ArrayDeque(nodes))
         }
         val short: Path

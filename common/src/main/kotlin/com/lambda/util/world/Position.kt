@@ -275,3 +275,6 @@ internal fun Long.bitSetTo(value: Long, position: Int, length: Int): Long {
     val mask = (1L shl length) - 1L
     return this and (mask shl position).inv() or (value and mask shl position)
 }
+
+val FastVector.string: String
+    get() = "($x, $y, $z)"

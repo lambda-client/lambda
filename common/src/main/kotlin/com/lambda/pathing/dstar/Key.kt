@@ -22,13 +22,12 @@ package com.lambda.pathing.dstar
  * They are compared lexicographically.
  */
 data class Key(val k1: Double, val k2: Double) : Comparable<Key> {
-    override fun compareTo(other: Key): Int {
-        return when {
+    override fun compareTo(other: Key) =
+        when {
             this.k1 < other.k1 -> -1
             this.k1 > other.k1 -> 1
             this.k2 < other.k2 -> -1
             this.k2 > other.k2 -> 1
             else -> 0
         }
-    }
 }

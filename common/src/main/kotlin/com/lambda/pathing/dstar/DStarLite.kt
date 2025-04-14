@@ -21,16 +21,16 @@ import com.lambda.util.world.FastVector
 import kotlin.math.min
 
 /**
- * D* Lite Implementation.
+ * Lazy D* Lite Implementation.
  *
  * We perform a backward search from the goal to the start, so:
  *  - rhs(goal) = 0, g(goal) = ∞
- *  - "start" is the robot's current location from which we want a path *to* the goal
+ *  - "start" is the agent's current location from which we want a path *to* the goal
  *  - 'km' accumulates the heuristic shift so we don't reorder the entire queue after each move
  *
  * @param graph      The graph on which we plan (with forward + reverse adjacency).
  * @param heuristic  A consistent (or at least nonnegative) heuristic function h(a,b).
- * @param start      The robot's current position.
+ * @param start      The agent's current position.
  * @param goal       The fixed goal vertex.
  */
 class DStarLite(
@@ -67,10 +67,10 @@ class DStarLite(
     }
 
     private fun g(u: FastVector): Double = gMap[u] ?: INF
-    private fun setG(u: FastVector, value: Double) { gMap[u] = value }
+    private fun setG(u: FastVector, g: Double) { gMap[u] = g }
 
     private fun rhs(u: FastVector): Double = rhsMap[u] ?: INF
-    private fun setRHS(u: FastVector, value: Double) { rhsMap[u] = value }
+    private fun setRHS(u: FastVector, rhs: Double) { rhsMap[u] = rhs }
 
     /**
      * Calculates the key for vertex u.
@@ -147,7 +147,7 @@ class DStarLite(
     }
 
     /**
-     * When the robot moves, update the start.
+     * When the agent moves, update the start.
      * The variable km is increased by h(oldStart, newStart) and
      * all vertices in the queue are re-keyed.
      */
@@ -170,35 +170,37 @@ class DStarLite(
      * Retrieves a path from start to goal by always choosing the successor
      * with the lowest g + cost value. If no path is found, the path stops early.
      */
-    fun getPath(): List<FastVector> {
-        val path = mutableListOf<FastVector>()
+    val path: List<FastVector>
+        get() {
+            val path = mutableListOf<FastVector>()
 
-        if (!graph.contains(start)) return path.toList()
+            if (!graph.contains(start)) return path.toList()
 
-        var current = start
-        path.add(current)
-        while (current != goal) {
-            val successors = graph.successors(current)
-            if (successors.isEmpty()) break
-            var bestNext: FastVector? = null
-            var bestVal = INF
-            for ((succ, cost) in successors) {
-                val candidate = g(succ) + cost
-                if (candidate < bestVal) {
-                    bestVal = candidate
-                    bestNext = succ
-                }
-            }
-            // No path
-            if (bestNext == null) break
-            current = bestNext
+            var current = start
             path.add(current)
-            if (path.size > 100_000) break
+            while (current != goal) {
+                val successors = graph.successors(current)
+                if (successors.isEmpty()) break
+                var bestNext: FastVector? = null
+                var bestVal = INF
+                for ((succ, cost) in successors) {
+                    val candidate = g(succ) + cost
+                    if (candidate < bestVal) {
+                        bestVal = candidate
+                        bestNext = succ
+                    }
+                }
+                // No path
+                if (bestNext == null) break
+                current = bestNext
+                path.add(current)
+                if (path.size > MAX_PATH_LENGTH) break
+            }
+            return path
         }
-        return path
-    }
 
     companion object {
         private const val INF = Double.POSITIVE_INFINITY
+        private const val MAX_PATH_LENGTH = 100_000
     }
 }

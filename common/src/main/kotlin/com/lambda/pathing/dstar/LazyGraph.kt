@@ -17,14 +17,23 @@
 
 package com.lambda.pathing.dstar
 
+import com.lambda.graphics.gl.Matrices
+import com.lambda.graphics.gl.Matrices.buildWorldProjection
+import com.lambda.graphics.gl.Matrices.withVertexTransform
 import com.lambda.graphics.renderer.esp.builders.buildLine
+import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.global.StaticESP
+import com.lambda.graphics.renderer.gui.FontRenderer
+import com.lambda.graphics.renderer.gui.FontRenderer.drawString
+import com.lambda.util.math.Vec2d
+import com.lambda.util.math.div
+import com.lambda.util.math.plus
 import com.lambda.util.world.FastVector
+import com.lambda.util.world.string
 import com.lambda.util.world.toCenterVec3d
-import com.lambda.util.world.toVec3d
+import net.minecraft.util.math.Box
 import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentMap
 
 /**
  * A 3D graph that uses FastVector (a Long) to represent 3D nodes.
@@ -49,14 +58,18 @@ class LazyGraph(
     val size get() = successors.size
 
     /** Initializes a node if not already initialized, then returns successors. */
-    fun successors(u: FastVector) =
-        successors.computeIfAbsent(u) {
+    fun successors(u: FastVector): Map<FastVector, Double> {
+        if (u in dirtyNodes) {
+            updateDirtyNode(u)
+        }
+        return successors.getOrPut(u) {
             val neighbors = nodeInitializer(u)
             neighbors.forEach { (neighbor, cost) ->
                 predecessors.computeIfAbsent(neighbor) { hashMapOf() }[u] = cost
             }
             neighbors.toMutableMap()
         }
+    }
 
     /** Initializes predecessors by ensuring successors of neighboring nodes. */
     fun predecessors(u: FastVector): Map<FastVector, Double> {
@@ -64,14 +77,23 @@ class LazyGraph(
         return predecessors[u] ?: emptyMap()
     }
 
-    fun markDirty(pos: FastVector) {
-        dirtyNodes.add(pos)
-        predecessors[pos]?.keys?.let { pred ->
+    fun markDirty(u: FastVector) {
+        dirtyNodes.add(u)
+        predecessors[u]?.keys?.let { pred ->
             dirtyNodes.addAll(pred)
         }
     }
 
-    fun clearDirty() = dirtyNodes.clear()
+    fun updateDirtyNode(u: FastVector) {
+        // Force re-initialize node and clear existing edges
+        val newNeighbors = nodeInitializer(u)
+        successors[u]?.clear()
+        newNeighbors.forEach { (v, cost) ->
+            predecessors.getOrPut(v) { mutableMapOf() }[u] = cost
+        }
+        successors[u] = newNeighbors.toMutableMap()
+        dirtyNodes.remove(u)
+    }
 
     /** Returns the cost of the edge from u to v (or ∞ if none exists) */
     fun cost(u: FastVector, v: FastVector): Double = successors(u)[v] ?: Double.POSITIVE_INFINITY
@@ -83,27 +105,40 @@ class LazyGraph(
         predecessors.clear()
     }
 
-    fun render(renderer: StaticESP) {
-        successors.entries.take(1000).forEach { (origin, neighbors) ->
-            neighbors.forEach { (neighbor, cost) ->
+    fun render(renderer: StaticESP, maxElements: Int = 1000) {
+        successors.entries.take(maxElements).forEach { (origin, neighbors) ->
+            neighbors.forEach { (neighbor, _) ->
                 renderer.buildLine(origin.toCenterVec3d(), neighbor.toCenterVec3d(), Color.PINK)
             }
         }
+        dirtyNodes.take(maxElements).forEach { node ->
+            renderer.buildOutline(
+                Box.of(node.toCenterVec3d(), 0.3, 0.3, 0.3),
+                Color.RED
+            )
+        }
     }
 
-    fun buildDebugInfo() {
-//        val projection = buildWorldProjection(blockPos, 0.4, Matrices.ProjRotationMode.TO_CAMERA)
-//        withVertexTransform(projection) {
-//            val lines = arrayOf(
-//                ""
-//            )
-//
-//            var height = -0.5 * lines.size * (FontRenderer.getHeight() + 2)
-//
-//            lines.forEach {
-//                drawString(it, Vec2d(-FontRenderer.getWidth(it) * 0.5, height))
-//                height += FontRenderer.getHeight() + 2
-//            }
-//        }
+    fun buildDebugInfoRenderer(maxElements: Int = 1000) {
+        successors.entries.take(maxElements).forEach { (v, u) ->
+            val mode = Matrices.ProjRotationMode.TO_CAMERA
+            val scale = 0.4
+            val pos = v.toCenterVec3d()
+            val nodeProjection = buildWorldProjection(pos, scale, mode)
+            withVertexTransform(nodeProjection) {
+                val msg = v.string
+                drawString(msg, Vec2d(-FontRenderer.getWidth(msg) * 0.5, 0.0))
+            }
+            u.forEach { (neighbor, cost) ->
+                val centerV = v.toCenterVec3d()
+                val centerN = neighbor.toCenterVec3d()
+                val center = (centerV + centerN) / 2.0
+                val projection = buildWorldProjection(center, scale, mode)
+                withVertexTransform(projection) {
+                    val msg = "c: %.3f".format(cost)
+                    drawString(msg, Vec2d(-FontRenderer.getWidth(msg) * 0.5, 0.0))
+                }
+            }
+        }
     }
 }
