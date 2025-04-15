@@ -151,6 +151,12 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
     }
 
+    /**
+     * Attempts to accept and process the request, if there is not already an [activeRequest].
+     * If the request is processed and all breaks completed, the [activeRequest] is cleared.
+     *
+     * @see processRequest
+     */
     override fun SafeContext.handleRequest(request: BreakRequest) {
         if (activeRequest != null || PlaceManager.activeThisTick) return
 
@@ -164,6 +170,16 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
     }
 
+    /**
+     * If the request is fresh, local variables are populated through the [processRequest] method.
+     * It then attempts to perform as many breaks within this tick as possible from the [instantBreaks] collection.
+     * The [breakInfos] are then updated if the dependencies are present, E.G. if the user has rotations enabled,
+     * or the player needs to swap to a different hotbar slot.
+     *
+     * @see performInstantBreaks
+     * @see processNewBreaks
+     * @see updateBreakProgress
+     */
     private fun SafeContext.processRequest(request: BreakRequest) {
         pendingBreaks.cleanUp()
 
@@ -194,6 +210,15 @@ object BreakManager : RequestHandler<BreakRequest>(
             }
     }
 
+    /**
+     * Filters and sorts the requests [BreakContext]s, and iterates over the [breakInfos] collection looking for matches
+     * in positions. If a match is found, the [BreakInfo] is updated with the new context. Otherwise, the break is cancelled.
+     * The [instantBreaks] and [breaks] collections are then populated with the new appropriate contexts, and the [maxBreaksThisTick]
+     * value is set.
+     *
+     * @see canAccept
+     * @see cancelBreak
+     */
     private fun SafeContext.populateFrom(request: BreakRequest) {
         // Sanitize and sort the new breaks
         val newBreaks = request.contexts
@@ -404,7 +429,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
     /**
-     * Nullifies the break. If the block is not broken, the [BreakInfo.internalOnBreak] callback gets triggered
+     * Nullifies the break. If the block is not broken, the [BreakInfo.internalOnCancel] callback gets triggered
      */
     private fun BreakInfo.nullify() {
         type.nullify()
