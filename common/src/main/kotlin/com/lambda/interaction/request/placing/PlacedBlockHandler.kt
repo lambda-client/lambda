@@ -68,16 +68,35 @@ object PlacedBlockHandler {
         }
     }
 
+    /**
+     * Adds the info to the [PlacedBlockHandler], and requesters, pending interaction collections.
+     */
     fun addPendingPlace(info: PlaceInfo) {
         pendingPlacements.add(info)
         info.pendingInteractionsList.add(info.context)
     }
 
+    /**
+     * Removes the info from the [PlacedBlockHandler], and requesters, pending interaction collections.
+     */
     private fun removePendingPlace(info: PlaceInfo) {
         pendingPlacements.remove(info)
         info.pendingInteractionsList.remove(info.context)
     }
 
+    /**
+     * Sets the size limit and decay time for the [pendingPlacements] using the [request]'s configs
+     */
+    fun setPendingConfigs(request: PlaceRequest) {
+        pendingPlacements.setSizeLimit(request.build.placing.maxPendingPlacements)
+        pendingPlacements.setDecayTime(request.build.interactionTimeout * 50L)
+    }
+
+    /**
+     * @return if the [targetState] matches the [newState]
+     *
+     * @see TargetState
+     */
     private fun SafeContext.matchesTargetState(pos: BlockPos, targetState: TargetState, newState: BlockState) =
         if (targetState.matches(newState, pos, world)) true
         else {

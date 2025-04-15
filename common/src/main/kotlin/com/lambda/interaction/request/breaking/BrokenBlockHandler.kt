@@ -107,7 +107,7 @@ object BrokenBlockHandler {
     }
 
     /**
-     * Adds the [info] to the break manager, and requesters, pending interaction collections.
+     * Adds the [info] to the [BrokenBlockHandler], and requesters, pending interaction collections.
      */
     fun BreakInfo.startPending() {
         pendingBreaks.add(this)
@@ -115,7 +115,7 @@ object BrokenBlockHandler {
     }
 
     /**
-     * Removes the [info] from the break manager, and requesters, pending interaction collections.
+     * Removes the [info] from the [BrokenBlockHandler], and requesters, pending interaction collections.
      */
     private fun BreakInfo.stopPending() {
         pendingBreaks.remove(this)

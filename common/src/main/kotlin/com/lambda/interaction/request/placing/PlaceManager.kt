@@ -35,6 +35,7 @@ import com.lambda.interaction.request.placing.PlaceManager.activeRequest
 import com.lambda.interaction.request.placing.PlaceManager.processRequest
 import com.lambda.interaction.request.placing.PlacedBlockHandler.addPendingPlace
 import com.lambda.interaction.request.placing.PlacedBlockHandler.pendingPlacements
+import com.lambda.interaction.request.placing.PlacedBlockHandler.setPendingConfigs
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.warn
 import com.lambda.util.player.gamemode
@@ -97,6 +98,12 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         }
     }
 
+    /**
+     * accepts, and processes the request, as long as the current [activeRequest] is null, and the [BreakManager] has not
+     * been active this tick.
+     *
+     * @see processRequest
+     */
     override fun SafeContext.handleRequest(request: PlaceRequest) {
         if (activeRequest != null || BreakManager.activeThisTick) return
 
@@ -105,6 +112,16 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         if (placementsThisTick > 0) activeThisTick = true
     }
 
+    /**
+     * If the request is fresh, local variables are populated through the [processRequest] method.
+     * It then attempts to perform as many placements within this tick as possible from the [potentialPlacements] collection.
+     *
+     * If all the [maxPlacementsThisTick] limit is reached and the user has rotations enabled, it will start rotating to
+     * the next predicted placement in the list for optimal speed.
+     *
+     * @see populateFrom
+     * @see placeBlock
+     */
     fun SafeContext.processRequest(request: PlaceRequest) {
         pendingPlacements.cleanUp()
 
@@ -136,12 +153,16 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         }
     }
 
+    /**
+     * Filters and sorts the [request]'s [PlaceContext]s, placing them into the [potentialPlacements] collection, and
+     * setting the maxPlacementsThisTick value.
+     *
+     * @see canPlace
+     */
     private fun SafeContext.populateFrom(request: PlaceRequest) {
         val place = request.build.placing
 
-        pendingPlacements.setSizeLimit(place.maxPendingPlacements)
-        pendingPlacements.setDecayTime(request.build.interactionTimeout * 50L)
-
+        setPendingConfigs(request)
         potentialPlacements = request.contexts
             .filter { canPlace(it) }
             .sortedWith(
@@ -153,11 +174,19 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         maxPlacementsThisTick = (place.placementsPerTick.coerceAtMost(pendingLimit))
     }
 
+    /**
+     * @return if none of the [pendingPlacements] match positions with the [placeContext]
+     */
     private fun canPlace(placeContext: PlaceContext) =
         pendingPlacements.none { pending ->
             pending.context.expectedPos == placeContext.expectedPos
         }
 
+    /**
+     * A modified version of the minecraft interactBlock method, renamed to better suit its usage.
+     *
+     * @see net.minecraft.client.network.ClientPlayerInteractionManager.interactBlock
+     */
     private fun SafeContext.placeBlock(placeContext: PlaceContext, request: PlaceRequest, hand: Hand): ActionResult {
         interaction.syncSelectedSlot()
         val hitResult = placeContext.result
@@ -166,6 +195,11 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         return interactBlockInternal(placeContext, request, request.build.placing, hand, hitResult)
     }
 
+    /**
+     * A modified version of the minecraft interactBlockInternal method.
+     *
+     * @see net.minecraft.client.network.ClientPlayerInteractionManager.interactBlockInternal
+     */
     private fun SafeContext.interactBlockInternal(
         placeContext: PlaceContext,
         request: PlaceRequest,
@@ -203,6 +237,11 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         return ActionResult.PASS
     }
 
+    /**
+     * A modified version of the minecraft useOnBlock method.
+     *
+     * @see net.minecraft.item.Item.useOnBlock
+     */
     private fun SafeContext.useOnBlock(
         placeContext: PlaceContext,
         request: PlaceRequest,
@@ -223,6 +262,11 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         return place(placeContext, request, hand, hitResult, placeConfig, item, ItemPlacementContext(context))
     }
 
+    /**
+     * A modified version of the minecraft place method.
+     *
+     * @see net.minecraft.item.BlockItem.place
+     */
     private fun SafeContext.place(
         placeContext: PlaceContext,
         request: PlaceRequest,
@@ -290,11 +334,17 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         return ActionResult.success(world.isClient)
     }
 
+    /**
+     * sends the block placement packet using the given [hand] and [hitResult].
+     */
     private fun SafeContext.sendPlacePacket(hand: Hand, hitResult: BlockHitResult) =
         interaction.sendSequencedPacket(world) { sequence: Int ->
             PlayerInteractBlockC2SPacket(hand, hitResult, sequence)
         }
 
+    /**
+     * Plays the block placement sound at a given position.
+     */
     fun SafeContext.placeSound(item: BlockItem, state: BlockState, pos: BlockPos) {
         val blockSoundGroup = state.soundGroup
         world.playSound(
@@ -307,6 +357,9 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         )
     }
 
+    /**
+     * Must be called before and after placing a block to bypass grim's air place checks.
+     */
     private fun SafeContext.airPlaceOffhandSwap() {
         connection.sendPacket(
             PlayerActionC2SPacket(
