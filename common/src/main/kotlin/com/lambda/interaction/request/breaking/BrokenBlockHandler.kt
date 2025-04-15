@@ -37,6 +37,12 @@ import net.minecraft.block.OperatorBlock
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.ChunkSectionPos
 
+/**
+ * This object is designed to handle blocks that have been broken client side, yet are awaiting
+ * confirmation from the server, and / or an item drop.
+ *
+ * @see BreakManager
+ */
 object BrokenBlockHandler {
     val pendingBreaks = LimitedDecayQueue<BreakInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
@@ -109,13 +115,17 @@ object BrokenBlockHandler {
     }
 
     /**
-     * Removes the [info] from the break manager, and requesters, pending interation collections.
+     * Removes the [info] from the break manager, and requesters, pending interaction collections.
      */
     private fun BreakInfo.stopPending() {
         pendingBreaks.remove(this)
         pendingInteractions.remove(context)
     }
 
+    /**
+     * Sets the size limit and decay time for the [pendingBreaks] [LimitedDecayQueue]
+     * using the [request]'s configs
+     */
     fun setPendingConfigs(request: BreakRequest) {
         pendingBreaks.setSizeLimit(request.build.breaking.maxPendingBreaks)
         pendingBreaks.setDecayTime(request.build.interactionTimeout * 50L)
