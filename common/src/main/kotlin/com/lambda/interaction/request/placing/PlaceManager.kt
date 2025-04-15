@@ -17,21 +17,15 @@
 
 package com.lambda.interaction.request.placing
 
-import com.lambda.Lambda.mc
 import com.lambda.config.groups.TickStage
 import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
-import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
-import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
-import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
@@ -39,12 +33,10 @@ import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.placing.PlaceManager.activeRequest
 import com.lambda.interaction.request.placing.PlaceManager.processRequest
-import com.lambda.module.modules.client.TaskFlowModule
+import com.lambda.interaction.request.placing.PlacedBlockHandler.addPendingPlace
+import com.lambda.interaction.request.placing.PlacedBlockHandler.pendingPlacements
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.BlockUtils.item
-import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
-import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.player.gamemode
 import com.lambda.util.player.isItemOnCooldown
 import com.lambda.util.player.swingHand
@@ -70,20 +62,11 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     *TickStage.entries.toTypedArray(),
     onOpen = { activeRequest?.let { processRequest(it) } }
 ), PositionBlocking {
-    private val pendingPlacements = LimitedDecayQueue<PlaceInfo>(
-        TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
-    ) {
-        info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out")
-        mc.world?.setBlockState(it.context.expectedPos, it.context.checkedState)
-        it.pendingInteractionsList.remove(it.context)
-    }
-
     private var activeRequest: PlaceRequest? = null
+    private var potentialPlacements = mutableListOf<PlaceContext>()
 
     private var placementsThisTick = 0
     private var maxPlacementsThisTick = 0
-
-    private var potentialPlacements = mutableListOf<PlaceContext>()
 
     private var shouldSneak = false
     private val validSneak: (player: ClientPlayerEntity) -> Boolean =
@@ -111,29 +94,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(
                 shouldSneak = false
                 it.input.sneaking = true
             }
-        }
-
-        listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
-            pendingPlacements
-                .firstOrNull { it.context.expectedPos == event.pos }
-                ?.let { info ->
-                    removePendingPlace(info)
-
-                    // return if the block wasn't placed
-                    if (!matchesTargetState(event.pos, info.context.targetState, event.newState))
-                        return@listen
-
-                    if (info.placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
-                        with (info.context) {
-                            placeSound(expectedState.block.item as BlockItem, expectedState, expectedPos)
-                        }
-                    info.onPlace()
-                    return@listen
-                }
-        }
-
-        listenUnsafe<ConnectionEvent.Connect.Pre> {
-            pendingPlacements.clear()
         }
     }
 
@@ -196,13 +156,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     private fun canPlace(placeContext: PlaceContext) =
         pendingPlacements.none { pending ->
             pending.context.expectedPos == placeContext.expectedPos
-        }
-
-    private fun SafeContext.matchesTargetState(pos: BlockPos, targetState: TargetState, newState: BlockState) =
-        if (targetState.matches(newState, pos, world)) true
-        else {
-            this@PlaceManager.warn("Place at ${pos.toShortString()} was rejected with $newState instead of $targetState")
-            false
         }
 
     private fun SafeContext.placeBlock(placeContext: PlaceContext, request: PlaceRequest, hand: Hand): ActionResult {
@@ -342,7 +295,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             PlayerInteractBlockC2SPacket(hand, hitResult, sequence)
         }
 
-    private fun SafeContext.placeSound(item: BlockItem, state: BlockState, pos: BlockPos) {
+    fun SafeContext.placeSound(item: BlockItem, state: BlockState, pos: BlockPos) {
         val blockSoundGroup = state.soundGroup
         world.playSound(
             player,
@@ -363,23 +316,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             )
         )
     }
-
-    private fun addPendingPlace(info: PlaceInfo) {
-        pendingPlacements.add(info)
-        info.pendingInteractionsList.add(info.context)
-    }
-
-    private fun removePendingPlace(info: PlaceInfo) {
-        pendingPlacements.remove(info)
-        info.pendingInteractionsList.remove(info.context)
-    }
-
-    private data class PlaceInfo(
-        val context: PlaceContext,
-        val onPlace: () -> Unit,
-        val pendingInteractionsList: MutableCollection<BuildContext>,
-        val placeConfig: PlaceConfig
-    )
 
     override fun preEvent(): Event = UpdateManagerEvent.Place().post()
 }
