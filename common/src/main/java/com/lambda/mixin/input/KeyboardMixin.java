@@ -30,8 +30,6 @@ public class KeyboardMixin {
     @Inject(method = "onKey", at = @At("HEAD"))
     private void onKey(long window, int key, int scancode, int action, int modifiers, CallbackInfo ci) {
         if (key <= 0) return;
-        if (action != 1) return; // TODO: Post events on both press and release ?
-
         EventFlow.post(new KeyboardEvent.Press(key, scancode, action, modifiers));
     }
 
