@@ -22,8 +22,8 @@ import net.minecraft.client.util.InputUtil
 
 object KeyboardUtils {
     /**
-     * Returns whether a key code (not scan code) is being pressed
+     * Returns whether any of the key-codes (not scan-codes) are being pressed
      */
-    fun SafeContext.isKeyPressed(key: Int) =
-        InputUtil.isKeyPressed(mc.window.handle, key)
+    fun SafeContext.isKeyPressed(vararg keys: Int) =
+        keys.any { InputUtil.isKeyPressed(mc.window.handle, it) }
 }

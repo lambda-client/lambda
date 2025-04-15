@@ -20,31 +20,34 @@ package com.lambda.module.modules.player
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.LambdaScreen
+import com.lambda.interaction.request.rotation.Rotation
+import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.interaction.request.rotation.RotationManager.onRotate
+import com.lambda.interaction.request.rotation.RotationMode
+import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyboardUtils.isKeyPressed
 import com.lambda.util.math.MathUtils.toDouble
+import com.lambda.util.math.MathUtils.toFloatSign
 import com.lambda.util.player.MovementUtils.buildMovementInput
 import com.lambda.util.player.MovementUtils.mergeFrom
 import net.minecraft.client.gui.screen.ChatScreen
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.screen.ingame.AnvilScreen
 import net.minecraft.client.gui.screen.ingame.CommandBlockScreen
+import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen
 import net.minecraft.client.gui.screen.ingame.SignEditScreen
-import org.lwjgl.glfw.GLFW.GLFW_KEY_A
-import org.lwjgl.glfw.GLFW.GLFW_KEY_D
-import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL
-import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_SHIFT
-import org.lwjgl.glfw.GLFW.GLFW_KEY_S
-import org.lwjgl.glfw.GLFW.GLFW_KEY_SPACE
-import org.lwjgl.glfw.GLFW.GLFW_KEY_W
+import net.minecraft.client.network.ClientPlayerEntity
+import org.lwjgl.glfw.GLFW.*
 
 object InventoryMove : Module(
     name = "InventoryMove",
     description = "Allows you to move with GUIs opened",
     defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.MOVEMENT)
 ) {
-    private val rotationSpeed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick")
+    private val speed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick")
+    private val rotationConfig = RotationConfig.Instant(RotationMode.Lock)
 
     /**
      * Whether the current screen has text inputs or is null
@@ -70,18 +73,21 @@ object InventoryMove : Module(
             val jump = isKeyPressed(GLFW_KEY_SPACE)
             val sneak = isKeyPressed(GLFW_KEY_LEFT_SHIFT)
 
-            /*
-            val pitch = rotationSpeed * (isKeyPressed(GLFW_KEY_DOWN).toFloatSign() -
-                    isKeyPressed(GLFW_KEY_UP).toFloatSign())
-            val yaw = rotationSpeed * (isKeyPressed(GLFW_KEY_RIGHT).toFloatSign() -
-                    isKeyPressed(GLFW_KEY_LEFT).toFloatSign())
-
-            player.pitch = (player.pitch + pitch).coerceIn(-90f, 90f)
-            player.yaw += yaw
-             */
-
             player.isSprinting = isKeyPressed(GLFW_KEY_LEFT_CONTROL)
             event.input.mergeFrom(buildMovementInput(forward, strafe, jump, sneak))
+        }
+
+        onRotate {
+            if (mc.currentScreen.hasInputOrNull) return@onRotate
+
+            val pitch = (isKeyPressed(GLFW_KEY_DOWN, GLFW_KEY_KP_2).toFloatSign() -
+                    isKeyPressed(GLFW_KEY_UP, GLFW_KEY_KP_8).toFloatSign()) * speed
+            val yaw = (isKeyPressed(GLFW_KEY_RIGHT, GLFW_KEY_KP_6).toFloatSign() -
+                    isKeyPressed(GLFW_KEY_LEFT, GLFW_KEY_KP_4).toFloatSign()) * speed
+
+            lookAt(
+                Rotation(player.yaw + yaw, (player.pitch + pitch).coerceIn(-90f, 90f))
+            ).requestBy(rotationConfig)
         }
     }
 }
