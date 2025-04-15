@@ -52,25 +52,22 @@ import java.util.concurrent.ConcurrentHashMap
 class LazyGraph(
     private val nodeInitializer: (FastVector) -> Map<FastVector, Double>
 ) {
-    private val successors = ConcurrentHashMap<FastVector, MutableMap<FastVector, Double>>()
-    private val predecessors = ConcurrentHashMap<FastVector, MutableMap<FastVector, Double>>()
-    private val dirtyNodes = mutableSetOf<FastVector>()
+    val successors = ConcurrentHashMap<FastVector, MutableMap<FastVector, Double>>()
+    val predecessors = ConcurrentHashMap<FastVector, MutableMap<FastVector, Double>>()
+    val dirtyNodes = mutableSetOf<FastVector>()
 
+    val nodes get() = successors.keys + predecessors.keys
     val size get() = successors.size
 
     /** Initializes a node if not already initialized, then returns successors. */
-    fun successors(u: FastVector): Map<FastVector, Double> {
-        if (u in dirtyNodes) {
-            updateDirtyNode(u)
-        }
-        return successors.getOrPut(u) {
+    fun successors(u: FastVector): MutableMap<FastVector, Double> =
+        successors.getOrPut(u) {
             val neighbors = nodeInitializer(u)
             neighbors.forEach { (neighbor, cost) ->
-                predecessors.computeIfAbsent(neighbor) { hashMapOf() }[u] = cost
+                predecessors.getOrPut(neighbor) { hashMapOf() }[u] = cost
             }
             neighbors.toMutableMap()
         }
-    }
 
     /** Initializes predecessors by ensuring successors of neighboring nodes. */
     fun predecessors(u: FastVector): Map<FastVector, Double> {
@@ -78,22 +75,22 @@ class LazyGraph(
         return predecessors[u] ?: emptyMap()
     }
 
-    fun markDirty(u: FastVector) {
-        dirtyNodes.add(u)
-        predecessors[u]?.keys?.let { pred ->
-            dirtyNodes.addAll(pred)
-        }
+    fun remove(u: FastVector) {
+        successors.remove(u)
+        successors.values.forEach { it.remove(u) }
+        predecessors.remove(u)
+        predecessors.values.forEach { it.remove(u) }
     }
 
-    fun updateDirtyNode(u: FastVector) {
-        // Force re-initialize node and clear existing edges
-        val newNeighbors = nodeInitializer(u)
-        successors[u]?.clear()
-        newNeighbors.forEach { (v, cost) ->
-            predecessors.getOrPut(v) { mutableMapOf() }[u] = cost
-        }
-        successors[u] = newNeighbors.toMutableMap()
-        dirtyNodes.remove(u)
+    fun markDirty(u: FastVector) {
+        dirtyNodes.add(u)
+        val preds = predecessors[u]?.keys ?: emptySet()
+        val succs = successors[u]?.keys ?: emptySet()
+        remove(u)
+        preds.forEach { remove(it) }
+        succs.forEach { remove(it) }
+        dirtyNodes.addAll(preds)
+        dirtyNodes.addAll(succs)
     }
 
     /** Returns the cost of the edge from u to v (or ∞ if none exists) */
@@ -104,6 +101,7 @@ class LazyGraph(
     fun clear() {
         successors.clear()
         predecessors.clear()
+        dirtyNodes.clear()
     }
 
     fun render(renderer: StaticESP, config: PathingSettings) {
@@ -115,33 +113,6 @@ class LazyGraph(
         }
         dirtyNodes.take(config.maxRenderObjects).forEach { node ->
             renderer.buildOutline(Box.of(node.toCenterVec3d(), 0.2, 0.2, 0.2), Color.RED)
-        }
-    }
-
-    fun buildDebugInfoRenderer(config: PathingSettings) {
-        successors.entries.take(config.maxRenderObjects).forEach { (v, u) ->
-            val mode = Matrices.ProjRotationMode.TO_CAMERA
-            val scale = 0.4
-            if (config.renderPositions) {
-                val pos = v.toCenterVec3d()
-                val nodeProjection = buildWorldProjection(pos, scale, mode)
-                withVertexTransform(nodeProjection) {
-                    val msg = v.string
-                    drawString(msg, Vec2d(-FontRenderer.getWidth(msg) * 0.5, 0.0))
-                }
-            }
-            if (config.renderCost) {
-                u.forEach { (neighbor, cost) ->
-                    val centerV = v.toCenterVec3d()
-                    val centerN = neighbor.toCenterVec3d()
-                    val center = (centerV + centerN) / 2.0
-                    val projection = buildWorldProjection(center, scale, mode)
-                    withVertexTransform(projection) {
-                        val msg = "c: %.3f".format(cost)
-                        drawString(msg, Vec2d(-FontRenderer.getWidth(msg) * 0.5, 0.0))
-                    }
-                }
-            }
         }
     }
 }

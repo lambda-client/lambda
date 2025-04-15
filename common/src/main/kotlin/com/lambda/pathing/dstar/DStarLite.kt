@@ -17,7 +17,18 @@
 
 package com.lambda.pathing.dstar
 
+import com.lambda.graphics.gl.Matrices
+import com.lambda.graphics.gl.Matrices.buildWorldProjection
+import com.lambda.graphics.gl.Matrices.withVertexTransform
+import com.lambda.graphics.renderer.gui.FontRenderer
+import com.lambda.graphics.renderer.gui.FontRenderer.drawString
+import com.lambda.pathing.PathingSettings
+import com.lambda.util.math.Vec2d
+import com.lambda.util.math.div
+import com.lambda.util.math.plus
 import com.lambda.util.world.FastVector
+import com.lambda.util.world.string
+import com.lambda.util.world.toCenterVec3d
 import kotlin.math.min
 
 /**
@@ -106,6 +117,17 @@ class DStarLite(
         }
     }
 
+    fun updateGraph() {
+        graph.dirtyNodes.forEach { u ->
+            if (u != goal) {
+                gMap.remove(u)
+                rhsMap.remove(u)
+            }
+            updateVertex(u)
+        }
+        graph.dirtyNodes.clear()
+    }
+
     /**
      * Propagates changes until the start is locally consistent.
      * computeShortestPath():
@@ -115,7 +137,10 @@ class DStarLite(
     fun computeShortestPath(cutoffTimeout: Long = 500L) {
         val startTime = System.currentTimeMillis()
 
-        while ((U.topKey() < calculateKey(start)) || (g(start) < rhs(start)) && (System.currentTimeMillis() - startTime) < cutoffTimeout) {
+        fun timedOut() = (System.currentTimeMillis() - startTime) > cutoffTimeout
+        fun shouldUpdateState() = U.topKey() < calculateKey(start) || g(start) < rhs(start)
+
+        while (shouldUpdateState() && !timedOut()) {
             val u = U.top() ?: break
             val oldKey = U.topKey()
             val newKey = calculateKey(u)
@@ -170,37 +195,77 @@ class DStarLite(
      * Retrieves a path from start to goal by always choosing the successor
      * with the lowest g + cost value. If no path is found, the path stops early.
      */
-    val path: List<FastVector>
-        get() {
-            val path = mutableListOf<FastVector>()
+    fun path(maxLength: Int = 10_000): List<FastVector> {
+        val path = mutableListOf<FastVector>()
 
-            if (!graph.contains(start)) return path.toList()
+        if (!graph.contains(start)) return path.toList()
 
-            var current = start
-            path.add(current)
-            while (current != goal) {
-                val successors = graph.successors(current)
-                if (successors.isEmpty()) break
-                var bestNext: FastVector? = null
-                var bestVal = INF
-                for ((succ, cost) in successors) {
-                    val candidate = g(succ) + cost
-                    if (candidate < bestVal) {
-                        bestVal = candidate
-                        bestNext = succ
+        var current = start
+        path.add(current)
+        while (current != goal) {
+            val successors = graph.successors(current)
+            if (successors.isEmpty()) break
+            var bestNext: FastVector? = null
+            var bestVal = INF
+            for ((succ, cost) in successors) {
+                val candidate = g(succ) + cost
+                if (candidate < bestVal) {
+                    bestVal = candidate
+                    bestNext = succ
+                }
+            }
+            // No path
+            if (bestNext == null) break
+            current = bestNext
+            if (current !in path) {
+                path.add(current)
+            } else {
+                break
+            }
+            if (path.size > maxLength) break
+        }
+        return path
+    }
+
+    fun buildDebugInfoRenderer(config: PathingSettings) {
+        if (!config.renderGraph) return
+        val mode = Matrices.ProjRotationMode.TO_CAMERA
+        val scale = config.fontScale
+        graph.nodes.take(config.maxRenderObjects).forEach { origin ->
+            val label = mutableListOf<String>()
+            if (config.renderPositions) label.add(origin.string)
+            if (config.renderG) label.add("g: %.3f".format(g(origin)))
+            if (config.renderRHS) label.add("rhs: %.3f".format(rhs(origin)))
+
+            if (label.isNotEmpty()) {
+                val pos = origin.toCenterVec3d()
+                val projection = buildWorldProjection(pos, scale, mode)
+                withVertexTransform(projection) {
+                    var height = -0.5 * label.size * (FontRenderer.getHeight() + 2)
+
+                    label.forEach {
+                        drawString(it, Vec2d(-FontRenderer.getWidth(it) * 0.5, height))
+                        height += FontRenderer.getHeight() + 2
                     }
                 }
-                // No path
-                if (bestNext == null) break
-                current = bestNext
-                path.add(current)
-                if (path.size > MAX_PATH_LENGTH) break
             }
-            return path
+
+            if (config.renderCost) {
+                graph.successors[origin]?.forEach { (neighbor, cost) ->
+                    val centerO = origin.toCenterVec3d()
+                    val centerN = neighbor.toCenterVec3d()
+                    val center = (centerO + centerN) / 2.0
+                    val projection = buildWorldProjection(center, scale, mode)
+                    withVertexTransform(projection) {
+                        val msg = "c: %.3f".format(cost)
+                        drawString(msg, Vec2d(-FontRenderer.getWidth(msg) * 0.5, 0.0))
+                    }
+                }
+            }
         }
+    }
 
     companion object {
         private const val INF = Double.POSITIVE_INFINITY
-        private const val MAX_PATH_LENGTH = 100_000
     }
 }

@@ -42,7 +42,7 @@ object PathCommand : LambdaCommand(
                         execute {
                             val dirty = fastVectorOf(x().value(), y().value(), z().value())
                             Pathfinder.graph.markDirty(dirty)
-                            Pathfinder.graph.updateDirtyNode(dirty)
+//                            Pathfinder.dStar.updateGraph()
                             this@PathCommand.info("Marked ${dirty.string} as dirty")
                         }
                     }
@@ -60,7 +60,7 @@ object PathCommand : LambdaCommand(
         required(literal("update")) {
             execute {
                 Pathfinder.needsUpdate = true
-                this@PathCommand.info("Updating graph")
+                this@PathCommand.info("Marked graph for update")
             }
         }
     }

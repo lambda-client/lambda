@@ -82,7 +82,7 @@ object Pathfinder : Module(
             moveOptions(origin, ::heuristic, pathing).associate { it.pos to it.cost }
         } ?: emptyMap()
     }
-    private val dStar = DStarLite(graph, fastVectorOf(0, 0, 0), target, ::heuristic)
+    val dStar = DStarLite(graph, fastVectorOf(0, 0, 0), target, ::heuristic)
     private var coarsePath = Path()
     private var refinedPath = Path()
     private var currentTarget: Vec3d? = null
@@ -186,7 +186,7 @@ object Pathfinder : Module(
             Matrices.push {
                 val c = mc.gameRenderer.camera.pos.negate()
                 translate(c.x, c.y, c.z)
-                graph.buildDebugInfoRenderer(pathing)
+                dStar.buildDebugInfoRenderer(pathing)
             }
         }
     }
@@ -244,7 +244,7 @@ object Pathfinder : Module(
         val dStar = measureTimeMillis {
             dStar.updateStart(start)
             dStar.computeShortestPath(pathing.cutoffTimeout)
-            val nodes = dStar.path.map { TraverseMove(it, 0.0, NodeType.OPEN, 0.0, 0.0) }
+            val nodes = dStar.path(pathing.maxPathLength).map { TraverseMove(it, 0.0, NodeType.OPEN, 0.0, 0.0) }
             long = Path(ArrayDeque(nodes))
         }
         val short: Path

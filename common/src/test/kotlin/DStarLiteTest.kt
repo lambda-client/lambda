@@ -62,7 +62,7 @@ class DStarLiteTest {
         val dstar = DStarLite(graph, start, goal, ::heuristic)
 
         dstar.computeShortestPath()
-        val path = dstar.path
+        val path = dstar.path()
         // Manhattan distance between (0,0,0) and (2,2,2) is 6; hence the path should have 7 vertices.
         assertFalse(path.isEmpty(), "Path should not be empty")
         assertEquals(start, path.first(), "Path should start at the initial position")
@@ -79,14 +79,14 @@ class DStarLiteTest {
 
         dstar.computeShortestPath()
 
-        val initialPath = dstar.path
+        val initialPath = dstar.path()
         assertTrue(initialPath.size > 1, "Initial path should have multiple steps")
 
         // Move starting position closer to the goal and recompute
         start = fastVectorOf(1, 1, 1)
         dstar.updateStart(start)
 
-        val updatedPath = dstar.path
+        val updatedPath = dstar.path()
         assertFalse(updatedPath.isEmpty(), "Updated path should not be empty now from new start")
         assertEquals(start, updatedPath.first(), "Updated path must start at updated position")
         assertEquals(goal, updatedPath.last(), "Updated path must end at the goal")

@@ -24,11 +24,20 @@ interface PathingConfig {
     val algorithm: PathingAlgorithm
     val cutoffTimeout: Long
     val maxFallHeight: Double
+    val mlg: Boolean
+    val useWaterBucket: Boolean
+    val useLavaBucket: Boolean
+    val useBoat: Boolean
+    val maxPathLength: Int
 
     val refinePath: Boolean
+    val useThetaStar: Boolean
     val shortcutLength: Int
     val clearancePrecision: Double
     val findShortcutJumps: Boolean
+    val maxJumpDistance: Double
+    val spline: Spline
+    val epsilon: Double
 
     val moveAlongPath: Boolean
     val kP: Double
@@ -43,13 +52,22 @@ interface PathingConfig {
     val renderRefinedPath: Boolean
     val renderGoal: Boolean
     val renderGraph: Boolean
-    val renderCost: Boolean
     val renderPositions: Boolean
+    val renderCost: Boolean
+    val renderG: Boolean
+    val renderRHS: Boolean
     val maxRenderObjects: Int
+    val fontScale: Double
     val assumeJesus: Boolean
 
     enum class PathingAlgorithm(override val displayName: String) : NamedEnum {
         A_STAR("A*"),
         D_STAR_LITE("Lazy D* Lite"),
+    }
+
+    enum class Spline {
+        None,
+        CatmullRom,
+        CubicBezier,
     }
 }
