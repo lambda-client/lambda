@@ -28,7 +28,6 @@ import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.hotbar.HotbarManager.checkResetSwap
-import com.lambda.interaction.request.hotbar.HotbarManager.preEvent
 import com.lambda.mixin.entity.PlayerInventoryMixin
 import com.lambda.mixin.render.InGameHudMixin
 import com.lambda.threading.runSafe
@@ -41,8 +40,7 @@ import com.lambda.threading.runSafe
  */
 object HotbarManager : RequestHandler<HotbarRequest>(
     *TickStage.entries.toTypedArray(),
-    postClose = { checkResetSwap() },
-    onOpen = { preEvent() }
+    onClose = { checkResetSwap() }
 ), Loadable {
     val serverSlot get() = runSafe {
         interaction.lastSelectedSlot

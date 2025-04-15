@@ -31,9 +31,8 @@ import com.lambda.threading.runSafe
  */
 abstract class RequestHandler<R : Request>(
     vararg openStages: TickStage,
-    val preOpen: (SafeContext.() -> Unit)? = null,
-    val onOpen: (SafeContext.() -> Unit)? = null,
-    val postClose: (SafeContext.() -> Unit)? = null
+    private val onOpen: (SafeContext.() -> Unit)? = null,
+    private val onClose: (SafeContext.() -> Unit)? = null
 ) {
     /**
      * Represents if the handler is accepting requests at any given time
@@ -77,7 +76,6 @@ abstract class RequestHandler<R : Request>(
     private inline fun <reified T : Event> openRequestsFor(stage: TickStage) {
         listen<T>(priority = Int.MAX_VALUE) {
             tickStage = stage
-            preOpen?.invoke(this)
             queuedRequest?.let { request ->
                 handleRequest(request)
                 request.fresh = false
@@ -85,10 +83,11 @@ abstract class RequestHandler<R : Request>(
             }
             acceptingRequests = true
             onOpen?.invoke(this)
+            preEvent()
         }
         listen<T>(priority = Int.MIN_VALUE) {
+            onClose?.invoke(this)
             acceptingRequests = false
-            postClose?.invoke(this)
         }
     }
 

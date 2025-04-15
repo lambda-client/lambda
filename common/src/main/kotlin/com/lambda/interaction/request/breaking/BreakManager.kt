@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.request.breaking
 
-import com.lambda.Lambda.mc
 import com.lambda.config.groups.TickStage
 import com.lambda.context.SafeContext
 import com.lambda.event.Event
@@ -37,26 +36,23 @@ import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.request.breaking.BreakManager.activeRequest
-import com.lambda.interaction.request.breaking.BreakManager.preEvent
 import com.lambda.interaction.request.breaking.BreakManager.processRequest
 import com.lambda.interaction.request.breaking.BreakType.Primary
+import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
+import com.lambda.interaction.request.breaking.BrokenBlockHandler.pendingBreaks
+import com.lambda.interaction.request.breaking.BrokenBlockHandler.setPendingConfigs
+import com.lambda.interaction.request.breaking.BrokenBlockHandler.startPending
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotation.RotationRequest
-import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
-import com.lambda.util.BlockUtils.fluidState
-import com.lambda.util.BlockUtils.matches
-import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
-import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.gamemode
 import com.lambda.util.player.swingHand
 import net.minecraft.block.BlockState
-import net.minecraft.block.OperatorBlock
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.client.sound.SoundInstance
 import net.minecraft.entity.ItemEntity
@@ -65,12 +61,10 @@ import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.ChunkSectionPos
 
 object BreakManager : RequestHandler<BreakRequest>(
     *TickStage.entries.toTypedArray(),
-    preOpen =  { activeRequest?.let { processRequest(it) } },
-    onOpen = { preEvent() }
+    onOpen = { activeRequest?.let { processRequest(it) } }
 ), PositionBlocking {
     private var primaryBreak: BreakInfo?
         get() = breakInfos[0]
@@ -80,29 +74,11 @@ object BreakManager : RequestHandler<BreakRequest>(
         set(value) { breakInfos[1] = value }
     private val breakInfos = arrayOfNulls<BreakInfo>(2)
 
-    private val pendingBreaks = LimitedDecayQueue<BreakInfo>(
-        TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
-    ) { info ->
-        mc.world?.let { world ->
-            val pos = info.context.expectedPos
-            val loaded = world.isChunkLoaded(ChunkSectionPos.getSectionCoord(pos.x), ChunkSectionPos.getSectionCoord(pos.z))
-            if (!loaded) return@let
-
-            info("${info::class.simpleName} at ${info.context.expectedPos.toShortString()} timed out")
-
-            val awaitThenBreak = info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak
-            if (!info.broken && awaitThenBreak) {
-                world.setBlockState(info.context.expectedPos, info.context.checkedState)
-            }
-        }
-        info.pendingInteractions.remove(info.context)
-    }
     private val pendingBreakCount get() = breakInfos.count { it != null } + pendingBreaks.size
-
-    private var activeRequest: BreakRequest? = null
-
     override val blockedPositions
         get() = breakInfos.mapNotNull { it?.context?.expectedPos } + pendingBreaks.map { it.context.expectedPos }
+
+    private var activeRequest: BreakRequest? = null
 
     private var rotationRequest: RotationRequest? = null
     private val rotated get() = rotationRequest?.done != false
@@ -140,29 +116,6 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE + 1) { event ->
-            pendingBreaks
-                .firstOrNull { it.context.expectedPos == event.pos }
-                ?.let { pending ->
-                    // return if the state hasn't changed
-                    if (event.newState.matches(pending.context.checkedState))
-                        return@listen
-
-                    // return if the block's not broken
-                    if (!matchesTargetState(event.pos, pending.context.targetState, event.newState)) {
-                        pending.stopPending()
-                        return@listen
-                    }
-
-                    if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak) {
-                        destroyBlock(pending)
-                    }
-                    pending.internalOnBreak()
-                    if (pending.callbacksCompleted) {
-                        pending.stopPending()
-                    }
-                    return@listen
-                }
-
             breakInfos
                 .filterNotNull()
                 .firstOrNull { it.context.expectedPos == event.pos }
@@ -185,15 +138,6 @@ object BreakManager : RequestHandler<BreakRequest>(
         // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
         listen<EntityEvent.EntityUpdate>(priority = Int.MIN_VALUE + 1) {
             if (it.entity !is ItemEntity) return@listen
-            pendingBreaks
-                .firstOrNull { info -> matchesBlockItem(info, it.entity) }
-                ?.let { pending ->
-                    pending.internalOnItemDrop(it.entity)
-                    if (pending.callbacksCompleted) {
-                        pending.stopPending()
-                    }
-                    return@listen
-                }
 
             breakInfos
                 .filterNotNull()
@@ -203,7 +147,6 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE + 1) {
             breakInfos.forEach { it?.nullify() }
-            pendingBreaks.clear()
             breakCooldown = 0
         }
     }
@@ -287,6 +230,20 @@ object BreakManager : RequestHandler<BreakRequest>(
     }
 
     /**
+     * @return if the break context can be accepted.
+     */
+    private fun SafeContext.canAccept(ctx: BreakContext): Boolean {
+        if (pendingBreaks.any { it.context.expectedPos == ctx.expectedPos }) return false
+
+        breakInfos.firstOrNull { it != null && !it.isRedundant }
+            ?.let { info ->
+                if ( ctx.hotbarIndex != info.context.hotbarIndex) return false
+            }
+
+        return !blockState(ctx.expectedPos).isAir
+    }
+
+    /**
      * Attempts to break as many [BreakContext]'s as possible from the [instantBreaks] collection within this tick.
      *
      * @return false if a break could not be performed.
@@ -359,8 +316,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         primaryBreak = breakInfo
-        pendingBreaks.setSizeLimit(request.build.breaking.maxPendingBreaks)
-        pendingBreaks.setDecayTime(request.build.interactionTimeout * 50L)
+        setPendingConfigs(request)
         return primaryBreak
     }
 
@@ -370,41 +326,6 @@ object BreakManager : RequestHandler<BreakRequest>(
     private fun atMaxBreakInfos(breakConfig: BreakConfig): Boolean {
         val possibleBreakingCount = if (breakConfig.doubleBreak) 2 else 1
         return breakInfos.take(possibleBreakingCount).all { it != null }
-    }
-
-    /**
-     * @return if the [ItemEntity] matches the [BreakInfo]'s expected item drop.
-     */
-    private fun matchesBlockItem(info: BreakInfo, entity: ItemEntity): Boolean {
-        val inRange = info.context.expectedPos.toCenterPos().isInRange(entity.pos, 0.5)
-        val correctMaterial = info.context.checkedState.block == entity.stack.item.block
-        return inRange && correctMaterial
-    }
-
-    /**
-     * @return if the [newState] matches the [targetState].
-     *
-     * @see TargetState
-     */
-    private fun SafeContext.matchesTargetState(pos: BlockPos, targetState: TargetState, newState: BlockState) =
-        if (targetState.matches(newState, pos, world)) true
-        else {
-            this@BreakManager.warn("Break at ${pos.toShortString()} was rejected with $newState instead of $targetState")
-            false
-        }
-
-    /**
-     * @return if the break context can be accepted.
-     */
-    private fun SafeContext.canAccept(ctx: BreakContext): Boolean {
-        if (pendingBreaks.any { it.context.expectedPos == ctx.expectedPos }) return false
-
-        breakInfos.firstOrNull { it != null && !it.isRedundant }
-            ?.let { info ->
-                if ( ctx.hotbarIndex != info.context.hotbarIndex) return false
-            }
-
-        return !blockState(ctx.expectedPos).isAir
     }
 
     /**
@@ -444,22 +365,6 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
         breaksThisTick++
         info.nullify()
-    }
-
-    /**
-     * Adds the [info] to the break manager, and requesters, pending interaction collections.
-     */
-    private fun BreakInfo.startPending() {
-        pendingBreaks.add(this)
-        pendingInteractions.add(context)
-    }
-
-    /**
-     * Removes the [info] from the break manager, and requesters, pending interation collections.
-     */
-    private fun BreakInfo.stopPending() {
-        pendingBreaks.remove(this)
-        pendingInteractions.remove(context)
     }
 
     /**
@@ -686,35 +591,25 @@ object BreakManager : RequestHandler<BreakRequest>(
     }
 
     /**
-     * A modified version of the minecraft breakBlock method.
-     *
-     * Performs the actions required to display break particles, sounds, texture overlay, etc.
-     * based on the users settings.
-     *
-     * @return if the blocks state was set or not.
-     *
-     * @see net.minecraft.client.world.ClientWorld.breakBlock
+     * @return if the [ItemEntity] matches the [BreakInfo]'s expected item drop.
      */
-    private fun SafeContext.destroyBlock(info: BreakInfo): Boolean {
-        val ctx = info.context
-
-        if (player.isBlockBreakingRestricted(world, ctx.expectedPos, gamemode)) return false
-
-        if (!player.mainHandStack.item.canMine(ctx.checkedState, world, ctx.expectedPos, player))
-            return false
-        val block = ctx.checkedState.block
-        if (block is OperatorBlock && !player.isCreativeLevelTwoOp) return false
-        if (ctx.checkedState.isAir) return false
-
-        block.onBreak(world, ctx.expectedPos, ctx.checkedState, player)
-        val fluidState = fluidState(ctx.expectedPos)
-        val setState = world.setBlockState(ctx.expectedPos, fluidState.blockState, 11)
-        if (setState) block.onBroken(world, ctx.expectedPos, ctx.checkedState)
-
-        if (info.breakConfig.breakingTexture) info.setBreakingTextureStage(player, world, -1)
-
-        return setState
+    fun matchesBlockItem(info: BreakInfo, entity: ItemEntity): Boolean {
+        val inRange = info.context.expectedPos.toCenterPos().isInRange(entity.pos, 0.5)
+        val correctMaterial = info.context.checkedState.block == entity.stack.item.block
+        return inRange && correctMaterial
     }
+
+    /**
+     * @return if the [newState] matches the [targetState].
+     *
+     * @see TargetState
+     */
+    fun SafeContext.matchesTargetState(pos: BlockPos, targetState: TargetState, newState: BlockState) =
+        if (targetState.matches(newState, pos, world)) true
+        else {
+            this@BreakManager.warn("Break at ${pos.toShortString()} was rejected with $newState instead of $targetState")
+            false
+        }
 
     override fun preEvent(): Event = UpdateManagerEvent.Break().post()
 }

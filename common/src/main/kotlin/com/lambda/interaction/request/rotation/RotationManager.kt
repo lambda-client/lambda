@@ -33,7 +33,6 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.rotation.Rotation.Companion.slerp
-import com.lambda.interaction.request.rotation.RotationManager.preEvent
 import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
@@ -51,8 +50,7 @@ import kotlin.math.sign
 import kotlin.math.sin
 
 object RotationManager : RequestHandler<RotationRequest>(
-    TickStage.TickStart,
-    preOpen = { preEvent() }
+    TickStage.TickStart
 ), Loadable {
     var currentRotation = Rotation.ZERO
     private var prevRotation = Rotation.ZERO

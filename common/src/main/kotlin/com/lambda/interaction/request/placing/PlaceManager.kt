@@ -38,7 +38,6 @@ import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.placing.PlaceManager.activeRequest
-import com.lambda.interaction.request.placing.PlaceManager.preEvent
 import com.lambda.interaction.request.placing.PlaceManager.processRequest
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.blockState
@@ -69,8 +68,7 @@ import net.minecraft.world.GameMode
 
 object PlaceManager : RequestHandler<PlaceRequest>(
     *TickStage.entries.toTypedArray(),
-    preOpen =  { activeRequest?.let { processRequest(it) } },
-    onOpen = { preEvent() }
+    onOpen = { activeRequest?.let { processRequest(it) } }
 ), PositionBlocking {
     private val pendingPlacements = LimitedDecayQueue<PlaceInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
