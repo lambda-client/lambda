@@ -31,19 +31,18 @@ import com.lambda.util.world.string
 
 object PathCommand : LambdaCommand(
     name = "path",
-    usage = "path <markDirty>",
+    usage = "path <invalidate | reset | update>",
     description = "Move through world"
 ) {
     override fun CommandBuilder.create() {
-        required(literal("markDirty")) {
+        required(literal("invalidate")) {
             required(integer("X", -30000000, 30000000)) { x ->
                 required(integer("Y", -64, 255)) { y ->
                     required(integer("Z", -30000000, 30000000)) { z ->
                         execute {
                             val dirty = fastVectorOf(x().value(), y().value(), z().value())
-                            Pathfinder.graph.markDirty(dirty)
-//                            Pathfinder.dStar.updateGraph()
-                            this@PathCommand.info("Marked ${dirty.string} as dirty")
+                            Pathfinder.dStar.invalidate(dirty)
+                            this@PathCommand.info("Invalidated ${dirty.string}")
                         }
                     }
                 }

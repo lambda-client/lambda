@@ -77,10 +77,10 @@ class DStarLite(
         U.insertOrUpdate(goal, calculateKey(goal))
     }
 
-    private fun g(u: FastVector): Double = gMap[u] ?: INF
+    fun g(u: FastVector): Double = gMap[u] ?: INF
     private fun setG(u: FastVector, g: Double) { gMap[u] = g }
 
-    private fun rhs(u: FastVector): Double = rhsMap[u] ?: INF
+    fun rhs(u: FastVector): Double = rhsMap[u] ?: INF
     private fun setRHS(u: FastVector, rhs: Double) { rhsMap[u] = rhs }
 
     /**
@@ -100,7 +100,7 @@ class DStarLite(
      *
      * Then u is removed from the queue and reinserted if it is inconsistent.
      */
-    fun updateVertex(u: FastVector) {
+    private fun updateVertex(u: FastVector) {
         if (u != goal) {
             var tmp = INF
             graph.predecessors(u).forEach { (pred, cost) ->
@@ -117,15 +117,12 @@ class DStarLite(
         }
     }
 
-    fun updateGraph() {
-        graph.dirtyNodes.forEach { u ->
-            if (u != goal) {
-                gMap.remove(u)
-                rhsMap.remove(u)
-            }
-            updateVertex(u)
+    fun invalidate(u: FastVector) {
+        val affectedNodes = graph.getNeighbors(u) + u
+        affectedNodes.forEach { v ->
+            graph.invalidate(v)
+            updateVertex(v)
         }
-        graph.dirtyNodes.clear()
     }
 
     /**
@@ -261,6 +258,17 @@ class DStarLite(
                         drawString(msg, Vec2d(-FontRenderer.getWidth(msg) * 0.5, 0.0))
                     }
                 }
+            }
+        }
+    }
+
+    override fun toString() = buildString {
+        appendLine("Nodes:")
+        graph.nodes.forEach { appendLine("  ${it.string} g: ${g(it)} rhs: ${rhs(it)}") }
+        appendLine("Edges:")
+        graph.nodes.forEach { u ->
+            graph.successors(u).forEach { (v, cost) ->
+                appendLine("  ${u.string} -> ${v.string}: c: $cost")
             }
         }
     }

@@ -75,23 +75,18 @@ class LazyGraph(
         return predecessors[u] ?: emptyMap()
     }
 
-    fun remove(u: FastVector) {
-        successors.remove(u)
-        successors.values.forEach { it.remove(u) }
-        predecessors.remove(u)
-        predecessors.values.forEach { it.remove(u) }
+    fun invalidate(u: FastVector) {
+        val neighbors = getNeighbors(u)
+        (neighbors + u).forEach { v ->
+            successors.remove(v)
+            predecessors.remove(v)
+            predecessors.values.forEach { predMap ->
+                predMap.remove(v)
+            }
+        }
     }
 
-    fun markDirty(u: FastVector) {
-        dirtyNodes.add(u)
-        val preds = predecessors[u]?.keys ?: emptySet()
-        val succs = successors[u]?.keys ?: emptySet()
-        remove(u)
-        preds.forEach { remove(it) }
-        succs.forEach { remove(it) }
-        dirtyNodes.addAll(preds)
-        dirtyNodes.addAll(succs)
-    }
+    fun getNeighbors(u: FastVector): Set<FastVector> = successors(u).keys + predecessors(u).keys
 
     /** Returns the cost of the edge from u to v (or ∞ if none exists) */
     fun cost(u: FastVector, v: FastVector): Double = successors(u)[v] ?: Double.POSITIVE_INFINITY

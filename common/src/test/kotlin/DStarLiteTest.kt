@@ -2,6 +2,8 @@ import com.lambda.pathing.dstar.DStarLite
 import com.lambda.pathing.dstar.LazyGraph
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
+import com.lambda.util.world.string
+import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.x
 import com.lambda.util.world.y
 import com.lambda.util.world.z
@@ -71,7 +73,7 @@ class DStarLiteTest {
     }
 
     @Test
-    fun testUpdateStart3D() {
+    fun testUpdateStart() {
         val graph = createLazy3DGridGraph()
         var start = fastVectorOf(0, 0, 0)
         val goal = fastVectorOf(2, 2, 2)
@@ -90,5 +92,24 @@ class DStarLiteTest {
         assertFalse(updatedPath.isEmpty(), "Updated path should not be empty now from new start")
         assertEquals(start, updatedPath.first(), "Updated path must start at updated position")
         assertEquals(goal, updatedPath.last(), "Updated path must end at the goal")
+    }
+
+    @Test
+    fun testInvalidateVertex() {
+        val graph = createLazy3DGridGraph()
+        val start = fastVectorOf(0, 0, 0)
+        val goal = fastVectorOf(2, 2, 2)
+        val dstar = DStarLite(graph, start, goal, ::heuristic)
+        fun List<FastVector>.string() = joinToString(" -> ") { "[${it.string} g=${dstar.g(it)} rhs=${dstar.rhs(it)}]" }
+
+        println("Computing shortest path from ${start.string} to ${goal.string}")
+        dstar.computeShortestPath()
+        println(dstar.path().string())
+        val invalidate = fastVectorOf(1, 0, 0)
+        println("Invalidating vertex ${invalidate.string}")
+        dstar.invalidate(invalidate)
+        println("Computing shortest path from ${start.string} to ${goal.string}")
+        dstar.computeShortestPath()
+        println(dstar.path().string())
     }
 }
