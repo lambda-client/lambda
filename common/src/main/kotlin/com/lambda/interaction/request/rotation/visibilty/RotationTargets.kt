@@ -47,7 +47,7 @@ annotation class RotationDsl
 @RotationDsl
 fun lookAt(angle: Rotation, maxAngleDistance: Double = 10.0) =
     RotationTarget(null, {
-        RotationManager.currentRotation dist angle < maxAngleDistance
+        RotationManager.nextRotation dist angle < maxAngleDistance
     }) { angle }
 
 /**
