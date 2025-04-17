@@ -74,15 +74,32 @@ object DynamicReflectionSerializer : Loadable {
         "${Network.mappings}/${Network.gameVersion}"
             .downloadIfNotPresent(cache.resolveFile(Network.gameVersion))
             .map { file ->
-                file.readLines()
+                val standardMappings = file.readLines()
                     .map { it.split(' ') }
-                    .associate { it[0].split('$').last() to it[1] }
+                    .filter { it.size == 2 }
+                    .associate { (obf, deobf) -> obf to deobf }
+
+                buildMap {
+                    putAll(standardMappings)
+
+                    standardMappings.forEach { (obf, deobf) ->
+                        put(obf.split('$').last(), deobf)
+                        if ('$' !in obf) return@forEach
+                        put(obf.replace('$', '.'), deobf)
+                        val parts = obf.split('$')
+                        if (!parts.all { it.startsWith("class_") }) return@forEach
+                        (1 until parts.size).forEach { i ->
+                            put("${parts.take(i).joinToString("$")}.${parts.drop(i).joinToString("$")}", deobf)
+                        }
+                    }
+                }
             }
             .getOrElse {
                 LOG.error("Unable to download deobfuscated qualifiers", it)
                 emptyMap()
             }
     }
+
 
     val String.remappedName get() = mappings.getOrDefault(this, this)
 
