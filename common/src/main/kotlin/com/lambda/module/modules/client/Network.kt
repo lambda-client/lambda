@@ -31,6 +31,7 @@ import com.lambda.network.NetworkManager.updateToken
 import com.lambda.network.api.v1.endpoints.login
 import com.lambda.util.StringUtils.hash
 import com.lambda.util.extension.isOffline
+import net.minecraft.SharedConstants
 import net.minecraft.client.network.AllowedAddressResolver
 import net.minecraft.client.network.ClientLoginNetworkHandler
 import net.minecraft.client.network.ServerAddress
@@ -51,8 +52,11 @@ object Network : Module(
     val authServer  by setting("Auth Server", "auth.lambda-client.org")
     val apiUrl      by setting("API Server", "https://api.lambda-client.org")
     val apiVersion  by setting("API Version", ApiVersion.V1)
+    val mappings    by setting("Mappings", "https://mappings.lambda-client.org")
 
-    private lateinit var hash: String
+    val gameVersion = SharedConstants.getGameVersion().name
+
+    private var hash: String? = null
 
     init {
         listenUnsafeConcurrently<ClientEvent.Startup> { authenticate() }
@@ -67,17 +71,18 @@ object Network : Module(
             hash = BigInteger(computed).toString(16)
         }
 
-        listenUnsafe<ConnectionEvent.Connect.Post> {
+        listenUnsafeConcurrently<ConnectionEvent.Connect.Post> {
             // FixMe: If the player have the properties but are invalid this doesn't work
-            if (NetworkManager.isValid || mc.gameProfile.isOffline) return@listenUnsafe
+            if (NetworkManager.isValid || mc.gameProfile.isOffline) return@listenUnsafeConcurrently
 
             // If we log in right as the client responds to the encryption request, we start
             // a race condition where the game server haven't acknowledged the packets
             // and posted to the sessionserver api
-            login(mc.session.username, hash,
-                success = { updateToken(it) },
-                failure = { LOG.warn("Unable to authenticate: $it") }
-            )
+            login(mc.session.username, hash ?: return@listenUnsafeConcurrently)
+                .fold(
+                    onSuccess = { updateToken(it) },
+                    onFailure = { LOG.warn("Unable to authenticate: $it") }
+                )
         }
     }
 

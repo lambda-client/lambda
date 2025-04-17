@@ -88,7 +88,7 @@ object BrokenBlockHandler {
                 }
         }
 
-        listen<EntityEvent.EntityUpdate>(priority = Int.MIN_VALUE + 1) {
+        listen<EntityEvent.Update>(priority = Int.MIN_VALUE + 1) {
             if (it.entity !is ItemEntity) return@listen
             pendingBreaks
                 .firstOrNull { info -> matchesBlockItem(info, it.entity) }

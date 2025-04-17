@@ -136,7 +136,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
-        listen<EntityEvent.EntityUpdate>(priority = Int.MIN_VALUE + 1) {
+        listen<EntityEvent.Update>(priority = Int.MIN_VALUE + 1) {
             if (it.entity !is ItemEntity) return@listen
 
             breakInfos

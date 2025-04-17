@@ -130,7 +130,7 @@ public abstract class EntityMixin {
     @Inject(method = "onTrackedDataSet(Lnet/minecraft/entity/data/TrackedData;)V", at = @At("TAIL"))
     public void onTrackedDataSet(TrackedData<?> data, CallbackInfo ci) {
         Entity entity = (Entity) (Object) this;
-        EventFlow.post(new EntityEvent.EntityUpdate(entity, data));
+        EventFlow.post(new EntityEvent.Update(entity, data));
     }
 
     // ToDo: Does not trigger for some reason.

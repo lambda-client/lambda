@@ -17,13 +17,12 @@
 
 package com.lambda.network.api.v1.endpoints
 
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.FuelError
-import com.github.kittinunf.fuel.core.awaitResult
-import com.github.kittinunf.fuel.core.extensions.authentication
 import com.lambda.module.modules.client.Network.apiUrl
 import com.lambda.module.modules.client.Network.apiVersion
+import com.lambda.network.LambdaHttp
 import com.lambda.network.NetworkManager
+import io.ktor.client.request.*
+import io.ktor.http.*
 
 /**
  * Sets the currently authenticated player's cape
@@ -31,10 +30,13 @@ import com.lambda.network.NetworkManager
  * Example:
  *  - id: galaxy
  *
- * response: [Unit] or error
+ * @return nothing
  */
-fun setCape(id: String, success: (ByteArray) -> Unit, failure: (FuelError) -> Unit) =
-	Fuel.put("$apiUrl/api/${apiVersion.value}/cape?id=$id")
-		.authentication()
-		.bearer(NetworkManager.accessToken)
-		.response { _, _, resp -> resp.fold(success, failure) }
+suspend fun setCape(id: String) = runCatching {
+	val resp = LambdaHttp.put("$apiUrl/api/${apiVersion.value}/cape?id=$id") {
+		bearerAuth(NetworkManager.accessToken)
+		contentType(ContentType.Application.Json)
+	}
+
+	check(resp.status == HttpStatusCode.OK)
+}

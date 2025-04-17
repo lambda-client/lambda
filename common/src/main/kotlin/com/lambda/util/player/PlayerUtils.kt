@@ -21,6 +21,8 @@ fun SafeContext.copyPlayer(entity: ClientPlayerEntity) =
     ClientPlayerEntity(mc, world, mc.networkHandler, null, null, entity.isSneaking, entity.isSprinting).apply {
         setPos(entity.x, entity.y, entity.z)
         setExperience(entity.experienceProgress, entity.totalExperience, entity.experienceLevel)
+        health = entity.health
+        absorptionAmount = entity.absorptionAmount
         pitch = entity.pitch
         yaw = entity.yaw
         headYaw = entity.headYaw
@@ -39,11 +41,11 @@ fun SafeContext.spawnFakePlayer(
     addToWorld: Boolean = true
 ): OtherClientPlayerEntity {
     val entity = OtherClientPlayerEntity(world, profile).apply {
-            copyFrom(reference)
+        copyFrom(reference)
 
-            playerListEntry = PlayerListEntry(profile, false)
-            id = -2024 - 4 - 20
-        }
+        playerListEntry = PlayerListEntry(profile, false)
+        id = -2024 - 4 - 20
+    }
 
     if (addToWorld) world.addEntity(entity)
 
