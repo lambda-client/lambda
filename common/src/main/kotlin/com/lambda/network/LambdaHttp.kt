@@ -34,11 +34,16 @@ val LambdaHttp = HttpClient {
     }
 }
 
-suspend inline fun HttpClient.download(url: String, file: File, block: HttpRequestBuilder.() -> Unit = {}) =
-    file.writeBytes(get(url, block).readRawBytes())
+suspend inline fun HttpClient.download(url: String, file: File, block: HttpRequestBuilder.() -> Unit = {}) {
+    val response = get(url, block).readRawBytes()
+    file.writeBytes(response)
+}
 
-suspend inline fun HttpClient.download(url: String, output: OutputStream, block: HttpRequestBuilder.() -> Unit = {}) =
-    output.write(get(url, block).readRawBytes())
+suspend inline fun HttpClient.download(url: String, output: OutputStream, block: HttpRequestBuilder.() -> Unit = {}) {
+    val response = get(url, block).readRawBytes()
+    output.write(response)
+}
 
 suspend inline fun HttpClient.download(url: String, block: HttpRequestBuilder.() -> Unit) =
     get(url, block).readRawBytes()
+

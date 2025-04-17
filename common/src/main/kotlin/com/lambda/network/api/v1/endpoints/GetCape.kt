@@ -31,7 +31,7 @@ import java.util.UUID
  * Example:
  *  - id: ab24f5d6-dcf1-45e4-897e-b50a7c5e7422
  *
- * response: [Cape] or error
+ * @return results of cape
  */
 suspend fun getCape(uuid: UUID) = runCatching {
 	LambdaHttp.get("$apiUrl/api/${apiVersion.value}/cape?id=$uuid").body<Cape>()

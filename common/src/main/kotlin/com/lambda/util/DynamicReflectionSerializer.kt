@@ -20,13 +20,12 @@ package com.lambda.util
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.core.Loadable
-import com.lambda.network.api.v1.endpoints.getMappings
-import com.lambda.util.FileUtils.getIfNotPresent
-import com.lambda.util.FileUtils.ifNotExists
+import com.lambda.module.modules.client.Network
+import com.lambda.util.FileUtils.downloadIfNotPresent
 import com.lambda.util.FolderRegister.cache
 import com.lambda.util.extension.resolveFile
 import com.mojang.serialization.Codec
-import net.minecraft.SharedConstants
+import kotlinx.coroutines.runBlocking
 import net.minecraft.block.BlockState
 import net.minecraft.client.resource.language.TranslationStorage
 import net.minecraft.item.ItemStack
@@ -71,19 +70,19 @@ object DynamicReflectionSerializer : Loadable {
 
     private const val INDENT = 2
 
-    private val mappings =
-        cache.resolveFile("${SharedConstants.getProtocolVersion()}.mappings")
-            .ifNotExists {
-                getMappings(
-                    success = it.getIfNotPresent(),
-                    failure = { LOG.error("Could not download the required files for the dynamic remapper") }
-                ).join()
-            }.let { file ->
-                if (!file.exists()) emptyMap<String, String>()
+    private val mappings = runBlocking {
+        "${Network.mappings}/${Network.gameVersion}"
+            .downloadIfNotPresent(cache.resolveFile(Network.gameVersion))
+            .map { file ->
                 file.readLines()
-                    .map { it.split('\t') }
+                    .map { it.split(' ') }
                     .associate { it[0].split('$').last() to it[1] }
             }
+            .getOrElse {
+                LOG.error("Unable to download deobfuscated qualifiers", it)
+                emptyMap()
+            }
+    }
 
     val String.remappedName get() = mappings.getOrDefault(this, this)
 

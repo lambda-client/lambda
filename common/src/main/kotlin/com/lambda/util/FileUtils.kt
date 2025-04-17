@@ -17,28 +17,21 @@
 
 package com.lambda.util
 
-import com.github.kittinunf.fuel.core.FuelError
-import com.github.kittinunf.fuel.httpDownload
-import com.github.kittinunf.fuel.httpGet
-import com.github.kittinunf.result.getOrNull
 import com.lambda.Lambda.mc
+import com.lambda.network.LambdaHttp
+import com.lambda.network.download
 import com.lambda.util.StringUtils.sanitizeForFilename
+import io.ktor.client.request.*
 import java.io.File
 import java.net.InetSocketAddress
+import kotlin.math.sign
+import kotlin.time.Duration
 
 object FileUtils {
     /**
      * Returns a sequence of all the files in a tree that matches the [predicate]
      */
     fun File.listRecursive(predicate: (File) -> Boolean): Sequence<File> = walk().filter(predicate)
-
-    /**
-     * Ensures the current file exists by creating it if it does not.
-     *
-     * If the file already exists, it will not be recreated. The necessary
-     * parent directories will be created if they do not exist.
-     */
-    fun File.createIfNotExists() = also { parentFile.mkdirs(); createNewFile() }
 
     /**
      * Retrieves or creates a directory based on the current network connection and world dimension.
@@ -69,56 +62,143 @@ object FileUtils {
     }
 
     /**
-     * Executes the [block] if the receiver file exists
+     * Executes the [block] if the file is older than the given [duration]
+     */
+    fun File.isOlderThan(duration: Duration, block: (File) -> Unit) =
+        ifExists { if (duration.inWholeMilliseconds < System.currentTimeMillis() - lastModified()) block(this) }
+
+    /**
+     * Returns whether the receiver file is older than [duration]
+     */
+    fun File.isOlderThan(duration: Duration) =
+        duration.inWholeMilliseconds < System.currentTimeMillis() - lastModified()
+
+    /**
+     * Executes the [block] if the receiver file exists and is not empty
      */
     inline fun File.ifExists(block: (File) -> Unit): File {
-        if (exists()) block(this)
+        if (length() > 0) block(this)
         return this
     }
 
     /**
-     * Executes the [block] if the receiver file does not exist.
+     * Ensures the current file exists by creating it if it does not.
+     *
+     * If the file already exists, it will not be recreated. The necessary
+     * parent directories will be created if they do not exist.
+     *
+     * @param block Lambda executed if the file doesn't exist or the file is empty
+     */
+    inline fun File.createIfNotExists(block: (File) -> Unit): File {
+        if (length() == 0L) block(this)
+
+        parentFile.mkdirs()
+        createNewFile()
+
+        return this
+    }
+
+    /**
+     * Executes the [block] if the receiver file does not exist or is empty.
      */
     inline fun File.ifNotExists(block: (File) -> Unit): File {
-        if (!exists()) block(this)
+        if (length() == 0L) block(this)
         return this
+    }
+
+    /**
+     * Modifies the receiver file if the downloaded file compare check succeeds
+     *
+     * @receiver The destination file to write the bytes to
+     *
+     * @param url The url to download the file from
+     * @param compare Compare method. -1 if remote is larger. 0 if both file have the same size. 1 if local is larger
+     * @param block Configuration block for the request
+     *
+     * @return An exception or the file
+     */
+    suspend fun File.downloadCompare(
+        url: String,
+        compare: Int,
+        block: HttpRequestBuilder.() -> Unit = {},
+    ) = runCatching {
+        createIfNotExists {
+            val bytes = readBytes()
+            val remote = LambdaHttp.download(url, block)
+            val sign = (bytes.size - remote.size).sign
+
+            if (sign == compare) writeBytes(remote)
+        }
     }
 
     /**
      * Downloads the given file url if the file is not present
      *
-     * This function does not guarantee that the given file will be created
+     * @receiver The destination file to write the bytes to
+     *
+     * @param url The url to download the file from
+     * @param block Configuration block for the request
+     *
+     * @return An exception or the file
      */
-    fun File.downloadIfNotPresent(
+    suspend fun File.downloadIfNotPresent(
         url: String,
-        success: (ByteArray) -> Unit = {},
-        failure: (FuelError) -> Unit = {}
-    ) = ifNotExists { url.httpDownload().fileDestination { _, _ -> it }.response { _, _, result -> result.fold(success, failure) } }
+        block: HttpRequestBuilder.() -> Unit = {},
+    ) = runCatching { createIfNotExists { LambdaHttp.download(url, this, block) } }
 
     /**
      * Downloads the given file url if the file is not present
      *
-     * This function does not guarantee that the given file will be created
+     * @receiver The url to download the file from
+     *
+     * @param file The destination file to write the bytes to
+     * @param block Configuration block for the request
+     *
+     * @return An exception or the file
      */
-    fun String.downloadIfNotPresent(
+    suspend fun String.downloadIfNotPresent(
         file: File,
-        success: (ByteArray) -> Unit = {},
-        failure: (FuelError) -> Unit = {}
-    ) = file.ifNotExists { httpDownload().fileDestination { _, _ -> it }.response { _, _, result -> result.fold(success, failure) } }
+        block: HttpRequestBuilder.() -> Unit = {},
+    ) = runCatching { file.createIfNotExists { LambdaHttp.download(this, file, block) } }
 
     /**
-     * Downloads the given file url if the file is not present
+     * Lambda that downloads the given file url if the file is not present
      *
-     * This function does not guarantee that the given file will be created
+     * @receiver The destination file to write the bytes to
+     * @param block Configuration block for the request
+     *
+     * @return A lambda that returns an exception or the file
      */
-    fun File.downloadIfNotPresent(): (String) -> Unit =
-        { url -> ifNotExists { url.httpDownload().fileDestination { _, _ -> it }.response { _, _, _ -> } } }
+    fun File.downloadIfNotPresent(block: HttpRequestBuilder.() -> Unit = {}): suspend (String) -> Result<Unit> =
+        { url -> runCatching { createIfNotExists { LambdaHttp.download(url, this, block) } } }
 
     /**
-     * Gets the given url if the file is not present
+     * Downloads the given file url if the file is present
      *
-     * This function does not guarantee that the given file will be created
+     * @receiver The destination file to write the bytes to
+     *
+     * @param url The url to download the file from
+     * @param block Configuration block for the request
+     *
+     * @return An exception or the file
      */
-    fun File.getIfNotPresent(): (String) -> Unit =
-        { url -> ifNotExists { url.httpGet().responseString().third.getOrNull()?.let { writeText(it) } } }
+    suspend fun File.downloadIfPresent(
+        url: String,
+        block: HttpRequestBuilder.() -> Unit = {},
+    ) = runCatching { ifExists { LambdaHttp.download(url, this, block) } }
+
+    /**
+     * Downloads the given file url if the file is present
+     *
+     * @receiver The url to download the file from
+     *
+     * @param file The destination file to write the bytes to
+     * @param block Configuration block for the request
+     *
+     * @return An exception or the file
+     */
+    suspend fun String.downloadIfPresent(
+        file: File,
+        block: HttpRequestBuilder.() -> Unit = {},
+    ) = runCatching { file.ifExists { LambdaHttp.download(this, file, block) } }
 }
