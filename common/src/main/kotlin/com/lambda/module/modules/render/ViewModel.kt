@@ -133,9 +133,9 @@ object ViewModel : Module(
     }
 
     private fun getPositionVec(side: Side, emptyHand: Boolean): Vector3f {
-        when (side) {
+        return when (side) {
             Side.Left -> {
-                return if (emptyHand) {
+                if (emptyHand) {
                     Vector3f(
                         -handXPosition,
                         handYPosition,
@@ -150,7 +150,7 @@ object ViewModel : Module(
                 }
             }
             Side.Right -> {
-                return if (emptyHand) {
+                if (emptyHand) {
                     Vector3f(
                         handXPosition,
                         handYPosition,
@@ -169,16 +169,15 @@ object ViewModel : Module(
 
     private fun rotate(side: Side, matrices: MatrixStack, emptyHand: Boolean) {
         val rotationVec = getRotationVec(side, emptyHand)
-
         matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(rotationVec.x.toFloat()))
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(rotationVec.y.toFloat()))
         matrices.multiply(RotationAxis.POSITIVE_Z.rotationDegrees(rotationVec.z.toFloat()))
     }
 
     private fun getRotationVec(side: Side, emptyHand: Boolean): Vector3i {
-        when (side) {
+        return when (side) {
             Side.Left -> {
-                return if (emptyHand) {
+                if (emptyHand) {
                     Vector3i(
                         handXRotation,
                         -handYRotation,
@@ -193,7 +192,7 @@ object ViewModel : Module(
                 }
             }
             Side.Right -> {
-                return if (emptyHand) {
+                if (emptyHand) {
                     Vector3i(
                         handXRotation,
                         handYRotation,
@@ -226,10 +225,12 @@ object ViewModel : Module(
     }
 
     private fun swingHand(hand: Hand, player: AbstractClientPlayerEntity) {
-        if ((!player.handSwinging || player.handSwingTicks >= player.handSwingDuration / 2) || player.handSwingTicks < 0) {
-            player.handSwingTicks = -1
-            player.handSwinging = true
-            player.preferredHand = hand
+        with(player) {
+            if ((!handSwinging || handSwingTicks >= handSwingDuration / 2) || handSwingTicks < 0) {
+                handSwingTicks = -1
+                handSwinging = true
+                preferredHand = hand
+            }
         }
     }
 }
