@@ -98,25 +98,11 @@ class BuildTask @Ta5kBuilder constructor(
             if (collectDrops()) return@listen
 
             val results = blueprint.simulate(player.eyePos, interact, rotation, inventory, build)
-            val resultPostions = results.map { it.blockPos }
 
-            val sim = blueprint.simulation(interact, rotation, inventory, build)
-            BlockPos.iterateOutwards(player.blockPos, 2, 2, 2).forEach {
-                sim.simulate(it.toFastVec())
-            }
-            val bestPos = sim.goodPositions()
-                .filter { it.pos !in resultPostions }
-                .maxByOrNull { it.interactions }
-
-            val drawables = results
+            TaskFlowModule.drawables = results
                 .filterIsInstance<Drawable>()
                 .plus(pendingInteractions.toList())
                 .toMutableList()
-
-            if (bestPos != null && build.pathing) {
-                drawables.add(bestPos)
-            }
-            TaskFlowModule.drawables = drawables
 
             val resultsNotBlocked = results
                 .filter { result -> pendingInteractions.none { it.expectedPos == result.blockPos } }
@@ -142,6 +128,7 @@ class BuildTask @Ta5kBuilder constructor(
                 is BuildResult.NotVisible,
                 is PlaceResult.NoIntegrity -> {
                     if (!build.pathing) return@listen
+                    val sim = blueprint.simulation(interact, rotation, inventory, build)
                     val goal = BuildGoal(sim, player.blockPos)
                     BaritoneUtils.setGoalAndPath(goal)
                 }
@@ -151,10 +138,6 @@ class BuildTask @Ta5kBuilder constructor(
                 }
 
                 is BuildResult.Contextual -> {
-                    bestPos?.let {
-                        if (build.pathing) BaritoneUtils.setGoalAndPath(GoalNear(it.pos, 1))
-                    }
-
                     if (atMaxPendingInteractions) return@listen
                     when (bestResult) {
                         is BreakResult.Break -> {
