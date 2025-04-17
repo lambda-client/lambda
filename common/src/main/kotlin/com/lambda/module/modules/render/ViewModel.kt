@@ -29,7 +29,7 @@ object ViewModel : Module(
     val swapAnimation by setting("Swap Animation", true, "If disabled, it removes the drop down animation when swapping item", visibility = { page == Page.General })
     val shadow by setting("Shadows", true, "If disabled, it removes shadows on the model", visibility = { page == Page.General })
 
-    private val linkedScale by setting("Linked", true, "Links both hands scale settings", visibility = { page == Page.Scale })
+    private val linkedScale by setting("Linked Scale", true, "Links both hands scale settings", visibility = { page == Page.Scale })
     private val leftXScale by setting("Left X Scale", 1.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Scale }).apply { onValueChange { _, to -> if (linkedScale) rightXScale = to } }
     private val leftYScale by setting("Left Y Scale", 1.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Scale }).apply { onValueChange { _, to -> if (linkedScale) rightYScale = to } }
     private val leftZScale by setting("Left Z Scale", 1.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Scale }).apply { onValueChange { _, to -> if (linkedScale) rightZScale = to } }
@@ -37,7 +37,7 @@ object ViewModel : Module(
     private var rightYScale by setting("Right Y Scale", 0.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Scale && !linkedScale })
     private var rightZScale by setting("Right Z Scale", 0.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Scale && !linkedScale })
 
-    private val linkedPosition by setting("Linked", true, "Links both hands position settings", visibility = { page == Page.Position })
+    private val linkedPosition by setting("Linked Position", true, "Links both hands position settings", visibility = { page == Page.Position })
     private val leftXPosition by setting("Left X Position", 0.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Position }).apply { onValueChange { _, to -> if (linkedPosition) rightXPosition = to } }
     private val leftYPosition by setting("Left Y Position", 0.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Position }).apply { onValueChange { _, to -> if (linkedPosition) rightYPosition = to } }
     private val leftZPosition by setting("Left Z Position", 0.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Position }).apply { onValueChange { _, to -> if (linkedPosition) rightZPosition = to } }
@@ -45,7 +45,7 @@ object ViewModel : Module(
     private var rightYPosition by setting("Right Y Position", 0.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Position && !linkedPosition })
     private var rightZPosition by setting("Right Z Position", 0.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Position && !linkedPosition })
 
-    private val linkedRotation by setting("Linked", true, "Links both hands rotation settings", visibility = { page == Page.Rotation })
+    private val linkedRotation by setting("Linked Rotation", true, "Links both hands rotation settings", visibility = { page == Page.Rotation })
     private val leftXRotation by setting("Left X Rotation", 0, -180..180, 1, visibility = { page == Page.Rotation }).apply { onValueChange { _, to -> if (linkedRotation) rightXRotation = to } }
     private val leftYRotation by setting("Left Y Rotation", 0, -180..180, 1, visibility = { page == Page.Rotation }).apply { onValueChange { _, to -> if (linkedRotation) rightYRotation = to } }
     private val leftZRotation by setting("Left Z Rotation", 0, -180..180, 1, visibility = { page == Page.Rotation }).apply { onValueChange { _, to -> if (linkedRotation) rightZRotation = to } }
