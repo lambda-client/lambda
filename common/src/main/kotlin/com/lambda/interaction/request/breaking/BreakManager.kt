@@ -183,10 +183,9 @@ object BreakManager : RequestHandler<BreakRequest>(
     private fun SafeContext.processRequest(request: BreakRequest) {
         pendingBreaks.cleanUp()
 
-        val breakConfig = request.build.breaking
         if (request.fresh) populateFrom(request)
 
-        if (!atMaxBreakInfos(breakConfig)) run processNewBreaks@ {
+        if (!atMaxBreakInfos(request.build.breaking)) run processNewBreaks@ {
             if (!performInstantBreaks(request)) return@processNewBreaks
             processNewBreaks(request)
         }
