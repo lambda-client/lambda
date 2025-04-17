@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.util
 
 import com.lambda.Lambda
@@ -11,15 +28,20 @@ import com.lambda.module.Module
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.threading.runSafe
-import com.lambda.threading.runSafeGameConcurrent
+import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.text.*
 import net.minecraft.client.toast.SystemToast
 import net.minecraft.text.Text
 import java.awt.Color
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 object Communication {
     val ascii = """
+
         ⣰⡛⠶⣄⠀⠀⠀⠀⠀⠀
         ⠑⠭⣛⡜⣳⡀⠀⠀⠀⠀
         ⠀⠀⠹⣾⣥⣛⡄⠀⠀⠀
@@ -27,7 +49,12 @@ object Communication {
         ⠀⢠⣿⣿⣿⢶⣏⡿⡄⠀
         ⢠⣿⣿⡿⠃⠘⣿⣼⣻⣄
         ⠻⢿⡿⠁⠀⠀⠘⢷⡽⠞
+
     """.trimIndent()
+
+    fun currentTime(): String = LocalDateTime.now()
+        .atZone(ZoneId.systemDefault())
+        .format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG))
 
     fun Any.debug(message: String, source: String = "") = log(LogLevel.DEBUG.text(message), LogLevel.DEBUG, source)
     fun Any.debug(message: Text, source: Text = Text.empty()) = log(message, LogLevel.DEBUG, textSource = source)
@@ -47,7 +74,7 @@ object Communication {
         buildText {
             text(this@toast.source(logLevel, color = Color.YELLOW))
         }.let { title ->
-            runSafeGameConcurrent {
+            runSafeGameScheduled {
                 mc.toastManager.add(logLevel.toast(title, message))
             }
         }
@@ -72,7 +99,7 @@ object Communication {
             text(this@log.source(logLevel, source, textSource))
             text(message)
         }.let { log ->
-            runSafeGameConcurrent {
+            runSafeGameScheduled {
                 player.sendMessage(log)
             }
         }
@@ -84,7 +111,7 @@ object Communication {
         textSource: Text = Text.empty(),
         color: Color = Color.GRAY,
     ) = buildText {
-        text(logLevel.prefix())
+        text(prefix(logLevel.logoColor))
 
         // ToDo: HUD elements
 
@@ -111,14 +138,23 @@ object Communication {
 
     private fun TextBuilder.commandSource(command: LambdaCommand, color: Color) {
         hoverEvent(HoverEvents.showText(buildText {
-            literal(command.description)
-            literal("\n")
-            literal(command.usage)
-            literal("\n")
-            literal("Aliases: ")
-            joinToText(command.aliases) {
+            if (command.description.isNotBlank()) {
+                literal(command.description)
+            }
+            if (command.usage.isNotBlank()) {
+                literal("\n")
+                literal("Usage: ")
                 color(GuiSettings.primaryColor) {
-                    literal(it)
+                    literal(command.usage)
+                }
+            }
+            if (command.aliases.isNotEmpty()) {
+                literal("\n")
+                literal("Aliases: ")
+                joinToText(command.aliases) {
+                    color(GuiSettings.primaryColor) {
+                        literal(it)
+                    }
                 }
             }
         })) {
@@ -130,17 +166,26 @@ object Communication {
 
     private fun TextBuilder.moduleSource(module: Module, color: Color) {
         hoverEvent(HoverEvents.showText(buildText {
-            literal(module.description)
-            literal("\n")
+            if (module.description.isNotBlank()) {
+                literal(module.description)
+                literal("\n")
+            }
             literal("Keybind: ")
             color(GuiSettings.primaryColor) {
-                literal(module.keybind.keyCode.toString())
+                if (module.keybind.keyCode != -1) {
+                    literal(module.keybind.keyCode.toString())
+                } else {
+                    literal("Unbound")
+                }
+
             }
-            literal("\n")
-            literal("Default tags: ")
-            joinToText(module.defaultTags) {
-                color(GuiSettings.primaryColor) {
-                    literal(it.name)
+            if (module.defaultTags.isNotEmpty()) {
+                literal("\n")
+                literal("Default tags: ")
+                joinToText(module.defaultTags) {
+                    color(GuiSettings.primaryColor) {
+                        literal(it.name)
+                    }
                 }
             }
             if (module.customTags.value.isNotEmpty()) {
@@ -159,11 +204,11 @@ object Communication {
         }
     }
 
-    private fun LogLevel.prefix() =
+    fun prefix(color: Color) =
         buildText {
             hoverEvent(HoverEvents.showText(buildText {
                 literal("Lambda ")
-                color(logoColor) {
+                color(color) {
                     literal(Lambda.SYMBOL)
                 }
                 literal(" v${Lambda.VERSION}\n")
@@ -182,7 +227,7 @@ object Communication {
                 literal("Concurrent listeners: ${EventFlow.concurrentListeners.size}")
 
             })) {
-                styled(logoColor) {
+                styled(color) {
                     literal(Lambda.SYMBOL)
                 }
                 literal(" ")

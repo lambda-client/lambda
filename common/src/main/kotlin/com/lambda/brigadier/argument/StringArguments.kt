@@ -14,12 +14,6 @@
  * limitations under the License.
  */
 
-/*
- * Preserve binary compatibility when moving extensions between files
- */
-@file:JvmMultifileClass
-@file:JvmName("ArgumentsKt")
-
 package com.lambda.brigadier.argument
 
 import com.lambda.brigadier.*
@@ -31,21 +25,16 @@ import com.mojang.brigadier.arguments.StringArgumentType
  *
  * @see StringArgumentType.getString
  */
-@JvmName("valueStringArg")
 @BrigadierDsl
-fun DefaultArgumentReader<StringArgumentType>.value(): String {
-    return StringArgumentType.getString(context, name)
-}
+fun DefaultArgumentReader<StringArgumentType>.value(): String =
+    StringArgumentType.getString(context, name)
 
 /**
  * Creates a string argument with [name] as the parameter name.
  */
 @BrigadierDsl
-fun <S> string(
-    name: String,
-): DefaultArgumentConstructor<S, StringArgumentType> {
-    return argument(name, StringArgumentType.string())
-}
+fun <S> string(name: String): DefaultArgumentConstructor<S, StringArgumentType> =
+    argument(name, StringArgumentType.string())
 
 /**
  * Creates a greedy string argument with [name] as the parameter name.
@@ -55,18 +44,12 @@ fun <S> string(
  * as part of the greedy string argument.
  */
 @BrigadierDsl
-fun <S> greedyString(
-    name: String,
-): DefaultArgumentConstructor<S, StringArgumentType> {
-    return argument(name, StringArgumentType.greedyString())
-}
+fun <S> greedyString(name: String): DefaultArgumentConstructor<S, StringArgumentType> =
+    argument(name, StringArgumentType.greedyString())
 
 /**
  * Creates a word argument with [name] as the parameter name.
  */
 @BrigadierDsl
-fun <S> word(
-    name: String,
-): DefaultArgumentConstructor<S, StringArgumentType> {
-    return argument(name, StringArgumentType.word())
-}
+fun <S> word(name: String): DefaultArgumentConstructor<S, StringArgumentType> =
+    argument(name, StringArgumentType.word())

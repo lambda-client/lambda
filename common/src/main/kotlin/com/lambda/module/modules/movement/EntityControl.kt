@@ -1,66 +1,63 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.movement
 
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.world.WorldUtils.getEntities
+import com.lambda.util.world.fastEntitySearch
 import net.minecraft.entity.passive.AbstractHorseEntity
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 
-// ToDo: Rework this module. All mountables should work, solution should be more elegant.
 object EntityControl : Module(
     name = "EntityControl",
     description = "Control mountable entities",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
-    private val page by setting("Page", Page.GENERAL)
+    private val forceMount by setting("Force Mount", true, description = "Attempts to force mount chested entities.")
 
-    /* General */
-    private val forceMount by setting("Force Mount", true, description = "Attempts to force mount chested entities.", visibility = { page == Page.GENERAL }).apply {
-        onValueChange { _, _ ->
-            horses.forEach { horse -> horse.updateSaddle() }
-        }
-    }
-
-    /* Movement */
-    private val speed by setting("Entity Speed", 2.0, 0.1..10.0, 0.1, description = "Speed for entities.", visibility = { page == Page.MOVEMENT })
-
-    private enum class Page {
-        GENERAL, MOVEMENT
-    }
-
-    private val horses = mutableListOf<AbstractHorseEntity>()
+    private val saddledHorses = mutableSetOf<AbstractHorseEntity>()
 
     init {
-        listener<TickEvent.Pre> {
-            if (forceMount) {
-                getEntities(player.pos, 8.0, horses, { horse, _ -> horse.setHorseFlag(4, true) })
-            }
+        listen<TickEvent.Pre> {
+            fastEntitySearch<AbstractHorseEntity>(8.0)
+                .forEach {
+                    if (!it.isSaddled) saddledHorses.add(it)
+                    it.setHorseFlag(4, true)
+                }
         }
 
-        /*listener<MovementEvent.Pre> {
-            if (!player.isRiding) return@listener
+        listen<PacketEvent.Send.Pre> { event ->
+            if (!forceMount) return@listen
+            if (event.packet !is PlayerInteractEntityC2SPacket) return@listen
+            if (event.packet.type !is PlayerInteractEntityC2SPacket.InteractAtHandler) return@listen
 
-            // We can do this because the player movement depends on the entity movement
-            player.vehicle?.motionX = speed
-            player.vehicle?.motionZ = speed
-        }*/
-
-        listener<PacketEvent.Send.Pre> { event ->
-            if (!forceMount) return@listener
-            if (event.packet !is PlayerInteractEntityC2SPacket) return@listener
-            if (event.packet.type !is PlayerInteractEntityC2SPacket.InteractAtHandler) return@listener
-
-            val entity = world.getEntityById(event.packet.entityId) ?: return@listener
-            if (entity !is AbstractHorseEntity) return@listener
+            val entity = world.getEntityById(event.packet.entityId) ?: return@listen
+            if (entity !is AbstractHorseEntity) return@listen
 
             event.cancel()
         }
 
         onDisable {
-            horses.clear()
+            saddledHorses.forEach { it.setHorseFlag(4, false) }
+            saddledHorses.clear()
         }
     }
 }

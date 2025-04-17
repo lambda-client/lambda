@@ -10,6 +10,7 @@ build/
 .idea/compiler.xml
 .idea/libraries/
 .idea/
+!.idea/scopes
 *.iws
 *.iml
 *.ipr
@@ -17,6 +18,7 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 .kotlin/
+java_pid*.hprof
 
 ### Eclipse ###
 .apt_generated
@@ -49,3 +51,6 @@ logs/
 
 ### Architectury ###
 .architectury-transformer/
+
+### Kotlin ###
+*.kotlin_module

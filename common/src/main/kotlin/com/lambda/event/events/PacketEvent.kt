@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.event.events
 
 import com.lambda.event.Event
@@ -8,9 +25,6 @@ import com.lambda.event.events.PacketEvent.Receive
 import com.lambda.event.events.PacketEvent.Send
 import com.lambda.util.ClientPacket
 import com.lambda.util.ServerPacket
-import net.minecraft.network.listener.ClientPacketListener
-import net.minecraft.network.listener.ServerPacketListener
-import net.minecraft.network.packet.Packet
 
 /**
  * An abstract class representing a [PacketEvent] in the [EventFlow].
@@ -27,44 +41,48 @@ import net.minecraft.network.packet.Packet
  * @see Send
  * @see Receive
  */
-abstract class PacketEvent : Event {
+sealed class PacketEvent {
     /**
      * Represents a [PacketEvent] that is triggered when a packet is sent.
      * It has two subclasses: [Pre] and [Post], which are triggered before and after the packet is sent.
      */
-    sealed class Send : PacketEvent() {
+    sealed class Send {
+        abstract val packet: ClientPacket
+
         /**
          * Represents the event triggered before a packet is sent.
          *
          * @param packet the packet that is about to be sent.
          */
-        class Pre(val packet: ClientPacket) : Send(), ICancellable by Cancellable()
+        data class Pre(override val packet: ClientPacket) : Send(), ICancellable by Cancellable()
 
         /**
          * Represents the event triggered after a packet is sent.
          *
          * @param packet the packet that has been sent.
          */
-        class Post(val packet: ClientPacket) : Send()
+        data class Post(override val packet: ClientPacket) : Send(), Event
     }
 
     /**
      * Represents a [PacketEvent] that is triggered when a packet is received.
      * It has two subclasses: [Pre] and [Post], which are triggered before and after the packet is received.
      */
-    sealed class Receive : PacketEvent() {
+    sealed class Receive {
+        abstract val packet: ServerPacket
+
         /**
          * Represents the event triggered before a packet is received.
          *
          * @param packet the packet that is about to be received.
          */
-        class Pre(val packet: ServerPacket) : Receive(), ICancellable by Cancellable()
+        data class Pre(override val packet: ServerPacket) : Receive(), ICancellable by Cancellable()
 
         /**
          * Represents the event triggered after a packet is received.
          *
          * @param packet the packet that has been received.
          */
-        class Post(val packet: ServerPacket) : Receive()
+        data class Post(override val packet: ServerPacket) : Receive(), Event
     }
 }

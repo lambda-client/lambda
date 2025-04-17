@@ -1,11 +1,29 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.player
 
-import com.lambda.interaction.construction.DynamicBlueprint.Companion.blueprintOnTick
+import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.Task.Companion.emptyTask
-import com.lambda.task.tasks.BuildStructure.Companion.buildStructure
+import com.lambda.task.Task
+import com.lambda.task.RootTask.run
+import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.util.math.BlockPos
@@ -21,40 +39,36 @@ object Nuker : Module(
     private val onlyBreakInstant by setting("Only Break Instant", true)
     private val fillFloor by setting("Fill Floor", false)
 
-    private var task = emptyTask()
+    private var task: Task<*>? = null
 
     init {
         onEnable {
-            task = buildStructure(
-                pathing = false,
-                finishOnDone = false,
-                cancelOnUnsolvable = false
-            ) {
-                blueprintOnTick { _ ->
+            task = tickingBlueprint {
                     val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
                         .asSequence()
                         .map { it.blockPos }
                         .filter { !world.isAir(it) }
                         .filter { !flatten || it.y >= player.blockPos.y }
-                        .filter { !onlyBreakInstant || it.blockState(world).getHardness(world, it) <= 1 }
-                        .filter { it.blockState(world).getHardness(world, it) >= 0 }
+                        .filter { !onlyBreakInstant || blockState(it).getHardness(world, it) <= 1 }
+                        .filter { blockState(it).getHardness(world, it) >= 0 }
                         .associateWith { TargetState.Air }
 
                     if (fillFloor) {
                         val floor = BlockPos.iterateOutwards(player.blockPos.down(), width, 0, width)
                             .map { it.blockPos }
                             .associateWith { TargetState.Solid }
-                        return@blueprintOnTick selection + floor
+                        return@tickingBlueprint selection + floor
                     }
 
                     selection
                 }
-            }
-            task.start(null)
+                // ToDo: Add build setting delegates
+                .build()
+            task?.run()
         }
 
         onDisable {
-            task.cancel()
+            task?.cancel()
         }
 
 //        listener<TickEvent.Pre> {

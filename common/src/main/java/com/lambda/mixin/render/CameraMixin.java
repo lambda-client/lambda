@@ -1,10 +1,28 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.mixin.render;
 
-import com.lambda.interaction.RotationManager;
+import com.lambda.interaction.request.rotation.RotationManager;
 import com.lambda.module.modules.player.Freecam;
 import com.lambda.module.modules.render.CameraTweaks;
 import net.minecraft.client.render.Camera;
 import net.minecraft.entity.Entity;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.BlockView;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -33,6 +51,16 @@ public abstract class CameraMixin {
         Freecam.updateCam();
     }
 
+    /**
+     * Sets the lock rotation to the active rotation
+     * <pre>{@code
+     * this.setPos(
+     *     MathHelper.lerp((double)tickDelta, focusedEntity.prevX, focusedEntity.getX()),
+     *     MathHelper.lerp((double)tickDelta, focusedEntity.prevY, focusedEntity.getY()) + (double)MathHelper.lerp(tickDelta, this.lastCameraY, this.cameraY),
+     *     MathHelper.lerp((double)tickDelta, focusedEntity.prevZ, focusedEntity.getZ())
+     *     );
+     * }</pre>
+     */
     @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setPos(DDD)V", shift = At.Shift.AFTER))
     private void injectQuickPerspectiveSwap(BlockView area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickDelta, CallbackInfo ci) {
         var rot = RotationManager.getLockRotation();
@@ -40,6 +68,9 @@ public abstract class CameraMixin {
         setRotation(rot.getYawF(), rot.getPitchF());
     }
 
+    /**
+     * Allows camera to clip through blocks in third person
+     */
     @Inject(method = "clipToSpace", at = @At("HEAD"), cancellable = true)
     private void onClipToSpace(double desiredCameraDistance, CallbackInfoReturnable<Double> info) {
         if (CameraTweaks.INSTANCE.isEnabled() && CameraTweaks.getNoClipCam()) {
@@ -47,6 +78,18 @@ public abstract class CameraMixin {
         }
     }
 
+    /**
+     * Modifies the third person camera distance
+     * <pre>{@code
+     * if (thirdPerson) {
+     *         if (inverseView) {
+     *             this.setRotation(this.yaw + 180.0F, -this.pitch);
+     *         }
+     *
+     *         this.moveBy(-this.clipToSpace(4.0), 0.0, 0.0);
+     * }
+     * }</pre>
+     */
     @ModifyArg(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;clipToSpace(D)D"))
     private double onDistanceUpdate(double desiredCameraDistance) {
         if (CameraTweaks.INSTANCE.isEnabled()) {

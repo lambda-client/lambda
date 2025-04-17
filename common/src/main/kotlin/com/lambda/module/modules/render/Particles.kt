@@ -1,39 +1,57 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.render
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.event.events.AttackEvent
 import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
-import com.lambda.graphics.buffer.vao.VAO
-import com.lambda.graphics.buffer.vao.vertex.VertexAttrib
-import com.lambda.graphics.buffer.vao.vertex.VertexMode
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.pipeline.VertexPipeline
+import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
+import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.gl.GlStateUtils.withBlendFunc
 import com.lambda.graphics.gl.GlStateUtils.withDepth
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.buildWorldProjection
 import com.lambda.graphics.gl.Matrices.withVertexTransform
-import com.lambda.graphics.shader.Shader
-import com.lambda.interaction.rotation.Rotation
+import com.lambda.graphics.pipeline.VertexBuilder
+import com.lambda.graphics.shader.Shader.Companion.shader
+import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.GuiSettings.colorSpeed
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.ColorUtils.multAlpha
-import com.lambda.util.math.MathUtils.lerp
+import com.lambda.util.extension.partialTicks
 import com.lambda.util.math.MathUtils.random
-import com.lambda.util.math.VecUtils
-import com.lambda.util.math.VecUtils.plus
-import com.lambda.util.math.VecUtils.times
+import com.lambda.util.math.UP
+import com.lambda.util.math.DOWN
+import com.lambda.util.math.plus
+import com.lambda.util.math.times
+import com.lambda.util.math.lerp
+import com.lambda.util.math.multAlpha
 import com.lambda.util.math.transform
 import com.lambda.util.player.MovementUtils.moveDelta
-import com.lambda.util.primitives.extension.partialTicks
-import com.lambda.util.world.raycast.RayCastMask
+import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d
-
 import org.lwjgl.opengl.GL11.GL_ONE
 import org.lwjgl.opengl.GL11.GL_SRC_ALPHA
 import kotlin.math.sin
@@ -63,35 +81,38 @@ object Particles : Module(
     private val environmentSpeedV by setting("E Speed V", 0.1, 0.0..10.0, 0.1) { environment }
 
     private var particles = mutableListOf<Particle>()
-    private val vao = VAO(VertexMode.TRIANGLES, VertexAttrib.Group.PARTICLE)
-    private val shader = Shader("renderer/particle", "renderer/particle")
+    private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.PARTICLE)
+    private val shader = shader("renderer/particle")
 
     init {
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             if (environment) spawnForEnvironment()
             particles.removeIf(Particle::update)
         }
 
-        listener<RenderEvent.World> {
+        listen<RenderEvent.World> {
             // Todo: interpolated tickbased upload?
-            particles.forEach(Particle::build)
+            val builder = pipeline.build()
+            particles.forEach {
+                it.build(builder)
+            }
 
             withBlendFunc(GL_SRC_ALPHA, GL_ONE) {
                 shader.use()
                 shader["u_CameraPosition"] = mc.gameRenderer.camera.pos
 
-                vao.upload()
-                withDepth(vao::render)
-                vao.clear()
+                pipeline.upload(builder)
+                withDepth(false, pipeline::render)
+                pipeline.clear()
             }
         }
 
-        listener<AttackEvent.Pre> { event ->
+        listen<PlayerEvent.Attack.Entity> { event ->
             spawnForEntity(event.entity)
         }
 
-        listener<MovementEvent.Post> {
-            if (!onMove || player.moveDelta < 0.05) return@listener
+        listen<MovementEvent.Player.Post> {
+            if (!onMove || player.moveDelta < 0.05) return@listen
             spawnForEntity(player)
         }
     }
@@ -118,8 +139,8 @@ object Particles : Module(
         repeat(environmentSpawnAmount) {
             var particlePos = player.pos + Rotation(random(-180.0, 180.0), 0.0).vector * random(0.0, environmentRange)
 
-            Rotation.DOWN.rayCast(6.0, particlePos + VecUtils.UP * 2.0, true, RayCastMask.BLOCK)?.pos?.let {
-                particlePos = it + VecUtils.UP * 0.03
+            Rotation.DOWN.rayCast(6.0, particlePos + UP * 2.0, true, InteractionMask.Block)?.pos?.let {
+                particlePos = it + UP * 0.03
             } ?: return@repeat
 
             val particleMotion = Rotation(
@@ -134,7 +155,7 @@ object Particles : Module(
     private class Particle(
         initialPosition: Vec3d,
         initialMotion: Vec3d,
-        val lay: Boolean
+        val lay: Boolean,
     ) {
         private val fadeTicks = fadeDuration
 
@@ -153,7 +174,7 @@ object Particles : Module(
 
             prevPos = position
 
-            if (!lay) motion += VecUtils.DOWN * gravity * 0.01
+            if (!lay) motion += DOWN * gravity * 0.01
             motion *= 0.9 + inertia * 0.1
 
             position += motion
@@ -161,7 +182,7 @@ object Particles : Module(
             return age > maxAge + fadeTicks * 2 + 5
         }
 
-        fun build() {
+        fun build(builder: VertexBuilder) = builder.apply {
             val smoothAge = age + mc.partialTicks
             val colorTicks = smoothAge * 0.1 / colorSpeed
 
@@ -176,21 +197,26 @@ object Particles : Module(
             }
 
             val (c1, c2) = GuiSettings.primaryColor to GuiSettings.secondaryColor
-            val color = lerp(c1, c2, sin(colorTicks) * 0.5 + 0.5).multAlpha(alpha * alphaSetting)
+            val color = lerp(sin(colorTicks) * 0.5 + 0.5, c1, c2).multAlpha(alpha * alphaSetting)
 
-            val position = lerp(prevPos, position, mc.partialTicks)
-            val size = if (lay) environmentSize else sizeSetting * lerp(0.5, 1.0, alpha)
+            val position = lerp(mc.partialTicks, prevPos, position)
+            val size = if (lay) environmentSize else sizeSetting * lerp(alpha, 0.5, 1.0)
 
             withVertexTransform(buildWorldProjection(position, size, projRotation)) {
-                vao.use {
-                    grow(4) // DO NOT FUCKING FORGOTEOIJTOWKET TO GROW (cost me an hour)
-                    putQuad(
-                        vec3m(-1.0, -1.0, 0.0).vec2(0.0, 0.0).color(color).end(),
-                        vec3m(-1.0, 1.0, 0.0).vec2(0.0, 1.0).color(color).end(),
-                        vec3m(1.0, 1.0, 0.0).vec2(1.0, 1.0).color(color).end(),
-                        vec3m(1.0, -1.0, 0.0).vec2(1.0, 0.0).color(color).end()
-                    )
-                }
+                buildQuad(
+                    vertex {
+                        vec3m(-1.0, -1.0, 0.0).vec2(0.0, 0.0).color(color)
+                    },
+                    vertex {
+                        vec3m(-1.0, 1.0, 0.0).vec2(0.0, 1.0).color(color)
+                    },
+                    vertex {
+                        vec3m(1.0, 1.0, 0.0).vec2(1.0, 1.0).color(color)
+                    },
+                    vertex {
+                        vec3m(1.0, -1.0, 0.0).vec2(1.0, 0.0).color(color)
+                    }
+                )
             }
         }
     }

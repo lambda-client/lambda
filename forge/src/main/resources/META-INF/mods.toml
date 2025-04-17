@@ -6,10 +6,10 @@ issueTrackerURL = "https://github.com/lambda-client/lambda/issues"
 [[mods]]
 modId = "${modId}"
 version = "${modVersion}"
-displayName = "Lambda"
+displayName = "${modName}"
 authors = "${modAuthors}"
 description = "${modDescription}"
-logoFile = "assets/lambda/lambda.png"
+logoFile = "${modIcon}"
 displayTest = "IGNORE_ALL_VERSION"
 
 [[dependencies.${modId}]]
@@ -30,5 +30,12 @@ side = "CLIENT"
 modId = "kotlinforforge"
 mandatory = true
 versionRange = "[${kotlinForgeVersionMin},${kotlinForgeVersionMax}]"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.${modId}]]
+modId = "baritoe"
+mandatory = true
+versionRange = "[${baritoneVersion},]"
 ordering = "NONE"
 side = "CLIENT"

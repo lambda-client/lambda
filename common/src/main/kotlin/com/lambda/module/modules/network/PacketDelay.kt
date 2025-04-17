@@ -1,9 +1,26 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.network
 
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.RenderEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runConcurrent
@@ -34,14 +51,14 @@ object PacketDelay : Module(
     private var inboundLastUpdate = 0L
 
     init {
-        listener<RenderEvent.World> {
-            if (mode != Mode.STATIC) return@listener
+        listen<RenderEvent.World> {
+            if (mode != Mode.STATIC) return@listen
 
             flushPools(System.currentTimeMillis())
         }
 
-        listener<PacketEvent.Send.Pre>(Int.MIN_VALUE) { event ->
-            if (!packetScope.filter(event.packet)) return@listener
+        listen<PacketEvent.Send.Pre>(Int.MIN_VALUE) { event ->
+            if (!packetScope.filter(event.packet)) return@listen
 
             when (mode) {
                 Mode.STATIC -> {
@@ -61,8 +78,8 @@ object PacketDelay : Module(
             }
         }
 
-        listener<PacketEvent.Receive.Pre>(Int.MIN_VALUE) { event ->
-            if (!packetScope.filter(event.packet)) return@listener
+        listen<PacketEvent.Receive.Pre>(Int.MIN_VALUE) { event ->
+            if (!packetScope.filter(event.packet)) return@listen
 
             when (mode) {
                 Mode.STATIC -> {

@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.movement
 
 import com.lambda.context.SafeContext
@@ -5,12 +22,12 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.WorldEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Nameable
+import com.lambda.util.NamedEnum
 import com.lambda.util.math.MathUtils.toInt
-import com.lambda.util.math.VecUtils.minus
+import com.lambda.util.math.minus
 import com.lambda.util.player.MovementUtils.isInputting
 import com.lambda.util.player.MovementUtils.motionY
 import com.lambda.util.player.MovementUtils.setSpeed
@@ -36,7 +53,7 @@ object Jesus : Module(
     private var goUp = true
     private var swimmingTicks = 0
 
-    enum class Mode(override val displayName: String, val collision: Boolean) : Nameable.NamedEnum {
+    enum class Mode(override val displayName: String, val collision: Boolean) : NamedEnum {
         NCP("NCP", true),
         NCP_DOLPHIN("NCP Dolphin", false),
         NCP_NEW("NCP New", true)
@@ -45,11 +62,11 @@ object Jesus : Module(
     private var shouldWork = false
 
     init {
-        listener<PlayerPacketEvent.Pre> { event ->
-            if (!shouldWork || !waterAt(-0.0001)) return@listener
+        listen<PlayerPacketEvent.Pre> { event ->
+            if (!shouldWork || !waterAt(-0.0001)) return@listen
             event.onGround = false
 
-            if (!player.isOnGround) return@listener
+            if (!player.isOnGround) return@listen
 
             when (mode) {
                 Mode.NCP -> {
@@ -57,7 +74,7 @@ object Jesus : Module(
                     event.position -= Vec3d(0.0, offset, 0.0)
                 }
 
-                Mode.NCP_NEW-> {
+                Mode.NCP_NEW -> {
                     event.position -= Vec3d(0.0, 0.02 + 0.0001 * swimmingTicks, 0.0)
                 }
 
@@ -65,15 +82,15 @@ object Jesus : Module(
             }
         }
 
-        listener<MovementEvent.Pre> {
-            if (!shouldWork) return@listener
+        listen<MovementEvent.Player.Pre> {
+            if (!shouldWork) return@listen
 
             goUp = waterAt(0.0001)
             val collidingWater = waterAt(-0.0001)
 
             when (mode) {
                 Mode.NCP -> {
-                    if (!collidingWater || !player.isOnGround) return@listener
+                    if (!collidingWater || !player.isOnGround) return@listen
                     setSpeed(Speed.NCP_BASE_SPEED * isInputting.toInt())
                 }
 
@@ -90,7 +107,7 @@ object Jesus : Module(
                 Mode.NCP_NEW -> {
                     if (!collidingWater) {
                         swimmingTicks = 0
-                        return@listener
+                        return@listen
                     }
 
                     if (++swimmingTicks < 15) {
@@ -98,7 +115,7 @@ object Jesus : Module(
                             setSpeed(Speed.NCP_BASE_SPEED * isInputting.toInt())
                         }
 
-                        return@listener
+                        return@listen
                     }
 
                     swimmingTicks = 0
@@ -109,20 +126,20 @@ object Jesus : Module(
             }
         }
 
-        listener<WorldEvent.Collision> { event ->
-            if (!shouldWork || goUp || !mode.collision) return@listener
+        listen<WorldEvent.Collision> { event ->
+            if (!shouldWork || goUp || !mode.collision) return@listen
 
             if (event.state.block == Blocks.WATER) {
                 event.shape = fullShape
             }
         }
 
-        listener<MovementEvent.InputUpdate> {
-            if (!shouldWork || !goUp || mode == Mode.NCP_DOLPHIN) return@listener
+        listen<MovementEvent.InputUpdate> {
+            if (!shouldWork || !goUp || mode == Mode.NCP_DOLPHIN) return@listen
             it.input.jumping = true
         }
 
-        listener<TickEvent.Pre> {
+        listen<TickEvent.Pre> {
             shouldWork = !player.abilities.flying && !player.isFallFlying && !player.input.sneaking
         }
 
@@ -133,7 +150,7 @@ object Jesus : Module(
         }
     }
 
-    private fun SafeContext.waterAt(yOffset: Double) : Boolean {
+    private fun SafeContext.waterAt(yOffset: Double): Boolean {
         val b = player.boundingBox
         val y = b.minY + yOffset
 

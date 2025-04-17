@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.config
 
 import com.google.gson.JsonElement
@@ -7,7 +24,7 @@ import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
 import com.lambda.config.configurations.ModuleConfig
 import com.lambda.event.events.ClientEvent
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.threading.runIO
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
@@ -40,9 +57,9 @@ abstract class Configuration : Jsonable {
         get() = File("${primary.parent}/${primary.nameWithoutExtension}-backup.${primary.extension}")
 
     init {
-        unsafeListener<ClientEvent.Startup> { tryLoad() }
+        listenUnsafe<ClientEvent.Startup> { tryLoad() }
 
-        unsafeListener<ClientEvent.Shutdown>(Int.MIN_VALUE) { trySave() }
+        listenUnsafe<ClientEvent.Shutdown>(Int.MIN_VALUE) { trySave() }
 
         register()
     }
@@ -87,7 +104,10 @@ abstract class Configuration : Jsonable {
     }
 
     private fun load(file: File) {
-        check(file.exists()) { "No configuration file found for ${configName.capitalize()}" }
+        if (!file.exists()) {
+            LOG.warn("No configuration file found for ${configName.capitalize()}. Creating new file when saving.")
+            return
+        }
 
         loadFromJson(JsonParser.parseReader(file.reader()).asJsonObject)
     }
@@ -136,5 +156,22 @@ abstract class Configuration : Jsonable {
 
     companion object {
         val configurations = mutableSetOf<Configuration>()
+        val configurables: Set<Configurable>
+            get() = configurations.flatMapTo(mutableSetOf()) { it.configurables }
+        val settings: Set<AbstractSetting<*>>
+            get() = configurables.flatMapTo(mutableSetOf()) { it.settings }
+
+        //ToDo: Store owner in setting
+        fun configurableBySetting(setting: AbstractSetting<*>) =
+            configurables.find { it.settings.contains(setting) }
+        fun configurableByName(name: String) =
+            configurables.find { it.name == name }
+        fun configurableByCommandName(name: String) =
+            configurables.find { it.commandName == name }
+
+        fun settingByName(configurable: Configurable, name: String) =
+            configurable.settings.find { it.name == name }
+        fun settingByCommandName(configurable: Configurable, name: String) =
+            configurable.settings.find { it.commandName == name }
     }
 }

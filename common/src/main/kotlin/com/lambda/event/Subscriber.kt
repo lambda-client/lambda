@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.event
 
 import com.lambda.event.listener.Listener
@@ -14,25 +31,13 @@ import kotlin.reflect.KClass
  *
  * @property defaultListenerSet A [ConcurrentSkipListSet] of [Listener]s, sorted in reverse order.
  */
-class Subscriber : ConcurrentHashMap<KClass<*>, ConcurrentSkipListSet<Listener>>() {
-    val defaultListenerSet: ConcurrentSkipListSet<Listener>
-        get() = ConcurrentSkipListSet(Comparator.reverseOrder())
-
+class Subscriber : ConcurrentHashMap<KClass<out Event>, ConcurrentSkipListSet<Listener<out Event>>>() {
+    val defaultListenerSet: ConcurrentSkipListSet<Listener<out Event>>
+        get() = ConcurrentSkipListSet(Listener.comparator.reversed())
 
     /** Allows a [Listener] to start receiving a specific type of [Event] */
-    inline fun <reified T : Event> subscribe(listener: Listener) =
+    inline fun <reified T : Event> subscribe(listener: Listener<T>) =
         getOrPut(T::class) { defaultListenerSet }.add(listener)
-
-
-    /** Forgets about every [Listener]s association to [eventType] */
-    fun unsubscribe(eventType: KClass<*>) = remove(eventType)
-
-    /** Allows a [Listener] to stop receiving a specific type of [Event] */
-    fun unsubscribe(listener: Listener) {
-        values.forEach { listeners ->
-            listeners.remove(listener)
-        }
-    }
 
     /** Allows a [Subscriber] to start receiving all [Event]s of another [Subscriber]. */
     infix fun subscribe(subscriber: Subscriber) {
@@ -41,11 +46,30 @@ class Subscriber : ConcurrentHashMap<KClass<*>, ConcurrentSkipListSet<Listener>>
         }
     }
 
+    /** Forgets about every [Listener]'s association to [eventType] */
+    fun <T : Event> unsubscribe(eventType: KClass<T>) =
+        remove(eventType)
+
+    /** Allows a [Listener] to stop receiving a specific type of [Event] */
+    inline fun <reified T : Event> unsubscribe(listener: Listener<T>) =
+        getOrElse(T::class) { defaultListenerSet }.remove(listener)
+
+    /**
+     * Unsubscribes all listeners associated with the current instance (the caller object).
+     * This method iterates over all values in the `Subscriber`'s map and removes listeners
+     * whose `owner` property matches the caller object.
+     *
+     * Use this method when you want to clean up listeners that were registered with the
+     * current instance, preventing further event notifications.
+     */
+    fun unsubscribe(owner: Any) {
+        values.forEach { it.removeAll { listener -> listener.owner == owner } }
+    }
+
     /** Allows a [Subscriber] to stop receiving all [Event]s of another [Subscriber] */
     infix fun unsubscribe(subscriber: Subscriber) {
-        entries.removeAll { (eventType, listeners) ->
-            subscriber[eventType]?.let { listeners.removeAll(it) }
-            listeners.isEmpty()
+        subscriber.forEach { (eventType, listeners) ->
+            getOrElse(eventType) { defaultListenerSet }.removeAll(listeners)
         }
     }
 }

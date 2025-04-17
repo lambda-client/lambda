@@ -1,13 +1,29 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.util.player
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.RotationManager
-import com.lambda.util.math.MathUtils.random
+import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.util.math.MathUtils.toDegree
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.MathUtils.toRadian
-import com.lambda.util.math.VecUtils.plus
-import com.lambda.util.math.VecUtils.times
+import com.lambda.util.math.plus
+import com.lambda.util.math.times
 import net.minecraft.client.input.Input
 import net.minecraft.client.input.KeyboardInput
 import net.minecraft.client.network.ClientPlayerEntity
@@ -27,7 +43,7 @@ object MovementUtils {
 
     fun SafeContext.newMovementInput(
         assumeBaritoneUsage: Boolean = true,
-        slowDownCheck: Boolean = true
+        slowDownCheck: Boolean = true,
     ): Input = if (assumeBaritoneUsage && player.input.handledByBaritone) {
         player.input
     } else {
@@ -45,7 +61,7 @@ object MovementUtils {
         forward: Double,
         strafe: Double,
         jump: Boolean = false,
-        sneak: Boolean = false
+        sneak: Boolean = false,
     ) = Input().apply {
         movementForward = forward.toFloat()
         movementSideways = strafe.toFloat()
@@ -93,27 +109,29 @@ object MovementUtils {
 
     private fun inputMoveOffset(
         moveForward: Double,
-        moveStrafe: Double
+        moveStrafe: Double,
     ) = atan2(-moveStrafe, moveForward)
 
     fun SafeContext.calcMoveYaw(
         yawIn: Float = player.moveYaw,
         moveForward: Double = player.input.roundedForward,
-        moveStrafe: Double = player.input.roundedStrafing
+        moveStrafe: Double = player.input.roundedStrafing,
     ) = yawIn + inputMoveOffset(moveForward, moveStrafe).toDegree()
 
     fun SafeContext.calcMoveRad(
         yawIn: Float = player.moveYaw,
         moveForward: Double = player.input.roundedForward,
-        moveStrafe: Double = player.input.roundedStrafing
+        moveStrafe: Double = player.input.roundedStrafing,
     ) = yawIn.toRadian() + inputMoveOffset(moveForward, moveStrafe)
-
-    fun randomDirection() = random(-180.0, 180.0).toRadian()
 
     fun SafeContext.movementVector(radDir: Double = calcMoveRad(), y: Double = 0.0) =
         Vec3d(-sin(radDir), y, cos(radDir))
 
-    var Entity.motion  get() = velocity;   set(value) { velocity = value }
+    var Entity.motion
+        get() = velocity
+        set(value) {
+            velocity = value
+        }
     var Entity.motionX get() = velocity.x; set(value) = setVelocity(value, velocity.y, velocity.z)
     var Entity.motionY get() = velocity.y; set(value) = setVelocity(velocity.x, value, velocity.z)
     var Entity.motionZ get() = velocity.z; set(value) = setVelocity(velocity.x, velocity.y, value)
@@ -135,12 +153,14 @@ object MovementUtils {
 
     val Entity.moveDiff get() = Vec3d(this.pos.x - this.prevX, this.pos.y - this.prevY, this.pos.z - this.prevZ)
     val Entity.moveDelta get() = moveDiff.let { hypot(it.x, it.z) }
-    val Entity.velocityDelta get() = hypot(this.velocity.x, this.velocity.z)
 
     val Entity.octant: EightWayDirection
+        get() = yaw.octant
+
+    val Float.octant: EightWayDirection
         get() {
             // Normalize the yaw to be within the range of -180 to 179 degrees
-            var normalizedYaw = (yaw + 180.0) % 360.0
+            var normalizedYaw = (this + 180.0) % 360.0
             if (normalizedYaw < 0) {
                 normalizedYaw += 360.0
             }

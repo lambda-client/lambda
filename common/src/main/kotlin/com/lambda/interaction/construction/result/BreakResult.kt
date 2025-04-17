@@ -1,16 +1,33 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
+import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.interaction.material.ContainerManager.findBestAvailableTool
-import com.lambda.interaction.material.ContainerManager.transfer
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
-import com.lambda.interaction.material.container.MainHandContainer
-import com.lambda.task.Task.Companion.failTask
-import com.lambda.task.tasks.BreakBlock.Companion.breakBlock
+import com.lambda.interaction.material.container.ContainerManager.findBestAvailableTool
+import com.lambda.interaction.material.container.ContainerManager.transfer
+import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.material.container.containers.MainHandContainer
 import net.minecraft.block.BlockState
 import net.minecraft.item.Item
 import net.minecraft.util.math.BlockPos
@@ -23,24 +40,19 @@ sealed class BreakResult : BuildResult() {
      * Represents a successful break. All checks have been passed.
      * @param context The context of the break.
      */
-    data class Success(
+    data class Break(
         override val blockPos: BlockPos,
-        val context: BreakContext
-    ) : Resolvable, Drawable, BreakResult() {
+        override val context: BreakContext,
+    ) : Drawable, Contextual, BreakResult() {
         override val rank = Rank.BREAK_SUCCESS
-        private val color = Color(222, 0, 0, 100)
-
-        var collectDrop = false
-
-        override val resolve get() = breakBlock(context, collectDrop = collectDrop)
 
         override fun SafeContext.buildRenderer() {
-            withPos(context.resultingPos, color, context.result.side)
+            with(context) { buildRenderer() }
         }
 
         override fun compareTo(other: ComparableResult<Rank>): Int {
             return when (other) {
-                is Success -> context.compareTo(other.context)
+                is Break -> context.compareTo(other.context)
                 else -> super.compareTo(other)
             }
         }
@@ -53,12 +65,10 @@ sealed class BreakResult : BuildResult() {
      */
     data class NotExposed(
         override val blockPos: BlockPos,
-        val side: Direction
-    ) : Resolvable, Drawable, BreakResult() {
+        val side: Direction,
+    ) : Drawable, BreakResult() {
         override val rank = Rank.BREAK_NOT_EXPOSED
         private val color = Color(46, 0, 0, 30)
-
-        override val resolve get() = failTask("Block is not exposed to air.")
 
         override fun SafeContext.buildRenderer() {
             withPos(blockPos, color, side)
@@ -80,21 +90,22 @@ sealed class BreakResult : BuildResult() {
     data class ItemCantMine(
         override val blockPos: BlockPos,
         val blockState: BlockState,
-        val badItem: Item
-    ) : Resolvable, Drawable, BreakResult() {
+        val badItem: Item,
+        val inventory: InventoryConfig
+    ) : Drawable, Resolvable, BreakResult() {
         override val rank = Rank.BREAK_ITEM_CANT_MINE
         private val color = Color(255, 0, 0, 100)
 
         override val pausesParent get() = true
 
-        override val resolve get() = findBestAvailableTool(blockState)
-                    ?.select()
-                    ?.transfer(MainHandContainer)
-                    ?.solve ?: run {
-                        selectStack {
-                            isItem(badItem).not()
-                        }.transfer(MainHandContainer)?.solve ?: failTask("No item found or space")
-                    }
+        override fun resolve() =
+            findBestAvailableTool(blockState, inventory = inventory)
+                ?.select()
+                ?.transfer(MainHandContainer, inventory)
+                ?: selectStack {
+                    isItem(badItem).not()
+                }.transfer(MainHandContainer, inventory)
+                ?: MaterialContainer.FailureTask("Couldn't find a tool for ${blockState.block.name.string} with $badItem in main hand.")
 
         override fun SafeContext.buildRenderer() {
             withPos(blockPos, color)
@@ -115,7 +126,7 @@ sealed class BreakResult : BuildResult() {
     data class Submerge(
         override val blockPos: BlockPos,
         val blockState: BlockState,
-        val submerge: Set<BuildResult>
+        val submerge: Set<BuildResult>,
     ) : Drawable, BreakResult() {
         override val rank = Rank.BREAK_SUBMERGE
         private val color = Color(114, 27, 255, 100)
@@ -130,7 +141,7 @@ sealed class BreakResult : BuildResult() {
      */
     data class BlockedByLiquid(
         override val blockPos: BlockPos,
-        val blockState: BlockState
+        val blockState: BlockState,
     ) : Drawable, BreakResult() {
         override val rank = Rank.BREAK_IS_BLOCKED_BY_LIQUID
         private val color = Color(50, 12, 112, 100)
@@ -145,13 +156,13 @@ sealed class BreakResult : BuildResult() {
      */
     data class PlayerOnTop(
         override val blockPos: BlockPos,
-        val blockState: BlockState
+        val blockState: BlockState,
     ) : Navigable, Drawable, BreakResult() {
         override val rank = Rank.BREAK_PLAYER_ON_TOP
         private val color = Color(252, 3, 207, 100)
 
         override val goal = GoalInverted(GoalBlock(blockPos))
-        
+
         override fun SafeContext.buildRenderer() {
             withPos(blockPos, color)
         }

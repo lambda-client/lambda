@@ -1,7 +1,24 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.network
 
 import com.lambda.event.events.PacketEvent
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
@@ -27,20 +44,20 @@ object ServerSpoof : Module(
     private val cancelResourcePack by setting("Cancel Resource Pack Loading", true)
 
     init {
-        unsafeListener<PacketEvent.Send.Pre> {
+        listenUnsafe<PacketEvent.Send.Pre> {
             val packet = it.packet
-            if (packet !is CustomPayloadC2SPacket) return@unsafeListener
+            if (packet !is CustomPayloadC2SPacket) return@listenUnsafe
             val payload = packet.payload
-            if (payload !is BrandCustomPayload) return@unsafeListener
-            if (!spoofClientBrand || payload.id() != BrandCustomPayload.ID) return@unsafeListener
+            if (payload !is BrandCustomPayload) return@listenUnsafe
+            if (!spoofClientBrand || payload.id() != BrandCustomPayload.ID) return@listenUnsafe
 
             payload.write(PacketByteBuf(Unpooled.buffer()).writeString(spoofName))
         }
 
-        unsafeListener<PacketEvent.Receive.Pre> { event ->
+        listenUnsafe<PacketEvent.Receive.Pre> { event ->
             val packet = event.packet
-            if (!cancelResourcePack) return@unsafeListener
-            if (packet !is ResourcePackSendS2CPacket) return@unsafeListener
+            if (!cancelResourcePack) return@listenUnsafe
+            if (packet !is ResourcePackSendS2CPacket) return@listenUnsafe
 
             event.cancel()
 

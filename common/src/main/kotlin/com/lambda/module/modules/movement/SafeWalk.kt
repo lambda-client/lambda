@@ -1,9 +1,28 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.movement
 
 import com.lambda.event.events.MovementEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.player.MovementUtils.motionX
+import com.lambda.util.player.MovementUtils.motionZ
 import net.minecraft.entity.LivingEntity
 
 object SafeWalk : Module(
@@ -16,23 +35,23 @@ object SafeWalk : Module(
     private val stepHeight by setting("Step Height", 1.1, 0.0..4.0, 0.05, unit = " blocks")
 
     init {
-        listener<MovementEvent.InputUpdate> {
+        listen<MovementEvent.InputUpdate> {
             if (sneakOnLedge && player.isOnGround && player.isNearLedge(ledgeDistance, stepHeight)) {
                 it.input.sneaking = true
             }
         }
 
-        listener<MovementEvent.ClipAtLedge> {
+        listen<MovementEvent.ClipAtLedge> {
             if (!sneakOnLedge) it.clip = true
         }
     }
 
     private fun LivingEntity.isNearLedge(distance: Double, stepHeight: Double): Boolean {
         fun checkDirection(deltaX: Double, deltaZ: Double): Boolean {
-            var dx = deltaX
-            var dz = deltaZ
+            var dx = deltaX + motionX
+            var dz = deltaZ + motionZ
             while (dx != 0.0 || dz != 0.0) {
-                if (world.isSpaceEmpty(this, boundingBox.offset(dx, -stepHeight, dz))) {
+                if (world.isBlockSpaceEmpty(this, boundingBox.offset(dx, -stepHeight, dz))) {
                     return true
                 }
                 if (dx != 0.0) dx = adjustDelta(dx)

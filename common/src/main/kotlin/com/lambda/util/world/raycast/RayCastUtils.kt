@@ -1,10 +1,28 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.util.world.raycast
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.interaction.rotation.Rotation
+import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.threading.runSafe
-import com.lambda.util.math.VecUtils.distSq
+import com.lambda.util.math.distSq
+import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.projectile.ProjectileUtil
 import net.minecraft.util.hit.BlockHitResult
@@ -16,16 +34,18 @@ import kotlin.math.max
 import kotlin.math.pow
 
 object RayCastUtils {
-    private val entityPredicate = { entity: Entity -> !entity.isSpectator && entity.canHit() }
+    private val entityPredicate = { entity: Entity ->
+        !entity.isSpectator && entity.canHit() && entity !is ClientPlayerEntity
+    }
 
     fun SafeContext.rayCast(
         start: Vec3d,
-        end: Vec3d,
+        direction: Vec3d,
         reach: Double,
-        mask: RayCastMask,
+        mask: InteractionMask,
         fluids: Boolean = false,
     ): HitResult? {
-        val vec = end.multiply(reach)
+        val vec = direction.multiply(reach)
         val point = start.add(vec)
 
         val block = run {
@@ -53,7 +73,7 @@ object RayCastUtils {
     // ToDo: Should rather move player hitbox down and check collision
     fun distanceToGround(maxDist: Double = 100.0) = runSafe {
         val pos = player.pos.add(0.0, 0.1, 0.0)
-        val cast = Rotation.DOWN.rayCast(maxDist, pos, false, RayCastMask.BLOCK) ?: return@runSafe maxDist
+        val cast = Rotation.DOWN.rayCast(maxDist, pos, false, InteractionMask.Block) ?: return@runSafe maxDist
 
         return@runSafe max(0.0, pos.y - cast.pos.y)
     }

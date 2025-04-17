@@ -1,6 +1,6 @@
 name: Bug Report
 description: File a bug report.
-title: "[Version] [Mod Loader] [Bug]: "
+title: "[Version] Bug: "
 assignees:
   - Edouard127
 body:
@@ -40,11 +40,3 @@ body:
     attributes:
       label: Log Output
       description: Please copy the entire log file located in `.minecraft/logs/latest.log` to [MCLogs](https://mclo.gs) and provide the link here.
-  - type: checkboxes
-    id: terms
-    attributes:
-      label: Code of Conduct
-      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/lambda-client/lambda/blob/master/.github/CODE_OF_CONDUCT.md).
-      options:
-        - label: I agree to follow this project's Code of Conduct
-          required: true

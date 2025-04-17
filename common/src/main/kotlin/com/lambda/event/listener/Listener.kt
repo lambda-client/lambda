@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.event.listener
 
 import com.lambda.event.Event
@@ -27,7 +44,7 @@ import com.lambda.module.Module
  * @property owner The owner of the [Listener]. This is typically the object that created the [Listener].
  * @property alwaysListen If true, the [Listener] will always be triggered, even if the [owner] is [Muteable.isMuted].
  */
-abstract class Listener : Comparable<Listener> {
+abstract class Listener<T : Event> : Comparable<Listener<T>> {
     abstract val priority: Int
     abstract val owner: Any
     abstract val alwaysListen: Boolean
@@ -37,21 +54,17 @@ abstract class Listener : Comparable<Listener> {
      *
      * @param event The event that triggered this listener.
      */
-    abstract fun execute(event: Event)
+    abstract fun execute(event: T)
 
-    /**
-     * Compares this listener with another listener.
-     * The comparison is based first on the priority, and then on the hash code of the listeners.
-     *
-     * @param other The other listener to compare with.
-     * @return A negative integer, zero, or a positive integer as this listener is less than, equal to,
-     * or greater than the specified listener.
-     */
-    override fun compareTo(other: Listener) =
-        compareBy<Listener> {
+    override fun compareTo(other: Listener<T>) =
+        comparator.compare(this, other)
+
+    companion object {
+        val comparator = compareBy<Listener<out Event>> {
             it.priority
         }.thenBy {
-            // Needed because ConcurrentSkipListSet handles insertion based on compareTo
+            // Hashcode is needed because ConcurrentSkipListSet handles insertion based on compareTo
             it.hashCode()
-        }.compare(this, other)
+        }
+    }
 }

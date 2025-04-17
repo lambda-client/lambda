@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.threading
 
 import com.lambda.Lambda.mc
@@ -6,6 +23,7 @@ import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
 import com.mojang.blaze3d.systems.RenderSystem.isOnRenderThread
 import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.launch
@@ -35,13 +53,13 @@ inline fun <T> runSafe(block: SafeContext.() -> T) =
  *
  * @param block The block of code to be executed concurrently.
  */
-inline fun runConcurrent(crossinline block: suspend () -> Unit) =
-    EventFlow.lambdaScope.launch {
+inline fun runConcurrent(scheduler: CoroutineDispatcher = Dispatchers.Default, crossinline block: suspend () -> Unit) =
+    EventFlow.lambdaScope.launch(scheduler) {
         block()
     }
 
 inline fun runIO(crossinline block: suspend () -> Unit) =
-    EventFlow.lambdaScope.launch(Dispatchers.IO) {
+    runConcurrent(Dispatchers.IO) {
         block()
     }
 
@@ -62,7 +80,7 @@ inline fun taskContext(crossinline block: suspend () -> Unit) =
  *
  * @param block The block of code to be executed within the safe context.
  */
-inline fun runSafeConcurrent(crossinline block: SafeContext.() -> Unit) {
+inline fun runSafeConcurrent(crossinline block: suspend SafeContext.() -> Unit) {
     EventFlow.lambdaScope.launch {
         runSafe { block() }
     }
@@ -108,7 +126,7 @@ inline fun runGameScheduled(crossinline block: () -> Unit) {
  *
  * @param block The task to be executed on the game's main thread within a safe context.
  */
-inline fun runSafeGameConcurrent(crossinline block: SafeContext.() -> Unit) {
+inline fun runSafeGameScheduled(crossinline block: SafeContext.() -> Unit) {
     runGameScheduled { runSafe { block() } }
 }
 

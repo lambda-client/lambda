@@ -1,19 +1,43 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.command.commands
 
+import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
 import com.lambda.brigadier.argument.literal
+import com.lambda.brigadier.argument.string
+import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.Configuration
 import com.lambda.util.Communication.info
-import com.lambda.util.primitives.extension.CommandBuilder
+import com.lambda.util.extension.CommandBuilder
+import com.lambda.util.text.buildText
+import com.lambda.util.text.highlighted
+import com.lambda.util.text.literal
 
 object ConfigCommand : LambdaCommand(
     name = "config",
-    aliases = setOf("cfg"),
-    usage = "config <save|load>",
-    description = "Save or load the configuration files"
+    aliases = setOf("cfg", "settings", "setting"),
+    usage = "config <save | load | set> <configurable> <setting> <value>",
+    description = "Save or load configuration files, or set any settings value",
+    examples = listOf("config save", "config load", "config set HighwayTools Pavement_Material minecraft:obsidian")
 ) {
     override fun CommandBuilder.create() {
         required(literal("save")) {
@@ -32,6 +56,52 @@ object ConfigCommand : LambdaCommand(
                 }
                 this@ConfigCommand.info("Loaded ${Configuration.configurations.size} configuration files.")
                 return@executeWithResult success()
+            }
+        }
+        required(literal("reset")) {
+            required(string("config")) { config ->
+                suggests { _, builder ->
+                    Configuration.configurables.forEach {
+                        builder.suggest(it.commandName)
+                    }
+                    builder.buildFuture()
+                }
+                required(string("setting")) { setting ->
+                    suggests { ctx, builder ->
+                        val conf = config(ctx).value()
+                        Configuration.configurableByName(conf)?.let { configurable ->
+                            configurable.settings.forEach {
+                                builder.suggest(it.commandName)
+                            }
+                        }
+                        builder.buildFuture()
+                    }
+                    executeWithResult {
+                        val confName = config().value()
+                        val settingName = setting().value()
+                        val conf = Configuration.configurableByCommandName(confName) ?: run {
+                            return@executeWithResult failure("$confName is not a valid configurable.")
+                        }
+                        val set = Configuration.settingByCommandName(conf, settingName) ?: run {
+                            return@executeWithResult failure("$settingName is not a valid setting for $confName.")
+                        }
+                        set.reset()
+                        return@executeWithResult success()
+                    }
+                }
+            }
+        }
+        required(literal("set")) {
+            Configuration.configurables.forEach { configurable ->
+                required(literal(configurable.commandName)) {
+                    configurable.settings.forEach { setting ->
+                        required(literal(setting.commandName)) {
+                            with(setting) {
+                                buildCommand(registry)
+                            }
+                        }
+                    }
+                }
             }
         }
     }

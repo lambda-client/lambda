@@ -1,10 +1,27 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.movement
 
 import com.lambda.context.SafeContext
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listener
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
@@ -26,14 +43,18 @@ object TickShift : Module(
     private val boostAmount by setting("Boost", 3.0, 1.1..20.0, 0.01)
     private val slowdown by setting("Slowdown", 0.35, 0.01..0.9, 0.01)
     private val delaySetting by setting("Delay", 0, 0..2000, 10)
-    private val strict by setting("Strict", true)
-    private val shiftVelocity by setting("Shift velocity", true)
+    private val grim by setting("Grim", true)
+    private val strictSetting by setting("Strict", true) { !grim }
+    private val shiftVelocity by setting("Shift velocity", true) { grim }
     private val requiresAura by setting("Requires Aura", false)
 
-    val isActive: Boolean get() {
-        if (requiresAura && (!KillAura.isEnabled || KillAura.target == null)) return false
-        return System.currentTimeMillis() - lastBoost > delaySetting
-    }
+    private val strict get() = grim || strictSetting
+
+    val isActive: Boolean
+        get() {
+            if (requiresAura && (!KillAura.isEnabled || KillAura.target == null)) return false
+            return System.currentTimeMillis() - lastBoost > delaySetting
+        }
 
     private var pingPool = ArrayDeque<CommonPongC2SPacket>()
     private var lastVelocity: EntityVelocityUpdateS2CPacket? = null
@@ -43,7 +64,7 @@ object TickShift : Module(
     private var lastBoost = 0L
 
     init {
-        listener<TickEvent.Post> {
+        listen<TickEvent.Post> {
             if (Blink.isEnabled) {
                 this@TickShift.info("TickShift is incompatible with blink")
                 disable()
@@ -62,8 +83,8 @@ object TickShift : Module(
             }
         }
 
-        listener<PacketEvent.Send.Pre> {
-            if (it.packet !is PlayerMoveC2SPacket) return@listener
+        listen<PacketEvent.Send.Pre> {
+            if (it.packet !is PlayerMoveC2SPacket) return@listen
             if (!strict) balance--
         }
 
@@ -80,33 +101,33 @@ object TickShift : Module(
             }
         }
 
-        listener<ClientEvent.Timer> {
+        listen<ClientEvent.TimerUpdate> {
             if (!isActive) {
                 poolPackets()
-                return@listener
+                return@listen
             }
 
             it.speed = if (boost) boostAmount else slowdown
         }
 
-        listener<PacketEvent.Send.Pre> { event ->
-            if (!isActive) return@listener
-            if (event.packet !is CommonPongC2SPacket) return@listener
+        listen<PacketEvent.Send.Pre> { event ->
+            if (!isActive || !grim || event.isCanceled()) return@listen
+            if (event.packet !is CommonPongC2SPacket) return@listen
 
             pingPool.add(event.packet)
             event.cancel()
-            return@listener
+            return@listen
         }
 
-        listener<PacketEvent.Receive.Pre> { event ->
-            if (!isActive || !shiftVelocity) return@listener
+        listen<PacketEvent.Receive.Pre> { event ->
+            if (!isActive || !grim || !shiftVelocity || event.isCanceled()) return@listen
 
-            if (event.packet !is EntityVelocityUpdateS2CPacket) return@listener
-            if (event.packet.id != player.id) return@listener
+            if (event.packet !is EntityVelocityUpdateS2CPacket) return@listen
+            if (event.packet.id != player.id) return@listen
 
             lastVelocity = event.packet
             event.cancel()
-            return@listener
+            return@listen
         }
 
         onEnable {

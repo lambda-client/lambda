@@ -1,11 +1,28 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.module.modules.network
 
 import com.lambda.Lambda
 import com.lambda.Lambda.mc
 import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeConcurrentListener
-import com.lambda.event.listener.UnsafeListener.Companion.unsafeListener
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafeConcurrently
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runIO
@@ -30,13 +47,14 @@ object PacketLogger : Module(
     defaultTags = setOf(ModuleTag.NETWORK, ModuleTag.DEBUG)
 ) {
     private val logToChat by setting("Log To Chat", false, "Log packets to chat")
+
     // ToDo: Implement HUD logging when HUD is done
 //    private val logToHUD by setting("Log To HUD", false, "Log packets to HUD")
     private val networkSide by setting("Network Side", NetworkSide.ANY, "Side of the network to log packets from")
     private val logTicks by setting("Log Ticks", true, "Show game ticks in the log")
     private val scope by setting("Scope", Scope.ANY, "Scope of packets to log")
-    private val whitelist by setting("Whitelist Packets", emptyList<String>(), "Packets to whitelist", visibility = { scope == Scope.WHITELIST })
-    private val blacklist by setting("Blacklist Packets", emptyList<String>(), "Packets to blacklist", visibility = { scope == Scope.BLACKLIST })
+    private val whitelist by setting("Whitelist Packets", emptyList<String>(), "Packets to whitelist") { scope == Scope.WHITELIST }
+    private val blacklist by setting("Blacklist Packets", emptyList<String>(), "Packets to blacklist") { scope == Scope.BLACKLIST }
     private val maxRecursionDepth by setting("Max Recursion Depth", 6, 1..10, 1, "Maximum recursion depth for packet serialization")
     private val logConcurrent by setting("Build Data Concurrent", false, "Whether to serialize packets concurrently. Will not save packets in chronological order but wont lag the game.")
 
@@ -79,7 +97,7 @@ object PacketLogger : Module(
             val fileName = "packet-log-${getTime(fileFormatter)}.txt"
 
             // ToDo: Organize files with FolderRegister.worldBoundDirectory
-            file = FolderRegister.packetLogs.resolve(fileName).apply {
+            file = FolderRegister.packetLogs.resolve(fileName).toFile().apply {
                 if (!parentFile.exists()) {
                     parentFile.mkdirs()
                 }
@@ -137,45 +155,45 @@ object PacketLogger : Module(
             }
         }
 
-        unsafeListener<TickEvent.Pre> {
-            if (!logTicks) return@unsafeListener
+        listenUnsafe<TickEvent.Pre> {
+            if (!logTicks) return@listenUnsafe
 
             storageFlow.tryEmit("Started tick at ${getTime(entryFormatter)}\n\n")
         }
 
-        unsafeListener<PacketEvent.Receive.Pre> {
+        listenUnsafe<PacketEvent.Receive.Pre> {
             if (logConcurrent
                 || !scope.shouldLog(it.packet)
                 || !networkSide.shouldLog(NetworkSide.SERVER)
-            ) return@unsafeListener
+            ) return@listenUnsafe
 
             it.packet.logReceived()
         }
 
-        unsafeListener<PacketEvent.Send.Pre> {
+        listenUnsafe<PacketEvent.Send.Pre> {
             if (logConcurrent
                 || !scope.shouldLog(it.packet)
                 || !networkSide.shouldLog(NetworkSide.CLIENT)
-            ) return@unsafeListener
+            ) return@listenUnsafe
 
 
             it.packet.logSent()
         }
 
-        unsafeConcurrentListener<PacketEvent.Receive.Pre> {
+        listenUnsafeConcurrently<PacketEvent.Receive.Pre> {
             if (!logConcurrent
                 || !scope.shouldLog(it.packet)
                 || !networkSide.shouldLog(NetworkSide.SERVER)
-            ) return@unsafeConcurrentListener
+            ) return@listenUnsafeConcurrently
 
             it.packet.logReceived()
         }
 
-        unsafeConcurrentListener<PacketEvent.Send.Pre> {
+        listenUnsafeConcurrently<PacketEvent.Send.Pre> {
             if (!logConcurrent
                 || !scope.shouldLog(it.packet)
                 || !networkSide.shouldLog(NetworkSide.CLIENT)
-            ) return@unsafeConcurrentListener
+            ) return@listenUnsafeConcurrently
 
             it.packet.logSent()
         }

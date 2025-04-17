@@ -1,3 +1,20 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.command.commands
 
 import com.google.gson.JsonSyntaxException
@@ -12,11 +29,12 @@ import com.lambda.command.LambdaCommand
 import com.lambda.module.modules.player.Replay
 import com.lambda.util.FolderRegister
 import com.lambda.util.FolderRegister.listRecursive
-import com.lambda.util.primitives.extension.CommandBuilder
+import com.lambda.util.extension.CommandBuilder
+import kotlin.io.path.exists
 
 object ReplayCommand : LambdaCommand(
     name = "replay",
-    usage = "replay <play|load|save|prune>",
+    usage = "replay <play | load | save | prune>",
     description = "Play, load, save, or prune a replay"
 ) {
     override fun CommandBuilder.create() {
@@ -31,7 +49,7 @@ object ReplayCommand : LambdaCommand(
         required(literal("load")) {
             required(greedyString("replay filepath")) { replayName ->
                 suggests { _, builder ->
-                    val dir = FolderRegister.replay
+                    val dir = FolderRegister.replay.toFile()
                     dir.listRecursive { it.isFile }.forEach {
                         builder.suggest(it.relativeTo(dir).path)
                     }
@@ -46,7 +64,7 @@ object ReplayCommand : LambdaCommand(
                     }
 
                     try {
-                        Replay.loadRecording(replayFile)
+                        Replay.loadRecording(replayFile.toFile())
                     } catch (e: JsonSyntaxException) {
                         return@executeWithResult CommandResult.failure("Failed to load replay file: ${e.message}")
                     }

@@ -1,14 +1,31 @@
+/*
+ * Copyright 2024 Lambda
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package com.lambda.graphics.renderer.esp.builders
 
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.hasDirection
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.impl.DynamicESPRenderer
-import com.lambda.util.primitives.extension.max
-import com.lambda.util.primitives.extension.min
+import com.lambda.util.extension.max
+import com.lambda.util.extension.min
 import java.awt.Color
 
-fun DynamicESPRenderer.build(
+fun DynamicESPRenderer.ofBox(
     box: DynamicAABB,
     filledColor: Color,
     outlineColor: Color,
@@ -23,31 +40,28 @@ fun DynamicESPRenderer.buildFilled(
     box: DynamicAABB,
     color: Color,
     sides: Int = DirectionMask.ALL
-) = faces.use {
+) = faceBuilder.use {
     val boxes = box.getBoxPair() ?: return@use
-
     val pos11 = boxes.first.min
     val pos12 = boxes.first.max
     val pos21 = boxes.second.min
     val pos22 = boxes.second.max
 
-    grow(8)
+    val blb by lazy { vertex { vec3(pos11.x, pos11.y, pos11.z).vec3(pos21.x, pos21.y, pos21.z).color(color) } }
+    val blf by lazy { vertex { vec3(pos11.x, pos11.y, pos12.z).vec3(pos21.x, pos21.y, pos22.z).color(color) } }
+    val brb by lazy { vertex { vec3(pos12.x, pos11.y, pos11.z).vec3(pos22.x, pos21.y, pos21.z).color(color) } }
+    val brf by lazy { vertex { vec3(pos12.x, pos11.y, pos12.z).vec3(pos22.x, pos21.y, pos22.z).color(color) } }
+    val tlb by lazy { vertex { vec3(pos11.x, pos12.y, pos11.z).vec3(pos21.x, pos22.y, pos21.z).color(color) } }
+    val tlf by lazy { vertex { vec3(pos11.x, pos12.y, pos12.z).vec3(pos21.x, pos22.y, pos22.z).color(color) } }
+    val trb by lazy { vertex { vec3(pos12.x, pos12.y, pos11.z).vec3(pos22.x, pos22.y, pos21.z).color(color) } }
+    val trf by lazy { vertex { vec3(pos12.x, pos12.y, pos12.z).vec3(pos22.x, pos22.y, pos22.z).color(color) } }
 
-    val blb by lazy { vec3(pos11.x, pos11.y, pos11.z).vec3(pos21.x, pos21.y, pos21.z).color(color).end() }
-    val blf by lazy { vec3(pos11.x, pos11.y, pos12.z).vec3(pos21.x, pos21.y, pos22.z).color(color).end() }
-    val brb by lazy { vec3(pos12.x, pos11.y, pos11.z).vec3(pos22.x, pos21.y, pos21.z).color(color).end() }
-    val brf by lazy { vec3(pos12.x, pos11.y, pos12.z).vec3(pos22.x, pos21.y, pos22.z).color(color).end() }
-    val tlb by lazy { vec3(pos11.x, pos12.y, pos11.z).vec3(pos21.x, pos22.y, pos21.z).color(color).end() }
-    val tlf by lazy { vec3(pos11.x, pos12.y, pos12.z).vec3(pos21.x, pos22.y, pos22.z).color(color).end() }
-    val trb by lazy { vec3(pos12.x, pos12.y, pos11.z).vec3(pos22.x, pos22.y, pos21.z).color(color).end() }
-    val trf by lazy { vec3(pos12.x, pos12.y, pos12.z).vec3(pos22.x, pos22.y, pos22.z).color(color).end() }
-
-    if (sides.hasDirection(DirectionMask.EAST))  putQuad(brb, trb, trf, brf)
-    if (sides.hasDirection(DirectionMask.WEST))  putQuad(blb, blf, tlf, tlb)
-    if (sides.hasDirection(DirectionMask.UP))    putQuad(tlb, tlf, trf, trb)
-    if (sides.hasDirection(DirectionMask.DOWN))  putQuad(blb, brb, brf, blf)
-    if (sides.hasDirection(DirectionMask.SOUTH)) putQuad(blf, brf, trf, tlf)
-    if (sides.hasDirection(DirectionMask.NORTH)) putQuad(blb, tlb, trb, brb)
+    if (sides.hasDirection(DirectionMask.EAST))  buildQuad(brb, trb, trf, brf)
+    if (sides.hasDirection(DirectionMask.WEST))  buildQuad(blb, blf, tlf, tlb)
+    if (sides.hasDirection(DirectionMask.UP))    buildQuad(tlb, tlf, trf, trb)
+    if (sides.hasDirection(DirectionMask.DOWN))  buildQuad(blb, brb, brf, blf)
+    if (sides.hasDirection(DirectionMask.SOUTH)) buildQuad(blf, brf, trf, tlf)
+    if (sides.hasDirection(DirectionMask.NORTH)) buildQuad(blb, tlb, trb, brb)
 }
 
 fun DynamicESPRenderer.buildOutline(
@@ -55,7 +69,7 @@ fun DynamicESPRenderer.buildOutline(
     color: Color,
     sides: Int = DirectionMask.ALL,
     outlineMode: DirectionMask.OutlineMode = DirectionMask.OutlineMode.OR
-) = outlines.use {
+) = outlineBuilder.use {
     val boxes = box.getBoxPair() ?: return@use
 
     val pos11 = boxes.first.min
@@ -63,16 +77,14 @@ fun DynamicESPRenderer.buildOutline(
     val pos21 = boxes.second.min
     val pos22 = boxes.second.max
 
-    grow(8)
-
-    val blb by lazy { vec3(pos11.x, pos11.y, pos11.z).vec3(pos21.x, pos21.y, pos21.z).color(color).end() }
-    val blf by lazy { vec3(pos11.x, pos11.y, pos12.z).vec3(pos21.x, pos21.y, pos22.z).color(color).end() }
-    val brb by lazy { vec3(pos12.x, pos11.y, pos11.z).vec3(pos22.x, pos21.y, pos21.z).color(color).end() }
-    val brf by lazy { vec3(pos12.x, pos11.y, pos12.z).vec3(pos22.x, pos21.y, pos22.z).color(color).end() }
-    val tlb by lazy { vec3(pos11.x, pos12.y, pos11.z).vec3(pos21.x, pos22.y, pos21.z).color(color).end() }
-    val tlf by lazy { vec3(pos11.x, pos12.y, pos12.z).vec3(pos21.x, pos22.y, pos22.z).color(color).end() }
-    val trb by lazy { vec3(pos12.x, pos12.y, pos11.z).vec3(pos22.x, pos22.y, pos21.z).color(color).end() }
-    val trf by lazy { vec3(pos12.x, pos12.y, pos12.z).vec3(pos22.x, pos22.y, pos22.z).color(color).end() }
+    val blb by lazy { vertex { vec3(pos11.x, pos11.y, pos11.z).vec3(pos21.x, pos21.y, pos21.z).color(color) } }
+    val blf by lazy { vertex { vec3(pos11.x, pos11.y, pos12.z).vec3(pos21.x, pos21.y, pos22.z).color(color) } }
+    val brb by lazy { vertex { vec3(pos12.x, pos11.y, pos11.z).vec3(pos22.x, pos21.y, pos21.z).color(color) } }
+    val brf by lazy { vertex { vec3(pos12.x, pos11.y, pos12.z).vec3(pos22.x, pos21.y, pos22.z).color(color) } }
+    val tlb by lazy { vertex { vec3(pos11.x, pos12.y, pos11.z).vec3(pos21.x, pos22.y, pos21.z).color(color) } }
+    val tlf by lazy { vertex { vec3(pos11.x, pos12.y, pos12.z).vec3(pos21.x, pos22.y, pos22.z).color(color) } }
+    val trb by lazy { vertex { vec3(pos12.x, pos12.y, pos11.z).vec3(pos22.x, pos22.y, pos21.z).color(color) } }
+    val trf by lazy { vertex { vec3(pos12.x, pos12.y, pos12.z).vec3(pos22.x, pos22.y, pos22.z).color(color) } }
 
     val hasEast  = sides.hasDirection(DirectionMask.EAST)
     val hasWest  = sides.hasDirection(DirectionMask.WEST)
@@ -81,18 +93,18 @@ fun DynamicESPRenderer.buildOutline(
     val hasSouth = sides.hasDirection(DirectionMask.SOUTH)
     val hasNorth = sides.hasDirection(DirectionMask.NORTH)
 
-    if (outlineMode.check(hasUp, hasNorth)) putLine(tlb, trb)
-    if (outlineMode.check(hasUp, hasSouth)) putLine(tlf, trf)
-    if (outlineMode.check(hasUp, hasWest))  putLine(tlb, tlf)
-    if (outlineMode.check(hasUp, hasEast))  putLine(trf, trb)
+    if (outlineMode.check(hasUp, hasNorth))   buildLine(tlb, trb)
+    if (outlineMode.check(hasUp, hasSouth))   buildLine(tlf, trf)
+    if (outlineMode.check(hasUp, hasWest))    buildLine(tlb, tlf)
+    if (outlineMode.check(hasUp, hasEast))    buildLine(trf, trb)
 
-    if (outlineMode.check(hasDown, hasNorth)) putLine(blb, brb)
-    if (outlineMode.check(hasDown, hasSouth)) putLine(blf, brf)
-    if (outlineMode.check(hasDown, hasWest))  putLine(blb, blf)
-    if (outlineMode.check(hasDown, hasEast))  putLine(brb, brf)
+    if (outlineMode.check(hasDown, hasNorth)) buildLine(blb, brb)
+    if (outlineMode.check(hasDown, hasSouth)) buildLine(blf, brf)
+    if (outlineMode.check(hasDown, hasWest))  buildLine(blb, blf)
+    if (outlineMode.check(hasDown, hasEast))  buildLine(brb, brf)
 
-    if (outlineMode.check(hasWest, hasNorth)) putLine(tlb, blb)
-    if (outlineMode.check(hasNorth, hasEast)) putLine(trb, brb)
-    if (outlineMode.check(hasEast, hasSouth)) putLine(trf, brf)
-    if (outlineMode.check(hasSouth, hasWest)) putLine(tlf, blf)
+    if (outlineMode.check(hasWest, hasNorth)) buildLine(tlb, blb)
+    if (outlineMode.check(hasNorth, hasEast)) buildLine(trb, brb)
+    if (outlineMode.check(hasEast, hasSouth)) buildLine(trf, brf)
+    if (outlineMode.check(hasSouth, hasWest)) buildLine(tlf, blf)
 }
