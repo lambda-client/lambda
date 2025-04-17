@@ -35,13 +35,17 @@ val LambdaHttp = HttpClient {
 }
 
 suspend inline fun HttpClient.download(url: String, file: File, block: HttpRequestBuilder.() -> Unit = {}) {
-    val response = get(url, block).readRawBytes()
-    file.writeBytes(response)
+    val response = get(url, block)
+    check(response.status.isSuccess()) { "Download for $url failed with non 2xx status code" }
+
+    file.writeBytes(response.readRawBytes())
 }
 
 suspend inline fun HttpClient.download(url: String, output: OutputStream, block: HttpRequestBuilder.() -> Unit = {}) {
-    val response = get(url, block).readRawBytes()
-    output.write(response)
+    val response = get(url, block)
+    check(response.status.isSuccess()) { "Download for $url failed with non 2xx status code" }
+
+    output.write(response.readRawBytes())
 }
 
 suspend inline fun HttpClient.download(url: String, block: HttpRequestBuilder.() -> Unit) =
