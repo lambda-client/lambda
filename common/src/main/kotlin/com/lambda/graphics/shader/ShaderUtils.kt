@@ -30,12 +30,11 @@ object ShaderUtils {
     private val matrixBuffer = BufferUtils.createFloatBuffer(4 * 4)
     private const val shaderInfoLogLength = 512
 
-    fun loadShader(type: ShaderType, resource: LambdaResource): Int {
+    fun loadShader(type: ShaderType, text: String): Int {
         // Create new shader object
         val shader = glCreateShader(type.gl)
 
         // Attach source code and compile it
-        val text = IOUtils.toString(resource.stream, Charsets.UTF_8)
         GlStateManager.glShaderSource(shader, ImmutableList.of(text))
         val error = compileShader(shader)
 
@@ -43,9 +42,10 @@ object ShaderUtils {
         error?.let { err ->
             val builder = StringBuilder()
                 .append("Failed to compile ${type.name} shader").appendLine()
-                .append("Path: $resource").appendLine()
                 .append("Compiler output:").appendLine()
                 .append(err)
+                .appendLine().appendLine("CODE:")
+                .append(text)
 
             throw RuntimeException(builder.toString())
         }

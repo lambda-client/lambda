@@ -115,7 +115,7 @@ abstract class Module(
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.UNBOUND,
 ) : Nameable, Muteable, Configurable(ModuleConfig) {
-    private val isEnabledSetting = setting("Enabled", enabledByDefault, visibility = { false })
+    private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     private val keybindSetting = setting("Keybind", defaultKeybind)
     val isVisible = setting("Visible", true) { ModuleList.isEnabled }
     val reset by setting("Reset", { settings.forEach { it.reset() }; this@Module.info("Settings set to default") })
@@ -130,6 +130,7 @@ abstract class Module(
     init {
         listen<KeyboardEvent.Press>(alwaysListen = true) { event ->
             if (mc.options.commandKey.isPressed) return@listen
+            if (!event.isPressed) return@listen
             if (keybind == KeyCode.UNBOUND) return@listen
             if (event.translated != keybind) return@listen
             if (mc.currentScreen != null) return@listen

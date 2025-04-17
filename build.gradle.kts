@@ -38,10 +38,10 @@ val Project.loom: LoomGradleExtensionAPI
     get() = (this as ExtensionAware).extensions.getByName("loom") as LoomGradleExtensionAPI
 
 plugins {
-    kotlin("jvm") version "2.0.20"
-    id("org.jetbrains.dokka") version "1.9.20"
+    kotlin("jvm") version "2.1.20"
+    id("org.jetbrains.dokka") version "2.0.0"
     id("architectury-plugin") version "3.4-SNAPSHOT"
-    id("dev.architectury.loom") version "1.7-SNAPSHOT" apply false
+    id("dev.architectury.loom") version "1.9-SNAPSHOT" apply false
     id("com.github.johnrengelman.shadow") version "8.1.1" apply false
     id("maven-publish")
 }

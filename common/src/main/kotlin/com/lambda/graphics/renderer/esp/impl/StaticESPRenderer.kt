@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,46 +17,6 @@
 
 package com.lambda.graphics.renderer.esp.impl
 
-import com.lambda.graphics.buffer.IRenderContext
 import com.lambda.graphics.renderer.esp.ESPRenderer
-import java.awt.Color
-import java.util.concurrent.ConcurrentHashMap
 
-open class StaticESPRenderer(private val useVertexCaching: Boolean = true) : ESPRenderer(false) {
-    val faceVertices = ConcurrentHashMap<Vertex, Int>()
-    val outlineVertices = ConcurrentHashMap<Vertex, Int>()
-
-    var updateFaces = false
-    var updateOutlines = false
-
-    override fun upload() {
-        if (updateFaces) {
-            updateFaces = false
-            faces.upload()
-        }
-
-        if (updateOutlines) {
-            updateOutlines = false
-            outlines.upload()
-        }
-    }
-
-    override fun clear() {
-        faceVertices.clear()
-        outlineVertices.clear()
-        super.clear()
-    }
-
-    fun IRenderContext.vertex(
-        storage: MutableMap<Vertex, Int>,
-        x: Double, y: Double, z: Double,
-        color: Color
-    ) = lazy {
-        val vtx = { vec3(x, y, z).color(color).end() }
-        if (!useVertexCaching) return@lazy vtx()
-
-        storage.getOrPut(Vertex(x, y, z, color), vtx)
-    }
-
-    data class Vertex(val x: Double, val y: Double, val z: Double, val color: Color)
-}
+open class StaticESPRenderer : ESPRenderer(false)

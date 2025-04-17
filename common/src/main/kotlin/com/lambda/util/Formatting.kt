@@ -17,6 +17,7 @@
 
 package com.lambda.util
 
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -38,6 +39,8 @@ object Formatting {
         val format = "%.${decimals}f"
         return "(${format.format(Locale.US, x)}, ${format.format(Locale.US, y)}, ${format.format(Locale.US, z)})"
     }
+
+    fun BlockPos.asString() = "($x, $y, $z)"
 
     fun getTime(formatter: DateTimeFormatter = DateTimeFormatter.RFC_1123_DATE_TIME): String {
         val localDateTime = LocalDateTime.now()

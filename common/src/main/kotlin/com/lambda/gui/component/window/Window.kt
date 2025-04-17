@@ -19,8 +19,9 @@ package com.lambda.gui.component.window
 
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.module.modules.client.ClickGui
-import com.lambda.gui.ScreenLayout
+import com.lambda.gui.RootLayout
 import com.lambda.gui.component.core.FilledRect.Companion.rect
+import com.lambda.gui.component.core.GlowRect.Companion.glow
 import com.lambda.gui.component.core.LayoutBuilder
 import com.lambda.gui.component.core.OutlineRect.Companion.outline
 import com.lambda.gui.component.layout.Layout
@@ -69,16 +70,28 @@ open class Window(
 
     val content = windowContent(scrollable)
 
+    val glowRect = glow {
+        onUpdate {
+            position = this@Window.position
+            size = this@Window.size
+
+            setColor(ClickGui.glowColor)
+            setRadius(ClickGui.roundRadius)
+
+            outerSpread = ClickGui.glowWidth * ClickGui.glow.toInt().toDouble()
+            shade = ClickGui.glowShade
+        }
+    }
+
     val outlineRect = outline {
         onUpdate {
             position = this@Window.position
             size = this@Window.size
 
             setColor(ClickGui.outlineColor)
+            setRadius(ClickGui.roundRadius)
 
-            roundRadius = ClickGui.roundRadius
-            glowRadius = ClickGui.outlineWidth * ClickGui.outline.toInt().toDouble()
-
+            outlineWidth = ClickGui.outlineWidth * ClickGui.outline.toInt().toDouble()
             shade = ClickGui.outlineShade
         }
     }
@@ -126,7 +139,12 @@ open class Window(
         get() = !isMinimized
         set(value) { isMinimized = !value }
 
-    var windowWidth = initialSize.x
+    var windowWidth = initialSize.x; set(value) {
+        if (field == value) return
+        field = value
+
+        if (resizeX == null) widthAnimation = value
+    }
     var windowHeight = initialSize.y
 
     var widthAnimation by animation.exp(0.8, ::windowWidth)
@@ -147,9 +165,12 @@ open class Window(
 
     init {
         position = initialPosition
-        properties.clampPosition = owner is ScreenLayout
+        properties.clampPosition = owner is RootLayout
 
         onUpdate {
+            // Update it here
+            content.updateHeight()
+
             width = widthAnimation
             height = titleBar.height + when (minimizing) {
                 Minimizing.Disabled -> targetHeight

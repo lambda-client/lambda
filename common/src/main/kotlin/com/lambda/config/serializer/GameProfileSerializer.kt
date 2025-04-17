@@ -44,17 +44,15 @@ object GameProfileSerializer : JsonSerializer<GameProfile>, JsonDeserializer<Gam
         typeOfT: Type?,
         context: JsonDeserializationContext?,
     ): GameProfile {
-        val id = json?.asJsonObject?.get("id")?.asString
+        val name = json?.asJsonObject?.get("name")?.asString ?: "nil"
+        val id = json?.asJsonObject?.get("id")?.asString ?: "00000000-0000-0000-0000-000000000000"
         val parsedId =
-            if (id?.length == 32) id.replaceFirst(
+            if (id.length == 32) id.replaceFirst(
                 "(\\w{8})(\\w{4})(\\w{4})(\\w{4})(\\w{12})".toRegex(),
                 "$1-$2-$3-$4-$5"
             )
             else id
 
-        return GameProfile(
-            UUID.fromString(parsedId),
-            json?.asJsonObject?.get("name")?.asString
-        )
+        return GameProfile(UUID.fromString(parsedId), name)
     }
 }

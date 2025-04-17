@@ -19,13 +19,18 @@ package com.lambda.gui.impl.clickgui.core
 
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.component.HAlign
+import com.lambda.gui.component.core.FilledRect
+import com.lambda.gui.component.core.FilledRect.Companion.rect
+import com.lambda.gui.component.core.FilledRect.Companion.rectBehind
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.component.window.Window
-import com.lambda.gui.impl.clickgui.module.SettingLayout
+import com.lambda.gui.impl.clickgui.module.ModuleLayout
+import com.lambda.gui.impl.clickgui.module.setting.SettingLayout
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
+import com.lambda.util.math.multAlpha
 import com.lambda.util.math.setAlpha
 import com.lambda.util.math.transform
 import java.awt.Color
@@ -71,7 +76,7 @@ abstract class AnimatedChild(
             speed = transform(index.toDouble(), 0.0, lastIndex.toDouble(), start, end)
         }
 
-        if ((this as? SettingLayout<*, *>)?.isVisible == true) speed *= 0.8
+        if ((this as? SettingLayout<*>)?.isVisible == true) speed *= 0.8
 
         speed + isShownInternal.toInt() * 0.1
     }) { isShownInternal }.apply {
@@ -107,6 +112,26 @@ abstract class AnimatedChild(
             if (isHovered) lastHover = System.currentTimeMillis()
         }
 
+        onWindowExpand {
+            if (ClickGui.multipleSettingWindows) return@onWindowExpand
+
+            val close = if (this !is ModuleLayout) {
+                owner.children.filterIsInstance<AnimatedChild>()
+            } else {
+                val base = owner // window content
+                    .owner // window
+                    ?.owner  // environment with windows
+
+                base?.children?.filterIsInstance<Window>()?.flatMap { window ->
+                    window.content.children.filterIsInstance<AnimatedChild>()
+                } ?: mutableListOf()
+            }
+
+            close.forEach {
+                if (it != this) it.isMinimized = true
+            }
+        }
+
         titleBar.textField.use {
             textHAlignment = HAlign.LEFT
 
@@ -128,7 +153,71 @@ abstract class AnimatedChild(
         listOf(
             titleBarBackground,
             contentBackground,
-            outlineRect
+            outlineRect,
+            glowRect
         ).forEach(Layout::destroy)
+    }
+
+    companion object {
+        fun AnimatedChild.animatedBackground(
+            enableProgress: () -> Double = { hoverAnimation }
+        ) = rectBehind(titleBar) {
+            // base rect with lowest z to avoid children overlying
+            onUpdate {
+                val enableAnimation = enableProgress()
+
+                rect = this@animatedBackground.rect.shrink(shrink)
+                shade = ClickGui.backgroundShade
+
+                val openRev = 1.0 - openAnimation     // 1.0  <->  0.0
+                val openRevSigned = openRev * 2 - 1   // 1.0  <-> -1.0
+                val enableRev = 1.0 - enableAnimation // 1.0  <->  0.0
+
+                var progress = enableAnimation
+
+                // hover: +0.1 to alpha if minimized, -0.1 to alpha if maximized and enabled
+                progress += hoverAnimation * ClickGui.moduleHoverAccent *
+                        lerp(enableAnimation, 1.0, openRevSigned)
+
+                // +0.4 to alpha if opened and disabled
+                progress += openAnimation * ClickGui.moduleOpenAccent * enableRev
+
+                // interpolate and set the color
+                setColor(
+                    lerp(progress,
+                        ClickGui.moduleDisabledColor,
+                        ClickGui.moduleEnabledColor
+                    ).multAlpha(showAnimation)
+                )
+
+                setRadius(hoverAnimation)
+
+                if (isLast && ClickGui.autoResize) {
+                    leftBottomRadius = ClickGui.roundRadius - (ClickGui.padding + shrink)
+                    rightBottomRadius = leftBottomRadius
+                }
+            }
+
+            rect { // hover fx
+                onUpdate {
+                    val base = this@rect.owner as FilledRect
+
+                    position = base.position
+                    size = base.size
+                    shade = base.shade
+
+                    leftTopRadius = base.leftTopRadius
+                    rightTopRadius = base.rightTopRadius
+                    rightBottomRadius = base.rightBottomRadius
+                    leftBottomRadius = base.leftBottomRadius
+
+                    val hoverColor = Color.WHITE.setAlpha(
+                        ClickGui.moduleHoverAccent * hoverAnimation * (1.0 - openAnimation) * showAnimation
+                    )
+
+                    setColorH(hoverColor.setAlpha(0.0), hoverColor)
+                }
+            }
+        }
     }
 }

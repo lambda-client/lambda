@@ -24,7 +24,7 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.buffer.VertexPipeline
+import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.gl.GlStateUtils.withBlendFunc
@@ -32,6 +32,7 @@ import com.lambda.graphics.gl.GlStateUtils.withDepth
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.buildWorldProjection
 import com.lambda.graphics.gl.Matrices.withVertexTransform
+import com.lambda.graphics.pipeline.VertexBuilder
 import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.module.Module
@@ -81,7 +82,7 @@ object Particles : Module(
 
     private var particles = mutableListOf<Particle>()
     private val pipeline = VertexPipeline(VertexMode.TRIANGLES, VertexAttrib.Group.PARTICLE)
-    private val shader = shader("renderer/particle", "renderer/particle")
+    private val shader = shader("renderer/particle")
 
     init {
         listen<TickEvent.Pre> {
@@ -91,13 +92,16 @@ object Particles : Module(
 
         listen<RenderEvent.World> {
             // Todo: interpolated tickbased upload?
-            particles.forEach(Particle::build)
+            val builder = pipeline.build()
+            particles.forEach {
+                it.build(builder)
+            }
 
             withBlendFunc(GL_SRC_ALPHA, GL_ONE) {
                 shader.use()
                 shader["u_CameraPosition"] = mc.gameRenderer.camera.pos
 
-                pipeline.upload()
+                pipeline.upload(builder)
                 withDepth(false, pipeline::render)
                 pipeline.clear()
             }
@@ -178,7 +182,7 @@ object Particles : Module(
             return age > maxAge + fadeTicks * 2 + 5
         }
 
-        fun build() {
+        fun build(builder: VertexBuilder) = builder.apply {
             val smoothAge = age + mc.partialTicks
             val colorTicks = smoothAge * 0.1 / colorSpeed
 
@@ -199,15 +203,20 @@ object Particles : Module(
             val size = if (lay) environmentSize else sizeSetting * lerp(alpha, 0.5, 1.0)
 
             withVertexTransform(buildWorldProjection(position, size, projRotation)) {
-                pipeline.use {
-                    grow(4) // DO NOT FUCKING FORGOTEOIJTOWKET TO GROW (cost me an hour)
-                    putQuad(
-                        vec3m(-1.0, -1.0, 0.0).vec2(0.0, 0.0).color(color).end(),
-                        vec3m(-1.0, 1.0, 0.0).vec2(0.0, 1.0).color(color).end(),
-                        vec3m(1.0, 1.0, 0.0).vec2(1.0, 1.0).color(color).end(),
-                        vec3m(1.0, -1.0, 0.0).vec2(1.0, 0.0).color(color).end()
-                    )
-                }
+                buildQuad(
+                    vertex {
+                        vec3m(-1.0, -1.0, 0.0).vec2(0.0, 0.0).color(color)
+                    },
+                    vertex {
+                        vec3m(-1.0, 1.0, 0.0).vec2(0.0, 1.0).color(color)
+                    },
+                    vertex {
+                        vec3m(1.0, 1.0, 0.0).vec2(1.0, 1.0).color(color)
+                    },
+                    vertex {
+                        vec3m(1.0, -1.0, 0.0).vec2(1.0, 0.0).color(color)
+                    }
+                )
             }
         }
     }

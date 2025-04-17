@@ -31,7 +31,6 @@ public class RenderLayersMixin {
     @Inject(method = "getBlockLayer", at = @At("HEAD"), cancellable = true)
     private static void onGetBlockLayer(BlockState state, CallbackInfoReturnable<RenderLayer> cir) {
         if (XRay.INSTANCE.isDisabled()) return;
-
         if (!XRay.isSelected(state)) cir.setReturnValue(RenderLayer.getTranslucent());
     }
 }

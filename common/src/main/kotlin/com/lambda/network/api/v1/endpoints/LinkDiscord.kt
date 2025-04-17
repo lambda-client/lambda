@@ -17,15 +17,14 @@
 
 package com.lambda.network.api.v1.endpoints
 
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.FuelError
-import com.github.kittinunf.fuel.core.extensions.authentication
-import com.github.kittinunf.fuel.core.extensions.jsonBody
-import com.github.kittinunf.fuel.gson.responseObject
 import com.lambda.module.modules.client.Network.apiUrl
 import com.lambda.module.modules.client.Network.apiVersion
+import com.lambda.network.LambdaHttp
 import com.lambda.network.NetworkManager
 import com.lambda.network.api.v1.models.Authentication
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.http.*
 
 /**
  * Links a Discord account to a session account
@@ -35,9 +34,10 @@ import com.lambda.network.api.v1.models.Authentication
  *
  * response: [Authentication] or error
  */
-fun linkDiscord(discordToken: String, success: (Authentication) -> Unit, failure: (FuelError) -> Unit) =
-	Fuel.post("${apiUrl}/api/${apiVersion.value}/link/discord")
-		.jsonBody("""{ "token": "$discordToken" }""")
-		.authentication()
-		.bearer(NetworkManager.accessToken)
-		.responseObject<Authentication> { _, _, result -> result.fold(success, failure) }
+suspend fun linkDiscord(discordToken: String) = runCatching {
+	LambdaHttp.post("${apiUrl}/api/${apiVersion.value}/link/discord") {
+		setBody("""{ "token": "$discordToken" }""")
+		bearerAuth(NetworkManager.accessToken)
+		contentType(ContentType.Application.Json)
+	}.body<Authentication>()
+}

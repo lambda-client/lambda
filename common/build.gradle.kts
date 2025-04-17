@@ -21,8 +21,10 @@ val modId: String by project
 val fabricLoaderVersion: String by project
 val kotlinxCoroutinesVersion: String by project
 val discordIPCVersion: String by project
-val fuelVersion: String by project
-val resultVersion: String by project
+val ktorVersion: String by project
+val mockitoKotlin: String by project
+val mockitoInline: String by project
+val mockkVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-api"
 
@@ -47,16 +49,23 @@ dependencies {
     implementation("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
     implementation("com.pngencoder:pngencoder:0.15.0")
 
-    // Fuel HTTP library and dependencies
-    implementation("com.github.kittinunf.fuel:fuel:$fuelVersion")
-    implementation("com.github.kittinunf.fuel:fuel-gson:$fuelVersion")
-    implementation("com.github.kittinunf.result:result-jvm:$resultVersion")
+    // Ktor
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-gson:$ktorVersion")
 
     // Add Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
 
     // Baritone
     modImplementation("baritone-api:baritone-unoptimized-fabric:1.10.2") { isTransitive = false }
+
+    // Test implementations
+    testImplementation(kotlin("test"))
+    testImplementation("org.mockito.kotlin:mockito-kotlin:$mockitoKotlin")
+    testImplementation("org.mockito:mockito-inline:$mockitoInline")
+    testImplementation("io.mockk:mockk:${mockkVersion}")
 }
 
 tasks {
@@ -66,5 +75,12 @@ tasks {
 
     test {
         useJUnitPlatform()
+        jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
+    }
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    kotlinOptions {
+        jvmTarget = "17"
     }
 }

@@ -113,6 +113,7 @@ object Replay : Module(
 
     init {
         listen<KeyboardEvent.Press> {
+            if (!it.isPressed) return@listen
             if (mc.currentScreen != null && !mc.options.commandKey.isPressed) return@listen
 
             when (it.translated) {

@@ -25,6 +25,7 @@ import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -86,6 +87,18 @@ public class ClientPlayInteractionManagerMixin {
         if (EventFlow.post(click).isCanceled()) ci.cancel();
     }
 
+    /**
+     * Posts {@link InventoryEvent.HotbarSlot.Update} and returns the event value as the selected slot
+     * <pre>{@code
+     * private void syncSelectedSlot() {
+     *     int i = this.client.player.getInventory().selectedSlot;
+     *     if (i != this.lastSelectedSlot) {
+     *         this.lastSelectedSlot = i;
+     *         this.networkHandler.sendPacket(new UpdateSelectedSlotC2SPacket(this.lastSelectedSlot));
+     *     }
+     * }
+     * }</pre>
+     */
     @Redirect(method = "syncSelectedSlot", at = @At(value = "FIELD", target = "Lnet/minecraft/entity/player/PlayerInventory;selectedSlot:I"))
     public int overrideSelectedSlotSync(PlayerInventory instance) {
         return EventFlow.post(new InventoryEvent.HotbarSlot.Update(instance.selectedSlot)).getSlot();

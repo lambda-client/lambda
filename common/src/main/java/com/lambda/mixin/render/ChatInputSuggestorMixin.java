@@ -40,6 +40,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -87,10 +88,22 @@ public abstract class ChatInputSuggestorMixin {
         int start = neoLambda$getLastColon(textToCursor);
         if (start == -1) return;
 
-        String emojiString = typing.substring(start + 1);
+        Matcher emojiMatcher = EMOJI_PATTERN.matcher(textToCursor);
+        Map<String, ?> emojiKeys = LambdaAtlas.INSTANCE.getKeys(RenderSettings.INSTANCE.getEmojiFont());
+        while (emojiMatcher.find()) {
+            int openingColon = emojiMatcher.start(1);
+            String key = emojiMatcher.group(2);
+            int closingColon = emojiMatcher.end(3);
 
-        Stream<String> results = LambdaAtlas.INSTANCE.getKeys(RenderSettings.INSTANCE.getEmojiFont())
-                .keySet().stream()
+            if (emojiKeys.containsKey(key) && start >= openingColon && start < closingColon) {
+                // If the colon is part of a previous valid emoji, return
+                return;
+            }
+        }
+
+        String emojiString = textToCursor.substring(start + 1);
+
+        Stream<String> results = emojiKeys.keySet().stream()
                 .filter(s -> s.startsWith(emojiString))
                 .map(s -> s + ":");
 
@@ -104,6 +117,9 @@ public abstract class ChatInputSuggestorMixin {
 
     @Unique
     private static final Pattern COLON_PATTERN = Pattern.compile("(:[a-zA-Z0-9_]+)");
+
+    @Unique
+    private static final Pattern EMOJI_PATTERN = Pattern.compile("(:)([a-zA-Z0-9_]+)(:)");
 
     @Unique
     private int neoLambda$getLastColon(String input) {

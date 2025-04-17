@@ -17,31 +17,23 @@
 
 package com.lambda.gui.component.core
 
-import com.lambda.graphics.renderer.gui.rect.OutlineRectRenderer.outlineRect
+import com.lambda.graphics.renderer.gui.RectRenderer.outlineRect
 import com.lambda.gui.component.layout.Layout
-import java.awt.Color
 
 class OutlineRect(
     owner: Layout
-) : Layout(owner) {
-    @UIRenderPr0p3rty var roundRadius = 0.0
-    @UIRenderPr0p3rty var glowRadius = 1.0
-
-    @UIRenderPr0p3rty var leftTopColor: Color = Color.WHITE
-    @UIRenderPr0p3rty var rightTopColor: Color = Color.WHITE
-    @UIRenderPr0p3rty var rightBottomColor: Color = Color.WHITE
-    @UIRenderPr0p3rty var leftBottomColor: Color = Color.WHITE
-
-    @UIRenderPr0p3rty var shade = false
+) : RectLayout(owner) {
+    @UIRenderPr0p3rty var outlineWidth = 1.0
 
     init {
-        properties.interactionPassthrough = true
-
         onRender {
             outlineRect(
                 rect,
-                roundRadius,
-                glowRadius,
+                outlineWidth,
+                leftTopRadius,
+                rightTopRadius,
+                rightBottomRadius,
+                leftBottomRadius,
                 leftTopColor,
                 rightTopColor,
                 rightBottomColor,
@@ -51,30 +43,9 @@ class OutlineRect(
         }
     }
 
-    fun setColor(color: Color) {
-        leftTopColor = color
-        rightTopColor = color
-        rightBottomColor = color
-        leftBottomColor = color
-    }
-
-    fun setColorH(colorL: Color, colorR: Color) {
-        leftTopColor = colorL
-        rightTopColor = colorR
-        rightBottomColor = colorR
-        leftBottomColor = colorL
-    }
-
-    fun setColorV(colorT: Color, colorB: Color) {
-        leftTopColor = colorT
-        rightTopColor = colorT
-        rightBottomColor = colorB
-        leftBottomColor = colorB
-    }
-
     companion object {
         /**
-         * Creates an [OutlineRect] component - layout-based rect representation
+         * Creates a [OutlineRect] component - layout-based rect representation
          */
         @UIBuilder
         fun Layout.outline(
@@ -91,7 +62,7 @@ class OutlineRect(
         ) = OutlineRect(this).insertLayout(this, layout, false).apply(block)
 
         /**
-         * Creates an [OutlineRect] component - layout-based rect representation
+         * Adds a [OutlineRect] over given [layout]
          */
         @UIBuilder
         fun Layout.outlineOver(

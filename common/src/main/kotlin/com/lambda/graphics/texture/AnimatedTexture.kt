@@ -18,7 +18,6 @@
 package com.lambda.graphics.texture
 
 import com.lambda.graphics.buffer.pixel.PixelBuffer
-import com.lambda.util.Communication.logError
 import com.lambda.util.LambdaResource
 import com.lambda.util.stream
 import org.lwjgl.BufferUtils
@@ -29,7 +28,7 @@ import java.nio.ByteBuffer
 class AnimatedTexture(path: LambdaResource) : Texture(image = null) {
     private val pbo: PixelBuffer
     private val gif: ByteBuffer // Do NOT free this pointer
-    private val frameDurations: IntArray
+    private val frameDurations: IntArray // Array of frame duration milliseconds as ints
     val channels: Int
     val frames: Int
 
@@ -39,13 +38,12 @@ class AnimatedTexture(path: LambdaResource) : Texture(image = null) {
     private var currentFrame = 0
     private var lastUpload = 0L
 
-    override fun bind(slot: Int) {
-        update()
-        super.bind(slot)
-    }
+    override fun bind(slot: Int) { update(); super.bind(slot) }
 
     fun update() {
-        if (System.currentTimeMillis() - lastUpload >= frameDurations[currentFrame]) {
+        val now = System.currentTimeMillis()
+
+        if (now - lastUpload >= frameDurations[currentFrame]) {
             // This is cool because instead of having a buffer for each frame we can
             // just move the frame's block on each update
             // 0 memory allocation and few cpu cycles
@@ -54,12 +52,10 @@ class AnimatedTexture(path: LambdaResource) : Texture(image = null) {
                 .limit(blockSize * (currentFrame + 1))
 
             pbo.upload(slice, offset = 0)
-                ?.let { err -> logError("Error uploading to PBO", err) }
-
             gif.clear()
 
             currentFrame = (currentFrame + 1) % frames
-            lastUpload = System.currentTimeMillis()
+            lastUpload = now
         }
     }
 
