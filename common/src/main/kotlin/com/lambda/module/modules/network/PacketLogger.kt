@@ -30,6 +30,7 @@ import com.lambda.util.Communication
 import com.lambda.util.Communication.info
 import com.lambda.util.DynamicReflectionSerializer.dynamicString
 import com.lambda.util.FolderRegister
+import com.lambda.util.FolderRegister.relativeMCPath
 import com.lambda.util.Formatting.getTime
 import com.lambda.util.text.*
 import kotlinx.coroutines.channels.BufferOverflow
@@ -37,7 +38,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import net.minecraft.network.packet.Packet
 import java.awt.Color
 import java.io.File
-import java.nio.file.Path
 import java.time.format.DateTimeFormatter
 import kotlin.io.path.pathString
 
@@ -83,7 +83,6 @@ object PacketLogger : Module(
         extraBufferCapacity = 1000,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
-    private val File.relativePath: Path get() = mc.runDirectory.toPath().relativize(toPath())
 
     init {
         runIO {
@@ -105,7 +104,7 @@ object PacketLogger : Module(
                     createNewFile()
                 }
                 val info = buildText {
-                    clickEvent(ClickEvents.openFile(relativePath.pathString)) {
+                    clickEvent(ClickEvents.openFile(relativeMCPath.pathString)) {
                         literal("Packet logger started: ")
                         color(Color.YELLOW) { literal(fileName) }
                         literal(" (click to open)")
@@ -113,7 +112,6 @@ object PacketLogger : Module(
                 }
                 this@PacketLogger.info(info)
             }.apply {
-                // ToDo: Add more rich and accurate data to the header
                 StringBuilder().apply {
                     appendLine(Communication.ascii)
                     appendLine("${Lambda.SYMBOL} - Lambda ${Lambda.VERSION} - Packet Log")
@@ -144,8 +142,8 @@ object PacketLogger : Module(
             file?.let {
                 val info = buildText {
                     literal("Stopped logging packets to ")
-                    clickEvent(ClickEvents.openFile(it.relativePath.pathString)) {
-                        color(Color.YELLOW) { literal(it.relativePath.pathString) }
+                    clickEvent(ClickEvents.openFile(it.relativeMCPath.pathString)) {
+                        color(Color.YELLOW) { literal(it.relativeMCPath.pathString) }
                         literal(" (click to open)")
                     }
                 }

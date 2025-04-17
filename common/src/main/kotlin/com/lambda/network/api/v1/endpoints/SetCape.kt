@@ -30,7 +30,7 @@ import io.ktor.http.*
  * Example:
  *  - id: galaxy
  *
- * response: [Unit] or error
+ * @return nothing
  */
 suspend fun setCape(id: String) = runCatching {
 	val resp = LambdaHttp.put("$apiUrl/api/${apiVersion.value}/cape?id=$id") {
