@@ -25,7 +25,8 @@ import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.network.CapeManager.updateCape
 import com.lambda.network.NetworkManager
-import com.lambda.threading.runSafe
+import com.lambda.util.Communication.info
+import com.lambda.util.Communication.logError
 import com.lambda.util.extension.CommandBuilder
 
 object CapeCommand : LambdaCommand(
@@ -44,9 +45,10 @@ object CapeCommand : LambdaCommand(
                 }
 
                 execute {
-                    runSafe {
-                        val cape = id().value()
-                        updateCape(cape)
+                    val cape = id().value()
+                    updateCape(cape) { error ->
+                        if (error != null) logError("Could not update your cape", error)
+                        else info("Updated your cape to $cape")
                     }
                 }
             }

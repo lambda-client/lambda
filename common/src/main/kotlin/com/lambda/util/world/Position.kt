@@ -69,28 +69,19 @@ fun fastVectorOf(x: Int, y: Int, z: Int): FastVector = fastVectorOf(x.toLong(), 
  * Gets the X coordinate from the position.
  */
 val FastVector.x: Int
-    get() {
-        val x = (this shr X_SHIFT and X_MASK).toInt()
-        return if (x and (1 shl X_BITS - 1) != 0) x - (1 shl X_BITS) else x
-    }
+    get() = ((this shr X_SHIFT and X_MASK).toInt() shl (32 - X_BITS)) shr (32 - X_BITS)
 
 /**
  * Gets the Z coordinate from the position.
  */
 val FastVector.z: Int
-    get() {
-        val z = (this shr Z_SHIFT and Z_MASK).toInt()
-        return if (z and (1 shl Z_BITS - 1) != 0) z - (1 shl Z_BITS) else z
-    }
+    get() = ((this shr Z_SHIFT and Z_MASK).toInt() shl (32 - Z_BITS)) shr (32 - Z_BITS)
 
 /**
  * Gets the Y coordinate from the position.
  */
 val FastVector.y: Int
-    get() {
-        val y = (this and Y_MASK).toInt()
-        return if (y and (1 shl Y_BITS - 1) != 0) y - (1 shl Y_BITS) else y
-    }
+    get() = ((this and Y_MASK).toInt() shl (32 - Y_BITS)) shr (32 - Y_BITS)
 
 /**
  * Sets the X coordinate of the position.

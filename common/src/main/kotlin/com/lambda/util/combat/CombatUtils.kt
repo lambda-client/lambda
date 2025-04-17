@@ -18,7 +18,7 @@
 package com.lambda.util.combat
 
 import com.lambda.context.SafeContext
-import com.lambda.util.math.distSq
+import com.lambda.util.math.dist
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.EquipmentSlot
@@ -108,10 +108,10 @@ object CombatUtils {
      * @param power The [power of the explosion](https://minecraft.wiki/w/Explosion#Damage)
      */
     fun SafeContext.explosionDamage(position: Vec3d, entity: LivingEntity, power: Double): Double {
-        val distance = entity distSq position
+        val distance = entity dist position
 
         val range = power * 2
-        val impact = (1 - distance / range) * Explosion.getExposure(position, entity) * 0.4
+        val impact = (1 - distance / range) * Explosion.getExposure(position, entity)
         val damage = (impact * impact + impact) / 2.0 * 7.0 * range + 1
 
         return Explosion.createDamageSource(world, null).scale(world, entity, damage)
