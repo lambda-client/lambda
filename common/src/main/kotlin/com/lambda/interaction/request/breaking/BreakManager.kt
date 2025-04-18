@@ -158,16 +158,10 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see processRequest
      */
     override fun SafeContext.handleRequest(request: BreakRequest) {
-        if (activeRequest != null || PlaceManager.activeThisTick) return
+        if (activeRequest != null || PlaceManager.activeThisTick || request.contexts.isEmpty()) return
 
         activeRequest = request
         processRequest(request)
-        if (instantBreaks.isNotEmpty() || breaks.isNotEmpty()) {
-            activeRequest = null
-        }
-        if (breaksThisTick > 0 || breakInfos.any { it != null && !it.isRedundant }) {
-            activeThisTick = true
-        }
     }
 
     /**
@@ -192,21 +186,30 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         // Reversed so that the breaking order feels natural to the user as the primary break is always the
         // last break to be started
-        breakInfos
-            .filterNotNull()
-            .filter { !it.isRedundant }
-            .also { infos ->
-                infos.firstOrNull { it.breakConfig.rotateForBreak }?.let { info ->
-                    info.request.rotation.request(info.context.rotation)
+        run breakInfos@ {
+            breakInfos
+                .filterNotNull()
+                .filter { !it.isRedundant }
+                .also { infos ->
+                    infos.firstOrNull { it.breakConfig.rotateForBreak }?.let { info ->
+                        info.request.rotation.request(info.context.rotation)
+                    }
                 }
-            }
-            .reversed()
-            .forEach { info ->
-                if (info.updatedProgressThisTick) return@forEach
-                if (!info.context.requestDependencies(request)) return
-                if (!rotated || tickStage !in info.breakConfig.breakStageMask) return
-                updateBreakProgress(info)
-            }
+                .reversed()
+                .forEach { info ->
+                    if (info.updatedProgressThisTick) return@forEach
+                    if (!info.context.requestDependencies(request)) return@breakInfos
+                    if (!rotated || tickStage !in info.breakConfig.breakStageMask) return@breakInfos
+                    updateBreakProgress(info)
+                }
+        }
+
+        if (instantBreaks.isEmpty() && breaks.isEmpty()) {
+            activeRequest = null
+        }
+        if (breaksThisTick > 0 || breakInfos.any { it != null && !it.isRedundant }) {
+            activeThisTick = true
+        }
     }
 
     /**
