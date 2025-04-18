@@ -76,7 +76,7 @@ object RotationManager : RequestHandler<RotationRequest>(
             changedThisTick = false
         }
 
-        listen<PacketEvent.Send.Post> { event ->
+        listen<PacketEvent.Receive.Post> { event ->
             val packet = event.packet
             if (packet !is PlayerPositionLookS2CPacket) return@listen
 
