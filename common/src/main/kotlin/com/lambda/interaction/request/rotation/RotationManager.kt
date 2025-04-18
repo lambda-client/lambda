@@ -52,8 +52,9 @@ import kotlin.math.sin
 object RotationManager : RequestHandler<RotationRequest>(
     TickStage.TickStart
 ), Loadable {
-    var currentRotation = Rotation.ZERO
-    private var prevRotation = Rotation.ZERO
+    var activeRotation = Rotation.ZERO; private set
+    var serverRotation = Rotation.ZERO; private set
+    private var prevServerRotation = Rotation.ZERO
 
     private var changedThisTick = false
     private var activeRequest: RotationRequest? = null
@@ -94,6 +95,7 @@ object RotationManager : RequestHandler<RotationRequest>(
         activeRequest?.let { if (it.age <= 0) return }
         if (request.target.targetRotation.value != null) {
             activeRequest = request
+            updateActiveRotation()
             changedThisTick = true
         }
     }
@@ -104,29 +106,17 @@ object RotationManager : RequestHandler<RotationRequest>(
 
         if (!changedThisTick) { // rebuild the rotation if the same context gets used again
             activeRequest?.target?.targetRotation?.update()
+            updateActiveRotation()
         }
 
-        // Calculate the target rotation
-        val targetRotation = activeRequest?.let { request ->
-            val rotationTo = if (request.keepTicks >= 0)
-                request.target.targetRotation.value
-                    ?: currentRotation // same context gets used again && the rotation is null this tick
-            else player.rotation
-
-            val speedMultiplier = if (request.keepTicks < 0) 1.0 else request.speedMultiplier
-            val turnSpeed = request.turnSpeed() * speedMultiplier
-
-            currentRotation.slerp(rotationTo, turnSpeed)
-        } ?: player.rotation
-
         // Update the current rotation
-        prevRotation = currentRotation
-        currentRotation = targetRotation/*.fixSensitivity(prevRotation)*/
+        prevServerRotation = serverRotation
+        serverRotation = activeRotation/*.fixSensitivity(prevServerRotation)*/
 
         // Handle LOCK mode
         if (activeRequest?.mode == RotationMode.Lock) {
-            player.yaw = currentRotation.yawF
-            player.pitch = currentRotation.pitchF
+            player.yaw = serverRotation.yawF
+            player.pitch = serverRotation.pitchF
         }
 
         // Tick and reset the context
@@ -137,15 +127,30 @@ object RotationManager : RequestHandler<RotationRequest>(
         }
     }
 
+    private fun SafeContext.updateActiveRotation() {
+        activeRotation = activeRequest?.let { request ->
+            val rotationTo = if (request.keepTicks >= 0)
+                request.target.targetRotation.value
+                    ?: activeRotation // same context gets used again && the rotation is null this tick
+            else player.rotation
+
+            val speedMultiplier = if (request.keepTicks < 0) 1.0 else request.speedMultiplier
+            val turnSpeed = request.turnSpeed() * speedMultiplier
+
+            serverRotation.slerp(rotationTo, turnSpeed)
+        } ?: player.rotation
+    }
+
     private fun reset(rotation: Rotation) {
-        prevRotation = rotation
-        currentRotation = rotation
+        prevServerRotation = rotation
+        serverRotation = rotation
+        activeRotation = rotation
         activeRequest = null
     }
 
     private val smoothRotation
         get() =
-            lerp(Lambda.mc.partialTicks, prevRotation, currentRotation)
+            lerp(Lambda.mc.partialTicks, prevServerRotation, serverRotation)
 
     @JvmStatic
     val lockRotation
@@ -165,32 +170,32 @@ object RotationManager : RequestHandler<RotationRequest>(
     @JvmStatic
     val handYaw
         get() =
-            if (activeRequest?.mode == RotationMode.Lock) currentRotation.yaw.toFloat() else null
+            if (activeRequest?.mode == RotationMode.Lock) serverRotation.yaw.toFloat() else null
 
     @JvmStatic
     val handPitch
         get() =
-            if (activeRequest?.mode == RotationMode.Lock) currentRotation.pitch.toFloat() else null
+            if (activeRequest?.mode == RotationMode.Lock) serverRotation.pitch.toFloat() else null
 
     @JvmStatic
     val movementYaw: Float?
         get() {
             if (activeRequest?.mode == RotationMode.Silent) return null
-            return currentRotation.yaw.toFloat()
+            return serverRotation.yaw.toFloat()
         }
 
     @JvmStatic
     val movementPitch: Float?
         get() {
             if (activeRequest?.mode == RotationMode.Silent) return null
-            return currentRotation.pitch.toFloat()
+            return serverRotation.pitch.toFloat()
         }
 
     @JvmStatic
     fun getRotationForVector(deltaTime: Double): Vec2d? {
         if (activeRequest?.mode == RotationMode.Silent) return null
 
-        val rot = lerp(deltaTime, prevRotation, currentRotation)
+        val rot = lerp(deltaTime, prevServerRotation, serverRotation)
         return Vec2d(rot.yaw, rot.pitch)
     }
 
@@ -234,7 +239,7 @@ object RotationManager : RequestHandler<RotationRequest>(
             if (signForward == 0f && signStrafe == 0f) return@runSafe
 
             // Actual yaw used by the physics engine
-            var actualYaw = currentRotation.yaw
+            var actualYaw = serverRotation.yaw
 
             if (activeRequest?.mode == RotationMode.Silent) {
                 actualYaw = player.yaw.toDouble()
@@ -262,7 +267,7 @@ object RotationManager : RequestHandler<RotationRequest>(
             // Makes baritone movement safe
             // when yaw difference is too big to compensate it by modifying keyboard input
             val minYawDist = movementYawList
-                .map { currentRotation.yaw + it } // all possible movement directions (including diagonals)
+                .map { serverRotation.yaw + it } // all possible movement directions (including diagonals)
                 .minOf { Rotation.angleDifference(it, baritoneYaw) }
 
             if (minYawDist > 5.0) {

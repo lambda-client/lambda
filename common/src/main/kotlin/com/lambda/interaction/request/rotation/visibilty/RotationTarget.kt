@@ -43,7 +43,7 @@ data class RotationTarget(
     }
 
     val angleDistance get() = runSafe {
-        targetRotation.value?.dist(RotationManager.currentRotation)
+        targetRotation.value?.dist(RotationManager.activeRotation)
     } ?: 1000.0
 
     /**

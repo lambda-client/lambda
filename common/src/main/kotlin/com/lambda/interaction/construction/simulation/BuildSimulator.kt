@@ -434,7 +434,7 @@ object BuildSimulator {
             return acc
         }
 
-        val currentRotation = RotationManager.currentRotation
+        val currentRotation = RotationManager.activeRotation
         val currentCast = currentRotation.rayCast(interact.interactReach, eye)
 
         val voxelShape = state.getOutlineShape(world, pos)

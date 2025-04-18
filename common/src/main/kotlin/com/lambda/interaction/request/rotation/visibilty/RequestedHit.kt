@@ -60,7 +60,7 @@ abstract class RequestedHit {
      *
      * @return True if the hit is valid, false otherwise.
      */
-    fun verifyRotation(rotation: Rotation = RotationManager.currentRotation) =
+    fun verifyRotation(rotation: Rotation = RotationManager.activeRotation) =
         rotation.rayCast(reach)?.let { verifyHit(it) } ?: false
 
     /**
@@ -69,7 +69,7 @@ abstract class RequestedHit {
      * @return [HitResult] if passed, null otherwise.
      */
     fun hitIfValid() =
-        RotationManager.currentRotation.rayCast(reach)?.let {
+        RotationManager.activeRotation.rayCast(reach)?.let {
             if (!verifyHit(it)) null else it
         }
 

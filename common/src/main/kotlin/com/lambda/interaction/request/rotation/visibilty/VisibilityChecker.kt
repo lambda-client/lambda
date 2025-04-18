@@ -21,8 +21,9 @@ import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
-import com.lambda.interaction.request.rotation.*
+import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
+import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.extension.component6
 import com.lambda.util.math.distSq
@@ -63,7 +64,7 @@ object VisibilityChecker {
         interaction: InteractionConfig,
         verify: CheckedHit.() -> Boolean
     ): CheckedHit? {
-        val currentRotation = RotationManager.currentRotation
+        val currentRotation = RotationManager.activeRotation
 
         if (boxes.any { it.contains(eye) }) {
             currentRotation.rayCast(reach, eye)?.let { hit ->

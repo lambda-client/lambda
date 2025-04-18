@@ -141,16 +141,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
             placementsThisTick++
             iterator.remove()
         }
-        if (potentialPlacements.isEmpty()) {
-            activeRequest = null
-            return
-        }
-        if (!request.rotation.rotate) return
-
-        // In case you cant rotate and place within the same tick
-        potentialPlacements.getOrNull(maxPlacementsThisTick - 1)?.let { nextPredictedPlacement ->
-            request.rotation.request(nextPredictedPlacement.rotation)
-        }
+        if (potentialPlacements.isEmpty()) activeRequest = null
     }
 
     /**

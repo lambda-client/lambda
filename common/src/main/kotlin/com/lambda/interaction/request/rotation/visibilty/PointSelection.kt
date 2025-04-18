@@ -24,7 +24,7 @@ import com.lambda.util.math.distSq
 enum class PointSelection(val select: (MutableList<VisibilityChecker.CheckedHit>) -> VisibilityChecker.CheckedHit?) {
     ByRotation({ hits ->
         hits.minByOrNull {
-            RotationManager.currentRotation dist it.targetRotation
+            RotationManager.activeRotation dist it.targetRotation
         }
     }),
     Optimum( optimum@ { hits ->

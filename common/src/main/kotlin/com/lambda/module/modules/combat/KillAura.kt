@@ -133,7 +133,7 @@ object KillAura : Module(
     }
 
     /*private fun SafeContext.buildRotation(target: LivingEntity) {
-        val currentRotation = RotationManager.currentRotation
+        val serverRotation = RotationManager.serverRotation
 
         val prediction = buildPlayerPrediction()
 
@@ -160,7 +160,7 @@ object KillAura : Module(
 
         // Rotation stabilizer
         speedMultiplier = if (stabilize && !rotation.instant) {
-            val slowDown = currentRotation.castBox(box, reach, eye) != null
+            val slowDown = serverRotation.castBox(box, reach, eye) != null
 
             with(rotation) {
                 val targetSpeed = if (slowDown) 0.0 else 1.0
@@ -257,7 +257,7 @@ object KillAura : Module(
         // Rotation check
         run {
             if (!rotate) return@run
-            val angle = RotationManager.currentRotation
+            val angle = RotationManager.activeRotation
 
             if (interactionSettings.strictRayCast) {
                 val cast = angle.rayCast(interactionSettings.attackReach)

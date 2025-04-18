@@ -27,8 +27,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.buildSideMesh
 import com.lambda.graphics.renderer.esp.builders.ofBox
-import com.lambda.interaction.request.rotation.RotationManager.currentRotation
-import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.interaction.blockplace.PlaceFinder.Companion.buildPlaceInfo
 import com.lambda.interaction.blockplace.PlaceInfo
 import com.lambda.interaction.blockplace.PlaceInteraction.placeBlock
@@ -37,6 +35,8 @@ import com.lambda.interaction.request.rotation.Rotation.Companion.angleDifferenc
 import com.lambda.interaction.request.rotation.Rotation.Companion.dist
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.Rotation.Companion.wrap
+import com.lambda.interaction.request.rotation.RotationManager.activeRotation
+import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.scanSurfaces
@@ -216,9 +216,9 @@ object Scaffold : Module(
         val assumedYaw = assumeYawByDirection(moveYaw)
 
         // No need to rotate, already looking correctly
-        val lookingCorrectly = castRotation(currentRotation, info) != null
-        val isYawStable = angleDifference(currentRotation.yaw, assumedYaw) < YAW_THRESHOLD
-        if (lookingCorrectly && isYawStable) return currentRotation
+        val lookingCorrectly = castRotation(activeRotation, info) != null
+        val isYawStable = angleDifference(activeRotation.yaw, assumedYaw) < YAW_THRESHOLD
+        if (lookingCorrectly && isYawStable) return activeRotation
 
         // Dividing the surface by segments and iterating through them
         val pointScan = mutableSetOf<Rotation>().apply {
@@ -265,7 +265,7 @@ object Scaffold : Module(
 
         val optimalRotation = when {
             // Placing supporting block
-            info.placeSteps > 0 && !isDiagonal -> currentRotation
+            info.placeSteps > 0 && !isDiagonal -> activeRotation
 
             // Placing base block
             else -> assumedRotation
@@ -316,7 +316,7 @@ object Scaffold : Module(
         val isNearLedge = world.isBlockSpaceEmpty(player, predictedBox)*/
 
         val sneak = lastRotation?.let {
-            currentRotation dist it > YAW_THRESHOLD && player.isOnGround
+            activeRotation dist it > YAW_THRESHOLD && player.isOnGround
         } ?: (sneakTicks > 0 && placeInfoAge < 4)
 
         if (sneak) sneakTicks = 3

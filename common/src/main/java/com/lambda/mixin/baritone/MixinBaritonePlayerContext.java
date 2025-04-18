@@ -42,7 +42,7 @@ public class MixinBaritonePlayerContext {
 
         RotationManager rm = RotationManager.INSTANCE;
         cir.setReturnValue(new Rotation(
-                (float) rm.getCurrentRotation().getYaw(), (float) rm.getCurrentRotation().getPitch())
+                (float) rm.getActiveRotation().getYaw(), (float) rm.getActiveRotation().getPitch())
         );
     }
 }
