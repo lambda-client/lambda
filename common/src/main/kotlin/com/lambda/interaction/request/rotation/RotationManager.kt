@@ -53,7 +53,6 @@ object RotationManager : RequestHandler<RotationRequest>(
     TickStage.TickStart
 ), Loadable {
     var currentRotation = Rotation.ZERO
-    val nextRotation get() = activeRequest?.target?.targetRotation?.value ?: currentRotation
     private var prevRotation = Rotation.ZERO
 
     private var changedThisTick = false
