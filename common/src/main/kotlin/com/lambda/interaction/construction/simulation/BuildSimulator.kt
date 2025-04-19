@@ -69,7 +69,6 @@ import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemUsageContext
 import net.minecraft.registry.RegistryKeys
-import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
@@ -77,7 +76,6 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
-import kotlin.jvm.optionals.getOrNull
 import kotlin.math.pow
 
 object BuildSimulator {
@@ -243,7 +241,7 @@ object BuildSimulator {
                 // ToDo: For each hand and sneak or not?
                 val fakePlayer = copyPlayer(player).apply {
                     setPos(eye.x, eye.y - standingEyeHeight, eye.z)
-                    if (place.rotateForPlace) this.rotation = checkedHit.targetRotation
+                    this.rotation = RotationManager.serverRotation
                 }
 
                 val checkedResult = checkedHit.hit
@@ -311,11 +309,26 @@ object BuildSimulator {
                     }
                 }
 
-                simulatePlaceState()?.let simulatePlaceState@ { basePlaceResult ->
-                    if (!place.axisRotate) {
+                var currentDirIsInvalid = false
+                simulatePlaceState()?.let { basePlaceResult ->
+                    if (!place.rotate) {
                         acc.add(basePlaceResult)
                         return@forEach
                     }
+
+                    currentDirIsInvalid = true
+                }
+
+                if (place.rotateForPlace && !place.axisRotate) {
+                    fakePlayer.rotation = checkedHit.targetRotation
+                    simulatePlaceState()?.let { rotatedPlaceResult ->
+                        acc.add(rotatedPlaceResult)
+                        return@forEach
+                    }
+                    rot = checkedHit.targetRotation
+                }
+
+                if (place.axisRotate) run axisRotations@ {
                     placementRotations.forEachIndexed direction@ { index, angle ->
                         fakePlayer.rotation = angle
 
@@ -332,8 +345,8 @@ object BuildSimulator {
                             }
 
                             else -> {
-                                rot = fakePlayer.rotation
-                                return@simulatePlaceState
+                                rot = angle
+                                return@axisRotations
                             }
                         }
                     }
@@ -342,9 +355,6 @@ object BuildSimulator {
                 val blockHit = checkedResult.blockResult ?: return@forEach
                 val hitBlock = blockState(blockHit.blockPos).block
                 val shouldSneak = hitBlock::class in BlockUtils.interactionBlocks
-
-                val primeDirection =
-                    (target as? TargetState.State)?.blockState?.getOrEmpty(Properties.HORIZONTAL_FACING)?.getOrNull()
 
                 val placeContext = PlaceContext(
                     eye,
@@ -358,7 +368,7 @@ object BuildSimulator {
                     target,
                     shouldSneak,
                     false,
-                    primeDirection
+                    currentDirIsInvalid
                 )
 
                 val currentHandStack = player.getStackInHand(Hand.MAIN_HAND)

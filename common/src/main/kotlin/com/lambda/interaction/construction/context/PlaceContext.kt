@@ -30,7 +30,6 @@ import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
@@ -46,7 +45,7 @@ data class PlaceContext(
     override val targetState: TargetState,
     val sneak: Boolean,
     val insideBlock: Boolean,
-    val primeDirection: Direction?
+    val previousDirWasInvalid: Boolean = false
 ) : BuildContext {
     private val baseColor = Color(35, 188, 254, 25)
     private val sideColor = Color(35, 188, 254, 100)
@@ -79,7 +78,9 @@ data class PlaceContext(
 
     fun requestDependencies(request: PlaceRequest): Boolean {
         val hotbarRequest = request.hotbar.request(HotbarRequest(hotbarIndex, request.hotbar))
-        val validRotation = if (request.build.placing.rotate) request.rotation.request(rotation).done else true
+        val validRotation = if (request.build.placing.rotate) {
+            request.rotation.request(rotation).done && !previousDirWasInvalid
+        } else true
         return hotbarRequest.done && validRotation
     }
 }
