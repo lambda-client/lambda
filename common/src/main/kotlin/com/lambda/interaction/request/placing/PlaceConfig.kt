@@ -40,8 +40,8 @@ abstract class PlaceConfig(
     abstract val swingType: BuildConfig.SwingType
     abstract val sounds: Boolean
 
-    override fun requestInternal(request: PlaceRequest) {
-        PlaceManager.request(request)
+    override fun requestInternal(request: PlaceRequest, queueIfClosed: Boolean) {
+        PlaceManager.request(request, queueIfClosed)
     }
 
     enum class AirPlaceMode {

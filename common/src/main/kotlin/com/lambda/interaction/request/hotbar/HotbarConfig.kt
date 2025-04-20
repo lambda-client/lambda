@@ -64,7 +64,7 @@ abstract class HotbarConfig(
      *
      * @param request The hotbar request to register.
      */
-    override fun requestInternal(request: HotbarRequest) {
-        HotbarManager.request(request)
+    override fun requestInternal(request: HotbarRequest, queueIfClosed: Boolean) {
+        HotbarManager.request(request, queueIfClosed)
     }
 }

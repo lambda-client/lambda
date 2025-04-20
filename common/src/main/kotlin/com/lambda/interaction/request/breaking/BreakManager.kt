@@ -191,15 +191,16 @@ object BreakManager : RequestHandler<BreakRequest>(
                 .filterNotNull()
                 .filter { !it.isRedundant }
                 .also { infos ->
-                    infos.firstOrNull { it.breakConfig.rotateForBreak }?.let { info ->
-                        info.request.rotation.request(info.context.rotation)
+                    rotationRequest = infos.firstOrNull { it.breakConfig.rotateForBreak }?.let { info ->
+                        val rotation = info.context.rotation
+                        if (instantBreaks.isEmpty()) info.request.rotation.request(rotation, false) else rotation
                     }
                 }
                 .reversed()
                 .forEach { info ->
                     if (info.updatedProgressThisTick) return@forEach
                     if (!info.context.requestDependencies(request)) return@breakInfos
-                    if (!rotated || tickStage !in info.breakConfig.breakStageMask) return@breakInfos
+                    if ((!rotated && info.isPrimary) || tickStage !in info.breakConfig.breakStageMask) return@breakInfos
                     updateBreakProgress(info)
                 }
         }
@@ -283,7 +284,8 @@ object BreakManager : RequestHandler<BreakRequest>(
             val ctx = iterator.next()
 
             if (!ctx.requestDependencies(request)) return false
-            if (tickStage !in request.build.breaking.breakStageMask) return false
+            rotationRequest = if (request.build.breaking.rotateForBreak) request.rotation.request(ctx.rotation, false) else null
+            if (!rotated || tickStage !in request.build.breaking.breakStageMask) return false
 
             val breakInfo = initNewBreak(ctx, request) ?: return false
             request.onAccept?.invoke(ctx.expectedPos)

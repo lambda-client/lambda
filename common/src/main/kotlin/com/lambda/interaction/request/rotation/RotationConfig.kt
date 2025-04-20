@@ -57,8 +57,8 @@ abstract class RotationConfig(priority: Priority) : RequestConfig<RotationReques
 
     val rotate: Boolean get() = rotationMode != RotationMode.None
 
-    override fun requestInternal(request: RotationRequest) {
-        RotationManager.request(request)
+    override fun requestInternal(request: RotationRequest, queueIfClosed: Boolean) {
+        RotationManager.request(request, queueIfClosed)
     }
 
     open class Instant(mode: RotationMode, priority: Priority = 0) : RotationConfig(priority) {

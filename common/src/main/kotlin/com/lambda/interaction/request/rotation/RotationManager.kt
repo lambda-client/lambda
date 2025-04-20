@@ -50,7 +50,9 @@ import kotlin.math.sign
 import kotlin.math.sin
 
 object RotationManager : RequestHandler<RotationRequest>(
-    TickStage.TickStart
+    TickStage.TickStart,
+    TickStage.PostHotbar,
+    TickStage.PostInteract,
 ), Loadable {
     var activeRotation = Rotation.ZERO; private set
     var serverRotation = Rotation.ZERO; private set

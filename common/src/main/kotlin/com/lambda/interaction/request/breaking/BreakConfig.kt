@@ -47,8 +47,8 @@ abstract class BreakConfig(
     abstract val minFortuneLevel: Int
     abstract val ignoredBlocks: Set<Block>
 
-    override fun requestInternal(request: BreakRequest) {
-        BreakManager.request(request)
+    override fun requestInternal(request: BreakRequest, queueIfClosed: Boolean) {
+        BreakManager.request(request, queueIfClosed)
     }
 
     enum class BreakMode {
