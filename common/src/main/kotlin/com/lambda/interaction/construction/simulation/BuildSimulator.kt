@@ -328,7 +328,7 @@ object BuildSimulator {
                     rot = checkedHit.targetRotation
                 }
 
-                if (place.axisRotate) run axisRotations@ {
+                if (place.axisRotate && currentDirIsInvalid) run axisRotations@ {
                     placementRotations.forEachIndexed direction@ { index, angle ->
                         fakePlayer.rotation = angle
 
