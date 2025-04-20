@@ -53,6 +53,7 @@ import com.lambda.util.world.FastVector
 import com.lambda.util.world.WorldUtils.hasSupport
 import com.lambda.util.world.dist
 import com.lambda.util.world.fastVectorOf
+import com.lambda.util.world.string
 import com.lambda.util.world.toBlockPos
 import com.lambda.util.world.toFastVec
 import com.lambda.util.world.x
@@ -73,10 +74,9 @@ object Pathfinder : Module(
     description = "Get from A to B",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {
-    private val targetPos by setting("Target", BlockPos(0, 78, 0))
     private val pathing = PathingSettings(this)
 
-    private val target: FastVector get() = targetPos.toFastVec()
+    var target = fastVectorOf(0, 78, 0)
     val graph = LazyGraph { origin ->
         runSafe {
             moveOptions(origin, ::heuristic, pathing).associate { it.pos to it.cost }
@@ -268,5 +268,13 @@ object Pathfinder : Module(
         return error.multiply(pathing.kP)
             .add(integralError.multiply(pathing.kI))
             .add(derivativeError.multiply(pathing.kD))
+    }
+
+    fun debugInfo() = buildString {
+        appendLine("Current Start: ${currentStart.string}")
+        appendLine("Current Target: ${currentTarget?.string}")
+        appendLine("Path Length: ${coarsePath.length().string} Nodes: ${coarsePath.size}")
+        if (pathing.refinePath) appendLine("Refined Path: ${refinedPath.length().string} Nodes: ${refinedPath.size}")
+        if (pathing.algorithm == PathingConfig.PathingAlgorithm.D_STAR_LITE) append(dStar.toString())
     }
 }

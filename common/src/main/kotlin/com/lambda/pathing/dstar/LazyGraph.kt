@@ -17,20 +17,11 @@
 
 package com.lambda.pathing.dstar
 
-import com.lambda.graphics.gl.Matrices
-import com.lambda.graphics.gl.Matrices.buildWorldProjection
-import com.lambda.graphics.gl.Matrices.withVertexTransform
 import com.lambda.graphics.renderer.esp.builders.buildLine
 import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.global.StaticESP
-import com.lambda.graphics.renderer.gui.FontRenderer
-import com.lambda.graphics.renderer.gui.FontRenderer.drawString
 import com.lambda.pathing.PathingSettings
-import com.lambda.util.math.Vec2d
-import com.lambda.util.math.div
-import com.lambda.util.math.plus
 import com.lambda.util.world.FastVector
-import com.lambda.util.world.string
 import com.lambda.util.world.toCenterVec3d
 import net.minecraft.util.math.Box
 import java.awt.Color
@@ -54,19 +45,17 @@ class LazyGraph(
 ) {
     val successors = ConcurrentHashMap<FastVector, MutableMap<FastVector, Double>>()
     val predecessors = ConcurrentHashMap<FastVector, MutableMap<FastVector, Double>>()
-    val dirtyNodes = mutableSetOf<FastVector>()
+    val invalidated = mutableSetOf<FastVector>()
 
     val nodes get() = successors.keys + predecessors.keys
-    val size get() = successors.size
+    val size get() = nodes.size
 
     /** Initializes a node if not already initialized, then returns successors. */
     fun successors(u: FastVector): MutableMap<FastVector, Double> =
         successors.getOrPut(u) {
-            val neighbors = nodeInitializer(u)
-            neighbors.forEach { (neighbor, cost) ->
+            nodeInitializer(u).onEach { (neighbor, cost) ->
                 predecessors.getOrPut(neighbor) { hashMapOf() }[u] = cost
-            }
-            neighbors.toMutableMap()
+            }.toMutableMap()
         }
 
     /** Initializes predecessors by ensuring successors of neighboring nodes. */
@@ -75,38 +64,50 @@ class LazyGraph(
         return predecessors[u] ?: emptyMap()
     }
 
-    fun invalidate(u: FastVector) {
-        val neighbors = getNeighbors(u)
-        (neighbors + u).forEach { v ->
-            successors.remove(v)
-            predecessors.remove(v)
-            predecessors.values.forEach { predMap ->
-                predMap.remove(v)
-            }
-        }
+    fun remove(u: FastVector) {
+        successors.remove(u)
+        successors.values.forEach { it.remove(u) }
+        predecessors.remove(u)
+        predecessors.values.forEach { it.remove(u) }
     }
 
-    fun getNeighbors(u: FastVector): Set<FastVector> = successors(u).keys + predecessors(u).keys
+    fun setCost(u: FastVector, v: FastVector, c: Double) {
+        successors[u]?.put(v, c)
+        predecessors[v]?.put(u, c)
+    }
 
-    /** Returns the cost of the edge from u to v (or ∞ if none exists) */
-    fun cost(u: FastVector, v: FastVector): Double = successors(u)[v] ?: Double.POSITIVE_INFINITY
-
-    fun contains(u: FastVector): Boolean = successors.containsKey(u)
+    fun invalidate(u: FastVector) =
+        neighbors(u).apply {
+            forEach { remove(it) }
+            invalidated.addAll(this)
+        }
 
     fun clear() {
         successors.clear()
         predecessors.clear()
-        dirtyNodes.clear()
+        invalidated.clear()
     }
+
+    fun neighbors(u: FastVector): Set<FastVector> = successors(u).keys + predecessors(u).keys
+
+    /** Returns the cost of the edge from u to v (or ∞ if none exists) */
+    fun cost(u: FastVector, v: FastVector): Double = successors(u)[v] ?: Double.POSITIVE_INFINITY
+
+    operator fun contains(u: FastVector): Boolean = nodes.contains(u)
 
     fun render(renderer: StaticESP, config: PathingSettings) {
         if (!config.renderGraph) return
-        successors.entries.take(config.maxRenderObjects).forEach { (origin, neighbors) ->
+        if (config.renderSuccessors) successors.entries.take(config.maxRenderObjects).forEach { (origin, neighbors) ->
             neighbors.forEach { (neighbor, _) ->
                 renderer.buildLine(origin.toCenterVec3d(), neighbor.toCenterVec3d(), Color.PINK)
             }
         }
-        dirtyNodes.take(config.maxRenderObjects).forEach { node ->
+        if (config.renderPredecessors) predecessors.entries.take(config.maxRenderObjects).forEach { (origin, neighbors) ->
+            neighbors.forEach { (neighbor, _) ->
+                renderer.buildLine(origin.toCenterVec3d(), neighbor.toCenterVec3d(), Color.PINK)
+            }
+        }
+        if (config.renderInvalidated) invalidated.take(config.maxRenderObjects).forEach { node ->
             renderer.buildOutline(Box.of(node.toCenterVec3d(), 0.2, 0.2, 0.2), Color.RED)
         }
     }

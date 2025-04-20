@@ -52,10 +52,14 @@ interface PathingConfig {
     val renderRefinedPath: Boolean
     val renderGoal: Boolean
     val renderGraph: Boolean
+    val renderSuccessors: Boolean
+    val renderPredecessors: Boolean
+    val renderInvalidated: Boolean
     val renderPositions: Boolean
     val renderCost: Boolean
     val renderG: Boolean
     val renderRHS: Boolean
+    val renderKey: Boolean
     val maxRenderObjects: Int
     val fontScale: Double
     val assumeJesus: Boolean

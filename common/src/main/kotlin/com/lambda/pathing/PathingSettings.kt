@@ -61,10 +61,14 @@ class PathingSettings(
     override val renderRefinedPath by c.setting("Render Refined Path", true) { vis() && page == Page.Debug }
     override val renderGoal by c.setting("Render Goal", true) { vis() && page == Page.Debug }
     override val renderGraph by c.setting("Render Graph", false) { vis() && page == Page.Debug }
+    override val renderSuccessors by c.setting("Render Successors", false) { vis() && page == Page.Debug && renderGraph }
+    override val renderPredecessors by c.setting("Render Predecessors", false) { vis() && page == Page.Debug && renderGraph }
+    override val renderInvalidated by c.setting("Render Invalidated", false) { vis() && page == Page.Debug && renderGraph }
     override val renderPositions by c.setting("Render Positions", false) { vis() && page == Page.Debug && renderGraph }
     override val renderCost by c.setting("Render Cost", false) { vis() && page == Page.Debug && renderGraph }
     override val renderG by c.setting("Render G", false) { vis() && page == Page.Debug && renderGraph }
     override val renderRHS by c.setting("Render RHS", false) { vis() && page == Page.Debug && renderGraph }
+    override val renderKey by c.setting("Render Key", false) { vis() && page == Page.Debug && renderGraph }
     override val maxRenderObjects by c.setting("Max Render Objects", 1000, 0..10_000, 100) { vis() && page == Page.Debug && renderGraph }
     override val fontScale by c.setting("Font Scale", 0.4, 0.0..2.0, 0.01) { vis() && renderGraph && page == Page.Debug }
 

@@ -18,16 +18,23 @@
 package com.lambda.pathing.dstar
 
 /**
- * A Key is a pair (k1, k2) that is used to order vertices in the priority queue.
- * They are compared lexicographically.
+ * Represents the Key used in the D* Lite algorithm.
+ * It's a pair of comparable values, typically Doubles or Ints.
+ * Comparison is done lexicographically as described in Field D*[cite: 142].
  */
-data class Key(val k1: Double, val k2: Double) : Comparable<Key> {
-    override fun compareTo(other: Key) =
-        when {
-            this.k1 < other.k1 -> -1
-            this.k1 > other.k1 -> 1
-            this.k2 < other.k2 -> -1
-            this.k2 > other.k2 -> 1
-            else -> 0
+data class Key(val first: Double, val second: Double) : Comparable<Key> {
+    override fun compareTo(other: Key): Int {
+        val firstCompare = this.first.compareTo(other.first)
+        if (firstCompare != 0) {
+            return firstCompare
         }
+        return this.second.compareTo(other.second)
+    }
+
+    override fun toString() = "(%.3f, %.3f)".format(first, second)
+
+    companion object {
+        // Represents an infinite key
+        val INFINITY = Key(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY)
+    }
 }
