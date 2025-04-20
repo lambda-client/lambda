@@ -241,6 +241,7 @@ object BuildSimulator {
                 // ToDo: For each hand and sneak or not?
                 val fakePlayer = copyPlayer(player).apply {
                     setPos(eye.x, eye.y - standingEyeHeight, eye.z)
+                    this.rotation = RotationManager.serverRotation
                 }
 
                 val checkedResult = checkedHit.hit
@@ -293,7 +294,7 @@ object BuildSimulator {
                 }
 
                 lateinit var resultState: BlockState
-                var rot = fakePlayer.rotation
+                var rot = player.rotation
 
                 val simulatePlaceState = placeState@ {
                     resultState = blockItem.getPlacementState(context)
@@ -330,7 +331,6 @@ object BuildSimulator {
                 if (place.axisRotate && currentDirIsInvalid) run axisRotations@ {
                     placementRotations.forEachIndexed direction@ { index, angle ->
                         fakePlayer.rotation = angle
-
                         when (val placeResult = simulatePlaceState()) {
                             is PlaceResult.BlockedByEntity -> {
                                 acc.add(placeResult)

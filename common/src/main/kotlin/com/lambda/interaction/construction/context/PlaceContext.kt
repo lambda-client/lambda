@@ -81,7 +81,7 @@ data class PlaceContext(
         val validRotation = if (request.build.placing.rotate) {
             //ToDo: add a rotation compare to the !previousDirWasInvalid check in case the player
             // was able to perform actions after updating the server rotation in the same tick
-            request.rotation.request(rotation).done && !previousDirWasInvalid
+            request.rotation.request(rotation, false).done && !previousDirWasInvalid
         } else true
         return hotbarRequest.done && validRotation
     }
