@@ -39,6 +39,7 @@ import com.lambda.pathing.PathingSettings
 import com.lambda.pathing.dstar.DStarLite
 import com.lambda.pathing.dstar.LazyGraph
 import com.lambda.pathing.goal.SimpleGoal
+import com.lambda.pathing.move.MoveFinder
 import com.lambda.pathing.move.MoveFinder.moveOptions
 import com.lambda.pathing.move.NodeType
 import com.lambda.pathing.move.TraverseMove
@@ -112,6 +113,7 @@ object Pathfinder : Module(
         }
 
         onDisable {
+            MoveFinder.clean()
             graph.clear()
         }
 
