@@ -22,16 +22,12 @@ import com.lambda.graphics.gl.Matrices.buildWorldProjection
 import com.lambda.graphics.gl.Matrices.withVertexTransform
 import com.lambda.graphics.renderer.gui.FontRenderer
 import com.lambda.graphics.renderer.gui.FontRenderer.drawString
-import com.lambda.module.modules.movement.Pathfinder
 import com.lambda.pathing.PathingSettings
 import com.lambda.util.math.Vec2d
-import com.lambda.util.math.div
 import com.lambda.util.math.minus
 import com.lambda.util.math.plus
 import com.lambda.util.math.times
 import com.lambda.util.world.FastVector
-import com.lambda.util.world.add
-import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.string
 import com.lambda.util.world.toCenterVec3d
 import kotlin.math.min
@@ -151,30 +147,18 @@ class DStarLite(
      */
     fun invalidate(u: FastVector) {
         graph.neighbors(u).forEach { v ->
-            graph.invalidated.add(v)
-            updateEdge(u, v, INF)
-            updateEdge(v, u, INF)
-        }
-        graph.invalidated.forEach { v ->
-            val currentConnections = graph.successors(v)
-            val actualConnections = graph.initialize(v)
-            val changedConnections = currentConnections.filter { (succ, cost) -> cost != actualConnections[succ] }
-            val newConnections = actualConnections.filter { (succ, _) -> succ !in currentConnections }
-            val removedConnections = currentConnections.filter { (succ, _) -> succ !in actualConnections }
-            changedConnections.forEach { (succ, cost) ->
-                updateEdge(v, succ, cost)
-                updateEdge(succ, v, cost)
+            val current = graph.successors(v)
+            val updated = graph.nodeInitializer(v)
+            val removed = current.filter { (w, _) -> w !in updated }
+            removed.forEach { (w, _) ->
+                updateEdge(v, w, INF)
+                updateEdge(w, v, INF)
             }
-            newConnections.forEach { (succ, cost) ->
-                updateEdge(v, succ, cost)
-                updateEdge(succ, v, cost)
-            }
-            removedConnections.forEach { (succ, _) ->
-                updateEdge(v, succ, INF)
-                updateEdge(succ, v, INF)
+            updated.forEach { (w, c) ->
+                updateEdge(v, w, c)
+                updateEdge(w, v, c)
             }
         }
-        graph.invalidated.clear()
     }
 
     /**
@@ -194,10 +178,6 @@ class DStarLite(
             if (u != goal) setRHS(u, minSuccessorCost(u))
         }
         updateVertex(u)
-//        if (c == INF) {
-//            graph.removeEdge(u, v)
-//            graph.removeEdge(v, u)
-//        }
     }
 
     /**

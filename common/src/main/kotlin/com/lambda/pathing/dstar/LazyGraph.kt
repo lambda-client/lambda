@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap
  * - Additional memory overhead is based on the dynamically expanding hash maps.
  */
 class LazyGraph(
-    private val nodeInitializer: (FastVector) -> Map<FastVector, Double>
+    val nodeInitializer: (FastVector) -> Map<FastVector, Double>
 ) {
     val successors = ConcurrentHashMap<FastVector, MutableMap<FastVector, Double>>()
     val predecessors = ConcurrentHashMap<FastVector, MutableMap<FastVector, Double>>()
@@ -52,7 +52,11 @@ class LazyGraph(
 
     /** Initializes a node if not already initialized, then returns successors. */
     fun successors(u: FastVector): MutableMap<FastVector, Double> =
-        successors.getOrPut(u) { initialize(u).toMutableMap() }
+        successors.getOrPut(u) {
+            nodeInitializer(u).onEach { (neighbor, cost) ->
+                predecessors.getOrPut(neighbor) { hashMapOf() }[u] = cost
+            }.toMutableMap()
+        }
 
     /** Initializes predecessors by ensuring successors of neighboring nodes. */
     fun predecessors(u: FastVector): Map<FastVector, Double> {
@@ -77,11 +81,6 @@ class LazyGraph(
             predecessors.remove(v)
         }
     }
-
-    fun initialize(u: FastVector) =
-        nodeInitializer(u).onEach { (neighbor, cost) ->
-            predecessors.getOrPut(neighbor) { hashMapOf() }[u] = cost
-        }
 
     fun setCost(u: FastVector, v: FastVector, c: Double) {
         successors[u]?.put(v, c)
