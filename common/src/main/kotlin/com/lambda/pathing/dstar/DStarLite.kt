@@ -150,6 +150,7 @@ class DStarLite(
             val current = graph.successors(v)
             val updated = graph.nodeInitializer(v)
             val removed = current.filter { (w, _) -> w !in updated }
+            updateEdge(u, v, INF)
             removed.forEach { (w, _) ->
                 updateEdge(v, w, INF)
                 updateEdge(w, v, INF)
