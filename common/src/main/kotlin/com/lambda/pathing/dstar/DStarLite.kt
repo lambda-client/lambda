@@ -30,6 +30,8 @@ import com.lambda.util.math.minus
 import com.lambda.util.math.plus
 import com.lambda.util.math.times
 import com.lambda.util.world.FastVector
+import com.lambda.util.world.add
+import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.string
 import com.lambda.util.world.toCenterVec3d
 import kotlin.math.min
@@ -146,33 +148,33 @@ class DStarLite(
 
     /**
      * Invalidates a node (e.g., it became an obstacle) and updates affected neighbors.
-     * Call `computeShortestPath()` afterwards.
      */
     fun invalidate(u: FastVector) {
-        // 1. Invalidate node in graph and get its direct valid neighbors
-        // This also clears the neighbors' cached successors, forcing re-initialization.
-        val neighborsToUpdate = graph.invalidate(u)
-
-        // 2. Update the rhs value for all affected neighbors.
-        // Since their edge information might change upon re-initialization,
-        // the safest approach is to recompute their rhs from scratch.
-        neighborsToUpdate.forEach { neighbor ->
-            if (neighbor != goal) {
-                // Recompute rhs based on its *potentially new* set of successors
-                // Note: minSuccessorCost will trigger re-initialization
-                setRHS(neighbor, minSuccessorCost(neighbor))
+        graph.neighbors(u).forEach { v ->
+            graph.invalidated.add(v)
+            updateEdge(u, v, INF)
+            updateEdge(v, u, INF)
+        }
+        graph.invalidated.forEach { v ->
+            val currentConnections = graph.successors(v)
+            val actualConnections = graph.initialize(v)
+            val changedConnections = currentConnections.filter { (succ, cost) -> cost != actualConnections[succ] }
+            val newConnections = actualConnections.filter { (succ, _) -> succ !in currentConnections }
+            val removedConnections = currentConnections.filter { (succ, _) -> succ !in actualConnections }
+            changedConnections.forEach { (succ, cost) ->
+                updateEdge(v, succ, cost)
+                updateEdge(succ, v, cost)
             }
-            // Check consistency and update queue status for the neighbor
-            updateVertex(neighbor)
+            newConnections.forEach { (succ, cost) ->
+                updateEdge(v, succ, cost)
+                updateEdge(succ, v, cost)
+            }
+            removedConnections.forEach { (succ, _) ->
+                updateEdge(v, succ, INF)
+                updateEdge(succ, v, INF)
+            }
         }
-
-        // 3. Update the invalidated node itself (likely sets g=INF, rhs=INF)
-        if (u != goal) {
-            setRHS(u, minSuccessorCost(u)) // Should return INF
-        }
-        // Ensure g is INF and update queue status
-        setG(u, INF)
-        updateVertex(u)
+        graph.invalidated.clear()
     }
 
     /**
@@ -184,6 +186,7 @@ class DStarLite(
      */
     fun updateEdge(u: FastVector, v: FastVector, c: Double) {
         val cOld = graph.cost(u, v)
+        if (cOld == c) return
         graph.setCost(u, v, c)
         if (cOld > c) {
             if (u != goal) setRHS(u, min(rhs(u), c + g(v)))
@@ -191,6 +194,10 @@ class DStarLite(
             if (u != goal) setRHS(u, minSuccessorCost(u))
         }
         updateVertex(u)
+//        if (c == INF) {
+//            graph.removeEdge(u, v)
+//            graph.removeEdge(v, u)
+//        }
     }
 
     /**

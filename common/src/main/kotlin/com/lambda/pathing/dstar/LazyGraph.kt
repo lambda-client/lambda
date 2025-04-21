@@ -52,11 +52,7 @@ class LazyGraph(
 
     /** Initializes a node if not already initialized, then returns successors. */
     fun successors(u: FastVector): MutableMap<FastVector, Double> =
-        successors.getOrPut(u) {
-            nodeInitializer(u).onEach { (neighbor, cost) ->
-                predecessors.getOrPut(neighbor) { hashMapOf() }[u] = cost
-            }.toMutableMap()
-        }
+        successors.getOrPut(u) { initialize(u).toMutableMap() }
 
     /** Initializes predecessors by ensuring successors of neighboring nodes. */
     fun predecessors(u: FastVector): Map<FastVector, Double> {
@@ -64,23 +60,33 @@ class LazyGraph(
         return predecessors[u] ?: emptyMap()
     }
 
-    fun remove(u: FastVector) {
+    fun removeNode(u: FastVector) {
         successors.remove(u)
         successors.values.forEach { it.remove(u) }
         predecessors.remove(u)
         predecessors.values.forEach { it.remove(u) }
     }
 
+    fun removeEdge(u: FastVector, v: FastVector) {
+        successors[u]?.remove(v)
+        predecessors[v]?.remove(u)
+        if (successors[u]?.isEmpty() == true) {
+            successors.remove(u)
+        }
+        if (predecessors[v]?.isEmpty() == true) {
+            predecessors.remove(v)
+        }
+    }
+
+    fun initialize(u: FastVector) =
+        nodeInitializer(u).onEach { (neighbor, cost) ->
+            predecessors.getOrPut(neighbor) { hashMapOf() }[u] = cost
+        }
+
     fun setCost(u: FastVector, v: FastVector, c: Double) {
         successors[u]?.put(v, c)
         predecessors[v]?.put(u, c)
     }
-
-    fun invalidate(u: FastVector) =
-        neighbors(u).apply {
-            forEach { remove(it) }
-            invalidated.addAll(this)
-        }
 
     fun clear() {
         successors.clear()
@@ -88,6 +94,7 @@ class LazyGraph(
         invalidated.clear()
     }
 
+    fun edges(u: FastVector) = successors(u).entries + predecessors(u).entries
     fun neighbors(u: FastVector): Set<FastVector> = successors(u).keys + predecessors(u).keys
 
     /** Returns the cost of the edge from u to v (or ∞ if none exists) */

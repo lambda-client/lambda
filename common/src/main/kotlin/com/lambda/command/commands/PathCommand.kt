@@ -58,6 +58,7 @@ object PathCommand : LambdaCommand(
                         execute {
                             val v = fastVectorOf(x().value(), y().value(), z().value())
                             Pathfinder.dStar.invalidate(v)
+                            Pathfinder.needsUpdate = true
                             this@PathCommand.info("Invalidated ${v.string}")
                         }
                     }
@@ -71,7 +72,7 @@ object PathCommand : LambdaCommand(
                     required(integer("Z", -30000000, 30000000)) { z ->
                         execute {
                             val v = fastVectorOf(x().value(), y().value(), z().value())
-                            Pathfinder.graph.remove(v)
+                            Pathfinder.graph.removeNode(v)
                             this@PathCommand.info("Removed ${v.string}")
                         }
                     }
