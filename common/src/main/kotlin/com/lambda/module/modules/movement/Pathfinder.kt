@@ -241,7 +241,7 @@ object Pathfinder : Module(
 
     private fun SafeContext.updateDStar(start: FastVector, goal: SimpleGoal) {
         val long: Path
-        val dStar = measureTimeMillis {
+        val dStarTime = measureTimeMillis {
             dStar.updateStart(start)
             dStar.computeShortestPath(pathing.cutoffTimeout)
             val nodes = dStar.path(pathing.maxPathLength).map { TraverseMove(it, 0.0, NodeType.OPEN, 0.0, 0.0) }
@@ -253,10 +253,11 @@ object Pathfinder : Module(
                 thetaStarClearance(long, pathing)
             } else long
         }
-        info("Lazy D* Lite (Length: ${long.length().string} Nodes: ${long.size} Graph Size: ${graph.size} T: $dStar ms) and \u03b8* (Length: ${short.length().string} Nodes: ${short.size} T: $thetaStar ms)")
+        info("Lazy D* Lite (Length: ${long.length().string} Nodes: ${long.size} Graph Size: ${graph.size} T: $dStarTime ms) and \u03b8* (Length: ${short.length().string} Nodes: ${short.size} T: $thetaStar ms)")
 //        println("Long: $long | Short: $short")
         coarsePath = long
         refinedPath = short
+        println(dStar.toString())
     }
 
     private fun SafeContext.calculatePID(target: Vec3d): Vec3d {

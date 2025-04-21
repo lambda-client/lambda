@@ -146,10 +146,13 @@ class DStarLite(
      * Invalidates a node (e.g., it became an obstacle) and updates affected neighbors.
      */
     fun invalidate(u: FastVector) {
+        val newNodes = mutableSetOf<FastVector>()
+
         graph.neighbors(u).forEach { v ->
             val current = graph.successors(v)
             val updated = graph.nodeInitializer(v)
             val removed = current.filter { (w, _) -> w !in updated }
+            updated.keys.filter { w -> w !in current.keys && w != u }.forEach { newNodes.add(it) }
             updateEdge(u, v, INF)
             removed.forEach { (w, _) ->
                 updateEdge(v, w, INF)
@@ -158,6 +161,14 @@ class DStarLite(
             updated.forEach { (w, c) ->
                 updateEdge(v, w, c)
                 updateEdge(w, v, c)
+            }
+        }
+
+        // Update rhs values for all new nodes
+        newNodes.forEach { node ->
+            if (node != goal) {
+                setRHS(node, minSuccessorCost(node))
+                updateVertex(node)
             }
         }
     }
@@ -326,11 +337,12 @@ class DStarLite(
             appendLine("Top Key: ${U.topKey(Key.INFINITY)}, Top Node: ${U.top().string}")
         }
         appendLine("Graph Size: ${graph.size}, Invalidated: ${graph.invalidated.size}")
-//        appendLine("Known Nodes (${graph.nodes.size}):")
-//        graph.nodes.take(50).forEach {
-//            appendLine("  ${it.string} g: ${g(it)}, rhs: ${rhs(it)}, key: ${calculateKeyInternal(it)}")
-//        }
-//        if (graph.nodes.size > 50) appendLine("  ... (more nodes)")
+        appendLine("Known Nodes (${graph.nodes.size}):")
+        val show = 10
+        graph.nodes.take(show).forEach {
+            appendLine("  ${it.string} g: ${g(it)}, rhs: ${rhs(it)}, key: ${calculateKey(it)}")
+        }
+        if (graph.nodes.size > show) appendLine("  ... (${graph.nodes.size - show} more nodes)")
     }
 
     companion object {

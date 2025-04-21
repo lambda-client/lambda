@@ -414,4 +414,58 @@ internal class DStarLiteTest {
         // The new path should go around the blocked diagonal
         assertTrue(newPath.size > initialPath.size, "New path should be longer than the initial path")
     }
+
+    @Test
+    fun `invalidate node correctly updates rhs values for new nodes`() {
+        // Create a straight line path
+        val startNode = fastVectorOf(0, 0, 0)
+        val goalNode = fastVectorOf(0, 0, 3)
+        val localBlockedNodes = mutableSetOf<FastVector>()
+        val graph = createGridGraph26Conn(localBlockedNodes)
+        val dStar = DStarLite(graph, startNode, goalNode, ::euclideanHeuristic)
+
+        // Compute initial path
+        dStar.computeShortestPath()
+        val initialPath = dStar.path()
+
+        // Initial path should be straight
+        assertEquals(4, initialPath.size)
+        assertEquals(startNode, initialPath.first())
+        assertEquals(fastVectorOf(0, 0, 1), initialPath[1])
+        assertEquals(fastVectorOf(0, 0, 2), initialPath[2])
+        assertEquals(goalNode, initialPath.last())
+
+        // Block a node in the middle of the path
+        val nodeToInvalidate = fastVectorOf(0, 0, 1)
+        localBlockedNodes.add(nodeToInvalidate)
+        dStar.invalidate(nodeToInvalidate)
+
+        // Recompute path
+        dStar.computeShortestPath()
+        val newPath = dStar.path()
+
+        // Verify new path avoids the invalidated node
+        assertTrue(nodeToInvalidate !in newPath, "Path should not contain the invalidated node")
+        assertEquals(startNode, newPath.first())
+        assertEquals(goalNode, newPath.last())
+
+        // Check if any new nodes were created (nodes that weren't in the initial path)
+        val newNodes = newPath.filter { it !in initialPath && it != startNode && it != goalNode }
+
+        // Verify that new nodes have correct rhs values
+        newNodes.forEach { node ->
+            val rhs = dStar.rhs(node)
+            val minSuccCost = graph.successors(node)
+                .mapNotNull { (succ, cost) ->
+                    if (cost == Double.POSITIVE_INFINITY) null else cost + dStar.g(succ)
+                }
+                .minOrNull() ?: Double.POSITIVE_INFINITY
+
+            assertEquals(minSuccCost, rhs, 0.001, 
+                "Node $node should have rhs value equal to minimum successor cost")
+        }
+
+        // The new path should go around the blocked node
+        assertTrue(newPath.size >= initialPath.size, "New path should be at least as long as the initial path")
+    }
 }
