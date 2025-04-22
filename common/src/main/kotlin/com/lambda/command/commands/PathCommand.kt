@@ -17,11 +17,13 @@
 
 package com.lambda.command.commands
 
+import com.lambda.brigadier.argument.boolean
 import com.lambda.brigadier.argument.double
 import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.literal
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
+import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.module.modules.movement.Pathfinder
@@ -55,11 +57,16 @@ object PathCommand : LambdaCommand(
             required(integer("X", -30000000, 30000000)) { x ->
                 required(integer("Y", -64, 255)) { y ->
                     required(integer("Z", -30000000, 30000000)) { z ->
-                        execute {
-                            val v = fastVectorOf(x().value(), y().value(), z().value())
-                            Pathfinder.dStar.invalidate(v)
-                            Pathfinder.needsUpdate = true
-                            this@PathCommand.info("Invalidated ${v.string}")
+                        optional(boolean("prune")) { prune ->
+                            execute {
+                                val v = fastVectorOf(x().value(), y().value(), z().value())
+                                val pruneGraph = if (prune != null) {
+                                    prune().value()
+                                } else true
+                                Pathfinder.dStar.invalidate(v, pruneGraph = pruneGraph)
+                                Pathfinder.needsUpdate = true
+                                this@PathCommand.info("Invalidated ${v.string}")
+                            }
                         }
                     }
                 }
