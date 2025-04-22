@@ -20,7 +20,6 @@ package com.lambda.interaction.request
 import com.lambda.config.groups.TickStage
 import com.lambda.context.SafeContext
 import com.lambda.event.Event
-import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.threading.runSafe
@@ -61,7 +60,7 @@ abstract class RequestHandler<R : Request>(
                 TickStage.TickStart -> openRequestsFor<TickEvent.Pre>(TickStage.TickStart)
                 TickStage.PostHotbar -> { /*ToDo*/ }
                 TickStage.PostInteract -> { /*ToDo*/ }
-                TickStage.PostMovement -> openRequestsFor<MovementEvent.Player.Post>(TickStage.PostMovement)
+                TickStage.PlayerTickPost -> openRequestsFor<TickEvent.Player.Post>(TickStage.PlayerTickPost)
             }
         }
 

@@ -33,6 +33,7 @@ data class RotationRequest(
     val speedMultiplier: Double = 1.0
 ) : Request(prio, rot) {
     var age = 0
+    var matchesServerRot = false
 
     constructor(
         target: RotationTarget,

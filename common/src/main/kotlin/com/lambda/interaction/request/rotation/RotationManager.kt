@@ -24,7 +24,6 @@ import com.lambda.core.Loadable
 import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
-import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
@@ -35,7 +34,6 @@ import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.rotation.Rotation.Companion.slerp
 import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.module.modules.client.Baritone
-import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.partialTicks
 import com.lambda.util.extension.rotation
@@ -43,7 +41,6 @@ import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
 import net.minecraft.client.input.Input
-import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import kotlin.math.cos
 import kotlin.math.round
 import kotlin.math.sign
@@ -54,12 +51,12 @@ object RotationManager : RequestHandler<RotationRequest>(
     TickStage.PostHotbar,
     TickStage.PostInteract,
 ), Loadable {
-    var activeRotation = Rotation.ZERO; private set
-    var serverRotation = Rotation.ZERO; private set
-    private var prevServerRotation = Rotation.ZERO
+    var activeRotation = Rotation.ZERO
+    var serverRotation = Rotation.ZERO
+    var prevServerRotation = Rotation.ZERO
 
+    var activeRequest: RotationRequest? = null
     private var changedThisTick = false
-    private var activeRequest: RotationRequest? = null
 
     override fun load() = "Loaded Rotation Manager"
 
@@ -77,15 +74,6 @@ object RotationManager : RequestHandler<RotationRequest>(
                 request.age++
             }
             changedThisTick = false
-        }
-
-        listen<PacketEvent.Receive.Post> { event ->
-            val packet = event.packet
-            if (packet !is PlayerPositionLookS2CPacket) return@listen
-
-            runGameScheduled {
-                reset(Rotation(packet.yaw, packet.pitch))
-            }
         }
 
         listenUnsafe<ConnectionEvent.Connect.Pre> {
@@ -110,10 +98,6 @@ object RotationManager : RequestHandler<RotationRequest>(
             activeRequest?.target?.targetRotation?.update()
             updateActiveRotation()
         }
-
-        // Update the current rotation
-        prevServerRotation = serverRotation
-        serverRotation = activeRotation/*.fixSensitivity(prevServerRotation)*/
 
         // Handle LOCK mode
         if (activeRequest?.mode == RotationMode.Lock) {
