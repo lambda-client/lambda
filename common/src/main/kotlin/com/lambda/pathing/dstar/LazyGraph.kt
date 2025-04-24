@@ -22,6 +22,7 @@ import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.pathing.PathingSettings
 import com.lambda.util.world.FastVector
+import com.lambda.util.world.string
 import com.lambda.util.world.toCenterVec3d
 import net.minecraft.util.math.Box
 import java.awt.Color
@@ -180,43 +181,81 @@ class LazyGraph(
     operator fun contains(u: FastVector): Boolean = nodes.contains(u)
 
     /**
-     * Compares this graph with another graph for edge consistency.
-     * Returns the percentage of edges that are consistent between the two graphs.
-     * 
-     * @param other The other graph to compare with
-     * @return The percentage of consistent edges (0-100)
+     * Result of a graph comparison containing categorized edge differences
      */
-    fun compareWith(other: LazyGraph): Double {
-        val commonNodes = this.nodes.intersect(other.nodes)
-        var consistentEdges = 0
-        var totalEdges = 0
+    data class GraphDifferences(
+        val missingEdges: Set<Edge>,   // Edges that should exist but don't
+        val wrongEdges: Set<Edge>,     // Edges that exist but have incorrect costs
+        val excessEdges: Set<Edge>     // Edges that shouldn't exist but do
+    ) {
+        /**
+         * Represents an edge difference between two graphs
+         */
+        data class Edge(
+            val source: FastVector,
+            val target: FastVector,
+            val thisGraphCost: Double?,  // null if edge doesn't exist in this graph
+            val otherGraphCost: Double?  // null if edge doesn't exist in other graph
+        ) {
+            override fun toString(): String = when {
+                thisGraphCost == null -> "Edge from ${source.string} to ${target.string} with cost $otherGraphCost"
+                otherGraphCost == null -> "Edge from ${source.string} to ${target.string} with cost $thisGraphCost"
+                else -> "Edge from ${source.string} to ${target.string} (cost: $thisGraphCost vs $otherGraphCost)"
+            }
+        }
 
-        commonNodes.forEach { node1 ->
-            commonNodes.forEach { node2 ->
-                if (node1 != node2) {
-                    totalEdges++
-                    val cost1 = this.cost(node1, node2)
-                    val cost2 = other.cost(node1, node2)
+        val hasAnyDifferences: Boolean
+            get() = missingEdges.isNotEmpty() || wrongEdges.isNotEmpty() /*|| excessEdges.isNotEmpty()*/
 
-                    // Check if costs are consistent
-                    if (cost1.isInfinite() && cost2.isInfinite()) {
-                        // Both infinite, they're consistent
-                        consistentEdges++
-                    } else if (cost1.isFinite() && cost2.isFinite()) {
-                        // Both finite, check if they're close enough
-                        if (abs(cost1 - cost2) < 0.001) {
-                            consistentEdges++
-                        }
-                    }
+        override fun toString(): String {
+            val parts = mutableListOf<String>()
+            if (missingEdges.isNotEmpty()) {
+                parts.add("Missing edges: ${missingEdges.joinToString("\n  ", prefix = "\n  ")}")
+            }
+            if (wrongEdges.isNotEmpty()) {
+                parts.add("Wrong edges: ${wrongEdges.joinToString("\n  ", prefix = "\n  ")}")
+            }
+            if (excessEdges.isNotEmpty()) {
+                parts.add("Excess edges: ${excessEdges.joinToString("\n  ", prefix = "\n  ")}")
+            }
+            return if (parts.isEmpty()) "No differences" else parts.joinToString("\n")
+        }
+    }
+
+    /**
+     * Compares this graph with another graph for edge consistency.
+     *
+     * @param other The other graph to compare with
+     * @return Categorized edge differences between the two graphs
+     */
+    fun compareWith(other: LazyGraph): GraphDifferences {
+        val missing = mutableSetOf<GraphDifferences.Edge>()
+        val wrong = mutableSetOf<GraphDifferences.Edge>()
+        val excess = mutableSetOf<GraphDifferences.Edge>()
+
+        nodes.union(other.nodes).forEach { node ->
+            val thisSuccessors = getSuccessorsWithoutInitializing(node)
+            val otherSuccessors = other.getSuccessorsWithoutInitializing(node)
+
+            // Check for missing and wrong edges
+            otherSuccessors.forEach { (neighbor, otherCost) ->
+                val thisCost = thisSuccessors[neighbor]
+                if (thisCost == null) {
+                    missing.add(GraphDifferences.Edge(node, neighbor, null, otherCost))
+                } else if (abs(thisCost - otherCost) > 1e-9) {
+                    wrong.add(GraphDifferences.Edge(node, neighbor, thisCost, otherCost))
+                }
+            }
+
+            // Check for excess edges
+            thisSuccessors.forEach { (neighbor, thisCost) ->
+                if (!otherSuccessors.containsKey(neighbor)) {
+                    excess.add(GraphDifferences.Edge(node, neighbor, thisCost, null))
                 }
             }
         }
 
-        return if (totalEdges > 0) {
-            (consistentEdges.toDouble() / totalEdges) * 100
-        } else {
-            100.0
-        }
+        return GraphDifferences(missing, wrong, excess)
     }
 
     fun render(renderer: StaticESP, config: PathingSettings) {

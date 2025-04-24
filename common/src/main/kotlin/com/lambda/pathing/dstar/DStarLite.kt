@@ -151,7 +151,7 @@ class DStarLite(
      * @param u The node to invalidate
      * @param pruneGraph Whether to prune the graph after invalidation
      */
-    fun invalidate(u: FastVector, pruneGraph: Boolean = false) {
+    fun invalidate(u: FastVector, pruneGraph: Boolean = true) {
         val newNodes = mutableSetOf<FastVector>()
         val affectedNeighbors = mutableSetOf<FastVector>()
         val pathNodes = mutableSetOf<FastVector>()
@@ -442,60 +442,43 @@ class DStarLite(
     /**
      * Verifies that the current graph is consistent with a freshly generated graph.
      * This is useful for ensuring that incremental updates maintain correctness.
-     *
-     * @param nodeInitializer The function used to initialize nodes in the fresh graph
-     * @param blockedNodes Set of nodes that should be blocked in the fresh graph
-     * @return A pair of (consistency percentage, g/rhs consistency percentage)
      */
-    fun verifyGraphConsistency(
-        nodeInitializer: (FastVector) -> Map<FastVector, Double>,
-        blockedNodes: Set<FastVector> = emptySet()
-    ): Pair<Double, Double> {
-        // Create a fresh graph with the same initialization function
-        val freshGraph = LazyGraph(nodeInitializer)
-
-        // Initialize the fresh graph with the same start and goal
-        val freshDStar = DStarLite(freshGraph, start, goal, heuristic)
-
-        // Block nodes in the fresh graph
-        blockedNodes.forEach { node ->
-            freshDStar.invalidate(node, pruneGraph = false)
-        }
-
-        // Compute shortest path on the fresh graph
-        freshDStar.computeShortestPath()
-
+    fun compareWith(
+        other: DStarLite
+    ): Pair<LazyGraph.GraphDifferences, Set<ValueDifference>> {
         // Compare edge consistency between the two graphs
-        val edgeConsistency = graph.compareWith(freshGraph)
+        val graphDifferences = graph.compareWith(other.graph)
 
         // Compare g and rhs values for common nodes
-        val commonNodes = graph.nodes.intersect(freshGraph.nodes)
-        var consistentValues = 0
+        val commonNodes = graph.nodes.intersect(other.graph.nodes)
+        val wrong = mutableSetOf<ValueDifference>()
 
         commonNodes.forEach { node ->
             val g1 = g(node)
-            val g2 = freshDStar.g(node)
+            val g2 = other.g(node)
+
+            if (abs(g1 - g2) > 1e-6) {
+                wrong.add(ValueDifference(ValueDifference.Value.G, g1, g2))
+            }
+
             val rhs1 = rhs(node)
-            val rhs2 = freshDStar.rhs(node)
+            val rhs2 = other.rhs(node)
 
-            // Check if g and rhs values are consistent
-            val gConsistent = (g1.isInfinite() && g2.isInfinite()) ||
-                              (g1.isFinite() && g2.isFinite() && abs(g1 - g2) < 0.001)
-            val rhsConsistent = (rhs1.isInfinite() && rhs2.isInfinite()) ||
-                                (rhs1.isFinite() && rhs2.isFinite() && abs(rhs1 - rhs2) < 0.001)
-
-            if (gConsistent && rhsConsistent) {
-                consistentValues++
+            if (abs(rhs1 - rhs2) > 1e-6) {
+                wrong.add(ValueDifference(ValueDifference.Value.RHS, rhs1, rhs2))
             }
         }
 
-        val valueConsistency = if (commonNodes.isNotEmpty()) {
-            (consistentValues.toDouble() / commonNodes.size) * 100
-        } else {
-            100.0
-        }
+        return Pair(graphDifferences, wrong)
+    }
 
-        return Pair(edgeConsistency, valueConsistency)
+    data class ValueDifference(
+        val type: Value,
+        val v1: Double,
+        val v2: Double,
+    ) {
+        enum class Value { G, RHS }
+        override fun toString() = "${type.name} is $v1 but should be $v2"
     }
 
     override fun toString() = buildString {
