@@ -23,6 +23,7 @@ import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.breaking.BreakRequest
+import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.util.world.raycast.RayCastUtils.distanceTo
@@ -65,7 +66,11 @@ data class BreakContext(
             is BreakContext -> compareByDescending<BreakContext> {
                 if (it.checkedState.block is FallingBlock) it.expectedPos.y else 0
             }.thenBy {
+                it.instantBreak
+            }.thenBy {
                 it.rotation.target.angleDistance
+            }.thenBy {
+                it.hotbarIndex == HotbarManager.serverSlot
             }.compare(this, other)
 
             else -> 1

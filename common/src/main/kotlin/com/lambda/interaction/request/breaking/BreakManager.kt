@@ -42,7 +42,6 @@ import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.pendingBreaks
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.setPendingConfigs
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.startPending
-import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.threading.runSafe
@@ -199,7 +198,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 }
                 .asReversed()
                 .forEach { info ->
-                    if (info.updatedProgressThisTick) return@run
+                    if (info.updatedProgressThisTick) return@forEach
                     if (!info.context.requestDependencies(request)) return@run
                     if ((!rotated && info.isPrimary) || tickStage !in info.breakConfig.breakStageMask) return@run
 
@@ -216,7 +215,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     }
 
     /**
-     * Filters and sorts the requests [BreakContext]s, and iterates over the [breakInfos] collection looking for matches
+     * Filters the requests [BreakContext]s, and iterates over the [breakInfos] collection looking for matches
      * in positions. If a match is found, the [BreakInfo] is updated with the new context. Otherwise, the break is cancelled.
      * The [instantBreaks] and [breaks] collections are then populated with the new appropriate contexts, and the [maxBreaksThisTick]
      * value is set.
@@ -225,13 +224,10 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see cancelBreak
      */
     private fun SafeContext.populateFrom(request: BreakRequest) {
-        // Sanitize and sort the new breaks
+        // Sanitize the new breaks
         val newBreaks = request.contexts
             .filter { ctx -> canAccept(ctx) }
-            .sortedWith(
-                compareByDescending<BreakContext> { it.instantBreak }
-                    .thenByDescending { it.hotbarIndex == HotbarManager.serverSlot }
-            ).toMutableList()
+            .toMutableList()
 
         // Update the current break infos or cancel if abandoned
         breakInfos

@@ -18,7 +18,6 @@
 package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
-import baritone.api.pathing.goals.GoalNear
 import com.lambda.Lambda.LOG
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
@@ -56,7 +55,6 @@ import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
-import com.lambda.util.world.toFastVec
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue

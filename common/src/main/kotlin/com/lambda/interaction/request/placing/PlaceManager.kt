@@ -30,7 +30,6 @@ import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
-import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.placing.PlaceManager.activeRequest
 import com.lambda.interaction.request.placing.PlaceManager.processRequest
 import com.lambda.interaction.request.placing.PlacedBlockHandler.addPendingPlace
@@ -134,7 +133,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
 
             if (ctx.sneak) shouldSneak = true
             if (!ctx.requestDependencies(request) || !validSneak(player)) return
-            if (tickStage !in request.build.placing.placeStageMask) return
+//            if (tickStage !in request.build.placing.placeStageMask) return
 
             val actionResult = placeBlock(ctx, request, Hand.MAIN_HAND)
             if (!actionResult.isAccepted) warn("Placement interaction failed with $actionResult")
@@ -145,21 +144,18 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     }
 
     /**
-     * Filters and sorts the [request]'s [PlaceContext]s, placing them into the [potentialPlacements] collection, and
+     * Filters the [request]'s [PlaceContext]s, placing them into the [potentialPlacements] collection, and
      * setting the maxPlacementsThisTick value.
      *
      * @see canPlace
      */
-    private fun SafeContext.populateFrom(request: PlaceRequest) {
+    private fun populateFrom(request: PlaceRequest) {
         val place = request.build.placing
 
         setPendingConfigs(request)
         potentialPlacements = request.contexts
             .filter { canPlace(it) }
-            .sortedWith(
-                compareByDescending<PlaceContext> { it.hotbarIndex == HotbarManager.serverSlot }
-                    .thenByDescending { it.sneak == player.isSneaking }
-            ).toMutableList()
+            .toMutableList()
 
         val pendingLimit =  (place.maxPendingPlacements - pendingPlacements.size).coerceAtLeast(0)
         maxPlacementsThisTick = (place.placementsPerTick.coerceAtMost(pendingLimit))

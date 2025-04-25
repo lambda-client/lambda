@@ -17,11 +17,13 @@
 
 package com.lambda.interaction.construction.context
 
+import com.lambda.Lambda.mc
 import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.interaction.construction.verify.TargetState
+import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.interaction.request.rotation.RotationRequest
@@ -57,9 +59,11 @@ data class PlaceContext(
             }.thenByDescending {
                 it.checkedState.fluidState.level
             }.thenBy {
-                it.sneak
+                it.sneak == mc.player?.isSneaking
             }.thenBy {
                 it.rotation.target.angleDistance
+            }.thenBy {
+                it.hotbarIndex == HotbarManager.serverSlot
             }.thenBy {
                 it.distance
             }.thenBy {
@@ -79,7 +83,7 @@ data class PlaceContext(
     fun requestDependencies(request: PlaceRequest): Boolean {
         val hotbarRequest = request.hotbar.request(HotbarRequest(hotbarIndex, request.hotbar))
         val validRotation = if (request.build.placing.rotate) {
-            request.rotation.request(rotation, false).done && (!currentDirIsInvalid || rotation.matchesServerRot)
+            request.rotation.request(rotation, false).done && !currentDirIsInvalid
         } else true
         return hotbarRequest.done && validRotation
     }
