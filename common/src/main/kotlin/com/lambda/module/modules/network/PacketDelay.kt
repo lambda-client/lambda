@@ -25,8 +25,10 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runConcurrent
 import com.lambda.threading.runGameScheduled
+import com.lambda.util.ClientPacket
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
+import com.lambda.util.ServerPacket
 import kotlinx.coroutines.delay
 import net.minecraft.network.listener.ClientPacketListener
 import net.minecraft.network.listener.ServerPacketListener
@@ -45,8 +47,8 @@ object PacketDelay : Module(
     private val inboundDelay by setting("Inbound Delay", 250L, 0L..5000L, 10L, unit = "ms") { networkScope != Direction.OUTBOUND }
     private val outboundDelay by setting("Outbound Delay", 250L, 0L..5000L, 10L, unit = "ms") { networkScope != Direction.INBOUND }
 
-    private var outboundPool = ConcurrentLinkedDeque<Packet<out ServerPacketListener>>()
-    private var inboundPool = ConcurrentLinkedDeque<Packet<out ClientPacketListener>>()
+    private var outboundPool = ConcurrentLinkedDeque<ClientPacket>()
+    private var inboundPool = ConcurrentLinkedDeque<ServerPacket>()
     private var outboundLastUpdate = 0L
     private var inboundLastUpdate = 0L
 
