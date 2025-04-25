@@ -21,7 +21,7 @@ import com.lambda.config.groups.TickStage
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
 
-/*
+/**
  * Abstract base class for configuring hotbar slot switch behavior.
  *
  * @param priority The priority of this configuration.

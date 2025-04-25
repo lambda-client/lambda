@@ -20,6 +20,7 @@ package com.lambda.interaction.request.rotation.visibilty
 import com.lambda.interaction.request.rotation.Rotation.Companion.dist
 import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.util.math.distSq
+import com.lambda.util.math.times
 
 enum class PointSelection(val select: (MutableList<VisibilityChecker.CheckedHit>) -> VisibilityChecker.CheckedHit?) {
     ByRotation({ hits ->
@@ -27,15 +28,14 @@ enum class PointSelection(val select: (MutableList<VisibilityChecker.CheckedHit>
             RotationManager.activeRotation dist it.targetRotation
         }
     }),
-    Optimum( optimum@ { hits ->
+    Optimum({ hits ->
         val optimum = hits
-            .map { it.hit.pos }.reduceOrNull { acc, vec3d ->
-                acc?.let { it.add(vec3d) } ?: acc
-            }
-            ?.multiply(1.0 / hits.size.toDouble()) ?: return@optimum null
+            .map { it.hit.pos }
+            .reduceOrNull { acc, pos -> acc.add(pos) }
+            ?.times(1 / hits.size)
 
-        hits.minByOrNull {
-            it.hit.pos distSq optimum
+        optimum?.let {
+            hits.minByOrNull { it.hit.pos distSq optimum }
         }
     })
 }

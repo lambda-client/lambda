@@ -186,21 +186,23 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         // Reversed so that the breaking order feels natural to the user as the primary break is always the
         // last break to be started
-        run breakInfos@ {
+        run {
             breakInfos
                 .filterNotNull()
                 .filter { !it.isRedundant }
-                .also { infos ->
-                    rotationRequest = infos.firstOrNull { it.breakConfig.rotateForBreak }?.let { info ->
-                        val rotation = info.context.rotation
-                        if (instantBreaks.isEmpty()) info.request.rotation.request(rotation, false) else rotation
-                    }
+                .also {
+                    rotationRequest = it.firstOrNull { it.breakConfig.rotateForBreak }
+                        ?.let { info ->
+                            val rotation = info.context.rotation
+                            if (instantBreaks.isEmpty()) info.request.rotation.request(rotation, false) else rotation
+                        }
                 }
-                .reversed()
+                .asReversed()
                 .forEach { info ->
-                    if (info.updatedProgressThisTick) return@forEach
-                    if (!info.context.requestDependencies(request)) return@breakInfos
-                    if ((!rotated && info.isPrimary) || tickStage !in info.breakConfig.breakStageMask) return@breakInfos
+                    if (info.updatedProgressThisTick) return@run
+                    if (!info.context.requestDependencies(request)) return@run
+                    if ((!rotated && info.isPrimary) || tickStage !in info.breakConfig.breakStageMask) return@run
+
                     updateBreakProgress(info)
                 }
         }
@@ -263,9 +265,10 @@ object BreakManager : RequestHandler<BreakRequest>(
     private fun SafeContext.canAccept(ctx: BreakContext): Boolean {
         if (pendingBreaks.any { it.context.expectedPos == ctx.expectedPos }) return false
 
-        breakInfos.firstOrNull { it != null && !it.isRedundant }
+        breakInfos
+            .firstOrNull { it != null && !it.isRedundant }
             ?.let { info ->
-                if ( ctx.hotbarIndex != info.context.hotbarIndex) return false
+                if (ctx.hotbarIndex != info.context.hotbarIndex) return false
             }
 
         return !blockState(ctx.expectedPos).isAir

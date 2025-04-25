@@ -43,8 +43,6 @@ data class BreakRequest(
 ) : Request(prio, build.breaking) {
     override val done: Boolean
         get() = runSafe {
-            contexts.all {
-                ctx -> ctx.targetState.matches(blockState(ctx.expectedPos), ctx.expectedPos, world)
-            }
+            contexts.all { it.targetState.matches(blockState(it.expectedPos), it.expectedPos, world) }
         } == true
 }

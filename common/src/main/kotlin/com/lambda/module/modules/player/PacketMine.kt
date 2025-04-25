@@ -40,7 +40,7 @@ import net.minecraft.util.math.BlockPos
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object PacketMine : Module(
-    "Packet Mine",
+    "PacketMine",
     "automatically breaks blocks, and does it faster",
     setOf(ModuleTag.PLAYER)
 ) {
