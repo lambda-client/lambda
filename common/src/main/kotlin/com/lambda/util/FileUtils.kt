@@ -90,10 +90,12 @@ object FileUtils {
      * @param block Lambda executed if the file doesn't exist or the file is empty
      */
     inline fun File.createIfNotExists(block: (File) -> Unit): File {
-        if (length() == 0L) block(this)
+        if (length() == 0L) {
+            parentFile.mkdirs()
+            createNewFile()
 
-        parentFile.mkdirs()
-        createNewFile()
+            block(this)
+        }
 
         return this
     }
