@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.request.placing
 
-import com.lambda.config.groups.TickStage
 import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
@@ -59,7 +58,10 @@ import net.minecraft.util.math.Direction
 import net.minecraft.world.GameMode
 
 object PlaceManager : RequestHandler<PlaceRequest>(
-    *TickStage.entries.toTypedArray(),
+    TickEvent.Pre,
+    TickEvent.Input.Pre,
+    TickEvent.Player.Post,
+    // ToDo: Post interact
     onOpen = { activeRequest?.let { processRequest(it) } }
 ), PositionBlocking {
     private var activeRequest: PlaceRequest? = null

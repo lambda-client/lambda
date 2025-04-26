@@ -18,6 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
+import com.lambda.event.events.TickEvent
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.util.BlockUtils.allSigns
@@ -32,7 +33,7 @@ class BreakSettings(
     override val breakThreshold by c.setting("Break Threshold", 0.7f, 0.1f..1.0f, 0.02f, "The break amount at which the block is considered broken") { vis() }
     override val doubleBreak by c.setting("Double Break", true, "Allows breaking two blocks at once") { vis() }
     override val breakDelay by c.setting("Break Delay", 0, 0..5, 1, "The delay between breaking blocks", " ticks") { vis() }
-    override val breakStageMask by c.setting("Break Stage Mask", setOf(*TickStage.entries.toTypedArray()), "The sub-tick timing at which break actions can be performed", vis)
+    override val breakStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Pre, TickEvent.Input.Pre, TickEvent.Player.Post), "The sub-tick timing at which break actions can be performed", vis)
     override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand") { vis() }
     override val swingType by c.setting("Break Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { vis() && swing != SwingMode.None }
     override val sounds by c.setting("Break Sounds", true, "Plays the breaking sounds") { vis() }

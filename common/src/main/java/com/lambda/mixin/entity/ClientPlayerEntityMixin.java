@@ -25,6 +25,8 @@ import com.lambda.event.events.TickEvent;
 import com.lambda.interaction.PlayerPacketManager;
 import com.lambda.interaction.request.rotation.RotationManager;
 import com.lambda.module.modules.player.PortalGui;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.DeathScreen;
 import net.minecraft.client.gui.screen.Screen;
@@ -129,14 +131,11 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         autoJumpEnabled = Lambda.getMc().options.getAutoJump().getValue();
     }
 
-    @Inject(method = "tick", at = @At(value = "HEAD"))
-    void onTickPre(CallbackInfo ci) {
-        EventFlow.post(new TickEvent.Player.Pre());
-    }
-
-    @Inject(method = "tick", at = @At(value = "RETURN"))
-    void onTickPost(CallbackInfo ci) {
-        EventFlow.post(new TickEvent.Player.Post());
+    @WrapMethod(method = "tick")
+    void onTick(Operation<Void> original) {
+        EventFlow.post(TickEvent.Player.Pre.INSTANCE);
+        original.call();
+        EventFlow.post(TickEvent.Player.Post.INSTANCE);
     }
 
     @Redirect(method = "tickNewAi", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;getYaw()F"))

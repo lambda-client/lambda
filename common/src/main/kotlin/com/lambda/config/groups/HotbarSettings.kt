@@ -18,6 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
+import com.lambda.event.events.TickEvent
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.hotbar.HotbarConfig
 
@@ -30,5 +31,5 @@ class HotbarSettings(
     override val swapDelay by c.setting("Swap Delay", 0, 0..3, 1, "The number of ticks delay before allowing another hotbar selection swap", " ticks", vis)
     override val swapsPerTick by c.setting("Swaps Per Tick", 3, 1..10, 1, "The number of hotbar selection swaps that can take place each tick") { swapDelay <= 0 && vis() }
     override val swapPause by c.setting("Swap Pause", 0, 0..20, 1, "The delay in ticks to pause actions after switching to the slot", " ticks", vis)
-    override val sequenceStageMask by c.setting("Hotbar Stage Mask", setOf(*TickStage.entries.toTypedArray()), "The sub-tick timing at which hotbar actions are performed", vis)
+    override val sequenceStageMask by c.setting("Hotbar Stage Mask", setOf(TickEvent.Pre, TickEvent.Input.Pre, TickEvent.Player.Post), "The sub-tick timing at which hotbar actions are performed", vis)
 }

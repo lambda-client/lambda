@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.request
 
-import com.lambda.config.groups.TickStage
 import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.events.TickEvent
@@ -29,7 +28,7 @@ import com.lambda.threading.runSafe
  * next opening if closed
  */
 abstract class RequestHandler<R : Request>(
-    vararg openStages: TickStage,
+    vararg openStages: Event,
     private val onOpen: (SafeContext.() -> Unit)? = null,
     private val onClose: (SafeContext.() -> Unit)? = null
 ) {
@@ -41,7 +40,7 @@ abstract class RequestHandler<R : Request>(
     /**
      * Represents the sequence stage the current tick is at
      */
-    var tickStage = TickStage.TickStart; private set
+    var tickStage: Event? = null; private set
 
     /**
      * If a request is made while the handler isn't accepting requests, it is placed into [queuedRequest] and run
@@ -55,12 +54,23 @@ abstract class RequestHandler<R : Request>(
     var activeThisTick = false; protected set
 
     init {
-        openStages.forEach { stage ->
-            when(stage) {
-                TickStage.TickStart -> openRequestsFor<TickEvent.Pre>(TickStage.TickStart)
-                TickStage.PostHotbar -> { /*ToDo*/ }
-                TickStage.PostInteract -> { /*ToDo*/ }
-                TickStage.PlayerTickPost -> openRequestsFor<TickEvent.Player.Post>(TickStage.PlayerTickPost)
+        openStages.forEach {
+            when (it) {
+                is TickEvent.Pre -> openRequestsFor(it)
+                is TickEvent.Post -> openRequestsFor(it)
+                is TickEvent.Network.Pre -> openRequestsFor(it)
+                is TickEvent.Network.Post -> openRequestsFor(it)
+                is TickEvent.Input.Pre -> openRequestsFor(it)
+                is TickEvent.Input.Post -> openRequestsFor(it)
+                is TickEvent.WorldRender.Pre -> openRequestsFor(it)
+                is TickEvent.WorldRender.Post -> openRequestsFor(it)
+                is TickEvent.Sound.Pre -> openRequestsFor(it)
+                is TickEvent.Sound.Post -> openRequestsFor(it)
+                is TickEvent.Render.Pre -> openRequestsFor(it)
+                is TickEvent.Render.Post -> openRequestsFor(it)
+                is TickEvent.Player.Pre -> openRequestsFor(it)
+                is TickEvent.Player.Post -> openRequestsFor(it)
+                else -> throw IllegalArgumentException("Event '$it' is not allowed for requests")
             }
         }
 
@@ -72,7 +82,7 @@ abstract class RequestHandler<R : Request>(
     /**
      * opens the handler for requests for the duration of the given event
      */
-    private inline fun <reified T : Event> openRequestsFor(stage: TickStage) {
+    private inline fun <reified T : Event> openRequestsFor(stage: T) {
         listen<T>(priority = Int.MAX_VALUE) {
             tickStage = stage
             queuedRequest?.let { request ->

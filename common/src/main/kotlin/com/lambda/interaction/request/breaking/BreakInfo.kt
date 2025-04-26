@@ -54,22 +54,20 @@ data class BreakInfo(
     val callbacksCompleted
         @Synchronized get() = broken && (request.onItemDrop == null || item != null)
 
+    @Synchronized
     fun internalOnBreak() {
-        synchronized(this) {
-            broken = true
-            request.onBreak?.invoke(context.expectedPos)
-            item?.let { item ->
-                request.onItemDrop?.invoke(item)
-            }
+        broken = true
+        request.onBreak?.invoke(context.expectedPos)
+        item?.let { item ->
+            request.onItemDrop?.invoke(item)
         }
     }
 
+    @Synchronized
     fun internalOnItemDrop(item: ItemEntity) {
-        synchronized(this) {
-            this.item = item
-            if (broken) {
-                request.onItemDrop?.invoke(item)
-            }
+        this.item = item
+        if (broken) {
+            request.onItemDrop?.invoke(item)
         }
     }
 
