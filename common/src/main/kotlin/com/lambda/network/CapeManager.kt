@@ -25,15 +25,13 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.texture.TextureUtils
 import com.lambda.network.api.v1.endpoints.getCape
 import com.lambda.network.api.v1.endpoints.setCape
-import com.lambda.network.api.v1.models.Cape
 import com.lambda.sound.SoundManager.toIdentifier
 import com.lambda.threading.runIO
+import com.lambda.util.FileUtils.downloadIfNotPresent
 import com.lambda.util.FolderRegister.capes
-import com.lambda.util.extension.get
 import com.lambda.util.extension.resolveFile
 import net.minecraft.client.texture.NativeImage.read
 import net.minecraft.client.texture.NativeImageBackedTexture
-import java.io.ByteArrayOutputStream
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.extension
@@ -66,26 +64,15 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
      * @param block Lambda called once the coroutine completes, it contains the throwable if any
      */
     fun SafeContext.fetchCape(uuid: UUID, block: (Throwable?) -> Unit = {}) = runIO {
-        val cape = getCape(uuid).getOrThrow()
+        val cape = getCape(uuid).getOrNull() ?: return@runIO
 
-        mc.textureManager.get(cape.identifier) ?: download(cape)
+        val bytes = capes.resolveFile("${cape.id}.png")
+            .downloadIfNotPresent(cape.url).getOrNull()
+            ?.readBytes() ?: return@runIO
+
+        mc.textureManager.getOrDefault(cape.id.toIdentifier(), NativeImageBackedTexture(TextureUtils.readImage(bytes)))
+
         put(uuid, cape.id)
-    }.invokeOnCompletion { block(it) }
-
-    private fun SafeContext.download(cape: Cape, block: (Throwable?) -> Unit = {}) = runIO {
-        val destination = capes.resolveFile("${cape.id}.png")
-        val output = ByteArrayOutputStream()
-
-        LambdaHttp.download(cape.url, output)
-
-        val bytes = output.toByteArray()
-        destination.writeBytes(bytes)
-
-        val image = TextureUtils.readImage(bytes)
-        val native = NativeImageBackedTexture(image)
-        val id = cape.identifier
-
-        mc.textureManager.registerTexture(id, native)
     }.invokeOnCompletion { block(it) }
 
     override fun load() = "Loaded ${images.size} cached capes"

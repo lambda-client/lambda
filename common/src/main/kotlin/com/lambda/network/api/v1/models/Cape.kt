@@ -23,12 +23,12 @@ import net.minecraft.util.Identifier
 import java.util.UUID
 
 class Cape(
-    @SerializedName("url")
-    val url: String,
+    @SerializedName("uuid")
+    val uuid: String,
 
     @SerializedName("type")
     val id: String,
 ) {
-    val identifier: Identifier
-        get() = id.toIdentifier()
+    val url: String
+        get() = "https://cdn.lambda-client.org/$id.png"
 }
