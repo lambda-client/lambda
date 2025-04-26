@@ -103,6 +103,8 @@ object Network : Module(
 
     enum class ApiVersion(val value: String) {
         // We can use @Deprecated("Not supported") to remove old API versions in the future
-        V1("v1"),
+        V1("v1");
+
+        override fun toString() = value
     }
 }
