@@ -24,11 +24,13 @@ import java.util.UUID
 
 class Cape(
     @SerializedName("uuid")
-    val uuid: String,
+    val uuid: UUID,
 
     @SerializedName("type")
     val id: String,
 ) {
     val url: String
         get() = "https://cdn.lambda-client.org/$id.png"
+
+    override fun toString() = "Cape(uuid=$uuid, id=$id, url=$url)"
 }

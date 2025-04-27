@@ -49,10 +49,11 @@ object Network : Module(
     defaultTags = setOf(ModuleTag.CLIENT),
     enabledByDefault = true,
 ) {
-    val authServer  by setting("Auth Server", "auth.lambda-client.org")
-    val apiUrl      by setting("API Server", "https://api.lambda-client.org")
-    val apiVersion  by setting("API Version", ApiVersion.V1)
-    val mappings    by setting("Mappings", "https://mappings.lambda-client.org")
+    val authServer by setting("Auth Server", "auth.lambda-client.org")
+    val apiUrl by setting("API Server", "https://api.lambda-client.org")
+    val apiVersion by setting("API Version", ApiVersion.V1)
+    val mappings by setting("Mappings", "https://mappings.lambda-client.org")
+    val cdn by setting("CDN", "https://cdn.lambda-client.org")
 
     val gameVersion = SharedConstants.getGameVersion().name
 

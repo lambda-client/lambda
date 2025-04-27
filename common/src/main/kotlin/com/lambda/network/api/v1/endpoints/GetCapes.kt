@@ -1,6 +1,5 @@
 package com.lambda.network.api.v1.endpoints
 
-import com.lambda.module.modules.client.Network
 import com.lambda.module.modules.client.Network.apiUrl
 import com.lambda.module.modules.client.Network.apiVersion
 import com.lambda.network.LambdaHttp
@@ -20,7 +19,7 @@ import java.util.*
  *
  * @return results of capes
  */
-suspend fun getCapes(vararg uuid: UUID) = getCapes(uuid.toSet())
+suspend fun getCapes(vararg uuid: UUID) = getCapes(uuid.toList())
 
 /**
  * Gets the cape of the given player UUIDs
@@ -32,7 +31,7 @@ suspend fun getCapes(vararg uuid: UUID) = getCapes(uuid.toSet())
  *
  * @return results of capes
  */
-suspend fun getCapes(uuids: Set<UUID>) = runCatching {
+suspend fun getCapes(uuids: List<UUID>) = runCatching {
     LambdaHttp.get("$apiUrl/api/$apiVersion/capes") {
         contentType(ContentType.Application.Json)
         setBody("""{ "players": [${uuids.joinToString(prefix = "\"", postfix = "\"", separator = "\",\"")}] }""")
