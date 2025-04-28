@@ -135,13 +135,7 @@ object PlayerPacketManager {
         }
 
         // Update the server rotation in RotationManager
-        with (RotationManager) {
-            prevServerRotation = serverRotation
-            serverRotation = new.rotation/*.fixSensitivity(prevServerRotation)*/
-            activeRequest?.let { request ->
-                request.matchesServerRot = request.done
-            }
-        }
+        RotationManager.onRotationSend()
 
         PlayerPacketEvent.Post().post()
     }

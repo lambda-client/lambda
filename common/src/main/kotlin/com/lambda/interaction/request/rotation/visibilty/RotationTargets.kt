@@ -26,6 +26,7 @@ import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.ALL_SIDES
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.findRotation
 import com.lambda.module.modules.client.TaskFlowModule
+import com.lambda.util.extension.rotation
 import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.hit.BlockHitResult
@@ -49,6 +50,18 @@ fun lookAt(angle: Rotation, maxAngleDistance: Double = 10.0) =
     RotationTarget(null, {
         RotationManager.activeRotation dist angle < maxAngleDistance
     }) { angle }
+
+@RotationDsl
+fun lookInDirection(direction: PlaceDirection) =
+    RotationTarget(null, {
+        PlaceDirection.fromRotation(RotationManager.activeRotation) == direction
+    }) {
+        if (!direction.isInArea(RotationManager.activeRotation) || !direction.isInArea(player.rotation)) {
+            direction.snapToArea(RotationManager.activeRotation)
+        } else {
+            player.rotation
+        }
+    }
 
 /**
  * Creates a [RotationTarget] based on a requested hit, but doesn't build the rotation.

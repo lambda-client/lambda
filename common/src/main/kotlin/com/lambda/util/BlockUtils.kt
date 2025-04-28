@@ -94,7 +94,11 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.item.SwordItem
 import net.minecraft.registry.tag.FluidTags
-import net.minecraft.util.math.*
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
+import net.minecraft.util.math.EightWayDirection
+import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.Vec3i
 import net.minecraft.world.BlockView
 
 object BlockUtils {

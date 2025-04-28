@@ -81,7 +81,7 @@ data class PlaceContext(
     override fun shouldRotate(config: BuildConfig) = config.placing.rotate
 
     fun requestDependencies(request: PlaceRequest): Boolean {
-        val hotbarRequest = request.hotbar.request(HotbarRequest(hotbarIndex, request.hotbar))
+        val hotbarRequest = request.hotbar.request(HotbarRequest(hotbarIndex, request.hotbar), false)
         val validRotation = if (request.build.placing.rotate) {
             request.rotation.request(rotation, false).done && !currentDirIsInvalid
         } else true

@@ -40,11 +40,13 @@ import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.interaction.request.rotation.RotationRequest
+import com.lambda.interaction.request.rotation.visibilty.PlaceDirection
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.CheckedHit
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.scanSurfaces
 import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.interaction.request.rotation.visibilty.lookAtBlock
+import com.lambda.interaction.request.rotation.visibilty.lookInDirection
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
@@ -59,7 +61,6 @@ import com.lambda.util.math.distSq
 import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.copyPlayer
 import com.lambda.util.player.gamemode
-import com.lambda.util.player.placementRotations
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.BlockState
 import net.minecraft.block.OperatorBlock
@@ -294,7 +295,7 @@ object BuildSimulator {
                 }
 
                 lateinit var resultState: BlockState
-                var rot = player.rotation
+                var rot = RotationManager.serverRotation
 
                 val simulatePlaceState = placeState@ {
                     resultState = blockItem.getPlacementState(context)
@@ -309,43 +310,44 @@ object BuildSimulator {
                     }
                 }
 
-                var currentDirIsInvalid = false
-                simulatePlaceState()?.let { basePlaceResult ->
+                val currentDirIsInvalid = simulatePlaceState()?.let { basePlaceResult ->
                     if (!place.rotate) {
                         acc.add(basePlaceResult)
                         return@forEach
                     }
+                    true
+                } ?: false
 
-                    currentDirIsInvalid = true
-                }
-
-                if (place.rotateForPlace && !place.axisRotate) {
-                    fakePlayer.rotation = checkedHit.targetRotation
-                    simulatePlaceState()?.let { rotatedPlaceResult ->
-                        acc.add(rotatedPlaceResult)
-                        return@forEach
+                if (place.rotateForPlace) run rotate@ {
+                    if (!place.axisRotate) {
+                        fakePlayer.rotation = checkedHit.targetRotation
+                        simulatePlaceState()?.let { rotatedPlaceResult ->
+                            acc.add(rotatedPlaceResult)
+                            return@forEach
+                        }
+                        rot = fakePlayer.rotation
+                        return@rotate
                     }
-                    rot = checkedHit.targetRotation
-                }
 
-                if (place.axisRotate && currentDirIsInvalid) run axisRotations@ {
-                    placementRotations.forEachIndexed direction@ { index, angle ->
-                        fakePlayer.rotation = angle
-                        when (val placeResult = simulatePlaceState()) {
-                            is PlaceResult.BlockedByEntity -> {
-                                acc.add(placeResult)
-                                return@forEach
-                            }
+                    if (currentDirIsInvalid) {
+                        PlaceDirection.entries.asReversed().forEachIndexed direction@ { index, direction ->
+                            fakePlayer.rotation = direction.rotation
+                            when (val placeResult = simulatePlaceState()) {
+                                is PlaceResult.BlockedByEntity -> {
+                                    acc.add(placeResult)
+                                    return@forEach
+                                }
 
-                            is PlaceResult.NoIntegrity -> {
-                                if (index != placementRotations.lastIndex) return@direction
-                                acc.add(placeResult)
-                                return@forEach
-                            }
+                                is PlaceResult.NoIntegrity -> {
+                                    if (index != PlaceDirection.entries.lastIndex) return@direction
+                                    acc.add(placeResult)
+                                    return@forEach
+                                }
 
-                            else -> {
-                                rot = angle
-                                return@axisRotations
+                                else -> {
+                                    rot = fakePlayer.rotation
+                                    return@rotate
+                                }
                             }
                         }
                     }
@@ -355,10 +357,14 @@ object BuildSimulator {
                 val hitBlock = blockState(blockHit.blockPos).block
                 val shouldSneak = hitBlock::class in BlockUtils.interactionBlocks
 
+                val rotationRequest = if (place.axisRotate) {
+                    lookInDirection(PlaceDirection.fromRotation(rot))
+                } else lookAt(rot, 0.001)
+
                 val placeContext = PlaceContext(
                     eye,
                     blockHit,
-                    RotationRequest(lookAt(rot, 0.001), rotation),
+                    RotationRequest(rotationRequest, rotation),
                     eye.distanceTo(blockHit.pos),
                     resultState,
                     blockState(blockHit.blockPos.offset(blockHit.side)),

@@ -2,8 +2,6 @@ package com.lambda.util.player
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
-import com.lambda.interaction.request.rotation.Rotation
-import com.lambda.interaction.request.rotation.Rotation.Companion.yaw
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.OtherClientPlayerEntity
@@ -12,7 +10,6 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Item
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
 import net.minecraft.util.Hand
-import net.minecraft.util.math.Direction
 
 val SafeContext.gamemode
     get() = interaction.currentGameMode
@@ -68,14 +65,3 @@ fun SafeContext.swingHandClient(hand: Hand) {
 }
 
 fun SafeContext.isItemOnCooldown(item: Item) = player.itemCooldownManager.isCoolingDown(item)
-
-val placementRotations = Direction.entries
-    .filter { it.axis.isHorizontal }
-    .flatMap { dir ->
-        val yaw = dir.yaw
-        listOf(
-            Rotation(yaw, 0f),
-            Rotation(yaw, -90f),
-            Rotation(yaw, 90f)
-        )
-    }

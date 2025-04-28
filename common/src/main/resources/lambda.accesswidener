@@ -36,6 +36,7 @@ accessible method net/minecraft/entity/LivingEntity modifyAppliedDamage (Lnet/mi
 accessible method net/minecraft/entity/LivingEntity applyArmorToDamage (Lnet/minecraft/entity/damage/DamageSource;F)F
 accessible method net/minecraft/entity/LivingEntity getHandSwingDuration ()I
 accessible method net/minecraft/client/network/ClientPlayerInteractionManager syncSelectedSlot ()V
+accessible method net/minecraft/util/math/Direction listClosest (Lnet/minecraft/util/math/Direction;Lnet/minecraft/util/math/Direction;Lnet/minecraft/util/math/Direction;)[Lnet/minecraft/util/math/Direction;
 
 # Camera
 accessible method net/minecraft/client/render/Camera setPos (DDD)V

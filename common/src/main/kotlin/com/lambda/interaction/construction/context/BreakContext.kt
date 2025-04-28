@@ -85,7 +85,7 @@ data class BreakContext(
     }
 
     fun requestDependencies(request: BreakRequest): Boolean {
-        val hotbarRequest = request.hotbar.request(HotbarRequest(hotbarIndex, request.hotbar))
+        val hotbarRequest = request.hotbar.request(HotbarRequest(hotbarIndex, request.hotbar), false)
         return hotbarRequest.done
     }
 }

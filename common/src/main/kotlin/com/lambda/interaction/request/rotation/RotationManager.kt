@@ -17,13 +17,14 @@
 
 package com.lambda.interaction.request.rotation
 
-import com.lambda.Lambda
+import com.lambda.Lambda.mc
 import com.lambda.config.groups.TickStage
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
+import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
@@ -34,6 +35,7 @@ import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.rotation.Rotation.Companion.slerp
 import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.module.modules.client.Baritone
+import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.partialTicks
 import com.lambda.util.extension.rotation
@@ -41,6 +43,7 @@ import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.lerp
 import net.minecraft.client.input.Input
+import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import kotlin.math.cos
 import kotlin.math.round
 import kotlin.math.sign
@@ -76,6 +79,15 @@ object RotationManager : RequestHandler<RotationRequest>(
             changedThisTick = false
         }
 
+        listen<PacketEvent.Receive.Post> { event ->
+            val packet = event.packet
+            if (packet !is PlayerPositionLookS2CPacket) return@listen
+
+            runGameScheduled {
+                reset(Rotation(packet.yaw, packet.pitch))
+            }
+        }
+
         listenUnsafe<ConnectionEvent.Connect.Pre> {
             reset(Rotation.ZERO)
         }
@@ -99,17 +111,22 @@ object RotationManager : RequestHandler<RotationRequest>(
             updateActiveRotation()
         }
 
-        // Handle LOCK mode
-        if (activeRequest?.mode == RotationMode.Lock) {
-            player.yaw = serverRotation.yawF
-            player.pitch = serverRotation.pitchF
-        }
-
         // Tick and reset the context
         activeRequest?.let {
             if (--it.keepTicks > 0) return@let
             if (--it.decayTicks >= 0) return@let
             activeRequest = null
+        }
+    }
+
+    fun onRotationSend() {
+        prevServerRotation = serverRotation
+        serverRotation = activeRotation/*.fixSensitivity(prevServerRotation)*/
+
+        // Handle LOCK mode
+        if (activeRequest?.mode == RotationMode.Lock) {
+            mc.player?.yaw = serverRotation.yawF
+            mc.player?.pitch = serverRotation.pitchF
         }
     }
 
@@ -136,7 +153,7 @@ object RotationManager : RequestHandler<RotationRequest>(
 
     private val smoothRotation
         get() =
-            lerp(Lambda.mc.partialTicks, prevServerRotation, serverRotation)
+            lerp(mc.partialTicks, prevServerRotation, serverRotation)
 
     @JvmStatic
     val lockRotation
