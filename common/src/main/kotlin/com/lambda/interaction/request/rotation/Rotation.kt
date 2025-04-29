@@ -29,7 +29,6 @@ import com.lambda.util.world.raycast.RayCastUtils.rayCast
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
-import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.MathHelper.wrapDegrees
 import net.minecraft.util.math.Vec3d
 import kotlin.math.abs
@@ -96,17 +95,17 @@ data class Rotation(val yaw: Double, val pitch: Double) {
         val UP = Rotation(0.0, -90.0)
         val Direction.rotation get() = Rotation(yaw.toDouble(), 0.0)
         var Entity.rotation
-            get() = Rotation(wrapDegrees(yaw), wrapDegrees(pitch))
+            get() = Rotation(yaw, pitch)
             set(value) {
                 yaw = value.yawF
                 pitch = value.pitchF
             }
 
-        fun wrap(deg: Double) = MathHelper.wrapDegrees(deg)
+        fun wrap(deg: Double) = wrapDegrees(deg)
 
         fun Rotation.lerp(other: Rotation, delta: Double): Rotation {
-            val yaw = this.yaw + delta * (other.yaw - this.yaw)
-            val pitch = this.pitch + delta * (other.pitch - this.pitch)
+            val yaw = wrap(this.yaw + delta * (other.yaw - this.yaw))
+            val pitch = wrap(this.pitch + delta * (other.pitch - this.pitch))
             return Rotation(yaw, pitch)
         }
 
@@ -119,8 +118,8 @@ data class Rotation(val yaw: Double, val pitch: Double) {
             val yawSpeed = abs(yawDiff / diff) * speed
             val pitchSpeed = abs(pitchDiff / diff) * speed
 
-            val yaw = yaw + yawDiff.coerceIn(-yawSpeed, yawSpeed)
-            val pitch = pitch + pitchDiff.coerceIn(-pitchSpeed, pitchSpeed)
+            val yaw = wrap(yaw + yawDiff.coerceIn(-yawSpeed, yawSpeed))
+            val pitch = wrap(pitch + pitchDiff.coerceIn(-pitchSpeed, pitchSpeed))
 
             return Rotation(yaw, pitch)
         }

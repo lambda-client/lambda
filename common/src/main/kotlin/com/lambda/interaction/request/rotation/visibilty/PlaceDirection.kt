@@ -18,10 +18,10 @@
 package com.lambda.interaction.request.rotation.visibilty
 
 import com.lambda.interaction.request.rotation.Rotation
-import com.lambda.util.Communication.info
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
+import net.minecraft.util.math.MathHelper.wrapDegrees
 import net.minecraft.util.math.Vec3i
 
 enum class PlaceDirection(
@@ -33,37 +33,35 @@ enum class PlaceDirection(
     Down     (   0.0,  90.0,  0, -1,  0, listOf(Double.MIN_VALUE..Double.MAX_VALUE)),
 
     UpNorth  ( -180.0, -90.0,  0,  1, -1,        northYawRanges),
-    UpSouth  (   0.0, -90.0,  0,  1,  1, listOf(southYawRange)),
-    UpWest   (  90.0, -90.0,  1,  1,  0, listOf(westYawRange)),
-    UpEast   ( -90.0, -90.0, -1,  1,  0, listOf(eastYawRange)),
+    UpSouth  (    0.0, -90.0,  0,  1,  1, listOf(southYawRange)),
+    UpWest   (   90.0, -90.0,  1,  1,  0, listOf(westYawRange)),
+    UpEast   (  -90.0, -90.0, -1,  1,  0, listOf(eastYawRange)),
 
     DownNorth( -180.0,  90.0,  0, -1, -1,        northYawRanges),
-    DownSouth(   0.0,  90.0,  0, -1,  1, listOf(southYawRange)),
-    DownWest (  90.0,  90.0,  1, -1,  0, listOf(westYawRange)),
-    DownEast ( -90.0,  90.0, -1, -1,  0, listOf(eastYawRange)),
+    DownSouth(    0.0,  90.0,  0, -1,  1, listOf(southYawRange)),
+    DownWest (   90.0,  90.0,  1, -1,  0, listOf(westYawRange)),
+    DownEast (  -90.0,  90.0, -1, -1,  0, listOf(eastYawRange)),
 
     North    ( -180.0,   0.0,  0,  0, -1,        northYawRanges),
-    South    (   0.0,   0.0,  0,  0,  1, listOf(southYawRange)),
-    West     (  90.0,   0.0,  1,  0,  0, listOf(westYawRange)),
-    East     ( -90.0,   0.0, -1,  0,  0, listOf(eastYawRange));
+    South    (    0.0,   0.0,  0,  0,  1, listOf(southYawRange)),
+    West     (   90.0,   0.0,  1,  0,  0, listOf(westYawRange)),
+    East     (  -90.0,   0.0, -1,  0,  0, listOf(eastYawRange));
 
     constructor(yaw: Double, pitch: Double, x: Int, y: Int, z: Int, yawRanges: List<ClosedRange<Double>>)
             : this(Rotation(yaw, pitch), Vec3i(x, y, z), yawRanges)
 
+    //ToDo: Add dynamic pitch border calculations to avoid excess rotation distance
     fun snapToArea(rot: Rotation): Rotation {
-//        if (isInArea(rot)) return rot
+        if (isInArea(rot)) return rot
 
-        //ToDo: fix snapping to a given directions area to speed up rotations in the case they are not instant
-//        val normalizedYaw = wrapDegrees(rot.yaw)
-//        val clampedYaw = when {
-//            this.rotation.yaw != 180.0 -> normalizedYaw.coerceIn(yawRanges[0])
-//            normalizedYaw < 0 -> normalizedYaw.coerceIn(yawRanges[0])
-//            else -> normalizedYaw.coerceIn(yawRanges[1])
-//        }
+        val normalizedYaw = wrapDegrees(rot.yaw)
+        val clampedYaw = when {
+            this.rotation.yaw != -180.0 -> normalizedYaw.coerceIn(yawRanges[0])
+            normalizedYaw < 0 -> normalizedYaw.coerceIn(yawRanges[0])
+            else -> normalizedYaw.coerceIn(yawRanges[1])
+        }
 
-        info("$rotation")
-
-        return Rotation(rotation.yaw, rotation.pitch)
+        return Rotation(clampedYaw, this.rotation.pitch)
     }
 
     fun isInArea(rot: Rotation) = fromRotation(rot) == this
@@ -117,8 +115,9 @@ enum class PlaceDirection(
     }
 }
 
-// North and south take priority at borders. Same rule applies with up and down over horizontal directions
-val northYawRanges = listOf(-180.0..-135.0, 135.0..180.0)
-val southYawRange = -45.0..45.0
-val eastYawRange = -134.99..-45.01
-val westYawRange = 45.01..134.99
+const val FUDGE_FACTOR = 0.01
+
+val northYawRanges = listOf(-180.0..(-135.0 - FUDGE_FACTOR), (135.0 + FUDGE_FACTOR)..180.0)
+val southYawRange =  ( -45.0 + FUDGE_FACTOR)..( 45.0 - FUDGE_FACTOR)
+val eastYawRange =   (-135.0 + FUDGE_FACTOR)..(-45.0 - FUDGE_FACTOR)
+val westYawRange =   (  45.0 + FUDGE_FACTOR)..(135.0 - FUDGE_FACTOR)
