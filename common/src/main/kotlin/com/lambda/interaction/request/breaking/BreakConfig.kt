@@ -18,7 +18,7 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.config.groups.BuildConfig
-import com.lambda.config.groups.TickStage
+import com.lambda.event.Event
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
 import net.minecraft.block.Block
@@ -31,7 +31,7 @@ abstract class BreakConfig(
     abstract val breakThreshold: Float
     abstract val doubleBreak: Boolean
     abstract val breakDelay: Int
-    abstract val breakStageMask: Set<TickStage>
+    abstract val breakStageMask: Set<Event>
     abstract val swing: SwingMode
     abstract val swingType: BuildConfig.SwingType
     abstract val sounds: Boolean

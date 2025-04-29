@@ -17,7 +17,7 @@
 
 package com.lambda.interaction.request.hotbar
 
-import com.lambda.config.groups.TickStage
+import com.lambda.event.Event
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
 
@@ -57,7 +57,7 @@ abstract class HotbarConfig(
     /**
      * The sub-tick timings at which hotbar actions can be performed
      */
-    abstract val sequenceStageMask: Set<TickStage>
+    abstract val sequenceStageMask: Set<Event>
 
     /**
      * Registers a hotbar request with the HotbarManager.

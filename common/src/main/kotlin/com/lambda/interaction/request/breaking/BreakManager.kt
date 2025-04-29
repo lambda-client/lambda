@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.request.breaking
 
-import com.lambda.config.groups.TickStage
 import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
@@ -62,7 +61,10 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 
 object BreakManager : RequestHandler<BreakRequest>(
-    *TickStage.entries.toTypedArray(),
+    TickEvent.Pre,
+    TickEvent.Input.Pre,
+    TickEvent.Player.Post,
+    // ToDo: Post interact
     onOpen = { activeRequest?.let { processRequest(it) } }
 ), PositionBlocking {
     private var primaryBreak: BreakInfo?

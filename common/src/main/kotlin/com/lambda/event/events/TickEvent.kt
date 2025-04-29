@@ -19,51 +19,97 @@ package com.lambda.event.events
 
 import com.lambda.event.Event
 
+/**
+ * Phases:
+ *
+ * 1. **Pre-Tick**: Increments uptime, steps world tick manager, decrement item use cooldown.
+ * 2. **GUI Update**: Processes delayed messages, updates HUD.
+ * 3. **Game Mode Update**: Updates targeted entity, ticks tutorial, and interaction managers.
+ * 4. **Texture Update**: Ticks texture manager.
+ * 5. **Screen Handling**: Manages screen logic, ticks current screen.
+ * 6. **Debug HUD Update**: Resets debug HUD chunk.
+ * 7. **Input Handling**: Handles input events, decrements attack cooldown.
+ * 8. **World Update**: Ticks game and world renderers, world entities.
+ * 9. **Music and Sound Update**: Ticks music tracker and sound manager.
+ * 10. **Tutorial and Social Interactions**: Handles tutorial and social interactions, ticks world.
+ * 11. **Pending Connection**: Ticks integrated server connection.
+ * 12. **Keyboard Handling**: Polls for debug crash key presses.
+ *
+ * @see net.minecraft.client.MinecraftClient.tick
+ */
 sealed class TickEvent {
     /**
      * Triggered before each iteration of the game loop.
      *
      * Phases:
      *
-     * 1. **Pre-Tick**: Increments uptime, steps world tick manager, decrement item use cooldown.
-     * 2. **GUI Update**: Processes delayed messages, updates HUD.
-     * 3. **Game Mode Update**: Updates targeted entity, ticks tutorial, and interaction managers.
-     * 4. **Texture Update**: Ticks texture manager.
-     * 5. **Screen Handling**: Manages screen logic, ticks current screen.
-     * 6. **Debug HUD Update**: Resets debug HUD chunk.
-     * 7. **Input Handling**: Handles input events, decrements attack cooldown.
-     * 8. **World Update**: Ticks game and world renderers, world entities.
-     * 9. **Music and Sound Update**: Ticks music tracker and sound manager.
-     * 10. **Tutorial and Social Interactions**: Handles tutorial and social interactions, ticks world.
-     * 11. **Pending Connection**: Ticks integrated server connection.
-     * 12. **Keyboard Handling**: Polls for debug crash key presses.
-     *
-     * @see net.minecraft.client.MinecraftClient.tick
+     * 1. Increments uptime
+     * 2. Steps world tick manager
+     * 3. Decrements item use cooldown
      */
-    class Pre : Event
+    data object Pre : Event
 
     /**
      * Triggered after each iteration of the game loop.
-     * Targeted at 20 ticks per second.
+     */
+    data object Post : Event
+
+    /**
+     * Triggered during the network tick stage only
      *
      * Phases:
      *
-     * 1. **Pre-Tick**: Increments uptime, steps world tick manager, decrement item use cooldown.
-     * 2. **GUI Update**: Processes delayed messages, updates HUD.
-     * 3. **Game Mode Update**: Updates targeted entity, ticks tutorial, and interaction managers.
-     * 4. **Texture Update**: Ticks texture manager.
-     * 5. **Screen Handling**: Manages screen logic, ticks current screen.
-     * 6. **Debug HUD Update**: Resets debug HUD chunk.
-     * 7. **Input Handling**: Handles input events, decrements attack cooldown.
-     * 8. **World Update**: Ticks game and world renderers, world entities (such as [TickEvent.Player]).
-     * 9. **Music and Sound Update**: Ticks music tracker and sound manager.
-     * 10. **Tutorial**: Handles tutorials, ticks world.
-     * 11. **Pending Connection**: Ticks integrated server connection.
-     * 12. **Keyboard Handling**: Polls for debug crash key presses.
+     * 1. Synchronizes player inventory slot changes
+     * 2. Clears the outgoing packet queue
+     * 3. Ticks packet listeners
+     * 4. Flushes the connection channel
+     * 5. Updates network statistics
+     * 6. Updates the packet logger
      *
-     * @see net.minecraft.client.MinecraftClient.tick
+     * @see net.minecraft.client.network.ClientPlayerInteractionManager.tick
      */
-    class Post : Event
+    sealed class Network {
+        data object Pre : Event
+        data object Post : Event
+    }
+
+    /**
+     * Triggered during the input tick stage
+     *
+     * Phases:
+     *
+     * 1. Handles various game specific keys
+     * 2. Handles block breaking
+     * 3. Adds block breaking particles
+     * 4. Swings the player arm
+     * 5. Decrements attack cooldown
+     *
+     * @see net.minecraft.client.MinecraftClient.handleInputEvents
+     */
+    sealed class Input {
+        data object Pre : Event
+        data object Post : Event
+    }
+
+    /**
+     * Triggered during the world render tick stage
+     *
+     * @see net.minecraft.client.render.WorldRenderer.tick
+     */
+    sealed class WorldRender {
+        data object Pre : Event
+        data object Post : Event
+    }
+
+    /**
+     * Triggered during the sound update tick stage
+     *
+     * @see net.minecraft.client.sound.SoundManager.tick
+     */
+    sealed class Sound {
+        data object Pre : Event
+        data object Post : Event
+    }
 
     /**
      * Triggered before ([Pre]) and after ([Post]) each render tick.
@@ -82,12 +128,12 @@ sealed class TickEvent {
         /**
          * Triggered before each render tick ([TickEvent.Render]) of the game loop.
          */
-        class Pre : Event
+        data object Pre : Event
 
         /**
          * Triggered after each render tick ([TickEvent.Render]) of the game loop.
          */
-        class Post : Event
+        data object Post : Event
     }
 
     /**
@@ -106,11 +152,11 @@ sealed class TickEvent {
         /**
          * Triggered before each player tick ([TickEvent.Player]).
          */
-        class Pre : Event
+        data object Pre : Event
 
         /**
          * Triggered after each player tick ([TickEvent.Player]).
          */
-        class Post : Event
+        data object Post : Event
     }
 }

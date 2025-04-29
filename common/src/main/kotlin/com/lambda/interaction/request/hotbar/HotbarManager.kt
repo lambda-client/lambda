@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.request.hotbar
 
-import com.lambda.config.groups.TickStage
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.Event
@@ -39,7 +38,10 @@ import com.lambda.threading.runSafe
  * @see InGameHudMixin.onTick
  */
 object HotbarManager : RequestHandler<HotbarRequest>(
-    *TickStage.entries.toTypedArray(),
+    TickEvent.Pre,
+    TickEvent.Input.Pre,
+    TickEvent.Player.Post,
+    // ToDo: Post interact
     onClose = { checkResetSwap() }
 ), Loadable {
     val serverSlot get() = runSafe {

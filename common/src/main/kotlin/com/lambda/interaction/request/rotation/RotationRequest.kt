@@ -41,7 +41,5 @@ data class RotationRequest(
     ) : this(target, config.priority, config.rotationMode, config, config.keepTicks, config.decayTicks, config::turnSpeed, speedMultiplier)
 
     override val done: Boolean get() =
-        mode == RotationMode.None || runSafe {
-            target.verify()
-        } == true
+        mode == RotationMode.None || runSafe { target.verify() } == true
 }

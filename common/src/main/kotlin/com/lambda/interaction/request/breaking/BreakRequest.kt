@@ -18,6 +18,7 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.config.groups.BuildConfig
+import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.request.Priority
@@ -42,7 +43,5 @@ data class BreakRequest(
     private val prio: Priority = 0
 ) : Request(prio, build.breaking) {
     override val done: Boolean
-        get() = runSafe {
-            contexts.all { it.targetState.matches(blockState(it.expectedPos), it.expectedPos, world) }
-        } == true
+        get() = runSafe { contexts.all { it.targetState.matches(blockState(it.expectedPos), it.expectedPos, world) } } == true
 }
