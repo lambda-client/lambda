@@ -51,12 +51,15 @@ import kotlin.reflect.KFunction1
 object MoveFinder {
     private val nodeTypeCache = HashMap<FastVector, NodeType>()
 
-    fun SafeContext.moveOptions(origin: FastVector, heuristic: KFunction1<FastVector, Double>, config: PathingConfig) =
-        EightWayDirection.entries.flatMap { direction ->
+    fun SafeContext.moveOptions(origin: FastVector, heuristic: KFunction1<FastVector, Double>, config: PathingConfig): Set<Move> {
+        val nodeType = findPathType(origin)
+        if (nodeType == NodeType.BLOCKED) return emptySet()
+        return EightWayDirection.entries.flatMap { direction ->
             (-1..1).mapNotNull { y ->
                 getPathNode(heuristic, origin, direction, y, config)
             }
-        }
+        }.toSet()
+    }
 
     private fun SafeContext.getPathNode(
         heuristic: KFunction1<FastVector, Double>,
@@ -158,5 +161,6 @@ object MoveFinder {
         return blockPos.y.toDouble() + (if (voxelShape.isEmpty) 0.0 else voxelShape.getMax(Direction.Axis.Y))
     }
 
+    fun clear(u: FastVector) = nodeTypeCache.remove(u)
     fun clean() = nodeTypeCache.clear()
 }

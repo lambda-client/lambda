@@ -31,7 +31,6 @@ import com.lambda.util.world.x
 import com.lambda.util.world.y
 import com.lambda.util.world.z
 import org.junit.jupiter.api.BeforeEach
-import kotlin.math.abs
 import kotlin.math.sqrt
 import kotlin.test.Test
 import kotlin.test.assertEquals

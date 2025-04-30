@@ -99,8 +99,7 @@ class LazyGraph(
      * 
      * @param modifiedNodes A set of nodes that have been modified and need to be checked for pruning
      */
-    fun prune(modifiedNodes: Set<FastVector> = emptySet()) {
-        // Nodes to check for pruning
+    fun prune(modifiedNodes: Set<FastVector> = emptySet()): Set<FastVector> {
         val nodesToCheck = if (modifiedNodes.isEmpty()) {
             // If no modified nodes specified, check all nodes
             nodes.toSet()
@@ -154,6 +153,7 @@ class LazyGraph(
 
         // Remove nodes with only infinite connections
         nodesToRemove.forEach { removeNode(it) }
+        return nodesToRemove
     }
 
     /**
@@ -161,7 +161,7 @@ class LazyGraph(
      * This is useful for debugging and testing.
      */
     fun getSuccessorsWithoutInitializing(u: FastVector): Map<FastVector, Double> {
-        return successors[u] ?: emptyMap()
+        return successors[u]?.filter { it.value.isFinite() } ?: emptyMap()
     }
 
     /**
@@ -169,11 +169,11 @@ class LazyGraph(
      * This is useful for debugging and testing.
      */
     fun getPredecessorsWithoutInitializing(u: FastVector): Map<FastVector, Double> {
-        return predecessors[u] ?: emptyMap()
+        return predecessors[u]?.filter { it.value.isFinite() } ?: emptyMap()
     }
 
     fun edges(u: FastVector) = successors(u).entries + predecessors(u).entries
-    fun neighbors(u: FastVector): Set<FastVector> = successors(u).keys + predecessors(u).keys
+    fun neighbors(u: FastVector): Set<FastVector> = getSuccessorsWithoutInitializing(u).keys + getPredecessorsWithoutInitializing(u).keys
 
     /** Returns the cost of the edge from u to v (or ∞ if none exists) */
     fun cost(u: FastVector, v: FastVector): Double = successors(u)[v] ?: Double.POSITIVE_INFINITY

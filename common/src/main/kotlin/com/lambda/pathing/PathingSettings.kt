@@ -31,6 +31,7 @@ class PathingSettings(
     private val page by c.setting("Pathing Page", Page.Pathfinding, "Current page", vis)
 
     override val algorithm by c.setting("Algorithm", PathingConfig.PathingAlgorithm.A_STAR) { vis() && page == Page.Pathfinding }
+    override val pruneGraph by c.setting("Prune Graph", true) { vis() && page == Page.Pathfinding && algorithm == PathingConfig.PathingAlgorithm.D_STAR_LITE }
     override val cutoffTimeout by c.setting("Cutoff Timeout", 500L, 1L..2000L, 10L, "Timeout of path calculation", " ms") { vis() && page == Page.Pathfinding }
     override val maxFallHeight by c.setting("Max Fall Height", 3.0, 0.0..30.0, 0.5) { vis() && page == Page.Pathfinding }
     override val mlg by c.setting("Do MLG", false) { vis() && page == Page.Pathfinding }

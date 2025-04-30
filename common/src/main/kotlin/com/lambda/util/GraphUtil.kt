@@ -19,7 +19,9 @@ package com.lambda.util
 
 import com.lambda.pathing.dstar.LazyGraph
 import com.lambda.util.world.FastVector
+import com.lambda.util.world.dist
 import com.lambda.util.world.fastVectorOf
+import com.lambda.util.world.string
 import com.lambda.util.world.x
 import com.lambda.util.world.y
 import com.lambda.util.world.z
@@ -44,6 +46,7 @@ object GraphUtil {
     fun createGridGraph6Conn(blockedNodes: MutableSet<FastVector> = mutableSetOf()): LazyGraph {
         val cost = 1.0
         return LazyGraph { node ->
+            if (node in blockedNodes) return@LazyGraph emptyMap()
             val neighbors = mutableMapOf<FastVector, Double>()
             val x = node.x
             val y = node.y
@@ -64,6 +67,7 @@ object GraphUtil {
         val cost1 = 1.0 // Axis-aligned
         val cost2 = sqrt(2.0) // Face diagonal
         return LazyGraph { node ->
+            if (node in blockedNodes) return@LazyGraph emptyMap()
             val neighbors = mutableMapOf<FastVector, Double>()
             val x = node.x
             val y = node.y
@@ -90,6 +94,7 @@ object GraphUtil {
         val cost2 = sqrt(2.0) // Face diagonal
         val cost3 = sqrt(3.0) // Cube diagonal
         return LazyGraph { node ->
+            if (node in blockedNodes) return@LazyGraph emptyMap()
             val neighbors = mutableMapOf<FastVector, Double>()
             val x = node.x
             val y = node.y
@@ -112,4 +117,7 @@ object GraphUtil {
             neighbors.minus(blockedNodes)
         }
     }
+
+    fun List<FastVector>.string() = joinToString(" -> ") { it.string }
+    fun List<FastVector>.length() = zipWithNext { a, b -> a dist b }.sum()
 }

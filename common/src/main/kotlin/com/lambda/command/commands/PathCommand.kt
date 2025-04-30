@@ -27,6 +27,7 @@ import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.module.modules.movement.Pathfinder
+import com.lambda.pathing.move.MoveFinder
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.world.fastVectorOf
@@ -62,8 +63,9 @@ object PathCommand : LambdaCommand(
                                 val v = fastVectorOf(x().value(), y().value(), z().value())
                                 val pruneGraph = if (prune != null) {
                                     prune().value()
-                                } else true
-                                Pathfinder.dStar.invalidate(v, pruneGraph = pruneGraph)
+                                } else false
+                                Pathfinder.dStar.invalidate(v, pruneGraph)
+                                MoveFinder.clear(v)
                                 Pathfinder.needsUpdate = true
                                 this@PathCommand.info("Invalidated ${v.string}")
                             }
@@ -107,7 +109,7 @@ object PathCommand : LambdaCommand(
                     required(integer("Z", -30000000, 30000000)) { z ->
                         execute {
                             val v = fastVectorOf(x().value(), y().value(), z().value())
-                            this@PathCommand.info("Successors: ${Pathfinder.graph.successors[v]?.keys?.joinToString { it.string }}")
+                            this@PathCommand.info("Successors: ${Pathfinder.graph.successors[v]?.entries?.joinToString { "${it.key.string}: ${it.value}" }}")
                         }
                     }
                 }
@@ -120,7 +122,7 @@ object PathCommand : LambdaCommand(
                     required(integer("Z", -30000000, 30000000)) { z ->
                         execute {
                             val v = fastVectorOf(x().value(), y().value(), z().value())
-                            this@PathCommand.info("Predecessors: ${Pathfinder.graph.predecessors[v]?.keys?.joinToString { it.string }}")
+                            this@PathCommand.info("Predecessors: ${Pathfinder.graph.predecessors[v]?.entries?.joinToString { "${it.key.string}: ${it.value}" }}")
                         }
                     }
                 }

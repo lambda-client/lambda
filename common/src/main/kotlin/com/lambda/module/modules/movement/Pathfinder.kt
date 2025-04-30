@@ -22,6 +22,7 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.RotationEvent
 import com.lambda.event.events.TickEvent
+import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.renderer.esp.builders.buildFilled
@@ -46,6 +47,7 @@ import com.lambda.pathing.move.TraverseMove
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeConcurrent
 import com.lambda.util.Communication.info
+import com.lambda.util.Formatting.asString
 import com.lambda.util.Formatting.string
 import com.lambda.util.math.setAlpha
 import com.lambda.util.player.MovementUtils.buildMovementInput
@@ -129,11 +131,13 @@ object Pathfinder : Module(
 //            info("${isPathClear(playerPos, targetPos)}")
         }
 
-//        listen<WorldEvent.BlockUpdate.Client> {
-//            val pos = it.pos.toFastVec()
-//            graph.markDirty(pos)
-//            info("Updated block at ${it.pos} to ${it.newState.block.name.string} rescheduled D*Lite.")
-//        }
+        listen<WorldEvent.BlockUpdate.Client> {
+            val pos = it.pos.toFastVec()
+            MoveFinder.clear(pos)
+            dStar.invalidate(pos, pathing.pruneGraph)
+            needsUpdate = true
+            info("Updated block at ${it.pos.asString()} to ${it.newState.block.name.string} rescheduled D*Lite.")
+        }
 
         listen<RotationEvent.StrafeInput> { event ->
             if (!pathing.moveAlongPath) return@listen

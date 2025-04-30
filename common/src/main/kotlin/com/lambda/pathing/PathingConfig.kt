@@ -22,6 +22,7 @@ import com.lambda.util.NamedEnum
 
 interface PathingConfig {
     val algorithm: PathingAlgorithm
+    val pruneGraph: Boolean
     val cutoffTimeout: Long
     val maxFallHeight: Double
     val mlg: Boolean

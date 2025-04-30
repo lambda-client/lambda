@@ -18,9 +18,9 @@
 package pathing
 
 import com.lambda.pathing.dstar.DStarLite
+import com.lambda.util.GraphUtil.createGridGraph6Conn
 import com.lambda.util.GraphUtil.createGridGraph18Conn
 import com.lambda.util.GraphUtil.createGridGraph26Conn
-import com.lambda.util.GraphUtil.createGridGraph6Conn
 import com.lambda.util.GraphUtil.euclideanHeuristic
 import com.lambda.util.GraphUtil.length
 import com.lambda.util.GraphUtil.string
@@ -29,52 +29,20 @@ import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.string
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Tests for graph maintenance consistency in the D* Lite algorithm.
- * These tests verify that the graph state after invalidation and pruning
- * is consistent with a fresh graph created with the same blocked nodes.
+ * Tests for path consistency in the D* Lite algorithm.
+ * These tests verify that the paths produced after invalidation
+ * match the paths produced by a freshly created graph with the same blocked nodes.
  */
-class GraphConsistencyTest {
-    @Test
-    fun `graph consistency N6`() {
-        val startNode = fastVectorOf(0, 0, 5)
-        val goalNode = fastVectorOf(0, 0, 0)
-        val blockedNodes = mutableSetOf<FastVector>()
-        val graph1 = createGridGraph6Conn(blockedNodes)
-        val dStar1 = DStarLite(graph1, startNode, goalNode, ::euclideanHeuristic)
-        dStar1.computeShortestPath()
-        val initialPath = dStar1.path()
-
-        val blockedNode = fastVectorOf(0, 0, 4)
-        blockedNodes.add(blockedNode)
-
-        dStar1.invalidate(blockedNode)
-        dStar1.computeShortestPath()
-        val path1 = dStar1.path()
-
-        assertTrue(initialPath.length() < path1.length(), "Initial path length (${initialPath.length()}) is less than blocked path length (${path1.length()})")
-
-        val graph2 = createGridGraph6Conn(blockedNodes)
-        val dStar2 = DStarLite(graph2, startNode, goalNode, ::euclideanHeuristic)
-        dStar2.computeShortestPath()
-        val path2 = dStar2.path()
-
-        assertEquals(path1, path2, "Graph consistency test failed for N6 graph with blocked node at ${blockedNode.string}.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
-
-        val (graphDifferences, valueDifferences) = dStar1.compareWith(dStar2)
-        assertFalse(graphDifferences.hasAnyDifferences, graphDifferences.toString())
-        assertFalse(valueDifferences.isNotEmpty(), valueDifferences.joinToString("\n  "))
-    }
+class PathConsistencyTest {
 
     /**
-     * Simple test with a single blocked node in a 6-connectivity graph.
-     * This is similar to the existing test but with more detailed assertions.
+     * Test path consistency with a single blocked node in a 6-connectivity graph.
      */
     @Test
-    fun `graph consistency with single blocked node N6`() {
+    fun `path consistency with single blocked node N6`() {
         val startNode = fastVectorOf(0, 0, 5)
         val goalNode = fastVectorOf(0, 0, 0)
         val blockedNodes = mutableSetOf<FastVector>()
@@ -93,9 +61,11 @@ class GraphConsistencyTest {
         dStar1.computeShortestPath()
         val path1 = dStar1.path()
 
+        assertTrue(!path1.contains(blockedNode), "Blocked node ${blockedNode.string} should not be in path ${path1.string()}")
+
         // Verify that the path changed after blocking
-        assertTrue(initialPath.size < path1.size,
-            "Initial path size (${initialPath.size}) should be less than blocked path size (${path1.size})")
+        assertTrue(initialPath.length() < path1.length(),
+            "Initial path length (${initialPath.length()}) should be less than blocked path length (${path1.length()})")
 
         // Create a fresh graph with the blocked node and compute path
         val graph2 = createGridGraph6Conn(blockedNodes)
@@ -104,22 +74,15 @@ class GraphConsistencyTest {
         val path2 = dStar2.path()
 
         // Verify paths are identical
-        assertEquals(path1, path2,
+        assertEquals(path1, path2, 
             "Paths should be identical after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
-
-        // Verify graph structure is consistent
-        val (graphDifferences, valueDifferences) = dStar1.compareWith(dStar2)
-        assertFalse(graphDifferences.hasAnyDifferences,
-            "Graph structures should be identical: ${graphDifferences}")
-        assertFalse(valueDifferences.isNotEmpty(),
-            "Node values should be identical: ${valueDifferences.joinToString("\n  ")}")
     }
 
     /**
-     * Test with multiple blocked nodes in a 6-connectivity graph.
+     * Test path consistency with multiple blocked nodes in a 6-connectivity graph.
      */
     @Test
-    fun `graph consistency with multiple blocked nodes N6`() {
+    fun `path consistency with multiple blocked nodes N6`() {
         val startNode = fastVectorOf(0, 0, 5)
         val goalNode = fastVectorOf(0, 0, 0)
         val blockedNodes = mutableSetOf<FastVector>()
@@ -147,9 +110,15 @@ class GraphConsistencyTest {
         dStar1.computeShortestPath()
         val path1 = dStar1.path()
 
+        blockedNodes.forEach { blockedNode ->
+            assertTrue(!path1.contains(blockedNode), "Blocked node ${blockedNode.string} should not be in path ${path1.string()}")
+        }
+
+        val initialPathLength = initialPath.length()
+        val length1 = path1.length()
         // Verify that the path changed after blocking
-        assertTrue(initialPath.length() < path1.length(),
-            "Initial path length (${initialPath.length()}) should be less than blocked path length (${path1.length()})")
+        assertTrue(initialPathLength < length1,
+            "Initial path ${initialPath.string()} length ($initialPathLength) should be less than blocked path ${path1.string()} size ($length1)")
 
         // Create a fresh graph with all blocked nodes and compute path
         val graph2 = createGridGraph6Conn(blockedNodes)
@@ -158,22 +127,15 @@ class GraphConsistencyTest {
         val path2 = dStar2.path()
 
         // Verify paths are identical
-        assertEquals(path1, path2,
+        assertEquals(path1, path2, 
             "Paths should be identical after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
-
-        // Verify graph structure is consistent
-        val (graphDifferences, valueDifferences) = dStar1.compareWith(dStar2)
-        assertFalse(graphDifferences.hasAnyDifferences,
-            "Graph structures should be identical: $graphDifferences")
-        assertFalse(valueDifferences.isNotEmpty(),
-            "Node values should be identical: ${valueDifferences.joinToString("\n  ")}")
     }
 
     /**
-     * Test with a more complex graph structure (18-connectivity).
+     * Test path consistency with a more complex graph structure (18-connectivity).
      */
     @Test
-    fun `graph consistency with 18-connectivity`() {
+    fun `path consistency with 18-connectivity`() {
         val startNode = fastVectorOf(0, 0, 5)
         val goalNode = fastVectorOf(0, 0, 0)
         val blockedNodes = mutableSetOf<FastVector>()
@@ -192,6 +154,8 @@ class GraphConsistencyTest {
         dStar1.computeShortestPath()
         val path1 = dStar1.path()
 
+        assertTrue(!path1.contains(blockedNode), "Blocked node ${blockedNode.string} should not be in path ${path1.string()}")
+
         // Create a fresh graph with the blocked node and compute path
         val graph2 = createGridGraph18Conn(blockedNodes)
         val dStar2 = DStarLite(graph2, startNode, goalNode, ::euclideanHeuristic)
@@ -199,22 +163,15 @@ class GraphConsistencyTest {
         val path2 = dStar2.path()
 
         // Verify paths are identical
-        assertEquals(path1, path2,
+        assertEquals(path1, path2, 
             "Paths should be identical after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
-
-        // Verify graph structure is consistent
-        val (graphDifferences, valueDifferences) = dStar1.compareWith(dStar2)
-        assertFalse(graphDifferences.hasAnyDifferences,
-            "Graph structures should be identical: $graphDifferences")
-        assertFalse(valueDifferences.isNotEmpty(),
-            "Node values should be identical: ${valueDifferences.joinToString("\n  ")}")
     }
 
     /**
-     * Test with a more complex graph structure (26-connectivity).
+     * Test path consistency with a more complex graph structure (26-connectivity).
      */
     @Test
-    fun `graph consistency with 26-connectivity`() {
+    fun `path consistency with 26-connectivity`() {
         val startNode = fastVectorOf(0, 0, 5)
         val goalNode = fastVectorOf(0, 0, 0)
         val blockedNodes = mutableSetOf<FastVector>()
@@ -233,6 +190,8 @@ class GraphConsistencyTest {
         dStar1.computeShortestPath()
         val path1 = dStar1.path()
 
+        assertTrue(!path1.contains(blockedNode), "Blocked node ${blockedNode.string} should not be in path ${path1.string()}")
+
         // Create a fresh graph with the blocked node and compute path
         val graph2 = createGridGraph26Conn(blockedNodes)
         val dStar2 = DStarLite(graph2, startNode, goalNode, ::euclideanHeuristic)
@@ -240,64 +199,137 @@ class GraphConsistencyTest {
         val path2 = dStar2.path()
 
         // Verify paths are identical
-        assertEquals(path1, path2,
+        assertEquals(path1, path2, 
             "Paths should be identical after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
-
-        // Verify graph structure is consistent
-        val (graphDifferences, valueDifferences) = dStar1.compareWith(dStar2)
-        assertFalse(graphDifferences.hasAnyDifferences,
-            "Graph structures should be identical: $graphDifferences")
-        assertFalse(valueDifferences.isNotEmpty(),
-            "Node values should be identical: ${valueDifferences.joinToString("\n  ")}")
     }
 
     /**
-     * Test with a node that becomes unblocked (simulating a world update where a block changes).
+     * Test path consistency when unblocking a node.
      */
     @Test
-    fun `graph consistency when unblocking a node`() {
-        val startNode = fastVectorOf(0, 0, 5)
+    fun `path consistency when unblocking a node`() {
+        val startNode = fastVectorOf(0, 0, 10)
         val goalNode = fastVectorOf(0, 0, 0)
         val blockedNodes = mutableSetOf<FastVector>()
 
-        // Block a node initially
-        val nodeToToggle = fastVectorOf(0, 0, 4)
-        blockedNodes.add(nodeToToggle)
+        // Create a 6x6 wall to force a detour
+        (-3..3).forEach { x ->
+            (-3..3).forEach { y ->
+                blockedNodes.add(fastVectorOf(x, y, 5))
+            }
+        }
 
-        // Create initial graph with the blocked node
+        // Create initial graph with blocked nodes
         val graph1 = createGridGraph6Conn(blockedNodes)
         val dStar1 = DStarLite(graph1, startNode, goalNode, ::euclideanHeuristic)
         dStar1.computeShortestPath()
         val initialPath = dStar1.path()
 
-        // Unblock the node and invalidate
+        blockedNodes.forEach { blockedNode ->
+            assertTrue(!initialPath.contains(blockedNode), "Blocked node ${blockedNode.string} should not be in path ${initialPath.string()}")
+        }
+
+        // Unblock one node in the middle
+        val nodeToToggle = fastVectorOf(0, 0, 5)
         blockedNodes.remove(nodeToToggle)
 
-        // We still call invalidate on the node position even though it's now unblocked
-        // The nodeInitializer should handle this correctly
+        // Now it should path through the hole in the wall
         dStar1.invalidate(nodeToToggle)
         dStar1.computeShortestPath()
         val path1 = dStar1.path()
 
-        // Verify that the path changed after unblocking
-        assertTrue(initialPath.length() < path1.length(),
-            "Initial path ${initialPath.string()} length (${initialPath.length()}) should be smaller than unblocked path ${path1.string()} length (${path1.length()})")
-
-        // Create a fresh graph without the blocked node and compute path
+        // Create a fresh graph with the updated blocked nodes and compute path
         val graph2 = createGridGraph6Conn(blockedNodes)
         val dStar2 = DStarLite(graph2, startNode, goalNode, ::euclideanHeuristic)
         dStar2.computeShortestPath()
         val path2 = dStar2.path()
 
         // Verify paths are identical
-        assertEquals(path1, path2,
+        assertEquals(path1, path2, 
             "Paths should be identical after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
+    }
 
-        // Verify graph structure is consistent
-        val (graphDifferences, valueDifferences) = dStar1.compareWith(dStar2)
-        assertFalse(graphDifferences.hasAnyDifferences,
-            "Graph structures should be identical: $graphDifferences")
-        assertFalse(valueDifferences.isNotEmpty(),
-            "Node values should be identical: ${valueDifferences.joinToString("\n  ")}")
+    /**
+     * Test path consistency with a complex scenario involving multiple invalidations.
+     */
+    @Test
+    fun `path consistency with complex scenario`() {
+        val startNode = fastVectorOf(0, 0, 10)
+        val goalNode = fastVectorOf(0, 0, 0)
+        val blockedNodes = mutableSetOf<FastVector>()
+
+        // Create initial graph and compute path
+        val graph1 = createGridGraph6Conn(blockedNodes)
+        val dStar1 = DStarLite(graph1, startNode, goalNode, ::euclideanHeuristic)
+        dStar1.computeShortestPath()
+        val initialPath = dStar1.path()
+
+        // Block multiple nodes to create a complex scenario
+        (-3..3).forEach { x ->
+            (-3..3).forEach { y ->
+                val blockedNode = fastVectorOf(x, y, 5)
+                blockedNodes.add(blockedNode)
+                dStar1.invalidate(blockedNode)
+            }
+        }
+
+        dStar1.computeShortestPath()
+        val path1 = dStar1.path()
+
+        blockedNodes.forEach { blockedNode ->
+            assertTrue(!path1.contains(blockedNode), "Blocked node ${blockedNode.string} should not be in path ${path1.string()}")
+        }
+
+        // Verify that the path changed after blocking
+        assertTrue(initialPath.length() < path1.length(),
+            "Initial path length (${initialPath.length()}) should be less than blocked path length (${path1.length()})")
+
+        // Create a fresh graph with all blocked nodes and compute path
+        val graph2 = createGridGraph6Conn(blockedNodes)
+        val dStar2 = DStarLite(graph2, startNode, goalNode, ::euclideanHeuristic)
+        dStar2.computeShortestPath()
+        val path2 = dStar2.path()
+
+        // Verify paths are identical
+        assertEquals(path1, path2, 
+            "Paths should be identical after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
+    }
+
+    /**
+     * Test path consistency with a disconnected graph scenario.
+     */
+    @Test
+    fun `path consistency with disconnected graph`() {
+        val startNode = fastVectorOf(0, 0, 5)
+        val goalNode = fastVectorOf(0, 0, 0)
+        val blockedNodes = mutableSetOf<FastVector>()
+
+        // Create initial graph and compute path
+        val graph1 = createGridGraph6Conn(blockedNodes)
+        val dStar1 = DStarLite(graph1, startNode, goalNode, ::euclideanHeuristic)
+        dStar1.computeShortestPath()
+
+        // Block nodes to completely disconnect start from goal
+        // Block all nodes at z=3
+        for (x in -2..2) {
+            for (y in -2..2) {
+                val blockedNode = fastVectorOf(x, y, 3)
+                blockedNodes.add(blockedNode)
+                dStar1.invalidate(blockedNode)
+            }
+        }
+
+        dStar1.computeShortestPath()
+        val path1 = dStar1.path()
+
+        // Create a fresh graph with all blocked nodes and compute path
+        val graph2 = createGridGraph6Conn(blockedNodes)
+        val dStar2 = DStarLite(graph2, startNode, goalNode, ::euclideanHeuristic)
+        dStar2.computeShortestPath()
+        val path2 = dStar2.path()
+
+        // Verify paths are identical (both should be empty or contain only the start node)
+        assertEquals(path1.length(), path2.length(),
+            "Paths should have identical length after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
     }
 }

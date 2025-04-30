@@ -144,139 +144,35 @@ class DStarLite(
     }
 
     /**
-     * Invalidates a node (e.g., it became an obstacle) and updates affected neighbors.
+     * Invalidates a node and updates affected neighbors.
      * Also updates the neighbors of neighbors to ensure diagonal paths are correctly recalculated.
      * Optionally prunes the graph after invalidation to remove unnecessary nodes and edges.
      * 
      * @param u The node to invalidate
-     * @param pruneGraph Whether to prune the graph after invalidation
      */
-    fun invalidate(u: FastVector, pruneGraph: Boolean = true) {
-        val newNodes = mutableSetOf<FastVector>()
-        val affectedNeighbors = mutableSetOf<FastVector>()
-        val pathNodes = mutableSetOf<FastVector>()
-        val modifiedNodes = mutableSetOf<FastVector>()
-
-        // Add the invalidated node to the modified nodes
-        modifiedNodes.add(u)
-
-        // First, collect all neighbors of the invalidated node
-        val neighbors = graph.neighbors(u)
-        affectedNeighbors.addAll(neighbors)
-        modifiedNodes.addAll(neighbors)
-
-        // Set g and rhs values of the invalidated node to infinity
-        setG(u, INF)
-        setRHS(u, INF)
-        updateVertex(u)
-
-        // Update edges between the invalidated node and its neighbors
-        neighbors.forEach { v ->
-            val current = graph.successors(v)
+    fun invalidate(u: FastVector, prune: Boolean = false) {
+        val modified = mutableSetOf(u)
+        (graph.neighbors(u) + u).forEach { v ->
+            val current = graph.neighbors(v)
             val updated = graph.nodeInitializer(v)
-            val removed = current.filter { (w, _) -> w !in updated }
-
-            // Only add new nodes that are directly connected to the current path
-            // This reduces unnecessary node generation
-            updated.keys.filter { w -> w !in current.keys && w != u }.forEach { 
-                // Check if this node is likely to be on a new path
-                if (g(v) < INF) {
-                    newNodes.add(it)
-                    modifiedNodes.add(it)
-                }
-            }
-
-            // Set the edge cost between u and v to infinity (blocked)
-            updateEdge(u, v, INF)
-            updateEdge(v, u, INF)
-
-            // Update removed and new edges for this neighbor
-            removed.forEach { (w, _) ->
+            val removed = current.filter { w -> w !in updated }
+            removed.forEach { w ->
                 updateEdge(v, w, INF)
                 updateEdge(w, v, INF)
-                modifiedNodes.add(w)
             }
             updated.forEach { (w, c) ->
                 updateEdge(v, w, c)
                 updateEdge(w, v, c)
-                modifiedNodes.add(w)
             }
+            modified.addAll(removed + updated.keys + v)
         }
+        if (prune) prune(modified)
+    }
 
-        // Now, update only the neighbors of neighbors that are likely to be on the new path
-        // This is crucial when a node in a diagonal path is blocked
-        neighbors.forEach { v ->
-            // Only process neighbors that are likely to be on the path
-            if (g(v) >= INF) return@forEach
-            pathNodes.add(v)
-
-            // Get all neighbors of this neighbor (excluding the original invalidated node)
-            // Only consider neighbors that are likely to be on the path
-            val secondaryNeighbors = graph.neighbors(v).filter { it != u && g(it) < INF }
-
-            // For each secondary neighbor, reinitialize its edges
-            secondaryNeighbors.forEach { w ->
-                // Add to affected neighbors for later rhs update
-                affectedNeighbors.add(w)
-                pathNodes.add(w)
-                modifiedNodes.add(w)
-
-                // Reinitialize edges for this secondary neighbor
-                val currentW = graph.successors(w)
-                val updatedW = graph.nodeInitializer(w)
-
-                // Update edges for this secondary neighbor
-                // Only update edges to nodes that are likely to be on the path
-                updatedW.forEach { (z, c) ->
-                    if (z != u) { // Don't create edges to the invalidated node
-                        updateEdge(w, z, c)
-                        updateEdge(z, w, c)
-                        modifiedNodes.add(z)
-
-                        // If this node has a finite g-value, it's likely on the path
-                        if (g(z) < INF) {
-                            pathNodes.add(z)
-                        }
-                    }
-                }
-
-                // Add any new nodes discovered, but only if they're likely to be on the path
-                updatedW.keys.filter { z -> z !in currentW.keys && z != u }.forEach {
-                    // Check if this node is connected to a node on the path
-                    if (g(w) < INF) {
-                        newNodes.add(it)
-                        modifiedNodes.add(it)
-                    }
-                }
-            }
-        }
-
-        // Ensure all edges to/from the invalidated node are set to infinity
-        // First, get all current successors and predecessors of the invalidated node
-        val currentSuccessors = graph.successors(u).keys.toSet()
-        val currentPredecessors = graph.predecessors(u).keys.toSet()
-
-        // Set all edges to/from the invalidated node to infinity
-        (currentSuccessors + currentPredecessors + graph.nodes).forEach { node ->
-            if (node != u) {
-                updateEdge(node, u, INF)
-                updateEdge(u, node, INF)
-                modifiedNodes.add(node)
-            }
-        }
-
-        // Update rhs values for all affected nodes
-        (affectedNeighbors + newNodes).forEach { node ->
-            if (node != goal) {
-                setRHS(node, minSuccessorCost(node))
-                updateVertex(node)
-            }
-        }
-
-        // Prune the graph if requested
-        if (pruneGraph) {
-            // Prune the graph, passing the modified nodes for targeted pruning
-            graph.prune(modifiedNodes)
+    private fun prune(modifiedNodes: Set<FastVector> = emptySet()) {
+        graph.prune(modifiedNodes).forEach {
+            gMap.remove(it)
+            rhsMap.remove(it)
         }
     }
 
@@ -289,14 +185,21 @@ class DStarLite(
      */
     fun updateEdge(u: FastVector, v: FastVector, c: Double) {
         val cOld = graph.cost(u, v)
-        if (cOld == c) return
         graph.setCost(u, v, c)
+//        LOG.info("Setting edge ${u.string} -> ${v.string} to $c")
         if (cOld > c) {
-            if (u != goal) setRHS(u, min(rhs(u), c + g(v)))
+            if (u != goal) {
+                setRHS(u, min(rhs(u), c + g(v)))
+//                LOG.info("Setting RHS of ${u.string} to ${rhs(u)}")
+            }
         } else if (rhs(u) == cOld + g(v)) {
-            if (u != goal) setRHS(u, minSuccessorCost(u))
+            if (u != goal) {
+                setRHS(u, minSuccessorCost(u))
+//                LOG.info("Setting RHS of ${u.string} to ${rhs(u)}")
+            }
         }
         updateVertex(u)
+//        LOG.info("Updated vertex ${u.string}")
     }
 
     /**
@@ -309,7 +212,8 @@ class DStarLite(
      */
     fun path(maxLength: Int = 10_000): List<FastVector> {
         val path = mutableListOf<FastVector>()
-        if (start !in graph) return path.toList() // Start not even known
+        if (start !in graph) return emptyList()
+        if (rhs(start) == INF) return emptyList()
 
         var current = start
         path.add(current)
@@ -317,30 +221,10 @@ class DStarLite(
         var iterations = 0
         while (current != goal && iterations < maxLength) {
             iterations++
-            val successors = graph.successors(current)
-            if (successors.isEmpty()) break // Dead end
-
-            var bestNext: FastVector? = null
-            var minCost = INF
-
-            // Find successor s' that minimizes c(current, s') + g(s')
-            for ((succ, cost) in successors) {
-                if (cost == INF) continue // Skip impassable edges explicitly
-                val costPlusG = cost + g(succ)
-                if (costPlusG < minCost) {
-                    minCost = costPlusG
-                    bestNext = succ
-                }
-            }
-
-            if (bestNext == null) break // No path found
-
-            current = bestNext
-            if (current !in path) { // Avoid trivial cycles
-                path.add(current)
-            } else {
-                break // Cycle detected
-            }
+            val cheapest = graph.successors(current)
+                .minByOrNull { (succ, cost) -> cost + g(succ) } ?: break
+            current = cheapest.key
+            if (current !in path) path.add(current) else break
         }
         return path
     }
