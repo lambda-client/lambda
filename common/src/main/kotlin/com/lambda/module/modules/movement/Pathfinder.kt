@@ -132,11 +132,12 @@ object Pathfinder : Module(
         }
 
         listen<WorldEvent.BlockUpdate.Client> {
+            if (it.newState == it.oldState) return@listen
             val pos = it.pos.toFastVec()
             MoveFinder.clear(pos)
             dStar.invalidate(pos, pathing.pruneGraph)
             needsUpdate = true
-            info("Updated block at ${it.pos.asString()} to ${it.newState.block.name.string} rescheduled D*Lite.")
+            info("Updated block at ${it.pos.asString()} from ${it.oldState.block.name.string} to ${it.newState.block.name.string} rescheduled D*Lite.")
         }
 
         listen<RotationEvent.StrafeInput> { event ->

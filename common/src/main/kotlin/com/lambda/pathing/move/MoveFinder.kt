@@ -52,8 +52,7 @@ object MoveFinder {
     private val nodeTypeCache = HashMap<FastVector, NodeType>()
 
     fun SafeContext.moveOptions(origin: FastVector, heuristic: KFunction1<FastVector, Double>, config: PathingConfig): Set<Move> {
-        val nodeType = findPathType(origin)
-        if (nodeType == NodeType.BLOCKED) return emptySet()
+        if (!traversable(origin.toBlockPos())) return setOf()
         return EightWayDirection.entries.flatMap { direction ->
             (-1..1).mapNotNull { y ->
                 getPathNode(heuristic, origin, direction, y, config)

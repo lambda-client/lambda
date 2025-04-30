@@ -44,79 +44,50 @@ object GraphUtil {
 
     // 6-connectivity (Axis-aligned moves only)
     fun createGridGraph6Conn(blockedNodes: MutableSet<FastVector> = mutableSetOf()): LazyGraph {
-        val cost = 1.0
         return LazyGraph { node ->
-            if (node in blockedNodes) return@LazyGraph emptyMap()
-            val neighbors = mutableMapOf<FastVector, Double>()
-            val x = node.x
-            val y = node.y
-            val z = node.z
-            // Add neighbors differing by 1 in exactly one dimension
-            neighbors[fastVectorOf(x + 1, y, z)] = cost
-            neighbors[fastVectorOf(x - 1, y, z)] = cost
-            neighbors[fastVectorOf(x, y + 1, z)] = cost
-            neighbors[fastVectorOf(x, y - 1, z)] = cost
-            neighbors[fastVectorOf(x, y, z + 1)] = cost
-            neighbors[fastVectorOf(x, y, z - 1)] = cost
-            neighbors.minus(blockedNodes)
+            if (node in blockedNodes) emptyMap()
+            else n6(node).filterKeys { it !in blockedNodes }
         }
     }
 
     // 18-connectivity (Axis-aligned + Face diagonal moves)
     fun createGridGraph18Conn(blockedNodes: MutableSet<FastVector> = mutableSetOf()): LazyGraph {
-        val cost1 = 1.0 // Axis-aligned
-        val cost2 = sqrt(2.0) // Face diagonal
         return LazyGraph { node ->
-            if (node in blockedNodes) return@LazyGraph emptyMap()
-            val neighbors = mutableMapOf<FastVector, Double>()
-            val x = node.x
-            val y = node.y
-            val z = node.z
-            for (dx in -1..1) {
-                for (dy in -1..1) {
-                    for (dz in -1..1) {
-                        if (dx == 0 && dy == 0 && dz == 0) continue // Skip self
-                        val distSq = dx*dx + dy*dy + dz*dz
-                        if (distSq > 2) continue // Exclude cube diagonals (distSq = 3)
-
-                        val cost = if (distSq == 1) cost1 else cost2
-                        neighbors[fastVectorOf(x + dx, y + dy, z + dz)] = cost
-                    }
-                }
-            }
-            neighbors.minus(blockedNodes)
+            if (node in blockedNodes) emptyMap()
+            else n18(node).filterKeys { it !in blockedNodes }
         }
     }
 
     // 26-connectivity (Axis-aligned + Face diagonal + Cube diagonal moves)
     fun createGridGraph26Conn(blockedNodes: MutableSet<FastVector> = mutableSetOf()): LazyGraph {
-        val cost1 = 1.0 // Axis-aligned
-        val cost2 = sqrt(2.0) // Face diagonal
-        val cost3 = sqrt(3.0) // Cube diagonal
         return LazyGraph { node ->
-            if (node in blockedNodes) return@LazyGraph emptyMap()
-            val neighbors = mutableMapOf<FastVector, Double>()
-            val x = node.x
-            val y = node.y
-            val z = node.z
-            for (dx in -1..1) {
-                for (dy in -1..1) {
-                    for (dz in -1..1) {
-                        if (dx == 0 && dy == 0 && dz == 0) continue // Skip self
-
-                        val cost = when (dx*dx + dy*dy + dz*dz) {
-                            1 -> cost1
-                            2 -> cost2
-                            3 -> cost3
-                            else -> continue // Should not happen with dx/dy/dz in -1..1
-                        }
-                        neighbors[fastVectorOf(x + dx, y + dy, z + dz)] = cost
-                    }
-                }
-            }
-            neighbors.minus(blockedNodes)
+            if (node in blockedNodes) emptyMap()
+            else n26(node).filterKeys { it !in blockedNodes }
         }
     }
+
+    fun n6(o: FastVector) = neighborhood(o, minDistSq = 1, maxDistSq = 1)
+    fun n18(o: FastVector) = neighborhood(o, minDistSq = 1, maxDistSq = 2)
+    fun n26(o: FastVector) = neighborhood(o, minDistSq = 1, maxDistSq = 3)
+
+    fun neighborhood(origin: FastVector, minDistSq: Int = 1, maxDistSq: Int = 1): Map<FastVector, Double> =
+        (-1..1).flatMap { dx ->
+            (-1..1).flatMap { dy ->
+                (-1..1).mapNotNull { dz ->
+                    val distSq = dx*dx + dy*dy + dz*dz
+                    if (distSq in minDistSq..maxDistSq) {
+                        val neighbor = fastVectorOf(origin.x + dx, origin.y + dy, origin.z + dz)
+                        val cost = when (distSq) {
+                            1 -> 1.0
+                            2 -> sqrt(2.0)
+                            3 -> sqrt(3.0)
+                            else -> error("Unexpected squared distance: $distSq")
+                        }
+                        neighbor to cost
+                    } else null
+                }
+            }
+        }.toMap()
 
     fun List<FastVector>.string() = joinToString(" -> ") { it.string }
     fun List<FastVector>.length() = zipWithNext { a, b -> a dist b }.sum()

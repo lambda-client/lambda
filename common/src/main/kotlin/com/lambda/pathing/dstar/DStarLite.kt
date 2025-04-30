@@ -23,6 +23,7 @@ import com.lambda.graphics.gl.Matrices.withVertexTransform
 import com.lambda.graphics.renderer.gui.FontRenderer
 import com.lambda.graphics.renderer.gui.FontRenderer.drawString
 import com.lambda.pathing.PathingSettings
+import com.lambda.util.GraphUtil
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.minus
 import com.lambda.util.math.plus
@@ -152,7 +153,7 @@ class DStarLite(
      */
     fun invalidate(u: FastVector, prune: Boolean = false) {
         val modified = mutableSetOf(u)
-        (graph.neighbors(u) + u).forEach { v ->
+        (GraphUtil.n26(u).keys + u).forEach { v ->
             val current = graph.neighbors(v)
             val updated = graph.nodeInitializer(v)
             val removed = current.filter { w -> w !in updated }
