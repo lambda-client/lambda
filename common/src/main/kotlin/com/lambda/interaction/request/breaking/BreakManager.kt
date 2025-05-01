@@ -107,6 +107,10 @@ object BreakManager : RequestHandler<BreakRequest>(
             breakInfos.forEach { info ->
                 info?.apply {
                     if (isRedundant) updateBreakProgress(this)
+                    else if (!updatedThisTick) {
+                        this.cancelBreak()
+                        return@apply
+                    }
                     activeAge++
                     updatedThisTick = false
                     updatedProgressThisTick = false
