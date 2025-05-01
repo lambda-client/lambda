@@ -59,9 +59,14 @@ object PacketMine : Module(
     private var itemDrops = 0
 
     private val breakingPositions = arrayOfNulls<BlockPos>(2)
-    private var hitPos: BlockPos? = null
+
+    private var requestedThisTick = false
 
     init {
+        listen<TickEvent.Post> {
+            requestedThisTick = false
+        }
+
         listen<PlayerEvent.Attack.Block> { it.cancel() }
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
@@ -70,24 +75,29 @@ object PacketMine : Module(
                 breakingPositions[1] = breakingPositions[0]
             }
             breakingPositions[0] = null
-            hitPos = event.pos
+            sendBreakRequest(event.pos)
         }
 
-        listen<TickEvent.Pre> {
-            val requestPositions = arrayListOf<BlockPos>().apply { addAll(breakingPositions.filterNotNull()) }
-            hitPos?.let { pos ->
-                requestPositions.add(pos)
-                hitPos = null
-            }
-
-            val request = BreakRequest(
-                breakContexts(requestPositions), build, rotation, hotbar, pendingInteractions = pendingInteractionsList, onAccept = { breakingPositions[0] = it },
-                onCancel = { nullifyBreakPos(it) },
-                onBreak = { breaks++; nullifyBreakPos(it) },
-                { _ -> itemDrops++ }
-            )
-            breakConfig.request(request)
+        listen<TickEvent.Input.Pre> {
+            if (!requestedThisTick) sendBreakRequest()
         }
+    }
+
+    private fun SafeContext.sendBreakRequest(hitPos: BlockPos? = null) {
+        val requestPositions = arrayListOf(*breakingPositions.filterNotNull().toTypedArray())
+        hitPos?.let { pos ->
+            requestPositions.add(pos)
+        }
+
+        val request = BreakRequest(
+            breakContexts(requestPositions), build, rotation, hotbar, pendingInteractions = pendingInteractionsList,
+            onAccept = { breakingPositions[0] = it },
+            onCancel = { nullifyBreakPos(it) },
+            onBreak = { breaks++; nullifyBreakPos(it) },
+            { _ -> itemDrops++ }
+        )
+        breakConfig.request(request)
+        requestedThisTick = true
     }
 
     private fun nullifyBreakPos(pos: BlockPos) {
