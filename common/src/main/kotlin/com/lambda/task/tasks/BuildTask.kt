@@ -100,7 +100,6 @@ class BuildTask @Ta5kBuilder constructor(
             TaskFlowModule.drawables = results
                 .filterIsInstance<Drawable>()
                 .plus(pendingInteractions.toList())
-                .toMutableList()
 
             val resultsNotBlocked = results
                 .filter { result -> pendingInteractions.none { it.expectedPos == result.blockPos } }
@@ -143,10 +142,9 @@ class BuildTask @Ta5kBuilder constructor(
                             val requestContexts = arrayListOf<BreakContext>()
 
                             if (build.breaking.breaksPerTick > 1) {
-                                val take = emptyPendingInteractionSlots.coerceAtLeast(0)
                                 breakResults
                                     .filter { it.context.instantBreak }
-                                    .take(take)
+                                    .take(emptyPendingInteractionSlots)
                                     .let { instantBreakResults ->
                                         requestContexts.addAll(instantBreakResults.map { it.context })
                                     }

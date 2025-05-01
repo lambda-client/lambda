@@ -295,7 +295,7 @@ object BuildSimulator {
                 }
 
                 lateinit var resultState: BlockState
-                var rot = RotationManager.serverRotation
+                var rot = fakePlayer.rotation
 
                 val simulatePlaceState = placeState@ {
                     resultState = blockItem.getPlacementState(context)
@@ -311,7 +311,7 @@ object BuildSimulator {
                 }
 
                 val currentDirIsInvalid = simulatePlaceState()?.let { basePlaceResult ->
-                    if (!place.rotate) {
+                    if (!place.rotateForPlace) {
                         acc.add(basePlaceResult)
                         return@forEach
                     }
@@ -325,6 +325,12 @@ object BuildSimulator {
                             acc.add(rotatedPlaceResult)
                             return@forEach
                         }
+                        rot = fakePlayer.rotation
+                        return@rotate
+                    }
+
+                    fakePlayer.rotation = player.rotation
+                    simulatePlaceState() ?: run {
                         rot = fakePlayer.rotation
                         return@rotate
                     }

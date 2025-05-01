@@ -18,7 +18,6 @@
 package com.lambda.interaction.request.placing
 
 import com.lambda.config.groups.BuildConfig
-import com.lambda.config.groups.TickStage
 import com.lambda.event.Event
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
@@ -27,12 +26,10 @@ abstract class PlaceConfig(
     priority: Priority
 ) : RequestConfig<PlaceRequest>(priority) {
     abstract val rotateForPlace: Boolean
-    val rotate
-        get() = rotateForPlace || axisRotate
     abstract val airPlace: AirPlaceMode
     protected abstract val axisRotateSetting: Boolean
     val axisRotate
-        get() = airPlace.isEnabled() && axisRotateSetting
+        get() = rotateForPlace && airPlace.isEnabled() && axisRotateSetting
     abstract val placeStageMask: Set<Event>
     abstract val placeConfirmationMode: PlaceConfirmationMode
     abstract val maxPendingPlacements: Int
