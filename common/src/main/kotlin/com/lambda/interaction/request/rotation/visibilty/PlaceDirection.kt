@@ -23,6 +23,10 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.MathHelper.wrapDegrees
 import net.minecraft.util.math.Vec3i
+import kotlin.math.abs
+import kotlin.math.atan
+import kotlin.math.cos
+import kotlin.math.sin
 
 enum class PlaceDirection(
     val rotation: Rotation,
@@ -50,19 +54,62 @@ enum class PlaceDirection(
     constructor(yaw: Double, pitch: Double, x: Int, y: Int, z: Int, yawRanges: List<ClosedRange<Double>>)
             : this(Rotation(yaw, pitch), Vec3i(x, y, z), yawRanges)
 
-    //ToDo: Add dynamic pitch border calculations to avoid excess rotation distance
     fun snapToArea(rot: Rotation): Rotation {
         if (isInArea(rot)) return rot
 
         val normalizedYaw = wrapDegrees(rot.yaw)
         val clampedYaw = when {
-            this.rotation.yaw != -180.0 -> normalizedYaw.coerceIn(yawRanges[0])
+            rotation.yaw != -180.0 -> normalizedYaw.coerceIn(yawRanges[0])
             normalizedYaw < 0 -> normalizedYaw.coerceIn(yawRanges[0])
             else -> normalizedYaw.coerceIn(yawRanges[1])
         }
 
-        return Rotation(clampedYaw, this.rotation.pitch)
+        // Calculate pitch boundaries based on the snapped yaw
+        val snappedYawRad = Math.toRadians(clampedYaw)
+        val pitchBoundaryEW = Math.toDegrees(atan(abs(sin(snappedYawRad))))
+        val pitchBoundaryNS = Math.toDegrees(atan(abs(cos(snappedYawRad))))
+
+        // Determine the correct pitch boundary and snap pitch
+        val snappedPitch = when {
+            // Primary E/W Directions
+            isEast() || isWest() -> {
+                when {
+                    isUp() -> pitchBoundaryEW       // Snap to lower edge of UP_E/UP_W area
+                    isDown() -> -pitchBoundaryEW    // Snap to upper edge of DOWN_E/DOWN_W area
+                    else -> { // Horizontal E/W
+                        val isPitchWithinBounds = abs(rot.pitch - pitchBoundaryEW) < abs(rot.pitch - (-pitchBoundaryEW))
+                        if (isPitchWithinBounds) pitchBoundaryEW else -pitchBoundaryEW
+                    }
+                }
+            }
+            // Primary N/S Directions
+            isNorth() || isSouth() -> {
+                when {
+                    isUp() -> pitchBoundaryNS       // Snap to lower edge of UP_N/UP_S area
+                    isDown() -> -pitchBoundaryNS    // Snap to upper edge of DOWN_N/DOWN_S area
+                    else -> { // Horizontal N/S
+                        val isWithinNorthernBoundary = abs(rot.pitch - pitchBoundaryNS) < abs(rot.pitch - (-pitchBoundaryNS))
+                        if (isWithinNorthernBoundary) pitchBoundaryNS else -pitchBoundaryNS
+                    }
+                }
+            }
+            // Handle purely UP/DOWN directions
+            else -> rotation.pitch
+        }
+
+        // Clamp pitch to valid range
+        val clampedPitch = snappedPitch.coerceIn(-90.0, 90.0)
+
+        return Rotation(clampedYaw, clampedPitch)
     }
+
+    // Helper functions to determine direction type
+    private fun isEast(): Boolean = this == East || this == UpEast || this == DownEast
+    private fun isWest(): Boolean = this == West || this == UpWest || this == DownWest
+    private fun isNorth(): Boolean = this == North || this == UpNorth || this == DownNorth
+    private fun isSouth(): Boolean = this == South || this == UpSouth || this == DownSouth
+    private fun isUp(): Boolean = this == UpEast || this == UpWest || this == UpNorth || this == UpSouth || this == Up
+    private fun isDown(): Boolean = this == DownEast || this == DownWest || this == DownNorth || this == DownSouth || this == Down
 
     fun isInArea(rot: Rotation) = fromRotation(rot) == this
 
