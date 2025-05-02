@@ -15,8 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.rotation
-
+import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.angleDifference
 import com.lambda.interaction.request.rotation.Rotation.Companion.dist
 import com.lambda.interaction.request.rotation.Rotation.Companion.lerp
@@ -25,10 +24,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.assertFalse
-import kotlin.math.abs
 import kotlin.math.hypot
-import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.MathHelper
 
 /**
  * Tests for the Rotation class
