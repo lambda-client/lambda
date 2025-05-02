@@ -104,8 +104,14 @@ data class Rotation(val yaw: Double, val pitch: Double) {
         fun wrap(deg: Double) = wrapDegrees(deg)
 
         fun Rotation.lerp(other: Rotation, delta: Double): Rotation {
-            val yaw = wrap(this.yaw + delta * (other.yaw - this.yaw))
-            val pitch = wrap(this.pitch + delta * (other.pitch - this.pitch))
+            // Calculate the wrapped difference to ensure we take the shortest path
+            val yawDiff = wrap(other.yaw - this.yaw)
+            val pitchDiff = wrap(other.pitch - this.pitch)
+
+            // Apply the delta to the wrapped difference
+            val yaw = wrap(this.yaw + delta * yawDiff)
+            val pitch = wrap(this.pitch + delta * pitchDiff)
+
             return Rotation(yaw, pitch)
         }
 

@@ -34,20 +34,17 @@ enum class PlaceDirection(
     val vector: Vec3i,
     private val yawRanges: List<ClosedRange<Double>>
 ) {
-    Up       (   0.0, -90.0,  0,  1,  0, listOf(Double.MIN_VALUE..Double.MAX_VALUE)),
-    Down     (   0.0,  90.0,  0, -1,  0, listOf(Double.MIN_VALUE..Double.MAX_VALUE)),
-
-    UpNorth  ( -180.0, -90.0,  0,  1, -1,        northYawRanges),
+    UpNorth  ( -180.0, -90.0,  0,  1, -1, northYawRanges),
     UpSouth  (    0.0, -90.0,  0,  1,  1, listOf(southYawRange)),
     UpWest   (   90.0, -90.0,  1,  1,  0, listOf(westYawRange)),
     UpEast   (  -90.0, -90.0, -1,  1,  0, listOf(eastYawRange)),
 
-    DownNorth( -180.0,  90.0,  0, -1, -1,        northYawRanges),
+    DownNorth( -180.0,  90.0,  0, -1, -1, northYawRanges),
     DownSouth(    0.0,  90.0,  0, -1,  1, listOf(southYawRange)),
     DownWest (   90.0,  90.0,  1, -1,  0, listOf(westYawRange)),
     DownEast (  -90.0,  90.0, -1, -1,  0, listOf(eastYawRange)),
 
-    North    ( -180.0,   0.0,  0,  0, -1,        northYawRanges),
+    North    ( -180.0,   0.0,  0,  0, -1, northYawRanges),
     South    (    0.0,   0.0,  0,  0,  1, listOf(southYawRange)),
     West     (   90.0,   0.0,  1,  0,  0, listOf(westYawRange)),
     East     (  -90.0,   0.0, -1,  0,  0, listOf(eastYawRange));
@@ -90,7 +87,7 @@ enum class PlaceDirection(
                     else -> calculateHorizontalPitch(rot.pitch, pitchBoundaryNS)
                 }
             }
-            // Handle purely UP/DOWN directions
+            // impossible to look just up or just down as you are always facing a horizontal direction
             else -> rotation.pitch
         }
 
@@ -141,8 +138,8 @@ enum class PlaceDirection(
     private fun isWest(): Boolean = this == West || this == UpWest || this == DownWest
     private fun isNorth(): Boolean = this == North || this == UpNorth || this == DownNorth
     private fun isSouth(): Boolean = this == South || this == UpSouth || this == DownSouth
-    private fun isUp(): Boolean = this == UpEast || this == UpWest || this == UpNorth || this == UpSouth || this == Up
-    private fun isDown(): Boolean = this == DownEast || this == DownWest || this == DownNorth || this == DownSouth || this == Down
+    private fun isUp(): Boolean = this == UpEast || this == UpWest || this == UpNorth || this == UpSouth
+    private fun isDown(): Boolean = this == DownEast || this == DownWest || this == DownNorth || this == DownSouth
 
     fun isInArea(rot: Rotation) = fromRotation(rot) == this
 
