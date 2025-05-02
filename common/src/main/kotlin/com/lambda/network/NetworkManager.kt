@@ -24,6 +24,7 @@ import com.lambda.config.configurations.UserConfig
 import com.lambda.core.Loadable
 import com.lambda.network.api.v1.models.Authentication
 import com.lambda.network.api.v1.models.Authentication.Data
+import com.lambda.util.FolderRegister.capes
 import com.lambda.util.reflections.getResources
 import java.io.File
 import java.util.*
@@ -52,11 +53,6 @@ object NetworkManager : Configurable(UserConfig), Loadable {
 
     private var deserialized: Data? = null
 
-    // ToDo: Fetch remote file instead of checking local files
-    val capes = getResources(".*.png")
-        .filter { it.contains("capes") } // filterByInput hangs the program
-        .map { File(it).nameWithoutExtension }
-
     fun updateToken(resp: Authentication) {
         accessToken = resp.accessToken
         decodeAuth(accessToken)
@@ -67,11 +63,8 @@ object NetworkManager : Configurable(UserConfig), Loadable {
         deserialized = gson.fromJson(String(Base64.getUrlDecoder().decode(payload)), Data::class.java)
     }
 
-    override fun load(): String {
+
+    init {
         decodeAuth(accessToken)
-
-        // ToDo: Re-authenticate every 24 hours
-
-        return "Loaded ${capes.size} capes"
     }
 }

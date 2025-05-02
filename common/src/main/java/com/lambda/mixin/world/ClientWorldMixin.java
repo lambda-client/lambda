@@ -23,12 +23,8 @@ import com.lambda.event.events.WorldEvent;
 import com.lambda.module.modules.render.WorldColors;
 import com.lambda.util.math.ColorKt;
 import net.minecraft.block.BlockState;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
@@ -37,20 +33,18 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.function.Supplier;
-
 @Mixin(ClientWorld.class)
 public class ClientWorldMixin {
     @Inject(method = "addEntity", at = @At("HEAD"), cancellable = true)
     private void onAddEntity(Entity entity, CallbackInfo ci) {
-        if (EventFlow.post(new EntityEvent.EntitySpawn(entity)).isCanceled()) ci.cancel();
+        if (EventFlow.post(new EntityEvent.Spawn(entity)).isCanceled()) ci.cancel();
     }
 
     @Inject(method = "removeEntity", at = @At("HEAD"))
     private void onRemoveEntity(int entityId, Entity.RemovalReason removalReason, CallbackInfo ci) {
         Entity entity = ((ClientWorld) (Object) this).getEntityById(entityId);
         if (entity == null) return;
-        EventFlow.post(new EntityEvent.EntityRemoval(entity, removalReason));
+        EventFlow.post(new EntityEvent.Removal(entity, removalReason));
     }
 
     @Inject(method = "getCloudsColor", at = @At("HEAD"), cancellable = true)

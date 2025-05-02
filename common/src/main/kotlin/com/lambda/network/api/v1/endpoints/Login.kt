@@ -17,13 +17,13 @@
 
 package com.lambda.network.api.v1.endpoints
 
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.FuelError
-import com.github.kittinunf.fuel.core.extensions.jsonBody
-import com.github.kittinunf.fuel.gson.responseObject
 import com.lambda.module.modules.client.Network.apiUrl
 import com.lambda.module.modules.client.Network.apiVersion
+import com.lambda.network.LambdaHttp
 import com.lambda.network.api.v1.models.Authentication
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.http.*
 
 /**
  * Creates a new session account with mojang session hashes
@@ -32,9 +32,11 @@ import com.lambda.network.api.v1.models.Authentication
  *  - username: Notch
  *  - hash: 069a79f444e94726a5befca90e38aaf5
  *
- * response: [Authentication] or error
+ * @return result of [Authentication]
  */
-fun login(username: String, hash: String, success: (Authentication) -> Unit, failure: (FuelError) -> Unit) =
-	Fuel.post("${apiUrl}/api/${apiVersion.value}/login")
-		.jsonBody("""{ "username": "$username", "hash": "$hash" }""")
-		.responseObject<Authentication> { _, _, result -> result.fold(success, failure) }
+suspend fun login(username: String, hash: String) = runCatching {
+	LambdaHttp.post("${apiUrl}/api/$apiVersion/login") {
+		setBody("""{ "username": "$username", "hash": "$hash" }""")
+		contentType(ContentType.Application.Json)
+	}.body<Authentication>()
+}

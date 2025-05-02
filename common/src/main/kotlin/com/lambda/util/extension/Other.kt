@@ -23,9 +23,6 @@ import net.minecraft.client.texture.TextureManager
 import net.minecraft.util.Identifier
 import java.io.File
 import java.nio.file.Path
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
 
 val GameProfile.isOffline
     get() = properties.isEmpty

@@ -19,6 +19,14 @@ package com.lambda.event.events
 
 import com.lambda.event.Event
 import com.lambda.util.KeyCode
+import org.lwjgl.glfw.GLFW.GLFW_MOD_ALT
+import org.lwjgl.glfw.GLFW.GLFW_MOD_CAPS_LOCK
+import org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL
+import org.lwjgl.glfw.GLFW.GLFW_MOD_NUM_LOCK
+import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
+import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
+import org.lwjgl.glfw.GLFW.GLFW_PRESS
+import org.lwjgl.glfw.GLFW.GLFW_RELEASE
 
 sealed class KeyboardEvent {
     /**
@@ -37,12 +45,25 @@ sealed class KeyboardEvent {
         val action: Int,
         val modifiers: Int,
     ) : Event {
+        /**
+         * Maps the scancode to the US layout
+         */
         val translated: KeyCode
             get() = KeyCode.virtualMapUS(keyCode, scanCode)
+
+        val isPressed = action == GLFW_PRESS
+        val isReleased = action == GLFW_RELEASE
+
+        val hasShift = modifiers and GLFW_MOD_SHIFT != 0
+        val hasControl = modifiers and GLFW_MOD_CONTROL != 0
+        val hasClt = modifiers and GLFW_MOD_ALT != 0
+        val hasSuper = modifiers and GLFW_MOD_SUPER != 0
+        val hasCapsLock = modifiers and GLFW_MOD_CAPS_LOCK != 0
+        val hasNumLock = modifiers and GLFW_MOD_NUM_LOCK != 0
     }
 
     /**
-     * Represents glfwSetKeyCallback events
+     * Represents glfwSetCharCallback events
      *
      * Keys and characters do not map 1:1.
      * A single key press may produce several characters, and a single
