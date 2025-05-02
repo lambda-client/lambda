@@ -25,14 +25,17 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
+import com.lambda.interaction.request.breaking.BreakManager.lastPosStarted
 import com.lambda.interaction.request.breaking.BreakManager.matchesBlockItem
-import com.lambda.interaction.request.breaking.BreakManager.matchesTargetState
+import com.lambda.interaction.request.breaking.ReBreakManager.reBreak
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.fluidState
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.Communication.info
+import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.player.gamemode
+import net.minecraft.block.BlockState
 import net.minecraft.block.OperatorBlock
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.ChunkSectionPos
@@ -64,41 +67,53 @@ object BrokenBlockHandler {
 
     init {
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE + 1) { event ->
-            pendingBreaks
-                .firstOrNull { it.context.expectedPos == event.pos }
-                ?.let { pending ->
-                    // return if the state hasn't changed
-                    if (event.newState.matches(pending.context.checkedState))
-                        return@listen
+            run {
+                pendingBreaks.firstOrNull { it.context.expectedPos == event.pos }
+                    ?: if (reBreak?.context?.expectedPos == event.pos) reBreak
+                    else null
+            }?.let { pending ->
+                // return if the state hasn't changed
+                if (event.newState.matches(pending.context.checkedState))
+                    return@listen
 
-                    // return if the block's not broken
-                    if (!matchesTargetState(event.pos, pending.context.targetState, event.newState)) {
-                        pending.stopPending()
-                        return@listen
+                // return if the block's not broken
+                if (!isBroken(pending.context.checkedState, event.newState)) {
+                    if (!pending.isReBreaking) {
+                        this@BrokenBlockHandler.warn("Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.checkedState.brokenState}")
                     }
-
-                    if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak) {
-                        destroyBlock(pending)
-                    }
-                    pending.internalOnBreak()
-                    if (pending.callbacksCompleted) {
-                        pending.stopPending()
-                    }
+                    pending.stopPending()
                     return@listen
                 }
+
+                if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak) {
+                    destroyBlock(pending)
+                }
+                pending.internalOnBreak()
+                if (pending.callbacksCompleted) {
+                    pending.stopPending()
+                    if (lastPosStarted == pending.context.expectedPos) {
+                        ReBreakManager.startReBreak(pending)
+                    }
+                }
+                return@listen
+            }
         }
 
         listen<EntityEvent.Update>(priority = Int.MIN_VALUE + 1) {
             if (it.entity !is ItemEntity) return@listen
-            pendingBreaks
-                .firstOrNull { info -> matchesBlockItem(info, it.entity) }
-                ?.let { pending ->
-                    pending.internalOnItemDrop(it.entity)
-                    if (pending.callbacksCompleted) {
-                        pending.stopPending()
+            run {
+                pendingBreaks.firstOrNull { info -> matchesBlockItem(info, it.entity) }
+                    ?: reBreak?.let { info ->
+                        return@run if (matchesBlockItem(info, it.entity)) info
+                        else null
                     }
-                    return@listen
+            }?.let { pending ->
+                pending.internalOnItemDrop(it.entity)
+                if (pending.callbacksCompleted) {
+                    pending.stopPending()
                 }
+                return@listen
+            }
         }
 
         listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE + 1) {
@@ -117,9 +132,13 @@ object BrokenBlockHandler {
     /**
      * Removes the [info] from the [BrokenBlockHandler], and requesters, pending interaction collections.
      */
-    private fun BreakInfo.stopPending() {
-        pendingBreaks.remove(this)
-        pendingInteractions.remove(context)
+    fun BreakInfo.stopPending() {
+        if (!isReBreaking) {
+            pendingBreaks.remove(this)
+            pendingInteractions.remove(context)
+        } else {
+            resetCallbacks()
+        }
     }
 
     /**
@@ -161,4 +180,8 @@ object BrokenBlockHandler {
 
         return setState
     }
+
+    val BlockState.isEmpty get() = matches(fluidState.blockState)
+    val BlockState.brokenState: BlockState get() = fluidState.blockState
+    fun isBroken(oldState: BlockState, newState: BlockState) = !oldState.isEmpty && oldState.brokenState.matches(newState)
 }

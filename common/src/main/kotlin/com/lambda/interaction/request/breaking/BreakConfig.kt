@@ -18,6 +18,7 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.config.groups.BuildConfig
+import com.lambda.config.groups.ReBreakSettings
 import com.lambda.event.Event
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
@@ -27,6 +28,7 @@ abstract class BreakConfig(
     priority: Priority = 0
 ) : RequestConfig<BreakRequest>(priority) {
     abstract val breakMode: BreakMode
+    abstract val reBreak: ReBreakSettings
     abstract val unsafeCancels: Boolean
     abstract val breakThreshold: Float
     abstract val doubleBreak: Boolean

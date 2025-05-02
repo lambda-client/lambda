@@ -46,6 +46,7 @@ data class BreakInfo(
     val isPrimary get() = type == BreakType.Primary
     val isSecondary get() = type == BreakType.Secondary
     val isRedundant get() = type == BreakType.RedundantSecondary
+    val isReBreaking get() = type == BreakType.ReBreak
 
     @Volatile
     var broken = false; private set
@@ -82,6 +83,11 @@ data class BreakInfo(
         if (isRedundant) {
             type = BreakType.Secondary
         }
+    }
+
+    fun resetCallbacks() {
+        broken = false
+        item = null
     }
 
     fun setBreakingTextureStage(
@@ -123,7 +129,8 @@ data class BreakInfo(
 enum class BreakType(val index: Int) {
     Primary(0),
     Secondary(1),
-    RedundantSecondary(2);
+    RedundantSecondary(2),
+    ReBreak(2);
 
     fun getBreakThreshold(breakConfig: BreakConfig) =
         when (this) {

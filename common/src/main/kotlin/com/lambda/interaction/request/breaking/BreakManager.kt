@@ -28,7 +28,6 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
@@ -37,7 +36,10 @@ import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
 import com.lambda.interaction.request.breaking.BreakManager.activeRequest
 import com.lambda.interaction.request.breaking.BreakManager.processRequest
 import com.lambda.interaction.request.breaking.BreakType.Primary
+import com.lambda.interaction.request.breaking.BreakType.ReBreak
+import com.lambda.interaction.request.breaking.BrokenBlockHandler.brokenState
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
+import com.lambda.interaction.request.breaking.BrokenBlockHandler.isBroken
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.pendingBreaks
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.setPendingConfigs
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.startPending
@@ -50,7 +52,6 @@ import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.gamemode
 import com.lambda.util.player.swingHand
-import net.minecraft.block.BlockState
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.client.sound.SoundInstance
 import net.minecraft.entity.ItemEntity
@@ -85,11 +86,13 @@ object BreakManager : RequestHandler<BreakRequest>(
     private val rotated get() = rotationRequest?.done != false
 
     private var breakCooldown = 0
-    private var breaksThisTick = 0
+    var breaksThisTick = 0
     private var maxBreaksThisTick = 0
 
     private var breaks = mutableListOf<BreakContext>()
     private var instantBreaks = mutableListOf<BreakContext>()
+
+    var lastPosStarted: BlockPos? = null
 
     fun Any.onBreak(
         alwaysListen: Boolean = false,
@@ -126,7 +129,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                 .firstOrNull { it.context.expectedPos == event.pos }
                 ?.let { info ->
                     // if not broken
-                    if (!matchesTargetState(event.pos, info.context.targetState, event.newState)) {
+                    if (!isBroken(info.context.checkedState, event.newState)) {
+                        this@BreakManager.warn("Break at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.checkedState.brokenState}")
                         // update the checked state
                         info.context.checkedState = event.newState
                         return@listen
@@ -135,6 +139,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                     info.internalOnBreak()
                     if (!info.callbacksCompleted) {
                         info.startPending()
+                    } else if (info.isPrimary) {
+                        ReBreakManager.startReBreak(info)
                     }
                     info.nullify()
                 }
@@ -387,6 +393,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                 info.internalOnBreak()
                 if (!info.callbacksCompleted) {
                     info.startPending()
+                } else if (info.isPrimary) {
+                    ReBreakManager.startReBreak(info)
                 }
             }
             BreakConfirmationMode.BreakThenAwait -> {
@@ -442,7 +450,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      */
     private fun BreakInfo.nullify() {
         type.nullify()
-        if (!broken) internalOnCancel()
+        if (!broken && !isReBreaking && !isRedundant) internalOnCancel()
     }
 
     /**
@@ -458,7 +466,8 @@ object BreakManager : RequestHandler<BreakRequest>(
      */
     private fun BreakType.nullify() =
         when (this) {
-            Primary -> primaryBreak = null
+            Primary,
+            ReBreak -> primaryBreak = null
             else -> secondaryBreak = null
         }
 
@@ -492,10 +501,29 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         if (!info.breaking) {
+            when (val reBreakResult = ReBreakManager.handleUpdate(info.context, info.request)) {
+                is ReBreakResult.StillBreaking -> {
+                    primaryBreak = reBreakResult.breakInfo.apply {
+                        type = Primary
+                        ReBreakManager.clearReBreak()
+                    }
+
+                    primaryBreak?.let { primary ->
+                        updateBreakProgress(primary)
+                    }
+                    return true
+                }
+                is ReBreakResult.ReBroke -> {
+                    info.nullify()
+                    return true
+                }
+                else -> {}
+            }
             if (!startBreaking(info)) {
                 info.nullify()
                 return false
             }
+            ReBreakManager.clearReBreak()
             val swing = info.breakConfig.swing
             if (swing.isEnabled() && swing != BreakConfig.SwingMode.End) {
                 swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
@@ -616,6 +644,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         if (info.breakConfig.breakMode == BreakMode.Packet) {
             info.stopBreakPacket(world, interaction)
         }
+        lastPosStarted = ctx.expectedPos
         info.startBreakPacket(world, interaction)
         if (info.isSecondary || (breakDelta < 1  && breakDelta >= info.breakConfig.breakThreshold)) {
             info.stopBreakPacket(world, interaction)
@@ -632,18 +661,6 @@ object BreakManager : RequestHandler<BreakRequest>(
         val correctMaterial = info.context.checkedState.block == entity.stack.item.block
         return inRange && correctMaterial
     }
-
-    /**
-     * @return if the [newState] matches the [targetState].
-     *
-     * @see TargetState
-     */
-    fun SafeContext.matchesTargetState(pos: BlockPos, targetState: TargetState, newState: BlockState) =
-        if (targetState.matches(newState, pos, world)) true
-        else {
-            this@BreakManager.warn("Break at ${pos.toShortString()} was rejected with $newState instead of $targetState")
-            false
-        }
 
     override fun preEvent(): Event = UpdateManagerEvent.Break().post()
 }

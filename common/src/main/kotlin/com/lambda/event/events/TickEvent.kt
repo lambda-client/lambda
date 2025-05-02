@@ -37,7 +37,7 @@ import com.lambda.event.Event
  *
  * @see net.minecraft.client.MinecraftClient.tick
  */
-sealed class TickEvent {
+sealed class TickEvent : Event {
     /**
      * Triggered before each iteration of the game loop.
      *
@@ -47,12 +47,12 @@ sealed class TickEvent {
      * 2. Steps world tick manager
      * 3. Decrements item use cooldown
      */
-    data object Pre : Event
+    data object Pre : TickEvent()
 
     /**
      * Triggered after each iteration of the game loop.
      */
-    data object Post : Event
+    data object Post : TickEvent()
 
     /**
      * Triggered during the network tick stage only
@@ -69,8 +69,8 @@ sealed class TickEvent {
      * @see net.minecraft.client.network.ClientPlayerInteractionManager.tick
      */
     sealed class Network {
-        data object Pre : Event
-        data object Post : Event
+        data object Pre : TickEvent()
+        data object Post : TickEvent()
     }
 
     /**
@@ -87,8 +87,8 @@ sealed class TickEvent {
      * @see net.minecraft.client.MinecraftClient.handleInputEvents
      */
     sealed class Input {
-        data object Pre : Event
-        data object Post : Event
+        data object Pre : TickEvent()
+        data object Post : TickEvent()
     }
 
     /**
@@ -97,8 +97,8 @@ sealed class TickEvent {
      * @see net.minecraft.client.render.WorldRenderer.tick
      */
     sealed class WorldRender {
-        data object Pre : Event
-        data object Post : Event
+        data object Pre : TickEvent()
+        data object Post : TickEvent()
     }
 
     /**
@@ -107,8 +107,8 @@ sealed class TickEvent {
      * @see net.minecraft.client.sound.SoundManager.tick
      */
     sealed class Sound {
-        data object Pre : Event
-        data object Post : Event
+        data object Pre : TickEvent()
+        data object Post : TickEvent()
     }
 
     /**
@@ -128,12 +128,12 @@ sealed class TickEvent {
         /**
          * Triggered before each render tick ([TickEvent.Render]) of the game loop.
          */
-        data object Pre : Event
+        data object Pre : TickEvent()
 
         /**
          * Triggered after each render tick ([TickEvent.Render]) of the game loop.
          */
-        data object Post : Event
+        data object Post : TickEvent()
     }
 
     /**
@@ -152,11 +152,11 @@ sealed class TickEvent {
         /**
          * Triggered before each player tick ([TickEvent.Player]).
          */
-        data object Pre : Event
+        data object Pre : TickEvent()
 
         /**
          * Triggered after each player tick ([TickEvent.Player]).
          */
-        data object Post : Event
+        data object Post : TickEvent()
     }
 }

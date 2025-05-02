@@ -29,6 +29,7 @@ class BreakSettings(
     vis: () -> Boolean = { true }
 ) : BreakConfig(priority) {
     override val breakMode by c.setting("Break Mode", BreakMode.Packet) { vis() }
+    override val reBreak = ReBreakSettings(c, vis)
     override val unsafeCancels by c.setting("Unsafe Cancels", true, "Allows cancelling block breaking even if the server might continue breaking sever side, potentially causing unexpected state changes") { vis() }
     override val breakThreshold by c.setting("Break Threshold", 0.7f, 0.1f..1.0f, 0.02f, "The break amount at which the block is considered broken") { vis() }
     override val doubleBreak by c.setting("Double Break", true, "Allows breaking two blocks at once") { vis() }
