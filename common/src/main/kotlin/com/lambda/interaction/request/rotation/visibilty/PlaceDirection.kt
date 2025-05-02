@@ -24,6 +24,7 @@ import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.MathHelper.wrapDegrees
 import net.minecraft.util.math.Vec3i
 import kotlin.math.abs
+import kotlin.math.asin
 import kotlin.math.atan
 import kotlin.math.cos
 import kotlin.math.sin
@@ -66,31 +67,27 @@ enum class PlaceDirection(
 
         // Calculate pitch boundaries based on the snapped yaw
         val snappedYawRad = Math.toRadians(clampedYaw)
-        val pitchBoundaryEW = Math.toDegrees(atan(abs(sin(snappedYawRad))))
-        val pitchBoundaryNS = Math.toDegrees(atan(abs(cos(snappedYawRad))))
+        val sinYaw = abs(sin(snappedYawRad))
+        val cosYaw = abs(cos(snappedYawRad))
+        val pitchBoundaryEW = Math.toDegrees(atan(sinYaw))
+        val pitchBoundaryNS = Math.toDegrees(atan(cosYaw))
 
         // Determine the correct pitch boundary and snap pitch
         val snappedPitch = when {
             // Primary E/W Directions
             isEast() || isWest() -> {
                 when {
-                    isUp() -> pitchBoundaryEW       // Snap to lower edge of UP_E/UP_W area
-                    isDown() -> -pitchBoundaryEW    // Snap to upper edge of DOWN_E/DOWN_W area
-                    else -> { // Horizontal E/W
-                        val isPitchWithinBounds = abs(rot.pitch - pitchBoundaryEW) < abs(rot.pitch - (-pitchBoundaryEW))
-                        if (isPitchWithinBounds) pitchBoundaryEW else -pitchBoundaryEW
-                    }
+                    isUp() -> calculateVerticalPitch(sinYaw, pitchBoundaryEW, true)
+                    isDown() -> calculateVerticalPitch(sinYaw, pitchBoundaryEW, false)
+                    else -> calculateHorizontalPitch(rot.pitch, pitchBoundaryEW)
                 }
             }
             // Primary N/S Directions
             isNorth() || isSouth() -> {
                 when {
-                    isUp() -> pitchBoundaryNS       // Snap to lower edge of UP_N/UP_S area
-                    isDown() -> -pitchBoundaryNS    // Snap to upper edge of DOWN_N/DOWN_S area
-                    else -> { // Horizontal N/S
-                        val isWithinNorthernBoundary = abs(rot.pitch - pitchBoundaryNS) < abs(rot.pitch - (-pitchBoundaryNS))
-                        if (isWithinNorthernBoundary) pitchBoundaryNS else -pitchBoundaryNS
-                    }
+                    isUp() -> calculateVerticalPitch(cosYaw, pitchBoundaryNS, true)
+                    isDown() -> calculateVerticalPitch(cosYaw, pitchBoundaryNS, false)
+                    else -> calculateHorizontalPitch(rot.pitch, pitchBoundaryNS)
                 }
             }
             // Handle purely UP/DOWN directions
@@ -101,6 +98,42 @@ enum class PlaceDirection(
         val clampedPitch = snappedPitch.coerceIn(-90.0, 90.0)
 
         return Rotation(clampedYaw, clampedPitch)
+    }
+
+    /**
+     * Calculates the pitch for vertical (Up/Down) directions
+     * 
+     * @param trigValue The trigonometric value (sinYaw for E/W, cosYaw for N/S)
+     * @param boundaryValue The boundary value (pitchBoundaryEW for E/W, pitchBoundaryNS for N/S)
+     * @param isUp Whether this is for an Up direction (true) or Down direction (false)
+     * @return The calculated pitch value
+     */
+    private fun calculateVerticalPitch(trigValue: Double, boundaryValue: Double, isUp: Boolean): Double {
+        val epsilon = 0.01
+        val boundarySign = if (isUp) 1 else -1
+        val asinSign = if (isUp) -1 else 1
+
+        val targetPitch = Math.toDegrees(
+            asinSign * asin(trigValue * cos(Math.toRadians(boundarySign * boundaryValue)) + epsilon)
+        )
+
+        return if (isUp) {
+            targetPitch.coerceIn(-90.0, 0.0) // Ensure it's in the up range
+        } else {
+            targetPitch.coerceIn(0.0, 90.0) // Ensure it's in the down range
+        }
+    }
+
+    /**
+     * Calculates the pitch for horizontal directions
+     * 
+     * @param currentPitch The current pitch value
+     * @param boundaryValue The boundary value (pitchBoundaryEW for E/W, pitchBoundaryNS for N/S)
+     * @return The calculated pitch value
+     */
+    private fun calculateHorizontalPitch(currentPitch: Double, boundaryValue: Double): Double {
+        val isWithinPositiveBoundary = abs(currentPitch - boundaryValue) < abs(currentPitch - (-boundaryValue))
+        return if (isWithinPositiveBoundary) boundaryValue else -boundaryValue
     }
 
     // Helper functions to determine direction type
