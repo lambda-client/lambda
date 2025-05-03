@@ -79,8 +79,8 @@ object GraphUtil {
                         val neighbor = fastVectorOf(origin.x + dx, origin.y + dy, origin.z + dz)
                         val cost = when (distSq) {
                             1 -> 1.0
-                            2 -> sqrt(2.0)
-                            3 -> sqrt(3.0)
+                            2 -> COST_SQRT_2
+                            3 -> COST_SQRT_3
                             else -> error("Unexpected squared distance: $distSq")
                         }
                         neighbor to cost
@@ -91,4 +91,7 @@ object GraphUtil {
 
     fun List<FastVector>.string() = joinToString(" -> ") { it.string }
     fun List<FastVector>.length() = zipWithNext { a, b -> a dist b }.sum()
+
+    private const val COST_SQRT_2 = 1.4142135623730951
+    private const val COST_SQRT_3 = 1.7320508075688772
 }
