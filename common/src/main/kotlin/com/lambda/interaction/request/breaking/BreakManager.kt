@@ -121,9 +121,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                         this.cancelBreak()
                         return@apply
                     }
-                    activeAge++
-                    updatedThisTick = false
-                    updatedProgressThisTick = false
+                    tickStats()
                 }
             }
             activeRequest = null
@@ -146,8 +144,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                     info.internalOnBreak()
                     if (!info.callbacksCompleted) {
                         info.startPending()
-                    } else if (info.isPrimary) {
-                        ReBreakManager.startReBreak(info)
+                    } else {
+                        ReBreakManager.offerReBreak(info)
                     }
                     info.nullify()
                 }
@@ -402,8 +400,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                 info.internalOnBreak()
                 if (!info.callbacksCompleted) {
                     info.startPending()
-                } else if (info.isPrimary) {
-                    ReBreakManager.startReBreak(info)
+                } else {
+                    ReBreakManager.offerReBreak(info)
                 }
             }
             BreakConfirmationMode.BreakThenAwait -> {
@@ -655,8 +653,11 @@ object BreakManager : RequestHandler<BreakRequest>(
         if (info.breakConfig.breakMode == BreakMode.Packet) {
             info.stopBreakPacket(world, interaction)
         }
+
         info.startBreakPacket(world, interaction)
-        if (info.isSecondary || (breakDelta < 1  && breakDelta >= info.breakConfig.breakThreshold)) {
+        info.vanillaInstantBreakable = breakDelta >= 1
+
+        if (info.isSecondary || (!info.vanillaInstantBreakable && breakDelta >= info.breakConfig.breakThreshold)) {
             info.stopBreakPacket(world, interaction)
         }
 

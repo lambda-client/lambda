@@ -43,6 +43,9 @@ data class BreakInfo(
     var breakingTicks = 0
     var soundsCooldown = 0.0f
 
+    var vanillaInstantBreakable = false
+    val reBreakable get() = !vanillaInstantBreakable && isPrimary
+
     val isPrimary get() = type == BreakType.Primary
     val isSecondary get() = type == BreakType.Secondary
     val isRedundant get() = type == BreakType.RedundantSecondary
@@ -83,6 +86,12 @@ data class BreakInfo(
         if (isRedundant) {
             type = BreakType.Secondary
         }
+    }
+
+    fun tickStats() {
+        activeAge++
+        updatedThisTick = false
+        updatedProgressThisTick = false
     }
 
     fun resetCallbacks() {

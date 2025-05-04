@@ -92,7 +92,7 @@ object BrokenBlockHandler {
                 if (pending.callbacksCompleted) {
                     pending.stopPending()
                     if (lastPosStarted == pending.context.expectedPos) {
-                        ReBreakManager.startReBreak(pending)
+                        ReBreakManager.offerReBreak(pending)
                     }
                 }
                 return@listen
@@ -112,7 +112,7 @@ object BrokenBlockHandler {
                 if (pending.callbacksCompleted) {
                     pending.stopPending()
                     if (lastPosStarted == pending.context.expectedPos) {
-                        ReBreakManager.startReBreak(pending)
+                        ReBreakManager.offerReBreak(pending)
                     }
                 }
                 return@listen

@@ -36,7 +36,7 @@ object ReBreakManager {
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             reBreak?.apply {
                 breakingTicks++
-                activeAge++
+                tickStats()
             }
         }
 
@@ -45,8 +45,10 @@ object ReBreakManager {
         }
     }
 
-    fun startReBreak(info: BreakInfo?) {
-        reBreak = info?.apply {
+    fun offerReBreak(info: BreakInfo) {
+        if (!info.reBreakable) return
+
+        reBreak = info.apply {
             type = BreakType.ReBreak
             breaking = true
         }
@@ -63,8 +65,7 @@ object ReBreakManager {
             if (info.context.expectedPos != ctx.expectedPos || info.breakConfig.reBreak.mode != ReBreakSettings.Mode.Manual) {
                 return@runSafe ReBreakResult.Ignored
             }
-            info.context = ctx
-            info.request = breakRequest
+            info.updateInfo(ctx, breakRequest)
 
             val context = info.context
             val awaitThenBreak = info.breakConfig.breakConfirmation == BreakConfig.BreakConfirmationMode.AwaitThenBreak
