@@ -62,7 +62,7 @@ abstract class Configuration : Jsonable {
         get() = File("${primary.parent}/${primary.nameWithoutExtension}-backup.${primary.extension}")
 
     init {
-        listenUnsafe<ClientEvent.Startup> { tryLoad() }
+        tryLoad() // ToDo: This will do at the moment but i'd like to run this at the first first loadable stage
         listenUnsafe<ClientEvent.Shutdown>(Int.MIN_VALUE) { trySave() }
 
         register()
@@ -96,11 +96,11 @@ abstract class Configuration : Jsonable {
     }
 
     fun save() = runCatching {
-        primary.createIfNotExists {
-            it.parentFile.mkdirs()
-            it.writeText(gson.toJson(toJson()))
-            it.copyTo(backup, true)
-        }
+        primary.createIfNotExists()
+            .let {
+                it.writeText(gson.toJson(toJson()))
+                it.copyTo(backup, true)
+            }
     }
 
     /**
