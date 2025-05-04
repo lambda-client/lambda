@@ -83,15 +83,16 @@ object FriendCommand : LambdaCommand(
 
                 executeWithResult {
                     val name = player().value()
+
+                    if (mc.gameProfile.name == name) return@executeWithResult failure("You can't befriend yourself")
+
                     val id = mc.networkHandler
                         ?.playerList
-                        ?.firstOrNull {
-                            it.profile.name == name &&
-                                    it.profile != mc.gameProfile
-                        } ?: return@executeWithResult failure("Could not find the player on the server")
+                        ?.firstOrNull { it.profile.name == name }
+                        ?: return@executeWithResult failure("Could not find the player on the server")
 
                     return@executeWithResult if (FriendManager.befriend(id.profile)) {
-                        this@FriendCommand.info(FriendManager.befriendedText(id.profile.name))
+                        info(FriendManager.befriendedText(id.profile.name))
                         success()
                     } else {
                         failure("This player is already in your friend list")
@@ -112,11 +113,12 @@ object FriendCommand : LambdaCommand(
 
                 executeWithResult {
                     val uuid = player().value()
+
+                    if (mc.gameProfile.id == uuid) return@executeWithResult failure("You can't befriend yourself")
+
                     val id = mc.networkHandler
                         ?.playerList
-                        ?.firstOrNull {
-                            it.profile.id == uuid && it.profile != mc.gameProfile
-                        } ?: return@executeWithResult failure("Could not find the player on the server")
+                        ?.firstOrNull { it.profile.id == uuid } ?: return@executeWithResult failure("Could not find the player on the server")
 
                     return@executeWithResult if (FriendManager.befriend(id.profile)) {
                         this@FriendCommand.info(FriendManager.befriendedText(id.profile.name))
