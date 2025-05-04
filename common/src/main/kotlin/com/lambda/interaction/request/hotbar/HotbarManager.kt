@@ -18,7 +18,6 @@
 package com.lambda.interaction.request.hotbar
 
 import com.lambda.context.SafeContext
-import com.lambda.core.Loadable
 import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.InventoryEvent
@@ -38,17 +37,16 @@ import com.lambda.threading.runSafe
  * @see InGameHudMixin.onTick
  */
 object HotbarManager : RequestHandler<HotbarRequest>(
+    1,
     TickEvent.Pre,
     TickEvent.Input.Pre,
     TickEvent.Player.Post,
     // ToDo: Post interact
     onClose = { checkResetSwap() }
-), Loadable {
+) {
     val serverSlot get() = runSafe {
         interaction.lastSelectedSlot
     } ?: 0
-
-    override fun load() = "Loaded Hotbar Manager"
 
     private var swapsThisTick = 0
     private var maxSwapsThisTick = 0
@@ -56,7 +54,9 @@ object HotbarManager : RequestHandler<HotbarRequest>(
 
     private var activeRequest: HotbarRequest? = null
 
-    init {
+    override fun load(): String {
+        super.load()
+
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             swapsThisTick = 0
             if (swapDelay > 0) swapDelay--
@@ -74,6 +74,8 @@ object HotbarManager : RequestHandler<HotbarRequest>(
         listen<InventoryEvent.HotbarSlot.Update>(priority = Int.MIN_VALUE) {
             it.slot = activeRequest?.slot ?: return@listen
         }
+
+        return "Loaded Hotbar Manager"
     }
 
     override fun SafeContext.handleRequest(request: HotbarRequest) {

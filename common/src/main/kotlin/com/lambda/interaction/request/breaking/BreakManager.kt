@@ -62,6 +62,7 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 
 object BreakManager : RequestHandler<BreakRequest>(
+    0,
     TickEvent.Pre,
     TickEvent.Input.Pre,
     TickEvent.Player.Post,
@@ -93,6 +94,10 @@ object BreakManager : RequestHandler<BreakRequest>(
     private var instantBreaks = mutableListOf<BreakContext>()
 
     var lastPosStarted: BlockPos? = null
+        set(value) {
+            if (value != field) ReBreakManager.clearReBreak()
+            field = value
+        }
 
     fun Any.onBreak(
         alwaysListen: Boolean = false,
@@ -102,7 +107,9 @@ object BreakManager : RequestHandler<BreakRequest>(
         block()
     }
 
-    init {
+    override fun load(): String {
+        super.load()
+
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             if (breakCooldown > 0) {
                 breakCooldown--
@@ -123,7 +130,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             breaksThisTick = 0
         }
 
-        listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE + 1) { event ->
+        listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
             breakInfos
                 .filterNotNull()
                 .firstOrNull { it.context.expectedPos == event.pos }
@@ -147,7 +154,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
-        listen<EntityEvent.Update>(priority = Int.MIN_VALUE + 1) {
+        listen<EntityEvent.Update>(priority = Int.MIN_VALUE) {
             if (it.entity !is ItemEntity) return@listen
 
             breakInfos
@@ -156,10 +163,12 @@ object BreakManager : RequestHandler<BreakRequest>(
                 ?.internalOnItemDrop(it.entity)
         }
 
-        listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE + 1) {
+        listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
             breakInfos.forEach { it?.nullify() }
             breakCooldown = 0
         }
+
+        return "Loaded Break Manager"
     }
 
     /**
@@ -489,6 +498,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 return true
             }
             breakCooldown = info.breakConfig.breakDelay
+            lastPosStarted = ctx.expectedPos
             interaction.sendSequencedPacket(world) { sequence ->
                 onBlockBreak(info)
                 PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
@@ -508,10 +518,9 @@ object BreakManager : RequestHandler<BreakRequest>(
                         ReBreakManager.clearReBreak()
                     }
 
-                    primaryBreak?.let { primary ->
+                    return primaryBreak?.let { primary ->
                         updateBreakProgress(primary)
-                    }
-                    return true
+                    } ?: false
                 }
                 is ReBreakResult.ReBroke -> {
                     info.nullify()
@@ -523,7 +532,6 @@ object BreakManager : RequestHandler<BreakRequest>(
                 info.nullify()
                 return false
             }
-            ReBreakManager.clearReBreak()
             val swing = info.breakConfig.swing
             if (swing.isEnabled() && swing != BreakConfig.SwingMode.End) {
                 swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
@@ -612,6 +620,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         if (!world.worldBorder.contains(ctx.expectedPos)) return false
 
         if (gamemode.isCreative) {
+            lastPosStarted = ctx.expectedPos
             interaction.sendSequencedPacket(world) { sequence: Int ->
                 onBlockBreak(info)
                 PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, ctx.expectedPos, ctx.result.side, sequence)
@@ -620,6 +629,8 @@ object BreakManager : RequestHandler<BreakRequest>(
             return true
         }
         if (info.breaking) return false
+
+        lastPosStarted = ctx.expectedPos
 
         val blockState = blockState(ctx.expectedPos)
         val notAir = !blockState.isAir
@@ -644,7 +655,6 @@ object BreakManager : RequestHandler<BreakRequest>(
         if (info.breakConfig.breakMode == BreakMode.Packet) {
             info.stopBreakPacket(world, interaction)
         }
-        lastPosStarted = ctx.expectedPos
         info.startBreakPacket(world, interaction)
         if (info.isSecondary || (breakDelta < 1  && breakDelta >= info.breakConfig.breakThreshold)) {
             info.stopBreakPacket(world, interaction)

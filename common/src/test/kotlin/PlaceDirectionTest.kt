@@ -20,10 +20,8 @@ import com.lambda.interaction.request.rotation.visibilty.PlaceDirection
 import kotlin.math.abs
 import kotlin.math.atan
 import kotlin.math.cos
-import kotlin.math.sin
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class PlaceDirectionTest {
 
@@ -60,9 +58,15 @@ class PlaceDirectionTest {
     @Test
     fun `test pitch snapping for DownNorth direction`() {
         val direction = PlaceDirection.DownNorth
-        val rot = Rotation(-180.0, 0.0)
-        val snapped = direction.snapToArea(rot)
-
+        
+        // Calculate expected pitch boundary for DownNorth at yaw -180.0
+        val yawRad = Math.toRadians(-180.0)
+        val expectedBoundary = Math.toDegrees(atan(abs(cos(yawRad))))
+        
+        // Test rotation outside the area (pitch too high)
+        val rotationOutside = Rotation(-180.0, -expectedBoundary + 10.0)
+        val snapped = direction.snapToArea(rotationOutside)
+        
         // Verify that the pitch is snapped to the boundary
         assertEquals(direction, PlaceDirection.fromRotation(snapped))
     }

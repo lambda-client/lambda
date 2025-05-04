@@ -58,6 +58,7 @@ import net.minecraft.util.math.Direction
 import net.minecraft.world.GameMode
 
 object PlaceManager : RequestHandler<PlaceRequest>(
+    0,
     TickEvent.Pre,
     TickEvent.Input.Pre,
     TickEvent.Player.Post,
@@ -85,7 +86,9 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         block()
     }
 
-    init {
+    override fun load(): String {
+        super.load()
+
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             activeRequest = null
             placementsThisTick = 0
@@ -97,6 +100,8 @@ object PlaceManager : RequestHandler<PlaceRequest>(
                 it.input.sneaking = true
             }
         }
+
+        return "Loaded Place Manager"
     }
 
     /**

@@ -18,9 +18,11 @@
 package com.lambda.interaction.request
 
 import com.lambda.context.SafeContext
+import com.lambda.core.Loadable
 import com.lambda.event.Event
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.request.ManagerUtils.accumulatedManagerPriority
 import com.lambda.threading.runSafe
 
 /**
@@ -28,10 +30,11 @@ import com.lambda.threading.runSafe
  * next opening if closed
  */
 abstract class RequestHandler<R : Request>(
-    vararg openStages: Event,
+    val stagePriority: Int,
+    private vararg val openStages: Event,
     private val onOpen: (SafeContext.() -> Unit)? = null,
     private val onClose: (SafeContext.() -> Unit)? = null
-) {
+) : Loadable {
     /**
      * Represents if the handler is accepting requests at any given time
      */
@@ -53,7 +56,7 @@ abstract class RequestHandler<R : Request>(
      */
     var activeThisTick = false; protected set
 
-    init {
+    override fun load(): String {
         openStages.forEach {
             when (it) {
                 is TickEvent.Pre -> openRequestsFor(it)
@@ -77,13 +80,15 @@ abstract class RequestHandler<R : Request>(
         listen<TickEvent.Post>(Int.MIN_VALUE) {
             activeThisTick = false
         }
+
+        return super.load()
     }
 
     /**
      * opens the handler for requests for the duration of the given event
      */
     private inline fun <reified T : Event> openRequestsFor(stage: T) {
-        listen<T>(priority = Int.MAX_VALUE) {
+        listen<T>(priority = Int.MAX_VALUE - (accumulatedManagerPriority - stagePriority)) {
             tickStage = stage
             queuedRequest?.let { request ->
                 handleRequest(request)
@@ -94,7 +99,7 @@ abstract class RequestHandler<R : Request>(
             onOpen?.invoke(this)
             preEvent()
         }
-        listen<T>(priority = Int.MIN_VALUE) {
+        listen<T>(priority = Int.MIN_VALUE + stagePriority) {
             onClose?.invoke(this)
             acceptingRequests = false
         }

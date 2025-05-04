@@ -18,8 +18,10 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.config.groups.ReBreakSettings
+import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.isEmpty
@@ -37,11 +39,16 @@ object ReBreakManager {
                 activeAge++
             }
         }
+
+        listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
+            reBreak = null
+        }
     }
 
     fun startReBreak(info: BreakInfo?) {
         reBreak = info?.apply {
             type = BreakType.ReBreak
+            breaking = true
         }
     }
 

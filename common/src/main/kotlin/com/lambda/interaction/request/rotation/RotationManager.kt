@@ -18,9 +18,7 @@
 package com.lambda.interaction.request.rotation
 
 import com.lambda.Lambda.mc
-import com.lambda.config.groups.TickStage
 import com.lambda.context.SafeContext
-import com.lambda.core.Loadable
 import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
@@ -50,19 +48,18 @@ import kotlin.math.sign
 import kotlin.math.sin
 
 object RotationManager : RequestHandler<RotationRequest>(
+    1,
     TickEvent.Pre,
     TickEvent.Input.Pre,
     TickEvent.Player.Post,
     // ToDo: Post interact
-), Loadable {
+) {
     var activeRotation = Rotation.ZERO
     var serverRotation = Rotation.ZERO
     var prevServerRotation = Rotation.ZERO
 
     var activeRequest: RotationRequest? = null
     private var changedThisTick = false
-
-    override fun load() = "Loaded Rotation Manager"
 
     fun Any.onRotate(
         alwaysListen: Boolean = false,
@@ -72,7 +69,9 @@ object RotationManager : RequestHandler<RotationRequest>(
         block()
     }
 
-    init {
+    override fun load(): String {
+        super.load()
+
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             activeRequest?.let { request ->
                 request.age++
@@ -80,7 +79,7 @@ object RotationManager : RequestHandler<RotationRequest>(
             changedThisTick = false
         }
 
-        listen<PacketEvent.Receive.Post> { event ->
+        listen<PacketEvent.Receive.Post>(priority = Int.MIN_VALUE) { event ->
             val packet = event.packet
             if (packet !is PlayerPositionLookS2CPacket) return@listen
 
@@ -89,9 +88,11 @@ object RotationManager : RequestHandler<RotationRequest>(
             }
         }
 
-        listenUnsafe<ConnectionEvent.Connect.Pre> {
+        listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
             reset(Rotation.ZERO)
         }
+
+        return "Loaded Rotation Manager"
     }
 
     override fun SafeContext.handleRequest(request: RotationRequest) {

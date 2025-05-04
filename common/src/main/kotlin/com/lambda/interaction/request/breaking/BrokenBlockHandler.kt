@@ -111,6 +111,9 @@ object BrokenBlockHandler {
                 pending.internalOnItemDrop(it.entity)
                 if (pending.callbacksCompleted) {
                     pending.stopPending()
+                    if (lastPosStarted == pending.context.expectedPos) {
+                        ReBreakManager.startReBreak(pending)
+                    }
                 }
                 return@listen
             }
