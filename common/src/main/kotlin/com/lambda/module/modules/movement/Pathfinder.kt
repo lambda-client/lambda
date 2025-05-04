@@ -37,8 +37,8 @@ import com.lambda.pathing.Pathing.findPathAStar
 import com.lambda.pathing.Pathing.thetaStarClearance
 import com.lambda.pathing.PathingConfig
 import com.lambda.pathing.PathingSettings
-import com.lambda.pathing.dstar.DStarLite
-import com.lambda.pathing.dstar.LazyGraph
+import com.lambda.pathing.incremental.DStarLite
+import com.lambda.pathing.incremental.LazyGraph
 import com.lambda.pathing.goal.SimpleGoal
 import com.lambda.pathing.move.MoveFinder
 import com.lambda.pathing.move.MoveFinder.moveOptions

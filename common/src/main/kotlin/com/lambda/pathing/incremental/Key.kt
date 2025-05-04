@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.pathing.dstar
+package com.lambda.pathing.incremental
 
 /**
  * Represents the Key used in the D* Lite algorithm.

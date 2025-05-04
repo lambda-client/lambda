@@ -17,7 +17,7 @@
 
 package com.lambda.util
 
-import com.lambda.pathing.dstar.LazyGraph
+import com.lambda.pathing.incremental.LazyGraph
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.dist
 import com.lambda.util.world.fastVectorOf

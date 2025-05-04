@@ -17,7 +17,7 @@
 
 package pathing
 
-import com.lambda.pathing.dstar.Key
+import com.lambda.pathing.incremental.Key
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 

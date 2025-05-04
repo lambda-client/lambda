@@ -17,7 +17,7 @@
 
 package pathing
 
-import com.lambda.pathing.dstar.DStarLite
+import com.lambda.pathing.incremental.DStarLite
 import com.lambda.util.GraphUtil.createGridGraph6Conn
 import com.lambda.util.GraphUtil.createGridGraph18Conn
 import com.lambda.util.GraphUtil.createGridGraph26Conn

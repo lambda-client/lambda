@@ -17,8 +17,8 @@
 
 package pathing
 
-import com.lambda.pathing.dstar.Key
-import com.lambda.pathing.dstar.UpdatablePriorityQueue
+import com.lambda.pathing.incremental.Key
+import com.lambda.pathing.incremental.UpdatablePriorityQueue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

@@ -15,16 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.pathing.dstar
+package com.lambda.pathing.incremental
 
 import com.lambda.graphics.renderer.esp.builders.buildLine
-import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.pathing.PathingSettings
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.string
 import com.lambda.util.world.toCenterVec3d
-import net.minecraft.util.math.Box
 import java.awt.Color
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
