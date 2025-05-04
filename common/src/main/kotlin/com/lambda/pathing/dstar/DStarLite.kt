@@ -103,6 +103,7 @@ class DStarLite(
                     setG(u, rhs(u)) // Set g = rhs
                     U.remove(u) // Remove from queue, now consistent (g=rhs)
                     // Propagate change to predecessors s
+                    // ToDo: Use predecessors
                     graph.successors(u).forEach { (s, c) ->
                         if (s != goal) {
                             setRHS(s, min(rhs(s), c + g(u)))
@@ -117,6 +118,7 @@ class DStarLite(
                     val gOld = g(u)
                     setG(u, INF)
 
+                    // ToDo: Use predecessors
                     (graph.successors(u).keys + u).forEach { s ->
                         // If rhs(s) was based on the old g(u) path cost
                         if (rhs(s) == graph.cost(s, u) + gOld && s != goal) {
@@ -278,11 +280,7 @@ class DStarLite(
 
     /** Computes min_{s' in Succ(s)} (c(s, s') + g(s')). */
     private fun minSuccessorCost(s: FastVector) =
-        graph.successors(s)
-            .mapNotNull { (s1, cost) ->
-                if (cost == INF) null else cost + g(s1)
-            }
-            .minOrNull() ?: INF
+        graph.successors(s).minOfOrNull { (s1, cost) -> cost + g(s1) } ?: INF
 
     fun buildDebugInfoRenderer(config: PathingSettings) {
         if (!config.renderGraph) return

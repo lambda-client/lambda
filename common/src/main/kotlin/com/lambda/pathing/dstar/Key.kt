@@ -20,21 +20,15 @@ package com.lambda.pathing.dstar
 /**
  * Represents the Key used in the D* Lite algorithm.
  * It's a pair of comparable values, typically Doubles or Ints.
- * Comparison is done lexicographically as described in Field D*[cite: 142].
+ * Comparison is done lexicographically as described in Field D*.
  */
 data class Key(val first: Double, val second: Double) : Comparable<Key> {
-    override fun compareTo(other: Key): Int {
-        val firstCompare = this.first.compareTo(other.first)
-        if (firstCompare != 0) {
-            return firstCompare
-        }
-        return this.second.compareTo(other.second)
-    }
+    override fun compareTo(other: Key) =
+        compareValuesBy(this, other, { it.first }, { it.second })
 
     override fun toString() = "(%.3f, %.3f)".format(first, second)
 
     companion object {
-        // Represents an infinite key
         val INFINITY = Key(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY)
     }
 }
