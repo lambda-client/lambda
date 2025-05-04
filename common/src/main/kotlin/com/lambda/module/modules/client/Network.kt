@@ -80,10 +80,8 @@ object Network : Module(
             // a race condition where the game server haven't acknowledged the packets
             // and posted to the sessionserver api
             login(mc.session.username, hash ?: return@listenUnsafeConcurrently)
-                .fold(
-                    onSuccess = { updateToken(it) },
-                    onFailure = { LOG.warn("Unable to authenticate: $it") }
-                )
+                .onSuccess { updateToken(it) }
+                .onFailure { LOG.warn(it) }
         }
     }
 
