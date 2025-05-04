@@ -22,6 +22,7 @@ import com.mojang.blaze3d.systems.RenderSystem
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.glfw.GLFW.GLFW_ARROW_CURSOR
 import org.lwjgl.glfw.GLFW.GLFW_POINTING_HAND_CURSOR
+import org.lwjgl.glfw.GLFW.GLFW_RELEASE
 import org.lwjgl.glfw.GLFW.GLFW_RESIZE_EW_CURSOR
 import org.lwjgl.glfw.GLFW.GLFW_RESIZE_NS_CURSOR
 import org.lwjgl.glfw.GLFW.GLFW_RESIZE_NWSE_CURSOR
@@ -30,20 +31,20 @@ import org.lwjgl.glfw.GLFW.glfwSetCursor
 import kotlin.jvm.Throws
 
 class Mouse {
-    enum class Button(val key: Int) {
-        Left(GLFW.GLFW_MOUSE_BUTTON_LEFT),
-        Right(GLFW.GLFW_MOUSE_BUTTON_RIGHT),
-        Middle(GLFW.GLFW_MOUSE_BUTTON_MIDDLE),
-        Button4(GLFW.GLFW_MOUSE_BUTTON_4),
-        Button5(GLFW.GLFW_MOUSE_BUTTON_5),
-        Button6(GLFW.GLFW_MOUSE_BUTTON_6),
-        Button7(GLFW.GLFW_MOUSE_BUTTON_7),
-        Button8(GLFW.GLFW_MOUSE_BUTTON_8);
+    enum class Button {
+        Left,
+        Right,
+        Middle,
+        Button4,
+        Button5,
+        Button6,
+        Button7,
+        Button8;
 
-        val isMainButton get() = key == GLFW.GLFW_MOUSE_BUTTON_LEFT || key == GLFW.GLFW_MOUSE_BUTTON_RIGHT
+        val isMainButton get() = ordinal == GLFW.GLFW_MOUSE_BUTTON_LEFT || ordinal == GLFW.GLFW_MOUSE_BUTTON_RIGHT
 
         companion object {
-            private val mouseCodeMap = entries.associateBy { it.key }
+            private val mouseCodeMap = entries.associateBy { it.ordinal }
             private val nameMap = entries.associateBy { it.name.lowercase() }
 
             @Throws(IllegalArgumentException::class)
@@ -57,8 +58,8 @@ class Mouse {
     }
 
     enum class Action {
-        Click,
-        Release;
+        Release,
+        Click;
 
         companion object {
             private val mouseActionMap = entries.associateBy { it.ordinal }
