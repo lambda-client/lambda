@@ -20,10 +20,13 @@ import com.lambda.interaction.request.rotation.Rotation.Companion.angleDifferenc
 import com.lambda.interaction.request.rotation.Rotation.Companion.dist
 import com.lambda.interaction.request.rotation.Rotation.Companion.lerp
 import com.lambda.interaction.request.rotation.Rotation.Companion.slerp
+import com.lambda.interaction.request.rotation.Rotation.Companion.wrap
+import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.math.hypot
 
 /**
@@ -65,6 +68,34 @@ class RotationTest {
         assertTrue(rotation1.equalFloat(rotation2))
         assertFalse(rotation1.equalFloat(rotation3))
         assertFalse(rotation1.equalFloat(rotation4))
+    }
+
+    @Test
+    fun `test equals and hashCode methods`() {
+        val rotation1 = Rotation(45.0, 30.0)
+        val rotation2 = Rotation(45.0, 30.0)
+        val rotation3 = Rotation(45.0, 31.0)
+        val rotation4 = Rotation(46.0, 30.0)
+        val rotation5 = Rotation(46.0, 31.0)
+
+        // Test equals method
+        assertEquals(rotation1, rotation2)
+        assertNotEquals(rotation1, rotation3)
+        assertNotEquals(rotation1, rotation4)
+        assertNotEquals(rotation1, rotation5)
+        assertNotEquals(rotation3, rotation4)
+        assertNotEquals(rotation3, rotation5)
+        assertNotEquals(rotation4, rotation5)
+
+        // Test hashCode method
+        assertEquals(rotation1.hashCode(), rotation2.hashCode())
+        assertNotEquals(rotation1.hashCode(), rotation3.hashCode())
+        assertNotEquals(rotation1.hashCode(), rotation4.hashCode())
+        assertNotEquals(rotation1.hashCode(), rotation5.hashCode())
+
+        // Test equals with null and other types
+        assertNotEquals<Any?>(rotation1, null)
+        assertNotEquals<Any>(rotation1, "Not a Rotation")
     }
 
     @Test
@@ -110,6 +141,31 @@ class RotationTest {
     }
 
     @Test
+    fun `test wrap method`() {
+        // Test wrapping positive angles
+        assertEquals(0.0, wrap(0.0), 0.001)
+        assertEquals(90.0, wrap(90.0), 0.001)
+        assertEquals(-180.0, wrap(180.0), 0.001)
+        assertEquals(-170.0, wrap(190.0), 0.001) // 190 wraps to -170
+        assertEquals(0.0, wrap(360.0), 0.001)
+        assertEquals(10.0, wrap(370.0), 0.001)
+
+        // Test wrapping negative angles
+        assertEquals(0.0, wrap(-0.0), 0.001)
+        assertEquals(-90.0, wrap(-90.0), 0.001)
+        assertEquals(-180.0, wrap(-180.0), 0.001)
+        assertEquals(170.0, wrap(-190.0), 0.001) // -190 wraps to 170
+        assertEquals(0.0, wrap(-360.0), 0.001)
+        assertEquals(-10.0, wrap(-370.0), 0.001)
+
+        // Test wrapping large angles
+        assertEquals(10.0, wrap(370.0), 0.001)
+        assertEquals(10.0, wrap(730.0), 0.001) // 730 = 2*360 + 10
+        assertEquals(-10.0, wrap(-370.0), 0.001)
+        assertEquals(-10.0, wrap(-730.0), 0.001) // -730 = -2*360 - 10
+    }
+
+    @Test
     fun `test lerp method`() {
         val rotation1 = Rotation(0.0, 0.0)
         val rotation2 = Rotation(90.0, 45.0)
@@ -128,6 +184,23 @@ class RotationTest {
         val result3 = rotation1.lerp(rotation2, 0.5)
         assertEquals(45.0, result3.yaw, 0.001)
         assertEquals(22.5, result3.pitch, 0.001)
+    }
+
+    @Test
+    fun `test lerp with angle wrapping`() {
+        // Test lerp across the -180/180 boundary
+        val rotation1 = Rotation(170.0, 0.0)
+        val rotation2 = Rotation(-170.0, 0.0)
+
+        // The shortest path from 170 to -170 is to go clockwise (not counterclockwise)
+        // So the midpoint should be -180 (or 180, they're equivalent)
+        val midpoint = rotation1.lerp(rotation2, 0.5)
+
+        // Check that the result is either -180 or 180 (they're equivalent)
+        assertTrue(
+            abs(midpoint.yaw - 180.0) < 0.001 ||
+            abs(midpoint.yaw + 180.0) < 0.001
+        )
     }
 
     @Test
@@ -154,6 +227,25 @@ class RotationTest {
     }
 
     @Test
+    fun `test slerp with angle wrapping`() {
+        // Test slerp across the -180/180 boundary
+        val rotation1 = Rotation(170.0, 0.0)
+        val rotation2 = Rotation(-170.0, 0.0)
+
+        // With a very high speed, should go directly to rotation2
+        val result = rotation1.slerp(rotation2, 1000.0)
+        assertEquals(rotation2.yaw, result.yaw, 0.001)
+        assertEquals(rotation2.pitch, result.pitch, 0.001)
+
+        // With a limited speed, should move in the correct direction (clockwise)
+        val partialResult = rotation1.slerp(rotation2, 10.0)
+
+        // The yaw should be greater than 170 (moving towards 180/-180)
+        // or less than -170 (already crossed the boundary)
+        assertTrue(partialResult.yaw > 170.0 || partialResult.yaw < -170.0)
+    }
+
+    @Test
     fun `test dist method`() {
         val rotation1 = Rotation(0.0, 0.0)
         val rotation2 = Rotation(90.0, 0.0)
@@ -174,6 +266,16 @@ class RotationTest {
     }
 
     @Test
+    fun `test dist method with angle wrapping`() {
+        // Test distance across the -180/180 boundary
+        val rotation1 = Rotation(170.0, 0.0)
+        val rotation2 = Rotation(-170.0, 0.0)
+
+        // The distance should be 20 degrees (not 340 degrees)
+        assertEquals(20.0, rotation1 dist rotation2, 0.001)
+    }
+
+    @Test
     fun `test angleDifference method`() {
         // Test with angles in the same direction
         assertEquals(10.0, angleDifference(10.0, 0.0), 0.001)
@@ -186,5 +288,18 @@ class RotationTest {
         // Test with angles that wrap around
         assertEquals(20.0, angleDifference(170.0, -170.0), 0.001)
         assertEquals(20.0, angleDifference(-170.0, 170.0), 0.001)
+    }
+
+    @Test
+    fun `test angleDifference with extreme values`() {
+        // Test with angles at the boundaries
+        assertEquals(0.0, angleDifference(180.0, 180.0), 0.001)
+        assertEquals(0.0, angleDifference(-180.0, -180.0), 0.001)
+        assertEquals(0.0, angleDifference(180.0, -180.0), 0.001) // These are equivalent
+
+        // Test with large angles that need wrapping
+        assertEquals(10.0, angleDifference(365.0, 375.0), 0.001)
+        assertEquals(10.0, angleDifference(-365.0, -375.0), 0.001)
+        assertEquals(20.0, angleDifference(370.0, -370.0), 0.001)
     }
 }
