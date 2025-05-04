@@ -58,10 +58,12 @@ class LazyGraph(
         }
 
     /** Initializes predecessors by ensuring successors of neighboring nodes. */
-    fun predecessors(u: FastVector): Map<FastVector, Double> {
-        successors(u)
-        return predecessors[u] ?: emptyMap()
-    }
+    fun predecessors(u: FastVector): MutableMap<FastVector, Double> =
+        predecessors.getOrPut(u) {
+            nodeInitializer(u).onEach { (neighbor, cost) ->
+                successors.getOrPut(neighbor) { hashMapOf() }[u] = cost
+            }.toMutableMap()
+        }
 
     fun removeNode(u: FastVector) {
         successors.remove(u)

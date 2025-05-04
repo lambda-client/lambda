@@ -85,10 +85,9 @@ class DStarLite(
 
         fun timedOut() = (System.currentTimeMillis() - startTime) > cutoffTimeout
 
-        // ToDo: Check why <= needed and not <
-        fun checkCondition() = U.topKey(Key.INFINITY) <= calculateKey(start) || rhs(start) > g(start)
+        fun checkCondition() = U.topKey(Key.INFINITY) < calculateKey(start) || rhs(start) > g(start)
 
-        while (!U.isEmpty() && checkCondition() && !timedOut()) {
+        while (checkCondition() && !timedOut()) {
             val u = U.top() // Get node with smallest key
             val kOld = U.topKey(Key.INFINITY) // Key before potential update
             val kNew = calculateKey(u) // Recalculate key
@@ -103,11 +102,8 @@ class DStarLite(
                     setG(u, rhs(u)) // Set g = rhs
                     U.remove(u) // Remove from queue, now consistent (g=rhs)
                     // Propagate change to predecessors s
-                    // ToDo: Use predecessors
-                    graph.successors(u).forEach { (s, c) ->
-                        if (s != goal) {
-                            setRHS(s, min(rhs(s), c + g(u)))
-                        }
+                    graph.predecessors(u).forEach { (s, c) ->
+                        if (s != goal) setRHS(s, min(rhs(s), graph.cost(s, u) + g(u)))
                         updateVertex(s)
                     }
                 }
@@ -118,8 +114,7 @@ class DStarLite(
                     val gOld = g(u)
                     setG(u, INF)
 
-                    // ToDo: Use predecessors
-                    (graph.successors(u).keys + u).forEach { s ->
+                    (graph.predecessors(u).keys + u).forEach { s ->
                         // If rhs(s) was based on the old g(u) path cost
                         if (rhs(s) == graph.cost(s, u) + gOld && s != goal) {
                             // Recalculate rhs(s) based on its *current* successors' g-values
@@ -189,20 +184,11 @@ class DStarLite(
     fun updateEdge(u: FastVector, v: FastVector, c: Double) {
         val cOld = graph.cost(u, v)
         graph.setCost(u, v, c)
-//        LOG.info("Setting edge ${u.string} -> ${v.string} to $c")
-        if (cOld > c) {
-            if (u != goal) {
-                setRHS(u, min(rhs(u), c + g(v)))
-//                LOG.info("Setting RHS of ${u.string} to ${rhs(u)}")
-            }
-        } else if (rhs(u) == cOld + g(v)) {
-            if (u != goal) {
-                setRHS(u, minSuccessorCost(u))
-//                LOG.info("Setting RHS of ${u.string} to ${rhs(u)}")
-            }
+        when {
+            cOld > c -> if (u != goal) setRHS(u, min(rhs(u), c + g(v)))
+            rhs(u) == cOld + g(v) -> if (u != goal) setRHS(u, minSuccessorCost(u))
         }
         updateVertex(u)
-//        LOG.info("Updated vertex ${u.string}")
     }
 
     /**
@@ -249,26 +235,20 @@ class DStarLite(
     /** Internal key calculation using current start and km. */
     private fun calculateKey(s: FastVector): Key {
         val minGRHS = min(g(s), rhs(s))
-        return if (minGRHS == INF) {
-            Key.INFINITY
-        } else {
-            Key(minGRHS + heuristic(start, s) + km, minGRHS)
-        }
+        return Key(minGRHS + heuristic(start, s) + km, minGRHS)
     }
 
     /** Updates a vertex's state in the priority queue based on its consistency (g vs rhs). */
     fun updateVertex(u: FastVector) {
         val uInQueue = u in U
-        val key = calculateKey(u)
-
         when {
             // Inconsistent and in Queue: Update priority
             g(u) != rhs(u) && uInQueue -> {
-                U.update(u, key)
+                U.update(u, calculateKey(u))
             }
             // Inconsistent and not in Queue: Insert
             g(u) != rhs(u) && !uInQueue -> {
-                U.insert(u, key)
+                U.insert(u, calculateKey(u))
             }
             // Consistent and in Queue: Remove
             g(u) == rhs(u) && uInQueue -> {
