@@ -30,12 +30,14 @@ import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.config.configurations.FriendConfig
 import com.lambda.friend.FriendManager
+import com.lambda.network.mojang.getProfile
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
 import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.buildText
 import com.lambda.util.text.literal
 import com.lambda.util.text.styled
+import kotlinx.coroutines.runBlocking
 import java.awt.Color
 
 object FriendCommand : LambdaCommand(
@@ -82,20 +84,24 @@ object FriendCommand : LambdaCommand(
                 }
 
                 executeWithResult {
-                    val name = player().value()
+                    runBlocking {
+                        val name = player().value()
 
-                    if (mc.gameProfile.name == name) return@executeWithResult failure("You can't befriend yourself")
+                        if (mc.gameProfile.name == name) return@runBlocking failure("You can't befriend yourself")
 
-                    val id = mc.networkHandler
-                        ?.playerList
-                        ?.firstOrNull { it.profile.name == name }
-                        ?: return@executeWithResult failure("Could not find the player on the server")
+                        val profile = mc.networkHandler
+                            ?.playerList
+                            ?.map { it.profile }
+                            ?.firstOrNull { it.name == name }
+                            ?: getProfile(name)
+                                .getOrElse { return@runBlocking failure("Could not find the player") }
 
-                    return@executeWithResult if (FriendManager.befriend(id.profile)) {
-                        info(FriendManager.befriendedText(id.profile.name))
-                        success()
-                    } else {
-                        failure("This player is already in your friend list")
+                        return@runBlocking if (FriendManager.befriend(profile)) {
+                            info(FriendManager.befriendedText(profile.name))
+                            success()
+                        } else {
+                            failure("This player is already in your friend list")
+                        }
                     }
                 }
             }
@@ -112,19 +118,24 @@ object FriendCommand : LambdaCommand(
                 }
 
                 executeWithResult {
-                    val uuid = player().value()
+                    runBlocking {
+                        val uuid = player().value()
 
-                    if (mc.gameProfile.id == uuid) return@executeWithResult failure("You can't befriend yourself")
+                        if (mc.gameProfile.id == uuid) return@runBlocking failure("You can't befriend yourself")
 
-                    val id = mc.networkHandler
-                        ?.playerList
-                        ?.firstOrNull { it.profile.id == uuid } ?: return@executeWithResult failure("Could not find the player on the server")
+                        val profile = mc.networkHandler
+                            ?.playerList
+                            ?.map { it.profile }
+                            ?.firstOrNull { it.id == uuid }
+                            ?: getProfile(uuid)
+                                .getOrElse { return@runBlocking failure("Could not find the player") }
 
-                    return@executeWithResult if (FriendManager.befriend(id.profile)) {
-                        this@FriendCommand.info(FriendManager.befriendedText(id.profile.name))
-                        success()
-                    } else {
-                        failure("This player is already in your friend list")
+                        return@runBlocking if (FriendManager.befriend(profile)) {
+                            this@FriendCommand.info(FriendManager.befriendedText(profile.name))
+                            success()
+                        } else {
+                            failure("This player is already in your friend list")
+                        }
                     }
                 }
             }
