@@ -70,6 +70,7 @@ class PathingSettings(
     override val renderG by c.setting("Render G", false) { vis() && page == Page.Debug && renderGraph }
     override val renderRHS by c.setting("Render RHS", false) { vis() && page == Page.Debug && renderGraph }
     override val renderKey by c.setting("Render Key", false) { vis() && page == Page.Debug && renderGraph }
+    override val renderQueue by c.setting("Render Queue", false) { vis() && page == Page.Debug && renderGraph }
     override val maxRenderObjects by c.setting("Max Render Objects", 1000, 0..10_000, 100) { vis() && page == Page.Debug && renderGraph }
     override val fontScale by c.setting("Font Scale", 0.4, 0.0..2.0, 0.01) { vis() && renderGraph && page == Page.Debug }
 

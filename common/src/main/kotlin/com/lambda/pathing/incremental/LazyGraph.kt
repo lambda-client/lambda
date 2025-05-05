@@ -43,26 +43,26 @@ import kotlin.math.abs
 class LazyGraph(
     val nodeInitializer: (FastVector) -> Map<FastVector, Double>
 ) {
-    val successors = ConcurrentHashMap<FastVector, MutableMap<FastVector, Double>>()
-    val predecessors = ConcurrentHashMap<FastVector, MutableMap<FastVector, Double>>()
+    val successors = ConcurrentHashMap<FastVector, ConcurrentHashMap<FastVector, Double>>()
+    val predecessors = ConcurrentHashMap<FastVector, ConcurrentHashMap<FastVector, Double>>()
 
     val nodes get() = successors.keys + predecessors.keys
     val size get() = nodes.size
 
     /** Initializes a node if not already initialized, then returns successors. */
-    fun successors(u: FastVector): MutableMap<FastVector, Double> =
+    fun successors(u: FastVector): ConcurrentHashMap<FastVector, Double> =
         successors.getOrPut(u) {
-            nodeInitializer(u).onEach { (neighbor, cost) ->
-                predecessors.getOrPut(neighbor) { hashMapOf() }[u] = cost
-            }.toMutableMap()
+            ConcurrentHashMap(nodeInitializer(u).onEach { (neighbor, cost) ->
+                predecessors.getOrPut(neighbor) { ConcurrentHashMap() }[u] = cost
+            })
         }
 
     /** Initializes predecessors by ensuring successors of neighboring nodes. */
-    fun predecessors(u: FastVector): MutableMap<FastVector, Double> =
+    fun predecessors(u: FastVector): ConcurrentHashMap<FastVector, Double> =
         predecessors.getOrPut(u) {
-            nodeInitializer(u).onEach { (neighbor, cost) ->
-                successors.getOrPut(neighbor) { hashMapOf() }[u] = cost
-            }.toMutableMap()
+            ConcurrentHashMap(nodeInitializer(u).onEach { (neighbor, cost) ->
+                successors.getOrPut(neighbor) { ConcurrentHashMap() }[u] = cost
+            })
         }
 
     fun removeNode(u: FastVector) {
@@ -84,8 +84,8 @@ class LazyGraph(
     }
 
     fun setCost(u: FastVector, v: FastVector, c: Double) {
-        successors.getOrPut(u) { hashMapOf() }[v] = c
-        predecessors.getOrPut(v) { hashMapOf() }[u] = c
+        successors.getOrPut(u) { ConcurrentHashMap() }[v] = c
+        predecessors.getOrPut(v) { ConcurrentHashMap() }[u] = c
     }
 
     fun clear() {

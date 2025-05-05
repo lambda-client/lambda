@@ -24,6 +24,7 @@ import com.lambda.util.GraphUtil.createGridGraph18Conn
 import com.lambda.util.GraphUtil.createGridGraph26Conn
 import com.lambda.util.GraphUtil.createGridGraph6Conn
 import com.lambda.util.GraphUtil.euclideanHeuristic
+import com.lambda.util.GraphUtil.length
 import com.lambda.util.GraphUtil.manhattanHeuristic
 import com.lambda.util.world.FastVector
 import com.lambda.util.world.fastVectorOf
@@ -384,6 +385,6 @@ internal class DStarLiteTest {
         }
 
         // The new path should go around the blocked node
-        assertTrue(newPath.size >= initialPath.size, "New path should be at least as long as the initial path")
+        assertTrue(newPath.length() >= initialPath.length(), "New path should be at least as long as the initial path")
     }
 }

@@ -272,7 +272,7 @@ class DStarLite(
             if (config.renderG) label.add("g: %.3f".format(g(origin)))
             if (config.renderRHS) label.add("rhs: %.3f".format(rhs(origin)))
             if (config.renderKey) label.add("k: ${calculateKey(origin)}")
-            if (origin in U) label.add("IN QUEUE")
+            if (config.renderQueue && origin in U) label.add("QUEUED")
 
             if (label.isNotEmpty()) {
                 val pos = origin.toCenterVec3d()

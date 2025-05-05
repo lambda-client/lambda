@@ -73,9 +73,15 @@ class PathConsistencyTest {
         dStar2.computeShortestPath()
         val path2 = dStar2.path()
 
-        // Verify paths are identical
-        assertEquals(path1, path2, 
-            "Paths should be identical after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
+        // Verify paths have the same length (there can be multiple valid paths)
+        assertEquals(path1.length(), path2.length(),
+            "Paths should have the same length after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
+
+        // Verify both paths avoid blocked nodes
+        blockedNodes.forEach { blocked ->
+            assertTrue(!path1.contains(blocked), "Path1 should not contain blocked node ${blocked.string}")
+            assertTrue(!path2.contains(blocked), "Path2 should not contain blocked node ${blocked.string}")
+        }
     }
 
     /**
@@ -126,9 +132,15 @@ class PathConsistencyTest {
         dStar2.computeShortestPath()
         val path2 = dStar2.path()
 
-        // Verify paths are identical
-        assertEquals(path1, path2, 
-            "Paths should be identical after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
+        // Verify paths have the same length (there can be multiple valid paths)
+        assertEquals(path1.length(), path2.length(),
+            "Paths should have the same length after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
+
+        // Verify both paths avoid blocked nodes
+        blockedNodes.forEach { blocked ->
+            assertTrue(!path1.contains(blocked), "Path1 should not contain blocked node ${blocked.string}")
+            assertTrue(!path2.contains(blocked), "Path2 should not contain blocked node ${blocked.string}")
+        }
     }
 
     /**
@@ -199,8 +211,8 @@ class PathConsistencyTest {
         val path2 = dStar2.path()
 
         // Verify paths are identical
-        assertEquals(path1, path2, 
-            "Paths should be identical after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
+        assertEquals(path1.length(), path2.length(),
+            "Paths should be same length after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
     }
 
     /**
@@ -231,7 +243,7 @@ class PathConsistencyTest {
 
         // Unblock one node in the middle
         val nodeToToggle = fastVectorOf(0, 0, 5)
-        blockedNodes.remove(nodeToToggle)
+        if (blockedNodes.remove(nodeToToggle)) println("Unblocked node ${nodeToToggle.string}")
 
         // Now it should path through the hole in the wall
         dStar1.invalidate(nodeToToggle)
@@ -245,8 +257,8 @@ class PathConsistencyTest {
         val path2 = dStar2.path()
 
         // Verify paths are identical
-        assertEquals(path1, path2, 
-            "Paths should be identical after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
+        assertEquals(path1.length(), path2.length(),
+            "Paths should be same length after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
     }
 
     /**
@@ -291,8 +303,8 @@ class PathConsistencyTest {
         val path2 = dStar2.path()
 
         // Verify paths are identical
-        assertEquals(path1, path2, 
-            "Paths should be identical after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
+        assertEquals(path1.length(), path2.length(),
+            "Paths should be same length after invalidation.\nPath1: ${path1.string()}\nPath2: ${path2.string()}")
     }
 
     /**

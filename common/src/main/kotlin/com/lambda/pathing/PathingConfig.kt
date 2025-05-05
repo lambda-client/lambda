@@ -61,6 +61,7 @@ interface PathingConfig {
     val renderG: Boolean
     val renderRHS: Boolean
     val renderKey: Boolean
+    val renderQueue: Boolean
     val maxRenderObjects: Int
     val fontScale: Double
     val assumeJesus: Boolean
