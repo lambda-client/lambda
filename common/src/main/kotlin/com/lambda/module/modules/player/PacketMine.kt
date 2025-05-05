@@ -78,7 +78,7 @@ object PacketMine : Module(
             sendBreakRequest(event.pos)
         }
 
-        listen<TickEvent.Input.Pre> {
+        listen<TickEvent.Input.Post> {
             if (!requestedThisTick) sendBreakRequest()
         }
     }
@@ -94,7 +94,7 @@ object PacketMine : Module(
             onAccept = { breakingPositions[0] = it },
             onCancel = { nullifyBreakPos(it) },
             onBreak = { breaks++; nullifyBreakPos(it) },
-            { _ -> itemDrops++ }
+            onItemDrop = { _ -> itemDrops++ }
         )
         breakConfig.request(request)
         requestedThisTick = true

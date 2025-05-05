@@ -18,7 +18,6 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.config.groups.BuildConfig
-import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.request.Priority
