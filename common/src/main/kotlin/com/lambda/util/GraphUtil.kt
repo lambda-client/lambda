@@ -66,6 +66,7 @@ object GraphUtil {
         }
     }
 
+    fun neighborhood(o: FastVector, conn: Connectivity) = neighborhood(o, conn.minDistSq, conn.maxDistSq)
     fun n6(o: FastVector) = neighborhood(o, minDistSq = 1, maxDistSq = 1)
     fun n18(o: FastVector) = neighborhood(o, minDistSq = 1, maxDistSq = 2)
     fun n26(o: FastVector) = neighborhood(o, minDistSq = 1, maxDistSq = 3)
@@ -94,4 +95,10 @@ object GraphUtil {
 
     private const val COST_SQRT_2 = 1.4142135623730951
     private const val COST_SQRT_3 = 1.7320508075688772
+
+    enum class Connectivity(val minDistSq: Int, val maxDistSq: Int) {
+        N6(minDistSq = 1, maxDistSq = 1),
+        N18(minDistSq = 1, maxDistSq = 2),
+        N26(minDistSq = 1, maxDistSq = 3);
+    }
 }

@@ -47,6 +47,7 @@ class DStarLite(
     var start: FastVector,
     val goal: FastVector,
     val heuristic: (FastVector, FastVector) -> Double,
+    private val connectivity: GraphUtil.Connectivity = GraphUtil.Connectivity.N26,
 ) {
     // gMap[u], rhsMap[u] store g(u) and rhs(u) or default to ∞ if not present
     private val gMap = mutableMapOf<FastVector, Double>()
@@ -150,7 +151,7 @@ class DStarLite(
      */
     fun invalidate(u: FastVector, prune: Boolean = false) {
         val modified = mutableSetOf(u)
-        (GraphUtil.n26(u).keys + u).forEach { v ->
+        (GraphUtil.neighborhood(u, connectivity).keys + u).forEach { v ->
             val current = graph.neighbors(v)
             val updated = graph.nodeInitializer(v)
             val removed = current.filter { w -> w !in updated }
