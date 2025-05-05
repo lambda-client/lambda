@@ -257,8 +257,6 @@ object BreakManager : RequestHandler<BreakRequest>(
                     newBreaks.remove(ctx)
                     return@forEach
                 }
-
-                if (!info.updatedThisTick) info.cancelBreak()
             }
 
         instantBreaks = newBreaks
