@@ -129,6 +129,11 @@ enum class PlaceDirection(
      * @return The calculated pitch value
      */
     private fun calculateHorizontalPitch(currentPitch: Double, boundaryValue: Double): Double {
+        // Handle extreme pitch values (-90 or 90) by returning 0
+        if (abs(currentPitch) >= 90.0 - 0.1) {
+            return 0.0
+        }
+
         val isWithinPositiveBoundary = abs(currentPitch - boundaryValue) < abs(currentPitch - (-boundaryValue))
         return if (isWithinPositiveBoundary) boundaryValue else -boundaryValue
     }
