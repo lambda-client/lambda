@@ -119,7 +119,7 @@ class SafeListener<T : Event>(
         inline fun <reified T : Event> Any.listen(
             priority: Int = 0,
             alwaysListen: Boolean = false,
-            noinline function: SafeContext.(T) -> Unit = {},
+            noinline function: SafeContext.(T) -> Unit = {}
         ): SafeListener<T> {
             val listener = SafeListener<T>(priority, this, alwaysListen) { event ->
                 runGameScheduled { function(event) }
