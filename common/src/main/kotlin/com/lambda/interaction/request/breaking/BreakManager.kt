@@ -344,7 +344,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         val breakInfo = BreakInfo(requestCtx, Primary, request)
         primaryBreak?.let { primaryInfo ->
             if (!breakInfo.breakConfig.doubleBreak || secondaryBreak != null) {
-                if (primaryInfo.activeAge > 0) {
+                if (!primaryInfo.updatedThisTick) {
                     primaryInfo.abortBreakPacket(world, interaction)
                     return@let
                 } else return null
