@@ -176,13 +176,135 @@ class PlaceDirectionTest {
     }
 
     @Test
-    fun `test yaw and pitch snapping for East direction`() {
+    fun `test yaw and pitch snapping for East direction from up`() {
         val direction = PlaceDirection.East
         val rot = Rotation(0.0, -90.0)
         val snapped = direction.snapToArea(rot)
 
         // Verify that the yaw and pitch are snapped to the boundary
         assertEquals(direction, PlaceDirection.fromRotation(snapped))
+    }
+
+    @Test
+    fun `test yaw and pitch snapping for South direction from up`() {
+        val direction = PlaceDirection.South
+        val rot = Rotation(90.0, -90.0)
+        val snapped = direction.snapToArea(rot)
+
+        // Verify that the yaw and pitch are snapped to the boundary
+        assertEquals(direction, PlaceDirection.fromRotation(snapped))
+    }
+
+    @Test
+    fun `test yaw and pitch snapping for West direction from up`() {
+        val direction = PlaceDirection.West
+        val rot = Rotation(-180.0, -90.0)
+        val snapped = direction.snapToArea(rot)
+
+        // Verify that the yaw and pitch are snapped to the boundary
+        assertEquals(direction, PlaceDirection.fromRotation(snapped))
+    }
+
+    @Test
+    fun `test yaw and pitch snapping for North direction from up`() {
+        val direction = PlaceDirection.North
+        val rot = Rotation(-90.0, -90.0)
+        val snapped = direction.snapToArea(rot)
+
+        // Verify that the yaw and pitch are snapped to the boundary
+        assertEquals(direction, PlaceDirection.fromRotation(snapped))
+    }
+
+    @Test
+    fun `test yaw and pitch snapping for East direction from down`() {
+        val direction = PlaceDirection.East
+        val rot = Rotation(0.0, 90.0)
+        val snapped = direction.snapToArea(rot)
+
+        // Verify that the yaw and pitch are snapped to the boundary
+        assertEquals(direction, PlaceDirection.fromRotation(snapped))
+    }
+
+    @Test
+    fun `test yaw and pitch snapping for South direction from down`() {
+        val direction = PlaceDirection.South
+        val rot = Rotation(90.0, 90.0)
+        val snapped = direction.snapToArea(rot)
+
+        // Verify that the yaw and pitch are snapped to the boundary
+        assertEquals(direction, PlaceDirection.fromRotation(snapped))
+    }
+
+    @Test
+    fun `test yaw and pitch snapping for West direction from down`() {
+        val direction = PlaceDirection.West
+        val rot = Rotation(-180.0, 90.0)
+        val snapped = direction.snapToArea(rot)
+
+        // Verify that the yaw and pitch are snapped to the boundary
+        assertEquals(direction, PlaceDirection.fromRotation(snapped))
+    }
+
+    @Test
+    fun `test yaw and pitch snapping for North direction from down`() {
+        val direction = PlaceDirection.North
+        val rot = Rotation(-90.0, 90.0)
+        val snapped = direction.snapToArea(rot)
+
+        // Verify that the yaw and pitch are snapped to the boundary
+        assertEquals(direction, PlaceDirection.fromRotation(snapped))
+    }
+
+    @Test
+    fun `test yaw and pitch snapping from one snap to another starting with East from up`() {
+        val direction = PlaceDirection.East
+        val rot = Rotation(0.0, -90.0)
+        val firstSnapped = direction.snapToArea(rot)
+
+        val nextDirection = PlaceDirection.South
+        val secondSnapped = nextDirection.snapToArea(firstSnapped)
+
+        // Verify that the yaw and pitch are snapped to the boundary
+        assertEquals(direction, PlaceDirection.fromRotation(secondSnapped))
+    }
+
+    @Test
+    fun `test yaw and pitch snapping from one snap to another starting with South from up`() {
+        val direction = PlaceDirection.South
+        val rot = Rotation(90.0, -90.0)
+        val firstSnapped = direction.snapToArea(rot)
+
+        val nextDirection = PlaceDirection.West
+        val secondSnapped = nextDirection.snapToArea(firstSnapped)
+
+        // Verify that the yaw and pitch are snapped to the boundary
+        assertEquals(direction, PlaceDirection.fromRotation(secondSnapped))
+    }
+
+    @Test
+    fun `test yaw and pitch snapping from one snap to another starting with West from up`() {
+        val direction = PlaceDirection.West
+        val rot = Rotation(-180.0, -90.0)
+        val firstSnapped = direction.snapToArea(rot)
+
+        val nextDirection = PlaceDirection.North
+        val secondSnapped = nextDirection.snapToArea(firstSnapped)
+
+        // Verify that the yaw and pitch are snapped to the boundary
+        assertEquals(direction, PlaceDirection.fromRotation(secondSnapped))
+    }
+
+    @Test
+    fun `test yaw and pitch snapping from one snap to another starting with North from up`() {
+        val direction = PlaceDirection.North
+        val rot = Rotation(-90.0, -90.0)
+        val firstSnapped = direction.snapToArea(rot)
+
+        val nextDirection = PlaceDirection.East
+        val secondSnapped = nextDirection.snapToArea(firstSnapped)
+
+        // Verify that the yaw and pitch are snapped to the boundary
+        assertEquals(direction, PlaceDirection.fromRotation(secondSnapped))
     }
 
     // Tests for when rotation is already in the area
