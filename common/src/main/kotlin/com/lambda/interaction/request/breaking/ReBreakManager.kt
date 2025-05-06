@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.request.breaking
 
-import com.lambda.config.groups.ReBreakSettings
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -62,7 +61,9 @@ object ReBreakManager {
         runSafe {
             val info = reBreak ?: return@runSafe ReBreakResult.Ignored
 
-            if (info.context.expectedPos != ctx.expectedPos || info.breakConfig.reBreak.mode != ReBreakSettings.Mode.Manual) {
+            if (info.updatedThisTick) return@runSafe ReBreakResult.ReBroke
+
+            if (info.context.expectedPos != ctx.expectedPos || !info.breakConfig.reBreak.mode.isEnabled()) {
                 return@runSafe ReBreakResult.Ignored
             }
             info.updateInfo(ctx, breakRequest)
