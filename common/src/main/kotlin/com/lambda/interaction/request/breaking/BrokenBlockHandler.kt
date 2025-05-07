@@ -62,6 +62,7 @@ object BrokenBlockHandler {
                 world.setBlockState(info.context.expectedPos, info.context.checkedState)
             }
         }
+        info.internalOnCancel()
         info.pendingInteractions.remove(info.context)
     }
 
