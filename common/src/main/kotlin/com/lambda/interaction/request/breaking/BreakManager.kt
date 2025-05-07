@@ -518,6 +518,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                     primaryBreak = reBreakResult.breakInfo.apply {
                         type = Primary
                         ReBreakManager.clearReBreak()
+                        request.onAccept?.invoke(ctx.expectedPos)
                     }
 
                     return primaryBreak?.let { primary ->
