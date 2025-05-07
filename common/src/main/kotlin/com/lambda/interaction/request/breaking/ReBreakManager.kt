@@ -50,6 +50,7 @@ object ReBreakManager {
         reBreak = info.apply {
             type = BreakType.ReBreak
             breaking = true
+            resetCallbacks()
         }
         info.request.onReBreakStart?.invoke(info.context.expectedPos)
     }
@@ -62,11 +63,10 @@ object ReBreakManager {
         runSafe {
             val info = reBreak ?: return@runSafe ReBreakResult.Ignored
 
-            if (info.updatedThisTick) return@runSafe ReBreakResult.ReBroke
-
             if (info.context.expectedPos != ctx.expectedPos || !info.breakConfig.reBreak.mode.isEnabled()) {
                 return@runSafe ReBreakResult.Ignored
             }
+            if (info.updatedThisTick) return@runSafe ReBreakResult.ReBroke
             info.updateInfo(ctx, breakRequest)
 
             val context = info.context

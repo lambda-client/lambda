@@ -62,7 +62,7 @@ data class BreakInfo(
 
     @Synchronized
     fun internalOnBreak() {
-        broken = true
+        if (!isReBreaking) broken = true
         request.onBreak?.invoke(context.expectedPos)
         item?.let { item ->
             request.onItemDrop?.invoke(item)
@@ -71,8 +71,8 @@ data class BreakInfo(
 
     @Synchronized
     fun internalOnItemDrop(item: ItemEntity) {
-        this.item = item
-        if (broken) {
+        if (!isReBreaking) this.item = item
+        if (broken || isReBreaking) {
             request.onItemDrop?.invoke(item)
         }
     }

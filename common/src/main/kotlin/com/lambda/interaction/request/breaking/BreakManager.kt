@@ -129,12 +129,12 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
+            if (event.pos == ReBreakManager.reBreak?.context?.expectedPos) return@listen
+
             breakInfos
                 .filterNotNull()
                 .firstOrNull { it.context.expectedPos == event.pos }
                 ?.let { info ->
-                    if (event.pos == ReBreakManager.reBreak?.context?.expectedPos) return@listen
-
                     // if not broken
                     if (!isBroken(info.context.checkedState, event.newState)) {
                         this@BreakManager.warn("Break at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.checkedState.brokenState}")
@@ -203,8 +203,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         if (request.fresh) populateFrom(request)
 
-        if (!atMaxBreakInfos(request.build.breaking)) run processNewBreaks@ {
-            if (!performInstantBreaks(request)) return@processNewBreaks
+        if (performInstantBreaks(request)) {
             processNewBreaks(request)
         }
 
@@ -215,7 +214,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 .filterNotNull()
                 .filter { !it.isRedundant }
                 .also {
-                    rotationRequest = it.firstOrNull { it.breakConfig.rotateForBreak }
+                    rotationRequest = it.firstOrNull { info -> info.breakConfig.rotateForBreak }
                         ?.let { info ->
                             val rotation = info.context.rotation
                             if (instantBreaks.isEmpty()) info.request.rotation.request(rotation, false) else rotation
@@ -251,7 +250,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     private fun SafeContext.populateFrom(request: BreakRequest) {
         // Sanitize the new breaks
         val newBreaks = request.contexts
-            .filter { ctx -> canAccept(ctx) }
+            .filter { ctx -> canAccept(ctx, request.build.breaking) }
             .toMutableList()
 
         // Update the current break infos or cancel if abandoned
@@ -281,14 +280,16 @@ object BreakManager : RequestHandler<BreakRequest>(
     /**
      * @return if the break context can be accepted.
      */
-    private fun SafeContext.canAccept(ctx: BreakContext): Boolean {
+    private fun SafeContext.canAccept(ctx: BreakContext, breakConfig: BreakConfig): Boolean {
         if (pendingBreaks.any { it.context.expectedPos == ctx.expectedPos }) return false
 
-        breakInfos
-            .firstOrNull { it != null && !it.isRedundant }
-            ?.let { info ->
-                if (ctx.hotbarIndex != info.context.hotbarIndex) return false
-            }
+        if (breakConfig.doubleBreak) {
+            breakInfos
+                .firstOrNull { it != null && !it.isRedundant }
+                ?.let { info ->
+                    if (ctx.hotbarIndex != info.context.hotbarIndex) return false
+                }
+        }
 
         return !blockState(ctx.expectedPos).isAir
     }
@@ -449,27 +450,23 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (isPrimary) {
                 abortBreakPacket(world, interaction)
                 nullify()
-                return@runSafe
-            }
-            if (isSecondary && breakConfig.unsafeCancels) {
+            } else if (isSecondary && breakConfig.unsafeCancels) {
                 makeRedundant()
             }
+
+            internalOnCancel()
         }
 
     /**
      * Nullifies the break. If the block is not broken, the [BreakInfo.internalOnCancel] callback gets triggered
      */
-    private fun BreakInfo.nullify() {
-        type.nullify()
-        if (!broken && !pending && !isReBreaking && !isRedundant) internalOnCancel()
-    }
+    private fun BreakInfo.nullify() = type.nullify()
 
     /**
      * Makes the [BreakInfo] redundant and triggers the [BreakInfo.internalOnCancel] callback
      */
     private fun BreakInfo.makeRedundant() {
         type = BreakType.RedundantSecondary
-        internalOnCancel()
     }
 
     /**
@@ -494,15 +491,15 @@ object BreakManager : RequestHandler<BreakRequest>(
         val ctx = info.context
         val hitResult = ctx.result
 
-        if (gamemode.isCreative && world.worldBorder.contains(ctx.expectedPos)) {
+        if (gamemode.isCreative && world.worldBorder.contains(ctx.expectedPos) && info.breaking) {
             if (info.isRedundant) {
                 onBlockBreak(info)
                 return true
             }
             breakCooldown = info.breakConfig.breakDelay
             lastPosStarted = ctx.expectedPos
+            onBlockBreak(info)
             interaction.sendSequencedPacket(world) { sequence ->
-                onBlockBreak(info)
                 PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
             }
             val swing = info.breakConfig.swing
@@ -535,6 +532,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             }
             if (!startBreaking(info)) {
                 info.nullify()
+                info.internalOnCancel()
                 return false
             }
             val swing = info.breakConfig.swing
@@ -547,6 +545,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         val blockState = blockState(ctx.expectedPos)
         if (blockState.isAir) {
             info.nullify()
+            info.internalOnCancel()
             return false
         }
 
@@ -595,8 +594,8 @@ object BreakManager : RequestHandler<BreakRequest>(
         val swing = info.breakConfig.swing
         if (overBreakThreshold) {
             if (info.isPrimary) {
+                onBlockBreak(info)
                 interaction.sendSequencedPacket(world) { sequence ->
-                    onBlockBreak(info)
                     PlayerActionC2SPacket(Action.STOP_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
                 }
             } else {
@@ -626,8 +625,8 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         if (gamemode.isCreative) {
             lastPosStarted = ctx.expectedPos
+            onBlockBreak(info)
             interaction.sendSequencedPacket(world) { sequence: Int ->
-                onBlockBreak(info)
                 PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, ctx.expectedPos, ctx.result.side, sequence)
             }
             breakCooldown = info.breakConfig.breakDelay

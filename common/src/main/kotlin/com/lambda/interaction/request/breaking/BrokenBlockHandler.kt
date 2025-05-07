@@ -81,8 +81,10 @@ object BrokenBlockHandler {
                 if (!isBroken(pending.context.checkedState, event.newState)) {
                     if (!pending.isReBreaking) {
                         this@BrokenBlockHandler.warn("Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.checkedState.brokenState}")
+                        pending.stopPending()
+                    } else {
+                        pending.context.checkedState = event.newState
                     }
-                    pending.stopPending()
                     return@listen
                 }
 
@@ -141,8 +143,6 @@ object BrokenBlockHandler {
         if (!isReBreaking) {
             pendingBreaks.remove(this)
             pendingInteractions.remove(context)
-        } else {
-            resetCallbacks()
         }
     }
 

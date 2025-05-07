@@ -62,11 +62,11 @@ object PacketMine : Module(
     private val breakingPositions = arrayOfNulls<BlockPos>(2)
     private var reBreakPos: BlockPos? = null
 
-    private var requestedThisTick = false
+    private var attackedThisTick = false
 
     init {
         listen<TickEvent.Post> {
-            requestedThisTick = false
+            attackedThisTick = false
         }
 
         //ToDo: run on every tick stage
@@ -74,39 +74,33 @@ object PacketMine : Module(
             val reBreakMode = breakConfig.reBreak.mode
             if (reBreakMode != ReBreakSettings.Mode.Auto && reBreakMode != ReBreakSettings.Mode.AutoConstant) return@listen
             val reBreak = reBreakPos ?: return@listen
-            requestBreakManager(listOf(reBreak))
+            requestBreakManager(reBreak)
         }
 
         listen<PlayerEvent.Attack.Block> { it.cancel() }
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
             if (breakingPositions.any { it == event.pos }) return@listen
-            if (breakConfig.doubleBreak && breakingPositions[1] == null) {
-                breakingPositions[1] = breakingPositions[0]
-            }
-            breakingPositions[0] = null
-            sendBreakRequest(event.pos)
-            requestedThisTick = true
+            val secondary = if (breakConfig.doubleBreak) {
+                breakingPositions[1] ?: breakingPositions[0]
+            } else null
+            requestBreakManager(event.pos, secondary)
+            attackedThisTick = true
         }
 
         listen<TickEvent.Input.Post> {
-            if (!requestedThisTick) sendBreakRequest()
+            if (!attackedThisTick) requestBreakManager(*breakingPositions.toList().toTypedArray())
         }
     }
 
-    private fun SafeContext.sendBreakRequest(hitPos: BlockPos? = null) {
-        val requestPositions = arrayListOf(*breakingPositions.filterNotNull().toTypedArray())
-        hitPos?.let { pos ->
-            requestPositions.add(pos)
-        }
-
-        if (requestPositions.isNotEmpty()) requestBreakManager(requestPositions)
-    }
-
-    private fun SafeContext.requestBreakManager(requestPositions: List<BlockPos>) {
+    private fun SafeContext.requestBreakManager(vararg requestPositions: BlockPos?) {
+        if (requestPositions.isEmpty()) return
         val request = BreakRequest(
-            breakContexts(requestPositions), build, rotation, hotbar, pendingInteractions = pendingInteractionsList,
+            breakContexts(requestPositions.filterNotNull()), build, rotation, hotbar, pendingInteractions = pendingInteractionsList,
             onAccept = {
+                if (breakConfig.doubleBreak && breakingPositions[1] == null) {
+                    breakingPositions[1] = breakingPositions[0]
+                }
                 breakingPositions[0] = it
                 reBreakPos = null
             },
@@ -123,15 +117,14 @@ object PacketMine : Module(
     }
 
     private fun nullifyBreakPos(pos: BlockPos, includeReBreak: Boolean = false) {
-        if (includeReBreak && pos == reBreakPos) {
-            reBreakPos = null
-            return
-        }
         breakingPositions.forEachIndexed { index, breakPos ->
             if (breakPos == pos) {
                 breakingPositions[index] = null
-                return
             }
+        }
+        if (includeReBreak && pos == reBreakPos) {
+            reBreakPos = null
+            return
         }
     }
 
