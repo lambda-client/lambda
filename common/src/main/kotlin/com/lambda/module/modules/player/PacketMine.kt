@@ -21,6 +21,7 @@ import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.HotbarSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
+import com.lambda.config.groups.ReBreakSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
@@ -59,12 +60,21 @@ object PacketMine : Module(
     private var itemDrops = 0
 
     private val breakingPositions = arrayOfNulls<BlockPos>(2)
+    private var reBreakPos: BlockPos? = null
 
     private var requestedThisTick = false
 
     init {
         listen<TickEvent.Post> {
             requestedThisTick = false
+        }
+
+        //ToDo: run on every tick stage
+        listen<TickEvent.Pre> {
+            val reBreakMode = breakConfig.reBreak.mode
+            if (reBreakMode != ReBreakSettings.Mode.Auto && reBreakMode != ReBreakSettings.Mode.AutoConstant) return@listen
+            val reBreak = reBreakPos ?: return@listen
+            requestBreakManager(listOf(reBreak))
         }
 
         listen<PlayerEvent.Attack.Block> { it.cancel() }
@@ -76,6 +86,7 @@ object PacketMine : Module(
             }
             breakingPositions[0] = null
             sendBreakRequest(event.pos)
+            requestedThisTick = true
         }
 
         listen<TickEvent.Input.Post> {
@@ -89,18 +100,33 @@ object PacketMine : Module(
             requestPositions.add(pos)
         }
 
+        if (requestPositions.isNotEmpty()) requestBreakManager(requestPositions)
+    }
+
+    private fun SafeContext.requestBreakManager(requestPositions: List<BlockPos>) {
         val request = BreakRequest(
             breakContexts(requestPositions), build, rotation, hotbar, pendingInteractions = pendingInteractionsList,
-            onAccept = { breakingPositions[0] = it },
-            onCancel = { nullifyBreakPos(it) },
-            onBreak = { breaks++; nullifyBreakPos(it) },
+            onAccept = {
+                breakingPositions[0] = it
+                reBreakPos = null
+            },
+            onCancel = { nullifyBreakPos(it, true) },
+            onBreak = {
+                breaks++
+                nullifyBreakPos(it)
+            },
+            onReBreakStart = { reBreakPos = it },
+            onReBreak = { reBreakPos = it },
             onItemDrop = { _ -> itemDrops++ }
         )
         breakConfig.request(request)
-        requestedThisTick = true
     }
 
-    private fun nullifyBreakPos(pos: BlockPos) {
+    private fun nullifyBreakPos(pos: BlockPos, includeReBreak: Boolean = false) {
+        if (includeReBreak && pos == reBreakPos) {
+            reBreakPos = null
+            return
+        }
         breakingPositions.forEachIndexed { index, breakPos ->
             if (breakPos == pos) {
                 breakingPositions[index] = null

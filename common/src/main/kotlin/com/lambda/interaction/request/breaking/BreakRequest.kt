@@ -39,6 +39,8 @@ data class BreakRequest(
     val onCancel: ((BlockPos) -> Unit)? = null,
     val onBreak: ((BlockPos) -> Unit)? = null,
     val onItemDrop: ((ItemEntity) -> Unit)? = null,
+    val onReBreakStart: ((BlockPos) -> Unit)? = null,
+    val onReBreak: ((BlockPos) -> Unit)? = null,
     private val prio: Priority = 0
 ) : Request(prio, build.breaking) {
     override val done: Boolean

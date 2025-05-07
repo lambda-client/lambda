@@ -51,6 +51,7 @@ object ReBreakManager {
             type = BreakType.ReBreak
             breaking = true
         }
+        info.request.onReBreakStart?.invoke(info.context.expectedPos)
     }
 
     fun clearReBreak() {

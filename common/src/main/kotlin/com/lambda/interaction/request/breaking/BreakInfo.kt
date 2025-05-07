@@ -43,6 +43,8 @@ data class BreakInfo(
     var breakingTicks = 0
     var soundsCooldown = 0.0f
 
+    var pending = false
+
     var vanillaInstantBreakable = false
     val reBreakable get() = !vanillaInstantBreakable && isPrimary
 

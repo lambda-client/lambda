@@ -455,7 +455,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      */
     private fun BreakInfo.nullify() {
         type.nullify()
-        if (!broken && !isReBreaking && !isRedundant) internalOnCancel()
+        if (!broken && !pending && !isReBreaking && !isRedundant) internalOnCancel()
     }
 
     /**
@@ -519,7 +519,9 @@ object BreakManager : RequestHandler<BreakRequest>(
                     } ?: false
                 }
                 is ReBreakResult.ReBroke -> {
+                    info.type = ReBreak
                     info.nullify()
+                    info.request.onReBreak?.invoke(info.context.expectedPos)
                     return true
                 }
                 else -> {}
