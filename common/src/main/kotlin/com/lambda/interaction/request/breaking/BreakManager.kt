@@ -133,6 +133,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                 .filterNotNull()
                 .firstOrNull { it.context.expectedPos == event.pos }
                 ?.let { info ->
+                    if (event.pos == ReBreakManager.reBreak?.context?.expectedPos) return@listen
+
                     // if not broken
                     if (!isBroken(info.context.checkedState, event.newState)) {
                         this@BreakManager.warn("Break at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.checkedState.brokenState}")
@@ -154,6 +156,10 @@ object BreakManager : RequestHandler<BreakRequest>(
         // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
         listen<EntityEvent.Update>(priority = Int.MIN_VALUE) {
             if (it.entity !is ItemEntity) return@listen
+
+            ReBreakManager.reBreak?.let { reBreak ->
+                if (matchesBlockItem(reBreak, it.entity)) return@listen
+            }
 
             breakInfos
                 .filterNotNull()
