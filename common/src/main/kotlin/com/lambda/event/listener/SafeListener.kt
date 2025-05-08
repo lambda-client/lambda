@@ -30,6 +30,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 
 
@@ -131,6 +132,51 @@ class SafeListener<T : Event>(
         }
 
         /**
+         * This function registers a new [SafeListener] for a generic [Event] type [T] with the given [KClass] instance to circumvent type erasure.
+         * The [function] is executed on the same thread where the [Event] was dispatched.
+         * The [function] will only be executed when the context satisfies certain safety conditions.
+         * These conditions are met when none of the following [SafeContext] properties are null:
+         * - [SafeContext.world]
+         * - [SafeContext.player]
+         * - [SafeContext.interaction]
+         * - [SafeContext.connection]
+         *
+         * This typically occurs when the user is in-game.
+         *
+         * Usage:
+         * ```kotlin
+         * listen(MyEvent::class) { event ->
+         *     player.sendMessage("Event received: $event")
+         * }
+         *
+         * listen(MyEvent::class, priority = 1) { event ->
+         *     player.sendMessage("Event received before the previous listener: $event")
+         * }
+         * ```
+         *
+         * @param kClass The KClass instance of covariant type [T] used to circumvent type erasure.
+         * @param T The type of the event to listen for. This should be a subclass of Event.
+         * @param priority The priority of the listener. Listeners with higher priority will be executed first. The Default value is 0.
+         * @param alwaysListen If true, the listener will be executed even if it is muted. The Default value is false.
+         * @param function The function to be executed when the event is posted. This function should take a SafeContext and an event of type T as parameters.
+         * @return The newly created and registered [SafeListener].
+         */
+        fun <T : Event> Any.listen(
+            kClass: KClass<out T>,
+            priority: Int = 0,
+            alwaysListen: Boolean = false,
+            function: SafeContext.(T) -> Unit = {},
+        ): SafeListener<T> {
+            val listener = SafeListener<T>(priority, this, alwaysListen) { event ->
+                runGameScheduled { function(event) }
+            }
+
+            EventFlow.syncListeners.subscribe(kClass, listener)
+
+            return listener
+        }
+
+        /**
          * This function registers a new [SafeListener] for a generic [Event] type [T].
          * The [predicate] is executed on the same thread where the [Event] was dispatched.
          * The [predicate] will only be executed when the context satisfies certain safety conditions.
@@ -176,7 +222,7 @@ class SafeListener<T : Event>(
                 }
             }
 
-            EventFlow.syncListeners.subscribe<T>(destroyable)
+            EventFlow.syncListeners.subscribe(destroyable)
 
             return pointer
         }
@@ -218,7 +264,7 @@ class SafeListener<T : Event>(
                 }
             }
 
-            EventFlow.concurrentListeners.subscribe<T>(listener)
+            EventFlow.concurrentListeners.subscribe(listener)
 
             return listener
         }

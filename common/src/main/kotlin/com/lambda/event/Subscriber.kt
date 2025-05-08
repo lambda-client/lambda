@@ -39,6 +39,14 @@ class Subscriber : ConcurrentHashMap<KClass<out Event>, ConcurrentSkipListSet<Li
     inline fun <reified T : Event> subscribe(listener: Listener<T>) =
         getOrPut(T::class) { defaultListenerSet }.add(listener)
 
+    /**
+     * Allows a [Listener] to start receiving a specific type of [Event]'s [KClass implementation](KC).
+     *
+     * This should only be used in cases where the type of the event is erased.
+     */
+    fun <T : Event> subscribe(kClass: KClass<out T>, listener: Listener<T>) =
+        getOrPut(kClass) { defaultListenerSet }.add(listener)
+
     /** Allows a [Subscriber] to start receiving all [Event]s of another [Subscriber]. */
     infix fun subscribe(subscriber: Subscriber) {
         subscriber.forEach { (eventType, listeners) ->
@@ -56,6 +64,7 @@ class Subscriber : ConcurrentHashMap<KClass<out Event>, ConcurrentSkipListSet<Li
 
     /**
      * Unsubscribes all listeners associated with the current instance (the caller object).
+     *
      * This method iterates over all values in the `Subscriber`'s map and removes listeners
      * whose `owner` property matches the caller object.
      *
