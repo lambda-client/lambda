@@ -91,6 +91,13 @@ object PacketMine : Module(
         listen<TickEvent.Input.Post> {
             if (!attackedThisTick) requestBreakManager(*breakingPositions.toList().toTypedArray())
         }
+
+        onDisable {
+            breakingPositions[0] = null
+            breakingPositions[1] = null
+            reBreakPos = null
+            attackedThisTick = false
+        }
     }
 
     private fun SafeContext.requestBreakManager(vararg requestPositions: BlockPos?) {
