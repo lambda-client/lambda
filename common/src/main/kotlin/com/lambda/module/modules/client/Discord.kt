@@ -18,6 +18,7 @@
 package com.lambda.module.modules.client
 
 import com.lambda.Lambda
+import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
 import com.lambda.event.events.WorldEvent
@@ -80,8 +81,8 @@ object Discord : Module(
         val auth = rpc.applicationManager.authenticate()
 
         linkDiscord(discordToken = auth.accessToken)
-            .fold(onSuccess = { updateToken(it); discordAuth = auth },
-                onFailure = { warn("Failed to link the discord account to the minecraft auth") })
+            .onSuccess { updateToken(it); discordAuth = auth }
+            .onFailure { LOG.error(it); warn("Failed to link your discord account") }
     }
 
     private fun stop() {

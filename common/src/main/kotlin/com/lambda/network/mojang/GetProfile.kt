@@ -15,24 +15,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.network.api.v1.endpoints
+package com.lambda.network.mojang
 
-import com.lambda.module.modules.client.Network.apiUrl
-import com.lambda.module.modules.client.Network.apiVersion
 import com.lambda.network.LambdaHttp
-import com.lambda.network.api.v1.models.Cape
+import com.mojang.authlib.GameProfile
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import java.util.UUID
 
 /**
- * Gets the cape of the given player UUID
+ * Gets a game profile from a username
  *
  * Example:
- *  - id: ab24f5d6-dcf1-45e4-897e-b50a7c5e7422
+ *  - name: jeb_
  *
- * @return results of cape
+ * @return result of [GameProfile]
  */
-suspend fun getCape(uuid: UUID) = runCatching {
-	LambdaHttp.get("$apiUrl/api/$apiVersion/cape?id=$uuid").body<Cape>()
+suspend fun getProfile(name: String) = runCatching {
+    LambdaHttp.get("https://api.mojang.com/users/profiles/minecraft/$name").body<GameProfile>()
+}
+
+/**
+ * Gets a game profile from a [UUID]
+ *
+ * Example:
+ *  - name: ab24f5d6-dcf1-45e4-897e-b50a7c5e7422
+ *
+ * @return result of [GameProfile]
+ */
+suspend fun getProfile(uuid: UUID) = runCatching {
+    LambdaHttp.get("https://api.minecraftservices.com/minecraft/profile/lookup/$uuid").body<GameProfile>()
 }

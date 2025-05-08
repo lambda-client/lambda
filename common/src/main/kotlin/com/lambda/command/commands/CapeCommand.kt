@@ -23,6 +23,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
+import com.lambda.network.CapeManager
 import com.lambda.network.CapeManager.updateCape
 import com.lambda.network.NetworkManager
 import com.lambda.util.Communication.info
@@ -38,7 +39,7 @@ object CapeCommand : LambdaCommand(
         required(literal("set")) {
             required(string("id")) { id ->
                 suggests { _, builder ->
-                    NetworkManager.capes
+                    CapeManager.capeList
                         .forEach { builder.suggest(it) }
 
                     builder.buildFuture()

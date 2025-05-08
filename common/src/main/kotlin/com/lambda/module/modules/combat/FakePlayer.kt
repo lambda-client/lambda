@@ -24,16 +24,13 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.network.LambdaHttp
+import com.lambda.network.mojang.getProfile
 import com.lambda.threading.onShutdown
 import com.lambda.util.Timer
 import com.lambda.util.player.spawnFakePlayer
 import com.mojang.authlib.GameProfile
-import io.ktor.client.call.*
-import io.ktor.client.request.*
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.client.network.PlayerListEntry
-import net.minecraft.entity.Entity
 import java.util.*
 import kotlin.time.Duration.Companion.seconds
 
@@ -75,9 +72,8 @@ object FakePlayer : Module(
         onDisable { fakePlayer?.discard(); fakePlayer = null }
     }
 
-    suspend fun SafeContext.fetchProfile(key: String): GameProfile {
-        val requestedProfile = LambdaHttp.get("https://api.mojang.com/users/profiles/minecraft/$key")
-            .body<GameProfile>()
+    suspend fun SafeContext.fetchProfile(user: String): GameProfile {
+        val requestedProfile = getProfile(user).getOrElse { return nilProfile }
 
         // Fetch the skin properties from mojang
         val properties = mc.sessionService.fetchProfile(requestedProfile.id, true)?.profile?.properties

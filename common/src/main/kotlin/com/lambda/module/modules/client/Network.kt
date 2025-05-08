@@ -49,10 +49,11 @@ object Network : Module(
     defaultTags = setOf(ModuleTag.CLIENT),
     enabledByDefault = true,
 ) {
-    val authServer  by setting("Auth Server", "auth.lambda-client.org")
-    val apiUrl      by setting("API Server", "https://api.lambda-client.org")
-    val apiVersion  by setting("API Version", ApiVersion.V1)
-    val mappings    by setting("Mappings", "https://mappings.lambda-client.org")
+    val authServer by setting("Auth Server", "auth.lambda-client.org")
+    val apiUrl by setting("API Server", "https://api.lambda-client.org")
+    val apiVersion by setting("API Version", ApiVersion.V1)
+    val mappings by setting("Mappings", "https://mappings.lambda-client.org")
+    val cdn by setting("CDN", "https://cdn.lambda-client.org")
 
     val gameVersion = SharedConstants.getGameVersion().name
 
@@ -79,10 +80,8 @@ object Network : Module(
             // a race condition where the game server haven't acknowledged the packets
             // and posted to the sessionserver api
             login(mc.session.username, hash ?: return@listenUnsafeConcurrently)
-                .fold(
-                    onSuccess = { updateToken(it) },
-                    onFailure = { LOG.warn("Unable to authenticate: $it") }
-                )
+                .onSuccess { updateToken(it) }
+                .onFailure { LOG.warn(it) }
         }
     }
 
@@ -103,6 +102,8 @@ object Network : Module(
 
     enum class ApiVersion(val value: String) {
         // We can use @Deprecated("Not supported") to remove old API versions in the future
-        V1("v1"),
+        V1("v1");
+
+        override fun toString() = value
     }
 }

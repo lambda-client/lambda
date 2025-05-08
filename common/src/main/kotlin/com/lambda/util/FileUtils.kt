@@ -64,7 +64,7 @@ object FileUtils {
     /**
      * Executes the [block] if the file is older than the given [duration]
      */
-    fun File.isOlderThan(duration: Duration, block: (File) -> Unit) =
+    inline fun File.isOlderThan(duration: Duration, block: (File) -> Unit) =
         ifExists { if (duration.inWholeMilliseconds < System.currentTimeMillis() - lastModified()) block(this) }
 
     /**
@@ -89,11 +89,13 @@ object FileUtils {
      *
      * @param block Lambda executed if the file doesn't exist or the file is empty
      */
-    inline fun File.createIfNotExists(block: (File) -> Unit): File {
-        if (length() == 0L) block(this)
+    inline fun File.createIfNotExists(block: (File) -> Unit = {}): File {
+        if (length() == 0L) {
+            parentFile.mkdirs()
+            createNewFile()
 
-        parentFile.mkdirs()
-        createNewFile()
+            block(this)
+        }
 
         return this
     }
