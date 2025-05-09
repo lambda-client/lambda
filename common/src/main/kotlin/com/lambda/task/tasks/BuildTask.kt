@@ -19,9 +19,7 @@ package com.lambda.task.tasks
 
 import baritone.api.pathing.goals.GoalBlock
 import com.lambda.Lambda.LOG
-import com.lambda.config.groups.BuildConfig
-import com.lambda.config.groups.InteractionConfig
-import com.lambda.config.groups.InventoryConfig
+import com.lambda.context.Configured
 import com.lambda.context.SafeContext
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -44,9 +42,7 @@ import com.lambda.interaction.construction.simulation.Simulation.Companion.simul
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
 import com.lambda.interaction.request.breaking.BreakRequest
-import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.placing.PlaceRequest
-import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
@@ -63,12 +59,8 @@ class BuildTask @Ta5kBuilder constructor(
     private val blueprint: Blueprint,
     private val finishOnDone: Boolean = true,
     private val collectDrops: Boolean = TaskFlowModule.build.collectDrops,
-    private val build: BuildConfig = TaskFlowModule.build,
-    private val rotation: RotationConfig = TaskFlowModule.rotation,
-    private val interact: InteractionConfig = TaskFlowModule.interact,
-    private val inventory: InventoryConfig = TaskFlowModule.inventory,
-    private val hotbar: HotbarConfig = TaskFlowModule.hotbar,
-) : Task<Unit>() {
+    configured: Configured
+) : Task<Unit>(), Configured by configured {
     override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).string} b/s ${(placements / (age / 20.0 + 0.001)).string} p/s"
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
@@ -95,7 +87,7 @@ class BuildTask @Ta5kBuilder constructor(
         listen<TickEvent.Pre> {
             if (collectDrops()) return@listen
 
-            val results = blueprint.simulate(player.eyePos, interact, rotation, inventory, build)
+            val results = simulate(blueprint, player.eyePos)
 
             TaskFlowModule.drawables = results
                 .filterIsInstance<Drawable>()
@@ -125,7 +117,7 @@ class BuildTask @Ta5kBuilder constructor(
                 is BuildResult.NotVisible,
                 is PlaceResult.NoIntegrity -> {
                     if (!build.pathing) return@listen
-                    val sim = blueprint.simulation(interact, rotation, inventory, build)
+                    val sim = blueprint.simulation()
                     val goal = BuildGoal(sim, player.blockPos)
                     BaritoneUtils.setGoalAndPath(goal)
                 }
@@ -180,8 +172,9 @@ class BuildTask @Ta5kBuilder constructor(
 
                 is Resolvable -> {
                     LOG.info("Resolving: ${bestResult.name}")
-
-                    bestResult.resolve().execute(this@BuildTask)
+                    bestResult.run {
+                        resolve().execute(this@BuildTask)
+                    }
                 }
             }
         }
@@ -228,62 +221,44 @@ class BuildTask @Ta5kBuilder constructor(
 
     companion object {
         @Ta5kBuilder
-        fun build(
-            finishOnDone: Boolean = true,
-            collectDrops: Boolean = TaskFlowModule.build.collectDrops,
-            build: BuildConfig = TaskFlowModule.build,
-            rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
-            inventory: InventoryConfig = TaskFlowModule.inventory,
+        fun Configured.build(
             blueprint: () -> Blueprint,
-        ) = BuildTask(blueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory)
-
-        @Ta5kBuilder
-        fun Structure.build(
             finishOnDone: Boolean = true,
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
-            build: BuildConfig = TaskFlowModule.build,
-            rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
-            inventory: InventoryConfig = TaskFlowModule.inventory,
-        ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory)
+        ) = BuildTask(blueprint(), finishOnDone, collectDrops, this)
 
         @Ta5kBuilder
-        fun Blueprint.build(
+        fun Configured.build(
+            structure: Structure,
             finishOnDone: Boolean = true,
-            collectDrops: Boolean = TaskFlowModule.build.collectDrops,
-            build: BuildConfig = TaskFlowModule.build,
-            rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
-            inventory: InventoryConfig = TaskFlowModule.inventory,
-        ) = BuildTask(this, finishOnDone, collectDrops, build, rotation, interact, inventory)
+            collectDrops: Boolean = TaskFlowModule.build.collectDrops
+        ) = BuildTask(structure.toBlueprint(), finishOnDone, collectDrops, this)
 
         @Ta5kBuilder
-        fun breakAndCollectBlock(
+        fun Configured.build(
+            blueprint: Blueprint,
+            finishOnDone: Boolean = true,
+            collectDrops: Boolean = TaskFlowModule.build.collectDrops
+        ) = BuildTask(blueprint, finishOnDone, collectDrops, this)
+
+        @Ta5kBuilder
+        fun Configured.breakAndCollectBlock(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
             collectDrops: Boolean = true,
-            build: BuildConfig = TaskFlowModule.build,
-            rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
-            inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, collectDrops, build, rotation, interact, inventory
+            finishOnDone, collectDrops, this
         )
 
         @Ta5kBuilder
-        fun breakBlock(
+        fun Configured.breakBlock(
             blockPos: BlockPos,
             finishOnDone: Boolean = true,
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
-            build: BuildConfig = TaskFlowModule.build,
-            rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
-            inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
-            finishOnDone, collectDrops, build, rotation, interact, inventory
+            finishOnDone, collectDrops, this
         )
     }
 }

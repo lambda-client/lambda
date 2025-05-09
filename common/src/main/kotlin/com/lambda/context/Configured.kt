@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,11 +15,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.result
+package com.lambda.context
 
-import com.lambda.context.Configured
-import com.lambda.task.Task
+import com.lambda.config.groups.BuildConfig
+import com.lambda.config.groups.InteractionConfig
+import com.lambda.config.groups.InventoryConfig
+import com.lambda.interaction.request.hotbar.HotbarConfig
+import com.lambda.interaction.request.rotation.RotationConfig
 
-interface Resolvable {
-    fun Configured.resolve(): Task<*>
+interface Configured {
+    val build: BuildConfig
+    val interact: InteractionConfig
+    val inventory: InventoryConfig
+    val hotbar: HotbarConfig
+    val rotation: RotationConfig
 }

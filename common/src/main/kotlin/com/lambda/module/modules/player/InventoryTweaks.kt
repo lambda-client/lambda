@@ -18,13 +18,14 @@
 package com.lambda.module.modules.player
 
 import com.lambda.config.groups.InventorySettings
+import com.lambda.context.DefaultConfigs
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.Task
 import com.lambda.task.RootTask.run
+import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainer
 import com.lambda.task.tasks.PlaceContainer
@@ -65,7 +66,7 @@ object InventoryTweaks : Module(
             if (event.screenHandler != lastOpenScreen) return@listen
             lastOpenScreen = null
             placedPos?.let {
-                lastBreak = breakAndCollectBlock(it).run()
+                lastBreak = DefaultConfigs.breakAndCollectBlock(it).run()
                 placedPos = null
             }
         }

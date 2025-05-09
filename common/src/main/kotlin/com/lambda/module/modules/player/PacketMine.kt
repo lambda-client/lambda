@@ -22,7 +22,9 @@ import com.lambda.config.groups.HotbarSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
-import com.lambda.context.SafeContext
+import com.lambda.context.Configured
+import com.lambda.context.ConfiguredSafeContext
+import com.lambda.context.DefaultConfigs
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
@@ -34,6 +36,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.util.math.BlockPos
@@ -43,16 +46,17 @@ object PacketMine : Module(
     "PacketMine",
     "automatically breaks blocks, and does it faster",
     setOf(ModuleTag.PLAYER)
-) {
+), Configured by DefaultConfigs {
     private val page by setting("Page", Page.Build)
 
-    private val build = BuildSettings(this) { page == Page.Build }
-    private val breakConfig = build.breaking
-    private val rotation = RotationSettings(this) { page == Page.Rotation }
-    private val interact = InteractionSettings(this, InteractionMask.Block) { page == Page.Interaction }
-    private val inventory = InventorySettings(this) { page == Page.Inventory }
-    private val hotbar = HotbarSettings(this) { page == Page.Hotbar }
-    private val reBreakMode by setting("ReBreak Mode", ReBreakMode.Manual, "The method used to re-break blocks after they've been broken once") { breakConfig.reBreak }
+    override val build = BuildSettings(this) { page == Page.Build }
+    val breaking = build.breaking
+    val placing = build.placing
+    override val rotation = RotationSettings(this) { page == Page.Rotation }
+    override val interact = InteractionSettings(this, InteractionMask.Block) { page == Page.Interaction }
+    override val inventory = InventorySettings(this) { page == Page.Inventory }
+    override val hotbar = HotbarSettings(this) { page == Page.Hotbar }
+    private val reBreakMode by setting("ReBreak Mode", ReBreakMode.Manual, "The method used to re-break blocks after they've been broken once") { breaking.reBreak }
 
     private val pendingInteractionsList = ConcurrentLinkedQueue<BuildContext>()
 
@@ -71,7 +75,7 @@ object PacketMine : Module(
 
         //ToDo: run on every tick stage
         listen<TickEvent.Pre> {
-            if (!breakConfig.reBreak || (reBreakMode != ReBreakMode.Auto && reBreakMode != ReBreakMode.AutoConstant)) return@listen
+            if (!breaking.reBreak || (reBreakMode != ReBreakMode.Auto && reBreakMode != ReBreakMode.AutoConstant)) return@listen
             val reBreak = reBreakPos ?: return@listen
             requestBreakManager(reBreak)
         }
@@ -80,7 +84,7 @@ object PacketMine : Module(
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
             if (breakingPositions.any { it == event.pos }) return@listen
-            val secondary = if (breakConfig.doubleBreak) {
+            val secondary = if (breaking.doubleBreak) {
                 breakingPositions[1] ?: breakingPositions[0]
             } else null
             requestBreakManager(event.pos, secondary)
@@ -88,7 +92,9 @@ object PacketMine : Module(
         }
 
         listen<TickEvent.Input.Post> {
-            if (!attackedThisTick) requestBreakManager(*breakingPositions.toList().toTypedArray())
+            if (!attackedThisTick) runSafe {
+                requestBreakManager(*breakingPositions.toList().toTypedArray())
+            }
         }
 
         onDisable {
@@ -99,27 +105,29 @@ object PacketMine : Module(
         }
     }
 
-    private fun SafeContext.requestBreakManager(vararg requestPositions: BlockPos?) {
+    private fun requestBreakManager(vararg requestPositions: BlockPos?) {
         if (requestPositions.isEmpty()) return
-        val request = BreakRequest(
-            breakContexts(requestPositions.filterNotNull()), build, rotation, hotbar, pendingInteractions = pendingInteractionsList,
-            onAccept = {
-                if (breakConfig.doubleBreak && breakingPositions[1] == null) {
-                    breakingPositions[1] = breakingPositions[0]
-                }
-                breakingPositions[0] = it
-                reBreakPos = null
-            },
-            onCancel = { nullifyBreakPos(it, true) },
-            onBreak = {
-                breaks++
-                nullifyBreakPos(it)
-            },
-            onReBreakStart = { reBreakPos = it },
-            onReBreak = { reBreakPos = it },
-            onItemDrop = { _ -> itemDrops++ }
-        )
-        breakConfig.request(request)
+        runSafe {
+            val request = BreakRequest(
+                breakContexts(requestPositions.filterNotNull()), build, rotation, hotbar, pendingInteractions = pendingInteractionsList,
+                onAccept = {
+                    if (this@PacketMine.breaking.doubleBreak && breakingPositions[1] == null) {
+                        breakingPositions[1] = breakingPositions[0]
+                    }
+                    breakingPositions[0] = it
+                    reBreakPos = null
+                },
+                onCancel = { nullifyBreakPos(it, true) },
+                onBreak = {
+                    breaks++
+                    nullifyBreakPos(it)
+                },
+                onReBreakStart = { reBreakPos = it },
+                onReBreak = { reBreakPos = it },
+                onItemDrop = { _ -> itemDrops++ }
+            )
+            this@PacketMine.breaking.request(request)
+        }
     }
 
     private fun nullifyBreakPos(pos: BlockPos, includeReBreak: Boolean = false) {
@@ -134,18 +142,12 @@ object PacketMine : Module(
         }
     }
 
-    private fun SafeContext.breakContexts(breakPositions: Collection<BlockPos>) =
-        breakPositions
-            .associateWith { TargetState.State(blockState(it).fluidState.blockState) }
-            .toBlueprint()
-            .simulate(
-                player.eyePos,
-                interact = interact,
-                rotation = rotation,
-                inventory = inventory,
-                build = build
-            )
-            .filterIsInstance<BreakResult.Break>()
+    private fun ConfiguredSafeContext.breakContexts(breakPositions: Collection<BlockPos>) =
+        simulate(
+            breakPositions
+                .associateWith { TargetState.State(blockState(it).fluidState.blockState) }
+                .toBlueprint(), player.eyePos
+        ).filterIsInstance<BreakResult.Break>()
             .map { it.context }
 
     enum class Page {

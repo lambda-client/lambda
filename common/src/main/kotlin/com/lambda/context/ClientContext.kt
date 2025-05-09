@@ -35,16 +35,29 @@ import net.minecraft.client.world.ClientWorld
  *
  * @function toSafe Converts the `ClientContext` to a `SafeContext` if all properties are not `null`, or returns `null` otherwise.
  */
-open class ClientContext : AbstractContext() {
-    final override val world: ClientWorld? = mc.world
-    final override val player: ClientPlayerEntity? = mc.player
-    final override val interaction: ClientPlayerInteractionManager? = mc.interactionManager
-    final override val connection: ClientPlayNetworkHandler? = mc.networkHandler
+open class ClientContext {
+    val mc: MinecraftClient = MinecraftClient.getInstance()
+    val clientWorld: ClientWorld? = mc.world
+    val clientPlayer: ClientPlayerEntity? = mc.player
+    val clientInteraction: ClientPlayerInteractionManager? = mc.interactionManager
+    val clientConnection: ClientPlayNetworkHandler? = mc.networkHandler
 
     fun toSafe(): SafeContext? {
-        if (world == null || player == null || interaction == null || connection == null) {
+        if (clientWorld == null || clientPlayer == null || clientInteraction == null || clientConnection == null) {
             return null
         }
-        return SafeContext(world, player, interaction, connection)
+        return object : SafeContext {
+            override val mc = this@ClientContext.mc
+            override val world: ClientWorld = clientWorld
+            override val player: ClientPlayerEntity = clientPlayer
+            override val interaction: ClientPlayerInteractionManager = clientInteraction
+            override val connection: ClientPlayNetworkHandler = clientConnection
+        }
+    }
+
+    fun toSafeConfigured(configured: Configured): ConfiguredSafeContext? {
+        return toSafe()?.let { safeContext ->
+            ConfiguredSafeContext(safeContext, configured)
+        }
     }
 }

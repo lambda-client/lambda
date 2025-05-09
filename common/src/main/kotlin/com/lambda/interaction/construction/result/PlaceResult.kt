@@ -19,6 +19,7 @@ package com.lambda.interaction.construction.result
 
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalInverted
+import com.lambda.context.Configured
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.task.tasks.BuildTask.Companion.breakBlock
@@ -109,7 +110,7 @@ sealed class PlaceResult : BuildResult() {
     ) : Resolvable, PlaceResult() {
         override val rank = Rank.PLACE_CANT_REPLACE
 
-        override fun resolve() = breakBlock(blockPos)
+        override fun Configured.resolve() = breakBlock(blockPos)
     }
 
     /**

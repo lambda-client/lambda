@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,11 +15,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.result
+package com.lambda.context
 
-import com.lambda.context.Configured
-import com.lambda.task.Task
+import com.lambda.module.modules.client.TaskFlowModule
 
-interface Resolvable {
-    fun Configured.resolve(): Task<*>
+object DefaultConfigs : Configured {
+    override val build     = TaskFlowModule.build
+    override val interact  = TaskFlowModule.interact
+    override val inventory = TaskFlowModule.inventory
+    override val hotbar    = TaskFlowModule.hotbar
+    override val rotation  = TaskFlowModule.rotation
 }
+
+val Configured.breaking get() = build.breaking
+val Configured.placing get() = build.placing
