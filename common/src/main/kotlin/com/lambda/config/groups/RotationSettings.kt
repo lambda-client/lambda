@@ -18,6 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
+import com.lambda.event.events.TickEvent
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationMode
@@ -44,7 +45,7 @@ class RotationSettings(
     /**
      * At what sub-tick stages rotations can be performed
      */
-    override val rotationStageMask by c.setting("Rotation Stage Mask", setOf(*TickStage.entries.toTypedArray()), "The sub-tick stages at which rotations can be performed", vis)
+    override val rotationStageMask by c.setting("Rotation Stage Mask", setOf(TickEvent.Pre, TickEvent.Input.Pre, TickEvent.Player.Post), "The sub-tick stages at which rotations can be performed", vis)
 
     /** Whether the rotation is instant */
     var instant by c.setting("Instant Rotation", true, "Instantly rotate") { rotate && vis() }
