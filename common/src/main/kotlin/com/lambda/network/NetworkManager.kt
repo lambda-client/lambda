@@ -17,61 +17,49 @@
 
 package com.lambda.network
 
-import com.lambda.Lambda.gson
 import com.lambda.Lambda.mc
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.UserConfig
 import com.lambda.core.Loadable
 import com.lambda.network.api.v1.models.Authentication
 import com.lambda.network.api.v1.models.Authentication.Data
-import com.lambda.util.reflections.getResources
-import java.io.File
+import com.lambda.util.StringUtils.base64UrlDecode
+import com.lambda.util.StringUtils.json
+import com.lambda.util.collections.updatableLazy
 import java.util.*
 
 object NetworkManager : Configurable(UserConfig), Loadable {
     override val name = "network"
 
-    var accessToken by setting("authentication", ""); private set
+    var accessToken by setting("access_token", ""); private set
 
-    val isDiscordLinked: Boolean
-        get() = deserialized?.data?.discordId != null
-
-    /**
-     * Returns whether the auth has expired
-     */
-    val isExpired: Boolean
-        get() = (deserialized?.expirationDate ?: 0) < System.currentTimeMillis()
-
-    /**
-     * Returns whether the auth token is invalid or not
-     */
     val isValid: Boolean
-        get() = mc.gameProfile.name == deserialized?.data?.name &&
-                mc.gameProfile.id == deserialized?.data?.uuid &&
-                !isExpired
+        get() = mc.gameProfile.name == auth.value?.data?.name &&
+                mc.gameProfile.id == auth.value?.data?.uuid &&
+                System.currentTimeMillis() > (auth.value?.expirationDate ?: Long.MAX_VALUE)
 
-    private var deserialized: Data? = null
+    private val auth = updatableLazy {
+        val parts = accessToken.split(".")
+        if (parts.size != 3) return@updatableLazy null
 
-    // ToDo: Fetch remote file instead of checking local files
-    val capes = getResources(".*.png")
-        .filter { it.contains("capes") } // filterByInput hangs the program
-        .map { File(it).nameWithoutExtension }
+        val payload = parts[1]
+        val data = payload.base64UrlDecode().json<Data>()
+
+        return@updatableLazy if (System.currentTimeMillis() < data.expirationDate) null
+        else data
+    }
 
     fun updateToken(resp: Authentication) {
         accessToken = resp.accessToken
-        decodeAuth(accessToken)
+        auth.update()
     }
 
-    private fun decodeAuth(token: String) {
-        val payload = token.split(".").getOrNull(1) ?: return
-        deserialized = gson.fromJson(String(Base64.getUrlDecoder().decode(payload)), Data::class.java)
-    }
 
     override fun load(): String {
-        decodeAuth(accessToken)
+        auth.update()
 
-        // ToDo: Re-authenticate every 24 hours
-
-        return "Loaded ${capes.size} capes"
+        return auth.value
+            ?.let { "Logged you in as ${it.data.name} (${it.data.uuid})" }
+            ?: "You are not authenticated"
     }
 }

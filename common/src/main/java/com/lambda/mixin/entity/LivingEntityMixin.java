@@ -38,6 +38,21 @@ public abstract class LivingEntityMixin extends EntityMixin {
     @Shadow
     protected abstract float getJumpVelocity();
 
+    /**
+     * Overwrites the jump function to use our rotation and movements
+     * <pre>{@code
+     * protected void jump() {
+     *     Vec3d vec3d = this.getVelocity();
+     *     this.setVelocity(vec3d.x, (double)this.getJumpVelocity(), vec3d.z);
+     *     if (this.isSprinting()) {
+     *         float f = this.getYaw() * (float) (Math.PI / 180.0);
+     *         this.setVelocity(this.getVelocity().add((double)(-MathHelper.sin(f) * 0.2F), 0.0, (double)(MathHelper.cos(f) * 0.2F)));
+     *     }
+     *
+     *     this.velocityDirty = true;
+     * }
+     * }</pre>
+     */
     @Inject(method = "jump", at = @At("HEAD"), cancellable = true)
     void onJump(CallbackInfo ci) {
         LivingEntity self = (LivingEntity) (Object) this;
@@ -74,6 +89,9 @@ public abstract class LivingEntityMixin extends EntityMixin {
         EventFlow.post(new MovementEvent.Entity.Post((LivingEntity) (Object) this, movementInput));
     }
 
+    /**
+     * Modifies the entity pitch with the current rotation when the entity is fall flying
+     */
     @Redirect(method = "travel", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getPitch()F"))
     private float hookModifyFallFlyingPitch(LivingEntity entity) {
         Float pitch = RotationManager.getMovementPitch();
@@ -82,6 +100,27 @@ public abstract class LivingEntityMixin extends EntityMixin {
         return pitch;
     }
 
+    /**
+     * Modifies the entity yaw with the active rotation yaw when the entity swing its hand
+     * <pre>{@code
+     * protected float turnHead(float bodyRotation, float headRotation) {
+     *     float f = MathHelper.wrapDegrees(bodyRotation - this.bodyYaw);
+     *     this.bodyYaw += f * 0.3F;
+     *     float g = MathHelper.wrapDegrees(this.getYaw() - this.bodyYaw);
+     *     float h = this.getMaxRelativeHeadRotation();
+     *     if (Math.abs(g) > h) {
+     *         this.bodyYaw = this.bodyYaw + (g - (float)MathHelper.sign((double)g) * h);
+     *     }
+     *
+     *     boolean bl = g < -90.0F || g >= 90.0F;
+     *     if (bl) {
+     *         headRotation *= -1.0F;
+     *     }
+     *
+     *     return headRotation;
+     * }
+     * }</pre>
+     */
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getYaw()F"), slice = @Slice(to = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getYaw()F", ordinal = 1)))
     private float rotBody(LivingEntity entity) {
         if ((Object) this != Lambda.getMc().player) {
@@ -92,6 +131,27 @@ public abstract class LivingEntityMixin extends EntityMixin {
         return (yaw == null) ? entity.getYaw() : yaw;
     }
 
+    /**
+     * Modifies the entity yaw with the active rotation yaw
+     * <pre>{@code
+     * protected float turnHead(float bodyRotation, float headRotation) {
+     *     float f = MathHelper.wrapDegrees(bodyRotation - this.bodyYaw);
+     *     this.bodyYaw += f * 0.3F;
+     *     float g = MathHelper.wrapDegrees(this.getYaw() - this.bodyYaw);
+     *     float h = this.getMaxRelativeHeadRotation();
+     *     if (Math.abs(g) > h) {
+     *         this.bodyYaw = this.bodyYaw + (g - (float)MathHelper.sign((double)g) * h);
+     *     }
+     *
+     *     boolean bl = g < -90.0F || g >= 90.0F;
+     *     if (bl) {
+     *         headRotation *= -1.0F;
+     *     }
+     *
+     *     return headRotation;
+     * }
+     * }</pre>
+     */
     @Redirect(method = "turnHead", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getYaw()F"))
     private float rotHead(LivingEntity entity) {
         if ((Object) this != Lambda.getMc().player) {

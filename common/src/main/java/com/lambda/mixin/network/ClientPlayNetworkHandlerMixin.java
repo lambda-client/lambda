@@ -24,7 +24,12 @@ import com.lambda.module.modules.render.NoRender;
 import com.lambda.event.events.WorldEvent;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.PlayerListEntry;
+import net.minecraft.client.network.ServerInfo;
+import net.minecraft.client.option.ServerList;
+import net.minecraft.client.toast.SystemToast;
+import net.minecraft.network.NetworkThreadUtils;
 import net.minecraft.network.packet.s2c.play.*;
+import net.minecraft.world.explosion.Explosion;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -40,15 +45,14 @@ public class ClientPlayNetworkHandlerMixin {
 
     @Inject(method = "handlePlayerListAction(Lnet/minecraft/network/packet/s2c/play/PlayerListS2CPacket$Action;Lnet/minecraft/network/packet/s2c/play/PlayerListS2CPacket$Entry;Lnet/minecraft/client/network/PlayerListEntry;)V", at = @At("TAIL"))
     void injectPlayerList(PlayerListS2CPacket.Action action, PlayerListS2CPacket.Entry receivedEntry, PlayerListEntry currentEntry, CallbackInfo ci) {
-        if (action != PlayerListS2CPacket.Action.ADD_PLAYER) return;
+        if (action != PlayerListS2CPacket.Action.UPDATE_LISTED) return;
 
         var name = currentEntry.getProfile().getName();
         var uuid = currentEntry.getProfile().getId();
 
-        if (receivedEntry.listed())
+        if (receivedEntry.listed()) {
             EventFlow.post(new WorldEvent.Player.Join(name, uuid, currentEntry));
-        else
-            EventFlow.post(new WorldEvent.Player.Leave(name, uuid, currentEntry));
+        } else EventFlow.post(new WorldEvent.Player.Leave(name, uuid, currentEntry));
     }
 
     @Inject(method = "onUpdateSelectedSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/util/thread/ThreadExecutor;)V", shift = At.Shift.AFTER), cancellable = true)
@@ -61,19 +65,42 @@ public class ClientPlayNetworkHandlerMixin {
         EventFlow.post(new InventoryEvent.SlotUpdate(packet.getSyncId(), packet.getRevision(), packet.getSlot(), packet.getStack()));
     }
 
+    /**
+     * Sets displayedUnsecureChatWarning to {@link NoRender#getNoChatVerificationToast()}
+     * <pre>{@code
+     * public void onServerMetadata(ServerMetadataS2CPacket packet) {
+     *     NetworkThreadUtils.forceMainThread(packet, this, this.client);
+     *     if (this.serverInfo != null) {
+     *         this.serverInfo.label = packet.getDescription();
+     *         packet.getFavicon().map(ServerInfo::validateFavicon).ifPresent(this.serverInfo::setFavicon);
+     *         this.serverInfo.setSecureChatEnforced(packet.isSecureChatEnforced());
+     *         ServerList.updateServerListEntry(this.serverInfo);
+     *         if (!this.displayedUnsecureChatWarning && !this.isSecureChatEnforced()) {
+     *             SystemToast systemToast = SystemToast.create(this.client, SystemToast.Type.UNSECURE_SERVER_WARNING, UNSECURE_SERVER_TOAST_TITLE, UNSECURE_SERVER_TOAST_TEXT);
+     *             this.client.getToastManager().add(systemToast);
+     *             this.displayedUnsecureChatWarning = true;
+     *         }
+     *     }
+     * }
+     * }</pre>
+     */
     @Redirect(method = "onServerMetadata", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;displayedUnsecureChatWarning:Z", ordinal = 0))
     public boolean onServerMetadata(ClientPlayNetworkHandler clientPlayNetworkHandler) {
         return NoRender.getNoChatVerificationToast();
     }
 
-    // Cancel player velocity if Velocity module is enabled
-    // Reference net.minecraft.client.network.ClientPlayNetworkHandler.onExplosion
-    //
-    // Explosion explosion = new Explosion(this.client.world, (Entity)null, packet.getX(), packet.getY(), packet.getZ(), packet.getRadius(), packet.getAffectedBlocks(), packet.getDestructionType(), packet.getParticle(), packet.getEmitterParticle(), packet.getSoundEvent());
-    // explosion.affectWorld(true);
-    // this.client.player.setVelocity(this.client.player.getVelocity().add((double)packet.getPlayerVelocityX(), (double)packet.getPlayerVelocityY(), (double)packet.getPlayerVelocityZ()));
+    /**
+     * Cancels the player velocity if {@link Velocity#getExplosion()} is true
+     * <pre>{@code
+     * public void onExplosion(ExplosionS2CPacket packet) {
+     *     Explosion explosion = new Explosion(this.client.world, (Entity) null, packet.getX(), packet.getY(), packet.getZ(), packet.getRadius(), packet.getAffectedBlocks(), packet.getDestructionType(), packet.getParticle(), packet.getEmitterParticle(), packet.getSoundEvent());
+     *     explosion.affectWorld(true);
+     *     this.client.player.setVelocity(this.client.player.getVelocity().add((double) packet.getPlayerVelocityX(), (double) packet.getPlayerVelocityY(), (double) packet.getPlayerVelocityZ()));
+     * }
+     * }</pre>
+     */
     @Inject(method = "onExplosion(Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;setVelocity(Lnet/minecraft/util/math/Vec3d;)V"), cancellable = true)
     void injectVelocity(ExplosionS2CPacket packet, CallbackInfo ci) {
-        if (Velocity.INSTANCE.isEnabled()) ci.cancel();
+        if (Velocity.getExplosion()) ci.cancel();
     }
 }

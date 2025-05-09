@@ -18,7 +18,6 @@
 package com.lambda.mixin.world;
 
 import com.lambda.module.modules.render.NoRender;
-import net.minecraft.particle.ParticleEffect;
 import net.minecraft.world.explosion.Explosion;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,18 +26,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Explosion.class)
 public class ExplosionMixin {
-    // net.minecraft.world.explosion.Explosion.affectWorld
-    //  Cancel adding particles to the world if NoRender noExplosion == true
-    //        if (particles) {
-    //            ParticleEffect particleEffect;
-    //            if (!(this.power < 2.0F) && bl) {
-    //                particleEffect = this.emitterParticle;
-    //            } else {
-    //                particleEffect = this.particle;
-    //            }
-    //
-    //            this.world.addParticle(particleEffect, this.x, this.y, this.z, 1.0, 0.0, 0.0);
-    //        }
+    /**
+     * Cancels the method if {@link NoRender#getNoExplosion()} is true
+     * <pre>{@code
+     * if (particles) {
+     *     ParticleEffect particleEffect;
+     *     if (!(this.power < 2.0F) && bl) {
+     *         particleEffect = this.emitterParticle;
+     *     } else {
+     *         particleEffect = this.particle;
+     *     }
+     *
+     *     this.world.addParticle(particleEffect, this.x, this.y, this.z, 1.0, 0.0, 0.0);
+     * }
+     * }</pre>
+     */
     @Inject(method = "affectWorld(Z)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/World;addParticle(Lnet/minecraft/particle/ParticleEffect;DDDDDD)V"), cancellable = true)
     void injectParticles(boolean particles, CallbackInfo ci) {
         if (NoRender.getNoExplosion()) ci.cancel();

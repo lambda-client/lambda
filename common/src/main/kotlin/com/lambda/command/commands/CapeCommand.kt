@@ -23,9 +23,11 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
+import com.lambda.network.CapeManager
 import com.lambda.network.CapeManager.updateCape
 import com.lambda.network.NetworkManager
-import com.lambda.threading.runSafe
+import com.lambda.util.Communication.info
+import com.lambda.util.Communication.logError
 import com.lambda.util.extension.CommandBuilder
 
 object CapeCommand : LambdaCommand(
@@ -37,16 +39,17 @@ object CapeCommand : LambdaCommand(
         required(literal("set")) {
             required(string("id")) { id ->
                 suggests { _, builder ->
-                    NetworkManager.capes
+                    CapeManager.capeList
                         .forEach { builder.suggest(it) }
 
                     builder.buildFuture()
                 }
 
                 execute {
-                    runSafe {
-                        val cape = id().value()
-                        updateCape(cape)
+                    val cape = id().value()
+                    updateCape(cape) { error ->
+                        if (error != null) logError("Could not update your cape", error)
+                        else info("Updated your cape to $cape")
                     }
                 }
             }

@@ -45,6 +45,9 @@ public abstract class EntityMixin {
     @Shadow
     public abstract float getYaw();
 
+    /**
+     * Modifies the player yaw when there is an active rotation to apply the player velocity correctly
+     */
     @Redirect(method = "updateVelocity", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw()F"))
     public float velocityYaw(Entity entity) {
         if ((Object) this != Lambda.getMc().player) return getYaw();
@@ -55,6 +58,14 @@ public abstract class EntityMixin {
         return y;
     }
 
+    /**
+     * Modifies the player yaw for the given tick delta for interpolation when there is an active rotation
+     * <pre>{@code
+     * public final Vec3d getRotationVec(float tickDelta) {
+     *     return this.getRotationVector(this.getPitch(tickDelta), this.getYaw(tickDelta));
+     * }
+     * }</pre>
+     */
     @Redirect(method = "getRotationVec", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw(F)F"))
     float fixDirectionYaw(Entity entity, float tickDelta) {
         Vec2d rot = RotationManager.getRotationForVector(tickDelta);
@@ -63,6 +74,14 @@ public abstract class EntityMixin {
         return (float) rot.getX();
     }
 
+    /**
+     * Modifies the player pitch for the given tick delta for interpolation when there is an active rotation
+     * <pre>{@code
+     * public final Vec3d getRotationVec(float tickDelta) {
+     *     return this.getRotationVector(this.getPitch(tickDelta), this.getYaw(tickDelta));
+     * }
+     * }</pre>
+     */
     @Redirect(method = "getRotationVec", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getPitch(F)F"))
     float fixDirectionPitch(Entity entity, float tickDelta) {
         Vec2d rot = RotationManager.getRotationForVector(tickDelta);
@@ -71,6 +90,14 @@ public abstract class EntityMixin {
         return (float) rot.getY();
     }
 
+    /**
+     * Modifies the player yaw for the current rotation yaw
+     * <pre>{@code
+     * public Vec3d getRotationVector() {
+     * 	return this.getRotationVector(this.getPitch(), this.getYaw());
+     * }
+     * }</pre>
+     */
     @Redirect(method = "getRotationVector()Lnet/minecraft/util/math/Vec3d;", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw()F"))
     float fixDirectionYaw2(Entity entity) {
         Vec2d rot = RotationManager.getRotationForVector(1.0);
@@ -79,6 +106,14 @@ public abstract class EntityMixin {
         return (float) rot.getX();
     }
 
+    /**
+     * Modifies the player yaw for the current rotation pitch
+     * <pre>{@code
+     * public Vec3d getRotationVector() {
+     * 	return this.getRotationVector(this.getPitch(), this.getYaw());
+     * }
+     * }</pre>
+     */
     @Redirect(method = "getRotationVector()Lnet/minecraft/util/math/Vec3d;", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getPitch()F"))
     float fixDirectionPitch2(Entity entity) {
         Vec2d rot = RotationManager.getRotationForVector(1.0);
@@ -95,8 +130,7 @@ public abstract class EntityMixin {
     @Inject(method = "onTrackedDataSet(Lnet/minecraft/entity/data/TrackedData;)V", at = @At("TAIL"))
     public void onTrackedDataSet(TrackedData<?> data, CallbackInfo ci) {
         Entity entity = (Entity) (Object) this;
-
-        EventFlow.post(new EntityEvent.EntityUpdate(entity, data));
+        EventFlow.post(new EntityEvent.Update(entity, data));
     }
 
     // ToDo: Does not trigger for some reason.

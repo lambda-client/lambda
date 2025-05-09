@@ -46,6 +46,7 @@ import net.minecraft.block.entity.FurnaceBlockEntity
 import net.minecraft.block.entity.HopperBlockEntity
 import net.minecraft.block.entity.ShulkerBoxBlockEntity
 import net.minecraft.block.entity.SmokerBlockEntity
+import net.minecraft.block.entity.TrappedChestBlockEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.decoration.ItemFrameEntity
 import net.minecraft.entity.vehicle.AbstractMinecartEntity
@@ -89,6 +90,7 @@ object StorageESP : Module(
     private val barrelColor by setting("Barrel Color", Color(143, 119, 72)) { page == Page.Color && !useBlockColor }
     private val blastFurnaceColor by setting("Blast Furnace Color", Color(153, 153, 153)) { page == Page.Color && !useBlockColor }
     private val brewingStandColor by setting("Brewing Stand Color", Color(167, 167, 167))
+    private val trappedChestColor by setting("Trapped Chest Color", Color(216, 127, 51)) { page == Page.Color && !useBlockColor }
     private val chestColor by setting("Chest Color", Color(216, 127, 51)) { page == Page.Color && !useBlockColor }
     private val dispenserColor by setting("Dispenser Color", Color(153, 153, 153)) { page == Page.Color && !useBlockColor }
     private val enderChestColor by setting("Ender Chest Color", Color(127, 63, 178)) { page == Page.Color && !useBlockColor }
@@ -103,6 +105,7 @@ object StorageESP : Module(
         BarrelBlockEntity::class,
         BlastFurnaceBlockEntity::class,
         BrewingStandBlockEntity::class,
+        TrappedChestBlockEntity::class,
         ChestBlockEntity::class,
         DispenserBlockEntity::class,
         EnderChestBlockEntity::class,
@@ -171,6 +174,7 @@ object StorageESP : Module(
             is BarrelBlockEntity -> barrelColor
             is BlastFurnaceBlockEntity -> blastFurnaceColor
             is BrewingStandBlockEntity -> brewingStandColor
+            is TrappedChestBlockEntity -> trappedChestColor
             is ChestBlockEntity -> chestColor
             is DispenserBlockEntity -> dispenserColor
             is EnderChestBlockEntity -> enderChestColor

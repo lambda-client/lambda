@@ -17,15 +17,12 @@
 
 package com.lambda.network.api.v1.endpoints
 
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.FuelError
-import com.github.kittinunf.fuel.core.ResultHandler
-import com.github.kittinunf.fuel.gson.responseObject
-import com.github.kittinunf.result.failure
-import com.github.kittinunf.result.success
 import com.lambda.module.modules.client.Network.apiUrl
 import com.lambda.module.modules.client.Network.apiVersion
+import com.lambda.network.LambdaHttp
 import com.lambda.network.api.v1.models.Cape
+import io.ktor.client.call.*
+import io.ktor.client.request.*
 import java.util.UUID
 
 /**
@@ -34,8 +31,8 @@ import java.util.UUID
  * Example:
  *  - id: ab24f5d6-dcf1-45e4-897e-b50a7c5e7422
  *
- * response: [Cape] or error
+ * @return results of cape
  */
-fun getCape(uuid: UUID, success: (Cape) -> Unit, failure: (FuelError) -> Unit) =
-	Fuel.get("$apiUrl/api/${apiVersion.value}/cape?id=$uuid")
-		.responseObject<Cape> { _, _, result -> result.fold(success, failure) }
+suspend fun getCape(uuid: UUID) = runCatching {
+	LambdaHttp.get("$apiUrl/api/$apiVersion/cape?id=$uuid").body<Cape>()
+}

@@ -56,10 +56,7 @@ object FriendManager : Configurable(FriendConfig), Loadable {
     fun OtherClientPlayerEntity.befriend() = befriend(gameProfile)
     fun OtherClientPlayerEntity.unfriend() = unfriend(gameProfile)
 
-    override fun load(): String {
-        // TODO: Because the settings are loaded after the property and the loadables, the friend list is empty at that point
-        return "Loaded ${friends.size} friends"
-    }
+    override fun load() = "Loaded ${friends.size} friends"
 
     fun befriendedText(name: String): Text = befriendedText(Text.of(name))
     fun befriendedText(name: Text) = buildText {

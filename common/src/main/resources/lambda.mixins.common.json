@@ -55,8 +55,9 @@
     "world.ClientChunkManagerMixin",
     "world.ClientWorldMixin",
     "world.StructureTemplateMixin",
+    "world.ExplosionMixin",
     "world.WorldMixin",
-    "world.ExplosionMixin"
+    "CrashReportMixin"
   ],
   "injectors": {
     "defaultRequire": 1

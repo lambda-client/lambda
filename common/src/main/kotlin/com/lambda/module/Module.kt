@@ -130,6 +130,7 @@ abstract class Module(
     init {
         listen<KeyboardEvent.Press>(alwaysListen = true) { event ->
             if (mc.options.commandKey.isPressed) return@listen
+            if (!event.isPressed) return@listen
             if (keybind == KeyCode.UNBOUND) return@listen
             if (event.translated != keybind) return@listen
             if (mc.currentScreen != null) return@listen
