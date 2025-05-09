@@ -63,7 +63,7 @@ object ReBreakManager {
         runSafe {
             val info = reBreak ?: return@runSafe ReBreakResult.Ignored
 
-            if (info.context.expectedPos != ctx.expectedPos || !info.breakConfig.reBreak.mode.isEnabled()) {
+            if (info.context.expectedPos != ctx.expectedPos || !info.breakConfig.reBreak) {
                 return@runSafe ReBreakResult.Ignored
             }
             if (info.updatedThisTick) return@runSafe ReBreakResult.ReBroke

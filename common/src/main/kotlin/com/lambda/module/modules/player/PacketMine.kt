@@ -21,7 +21,6 @@ import com.lambda.config.groups.BuildSettings
 import com.lambda.config.groups.HotbarSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.InventorySettings
-import com.lambda.config.groups.ReBreakSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
@@ -53,6 +52,7 @@ object PacketMine : Module(
     private val interact = InteractionSettings(this, InteractionMask.Block) { page == Page.Interaction }
     private val inventory = InventorySettings(this) { page == Page.Inventory }
     private val hotbar = HotbarSettings(this) { page == Page.Hotbar }
+    private val reBreakMode by setting("ReBreak Mode", ReBreakMode.Manual, "The method used to re-break blocks after they've been broken once") { breakConfig.reBreak }
 
     private val pendingInteractionsList = ConcurrentLinkedQueue<BuildContext>()
 
@@ -71,8 +71,7 @@ object PacketMine : Module(
 
         //ToDo: run on every tick stage
         listen<TickEvent.Pre> {
-            val reBreakMode = breakConfig.reBreak.mode
-            if (reBreakMode != ReBreakSettings.Mode.Auto && reBreakMode != ReBreakSettings.Mode.AutoConstant) return@listen
+            if (breakConfig.reBreak && reBreakMode != ReBreakMode.Auto && reBreakMode != ReBreakMode.AutoConstant) return@listen
             val reBreak = reBreakPos ?: return@listen
             requestBreakManager(reBreak)
         }
@@ -151,5 +150,11 @@ object PacketMine : Module(
 
     enum class Page {
         Build, Rotation, Interaction, Inventory, Hotbar
+    }
+
+    enum class ReBreakMode {
+        Manual,
+        Auto,
+        AutoConstant;
     }
 }
