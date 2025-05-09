@@ -40,7 +40,7 @@ class BreakSettings(
     override val sounds by c.setting("Break Sounds", true, "Plays the breaking sounds") { vis() }
     override val particles by c.setting("Particles", true, "Renders the breaking particles") { vis() }
     override val breakingTexture by c.setting("Breaking Overlay", true, "Overlays the breaking texture at its different stages") { vis() }
-    override val rotateForBreak by c.setting("Rotate For Break", true, "Rotate towards block while breaking") { vis() }
+    override val rotateForBreak by c.setting("Rotate For Break", false, "Rotate towards block while breaking") { vis() }
     override val ignoredBlocks by c.setting("Ignored Blocks", allSigns, "Blocks that wont be broken") { vis() }
     override val breakConfirmation by c.setting("Break Confirmation", BreakConfirmationMode.BreakThenAwait, "The style of confirmation used when breaking") { vis() }
     override val maxPendingBreaks by c.setting("Max Pending Breaks", 15, 1..30, 1, "The maximum amount of pending breaks") { vis() }
