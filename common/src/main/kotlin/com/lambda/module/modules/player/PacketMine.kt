@@ -71,7 +71,7 @@ object PacketMine : Module(
 
         //ToDo: run on every tick stage
         listen<TickEvent.Pre> {
-            if (breakConfig.reBreak && reBreakMode != ReBreakMode.Auto && reBreakMode != ReBreakMode.AutoConstant) return@listen
+            if (!breakConfig.reBreak || (reBreakMode != ReBreakMode.Auto && reBreakMode != ReBreakMode.AutoConstant)) return@listen
             val reBreak = reBreakPos ?: return@listen
             requestBreakManager(reBreak)
         }
