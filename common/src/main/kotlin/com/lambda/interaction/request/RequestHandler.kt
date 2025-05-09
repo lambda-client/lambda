@@ -24,6 +24,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.ManagerUtils.accumulatedManagerPriority
 import com.lambda.threading.runSafe
+import kotlin.reflect.KClass
 
 /**
  * This class handles requests, offering specific opening times, and an option to queue a request for the
@@ -57,25 +58,7 @@ abstract class RequestHandler<R : Request>(
     var activeThisTick = false; protected set
 
     override fun load(): String {
-        openStages.forEach {
-            when (it) {
-                is TickEvent.Pre -> openRequestsFor(it)
-                is TickEvent.Post -> openRequestsFor(it)
-                is TickEvent.Network.Pre -> openRequestsFor(it)
-                is TickEvent.Network.Post -> openRequestsFor(it)
-                is TickEvent.Input.Pre -> openRequestsFor(it)
-                is TickEvent.Input.Post -> openRequestsFor(it)
-                is TickEvent.WorldRender.Pre -> openRequestsFor(it)
-                is TickEvent.WorldRender.Post -> openRequestsFor(it)
-                is TickEvent.Sound.Pre -> openRequestsFor(it)
-                is TickEvent.Sound.Post -> openRequestsFor(it)
-                is TickEvent.Render.Pre -> openRequestsFor(it)
-                is TickEvent.Render.Post -> openRequestsFor(it)
-                is TickEvent.Player.Pre -> openRequestsFor(it)
-                is TickEvent.Player.Post -> openRequestsFor(it)
-                else -> throw IllegalArgumentException("Event '$it' is not allowed for requests")
-            }
-        }
+        openStages.forEach { openRequestsFor(it::class, it) }
 
         listen<TickEvent.Post>(Int.MIN_VALUE) {
             activeThisTick = false
@@ -87,8 +70,8 @@ abstract class RequestHandler<R : Request>(
     /**
      * opens the handler for requests for the duration of the given event
      */
-    private inline fun <reified T : Event> openRequestsFor(stage: T) {
-        listen<T>(priority = Int.MAX_VALUE - (accumulatedManagerPriority - stagePriority)) {
+    private inline fun <reified T : Event> openRequestsFor(instance: KClass<out T>, stage: T) {
+        listen(instance, priority = Int.MAX_VALUE - (accumulatedManagerPriority - stagePriority)) {
             tickStage = stage
             queuedRequest?.let { request ->
                 handleRequest(request)
@@ -99,7 +82,8 @@ abstract class RequestHandler<R : Request>(
             onOpen?.invoke(this)
             preEvent()
         }
-        listen<T>(priority = Int.MIN_VALUE + stagePriority) {
+
+        listen(instance, priority = Int.MIN_VALUE + stagePriority) {
             onClose?.invoke(this)
             acceptingRequests = false
         }
