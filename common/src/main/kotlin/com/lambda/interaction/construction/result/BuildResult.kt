@@ -20,7 +20,6 @@ package com.lambda.interaction.construction.result
 import baritone.api.pathing.goals.GoalBlock
 import baritone.api.pathing.goals.GoalNear
 import com.lambda.config.groups.InventoryConfig
-import com.lambda.context.Configured
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.material.StackSelection
@@ -206,7 +205,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
 
         override val pausesParent get() = true
 
-        override fun Configured.resolve() = neededSelection
+        override fun resolve() = neededSelection
             .transfer(MainHandContainer, inventory) ?: MaterialContainer.FailureTask("Couldn't find $neededSelection anywhere.")
 
         override fun SafeContext.buildRenderer() {
@@ -242,7 +241,7 @@ abstract class BuildResult : ComparableResult<Rank>, Nameable {
 
         override val pausesParent get() = true
 
-        override fun Configured.resolve() =
+        override fun resolve() =
             neededStack.select()
                 .transfer(MainHandContainer, inventory) ?: MaterialContainer.FailureTask("Couldn't find ${neededStack.item.name.string} anywhere.")
 

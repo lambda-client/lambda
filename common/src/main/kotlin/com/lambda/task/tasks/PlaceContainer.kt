@@ -20,7 +20,6 @@ package com.lambda.task.tasks
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.config.groups.InventoryConfig
-import com.lambda.context.DefaultConfigs
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
@@ -55,12 +54,10 @@ class PlaceContainer @Ta5kBuilder constructor(
         val results = BlockPos.iterateOutwards(player.blockPos, 4, 3, 4)
             .map { it.blockPos }
             .flatMap {
-                DefaultConfigs.simulate(
-                    it.blockPos
-                        .toStructure(TargetState.Stack(startStack))
-                        .toBlueprint(),
-                    player.eyePos
-                )
+                it.blockPos
+                    .toStructure(TargetState.Stack(startStack))
+                    .toBlueprint()
+                    .simulate(player.eyePos)
             }
 
         val succeeds = results.filterIsInstance<PlaceResult.Place>().filter {
@@ -70,11 +67,16 @@ class PlaceContainer @Ta5kBuilder constructor(
             canBeOpened(startStack, it.blockPos, it.context.result.side)
         }
         (succeeds + wrongStacks).minOrNull()?.let { result ->
-            DefaultConfigs.build(
+            build(
+                build = build,
+                rotation = rotation,
+                interact = interact,
+                inventory = inventory,
+            ) {
                 result.blockPos
                     .toStructure(TargetState.Stack(startStack))
                     .toBlueprint()
-            ).finally {
+            }.finally {
                 success(result.blockPos)
             }.execute(this@PlaceContainer)
         } ?: {

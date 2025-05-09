@@ -17,9 +17,8 @@
 
 package com.lambda.interaction.construction.result
 
-import com.lambda.context.Configured
 import com.lambda.task.Task
 
 interface Resolvable {
-    fun Configured.resolve(): Task<*>
+    fun resolve(): Task<*>
 }

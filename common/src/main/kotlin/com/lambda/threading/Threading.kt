@@ -19,8 +19,6 @@ package com.lambda.threading
 
 import com.lambda.Lambda.mc
 import com.lambda.context.ClientContext
-import com.lambda.context.Configured
-import com.lambda.context.ConfiguredSafeContext
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
 import com.mojang.blaze3d.systems.RenderSystem.isOnRenderThread
@@ -44,10 +42,7 @@ import java.util.concurrent.CompletableFuture
  * @return The result of the block execution if the context is safe, null otherwise.
  */
 inline fun <T> runSafe(block: SafeContext.() -> T) =
-    ClientContext().toSafe()?.block()
-
-inline fun <T> Configured.runSafe(block: ConfiguredSafeContext.() -> T) =
-    ClientContext().toSafeConfigured(this)?.block()
+    ClientContext().toSafe()?.let { block(it) }
 
 /**
  * This function is used to execute a block of code on a new thread running asynchronously to the game thread.

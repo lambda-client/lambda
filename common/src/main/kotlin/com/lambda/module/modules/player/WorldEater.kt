@@ -17,8 +17,6 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.context.Configured
-import com.lambda.context.DefaultConfigs
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.builders.buildOutline
@@ -27,8 +25,8 @@ import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.t
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.task.Task
+import com.lambda.task.RootTask.run
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BaritoneUtils
 import net.minecraft.util.math.BlockBox
@@ -40,7 +38,7 @@ object WorldEater : Module(
     name = "WorldEater",
     description = "Eats the world",
     defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
-), Configured by DefaultConfigs {
+) {
     //    private val height by setting("Height", 4, 1..10, 1)
 //    private val width by setting("Width", 6, 1..30, 1)
     private val pos1 by setting("Position 1", BlockPos(351, 104, 103))
@@ -76,10 +74,10 @@ object WorldEater : Module(
 
     private fun buildLayer() {
         work.firstOrNull()?.let { box ->
-            runningTask = build(
+            runningTask = build {
                 box.toStructure(TargetState.Air)
                     .toBlueprint()
-            ).finally {
+            }.finally {
                 work.removeFirstOrNull()
                 buildLayer()
             }.run()

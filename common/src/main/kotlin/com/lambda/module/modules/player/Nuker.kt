@@ -17,14 +17,12 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.context.Configured
-import com.lambda.context.DefaultConfigs
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.task.Task
+import com.lambda.task.RootTask.run
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
@@ -34,7 +32,7 @@ object Nuker : Module(
     name = "Nuker",
     description = "Breaks blocks around you",
     defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
-), Configured by DefaultConfigs {
+) {
     private val height by setting("Height", 4, 1..8, 1)
     private val width by setting("Width", 4, 1..8, 1)
     private val flatten by setting("Flatten", true)
@@ -45,8 +43,7 @@ object Nuker : Module(
 
     init {
         onEnable {
-            task = build(
-                tickingBlueprint {
+            task = tickingBlueprint {
                     val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
                         .asSequence()
                         .map { it.blockPos }
@@ -65,7 +62,9 @@ object Nuker : Module(
 
                     selection
                 }
-            ).run()
+                // ToDo: Add build setting delegates
+                .build()
+            task?.run()
         }
 
         onDisable {

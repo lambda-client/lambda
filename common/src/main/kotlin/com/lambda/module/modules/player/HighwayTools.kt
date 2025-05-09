@@ -17,19 +17,14 @@
 
 package com.lambda.module.modules.player
 
-import com.lambda.config.groups.BuildSettings
-import com.lambda.config.groups.InteractionSettings
-import com.lambda.config.groups.InventorySettings
-import com.lambda.config.groups.RotationSettings
-import com.lambda.context.Configured
-import com.lambda.context.DefaultConfigs
+import com.lambda.config.groups.*
 import com.lambda.interaction.construction.blueprint.Blueprint.Companion.emptyStructure
 import com.lambda.interaction.construction.blueprint.PropagatingBlueprint.Companion.propagatingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.RootTask.run
 import com.lambda.task.Task
+import com.lambda.task.RootTask.run
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.Communication.info
@@ -50,7 +45,7 @@ object HighwayTools : Module(
     name = "HighwayTools",
     description = "Auto highway builder",
     defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
-), Configured by DefaultConfigs {
+) {
     private val page by setting("Page", Page.Structure)
 
     private val height by setting("Height", 4, 2..10, 1, "Height of the full tunnel tube including the pavement", " blocks") { page == Page.Structure }
@@ -68,10 +63,10 @@ object HighwayTools : Module(
     private val distance by setting("Distance", -1, -1..1000000, 1, "Distance to build the highway/tunnel (negative for infinite)", " blocks") { page == Page.Structure }
     private val sliceSize by setting("Slice Size", 3, 1..5, 1, "Number of slices to build at once", " blocks") { page == Page.Structure }
 
-    override val build = BuildSettings(this) { page == Page.Build }
-    override val rotation = RotationSettings(this) { page == Page.Rotation }
-    override val interact = InteractionSettings(this, InteractionMask.Block) { page == Page.Interaction }
-    override val inventory = InventorySettings(this) { page == Page.Inventory }
+    private val build = BuildSettings(this) { page == Page.Build }
+    private val rotation = RotationSettings(this) { page == Page.Rotation }
+    private val interact = InteractionSettings(this, InteractionMask.Block) { page == Page.Interaction }
+    private val inventory = InventorySettings(this) { page == Page.Inventory }
 
     private var octant = EightWayDirection.NORTH
     private var distanceMoved = 0
@@ -107,25 +102,28 @@ object HighwayTools : Module(
     }
 
     private fun buildHighway() {
-        runningTask = build(
-            propagatingBlueprint {
-                if (distanceMoved < distance || distance < 0) {
-                    var structure = emptyStructure()
-                    val slice = generateSlice()
-                    repeat(sliceSize) {
-                        structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
-                        val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
-                        currentPos = currentPos.add(vec)
-                    }
-                    distanceMoved += sliceSize
-                    structure
-                } else {
-                    this@HighwayTools.info("Highway built")
-                    disable()
-                    emptyStructure()
+        runningTask = propagatingBlueprint {
+            if (distanceMoved < distance || distance < 0) {
+                var structure = emptyStructure()
+                val slice = generateSlice()
+                repeat(sliceSize) {
+                    structure = structure.plus(slice.map { it.key.add(currentPos) to it.value })
+                    val vec = Vec3i(octant.offsetX, 0, octant.offsetZ)
+                    currentPos = currentPos.add(vec)
                 }
-            },
-            collectDrops = build.collectDrops
+                distanceMoved += sliceSize
+                structure
+            } else {
+                this@HighwayTools.info("Highway built")
+                disable()
+                emptyStructure()
+            }
+        }.build(
+            collectDrops = build.collectDrops,
+            build = build,
+            rotation = rotation,
+            interact = interact,
+            inventory = inventory,
         ).run()
     }
 

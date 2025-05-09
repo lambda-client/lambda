@@ -18,7 +18,6 @@
 package com.lambda.interaction.construction.simulation
 
 import baritone.api.pathing.goals.Goal
-import com.lambda.context.DefaultConfigs
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.toFastVec
 import net.minecraft.util.math.BlockPos
@@ -28,15 +27,14 @@ class BuildGoal(
     blocked: BlockPos
 ) : Goal {
     private val blockedVec = blocked.toFastVec()
-    private val configs = DefaultConfigs
 
     override fun isInGoal(x: Int, y: Int, z: Int): Boolean {
         val pos = fastVectorOf(x, y, z)
-        return sim.simulate(pos, configs).any { it.rank.ordinal < 4 } && blockedVec != pos
+        return sim.simulate(pos).any { it.rank.ordinal < 4 } && blockedVec != pos
     }
 
     override fun heuristic(x: Int, y: Int, z: Int): Double {
-        val bestRank = sim.simulate(fastVectorOf(x, y, z), configs)
+        val bestRank = sim.simulate(fastVectorOf(x, y, z))
             .minOrNull()?.rank?.ordinal ?: 100000
         return 1 / (bestRank.toDouble() + 1)
     }

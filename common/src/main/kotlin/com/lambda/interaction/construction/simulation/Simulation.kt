@@ -17,12 +17,16 @@
 
 package com.lambda.interaction.construction.simulation
 
-import com.lambda.context.Configured
+import com.lambda.config.groups.BuildConfig
+import com.lambda.config.groups.InteractionConfig
+import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
+import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.FastVector
@@ -35,11 +39,19 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
-data class Simulation(val blueprint: Blueprint) {
+data class Simulation(
+    val blueprint: Blueprint,
+    val interact: InteractionConfig = TaskFlowModule.interact,
+    val rotation: RotationConfig = TaskFlowModule.rotation,
+    val inventory: InventoryConfig = TaskFlowModule.inventory,
+    val build: BuildConfig = TaskFlowModule.build,
+) {
     private val cache: MutableMap<FastVector, Set<BuildResult>> = mutableMapOf()
     private fun FastVector.toView(): Vec3d = toVec3d().add(0.5, ClientPlayerEntity.DEFAULT_EYE_HEIGHT.toDouble(), 0.5)
 
-    fun simulate(pos: FastVector, configured: Configured) = cache.getOrPut(pos) {
+    fun simulate(
+        pos: FastVector,
+    ) = cache.getOrPut(pos) {
         val view = pos.toView()
         val isOutOfBounds = blueprint.isOutOfBounds(view)
         val isTooFar = blueprint.getClosestPointTo(view).distanceTo(view) > 10.0
@@ -51,9 +63,7 @@ data class Simulation(val blueprint: Blueprint) {
             if (!playerFitsIn(blockPos)) return@getOrPut emptySet()
         }
 
-        configured.run {
-            simulate(blueprint, view)
-        }
+        blueprint.simulate(view, interact, rotation, inventory, build)
     }
 
     fun goodPositions() = cache
@@ -73,6 +83,11 @@ data class Simulation(val blueprint: Blueprint) {
     companion object {
         fun Vec3d.playerBox(): Box = Box(x - 0.3, y, z - 0.3, x + 0.3, y + 1.8, z + 0.3).contract(1.0E-6)
 
-        fun Blueprint.simulation() = Simulation(this)
+        fun Blueprint.simulation(
+            interact: InteractionConfig = TaskFlowModule.interact,
+            rotation: RotationConfig = TaskFlowModule.rotation,
+            inventory: InventoryConfig = TaskFlowModule.inventory,
+            build: BuildConfig = TaskFlowModule.build,
+        ) = Simulation(this, interact, rotation, inventory, build)
     }
 }

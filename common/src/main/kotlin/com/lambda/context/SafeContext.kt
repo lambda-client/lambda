@@ -46,10 +46,9 @@ import net.minecraft.client.world.ClientWorld
  * @property interaction The interaction manager for the player.
  * @property connection The network handler for the player.
  **/
-interface SafeContext {
-    val mc: MinecraftClient
-    val world: ClientWorld
-    val player: ClientPlayerEntity
-    val interaction: ClientPlayerInteractionManager
-    val connection: ClientPlayNetworkHandler
-}
+open class SafeContext internal constructor(
+    override val world: ClientWorld,
+    override val player: ClientPlayerEntity,
+    override val interaction: ClientPlayerInteractionManager,
+    override val connection: ClientPlayNetworkHandler,
+) : AbstractContext()

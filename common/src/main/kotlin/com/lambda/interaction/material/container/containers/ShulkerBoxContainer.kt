@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.material.container.containers
 
-import com.lambda.context.DefaultConfigs
 import com.lambda.context.SafeContext
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
@@ -58,7 +57,7 @@ data class ShulkerBoxContainer(
             PlaceContainer(shulkerStack).then { placePos ->
                 OpenContainer(placePos).then { screen ->
                     withdraw(screen, selection).then {
-                        DefaultConfigs.breakAndCollectBlock(placePos).finally {
+                        breakAndCollectBlock(placePos).finally {
                             success()
                         }
                     }
@@ -79,7 +78,7 @@ data class ShulkerBoxContainer(
             PlaceContainer(shulkerStack).then { placePos ->
                 OpenContainer(placePos).then { screen ->
                     deposit(screen, selection).then {
-                        DefaultConfigs.breakAndCollectBlock(placePos).finally {
+                        breakAndCollectBlock(placePos).finally {
                             success()
                         }
                     }
