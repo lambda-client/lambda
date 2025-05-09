@@ -91,6 +91,24 @@ class VertexBuilder(
     }
 
     /**
+     * Adds triangle indices using 3 vertices
+     */
+    fun buildTriangle(
+        index1: Int, index2: Int, index3: Int
+    ) {
+        direct?.let {
+            it.indices.putInt(index1)
+            it.indices.putInt(index2)
+            it.indices.putInt(index3)
+            return
+        }
+
+        this.indices += index1
+        this.indices += index2
+        this.indices += index3
+    }
+
+    /**
      * Creates a collection of indices from varargs
      * @return List of provided indices for element array buffer
      */

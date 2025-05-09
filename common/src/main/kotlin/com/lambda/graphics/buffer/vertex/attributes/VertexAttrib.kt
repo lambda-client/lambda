@@ -83,6 +83,14 @@ sealed class VertexAttrib(
             Vec3, Vec2, Color
         )
 
+        object LINE : Group(
+            Vec2, Float, Color
+        )
+
+        object MULTILINE : Group(
+            Vec2, Float, Float, Float, Color
+        )
+
         val stride = attributes.sumOf { attribute ->
             attribute.size
         }
