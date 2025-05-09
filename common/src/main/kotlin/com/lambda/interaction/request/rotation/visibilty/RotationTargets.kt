@@ -57,7 +57,7 @@ fun lookInDirection(direction: PlaceDirection) =
         PlaceDirection.fromRotation(RotationManager.activeRotation) == direction
     }) {
         if (!direction.isInArea(RotationManager.activeRotation) || !direction.isInArea(player.rotation)) {
-            direction.snapToArea(RotationManager.activeRotation)
+            RotationManager.activeRotation
         } else {
             player.rotation
         }

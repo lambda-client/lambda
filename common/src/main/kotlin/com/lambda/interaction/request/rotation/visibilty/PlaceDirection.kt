@@ -21,131 +21,33 @@ import com.lambda.interaction.request.rotation.Rotation
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
-import net.minecraft.util.math.MathHelper.wrapDegrees
 import net.minecraft.util.math.Vec3i
-import kotlin.math.abs
-import kotlin.math.asin
-import kotlin.math.atan
-import kotlin.math.cos
-import kotlin.math.sin
 
 //ToDo: This is broken in many ways. Still a WIP
 enum class PlaceDirection(
     val rotation: Rotation,
     val vector: Vec3i,
-    private val yawRanges: List<ClosedRange<Double>>
 ) {
-    UpNorth  ( -180.0, -90.0,  0,  1, -1, northYawRanges),
-    UpSouth  (    0.0, -90.0,  0,  1,  1, listOf(southYawRange)),
-    UpWest   (   90.0, -90.0,  1,  1,  0, listOf(westYawRange)),
-    UpEast   (  -90.0, -90.0, -1,  1,  0, listOf(eastYawRange)),
+    UpNorth  (-180.0, -90.0,  0,  1, -1),
+    UpSouth  (   0.0, -90.0,  0,  1,  1),
+    UpWest   (  90.0, -90.0,  1,  1,  0),
+    UpEast   ( -90.0, -90.0, -1,  1,  0),
 
-    DownNorth( -180.0,  90.0,  0, -1, -1, northYawRanges),
-    DownSouth(    0.0,  90.0,  0, -1,  1, listOf(southYawRange)),
-    DownWest (   90.0,  90.0,  1, -1,  0, listOf(westYawRange)),
-    DownEast (  -90.0,  90.0, -1, -1,  0, listOf(eastYawRange)),
+    DownNorth(-180.0,  90.0,  0, -1, -1),
+    DownSouth(   0.0,  90.0,  0, -1,  1),
+    DownWest (  90.0,  90.0,  1, -1,  0),
+    DownEast ( -90.0,  90.0, -1, -1,  0),
 
-    North    ( -180.0,   0.0,  0,  0, -1, northYawRanges),
-    South    (    0.0,   0.0,  0,  0,  1, listOf(southYawRange)),
-    West     (   90.0,   0.0,  1,  0,  0, listOf(westYawRange)),
-    East     (  -90.0,   0.0, -1,  0,  0, listOf(eastYawRange));
+    North    (-180.0,   0.0,  0,  0, -1),
+    South    (   0.0,   0.0,  0,  0,  1),
+    West     (  90.0,   0.0,  1,  0,  0),
+    East     ( -90.0,   0.0, -1,  0,  0);
 
-    constructor(yaw: Double, pitch: Double, x: Int, y: Int, z: Int, yawRanges: List<ClosedRange<Double>>)
-            : this(Rotation(yaw, pitch), Vec3i(x, y, z), yawRanges)
+    constructor(yaw: Double, pitch: Double, x: Int, y: Int, z: Int)
+            : this(Rotation(yaw, pitch), Vec3i(x, y, z))
 
-    fun snapToArea(rot: Rotation): Rotation {
-        if (isInArea(rot)) return rot
-
-        val normalizedYaw = wrapDegrees(rot.yaw)
-        val clampedYaw = when {
-            rotation.yaw != -180.0 -> normalizedYaw.coerceIn(yawRanges[0])
-            normalizedYaw < 0 -> normalizedYaw.coerceIn(yawRanges[0])
-            else -> normalizedYaw.coerceIn(yawRanges[1])
-        }
-
-        // Calculate pitch boundaries based on the snapped yaw
-        val snappedYawRad = Math.toRadians(clampedYaw)
-        val sinYaw = abs(sin(snappedYawRad))
-        val cosYaw = abs(cos(snappedYawRad))
-        val pitchBoundaryEW = Math.toDegrees(atan(sinYaw))
-        val pitchBoundaryNS = Math.toDegrees(atan(cosYaw))
-
-        // Determine the correct pitch boundary and snap pitch
-        val snappedPitch = when {
-            // Primary E/W Directions
-            isEast() || isWest() -> {
-                when {
-                    isUp() -> calculateVerticalPitch(sinYaw, pitchBoundaryEW, true)
-                    isDown() -> calculateVerticalPitch(sinYaw, pitchBoundaryEW, false)
-                    else -> calculateHorizontalPitch(rot.pitch, pitchBoundaryEW)
-                }
-            }
-            // Primary N/S Directions
-            isNorth() || isSouth() -> {
-                when {
-                    isUp() -> calculateVerticalPitch(cosYaw, pitchBoundaryNS, true)
-                    isDown() -> calculateVerticalPitch(cosYaw, pitchBoundaryNS, false)
-                    else -> calculateHorizontalPitch(rot.pitch, pitchBoundaryNS)
-                }
-            }
-            // impossible to look just up or just down as you are always facing a horizontal direction
-            else -> rotation.pitch
-        }
-
-        // Clamp pitch to valid range
-        val clampedPitch = snappedPitch.coerceIn(-90.0, 90.0)
-
-        return Rotation(clampedYaw, clampedPitch)
-    }
-
-    /**
-     * Calculates the pitch for vertical (Up/Down) directions
-     * 
-     * @param trigValue The trigonometric value (sinYaw for E/W, cosYaw for N/S)
-     * @param boundaryValue The boundary value (pitchBoundaryEW for E/W, pitchBoundaryNS for N/S)
-     * @param isUp Whether this is for an Up direction (true) or Down direction (false)
-     * @return The calculated pitch value
-     */
-    private fun calculateVerticalPitch(trigValue: Double, boundaryValue: Double, isUp: Boolean): Double {
-        val epsilon = 0.01
-        val boundarySign = if (isUp) 1 else -1
-        val asinSign = if (isUp) -1 else 1
-
-        val targetPitch = Math.toDegrees(
-            asinSign * asin(trigValue * cos(Math.toRadians(boundarySign * boundaryValue)) + epsilon)
-        )
-
-        return if (isUp) {
-            targetPitch.coerceIn(-90.0, 0.0) // Ensure it's in the up range
-        } else {
-            targetPitch.coerceIn(0.0, 90.0) // Ensure it's in the down range
-        }
-    }
-
-    /**
-     * Calculates the pitch for horizontal directions
-     * 
-     * @param currentPitch The current pitch value
-     * @param boundaryValue The boundary value (pitchBoundaryEW for E/W, pitchBoundaryNS for N/S)
-     * @return The calculated pitch value
-     */
-    private fun calculateHorizontalPitch(currentPitch: Double, boundaryValue: Double): Double {
-        // Handle extreme pitch values (-90 or 90) by returning 0
-        if (abs(currentPitch) >= 90.0 - 0.1) {
-            return 0.0
-        }
-
-        val isWithinPositiveBoundary = abs(currentPitch - boundaryValue) < abs(currentPitch - (-boundaryValue))
-        return if (isWithinPositiveBoundary) boundaryValue else -boundaryValue
-    }
-
-    // Helper functions to determine direction type
-    private fun isEast(): Boolean = this == East || this == UpEast || this == DownEast
-    private fun isWest(): Boolean = this == West || this == UpWest || this == DownWest
-    private fun isNorth(): Boolean = this == North || this == UpNorth || this == DownNorth
-    private fun isSouth(): Boolean = this == South || this == UpSouth || this == DownSouth
-    private fun isUp(): Boolean = this == UpEast || this == UpWest || this == UpNorth || this == UpSouth
-    private fun isDown(): Boolean = this == DownEast || this == DownWest || this == DownNorth || this == DownSouth
+    //ToDo: snap to the area not the cardinal to avoid excess rotation distance
+    fun snapToArea(rot: Rotation): Rotation = rotation
 
     fun isInArea(rot: Rotation) = fromRotation(rot) == this
 
@@ -197,10 +99,3 @@ enum class PlaceDirection(
         }
     }
 }
-
-const val FUDGE_FACTOR = 0.01
-
-val northYawRanges = listOf(-180.0..(-135.0 - FUDGE_FACTOR), (135.0 + FUDGE_FACTOR)..180.0)
-val southYawRange =  ( -45.0 + FUDGE_FACTOR)..( 45.0 - FUDGE_FACTOR)
-val eastYawRange =   (-135.0 + FUDGE_FACTOR)..(-45.0 - FUDGE_FACTOR)
-val westYawRange =   (  45.0 + FUDGE_FACTOR)..(135.0 - FUDGE_FACTOR)
