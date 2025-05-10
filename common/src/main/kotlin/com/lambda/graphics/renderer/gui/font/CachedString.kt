@@ -76,7 +76,7 @@ class CachedString(
         /* Create gl buffers and upload */
         val vao = FontRenderer.vao
         vbo = PersistentBuffer(GL_ARRAY_BUFFER, vao.attributes.stride, builder.vertices.size)
-        ibo = PersistentBuffer(GL_ELEMENT_ARRAY_BUFFER, UInt.SIZE_BYTES, builder.indices.size)
+        ibo = PersistentBuffer(GL_ELEMENT_ARRAY_BUFFER, Int.SIZE_BYTES, builder.indices.size)
         vao.linkVbo(vbo)
 
         builder.uploadVertices(vbo.byteBuffer)

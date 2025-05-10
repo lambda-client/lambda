@@ -21,8 +21,8 @@ import com.lambda.graphics.buffer.Buffer.Companion.createPipelineBuffer
 import com.lambda.graphics.buffer.DynamicByteBuffer
 import com.lambda.graphics.buffer.DynamicByteBuffer.Companion.dynamicByteBuffer
 import com.lambda.graphics.gl.kibibyte
+import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.MemoryUtil.memCopy
-import sun.misc.Unsafe
 
 /**
  * Represents a persistent dynamic coherent buffer for fast opengl rendering purposes
@@ -47,7 +47,7 @@ class PersistentBuffer(
     val glBuffer = createPipelineBuffer(target)
     private var glSize = 0
 
-    var uploadOffset = 0
+    var uploadOffset = 0L
 
     fun upload() {
         val dataStart = byteBuffer.pointer + uploadOffset
@@ -64,14 +64,14 @@ class PersistentBuffer(
         }
 
         if (snapshotData > 0 && snapshot.capacity >= byteBuffer.bytesPut) {
-            if (memcmp(snapshot, byteBuffer, uploadOffset, dataCount.toInt())) return
+            if (memcmp(snapshot, byteBuffer, uploadOffset, dataCount)) return
         }
 
-        glBuffer.update(uploadOffset.toLong(), dataCount, dataStart)
+        glBuffer.update(uploadOffset, dataCount, dataStart)
     }
 
     fun end() {
-        uploadOffset = byteBuffer.bytesPut.toInt()
+        uploadOffset = byteBuffer.bytesPut
     }
 
     fun sync() {
@@ -91,21 +91,29 @@ class PersistentBuffer(
 
     fun use(block: () -> Unit) = glBuffer.bind { block() }
 
-    private fun memcmp(a: DynamicByteBuffer, b: DynamicByteBuffer, position: Int, size: Int): Boolean {
-        for (i in position..<(position + size)) {
-            if (UNSAFE.getByte(null, a.pointer + i) !=
-                UNSAFE.getByte(null, b.pointer + i)) {
-                return false
-            }
-        }
-        return true
-    }
+    private fun memcmp(a: DynamicByteBuffer, b: DynamicByteBuffer, position: Long, size: Long): Boolean {
+        if (a.capacity != b.capacity) return false
 
-    companion object {
-        private val UNSAFE = run {
-            val unsafeField = Unsafe::class.java.getDeclaredField("theUnsafe")
-            unsafeField.setAccessible(true)
-            unsafeField.get(null) as Unsafe
+        val end = position + size
+        var head = position
+
+        // Process the aligned bytes in chunks of 8 until we've reached the end
+        while (head + 8 <= end) {
+            val first = MemoryUtil.memGetLong(a.pointer + head)
+            val second = MemoryUtil.memGetLong(b.pointer + head)
+            if (first != second) return false
+
+            head += 8
         }
+
+        while (head < end) {
+            val first = MemoryUtil.memGetByte(a.pointer + head)
+            val second = MemoryUtil.memGetByte(b.pointer + head)
+            if (first != second) return false
+
+            head++
+        }
+
+        return true
     }
 }

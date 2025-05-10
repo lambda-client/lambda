@@ -49,14 +49,14 @@ class VertexArray(
     private fun renderInternal(
         indicesSize: Long,
         indicesPointer: Long,
-        verticesOffset: Int
+        verticesOffset: Long
     ) = bind {
             glDrawElementsBaseVertex(
                 vertexMode.mode,
-                indicesSize.toInt() / UInt.SIZE_BYTES,
+                indicesSize.toInt() / Int.SIZE_BYTES,
                 GL_UNSIGNED_INT,
                 indicesPointer,
-                verticesOffset / attributes.stride
+                verticesOffset.toInt() / attributes.stride,
             )
         }
 

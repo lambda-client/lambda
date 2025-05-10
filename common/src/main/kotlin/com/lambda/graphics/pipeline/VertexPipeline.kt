@@ -41,7 +41,7 @@ class VertexPipeline(
     private val vao = VertexArray(vertexMode, attributes)
 
     private val vbo = PersistentBuffer(GL_ARRAY_BUFFER, attributes.stride)
-    private val ibo = PersistentBuffer(GL_ELEMENT_ARRAY_BUFFER, UInt.SIZE_BYTES)
+    private val ibo = PersistentBuffer(GL_ELEMENT_ARRAY_BUFFER, Int.SIZE_BYTES)
 
     init {
         vao.linkVbo(vbo)
