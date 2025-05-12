@@ -132,6 +132,7 @@ object DamageUtils {
      */
     fun World.scaleDamage(damage: Double): Double =
         when (difficulty) {
+            Difficulty.PEACEFUL -> 0.0
             Difficulty.EASY -> min(damage / 2 + 1, damage)
             Difficulty.HARD -> damage * 3 / 2
             else -> damage
