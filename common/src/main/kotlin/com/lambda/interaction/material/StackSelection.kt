@@ -20,6 +20,7 @@ package com.lambda.interaction.material
 import com.lambda.util.BlockUtils.item
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import net.minecraft.block.Block
+import net.minecraft.block.BlockState
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.item.Item
@@ -32,6 +33,7 @@ import kotlin.reflect.KClass
  */
 class StackSelection {
     var selector: (ItemStack) -> Boolean = { true }
+    var comparator: Comparator<ItemStack>? = null
     var count: Int = DEFAULT_AMOUNT
     var inShulkerBox: Boolean = false
 
@@ -45,28 +47,24 @@ class StackSelection {
     val optimalStack: ItemStack?
         get() = itemStack ?: item?.let { ItemStack(it, count) }
 
-    val filterStack: (ItemStack) -> Boolean
-        get() = { stack ->
-            if (inShulkerBox) {
-                stack.shulkerBoxContents.any { selector(it) }
-            } else {
-                selector(stack)
-            }
+    fun filterStack(stack: ItemStack) =
+        if (inShulkerBox) stack.shulkerBoxContents.any { selector(it) }
+        else selector(stack)
+
+    fun filterSlot(slot: Slot) = filterStack(slot.stack)
+
+    fun filterStacks(stacks: List<ItemStack>): List<ItemStack> =
+        stacks.filter(::filterStack).let { filteredStacks ->
+            comparator?.run {
+                filteredStacks.sortedWith(this)
+            } ?: filteredStacks
         }
 
-    val filterSlot: (Slot) -> Boolean
-        get() = { slot ->
-            filterStack(slot.stack)
-        }
-
-    val filterStacks: (List<ItemStack>) -> List<ItemStack>
-        get() = {
-            it.filter(filterStack)
-        }
-
-    val filterSlots: (List<Slot>) -> List<Slot>
-        get() = { slots ->
-            slots.filter { filterSlot(it) }
+    fun filterSlots(slots: List<Slot>): List<Slot> =
+        slots.filter(::filterSlot).let { filteredSlots ->
+            comparator?.run {
+                filteredSlots.sortedWith { slot, slot2 -> compare(slot.stack, slot2.stack) }
+            } ?: filteredSlots
         }
 
     /**
@@ -126,6 +124,9 @@ class StackSelection {
      */
     @StackSelectionDsl
     fun isOneOfStacks(stacks: Collection<ItemStack>): (ItemStack) -> Boolean = { it in stacks }
+
+    @StackSelectionDsl
+    fun isSuitableForBreaking(blockState: BlockState): (ItemStack) -> Boolean = { it.isSuitableFor(blockState) }
 
     /**
      * [isItem] returns a predicate that matches a specific [Item] instance.
@@ -261,9 +262,22 @@ class StackSelection {
         fun selectStack(
             count: Int = DEFAULT_AMOUNT,
             inShulkerBox: Boolean = false,
-            block: StackSelection.() -> (ItemStack) -> Boolean,
+            block: StackSelection.() -> (ItemStack) -> Boolean
         ) = StackSelection().apply {
             selector = block()
+            this.count = count
+            this.inShulkerBox = inShulkerBox
+        }
+
+        @StackSelectionDsl
+        fun selectStack(
+            count: Int = DEFAULT_AMOUNT,
+            inShulkerBox: Boolean = false,
+            block: StackSelection.() -> (ItemStack) -> Boolean,
+            sorter: Comparator<ItemStack>? = null
+        ) = StackSelection().apply {
+            selector = block()
+            comparator = sorter
             this.count = count
             this.inShulkerBox = inShulkerBox
         }

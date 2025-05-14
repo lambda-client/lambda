@@ -30,6 +30,7 @@ import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
+import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
@@ -56,7 +57,6 @@ import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.BlockUtils.vecOf
 import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemStackUtils.equal
-import com.lambda.util.item.ItemUtils.findBestToolsForBreaking
 import com.lambda.util.math.distSq
 import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.copyPlayer
@@ -68,6 +68,7 @@ import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.enchantment.Enchantments
 import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemPlacementContext
+import net.minecraft.item.ItemStack
 import net.minecraft.item.ItemUsageContext
 import net.minecraft.registry.RegistryKeys
 import net.minecraft.util.Hand
@@ -542,45 +543,67 @@ object BuildSimulator {
             return acc
         }
 
-        val bestTools = findBestToolsForBreaking(state, inventory.allowedTools)
+//        val bestTools = findBestToolForBreaking(state, inventory.allowedTools)
+//
+//        /* there is no good tool for the job */
+//        if (bestTools.isEmpty()) {
+//            /* The current selected item cant mine the block */
+//            Hand.entries.forEach {
+//                val stack = player.getStackInHand(it)
+//                if (stack.isEmpty) return@forEach
+//                if (stack.item.canMine(state, world, pos, player)) return@forEach
+//                acc.add(BreakResult.ItemCantMine(pos, state, stack.item, inventory))
+//                return acc
+//            }
+//            // ToDo: Switch to non destroyable item
+//            acc.add(BreakResult.Break(pos, breakContext))
+//            return acc
+//        }
+//
+//        val toolSelection = if (build.breaking.forceSilkTouch) {
+//            selectStack { isOneOfItems(bestTools) and hasEnchantment(Enchantments.SILK_TOUCH) }
+//        } else if (build.breaking.forceFortunePickaxe) {
+//            selectStack { isOneOfItems(bestTools) and hasEnchantment(Enchantments.FORTUNE, build.breaking.minFortuneLevel) }
+//        } else {
+//            bestTools.select()
+//        }
+//        val silentSwapSelection = selectContainer {
+//            matches(toolSelection) and ofAnyType(MaterialContainer.Rank.HOTBAR)
+//        }
+//	    val fullSelection = selectContainer {
+//			matches(toolSelection) and matches(inventory.containerSelection)
+//	    }
 
-        /* there is no good tool for the job */
-        if (bestTools.isEmpty()) {
-            /* The current selected item cant mine the block */
-            Hand.entries.forEach {
-                val stack = player.getStackInHand(it)
-                if (stack.isEmpty) return@forEach
-                if (stack.item.canMine(state, world, pos, player)) return@forEach
-                acc.add(BreakResult.ItemCantMine(pos, state, stack.item, inventory))
-                return acc
+        val stackSelection = selectStack(
+            block = {
+                run {
+                    if (build.breaking.suitableToolsOnly) isSuitableForBreaking(state)
+                    else StackSelection.EVERYTHING
+                } and if (build.breaking.forceSilkTouch) {
+                    hasEnchantment(Enchantments.SILK_TOUCH)
+                } else if (build.breaking.forceFortunePickaxe) {
+                    hasEnchantment(Enchantments.FORTUNE, build.breaking.minFortuneLevel)
+                } else StackSelection.EVERYTHING
+            },
+            sorter = compareByDescending<ItemStack> {
+                it.canDestroy(world.registryManager.get(RegistryKeys.BLOCK), CachedBlockPosition(world, pos, false))
+            }.thenByDescending {
+                state.calcItemBlockBreakingDelta(player, world, pos, it)
             }
-            // ToDo: Switch to non destroyable item
-            acc.add(BreakResult.Break(pos, breakContext))
-            return acc
-        }
+        )
 
-        val toolSelection = if (build.breaking.forceSilkTouch) {
-            selectStack { isOneOfItems(bestTools) and hasEnchantment(Enchantments.SILK_TOUCH) }
-        } else if (build.breaking.forceFortunePickaxe) {
-            selectStack { isOneOfItems(bestTools) and hasEnchantment(Enchantments.FORTUNE, build.breaking.minFortuneLevel) }
-        } else {
-            bestTools.select()
-        }
         val silentSwapSelection = selectContainer {
-            matches(toolSelection) and ofAnyType(MaterialContainer.Rank.HOTBAR)
+            matches(stackSelection) and ofAnyType(MaterialContainer.Rank.HOTBAR)
         }
-	    val fullSelection = selectContainer {
-			matches(toolSelection) and matches(inventory.containerSelection)
-	    }
 
-        val swapCandidates = toolSelection.containerWithMaterial(inventory, silentSwapSelection)
+        val swapCandidates = stackSelection.containerWithMaterial(inventory, silentSwapSelection)
         if (swapCandidates.isEmpty()) {
-            acc.add(BuildResult.WrongItemSelection(pos, breakContext, toolSelection, player.mainHandStack, inventory))
+            acc.add(BuildResult.WrongItemSelection(pos, breakContext, stackSelection, player.mainHandStack, inventory))
             return acc
         }
 
-        val matchingStacks = swapCandidates.associateWith { it.matchingStacks(toolSelection) }
-        val (container, toolPair) = matchingStacks.mapValues { (_, stacks) ->
+        val matchingStacks = swapCandidates.associateWith { it.matchingStacks(stackSelection) }
+        val (_, toolPair) = matchingStacks.mapValues { (_, stacks) ->
 	        stacks.associateWith { state.calcItemBlockBreakingDelta(player, world, pos, it) }
                 .maxByOrNull { it.value }
                 ?.toPair()

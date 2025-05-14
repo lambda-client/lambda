@@ -42,6 +42,7 @@ abstract class BreakConfig(
     abstract val breakConfirmation: BreakConfirmationMode
     abstract val maxPendingBreaks: Int
     abstract val breaksPerTick: Int
+    abstract val suitableToolsOnly: Boolean
     abstract val breakWeakBlocks: Boolean
     abstract val forceSilkTouch: Boolean
     abstract val forceFortunePickaxe: Boolean
