@@ -37,6 +37,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.util.math.BlockPos
+import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object PacketMine : Module(
@@ -52,14 +53,19 @@ object PacketMine : Module(
     private val interact = InteractionSettings(this, InteractionMask.Block) { page == Page.Interaction }
     private val inventory = InventorySettings(this) { page == Page.Inventory }
     private val hotbar = HotbarSettings(this) { page == Page.Hotbar }
+
     private val reBreakMode by setting("ReBreak Mode", ReBreakMode.Manual, "The method used to re-break blocks after they've been broken once") { breakConfig.reBreak }
+    private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once")
+        .onValueChange { _, to -> if (!to) queuePositions.clear() }
 
     private val pendingInteractionsList = ConcurrentLinkedQueue<BuildContext>()
 
     private var breaks = 0
     private var itemDrops = 0
 
-    private val breakingPositions = arrayOfNulls<BlockPos>(2)
+    private val breakPositions = arrayOfNulls<BlockPos>(2)
+    private val queuePositions = LinkedList<BlockPos>()
+
     private var reBreakPos: BlockPos? = null
 
     private var attackedThisTick = false
@@ -73,47 +79,61 @@ object PacketMine : Module(
         listen<TickEvent.Pre> {
             if (!breakConfig.reBreak || (reBreakMode != ReBreakMode.Auto && reBreakMode != ReBreakMode.AutoConstant)) return@listen
             val reBreak = reBreakPos ?: return@listen
-            requestBreakManager(reBreak)
+            requestBreakManager(listOf(reBreak), true)
         }
 
         listen<PlayerEvent.Attack.Block> { it.cancel() }
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
-            if (breakingPositions.any { it == event.pos }) return@listen
-            val secondary = if (breakConfig.doubleBreak) {
-                breakingPositions[1] ?: breakingPositions[0]
-            } else null
-            requestBreakManager(event.pos, secondary)
+            if ((breakPositions + queuePositions).any { it == event.pos }) return@listen
+            val activeBreaking = if (queue) {
+                queuePositions.addLast(event.pos)
+                breakPositions + queuePositions
+            } else {
+                arrayOf<BlockPos?>(event.pos) + if (breakConfig.doubleBreak) {
+                    breakPositions[1] ?: breakPositions[0]
+                } else null
+            }
+            requestBreakManager(activeBreaking.toList())
             attackedThisTick = true
         }
 
         listen<TickEvent.Input.Post> {
-            if (!attackedThisTick) requestBreakManager(*breakingPositions.toList().toTypedArray())
+            if (!attackedThisTick) requestBreakManager((breakPositions + queuePositions).toList())
         }
 
         onDisable {
-            breakingPositions[0] = null
-            breakingPositions[1] = null
+            breakPositions[0] = null
+            breakPositions[1] = null
+            queuePositions.clear()
             reBreakPos = null
             attackedThisTick = false
         }
     }
 
-    private fun SafeContext.requestBreakManager(vararg requestPositions: BlockPos?) {
+    private fun SafeContext.requestBreakManager(requestPositions: Collection<BlockPos?>, reBreaking: Boolean = false) {
         if (requestPositions.isEmpty()) return
-        val request = BreakRequest(
-            breakContexts(requestPositions.filterNotNull()), build, rotation, hotbar, pendingInteractions = pendingInteractionsList,
-            onAccept = {
-                if (breakConfig.doubleBreak && breakingPositions[1] == null) {
-                    breakingPositions[1] = breakingPositions[0]
+        val breakContexts = breakContexts(requestPositions)
+        if (!reBreaking) {
+            breakPositions.forEachIndexed { index, breakPos ->
+                if (breakContexts.none { it.expectedPos == breakPos }) {
+                    breakPositions[index] = null
                 }
-                breakingPositions[0] = it
-                reBreakPos = null
+            }
+            queuePositions.removeIf { queuePos ->
+                breakContexts.none { it.expectedPos == queuePos }
+            }
+        }
+        val request = BreakRequest(
+            breakContexts, build, rotation, hotbar, pendingInteractions = pendingInteractionsList,
+            onAccept = {
+                addBreak(it)
+                queuePositions.remove(it)
             },
-            onCancel = { nullifyBreakPos(it, true) },
+            onCancel = { removeBreak(it, true) },
             onBreak = {
                 breaks++
-                nullifyBreakPos(it)
+                removeBreak(it)
             },
             onReBreakStart = { reBreakPos = it },
             onReBreak = { reBreakPos = it },
@@ -122,20 +142,9 @@ object PacketMine : Module(
         breakConfig.request(request)
     }
 
-    private fun nullifyBreakPos(pos: BlockPos, includeReBreak: Boolean = false) {
-        breakingPositions.forEachIndexed { index, breakPos ->
-            if (breakPos == pos) {
-                breakingPositions[index] = null
-            }
-        }
-        if (includeReBreak && pos == reBreakPos) {
-            reBreakPos = null
-            return
-        }
-    }
-
-    private fun SafeContext.breakContexts(breakPositions: Collection<BlockPos>) =
-        breakPositions
+    private fun SafeContext.breakContexts(positions: Collection<BlockPos?>) =
+        positions
+            .filterNotNull()
             .associateWith { TargetState.State(blockState(it).fluidState.blockState) }
             .toBlueprint()
             .simulate(
@@ -147,6 +156,25 @@ object PacketMine : Module(
             )
             .filterIsInstance<BreakResult.Break>()
             .map { it.context }
+
+    private fun addBreak(pos: BlockPos) {
+        if (breakConfig.doubleBreak && breakPositions[1] == null) {
+            breakPositions[1] = breakPositions[0]
+        }
+        breakPositions[0] = pos
+        reBreakPos = null
+    }
+
+    private fun removeBreak(pos: BlockPos, includeReBreak: Boolean = false) {
+        breakPositions.forEachIndexed { index, breakPos ->
+            if (breakPos == pos) {
+                breakPositions[index] = null
+            }
+        }
+        if (includeReBreak && pos == reBreakPos) {
+            reBreakPos = null
+        }
+    }
 
     enum class Page {
         Build, Rotation, Interaction, Inventory, Hotbar
