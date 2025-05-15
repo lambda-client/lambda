@@ -57,6 +57,7 @@ object PacketMine : Module(
     private val reBreakMode by setting("ReBreak Mode", ReBreakMode.Manual, "The method used to re-break blocks after they've been broken once") { breakConfig.reBreak }
     private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once")
         .onValueChange { _, to -> if (!to) queuePositions.clear() }
+    private val queueOrder by setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }
 
     private val pendingInteractionsList = ConcurrentLinkedQueue<BuildContext>()
 
@@ -65,6 +66,11 @@ object PacketMine : Module(
 
     private val breakPositions = arrayOfNulls<BlockPos>(2)
     private val queuePositions = LinkedList<BlockPos>()
+    private val queueSorted
+        get() = when (queueOrder) {
+            QueueOrder.Standard -> queuePositions
+            QueueOrder.Reversed -> queuePositions.asReversed()
+        }
 
     private var reBreakPos: BlockPos? = null
 
@@ -88,7 +94,7 @@ object PacketMine : Module(
             if ((breakPositions + queuePositions).any { it == event.pos }) return@listen
             val activeBreaking = if (queue) {
                 queuePositions.addLast(event.pos)
-                breakPositions + queuePositions
+                breakPositions + queueSorted
             } else {
                 arrayOf<BlockPos?>(event.pos) + if (breakConfig.doubleBreak) {
                     breakPositions[1] ?: breakPositions[0]
@@ -99,7 +105,7 @@ object PacketMine : Module(
         }
 
         listen<TickEvent.Input.Post> {
-            if (!attackedThisTick) requestBreakManager((breakPositions + queuePositions).toList())
+            if (!attackedThisTick) requestBreakManager((breakPositions + queueSorted).toList())
         }
 
         onDisable {
@@ -184,5 +190,10 @@ object PacketMine : Module(
         Manual,
         Auto,
         AutoConstant;
+    }
+
+    enum class QueueOrder {
+        Standard,
+        Reversed
     }
 }
