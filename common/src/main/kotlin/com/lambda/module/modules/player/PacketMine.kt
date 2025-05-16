@@ -132,15 +132,9 @@ object PacketMine : Module(
         }
         val request = BreakRequest(
             breakContexts, build, rotation, hotbar, pendingInteractions = pendingInteractionsList,
-            onAccept = {
-                addBreak(it)
-                queuePositions.remove(it)
-            },
+            onAccept = { queuePositions.remove(it); addBreak(it) },
             onCancel = { removeBreak(it, true) },
-            onBreak = {
-                breaks++
-                removeBreak(it)
-            },
+            onBreak = { removeBreak(it); breaks++ },
             onReBreakStart = { reBreakPos = it },
             onReBreak = { reBreakPos = it },
             onItemDrop = { _ -> itemDrops++ }
