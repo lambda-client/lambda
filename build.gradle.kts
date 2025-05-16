@@ -87,7 +87,7 @@ subprojects {
 
     loom.runs {
         all {
-            property("lambda.dev", "youtu.be/7iNbnineUCI")
+            property("lambda.dev", "youtu.be/RYnFIRc0k6E")
         }
     }
 

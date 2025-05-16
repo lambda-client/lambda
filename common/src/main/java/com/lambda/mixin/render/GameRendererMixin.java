@@ -19,7 +19,9 @@ package com.lambda.mixin.render;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.RenderEvent;
+import com.lambda.graphics.RenderMain;
 import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.util.math.MatrixStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -32,5 +34,25 @@ public class GameRendererMixin {
         if (EventFlow.post(new RenderEvent.UpdateTarget()).isCanceled()) {
             info.cancel();
         }
+    }
+
+    /**
+     * Begins our 3d render after the game has rendered the world
+     * <pre>{@code
+     * Matrix4f matrix4f = matrixStack.peek().getPositionMatrix();
+     *     this.loadProjectionMatrix(matrix4f);
+     *     matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(camera.getPitch()));
+     *     matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(camera.getYaw() + 180.0F));
+     * Matrix3f matrix3f = new Matrix3f(matrices.peek().getNormalMatrix()).invert();
+     *     RenderSystem.setInverseViewRotationMatrix(matrix3f);
+     *     this.client
+     *             .worldRenderer
+     *             .setupFrustum(matrices, camera.getPos(), this.getBasicProjectionMatrix(Math.max(d, (double)this.client.options.getFov().getValue().intValue())));
+     *     this.client.worldRenderer.render(matrices, tickDelta, limitTime, bl, camera, this, this.lightmapTextureManager, matrix4f);
+     * }</pre>
+     */
+    @Inject(method = "renderWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;render(Lnet/minecraft/client/util/math/MatrixStack;FJZLnet/minecraft/client/render/Camera;Lnet/minecraft/client/render/GameRenderer;Lnet/minecraft/client/render/LightmapTextureManager;Lorg/joml/Matrix4f;)V", shift = At.Shift.AFTER))
+    private void onRenderWorld(float tickDelta, long limitTime, MatrixStack matrix, CallbackInfo ci) {
+        RenderMain.render3D(matrix.peek().getPositionMatrix());
     }
 }

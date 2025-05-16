@@ -21,6 +21,8 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
+import com.lambda.util.player.MovementUtils.motionX
+import com.lambda.util.player.MovementUtils.motionZ
 import net.minecraft.entity.LivingEntity
 
 object SafeWalk : Module(
@@ -45,10 +47,10 @@ object SafeWalk : Module(
         }
     }
 
-    private fun LivingEntity.isNearLedge(distance: Double, stepHeight: Double): Boolean {
+    fun LivingEntity.isNearLedge(distance: Double, stepHeight: Double): Boolean {
         fun checkDirection(deltaX: Double, deltaZ: Double): Boolean {
-            var dx = deltaX
-            var dz = deltaZ
+            var dx = deltaX + motionX
+            var dz = deltaZ + motionZ
             while (dx != 0.0 || dz != 0.0) {
                 if (world.isBlockSpaceEmpty(this, boundingBox.offset(dx, -stepHeight, dz))) {
                     return true

@@ -28,6 +28,9 @@ val Entity.prevPos
 val Entity.rotation
     get() = Rotation(yaw, pitch)
 
+val LivingEntity.fullHealth: Double
+    get() = health + absorptionAmount.toDouble()
+
 var LivingEntity.isElytraFlying
     get() = isGliding
     set(value) {

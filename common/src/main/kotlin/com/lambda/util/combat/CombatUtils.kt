@@ -18,71 +18,24 @@
 package com.lambda.util.combat
 
 import com.lambda.context.SafeContext
-import com.lambda.util.math.distSq
+import com.lambda.util.combat.DamageUtils.scale
+import com.lambda.util.extension.fullHealth
+import com.lambda.util.math.dist
 import com.lambda.util.world.fastEntitySearch
-import net.minecraft.client.world.ClientWorld
-import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.decoration.EndCrystalEntity
-import net.minecraft.entity.effect.StatusEffects.FIRE_RESISTANCE
-import net.minecraft.registry.tag.DamageTypeTags.DAMAGES_HELMET
-import net.minecraft.registry.tag.DamageTypeTags.IS_FIRE
-import net.minecraft.registry.tag.DamageTypeTags.IS_FREEZING
-import net.minecraft.registry.tag.EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES
 import net.minecraft.util.math.Vec3d
-import net.minecraft.world.Difficulty
-import net.minecraft.world.World
 import net.minecraft.world.explosion.Explosion
-import net.minecraft.world.explosion.ExplosionImpl
-import kotlin.math.min
 
 object CombatUtils {
-    /**
-     * Scales damage up or down based on the player resistances and other variables
-     *
-     * @param entity The entity to calculate the damage for
-     * @param damage The damage to apply
-     */
-    fun DamageSource.scale(world: ClientWorld, entity: LivingEntity, damage: Double): Double {
-        if (damage.isNaN() || damage.isInfinite())
-            return Double.MAX_VALUE
-
-        if (entity.isAlwaysInvulnerableTo(this) ||
-            entity.isDead ||
-            entity.blockedByShield(this) ||
-            isIn(IS_FIRE) && entity.hasStatusEffect(FIRE_RESISTANCE)) return 0.0
-
-        if (isIn(IS_FREEZING) && entity.type.isIn(FREEZE_HURTS_EXTRA_TYPES))
-            return damage * 5
-
-        if (isIn(DAMAGES_HELMET) && !entity.getEquippedStack(EquipmentSlot.HEAD).isEmpty)
-            return damage * 0.75
-
-        return world.scaleDamage(
-            entity.applyArmorToDamage(this,
-                entity.modifyAppliedDamage(this, damage.toFloat())).toDouble()
-        )
-    }
-
-    /**
-     * Scales the damage depending on the world difficulty
-     */
-    fun World.scaleDamage(damage: Double): Double =
-        when (difficulty) {
-            Difficulty.EASY -> min(damage / 2 + 1, damage)
-            Difficulty.HARD -> damage * 3 / 2
-            else -> damage
-        }
-
     /**
      * Returns whether there is a deadly end crystal in proximity of the player
      *
      * @param minHealth The minimum health (in half hearts) at which an explosion is considered deadly
      */
-    fun SafeContext.hasDeadlyCrystal(minHealth: Double) =
+    fun SafeContext.hasDeadlyCrystal(minHealth: Double = 0.0) =
         fastEntitySearch<EndCrystalEntity>(12.0)
-            .any { player.health - crystalDamage(it.pos, player) <= minHealth }
+            .any { player.fullHealth - crystalDamage(it.pos, player) <= minHealth }
 
     /**
      * Calculates the damage dealt by an explosion to a living entity
@@ -109,10 +62,10 @@ object CombatUtils {
      * @param power The [power of the explosion](https://minecraft.wiki/w/Explosion#Damage)
      */
     fun SafeContext.explosionDamage(position: Vec3d, entity: LivingEntity, power: Double): Double {
-        val distance = entity distSq position
+        val distance = entity dist position
 
         val range = power * 2
-        val impact = (1 - distance / range) * ExplosionImpl.calculateReceivedDamage(position, entity) * 0.4
+        val impact = (1 - distance / range) * Explosion.getExposure(position, entity)
         val damage = (impact * impact + impact) / 2.0 * 7.0 * range + 1
 
         return Explosion.createDamageSource(world, null).scale(world, entity, damage)

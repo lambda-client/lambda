@@ -50,6 +50,16 @@ public abstract class CameraMixin {
         Freecam.updateCam();
     }
 
+    /**
+     * Sets the lock rotation to the active rotation
+     * <pre>{@code
+     * this.setPos(
+     *     MathHelper.lerp((double)tickDelta, focusedEntity.prevX, focusedEntity.getX()),
+     *     MathHelper.lerp((double)tickDelta, focusedEntity.prevY, focusedEntity.getY()) + (double)MathHelper.lerp(tickDelta, this.lastCameraY, this.cameraY),
+     *     MathHelper.lerp((double)tickDelta, focusedEntity.prevZ, focusedEntity.getZ())
+     *     );
+     * }</pre>
+     */
     @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setPos(DDD)V", shift = At.Shift.AFTER))
     private void injectQuickPerspectiveSwap(BlockView area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickDelta, CallbackInfo ci) {
         var rot = RotationManager.getLockRotation();
@@ -57,19 +67,34 @@ public abstract class CameraMixin {
         setRotation(rot.getYawF(), rot.getPitchF());
     }
 
+    /**
+     * Allows camera to clip through blocks in third person
+     */
     @Inject(method = "clipToSpace", at = @At("HEAD"), cancellable = true)
-    private void onClipToSpace(float f, CallbackInfoReturnable<Float> cir) {
+    private void onClipToSpace(float desiredCameraDistance, CallbackInfoReturnable<Float> info) {
         if (CameraTweaks.INSTANCE.isEnabled() && CameraTweaks.getNoClipCam()) {
-            cir.setReturnValue(f);
+            info.setReturnValue(desiredCameraDistance);
         }
     }
 
-    @ModifyArg(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;clipToSpace(F)F"))
-    private float onDistanceUpdate(float f) {
+    /**
+     * Modifies the third person camera distance
+     * <pre>{@code
+     * if (thirdPerson) {
+     *         if (inverseView) {
+     *             this.setRotation(this.yaw + 180.0F, -this.pitch);
+     *         }
+     *
+     *         this.moveBy(-this.clipToSpace(4.0), 0.0, 0.0);
+     * }
+     * }</pre>
+     */
+    @ModifyArg(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;clipToSpace(D)D"))
+    private double onDistanceUpdate(double desiredCameraDistance) {
         if (CameraTweaks.INSTANCE.isEnabled()) {
             return CameraTweaks.getCamDistance();
         }
 
-        return f;
+        return desiredCameraDistance;
     }
 }

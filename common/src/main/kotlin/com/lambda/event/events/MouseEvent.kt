@@ -21,6 +21,12 @@ import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
+import org.lwjgl.glfw.GLFW.GLFW_MOD_ALT
+import org.lwjgl.glfw.GLFW.GLFW_MOD_CAPS_LOCK
+import org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL
+import org.lwjgl.glfw.GLFW.GLFW_MOD_NUM_LOCK
+import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
+import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
 
 sealed class MouseEvent {
     /**
@@ -32,17 +38,32 @@ sealed class MouseEvent {
      * @property position The x and y position of the mouse on the screen
      */
     data class Click(
-        val button: Mouse.Button,
-        val action: Mouse.Action,
+        val button: Int,
+        val action: Int,
         val modifiers: Int,
         val position: Vec2d,
     ) : ICancellable by Cancellable() {
-        constructor(button: Int, action: Int, modifiers: Int, position: Vec2d) : this(
-            Mouse.Button.fromMouseCode(button),
-            Mouse.Action.fromActionCode(action),
+        constructor(button: Mouse.Button, action: Mouse.Action, modifiers: Int, position: Vec2d) : this(
+            button.ordinal,
+            action.ordinal,
             modifiers,
             position
         )
+
+        val isMainButton = button <= 2
+        val isSideButton = button > 2
+        val isLeftButton = button == 0
+        val isRightButton = button == 1
+        val isMiddleButton = button == 2
+
+        val hasShift = hasModifier(GLFW_MOD_SHIFT)
+        val hasControl = hasModifier(GLFW_MOD_CONTROL)
+        val hasAlt = hasModifier(GLFW_MOD_ALT)
+        val hasSuper = hasModifier(GLFW_MOD_SUPER)
+        val hasCapsLock = hasModifier(GLFW_MOD_CAPS_LOCK)
+        val hasNumLock = hasModifier(GLFW_MOD_NUM_LOCK)
+
+        fun hasModifier(mod: Int) = modifiers and mod == mod
     }
 
     /**

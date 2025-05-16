@@ -51,6 +51,16 @@ public class LivingEntityRendererMixin<T extends LivingEntity, S extends LivingE
         this.lambda$pitch = rotationPitch;
     }
 
+    /**
+     * Uses the current rotation render pitch
+     * <pre>{@code
+     * float m = MathHelper.lerp(g, livingEntity.prevPitch, livingEntity.getPitch());
+     *     if (shouldFlipUpsideDown(livingEntity)) {
+     *     m *= -1.0F;
+     *     k *= -1.0F;
+     * }
+     * }</pre>
+     */
     // FixMe: When there are no rotations, the pitch is always set to 0
     @Redirect(method = "updateRenderState(Lnet/minecraft/entity/LivingEntity;Lnet/minecraft/client/render/entity/state/LivingEntityRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;getLerpedPitch(F)F", ordinal = 0), require = 0)
     private float injectRotationPitch(LivingEntity instance, float v) {

@@ -44,27 +44,27 @@ object TextureOwner {
         textureMap.getValue(this@texture)[index] as T
 
     /**
-     * Binds a list of textures to texture slots, ensuring no more than 32 textures
+     * Binds a list of textures to texture slots, ensuring no more than 96 textures
      * are bound at once (to fit within the typical GPU limitations)
      *
      * @param textures The list of objects that own textures to be bound.
-     * @throws IllegalArgumentException If more than 32 textures are provided.
+     * @throws IllegalArgumentException If more than 96 textures are provided.
      */
     fun bind(vararg textures: Any) {
-        check(textures.size < 33) { "Texture slot overflow, expected to use less than 33 slots, got ${textures.size} slots" }
+        check(textures.size <= 96) { "Expected equal or less than 96 simultaneous textures, got ${textures.size} textures" }
 
         textures.forEachIndexed { index, texture -> texture.texture.bind(index) }
     }
 
     /**
-     * Binds a list of textures to texture slots, ensuring no more than 32 textures
+     * Binds a list of textures to texture slots, ensuring no more than 96 textures
      * are bound at once (to fit within the typical GPU limitations)
      *
      * @param textures The list of textures to be bound
-     * @throws IllegalArgumentException If more than 32 textures are provided
+     * @throws IllegalArgumentException If more than 96 textures are provided
      */
     fun bind(vararg textures: Texture) {
-        check(textures.size < 33) { "Texture slot overflow, expected to use less than 33 slots, got ${textures.size} slots" }
+        check(textures.size <= 96) { "Expected equal or less than 96 simultaneous textures, got ${textures.size} textures" }
 
         textures.forEachIndexed { index, texture -> texture.bind(index) }
     }

@@ -17,43 +17,58 @@
 
 package com.lambda.graphics.renderer.gui
 
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.RenderMain
-import com.lambda.graphics.buffer.VertexPipeline
+import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
-import com.lambda.graphics.pipeline.ScissorAdapter
 import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.GuiSettings
+import com.lambda.module.modules.client.GuiSettings.primaryColor
+import com.lambda.module.modules.client.GuiSettings.secondaryColor
+import com.lambda.module.modules.client.RenderSettings
 import com.lambda.util.math.MathUtils.toInt
-import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d
 import org.lwjgl.glfw.GLFW
 
-abstract class AbstractGUIRenderer(
+open class AbstractGUIRenderer(
     attribGroup: VertexAttrib.Group,
     val shader: Shader
 ) {
     private val pipeline = VertexPipeline(VertexMode.TRIANGLES, attribGroup)
+    private var memoryMapping = true
 
-    protected fun render(
+    init {
+        listen<TickEvent.Render.Pre>(alwaysListen = true) {
+            memoryMapping = RenderSettings.useMemoryMapping
+        }
+
+        listen<TickEvent.Render.Post>(alwaysListen = true) {
+            if (memoryMapping) pipeline.sync()
+        }
+    }
+
+    fun render(
         shade: Boolean = false,
-        block: VertexPipeline.() -> Unit
+        block: VertexPipeline.(Shader) -> Unit
     ) {
-        pipeline.clear()
         shader.use()
 
-        block(pipeline)
+        block(pipeline, shader)
 
         shader["u_Shade"] = shade.toInt().toDouble()
         if (shade) {
             shader["u_ShadeTime"] = GLFW.glfwGetTime() * GuiSettings.colorSpeed * 5.0
-            shader["u_ShadeColor1"] = GuiSettings.shadeColor1
-            shader["u_ShadeColor2"] = GuiSettings.shadeColor2
+            shader["u_ShadeColor1"] = primaryColor
+            shader["u_ShadeColor2"] = secondaryColor
 
             shader["u_ShadeSize"] = RenderMain.screenSize / Vec2d(GuiSettings.colorWidth, GuiSettings.colorHeight)
         }
 
-        pipeline.upload()
-        pipeline.render()
+        pipeline.apply {
+            render()
+            if (memoryMapping) end() else clear()
+        }
     }
 }

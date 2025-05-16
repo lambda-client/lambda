@@ -1,8 +1,6 @@
 name: Feature
 description: Request or implement a feature.
-title: "[Version] [Mod loader] Feat: "
-assignees:
-  - Edouard127
+title: "Feat: "
 body:
   - type: markdown
     attributes:

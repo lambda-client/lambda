@@ -18,8 +18,10 @@
 package com.lambda.config
 
 import com.google.gson.JsonElement
+import com.google.gson.JsonIOException
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.google.gson.JsonSyntaxException
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
 import com.lambda.config.configurations.ModuleConfig
@@ -28,10 +30,13 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.threading.runIO
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
+import com.lambda.util.FileUtils.createIfNotExists
+import com.lambda.util.FileUtils.ifExists
+import com.lambda.util.FileUtils.ifNotExists
 import com.lambda.util.StringUtils.capitalize
 import java.io.File
-import java.time.Duration
 import kotlin.concurrent.fixedRateTimer
+import kotlin.time.Duration.Companion.minutes
 
 
 /**
@@ -57,8 +62,26 @@ abstract class Configuration : Jsonable {
         get() = File("${primary.parent}/${primary.nameWithoutExtension}-backup.${primary.extension}")
 
     init {
+        // We need to implement a dependency graph of loadables and add functions to run before
+        // and/or after a given Loadable children class is initialized
+        //
+        // class Load1(
+        //     override val priority = 1000,
+        //     override val before = Load2,
+        // ) : Loadable {}
+        //
+        // class Load2(
+        //     override val priority = 1000,
+        // ) : Loadable {}
+        //
+        // class Load3(
+        //     override val priority = 1000,
+        //     override val after = Load2,
+        // ) : Loadable {}
+        //
+        // clientLifecycle<Load2>(shift = Pre) { event -> } // Will run before Load2
+        // clientLifecycle<Load2>(shift = Post) { event -> } // Will run after Load2
         listenUnsafe<ClientEvent.Startup> { tryLoad() }
-
         listenUnsafe<ClientEvent.Shutdown>(Int.MIN_VALUE) { trySave() }
 
         register()
@@ -69,11 +92,9 @@ abstract class Configuration : Jsonable {
         fixedRateTimer(
             daemon = true,
             name = "Scheduler-config-${configName}",
-            initialDelay = Duration.ofMinutes(5).toMillis(),
-            period = Duration.ofMinutes(5).toMillis()
-        ) {
-            trySave()
-        }
+            initialDelay = 5.minutes.inWholeMilliseconds,
+            period = 5.minutes.inWholeMilliseconds,
+        ) { trySave() }
 
         configurations.add(this)
     }
@@ -87,71 +108,64 @@ abstract class Configuration : Jsonable {
 
     override fun loadFromJson(serialized: JsonElement) {
         serialized.asJsonObject.entrySet().forEach { (name, value) ->
-            configurables.find {
-                it.name == name
-            }?.loadFromJson(value)
+            configurableByName(name)
+                ?.loadFromJson(value)
                 ?: LOG.warn("No matching setting found for saved setting $name with $value in ${configName.capitalize()} config")
         }
     }
 
-    private fun save() {
-        with(primary) {
-            if (exists()) copyTo(backup, true)
-
-            parentFile.mkdirs()
-            writeText(gson.toJson(toJson()))
-        }
+    fun save() = runCatching {
+        primary.createIfNotExists()
+            .let {
+                it.writeText(gson.toJson(toJson()))
+                it.copyTo(backup, true)
+            }
     }
 
-    private fun load(file: File) {
-        if (!file.exists()) {
-            LOG.warn("No configuration file found for ${configName.capitalize()}. Creating new file when saving.")
-            return
-        }
-
-        loadFromJson(JsonParser.parseReader(file.reader()).asJsonObject)
+    /**
+     * Loads the config from the [file]
+     * Encapsulates [JsonIOException] and [JsonSyntaxException] in a runCatching block
+     */
+    fun load(file: File) = runCatching {
+        file.ifNotExists { LOG.warn("No configuration file found for ${configName.capitalize()}. Creating new file when saving.") }
+            .ifExists { loadFromJson(JsonParser.parseReader(it.reader()).asJsonObject) }
     }
 
-    fun tryLoad() {
-        runIO {
-            runCatching { load(primary) }
-                .onSuccess {
-                    val message = "${configName.capitalize()} config loaded."
-                    LOG.info(message)
-                    info(message)
-                }
-                .onFailure {
-                    var message: String
-                    runCatching { load(backup) }
-                        .onSuccess {
-                            message = "${configName.capitalize()} config loaded from backup"
-                            LOG.info(message)
-                            info(message)
-                        }
-                        .onFailure { error ->
-                            message =
-                                "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
-                            LOG.error(message, error)
-                            logError(message)
-                        }
-                }
-        }
+    fun tryLoad() = runIO {
+        load(primary)
+            .onSuccess {
+                val message = "${configName.capitalize()} config loaded."
+                LOG.info(message)
+                info(message)
+            }
+            .onFailure {
+                var message: String
+                runCatching { load(backup) }
+                    .onSuccess {
+                        message = "${configName.capitalize()} config loaded from backup"
+                        LOG.info(message)
+                        info(message)
+                    }
+                    .onFailure { error ->
+                        message = "Failed to load ${configName.capitalize()} config from backup, unrecoverable error"
+                        LOG.error(message, error)
+                        logError(message)
+                    }
+            }
     }
 
-    fun trySave(logToChat: Boolean = false) {
-        runIO {
-            runCatching { save() }
-                .onSuccess {
-                    val message = "Saved ${configName.capitalize()} config."
-                    LOG.info(message)
-                    if (logToChat) info(message)
-                }
-                .onFailure {
-                    val message = "Failed to save ${configName.capitalize()} config"
-                    LOG.error(message, it)
-                    logError(message)
-                }
-        }
+    fun trySave(logToChat: Boolean = false) = runIO {
+        save()
+            .onSuccess {
+                val message = "Saved ${configName.capitalize()} config."
+                LOG.info(message)
+                if (logToChat) info(message)
+            }
+            .onFailure {
+                val message = "Failed to save ${configName.capitalize()} config"
+                LOG.error(message, it)
+                logError(message)
+            }
     }
 
     companion object {

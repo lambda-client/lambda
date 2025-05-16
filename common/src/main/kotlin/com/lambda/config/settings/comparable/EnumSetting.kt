@@ -43,24 +43,27 @@ class EnumSetting<T : Enum<T>>(
     description,
     visibility,
 ) {
-    val enumValues: Array<T> = defaultValue.declaringJavaClass.enumConstants
-
     fun next() {
-        value = enumValues[((value.ordinal + 1) % enumValues.size)]
+        value = value.enumValues[((value.ordinal + 1) % value.enumValues.size)]
     }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(word(name)) { parameter ->
             suggests { _, builder ->
-                enumValues.forEach { builder.suggest(it.name.capitalize()) }
+                value.enumValues.forEach { builder.suggest(it.name.capitalize()) }
                 builder.buildFuture()
             }
             executeWithResult {
-                val newValue = enumValues.find { it.name.equals(parameter().value(), true) }
+                val newValue = value.enumValues.find { it.name.equals(parameter().value(), true) }
                     ?: return@executeWithResult failure("Invalid value")
                 trySetValue(newValue)
                 return@executeWithResult success()
             }
         }
+    }
+
+    companion object {
+        val <T : Enum<T>> T.enumValues: Array<T> get() =
+            declaringJavaClass.enumConstants
     }
 }

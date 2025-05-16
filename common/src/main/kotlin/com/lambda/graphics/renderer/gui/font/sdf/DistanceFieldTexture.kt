@@ -34,25 +34,30 @@ import java.awt.image.BufferedImage
  * @param image Image data to upload
  */
 class DistanceFieldTexture(image: BufferedImage) : Texture(image, levels = 0) {
-    private val shader = shader("signed_distance_field", "renderer/pos_tex")
+    private val shader = shader("post/sdf")
 
     private val frame = CachedFrame(width, height).write {
-        FrameBuffer.pipeline.use {
+        FrameBuffer.pipeline.immediate {
             val (pos1, pos2) = Vec2d.ZERO to Vec2d(width, height)
 
-            grow(4)
-            putQuad(
-                vec2(pos1.x, pos1.y).vec2(0.0, 1.0).end(),
-                vec2(pos1.x, pos2.y).vec2(0.0, 0.0).end(),
-                vec2(pos2.x, pos2.y).vec2(1.0, 0.0).end(),
-                vec2(pos2.x, pos1.y).vec2(1.0, 1.0).end()
+            buildQuad(
+                vertex {
+                    vec2(pos1.x, pos1.y).vec2(0.0, 1.0)
+                },
+                vertex {
+                    vec2(pos1.x, pos2.y).vec2(0.0, 0.0)
+                },
+                vertex {
+                    vec2(pos2.x, pos2.y).vec2(1.0, 0.0)
+                },
+                vertex {
+                    vec2(pos2.x, pos1.y).vec2(1.0, 1.0)
+                }
             )
 
             shader.use()
             shader["u_TexelSize"] = Vec2d.ONE / pos2
             super.bind(0)
-
-            immediateDraw()
         }
     }
 

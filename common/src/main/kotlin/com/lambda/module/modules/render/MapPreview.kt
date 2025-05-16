@@ -51,6 +51,8 @@ object MapPreview : Module(
 
         override fun drawItems(textRenderer: TextRenderer, x: Int, y: Int, width: Int, height: Int, context: DrawContext) {
             mapId?.let { id ->
+                // Values taken from net.minecraft.client.render.item.HeldItemRenderer.renderFirstPersonMap
+                val state = state ?: return
                 val matrices = context.matrices
 
                 matrices.push()

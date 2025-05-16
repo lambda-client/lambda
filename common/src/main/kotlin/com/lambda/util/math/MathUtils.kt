@@ -26,6 +26,8 @@ object MathUtils {
     private const val PI_FLOAT = 3.141593f
 
     inline val Int.sq: Int get() = this * this
+    inline val Float.sq: Float get() = this * this
+    inline val Double.sq: Double get() = this * this
 
     fun Float.toRadian() = this / 180.0f * PI_FLOAT
     fun Double.toRadian() = this / 180.0 * PI
@@ -35,6 +37,10 @@ object MathUtils {
 
     fun Boolean.toInt() = if (this) 1 else 0
     fun Boolean.toIntSign() = if (this) 1 else -1
+    fun Boolean.toFloat() = if (this) 1f else 0f
+    fun Boolean.toFloatSign() = if (this) 1f else -1f
+    fun Boolean.toDouble() = if (this) 1.0 else 0.0
+    fun Boolean.toDoubleSign() = if (this) 1.0 else -1.0
 
     fun Double.floorToInt() = floor(this).toInt()
     fun Double.ceilToInt() = ceil(this).toInt()

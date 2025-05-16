@@ -22,9 +22,8 @@ val forgeVersion: String by project
 val mixinExtrasVersion: String by project
 val kotlinForgeVersion: String by project
 val discordIPCVersion: String by project
+val ktorVersion: String by project
 val baritoneVersion: String by project
-val fuelVersion: String by project
-val resultVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-forge"
 
@@ -75,10 +74,9 @@ val common: Configuration by configurations.creating {
 
 val includeLib: Configuration by configurations.creating
 val includeMod: Configuration by configurations.creating
-val shadowBundle: Configuration by configurations.creating {
-    isCanBeResolved = true
-    isCanBeConsumed = false
-}
+val shadowLib: Configuration by configurations.creating { isCanBeConsumed = false }
+val shadowMod: Configuration by configurations.creating { isCanBeConsumed = false }
+val shadowBundle: Configuration by configurations.creating { isCanBeConsumed = false }
 
 fun DependencyHandlerScope.setupConfigurations() {
     includeLib.dependencies.forEach {
@@ -90,6 +88,14 @@ fun DependencyHandlerScope.setupConfigurations() {
     includeMod.dependencies.forEach {
         implementation(it)
         // include(it)
+    }
+
+    shadowLib.dependencies.forEach {
+        implementation(it)
+    }
+
+    shadowMod.dependencies.forEach {
+        implementation(it)
     }
 }
 
@@ -103,10 +109,11 @@ dependencies {
     includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:0.15.0")
 
-    // Fuel HTTP library and dependencies
-    includeLib("com.github.kittinunf.fuel:fuel:$fuelVersion")
-    includeLib("com.github.kittinunf.fuel:fuel-gson:$fuelVersion")
-    includeLib("com.github.kittinunf.result:result-jvm:$resultVersion")
+    // Ktor
+    includeLib("io.ktor:ktor-client-core:$ktorVersion")
+    shadowLib("io.ktor:ktor-client-cio:$ktorVersion") { exclude(group = "org.jetbrains.kotlin"); exclude(group = "org.jetbrains.kotlinx"); exclude(group = "org.slf4j") }
+    includeLib("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    includeLib("io.ktor:ktor-serialization-gson:$ktorVersion")
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
@@ -125,19 +132,9 @@ dependencies {
 }
 
 tasks {
-    // Merge the resources and classes into the same directory.
-    // This is done because java expects modules to be in a single directory.
-    // And if we have it in multiple we have to do performance intensive hacks like having the UnionFileSystem
-    // This will eventually be migrated to ForgeGradle so modders don't need to manually do it. But that is later.
-    sourceSets.forEach {
-        val dir = layout.buildDirectory.dir("sourcesSets/${it.name}")
-        it.output.setResourcesDir(dir)
-        it.java.destinationDirectory.set(dir)
-    }
-
     shadowJar {
         archiveVersion = "$modVersion+$minecraftVersion"
-        configurations = listOf(shadowBundle)
+        configurations = listOf(shadowLib, shadowMod, shadowBundle)
         archiveClassifier = "dev-shadow"
     }
 

@@ -18,10 +18,7 @@
 package com.lambda.graphics.shader
 
 import com.google.common.collect.ImmutableList
-import com.lambda.util.LambdaResource
-import com.lambda.util.stream
 import com.mojang.blaze3d.platform.GlStateManager
-import org.apache.commons.io.IOUtils
 import org.joml.Matrix4f
 import org.lwjgl.BufferUtils
 import org.lwjgl.opengl.GL30C.*
@@ -30,22 +27,22 @@ object ShaderUtils {
     private val matrixBuffer = BufferUtils.createFloatBuffer(4 * 4)
     private const val shaderInfoLogLength = 512
 
-    fun loadShader(type: ShaderType, resource: LambdaResource): Int {
+    fun loadShader(type: ShaderType, text: String): Int {
         // Create new shader object
         val shader = glCreateShader(type.gl)
 
         // Attach source code and compile it
-        val text = IOUtils.toString(resource.stream, Charsets.UTF_8)
-        GlStateManager.glShaderSource(shader, text) // TODO: Check this after resolving all the erros
+        GlStateManager.glShaderSource(shader, ImmutableList.of(text))
         val error = compileShader(shader)
 
         // Handle error
         error?.let { err ->
             val builder = StringBuilder()
                 .append("Failed to compile ${type.name} shader").appendLine()
-                .append("Path: $resource").appendLine()
                 .append("Compiler output:").appendLine()
                 .append(err)
+                .appendLine().appendLine("CODE:")
+                .append(text)
 
             throw RuntimeException(builder.toString())
         }

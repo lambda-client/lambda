@@ -27,16 +27,10 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(FireworkRocketEntity.class)
 public class FireworkRocketEntityMixin {
-    @Redirect(
-            method = "tick",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/entity/LivingEntity;setVelocity(Lnet/minecraft/util/math/Vec3d;)V"
-            )
-    )
+    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;setVelocity(Lnet/minecraft/util/math/Vec3d;)V"))
     private void redirectSetVelocity(LivingEntity shooter, Vec3d vec3d) {
         if (ElytraFly.getDoBoost()) {
-            ElytraFly.boostRocket(shooter);
+            ElytraFly.boostRocket();
         } else shooter.setVelocity(vec3d);
     }
 }

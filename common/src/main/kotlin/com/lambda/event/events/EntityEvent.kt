@@ -50,7 +50,7 @@ sealed class EntityEvent {
      *
      * @property entity The entity that is being spawned.
      */
-    data class EntitySpawn(
+    data class Spawn(
         val entity: Entity,
     ) : ICancellable by Cancellable()
 
@@ -60,7 +60,7 @@ sealed class EntityEvent {
      * @property entity The entity being removed from the world.
      * @property removalReason The reason for the removal of the entity.
      */
-    data class EntityRemoval(
+    data class Removal(
         val entity: Entity,
         val removalReason: Entity.RemovalReason,
     ) : Event
@@ -74,7 +74,7 @@ sealed class EntityEvent {
      * @property entity The entity whose tracked data is being updated.
      * @property data The tracked data being updated.
      */
-    data class EntityUpdate(
+    data class Update(
         val entity: Entity,
         val data: TrackedData<*>,
     ) : Event

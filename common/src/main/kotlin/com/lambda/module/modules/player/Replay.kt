@@ -38,8 +38,8 @@ import com.lambda.sound.SoundManager.playSound
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
 import com.lambda.util.Communication.warn
+import com.lambda.util.FileUtils.locationBoundDirectory
 import com.lambda.util.FolderRegister
-import com.lambda.util.FolderRegister.locationBoundDirectory
 import com.lambda.util.Formatting.asString
 import com.lambda.util.Formatting.getTime
 import com.lambda.util.KeyCode
@@ -113,6 +113,7 @@ object Replay : Module(
 
     init {
         listen<KeyboardEvent.Press> {
+            if (!it.isPressed) return@listen
             if (mc.currentScreen != null && !mc.options.commandKey.isPressed) return@listen
 
             when (it.translated) {

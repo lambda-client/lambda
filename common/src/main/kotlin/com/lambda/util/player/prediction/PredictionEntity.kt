@@ -20,13 +20,13 @@ package com.lambda.util.player.prediction
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.request.rotation.Rotation
+import com.lambda.module.modules.movement.SafeWalk.isNearLedge
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.BlockUtils.flooredPos
-import com.lambda.util.extension.jumping
 import com.lambda.util.math.DOWN
 import com.lambda.util.math.MathUtils.toIntSign
 import com.lambda.util.math.MathUtils.toRadian
+import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.plus
 import com.lambda.util.math.times
 import com.lambda.util.player.MovementUtils.motion
@@ -84,7 +84,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
 
     // Other shit
     private var jumpingCooldown = player.jumpingCooldown
-    private var velocityAffectingPos = player.supportingBlockPos.orElse((position + DOWN * 0.001).flooredPos)
+    private var velocityAffectingPos = player.supportingBlockPos.orElse((position + DOWN * 0.001).flooredBlockPos)
 
     private var horizontalCollision = player.horizontalCollision
     private var verticalCollision = player.verticalCollision
@@ -181,6 +181,10 @@ class PredictionEntity(val player: ClientPlayerEntity) {
         var movement = motion
         movement = adjustMovementForCollisions(movement)
 
+        if (player.isNearLedge(0.01, 0.0) && isSneaking) {
+            movement = movement.multiply(0.0, 1.0, 0.0)
+        }
+
         if (movement.lengthSquared() > 1.0E-7) {
             position += movement
         }
@@ -203,7 +207,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
         }
 
         val velocityMultiplier = run {
-            val f = blockState(position.flooredPos).block.velocityMultiplier.toDouble()
+            val f = blockState(position.flooredBlockPos).block.velocityMultiplier.toDouble()
             val g = blockState(velocityAffectingPos).block.velocityMultiplier.toDouble()
             if (f == 1.0) g else f
         }
@@ -215,7 +219,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
             boundingBox = normalized.offset(position)
         }
 
-        velocityAffectingPos = (position + DOWN * 0.001).flooredPos
+        velocityAffectingPos = (position + DOWN * 0.001).flooredBlockPos
     }
 
     /** @see net.minecraft.entity.LivingEntity.jump */
@@ -227,7 +231,7 @@ class PredictionEntity(val player: ClientPlayerEntity) {
 
         /** @see net.minecraft.entity.Entity.getJumpVelocityMultiplier */
         val jumpHeight = run {
-            val f = blockState(position.flooredPos).block.jumpVelocityMultiplier.toDouble()
+            val f = blockState(position.flooredBlockPos).block.jumpVelocityMultiplier.toDouble()
             val g = blockState(velocityAffectingPos).block.jumpVelocityMultiplier.toDouble()
             if (f == 1.0) g else f
         } * 0.42 + player.jumpBoostVelocityModifier

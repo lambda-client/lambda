@@ -47,8 +47,6 @@ import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.tr
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
-import com.lambda.util.BlockUtils
-import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.Formatting.string
@@ -238,7 +236,7 @@ class BuildTask @Ta5kBuilder constructor(
         }
 
         // ToDo: Dependent on the tracked data order. When set stack is called after position it wont work
-        listen<EntityEvent.EntityUpdate> {
+        listen<EntityEvent.Update> {
             if (!collectDrops) return@listen
             if (it.entity !is ItemEntity) return@listen
             pendingInteractions.find { context ->

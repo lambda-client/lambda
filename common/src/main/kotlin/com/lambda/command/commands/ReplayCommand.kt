@@ -27,8 +27,8 @@ import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.module.modules.player.Replay
+import com.lambda.util.FileUtils.listRecursive
 import com.lambda.util.FolderRegister
-import com.lambda.util.FolderRegister.listRecursive
 import com.lambda.util.extension.CommandBuilder
 import kotlin.io.path.exists
 

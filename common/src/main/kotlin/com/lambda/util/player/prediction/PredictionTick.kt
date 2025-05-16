@@ -51,4 +51,18 @@ data class PredictionTick(
 
         lastTick
     }
+
+    /**
+     * Runs the simulation until either [amount] ticks were skipped or [block] is true
+     */
+    fun skipUntil(amount: Int = 20, block: (PredictionTick) -> Boolean) = with(predictionEntity) {
+        repeat(amount) {
+            tickMovement()
+            val prediction = lastTick
+
+            if (block(prediction)) return@with lastTick
+        }
+
+        return@with lastTick
+    }
 }

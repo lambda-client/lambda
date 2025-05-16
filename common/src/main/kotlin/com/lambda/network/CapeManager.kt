@@ -17,82 +17,114 @@
 
 package com.lambda.network
 
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.requests.CancellableRequest
+import com.lambda.Lambda.LOG
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.core.Loadable
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.texture.TextureUtils
+import com.lambda.module.modules.client.Network.cdn
 import com.lambda.network.api.v1.endpoints.getCape
+import com.lambda.network.api.v1.endpoints.getCapes
 import com.lambda.network.api.v1.endpoints.setCape
-import com.lambda.network.api.v1.models.Cape
 import com.lambda.sound.SoundManager.toIdentifier
-import com.lambda.util.Communication.info
-import com.lambda.util.Communication.logError
+import com.lambda.threading.runIO
+import com.lambda.threading.runSafe
+import com.lambda.util.FileUtils.createIfNotExists
+import com.lambda.util.FileUtils.downloadCompare
+import com.lambda.util.FileUtils.downloadIfNotPresent
+import com.lambda.util.FileUtils.ifNotExists
+import com.lambda.util.FileUtils.isOlderThan
 import com.lambda.util.FolderRegister.capes
-import com.lambda.util.extension.get
 import com.lambda.util.extension.resolveFile
+import kotlinx.coroutines.runBlocking
 import net.minecraft.client.texture.NativeImage.read
 import net.minecraft.client.texture.NativeImageBackedTexture
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.io.path.ExperimentalPathApi
+import kotlin.concurrent.fixedRateTimer
 import kotlin.io.path.extension
 import kotlin.io.path.inputStream
 import kotlin.io.path.nameWithoutExtension
 import kotlin.io.path.walk
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.seconds
 
 @Suppress("JavaIoSerializableObjectMustHaveReadResolve")
 object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
-    /**
-     * We want to cache images to reduce cloudflare requests and save money
-     */
+    // We want to cache images to reduce class B requests
     private val images = capes.walk()
         .filter { it.extension == "png" }
         .associate { it.nameWithoutExtension to NativeImageBackedTexture(read(it.inputStream())) }
         .onEach { (key, value) -> mc.textureManager.registerTexture(key.toIdentifier(), value) }
 
+    private val fetchQueue = mutableListOf<UUID>()
+
+    // We want to cache the cape list to reduce class B requests
+    val capeList = runBlocking {
+        capes.resolveFile("capes.txt")
+            .isOlderThan(24.hours) {
+                it.downloadIfNotPresent("$cdn/capes.txt")
+                    .onFailure { err -> LOG.error("Could not download the cape list: $err") }
+            }
+            .ifNotExists {
+                it.downloadCompare("$cdn/capes.txt", -1)
+                    .onFailure { err -> LOG.error("Could not download the cape list: $err") }
+            }
+            .createIfNotExists()
+            .readText()
+            .split("\n")
+    }
+
     /**
      * Sets the current player's cape
+     *
+     * @param block Lambda called once the coroutine completes, it contains the throwable if any
      */
-    fun SafeContext.updateCape(cape: String): CancellableRequest =
-        setCape(cape,
-            success = { fetchCape(player.uuid); info("Successfully update your cape to $cape") },
-            failure = { logError("Could not update the player cape", it) }
-        )
+    fun updateCape(cape: String, block: (Throwable?) -> Unit = {}) = runIO {
+        setCape(cape).getOrThrow()
+
+        runSafe { fetchCape(player.uuid) }
+    }.invokeOnCompletion { block(it) }
 
     /**
      * Fetches the cape of the given player id
+     *
+     * @param block Lambda called once the coroutine completes, it contains the throwable if any
      */
-    fun SafeContext.fetchCape(uuid: UUID): CancellableRequest =
-        getCape(uuid,
-            success = { mc.textureManager.get(it.identifier) ?: download(it); put(uuid, it.id) },
-            failure = { logError("Could not fetch the cape of the player", it) }
-        )
+    fun SafeContext.fetchCape(uuid: UUID, block: (Throwable?) -> Unit = {}) = runIO {
+        val cape = getCape(uuid).getOrNull() ?: return@runIO
 
-    private fun SafeContext.download(cape: Cape): CancellableRequest =
-        Fuel.download(cape.url)
-            .fileDestination { _, _ -> capes.resolveFile("${cape.id}.png") }
-            .response { result ->
-                result.fold(
-                    success = {
-                        val image = TextureUtils.readImage(it)
-                        val native = NativeImageBackedTexture(image)
-                        val id = cape.identifier
+        val bytes = capes.resolveFile("${cape.id}.png")
+            .downloadIfNotPresent(cape.url).getOrNull()
+            ?.readBytes() ?: return@runIO
 
-                        mc.textureManager.registerTexture(id, native)
-                    },
-                    failure = { logError("Could not download the cape", it) }
-                )
-            }
+        mc.textureManager.getOrDefault(cape.id.toIdentifier(), NativeImageBackedTexture(TextureUtils.readImage(bytes)))
 
-    override fun load() = "Loaded ${images.size} cached capes"
+        put(uuid, cape.id)
+    }.invokeOnCompletion { block(it) }
+
+    override fun load() = "Loaded ${images.size} cached capes and ${capeList.size} remote capes"
 
     init {
-        listen<WorldEvent.Player.Join>(alwaysListen = true) {
-            fetchCape(it.uuid)
+        fixedRateTimer(
+            daemon = true,
+            name = "Cape-fetcher",
+            period = 15.seconds.inWholeMilliseconds,
+        ) {
+            if (fetchQueue.isEmpty()) return@fixedRateTimer
+
+            runBlocking {
+                getCapes(fetchQueue)
+                    .onSuccess { it.forEach { cape -> put(cape.uuid, cape.id) } }
+
+                fetchQueue.clear()
+            }
         }
+
+        listen<WorldEvent.Player.Join>(alwaysListen = true) { fetchQueue.add(it.uuid) }
+        listen<WorldEvent.Player.Leave>(alwaysListen = true) { fetchQueue.remove(it.uuid) }
     }
 }
+
