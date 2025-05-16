@@ -164,7 +164,7 @@ object PacketMine : Module(
             .map { it.context }
 
     private fun addBreak(pos: BlockPos) {
-        if (breakConfig.doubleBreak && breakPositions[1] == null) {
+        if (breakConfig.doubleBreak && breakPositions[0] != null) {
             breakPositions[1] = breakPositions[0]
         }
         breakPositions[0] = pos
