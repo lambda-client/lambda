@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,18 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.util.extension
+package com.lambda.module.modules.debug
 
-import com.lambda.interaction.request.rotation.Rotation
-import net.minecraft.entity.Entity
-import net.minecraft.entity.LivingEntity
-import net.minecraft.util.math.Vec3d
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
+import com.lambda.util.Communication.info
+import com.lambda.util.combat.DamageUtils.fallDamage
+import com.lambda.util.combat.DamageUtils.isFallDeadly
 
-val Entity.prevPos
-    get() = Vec3d(prevX, prevY, prevZ)
+object FallTest : Module(
+    name = "FallTest",
+    defaultTags = setOf(ModuleTag.DEBUG),
+) {
+    init {
+        listen<TickEvent.Pre> {
+            val damage = fallDamage()
 
-val Entity.rotation
-    get() = Rotation(yaw, pitch)
-
-val LivingEntity.fullHealth: Double
-    get() = health + absorptionAmount.toDouble()
+            info("Fall damage = $damage, Deadly = ${isFallDeadly()}")
+        }
+    }
+}

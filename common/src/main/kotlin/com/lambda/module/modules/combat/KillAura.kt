@@ -21,28 +21,31 @@ import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.config.groups.Targeting
 import com.lambda.context.SafeContext
-import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerPacketEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.material.StackSelection.Companion.select
+import com.lambda.interaction.material.container.ContainerManager.transfer
+import com.lambda.interaction.material.container.containers.MainHandContainer
 import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.interaction.request.rotation.visibilty.lookAtEntity
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.math.MathUtils.random
+import com.lambda.task.RootTask.run
+import com.lambda.util.math.random
+import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.world.raycast.InteractionMask
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
+import net.minecraft.enchantment.EnchantmentHelper
+import net.minecraft.entity.EntityGroup
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.attribute.EntityAttributeModifier
 import net.minecraft.entity.attribute.EntityAttributes
-import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
-import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
-import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
+import net.minecraft.item.SwordItem
 import net.minecraft.util.Hand
 import net.minecraft.util.math.Vec3d
 
-// ToDo: Rewrite me plz
 object KillAura : Module(
     name = "KillAura",
     description = "Attacks entities",
@@ -52,14 +55,11 @@ object KillAura : Module(
 
     // Interact
     private val interactionSettings = InteractionSettings(this, InteractionMask.Entity) { page == Page.Interact }
+    private val swap by setting("Swap", true, "Swap to the item with the highest damage")
     private val attackMode by setting("Attack Mode", AttackMode.Cooldown) { page == Page.Interact }
-    private val delaySync by setting("Client-side Delay", true) { page == Page.Interact && attackMode == AttackMode.Cooldown }
-    private val cooldownSync by setting("Client-side Cooldown", true) { page == Page.Interact && attackMode == AttackMode.Cooldown }
-    private val timerSync by setting("Assume Timer", true) { page == Page.Interact && attackMode == AttackMode.Cooldown && delaySync }
     private val cooldownOffset by setting("Cooldown Offset", 0, -5..5, 1) { page == Page.Interact && attackMode == AttackMode.Cooldown }
     private val hitDelay1 by setting("Hit Delay 1", 2.0, 0.0..20.0, 1.0) { page == Page.Interact && attackMode == AttackMode.Delay }
     private val hitDelay2 by setting("Hit Delay 2", 6.0, 0.0..20.0, 1.0) { page == Page.Interact && attackMode == AttackMode.Delay }
-    private val criticalSync by setting("Critical Sync", true) { page == Page.Interact && attackMode == AttackMode.Cooldown  }
 
     // Targeting
     private val targeting = Targeting.Combat(this) { page == Page.Targeting }
@@ -67,13 +67,6 @@ object KillAura : Module(
     // Aiming
     private val rotate by setting("Rotate", true) { page == Page.Aiming }
     private val rotation = RotationSettings(this) { page == Page.Aiming && rotate }
-    private val stabilize by setting("Stabilize", true) { page == Page.Aiming && !rotation.instant && rotate }
-    private val stabilizationSpeed by setting("Stabilization Speed", 1.0, 0.1..3.0, 0.01) { page == Page.Aiming && !rotation.instant && rotate && stabilize }
-    private val centerFactor by setting("Center Factor", 0.4, 0.0..1.0, 0.01) { page == Page.Aiming && rotate }
-    private val shakeFactor by setting("Shake Factor", 0.4, 0.0..1.0, 0.01) { page == Page.Aiming && rotate }
-    private val shakeChance by setting("Shake Chance", 0.2, 0.05..1.0, 0.01) { page == Page.Aiming && shakeFactor > 0.0 && rotate }
-    private val selfPredict by setting("Self Predict", 1.0, 0.0..2.0, 0.1) { page == Page.Aiming && rotate }
-    private val targetPredict by setting("Target Predict", 0.0, 0.0..2.0, 0.1) { page == Page.Aiming && rotate }
 
     val target: LivingEntity?
         get() = targeting.target()
@@ -81,7 +74,6 @@ object KillAura : Module(
     private var shakeRandom = Vec3d.ZERO
     private var speedMultiplier = 1.0
 
-    private var attackTicks = 0
     private var lastAttackTime = 0L
     private var hitDelay = 100.0
 
@@ -109,148 +101,49 @@ object KillAura : Module(
         }
 
         listen<TickEvent.Pre> {
-            if (!timerSync) attackTicks++
-
-
             target?.let { entity ->
-                if (lookAtEntity(entity).requestBy(rotation).done) {
-                    runAttack(entity)
+                if (swap) {
+                    val selection = player.combined
+                        .maxBy { stack ->
+                            stack.getAttributeModifiers(EquipmentSlot.MAINHAND)[EntityAttributes.GENERIC_ATTACK_DAMAGE]
+                                .filter { it.operation == EntityAttributeModifier.Operation.ADDITION }
+                                .sumOf { it.value } +
+                                    EnchantmentHelper.getAttackDamage(stack, EntityGroup.DEFAULT)
+                        }
+                        .takeIf { it.item is SwordItem }
+                        ?.select()
+
+                    selection?.let {
+                        if (!it.selector(player.mainHandStack)) {
+                            it.transfer(MainHandContainer)
+                                ?.finally {
+                                    // Wait until the rotation has a hit result on the entity
+                                    if (lookAtEntity(entity).requestBy(rotation).done) runAttack(entity)
+                                }?.run()
+
+                            return@listen
+                        }
+                    }
                 }
+
+                // Wait until the rotation has a hit result on the entity
+                if (lookAtEntity(entity).requestBy(rotation).done) runAttack(entity)
             }
         }
 
-        listen<PacketEvent.Send.Post> { event ->
-            if (event.packet !is HandSwingC2SPacket &&
-                event.packet !is UpdateSelectedSlotC2SPacket &&
-                event.packet !is PlayerInteractEntityC2SPacket
-            ) return@listen
-
-            attackTicks = 0
-        }
-
-        onEnable(::reset)
-        onDisable(::reset)
+        onEnable { reset() }
+        onDisable { reset() }
     }
 
-    /*private fun SafeContext.buildRotation(target: LivingEntity) {
-        val serverRotation = RotationManager.serverRotation
-
-        val prediction = buildPlayerPrediction()
-
-        val eye = when {
-            selfPredict < 1 -> {
-                lerp(selfPredict, player.eyePos, prediction.next().eyePos)
-            }
-
-            selfPredict < 2 -> {
-                val pos1 = prediction.next().eyePos
-                val pos2 = prediction.next().eyePos
-
-                lerp(selfPredict - 1, pos1, pos2)
-            }
-
-            else -> {
-                prediction.next().next().eyePos
-            }
-        }
-
-        val box = target.boundingBox
-
-        val reach = targeting.targetingRange + 2.0
-
-        // Rotation stabilizer
-        speedMultiplier = if (stabilize && !rotation.instant) {
-            val slowDown = serverRotation.castBox(box, reach, eye) != null
-
-            with(rotation) {
-                val targetSpeed = if (slowDown) 0.0 else 1.0
-                val acceleration = if (slowDown) 0.2 * stabilizationSpeed else 0.1 / stabilizationSpeed
-
-                targetSpeed.coerceIn(
-                    speedMultiplier - acceleration,
-                    speedMultiplier + acceleration
-                )
-            }
-        } else 1.0
-
-        // Update shake vector
-        if (random(0.0, 1.0) < shakeChance) {
-            shakeRandom = Vec3d(
-                random(0.0, 1.0),
-                random(0.0, 1.0),
-                random(0.0, 1.0),
-            )
-        }
-
-        // Find the closest point to the player's eyes
-        var vec = Vec3d(
-            eye.x.coerceIn(box.minX, box.maxX),
-            eye.y.coerceIn(box.minY, box.maxY),
-            eye.z.coerceIn(box.minZ, box.maxZ)
-        )
-
-        val random = Vec3d(
-            lerp(shakeRandom.x, box.minX, box.maxX),
-            lerp(shakeRandom.x, box.minY, box.maxY),
-            lerp(shakeRandom.x, box.minZ, box.maxZ)
-        )
-
-        vec = lerp(centerFactor, vec, box.center) // Mix with center
-        vec = lerp(shakeFactor, vec, random) // Apply shaking
-
-        // Raycast
-        run {
-            if (!interactionSettings.useRayCast) return@run
-
-            val vecRotation = eye.rotationTo(vec)
-            if (vecRotation.rayCast(reach, eye)?.entityResult?.entity == target) return@run
-
-            // Get visible point set
-            val validHits = collectHitsFor(
-                listOf(target.boundingBox),
-                reach
-            ) {
-                hit.entityResult?.entity == target
-            }
-
-            // Switch to the closest visible point
-            //vec = validHits.minByOrNull { vecRotation dist it.value }?.key ?: return null
-        }
-
-        val predictOffset = target.moveDiff * targetPredict
-
-        return RotationRequest(
-            eye.rotationTo(),
-            rotation,
-            speedMultiplier
-        ) {
-            rayCast(reach, eye)?.entityResult == target
-        }
-    }*/
-
     private fun SafeContext.runAttack(target: LivingEntity) {
-        // Critical hit check
-        run {
-            if (!criticalSync || attackMode != AttackMode.Cooldown) return@run
-
-            onGroundTicks++
-            if (!lastOnGround) onGroundTicks = 0
-
-            val motionY = lastY - prevY
-            if (motionY > -0.05 || (lastOnGround && onGroundTicks < 5)) return
-        }
-
         // Cooldown check
-        run {
-            when (attackMode) {
-                AttackMode.Cooldown -> {
-                    val attackedTicks = if (delaySync) attackTicks else player.lastAttackedTicks
-                    if (attackedTicks < getAttackCooldown() + cooldownOffset) return
-                }
+        when (attackMode) {
+            AttackMode.Cooldown -> {
+                if (player.lastAttackedTicks < getAttackCooldown() + cooldownOffset) return
+            }
 
-                AttackMode.Delay -> {
-                    if (System.currentTimeMillis() - lastAttackTime < hitDelay) return
-                }
+            AttackMode.Delay -> {
+                if (System.currentTimeMillis() - lastAttackTime < hitDelay) return
             }
         }
 
@@ -273,24 +166,12 @@ object KillAura : Module(
         if (interactionSettings.swingHand) player.swingHand(Hand.MAIN_HAND)
 
         lastAttackTime = System.currentTimeMillis()
-        hitDelay = random(hitDelay1, hitDelay2) * 50
+        hitDelay = (hitDelay1..hitDelay2).random() * 50
     }
 
-    private fun SafeContext.getAttackCooldown(): Double {
-        val attr = EntityAttributes.GENERIC_ATTACK_SPEED
+    private fun SafeContext.getAttackCooldown() = 20.0 / player.getAttributeValue(EntityAttributes.GENERIC_ATTACK_SPEED)
 
-        val attackSpeed = if (!cooldownSync) player.getAttributeValue(attr) else {
-            player.mainHandStack.item
-                .getAttributeModifiers(EquipmentSlot.MAINHAND)[attr]
-                .filter { it.operation == EntityAttributeModifier.Operation.ADDITION }
-                .sumOf { it.value } + 4
-        }
-
-        return 20.0 / attackSpeed
-    }
-
-    private fun reset(ctx: SafeContext) = ctx.apply {
-        attackTicks = player.lastAttackedTicks
+    private fun reset() {
         speedMultiplier = 1.0
         shakeRandom = Vec3d.ZERO
 

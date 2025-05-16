@@ -46,7 +46,7 @@ object SafeWalk : Module(
         }
     }
 
-    private fun LivingEntity.isNearLedge(distance: Double, stepHeight: Double): Boolean {
+    fun LivingEntity.isNearLedge(distance: Double, stepHeight: Double): Boolean {
         fun checkDirection(deltaX: Double, deltaZ: Double): Boolean {
             var dx = deltaX + motionX
             var dz = deltaZ + motionZ
