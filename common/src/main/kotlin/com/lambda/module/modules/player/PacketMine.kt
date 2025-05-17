@@ -27,6 +27,7 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
+import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
@@ -38,7 +39,6 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.distSq
 import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.util.math.BlockPos
-import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object PacketMine : Module(
@@ -68,12 +68,12 @@ object PacketMine : Module(
     private var itemDrops = 0
 
     private val breakPositions = arrayOfNulls<BlockPos>(2)
-    private val queuePositions = LinkedList<BlockPos>()
+    private val queuePositions = LinkedHashSet<MutableCollection<BlockPos>>()
     private val queueSorted
         get() = when (queueOrder) {
             QueueOrder.Standard -> queuePositions
-            QueueOrder.Reversed -> queuePositions.asReversed()
-        }
+            QueueOrder.Reversed -> queuePositions.reversed()
+        }.flatten()
 
     private var reBreakPos: BlockPos? = null
 
@@ -95,29 +95,29 @@ object PacketMine : Module(
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
             val pos = event.pos
-            val positions = if (breakRadius > 0) {
-                arrayListOf(pos).apply {
-                    BlockPos.iterateOutwards(pos, breakRadius, breakRadius, breakRadius).forEach { blockPos ->
-                        if (blockPos distSq pos <= breakRadius * breakRadius && (!flatten || blockPos.y >= player.blockPos.y)) {
-                            add(blockPos.toImmutable())
-                        }
+            val positions = mutableListOf(pos).apply {
+                if (breakRadius <= 0) return@apply
+                BlockPos.iterateOutwards(pos, breakRadius, breakRadius, breakRadius).forEach { blockPos ->
+                    if (blockPos distSq pos <= (breakRadius * breakRadius) && (!flatten || blockPos.y >= player.blockPos.y)) {
+                        add(blockPos.toImmutable())
                     }
                 }
-            } else {
-                listOf(pos)
             }
-            if ((breakPositions + queuePositions).any { pending -> positions.any { it == pending } }) return@listen
+            positions.removeIf { breakPos ->
+                breakPositions.any { it == breakPos }
+            }
+            if (positions.isEmpty()) return@listen
             val activeBreaking = if (queue) {
-                queuePositions.addAll(positions)
+                queuePositions.addLast(positions)
                 breakPositions.toList() + queueSorted
             } else {
                 queuePositions.clear()
-                queuePositions.addAll(positions)
-                queuePositions + if (breakConfig.doubleBreak) {
+                queuePositions.addLast(positions)
+                queuePositions.flatten() + if (breakConfig.doubleBreak) {
                     breakPositions[1] ?: breakPositions[0]
                 } else null
             }
-            requestBreakManager(activeBreaking.toList())
+            requestBreakManager(activeBreaking)
             attackedThisTick = true
         }
 
@@ -138,13 +138,11 @@ object PacketMine : Module(
         if (requestPositions.isEmpty()) return
         val breakContexts = breakContexts(requestPositions)
         if (!reBreaking) {
-            queuePositions.removeIf { queuePos ->
-                breakContexts.none { it.expectedPos == queuePos }
-            }
+            queuePositions.retainAllPositions(breakContexts)
         }
         val request = BreakRequest(
             breakContexts, build, rotation, hotbar, pendingInteractions = pendingInteractionsList,
-            onAccept = { queuePositions.remove(it); addBreak(it) },
+            onAccept = { queuePositions.removePos(it); addBreak(it) },
             onCancel = { removeBreak(it, true) },
             onBreak = { removeBreak(it); breaks++ },
             onReBreakStart = { reBreakPos = it },
@@ -159,13 +157,7 @@ object PacketMine : Module(
             .filterNotNull()
             .associateWith { TargetState.State(blockState(it).fluidState.blockState) }
             .toBlueprint()
-            .simulate(
-                player.eyePos,
-                interact = interact,
-                rotation = rotation,
-                inventory = inventory,
-                build = build
-            )
+            .simulate(player.eyePos, interact, rotation, inventory, build)
             .filterIsInstance<BreakResult.Break>()
             .map { it.context }
 
@@ -186,6 +178,28 @@ object PacketMine : Module(
         if (includeReBreak && pos == reBreakPos) {
             reBreakPos = null
         }
+    }
+
+    private fun LinkedHashSet<MutableCollection<BlockPos>>.removePos(element: BlockPos): Boolean {
+        var anyRemoved = false
+        removeIf {
+            val removed = it.remove(element)
+            anyRemoved = anyRemoved or removed
+            return@removeIf removed && it.isEmpty()
+        }
+        return anyRemoved
+    }
+
+    private fun LinkedHashSet<MutableCollection<BlockPos>>.retainAllPositions(positions: Collection<BreakContext>): Boolean {
+        var modified = false
+        forEach {
+            modified = modified or it.retainAll { pos ->
+                positions.any { retain ->
+                    retain.expectedPos == pos
+                }
+            }
+        }
+        return modified
     }
 
     enum class Page {
