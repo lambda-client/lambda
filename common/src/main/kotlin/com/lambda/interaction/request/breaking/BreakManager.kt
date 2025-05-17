@@ -67,7 +67,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     TickEvent.Input.Pre,
     TickEvent.Player.Post,
     // ToDo: Post interact
-    onOpen = { activeRequest?.let { processRequest(it) } }
+    onOpen = { processRequest(activeRequest) }
 ), PositionBlocking {
     private var primaryBreak: BreakInfo?
         get() = breakInfos[0]
@@ -125,6 +125,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                 }
             }
             activeRequest = null
+            breaks = mutableListOf()
+            instantBreaks = mutableListOf()
             breaksThisTick = 0
         }
 
@@ -198,13 +200,15 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see processNewBreaks
      * @see updateBreakProgress
      */
-    private fun SafeContext.processRequest(request: BreakRequest) {
+    private fun SafeContext.processRequest(breakRequest: BreakRequest?) {
         pendingBreaks.cleanUp()
 
-        if (request.fresh) populateFrom(request)
+        breakRequest?.let { request ->
+            if (request.fresh) populateFrom(request)
 
-        if (performInstantBreaks(request)) {
-            processNewBreaks(request)
+            if (performInstantBreaks(request)) {
+                processNewBreaks(request)
+            }
         }
 
         // Reversed so that the breaking order feels natural to the user as the primary break is always the
@@ -212,7 +216,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         run {
             breakInfos
                 .filterNotNull()
-                .filter { !it.isRedundant }
+                .filter { !it.isRedundant && it.updatedThisTick }
                 .also {
                     rotationRequest = it.firstOrNull { info -> info.breakConfig.rotateForBreak }
                         ?.let { info ->
@@ -223,8 +227,9 @@ object BreakManager : RequestHandler<BreakRequest>(
                 .asReversed()
                 .forEach { info ->
                     if (info.updatedProgressThisTick) return@forEach
-                    if (!info.context.requestDependencies(request)) return@run
-                    if ((!rotated && info.isPrimary) || tickStage !in info.breakConfig.breakStageMask) return@run
+                    if (!info.context.requestDependencies(info.request)) return@run
+                    if (tickStage !in info.breakConfig.breakStageMask) return@forEach
+                    if ((!rotated && info.isPrimary)) return@run
 
                     updateBreakProgress(info)
                 }
