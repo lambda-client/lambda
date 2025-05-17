@@ -352,7 +352,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         primaryBreak?.let { primaryInfo ->
             if (!breakInfo.breakConfig.doubleBreak || secondaryBreak != null) {
                 if (!primaryInfo.updatedThisTick) {
-                    primaryInfo.abortBreakPacket(world, interaction)
+                    primaryInfo.cancelBreak()
                     return@let
                 } else return null
             }
