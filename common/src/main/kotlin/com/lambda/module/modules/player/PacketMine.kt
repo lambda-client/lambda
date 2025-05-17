@@ -35,6 +35,7 @@ import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.math.distSq
 import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.util.math.BlockPos
 import java.util.*
@@ -55,6 +56,8 @@ object PacketMine : Module(
     private val hotbar = HotbarSettings(this) { page == Page.Hotbar }
 
     private val reBreakMode by setting("ReBreak Mode", ReBreakMode.Manual, "The method used to re-break blocks after they've been broken once") { breakConfig.reBreak }
+    private val breakRadius by setting("Break Radius", 0, 0..5, 1, "Selects and breaks all blocks within the break radius of the selected block")
+    private val flatten by setting("Flatten", false, "Wont allow breaking extra blocks under your players position") { breakRadius > 0 }
     private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once")
         .onValueChange { _, to -> if (!to) queuePositions.clear() }
     private val queueOrder by setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }
@@ -91,12 +94,26 @@ object PacketMine : Module(
         listen<PlayerEvent.Attack.Block> { it.cancel() }
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
-            if ((breakPositions + queuePositions).any { it == event.pos }) return@listen
-            val activeBreaking = if (queue) {
-                queuePositions.addLast(event.pos)
-                breakPositions + queueSorted
+            val pos = event.pos
+            val positions = if (breakRadius > 0) {
+                arrayListOf<BlockPos>().apply {
+                    BlockPos.iterateOutwards(pos, breakRadius, breakRadius, breakRadius).forEach { blockPos ->
+                        if (blockPos distSq pos <= breakRadius * breakRadius && (!flatten || blockPos.y >= player.blockPos.y)) {
+                            add(blockPos.toImmutable())
+                        }
+                    }
+                }
             } else {
-                arrayOf<BlockPos?>(event.pos) + if (breakConfig.doubleBreak) {
+                listOf(pos)
+            }
+            if ((breakPositions + queuePositions).any { pending -> positions.any { it == pending } }) return@listen
+            val activeBreaking = if (queue) {
+                queuePositions.addAll(positions)
+                breakPositions.toList() + queueSorted
+            } else {
+                queuePositions.clear()
+                queuePositions.addAll(positions)
+                queuePositions + if (breakConfig.doubleBreak) {
                     breakPositions[1] ?: breakPositions[0]
                 } else null
             }
@@ -121,11 +138,6 @@ object PacketMine : Module(
         if (requestPositions.isEmpty()) return
         val breakContexts = breakContexts(requestPositions)
         if (!reBreaking) {
-            breakPositions.forEachIndexed { index, breakPos ->
-                if (breakContexts.none { it.expectedPos == breakPos }) {
-                    breakPositions[index] = null
-                }
-            }
             queuePositions.removeIf { queuePos ->
                 breakContexts.none { it.expectedPos == queuePos }
             }
