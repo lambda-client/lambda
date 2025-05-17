@@ -96,7 +96,7 @@ object PacketMine : Module(
             event.cancel()
             val pos = event.pos
             val positions = if (breakRadius > 0) {
-                arrayListOf<BlockPos>().apply {
+                arrayListOf(pos).apply {
                     BlockPos.iterateOutwards(pos, breakRadius, breakRadius, breakRadius).forEach { blockPos ->
                         if (blockPos distSq pos <= breakRadius * breakRadius && (!flatten || blockPos.y >= player.blockPos.y)) {
                             add(blockPos.toImmutable())
