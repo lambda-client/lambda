@@ -255,6 +255,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     private fun SafeContext.populateFrom(request: BreakRequest) {
         // Sanitize the new breaks
         val newBreaks = request.contexts
+            .distinctBy { it.expectedPos }
             .filter { ctx -> canAccept(ctx, request.build.breaking) }
             .toMutableList()
 
@@ -316,7 +317,6 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (!rotated || tickStage !in request.build.breaking.breakStageMask) return false
 
             val breakInfo = initNewBreak(ctx, request) ?: return false
-            request.onAccept?.invoke(ctx.expectedPos)
             updateBreakProgress(breakInfo)
             breaksThisTick++
             iterator.remove()
@@ -337,7 +337,6 @@ object BreakManager : RequestHandler<BreakRequest>(
         while (iterator.hasNext()) {
             val ctx = iterator.next()
             initNewBreak(ctx, request) ?: return false
-            request.onAccept?.invoke(ctx.expectedPos)
             iterator.remove()
             if (atMaxBreakInfos(request.build.breaking)) return false
         }
@@ -404,6 +403,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see startPending
      */
     private fun SafeContext.onBlockBreak(info: BreakInfo) {
+        info.request.onStop?.invoke(info.context.expectedPos)
         when (info.breakConfig.breakConfirmation) {
             BreakConfirmationMode.None -> {
                 destroyBlock(info)
@@ -520,7 +520,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                     primaryBreak = reBreakResult.breakInfo.apply {
                         type = Primary
                         ReBreakManager.clearReBreak()
-                        request.onAccept?.invoke(ctx.expectedPos)
+                        request.onStart?.invoke(ctx.expectedPos)
                     }
 
                     return primaryBreak?.let { primary ->
@@ -631,6 +631,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         if (gamemode.isCreative) {
             lastPosStarted = ctx.expectedPos
             onBlockBreak(info)
+            info.request.onStart?.invoke(ctx.expectedPos)
             interaction.sendSequencedPacket(world) { sequence: Int ->
                 PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, ctx.expectedPos, ctx.result.side, sequence)
             }
@@ -638,6 +639,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             return true
         }
         if (info.breaking) return false
+        info.request.onStart?.invoke(ctx.expectedPos)
 
         lastPosStarted = ctx.expectedPos
 

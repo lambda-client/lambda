@@ -131,7 +131,6 @@ object BrokenBlockHandler {
      * Adds the [info] to the [BrokenBlockHandler], and requesters, pending interaction collections.
      */
     fun BreakInfo.startPending() {
-        pending = true
         pendingBreaks.add(this)
         pendingInteractions.add(context)
     }

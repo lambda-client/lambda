@@ -104,7 +104,7 @@ object PacketMine : Module(
                 }
             }
             positions.removeIf { breakPos ->
-                breakPositions.any { it == breakPos }
+                breakPositions.any { it == breakPos } || queuePositions.any { it == pos }
             }
             if (positions.isEmpty()) return@listen
             val activeBreaking = if (queue) {
@@ -142,9 +142,9 @@ object PacketMine : Module(
         }
         val request = BreakRequest(
             breakContexts, build, rotation, hotbar, pendingInteractions = pendingInteractionsList,
-            onAccept = { queuePositions.removePos(it); addBreak(it) },
+            onStart = { queuePositions.removePos(it); addBreak(it) },
+            onStop = { removeBreak(it); breaks++ },
             onCancel = { removeBreak(it, true) },
-            onBreak = { removeBreak(it); breaks++ },
             onReBreakStart = { reBreakPos = it },
             onReBreak = { reBreakPos = it },
             onItemDrop = { _ -> itemDrops++ }
@@ -200,6 +200,12 @@ object PacketMine : Module(
             }
         }
         return modified
+    }
+
+    private fun LinkedHashSet<MutableCollection<BlockPos>>.any(predicate: (BlockPos) -> Boolean): Boolean {
+        if (isEmpty()) return false
+        forEach { if (it.any(predicate)) return true }
+        return false
     }
 
     enum class Page {

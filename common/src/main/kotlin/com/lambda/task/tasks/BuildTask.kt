@@ -157,7 +157,7 @@ class BuildTask @Ta5kBuilder constructor(
                             val request = BreakRequest(
                                 requestContexts, build, rotation, hotbar,
                                 pendingInteractions = pendingInteractions,
-                                onBreak = { breaks++ },
+                                onStop = { breaks++ },
                                 onItemDrop = onItemDrop
                             )
                             build.breaking.request(request)
