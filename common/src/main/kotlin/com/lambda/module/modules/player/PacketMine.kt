@@ -39,6 +39,7 @@ import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.distSq
 import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.util.math.BlockPos
+import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 
 object PacketMine : Module(
@@ -68,7 +69,7 @@ object PacketMine : Module(
     private var itemDrops = 0
 
     private val breakPositions = arrayOfNulls<BlockPos>(2)
-    private val queuePositions = LinkedHashSet<MutableCollection<BlockPos>>()
+    private val queuePositions = LinkedList<MutableCollection<BlockPos>>()
     private val queueSorted
         get() = when (queueOrder) {
             QueueOrder.Standard -> queuePositions
@@ -180,7 +181,7 @@ object PacketMine : Module(
         }
     }
 
-    private fun LinkedHashSet<MutableCollection<BlockPos>>.removePos(element: BlockPos): Boolean {
+    private fun LinkedList<MutableCollection<BlockPos>>.removePos(element: BlockPos): Boolean {
         var anyRemoved = false
         removeIf {
             val removed = it.remove(element)
@@ -190,7 +191,7 @@ object PacketMine : Module(
         return anyRemoved
     }
 
-    private fun LinkedHashSet<MutableCollection<BlockPos>>.retainAllPositions(positions: Collection<BreakContext>): Boolean {
+    private fun LinkedList<MutableCollection<BlockPos>>.retainAllPositions(positions: Collection<BreakContext>): Boolean {
         var modified = false
         forEach {
             modified = modified or it.retainAll { pos ->
@@ -202,7 +203,7 @@ object PacketMine : Module(
         return modified
     }
 
-    private fun LinkedHashSet<MutableCollection<BlockPos>>.any(predicate: (BlockPos) -> Boolean): Boolean {
+    private fun LinkedList<MutableCollection<BlockPos>>.any(predicate: (BlockPos) -> Boolean): Boolean {
         if (isEmpty()) return false
         forEach { if (it.any(predicate)) return true }
         return false
