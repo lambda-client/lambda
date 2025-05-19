@@ -535,6 +535,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 }
                 else -> {}
             }
+            if (breakCooldown > 0) return false
             if (!startBreaking(info)) {
                 info.nullify()
                 info.internalOnCancel()
