@@ -186,14 +186,14 @@ object RotationManager : RequestHandler<RotationRequest>(
     val movementYaw: Float?
         get() {
             if (activeRequest?.mode == RotationMode.Silent) return null
-            return serverRotation.yaw.toFloat()
+            return activeRotation.yaw.toFloat()
         }
 
     @JvmStatic
     val movementPitch: Float?
         get() {
             if (activeRequest?.mode == RotationMode.Silent) return null
-            return serverRotation.pitch.toFloat()
+            return activeRotation.pitch.toFloat()
         }
 
     @JvmStatic
@@ -244,7 +244,7 @@ object RotationManager : RequestHandler<RotationRequest>(
             if (signForward == 0f && signStrafe == 0f) return@runSafe
 
             // Actual yaw used by the physics engine
-            var actualYaw = serverRotation.yaw
+            var actualYaw = activeRotation.yaw
 
             if (activeRequest?.mode == RotationMode.Silent) {
                 actualYaw = player.yaw.toDouble()
@@ -272,7 +272,7 @@ object RotationManager : RequestHandler<RotationRequest>(
             // Makes baritone movement safe
             // when yaw difference is too big to compensate it by modifying keyboard input
             val minYawDist = movementYawList
-                .map { serverRotation.yaw + it } // all possible movement directions (including diagonals)
+                .map { activeRotation.yaw + it } // all possible movement directions (including diagonals)
                 .minOf { Rotation.angleDifference(it, baritoneYaw) }
 
             if (minYawDist > 5.0) {
