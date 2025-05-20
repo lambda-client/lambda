@@ -105,7 +105,8 @@ object PacketMine : Module(
                 }
             }
             positions.removeIf { breakPos ->
-                breakPositions.any { it == breakPos } || queuePositions.any { it == pos }
+                breakPositions.any { it == breakPos }
+                        || (queue && queuePositions.any { it == pos })
             }
             if (positions.isEmpty()) return@listen
             val activeBreaking = if (queue) {
@@ -150,7 +151,7 @@ object PacketMine : Module(
             onReBreak = { reBreakPos = it },
             onItemDrop = { _ -> itemDrops++ }
         )
-        breakConfig.request(request)
+        breakConfig.request(request, true)
     }
 
     private fun SafeContext.breakContexts(positions: Collection<BlockPos?>) =

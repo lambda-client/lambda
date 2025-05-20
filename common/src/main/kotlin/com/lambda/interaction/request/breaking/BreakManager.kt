@@ -55,8 +55,6 @@ import com.lambda.util.player.swingHand
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.client.sound.SoundInstance
 import net.minecraft.entity.ItemEntity
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
@@ -65,6 +63,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     0,
     TickEvent.Pre,
     TickEvent.Input.Pre,
+    TickEvent.Input.Post,
     TickEvent.Player.Post,
     // ToDo: Post interact
     onOpen = { processRequest(activeRequest) }
@@ -203,36 +202,38 @@ object BreakManager : RequestHandler<BreakRequest>(
     private fun SafeContext.processRequest(breakRequest: BreakRequest?) {
         pendingBreaks.cleanUp()
 
-        breakRequest?.let { request ->
-            if (request.fresh) populateFrom(request)
+        repeat(2) {
+            breakRequest?.let { request ->
+                if (request.fresh) populateFrom(request)
 
-            if (performInstantBreaks(request)) {
-                processNewBreaks(request)
+                if (performInstantBreaks(request)) {
+                    processNewBreaks(request)
+                }
             }
-        }
 
-        // Reversed so that the breaking order feels natural to the user as the primary break is always the
-        // last break to be started
-        run {
-            breakInfos
-                .filterNotNull()
-                .filter { !it.isRedundant && it.updatedThisTick }
-                .also {
-                    rotationRequest = it.firstOrNull { info -> info.breakConfig.rotateForBreak }
-                        ?.let { info ->
-                            val rotation = info.context.rotation
-                            if (instantBreaks.isEmpty()) info.request.rotation.request(rotation, false) else rotation
-                        }
-                }
-                .asReversed()
-                .forEach { info ->
-                    if (info.updatedProgressThisTick) return@forEach
-                    if (!info.context.requestDependencies(info.request)) return@run
-                    if (tickStage !in info.breakConfig.breakStageMask) return@forEach
-                    if ((!rotated && info.isPrimary)) return@run
+            // Reversed so that the breaking order feels natural to the user as the primary break is always the
+            // last break to be started
+            run {
+                breakInfos
+                    .filterNotNull()
+                    .filter { !it.isRedundant && it.updatedThisTick }
+                    .also {
+                        rotationRequest = it.firstOrNull { info -> info.breakConfig.rotateForBreak }
+                            ?.let { info ->
+                                val rotation = info.context.rotation
+                                if (instantBreaks.isEmpty()) info.request.rotation.request(rotation, false) else rotation
+                            }
+                    }
+                    .asReversed()
+                    .forEach { info ->
+                        if (info.updatedProgressThisTick) return@forEach
+                        if (!info.context.requestDependencies(info.request)) return@run
+                        if (tickStage !in info.breakConfig.breakStageMask) return@forEach
+                        if ((!rotated && info.isPrimary)) return@run
 
-                    updateBreakProgress(info)
-                }
+                        updateBreakProgress(info)
+                    }
+            }
         }
 
         if (instantBreaks.isEmpty() && breaks.isEmpty()) {
@@ -330,7 +331,6 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @return false if a context cannot be started or the maximum active breaks has been reached.
      *
      * @see initNewBreak
-     * @see atMaxBreakInfos
      */
     private fun SafeContext.processNewBreaks(request: BreakRequest): Boolean {
         val iterator = breaks.iterator()
@@ -338,7 +338,6 @@ object BreakManager : RequestHandler<BreakRequest>(
             val ctx = iterator.next()
             initNewBreak(ctx, request) ?: return false
             iterator.remove()
-            if (atMaxBreakInfos(request.build.breaking)) return false
         }
         return true
     }
@@ -374,14 +373,6 @@ object BreakManager : RequestHandler<BreakRequest>(
         primaryBreak = breakInfo
         setPendingConfigs(request)
         return primaryBreak
-    }
-
-    /**
-     * @return if the [breakInfos] are at capacity and no new breaks can be started.
-     */
-    private fun atMaxBreakInfos(breakConfig: BreakConfig): Boolean {
-        val possibleBreakingCount = if (breakConfig.doubleBreak) 2 else 1
-        return breakInfos.take(possibleBreakingCount).all { it != null }
     }
 
     /**
@@ -504,9 +495,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             breakCooldown = info.breakConfig.breakDelay
             lastPosStarted = ctx.expectedPos
             onBlockBreak(info)
-            interaction.sendSequencedPacket(world) { sequence ->
-                PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
-            }
+            info.startBreakPacket(world, interaction)
             val swing = info.breakConfig.swing
             if (swing.isEnabled()) {
                 swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
@@ -601,9 +590,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         if (overBreakThreshold) {
             if (info.isPrimary) {
                 onBlockBreak(info)
-                interaction.sendSequencedPacket(world) { sequence ->
-                    PlayerActionC2SPacket(Action.STOP_DESTROY_BLOCK, ctx.expectedPos, hitResult.side, sequence)
-                }
+                info.stopBreakPacket(world, interaction)
             } else {
                 onBlockBreak(info)
             }
@@ -633,9 +620,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             lastPosStarted = ctx.expectedPos
             onBlockBreak(info)
             info.request.onStart?.invoke(ctx.expectedPos)
-            interaction.sendSequencedPacket(world) { sequence: Int ->
-                PlayerActionC2SPacket(Action.START_DESTROY_BLOCK, ctx.expectedPos, ctx.result.side, sequence)
-            }
+            info.startBreakPacket(world, interaction)
             breakCooldown = info.breakConfig.breakDelay
             return true
         }

@@ -61,6 +61,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     0,
     TickEvent.Pre,
     TickEvent.Input.Pre,
+    TickEvent.Input.Post,
     TickEvent.Player.Post,
     // ToDo: Post interact
     onOpen = { activeRequest?.let { processRequest(it) } }

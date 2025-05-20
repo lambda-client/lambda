@@ -51,6 +51,7 @@ object RotationManager : RequestHandler<RotationRequest>(
     1,
     TickEvent.Pre,
     TickEvent.Input.Pre,
+    TickEvent.Input.Post,
     TickEvent.Player.Post,
     // ToDo: Post interact
 ) {

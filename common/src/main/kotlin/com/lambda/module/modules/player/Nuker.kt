@@ -21,8 +21,8 @@ import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.Task
 import com.lambda.task.RootTask.run
+import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
@@ -44,26 +44,26 @@ object Nuker : Module(
     init {
         onEnable {
             task = tickingBlueprint {
-                    val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
-                        .asSequence()
+                val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
+                    .asSequence()
+                    .map { it.blockPos }
+                    .filter { !world.isAir(it) }
+                    .filter { !flatten || it.y >= player.blockPos.y }
+                    .filter { !onlyBreakInstant || blockState(it).getHardness(world, it) <= 1 }
+                    .filter { blockState(it).getHardness(world, it) >= 0 }
+                    .associateWith { TargetState.Air }
+
+                if (fillFloor) {
+                    val floor = BlockPos.iterateOutwards(player.blockPos.down(), width, 0, width)
                         .map { it.blockPos }
-                        .filter { !world.isAir(it) }
-                        .filter { !flatten || it.y >= player.blockPos.y }
-                        .filter { !onlyBreakInstant || blockState(it).getHardness(world, it) <= 1 }
-                        .filter { blockState(it).getHardness(world, it) >= 0 }
-                        .associateWith { TargetState.Air }
-
-                    if (fillFloor) {
-                        val floor = BlockPos.iterateOutwards(player.blockPos.down(), width, 0, width)
-                            .map { it.blockPos }
-                            .associateWith { TargetState.Solid }
-                        return@tickingBlueprint selection + floor
-                    }
-
-                    selection
+                        .associateWith { TargetState.Solid }
+                    return@tickingBlueprint selection + floor
                 }
-                // ToDo: Add build setting delegates
-                .build()
+
+                selection
+            }.build()
+            // ToDo: Add build setting delegates
+
             task?.run()
         }
 

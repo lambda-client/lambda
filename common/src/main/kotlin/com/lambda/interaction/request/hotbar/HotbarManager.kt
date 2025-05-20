@@ -40,6 +40,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     1,
     TickEvent.Pre,
     TickEvent.Input.Pre,
+    TickEvent.Input.Post,
     TickEvent.Player.Post,
     // ToDo: Post interact
     onClose = { checkResetSwap() }
