@@ -48,6 +48,8 @@ class DynamicAABB {
         return null
     }
 
+    fun center() = curr?.center ?: prev?.center ?: throw NullPointerException("No box is set")
+
     companion object {
         val Entity.dynamicBox
             get() = DynamicAABB().apply {

@@ -69,29 +69,24 @@ object RenderTest : Module(
     private val lineColor = Color(255, 100, 100).setAlpha(0.8)
 
     init {
-        listen<RenderEvent.DynamicESP> {
-            val entities = entitySearch<LivingEntity>(8.0).toList()
+        listen<RenderEvent.DynamicESP> { event ->
+            val entities = entitySearch<LivingEntity>(8.0).sortedBy { it.distanceTo(player) }
 
             // Draw boxes around entities
             entities.forEach { entity ->
-                it.renderer.ofBox(entity.dynamicBox, filledColor, outlineColor)
+                event.renderer.ofBox(entity.dynamicBox, filledColor, outlineColor)
             }
 
-            // Example of drawing lines between entities using the new drawLineBetweenBoxes function
-            if (drawLines && entities.size >= 2) {
-                for (i in 0 until entities.size - 1) {
-                    val entity1 = entities[i]
-                    val entity2 = entities[i + 1]
-
-                    it.renderer.drawLineBetweenBoxes(
-                        entity1.dynamicBox,
-                        entity2.dynamicBox,
-                        lineColor,
-                        lineWidth,
-                        dashiness,
-                        dashPeriod
-                    )
-                }
+            entities.firstOrNull()?.let { first ->
+                // Example of drawing lines between entities using the new drawLineBetweenBoxes function
+                event.renderer.drawLineBetweenBoxes(
+                    player.dynamicBox,
+                    first.dynamicBox,
+                    lineColor,
+                    lineWidth,
+                    dashiness,
+                    dashPeriod
+                )
             }
         }
 

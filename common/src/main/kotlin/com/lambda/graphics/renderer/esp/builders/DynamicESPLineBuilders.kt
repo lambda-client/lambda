@@ -17,10 +17,12 @@
 
 package com.lambda.graphics.renderer.esp.builders
 
+import com.lambda.Lambda.mc
 import com.lambda.graphics.RenderMain
 import com.lambda.graphics.renderer.esp.DynamicAABB
 import com.lambda.graphics.renderer.esp.impl.DynamicESPRenderer
 import com.lambda.graphics.renderer.gui.LineRenderer
+import com.lambda.util.math.minus
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 import org.joml.Vector2d
@@ -121,22 +123,7 @@ fun DynamicESPRenderer.drawLineBetweenBoxes(
     dashiness: Double = 1.0,
     dashPeriod: Double = 1.0
 ) {
-    val box1Pair = box1.getBoxPair() ?: return
-    val box2Pair = box2.getBoxPair() ?: return
-
-    val center1 = Vec3d(
-        (box1Pair.first.minX + box1Pair.first.maxX) / 2,
-        (box1Pair.first.minY + box1Pair.first.maxY) / 2,
-        (box1Pair.first.minZ + box1Pair.first.maxZ) / 2
-    )
-
-    val center2 = Vec3d(
-        (box2Pair.first.minX + box2Pair.first.maxX) / 2,
-        (box2Pair.first.minY + box2Pair.first.maxY) / 2,
-        (box2Pair.first.minZ + box2Pair.first.maxZ) / 2
-    )
-
-    drawLine(center1, center2, color, color, width, dashiness, dashPeriod)
+    drawLine(box1.center(), box2.center(), color, color, width, dashiness, dashPeriod)
 }
 
 /**
@@ -144,11 +131,13 @@ fun DynamicESPRenderer.drawLineBetweenBoxes(
  * Returns null if the point is behind the camera or outside the screen.
  */
 private fun project3DTo2D(point: Vec3d): Vector2d? {
+    val transformedPoint = point - mc.gameRenderer.camera.pos
+
     // Create a 4D vector from the 3D point
     val vec4 = Vector4f(
-        point.x.toFloat(),
-        point.y.toFloat(),
-        point.z.toFloat(),
+        transformedPoint.x.toFloat(),
+        transformedPoint.y.toFloat(),
+        transformedPoint.z.toFloat(),
         1f
     )
 
