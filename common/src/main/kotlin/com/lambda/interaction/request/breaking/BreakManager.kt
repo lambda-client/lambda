@@ -550,7 +550,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             world,
             ctx.expectedPos,
             player.mainHandStack
-        ) * if (info.isSecondary) {
+        ) * if (info.isSecondary || info.isRedundant) {
             info.breakingTicks - info.breakConfig.doubleBreakFudgeFactor
         } else info.breakingTicks
 
