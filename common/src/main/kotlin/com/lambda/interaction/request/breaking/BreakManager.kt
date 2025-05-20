@@ -550,7 +550,9 @@ object BreakManager : RequestHandler<BreakRequest>(
             world,
             ctx.expectedPos,
             player.mainHandStack
-        ) * info.breakingTicks
+        ) * if (info.isSecondary) {
+            info.breakingTicks - info.breakConfig.doubleBreakFudgeFactor
+        } else info.breakingTicks
 
         val overBreakThreshold = progress >= info.getBreakThreshold()
 
