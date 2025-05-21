@@ -24,6 +24,8 @@ import com.lambda.event.callback.ICancellable
 import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.util.math.Vec2d
+import net.minecraft.client.gui.DrawContext
+import net.minecraft.client.gui.screen.ingame.GenericContainerScreen
 
 sealed class RenderEvent {
     class World : Event
@@ -40,6 +42,9 @@ sealed class RenderEvent {
         class Scaled(scaleFactor: Double) : GUI(scaleFactor)
         class HUD(scaleFactor: Double) : GUI(scaleFactor)
         class Fixed : GUI(1.0)
+        class Container(val genericContainerScreen: GenericContainerScreen, val drawContext: DrawContext, val mouseX: Int, val mouseY: Int, val delta: Float) : GUI(1.0) {
+            val mouse = Vec2d(mouseX, mouseY)
+        }
 
         val screenSize = Vec2d(mc.window.framebufferWidth, mc.window.framebufferHeight) / scale
     }

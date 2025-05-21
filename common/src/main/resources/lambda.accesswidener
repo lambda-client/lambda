@@ -40,6 +40,10 @@ accessible field com/mojang/blaze3d/systems/RenderSystem$ShapeIndexBuffer id I
 accessible field net/minecraft/client/render/BufferRenderer currentVertexBuffer Lnet/minecraft/client/gl/VertexBuffer;
 accessible field net/minecraft/client/texture/NativeImage pointer J
 accessible class net/minecraft/client/gui/screen/SplashOverlay$LogoTexture
+accessible field net/minecraft/client/gui/screen/ingame/HandledScreen x I
+accessible field net/minecraft/client/gui/screen/ingame/HandledScreen y I
+accessible field net/minecraft/client/gui/screen/ingame/HandledScreen backgroundWidth I
+accessible field net/minecraft/client/gui/screen/Screen textRenderer Lnet/minecraft/client/font/TextRenderer;
 
 # Text
 accessible field net/minecraft/text/Style color Lnet/minecraft/text/TextColor;
