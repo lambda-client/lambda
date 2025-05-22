@@ -61,15 +61,15 @@ object HotbarManager : RequestHandler<HotbarRequest>(
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             swapsThisTick = 0
             if (swapDelay > 0) swapDelay--
-            val slotInfo = activeRequest ?: return@listen
+            val activeInfo = activeRequest ?: return@listen
 
-            slotInfo.swapPauseAge++
-            slotInfo.activeRequestAge++
-            slotInfo.keepTicks--
-
-            if (slotInfo.keepTicks <= 0) {
+            if (activeInfo.keepTicks <= 0) {
                 activeRequest = null
             }
+
+            activeInfo.swapPauseAge++
+            activeInfo.activeRequestAge++
+            activeInfo.keepTicks--
         }
 
         listen<InventoryEvent.HotbarSlot.Update>(priority = Int.MIN_VALUE) {
@@ -80,11 +80,17 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     }
 
     override fun SafeContext.handleRequest(request: HotbarRequest) {
-        val hotbar = request.hotbar
-        maxSwapsThisTick = hotbar.swapsPerTick
-        swapDelay = swapDelay.coerceAtMost(hotbar.swapDelay)
+        activeRequest?.let { activeInfo ->
+            if (activeInfo.keepTicks <= 0) {
+                activeRequest = null
+            }
+        }
 
-        if (tickStage !in hotbar.sequenceStageMask) return
+        val config = request.hotbar
+        maxSwapsThisTick = config.swapsPerTick
+        swapDelay = swapDelay.coerceAtMost(config.swapDelay)
+
+        if (tickStage !in config.sequenceStageMask) return
 
         if (request.slot != activeRequest?.slot) {
             if (swapsThisTick + 1 > maxSwapsThisTick || swapDelay > 0) return
@@ -94,7 +100,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
             }
 
             swapsThisTick++
-            swapDelay = hotbar.swapDelay
+            swapDelay = config.swapDelay
         } else activeRequest?.let { current ->
             request.swapPauseAge = current.swapPauseAge
             if (current.swappedThisTick && current.keeping) return
@@ -106,10 +112,12 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     }
 
     private fun SafeContext.checkResetSwap() {
-        activeRequest?.let { active ->
-            if (active.keepTicks <= 0) {
+        activeRequest?.let { activeInfo ->
+            if (activeInfo.keepTicks <= 0) {
+                if (tickStage in activeInfo.hotbar.sequenceStageMask) {
+                    interaction.syncSelectedSlot()
+                }
                 activeRequest = null
-                interaction.syncSelectedSlot()
             }
         }
     }
