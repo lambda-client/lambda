@@ -42,7 +42,8 @@ import kotlin.math.hypot
 object ClickGui : Module(
     name = "ClickGui",
     description = "sexy again",
-    defaultTags = setOf(ModuleTag.CLIENT)
+    defaultTags = setOf(ModuleTag.CLIENT),
+    defaultKeybind = KeyCode.Y
 ) {
     val titleBarHeight by setting("Title Bar Height", 18.0, 10.0..25.0, 0.1)
     val moduleHeight by setting("Module Height", 16.0, 10.0..25.0, 0.1)
