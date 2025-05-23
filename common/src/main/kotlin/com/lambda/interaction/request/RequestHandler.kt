@@ -71,7 +71,7 @@ abstract class RequestHandler<R : Request>(
      * opens the handler for requests for the duration of the given event
      */
     private inline fun <reified T : Event> openRequestsFor(instance: KClass<out T>, stage: T) {
-        listen(instance, priority = Int.MAX_VALUE - (accumulatedManagerPriority - stagePriority)) {
+        listen(instance, priority = (Int.MAX_VALUE - 1) - (accumulatedManagerPriority - stagePriority)) {
             tickStage = stage
             queuedRequest?.let { request ->
                 handleRequest(request)
@@ -83,7 +83,7 @@ abstract class RequestHandler<R : Request>(
             preEvent()
         }
 
-        listen(instance, priority = Int.MIN_VALUE + stagePriority) {
+        listen(instance, priority = (Int.MIN_VALUE + 1) + stagePriority) {
             onClose?.invoke(this)
             acceptingRequests = false
         }

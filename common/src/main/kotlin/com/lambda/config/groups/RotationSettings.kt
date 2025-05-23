@@ -37,10 +37,10 @@ class RotationSettings(
     override var rotationMode by c.setting("Mode", RotationMode.Sync, "SILENT - server-side rotation, SYNC - server-side rotation; client-side movement, LOCK - Lock camera, NONE - No rotation", vis)
 
     /** How many ticks to keep the rotation before resetting */
-    override val keepTicks by c.setting("Keep Rotation", 3, 0..10, 1, "Ticks to keep rotation", " ticks") { rotate && vis() }
+    override val keepTicks by c.setting("Keep Rotation", 1, 1..10, 1, "Ticks to keep rotation", " ticks") { rotate && vis() }
 
     /** How many ticks to wait before resetting the rotation */
-    override val decayTicks by c.setting("Reset Rotation", 3, 1..10, 1, "Ticks before rotation is reset", " ticks") { rotate && vis() }
+    override val decayTicks by c.setting("Reset Rotation", 1, 1..10, 1, "Ticks before rotation is reset", " ticks") { rotate && vis() }
 
     /**
      * At what sub-tick stages rotations can be performed

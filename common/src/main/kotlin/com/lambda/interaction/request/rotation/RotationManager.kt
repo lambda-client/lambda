@@ -73,6 +73,14 @@ object RotationManager : RequestHandler<RotationRequest>(
     override fun load(): String {
         super.load()
 
+        listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
+            activeRequest?.let {
+                if (it.keepTicks <= 0 && it.decayTicks <= 0) {
+                    activeRequest = null
+                }
+            }
+        }
+
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             activeRequest?.let { request ->
                 request.age++
@@ -116,9 +124,8 @@ object RotationManager : RequestHandler<RotationRequest>(
 
         // Tick and reset the context
         activeRequest?.let {
-            if (--it.keepTicks > 0) return@let
-            if (--it.decayTicks >= 0) return@let
-            activeRequest = null
+            if (it.keepTicks-- > 0) return@let
+            it.decayTicks--
         }
     }
 
