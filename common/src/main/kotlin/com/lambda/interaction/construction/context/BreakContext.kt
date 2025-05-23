@@ -84,8 +84,8 @@ data class BreakContext(
         withState(checkedState, expectedPos, sideColor, result.side)
     }
 
-    fun requestDependencies(request: BreakRequest): Boolean {
-        val hotbarRequest = request.hotbar.request(HotbarRequest(hotbarIndex, request.hotbar), false)
-        return hotbarRequest.done
+    fun requestDependencies(breakRequest: BreakRequest, minKeepTicks: Int = 0): Boolean {
+        val request = HotbarRequest(hotbarIndex, breakRequest.hotbar, breakRequest.hotbar.keepTicks.coerceAtLeast(minKeepTicks))
+        return request.hotbar.request(request, false).done
     }
 }

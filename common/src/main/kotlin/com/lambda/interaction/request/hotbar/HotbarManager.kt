@@ -58,7 +58,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     override fun load(): String {
         super.load()
 
-        listen<TickEvent>(priority = Int.MAX_VALUE) {
+        listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
             activeRequest?.let { activeInfo ->
                 if (activeInfo.keepTicks <= 0) {
                     activeRequest = null

@@ -47,7 +47,6 @@ import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.gamemode
@@ -227,7 +226,12 @@ object BreakManager : RequestHandler<BreakRequest>(
                     .asReversed()
                     .forEach { info ->
                         if (info.updatedProgressThisTick) return@forEach
-                        if (!info.context.requestDependencies(info.request)) return@run
+                        val minKeepTicks = if (info.isSecondary) {
+                            val breakDelta = info.context.checkedState.calcBlockBreakingDelta(player, world, info.context.expectedPos)
+                            val breakAmount = breakDelta * info.breakingTicks
+                            if (breakAmount >= 1.0f) 1 else 0
+                        } else 0
+                        if (!info.context.requestDependencies(info.request, minKeepTicks)) return@run
                         if (tickStage !in info.breakConfig.breakStageMask) return@forEach
                         if ((!rotated && info.isPrimary)) return@run
 
@@ -545,11 +549,10 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         info.breakingTicks++
-        val progress = blockState.calcItemBlockBreakingDelta(
+        val progress = blockState.calcBlockBreakingDelta(
             player,
             world,
-            ctx.expectedPos,
-            player.mainHandStack
+            ctx.expectedPos
         ) * if (info.isSecondary || info.isRedundant) {
             info.breakingTicks - info.breakConfig.doubleBreakFudgeFactor
         } else info.breakingTicks
@@ -637,7 +640,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             blockState.onBlockBreakStart(world, ctx.expectedPos, player)
         }
 
-        val breakDelta = blockState.calcItemBlockBreakingDelta(player, world, ctx.expectedPos, player.mainHandStack)
+        val breakDelta = blockState.calcBlockBreakingDelta(player, world, ctx.expectedPos)
         if (notAir && breakDelta >= info.getBreakThreshold()) {
             onBlockBreak(info)
         } else {
