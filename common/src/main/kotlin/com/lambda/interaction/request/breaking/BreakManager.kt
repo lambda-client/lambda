@@ -228,7 +228,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                         if (info.updatedProgressThisTick) return@forEach
                         val minKeepTicks = if (info.isSecondary) {
                             val breakDelta = info.context.checkedState.calcBlockBreakingDelta(player, world, info.context.expectedPos)
-                            val breakAmount = breakDelta * info.breakingTicks
+                            val breakAmount = breakDelta * (info.breakingTicks + 1)
                             if (breakAmount >= 1.0f) 1 else 0
                         } else 0
                         if (!info.context.requestDependencies(info.request, minKeepTicks)) return@run
