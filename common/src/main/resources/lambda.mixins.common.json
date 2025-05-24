@@ -37,7 +37,6 @@
     "render.DebugHudMixin",
     "render.ElytraFeatureRendererMixin",
     "render.GameRendererMixin",
-    "render.GenericContainerScreenMixin",
     "render.GlStateManagerMixin",
     "render.HandledScreenMixin",
     "render.InGameHudMixin",

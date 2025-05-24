@@ -21,18 +21,21 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.events.PlayerEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.renderer.gui.FontRenderer
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
 import com.lambda.util.collections.LimitedDecayQueue
-import com.mojang.blaze3d.systems.RenderSystem
-import net.minecraft.client.gui.DrawContext
-import net.minecraft.client.gui.screen.ingame.HandledScreen
+import com.lambda.util.math.Vec2d
+import net.minecraft.client.gui.screen.ingame.GenericContainerScreen
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
 import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.*
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.Full
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.LookAndOnGround
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.OnGroundOnly
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.PositionAndOnGround
 import net.minecraft.network.packet.c2s.play.TeleportConfirmC2SPacket
-import net.minecraft.text.Text
+import java.awt.Color
 import kotlin.math.floor
 
 // ToDo: HUD info
@@ -92,14 +95,14 @@ object PacketLimiter : Module(
                 }
             }
 
-//            this@PacketLimiter.info("Packet sent: ${it.packet::class.simpleName} (${packetQueue.size} / $limit) ${Instant.now()}")
+            //            this@PacketLimiter.info("Packet sent: ${it.packet::class.simpleName} (${packetQueue.size} / $limit) ${Instant.now()}")
             if (packetQueue.add(it)) return@listen
 
             it.cancel()
             this@PacketLimiter.info("Packet limit reached, dropping packet: ${it.packet::class.simpleName} (${packetQueue.size} / $limit)")
         }
 
-        listen<PlayerEvent.SlotClick>{
+        listen<PlayerEvent.SlotClick> {
             if (!limitClickPackets) return@listen
             if (!canSendClickPackets(1)) {
                 it.cancel()
@@ -107,19 +110,18 @@ object PacketLimiter : Module(
             }
         }
 
-        listen<RenderEvent.GUI.Container> {
-            if (!limitClickRender) return@listen
-            val renderScreen: HandledScreen<*> = it.genericContainerScreen
-            val context: DrawContext = it.drawContext
-            val x = renderScreen.x
-            val y = renderScreen.y
-
-            RenderSystem.disableDepthTest()
+        listen<RenderEvent.GUI.Fixed> {
+            if (!limitClickRender) {
+                return@listen
+            }
+            val sh = mc.currentScreen as? GenericContainerScreen ?: return@listen
             val remainingText = "Clicks Remaining: $clickPacketsRemaining"
-            context.drawText(renderScreen.textRenderer, Text.literal(remainingText), x + renderScreen.backgroundWidth, y, 4210752, false)
-            RenderSystem.enableDepthTest()
+            val mcScale = mc.window.scaleFactor
+            val fontScale = mcScale * 1.5
+            val fontHeight = FontRenderer.getHeight(fontScale)
+            FontRenderer.drawString(remainingText, Vec2d(sh.x * mcScale, sh.y * mcScale - fontHeight), Color(0x9DFFFF), fontScale, false)
         }
     }
 
-    fun canSendClickPackets(packets: Int) = clickPacketQueue.size + packets < clickPacketsWindowAmount
+    fun canSendClickPackets(packets: Int) = clickPacketQueue.size + packets <= clickPacketsWindowAmount
 }

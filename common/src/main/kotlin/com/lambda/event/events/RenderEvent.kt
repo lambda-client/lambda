@@ -42,9 +42,6 @@ sealed class RenderEvent {
         class Scaled(scaleFactor: Double) : GUI(scaleFactor)
         class HUD(scaleFactor: Double) : GUI(scaleFactor)
         class Fixed : GUI(1.0)
-        class Container(val genericContainerScreen: GenericContainerScreen, val drawContext: DrawContext, val mouseX: Int, val mouseY: Int, val delta: Float) : GUI(1.0) {
-            val mouse = Vec2d(mouseX, mouseY)
-        }
 
         val screenSize = Vec2d(mc.window.framebufferWidth, mc.window.framebufferHeight) / scale
     }
