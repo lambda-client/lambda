@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,11 @@ import com.lambda.util.collections.updatableLazy
 import com.lambda.util.extension.Structure
 import com.lambda.util.math.roundedBlockPos
 import net.minecraft.structure.StructureTemplate
-import net.minecraft.util.math.*
+import net.minecraft.util.math.BlockBox
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
+import net.minecraft.util.math.MathHelper
+import net.minecraft.util.math.Vec3d
 
 abstract class Blueprint {
     abstract val structure: Structure

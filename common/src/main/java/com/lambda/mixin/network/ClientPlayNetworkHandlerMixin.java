@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,9 +19,9 @@ package com.lambda.mixin.network;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.InventoryEvent;
+import com.lambda.event.events.WorldEvent;
 import com.lambda.module.modules.movement.Velocity;
 import com.lambda.module.modules.render.NoRender;
-import com.lambda.event.events.WorldEvent;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.network.packet.s2c.play.*;
@@ -52,7 +52,7 @@ public class ClientPlayNetworkHandlerMixin {
 
     @Inject(method = "onUpdateSelectedSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/util/thread/ThreadExecutor;)V", shift = At.Shift.AFTER), cancellable = true)
     private void onUpdateSelectedSlot(UpdateSelectedSlotS2CPacket packet, CallbackInfo ci) {
-        if (EventFlow.post(new InventoryEvent.HotbarSlot.Sync(packet.getSlot())).isCanceled()) ci.cancel();
+        if (EventFlow.post(new InventoryEvent.HotbarSlot.Sync(packet.slot())).isCanceled()) ci.cancel();
     }
 
     @Inject(method = "onScreenHandlerSlotUpdate", at = @At("TAIL"))
@@ -63,23 +63,15 @@ public class ClientPlayNetworkHandlerMixin {
     /**
      * Sets displayedUnsecureChatWarning to {@link NoRender#getNoChatVerificationToast()}
      * <pre>{@code
-     * public void onServerMetadata(ServerMetadataS2CPacket packet) {
-     *     NetworkThreadUtils.forceMainThread(packet, this, this.client);
-     *     if (this.serverInfo != null) {
-     *         this.serverInfo.label = packet.getDescription();
-     *         packet.getFavicon().map(ServerInfo::validateFavicon).ifPresent(this.serverInfo::setFavicon);
-     *         this.serverInfo.setSecureChatEnforced(packet.isSecureChatEnforced());
-     *         ServerList.updateServerListEntry(this.serverInfo);
-     *         if (!this.displayedUnsecureChatWarning && !this.isSecureChatEnforced()) {
-     *             SystemToast systemToast = SystemToast.create(this.client, SystemToast.Type.UNSECURE_SERVER_WARNING, UNSECURE_SERVER_TOAST_TITLE, UNSECURE_SERVER_TOAST_TEXT);
-     *             this.client.getToastManager().add(systemToast);
-     *             this.displayedUnsecureChatWarning = true;
-     *         }
-     *     }
+  	 * this.secureChatEnforced = packet.enforcesSecureChat();
+     * if (this.serverInfo != null && !this.displayedUnsecureChatWarning && !this.isSecureChatEnforced()) {
+            SystemToast systemToast = SystemToast.create(this.client, SystemToast.Type.UNSECURE_SERVER_WARNING, UNSECURE_SERVER_TOAST_TITLE, UNSECURE_SERVER_TOAST_TEXT);
+            this.client.getToastManager().add(systemToast);
+            this.displayedUnsecureChatWarning = true;
      * }
      * }</pre>
      */
-    @Redirect(method = "onServerMetadata", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;displayedUnsecureChatWarning:Z", ordinal = 0))
+    @Redirect(method = "onGameJoin(Lnet/minecraft/network/packet/s2c/play/GameJoinS2CPacket;)V", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayNetworkHandler;displayedUnsecureChatWarning:Z", ordinal = 0))
     public boolean onServerMetadata(ClientPlayNetworkHandler clientPlayNetworkHandler) {
         return NoRender.getNoChatVerificationToast();
     }
@@ -87,15 +79,36 @@ public class ClientPlayNetworkHandlerMixin {
     /**
      * Cancels the player velocity if {@link Velocity#getExplosion()} is true
      * <pre>{@code
-     * public void onExplosion(ExplosionS2CPacket packet) {
-     *     Explosion explosion = new Explosion(this.client.world, (Entity) null, packet.getX(), packet.getY(), packet.getZ(), packet.getRadius(), packet.getAffectedBlocks(), packet.getDestructionType(), packet.getParticle(), packet.getEmitterParticle(), packet.getSoundEvent());
-     *     explosion.affectWorld(true);
-     *     this.client.player.setVelocity(this.client.player.getVelocity().add((double) packet.getPlayerVelocityX(), (double) packet.getPlayerVelocityY(), (double) packet.getPlayerVelocityZ()));
+     * 	public void onExplosion(ExplosionS2CPacket packet) {
+     * 		NetworkThreadUtils.forceMainThread(packet, this, this.client);
+     * 		Vec3d vec3d = packet.center();
+     * 		this.client
+     * 			.world
+     * 			.playSoundClient(
+     * 				vec3d.getX(),
+     * 				vec3d.getY(),
+     * 				vec3d.getZ(),
+     * 				packet.explosionSound().value(),
+     * 				SoundCategory.BLOCKS,
+     * 				4.0F,
+     * 				(1.0F + (this.client.world.random.nextFloat() - this.client.world.random.nextFloat()) * 0.2F) * 0.7F,
+     * 				false
+     * 			);
+     * 		this.client.world.addParticleClient(packet.explosionParticle(), vec3d.getX(), vec3d.getY(), vec3d.getZ(), 1.0, 0.0, 0.0);
+     * 		packet.playerKnockback().ifPresent(this.client.player::addVelocityInternal);
      * }
      * }</pre>
      */
-    @Inject(method = "onExplosion(Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;setVelocity(Lnet/minecraft/util/math/Vec3d;)V"), cancellable = true)
+    @Inject(method = "onExplosion(Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;playerKnockback()Ljava/util/Optional;"), cancellable = true)
     void injectVelocity(ExplosionS2CPacket packet, CallbackInfo ci) {
         if (Velocity.getExplosion()) ci.cancel();
+    }
+
+    /**
+     * Cancels the world particle if {@link NoRender#getNoExplosion()} is true
+     */
+    @Inject(method = "onExplosion(Lnet/minecraft/network/packet/s2c/play/ExplosionS2CPacket;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;addParticleClient(Lnet/minecraft/particle/ParticleEffect;DDDDDD)V"), cancellable = true)
+    void injectParticles(ExplosionS2CPacket packet, CallbackInfo ci) {
+        if (NoRender.getNoExplosion()) ci.cancel();
     }
 }

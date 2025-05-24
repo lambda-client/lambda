@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,11 +17,23 @@
 
 package com.lambda.graphics.shader
 
-import com.google.common.collect.ImmutableList
-import com.mojang.blaze3d.platform.GlStateManager
+import com.mojang.blaze3d.opengl.GlStateManager
 import org.joml.Matrix4f
 import org.lwjgl.BufferUtils
-import org.lwjgl.opengl.GL30C.*
+import org.lwjgl.opengl.GL30C.GL_COMPILE_STATUS
+import org.lwjgl.opengl.GL30C.GL_FALSE
+import org.lwjgl.opengl.GL30C.GL_LINK_STATUS
+import org.lwjgl.opengl.GL30C.glAttachShader
+import org.lwjgl.opengl.GL30C.glCompileShader
+import org.lwjgl.opengl.GL30C.glCreateProgram
+import org.lwjgl.opengl.GL30C.glCreateShader
+import org.lwjgl.opengl.GL30C.glDeleteShader
+import org.lwjgl.opengl.GL30C.glGetProgramInfoLog
+import org.lwjgl.opengl.GL30C.glGetProgrami
+import org.lwjgl.opengl.GL30C.glGetShaderInfoLog
+import org.lwjgl.opengl.GL30C.glGetShaderi
+import org.lwjgl.opengl.GL30C.glLinkProgram
+import org.lwjgl.opengl.GL30C.glUniformMatrix4fv
 
 object ShaderUtils {
     private val matrixBuffer = BufferUtils.createFloatBuffer(4 * 4)
@@ -32,7 +44,7 @@ object ShaderUtils {
         val shader = glCreateShader(type.gl)
 
         // Attach source code and compile it
-        GlStateManager.glShaderSource(shader, ImmutableList.of(text))
+        GlStateManager.glShaderSource(shader, text)
         val error = compileShader(shader)
 
         // Handle error

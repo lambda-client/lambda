@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ public class StructureTemplateMixin {
 
     @ModifyReturnValue(method = "getAuthor()Ljava/lang/String;", at = @At("RETURN"))
     public String getAuthor(String original) {
-        return Objects.equals(original, "?") || Objects.equals(original, "") ? "Unknown" : original;
+        return Objects.equals(original, "?") || Objects.equals(original, "") ? "unknown" : original;
     }
 
     @Inject(method = "writeNbt(Lnet/minecraft/nbt/NbtCompound;)Lnet/minecraft/nbt/NbtCompound;", at = @At("TAIL"))
@@ -48,6 +48,6 @@ public class StructureTemplateMixin {
 
     @Inject(method = "readNbt(Lnet/minecraft/registry/RegistryEntryLookup;Lnet/minecraft/nbt/NbtCompound;)V", at = @At("TAIL"))
     public void readNbt(RegistryEntryLookup<Block> blockLookup, NbtCompound nbt, CallbackInfo ci) {
-        author = nbt.getString("author");
+        author = nbt.getString("author", "unknown");
     }
 }

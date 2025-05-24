@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,8 +19,8 @@ package com.lambda.util
 
 import net.minecraft.client.network.ClientPlayNetworkHandler
 import net.minecraft.network.ClientConnection
-import net.minecraft.network.listener.ClientPacketListener
-import net.minecraft.network.listener.ServerPacketListener
+import net.minecraft.network.listener.ClientPlayPacketListener
+import net.minecraft.network.listener.ServerPlayPacketListener
 import net.minecraft.network.packet.Packet
 
 object PacketUtils {
@@ -29,7 +29,7 @@ object PacketUtils {
      *
      * @param block Lambda that returns the packet to be sent
      */
-    fun ClientPlayNetworkHandler.sendPacket(block: () -> ClientPacket) = connection.send(block())
+    fun ClientPlayNetworkHandler.sendPacket(block: () -> Packet<*>) = connection.send(block())
 
     /**
      * Sends a packet to the server without notifying the client.
@@ -38,7 +38,7 @@ object PacketUtils {
      *
      * @param packet The packet to send.
      */
-    fun ClientPlayNetworkHandler.sendPacketSilently(packet: ClientPacket) {
+    fun ClientPlayNetworkHandler.sendPacketSilently(packet: Packet<*>) {
         if (!connection.isOpen || connection.packetListener?.accepts(packet) == true) return
 
         connection.send(packet, null, true)
@@ -52,7 +52,7 @@ object PacketUtils {
      *
      * @param packet The packet to handle.
      */
-    fun ClientPlayNetworkHandler.handlePacketSilently(packet: ServerPacket) {
+    fun ClientPlayNetworkHandler.handlePacketSilently(packet: Packet<*>) {
         if (!connection.isOpen || connection.packetListener?.accepts(packet) == false) return
 
         ClientConnection.handlePacket(packet, connection.packetListener)
@@ -60,5 +60,5 @@ object PacketUtils {
     }
 }
 
-typealias ClientPacket = Packet<out ServerPacketListener>
-typealias ServerPacket = Packet<out ClientPacketListener>
+typealias ClientPacket = Packet<out ClientPlayPacketListener>
+typealias ServerPacket = Packet<out ServerPlayPacketListener>

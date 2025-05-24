@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,6 +41,7 @@ import org.apache.logging.log4j.Logger
 import java.lang.reflect.Field
 import java.lang.reflect.InaccessibleObjectException
 import java.util.*
+import kotlin.jvm.optionals.getOrDefault
 
 object DynamicReflectionSerializer : Loadable {
     // Classes that should not be recursively serialized
@@ -183,7 +184,7 @@ object DynamicReflectionSerializer : Loadable {
 
             is Text -> string
             is Identifier -> "$namespace:$path"
-            is NbtCompound -> asString()
+            is NbtCompound -> asString().getOrDefault("")
             is RegistryEntry<*> -> "${value()}"
             else -> {
                 if (this?.javaClass?.canonicalName?.contains("minecraft") == true)

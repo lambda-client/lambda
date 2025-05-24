@@ -41,7 +41,7 @@ import com.lambda.util.extension.resolveFile
 import kotlinx.coroutines.runBlocking
 import net.minecraft.client.texture.NativeImage.read
 import net.minecraft.client.texture.NativeImageBackedTexture
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.fixedRateTimer
 import kotlin.io.path.extension
@@ -56,7 +56,7 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
     // We want to cache images to reduce class B requests
     private val images = capes.walk()
         .filter { it.extension == "png" }
-        .associate { it.nameWithoutExtension to NativeImageBackedTexture(read(it.inputStream())) }
+        .associate { it.nameWithoutExtension to NativeImageBackedTexture({ it.nameWithoutExtension }, read(it.inputStream())) }
         .onEach { (key, value) -> mc.textureManager.registerTexture(key.toIdentifier(), value) }
 
     private val fetchQueue = mutableListOf<UUID>()
@@ -100,7 +100,7 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
             .downloadIfNotPresent(cape.url).getOrNull()
             ?.readBytes() ?: return@runIO
 
-        mc.textureManager.getOrDefault(cape.id.toIdentifier(), NativeImageBackedTexture(TextureUtils.readImage(bytes)))
+        mc.textureManager.registerTexture(cape.id.toIdentifier(), NativeImageBackedTexture({ cape.id }, TextureUtils.readImage(bytes)))
 
         put(uuid, cape.id)
     }.invokeOnCompletion { block(it) }

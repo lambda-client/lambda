@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@ package com.lambda.module.hud
 import com.lambda.graphics.renderer.gui.TextureRenderer.drawTexture
 import com.lambda.graphics.renderer.gui.TextureRenderer.drawTextureShaded
 import com.lambda.graphics.texture.TextureOwner.upload
-import com.lambda.gui.component.layout.Layout.Companion.layout
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 

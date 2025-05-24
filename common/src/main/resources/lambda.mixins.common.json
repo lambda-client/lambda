@@ -4,6 +4,7 @@
   "package": "com.lambda.mixin",
   "compatibilityLevel": "JAVA_17",
   "client": [
+    "CrashReportMixin",
     "MinecraftClientMixin",
     "baritone.MixinBaritonePlayerContext",
     "baritone.MixinLookBehavior",
@@ -48,15 +49,12 @@
     "render.SplashOverlayMixin",
     "render.SplashOverlayMixin$LogoTextureMixin",
     "render.TooltipComponentMixin",
-    "render.VertexBufferMixin",
     "render.WorldRendererMixin",
     "world.BlockCollisionSpliteratorMixin",
     "world.ClientChunkManagerMixin",
     "world.ClientWorldMixin",
     "world.StructureTemplateMixin",
-    "world.ExplosionMixin",
-    "world.WorldMixin",
-    "CrashReportMixin"
+    "world.WorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1

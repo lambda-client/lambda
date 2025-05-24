@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,8 @@ import com.lambda.core.annotations.InternalApi
 import com.lambda.util.extension.filterPointer
 import com.lambda.util.extension.getBlockState
 import com.lambda.util.extension.getFluidState
+import com.lambda.util.world.WorldUtils.internalGetEntities
+import com.lambda.util.world.WorldUtils.internalGetFastEntities
 import net.minecraft.block.BlockState
 import net.minecraft.block.entity.BlockEntity
 import net.minecraft.entity.Entity

@@ -18,9 +18,7 @@
 package com.lambda.network.api.v1.models
 
 import com.google.gson.annotations.SerializedName
-import com.lambda.sound.SoundManager.toIdentifier
-import net.minecraft.util.Identifier
-import java.util.UUID
+import java.util.*
 
 class Cape(
     @SerializedName("uuid")

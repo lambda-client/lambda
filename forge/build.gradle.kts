@@ -21,9 +21,10 @@ val minecraftVersion: String by project
 val forgeVersion: String by project
 val mixinExtrasVersion: String by project
 val kotlinForgeVersion: String by project
+val reflectionsVersion: String by project
+val pngEncoderVersion: String by project
 val discordIPCVersion: String by project
 val ktorVersion: String by project
-val baritoneVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-forge"
 
@@ -38,37 +39,20 @@ architectury {
 
 loom {
     accessWidenerPath = project(":common").loom.accessWidenerPath
-    forge {
-        // This is required to convert the access wideners to the forge
-        // format, access transformers.
-        convertAccessWideners = true
 
-        // Add the mod's mixins to the list of mixins to be applied.
-        // In the extraordinary case that you need to add mixins for
-        // different mod loaders, you can add them using the
-        // `extraAccessWideners` property.
-        // And then add them to the `mixinConfig` function.
+    forge {
+        convertAccessWideners = true
         mixinConfig("$modId.mixins.common.json")
     }
 }
 
 repositories {
-    // You can add more repositories here if you plan
-    // on using environment-specific dependencies.
-    // If you simply want to add a global plugin repository,
-    // you can add it to the `settings.gradle.kts` file
-    // in the base of the project and gradle will do the
-    // rest for you.
-    // If you want to add more global repositories, you can
-    // add them to the root build.gradle.kts file.
     maven("https://thedarkcolour.github.io/KotlinForForge/")
 }
 
 val common: Configuration by configurations.creating {
     configurations.compileClasspath.get().extendsFrom(this)
     configurations.runtimeClasspath.get().extendsFrom(this)
-    configurations["developmentForge"].extendsFrom(this)
-    isCanBeResolved = true
     isCanBeConsumed = false
 }
 
@@ -104,10 +88,9 @@ dependencies {
     forge("net.minecraftforge:forge:$minecraftVersion-$forgeVersion")
 
     // Add dependencies on the required Kotlin modules.
-    includeLib("org.reflections:reflections:0.10.2")
-    includeLib("org.javassist:javassist:3.28.0-GA")
+    includeLib("org.reflections:reflections:$reflectionsVersion")
     includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
-    includeLib("com.pngencoder:pngencoder:0.15.0")
+    includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
 
     // Ktor
     includeLib("io.ktor:ktor-client-core:$ktorVersion")
@@ -117,10 +100,10 @@ dependencies {
 
     // Add mods to the mod jar
     includeMod("thedarkcolour:kotlinforforge:$kotlinForgeVersion")
-    includeMod("baritone-api:baritone-unoptimized-forge:$baritoneVersion")
+    includeMod("com.github.rfresh2:baritone-forge:$minecraftVersion") { isTransitive = true }
 
     // MixinExtras
-    implementation("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion")
+    implementation("io.github.llamalad7:mixinextras-forge:$mixinExtrasVersion") { isTransitive = false }
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:$mixinExtrasVersion")!!)
 
     // Common (Do not touch)
@@ -131,7 +114,24 @@ dependencies {
     setupConfigurations()
 }
 
+// Merge the resources and classes into the same directory.
+// This is done because java expects modules to be in a single directory.
+// And if we have it in multiple we have to do performance intensive hacks like having the UnionFileSystem
+// This will eventually be migrated to ForgeGradle so modders don't need to manually do it. But that is later.
+sourceSets.forEach {
+    val dir = layout.buildDirectory.dir("sourcesSets/${it.name}")
+    it.output.setResourcesDir(dir)
+    it.java.destinationDirectory = dir
+}
+
 tasks {
+    sourcesJar {
+        val commonSources = project(":common").tasks.sourcesJar
+        dependsOn(commonSources)
+        duplicatesStrategy = DuplicatesStrategy.FAIL
+        from(commonSources.get().archiveFile.map { zipTree(it) })
+    }
+
     shadowJar {
         archiveVersion = "$modVersion+$minecraftVersion"
         configurations = listOf(shadowLib, shadowMod, shadowBundle)

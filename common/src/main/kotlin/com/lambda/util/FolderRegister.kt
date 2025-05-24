@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,9 +24,7 @@ import com.lambda.util.FolderRegister.lambda
 import com.lambda.util.FolderRegister.minecraft
 import com.lambda.util.FolderRegister.packetLogs
 import com.lambda.util.FolderRegister.replay
-import com.lambda.util.StringUtils.sanitizeForFilename
 import java.io.File
-import java.net.InetSocketAddress
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.notExists

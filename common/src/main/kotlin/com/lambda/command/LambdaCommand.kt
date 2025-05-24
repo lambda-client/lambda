@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,18 +22,21 @@ import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.command.CommandManager.dispatcher
 import com.lambda.core.Loadable
-import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.Communication.info
 import com.lambda.util.Nameable
 import com.lambda.util.extension.CommandBuilder
-import com.lambda.util.text.*
+import com.lambda.util.text.ClickEvents
+import com.lambda.util.text.HoverEvents
+import com.lambda.util.text.buildText
+import com.lambda.util.text.clickEvent
+import com.lambda.util.text.highlighted
+import com.lambda.util.text.hoverEvent
+import com.lambda.util.text.literal
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
-import com.mojang.brigadier.tree.CommandNode
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.command.CommandSource
 import net.minecraft.registry.BuiltinRegistries
 import net.minecraft.server.command.CommandManager
-import net.minecraft.text.HoverEvent
 
 abstract class LambdaCommand(
     final override val name: String,

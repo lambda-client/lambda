@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,16 +19,16 @@ package com.lambda.gui
 
 import com.lambda.Lambda.mc
 import com.lambda.event.Muteable
+import com.lambda.event.events.GuiEvent
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.event.events.GuiEvent
 import com.lambda.gui.component.layout.Layout
+import com.lambda.threading.recordRenderCall
 import com.lambda.util.KeyCode
 import com.lambda.util.Mouse
 import com.lambda.util.Nameable
 import com.lambda.util.math.Vec2d
-import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.text.Text

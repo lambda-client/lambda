@@ -5,6 +5,8 @@ accessible field net/minecraft/client/MinecraftClient attackCooldown I
 accessible field net/minecraft/client/MinecraftClient paused Z
 accessible field net/minecraft/client/MinecraftClient thread Ljava/lang/Thread;
 accessible field net/minecraft/client/MinecraftClient uptimeInTicks J
+accessible field net/minecraft/client/input/Input movementVector Lnet/minecraft/util/math/Vec2f;
+accessible field net/minecraft/client/MinecraftClient renderTaskQueue Ljava/util/Queue;
 
 # World
 accessible field net/minecraft/client/world/ClientWorld entityManager Lnet/minecraft/world/entity/ClientEntityManager;
@@ -29,17 +31,17 @@ accessible field net/minecraft/client/network/ClientPlayerInteractionManager las
 accessible method net/minecraft/entity/LivingEntity modifyAppliedDamage (Lnet/minecraft/entity/damage/DamageSource;F)F
 accessible method net/minecraft/entity/LivingEntity applyArmorToDamage (Lnet/minecraft/entity/damage/DamageSource;F)F
 accessible method net/minecraft/entity/Entity isAlwaysInvulnerableTo (Lnet/minecraft/entity/damage/DamageSource;)Z
+accessible field net/minecraft/entity/player/PlayerInventory equipment Lnet/minecraft/entity/EntityEquipment;
+accessible method net/minecraft/client/network/ClientPlayerEntity applyMovementSpeedFactors (Lnet/minecraft/util/math/Vec2f;)Lnet/minecraft/util/math/Vec2f;
+accessible field net/minecraft/entity/EntityEquipment map Ljava/util/EnumMap;
 
 # Camera
 accessible method net/minecraft/client/render/Camera setPos (DDD)V
 accessible method net/minecraft/client/render/Camera setRotation (FF)V
 
 # Renderer
-accessible field net/minecraft/client/render/BufferRenderer currentVertexBuffer Lnet/minecraft/client/gl/VertexBuffer;
 accessible field net/minecraft/client/texture/NativeImage pointer J
 accessible class net/minecraft/client/gui/screen/SplashOverlay$LogoTexture
-accessible field com/mojang/blaze3d/systems/RenderSystem$ShapeIndexBuffer buffer Lnet/minecraft/client/gl/GpuBuffer;
-accessible field net/minecraft/client/gl/GpuBuffer target Lnet/minecraft/client/gl/GlBufferTarget;
 
 # Text
 accessible field net/minecraft/text/Style color Lnet/minecraft/text/TextColor;
@@ -52,7 +54,7 @@ accessible field net/minecraft/text/Style clickEvent Lnet/minecraft/text/ClickEv
 accessible field net/minecraft/text/Style hoverEvent Lnet/minecraft/text/HoverEvent;
 accessible field net/minecraft/text/Style insertion Ljava/lang/String;
 accessible field net/minecraft/text/Style font Lnet/minecraft/util/Identifier;
-accessible method net/minecraft/text/Style <init> (Lnet/minecraft/text/TextColor;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Lnet/minecraft/text/ClickEvent;Lnet/minecraft/text/HoverEvent;Ljava/lang/String;Lnet/minecraft/util/Identifier;)V
+accessible method net/minecraft/text/Style <init> (Lnet/minecraft/text/TextColor;Ljava/lang/Integer;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Ljava/lang/Boolean;Lnet/minecraft/text/ClickEvent;Lnet/minecraft/text/HoverEvent;Ljava/lang/String;Lnet/minecraft/util/Identifier;)V
 
 # Network
 accessible field net/minecraft/client/network/ClientPlayNetworkHandler playerListEntries Ljava/util/Map;
@@ -78,5 +80,6 @@ accessible method net/minecraft/util/math/Vec3i setZ (I)Lnet/minecraft/util/math
 # Other
 accessible field net/minecraft/structure/StructureTemplate blockInfoLists Ljava/util/List;
 accessible method net/minecraft/item/BlockItem getPlacementState (Lnet/minecraft/item/ItemPlacementContext;)Lnet/minecraft/block/BlockState;
+accessible method net/minecraft/block/AbstractBlock getPickStack (Lnet/minecraft/world/WorldView;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Z)Lnet/minecraft/item/ItemStack;
 accessible field net/minecraft/client/gui/screen/ingame/HandledScreen focusedSlot Lnet/minecraft/screen/slot/Slot;
 accessible field net/minecraft/registry/SimpleRegistry frozen Z

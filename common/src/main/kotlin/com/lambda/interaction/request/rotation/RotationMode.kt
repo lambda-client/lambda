@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,12 @@
  */
 
 package com.lambda.interaction.request.rotation
+
+import com.lambda.interaction.request.rotation.RotationMode.Lock
+import com.lambda.interaction.request.rotation.RotationMode.None
+import com.lambda.interaction.request.rotation.RotationMode.Silent
+import com.lambda.interaction.request.rotation.RotationMode.Sync
+
 
 /**
  * @property Silent Spoofing server-side rotation.

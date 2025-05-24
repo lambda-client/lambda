@@ -32,6 +32,7 @@ import com.lambda.util.Communication.info
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 import com.lambda.util.extension.fullHealth
+import com.lambda.util.extension.tickDelta
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.entity.mob.CreeperEntity
 import net.minecraft.entity.player.PlayerEntity
@@ -73,7 +74,7 @@ object AutoTotem : Module(
     enum class Reason(val check: SafeContext.() -> Boolean) {
         HEALTH({ player.fullHealth < minimumHealth }),
         CREEPER({ creeper && fastEntitySearch<CreeperEntity>(15.0).any {
-            it.getClientFuseTime(mc.tickDelta) > 0.0
+            it.getLerpedFuseTime(mc.tickDelta) > 0.0
                     && it.pos.distanceTo(player.pos) <= 5.0
         } }),
         PLAYER({ players && fastEntitySearch<PlayerEntity>(minPlayerDistance.toDouble()).any { otherPlayer ->

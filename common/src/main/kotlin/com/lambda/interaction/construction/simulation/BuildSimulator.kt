@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,10 +35,11 @@ import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationManager
 import com.lambda.interaction.request.rotation.RotationRequest
-import com.lambda.interaction.request.rotation.visibilty.*
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.CheckedHit
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.scanSurfaces
+import com.lambda.interaction.request.rotation.visibilty.lookAt
+import com.lambda.interaction.request.rotation.visibilty.lookAtBlock
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils
@@ -55,7 +56,6 @@ import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.item.BlockItem
 import net.minecraft.item.ItemPlacementContext
 import net.minecraft.item.ItemUsageContext
-import net.minecraft.registry.RegistryKeys
 import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
@@ -372,7 +372,7 @@ object BuildSimulator {
         Hand.entries.forEach {
             val stack = player.getStackInHand(it)
             if (stack.isEmpty) return@forEach
-            if (stack.item.canMine(state, world, pos, player)) return@forEach
+            if (stack.item.canMine(stack, state, world, pos, player)) return@forEach
             acc.add(BreakResult.ItemCantMine(pos, state, stack.item, inventory))
             return acc
         }

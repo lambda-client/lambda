@@ -18,23 +18,27 @@
 package com.lambda.mixin;
 
 import com.lambda.Lambda;
+import com.lambda.config.AbstractSetting;
 import com.lambda.module.Module;
 import com.lambda.module.ModuleRegistry;
 import com.lambda.util.DynamicException;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.Util;
 import net.minecraft.util.crash.CrashReport;
+import net.minecraft.util.crash.ReportType;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-// Modify the crash report behavior for dynamic remapping, Easter egg and github issue link
+import java.util.ArrayList;
+import java.util.List;
+
+// Modify the crash report behavior for dynamic remapping and GitHub issue link
 @Mixin(CrashReport.class)
 public class CrashReportMixin {
     @Mutable
@@ -47,33 +51,30 @@ public class CrashReportMixin {
         }
     }
 
-    @Redirect(method = "asString()Ljava/lang/String;", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/crash/CrashReport;addStackTrace(Ljava/lang/StringBuilder;)V"))
-    void injectString(CrashReport instance, StringBuilder stringBuilder) {
-        stringBuilder.append("If this issue is related to Lambda, check if other users have experienced this too, or create a new issue at https://github.com/lambda-client/lambda/issues.\n\n");
+    @WrapMethod(method = "asString(Lnet/minecraft/util/crash/ReportType;Ljava/util/List;)Ljava/lang/String;")
+    String injectString(ReportType type, List<String> extraInfo, Operation<String> original) {
+        var list = new ArrayList<>(extraInfo);
+
+        list.add("If this issue is related to Lambda, check if other users have experienced this too, or create a new issue at https://github.com/lambda-client/lambda/issues.\n\n");
 
         if (MinecraftClient.getInstance() != null) {
-            stringBuilder.append("Enabled modules:\n");
+            list.add("Enabled modules:");
 
             ModuleRegistry.INSTANCE.getModules()
-                    .stream().filter(Module::isEnabled)
-                    .forEach(m -> stringBuilder.append("\t").append(m.getName()).append("\n"));
+                    .stream()
+                    .filter(Module::isEnabled)
+                    .forEach(module -> {
+                        list.add(String.format("\t%s", module.getName()));
+
+                        module.getSettings()
+                                .stream()
+                                .filter(AbstractSetting::isModified)
+                                .forEach(setting -> list.add(String.format("\t\t%s -> %s", setting.getName(), setting.getValue())));
+                    });
         }
 
-        stringBuilder.append("\n");
-        stringBuilder.append("-".repeat(43));
-        stringBuilder.append("\n\n");
+        list.add("\n"+"-".repeat(43)+"\n");
 
-        instance.addStackTrace(stringBuilder);
-    }
-
-    @Inject(method = "generateWittyComment()Ljava/lang/String;", at = @At("HEAD"), cancellable = true)
-    private static void generateWittyComment(CallbackInfoReturnable<String> cir) {
-        String[] strings = new String[]{"Who set us up the TNT?", "Everything's going to plan. No, really, that was supposed to happen.", "Uh... Did I do that?", "Oops.", "Why did you do that?", "I feel sad now :(", "My bad.", "I'm sorry, Dave.", "I let you down. Sorry :(", "On the bright side, I bought you a teddy bear!", "Daisy, daisy...", "Oh - I know what I did wrong!", "Hey, that tickles! Hehehe!", "I blame Dinnerbone.", "You should try our sister game, Minceraft!", "Don't be sad. I'll do better next time, I promise!", "Don't be sad, have a hug! <3", "I just don't know what went wrong :(", "Shall we play a game?", "Quite honestly, I wouldn't worry myself about that.", "I bet Cylons wouldn't have this problem.", "Sorry :(", "Surprise! Haha. Well, this is awkward.", "Would you like a cupcake?", "Hi. I'm Minecraft, and I'm a crashaholic.", "Ooh. Shiny.", "This doesn't make any sense!", "Why is it breaking :(", "Don't do that.", "Ouch. That hurt :(", "You're mean.", "This is a token for 1 free hug. Redeem at your nearest Mojangsta: [~~HUG~~]", "There are four lights!", "But it works on my machine.", "Popbob was here.", "The oldest anarchy server in Minecraft.", "Better luck next time..", "Fatal error occurred user is too based.", "Running premium software on a potato is not advised", "I don't know, ask that kilab guy", "Ah shit, here we go again.", "I will uhh, fix that sometime.", "Not a bug, a feature!", "You should try out Lambda on Windows XP.", "Blade did that."};
-
-        try {
-            cir.setReturnValue(strings[(int)(Util.getMeasuringTimeNano() % (long)strings.length)]);
-        } catch (Throwable var2) {
-            cir.setReturnValue("Witty comment unavailable :(");
-        }
+        return original.call(type, list);
     }
 }

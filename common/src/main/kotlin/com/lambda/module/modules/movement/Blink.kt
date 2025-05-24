@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,9 +27,9 @@ import com.lambda.module.Module
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.ClientPacket
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
+import com.lambda.util.ServerPacket
 import com.lambda.util.math.minus
 import com.lambda.util.math.setAlpha
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
@@ -50,7 +50,7 @@ object Blink : Module(
 
     private val isActive get() = (KillAura.isEnabled && KillAura.target != null) || !requiresAura
 
-    private var packetPool = ConcurrentLinkedDeque<ClientPacket>()
+    private var packetPool = ConcurrentLinkedDeque<ServerPacket>()
     private var lastVelocity: EntityVelocityUpdateS2CPacket? = null
     private var lastUpdate = 0L
 

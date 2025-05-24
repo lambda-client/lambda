@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,11 +23,13 @@ import com.lambda.event.events.PacketEvent;
 import io.netty.channel.ChannelHandlerContext;
 import net.minecraft.network.ClientConnection;
 import net.minecraft.network.NetworkSide;
-import net.minecraft.network.NetworkState;
 import net.minecraft.network.listener.ClientPacketListener;
+import net.minecraft.network.listener.ClientPlayPacketListener;
 import net.minecraft.network.listener.ServerPacketListener;
+import net.minecraft.network.listener.ServerPlayPacketListener;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.handshake.ConnectionIntent;
+import net.minecraft.network.state.NetworkState;
 import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -47,7 +49,7 @@ public class ClientConnectionMixin {
     private void sendingPacket(Packet<?> packet, final CallbackInfo callbackInfo) {
         if (side != NetworkSide.CLIENTBOUND) return;
 
-        if (EventFlow.post(new PacketEvent.Send.Pre((Packet<ServerPacketListener>) packet)).isCanceled()) {
+        if (EventFlow.post(new PacketEvent.Send.Pre((Packet<? extends ServerPlayPacketListener>) packet)).isCanceled()) {
             callbackInfo.cancel();
         }
     }
@@ -57,7 +59,7 @@ public class ClientConnectionMixin {
     private void sendingPacketPost(Packet<?> packet, final CallbackInfo callbackInfo) {
         if (side != NetworkSide.CLIENTBOUND) return;
 
-        EventFlow.post(new PacketEvent.Send.Post((Packet<ServerPacketListener>) packet));
+        EventFlow.post(new PacketEvent.Send.Post((Packet<? extends ServerPlayPacketListener>) packet));
     }
 
     @SuppressWarnings("all")
@@ -69,7 +71,7 @@ public class ClientConnectionMixin {
     ) {
         if (side != NetworkSide.CLIENTBOUND) return;
 
-        if (EventFlow.post(new PacketEvent.Receive.Pre((Packet<ClientPacketListener>) packet)).isCanceled()) {
+        if (EventFlow.post(new PacketEvent.Receive.Pre((Packet<? extends ClientPlayPacketListener>) packet)).isCanceled()) {
             callbackInfo.cancel();
         }
     }
@@ -83,10 +85,10 @@ public class ClientConnectionMixin {
     ) {
         if (side != NetworkSide.CLIENTBOUND) return;
 
-        EventFlow.post(new PacketEvent.Receive.Post((Packet<ClientPacketListener>) packet));
+        EventFlow.post(new PacketEvent.Receive.Post((Packet<? extends ClientPlayPacketListener>) packet));
     }
 
-    @Inject(method = "connect(Ljava/lang/String;ILnet/minecraft/network/NetworkState;Lnet/minecraft/network/NetworkState;Lnet/minecraft/network/listener/ClientPacketListener;Lnet/minecraft/network/packet/c2s/handshake/ConnectionIntent;)V", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "connect(Ljava/lang/String;ILnet/minecraft/network/state/NetworkState;Lnet/minecraft/network/state/NetworkState;Lnet/minecraft/network/listener/ClientPacketListener;Lnet/minecraft/network/packet/c2s/handshake/ConnectionIntent;)V", at = @At("HEAD"), cancellable = true)
     private
     <S extends ServerPacketListener, C extends ClientPacketListener>
     void onConnect(

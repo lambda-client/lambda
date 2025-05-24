@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,9 +44,14 @@ import com.lambda.util.PacketUtils.sendPacket
 import com.lambda.util.Timer
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.combat.CombatUtils.crystalDamage
-import com.lambda.util.math.*
 import com.lambda.util.math.MathUtils.ceilToInt
 import com.lambda.util.math.MathUtils.roundToStep
+import com.lambda.util.math.Vec2d
+import com.lambda.util.math.distSq
+import com.lambda.util.math.flooredBlockPos
+import com.lambda.util.math.getHitVec
+import com.lambda.util.math.minus
+import com.lambda.util.math.plus
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.block.Blocks
 import net.minecraft.entity.Entity
@@ -56,7 +61,10 @@ import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
-import net.minecraft.util.math.*
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
+import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3d
 import kotlin.concurrent.fixedRateTimer
 import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds

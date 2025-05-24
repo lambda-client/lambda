@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,7 +63,7 @@ object NoFall : Module(
                     )
                     player.motion = Vec3d.ZERO
 
-                    player.fallDistance = 0f
+                    player.fallDistance = 0.0
                 }
             }
         }

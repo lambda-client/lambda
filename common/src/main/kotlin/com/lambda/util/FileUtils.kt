@@ -21,6 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.network.LambdaHttp
 import com.lambda.network.download
 import com.lambda.util.StringUtils.sanitizeForFilename
+import com.lambda.util.extension.dimensionName
 import io.ktor.client.request.*
 import java.io.File
 import java.net.InetSocketAddress
@@ -54,9 +55,8 @@ object FileUtils {
         val hostName = (mc.networkHandler?.connection?.address as? InetSocketAddress)?.hostName ?: "singleplayer"
         val path = resolve(
             hostName.sanitizeForFilename()
-        ).resolve(
-            mc.world?.dimensionKey?.value?.path?.sanitizeForFilename() ?: "unknown" // TODO: Change with utils when merged to master
-        )
+        ).resolve(mc.world.dimensionName)
+
         path.mkdirs()
         return path
     }

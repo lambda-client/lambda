@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,14 @@ import com.lambda.module.modules.client.GuiSettings
 import com.lambda.threading.runSafe
 import com.lambda.threading.runSafeGameScheduled
 import com.lambda.util.StringUtils.capitalize
-import com.lambda.util.text.*
+import com.lambda.util.text.HoverEvents
+import com.lambda.util.text.TextBuilder
+import com.lambda.util.text.buildText
+import com.lambda.util.text.color
+import com.lambda.util.text.hoverEvent
+import com.lambda.util.text.literal
+import com.lambda.util.text.styled
+import com.lambda.util.text.text
 import net.minecraft.client.toast.SystemToast
 import net.minecraft.text.Text
 import java.awt.Color

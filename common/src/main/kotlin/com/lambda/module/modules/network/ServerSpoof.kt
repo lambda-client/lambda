@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
+import com.lambda.util.text.ClickEvents
 import com.lambda.util.text.buildText
 import com.lambda.util.text.clickEvent
 import com.lambda.util.text.literal
@@ -31,7 +32,6 @@ import net.minecraft.network.PacketByteBuf
 import net.minecraft.network.packet.BrandCustomPayload
 import net.minecraft.network.packet.c2s.common.CustomPayloadC2SPacket
 import net.minecraft.network.packet.s2c.common.ResourcePackSendS2CPacket
-import net.minecraft.text.ClickEvent
 import java.awt.Color
 
 object ServerSpoof : Module(
@@ -63,7 +63,7 @@ object ServerSpoof : Module(
 
             this@ServerSpoof.info(buildText {
                 literal("Canceled ${if (packet.required) "required" else "optional"} server resource pack. ")
-                clickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, packet.url)) {
+                clickEvent(ClickEvents.openUrl(packet.url)) {
                     styled(color = Color.GREEN, underlined = true) {
                         literal("(Click here to download)")
                     }

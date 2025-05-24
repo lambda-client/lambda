@@ -25,7 +25,6 @@ import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand
 import com.lambda.network.CapeManager
 import com.lambda.network.CapeManager.updateCape
-import com.lambda.network.NetworkManager
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.logError
 import com.lambda.util.extension.CommandBuilder

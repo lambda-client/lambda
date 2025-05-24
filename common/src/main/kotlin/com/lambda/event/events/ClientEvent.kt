@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,11 +18,10 @@
 package com.lambda.event.events
 
 import com.lambda.event.Event
-import com.lambda.event.EventFlow
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import net.minecraft.client.sound.SoundInstance
-import java.util.TimerTask
+import java.util.*
 
 sealed class ClientEvent {
     /**

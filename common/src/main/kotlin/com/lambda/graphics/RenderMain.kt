@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,9 +28,7 @@ import com.lambda.graphics.gl.Matrices.resetMatrices
 import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.module.modules.client.GuiSettings
-import com.lambda.util.Communication.info
 import com.lambda.util.math.Vec2d
-import com.mojang.blaze3d.systems.RenderSystem.getProjectionMatrix
 import org.joml.Matrix4f
 
 object RenderMain {
@@ -56,9 +54,9 @@ object RenderMain {
     }
 
     @JvmStatic
-    fun render3D(matrix: Matrix4f) {
-        resetMatrices(matrix)
-        projectionMatrix.set(getProjectionMatrix())
+    fun render3D(positionMatrix: Matrix4f, projectionMatrix: Matrix4f) {
+        resetMatrices(positionMatrix)
+        projectionMatrix.set(projectionMatrix)
 
         setupGL {
             RenderEvent.World().post()

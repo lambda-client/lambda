@@ -31,7 +31,11 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
-import kotlin.math.*
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.hypot
+import kotlin.math.sin
 
 data class Rotation(val yaw: Double, val pitch: Double) {
     constructor(yaw: Float, pitch: Float) : this(yaw.toDouble(), pitch.toDouble())

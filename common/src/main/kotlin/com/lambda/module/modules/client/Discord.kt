@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,10 @@ import com.lambda.util.extension.dimensionName
 import com.lambda.util.extension.worldName
 import dev.cbyrne.kdiscordipc.KDiscordIPC
 import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.AuthenticatePacket
-import dev.cbyrne.kdiscordipc.data.activity.*
+import dev.cbyrne.kdiscordipc.data.activity.button
+import dev.cbyrne.kdiscordipc.data.activity.largeImage
+import dev.cbyrne.kdiscordipc.data.activity.smallImage
+import dev.cbyrne.kdiscordipc.data.activity.timestamps
 import kotlinx.coroutines.delay
 
 object Discord : Module(
@@ -115,7 +118,7 @@ object Discord : Module(
         USERNAME({ mc.session.username }),
         HEALTH({ "${player.health} HP" }),
         HUNGER({ "${player.hungerManager.foodLevel} Hunger" }),
-        DIMENSION({ dimensionName }),
+        DIMENSION({ world.dimensionName }),
         FPS({ "${mc.currentFps} FPS" });
     }
 }

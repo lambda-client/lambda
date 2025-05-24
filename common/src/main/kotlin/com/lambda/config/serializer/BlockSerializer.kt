@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,15 +17,15 @@
 
 package com.lambda.config.serializer
 
-import com.google.gson.*
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
+import com.google.gson.JsonSerializationContext
+import com.google.gson.JsonSerializer
 import com.mojang.serialization.JsonOps
-import com.mojang.serialization.RecordBuilder
 import net.minecraft.block.Block
-import net.minecraft.block.Blocks
 import net.minecraft.registry.Registries
-import net.minecraft.util.Identifier
 import java.lang.reflect.Type
-import kotlin.jvm.optionals.getOrElse
 
 object BlockSerializer : JsonSerializer<Block>, JsonDeserializer<Block> {
     override fun serialize(

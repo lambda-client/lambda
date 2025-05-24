@@ -24,7 +24,6 @@ import com.lambda.Lambda.VERSION
 import com.lambda.core.registry.AgnosticRegistries
 import net.fabricmc.api.ClientModInitializer
 import net.minecraft.registry.Registries
-import net.minecraft.registry.SimpleRegistry
 
 object LambdaFabric : ClientModInitializer {
     override fun onInitializeClient() {

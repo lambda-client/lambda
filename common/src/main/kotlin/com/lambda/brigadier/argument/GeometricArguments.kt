@@ -1,26 +1,44 @@
 /*
- * Copyright 2023 The Quilt Project
+ * Copyright 2025 Lambda
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.lambda.brigadier.argument
 
 
-import com.lambda.brigadier.*
-import net.minecraft.command.argument.*
+import com.lambda.brigadier.ArgumentReader
+import com.lambda.brigadier.BrigadierDsl
+import com.lambda.brigadier.DefaultArgumentConstructor
+import com.lambda.brigadier.DefaultArgumentDescriptor
+import com.lambda.brigadier.DefaultArgumentReader
+import com.lambda.brigadier.argument
+import com.lambda.brigadier.assumeSourceNotUsed
+import net.minecraft.command.argument.AngleArgumentType
+import net.minecraft.command.argument.BlockPosArgumentType
+import net.minecraft.command.argument.ColumnPosArgumentType
+import net.minecraft.command.argument.PosArgument
+import net.minecraft.command.argument.RotationArgumentType
+import net.minecraft.command.argument.SwizzleArgumentType
+import net.minecraft.command.argument.Vec2ArgumentType
+import net.minecraft.command.argument.Vec3ArgumentType
 import net.minecraft.server.command.ServerCommandSource
-import net.minecraft.util.math.*
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.ColumnPos
+import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec2f
+import net.minecraft.util.math.Vec3d
 import java.util.*
 
 /**

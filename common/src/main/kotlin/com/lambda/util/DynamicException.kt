@@ -22,12 +22,6 @@ import java.io.PrintStream
 import java.io.PrintWriter
 
 class DynamicException(original: Throwable) : Throwable(original) {
-    private val remappedStackTrace = original.stackTrace.remapClassNames()
-
-    init {
-        stackTrace = remappedStackTrace
-    }
-
     private fun Array<StackTraceElement>.remapClassNames() =
         map { element ->
             StackTraceElement(
@@ -38,19 +32,15 @@ class DynamicException(original: Throwable) : Throwable(original) {
             )
         }.toTypedArray()
 
-    override fun printStackTrace(s: PrintStream) {
-        s.println(this)
-        remappedStackTrace.forEach { element ->
-            s.println("\tat $element")
-        }
-    }
+    override fun printStackTrace(s: PrintStream) =
+        stackTrace.forEach { s.println("\tat $it") }
 
-    override fun printStackTrace(s: PrintWriter) {
-        s.println(this)
-        remappedStackTrace.forEach { element ->
-            s.println("\tat $element")
-        }
-    }
+    override fun printStackTrace(s: PrintWriter) =
+        stackTrace.forEach { s.println("\tat $it") }
 
     override fun toString(): String = localizedMessage
+
+    init {
+        stackTrace = stackTrace.remapClassNames()
+    }
 }

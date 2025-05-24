@@ -35,11 +35,9 @@ object Velocity : Module(
 
     init {
         listen<PacketEvent.Receive.Pre> { event ->
-            if (!knockback) return@listen
-            if (event.packet !is EntityVelocityUpdateS2CPacket) return@listen
-            if (event.packet.id != player.id) return@listen
-
-            event.cancel()
+            when (event.packet) {
+                is EntityVelocityUpdateS2CPacket if (knockback && event.packet.entityId != player.id) -> event.cancel()
+            }
         }
     }
 }

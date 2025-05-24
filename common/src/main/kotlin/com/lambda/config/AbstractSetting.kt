@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,12 +34,18 @@ import com.lambda.threading.runSafe
 import com.lambda.util.Communication.info
 import com.lambda.util.Nameable
 import com.lambda.util.extension.CommandBuilder
-import com.lambda.util.text.*
+import com.lambda.util.text.ClickEvents
+import com.lambda.util.text.HoverEvents
+import com.lambda.util.text.TextBuilder
+import com.lambda.util.text.buildText
+import com.lambda.util.text.clickEvent
+import com.lambda.util.text.highlighted
+import com.lambda.util.text.hoverEvent
+import com.lambda.util.text.literal
 import net.minecraft.command.CommandRegistryAccess
 import java.lang.reflect.Type
 import kotlin.properties.Delegates
 import kotlin.reflect.KProperty
-import kotlin.to
 
 /**
  * Represents a setting with a [defaultValue], [visibility] condition, and [description].

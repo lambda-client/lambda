@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@ import com.lambda.util.extension.objectInstance
 import org.reflections.Reflections
 import org.reflections.util.ConfigurationBuilder
 import java.lang.reflect.Modifier
-import java.util.Objects
+import java.util.*
 
 val cache = mutableMapOf<Int, Reflections>()
 

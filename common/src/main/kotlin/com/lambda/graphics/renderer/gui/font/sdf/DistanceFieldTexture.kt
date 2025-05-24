@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@ package com.lambda.graphics.renderer.gui.font.sdf
 
 import com.lambda.graphics.buffer.frame.CachedFrame
 import com.lambda.graphics.buffer.frame.FrameBuffer
-import com.lambda.graphics.shader.Shader
 import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.graphics.texture.Texture
 import com.lambda.util.math.Vec2d

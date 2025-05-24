@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,7 @@ import com.lambda.module.Module
 import com.lambda.module.modules.combat.KillAura
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.distSq
-import com.lambda.util.player.MovementUtils.buildMovementInput
-import com.lambda.util.player.MovementUtils.mergeFrom
+import com.lambda.util.player.MovementUtils.update
 import kotlin.math.pow
 
 object TargetStrafe : Module(
@@ -42,8 +41,8 @@ object TargetStrafe : Module(
         NONE, WEAK, NORMAL, STRONG
     }
 
-    private var forwardDirection = 1
-    private var strafeDirection = 1
+    private var forwardDirection = 1.0
+    private var strafeDirection = 1.0
 
     @JvmStatic
     val isActive get() = isEnabled && KillAura.isEnabled && KillAura.target != null
@@ -53,8 +52,8 @@ object TargetStrafe : Module(
             if (player.horizontalCollision) strafeDirection *= -1
 
             if (KillAura.target == null) {
-                forwardDirection = 1
-                strafeDirection = 1
+                forwardDirection = 1.0
+                strafeDirection = 1.0
             }
         }
 
@@ -66,8 +65,8 @@ object TargetStrafe : Module(
                 val keepRange = 0.5 * jitterCompensation
 
                 forwardDirection = when {
-                    distSq > (targetDistance + keepRange).pow(2) -> 1
-                    distSq < (targetDistance - keepRange).pow(2) -> -1
+                    distSq > (targetDistance + keepRange).pow(2) -> 1.0
+                    distSq < (targetDistance - keepRange).pow(2) -> -1.0
                     else -> forwardDirection
                 }
 
@@ -81,22 +80,14 @@ object TargetStrafe : Module(
 
                 shouldStabilize = shouldStabilize && distSq > (targetDistance + 0.5).pow(2)
 
-                var strafe = strafeDirection.toDouble()
-                if (shouldStabilize) strafe = 0.0
-
-                event.input.mergeFrom(
-                    buildMovementInput(
-                        forwardDirection.toDouble(),
-                        strafe,
-                        true
-                    )
-                )
+                val strafe = if (shouldStabilize) 0.0 else strafeDirection
+                event.input.update(forwardDirection, strafe, jump = true)
             }
         }
 
         onEnable {
-            forwardDirection = 1
-            strafeDirection = 1
+            forwardDirection = 1.0
+            strafeDirection = 1.0
         }
     }
 }

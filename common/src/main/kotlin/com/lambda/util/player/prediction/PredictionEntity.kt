@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,9 +29,12 @@ import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.flooredBlockPos
 import com.lambda.util.math.plus
 import com.lambda.util.math.times
+import com.lambda.util.player.MovementUtils.forward
+import com.lambda.util.player.MovementUtils.jumping
 import com.lambda.util.player.MovementUtils.motion
 import com.lambda.util.player.MovementUtils.moveYaw
 import com.lambda.util.player.MovementUtils.movementVector
+import com.lambda.util.player.MovementUtils.strafe
 import net.minecraft.client.input.KeyboardInput
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity
@@ -70,13 +73,11 @@ class PredictionEntity(val player: ClientPlayerEntity) {
     private var isJumping = false
 
     // Movement input
-    private val input = KeyboardInput(mc.options).apply {
-        tick(true, 1f)
-    }
+    private val input = KeyboardInput(mc.options).apply { tick() }
 
     private val pressingJump = input.jumping
-    private val forwardMovement = input.movementForward.toDouble()
-    private val strafeMovement = input.movementSideways.toDouble()
+    private val forwardMovement = input.forward.toDouble()
+    private val strafeMovement = input.strafe.toDouble()
     private val verticalMovement = pressingJump.toIntSign().toDouble()
 
     private var forwardSpeed = forwardMovement

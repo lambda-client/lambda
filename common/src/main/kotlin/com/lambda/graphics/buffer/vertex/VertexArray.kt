@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,8 +20,8 @@ package com.lambda.graphics.buffer.vertex
 import com.lambda.graphics.buffer.Buffer
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
-import net.minecraft.client.render.BufferRenderer
-import org.lwjgl.opengl.GL30C.*
+import org.lwjgl.opengl.GL30C.GL_UNSIGNED_INT
+import org.lwjgl.opengl.GL30C.glBindVertexArray
 import org.lwjgl.opengl.GL32C.glDrawElementsBaseVertex
 import java.nio.ByteBuffer
 
@@ -52,7 +52,5 @@ class VertexArray(
     override fun map(size: Long, offset: Long, block: (ByteBuffer) -> Unit) = throw UnsupportedOperationException()
     override fun upload(data: ByteBuffer, offset: Long) = throw UnsupportedOperationException()
 
-    override fun bind(id: Int) {
-        glBindVertexArray(id); BufferRenderer.currentVertexBuffer = null
-    }
+    override fun bind(id: Int) = glBindVertexArray(id)
 }

@@ -1,24 +1,29 @@
 /*
- * Copyright 2023 The Quilt Project
+ * Copyright 2025 Lambda
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 @file:Suppress("MemberVisibilityCanBePrivate")
 
 package com.lambda.util.text
 
-import net.minecraft.text.*
+import net.minecraft.text.ClickEvent
+import net.minecraft.text.HoverEvent
+import net.minecraft.text.MutableText
+import net.minecraft.text.Style
+import net.minecraft.text.TextColor
 import net.minecraft.util.Identifier
 import java.awt.Color
 
@@ -37,6 +42,17 @@ class StyleBuilder {
      * A [Color] to apply to the text.
      */
     var color: Color? = null
+        set(value) {
+            if (field != value) {
+                cachedStyle = null
+            }
+            field = value
+        }
+
+    /**
+     * A shadow [Color] to apply to the text.
+     */
+    var shadowColor: Color? = null
         set(value) {
             if (field != value) {
                 cachedStyle = null
@@ -197,6 +213,57 @@ class StyleBuilder {
     }
 
     /**
+     * Converts 3 RGB int values to a shadow [Color].
+     *
+     * @param red The red channel of the color
+     * @param green The green channel of the color
+     * @param blue The blue channel of the color
+     */
+    fun shadowColor(red: Int, green: Int, blue: Int) {
+        this.shadowColor = Color(red, green, blue)
+    }
+
+    /**
+     * Converts 3 RGB float values to a shadow [Color].
+     *
+     * @param red The red channel of the color
+     * @param green The green channel of the color
+     * @param blue The blue channel of the color
+     */
+    fun shadowColor(red: Float, green: Float, blue: Float) {
+        this.shadowColor = Color(red, green, blue)
+    }
+
+    /**
+     * Converts 3 RGB double values to a shadow [Color].
+     *
+     * @param red The red channel of the color
+     * @param green The green channel of the color
+     * @param blue The blue channel of the color
+     */
+    fun shadowColor(red: Double, green: Double, blue: Double) {
+        shadowColor(red.toFloat(), green.toFloat(), blue.toFloat())
+    }
+
+    /**
+     * Converts a single RGB value to a shadow [Color].
+     *
+     * @param rgb The RGB value to convert
+     */
+    fun shadowColor(rgb: Int) {
+        this.shadowColor = Color(rgb)
+    }
+
+    /**
+     * Converts a hexadecimal string color to a shadow [Color].
+     *
+     * @param colorCode The color to convert.
+     */
+    fun shadowColor(colorCode: String) {
+        this.shadowColor = Color(colorCode.toColor())
+    }
+
+    /**
      * Converts a string color to an [Int].
      *
      * @return The [Int] converted color
@@ -249,6 +316,7 @@ class StyleBuilder {
 
         return Style(
             color?.let { TextColor.fromRgb(it.rgb) },
+            shadowColor?.rgb,
             bold,
             italic,
             underlined,

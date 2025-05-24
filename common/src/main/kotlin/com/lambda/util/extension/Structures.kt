@@ -18,7 +18,6 @@
 package com.lambda.util.extension
 
 import com.lambda.Lambda.mc
-import com.lambda.util.VarIntIterator
 import com.lambda.util.math.MathUtils.logCap
 import com.lambda.util.varIterator
 import com.lambda.util.world.FastVector
@@ -44,42 +43,52 @@ private fun positionFromIndex(width: Int, length: Int, index: Int): FastVector {
     return fastVectorOf(x, y, z)
 }
 
-fun StructureTemplate.readNbtOrException(
+fun StructureTemplate.readSponge(
     lookup: RegistryEntryLookup<Block>,
     nbt: NbtCompound,
-): Throwable? = runCatching { readNbt(lookup, nbt) }.exceptionOrNull()
-
-fun StructureTemplate.readSpongeOrException(
-    lookup: RegistryEntryLookup<Block>,
-    nbt: NbtCompound,
-): Throwable? = when (nbt.getInt("Version") +
-        nbt.getCompound("Schematic").getInt("Version"))
-{
-    1, 2 -> readSpongeV1OrException(lookup, nbt)
-    3 -> readSpongeV3OrException(lookup, nbt)
-    else -> IllegalStateException("Invalid sponge schematic version")
+) {
+    when (nbt.getInt("Version", 0) +
+            nbt.getCompoundOrEmpty("Schematic").getInt("Version", 0))
+    {
+        1, 2 -> readSpongeV1(lookup, nbt)
+        3 -> readSpongeV3(lookup, nbt)
+        else -> throw IllegalStateException("Invalid sponge schematic version")
+    }
 }
 
-fun StructureTemplate.readSchematicOrException(
+fun StructureTemplate.readSchematic(
     lookup: RegistryEntryLookup<Block>,
     nbt: NbtCompound,
-): Throwable = when (nbt.getString("Materials")) {
-    "Alpha" -> IllegalStateException("Not implemented, you can help us by contributing to the project")
-    "Classic" -> IllegalStateException("Method not implemented, you can help us by contributing to the Minecraft Wiki (https://minecraft.wiki/w/Data_values_(Classic))")
-    "Pocket" -> IllegalStateException("Pocket Edition schematics are not supported")
-    else -> IllegalStateException("Invalid MCEdit schematic version")
+) {
+    throw when (nbt.getString("Materials", "")) {
+        "Alpha" -> IllegalStateException("Not implemented, you can help us by contributing to the project")
+        "Classic" -> IllegalStateException("Method not implemented, you can help us by contributing to the Minecraft Wiki (https://minecraft.wiki/w/Data_values_(Classic))")
+        "Pocket" -> IllegalStateException("Pocket Edition schematics are not supported")
+        else -> IllegalStateException("Invalid MCEdit schematic version")
+    }
 }
 
-private fun StructureTemplate.readSpongeV1OrException(
+fun StructureTemplate.readSpongeV1(
     lookup: RegistryEntryLookup<Block>,
     nbt: NbtCompound,
-): Throwable? {
+) {
     val version = nbt.getInt("DataVersion")
-    val width = (nbt.getShort("Width") and 0xFFFF.toShort()).toInt()
-    val height = (nbt.getShort("Height") and 0xFFFF.toShort()).toInt()
-    val length = (nbt.getShort("Length") and 0xFFFF.toShort()).toInt()
+        .orElseThrow { IllegalStateException("Expected structure game data version but got nothing") }
 
-    val metadata = nbt.getCompound("Metadata")
+    val width = nbt.getShort("Width")
+        .map { (it and 0xFFFF.toShort()).toInt() }
+        .orElseThrow { IllegalStateException("Expected structure width but got nothing") }
+
+    val height = nbt.getShort("Height")
+        .map { (it and 0xFFFF.toShort()).toInt() }
+        .orElseThrow { IllegalStateException("Expected structure height but got nothing") }
+
+    val length = nbt.getShort("Length")
+        .map { (it and 0xFFFF.toShort()).toInt() }
+        .orElseThrow { IllegalStateException("Expected structure length but got nothing") }
+
+    val metadata = nbt.getCompoundOrEmpty("Metadata")
+    val author = metadata.getString("Author", "unknown")
 
     // If the offset is too far, we simply ignore it
     // I think at some point schematica calculated
@@ -91,11 +100,11 @@ private fun StructureTemplate.readSpongeV1OrException(
     //     ?.let { fastVectorOf(it[0], it[1], it[2]) }
     //     ?.takeIf { 274945015809L times 16 < it } ?: 0L
 
-    val palette = nbt.getCompound("Palette")
+    val palette = nbt.getCompoundOrEmpty("Palette")
     val newPalette = NbtList()
 
     palette.keys
-        .sortedBy { palette.getInt(it) }
+        .sortedBy { palette.getInt(it, 0) }
         .forEach { key ->
             val resource = key.substringBefore('[')
             val blockState = NbtCompound()
@@ -119,6 +128,7 @@ private fun StructureTemplate.readSpongeV1OrException(
     val newBlocks = NbtList()
     var blockIndex = 0
     nbt.getByteArray("BlockData")
+        .orElseThrow { IllegalStateException("Expected block data but got nothing") }
         .varIterator { blockId ->
             val blockpos = positionFromIndex(width, length, blockIndex++)
 
@@ -132,58 +142,71 @@ private fun StructureTemplate.readSpongeV1OrException(
     nbt.putIntList("size", width, height, length)
     nbt.put("palette", newPalette)
     nbt.put("blocks", newBlocks)
-    nbt.putString("author", metadata.getString("Author"))
+    nbt.putString("author", author)
 
     // Fix the data for future versions
     DataFixTypes.STRUCTURE.update(mc.dataFixer, nbt, version)
 
     // Use the StructureTemplate NBT read utils in order to construct the template
-    return readNbtOrException(lookup, nbt)
+    return readNbt(lookup, nbt)
 }
 
-private fun StructureTemplate.readSpongeV3OrException(
+fun StructureTemplate.readSpongeV3(
     lookup: RegistryEntryLookup<Block>,
     nbt: NbtCompound,
-): Throwable? {
-    val schematic = nbt.getCompound("Schematic")
-    val blocks = schematic.getCompound("Blocks")
+) {
+    val schematic = nbt.getCompoundOrEmpty("Schematic")
+    val blocks = schematic.getCompoundOrEmpty("Blocks")
 
-    schematic.put("Palette", blocks.getCompound("Palette"))
-    schematic.putByteArray("BlockData", blocks.getByteArray("Data"))
+    val palette = blocks.getCompound("Palette")
+        .orElseThrow { IllegalStateException("Expected block palette but got nothing") }
+
+    val blockData = blocks.getByteArray("Data")
+        .orElseThrow { IllegalStateException("Expected block data but got nothing") }
 
     nbt.clear()
+
+    nbt.put("Palette", palette)
+    nbt.putByteArray("BlockData", blockData)
     nbt.copyFrom(schematic)
 
-    return readSpongeV1OrException(lookup, nbt)
+    return readSpongeV1(lookup, nbt)
 }
 
-fun StructureTemplate.readLitematicaOrException(
+fun StructureTemplate.readLitematica(
     lookup: RegistryEntryLookup<Block>,
     nbt: NbtCompound,
-): Throwable? = when (val ver = nbt.getInt("Version")) {
-    1, 2, 3, 4 -> readLitematicaV4OrException(lookup, nbt)
-    else -> IllegalStateException("Unsupported litematica version $ver")
+) {
+    when (val version = nbt.getInt("Version", 1)) {
+        1, 2, 3, 4 -> readLitematicaV4(lookup, nbt)
+        else -> throw IllegalStateException("Unsupported litematica version $version")
+    }
 }
 
-private fun StructureTemplate.readLitematicaV4OrException(
+private fun StructureTemplate.readLitematicaV4(
     lookup: RegistryEntryLookup<Block>,
     nbt: NbtCompound,
-): Throwable? {
+) {
     val version = nbt.getInt("MinecraftDataVersion")
+        .orElseThrow { IllegalStateException("Expected structure game data version but got nothing") }
 
-    val metadata = nbt.getCompound("Metadata")
-    val author = metadata.getString("Author")
+    val metadata = nbt.getCompoundOrEmpty("Metadata")
+    val author = metadata.getString("Author", "unknown")
 
     val dimension = metadata.getVector("EnclosingSize")
+        .orElseThrow { IllegalStateException("Expected structure dimensions but got nothing") }
 
     val newPalette = NbtList()
     val newBlocks = NbtList()
 
-    val regions = nbt.getCompound("Regions")
-    regions.keys.map { regions.getCompound(it) }
+    val regions = nbt.getCompoundOrEmpty("Regions")
+    regions.keys.map { regions.getCompoundOrEmpty(it) }
         .forEach {
             val position = it.getVector("Position")
+                .orElseThrow { IllegalStateException("Expected region position but got nothing") }
+
             val size = it.getVector("Size")
+                .orElseThrow { IllegalStateException("Expected region size but got nothing") }
 
             val xSizeAbs = abs(size.x)
             val ySizeAbs = abs(size.y)
@@ -194,9 +217,11 @@ private fun StructureTemplate.readLitematicaV4OrException(
             if (size.z < 0) position.z %= size.z + 1
 
             // The litematic's block state palette is the same as nbt
-            newPalette.addAll(it.getList("BlockStatePalette", 10))
+            newPalette.addAll(it.getListOrEmpty("BlockStatePalette"))
 
             val palette = it.getLongArray("BlockStates")
+                .orElseThrow { IllegalStateException("Expected block palette but got nothing") }
+
             val bits = palette.size.logCap(2)
             val maxEntryValue = (1 shl bits) - 1L
 
@@ -237,5 +262,5 @@ private fun StructureTemplate.readLitematicaV4OrException(
     DataFixTypes.STRUCTURE.update(mc.dataFixer, nbt, version)
 
     // Use the StructureTemplate NBT read utils in order to construct the template
-    return readNbtOrException(lookup, nbt)
+    return readNbt(lookup, nbt)
 }

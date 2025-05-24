@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,8 +30,15 @@ import com.lambda.config.settings.collections.MapSetting
 import com.lambda.config.settings.collections.SetSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
-import com.lambda.config.settings.complex.*
-import com.lambda.config.settings.numeric.*
+import com.lambda.config.settings.complex.BlockPosSetting
+import com.lambda.config.settings.complex.BlockSetting
+import com.lambda.config.settings.complex.ColorSetting
+import com.lambda.config.settings.complex.KeyBindSetting
+import com.lambda.config.settings.complex.Vec3dSetting
+import com.lambda.config.settings.numeric.DoubleSetting
+import com.lambda.config.settings.numeric.FloatSetting
+import com.lambda.config.settings.numeric.IntegerSetting
+import com.lambda.config.settings.numeric.LongSetting
 import com.lambda.util.Communication.logError
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable

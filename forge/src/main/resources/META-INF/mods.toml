@@ -1,5 +1,5 @@
 modLoader = "kotlinforforge"
-loaderVersion = "[${kotlinForgeVersion},)"
+loaderVersion = "[${kotlinForgeVersion},${kotlinForgeVersionMax}]"
 license = "GNU General Public License v3.0"
 issueTrackerURL = "https://github.com/lambda-client/lambda/issues"
 
@@ -30,12 +30,5 @@ side = "CLIENT"
 modId = "kotlinforforge"
 mandatory = true
 versionRange = "[${kotlinForgeVersionMin},${kotlinForgeVersionMax}]"
-ordering = "NONE"
-side = "CLIENT"
-
-[[dependencies.${modId}]]
-modId = "baritoe"
-mandatory = true
-versionRange = "[${baritoneVersion},]"
 ordering = "NONE"
 side = "CLIENT"

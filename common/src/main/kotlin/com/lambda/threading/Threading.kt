@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ import com.lambda.context.ClientContext
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
 import com.mojang.blaze3d.systems.RenderSystem.isOnRenderThread
-import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.await
@@ -87,11 +86,34 @@ inline fun runSafeConcurrent(crossinline block: suspend SafeContext.() -> Unit) 
 }
 
 /**
+ * Executes a given task when the render procedure is available.
+ *
+ * This function is used when a task needs to be performed when the render thread is ready
+ * to be used as multiple threads are used simultaneously and the OpenGL context is only available
+ * on one thread
+ *
+ * Note: This function is non-blocking as the task is scheduled to be executed
+ * on the game's main thread, but does not provide any feedback.
+ *
+ * @param block The task to be executed on the game's main thread.
+ */
+inline fun recordRenderCall(crossinline block: () -> Unit) =
+    mc.renderTaskQueue.add { block() }
+
+/**
  * Executes a given task on the game's main thread.
  *
  * This function is used when a task needs to be performed on the game's main thread,
  * as certain operations are not safe to perform on other threads.
  * It uses the Minecraft client's `execute` method to schedule the task.
+ *
+ * ## Execution Flow:
+ * 1. If already on the render thread: Executes the task immediately (zero overhead).
+ * 2. Otherwise, schedules the task via Minecraft's [net.minecraft.util.thread.ThreadExecutor]:
+ *    a. The task is wrapped in a Runnable and added to a thread-safe queue
+ *    b. `LockSupport.unpark` wakes the game thread if it was parked
+ *
+ * [java.util.concurrent.locks.LockSupport.unpark] will unblock the permit available and allow for execution on that specific thread
  *
  * Note: This function is non-blocking as the task is scheduled to be executed
  * on the game's main thread, but does not provide any feedback.
@@ -104,9 +126,7 @@ inline fun runGameScheduled(crossinline block: () -> Unit) {
         return
     }
 
-    recordRenderCall {
-        block()
-    }
+    mc.execute { block() }
 }
 
 /**

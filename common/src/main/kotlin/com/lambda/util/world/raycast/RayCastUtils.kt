@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@ package com.lambda.util.world.raycast
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.interaction.request.rotation.Rotation
-import com.lambda.threading.runSafe
 import com.lambda.util.math.distSq
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.entity.Entity

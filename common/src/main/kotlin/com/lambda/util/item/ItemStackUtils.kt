@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,13 +18,48 @@
 package com.lambda.util.item
 
 import com.lambda.util.collections.Cacheable.Companion.cacheable
-import net.minecraft.inventory.Inventories
-import net.minecraft.item.BlockItem
+import net.minecraft.component.DataComponentTypes
+import net.minecraft.entity.attribute.EntityAttributes
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
-import net.minecraft.nbt.NbtElement
-import net.minecraft.util.collection.DefaultedList
 
 object ItemStackUtils {
+    /**
+     * Returns the full attack damage of the main hand item.
+     *
+     * The player attack damage base value is 1 and can be modified by potion effects such as
+     * strength and these modifications are held into account.
+     */
+    val PlayerEntity.itemAttackDamage: Double
+        get() = getAttributeValue(EntityAttributes.ATTACK_DAMAGE) + mainHandStack.attackDamage
+
+    /**
+     * Returns the full attack speed of the main hand item.
+     *
+     * The player attack speed base value is 4 and can be modified by potion effects such as
+     * haste and mining fatigue and these modifications are held into account.
+     */
+    val PlayerEntity.itemAttackSpeed: Double
+        get() = getAttributeValue(EntityAttributes.ATTACK_SPEED) + mainHandStack.attackSpeed
+
+    /**
+     * Returns the base attack damage of the given [ItemStack] or 2 as a fallback
+     */
+    val ItemStack.attackDamage: Double
+        get() = get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
+            ?.modifiers
+            ?.find { it.attribute == EntityAttributes.ATTACK_DAMAGE }
+            ?.modifier?.value ?: 2.0
+
+    /**
+     * Returns the base attack speed of the given [ItemStack] or 4 as a fallback
+     */
+    val ItemStack.attackSpeed: Double
+        get() = get(DataComponentTypes.ATTRIBUTE_MODIFIERS)
+            ?.modifiers
+            ?.find { it.attribute == EntityAttributes.ATTACK_SPEED }
+            ?.modifier?.value ?: 4.0
+
     val ItemStack.spaceLeft get() = maxCount - count
     val ItemStack.hasSpace get() = spaceLeft > 0
     val List<ItemStack>.spaceLeft get() = sumOf { it.spaceLeft }

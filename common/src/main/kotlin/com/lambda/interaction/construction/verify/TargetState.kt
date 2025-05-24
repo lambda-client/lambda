@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@ package com.lambda.interaction.construction.verify
 
 import com.lambda.interaction.material.container.ContainerManager.findDisposable
 import com.lambda.module.modules.client.TaskFlowModule
-import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.item.ItemUtils.block
 import net.minecraft.block.BlockState
@@ -85,7 +84,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
             }
 
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
-            blockState.block.getPickStack(world, pos, blockState)
+            blockState.block.getPickStack(world, pos, blockState, true)
 
         override fun isAir() = blockState.isAir
     }
@@ -97,7 +96,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
             state.block == block
 
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
-            block.getPickStack(world, pos, block.defaultState)
+            block.getPickStack(world, pos, block.defaultState, true)
 
         override fun isAir() = block.defaultState.isAir
     }

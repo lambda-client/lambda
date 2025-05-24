@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.gson
+import com.lambda.config.Configuration.Companion.configurables
 import com.lambda.config.configurations.ModuleConfig
 import com.lambda.event.events.ClientEvent
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe

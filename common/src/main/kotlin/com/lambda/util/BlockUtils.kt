@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
 package com.lambda.util
 
 import com.lambda.context.SafeContext
-import com.lambda.util.math.MathUtils.floorToInt
 import net.minecraft.block.AbstractCauldronBlock
 import net.minecraft.block.AbstractFurnaceBlock
 import net.minecraft.block.AbstractSignBlock
@@ -83,7 +82,11 @@ import net.minecraft.block.TrapdoorBlock
 import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
 import net.minecraft.item.Item
-import net.minecraft.util.math.*
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
+import net.minecraft.util.math.EightWayDirection
+import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.Vec3i
 
 object BlockUtils {
 

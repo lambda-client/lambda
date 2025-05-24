@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,9 +19,6 @@ package com.lambda.core
 
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ClientEvent
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import net.minecraft.client.render.RenderTickCounter
 import kotlin.concurrent.fixedRateTimer
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -29,9 +26,6 @@ object TimerManager : Loadable {
     var lastTickLength = 50.0
 
     override fun load() = "Loaded Timer Manager"
-
-    private const val TICK_DELAY = 50L
-    private var start = 0L
 
     val length: Double
         get() {
@@ -46,19 +40,11 @@ object TimerManager : Loadable {
         }
 
     init {
-        listen<TickEvent.Pre> {
-            (mc.renderTickCounter as RenderTickCounter.Dynamic)
-                .beginRenderTick(length.milliseconds.inWholeNanoseconds, false)
-        }
-
-        // ToDo: Use minecraft fixed tick counter
         fixedRateTimer(
             daemon = true,
             name = "Scheduler-Lambda-Tick",
-            initialDelay = 0,
-            period = TICK_DELAY
+            period = 50.milliseconds.inWholeMilliseconds,
         ) {
-            if (start == 0L) start = System.currentTimeMillis()
             ClientEvent.FixedTick(this).post()
         }
     }

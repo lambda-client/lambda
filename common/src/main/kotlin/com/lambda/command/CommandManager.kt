@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,8 +23,13 @@ import com.lambda.context.SafeContext
 import com.lambda.threading.runSafe
 import com.lambda.util.Communication
 import com.lambda.util.Communication.logError
-import com.lambda.util.text.*
 import com.lambda.util.text.ClickEvents.suggestCommand
+import com.lambda.util.text.buildText
+import com.lambda.util.text.clickEvent
+import com.lambda.util.text.color
+import com.lambda.util.text.literal
+import com.lambda.util.text.styled
+import com.lambda.util.text.translatable
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.StringReader
 import com.mojang.brigadier.exceptions.CommandSyntaxException

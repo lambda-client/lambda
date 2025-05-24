@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,8 +30,6 @@ import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.ServerPacket
 import kotlinx.coroutines.delay
-import net.minecraft.network.listener.ClientPacketListener
-import net.minecraft.network.listener.ServerPacketListener
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.common.KeepAliveC2SPacket
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -47,8 +45,8 @@ object PacketDelay : Module(
     private val inboundDelay by setting("Inbound Delay", 250L, 0L..5000L, 10L, unit = "ms") { networkScope != Direction.OUTBOUND }
     private val outboundDelay by setting("Outbound Delay", 250L, 0L..5000L, 10L, unit = "ms") { networkScope != Direction.INBOUND }
 
-    private var outboundPool = ConcurrentLinkedDeque<ClientPacket>()
-    private var inboundPool = ConcurrentLinkedDeque<ServerPacket>()
+    private var outboundPool = ConcurrentLinkedDeque<ServerPacket>()
+    private var inboundPool = ConcurrentLinkedDeque<ClientPacket>()
     private var outboundLastUpdate = 0L
     private var inboundLastUpdate = 0L
 

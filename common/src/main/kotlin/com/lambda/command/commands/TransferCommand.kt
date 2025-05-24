@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,11 @@ package com.lambda.command.commands
 
 import com.lambda.brigadier.CommandResult.Companion.failure
 import com.lambda.brigadier.CommandResult.Companion.success
-import com.lambda.brigadier.argument.*
+import com.lambda.brigadier.argument.integer
+import com.lambda.brigadier.argument.itemStack
+import com.lambda.brigadier.argument.literal
+import com.lambda.brigadier.argument.string
+import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.command.LambdaCommand

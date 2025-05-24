@@ -94,7 +94,7 @@ object Network : Module(
         ClientConnection.connect(resolved, mc.options.shouldUseNativeTransport(), connection)
             .syncUninterruptibly()
 
-        val handler = ClientLoginNetworkHandler(connection, mc, null, null, false, null) { Text.empty() }
+        val handler = ClientLoginNetworkHandler(connection, mc, null, null, false, null, { Text.empty() } , null)
 
         connection.connect(resolved.hostName, resolved.port, handler)
         connection.send(LoginHelloC2SPacket(mc.session.username, mc.session.uuidOrNull))

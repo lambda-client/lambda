@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,7 +64,7 @@ data class PlaceContext(
                     player.swingHand(hand)
                 }
 
-                if (!player.getStackInHand(hand).isEmpty && interaction.hasCreativeInventory()) {
+                if (!player.getStackInHand(hand).isEmpty && player.isCreative) {
                     mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
                 }
             } else {

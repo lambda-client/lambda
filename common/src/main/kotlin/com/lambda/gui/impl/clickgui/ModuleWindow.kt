@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,6 @@
 
 package com.lambda.gui.impl.clickgui
 
-import com.lambda.module.tag.ModuleTag
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.component.window.Window
@@ -25,6 +24,7 @@ import com.lambda.gui.component.window.WindowContent
 import com.lambda.gui.impl.clickgui.module.ModuleLayout.Companion.backgroundTint
 import com.lambda.gui.impl.clickgui.module.ModuleLayout.Companion.moduleLayout
 import com.lambda.module.ModuleRegistry
+import com.lambda.module.tag.ModuleTag
 import com.lambda.util.math.Vec2d
 
 class ModuleWindow(

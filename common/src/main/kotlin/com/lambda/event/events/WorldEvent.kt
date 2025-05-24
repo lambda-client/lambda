@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,16 +20,12 @@ package com.lambda.event.events
 import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
-import com.lambda.threading.runSafe
-import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
-import net.minecraft.block.Blocks
 import net.minecraft.client.network.PlayerListEntry
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.world.chunk.WorldChunk
-import java.util.UUID
-import kotlin.uuid.Uuid
+import java.util.*
 
 /**
  * Represents various events that can occur within the world.

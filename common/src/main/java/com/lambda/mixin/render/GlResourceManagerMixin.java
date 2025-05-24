@@ -15,22 +15,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.mixin.world;
+package com.lambda.mixin.render;
 
-import com.lambda.event.EventFlow;
-import com.lambda.event.events.WorldEvent;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.client.gl.GlResourceManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin(World.class)
-public abstract class WorldMixin {
-    @Inject(method = "onBlockStateChanged", at = @At("TAIL"))
-    void onBlockChanged(BlockPos pos, BlockState oldBlock, BlockState newBlock, CallbackInfo ci) {
-        EventFlow.post(new WorldEvent.BlockUpdate.Client(pos, oldBlock, newBlock));
+@Mixin(GlResourceManager.class)
+public class GlResourceManagerMixin {
+    @Redirect(method = "drawObjectWithRenderPass(Lnet/minecraft/client/gl/RenderPassImpl;IILcom/mojang/blaze3d/vertex/VertexFormat$IndexType;Lnet/minecraft/client/gl/CompiledShaderPipeline;)V", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/opengl/GlStateManager;_glBindBuffer(II)V"))
+    private void drawObjectWithRenderPass(int target, int buffer) {
+        //Buffer.lastIbo = buffer;
     }
 }

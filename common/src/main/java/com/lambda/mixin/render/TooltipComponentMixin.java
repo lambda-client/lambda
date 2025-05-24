@@ -17,7 +17,6 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.module.modules.render.ContainerPreview;
 import com.lambda.module.modules.render.MapPreview;
 import net.minecraft.client.gui.tooltip.BundleTooltipComponent;
 import net.minecraft.client.gui.tooltip.ProfilesTooltipComponent;
@@ -39,7 +38,6 @@ public interface TooltipComponentMixin {
 
         cir.setReturnValue((switch (tooltipData) {
             case MapPreview.MapComponent mapComponent -> mapComponent;
-            case ContainerPreview.ShulkerComponent shulkerComponent -> shulkerComponent;
 
             case BundleTooltipData bundleTooltipData -> new BundleTooltipComponent(bundleTooltipData.contents());
             case ProfilesTooltipComponent.ProfilesData profilesData -> new ProfilesTooltipComponent(profilesData);

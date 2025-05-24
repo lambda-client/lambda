@@ -18,10 +18,7 @@
 package com.lambda.gui.impl.clickgui.module
 
 import com.lambda.graphics.animation.Animation.Companion.exp
-import com.lambda.module.Module
-import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.GuiManager.layoutOf
-import com.lambda.gui.component.core.FilledRect
 import com.lambda.gui.component.core.FilledRect.Companion.rect
 import com.lambda.gui.component.core.FilledRect.Companion.rectBehind
 import com.lambda.gui.component.core.UIBuilder
@@ -30,8 +27,12 @@ import com.lambda.gui.component.window.Window
 import com.lambda.gui.impl.clickgui.ModuleWindow
 import com.lambda.gui.impl.clickgui.core.AnimatedChild
 import com.lambda.gui.impl.clickgui.module.setting.SettingLayout
+import com.lambda.module.Module
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.Mouse
-import com.lambda.util.math.*
+import com.lambda.util.math.Rect
+import com.lambda.util.math.Vec2d
+import com.lambda.util.math.setAlpha
 import java.awt.Color
 
 class ModuleLayout(

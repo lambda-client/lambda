@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,17 +32,13 @@ import com.lambda.interaction.request.rotation.visibilty.lookAtEntity
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
+import com.lambda.util.item.ItemStackUtils.attackDamage
+import com.lambda.util.item.ItemStackUtils.itemAttackSpeed
 import com.lambda.util.math.random
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.world.raycast.InteractionMask
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
-import net.minecraft.enchantment.EnchantmentHelper
-import net.minecraft.entity.EntityGroup
-import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.attribute.EntityAttributeModifier
-import net.minecraft.entity.attribute.EntityAttributes
-import net.minecraft.item.SwordItem
 import net.minecraft.util.Hand
 import net.minecraft.util.math.Vec3d
 
@@ -104,25 +100,17 @@ object KillAura : Module(
             target?.let { entity ->
                 if (swap) {
                     val selection = player.combined
-                        .maxBy { stack ->
-                            stack.getAttributeModifiers(EquipmentSlot.MAINHAND)[EntityAttributes.GENERIC_ATTACK_DAMAGE]
-                                .filter { it.operation == EntityAttributeModifier.Operation.ADDITION }
-                                .sumOf { it.value } +
-                                    EnchantmentHelper.getAttackDamage(stack, EntityGroup.DEFAULT)
-                        }
-                        .takeIf { it.item is SwordItem }
-                        ?.select()
+                        .maxBy { stack -> stack.attackDamage } // ToDo: Write our own enchantment utils
+                        .select()
 
-                    selection?.let {
-                        if (!it.selector(player.mainHandStack)) {
-                            it.transfer(MainHandContainer)
-                                ?.finally {
-                                    // Wait until the rotation has a hit result on the entity
-                                    if (lookAtEntity(entity).requestBy(rotation).done) runAttack(entity)
-                                }?.run()
+                    if (!selection.selector(player.mainHandStack)) {
+                        selection.transfer(MainHandContainer)
+                            ?.finally {
+                                // Wait until the rotation has a hit result on the entity
+                                if (lookAtEntity(entity).requestBy(rotation).done) runAttack(entity)
+                            }?.run()
 
-                            return@listen
-                        }
+                        return@listen
                     }
                 }
 
@@ -139,7 +127,7 @@ object KillAura : Module(
         // Cooldown check
         when (attackMode) {
             AttackMode.Cooldown -> {
-                if (player.lastAttackedTicks < getAttackCooldown() + cooldownOffset) return
+                if (player.lastAttackedTicks < 20/player.itemAttackSpeed + cooldownOffset) return
             }
 
             AttackMode.Delay -> {
@@ -168,8 +156,6 @@ object KillAura : Module(
         lastAttackTime = System.currentTimeMillis()
         hitDelay = (hitDelay1..hitDelay2).random() * 50
     }
-
-    private fun SafeContext.getAttackCooldown() = 20.0 / player.getAttributeValue(EntityAttributes.GENERIC_ATTACK_SPEED)
 
     private fun reset() {
         speedMultiplier = 1.0

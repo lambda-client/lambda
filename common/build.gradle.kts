@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,9 +19,7 @@ val modVersion: String by project
 val minecraftVersion: String by project
 val modId: String by project
 val fabricLoaderVersion: String by project
-val kotlinxCoroutinesVersion: String by project
 val discordIPCVersion: String by project
-val baritoneVersion: String by project
 val ktorVersion: String by project
 val mockitoKotlin: String by project
 val mockitoInline: String by project
@@ -56,11 +54,8 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-gson:$ktorVersion")
 
-    // Add Kotlin
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
-
     // Baritone
-    modImplementation("baritone-api:baritone-unoptimized-fabric:1.10.2") { isTransitive = false }
+    modImplementation("com.github.rfresh2:baritone-fabric:$minecraftVersion")
 
     // Test implementations
     testImplementation(kotlin("test"))
@@ -78,10 +73,10 @@ tasks {
         useJUnitPlatform()
         jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
     }
-}
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    kotlinOptions {
-        jvmTarget = "17"
+    compileKotlin {
+        compilerOptions {
+            freeCompilerArgs.set(listOf("-Xwhen-guards"))
+        }
     }
 }

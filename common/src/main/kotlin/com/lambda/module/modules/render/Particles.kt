@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,46 +17,8 @@
 
 package com.lambda.module.modules.render
 
-import com.lambda.Lambda.mc
-import com.lambda.context.SafeContext
-import com.lambda.event.events.MovementEvent
-import com.lambda.event.events.PlayerEvent
-import com.lambda.event.events.RenderEvent
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.pipeline.VertexPipeline
-import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
-import com.lambda.graphics.buffer.vertex.attributes.VertexMode
-import com.lambda.graphics.gl.GlStateUtils.withBlendFunc
-import com.lambda.graphics.gl.GlStateUtils.withDepth
-import com.lambda.graphics.gl.Matrices
-import com.lambda.graphics.gl.Matrices.buildWorldProjection
-import com.lambda.graphics.gl.Matrices.withVertexTransform
-import com.lambda.graphics.pipeline.VertexBuilder
-import com.lambda.graphics.shader.Shader.Companion.shader
-import com.lambda.interaction.request.rotation.Rotation
-import com.lambda.module.Module
-import com.lambda.module.modules.client.GuiSettings
-import com.lambda.module.modules.client.GuiSettings.colorSpeed
-import com.lambda.module.tag.ModuleTag
-import com.lambda.util.extension.partialTicks
-import com.lambda.util.math.MathUtils.random
-import com.lambda.util.math.UP
-import com.lambda.util.math.DOWN
-import com.lambda.util.math.plus
-import com.lambda.util.math.times
-import com.lambda.util.math.lerp
-import com.lambda.util.math.multAlpha
-import com.lambda.util.math.transform
-import com.lambda.util.player.MovementUtils.moveDelta
-import com.lambda.util.world.raycast.InteractionMask
-import net.minecraft.entity.Entity
-import net.minecraft.util.math.Vec3d
-import org.lwjgl.opengl.GL11.GL_ONE
-import org.lwjgl.opengl.GL11.GL_SRC_ALPHA
-import kotlin.math.sin
-
-object Particles : Module(
+// FixMe: Do not call render stuff in the initialization block
+/*object Particles : Module(
     name = "Particles",
     description = "Spawns fancy particles",
     defaultTags = setOf(ModuleTag.RENDER)
@@ -220,4 +182,4 @@ object Particles : Module(
             }
         }
     }
-}
+}*/

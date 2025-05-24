@@ -26,7 +26,6 @@ import com.lambda.network.api.v1.models.Authentication.Data
 import com.lambda.util.StringUtils.base64UrlDecode
 import com.lambda.util.StringUtils.json
 import com.lambda.util.collections.updatableLazy
-import java.util.*
 
 object NetworkManager : Configurable(UserConfig), Loadable {
     override val name = "network"

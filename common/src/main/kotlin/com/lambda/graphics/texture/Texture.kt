@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,11 +23,33 @@ import com.lambda.graphics.texture.TextureUtils.setupTexture
 import com.lambda.util.LambdaResource
 import com.lambda.util.readImage
 import net.minecraft.client.texture.NativeImage
-import org.lwjgl.opengl.GL45C.*
+import org.lwjgl.opengl.GL45C.GL_BGRA
+import org.lwjgl.opengl.GL45C.GL_BLUE
+import org.lwjgl.opengl.GL45C.GL_GREEN
+import org.lwjgl.opengl.GL45C.GL_LINEAR
+import org.lwjgl.opengl.GL45C.GL_LINEAR_MIPMAP_LINEAR
+import org.lwjgl.opengl.GL45C.GL_RED
+import org.lwjgl.opengl.GL45C.GL_RG
+import org.lwjgl.opengl.GL45C.GL_RGB
+import org.lwjgl.opengl.GL45C.GL_RGBA
+import org.lwjgl.opengl.GL45C.GL_TEXTURE_2D
+import org.lwjgl.opengl.GL45C.GL_TEXTURE_BASE_LEVEL
+import org.lwjgl.opengl.GL45C.GL_TEXTURE_MAX_LEVEL
+import org.lwjgl.opengl.GL45C.GL_TEXTURE_MAX_LOD
+import org.lwjgl.opengl.GL45C.GL_TEXTURE_MIN_LOD
+import org.lwjgl.opengl.GL45C.GL_UNSIGNED_BYTE
+import org.lwjgl.opengl.GL45C.glGenTextures
+import org.lwjgl.opengl.GL45C.glGenerateMipmap
+import org.lwjgl.opengl.GL45C.glTexImage2D
+import org.lwjgl.opengl.GL45C.glTexParameteri
+import org.lwjgl.opengl.GL45C.glTexSubImage2D
 import java.awt.image.BufferedImage
-import java.awt.image.BufferedImage.*
+import java.awt.image.BufferedImage.TYPE_4BYTE_ABGR
+import java.awt.image.BufferedImage.TYPE_BYTE_BINARY
+import java.awt.image.BufferedImage.TYPE_BYTE_GRAY
+import java.awt.image.BufferedImage.TYPE_INT_ARGB
+import java.awt.image.BufferedImage.TYPE_INT_RGB
 import java.nio.ByteBuffer
-import kotlin.IllegalStateException
 
 /**
  * Represents a texture that can be uploaded and bound to the graphics pipeline
