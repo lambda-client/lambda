@@ -24,8 +24,6 @@ import com.lambda.event.callback.ICancellable
 import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.graphics.renderer.esp.global.StaticESP
 import com.lambda.util.math.Vec2d
-import net.minecraft.client.gui.DrawContext
-import net.minecraft.client.gui.screen.ingame.GenericContainerScreen
 
 sealed class RenderEvent {
     class World : Event
