@@ -33,6 +33,7 @@ import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.*
 import net.minecraft.network.packet.c2s.play.TeleportConfirmC2SPacket
 import net.minecraft.text.Text
+import kotlin.math.floor
 
 // ToDo: HUD info
 object PacketLimiter : Module(
@@ -68,6 +69,11 @@ object PacketLimiter : Module(
     private val limitClickRender by setting("Render Limit in Container", true, "Render the amount of clicks remaining in the container screen") {
         limitClickPackets
     }
+
+    private val clickPacketsWindowAmount: Int
+        get() = floor(limitClickWindowSize * limitClickRate).toInt()
+    private val clickPacketsRemaining: Int
+        get() = clickPacketsWindowAmount - clickPacketQueue.size
 
     init {
         onEnable {
@@ -109,14 +115,11 @@ object PacketLimiter : Module(
             val y = renderScreen.y
 
             RenderSystem.disableDepthTest()
-            val remainingText = "Clicks Remaining: " + clickPacketsRemaining().toInt().toString()
+            val remainingText = "Clicks Remaining: $clickPacketsRemaining"
             context.drawText(renderScreen.textRenderer, Text.literal(remainingText), x + renderScreen.backgroundWidth, y, 4210752, false)
             RenderSystem.enableDepthTest()
         }
     }
 
-    fun canSendClickPackets(packets: Int) = clickPacketQueue.size + packets < clickPacketsWindowAmount()
-    fun clickPacketsRemaining() = clickPacketsWindowAmount() - clickPacketQueue.size
-
-    private fun clickPacketsWindowAmount() = limitClickWindowSize * limitClickRate
+    fun canSendClickPackets(packets: Int) = clickPacketQueue.size + packets < clickPacketsWindowAmount
 }
