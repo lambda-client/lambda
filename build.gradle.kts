@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
 
 import org.gradle.internal.jvm.*
 import net.fabricmc.loom.api.LoomGradleExtensionAPI
-import org.apache.tools.ant.taskdefs.condition.Os
-import java.io.FileNotFoundException
 import java.util.*
 
 val modId: String by project
@@ -41,7 +39,7 @@ plugins {
     id("org.jetbrains.dokka") version "2.0.0"
     id("architectury-plugin") version "3.4-SNAPSHOT"
     id("dev.architectury.loom") version "1.10-SNAPSHOT" apply false
-    id("com.github.johnrengelman.shadow") version "8.1.1" apply false
+    id("com.gradleup.shadow") version "9.0.0-beta13" apply false
     id("maven-publish")
 }
 
@@ -56,7 +54,10 @@ subprojects {
 
     dependencies {
         "minecraft"("com.mojang:minecraft:$minecraftVersion")
-        "mappings"("net.fabricmc:yarn:$minecraftVersion+$yarnMappings:v2")
+        "mappings"(loom.layered {
+            mappings("net.fabricmc:yarn:$minecraftVersion+$yarnMappings:v2")
+            mappings("dev.architectury:yarn-mappings-patch-neoforge:1.21+build.4")
+        })
     }
 
     publishing {
@@ -96,7 +97,7 @@ subprojects {
             property("lambda.dev", "youtu.be/RYnFIRc0k6E")
             property("org.lwjgl.util.Debug", "true")
 
-            vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash", "-XX:+UseOSErrorReporting", "-Xrs")
+            vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash", "-XX:+UseOSErrorReporting")
             programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****", "--userType", "msa")
         }
     }

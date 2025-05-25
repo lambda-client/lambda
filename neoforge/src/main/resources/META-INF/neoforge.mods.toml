@@ -2,6 +2,7 @@ modLoader = "kotlinforforge"
 loaderVersion = "[${kotlinForgeVersionMin},${kotlinForgeVersionMax}]"
 license = "GNU General Public License v3.0"
 issueTrackerURL = "https://github.com/lambda-client/lambda/issues"
+#updateJSONURL = "https://raw.githubusercontent.com/lambda-client/lambda/main/update.json"
 
 [[mods]]
 modId = "${modId}"
@@ -12,16 +13,21 @@ description = "${modDescription}"
 logoFile = "${modIcon}"
 displayTest = "IGNORE_ALL_VERSION"
 
+[[mixins]]
+config = "${modId}.mixins.common.json"
+
 [[dependencies.${modId}]]
-modId = "forge"
+modId = "neoforge"
 mandatory = true
-versionRange = "[${forgeVersionMin},${forgeVersionMax}]"
+type = "required"
+versionRange = "[${neoVersionMin},${neoVersionMax}]"
 ordering = "NONE"
 side = "CLIENT"
 
 [[dependencies.${modId}]]
 modId = "minecraft"
 mandatory = true
+type = "required"
 versionRange = "[${minecraftVersionMin},${minecraftVersionMax}]"
 ordering = "NONE"
 side = "CLIENT"
@@ -29,6 +35,7 @@ side = "CLIENT"
 [[dependencies.${modId}]]
 modId = "kotlinforforge"
 mandatory = true
+type = "required"
 versionRange = "[${kotlinForgeVersionMin},${kotlinForgeVersionMax}]"
 ordering = "NONE"
 side = "CLIENT"

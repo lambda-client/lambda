@@ -15,42 +15,40 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.forge
+package com.lambda.neoforge
 
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.MOD_NAME
 import com.lambda.Lambda.VERSION
 import com.lambda.core.registry.AgnosticRegistries
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
-import net.minecraftforge.eventbus.api.SubscribeEvent
-import net.minecraftforge.fml.common.Mod
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
-import net.minecraftforge.registries.RegisterEvent
-import thedarkcolour.kotlinforforge.forge.FORGE_BUS
-import thedarkcolour.kotlinforforge.forge.MOD_BUS
-
+import com.lambda.graphics.RenderMain
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
+import net.neoforged.bus.api.SubscribeEvent
+import net.neoforged.fml.common.Mod
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent
+import net.neoforged.neoforge.client.event.RenderGuiEvent
+import net.neoforged.neoforge.registries.RegisterEvent
+import thedarkcolour.kotlinforforge.neoforge.forge.FORGE_BUS
+import thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS
 
 @Mod(Lambda.MOD_ID)
 @OnlyIn(Dist.CLIENT)
-object LambdaForge {
+object LambdaNeoForge {
     @SubscribeEvent
     fun onClient(event: FMLClientSetupEvent) {
         Lambda.initialize {
-            LOG.info("$MOD_NAME Forge $VERSION was successfully initialized after $it ms\n")
+            LOG.info("$MOD_NAME NeoForge $VERSION was successfully initialized after $it ms\n")
         }
     }
 
-    // Forge forces the user to use their event in order to interact with registries.
     @SubscribeEvent
-    fun onRegistrySetup(event: RegisterEvent) = AgnosticRegistries.dump(event.getVanillaRegistry<Any>())
+    fun onRegistrySetup(event: RegisterEvent) = AgnosticRegistries.dump(event.registry)
 
-    // Most events here are hooked due to forge not caring about others
-    // and directly patching the minecraft classes.
     private object ClientEvents {
-        // @SubscribeEvent
-        // fun onHudRender(event: RenderGuiEvent.Post) { RenderMain.render2D() }
+        @SubscribeEvent
+        fun onHudRender(event: RenderGuiEvent.Post) { RenderMain.render2D() }
     }
 
     init {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,13 +23,14 @@ val kotlinFabricVersion: String by project
 val reflectionsVersion: String by project
 val pngEncoderVersion: String by project
 val discordIPCVersion: String by project
+val classGraphVersion: String by project
 val kotlinVersion: String by project
 val ktorVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-fabric"
 
 plugins {
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.gradleup.shadow") version "9.0.0-beta13"
 }
 
 architectury {
@@ -45,6 +46,7 @@ loom {
 val common: Configuration by configurations.creating {
     configurations.compileClasspath.get().extendsFrom(this)
     configurations.runtimeClasspath.get().extendsFrom(this)
+    configurations["developmentFabric"].extendsFrom(this)
     isCanBeConsumed = false
 }
 
@@ -79,6 +81,7 @@ dependencies {
 
     // Add dependencies on the required Kotlin modules.
     includeLib("org.reflections:reflections:$reflectionsVersion")
+    includeLib("io.github.classgraph:classgraph:${classGraphVersion}")
     includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
 
@@ -95,7 +98,7 @@ dependencies {
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
-    shadowBundle(project(":common", configuration = "transformProductionFabric")) { isTransitive = false }
+    shadowBundle(project(":common", configuration = "transformProductionFabric"))
 
     // Finish the configuration
     setupConfigurations()

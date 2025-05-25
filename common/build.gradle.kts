@@ -27,7 +27,7 @@ val mockkVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-api"
 
-architectury { common("fabric", "forge") }
+architectury { common("fabric", "forge", "neoforge") }
 
 loom {
     silentMojangMappingsLicense()
@@ -41,7 +41,7 @@ repositories {
 dependencies {
     // We depend on fabric loader here to use the fabric @Environment annotations and get the mixin dependencies
     // Do NOT use other classes from fabric loader
-    modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
+    modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion") { isTransitive = false }
 
     // Add dependencies on the required Kotlin modules.
     implementation("org.reflections:reflections:0.10.2")
@@ -53,6 +53,8 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:$ktorVersion")
     implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-gson:$ktorVersion")
+
+    implementation("io.github.classgraph:classgraph:4.8.179")
 
     // Baritone
     modImplementation("com.github.rfresh2:baritone-fabric:$minecraftVersion")

@@ -15,12 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.forge
+package com.lambda.neoforge
 
-import net.minecraftforge.fml.loading.FMLLoader
+import net.neoforged.fml.loading.FMLLoader
+
 
 object LoaderInfoImpl {
     @JvmStatic
     fun getVersion(): String =
         FMLLoader.getLoadingModList().getModFileById("lambda").versionString()
 }
+

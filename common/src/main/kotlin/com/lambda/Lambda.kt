@@ -26,10 +26,18 @@ import com.lambda.config.serializer.GameProfileSerializer
 import com.lambda.config.serializer.ItemStackSerializer
 import com.lambda.config.serializer.KeyCodeSerializer
 import com.lambda.config.serializer.OptionalSerializer
+import com.lambda.core.Loadable
 import com.lambda.core.Loader
+import com.lambda.threading.awaitMainThread
 import com.lambda.threading.recordRenderCall
+import com.lambda.threading.runGameScheduled
 import com.lambda.util.KeyCode
+import com.lambda.util.reflections.createInstance
 import com.mojang.authlib.GameProfile
+import io.github.classgraph.ClassGraph
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
 import net.minecraft.item.ItemStack
@@ -68,4 +76,30 @@ object Lambda {
         .create()
 
     fun initialize(block: (Long) -> Unit) = recordRenderCall { Loader.initialize().apply(block) }
+}
+
+    /**
+     * Execute a block of code on the main thread
+     */
+    suspend fun <T> executeOnMainThread(block: () -> T): T {
+        return withContext(Dispatchers.Main) {
+            println("Executing on ${Thread.currentThread().name}")
+            block()
+        }
+    }
+
+suspend fun main() {
+    val classes = ClassGraph()
+        .enableAllInfo()
+        .scan()
+        .use { result ->
+            result.getClassesImplementing(Loadable::class.java)
+                .map { Class.forName(it.name) }
+        }
+
+    val loadables = classes.mapNotNull {
+        executeOnMainThread { createInstance<Loadable>(it) }
+    }
+
+    loadables.forEach { println(it.load()) }
 }

@@ -19,25 +19,11 @@ package com.lambda.util.reflections
 
 import com.lambda.util.extension.isObject
 import com.lambda.util.extension.objectInstance
-import org.reflections.Reflections
+import io.github.classgraph.ClassGraph
+import io.github.classgraph.ResourceList
 import org.reflections.util.ConfigurationBuilder
 import java.lang.reflect.Modifier
-import java.util.*
-
-val cache = mutableMapOf<Int, Reflections>()
-
-/**
- * This function retrieves or create a reflection instance to avoid redundant
- * reflection calls
- *
- * Every time you instantiate a [Reflections] class, it scans the entire classloader and caches its result in a store
- */
-inline fun reflectionCache(block: ConfigurationBuilder.() -> Unit): Reflections {
-    val config = ConfigurationBuilder().apply(block)
-    val cacheKey = Objects.hash(config.classLoaders, config.urls, config.scanners, config.inputsFilter)
-
-    return cache.getOrPut(cacheKey) { Reflections(config) }
-}
+import kotlin.jvm.java
 
 /**
  * Retrieves all instances of the specified type `T`.
@@ -47,9 +33,21 @@ inline fun reflectionCache(block: ConfigurationBuilder.() -> Unit): Reflections 
  *
  * @return A list of instances of type `T`
  */
-inline fun <reified T : Any> getInstances(block: ConfigurationBuilder.() -> Unit = { forPackage("com.lambda") }) =
-    reflectionCache(block).getSubTypesOf(T::class.java)
-        .mapNotNull { createInstance<T>(it) }
+inline fun <reified T : Any> getInstances(block: ClassGraph.() -> Unit = { enableClassInfo(); acceptPackages("com.lambda") }): List<T> =
+    ClassGraph().apply(block)
+        .scan()
+        .use { result ->
+            val clazz = T::class.java
+
+            return when {
+                clazz.isInterface -> result.getClassesImplementing(T::class.java)
+
+                clazz.isObject || Modifier.isAbstract(clazz.modifiers) ->
+                    result.getSubclasses(T::class.java)
+
+                else -> throw IllegalAccessException("class ${clazz.name} is neither an interface or abstract class")
+            }.mapNotNull { createInstance<T>(Class.forName(it.name)) }
+        }
 
 /**
  * Retrieves all resource paths that match the given pattern.
@@ -62,8 +60,10 @@ inline fun <reified T : Any> getInstances(block: ConfigurationBuilder.() -> Unit
  *
  * @return A set of resource paths that match the specified pattern.
  */
-inline fun getResources(pattern: String, block: ConfigurationBuilder.() -> Unit = { forPackage("com.lambda") }) =
-    reflectionCache(block).getResources(pattern)
+inline fun getResources(pattern: String, block: ClassGraph.() -> Unit = { enableAllInfo(); acceptPackages("com.lambda") }): ResourceList =
+    ClassGraph().apply(block)
+        .scan()
+        .use { it.getResourcesMatchingWildcard(pattern) }
 
 inline fun <reified T : Any> createInstance(clazz: Class<*>): T? {
     return when {
