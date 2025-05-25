@@ -21,7 +21,6 @@ val minecraftVersion: String by project
 val forgeVersion: String by project
 val mixinExtrasVersion: String by project
 val kotlinForgeVersion: String by project
-val reflectionsVersion: String by project
 val pngEncoderVersion: String by project
 val discordIPCVersion: String by project
 val classGraphVersion: String by project
@@ -88,7 +87,6 @@ dependencies {
     forge("net.minecraftforge:forge:$minecraftVersion-$forgeVersion")
 
     // Add dependencies on the required Kotlin modules.
-    includeLib("org.reflections:reflections:$reflectionsVersion")
     includeLib("io.github.classgraph:classgraph:${classGraphVersion}")
     includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")

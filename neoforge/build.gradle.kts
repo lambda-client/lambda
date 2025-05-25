@@ -19,7 +19,6 @@ val modVersion: String by project
 val minecraftVersion: String by project
 val neoVersion: String by project
 val kotlinForgeVersion: String by project
-val reflectionsVersion: String by project
 val pngEncoderVersion: String by project
 val discordIPCVersion: String by project
 val classGraphVersion: String by project
@@ -82,7 +81,6 @@ dependencies {
     neoForge("net.neoforged:neoforge:${neoVersion}")
 
     // Add dependencies on the required Kotlin modules.
-    includeLib("org.reflections:reflections:$reflectionsVersion")
     includeLib("io.github.classgraph:classgraph:${classGraphVersion}")
     includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
