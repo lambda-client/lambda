@@ -15,11 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+val modId: String by project
 val modVersion: String by project
 val minecraftVersion: String by project
-val modId: String by project
 val fabricLoaderVersion: String by project
+val pngEncoderVersion: String by project
 val discordIPCVersion: String by project
+val classGraphVersion: String by project
+val kotlinVersion: String by project
 val ktorVersion: String by project
 val mockitoKotlin: String by project
 val mockitoInline: String by project
@@ -44,9 +47,10 @@ dependencies {
     modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion") { isTransitive = false }
 
     // Add dependencies on the required Kotlin modules.
-    implementation("org.reflections:reflections:0.10.2")
+    implementation("io.github.classgraph:classgraph:${classGraphVersion}")
     implementation("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
-    implementation("com.pngencoder:pngencoder:0.15.0")
+    implementation("com.pngencoder:pngencoder:$pngEncoderVersion")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
 
     // Ktor
     implementation("io.ktor:ktor-client-core:$ktorVersion")
