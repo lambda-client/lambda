@@ -21,7 +21,6 @@ import com.lambda.util.extension.isObject
 import com.lambda.util.extension.objectInstance
 import io.github.classgraph.ClassGraph
 import io.github.classgraph.ResourceList
-import org.reflections.util.ConfigurationBuilder
 import java.lang.reflect.Modifier
 import kotlin.jvm.java
 
@@ -29,7 +28,7 @@ import kotlin.jvm.java
  * Retrieves all instances of the specified type `T`.
  *
  * @param T The type of instances to retrieve.
- * @param block A configuration lambda to customize the [ConfigurationBuilder] used to configure Reflections.
+ * @param block A configuration lambda to customize the [ClassGraph] configuration.
  *
  * @return A list of instances of type `T`
  */
@@ -50,15 +49,12 @@ inline fun <reified T : Any> getInstances(block: ClassGraph.() -> Unit = { enabl
         }
 
 /**
- * Retrieves all resource paths that match the given pattern.
- *
- * The function caches the results based on the configuration provided via the [block] lambda to avoid redundant
- * reflection calls.
+ * Retrieves all resource paths that match the given pattern wildcard.
  *
  * @param pattern The resource pattern to search for.
- * @param block A configuration lambda to customize the [ConfigurationBuilder] used to configure Reflections.
+ * @param block A configuration lambda to customize the [ClassGraph] configuration.
  *
- * @return A set of resource paths that match the specified pattern.
+ * @return A [ResourceList]
  */
 inline fun getResources(pattern: String, block: ClassGraph.() -> Unit = { enableAllInfo(); acceptPackages("com.lambda") }): ResourceList =
     ClassGraph().apply(block)

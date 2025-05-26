@@ -38,35 +38,39 @@ import net.minecraft.util.Identifier
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import org.apache.logging.log4j.Logger
-import java.lang.reflect.Field
 import java.lang.reflect.InaccessibleObjectException
 import java.util.*
 import kotlin.jvm.optionals.getOrDefault
+import kotlin.reflect.KClass
+import kotlin.reflect.KProperty1
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.javaField
+import kotlin.reflect.jvm.jvmErasure
 
 object DynamicReflectionSerializer : Loadable {
     // Classes that should not be recursively serialized
     private val skipables = setOf(
-        Codec::class.java,
-        Logger::class.java,
-        BlockPos::class.java,
-        BlockState::class.java,
-        ItemStack::class.java,
-        Identifier::class.java,
-        NbtCompound::class.java,
-        Map::class.java,
-        BitSet::class.java,
-        Collection::class.java,
-        RegistryEntry::class.java,
-        RegistryKey::class.java,
-        ScreenHandlerType::class.java,
-        TranslationStorage::class.java,
-        ChunkPos::class.java,
-        Text::class.java,
-        org.slf4j.Logger::class.java,
-        String::class.java,
+        Codec::class,
+        Logger::class,
+        BlockPos::class,
+        BlockState::class,
+        ItemStack::class,
+        Identifier::class,
+        NbtCompound::class,
+        Map::class,
+        BitSet::class,
+        Collection::class,
+        RegistryEntry::class,
+        RegistryKey::class,
+        ScreenHandlerType::class,
+        TranslationStorage::class,
+        ChunkPos::class,
+        Text::class,
+        org.slf4j.Logger::class,
+        String::class,
     )
     private val skipFields = setOf(
-        Codec::class.java,
+        Codec::class,
     )
 
     private const val INDENT = 2
@@ -104,9 +108,9 @@ object DynamicReflectionSerializer : Loadable {
 
     val String.remappedName get() = mappings.getOrDefault(this, this)
 
-    fun <T : Any> Class<T>.dynamicName(remap: Boolean) =
-        if (remap) canonicalName.remappedName else simpleName
-    fun Field.dynamicName(remap: Boolean) =
+    fun <T : Any> KClass<T>.dynamicName(remap: Boolean) =
+        if (remap) qualifiedName?.remappedName else simpleName
+    fun <T : Any> KProperty1<T, *>.dynamicName(remap: Boolean) =
         if (remap) name.remappedName else name
 
     fun Any.dynamicString(
@@ -118,23 +122,21 @@ object DynamicReflectionSerializer : Loadable {
         remap: Boolean = !Lambda.isDebug,
     ): String {
         if (visitedObjects.contains(this)) {
-            builder.appendLine("$indent${javaClass.dynamicName(remap)} (Circular Reference)")
+            builder.appendLine("$indent${this::class.dynamicName(remap)} (Circular Reference)")
             return builder.toString()
         }
 
         visitedObjects.add(this)
-        builder.appendLine("$indent${javaClass.dynamicName(remap)}")
+        builder.appendLine("$indent${this::class.dynamicName(remap)}")
 
-        val fields = javaClass.declaredFields + javaClass.superclass?.declaredFields.orEmpty()
-        fields.forEach { field ->
-            processField(field, indent, builder, currentDepth, maxRecursionDepth, visitedObjects, remap)
-        }
+        this::class.memberProperties
+            .forEach { processField(it, indent, builder, currentDepth, maxRecursionDepth, visitedObjects, remap) }
 
         return builder.toString()
     }
 
-    private fun Any.processField(
-        field: Field,
+    private fun <T : Any> T.processField(
+        field: KProperty1<out T, *>,
         indent: String,
         builder: StringBuilder,
         currentDepth: Int,
@@ -142,23 +144,24 @@ object DynamicReflectionSerializer : Loadable {
         visitedObjects: MutableSet<Any>,
         remap: Boolean,
     ) {
-        if (skipFields.any { it.isAssignableFrom(field.type) }) return
+        if (skipFields.any { it.isInstance(field) }) return
 
         try {
-            field.isAccessible = true
-        } catch (e: InaccessibleObjectException) {
+            field.javaField?.isAccessible = true
+        } catch (_: InaccessibleObjectException) {
             return
         }
-        val fieldValue = field.get(this)
+
+        val fieldValue = field.javaField?.get(this)
         val fieldIndent = "$indent${" ".repeat(INDENT)}"
         builder.appendLine("$fieldIndent${field.dynamicName(remap)}: ${fieldValue.formatFieldValue(remap)}")
 
         if (currentDepth < maxRecursionDepth
             && fieldValue != null
-            && !field.type.isPrimitive
-            && !field.type.isArray
-            && !field.type.isEnum
-            && skipables.none { it.isAssignableFrom(field.type) }
+            && !field.returnType.jvmErasure.java.isPrimitive
+            && !field.returnType.jvmErasure.java.isArray
+            && !field.returnType.jvmErasure.java.isEnum
+            && skipables.none { it.isInstance(field.returnType.jvmErasure) }
         ) {
             fieldValue.dynamicString(
                 maxRecursionDepth,
@@ -186,10 +189,10 @@ object DynamicReflectionSerializer : Loadable {
             is Identifier -> "$namespace:$path"
             is NbtCompound -> asString().getOrDefault("")
             is RegistryEntry<*> -> "${value()}"
+            null -> "null"
             else -> {
-                if (this?.javaClass?.canonicalName?.contains("minecraft") == true)
-                    "${this.javaClass.dynamicName(remap)}@${Integer.toHexString(hashCode())}"
-                else this?.toString() ?: "null"
+                if (this::class.qualifiedName?.contains("minecraft") == true) "${this::class.dynamicName(remap)}@${Integer.toHexString(hashCode())}"
+                else this.toString()
             }
         }
 
