@@ -39,8 +39,8 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlin.time.Duration
 
 
 /**
@@ -127,7 +127,7 @@ object EventFlow {
 
     /**
      * Suspends until an event of type [E] is received that satisfies the given [predicate],
-     * or until the specified [timeout] occurs.
+     * or until the specified [timeout] passes.
      *
      * @param E The type of the event to wait for. This should be a subclass of [Event].
      * @param timeout The maximum time to wait for the event, in milliseconds.
@@ -135,12 +135,10 @@ object EventFlow {
      * @return The first event that matches the predicate or throws a timeout exception if not found.
      */
     suspend inline fun <reified E : Event> blockUntilEvent(
-        timeout: Long,
+        timeout: Duration,
         noinline predicate: (E) -> Boolean = { true },
-    ) = runBlocking {
-        withTimeout(timeout) {
-            concurrentFlow.filterIsInstance<E>().first(predicate)
-        }
+    ) = withTimeout(timeout) {
+        concurrentFlow.filterIsInstance<E>().first(predicate)
     }
 
     /**
@@ -163,7 +161,7 @@ object EventFlow {
      * @param predicate A lambda to test if the event satisfies the condition.
      * @return A [Flow] emitting events that match the predicate.
      */
-    suspend inline fun <reified E : Event> collectEvents(
+    inline fun <reified E : Event> collectEvents(
         crossinline predicate: (E) -> Boolean = { true },
     ): Flow<E> = flow {
         concurrentFlow
