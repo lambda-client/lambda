@@ -325,8 +325,8 @@ object Scaffold : Module(
     private fun buildRenderer(event: RenderEvent.StaticESP) {
         val c = GuiSettings.primaryColor
 
-        renderInfo.removeIf {
-            val (info, time) = it
+        renderInfo.removeIf { info ->
+            val (info, time) = info
 
             val pos = info.placedPos.toFastVec()
             val seconds = (currentTime - time) / 1000.0
