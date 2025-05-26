@@ -31,5 +31,3 @@ pluginManagement {
 
 include("common")
 include("fabric")
-include("forge")
-include("neoforge")

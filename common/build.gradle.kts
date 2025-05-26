@@ -27,7 +27,7 @@ val mockkVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-api"
 
-architectury { common("fabric", "forge", "neoforge") }
+architectury { common("fabric") }
 
 loom {
     silentMojangMappingsLicense()
