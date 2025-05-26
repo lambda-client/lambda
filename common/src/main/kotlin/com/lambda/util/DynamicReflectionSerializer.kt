@@ -76,8 +76,8 @@ object DynamicReflectionSerializer : Loadable {
     private const val INDENT = 2
 
     private val mappings = runBlocking {
-        "${Network.mappings}/${Network.gameVersion}"
-            .downloadIfNotPresent(cache.resolveFile(Network.gameVersion))
+        "${Network.mappings}/${Network.GAME_VERSION}"
+            .downloadIfNotPresent(cache.resolveFile(Network.GAME_VERSION))
             .map { file ->
                 val standardMappings = file.readLines()
                     .map { it.split(' ') }

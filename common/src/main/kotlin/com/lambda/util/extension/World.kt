@@ -28,6 +28,7 @@ import net.minecraft.block.Blocks
 import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.shape.VoxelShape
 import net.minecraft.world.World
 import java.awt.Color
 
@@ -43,10 +44,10 @@ val World?.dimensionName: String
         else -> "Unknown"
     }
 
-fun SafeContext.collisionShape(state: BlockState, pos: BlockPos) =
+fun SafeContext.collisionShape(state: BlockState, pos: BlockPos): VoxelShape =
     state.getCollisionShape(world, pos).offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
 
-fun SafeContext.outlineShape(state: BlockState, pos: BlockPos) =
+fun SafeContext.outlineShape(state: BlockState, pos: BlockPos): VoxelShape =
     state.getOutlineShape(world, pos).offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
 
 fun SafeContext.blockColor(state: BlockState, pos: BlockPos) =

@@ -456,19 +456,20 @@ object BuildSimulator {
             )
 
             /* player has a better tool for the job available */
-            if (!player.isCreative) findBestAvailableTool(state)?.let { bestTool ->
-                Hand.entries.firstOrNull {
-                    val stack = player.getStackInHand(it)
-                    stack.item == bestTool
-                }?.let { hand ->
-                    breakContext.hand = hand
-                    acc.add(BreakResult.Break(pos, breakContext))
-                    return acc
-                } ?: run {
-                    acc.add(BuildResult.WrongItem(pos, breakContext, bestTool, player.activeItem, inventory))
-                    return acc
+            if (!player.isCreative) findBestAvailableTool(state)
+                ?.let { bestTool ->
+                    Hand.entries.firstOrNull {
+                        val stack = player.getStackInHand(it)
+                        stack.item == bestTool
+                    }?.let { hand ->
+                        breakContext.hand = hand
+                        acc.add(BreakResult.Break(pos, breakContext))
+                        return acc
+                    } ?: run {
+                        acc.add(BuildResult.WrongItem(pos, breakContext, bestTool, player.activeItem, inventory))
+                        return acc
+                    }
                 }
-            }
 
             acc.add(BreakResult.Break(pos, breakContext))
         }

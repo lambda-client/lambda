@@ -146,7 +146,7 @@ object MovementUtils {
     fun SafeContext.movementVector(radDir: Double = calcMoveRad(), y: Double = 0.0) =
         Vec3d(-sin(radDir), y, cos(radDir))
 
-    var Entity.motion
+    var Entity.motion: Vec3d
         get() = velocity
         set(value) {
             velocity = value

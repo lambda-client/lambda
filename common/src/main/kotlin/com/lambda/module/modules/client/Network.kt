@@ -55,7 +55,8 @@ object Network : Module(
     val mappings by setting("Mappings", "https://mappings.lambda-client.org")
     val cdn by setting("CDN", "https://cdn.lambda-client.org")
 
-    val gameVersion = SharedConstants.getGameVersion().name
+    @Suppress("Deprecation")
+    const val GAME_VERSION = SharedConstants.VERSION_NAME
 
     private var hash: String? = null
 
