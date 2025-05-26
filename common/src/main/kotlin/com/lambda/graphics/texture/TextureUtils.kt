@@ -39,12 +39,9 @@ import java.awt.image.BufferedImage
 import java.nio.ByteBuffer
 
 object TextureUtils {
-    private const val COMPRESSION_LEVEL = -1
-    private const val THREADED_COMPRESSION = false
-
     val encoderPreset = PngEncoder()
-        .withCompressionLevel(COMPRESSION_LEVEL)
-        .withMultiThreadedCompressionEnabled(THREADED_COMPRESSION)
+        .withCompressionLevel(-1)
+        .withMultiThreadedCompressionDisabled()
 
     fun bindTexture(id: Int, slot: Int = 0) {
         glActiveTexture(GL_TEXTURE0 + slot)
