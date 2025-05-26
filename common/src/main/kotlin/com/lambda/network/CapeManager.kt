@@ -28,7 +28,6 @@ import com.lambda.module.modules.client.Network.cdn
 import com.lambda.network.api.v1.endpoints.getCape
 import com.lambda.network.api.v1.endpoints.getCapes
 import com.lambda.network.api.v1.endpoints.setCape
-import com.lambda.sound.SoundManager.toIdentifier
 import com.lambda.threading.runIO
 import com.lambda.threading.runSafe
 import com.lambda.util.FileUtils.createIfNotExists
