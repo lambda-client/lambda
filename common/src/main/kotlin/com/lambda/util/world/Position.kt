@@ -51,6 +51,11 @@ internal const val MAX_X = (1L shl X_BITS - 1) - 1L
 internal const val MAX_Z = (1L shl Z_BITS - 1) - 1L
 
 /**
+ * Serialized representation of (1, 1, 1)
+ */
+const val F_ONE = 274945015809L
+
+/**
  * Creates a new position from the given coordinates.
  */
 fun fastVectorOf(x: Long, y: Long, z: Long): FastVector {
