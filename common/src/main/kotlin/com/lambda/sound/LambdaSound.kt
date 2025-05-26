@@ -17,21 +17,21 @@
 
 package com.lambda.sound
 
-import com.lambda.sound.SoundManager.toIdentifier
+import com.lambda.util.StringUtils.asIdentifier
 import net.minecraft.sound.SoundEvent
 import net.minecraft.util.Identifier
 
 enum class LambdaSound(val id: Identifier) {
-    BUTTON_CLICK("button_click".toIdentifier()),
+    BUTTON_CLICK("button_click".asIdentifier),
 
-    BOOLEAN_SETTING_ON("bool_on".toIdentifier()),
-    BOOLEAN_SETTING_OFF("bool_off".toIdentifier()),
+    BOOLEAN_SETTING_ON("bool_on".asIdentifier),
+    BOOLEAN_SETTING_OFF("bool_off".asIdentifier),
 
-    MODULE_ON("module_on".toIdentifier()),
-    MODULE_OFF("module_off".toIdentifier()),
+    MODULE_ON("module_on".asIdentifier),
+    MODULE_OFF("module_off".asIdentifier),
 
-    SETTINGS_OPEN("settings_open".toIdentifier()),
-    SETTINGS_CLOSE("settings_close".toIdentifier());
+    SETTINGS_OPEN("settings_open".asIdentifier),
+    SETTINGS_CLOSE("settings_close".asIdentifier);
 
     val event: SoundEvent = SoundEvent.of(id)
 }

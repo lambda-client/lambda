@@ -37,6 +37,7 @@ import com.lambda.util.FileUtils.downloadIfNotPresent
 import com.lambda.util.FileUtils.ifNotExists
 import com.lambda.util.FileUtils.isOlderThan
 import com.lambda.util.FolderRegister.capes
+import com.lambda.util.StringUtils.asIdentifier
 import com.lambda.util.extension.resolveFile
 import kotlinx.coroutines.runBlocking
 import net.minecraft.client.texture.NativeImage.read
@@ -57,7 +58,7 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
     private val images = capes.walk()
         .filter { it.extension == "png" }
         .associate { it.nameWithoutExtension to NativeImageBackedTexture({ it.nameWithoutExtension }, read(it.inputStream())) }
-        .onEach { (key, value) -> mc.textureManager.registerTexture(key.toIdentifier(), value) }
+        .onEach { (key, value) -> mc.textureManager.registerTexture(key.asIdentifier, value) }
 
     private val fetchQueue = mutableListOf<UUID>()
 
@@ -100,7 +101,7 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
             .downloadIfNotPresent(cape.url).getOrNull()
             ?.readBytes() ?: return@runIO
 
-        mc.textureManager.registerTexture(cape.id.toIdentifier(), NativeImageBackedTexture({ cape.id }, TextureUtils.readImage(bytes)))
+        mc.textureManager.registerTexture(cape.id.asIdentifier, NativeImageBackedTexture({ cape.id }, TextureUtils.readImage(bytes)))
 
         put(uuid, cape.id)
     }.invokeOnCompletion { block(it) }
