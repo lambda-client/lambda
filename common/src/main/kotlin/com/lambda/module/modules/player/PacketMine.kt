@@ -85,13 +85,6 @@ object PacketMine : Module(
             attackedThisTick = false
         }
 
-        //ToDo: run on every tick stage
-        listen<TickEvent.Pre> {
-            if (!breakConfig.reBreak || (reBreakMode != ReBreakMode.Auto && reBreakMode != ReBreakMode.AutoConstant)) return@listen
-            val reBreak = reBreakPos ?: return@listen
-            requestBreakManager(listOf(reBreak), true)
-        }
-
         listen<PlayerEvent.Attack.Block> { it.cancel() }
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
@@ -124,7 +117,12 @@ object PacketMine : Module(
         }
 
         listen<TickEvent.Input.Post> {
-            if (!attackedThisTick) requestBreakManager((breakPositions + queueSorted).toList())
+            if (!attackedThisTick) {
+                requestBreakManager((breakPositions + queueSorted).toList())
+                if (!breakConfig.reBreak || (reBreakMode != ReBreakMode.Auto && reBreakMode != ReBreakMode.AutoConstant)) return@listen
+                val reBreak = reBreakPos ?: return@listen
+                requestBreakManager(listOf(reBreak), true)
+            }
         }
 
         onDisable {

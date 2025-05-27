@@ -62,6 +62,7 @@ abstract class RequestHandler<R : Request>(
 
         listen<TickEvent.Post>(Int.MIN_VALUE) {
             activeThisTick = false
+            queuedRequest = null
         }
 
         return super.load()

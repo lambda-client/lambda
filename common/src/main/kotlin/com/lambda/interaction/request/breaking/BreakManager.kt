@@ -47,6 +47,7 @@ import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.gamemode
@@ -227,7 +228,12 @@ object BreakManager : RequestHandler<BreakRequest>(
                     .forEach { info ->
                         if (info.updatedProgressThisTick) return@forEach
                         val minKeepTicks = if (info.isSecondary) {
-                            val breakDelta = info.context.checkedState.calcBlockBreakingDelta(player, world, info.context.expectedPos)
+                            val breakDelta = info.context.checkedState.calcItemBlockBreakingDelta(
+                                player,
+                                world,
+                                info.context.expectedPos,
+                                player.inventory.getStack(info.context.hotbarIndex)
+                            )
                             val breakAmount = breakDelta * (info.breakingTicks + 1)
                             if (breakAmount >= 1.0f) 1 else 0
                         } else 0

@@ -33,7 +33,7 @@ class BreakSettings(
     override val unsafeCancels by c.setting("Unsafe Cancels", true, "Allows cancelling block breaking even if the server might continue breaking sever side, potentially causing unexpected state changes") { vis() }
     override val breakThreshold by c.setting("Break Threshold", 0.7f, 0.1f..1.0f, 0.02f, "The break amount at which the block is considered broken") { vis() }
     override val doubleBreak by c.setting("Double Break", true, "Allows breaking two blocks at once") { vis() }
-    override val doubleBreakFudgeFactor by c.setting("Double Break Fudge Factor", 1, 0..3, 1, "The amount of ticks to give double, aka secondary breaks extra for the server to recognise the break") { doubleBreak && vis() }
+    override val doubleBreakFudgeFactor by c.setting("Double Break Fudge Factor", 3, 0..3, 1, "The amount of ticks to give double, aka secondary breaks extra for the server to recognise the break") { doubleBreak && vis() }
     override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " ticks") { vis() }
     override val breakStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Pre, TickEvent.Input.Pre, TickEvent.Input.Post, TickEvent.Player.Post), "The sub-tick timing at which break actions can be performed", vis)
     override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand") { vis() }
