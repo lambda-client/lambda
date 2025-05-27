@@ -131,7 +131,7 @@ object LevitationTweaks : Module(
         }
 
         listen<MovementEvent.Player.Pre> { event ->
-            info(event.toString())
+//            info(event.toString())
             if (mode != Mode.UNCP || !canMove) return@listen
 
             player.motionY = when {
