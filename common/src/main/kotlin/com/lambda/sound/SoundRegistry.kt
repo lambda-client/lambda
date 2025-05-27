@@ -18,7 +18,7 @@
 package com.lambda.sound
 
 import com.lambda.core.Loadable
-import com.lambda.core.registry.AgnosticRegistries
+import com.lambda.core.AgnosticRegistries
 import net.minecraft.registry.Registries
 
 object SoundRegistry : Loadable {
