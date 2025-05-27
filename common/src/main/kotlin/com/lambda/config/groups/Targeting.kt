@@ -24,6 +24,7 @@ import com.lambda.interaction.request.rotation.Rotation.Companion.dist
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.threading.runSafe
+import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.distSq
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.client.network.ClientPlayerEntity
@@ -201,7 +202,7 @@ abstract class Targeting(
         /**
          * Prioritizes entities based on their health.
          */
-        HEALTH({ it.health.toDouble() }),
+        HEALTH({ it.fullHealth }),
 
         /**
          * Prioritizes entities based on their angle relative to the player's field of view.
