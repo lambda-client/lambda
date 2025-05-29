@@ -29,14 +29,12 @@ import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.math.Vec2d
 import net.minecraft.client.gui.screen.ingame.GenericContainerScreen
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
-import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.Full
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.LookAndOnGround
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.OnGroundOnly
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.PositionAndOnGround
 import net.minecraft.network.packet.c2s.play.TeleportConfirmC2SPacket
 import java.awt.Color
-import kotlin.math.floor
 
 // ToDo: HUD info
 object PacketLimiter : Module(
@@ -44,12 +42,12 @@ object PacketLimiter : Module(
     description = "Limits the amount of packets sent to the server",
     defaultTags = setOf(ModuleTag.NETWORK)
 ) {
-    private var packetQueue = LimitedDecayQueue<PacketEvent.Send.Pre>(999, 1000)
-    private var clickPacketQueue = LimitedDecayQueue<Long>(500, 30000)
-    private val limit by setting("Limit", 99, 1..1000, 1, "The maximum amount of packets to send per given time interval", unit = " packets")
+    private val page by setting("Page", Page.General)
+
+    private val limit by setting("Limit", 99, 1..1000, 1, "The maximum amount of packets to send per given time interval", unit = " packets") { page == Page.General }
         .onValueChange { _, to -> packetQueue.setSizeLimit(to) }
 
-    private val interval by setting("Duration", 4000L, 1L..10000L, 50L, "The interval / duration in milliseconds to limit packets for", unit = " ms")
+    private val interval by setting("Duration", 4000L, 1L..10000L, 50L, "The interval / duration in milliseconds to limit packets for", unit = " ms") { page == Page.General }
         .onValueChange { _, to -> packetQueue.setDecayTime(to) }
 
     private val defaultIgnorePackets = setOf(
@@ -60,42 +58,32 @@ object PacketLimiter : Module(
         OnGroundOnly::class,
         TeleportConfirmC2SPacket::class
     )
-    private val limitAllPackets by setting("Limit All", false, "Limit all send packets")
-    private val ignorePackets by setting("Ignore Packets", defaultIgnorePackets.mapNotNull { it.simpleName }, "Packets to ignore when limiting") { limitAllPackets }
-    private val limitClickPackets by setting("Clicks limit", true, "Limits the amount of click packets you can send to prevent kicks.")
-    private val limitClickWindowSize by setting("Click limit window size", 4f, 0.1f..10.0f, 0.1f, "Click limit window size", unit = " s") {
-        limitClickPackets
-    }.onValueChange { _, to -> clickPacketQueue.setDecayTime((to * 1000).toLong()) }
-    private val limitClickRate by setting("Click limit rate", 19.3f, 0.1f..40f, 0.1f, "Click limit rate", unit = " packets/sec") {
-        limitClickPackets
-    }.onValueChange { _, to -> clickPacketQueue.setSizeLimit((limitClickWindowSize * to).toInt()) }
-    private val limitClickRender by setting("Render Limit in Container", true, "Render the amount of clicks remaining in the container screen") {
-        limitClickPackets
-    }
 
-    private val clickPacketsWindowAmount: Int
-        get() = floor(limitClickWindowSize * limitClickRate).toInt()
+    private val limitAllPackets by setting("Limit All", false, "Limit all send packets") { page == Page.General }
+    private val ignorePackets by setting("Ignore Packets", defaultIgnorePackets.mapNotNull { it.simpleName }, "Packets to ignore when limiting") { page == Page.General && limitAllPackets }
+
+    private val limitClicks by setting("Clicks Limit", true, "Limits the amount of click packets you can send to prevent kicks on certain servers.") { page == Page.Clicks }
+    private val limitClickWindowSize by setting("Click Limit Window Size", 4.0, 0.1..10.0, 0.1, "Click limit window size", unit = " s") { page == Page.Clicks && limitClicks }
+        .onValueChange { _, to -> clickPacketQueue.setDecayTime((to * 1000).toLong()) }
+    private val limitClickRate by setting("Click Limit Rate", 19, 1..40, 1, "Click limit rate", unit = " packets/sec") { page == Page.Clicks && limitClicks }
+        .onValueChange { _, to -> clickPacketQueue.setSizeLimit((limitClickWindowSize * to).toInt()) }
+    private val limitClickRender by setting("Render Limit in Container", true, "Render the amount of clicks remaining in the container screen") { page == Page.Clicks && limitClicks }
+
+    private var packetQueue = LimitedDecayQueue<PacketEvent.Send.Pre>(999, 1000)
+    private var clickPacketQueue = LimitedDecayQueue<Unit>(500, 30000)
+
+    private val clickPacketsWindowAmount: Double
+        get() = limitClickWindowSize * limitClickRate
+
     private val clickPacketsRemaining: Int
-        get() = clickPacketsWindowAmount - clickPacketQueue.size
+        get() = clickPacketsWindowAmount.toInt() - clickPacketQueue.size
+
+    private val canSendClickPackets: Boolean
+        get() = clickPacketQueue.size + 1 <= clickPacketsWindowAmount
 
     init {
-        onEnable {
-            packetQueue = LimitedDecayQueue(limit, interval)
-        }
-
         listen<PacketEvent.Send.Pre>(Int.MAX_VALUE) {
             if (it.packet::class.simpleName in ignorePackets) return@listen
-
-            if (limitClickPackets && it.packet is ClickSlotC2SPacket) {
-                if (!canSendClickPackets(1)) {
-                    it.cancel()
-                    return@listen
-                } else {
-                    clickPacketQueue.add(System.currentTimeMillis())
-                }
-            }
-
-            //            this@PacketLimiter.info("Packet sent: ${it.packet::class.simpleName} (${packetQueue.size} / $limit) ${Instant.now()}")
             if (packetQueue.add(it)) return@listen
 
             it.cancel()
@@ -103,25 +91,30 @@ object PacketLimiter : Module(
         }
 
         listen<PlayerEvent.SlotClick> {
-            if (!limitClickPackets) return@listen
-            if (!canSendClickPackets(1)) {
-                it.cancel()
-                return@listen
-            }
+            if (limitClicks && !canSendClickPackets) it.cancel()
+            else if (clickPacketQueue.add(Unit)) return@listen
+
+            this@PacketLimiter.info("Slot click limit reached, dropping ${it.action} at ${it.slot} in ${it.screenHandler::class.simpleName} (${clickPacketQueue.size} / $limitClickRate)")
         }
 
         listen<RenderEvent.GUI.Fixed> {
-            if (!limitClickRender) {
-                return@listen
-            }
-            val sh = mc.currentScreen as? GenericContainerScreen ?: return@listen
-            val remainingText = "Clicks Remaining: $clickPacketsRemaining"
+            if (!limitClickRender) return@listen
+
+            val screen = mc.currentScreen as? GenericContainerScreen ?: return@listen
             val mcScale = mc.window.scaleFactor
-            val fontScale = mcScale * 1.5
-            val fontHeight = FontRenderer.getHeight(fontScale)
-            FontRenderer.drawString(remainingText, Vec2d(sh.x * mcScale, sh.y * mcScale - fontHeight), Color(0x9DFFFF), fontScale, false)
+            val fontHeight = FontRenderer.getHeight(mcScale * 1.5)
+            val position = Vec2d(screen.x * mcScale, screen.y * mcScale - fontHeight)
+
+            FontRenderer.drawString("Clicks Remaining: $clickPacketsRemaining", position, Color(0x9DFFFF))
+        }
+
+        onEnable {
+            packetQueue = LimitedDecayQueue(limit, interval)
         }
     }
 
-    fun canSendClickPackets(packets: Int) = clickPacketQueue.size + packets <= clickPacketsWindowAmount
+    enum class Page {
+        General,
+        Clicks
+    }
 }
