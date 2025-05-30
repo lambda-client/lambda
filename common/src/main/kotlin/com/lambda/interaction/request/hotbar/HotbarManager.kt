@@ -122,5 +122,5 @@ object HotbarManager : RequestHandler<HotbarRequest>(
         }
     }
 
-    override fun preEvent(): Event = UpdateManagerEvent.Hotbar().post()
+    override fun preEvent(): Event = UpdateManagerEvent.Hotbar.post()
 }
