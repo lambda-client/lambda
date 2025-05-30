@@ -629,8 +629,8 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         if (gamemode.isCreative) {
             lastPosStarted = ctx.expectedPos
-            onBlockBreak(info)
             info.request.onStart?.invoke(ctx.expectedPos)
+            onBlockBreak(info)
             info.startBreakPacket(world, interaction)
             breakCooldown = info.breakConfig.breakDelay
             return true
@@ -683,5 +683,5 @@ object BreakManager : RequestHandler<BreakRequest>(
         return inRange && correctMaterial
     }
 
-    override fun preEvent(): Event = UpdateManagerEvent.Break().post()
+    override fun preEvent(): Event = UpdateManagerEvent.Break.post()
 }
