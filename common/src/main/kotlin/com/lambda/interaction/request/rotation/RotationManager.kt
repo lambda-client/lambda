@@ -290,5 +290,5 @@ object RotationManager : RequestHandler<RotationRequest>(
         }
     }
 
-    override fun preEvent(): Event = UpdateManagerEvent.Rotation.post()
+    override fun preEvent(): Event = UpdateManagerEvent.Rotation().post()
 }

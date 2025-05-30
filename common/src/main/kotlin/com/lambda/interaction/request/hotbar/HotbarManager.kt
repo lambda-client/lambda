@@ -42,6 +42,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     TickEvent.Input.Pre,
     TickEvent.Input.Post,
     TickEvent.Player.Post,
+    // ToDo: Post interact
     onClose = { checkResetSwap() }
 ) {
     val serverSlot get() = runSafe {
@@ -121,5 +122,5 @@ object HotbarManager : RequestHandler<HotbarRequest>(
         }
     }
 
-    override fun preEvent(): Event = UpdateManagerEvent.Hotbar.post()
+    override fun preEvent(): Event = UpdateManagerEvent.Hotbar().post()
 }

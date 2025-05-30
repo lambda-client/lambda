@@ -20,9 +20,8 @@ package com.lambda.event.events
 import com.lambda.event.Event
 
 sealed class UpdateManagerEvent {
-    data object Rotation : Event
-    data object Inventory : Event
-    data object Hotbar : Event
-    data object Break : Event
-    data object Place : Event
+    class Rotation : Event
+    class Hotbar : Event
+    class Break : Event
+    class Place : Event
 }

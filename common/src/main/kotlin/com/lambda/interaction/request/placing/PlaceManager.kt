@@ -365,5 +365,5 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         )
     }
 
-    override fun preEvent(): Event = UpdateManagerEvent.Place.post()
+    override fun preEvent(): Event = UpdateManagerEvent.Place().post()
 }
