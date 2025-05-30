@@ -144,6 +144,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                         return@listen
                     }
                     destroyBlock(info)
+                    info.request.onStop?.invoke(info.context.expectedPos)
                     info.internalOnBreak()
                     if (!info.callbacksCompleted) {
                         info.startPending()
