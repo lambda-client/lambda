@@ -27,6 +27,7 @@ import com.lambda.interaction.request.RequestHandler
 import net.minecraft.screen.slot.Slot
 import net.minecraft.screen.slot.SlotActionType
 
+//ToDo: implement :doom:
 object InventoryManager : RequestHandler<InventoryRequest>(
     1,
     TickEvent.Pre,
