@@ -48,26 +48,17 @@ object LevitationTweaks : Module(
     private val restore by setting("Restore", true, description = "Restore levitation on module disable") { mode == Mode.REMOVE }
 
     // UNCP
-    private val constantUpFactor by setting(
-        "Idle Up Speed", unit = "%", description = "Permanent upwards motion", defaultValue = 2.0, range = 0.0..100.0
-    ) { mode == Mode.UNCP}
-    private val control by setting("Control", true, ) { mode == Mode.UNCP}
-    private val strafeBoost by setting("Strafe Boost", true, ) { mode == Mode.UNCP && control }
-    private val strafeBoostSpeed by setting(
-        "Boost Speed", unit = "%", defaultValue = 100, range = 0..120
-    ) { mode == Mode.UNCP && control && strafeBoost}
-    private val timer by setting(
-        "Timer", true
-    ) { mode == Mode.UNCP && control && strafeBoost}
-    private val timerBoost by setting("Timer Boost", 1.08, 1.0..1.2, 0.01) { mode == Mode.UNCP && control  && timer}
+    private val constantUpFactor by setting("Idle Up Speed", 2.0, 0.0..100.0, description = "Permanent upwards motion", unit = "%") { mode == Mode.UNCP }
 
-    private val controlDownSpeed by setting(
-        "Control Down Speed", unit = "%", defaultValue = 100, range = 0..300
-    ) { mode == Mode.UNCP && control}
-    private val controlUpSpeed by setting(
-        "Control Up Speed", unit = "%", defaultValue = 100, range = 0..140
-    ) { mode == Mode.UNCP && control}
+    private val control by setting("Control", true) { mode == Mode.UNCP }
+    private val controlDownSpeed by setting("Control Down Speed", 100, 0..300, unit = "%") { mode == Mode.UNCP && control }
+    private val controlUpSpeed by setting("Control Up Speed", 100, 0..140, unit = "%") { mode == Mode.UNCP && control }
 
+    private val strafeBoost by setting("Strafe Boost", true) { mode == Mode.UNCP && control }
+    private val strafeBoostSpeed by setting("Boost Speed", 100, 0..120, unit = "%") { mode == Mode.UNCP && control && strafeBoost }
+
+    private val timer by setting("Timer", true) { mode == Mode.UNCP && control && strafeBoost }
+    private val timerBoost by setting("Timer Boost", 1.08, 1.0..1.2, 0.01) { mode == Mode.UNCP && control && timer }
 
 
     private enum class Mode(override val displayName: String) : NamedEnum {
