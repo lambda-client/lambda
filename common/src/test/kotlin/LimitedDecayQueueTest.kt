@@ -5,6 +5,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 /*
  * Copyright 2025 Lambda
@@ -32,7 +34,7 @@ class LimitedDecayQueueTest {
     fun setUp() {
         // Initialize the onDecay callback
         onDecayCalled = mutableListOf()
-        queue = LimitedDecayQueue(3, 1000) { onDecayCalled.add(it) } // 1 second decay time
+        queue = LimitedDecayQueue(3, 1.seconds) { onDecayCalled.add(it) } // 1 second decay time
     }
 
     @Test
@@ -145,7 +147,7 @@ class LimitedDecayQueueTest {
         queue.add("Element1")
         queue.add("Element2")
 
-        queue.setDecayTime(500) // Set a shorter decay time of 500 ms
+        queue.setDecayTime(500.milliseconds) // Set a shorter decay time of 500 ms
 
         // Simulate passage of time (greater than decay time)
         TimeUnit.MILLISECONDS.sleep(600)

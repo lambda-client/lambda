@@ -22,10 +22,11 @@ import com.lambda.event.events.PacketEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.util.collections.LimitedDecayQueue
 import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket
+import kotlin.time.Duration.Companion.seconds
 
 object ServerTPS {
     // Server sends exactly one world time update every 20 server ticks (one per second).
-    private val updateHistory = LimitedDecayQueue<Long>(61, 60000)
+    private val updateHistory = LimitedDecayQueue<Long>(61, 60.seconds)
     private var lastUpdate = 0L
 
     val averageMSPerTick: Double

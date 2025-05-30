@@ -26,7 +26,7 @@ import kotlin.reflect.KProperty
 /**
  * @see [com.lambda.config.Configurable]
  */
-abstract class NumericSetting<T>(
+abstract class NumericSetting<T : Comparable<T>>(
     value: T,
     open val range: ClosedRange<T>,
     open val step: T,
@@ -38,7 +38,7 @@ abstract class NumericSetting<T>(
     TypeToken.get(value::class.java).type,
     description,
     visibility
-) where T : Number, T : Comparable<T> {
+) {
     private val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
 
     override fun toString() = "${formatter.format(value)}$unit"

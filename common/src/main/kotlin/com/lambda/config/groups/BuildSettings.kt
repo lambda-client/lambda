@@ -49,5 +49,5 @@ class BuildSettings(
     override val placeConfirmation by c.setting("Place Confirmation", true, "Wait for block placement confirmation") { vis() && page == Page.Place }
     override val placementsPerTick by c.setting("Instant Places Per Tick", 1, 1..30, 1, "Maximum instant block places per tick") { vis() && page == Page.Place }
 
-    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") { vis() && (page == Page.Place && placeConfirmation || page == Page.Break && breakConfirmation) }
+    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1,"Timeout for block breaks in ticks", unit = " ticks") { vis() && (page == Page.Place && placeConfirmation || page == Page.Break && breakConfirmation) }
 }

@@ -26,6 +26,8 @@ import com.lambda.util.collections.LimitedDecayQueue
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.*
 import net.minecraft.network.packet.c2s.play.TeleportConfirmC2SPacket
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 // ToDo: HUD info
 object PacketLimiter : Module(
@@ -33,11 +35,11 @@ object PacketLimiter : Module(
     description = "Limits the amount of packets sent to the server",
     defaultTags = setOf(ModuleTag.NETWORK)
 ) {
-    private var packetQueue = LimitedDecayQueue<PacketEvent.Send.Pre>(99, 1000)
+    private var packetQueue = LimitedDecayQueue<PacketEvent.Send.Pre>(99, 1.seconds)
     private val limit by setting("Limit", 99, 1..100, 1, "The maximum amount of packets to send per given time interval", unit = " packets")
         .onValueChange { _, to -> packetQueue.setSizeLimit(to) }
 
-    private val interval by setting("Duration", 4000L, 1L..10000L, 50L, "The interval / duration in milliseconds to limit packets for", unit = " ms")
+    private val interval by setting("Duration", 4.seconds, 1.milliseconds..10.seconds, 50.milliseconds, "The interval / duration in milliseconds to limit packets for")
         .onValueChange { _, to -> packetQueue.setDecayTime(to) }
 
     private val defaultIgnorePackets = setOf(

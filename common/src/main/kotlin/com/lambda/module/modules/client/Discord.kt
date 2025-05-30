@@ -37,6 +37,8 @@ import dev.cbyrne.kdiscordipc.KDiscordIPC
 import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.AuthenticatePacket
 import dev.cbyrne.kdiscordipc.data.activity.*
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 object Discord : Module(
     name = "Discord",
@@ -44,7 +46,7 @@ object Discord : Module(
     defaultTags = setOf(ModuleTag.CLIENT),
 	//enabledByDefault = true, // ToDo: Bring this back on beta release
 ) {
-    private val delay       by setting("Update Delay", 5000L, 5000L..30000L, 100L, unit = "ms")
+    private val delay       by setting("Update Delay", 5.seconds, 5.seconds..30.seconds, 100.milliseconds)
     private val showTime    by setting("Show Time", true, description = "Show how long you have been playing for.")
     private val line1Left   by setting("Line 1 Left", LineInfo.WORLD)
     private val line1Right  by setting("Line 1 Right", LineInfo.USERNAME)

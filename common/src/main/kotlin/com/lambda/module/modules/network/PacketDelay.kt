@@ -29,12 +29,13 @@ import com.lambda.util.ClientPacket
 import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.ServerPacket
+import com.lambda.util.Timer
 import kotlinx.coroutines.delay
-import net.minecraft.network.listener.ClientPacketListener
-import net.minecraft.network.listener.ServerPacketListener
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.common.KeepAliveC2SPacket
 import java.util.concurrent.ConcurrentLinkedDeque
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 object PacketDelay : Module(
     name = "PacketDelay",
@@ -44,19 +45,18 @@ object PacketDelay : Module(
     private val mode by setting("Mode", Mode.STATIC)
     private val networkScope by setting("Network Scope", Direction.BOTH)
     private val packetScope by setting("Packet Scope", PacketType.ANY)
-    private val inboundDelay by setting("Inbound Delay", 250L, 0L..5000L, 10L, unit = "ms") { networkScope != Direction.OUTBOUND }
-    private val outboundDelay by setting("Outbound Delay", 250L, 0L..5000L, 10L, unit = "ms") { networkScope != Direction.INBOUND }
+    private val inboundDelay by setting("Inbound Delay", 250.milliseconds, 1.milliseconds..5.seconds, 10.milliseconds) { networkScope != Direction.OUTBOUND }
+    private val outboundDelay by setting("Outbound Delay", 250.milliseconds, 1.milliseconds..5.seconds, 10.milliseconds) { networkScope != Direction.INBOUND }
 
     private var outboundPool = ConcurrentLinkedDeque<ClientPacket>()
     private var inboundPool = ConcurrentLinkedDeque<ServerPacket>()
-    private var outboundLastUpdate = 0L
-    private var inboundLastUpdate = 0L
+    private var outboundLastUpdate = Timer()
+    private var inboundLastUpdate = Timer()
 
     init {
         listen<RenderEvent.World> {
             if (mode != Mode.STATIC) return@listen
-
-            flushPools(System.currentTimeMillis())
+            flushPools()
         }
 
         listen<PacketEvent.Send.Pre>(Int.MIN_VALUE) { event ->
@@ -104,29 +104,25 @@ object PacketDelay : Module(
         }
 
         onDisable {
-            flushPools(System.currentTimeMillis())
+            flushPools()
         }
     }
 
-    private fun SafeContext.flushPools(time: Long) {
-        if (time - outboundLastUpdate >= outboundDelay) {
+    private fun SafeContext.flushPools() {
+        outboundLastUpdate.runIfPassed(outboundDelay) {
             while (outboundPool.isNotEmpty()) {
                 outboundPool.poll().let { packet ->
                     connection.sendPacketSilently(packet)
                 }
             }
-
-            outboundLastUpdate = time
         }
 
-        if (time - inboundLastUpdate >= inboundDelay) {
+        inboundLastUpdate.runIfPassed(inboundDelay) {
             while (inboundPool.isNotEmpty()) {
                 inboundPool.poll().let { packet ->
                     connection.handlePacketSilently(packet)
                 }
             }
-
-            inboundLastUpdate = time
         }
     }
 

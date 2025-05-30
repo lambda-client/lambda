@@ -53,6 +53,7 @@ import com.lambda.util.Formatting.string
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
+import com.lambda.util.extension.ticks
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import net.minecraft.entity.ItemEntity
@@ -70,7 +71,7 @@ class BuildTask @Ta5kBuilder constructor(
     override val name: String get() = "Building $blueprint with ${(breaks / (age / 20.0 + 0.001)).string} b/s ${(placements / (age / 20.0 + 0.001)).string} p/s"
 
     private val pendingInteractions = LimitedDecayQueue<BuildContext>(
-        build.maxPendingInteractions, build.interactionTimeout * 50L
+        build.maxPendingInteractions, build.interactionTimeout.ticks
     ) { info("${it::class.simpleName} at ${it.expectedPos.toShortString()} timed out") }
     private var currentInteraction: BuildContext? = null
     private val instantBreaks = mutableSetOf<BreakContext>()

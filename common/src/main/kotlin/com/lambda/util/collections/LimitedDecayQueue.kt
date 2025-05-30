@@ -17,8 +17,9 @@
 
 package com.lambda.util.collections
 
-import java.time.Instant
 import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.time.Duration
+import kotlin.time.TimeSource
 
 /**
  * A thread-safe collection that limits the number of elements it can hold and automatically removes elements
@@ -26,15 +27,15 @@ import java.util.concurrent.ConcurrentLinkedQueue
  *
  * @param E The type of elements held in this collection.
  * @property sizeLimit The maximum number of elements the queue can hold at any given time.
- * @property maxAge The age (in milliseconds) after which elements are considered expired and are removed from the queue.
+ * @property maxDuration The duration after which elements are considered expired and are removed from the queue.
  * @property onDecay Lambda function that is executed on decay of element [E].
  */
 class LimitedDecayQueue<E>(
     private var sizeLimit: Int,
-    private var maxAge: Long,
+    private var maxDuration: Duration,
     private val onDecay: (E) -> Unit = {}
 ) : AbstractMutableCollection<E>() {
-    private val queue: ConcurrentLinkedQueue<Pair<E, Instant>> = ConcurrentLinkedQueue()
+    private val queue = ConcurrentLinkedQueue<Pair<E, TimeSource.Monotonic.ValueTimeMark>>()
 
     override val size: Int
         @Synchronized
@@ -63,7 +64,7 @@ class LimitedDecayQueue<E>(
     override fun add(element: E): Boolean {
         cleanUp()
         return if (queue.size < sizeLimit) {
-            queue.add(element to Instant.now())
+            queue.add(element to TimeSource.Monotonic.markNow())
             true
         } else {
             false
@@ -75,7 +76,7 @@ class LimitedDecayQueue<E>(
         cleanUp()
         val spaceAvailable = sizeLimit - queue.size
         val elementsToAdd = elements.take(spaceAvailable)
-        val added = elementsToAdd.map { queue.add(it to Instant.now()) }
+        val added = elementsToAdd.map { queue.add(it to TimeSource.Monotonic.markNow()) }
         return added.any { it }
     }
 
@@ -120,21 +121,23 @@ class LimitedDecayQueue<E>(
     }
 
     /**
-     * Sets the decay time for the elements in the queue. The decay time determines the
+     * Sets the decay duration for the elements in the queue. The decay determines the
      * maximum age that any element in the queue can have before being considered expired
      * and removed. Updates the internal state and triggers a cleanup of expired elements.
      *
-     * @param decayTime The decay time in milliseconds. Must be a non-negative value.
+     * @param decay The decay time [Duration].
      */
-    fun setDecayTime(decayTime: Long) {
-        maxAge = decayTime
+    fun setDecayTime(decay: Duration) {
+        maxDuration = decay
         cleanUp()
     }
 
     private fun cleanUp() {
-        val now = Instant.now()
-        while (queue.isNotEmpty() && now.minusMillis(maxAge).isAfter(queue.peek().second)) {
-            onDecay(queue.poll().first)
+        while (queue.isNotEmpty()) {
+            val (_, time) = queue.peek()
+
+            if (time.elapsedNow() >= maxDuration) onDecay(queue.poll().first)
+            else break
         }
     }
 }

@@ -60,6 +60,8 @@ import net.minecraft.util.math.*
 import kotlin.concurrent.fixedRateTimer
 import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.nanoseconds
+import kotlin.time.Duration.Companion.seconds
 
 object CrystalAura : Module(
     name = "CrystalAura",
@@ -74,9 +76,9 @@ object CrystalAura : Module(
     private val placeDelay by setting("Place Delay", 50L, 0L..1000L, 1L, "Delay between placement attempts", " ms") { page == Page.General }
     private val explodeDelay by setting("Explode Delay", 10L, 0L..1000L, 1L, "Delay between explosion attempts", " ms") { page == Page.General }
     private val updateMode by setting("Update Mode", UpdateMode.Async) { page == Page.General }
-    private val updateDelaySetting by setting("Update Delay", 25L, 5L..200L, 5L, unit = " ms") { page == Page.General && updateMode == UpdateMode.Async }
+    private val updateDelaySetting by setting("Update Delay", 25.milliseconds, 5.milliseconds..200.milliseconds, 5.milliseconds) { page == Page.General && updateMode == UpdateMode.Async }
     private val maxUpdatesPerFrame by setting("Max Updates Per Frame", 5, 1..20, 1) { page == Page.General && updateMode == UpdateMode.Async }
-    private val updateDelay get() = if (updateMode == UpdateMode.Async) updateDelaySetting else 0L
+    private val updateDelay get() = if (updateMode == UpdateMode.Async) updateDelaySetting else 0.nanoseconds
     private val debug by setting("Debug", false) { page == Page.General }
 
     /* Placement */
@@ -119,7 +121,7 @@ object CrystalAura : Module(
     private val predictionTimer = Timer()
     private var lastEntityId = 0
 
-    private val decay = LimitedDecayQueue<Int>(10000, 3000L)
+    private val decay = LimitedDecayQueue<Int>(10000, 3.seconds)
 
     private val collidingOffsets = mutableListOf<BlockPos>().apply {
         for (x in -1..1) {
@@ -293,7 +295,7 @@ object CrystalAura : Module(
     }
 
     private fun SafeContext.updateBlueprint(target: LivingEntity) =
-        updateTimer.runIfPassed(updateDelay.milliseconds) {
+        updateTimer.runIfPassed(updateDelay) {
             resetBlueprint()
 
         // Build damage info

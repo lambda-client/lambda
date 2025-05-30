@@ -23,6 +23,7 @@ import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.config.settings.CharSetting
+import com.lambda.config.settings.DurationSetting
 import com.lambda.config.settings.FunctionSetting
 import com.lambda.config.settings.StringSetting
 import com.lambda.config.settings.collections.ListSetting
@@ -35,10 +36,13 @@ import com.lambda.config.settings.numeric.*
 import com.lambda.util.Communication.logError
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
+import com.lambda.util.extension.highestUnit
 import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
+import kotlin.time.Duration
+import kotlin.time.toDuration
 
 /**
  * Represents a set of [AbstractSetting]s that are associated with the [name] of the [Configurable].
@@ -353,6 +357,36 @@ abstract class Configurable(
         unit: String = "",
         visibility: () -> Boolean = { true },
     ) = LongSetting(name, defaultValue, range, step, description, visibility, unit).register()
+
+    /**
+     * Creates a [DurationSetting] with the provided parameters and adds it to the [settings].
+     *
+     * The value of the setting is coerced into the specified [range] and rounded to the nearest [step].
+     *
+     * The unit of the duration is inferred automatically by [Duration.highestUnit]
+     *
+     * Example:
+     * ```kotlin
+     * val duration by setting("Duration", 10.microseconds, 420.nanoseconds..80.minutes, 69420.microseconds)
+     * ```
+     *
+     * @param name The unique identifier for the setting.
+     * @param defaultValue The default [Duration] value of the setting.
+     * @param range The range within which the setting's value must fall.
+     * @param step The step to which the setting's value is rounded.
+     * @param description A brief explanation of the setting's purpose and behavior.
+     * @param visibility A lambda expression that determines the visibility status of the setting.
+     *
+     * @return The created [Duration].
+     */
+    fun setting(
+        name: String,
+        defaultValue: Duration,
+        range: ClosedRange<Duration>,
+        step: Duration = 1.toDuration(defaultValue.highestUnit),
+        description: String = "",
+        visibility: () -> Boolean = { true },
+    ) = DurationSetting(name, defaultValue, range, step, description, visibility).register()
 
     /**
      * Creates a [KeyBindSetting] with the provided parameters and adds it to the [settings].
