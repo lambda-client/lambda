@@ -35,6 +35,7 @@ import com.lambda.interaction.material.StackSelection.Companion.select
 import com.lambda.interaction.material.StackSelection.Companion.selectStack
 import com.lambda.interaction.material.container.ContainerManager.containerWithMaterial
 import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.interaction.request.placing.PlaceConfig
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotation
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
@@ -96,7 +97,7 @@ object BuildSimulator {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
-            checkBreakResults(pos, eye, build.placing, interact, rotation, inventory, build).let {
+            checkBreakResults(pos, eye, build.breaking, interact, rotation, inventory, build).let {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
@@ -404,7 +405,7 @@ object BuildSimulator {
     private fun SafeContext.checkBreakResults(
         pos: BlockPos,
         eye: Vec3d,
-        place: PlaceConfig,
+        breaking: BreakConfig,
         interact: InteractionConfig,
         rotation: RotationConfig,
         inventory: InventoryConfig,
@@ -432,7 +433,7 @@ object BuildSimulator {
 
         /* liquid needs to be submerged first to be broken */
         if (!state.fluidState.isEmpty && state.isReplaceable) {
-            val submerge = checkPlaceResults(pos, TargetState.Solid, eye, place, interact, rotation, inventory)
+            val submerge = checkPlaceResults(pos, TargetState.Solid, eye, build.placing, interact, rotation, inventory)
             acc.add(BreakResult.Submerge(pos, state, submerge))
             acc.addAll(submerge)
             return acc
@@ -443,13 +444,13 @@ object BuildSimulator {
         }.map { pos.offset(it) }
 
         /* block has liquids next to it that will leak when broken */
-        if (adjacentLiquids.isNotEmpty()) {
+        if (adjacentLiquids.isNotEmpty() && build.breaking.avoidLiquids) {
             acc.add(BreakResult.BlockedByLiquid(pos, state))
             adjacentLiquids.forEach { liquidPos ->
                 val submerge = if (blockState(liquidPos).isReplaceable) {
-                    checkPlaceResults(liquidPos, TargetState.Solid, eye, place, interact, rotation, inventory)
+                    checkPlaceResults(liquidPos, TargetState.Solid, eye, build.placing, interact, rotation, inventory)
                 } else {
-                    checkBreakResults(liquidPos, eye, place, interact, rotation, inventory, build)
+                    checkBreakResults(liquidPos, eye, build.breaking, interact, rotation, inventory, build)
                 }
                 acc.addAll(submerge)
             }

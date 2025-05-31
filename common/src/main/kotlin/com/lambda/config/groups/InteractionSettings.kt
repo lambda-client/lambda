@@ -28,7 +28,7 @@ class InteractionSettings(
     vis: () -> Boolean = { true },
 ) : InteractionConfig {
     // Reach
-    private val useDefaultReach by c.setting("Default Reach", true, "Whether to use vanilla interaction ranges", vis)
+    private val useDefaultReach by c.setting("Default Reach", true, "Whether to use vanilla interaction ranges", visibility = vis)
     private val attackReachSetting = if (usage.entity) c.setting("Attack Reach", DEFAULT_ATTACK_REACH, 1.0..10.0, 0.01, "Maximum entity interaction distance") { vis() && !useDefaultReach } else null
     private val interactReachSetting = if (usage.block) c.setting("Interact Reach", DEFAULT_INTERACT_REACH, 1.0..10.0, 0.01, "Maximum block interaction distance") { vis() && !useDefaultReach } else null
 
@@ -55,13 +55,13 @@ class InteractionSettings(
     }
 
     // Point scan
-    override val strictRayCast by c.setting("Strict Raycast", false, "Whether to include the environment to the ray cast context", vis)
-    override val checkSideVisibility by c.setting("Visibility Check", true, "Whether to check if an AABB side is visible", vis)
-    override val resolution by c.setting("Resolution", 5, 1..20, 1, "The amount of grid divisions per surface of the hit box", "", vis)
-    override val pointSelection by c.setting("Point Selection", PointSelection.Optimum, "The strategy to select the best hit point", vis)
+    override val strictRayCast by c.setting("Strict Raycast", false, "Whether to include the environment to the ray cast context", visibility = vis)
+    override val checkSideVisibility by c.setting("Visibility Check", true, "Whether to check if an AABB side is visible", visibility = vis)
+    override val resolution by c.setting("Resolution", 5, 1..20, 1, "The amount of grid divisions per surface of the hit box", "", visibility = vis)
+    override val pointSelection by c.setting("Point Selection", PointSelection.Optimum, "The strategy to select the best hit point", visibility = vis)
 
     // Swing
-    override val swingHand by c.setting("Swing Hand", true, "Whether to swing hand on interactions", vis)
+    override val swingHand by c.setting("Swing Hand", true, "Whether to swing hand on interactions", visibility = vis)
 
     companion object {
         const val DEFAULT_ATTACK_REACH = 3.0
