@@ -58,8 +58,8 @@ import net.minecraft.entity.ItemEntity
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
+import kotlin.math.abs
 import kotlin.math.ceil
-import kotlin.math.max
 
 object BreakManager : RequestHandler<BreakRequest>(
     0,
@@ -570,7 +570,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 val serverBreakTicks = ceil(1.0 / breakDelta).toInt()
                 val clientBreakTicks = ceil(config.breakThreshold / breakDelta).toInt()
                 val diff = serverBreakTicks - clientBreakTicks
-                info.breakingTicks - max(config.fudgeFactor - diff, 0)
+                info.breakingTicks - config.fudgeFactor.coerceAtMost(abs(diff))
             }
         }
 
