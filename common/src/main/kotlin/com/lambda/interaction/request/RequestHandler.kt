@@ -22,8 +22,8 @@ import com.lambda.core.Loadable
 import com.lambda.event.Event
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.request.ManagerUtils.accumulatedManagerPriority
 import com.lambda.threading.runSafe
+import com.lambda.util.reflections.getInstances
 import kotlin.reflect.KClass
 
 /**
@@ -119,4 +119,9 @@ abstract class RequestHandler<R : Request>(
     abstract fun SafeContext.handleRequest(request: R)
 
     protected abstract fun preEvent(): Event
+
+    companion object {
+        val managers = getInstances<RequestHandler<*>>()
+        val accumulatedManagerPriority = managers.map { it.stagePriority }.reduce { acc, priority -> acc + priority }
+    }
 }
