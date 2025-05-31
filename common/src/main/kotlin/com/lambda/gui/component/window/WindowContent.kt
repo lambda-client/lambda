@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,10 +19,10 @@ package com.lambda.gui.component.window
 
 import com.lambda.graphics.animation.Animation.Companion.exp
 import com.lambda.gui.component.core.LayoutBuilder
-import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.impl.clickgui.core.AnimatedChild
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Rect
 import kotlin.math.abs

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,10 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.core.registry
+package com.lambda.core
 
 import net.minecraft.registry.Registry
 import net.minecraft.registry.RegistryKey
+import net.minecraft.registry.SimpleRegistry
 import net.minecraft.registry.entry.RegistryEntry
 import net.minecraft.util.Identifier
 
@@ -28,36 +29,22 @@ import net.minecraft.util.Identifier
  * It allows for environment-agnostic registry handling.
  */
 object AgnosticRegistries {
-    private val registries = HashMap<
+    val registries = HashMap<
             RegistryKey<out Registry<*>?>,
-            MutableList<RegistryHolder<*>>
+            MutableList<Pair<Identifier, *>>
             >()
 
     /**
      * Registers a temporary registry holder.
-     * This should be called after the controller has dumped its registries.
-     * If not, the holder will not be dumped into its respective registry.
+     *
+     * This should be called before the given registry has been loaded.
      *
      * @param registry The registry to register the holder for.
      * @param id The identifier for the registry entry.
      * @param value The value to register.
-     *
-     * @return The registry holder.
      */
-    fun <T> register(registry: Registry<T>, id: Identifier, value: T): RegistryHolder<T> {
-        val holder = RegistryHolder(id, value)
-
-        registries.getOrPut(registry.key) { mutableListOf() }.add(holder)
-        return holder
-    }
-
-    /**
-     * Loads the temporary registry holders into the actual registry.
-     * This should be called after all registry holders have been created.
-     *
-     * @param registry The registry to dump into.
-     */
-    fun dump(registry: Registry<*>?) = dump(registry, wrapper = null)
+    fun <T> register(registry: Registry<T>, id: Identifier, value: T) =
+        registries.getOrPut(registry.key) { mutableListOf() }.add(id to value)
 
     /**
      * Loads the temporary registry holders into the actual registry.
@@ -66,24 +53,33 @@ object AgnosticRegistries {
      * @param registry The registry to dump into.
      * @param wrapper The registry wrapper to use to determine how to register the entry.
      *
-     * @return Whether there were temporary registries or not.
+     * @return Whether there were temporary registries or not or null if the registry is null.
      */
-    fun dump(registry: Registry<*>?, wrapper: RegistryWrapper<*>?): Boolean {
-        val key = registry?.key
+    fun <T : Any> dump(registry: Registry<T>, wrapper: RegistryWrapper<T> = defaultWrapper(registry)): Boolean? {
+        val key = registry.key
 
-        registries[key]?.forEach { it.handleRegister(wrapper ?: defaultWrapper(registry)) }
+        registries[key]?.forEach { (id, value) ->
+            @Suppress("Unchecked_cast")
+            val v = value as? T ?: return@forEach
+            wrapper.registerForHolder(id, v)
+        }
+
         return registries.remove(key) != null
     }
 
     /**
      * Default registry wrapper for vanilla registries.
      */
-    private fun defaultWrapper(registry: Registry<*>?): RegistryWrapper<*> {
-        return object : RegistryWrapper<Any> {
-            override fun <T> registerForHolder(id: Identifier?, value: T): RegistryEntry<T> {
-                @Suppress("UNCHECKED_CAST")
-                return Registry.registerReference(registry as Registry<T>, id, value)
-            }
+    fun <T : Any> defaultWrapper(registry: Registry<T>) = object : RegistryWrapper<T> {
+        override fun registerForHolder(id: Identifier, value: T): RegistryEntry<T> {
+            val simple = registry as? SimpleRegistry
+            val frozen = simple?.frozen ?: true // will never be null
+
+            simple?.let { it.frozen = false } // fuck off
+            val entry = Registry.registerReference(registry, id, value)
+            simple?.let { it.frozen = frozen }
+
+            return entry
         }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,20 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.threading
+package com.lambda.core
 
-import kotlin.reflect.KProperty
+import net.minecraft.registry.entry.RegistryEntry
+import net.minecraft.util.Identifier
 
-class MainThreadInit<T : Any>(private val initializer: () -> T) {
-    private lateinit var value: T
-
-    operator fun getValue(thisRef: Any?, property: KProperty<*>) = value
-
-    init {
-        runGameScheduled {
-            value = initializer()
-        }
-    }
+interface RegistryWrapper<T> {
+    fun registerForHolder(id: Identifier, value: T): RegistryEntry<T>
 }
-
-fun <T : Any> mainThread(initializer: () -> T) = MainThreadInit(initializer)

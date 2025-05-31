@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,15 +21,15 @@ import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.Lambda.MOD_NAME
 import com.lambda.Lambda.VERSION
-import com.lambda.core.registry.AgnosticRegistries
+import com.lambda.core.AgnosticRegistries
 import net.fabricmc.api.ClientModInitializer
 import net.minecraft.registry.Registries
 
 object LambdaFabric : ClientModInitializer {
     override fun onInitializeClient() {
-        Lambda.initialize {
-            Registries.REGISTRIES.forEach(AgnosticRegistries::dump)
-            LOG.info("$MOD_NAME Fabric $VERSION was successfully initialized after $it ms\n")
+        Lambda.initialize { time ->
+            Registries.REGISTRIES.forEach { AgnosticRegistries.dump(it) }
+            LOG.info("$MOD_NAME Fabric $VERSION was successfully initialized after $time ms\n")
         }
     }
 }

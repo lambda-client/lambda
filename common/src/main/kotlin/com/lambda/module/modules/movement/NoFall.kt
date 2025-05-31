@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,8 +52,8 @@ object NoFall : Module(
                     if (player.fallDistance + player.motionY < 3.0) return@listen
 
                     val (x, y, z) = player.pos
-                    connection.sendPacket(PlayerMoveC2SPacket.Full(x, y + 0.0000000001, z, 0.01f, 90f, false))
-                    connection.sendPacket(PlayerInteractItemC2SPacket(Hand.OFF_HAND, 0))
+                    connection.sendPacket(PlayerMoveC2SPacket.Full(x, y + 0.0000000001, z, 0.01f, 90f, false, true)) // TODO: Check this after update
+                    connection.sendPacket(PlayerInteractItemC2SPacket(Hand.OFF_HAND, 0, player.yaw, player.pitch)) // TODO: This is wrong, fix it
                     connection.sendPacket(
                         PlayerActionC2SPacket(
                             PlayerActionC2SPacket.Action.RELEASE_USE_ITEM,
@@ -63,7 +63,7 @@ object NoFall : Module(
                     )
                     player.motion = Vec3d.ZERO
 
-                    player.fallDistance = 0f
+                    player.fallDistance = 0.0
                 }
             }
         }

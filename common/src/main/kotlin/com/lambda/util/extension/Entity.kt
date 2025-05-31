@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,10 +23,16 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.Vec3d
 
 val Entity.prevPos
-    get() = Vec3d(prevX, prevY, prevZ)
+    get() = Vec3d(lastX, lastY, lastZ)
 
 val Entity.rotation
     get() = Rotation(yaw, pitch)
 
 val LivingEntity.fullHealth: Double
     get() = health + absorptionAmount.toDouble()
+
+var LivingEntity.isElytraFlying
+    get() = isGliding
+    set(value) {
+        setFlag(7, value)
+    }

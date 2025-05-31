@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,10 +24,12 @@ import io.netty.channel.ChannelHandlerContext;
 import net.minecraft.network.ClientConnection;
 import net.minecraft.network.NetworkSide;
 import net.minecraft.network.listener.ClientPacketListener;
-import net.minecraft.network.listener.PacketListener;
+import net.minecraft.network.listener.ClientPlayPacketListener;
 import net.minecraft.network.listener.ServerPacketListener;
+import net.minecraft.network.listener.ServerPlayPacketListener;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.c2s.handshake.ConnectionIntent;
+import net.minecraft.network.state.NetworkState;
 import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -42,22 +44,25 @@ public class ClientConnectionMixin {
     @Final
     private NetworkSide side;
 
+    @SuppressWarnings("unchecked")
     @Inject(method = "send(Lnet/minecraft/network/packet/Packet;)V", at = @At("HEAD"), cancellable = true)
     private void sendingPacket(Packet<?> packet, final CallbackInfo callbackInfo) {
         if (side != NetworkSide.CLIENTBOUND) return;
 
-        if (EventFlow.post(new PacketEvent.Send.Pre((Packet<ServerPacketListener>) packet)).isCanceled()) {
+        if (EventFlow.post(new PacketEvent.Send.Pre((Packet<? extends ServerPlayPacketListener>) packet)).isCanceled()) {
             callbackInfo.cancel();
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Inject(method = "send(Lnet/minecraft/network/packet/Packet;)V", at = @At("RETURN"))
     private void sendingPacketPost(Packet<?> packet, final CallbackInfo callbackInfo) {
         if (side != NetworkSide.CLIENTBOUND) return;
 
-        EventFlow.post(new PacketEvent.Send.Post((Packet<ServerPacketListener>) packet));
+        EventFlow.post(new PacketEvent.Send.Post((Packet<? extends ServerPlayPacketListener>) packet));
     }
 
+    @SuppressWarnings("all")
     @Inject(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/packet/Packet;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/ClientConnection;handlePacket(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;)V", shift = At.Shift.BEFORE), cancellable = true, require = 1)
     private void receivingPacket(
             ChannelHandlerContext channelHandlerContext,
@@ -66,11 +71,12 @@ public class ClientConnectionMixin {
     ) {
         if (side != NetworkSide.CLIENTBOUND) return;
 
-        if (EventFlow.post(new PacketEvent.Receive.Pre((Packet<ClientPacketListener>) packet)).isCanceled()) {
+        if (EventFlow.post(new PacketEvent.Receive.Pre((Packet<? extends ClientPlayPacketListener>) packet)).isCanceled()) {
             callbackInfo.cancel();
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Inject(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/packet/Packet;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/ClientConnection;handlePacket(Lnet/minecraft/network/packet/Packet;Lnet/minecraft/network/listener/PacketListener;)V", shift = At.Shift.AFTER))
     private void receivingPacketPost(
             ChannelHandlerContext channelHandlerContext,
@@ -79,18 +85,22 @@ public class ClientConnectionMixin {
     ) {
         if (side != NetworkSide.CLIENTBOUND) return;
 
-        EventFlow.post(new PacketEvent.Receive.Post((Packet<ClientPacketListener>) packet));
+        EventFlow.post(new PacketEvent.Receive.Post((Packet<? extends ClientPlayPacketListener>) packet));
     }
 
-    @Inject(method = "connect(Ljava/lang/String;ILnet/minecraft/network/listener/PacketListener;Lnet/minecraft/network/packet/c2s/handshake/ConnectionIntent;)V", at = @At("HEAD"), cancellable = true)
-    private void onConnect(
+    @Inject(method = "connect(Ljava/lang/String;ILnet/minecraft/network/state/NetworkState;Lnet/minecraft/network/state/NetworkState;Lnet/minecraft/network/listener/ClientPacketListener;Lnet/minecraft/network/packet/c2s/handshake/ConnectionIntent;)V", at = @At("HEAD"), cancellable = true)
+    private
+    <S extends ServerPacketListener, C extends ClientPacketListener>
+    void onConnect(
             String address,
             int port,
-            PacketListener listener,
+            NetworkState<S> outboundState,
+            NetworkState<C> inboundState,
+            C prePlayStateListener,
             ConnectionIntent intent,
             CallbackInfo ci
     ) {
-        if (EventFlow.post(new ConnectionEvent.Connect.Pre(address, port, listener, intent)).isCanceled()) ci.cancel();
+        if (EventFlow.post(new ConnectionEvent.Connect.Pre(address, port, prePlayStateListener, intent)).isCanceled()) ci.cancel();
     }
 
     @Inject(method = "disconnect(Lnet/minecraft/text/Text;)V", at = @At("HEAD"))

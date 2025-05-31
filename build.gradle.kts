@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,6 @@
 
 import org.gradle.internal.jvm.*
 import net.fabricmc.loom.api.LoomGradleExtensionAPI
-import org.apache.tools.ant.taskdefs.condition.Os
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.io.FileNotFoundException
 import java.util.*
 
 val modId: String by project
@@ -38,11 +35,11 @@ val Project.loom: LoomGradleExtensionAPI
     get() = (this as ExtensionAware).extensions.getByName("loom") as LoomGradleExtensionAPI
 
 plugins {
-    kotlin("jvm") version "2.1.20"
+    kotlin("jvm") version "2.1.10"
     id("org.jetbrains.dokka") version "2.0.0"
     id("architectury-plugin") version "3.4-SNAPSHOT"
-    id("dev.architectury.loom") version "1.9-SNAPSHOT" apply false
-    id("com.github.johnrengelman.shadow") version "8.1.1" apply false
+    id("dev.architectury.loom") version "1.10-SNAPSHOT" apply false
+    id("com.gradleup.shadow") version "9.0.0-beta13" apply false
     id("maven-publish")
 }
 
@@ -57,7 +54,10 @@ subprojects {
 
     dependencies {
         "minecraft"("com.mojang:minecraft:$minecraftVersion")
-        "mappings"("net.fabricmc:yarn:$minecraftVersion+$yarnMappings:v2")
+        "mappings"(loom.layered {
+            mappings("net.fabricmc:yarn:$minecraftVersion+$yarnMappings:v2")
+            mappings("dev.architectury:yarn-mappings-patch-neoforge:1.21+build.4")
+        })
     }
 
     publishing {
@@ -85,32 +85,43 @@ subprojects {
 
     if (path == ":common") return@subprojects
 
+    loom.mods {
+        maybeCreate("main").apply {
+            sourceSet(project.sourceSets.main.get())
+            sourceSet(project(":common").sourceSets.main.get())
+        }
+    }
+
     loom.runs {
         all {
             property("lambda.dev", "youtu.be/RYnFIRc0k6E")
+            property("org.lwjgl.util.Debug", "true")
+
+            vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash", "-XX:+UseOSErrorReporting")
+            programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****", "--userType", "msa")
         }
     }
 
     tasks {
+        processResources {
+            // Replaces placeholders in the mod info files
+            filesMatching(targets) { expand(replacements) }
+
+            // Forces the task to always run
+            outputs.upToDateWhen { false }
+        }
+
         register<Exec>("renderDoc") {
             val javaHome = Jvm.current().javaHome
             val gradleWrapper = rootProject.tasks.wrapper.get().jarFile.absolutePath
 
             commandLine = listOf(
-                findExecutable("renderdoccmd")
-                    ?: throw FileNotFoundException("Could not find the renderdoccmd executable"),
-                "capture", /* Remove the following 2 lines if you don't want api validation */ "--opt-api-validation", "--opt-api-validation-unmute", "--opt-hook-children", "--wait-for-exit", "--working-dir", ".", "$javaHome/bin/java", "-Xmx64m", "-Xms64m", /*"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005",*/ "-Dorg.gradle.appname=gradlew", "-Dorg.gradle.java.home=$javaHome", "-classpath", gradleWrapper, "org.gradle.wrapper.GradleWrapperMain", "${this@subprojects.path}:runClient",
+                "renderdoccmd", "capture", "--opt-api-validation", "--opt-api-validation-unmute", "--opt-hook-children",
+                "--wait-for-exit", "--working-dir", ".", "$javaHome/bin/java", "-Xmx64m", "-Xms64m",
+                /*"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005",*/
+                "-Dorg.gradle.appname=gradlew", "-Dorg.gradle.java.home=$javaHome", "-classpath", gradleWrapper, "org.gradle.wrapper.GradleWrapperMain",
+                "${this@subprojects.path}:runClient",
             )
-        }
-
-        processResources {
-            // Replaces placeholders in the mod info files
-            filesMatching(targets) {
-                expand(replacements)
-            }
-
-            // Forces the task to always run
-            outputs.upToDateWhen { false }
         }
     }
 }
@@ -130,7 +141,7 @@ allprojects {
         mavenLocal() // Allow the use of local repositories
         maven("https://maven.shedaniel.me/") // Architectury
         maven("https://maven.terraformersmc.com/releases/")
-        maven("https://babbaj.github.io/maven/") // Baritone
+        maven("https://maven.2b2t.vc/releases") // Baritone
         maven("https://jitpack.io") // KDiscordIPC
         mavenCentral()
 
@@ -143,22 +154,7 @@ allprojects {
     java {
         withSourcesJar()
 
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
-
-    tasks {
-        compileKotlin {
-            compilerOptions {
-                jvmTarget = JvmTarget.JVM_17
-            }
-        }
-    }
-}
-
-private fun findExecutable(executable: String): String? {
-    val isWindows = Os.isFamily(Os.FAMILY_WINDOWS)
-    val cmd = if (isWindows) "where" else "which"
-
-    return ProcessBuilder(cmd, executable).start().inputStream.bufferedReader().readText().trim().takeIf { it.isNotBlank() }
 }

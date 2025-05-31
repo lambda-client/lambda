@@ -26,6 +26,7 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.decoration.EndCrystalEntity
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.explosion.Explosion
+import net.minecraft.world.explosion.ExplosionImpl
 
 object CombatUtils {
     /**
@@ -65,7 +66,7 @@ object CombatUtils {
         val distance = entity dist position
 
         val range = power * 2
-        val impact = (1 - distance / range) * Explosion.getExposure(position, entity)
+        val impact = (1 - distance / range) * ExplosionImpl.calculateReceivedDamage(position, entity)
         val damage = (impact * impact + impact) / 2.0 * 7.0 * range + 1
 
         return Explosion.createDamageSource(world, null).scale(world, entity, damage)

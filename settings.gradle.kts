@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,9 +19,10 @@ rootProject.name = "Lambda"
 
 pluginManagement {
     repositories {
+        maven("https://maven.neoforged.net/releases/")
+        maven("https://maven.minecraftforge.net/")
         maven("https://maven.fabricmc.net/")
         maven("https://maven.architectury.dev/")
-        maven("https://maven.minecraftforge.net/")
         maven("https://jitpack.io")
         mavenCentral()
         gradlePluginPortal()
@@ -30,4 +31,3 @@ pluginManagement {
 
 include("common")
 include("fabric")
-include("forge")

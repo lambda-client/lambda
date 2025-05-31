@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,26 +17,30 @@
 
 package com.lambda.config.serializer
 
-import com.google.gson.*
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
+import com.google.gson.JsonSerializationContext
+import com.google.gson.JsonSerializer
+import com.mojang.serialization.JsonOps
 import net.minecraft.block.Block
 import net.minecraft.registry.Registries
-import net.minecraft.util.Identifier
 import java.lang.reflect.Type
 
 object BlockSerializer : JsonSerializer<Block>, JsonDeserializer<Block> {
     override fun serialize(
-        src: Block?,
-        typeOfSrc: Type?,
-        context: JsonSerializationContext?,
+        src: Block,
+        typeOfSrc: Type,
+        context: JsonSerializationContext,
     ): JsonElement =
-        src?.let {
-            JsonPrimitive(Registries.BLOCK.getId(it).toString())
-        } ?: JsonNull.INSTANCE
+        Registries.BLOCK.codec.encodeStart(JsonOps.INSTANCE, src)
+            .orThrow
 
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type?,
         context: JsonDeserializationContext?,
     ): Block =
-        Registries.BLOCK.getOrEmpty(Identifier(json?.asString)).orElseThrow()
+        Registries.BLOCK.codec.parse(JsonOps.INSTANCE, json)
+            .orThrow
 }

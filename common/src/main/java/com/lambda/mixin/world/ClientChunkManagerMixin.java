@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,10 +21,10 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.WorldEvent;
 import net.minecraft.client.world.ClientChunkManager;
 import net.minecraft.client.world.ClientWorld;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.s2c.play.ChunkData;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.Heightmap;
 import net.minecraft.world.chunk.WorldChunk;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -35,6 +35,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
+import java.util.Map;
 import java.util.function.Consumer;
 
 @Mixin(ClientChunkManager.class)
@@ -45,34 +46,19 @@ public class ClientChunkManagerMixin {
 
     @Inject(method = "loadChunkFromPacket", at = @At("TAIL"))
     private void onChunkLoad(
-            int x,
-            int z,
-            PacketByteBuf packetByteBuf,
-            NbtCompound nbtCompound,
-            Consumer<ChunkData.BlockEntityVisitor> consumer,
-            CallbackInfoReturnable<WorldChunk> info
+            int x, int z, PacketByteBuf buf, Map<Heightmap.Type, long[]> heightmaps, Consumer<ChunkData.BlockEntityVisitor> consumer, CallbackInfoReturnable<WorldChunk> cir
     ) {
-        EventFlow.post(new WorldEvent.ChunkEvent.Load(info.getReturnValue()));
+        EventFlow.post(new WorldEvent.ChunkEvent.Load(cir.getReturnValue()));
     }
 
     @Inject(method = "loadChunkFromPacket", at = @At(value = "NEW", target = "net/minecraft/world/chunk/WorldChunk", shift = At.Shift.BEFORE), locals = LocalCapture.CAPTURE_FAILHARD)
-    private void onChunkUnload(
-            int x,
-            int z,
-            PacketByteBuf buf,
-            NbtCompound tag,
-            Consumer<ChunkData.BlockEntityVisitor> consumer,
-            CallbackInfoReturnable<WorldChunk> info,
-            int index,
-            WorldChunk chunk,
-            ChunkPos chunkPos
-    ) {
+    private void onChunkUnload(int x, int z, PacketByteBuf buf, Map<Heightmap.Type, long[]> heightmaps, Consumer<ChunkData.BlockEntityVisitor> consumer, CallbackInfoReturnable<WorldChunk> cir, int i, WorldChunk chunk, ChunkPos chunkPos) {
         if (chunk != null) {
             EventFlow.post(new WorldEvent.ChunkEvent.Unload(chunk));
         }
     }
 
-    @Inject(method = "unload", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientChunkManager$ClientChunkMap;compareAndSet(ILnet/minecraft/world/chunk/WorldChunk;Lnet/minecraft/world/chunk/WorldChunk;)Lnet/minecraft/world/chunk/WorldChunk;"), locals = LocalCapture.CAPTURE_FAILHARD)
+    @Inject(method = "unload", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientChunkManager$ClientChunkMap;unloadChunk(ILnet/minecraft/world/chunk/WorldChunk;)V"), locals = LocalCapture.CAPTURE_FAILHARD)
     private void onChunkUnload(ChunkPos pos, CallbackInfo ci, int i, WorldChunk chunk) {
         EventFlow.post(new WorldEvent.ChunkEvent.Unload(chunk));
     }

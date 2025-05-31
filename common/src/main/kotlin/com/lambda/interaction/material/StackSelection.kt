@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.enchantment.Enchantment
-import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.Slot
@@ -180,11 +179,14 @@ class StackSelection {
      */
     @StackSelectionDsl
     fun hasEnchantment(enchantment: Enchantment, level: Int = -1): (ItemStack) -> Boolean = {
-        if (level < 0) {
+        true
+
+        // TODO: Figure out what the fuck the new registry system is lmao
+        /*if (level < 0) {
             EnchantmentHelper.getLevel(enchantment, it) > 0
         } else {
             EnchantmentHelper.getLevel(enchantment, it) == level
-        }
+        }*/
     }
 
     /**

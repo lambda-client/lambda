@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,9 +28,6 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.Configuration
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
-import com.lambda.util.text.buildText
-import com.lambda.util.text.highlighted
-import com.lambda.util.text.literal
 
 object ConfigCommand : LambdaCommand(
     name = "config",

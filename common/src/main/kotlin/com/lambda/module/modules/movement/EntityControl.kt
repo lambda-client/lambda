@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ object EntityControl : Module(
         listen<TickEvent.Pre> {
             fastEntitySearch<AbstractHorseEntity>(8.0)
                 .forEach {
-                    if (!it.isSaddled) saddledHorses.add(it)
+                    if (!it.hasSaddleEquipped()) saddledHorses.add(it)
                     it.setHorseFlag(4, true)
                 }
         }

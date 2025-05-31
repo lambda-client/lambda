@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,10 +19,8 @@ package com.lambda.mixin.render;
 
 import com.lambda.util.LambdaResourceKt;
 import net.minecraft.client.gui.screen.SplashOverlay;
-import net.minecraft.client.texture.ResourceTexture;
-import net.minecraft.resource.DefaultResourcePack;
-import net.minecraft.resource.InputSupplier;
-import net.minecraft.resource.ResourceType;
+import net.minecraft.client.texture.ReloadableTexture;
+import net.minecraft.resource.ResourceFactory;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.ColorHelper;
 import org.spongepowered.asm.mixin.Final;
@@ -42,27 +40,27 @@ public class SplashOverlayMixin {
     @Mutable
     @Shadow
     @Final
-    static Identifier LOGO;
-
-    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Ljava/util/function/IntSupplier;getAsInt()I"))
-    private int redirectBrandArgb(IntSupplier originalSupplier) {
-        return ColorHelper.Argb.getArgb(255, 35, 35, 35);
-    }
+    public static Identifier LOGO;
 
     @Inject(method = "<init>", at = @At("RETURN"))
     private void onInit(CallbackInfo ci) {
         LOGO = Identifier.of("lambda", "textures/lambda_banner.png");
     }
 
+    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Ljava/util/function/IntSupplier;getAsInt()I"))
+    private int redirectBrandArgb(IntSupplier originalSupplier) {
+        return ColorHelper.getArgb(255, 35, 35, 35);
+    }
+
     @Mixin(SplashOverlay.LogoTexture.class)
-    static class LogoTextureMixin extends ResourceTexture {
+    static abstract class LogoTextureMixin extends ReloadableTexture {
         public LogoTextureMixin(Identifier location) {
             super(location);
         }
 
-        @Redirect(method = "loadTextureData", at = @At(value = "INVOKE", target = "Lnet/minecraft/resource/DefaultResourcePack;open(Lnet/minecraft/resource/ResourceType;Lnet/minecraft/util/Identifier;)Lnet/minecraft/resource/InputSupplier;"))
-        InputSupplier<InputStream> loadTextureData(DefaultResourcePack instance, ResourceType type, Identifier id) {
-            return () -> LambdaResourceKt.getStream("textures/lambda_banner.png");
+        @Redirect(method = "loadContents", at = @At(value = "INVOKE", target = "Lnet/minecraft/resource/ResourceFactory;open(Lnet/minecraft/util/Identifier;)Ljava/io/InputStream;"))
+        InputStream loadTextureData(ResourceFactory instance, Identifier id) {
+            return LambdaResourceKt.getStream("textures/lambda_banner.png");
         }
     }
 }

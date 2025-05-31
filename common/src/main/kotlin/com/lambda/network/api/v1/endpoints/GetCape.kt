@@ -23,7 +23,7 @@ import com.lambda.network.LambdaHttp
 import com.lambda.network.api.v1.models.Cape
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import java.util.UUID
+import java.util.*
 
 /**
  * Gets the cape of the given player UUID

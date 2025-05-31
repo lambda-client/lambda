@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,14 +20,16 @@ val minecraftVersion: String by project
 val fabricLoaderVersion: String by project
 val fabricApiVersion: String by project
 val kotlinFabricVersion: String by project
+val pngEncoderVersion: String by project
 val discordIPCVersion: String by project
+val classGraphVersion: String by project
 val kotlinVersion: String by project
 val ktorVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-fabric"
 
 plugins {
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.gradleup.shadow") version "9.0.0-beta13"
 }
 
 architectury {
@@ -40,21 +42,10 @@ loom {
     enableTransitiveAccessWideners = true
 }
 
-repositories {
-    // You can add more repositories here if you plan
-    // on using environment-specific dependencies.
-    // If you simply want to add a global plugin repository,
-    // you can add it to the `settings.gradle.kts` file
-    // in the base of the project and gradle will do the
-    // rest for you.
-    // maven(...)
-}
-
 val common: Configuration by configurations.creating {
     configurations.compileClasspath.get().extendsFrom(this)
     configurations.runtimeClasspath.get().extendsFrom(this)
     configurations["developmentFabric"].extendsFrom(this)
-    isCanBeResolved = true
     isCanBeConsumed = false
 }
 
@@ -72,7 +63,6 @@ fun DependencyHandlerScope.setupConfigurations() {
 
     includeMod.dependencies.forEach {
         modImplementation(it)
-        // include(it)
     }
 
     shadowLib.dependencies.forEach {
@@ -89,11 +79,9 @@ dependencies {
     modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
 
     // Add dependencies on the required Kotlin modules.
-    includeLib("org.reflections:reflections:0.10.2")
-    includeLib("org.javassist:javassist:3.28.0-GA")
-    includeLib("dev.babbaj:nether-pathfinder:1.5")
+    includeLib("io.github.classgraph:classgraph:${classGraphVersion}")
     includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
-    includeLib("com.pngencoder:pngencoder:0.15.0")
+    includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
 
     // Ktor
     includeLib("io.ktor:ktor-client-core:$ktorVersion")
@@ -104,11 +92,11 @@ dependencies {
     // Add mods to the mod jar
     includeMod("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion+$minecraftVersion")
     includeMod("net.fabricmc:fabric-language-kotlin:$kotlinFabricVersion.$kotlinVersion")
-    includeMod("baritone-api:baritone-unoptimized-fabric:1.10.2")
+    includeMod("com.github.rfresh2:baritone-fabric:$minecraftVersion")
 
     // Common (Do not touch)
     common(project(":common", configuration = "namedElements")) { isTransitive = false }
-    shadowBundle(project(":common", configuration = "transformProductionFabric")) { isTransitive = false }
+    shadowBundle(project(":common", configuration = "transformProductionFabric"))
 
     // Finish the configuration
     setupConfigurations()

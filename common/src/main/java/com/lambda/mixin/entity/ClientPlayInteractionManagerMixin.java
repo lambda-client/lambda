@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -98,9 +98,9 @@ public class ClientPlayInteractionManagerMixin {
      * }
      * }</pre>
      */
-    @Redirect(method = "syncSelectedSlot", at = @At(value = "FIELD", target = "Lnet/minecraft/entity/player/PlayerInventory;selectedSlot:I"))
+    @Redirect(method = "syncSelectedSlot", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerInventory;getSelectedSlot()I"))
     public int overrideSelectedSlotSync(PlayerInventory instance) {
-        return EventFlow.post(new InventoryEvent.HotbarSlot.Update(instance.selectedSlot)).getSlot();
+        return EventFlow.post(new InventoryEvent.HotbarSlot.Update(instance.getSelectedSlot())).getSlot();
     }
 
     @Inject(method = "updateBlockBreakingProgress", at = @At("HEAD"), cancellable = true)

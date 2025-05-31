@@ -20,6 +20,7 @@ package com.lambda.mixin.render;
 import com.lambda.graphics.RenderMain;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.hud.InGameHud;
+import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -36,7 +37,7 @@ public class InGameHudMixin {
      * Begins our 2d render after the game has rendered all 2d elements
      */
     @Inject(method = "render", at = @At("TAIL"))
-    private void onRender(DrawContext context, float tickDelta, CallbackInfo ci) {
+    private void onRender(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
         RenderMain.render2D();
     }
 

@@ -18,7 +18,6 @@
 package com.lambda.util.world
 
 import com.lambda.context.SafeContext
-import com.lambda.core.annotations.InternalApi
 import com.lambda.util.math.distSq
 import com.lambda.util.world.WorldUtils.internalGetBlockEntities
 import com.lambda.util.world.WorldUtils.internalGetEntities
@@ -57,7 +56,6 @@ annotation class BlockMarker
  *
  * @return A map of positions to block states
  */
-@OptIn(InternalApi::class)
 @BlockMarker
 fun SafeContext.blockSearch(
     range: Vec3i,
@@ -118,7 +116,6 @@ annotation class BlockEntityMarker
  * @param pos       The position to start the search from
  * @param filter    The predicate to filter entities
  */
-@OptIn(InternalApi::class)
 @BlockEntityMarker
 inline fun <reified T : BlockEntity> SafeContext.blockEntitySearch(
     range: Double = 64.0,
@@ -170,13 +167,12 @@ inline fun <reified T : Entity> SafeContext.closestEntity(
  *
  * @return A list of entity [T]
  */
-@OptIn(InternalApi::class)
 @EntityMarker
 inline fun <reified T : Entity> SafeContext.entitySearch(
     range: Double,
     pos: BlockPos = player.blockPos,
     noinline filter: (T) -> Boolean = { true },
-) = internalGetEntities<T>(pos.toFastVec(), range, predicate = filter)
+) = internalGetEntities<T>(pos.toFastVec(), range, filter = filter)
 
 /**
  * Initiates an optimized entity search operation in the world at the specified position
@@ -193,15 +189,14 @@ inline fun <reified T : Entity> SafeContext.entitySearch(
  * @param pos       The position to start the search from
  * @param filter    The predicate to filter entities
  *
- * @return A list of entity [T]
+ * @return A sequence of [T]
  */
-@OptIn(InternalApi::class)
 @EntityMarker
 inline fun <reified T : Entity> SafeContext.fastEntitySearch(
     range: Double,
     pos: BlockPos = player.blockPos,
     noinline filter: (T) -> Boolean = { true },
-) = internalGetFastEntities<T>(pos.toFastVec(), range, predicate = filter).toSet()
+) = internalGetFastEntities<T>(pos.toFastVec(), range, filter = filter)
 
 @DslMarker
 annotation class FluidMarker
@@ -227,21 +222,19 @@ annotation class FluidMarker
  *
  * @return A map of positions to fluid states
  */
-@OptIn(InternalApi::class)
 @FluidMarker
 inline fun <reified T : Fluid> SafeContext.fluidSearch(
     range: Vec3i,
     pos: BlockPos = player.blockPos,
     step: Vec3i = Vec3i(1, 1, 1),
-    noinline filter: (BlockPos, FluidState) -> Boolean,
+    noinline filter: (BlockPos, FluidState) -> Boolean = { _, _ -> true },
 ) =
     internalSearchFluids<T>(
         pos.toFastVec(),
         range.toFastVec(),
         step.toFastVec()
-    ) { fastPos, state ->
-        filter(fastPos.toBlockPos(), state)
-    }.mapKeys { it.key.toBlockPos() }
+    ) { pos, state -> filter(pos.toBlockPos(), state) }
+        .mapKeys { it.key.toBlockPos() }
 
 /**
  * Searches for fluids in the world

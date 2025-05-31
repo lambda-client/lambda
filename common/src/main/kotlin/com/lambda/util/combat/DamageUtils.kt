@@ -21,6 +21,7 @@ import com.lambda.context.SafeContext
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.extension.fullHealth
 import com.lambda.util.math.flooredBlockPos
+import com.lambda.util.math.minus
 import com.lambda.util.player.prediction.buildPlayerPrediction
 import net.minecraft.block.BedBlock
 import net.minecraft.block.CobwebBlock
@@ -33,12 +34,14 @@ import net.minecraft.block.PowderSnowBlock
 import net.minecraft.block.SlimeBlock
 import net.minecraft.block.enums.Thickness
 import net.minecraft.client.world.ClientWorld
+import net.minecraft.component.DataComponentTypes
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.effect.StatusEffects.FIRE_RESISTANCE
 import net.minecraft.entity.effect.StatusEffects.JUMP_BOOST
 import net.minecraft.entity.player.PlayerEntity
+import net.minecraft.entity.projectile.PersistentProjectileEntity
 import net.minecraft.registry.tag.DamageTypeTags.DAMAGES_HELMET
 import net.minecraft.registry.tag.DamageTypeTags.IS_FIRE
 import net.minecraft.registry.tag.DamageTypeTags.IS_FREEZING
@@ -47,6 +50,8 @@ import net.minecraft.registry.tag.EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES
 import net.minecraft.util.math.Direction
 import net.minecraft.world.Difficulty
 import net.minecraft.world.World
+import kotlin.jvm.optionals.getOrDefault
+import kotlin.math.acos
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
@@ -111,22 +116,43 @@ object DamageUtils {
      * @param damage The damage to apply
      */
     fun DamageSource.scale(world: ClientWorld, entity: LivingEntity, damage: Double): Double {
-        if (damage.isNaN() || damage.isInfinite())
-            return Double.MAX_VALUE
+        val blockingItem = entity.blockingItem
+        val itemComponent = blockingItem?.get(DataComponentTypes.BLOCKS_ATTACKS)
 
-        if (entity.isInvulnerableTo(this) ||
+        val source = source
+        val position = position
+
+        val blockingReduction = itemComponent
+            ?.bypassedBy
+            ?.filter { !isIn(it) }
+            ?.map {
+                if (source is PersistentProjectileEntity
+                    && source.pierceLevel > 0) return@map 0.0
+
+                val horizontalAngle = if (position != null) {
+                    acos((entity.pos - position).horizontal.normalize()
+                        .dotProduct(entity.getRotationVector(0f, entity.headYaw)))
+                } else Math.PI
+
+                return@map itemComponent.getDamageReductionAmount(this, damage.toFloat(), horizontalAngle).toDouble()
+            }
+            ?.getOrDefault(0.0)
+            ?: 0.0
+
+        val amount = damage - blockingReduction
+
+        if (entity.isAlwaysInvulnerableTo(this) ||
             entity.isDead ||
-            entity.blockedByShield(this) ||
             isIn(IS_FIRE) && entity.hasStatusEffect(FIRE_RESISTANCE)) return 0.0
 
         if (isIn(IS_FREEZING) && entity.type.isIn(FREEZE_HURTS_EXTRA_TYPES))
-            return damage * 5
+            return amount * 5.0
 
         if (isIn(DAMAGES_HELMET) && !entity.getEquippedStack(EquipmentSlot.HEAD).isEmpty)
-            return damage * 0.75
+            return amount * 0.75
 
         val appliedDamage = entity.applyArmorToDamage(this,
-            entity.modifyAppliedDamage(this, damage.toFloat())).toDouble()
+            entity.modifyAppliedDamage(this, amount.toFloat())).toDouble()
 
         return if (entity is PlayerEntity && isScaledWithDifficulty)
             world.scaleDamage(appliedDamage) else appliedDamage

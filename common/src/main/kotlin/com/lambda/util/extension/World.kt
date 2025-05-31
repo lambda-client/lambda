@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,20 +18,25 @@
 package com.lambda.util.extension
 
 import com.lambda.context.SafeContext
-import com.lambda.util.world.*
+import com.lambda.util.world.FastVector
+import com.lambda.util.world.toBlockPos
+import com.lambda.util.world.x
+import com.lambda.util.world.y
+import com.lambda.util.world.z
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
 import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.shape.VoxelShape
 import net.minecraft.world.World
 import java.awt.Color
 
 val SafeContext.worldName: String get() = when { mc.currentServerEntry != null -> "Multiplayer"; mc.isIntegratedServerRunning -> "Singleplayer"; else -> "Main Menu" }
-val SafeContext.isOverworld: Boolean get() = world.registryKey == World.OVERWORLD
-val SafeContext.isNether: Boolean get() = world.registryKey == World.NETHER
-val SafeContext.isEnd: Boolean get() = world.registryKey == World.END
-val SafeContext.dimensionName: String
+val World?.isOverworld: Boolean get() = this?.registryKey == World.OVERWORLD
+val World?.isNether: Boolean get() = this?.registryKey == World.NETHER
+val World?.isEnd: Boolean get() = this?.registryKey == World.END
+val World?.dimensionName: String
     get() = when {
         isOverworld -> "Overworld"
         isNether -> "Nether"
@@ -39,10 +44,10 @@ val SafeContext.dimensionName: String
         else -> "Unknown"
     }
 
-fun SafeContext.collisionShape(state: BlockState, pos: BlockPos) =
+fun SafeContext.collisionShape(state: BlockState, pos: BlockPos): VoxelShape =
     state.getCollisionShape(world, pos).offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
 
-fun SafeContext.outlineShape(state: BlockState, pos: BlockPos) =
+fun SafeContext.outlineShape(state: BlockState, pos: BlockPos): VoxelShape =
     state.getOutlineShape(world, pos).offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
 
 fun SafeContext.blockColor(state: BlockState, pos: BlockPos) =

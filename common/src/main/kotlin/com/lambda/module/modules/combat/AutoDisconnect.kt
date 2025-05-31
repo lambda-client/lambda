@@ -30,9 +30,13 @@ import com.lambda.util.Communication.prefix
 import com.lambda.util.Formatting.string
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
 import com.lambda.util.combat.DamageUtils.isFallDeadly
-import com.lambda.util.extension.fullHealth
+import com.lambda.util.extension.tickDelta
 import com.lambda.util.player.SlotUtils.combined
-import com.lambda.util.text.*
+import com.lambda.util.text.buildText
+import com.lambda.util.text.color
+import com.lambda.util.text.highlighted
+import com.lambda.util.text.literal
+import com.lambda.util.text.text
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.damage.DamageTypes
@@ -106,10 +110,12 @@ object AutoDisconnect : Module(
                 trident to DamageTypes.TRIDENT
             )
 
-            damageHandlers.firstOrNull { (enabled, damageSource) ->
-                enabled && event.source.isOf(damageSource)
-            }?.let {
-                damageDisconnect(event.source, event.amount)
+            player.recentDamageSource?.let { source ->
+                damageHandlers.firstOrNull { (enabled, damageSource) ->
+                    enabled && source.isOf(damageSource)
+                }?.let {
+                    damageDisconnect(source, event.amount)
+                }
             }
         }
     }
@@ -209,7 +215,7 @@ object AutoDisconnect : Module(
         }),
         CREEPER({ creeper }, {
             fastEntitySearch<CreeperEntity>(15.0).find {
-                it.getClientFuseTime(mc.tickDelta) > 0.0
+                it.getLerpedFuseTime(mc.tickDelta) > 0.0
                         && it.pos.distanceTo(player.pos) <= 5.0
             }?.let { creeper ->
                 buildText {

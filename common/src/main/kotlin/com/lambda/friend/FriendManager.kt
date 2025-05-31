@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,12 @@ package com.lambda.friend
 import com.lambda.config.Configurable
 import com.lambda.config.configurations.FriendConfig
 import com.lambda.core.Loadable
-import com.lambda.util.text.*
+import com.lambda.util.text.ClickEvents
+import com.lambda.util.text.buildText
+import com.lambda.util.text.clickEvent
+import com.lambda.util.text.literal
+import com.lambda.util.text.styled
+import com.lambda.util.text.text
 import com.mojang.authlib.GameProfile
 import net.minecraft.client.network.OtherClientPlayerEntity
 import net.minecraft.text.Text

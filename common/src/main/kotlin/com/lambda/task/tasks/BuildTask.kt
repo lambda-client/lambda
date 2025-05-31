@@ -38,15 +38,15 @@ import com.lambda.interaction.construction.result.Drawable
 import com.lambda.interaction.construction.result.Navigable
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.result.Resolvable
+import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.simulation.BuildGoal
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
-import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarConfig
-import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
@@ -54,6 +54,7 @@ import com.lambda.util.Formatting.string
 import com.lambda.util.extension.Structure
 import com.lambda.util.extension.inventorySlots
 import com.lambda.util.item.ItemUtils.block
+import com.lambda.util.player.MovementUtils.sneaking
 import com.lambda.util.player.SlotUtils.hotbarAndStorage
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
@@ -225,6 +226,7 @@ class BuildTask @Ta5kBuilder constructor(
                 BaritoneUtils.setGoalAndPath(GoalBlock(itemDrop.blockPos))
                 return true
             } ?: false
+
 
     companion object {
         @Ta5kBuilder

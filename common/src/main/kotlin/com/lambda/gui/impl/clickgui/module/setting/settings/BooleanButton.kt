@@ -18,12 +18,12 @@
 package com.lambda.gui.impl.clickgui.module.setting.settings
 
 import com.lambda.graphics.animation.Animation.Companion.exp
-import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.component.core.FilledRect.Companion.rect
 import com.lambda.gui.component.core.GlowRect.Companion.glow
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.impl.clickgui.module.setting.SettingLayout
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.Mouse
 import com.lambda.util.math.Rect
 import com.lambda.util.math.Vec2d

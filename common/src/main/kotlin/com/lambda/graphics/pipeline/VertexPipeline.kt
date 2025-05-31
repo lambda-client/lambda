@@ -20,7 +20,8 @@ package com.lambda.graphics.pipeline
 import com.lambda.graphics.buffer.vertex.VertexArray
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
-import org.lwjgl.opengl.GL32C.*
+import org.lwjgl.opengl.GL32C.GL_ARRAY_BUFFER
+import org.lwjgl.opengl.GL32C.GL_ELEMENT_ARRAY_BUFFER
 
 /**
  * A GPU vertex processing pipeline that manages Vertex Array Objects (VAO) and associated buffers.

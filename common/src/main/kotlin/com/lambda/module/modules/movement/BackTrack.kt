@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,12 +34,21 @@ import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.ServerPacket
 import com.lambda.util.math.dist
-import com.lambda.util.math.minus
-import com.lambda.util.math.plus
 import com.lambda.util.math.lerp
+import com.lambda.util.math.minus
 import com.lambda.util.math.multAlpha
+import com.lambda.util.math.plus
 import net.minecraft.entity.LivingEntity
-import net.minecraft.network.packet.s2c.play.*
+import net.minecraft.network.packet.s2c.play.EntityAnimationS2CPacket
+import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket
+import net.minecraft.network.packet.s2c.play.EntityS2CPacket
+import net.minecraft.network.packet.s2c.play.EntityStatusEffectS2CPacket
+import net.minecraft.network.packet.s2c.play.ParticleS2CPacket
+import net.minecraft.network.packet.s2c.play.PlaySoundFromEntityS2CPacket
+import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket
+import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket
+import net.minecraft.network.packet.s2c.play.WorldEventS2CPacket
+import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -63,8 +72,8 @@ object BackTrack : Module(
     private const val POSITION_PACKET_SCALE = 1 / 4096.0
     private val currentTime get() = System.currentTimeMillis()
 
-    private val sendPool = ConcurrentLinkedDeque<Pair<ClientPacket, Long>>()
-    private val receivePool = ConcurrentLinkedDeque<Pair<ServerPacket, Long>>()
+    private val sendPool = ConcurrentLinkedDeque<Pair<ServerPacket, Long>>()
+    private val receivePool = ConcurrentLinkedDeque<Pair<ClientPacket, Long>>()
 
     enum class Mode(val shouldSend: SafeContext.(Vec3d, Vec3d, Long) -> Boolean) {
         FIXED({ _, _, timing ->
@@ -138,8 +147,8 @@ object BackTrack : Module(
                 }
 
                 is EntityPositionS2CPacket -> {
-                    if (target.id == packet.id) {
-                        targetPos = Vec3d(packet.x, packet.y, packet.z)
+                    if (target.id == packet.entityId) {
+                        targetPos = packet.change().position // TODO: Is this relative ?
                     }
                 }
 

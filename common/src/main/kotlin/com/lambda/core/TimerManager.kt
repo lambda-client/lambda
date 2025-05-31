@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,36 +20,32 @@ package com.lambda.core
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ClientEvent
 import kotlin.concurrent.fixedRateTimer
+import kotlin.time.Duration.Companion.milliseconds
 
 object TimerManager : Loadable {
-    var lastTickLength: Float = 50f
+    var lastTickLength = 50.0
 
     override fun load() = "Loaded Timer Manager"
 
-    private const val TICK_DELAY = 50L
-    private var start = 0L
-    val fixedTickDelta get() = (System.currentTimeMillis() - start).mod(TICK_DELAY).toDouble() / TICK_DELAY
+    val length: Double
+        get() {
+            var length = 50.0
+
+            ClientEvent.TimerUpdate(1.0).post {
+                length /= speed
+            }
+
+            lastTickLength = length
+            return length
+        }
 
     init {
         fixedRateTimer(
             daemon = true,
             name = "Scheduler-Lambda-Tick",
-            initialDelay = 0,
-            period = TICK_DELAY
+            period = 50.milliseconds.inWholeMilliseconds,
         ) {
-            if (start == 0L) start = System.currentTimeMillis()
             ClientEvent.FixedTick(this).post()
         }
-    }
-
-    fun getLength(): Float {
-        var length = 50f
-
-        ClientEvent.TimerUpdate(1.0).post {
-            length /= speed.toFloat()
-        }
-
-        lastTickLength = length
-        return length
     }
 }

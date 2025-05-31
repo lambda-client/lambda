@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,12 +17,12 @@
 
 package com.lambda.gui.component.window
 
-import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.component.HAlign
 import com.lambda.gui.component.core.FilledRect.Companion.rect
 import com.lambda.gui.component.core.TextField.Companion.textField
 import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
+import com.lambda.module.modules.client.ClickGui
 import com.lambda.util.Mouse
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.transform

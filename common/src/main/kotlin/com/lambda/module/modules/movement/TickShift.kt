@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -123,7 +123,7 @@ object TickShift : Module(
             if (!isActive || !grim || !shiftVelocity || event.isCanceled()) return@listen
 
             if (event.packet !is EntityVelocityUpdateS2CPacket) return@listen
-            if (event.packet.id != player.id) return@listen
+            if (event.packet.entityId != player.id) return@listen
 
             lastVelocity = event.packet
             event.cancel()

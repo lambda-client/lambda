@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,10 +18,13 @@
 package com.lambda.module.modules.player
 
 import com.lambda.Lambda.mc
-import com.lambda.interaction.request.rotation.RotationConfig
-import com.lambda.event.events.*
+import com.lambda.event.events.ConnectionEvent
+import com.lambda.event.events.MovementEvent
+import com.lambda.event.events.PlayerEvent
+import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.rotation.Rotation
+import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.interaction.request.rotation.RotationMode
 import com.lambda.interaction.request.rotation.visibilty.lookAtHit
@@ -117,7 +120,7 @@ object Freecam : Module(
             }
 
             // Create new input for freecam
-            val input = newMovementInput(assumeBaritoneUsage = false, slowDownCheck = false)
+            val input = newMovementInput(assumeBaritone = false, slowdownCheck = false)
             val sprintModifier = if (mc.options.sprintKey.isPressed) sprint else 1.0
             val moveDir = calcMoveRad(rotation.yawF, input.roundedForward, input.roundedStrafing)
             var moveVec = movementVector(moveDir, input.verticalMovement) * speed * sprintModifier

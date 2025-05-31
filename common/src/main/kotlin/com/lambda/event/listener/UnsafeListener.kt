@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@ import com.lambda.context.SafeContext
 import com.lambda.event.Event
 import com.lambda.event.EventFlow
 import com.lambda.event.Muteable
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
+import com.lambda.event.listener.SafeListener.Companion.listenOnce
 import com.lambda.threading.runConcurrent
 import com.lambda.util.Pointer
 import com.lambda.util.selfReference

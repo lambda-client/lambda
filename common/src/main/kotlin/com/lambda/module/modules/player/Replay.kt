@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,15 @@
 
 package com.lambda.module.modules.player
 
-import com.google.gson.*
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonArray
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
+import com.google.gson.JsonNull
+import com.google.gson.JsonSerializationContext
+import com.google.gson.JsonSerializer
 import com.lambda.brigadier.CommandResult
-import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.context.SafeContext
 import com.lambda.core.TimerManager
 import com.lambda.event.EventFlow.lambdaScope
@@ -27,6 +33,7 @@ import com.lambda.event.events.KeyboardEvent
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.rotation.Rotation
+import com.lambda.interaction.request.rotation.RotationConfig
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
 import com.lambda.interaction.request.rotation.RotationMode
 import com.lambda.interaction.request.rotation.visibilty.lookAt
@@ -45,11 +52,21 @@ import com.lambda.util.Formatting.getTime
 import com.lambda.util.KeyCode
 import com.lambda.util.StringUtils.sanitizeForFilename
 import com.lambda.util.extension.rotation
-import com.lambda.util.text.*
+import com.lambda.util.player.MovementUtils.forward
+import com.lambda.util.player.MovementUtils.strafe
+import com.lambda.util.text.ClickEvents
+import com.lambda.util.text.HoverEvents
+import com.lambda.util.text.TextBuilder
+import com.lambda.util.text.buildText
+import com.lambda.util.text.clickEvent
+import com.lambda.util.text.color
+import com.lambda.util.text.hoverEvent
+import com.lambda.util.text.literal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minecraft.client.input.Input
 import net.minecraft.sound.SoundEvents
+import net.minecraft.util.PlayerInput
 import net.minecraft.util.math.Vec3d
 import java.io.File
 import java.lang.reflect.Type
@@ -168,23 +185,6 @@ object Replay : Module(
                 State.PLAYING -> {
                     buffer?.rotation?.removeFirstOrNull()?.let { rot ->
                         lookAt(rot).requestBy(rotationConfig)
-                    }
-                }
-
-                else -> {}
-            }
-        }
-
-        listen<MovementEvent.Sprint> { event ->
-            when (state) {
-                State.RECORDING -> {
-                    buffer?.sprint?.add(player.isSprinting)
-                }
-
-                State.PLAYING -> {
-                    buffer?.sprint?.removeFirstOrNull()?.let { sprint ->
-                        event.sprint = sprint
-                        player.isSprinting = sprint
                     }
                 }
 
@@ -532,7 +532,6 @@ object Replay : Module(
         cyclicPaths.sortedDescending().forEach {
             pruned.input.removeAt(it)
             pruned.rotation.removeAt(it)
-            pruned.sprint.removeAt(it)
             pruned.position.removeAt(it)
         }
         this@Replay.info(buildText {
@@ -560,12 +559,11 @@ object Replay : Module(
     data class Recording(
         val input: MutableList<InputAction> = mutableListOf(),
         val rotation: MutableList<Rotation> = mutableListOf(),
-        val sprint: MutableList<Boolean> = mutableListOf(),
         val position: MutableList<Vec3d> = mutableListOf(),
 //        val interaction: MutableList<Interaction> = mutableListOf()
     ) : JsonSerializer<Recording>, JsonDeserializer<Recording> {
         val size: Int
-            get() = minOf(input.size, rotation.size, sprint.size, position.size)
+            get() = minOf(input.size, rotation.size, position.size)
         val duration: Duration
             get() = (size * TimerManager.lastTickLength * 1.0).toDuration(DurationUnit.MILLISECONDS)
         val startPos: Vec3d
@@ -578,7 +576,6 @@ object Replay : Module(
         fun duplicate() = Recording(
             input.take(size).toMutableList(),
             rotation.take(size).toMutableList(),
-            sprint.take(size).toMutableList(),
             position.take(size).toMutableList()
         )
 
@@ -603,10 +600,10 @@ object Replay : Module(
                         add(inputI.pressingRight)
                         add(inputI.jumping)
                         add(inputI.sneaking)
+                        add(inputI.sprinting)
                         val rotationI = recording.rotation[i]
                         add(rotationI.yaw)
                         add(rotationI.pitch)
-                        add(recording.sprint[i])
                         val positionI = recording.position[i]
                         add(positionI.x)
                         add(positionI.y)
@@ -623,7 +620,6 @@ object Replay : Module(
         ): Recording = json?.asJsonArray?.let {
             val input = mutableListOf<InputAction>()
             val rotation = mutableListOf<Rotation>()
-            val sprint = mutableListOf<Boolean>()
             val position = mutableListOf<Vec3d>()
 
             it.forEach { element ->
@@ -637,15 +633,15 @@ object Replay : Module(
                         array[4].asBoolean,
                         array[5].asBoolean,
                         array[6].asBoolean,
-                        array[7].asBoolean
+                        array[7].asBoolean,
+                        array[8].asBoolean,
                     )
                 )
-                rotation.add(Rotation(array[8].asDouble, array[9].asDouble))
-                sprint.add(array[10].asBoolean)
+                rotation.add(Rotation(array[9].asDouble, array[10].asDouble))
                 position.add(Vec3d(array[11].asDouble, array[12].asDouble, array[13].asDouble))
             }
 
-            Recording(input, rotation, sprint, position)
+            Recording(input, rotation, position)
         } ?: Recording()
     }
 
@@ -658,29 +654,34 @@ object Replay : Module(
         val pressingRight: Boolean,
         val jumping: Boolean,
         val sneaking: Boolean,
+        val sprinting: Boolean,
     ) {
         fun update(input: Input) {
-            input.movementSideways = movementSideways
-            input.movementForward = movementForward
-            input.pressingForward = pressingForward
-            input.pressingBack = pressingBack
-            input.pressingLeft = pressingLeft
-            input.pressingRight = pressingRight
-            input.jumping = jumping
-            input.sneaking = sneaking
+            input.strafe = movementSideways
+            input.forward = movementForward
+            input.playerInput = PlayerInput(
+                pressingForward,
+                pressingBack,
+                pressingLeft,
+                pressingRight,
+                jumping,
+                sneaking,
+                sprinting,
+            )
         }
 
         companion object {
             fun Input.toAction() =
                 InputAction(
-                    movementSideways,
-                    movementForward,
-                    pressingForward,
-                    pressingBack,
-                    pressingLeft,
-                    pressingRight,
-                    jumping,
-                    sneaking
+                    strafe,
+                    forward,
+                    playerInput.forward,
+                    playerInput.backward,
+                    playerInput.left,
+                    playerInput.right,
+                    playerInput.jump,
+                    playerInput.sneak,
+                    playerInput.sprint,
                 )
         }
     }

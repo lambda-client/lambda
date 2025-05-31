@@ -23,6 +23,7 @@ import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.collection.DefaultedList;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -36,18 +37,17 @@ import static net.minecraft.entity.player.PlayerInventory.isValidHotbarIndex;
 public class PlayerInventoryMixin {
     @Shadow @Final public PlayerEntity player;
 
-    @Inject(method = "getMainHandStack", at = @At(value = "HEAD"), cancellable = true)
+    @Inject(method = "getMainStacks", at = @At(value = "HEAD"), cancellable = true)
     public void handleSpoofedMainHandStack(CallbackInfoReturnable<ItemStack> cir) {
-        PlayerInventory instance = (PlayerInventory) (Object) this;
         MinecraftClient mc = MinecraftClient.getInstance();
         ClientPlayerInteractionManager interaction = mc.interactionManager;
 
-        if (instance.player != mc.player || interaction == null) return;
+        if (player != mc.player || interaction == null) return;
 
         int actualSlot = interaction.lastSelectedSlot;
 
         cir.setReturnValue(
-                isValidHotbarIndex(actualSlot) ? instance.main.get(actualSlot) : ItemStack.EMPTY
+                isValidHotbarIndex(actualSlot) ? main.get(actualSlot) : ItemStack.EMPTY
         );
     }
 

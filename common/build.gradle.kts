@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,12 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+val modId: String by project
 val modVersion: String by project
 val minecraftVersion: String by project
-val modId: String by project
 val fabricLoaderVersion: String by project
-val kotlinxCoroutinesVersion: String by project
+val pngEncoderVersion: String by project
 val discordIPCVersion: String by project
+val classGraphVersion: String by project
+val kotlinVersion: String by project
 val ktorVersion: String by project
 val mockitoKotlin: String by project
 val mockitoInline: String by project
@@ -28,7 +30,7 @@ val mockkVersion: String by project
 
 base.archivesName = "${base.archivesName.get()}-api"
 
-architectury { common("fabric", "forge") }
+architectury { common("fabric") }
 
 loom {
     silentMojangMappingsLicense()
@@ -42,12 +44,13 @@ repositories {
 dependencies {
     // We depend on fabric loader here to use the fabric @Environment annotations and get the mixin dependencies
     // Do NOT use other classes from fabric loader
-    modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
+    modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion") { isTransitive = false }
 
     // Add dependencies on the required Kotlin modules.
-    implementation("org.reflections:reflections:0.10.2")
+    implementation("io.github.classgraph:classgraph:${classGraphVersion}")
     implementation("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
-    implementation("com.pngencoder:pngencoder:0.15.0")
+    implementation("com.pngencoder:pngencoder:$pngEncoderVersion")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
 
     // Ktor
     implementation("io.ktor:ktor-client-core:$ktorVersion")
@@ -55,11 +58,10 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-gson:$ktorVersion")
 
-    // Add Kotlin
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinxCoroutinesVersion")
+    implementation("io.github.classgraph:classgraph:4.8.179")
 
     // Baritone
-    modImplementation("baritone-api:baritone-unoptimized-fabric:1.10.2") { isTransitive = false }
+    modImplementation("com.github.rfresh2:baritone-fabric:$minecraftVersion")
 
     // Test implementations
     testImplementation(kotlin("test"))
@@ -77,10 +79,10 @@ tasks {
         useJUnitPlatform()
         jvmArgs("-XX:+EnableDynamicAgentLoading", "-Xshare:off")
     }
-}
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    kotlinOptions {
-        jvmTarget = "17"
+    compileKotlin {
+        compilerOptions {
+            freeCompilerArgs.set(listOf("-Xwhen-guards"))
+        }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,10 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
 import com.lambda.util.collections.LimitedDecayQueue
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.*
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.Full
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.LookAndOnGround
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.OnGroundOnly
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket.PositionAndOnGround
 import net.minecraft.network.packet.c2s.play.TeleportConfirmC2SPacket
 
 // ToDo: HUD info

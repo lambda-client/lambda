@@ -55,7 +55,8 @@ object Network : Module(
     val mappings by setting("Mappings", "https://mappings.lambda-client.org")
     val cdn by setting("CDN", "https://cdn.lambda-client.org")
 
-    val gameVersion = SharedConstants.getGameVersion().name
+    @Suppress("Deprecation")
+    const val GAME_VERSION = SharedConstants.VERSION_NAME
 
     private var hash: String? = null
 
@@ -94,7 +95,7 @@ object Network : Module(
         ClientConnection.connect(resolved, mc.options.shouldUseNativeTransport(), connection)
             .syncUninterruptibly()
 
-        val handler = ClientLoginNetworkHandler(connection, mc, null, null, false, null) { Text.empty() }
+        val handler = ClientLoginNetworkHandler(connection, mc, null, null, false, null, { Text.empty() } , null)
 
         connection.connect(resolved.hostName, resolved.port, handler)
         connection.send(LoginHelloC2SPacket(mc.session.username, mc.session.uuidOrNull))

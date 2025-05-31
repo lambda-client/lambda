@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,25 +17,35 @@
 
 package com.lambda.graphics.texture
 
-import com.mojang.blaze3d.systems.RenderSystem
 import com.pngencoder.PngEncoder
 import net.minecraft.client.texture.NativeImage
 import org.lwjgl.BufferUtils
-import org.lwjgl.opengl.GL45C.*
+import org.lwjgl.opengl.GL45C.GL_CLAMP_TO_EDGE
+import org.lwjgl.opengl.GL45C.GL_TEXTURE0
+import org.lwjgl.opengl.GL45C.GL_TEXTURE_2D
+import org.lwjgl.opengl.GL45C.GL_TEXTURE_MAG_FILTER
+import org.lwjgl.opengl.GL45C.GL_TEXTURE_MIN_FILTER
+import org.lwjgl.opengl.GL45C.GL_TEXTURE_WRAP_S
+import org.lwjgl.opengl.GL45C.GL_TEXTURE_WRAP_T
+import org.lwjgl.opengl.GL45C.GL_UNPACK_ALIGNMENT
+import org.lwjgl.opengl.GL45C.GL_UNPACK_ROW_LENGTH
+import org.lwjgl.opengl.GL45C.GL_UNPACK_SKIP_PIXELS
+import org.lwjgl.opengl.GL45C.GL_UNPACK_SKIP_ROWS
+import org.lwjgl.opengl.GL45C.glActiveTexture
+import org.lwjgl.opengl.GL45C.glBindTexture
+import org.lwjgl.opengl.GL45C.glPixelStorei
+import org.lwjgl.opengl.GL45C.glTexParameteri
 import java.awt.image.BufferedImage
 import java.nio.ByteBuffer
 
 object TextureUtils {
-    private const val COMPRESSION_LEVEL = -1
-    private const val THREADED_COMPRESSION = false
-
     val encoderPreset = PngEncoder()
-        .withCompressionLevel(COMPRESSION_LEVEL)
-        .withMultiThreadedCompressionEnabled(THREADED_COMPRESSION)
+        .withCompressionLevel(-1)
+        .withMultiThreadedCompressionDisabled()
 
     fun bindTexture(id: Int, slot: Int = 0) {
-        RenderSystem.activeTexture(GL_TEXTURE0 + slot)
-        RenderSystem.bindTexture(id)
+        glActiveTexture(GL_TEXTURE0 + slot)
+        glBindTexture(GL_TEXTURE_2D, id)
     }
 
     fun setupTexture(minFilter: Int, magFilter: Int) {

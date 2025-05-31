@@ -83,7 +83,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
             state.matches(blockState)
 
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
-            blockState.block.getPickStack(world, pos, blockState)
+            blockState.block.getPickStack(world, pos, blockState, true)
 
         override fun isAir() = blockState.isAir
     }
@@ -95,7 +95,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
             state.block == block
 
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
-            block.getPickStack(world, pos, block.defaultState)
+            block.getPickStack(world, pos, block.defaultState, true)
 
         override fun isAir() = block.defaultState.isAir
     }

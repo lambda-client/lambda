@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ object CameraTweaks : Module(
     defaultTags = setOf(ModuleTag.RENDER)
 ) {
     @JvmStatic
-    val camDistance by setting("Camera Distance", 4.0, 1.0..20.0, 0.1)
+    val camDistance by setting("Camera Distance", 4.0f, 1.0f..20.0f, 0.1f)
 
     @JvmStatic
     val noClipCam by setting("No Clip Camera", true)

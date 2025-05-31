@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,19 @@ package com.lambda.interaction.blockplace
 
 import com.lambda.context.SafeContext
 import com.lambda.util.Communication.info
-import net.minecraft.block.*
+import net.minecraft.block.AbstractPressurePlateBlock
+import net.minecraft.block.AnvilBlock
+import net.minecraft.block.BedBlock
+import net.minecraft.block.BlockState
+import net.minecraft.block.BlockWithEntity
+import net.minecraft.block.Blocks
+import net.minecraft.block.ButtonBlock
+import net.minecraft.block.CraftingTableBlock
+import net.minecraft.block.DoorBlock
+import net.minecraft.block.FenceGateBlock
+import net.minecraft.block.NoteBlock
+import net.minecraft.block.ShapeContext
+import net.minecraft.block.TrapdoorBlock
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
@@ -38,11 +50,12 @@ object PlaceInteraction {
 
         if (!swing) return
 
-        if (actionResult.shouldSwingHand()) {
+        // TODO: Is isAccepted the same as shouldSwing ?
+        if (actionResult.isAccepted) {
             player.swingHand(hand)
         }
 
-        if (!player.getStackInHand(hand).isEmpty && interaction.hasCreativeInventory()) {
+        if (!player.getStackInHand(hand).isEmpty && player.isCreative) {
             mc.gameRenderer.firstPersonRenderer.resetEquipProgress(hand)
         }
     }

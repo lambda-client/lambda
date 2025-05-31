@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,15 +19,21 @@ package com.lambda
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.lambda.config.serializer.*
+import com.lambda.config.serializer.BlockPosSerializer
+import com.lambda.config.serializer.BlockSerializer
+import com.lambda.config.serializer.ColorSerializer
+import com.lambda.config.serializer.GameProfileSerializer
+import com.lambda.config.serializer.ItemStackSerializer
+import com.lambda.config.serializer.KeyCodeSerializer
+import com.lambda.config.serializer.OptionalSerializer
 import com.lambda.core.Loader
-import com.lambda.module.tag.ModuleTag
+import com.lambda.threading.recordRenderCall
 import com.lambda.util.KeyCode
 import com.mojang.authlib.GameProfile
-import com.mojang.blaze3d.systems.RenderSystem.recordRenderCall
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
 import net.minecraft.item.ItemStack
+import net.minecraft.registry.DynamicRegistryManager
 import net.minecraft.text.Text
 import net.minecraft.util.math.BlockPos
 import org.apache.logging.log4j.LogManager
@@ -58,12 +64,8 @@ object Lambda {
         .registerTypeAdapter(GameProfile::class.java, GameProfileSerializer)
         .registerTypeAdapter(Optional::class.java, OptionalSerializer)
         .registerTypeAdapter(ItemStack::class.java, ItemStackSerializer)
-        .registerTypeAdapter(Text::class.java, Text.Serializer())
+        .registerTypeAdapter(Text::class.java, Text.Serializer(DynamicRegistryManager.EMPTY))
         .create()
 
-    fun initialize(block: (Long) -> Unit) {
-        recordRenderCall {
-            block(Loader.initialize())
-        }
-    }
+    fun initialize(block: (Long) -> Unit) = recordRenderCall { Loader.initialize().apply(block) }
 }

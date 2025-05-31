@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,11 +23,13 @@ import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.SlotActionType
 
 object SlotUtils {
-    val ClientPlayerEntity.hotbar: List<ItemStack> get() = inventory.main.subList(0, 9)
-    val ClientPlayerEntity.storage: List<ItemStack> get() = inventory.main.subList(9, 36)
-    val ClientPlayerEntity.hotbarAndStorage: List<ItemStack> get() = inventory.main.subList(0, 36)
-    val ClientPlayerEntity.combined: List<ItemStack> get() = inventory.main + inventory.armor + inventory.offHand
+    val ClientPlayerEntity.hotbar: List<ItemStack> get() = inventory.mainStacks.subList(0, 9)
+    val ClientPlayerEntity.storage: List<ItemStack> get() = inventory.mainStacks.subList(9, 36)
+    val ClientPlayerEntity.hotbarAndStorage: List<ItemStack> get() = inventory.mainStacks.subList(0, 36)
+    val ClientPlayerEntity.equipment: List<ItemStack> get() = inventory.equipment.map.map { it.value }
+    val ClientPlayerEntity.combined: List<ItemStack> get() = hotbarAndStorage + equipment + handStacks
     val ClientPlayerEntity.handStacks: List<ItemStack> get() = listOf(mainHandStack, offHandStack)
+
 
     fun SafeContext.clickSlot(
         slotId: Int,

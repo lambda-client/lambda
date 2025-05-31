@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,13 +28,13 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.blockColor
-import com.lambda.util.extension.outlineShape
 import com.lambda.util.extension.getBlockState
+import com.lambda.util.extension.outlineShape
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.toBlockPos
 import net.minecraft.block.BlockState
 import net.minecraft.block.Blocks
-import net.minecraft.client.render.model.BakedModel
+import net.minecraft.client.render.model.BlockStateModel
 import net.minecraft.util.math.BlockPos
 import java.awt.Color
 
@@ -63,7 +63,7 @@ object BlockESP : Module(
     //  Creating a custom baked model for this would be needed but seems really hard to do.
     //  mc.blockRenderManager.getModel(Blocks.RED_STAINED_GLASS.defaultState)
     @JvmStatic
-    val model: BakedModel get() = mc.bakedModelManager.missingModel
+    val model: BlockStateModel get() = mc.bakedModelManager.missingModel
 
     init {
         onToggle {

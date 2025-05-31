@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +37,8 @@ object SafeWalk : Module(
     init {
         listen<MovementEvent.InputUpdate> {
             if (sneakOnLedge && player.isOnGround && player.isNearLedge(ledgeDistance, stepHeight)) {
-                it.input.sneaking = true
+                // TODO: lmao you can't sneak without reallocating the fucking class every time
+                //it.input.sneaking = true
             }
         }
 

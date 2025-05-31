@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -147,7 +147,7 @@ object CrystalAura : Module(
             initialDelay = 0L,
             period = 1L
         ) {
-            if (CrystalAura.isDisabled || updateMode != UpdateMode.Async) return@fixedRateTimer
+            if (isDisabled || updateMode != UpdateMode.Async) return@fixedRateTimer
 
             runSafe {
                 // timer may spam faster than main thread computes (game freezes completely at the beginning of the frame)
@@ -167,7 +167,7 @@ object CrystalAura : Module(
             initialDelay = 0L,
             period = 1000L
         ) {
-            if (CrystalAura.isDisabled || !debug) return@fixedRateTimer
+            if (isDisabled || !debug) return@fixedRateTimer
 
             runSafeGameScheduled {
                 info((decay.size.toDouble() * 0.3333).roundToStep(0.1).toString())
@@ -352,7 +352,7 @@ object CrystalAura : Module(
             val crystalBox = pos.crystalBox
 
             val entitiesNearby = fastEntitySearch<Entity>(3.5, pos)
-            val crystals = entitiesNearby.filterIsInstance<EndCrystalEntity>() as MutableList
+            val crystals = entitiesNearby.filterIsInstance<EndCrystalEntity>()
             val otherEntities = entitiesNearby - crystals + player
 
             if (otherEntities.any {

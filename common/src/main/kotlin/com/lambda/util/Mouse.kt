@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,13 +22,11 @@ import com.mojang.blaze3d.systems.RenderSystem
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.glfw.GLFW.GLFW_ARROW_CURSOR
 import org.lwjgl.glfw.GLFW.GLFW_POINTING_HAND_CURSOR
-import org.lwjgl.glfw.GLFW.GLFW_RELEASE
 import org.lwjgl.glfw.GLFW.GLFW_RESIZE_EW_CURSOR
 import org.lwjgl.glfw.GLFW.GLFW_RESIZE_NS_CURSOR
 import org.lwjgl.glfw.GLFW.GLFW_RESIZE_NWSE_CURSOR
 import org.lwjgl.glfw.GLFW.glfwCreateStandardCursor
 import org.lwjgl.glfw.GLFW.glfwSetCursor
-import kotlin.jvm.Throws
 
 class Mouse {
     enum class Button {

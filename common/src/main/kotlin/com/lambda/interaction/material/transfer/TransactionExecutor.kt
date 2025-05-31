@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,12 @@ package com.lambda.interaction.material.transfer
 
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.material.transfer.transaction.*
+import com.lambda.interaction.material.transfer.transaction.ClickCreativeStackTransaction
+import com.lambda.interaction.material.transfer.transaction.ClickSlotTransaction
+import com.lambda.interaction.material.transfer.transaction.DropItemInHandTransaction
+import com.lambda.interaction.material.transfer.transaction.PickFromInventoryTransaction
+import com.lambda.interaction.material.transfer.transaction.SwapHandsTransaction
+import com.lambda.interaction.material.transfer.transaction.SwapHotbarSlotTransaction
 import com.lambda.task.Task
 import net.minecraft.item.ItemStack
 import net.minecraft.screen.ScreenHandler

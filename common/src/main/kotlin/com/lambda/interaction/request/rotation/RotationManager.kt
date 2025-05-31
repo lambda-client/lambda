@@ -17,19 +17,15 @@
 
 package com.lambda.interaction.request.rotation
 
-import com.lambda.Lambda.mc
+import com.lambda.Lambda
 import com.lambda.context.SafeContext
-import com.lambda.event.Event
+import com.lambda.core.Loadable
 import com.lambda.event.EventFlow.post
-import com.lambda.event.events.ConnectionEvent
-import com.lambda.event.events.PacketEvent
-import com.lambda.event.events.RotationEvent
-import com.lambda.event.events.TickEvent
-import com.lambda.event.events.UpdateManagerEvent
+import com.lambda.event.events.*
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
+import com.lambda.interaction.request.rotation.Rotation.Companion.fixSensitivity
 import com.lambda.interaction.request.rotation.Rotation.Companion.slerp
 import com.lambda.interaction.request.rotation.visibilty.lookAt
 import com.lambda.module.modules.client.Baritone
@@ -234,7 +230,7 @@ object RotationManager : RequestHandler<RotationRequest>(
         }
 
         @JvmStatic
-        fun processPlayerMovement(input: Input, slowDown: Boolean, slowDownFactor: Float) = runSafe {
+        fun processPlayerMovement(input: Input) = runSafe {
             // The yaw relative to which the movement was constructed
             val baritoneYaw = baritoneContext?.target?.targetRotation?.value?.yaw
             val strafeEvent = RotationEvent.StrafeInput(baritoneYaw ?: player.yaw.toDouble(), input)
@@ -245,11 +241,12 @@ object RotationManager : RequestHandler<RotationRequest>(
             // if (config.rotationMode == RotationMode.SILENT && !input.handledByBaritone && baritoneContext == null) return@runSafe
 
             // Sign it to remove previous speed modifier
-            val signForward = sign(input.movementForward)
-            val signStrafe = sign(input.movementSideways)
+            input.hasForwardMovement()
+            val signForward = sign(input.movementVector.y)
+            val signStrafe = sign(input.movementVector.x)
 
             // No changes are needed when no inputs are pressed
-            if (signForward == 0f && signStrafe == 0f) return@runSafe
+            if (signForward <= 1.0E-5f && signStrafe <= 1.0E-5F) return@runSafe
 
             // Actual yaw used by the physics engine
             var actualYaw = activeRotation.yaw
@@ -268,11 +265,10 @@ object RotationManager : RequestHandler<RotationRequest>(
 
             // Apply new movement
             input.apply {
-                // Movement speed modifier
-                val multiplier = if (slowDown) slowDownFactor else 1f
-
-                movementSideways = round(newX).toFloat() * multiplier
-                movementForward = round(newZ).toFloat() * multiplier
+                movementVector = Vec2f(
+                    round(newX).toFloat(),
+                    round(newZ).toFloat(),
+                )
             }
 
             baritoneYaw ?: return@runSafe
@@ -283,10 +279,7 @@ object RotationManager : RequestHandler<RotationRequest>(
                 .map { activeRotation.yaw + it } // all possible movement directions (including diagonals)
                 .minOf { Rotation.angleDifference(it, baritoneYaw) }
 
-            if (minYawDist > 5.0) {
-                input.movementSideways = 0f
-                input.movementForward = 0f
-            }
+            if (minYawDist > 5.0) input.movementVector = Vec2f.ZERO
         }
     }
 

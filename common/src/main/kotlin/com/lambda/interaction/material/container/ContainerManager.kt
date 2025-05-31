@@ -124,6 +124,20 @@ object ContainerManager : Loadable {
             .filter { it.spaceAvailable(selection) >= selection.count }
             .filter { inventory.containerSelection.matches(it) }
 
+    fun findBestAvailableTool(
+        blockState: BlockState,
+        availableTools: Set<Item> = ItemUtils.tools,
+        inventory: InventoryConfig = TaskFlowModule.inventory,
+    ) = availableTools.map {
+        it to it.getMiningSpeed(it.defaultStack, blockState)
+    }.filter { (item, speed) ->
+        speed > 1.0
+                && item.defaultStack.isSuitableFor(blockState)
+                && containerWithMaterial(item.select(), inventory).isNotEmpty()
+    }.maxByOrNull {
+        it.second
+    }?.first
+
     fun findDisposable(inventory: InventoryConfig = TaskFlowModule.inventory) = container().find { container ->
         inventory.disposables.any { container.materialAvailable(it.item.select()) >= 0 }
     }

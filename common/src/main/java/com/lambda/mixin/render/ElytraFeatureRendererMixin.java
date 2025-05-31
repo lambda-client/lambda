@@ -17,12 +17,9 @@
 
 package com.lambda.mixin.render;
 
-import com.lambda.module.modules.client.Capes;
-import com.lambda.network.CapeManager;
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import net.minecraft.client.render.VertexConsumerProvider;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.client.render.entity.feature.ElytraFeatureRenderer;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.render.entity.state.BipedEntityRenderState;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
@@ -30,10 +27,17 @@ import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(ElytraFeatureRenderer.class)
 public class ElytraFeatureRendererMixin<T extends LivingEntity> {
-    @ModifyExpressionValue(method = "render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;ILnet/minecraft/entity/LivingEntity;FFFFFF)V",  at = @At(value = "INVOKE", target = "Lnet/minecraft/client/util/SkinTextures;elytraTexture()Lnet/minecraft/util/Identifier;"))
-    Identifier renderElytra(Identifier original, MatrixStack matrixStack, VertexConsumerProvider vertexConsumerProvider, int i, T livingEntity, float f, float g, float h, float j, float k, float l) {
-        if (!Capes.INSTANCE.isEnabled() || !CapeManager.INSTANCE.containsKey(livingEntity.getUuid())) return original;
+    @ModifyReturnValue(method = "getTexture(Lnet/minecraft/client/render/entity/state/BipedEntityRenderState;)Lnet/minecraft/util/Identifier;", at = @At("TAIL"))
+    private static Identifier getTexture(Identifier original, BipedEntityRenderState state) {
+        // FixMe: fuck you mojang
+        /*var entity = StreamSupport.stream(Lambda.getMc().world.getEntities().spliterator(), false)
+                        .filter(e -> e.getDisplayName() == state.displayName)
+                        .findFirst().get();
 
-        return Identifier.of("lambda", CapeManager.INSTANCE.get(livingEntity.getUuid()));
+        if (!Capes.INSTANCE.isEnabled() || !CapeManager.INSTANCE.containsKey(entity.getUuid())) return original;
+
+        return Identifier.of("lambda", CapeManager.INSTANCE.get(entity.getUuid()));*/
+
+        return original;
     }
 }

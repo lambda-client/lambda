@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,10 +21,9 @@ import com.lambda.Lambda.LOG
 import com.lambda.core.Loadable
 import com.lambda.util.FolderRegister
 import com.lambda.util.FolderRegister.structure
-import com.lambda.util.extension.readLitematicaOrException
-import com.lambda.util.extension.readNbtOrException
-import com.lambda.util.extension.readSchematicOrException
-import com.lambda.util.extension.readSpongeOrException
+import com.lambda.util.extension.readLitematica
+import com.lambda.util.extension.readSchematic
+import com.lambda.util.extension.readSponge
 import net.minecraft.nbt.NbtCompound
 import net.minecraft.nbt.NbtIo
 import net.minecraft.nbt.NbtSizeTracker
@@ -38,14 +37,19 @@ import java.nio.file.StandardWatchEventKinds.ENTRY_CREATE
 import java.nio.file.StandardWatchEventKinds.ENTRY_DELETE
 import java.nio.file.WatchEvent
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.io.path.*
+import kotlin.io.path.extension
+import kotlin.io.path.inputStream
+import kotlin.io.path.name
+import kotlin.io.path.nameWithoutExtension
+import kotlin.io.path.outputStream
+import kotlin.io.path.pathString
+import kotlin.io.path.walk
 
 /**
  * The `StructureRegistry` object is responsible for managing the loading, saving, and validating of Minecraft structure templates.
  * It extends [ConcurrentHashMap] to allow concurrent access to structure templates by their names.
  * This registry supports multiple structure formats and automatically monitors changes in the structure directory.
  */
-@OptIn(ExperimentalPathApi::class)
 @Suppress("JavaIoSerializableObjectMustHaveReadResolve")
 object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loadable {
     private val pathWatcher by lazy {
@@ -57,12 +61,12 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
      * Map of file suffix to their respective read function
      */
     private val serializers = mapOf(
-        "nbt" to StructureTemplate::readNbtOrException,
-        "schem" to StructureTemplate::readSpongeOrException,
-        "litematic" to StructureTemplate::readLitematicaOrException,
+        "nbt" to StructureTemplate::readNbt,
+        "schem" to StructureTemplate::readSponge,
+        "litematic" to StructureTemplate::readLitematica,
 
         // Not supported, who could've guess that converting a format from 15 years ago would be hard? :clueless:
-        "schematic" to StructureTemplate::readSchematicOrException,
+        "schematic" to StructureTemplate::readSchematic,
     )
 
     /**
@@ -148,8 +152,7 @@ object StructureRegistry : ConcurrentHashMap<String, StructureTemplate>(), Loada
     private fun createStructure(nbt: NbtCompound, suffix: String): StructureTemplate =
         StructureTemplate().apply {
             serializers[suffix]
-                ?.invoke(this, Registries.BLOCK.readOnlyWrapper, nbt)
-                ?.let { throw it } // ToDo: Maybe use propagation instead of errors as values
+                ?.invoke(this, Registries.BLOCK, nbt)
         }
 
     /**

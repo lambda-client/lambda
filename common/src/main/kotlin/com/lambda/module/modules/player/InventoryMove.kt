@@ -30,16 +30,27 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyboardUtils.isKeyPressed
 import com.lambda.util.math.MathUtils.toDouble
 import com.lambda.util.math.MathUtils.toFloatSign
-import com.lambda.util.player.MovementUtils.buildMovementInput
-import com.lambda.util.player.MovementUtils.mergeFrom
+import com.lambda.util.player.MovementUtils.update
 import net.minecraft.client.gui.screen.ChatScreen
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.screen.ingame.AnvilScreen
 import net.minecraft.client.gui.screen.ingame.CommandBlockScreen
-import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen
 import net.minecraft.client.gui.screen.ingame.SignEditScreen
-import net.minecraft.client.network.ClientPlayerEntity
-import org.lwjgl.glfw.GLFW.*
+import org.lwjgl.glfw.GLFW.GLFW_KEY_A
+import org.lwjgl.glfw.GLFW.GLFW_KEY_D
+import org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_2
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_4
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_6
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_8
+import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT
+import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL
+import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_SHIFT
+import org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT
+import org.lwjgl.glfw.GLFW.GLFW_KEY_S
+import org.lwjgl.glfw.GLFW.GLFW_KEY_SPACE
+import org.lwjgl.glfw.GLFW.GLFW_KEY_UP
+import org.lwjgl.glfw.GLFW.GLFW_KEY_W
 
 object InventoryMove : Module(
     name = "InventoryMove",
@@ -72,9 +83,9 @@ object InventoryMove : Module(
 
             val jump = isKeyPressed(GLFW_KEY_SPACE)
             val sneak = isKeyPressed(GLFW_KEY_LEFT_SHIFT)
+            val sprint = isKeyPressed(GLFW_KEY_LEFT_CONTROL)
 
-            player.isSprinting = isKeyPressed(GLFW_KEY_LEFT_CONTROL)
-            event.input.mergeFrom(buildMovementInput(forward, strafe, jump, sneak))
+            event.input.update(forward, strafe, jump, sneak, sprint)
         }
 
         onRotate {

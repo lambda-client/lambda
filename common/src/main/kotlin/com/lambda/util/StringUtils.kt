@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,9 @@
 
 package com.lambda.util
 
-import com.google.gson.Gson
+import com.lambda.Lambda
 import com.lambda.Lambda.gson
+import net.minecraft.util.Identifier
 import java.security.MessageDigest
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -37,6 +38,17 @@ object StringUtils {
      * Capitalizes the first character of a string using its Unicode mapping
      */
     fun String.capitalize() = replaceFirstChar { it.titlecase() }
+
+    /**
+     * Returns a Minecraft [net.minecraft.util.Identifier] from a string with the given namespace
+     */
+    fun String.toIdentifier(namespace: String = Lambda.MOD_ID): Identifier =
+        Identifier.of(namespace, this)
+
+    /**
+     * Returns a [Lambda] Minecraft [Identifier] from a string
+     */
+    val String.asIdentifier: Identifier get() = toIdentifier()
 
     /**
      * Find similar strings in a set of words.

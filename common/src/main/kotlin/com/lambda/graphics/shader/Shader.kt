@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,13 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import net.minecraft.util.math.Vec3d
 import org.joml.Matrix4f
-import org.lwjgl.opengl.GL20C.*
+import org.lwjgl.opengl.GL20C.glGetUniformLocation
+import org.lwjgl.opengl.GL20C.glUniform1f
+import org.lwjgl.opengl.GL20C.glUniform1i
+import org.lwjgl.opengl.GL20C.glUniform2f
+import org.lwjgl.opengl.GL20C.glUniform3f
+import org.lwjgl.opengl.GL20C.glUniform4f
+import org.lwjgl.opengl.GL20C.glUseProgram
 import java.awt.Color
 
 class Shader private constructor(name: String) {

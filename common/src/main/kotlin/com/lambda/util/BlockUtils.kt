@@ -19,13 +19,10 @@ package com.lambda.util
 
 import com.lambda.context.SafeContext
 import com.lambda.util.math.MathUtils.floorToInt
-import com.lambda.util.player.gamemode
 import net.minecraft.block.AbstractCauldronBlock
 import net.minecraft.block.AbstractFurnaceBlock
 import net.minecraft.block.AbstractSignBlock
 import net.minecraft.block.AnvilBlock
-import net.minecraft.block.BambooBlock
-import net.minecraft.block.BambooShootBlock
 import net.minecraft.block.BarrelBlock
 import net.minecraft.block.BeaconBlock
 import net.minecraft.block.BedBlock
@@ -83,31 +80,12 @@ import net.minecraft.block.StructureBlock
 import net.minecraft.block.SweetBerryBushBlock
 import net.minecraft.block.TntBlock
 import net.minecraft.block.TrapdoorBlock
-import net.minecraft.enchantment.EnchantmentHelper
-import net.minecraft.enchantment.Enchantments
-import net.minecraft.entity.effect.StatusEffectUtil
-import net.minecraft.entity.effect.StatusEffects
-import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.fluid.FluidState
 import net.minecraft.fluid.Fluids
 import net.minecraft.item.Item
-import net.minecraft.item.ItemStack
-import net.minecraft.item.SwordItem
-import net.minecraft.registry.tag.FluidTags
-import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.EightWayDirection
-import net.minecraft.util.math.Vec3d
-import net.minecraft.util.math.Vec3i
-import net.minecraft.world.BlockView
+import net.minecraft.util.math.*
 
 object BlockUtils {
-    val Vec3i.blockPos: BlockPos get() = BlockPos(this)
-    val Block.item: Item get() = asItem()
-    val Vec3d.flooredPos: BlockPos get() = BlockPos(x.floorToInt(), y.floorToInt(), z.floorToInt())
-    fun BlockPos.vecOf(direction: Direction): Vec3d = toCenterPos().add(Vec3d.of(direction.vector).multiply(0.5))
-    fun BlockPos.offset(eightWayDirection: EightWayDirection, amount: Int): BlockPos =
-        add(eightWayDirection.offsetX * amount, 0, eightWayDirection.offsetZ * amount)
 
     val signs = setOf(
         Blocks.OAK_SIGN,
@@ -167,7 +145,7 @@ object BlockUtils {
 
     val allSigns = signs + wallSigns + hangingSigns + hangingWallSigns
 
-    val interactionBlocks = setOf(
+    val interactionClasses = setOf(
         AbstractCauldronBlock::class,
         AbstractFurnaceBlock::class,
         AbstractSignBlock::class,

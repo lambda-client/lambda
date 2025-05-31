@@ -18,7 +18,6 @@
 package com.lambda.module.hud
 
 import com.lambda.context.SafeContext
-import com.lambda.graphics.renderer.gui.FontRenderer
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
@@ -37,11 +36,11 @@ object Coordinates : HudModule.Text(
     private val showDimension by setting("Show Dimension", true)
     private val decimals by setting("Decimals", 2, 0..4, 1)
 
-    override fun getText() = runSafe { "XYZ ${if (showDimension) dimensionName else ""} ${positionForDimension()}" } ?: ""
+    override fun getText() = runSafe { "XYZ ${if (showDimension) world.dimensionName else ""} ${positionForDimension()}" } ?: ""
 
     private fun SafeContext.positionForDimension() =
         when {
-            isNether -> "${player.pos.asString(decimals)} [${player.overworldCoord.x.string}; ${player.overworldCoord.z.string}]"
+            world.isNether -> "${player.pos.asString(decimals)} [${player.overworldCoord.x.string}; ${player.overworldCoord.z.string}]"
             else -> "${player.pos.asString(decimals)} [${player.netherCoord.x.string}; ${player.netherCoord.z.string}]"
         }
 }

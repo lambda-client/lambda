@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,13 +17,38 @@
 
 package com.lambda.graphics.buffer.frame
 
-import com.lambda.Lambda.mc
-import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
+import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.texture.TextureUtils
 import org.lwjgl.opengl.GL12C.GL_CLAMP_TO_EDGE
-import org.lwjgl.opengl.GL30C.*
+import org.lwjgl.opengl.GL30C.GL_COLOR_ATTACHMENT0
+import org.lwjgl.opengl.GL30C.GL_COLOR_BUFFER_BIT
+import org.lwjgl.opengl.GL30C.GL_DEPTH_ATTACHMENT
+import org.lwjgl.opengl.GL30C.GL_DEPTH_BUFFER_BIT
+import org.lwjgl.opengl.GL30C.GL_DEPTH_COMPONENT
+import org.lwjgl.opengl.GL30C.GL_DEPTH_COMPONENT32F
+import org.lwjgl.opengl.GL30C.GL_FLOAT
+import org.lwjgl.opengl.GL30C.GL_FRAMEBUFFER
+import org.lwjgl.opengl.GL30C.GL_FRAMEBUFFER_COMPLETE
+import org.lwjgl.opengl.GL30C.GL_LINEAR
+import org.lwjgl.opengl.GL30C.GL_RGBA
+import org.lwjgl.opengl.GL30C.GL_TEXTURE_2D
+import org.lwjgl.opengl.GL30C.GL_TEXTURE_MAG_FILTER
+import org.lwjgl.opengl.GL30C.GL_TEXTURE_MIN_FILTER
+import org.lwjgl.opengl.GL30C.GL_TEXTURE_WRAP_S
+import org.lwjgl.opengl.GL30C.GL_TEXTURE_WRAP_T
+import org.lwjgl.opengl.GL30C.GL_UNSIGNED_BYTE
+import org.lwjgl.opengl.GL30C.glBindFramebuffer
+import org.lwjgl.opengl.GL30C.glCheckFramebufferStatus
+import org.lwjgl.opengl.GL30C.glClear
+import org.lwjgl.opengl.GL30C.glClearColor
+import org.lwjgl.opengl.GL30C.glClearDepth
+import org.lwjgl.opengl.GL30C.glFramebufferTexture2D
+import org.lwjgl.opengl.GL30C.glGenFramebuffers
+import org.lwjgl.opengl.GL30C.glGenTextures
+import org.lwjgl.opengl.GL30C.glTexImage2D
+import org.lwjgl.opengl.GL30C.glTexParameteri
 import java.nio.IntBuffer
 
 open class FrameBuffer(
@@ -42,18 +67,19 @@ open class FrameBuffer(
     private var lastWidth = -1
     private var lastHeight = -1
 
+    @Deprecated(message = "Fix this code")
     open fun write(block: () -> Unit): FrameBuffer {
-        val prev = lastFrameBuffer ?: mc.framebuffer.fbo
+        //val prev = lastFrameBuffer ?: mc.framebuffer.fbo
 
         glBindFramebuffer(GL_FRAMEBUFFER, fbo)
-        lastFrameBuffer = fbo
+        //lastFrameBuffer = fbo
 
         update()
 
         block()
 
-        lastFrameBuffer = prev
-        glBindFramebuffer(GL_FRAMEBUFFER, prev)
+        //lastFrameBuffer = prev
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
         return this
     }
 

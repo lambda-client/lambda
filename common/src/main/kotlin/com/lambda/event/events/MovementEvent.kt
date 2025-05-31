@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -92,14 +92,8 @@ sealed class MovementEvent {
      * Event triggered when the user's input is updated.
      *
      * @property input The input state of the player.
-     * @property slowDown Indicates if the player should slow down.
-     * @property slowDownFactor The factor by which the player should slow down.
      */
-    data class InputUpdate(
-        val input: Input,
-        var slowDown: Boolean,
-        var slowDownFactor: Float,
-    ) : Event
+    data class InputUpdate(val input: Input) : Event
 
     /**
      * Event triggered when the player starts or stops sprinting.

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,10 +23,13 @@ import com.lambda.graphics.texture.TextureOwner.uploadField
 import com.lambda.threading.runGameScheduled
 import com.lambda.util.math.Vec2d
 import com.lambda.util.stream
-import com.lambda.util.url
 import it.unimi.dsi.fastutil.objects.Object2DoubleArrayMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
-import java.awt.*
+import java.awt.Color
+import java.awt.Font
+import java.awt.FontMetrics
+import java.awt.Graphics2D
+import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.File
 import java.util.zip.ZipFile

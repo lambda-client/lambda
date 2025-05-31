@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -85,7 +85,8 @@ object PlayerPacketManager {
                     player.motionZ,
                     yaw,
                     pitch,
-                    onGround
+                    onGround,
+                    true // TODO: Check this after update
                 )
             )
             return
@@ -99,19 +100,19 @@ object PlayerPacketManager {
 
         val packet = when {
             updatePosition && updateRotation -> {
-                Full(x, y, z, yaw, pitch, onGround)
+                Full(x, y, z, yaw, pitch, onGround, true) // TODO: Check this after update
             }
 
             updatePosition -> {
-                PositionAndOnGround(x, y, z, onGround)
+                PositionAndOnGround(x, y, z, onGround, true) // TODO: Check this after update
             }
 
             updateRotation -> {
-                LookAndOnGround(yaw, pitch, onGround)
+                LookAndOnGround(yaw, pitch, onGround, true) // TODO: Check this after update
             }
 
             lastOnGround != onGround -> {
-                OnGroundOnly(onGround)
+                OnGroundOnly(onGround, true) // TODO: Check this after update
             }
 
             else -> null

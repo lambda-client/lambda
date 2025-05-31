@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,10 @@
 
 package com.lambda.module.modules.client
 
-import com.lambda.config.groups.*
+import com.lambda.config.groups.BuildSettings
+import com.lambda.config.groups.InteractionSettings
+import com.lambda.config.groups.InventorySettings
+import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.result.Drawable

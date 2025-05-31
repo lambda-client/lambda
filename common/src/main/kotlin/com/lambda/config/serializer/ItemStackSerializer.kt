@@ -20,15 +20,12 @@ package com.lambda.config.serializer
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
-import com.google.gson.JsonObject
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
+import com.mojang.serialization.JsonOps
 import net.minecraft.item.ItemStack
-import net.minecraft.nbt.StringNbtReader
-import net.minecraft.nbt.visitor.StringNbtWriter
-import net.minecraft.registry.Registries
-import net.minecraft.util.Identifier
 import java.lang.reflect.Type
+import kotlin.jvm.optionals.getOrElse
 
 object ItemStackSerializer : JsonSerializer<ItemStack>, JsonDeserializer<ItemStack> {
     override fun serialize(
@@ -36,23 +33,15 @@ object ItemStackSerializer : JsonSerializer<ItemStack>, JsonDeserializer<ItemSta
         typeOfSrc: Type,
         context: JsonSerializationContext
     ): JsonElement =
-        JsonObject().apply {
-            addProperty("id", stack.item.registryEntry.key.get().value.toString())
-            addProperty("count", stack.count)
-            stack.nbt?.let { addProperty("tag", StringNbtWriter().apply(it)) }
-        }
+        ItemStack.CODEC.encodeStart(JsonOps.INSTANCE, stack)
+            .orThrow
 
     override fun deserialize(
         json: JsonElement,
         typeOfT: Type,
         context: JsonDeserializationContext
-    ): ItemStack {
-        val id = json.asJsonObject.get("id").asString
-        val count = json.asJsonObject.get("count").asInt
-        val nbt = json.asJsonObject?.get("tag")?.asString
-
-        val item = Registries.ITEM.get(Identifier(id))
-
-        return ItemStack(item, count).apply { nbt?.let { setNbt(StringNbtReader.parse(it)) } }
-    }
+    ): ItemStack =
+        ItemStack.CODEC.parse(JsonOps.INSTANCE, json)
+            .result()
+            .getOrElse { ItemStack.EMPTY }
 }

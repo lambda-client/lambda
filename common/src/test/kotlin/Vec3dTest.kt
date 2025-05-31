@@ -1,9 +1,9 @@
 import com.lambda.util.math.CENTER
 import com.lambda.util.math.DOWN
+import com.lambda.util.math.MathUtils.sq
 import com.lambda.util.math.UP
 import com.lambda.util.math.dist
 import com.lambda.util.math.distSq
-import com.lambda.util.math.MathUtils.sq
 import com.lambda.util.math.div
 import com.lambda.util.math.minus
 import com.lambda.util.math.plus

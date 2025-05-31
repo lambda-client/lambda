@@ -28,8 +28,13 @@ import com.lambda.util.item.ItemStackUtils.empty
 import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import com.lambda.util.item.ItemStackUtils.spaceLeft
 import com.lambda.util.item.ItemUtils
+import com.lambda.util.text.TextBuilder
+import com.lambda.util.text.TextDsl
+import com.lambda.util.text.buildText
+import com.lambda.util.text.highlighted
+import com.lambda.util.text.literal
+import com.lambda.util.text.text
 import com.lambda.util.item.ItemUtils.toItemCount
-import com.lambda.util.text.*
 import net.minecraft.item.ItemStack
 import net.minecraft.text.Text
 

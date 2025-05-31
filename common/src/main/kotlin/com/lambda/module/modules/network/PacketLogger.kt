@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,11 @@ import com.lambda.util.DynamicReflectionSerializer.dynamicString
 import com.lambda.util.FolderRegister
 import com.lambda.util.FolderRegister.relativeMCPath
 import com.lambda.util.Formatting.getTime
-import com.lambda.util.text.*
+import com.lambda.util.text.ClickEvents
+import com.lambda.util.text.buildText
+import com.lambda.util.text.clickEvent
+import com.lambda.util.text.color
+import com.lambda.util.text.literal
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import net.minecraft.network.packet.Packet

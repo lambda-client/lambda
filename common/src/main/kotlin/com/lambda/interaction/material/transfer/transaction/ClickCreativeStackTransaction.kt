@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,9 +21,7 @@ import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.transfer.InventoryTransaction
-import com.lambda.util.player.SlotUtils.clickSlot
 import net.minecraft.item.ItemStack
-import net.minecraft.screen.slot.SlotActionType
 
 class ClickCreativeStackTransaction @Ta5kBuilder constructor(
     private val stack: ItemStack,

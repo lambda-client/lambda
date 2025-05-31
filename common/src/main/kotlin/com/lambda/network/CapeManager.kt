@@ -28,7 +28,6 @@ import com.lambda.module.modules.client.Network.cdn
 import com.lambda.network.api.v1.endpoints.getCape
 import com.lambda.network.api.v1.endpoints.getCapes
 import com.lambda.network.api.v1.endpoints.setCape
-import com.lambda.sound.SoundManager.toIdentifier
 import com.lambda.threading.runIO
 import com.lambda.threading.runSafe
 import com.lambda.util.FileUtils.createIfNotExists
@@ -37,11 +36,12 @@ import com.lambda.util.FileUtils.downloadIfNotPresent
 import com.lambda.util.FileUtils.ifNotExists
 import com.lambda.util.FileUtils.isOlderThan
 import com.lambda.util.FolderRegister.capes
+import com.lambda.util.StringUtils.asIdentifier
 import com.lambda.util.extension.resolveFile
 import kotlinx.coroutines.runBlocking
 import net.minecraft.client.texture.NativeImage.read
 import net.minecraft.client.texture.NativeImageBackedTexture
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.fixedRateTimer
 import kotlin.io.path.extension
@@ -56,8 +56,8 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
     // We want to cache images to reduce class B requests
     private val images = capes.walk()
         .filter { it.extension == "png" }
-        .associate { it.nameWithoutExtension to NativeImageBackedTexture(read(it.inputStream())) }
-        .onEach { (key, value) -> mc.textureManager.registerTexture(key.toIdentifier(), value) }
+        .associate { it.nameWithoutExtension to NativeImageBackedTexture({ it.nameWithoutExtension }, read(it.inputStream())) }
+        .onEach { (key, value) -> mc.textureManager.registerTexture(key.asIdentifier, value) }
 
     private val fetchQueue = mutableListOf<UUID>()
 
@@ -100,7 +100,7 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
             .downloadIfNotPresent(cape.url).getOrNull()
             ?.readBytes() ?: return@runIO
 
-        mc.textureManager.getOrDefault(cape.id.toIdentifier(), NativeImageBackedTexture(TextureUtils.readImage(bytes)))
+        mc.textureManager.registerTexture(cape.id.asIdentifier, NativeImageBackedTexture({ cape.id }, TextureUtils.readImage(bytes)))
 
         put(uuid, cape.id)
     }.invokeOnCompletion { block(it) }

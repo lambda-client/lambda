@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,10 +30,12 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
 import com.lambda.util.extension.contains
+import com.lambda.util.extension.isElytraFlying
 import com.lambda.util.player.MovementUtils.addSpeed
 import com.lambda.util.player.MovementUtils.calcMoveYaw
 import com.lambda.util.player.MovementUtils.handledByBaritone
 import com.lambda.util.player.MovementUtils.isInputting
+import com.lambda.util.player.MovementUtils.jumping
 import com.lambda.util.player.MovementUtils.motionY
 import com.lambda.util.player.MovementUtils.moveDelta
 import com.lambda.util.player.MovementUtils.newMovementInput
@@ -139,7 +141,7 @@ object Speed : Module(
 
             run {
                 if (!diagonal) return@run
-                if (player.isOnGround && input.jumping) return@run
+                if (player.isOnGround && input.playerInput.jump) return@run
 
                 val forward = input.roundedForward.toFloat()
                 var strafe = input.roundedStrafing.toFloat()
@@ -182,7 +184,7 @@ object Speed : Module(
     }
 
     private fun SafeContext.handleStrafe() {
-        val shouldJump = player.input.jumping || (ncpAutoJump && isInputting)
+        val shouldJump = player.input.playerInput.jump || (ncpAutoJump && isInputting)
 
         if (player.isOnGround && shouldJump) {
             ncpPhase = NCPPhase.JUMP
@@ -225,7 +227,7 @@ object Speed : Module(
     }
 
     private fun SafeContext.shouldWork(): Boolean {
-        if (player.abilities.flying || player.isFallFlying || player.isTouchingWater || player.isInLava) return false
+        if (player.abilities.flying || player.isElytraFlying || player.isTouchingWater || player.isInLava) return false
 
         return when (mode) {
             Mode.GRIM_STRAFE -> {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.transfer.InventoryTransaction
+import net.minecraft.screen.slot.SlotActionType
 
 class PickFromInventoryTransaction @Ta5kBuilder constructor(
     val slot: Int,
@@ -32,7 +33,7 @@ class PickFromInventoryTransaction @Ta5kBuilder constructor(
         listen<TickEvent.Pre> {
             if (confirming) return@listen
 
-            interaction.pickFromInventory(slot)
+            interaction.clickSlot(0, slot, player.inventory.selectedSlot, SlotActionType.SWAP, player)
             confirming = true
         }
 

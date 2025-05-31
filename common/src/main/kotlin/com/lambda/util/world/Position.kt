@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,6 +49,11 @@ internal const val MIN_X = -(1L shl X_BITS - 1)
 internal const val MIN_Z = -(1L shl Z_BITS - 1)
 internal const val MAX_X = (1L shl X_BITS - 1) - 1L
 internal const val MAX_Z = (1L shl Z_BITS - 1) - 1L
+
+/**
+ * Serialized representation of (1, 1, 1)
+ */
+const val F_ONE = 274945015809L
 
 /**
  * Creates a new position from the given coordinates.

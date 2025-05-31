@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,9 @@
 package com.lambda.graphics.renderer.gui
 
 import com.lambda.graphics.RenderMain
-import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
+import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.graphics.texture.Texture
 import com.lambda.module.modules.client.GuiSettings

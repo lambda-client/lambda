@@ -19,28 +19,29 @@ package com.lambda.mixin.render;
 
 import com.lambda.module.modules.render.MapPreview;
 import net.minecraft.client.gui.tooltip.BundleTooltipComponent;
+import net.minecraft.client.gui.tooltip.ProfilesTooltipComponent;
 import net.minecraft.client.gui.tooltip.TooltipComponent;
-import net.minecraft.client.item.BundleTooltipData;
-import net.minecraft.client.item.TooltipData;
+import net.minecraft.item.tooltip.BundleTooltipData;
+import net.minecraft.item.tooltip.TooltipData;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.Objects;
+
 @Mixin(TooltipComponent.class)
 public interface TooltipComponentMixin {
-    @Inject(method = "of(Lnet/minecraft/client/item/TooltipData;)Lnet/minecraft/client/gui/tooltip/TooltipComponent;", at = @At("HEAD"), cancellable = true)
-    private static void of(TooltipData data, CallbackInfoReturnable<TooltipComponent> cir) {
-        if (data instanceof BundleTooltipData) {
-            cir.setReturnValue(new BundleTooltipComponent((BundleTooltipData)data));
-            return;
-        }
+    @Inject(method = "of(Lnet/minecraft/item/tooltip/TooltipData;)Lnet/minecraft/client/gui/tooltip/TooltipComponent;", at = @At("HEAD"), cancellable = true)
+    private static void of(TooltipData tooltipData, CallbackInfoReturnable<TooltipComponent> cir) {
+        Objects.requireNonNull(tooltipData);
 
-        if (data instanceof MapPreview.MapComponent) {
-            cir.setReturnValue((TooltipComponent) data);
-            return;
-        }
+        cir.setReturnValue((switch (tooltipData) {
+            case MapPreview.MapComponent mapComponent -> mapComponent;
 
-        throw new IllegalArgumentException("Unknown TooltipComponent");
+            case BundleTooltipData bundleTooltipData -> new BundleTooltipComponent(bundleTooltipData.contents());
+            case ProfilesTooltipComponent.ProfilesData profilesData -> new ProfilesTooltipComponent(profilesData);
+            default -> throw new IllegalArgumentException("Unknown TooltipComponent");
+        }));
     }
 }

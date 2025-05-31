@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,14 +19,12 @@ package com.lambda.config.settings.complex
 
 import com.google.gson.reflect.TypeToken
 import com.lambda.brigadier.argument.double
-import com.lambda.brigadier.argument.integer
 import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
-import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 
 class Vec3dSetting(

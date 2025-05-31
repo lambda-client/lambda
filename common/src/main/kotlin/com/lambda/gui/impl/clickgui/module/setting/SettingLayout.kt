@@ -18,11 +18,11 @@
 package com.lambda.gui.impl.clickgui.module.setting
 
 import com.lambda.gui.component.core.LayoutBuilder
-import com.lambda.module.modules.client.ClickGui
 import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.impl.clickgui.module.ModuleLayout.Companion.backgroundTint
 import com.lambda.gui.impl.clickgui.core.AnimatedChild
-import com.lambda.util.math.*
+import com.lambda.gui.impl.clickgui.module.ModuleLayout.Companion.backgroundTint
+import com.lambda.module.modules.client.ClickGui
+import com.lambda.util.math.Vec2d
 import kotlin.reflect.KMutableProperty0
 
 /**

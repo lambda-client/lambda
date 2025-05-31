@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 package com.lambda.sound
 
 import com.lambda.core.Loadable
-import com.lambda.core.registry.AgnosticRegistries
+import com.lambda.core.AgnosticRegistries
 import net.minecraft.registry.Registries
 
 object SoundRegistry : Loadable {

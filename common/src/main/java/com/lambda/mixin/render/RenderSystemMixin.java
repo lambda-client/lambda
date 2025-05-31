@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,18 +28,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(RenderSystem.class)
 public class RenderSystemMixin {
-    @Shadow
-    @Final
-    private static float[] shaderFogColor;
+    @Shadow @Final private static float[] shaderColor;
 
-    @Inject(method = "_setShaderFogColor", at = @At(value = "HEAD"), cancellable = true)
-    private static void onSetShaderFogColor(float red, float green, float blue, float alpha, CallbackInfo ci) {
+    @Inject(method = "setShaderColor(FFFF)V", at = @At(value = "HEAD"), cancellable = true)
+    private static void onSetShaderColor(float red, float green, float blue, float alpha, CallbackInfo ci) {
         if (WorldColors.INSTANCE.isEnabled() && WorldColors.getCustomFog()) {
             ci.cancel();
-            shaderFogColor[0] = WorldColors.getFogColor().getRed() / 255f;
-            shaderFogColor[1] = WorldColors.getFogColor().getGreen() / 255f;
-            shaderFogColor[2] = WorldColors.getFogColor().getBlue() / 255f;
-            shaderFogColor[3] = WorldColors.getFogColor().getAlpha() / 255f;
+            shaderColor[0] = WorldColors.getFogColor().getRed() / 255f;
+            shaderColor[1] = WorldColors.getFogColor().getGreen() / 255f;
+            shaderColor[2] = WorldColors.getFogColor().getBlue() / 255f;
+            shaderColor[3] = WorldColors.getFogColor().getAlpha() / 255f;
         }
     }
 }

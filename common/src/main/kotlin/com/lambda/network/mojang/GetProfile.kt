@@ -21,7 +21,7 @@ import com.lambda.network.LambdaHttp
 import com.mojang.authlib.GameProfile
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import java.util.UUID
+import java.util.*
 
 /**
  * Gets a game profile from a username

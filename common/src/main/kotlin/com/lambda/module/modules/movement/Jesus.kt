@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.NamedEnum
+import com.lambda.util.extension.isElytraFlying
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.minus
 import com.lambda.util.player.MovementUtils.isInputting
@@ -136,11 +137,11 @@ object Jesus : Module(
 
         listen<MovementEvent.InputUpdate> {
             if (!shouldWork || !goUp || mode == Mode.NCP_DOLPHIN) return@listen
-            it.input.jumping = true
+            it.input.jump()
         }
 
         listen<TickEvent.Pre> {
-            shouldWork = !player.abilities.flying && !player.isFallFlying && !player.input.sneaking
+            shouldWork = !player.abilities.flying && !player.isElytraFlying && !player.input.playerInput.sneak
         }
 
         onEnable {

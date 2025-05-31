@@ -35,8 +35,8 @@ import com.lambda.interaction.request.rotation.Rotation.Companion.angleDifferenc
 import com.lambda.interaction.request.rotation.Rotation.Companion.dist
 import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
 import com.lambda.interaction.request.rotation.Rotation.Companion.wrap
-import com.lambda.interaction.request.rotation.RotationManager.activeRotation
 import com.lambda.interaction.request.rotation.RotationManager.onRotate
+import com.lambda.interaction.request.rotation.RotationManager.activeRotation
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
 import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.scanSurfaces
@@ -325,8 +325,8 @@ object Scaffold : Module(
     private fun buildRenderer(event: RenderEvent.StaticESP) {
         val c = GuiSettings.primaryColor
 
-        renderInfo.removeIf {
-            val (info, time) = it
+        renderInfo.removeIf { info ->
+            val (info, time) = info
 
             val pos = info.placedPos.toFastVec()
             val seconds = (currentTime - time) / 1000.0

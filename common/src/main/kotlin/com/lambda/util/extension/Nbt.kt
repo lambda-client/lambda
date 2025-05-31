@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ import net.minecraft.nbt.NbtCompound
 import net.minecraft.nbt.NbtInt
 import net.minecraft.nbt.NbtList
 import net.minecraft.util.math.Vec3i
+import java.util.*
 
 /**
  * Puts a list of integer into the component, this is not the same as an int array
@@ -39,27 +40,23 @@ fun NbtCompound.clear() {
 /**
  * Retrieves a vector from a tuple
  */
-fun NbtCompound.getVector(key: String): Vec3i {
-    val compound = getCompound(key)
+fun NbtCompound.getVector(key: String): Optional<Vec3i> {
+    val compound = getCompoundOrEmpty(key)
 
-    var x = compound.getInt("x")
-    var y = compound.getInt("y")
-    var z = compound.getInt("z")
+    val array = getIntArray(key)
 
-    if (x == 0 && y == 0 && z == 0) {
-        x = compound.getInt("X")
-        y = compound.getInt("Y")
-        z = compound.getInt("Z")
-    }
+    val x = compound.getInt("x")
+        .or { compound.getInt("X") }
+        .or { array.map { it[0] }}
 
-    if (compound.isEmpty) {
-        val arr = getIntArray(key)
-        if (arr.size == 3) {
-            x = arr[0]
-            y = arr[1]
-            z = arr[2]
-        }
-    }
+    val y = compound.getInt("y")
+        .or { compound.getInt("Y") }
+        .or { array.map { it[1] }}
 
-    return Vec3i(x, y, z)
+    val z = compound.getInt("z")
+        .or { compound.getInt("Z") }
+        .or { array.map { it[2] }}
+
+    return if (x.isPresent && y.isPresent && z.isPresent) Optional.of(Vec3i(x.get(), y.get(), z.get()))
+    else Optional.empty()
 }

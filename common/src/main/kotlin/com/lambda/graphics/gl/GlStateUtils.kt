@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,18 @@
 
 package com.lambda.graphics.gl
 
-import org.lwjgl.opengl.GL30C.*
+import org.lwjgl.opengl.GL30C.GL_BLEND
+import org.lwjgl.opengl.GL30C.GL_CULL_FACE
+import org.lwjgl.opengl.GL30C.GL_DEPTH_TEST
+import org.lwjgl.opengl.GL30C.GL_LINE_SMOOTH
+import org.lwjgl.opengl.GL30C.GL_ONE_MINUS_SRC_ALPHA
+import org.lwjgl.opengl.GL30C.GL_SRC_ALPHA
+import org.lwjgl.opengl.GL30C.glBlendFunc
+import org.lwjgl.opengl.GL30C.glBlendFuncSeparate
+import org.lwjgl.opengl.GL30C.glDepthMask
+import org.lwjgl.opengl.GL30C.glDisable
+import org.lwjgl.opengl.GL30C.glEnable
+import org.lwjgl.opengl.GL30C.glLineWidth
 
 object GlStateUtils {
     private var depthTestState = true

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,34 +27,78 @@ import com.lambda.util.math.times
 import net.minecraft.client.input.Input
 import net.minecraft.client.input.KeyboardInput
 import net.minecraft.client.network.ClientPlayerEntity
-import net.minecraft.enchantment.EnchantmentHelper.getSwiftSneakSpeedBoost
 import net.minecraft.entity.Entity
+import net.minecraft.util.PlayerInput
 import net.minecraft.util.math.EightWayDirection
+import net.minecraft.util.math.Vec2f
 import net.minecraft.util.math.Vec3d
-import kotlin.math.*
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.hypot
+import kotlin.math.sign
+import kotlin.math.sin
 
 object MovementUtils {
-    val Input.roundedForward get() = sign(movementForward).toDouble()
-    val Input.roundedStrafing get() = sign(movementSideways).toDouble()
+    /**
+     * The forward value is independent of the player's rotation; normalized between -1 and 1
+     */
+    var Input.forward get() = movementVector.y; set(value) { movementVector = Vec2f(movementVector.x, value) }
+
+    /**
+     * The forward value is independent of the player's rotation; normalized between -1 and 1
+     */
+    var Input.strafe get() = movementVector.x; set(value) { movementVector = Vec2f(value, movementVector.y) }
+    var Input.jumping get() = playerInput.jump; set(value) { update(jump = value) }
+    var Input.sneaking get() = playerInput.sneak; set(value) { update(sneak = value) }
+    var Input.sprinting get() = playerInput.sprint; set(value) { update(sprint = value) }
+
+    /**
+     * Returns the absolute direction of the forward scalar
+     */
+    val Input.roundedForward get() = sign(movementVector.y).toDouble()
+
+    /**
+     * Returns the absolute direction of the strafe scalar
+     */
+    val Input.roundedStrafing get() = sign(movementVector.x).toDouble()
+
     val Input.handledByBaritone get() = this !is KeyboardInput
 
-    val Input.isInputting get() = roundedForward != 0.0 || roundedStrafing != 0.0
+    val Input.isInputting get() = forward != 0f || strafe != 0f
     val SafeContext.isInputting get() = player.input.isInputting
 
     fun SafeContext.newMovementInput(
-        assumeBaritoneUsage: Boolean = true,
-        slowDownCheck: Boolean = true,
-    ): Input = if (assumeBaritoneUsage && player.input.handledByBaritone) {
-        player.input
-    } else {
-        var multiplier = 1f
+        assumeBaritone: Boolean = true,
+        slowdownCheck: Boolean = true,
+    ): Input {
+        if (assumeBaritone && player.input.handledByBaritone) return player.input
 
-        if (slowDownCheck && player.shouldSlowDown()) multiplier =
-            0.3f + getSwiftSneakSpeedBoost(player)
+        val newInput = KeyboardInput(mc.options)
 
-        KeyboardInput(mc.options).apply {
-            tick(true, multiplier.coerceIn(0f, 1f))
-        }
+        if (!slowdownCheck) return newInput.apply { tick() }
+
+        newInput.movementVector = player.applyMovementSpeedFactors(player.input.movementVector)
+
+        return newInput
+    }
+
+    @Deprecated(message = "mergeFrom is deprecated in favor of Input.update", replaceWith = ReplaceWith("this.update()"))
+    fun Input.mergeFrom(input: Input) {
+        playerInput = input.playerInput
+        movementVector = input.movementVector
+    }
+
+    fun Input.update(
+        forward: Double = movementVector.y.toDouble(),
+        strafe: Double = movementVector.x.toDouble(),
+        jump: Boolean = playerInput.jump,
+        sneak: Boolean = playerInput.sneak,
+        sprint: Boolean = playerInput.sprint,
+    ) {
+        val input = buildMovementInput(forward, strafe, jump, sneak, sprint)
+
+        movementVector = input.movementVector
+        playerInput = input.playerInput
     }
 
     fun buildMovementInput(
@@ -62,50 +106,25 @@ object MovementUtils {
         strafe: Double,
         jump: Boolean = false,
         sneak: Boolean = false,
+        sprint: Boolean = false,
     ) = Input().apply {
-        movementForward = forward.toFloat()
-        movementSideways = strafe.toFloat()
-
-        pressingForward = forward > 0.0
-        pressingBack = forward < 0.0
-        pressingLeft = strafe < 0.0
-        pressingRight = strafe > 0.0
-
-        jumping = jump
-        sneaking = sneak
+        movementVector = Vec2f(strafe.toFloat(), forward.toFloat())
+        playerInput = PlayerInput(
+            forward > 0.0,
+            forward < 0.0,
+            strafe < 0.0,
+            strafe > 0.0,
+            jump,
+            sneak,
+            sprint,
+        )
     }
 
-    fun Input.mergeFrom(input: Input) {
-        movementForward = input.movementForward
-        movementSideways = input.movementSideways
-
-        pressingForward = input.pressingForward
-        pressingBack = input.pressingBack
-        pressingLeft = input.pressingLeft
-        pressingRight = input.pressingRight
-
-        jumping = input.jumping
-        sneaking = input.sneaking
-    }
-
-    fun Input.cancel(cancelVertical: Boolean = true) {
-        movementForward = 0f
-        movementSideways = 0f
-
-        pressingForward = false
-        pressingBack = false
-        pressingLeft = false
-        pressingRight = false
-
-        if (cancelVertical) {
-            jumping = false
-            sneaking = false
-        }
-    }
+    fun Input.cancel(vertical: Boolean = true) =
+        update(0.0, 0.0, !vertical, !vertical, false)
 
     val Input.verticalMovement
-        get() =
-            (jumping.toInt() - sneaking.toInt()).toDouble()
+        get() = (playerInput.jump.toInt() - playerInput.sneak.toInt()).toDouble()
 
     private fun inputMoveOffset(
         moveForward: Double,
@@ -127,7 +146,7 @@ object MovementUtils {
     fun SafeContext.movementVector(radDir: Double = calcMoveRad(), y: Double = 0.0) =
         Vec3d(-sin(radDir), y, cos(radDir))
 
-    var Entity.motion
+    var Entity.motion: Vec3d
         get() = velocity
         set(value) {
             velocity = value
@@ -151,7 +170,7 @@ object MovementUtils {
 
     val ClientPlayerEntity.moveYaw get() = RotationManager.movementYaw ?: yaw
 
-    val Entity.moveDiff get() = Vec3d(this.pos.x - this.prevX, this.pos.y - this.prevY, this.pos.z - this.prevZ)
+    val Entity.moveDiff get() = Vec3d(x - lastX, y - lastY, z - lastZ)
     val Entity.moveDelta get() = moveDiff.let { hypot(it.x, it.z) }
 
     val Entity.octant: EightWayDirection

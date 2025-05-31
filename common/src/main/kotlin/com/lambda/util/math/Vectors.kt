@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,12 @@ package com.lambda.util.math
 import com.lambda.util.math.MathUtils.floorToInt
 import com.lambda.util.math.MathUtils.sq
 import net.minecraft.entity.Entity
-import net.minecraft.util.math.*
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Direction
+import net.minecraft.util.math.EightWayDirection
+import net.minecraft.util.math.Vec2f
+import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.Vec3i
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -39,6 +44,39 @@ fun EightWayDirection.rotateClockwise(steps: Int) =
 operator fun Vec2f.component1() = x
 operator fun Vec2f.component2() = y
 
+infix fun Vec2f.dist(other: Vec2f): Float = sqrt(this distSq other)
+infix fun Vec2f.dist(other: Vec2d): Float = sqrt(this distSq other)
+infix fun Vec2f.distSq(other: Vec2f): Float = distanceSquared(other)
+infix fun Vec2f.distSq(other: Vec2d): Float =
+    sqrt((other.x - x).sq * (other.y - y).sq).toFloat()
+
+infix operator fun Vec2f.plus(other: Vec2f): Vec2f = add(other)
+infix operator fun Vec2f.plus(other: Vec2d): Vec2f = Vec2f((x + other.x).toFloat(), (y + other.y).toFloat())
+infix operator fun Vec2f.plus(other: Double): Vec2f = add(other.toFloat())
+infix operator fun Vec2f.plus(other: Float): Vec2f = add(other)
+infix operator fun Vec2f.plus(other: Int): Vec2f = add(other.toFloat())
+
+infix operator fun Vec2f.minus(other: Vec2f): Vec2f = add(-other)
+
+infix operator fun Vec2f.minus(other: Vec2d): Vec2f = Vec2f((x - other.x).toFloat(), (y - other.y).toFloat())
+infix operator fun Vec2f.minus(other: Double): Vec2f = add(-other.toFloat())
+infix operator fun Vec2f.minus(other: Float): Vec2f = add(-other)
+infix operator fun Vec2f.minus(other: Int): Vec2f = add(-other.toFloat())
+
+infix operator fun Vec2f.times(other: Vec2f): Vec2f = Vec2f(x * other.x, y * other.y)
+infix operator fun Vec2f.times(other: Vec2d): Vec2f = Vec2f((x * other.x).toFloat(), (y * other.y).toFloat())
+infix operator fun Vec2f.times(other: Double): Vec2f = Vec2f(x * other.toFloat(), y * other.toFloat())
+infix operator fun Vec2f.times(other: Float): Vec2f = Vec2f(x * other, y * other)
+infix operator fun Vec2f.times(other: Int): Vec2f = Vec2f(x * other.toFloat(), y * other.toFloat())
+
+infix operator fun Vec2f.div(other: Vec2f): Vec2f = Vec2f(x / other.x, x / other.y)
+infix operator fun Vec2f.div(other: Vec2d): Vec2d = Vec2d(x / other.x, y / other.y)
+infix operator fun Vec2f.div(other: Double): Vec2f = times(1.0 / other)
+infix operator fun Vec2f.div(other: Float): Vec2f = times(1.0 / other)
+infix operator fun Vec2f.div(other: Int): Vec2f = times(1.0 / other)
+
+operator fun Vec2f.unaryMinus(): Vec2f = negate()
+
 /* Vec3d */
 fun Vec3d.approximate(other: Vec3d, precision: Double = 2.0E-4): Boolean =
     (subtract(other) distSq Vec3d.ZERO) > precision.pow(2)
@@ -53,6 +91,7 @@ val Entity.netherCoord: Vec3d get() = pos.multiply(0.125, 1.0, 0.125)
 val Entity.overworldCoord: Vec3d get() = pos.multiply(8.0, 1.0, 8.0)
 
 fun Vec3d.interpolate(value: Double, max: Vec3d) = lerp(value, this, max)
+fun Vec3d.interpolate(value: Float, max: Vec3d) = lerp(value.toDouble(), this, max)
 
 operator fun Vec3d.component1() = x
 operator fun Vec3d.component2() = y
