@@ -20,46 +20,34 @@ package com.lambda.util.reflections
 import com.lambda.util.extension.isObject
 import com.lambda.util.extension.objectInstance
 import io.github.classgraph.ClassGraph
+import io.github.classgraph.ClassInfo
+import io.github.classgraph.Resource
 import io.github.classgraph.ResourceList
+import io.github.classgraph.ScanResult
 import java.lang.reflect.Modifier
 import kotlin.jvm.java
 
-/**
- * Retrieves all instances of the specified type `T`.
- *
- * @param T The type of instances to retrieve.
- * @param block A configuration lambda to customize the [ClassGraph] configuration.
- *
- * @return A list of instances of type `T`
- */
-inline fun <reified T : Any> getInstances(block: ClassGraph.() -> Unit = { enableClassInfo(); acceptPackages("com.lambda") }): List<T> =
-    ClassGraph().apply(block)
-        .scan()
-        .use { result ->
-            val clazz = T::class.java
+val scanResult: ScanResult by lazy { ClassGraph().enableAllInfo().scan() }
 
-            return when {
-                clazz.isInterface -> result.getClassesImplementing(T::class.java)
+inline fun <reified T : Any> getInstances(crossinline block: (ClassInfo) -> Boolean = { true }): List<T> {
+    if (scanResult.isClosed) return emptyList()
 
-                clazz.isObject || Modifier.isAbstract(clazz.modifiers) ->
-                    result.getSubclasses(T::class.java)
+    val clazz = T::class.java
 
-                else -> throw IllegalAccessException("class ${clazz.name} is neither an interface or abstract class")
-            }.mapNotNull { createInstance<T>(Class.forName(it.name)) }
-        }
+    return when {
+        clazz.isInterface -> scanResult.getClassesImplementing(clazz)
+            .filter { block(it) }
 
-/**
- * Retrieves all resource paths that match the given pattern wildcard.
- *
- * @param pattern The resource pattern to search for.
- * @param block A configuration lambda to customize the [ClassGraph] configuration.
- *
- * @return A [ResourceList]
- */
-inline fun getResources(pattern: String, block: ClassGraph.() -> Unit = { enableAllInfo(); acceptPackages("com.lambda") }): ResourceList =
-    ClassGraph().apply(block)
-        .scan()
-        .use { it.getResourcesMatchingWildcard(pattern) }
+        clazz.isObject || Modifier.isAbstract(clazz.modifiers) -> scanResult.getSubclasses(clazz)
+             .filter { block(it) }
+
+        else -> throw IllegalAccessException("class ${clazz.name} is neither an interface or open class")
+    }.mapNotNull { createInstance<T>(Class.forName(it.name)) }
+}
+
+inline fun getResources(pattern: String, crossinline block: (Resource) -> Boolean): ResourceList =
+    scanResult.getResourcesMatchingWildcard(pattern)
+        .filter { block(it) }
 
 inline fun <reified T : Any> createInstance(clazz: Class<*>): T? {
     return when {
