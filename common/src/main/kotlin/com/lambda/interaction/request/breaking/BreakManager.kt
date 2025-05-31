@@ -58,6 +58,8 @@ import net.minecraft.entity.ItemEntity
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
+import kotlin.math.ceil
+import kotlin.math.max
 
 object BreakManager : RequestHandler<BreakRequest>(
     0,
@@ -494,6 +496,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see net.minecraft.client.network.ClientPlayerInteractionManager.updateBlockBreakingProgress
      */
     private fun SafeContext.updateBreakProgress(info: BreakInfo): Boolean {
+        val config = info.breakConfig
         info.updatedProgressThisTick = true
         val ctx = info.context
         val hitResult = ctx.result
@@ -503,13 +506,13 @@ object BreakManager : RequestHandler<BreakRequest>(
                 onBlockBreak(info)
                 return true
             }
-            breakCooldown = info.breakConfig.breakDelay
+            breakCooldown = config.breakDelay
             lastPosStarted = ctx.expectedPos
             onBlockBreak(info)
             info.startBreakPacket(world, interaction)
-            val swing = info.breakConfig.swing
+            val swing = config.swing
             if (swing.isEnabled()) {
-                swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
+                swingHand(config.swingType, Hand.MAIN_HAND)
             }
             return true
         }
@@ -541,9 +544,9 @@ object BreakManager : RequestHandler<BreakRequest>(
                 info.internalOnCancel()
                 return false
             }
-            val swing = info.breakConfig.swing
+            val swing = config.swing
             if (swing.isEnabled() && swing != BreakConfig.SwingMode.End) {
-                swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
+                swingHand(config.swingType, Hand.MAIN_HAND)
             }
             return true
         }
@@ -560,9 +563,16 @@ object BreakManager : RequestHandler<BreakRequest>(
             player,
             world,
             ctx.expectedPos
-        ) * if (info.isSecondary || info.isRedundant) {
-            info.breakingTicks - info.breakConfig.doubleBreakFudgeFactor
-        } else info.breakingTicks
+        ).let { breakDelta ->
+            breakDelta * if (info.isSecondary || info.isRedundant) {
+                info.breakingTicks - config.fudgeFactor
+            } else {
+                val serverBreakTicks = ceil(1.0 / breakDelta).toInt()
+                val clientBreakTicks = ceil(config.breakThreshold / breakDelta).toInt()
+                val diff = serverBreakTicks - clientBreakTicks
+                info.breakingTicks - max(config.fudgeFactor - diff, 0)
+            }
+        }
 
         val overBreakThreshold = progress >= info.getBreakThreshold()
 
@@ -573,7 +583,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             return true
         }
 
-        if (info.breakConfig.sounds) {
+        if (config.sounds) {
             if (info.soundsCooldown % 4.0f == 0.0f) {
                 val blockSoundGroup = blockState.soundGroup
                 mc.soundManager.play(
@@ -590,15 +600,15 @@ object BreakManager : RequestHandler<BreakRequest>(
             info.soundsCooldown++
         }
 
-        if (info.breakConfig.particles) {
+        if (config.particles) {
             mc.particleManager.addBlockBreakingParticles(ctx.expectedPos, hitResult.side)
         }
 
-        if (info.breakConfig.breakingTexture) {
+        if (config.breakingTexture) {
             info.setBreakingTextureStage(player, world)
         }
 
-        val swing = info.breakConfig.swing
+        val swing = config.swing
         if (overBreakThreshold) {
             if (info.isPrimary) {
                 onBlockBreak(info)
@@ -606,10 +616,10 @@ object BreakManager : RequestHandler<BreakRequest>(
             } else {
                 onBlockBreak(info)
             }
-            if (swing.isEnabled() && swing != BreakConfig.SwingMode.Start) swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
-            breakCooldown = info.breakConfig.breakDelay
+            if (swing.isEnabled() && swing != BreakConfig.SwingMode.Start) swingHand(config.swingType, Hand.MAIN_HAND)
+            breakCooldown = config.breakDelay
         } else {
-            if (swing == BreakConfig.SwingMode.Constant) swingHand(info.breakConfig.swingType, Hand.MAIN_HAND)
+            if (swing == BreakConfig.SwingMode.Constant) swingHand(config.swingType, Hand.MAIN_HAND)
         }
 
         return true
