@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,35 +15,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.settings
+package com.lambda.config.settings.comparable
 
 import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
-import java.text.NumberFormat
-import java.util.*
 import kotlin.reflect.KProperty
+import kotlin.time.Duration
 
-/**
- * @see [com.lambda.config.Configurable]
- */
-abstract class NumericSetting<T>(
-    value: T,
-    open val range: ClosedRange<T>,
-    open val step: T,
+class DurationSetting(
+    override val name: String,
+    defaultValue: Duration,
+    val range: ClosedRange<Duration>,
+    val step: Duration,
     description: String,
     visibility: () -> Boolean,
-    val unit: String,
-) : AbstractSetting<T>(
-    value,
-    TypeToken.get(value::class.java).type,
+) : AbstractSetting<Duration>(
+    defaultValue,
+    TypeToken.get(defaultValue::class.java).type,
     description,
-    visibility
-) where T : Number, T : Comparable<T> {
-    private val formatter = NumberFormat.getNumberInstance(Locale.getDefault())
+    visibility,
+) {
+    override fun toString() = value.toString()
 
-    override fun toString() = "${formatter.format(value)}$unit"
-
-    override operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: T) {
+    override operator fun setValue(thisRef: Any?, property: KProperty<*>, valueIn: Duration) {
         value = valueIn.coerceIn(range)
     }
 }

@@ -23,7 +23,7 @@ import com.google.gson.reflect.TypeToken
 import com.lambda.Lambda
 import com.lambda.Lambda.LOG
 import com.lambda.config.settings.CharSetting
-import com.lambda.config.settings.DurationSetting
+import com.lambda.config.settings.comparable.DurationSetting
 import com.lambda.config.settings.FunctionSetting
 import com.lambda.config.settings.StringSetting
 import com.lambda.config.settings.collections.ListSetting

@@ -20,6 +20,7 @@ package com.lambda.gui
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
 import com.lambda.config.settings.FunctionSetting
+import com.lambda.config.settings.comparable.DurationSetting
 import com.lambda.config.settings.complex.ColorSetting
 import com.lambda.config.settings.complex.KeyBindSetting
 import com.lambda.config.settings.numeric.DoubleSetting
@@ -31,6 +32,7 @@ import com.lambda.gui.component.core.UIBuilder
 import com.lambda.gui.component.layout.Layout
 import com.lambda.gui.impl.clickgui.module.setting.settings.BooleanButton.Companion.booleanSetting
 import com.lambda.gui.impl.clickgui.module.setting.settings.ColorPicker.Companion.colorPicker
+import com.lambda.gui.impl.clickgui.module.setting.settings.DurationSlider.Companion.durationSlider
 import com.lambda.gui.impl.clickgui.module.setting.settings.EnumSlider.Companion.enumSetting
 import com.lambda.gui.impl.clickgui.module.setting.settings.KeybindPicker.Companion.keybindSetting
 import com.lambda.gui.impl.clickgui.module.setting.settings.NumberSlider.Companion.numberSlider
@@ -111,6 +113,18 @@ object GuiManager : Loadable {
 
         typeAdapter<ColorSetting> { owner, ref ->
             owner.colorPicker(ref.name, ref::value).apply {
+                visibility { ref.visibility() }
+            }
+        }
+
+        typeAdapter<DurationSetting> { owner, ref ->
+            owner.durationSlider(
+                ref.name,
+                ref.range.start,
+                ref.range.endInclusive,
+                ref.step,
+                ref::value
+            ).apply {
                 visibility { ref.visibility() }
             }
         }
