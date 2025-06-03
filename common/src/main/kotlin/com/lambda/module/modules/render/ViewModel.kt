@@ -214,10 +214,8 @@ object ViewModel : Module(
         when (swingMode) {
             SwingMode.Standard -> swingHand(hand, player)
             SwingMode.Opposites -> {
-                if (hand == Hand.MAIN_HAND)
-                    swingHand(Hand.OFF_HAND, player)
-                else
-                    swingHand(Hand.MAIN_HAND, player)
+                if (hand == Hand.MAIN_HAND) swingHand(Hand.OFF_HAND, player)
+                else swingHand(Hand.MAIN_HAND, player)
             }
             SwingMode.MainHand -> swingHand(Hand.MAIN_HAND, player)
             SwingMode.OffHand -> swingHand(Hand.OFF_HAND, player)

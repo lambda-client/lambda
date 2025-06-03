@@ -159,7 +159,7 @@ public abstract class ClientPlayerEntityMixin extends EntityMixin {
         ViewModel viewModel = ViewModel.INSTANCE;
 
         if (!viewModel.isEnabled()) {
-            instance.swingHand(hand);
+            instance.swingHand(hand, false);
             return;
         }
 
