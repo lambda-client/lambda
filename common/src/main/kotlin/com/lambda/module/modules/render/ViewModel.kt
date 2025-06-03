@@ -24,18 +24,19 @@ object ViewModel : Module(
     private val ignoreHand by setting("Ignore Hand", false, "Prevents adjusting the players hand", visibility = { page == Page.General })
     private val swingMode by setting("Swing Mode", SwingMode.Standard, "Changes which hands swing", visibility = { page == Page.General })
     val swingSpeed by setting("Swing Speed", 6, 0..20, 1, "Adjusts how fast the player swings", visibility = { page == Page.General })
-    val swingProgress by setting("Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the player was this progress through the swing animation", visibility = { page == Page.General })
-    val oldSwingAnimation by setting("Old Swing Animation", false, "Adjusts the swing animation to what it looked like in 1.8", visibility = { page == Page.General })
-    val swapAnimation by setting("Swap Animation", true, "If disabled, it removes the drop down animation when swapping item", visibility = { page == Page.General })
+    val mainSwingProgress by setting("Main Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players main hand was this progress through the swing animation", visibility = { page == Page.General })
+    val offhandSwingProgress by setting("Offhand Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players offhand was this progress through the swing animation", visibility = { page == Page.General })
+    val oldAnimations by setting("Old Animations", false, "Adjusts the animations to look like they did in 1.8", visibility = { page == Page.General })
+    val swapAnimation by setting("Swap Animation", true, "If disabled, it removes the drop down animation when swapping item", visibility = { page == Page.General && oldAnimations })
     val shadow by setting("Shadows", true, "If disabled, it removes shadows on the model", visibility = { page == Page.General })
 
     private val linkedScale by setting("Linked Scale", true, "Links both hands scale settings", visibility = { page == Page.Scale })
     private val leftXScale by setting("Left X Scale", 1.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Scale }).apply { onValueChange { _, to -> if (linkedScale) rightXScale = to } }
     private val leftYScale by setting("Left Y Scale", 1.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Scale }).apply { onValueChange { _, to -> if (linkedScale) rightYScale = to } }
     private val leftZScale by setting("Left Z Scale", 1.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Scale }).apply { onValueChange { _, to -> if (linkedScale) rightZScale = to } }
-    private var rightXScale by setting("Right X Scale", 0.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Scale && !linkedScale })
-    private var rightYScale by setting("Right Y Scale", 0.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Scale && !linkedScale })
-    private var rightZScale by setting("Right Z Scale", 0.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Scale && !linkedScale })
+    private var rightXScale by setting("Right X Scale", 1.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Scale && !linkedScale })
+    private var rightYScale by setting("Right Y Scale", 1.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Scale && !linkedScale })
+    private var rightZScale by setting("Right Z Scale", 1.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Scale && !linkedScale })
 
     private val linkedPosition by setting("Linked Position", true, "Links both hands position settings", visibility = { page == Page.Position })
     private val leftXPosition by setting("Left X Position", 0.0f, -1.0f..1.0f, 0.025f, visibility = { page == Page.Position }).apply { onValueChange { _, to -> if (linkedPosition) rightXPosition = to } }
