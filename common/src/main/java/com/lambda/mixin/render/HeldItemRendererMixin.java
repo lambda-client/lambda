@@ -1,5 +1,7 @@
 package com.lambda.mixin.render;
 
+import com.google.common.base.MoreObjects;
+import com.lambda.Lambda;
 import com.lambda.module.modules.render.ViewModel;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -14,6 +16,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(HeldItemRenderer.class)
@@ -44,26 +47,42 @@ public class HeldItemRendererMixin {
 
         ViewModel config = ViewModel.INSTANCE;
         ItemStack currentStack = client.player.getMainHandStack();
-        if (!config.getSwapAnimation()) {
+        if (config.getOldAnimations() && !config.getSwapAnimation()) {
             mainHand = currentStack;
         }
 
-        float progress = config.getOldAnimations() || !config.getSwapAnimation() ? 1 : (float) Math.pow(client.player.getAttackCooldownProgress(1), 3);
+        float progress = config.getOldAnimations() ? 1 : (float) Math.pow(client.player.getAttackCooldownProgress(1), 3);
 
         return (ItemStack.areEqual(mainHand, currentStack) ? progress : 0) - equipProgressMainHand;
     }
 
     @ModifyArg(method = "updateHeldItems", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/MathHelper;clamp(FFF)F", ordinal = 3), index = 0)
-    private float modifyEquipProgressOffhand(float value) {
+    private float modifyEquipProgressOffHand(float value) {
         if (client.player == null || ViewModel.INSTANCE.isDisabled()) return value;
 
         ViewModel config = ViewModel.INSTANCE;
 
         ItemStack currentStack = client.player.getOffHandStack();
-        if (!config.getSwapAnimation()) {
+        if (config.getOldAnimations() && !config.getSwapAnimation()) {
             offHand = currentStack;
         }
 
-        return (ItemStack.areEqual(offHand, currentStack) || !config.getSwapAnimation() ? 1 : 0) - equipProgressOffHand;
+        return (ItemStack.areEqual(offHand, currentStack) ? 1 : 0) - equipProgressOffHand;
+    }
+
+    @ModifyVariable(method = "renderItem(FLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider$Immediate;Lnet/minecraft/client/network/ClientPlayerEntity;I)V", at = @At(value = "STORE", ordinal = 0), index = 6)
+    private float modifySwing(float swingProgress) {
+        ViewModel config = ViewModel.INSTANCE;
+        MinecraftClient mc = Lambda.getMc();
+        if (config.isDisabled() || mc.player == null) return swingProgress;
+        Hand hand = MoreObjects.firstNonNull(mc.player.preferredHand, Hand.MAIN_HAND);
+
+        if (hand == Hand.MAIN_HAND) {
+            return swingProgress + config.getMainSwingProgress();
+        } else if (hand == Hand.OFF_HAND) {
+            return swingProgress + config.getOffhandSwingProgress();
+        }
+
+        return swingProgress;
     }
 }
