@@ -14,8 +14,10 @@ import net.minecraft.item.ItemStack
 import net.minecraft.util.Arm
 import net.minecraft.util.Hand
 import net.minecraft.util.math.RotationAxis
+import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector3i
+import kotlin.math.tan
 
 object ViewModel : Module(
     name = "View Model",
@@ -61,8 +63,10 @@ object ViewModel : Module(
     private var rightZRotation by setting("Right Z Rotation", 0, -180..180, 1) { page == Page.Rotation && !linkedRotation }
 
     private val linkedFOV by setting("Linked FOV", true, "Links both hands FOV settings") { page == Page.FOV }
-    private val leftFOV by setting ("Left FOV", 80, 10..180, 1) { page == Page.FOV }.apply { onValueChange { _, to -> if (linkedFOV) rightFOV = to } }
-    private var rightFOV by setting ("Right FOV", 80, 10..180, 1) { page == Page.FOV && !linkedFOV }
+    private val leftFOV by setting("Left FOV", 70, 10..180, 1) { page == Page.FOV }.apply { onValueChange { _, to -> if (linkedFOV) rightFOV = to } }
+    private var leftFOVAnchorDistance by setting("Left FOV Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the left hands fov transformation from") { page == Page.FOV }.apply { onValueChange { _, to -> if (linkedFOV) rightFOVAnchorDistance = to } }
+    private var rightFOV by setting("Right FOV", 70, 10..180, 1) { page == Page.FOV && !linkedFOV }
+    private var rightFOVAnchorDistance by setting("Right FOV Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the right hands fov transformation from") { page == Page.FOV && !linkedFOV }
 
     private val handXScale by setting("Hand X Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
     private val handYScale by setting("Hand Y Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
@@ -73,7 +77,8 @@ object ViewModel : Module(
     private var handXRotation by setting("Hand X Rotation", 0, -180..180, 1) { page == Page.Hand }
     private var handYRotation by setting("Hand Y Rotation", 0, -180..180, 1) { page == Page.Hand }
     private var handZRotation by setting("Hand Z Rotation", 0, -180..180, 1) { page == Page.Hand }
-    private val handFOV by setting("Hand FOV", 80, 10..180, 1) { page == Page.Hand }
+    private val handFOV by setting("Hand FOV", 70, 10..180, 1) { page == Page.Hand }
+    private var handFOVAnchorDistance by setting("Hand FOV Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the hands fov transformation from") { page == Page.Hand }
 
     private var attackKeyTicksPressed = -1
 
@@ -114,9 +119,41 @@ object ViewModel : Module(
         val emptyHand = itemStack.isEmpty
         if (ignoreHand && emptyHand) return
 
+        applyItemFOV(matrices, side, emptyHand)
         scale(side, matrices, emptyHand)
         position(side, matrices, emptyHand)
         rotate(side, matrices, emptyHand)
+    }
+
+    private fun applyItemFOV(matrices: MatrixStack, side: Side, emptyHand: Boolean) {
+        val fov = when {
+            side == Side.Left -> leftFOV
+            emptyHand -> handFOV
+            else -> rightFOV
+        }.toFloat()
+
+        if (fov == 70f) return
+
+        val fovRatio = tan(Math.toRadians(fov.toDouble()/2)).toFloat() / tan(Math.toRadians(70.0/2)).toFloat()
+
+        val matrix = matrices.peek().positionMatrix
+
+        val distance = if (emptyHand) {
+            handFOVAnchorDistance
+        } else {
+            when (side) {
+                Side.Left -> leftFOVAnchorDistance
+                Side.Right -> rightFOVAnchorDistance
+            }
+        }
+
+        val warpMatrix = Matrix4f().apply {
+            translate(0f, 0f, -distance)
+            scale(1f, 1f, fovRatio)
+            translate(0f, 0f, distance)
+        }
+
+        matrix.mul(warpMatrix)
     }
 
     private fun scale(side: Side, matrices: MatrixStack, emptyHand: Boolean) {
