@@ -26,7 +26,6 @@ object ViewModel : Module(
 ) {
     private val page by setting("Page", Page.General)
 
-    private val ignoreHand by setting("Ignore Hand", false, "Prevents adjusting the players hand") { page == Page.General }
     private val swingMode by setting("Swing Mode", SwingMode.Standard, "Changes which hands swing") { page == Page.General }
     val swingDuration by setting("Swing Duration", 6, 0..20, 1, "Adjusts how fast the player swings", "ticks") { page == Page.General }
     private val noSwingDelay by setting("No Swing Delay", false, "Removes the delay between swings") { page == Page.General }
@@ -77,6 +76,7 @@ object ViewModel : Module(
     private var rightFov by setting("Right FOV", 70, 10..180, 1) { page == Page.Fov && splitFov }
     private var rightFovAnchorDistance by setting("Right Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the right FOV transformation from") { page == Page.Fov && splitFov }
 
+    private val enableHand by setting("Hand", false, "Enables settings for the players hand") { page == Page.Hand }
     private val handXScale by setting("Hand X Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
     private val handYScale by setting("Hand Y Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
     private val handZScale by setting("Hand Z Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
@@ -126,7 +126,7 @@ object ViewModel : Module(
         }
 
         val emptyHand = itemStack.isEmpty
-        if (ignoreHand && emptyHand) return
+        if (!enableHand) return
 
         applyItemFov(matrices, side, emptyHand)
         scale(side, matrices, emptyHand)
