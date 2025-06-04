@@ -26,8 +26,6 @@ object ViewModel : Module(
 ) {
     private val page by setting("Page", Page.General)
 
-    //ToDo: implement the rest of the settings and maybe add a couple more
-
     private val ignoreHand by setting("Ignore Hand", false, "Prevents adjusting the players hand") { page == Page.General }
     private val swingMode by setting("Swing Mode", SwingMode.Standard, "Changes which hands swing") { page == Page.General }
     val swingDuration by setting("Swing Duration", 6, 0..20, 1, "Adjusts how fast the player swings", "ticks") { page == Page.General }
@@ -35,38 +33,49 @@ object ViewModel : Module(
     val mainSwingProgress by setting("Main Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players main hand was this progress through the swing animation") { page == Page.General }
     val offhandSwingProgress by setting("Offhand Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players offhand was this progress through the swing animation") { page == Page.General }
     val oldAnimations by setting("Old Animations", false, "Adjusts the animations to look like they did in 1.8") { page == Page.General }
-    val swapAnimation by setting("Swap Animation", true, "If disabled, it removes the drop down animation when swapping item") { page == Page.General && oldAnimations }
-    val shadow by setting("Shadows", true, "If disabled, it removes shadows on the model") { page == Page.General }
+    val swapAnimation by setting("Swap Animation", true, "If disabled, removes the drop down animation when swapping item") { page == Page.General && oldAnimations }
+    val shadow by setting("Shadows", true, "If disabled, removes shadows on the model") { page == Page.General }
 
-    private val linkedScale by setting("Linked Scale", true, "Links both hands scale settings") { page == Page.Scale }
-    private val leftXScale by setting("Left X Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale }.apply { onValueChange { _, to -> if (linkedScale) rightXScale = to } }
-    private val leftYScale by setting("Left Y Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale }.apply { onValueChange { _, to -> if (linkedScale) rightYScale = to } }
-    private val leftZScale by setting("Left Z Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale }.apply { onValueChange { _, to -> if (linkedScale) rightZScale = to } }
-    private var rightXScale by setting("Right X Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale && !linkedScale }
-    private var rightYScale by setting("Right Y Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale && !linkedScale }
-    private var rightZScale by setting("Right Z Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale && !linkedScale }
+    private val splitScale by setting("Split Scale", false, "Splits left and right hand scale settings") { page == Page.Scale }
+    private val xScale by setting("X Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale && !splitScale }.apply { onValueChange { _, to -> leftXScale = to; rightXScale = to } }
+    private val yScale by setting("Y Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale && !splitScale }.apply { onValueChange { _, to -> leftYScale = to; rightYScale = to } }
+    private val zScale by setting("Z Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale && !splitScale }.apply { onValueChange { _, to -> leftZScale = to; rightZScale = to } }
+    private var leftXScale by setting("Left X Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale && splitScale }
+    private var leftYScale by setting("Left Y Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale && splitScale }
+    private var leftZScale by setting("Left Z Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale && splitScale }
+    private var rightXScale by setting("Right X Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale && splitScale }
+    private var rightYScale by setting("Right Y Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale && splitScale }
+    private var rightZScale by setting("Right Z Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale && splitScale }
 
-    private val linkedPosition by setting("Linked Position", true, "Links both hands position settings") { page == Page.Position }
-    private val leftXPosition by setting("Left X Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Position }.apply { onValueChange { _, to -> if (linkedPosition) rightXPosition = to } }
-    private val leftYPosition by setting("Left Y Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Position }.apply { onValueChange { _, to -> if (linkedPosition) rightYPosition = to } }
-    private val leftZPosition by setting("Left Z Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Position }.apply { onValueChange { _, to -> if (linkedPosition) rightZPosition = to } }
-    private var rightXPosition by setting("Right X Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Position && !linkedPosition }
-    private var rightYPosition by setting("Right Y Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Position && !linkedPosition }
-    private var rightZPosition by setting("Right Z Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Position && !linkedPosition }
+    private val splitPosition by setting("Split Position", false, "Splits left and right position settings") { page == Page.Position }
+    private val xPosition by setting("X Position", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Position && !splitPosition }.apply { onValueChange { _, to -> leftXPosition = to; rightXPosition = to } }
+    private val yPosition by setting("Y Position", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Position && !splitPosition }.apply { onValueChange { _, to -> leftYPosition = to; rightYPosition = to } }
+    private val zPosition by setting("Z Position", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Position && !splitPosition }.apply { onValueChange { _, to -> leftZPosition = to; rightZPosition = to } }
+    private var leftXPosition by setting("Left X Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Position && splitPosition }
+    private var leftYPosition by setting("Left Y Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Position && splitPosition }
+    private var leftZPosition by setting("Left Z Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Position && splitPosition }
+    private var rightXPosition by setting("Right X Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Position && splitPosition }
+    private var rightYPosition by setting("Right Y Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Position && splitPosition }
+    private var rightZPosition by setting("Right Z Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Position && splitPosition }
 
-    private val linkedRotation by setting("Linked Rotation", true, "Links both hands rotation settings") { page == Page.Rotation }
-    private val leftXRotation by setting("Left X Rotation", 0, -180..180, 1) { page == Page.Rotation }.apply { onValueChange { _, to -> if (linkedRotation) rightXRotation = to } }
-    private val leftYRotation by setting("Left Y Rotation", 0, -180..180, 1) { page == Page.Rotation }.apply { onValueChange { _, to -> if (linkedRotation) rightYRotation = to } }
-    private val leftZRotation by setting("Left Z Rotation", 0, -180..180, 1) { page == Page.Rotation }.apply { onValueChange { _, to -> if (linkedRotation) rightZRotation = to } }
-    private var rightXRotation by setting("Right X Rotation", 0, -180..180, 1) { page == Page.Rotation && !linkedRotation }
-    private var rightYRotation by setting("Right Y Rotation", 0, -180..180, 1) { page == Page.Rotation && !linkedRotation }
-    private var rightZRotation by setting("Right Z Rotation", 0, -180..180, 1) { page == Page.Rotation && !linkedRotation }
+    private val splitRotation by setting("Split Rotation", false, "Splits left and right rotation settings") { page == Page.Rotation }
+    private val xRotation by setting("X Rotation", 0, -180..180, 1) { page == Page.Rotation && !splitRotation }.apply { onValueChange { _, to -> leftXRotation = to; rightXRotation = to } }
+    private val yRotation by setting("Y Rotation", 0, -180..180, 1) { page == Page.Rotation && !splitRotation }.apply { onValueChange { _, to -> leftYRotation = to; rightYRotation = to } }
+    private val zRotation by setting("Z Rotation", 0, -180..180, 1) { page == Page.Rotation && !splitRotation }.apply { onValueChange { _, to -> leftZRotation = to; rightZRotation = to } }
+    private var leftXRotation by setting("Left X Rotation", 0, -180..180, 1) { page == Page.Rotation && splitRotation }
+    private var leftYRotation by setting("Left Y Rotation", 0, -180..180, 1) { page == Page.Rotation && splitRotation }
+    private var leftZRotation by setting("Left Z Rotation", 0, -180..180, 1) { page == Page.Rotation && splitRotation }
+    private var rightXRotation by setting("Right X Rotation", 0, -180..180, 1) { page == Page.Rotation && splitRotation }
+    private var rightYRotation by setting("Right Y Rotation", 0, -180..180, 1) { page == Page.Rotation && splitRotation }
+    private var rightZRotation by setting("Right Z Rotation", 0, -180..180, 1) { page == Page.Rotation && splitRotation }
 
-    private val linkedFOV by setting("Linked FOV", true, "Links both hands FOV settings") { page == Page.FOV }
-    private val leftFOV by setting("Left FOV", 70, 10..180, 1) { page == Page.FOV }.apply { onValueChange { _, to -> if (linkedFOV) rightFOV = to } }
-    private var leftFOVAnchorDistance by setting("Left FOV Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the left hands fov transformation from") { page == Page.FOV }.apply { onValueChange { _, to -> if (linkedFOV) rightFOVAnchorDistance = to } }
-    private var rightFOV by setting("Right FOV", 70, 10..180, 1) { page == Page.FOV && !linkedFOV }
-    private var rightFOVAnchorDistance by setting("Right FOV Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the right hands fov transformation from") { page == Page.FOV && !linkedFOV }
+    private val splitFov by setting("Split FOV", false, "Splits left and right Fov settings") { page == Page.Fov }
+    private val fov by setting("FOV", 70, 10..180, 1) { page == Page.Fov && !splitFov }.apply { onValueChange { _, to -> leftFov = to; rightFov = to } }
+    private val fovAnchorDistance by setting("Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the FOV transformation from") { page == Page.Fov && !splitFov }.apply { onValueChange { _, to -> leftFovAnchorDistance = to; rightFovAnchorDistance = to } }
+    private var leftFov by setting("Left FOV", 70, 10..180, 1) { page == Page.Fov  && splitFov}
+    private var leftFovAnchorDistance by setting("Left Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the left FOV transformation from") { page == Page.Fov && splitFov }
+    private var rightFov by setting("Right FOV", 70, 10..180, 1) { page == Page.Fov && splitFov }
+    private var rightFovAnchorDistance by setting("Right Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the right FOV transformation from") { page == Page.Fov && splitFov }
 
     private val handXScale by setting("Hand X Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
     private val handYScale by setting("Hand Y Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
@@ -74,11 +83,11 @@ object ViewModel : Module(
     private val handXPosition by setting("Hand X Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
     private val handYPosition by setting("Hand Y Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
     private val handZPosition by setting("Hand Z Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
-    private var handXRotation by setting("Hand X Rotation", 0, -180..180, 1) { page == Page.Hand }
-    private var handYRotation by setting("Hand Y Rotation", 0, -180..180, 1) { page == Page.Hand }
-    private var handZRotation by setting("Hand Z Rotation", 0, -180..180, 1) { page == Page.Hand }
-    private val handFOV by setting("Hand FOV", 70, 10..180, 1) { page == Page.Hand }
-    private var handFOVAnchorDistance by setting("Hand FOV Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the hands fov transformation from") { page == Page.Hand }
+    private val handXRotation by setting("Hand X Rotation", 0, -180..180, 1) { page == Page.Hand }
+    private val handYRotation by setting("Hand Y Rotation", 0, -180..180, 1) { page == Page.Hand }
+    private val handZRotation by setting("Hand Z Rotation", 0, -180..180, 1) { page == Page.Hand }
+    private val handFov by setting("Hand FOV", 70, 10..180, 1) { page == Page.Hand }
+    private val handFovAnchorDistance by setting("Hand FOV Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the hands FOV transformation from") { page == Page.Hand }
 
     private var attackKeyTicksPressed = -1
 
@@ -119,17 +128,17 @@ object ViewModel : Module(
         val emptyHand = itemStack.isEmpty
         if (ignoreHand && emptyHand) return
 
-        applyItemFOV(matrices, side, emptyHand)
+        applyItemFov(matrices, side, emptyHand)
         scale(side, matrices, emptyHand)
         position(side, matrices, emptyHand)
         rotate(side, matrices, emptyHand)
     }
 
-    private fun applyItemFOV(matrices: MatrixStack, side: Side, emptyHand: Boolean) {
+    private fun applyItemFov(matrices: MatrixStack, side: Side, emptyHand: Boolean) {
         val fov = when {
-            side == Side.Left -> leftFOV
-            emptyHand -> handFOV
-            else -> rightFOV
+            side == Side.Left -> leftFov
+            emptyHand -> handFov
+            else -> rightFov
         }.toFloat()
 
         if (fov == 70f) return
@@ -139,11 +148,11 @@ object ViewModel : Module(
         val matrix = matrices.peek().positionMatrix
 
         val distance = if (emptyHand) {
-            handFOVAnchorDistance
+            handFovAnchorDistance
         } else {
             when (side) {
-                Side.Left -> leftFOVAnchorDistance
-                Side.Right -> rightFOVAnchorDistance
+                Side.Left -> leftFovAnchorDistance
+                Side.Right -> rightFovAnchorDistance
             }
         }
 
@@ -226,7 +235,7 @@ object ViewModel : Module(
         }
 
     private enum class Page {
-        General, Scale, Position, Rotation, FOV, Hand
+        General, Scale, Position, Rotation, Fov, Hand
     }
 
     private enum class Side {
