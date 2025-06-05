@@ -126,7 +126,7 @@ object ViewModel : Module(
         }
 
         val emptyHand = itemStack.isEmpty
-        if (!enableHand) return
+        if (!enableHand && emptyHand) return
 
         applyItemFov(matrices, side, emptyHand)
         scale(side, matrices, emptyHand)
