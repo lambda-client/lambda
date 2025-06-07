@@ -242,7 +242,7 @@ object ViewModel : Module(
         Left, Right
     }
 
-    enum class SwingMode {
+    private enum class SwingMode {
         Standard, Opposites, MainHand, OffHand, None
     }
 }
