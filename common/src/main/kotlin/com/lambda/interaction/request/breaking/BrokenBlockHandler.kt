@@ -88,7 +88,7 @@ object BrokenBlockHandler {
                     return@listen
                 }
 
-                if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak) {
+                if (pending.breakConfig.breakConfirmation == BreakConfirmationMode.AwaitThenBreak || pending.isRedundant) {
                     destroyBlock(pending)
                 }
                 pending.internalOnBreak()

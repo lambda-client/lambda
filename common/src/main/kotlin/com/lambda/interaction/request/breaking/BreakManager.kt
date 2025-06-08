@@ -406,25 +406,29 @@ object BreakManager : RequestHandler<BreakRequest>(
      */
     private fun SafeContext.onBlockBreak(info: BreakInfo) {
         info.request.onStop?.invoke(info.context.expectedPos)
-        when (info.breakConfig.breakConfirmation) {
-            BreakConfirmationMode.None -> {
-                destroyBlock(info)
-                info.internalOnBreak()
-                if (!info.callbacksCompleted) {
+        if (info.isRedundant) {
+            info.startPending()
+        } else {
+            when (info.breakConfig.breakConfirmation) {
+                BreakConfirmationMode.None -> {
+                    destroyBlock(info)
+                    info.internalOnBreak()
+                    if (!info.callbacksCompleted) {
+                        info.startPending()
+                    } else {
+                        ReBreakManager.offerReBreak(info)
+                    }
+                }
+                BreakConfirmationMode.BreakThenAwait -> {
+                    destroyBlock(info)
                     info.startPending()
-                } else {
-                    ReBreakManager.offerReBreak(info)
+                }
+                BreakConfirmationMode.AwaitThenBreak -> {
+                    info.startPending()
                 }
             }
-            BreakConfirmationMode.BreakThenAwait -> {
-                destroyBlock(info)
-                info.startPending()
-            }
-            BreakConfirmationMode.AwaitThenBreak -> {
-                info.startPending()
-            }
+            breaksThisTick++
         }
-        breaksThisTick++
         info.nullify()
     }
 
@@ -508,8 +512,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             lastPosStarted = ctx.expectedPos
             onBlockBreak(info)
             info.startBreakPacket(world, interaction)
-            val swing = config.swing
-            if (swing.isEnabled()) {
+            if (config.swing.isEnabled()) {
                 swingHand(config.swingType, Hand.MAIN_HAND)
             }
             return true

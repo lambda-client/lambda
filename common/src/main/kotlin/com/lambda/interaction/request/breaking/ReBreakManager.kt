@@ -74,7 +74,10 @@ object ReBreakManager {
 
             val breakProgress = context.checkedState.calcBlockBreakingDelta(player, world, context.expectedPos)
             return@runSafe if (info.breakingTicks * breakProgress >= info.breakConfig.breakThreshold) {
-                if (!context.checkedState.isEmpty && !awaitThenBreak)  {
+                if (context.checkedState.isEmpty) {
+                    return@runSafe ReBreakResult.Ignored
+                }
+                if (!awaitThenBreak) {
                     destroyBlock(info)
                 }
                 info.stopBreakPacket(world, interaction)
