@@ -37,7 +37,6 @@ import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.player.gamemode
-import net.minecraft.block.BlockState
 import net.minecraft.block.OperatorBlock
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.ChunkSectionPos

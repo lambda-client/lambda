@@ -29,7 +29,6 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
-import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
@@ -154,7 +153,7 @@ object PacketMine : Module(
 
                     boxes.forEach { box ->
                         event.renderer.buildFilled(box, color)
-                        event.renderer.buildOutline(box, Color(color.rgb).setAlpha(1.0))
+                        event.renderer.buildOutline(box, color.setAlpha(1.0))
                     }
                 }
             }
