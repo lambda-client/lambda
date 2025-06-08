@@ -37,9 +37,7 @@ import com.lambda.interaction.request.breaking.BreakManager.activeRequest
 import com.lambda.interaction.request.breaking.BreakManager.processRequest
 import com.lambda.interaction.request.breaking.BreakType.Primary
 import com.lambda.interaction.request.breaking.BreakType.ReBreak
-import com.lambda.interaction.request.breaking.BrokenBlockHandler.brokenState
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
-import com.lambda.interaction.request.breaking.BrokenBlockHandler.isBroken
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.pendingBreaks
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.setPendingConfigs
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.startPending
@@ -47,7 +45,10 @@ import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotation.RotationRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.brokenState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
+import com.lambda.util.BlockUtils.isBroken
+import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.player.gamemode
@@ -309,7 +310,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 }
         }
 
-        return !blockState(ctx.expectedPos).isAir
+        return !blockState(ctx.expectedPos).isEmpty
     }
 
     /**
@@ -553,7 +554,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         val blockState = blockState(ctx.expectedPos)
-        if (blockState.isAir) {
+        if (blockState.isEmpty) {
             info.nullify()
             info.internalOnCancel()
             return false
@@ -644,13 +645,13 @@ object BreakManager : RequestHandler<BreakRequest>(
         lastPosStarted = ctx.expectedPos
 
         val blockState = blockState(ctx.expectedPos)
-        val notAir = !blockState.isAir
-        if (notAir && info.breakingTicks == 0) {
+        val notEmpty = !blockState.isEmpty
+        if (notEmpty && info.breakingTicks == 0) {
             blockState.onBlockBreakStart(world, ctx.expectedPos, player)
         }
 
         val breakDelta = blockState.calcBlockBreakingDelta(player, world, ctx.expectedPos)
-        if (notAir && breakDelta >= info.getBreakThreshold()) {
+        if (notEmpty && breakDelta >= info.getBreakThreshold()) {
             onBlockBreak(info)
         } else {
             info.apply {

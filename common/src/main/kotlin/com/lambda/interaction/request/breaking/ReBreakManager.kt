@@ -23,8 +23,8 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
-import com.lambda.interaction.request.breaking.BrokenBlockHandler.isEmpty
 import com.lambda.threading.runSafe
+import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.player.swingHand
 import net.minecraft.util.Hand
 

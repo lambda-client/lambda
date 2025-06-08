@@ -29,7 +29,9 @@ import com.lambda.interaction.request.breaking.BreakManager.lastPosStarted
 import com.lambda.interaction.request.breaking.BreakManager.matchesBlockItem
 import com.lambda.interaction.request.breaking.ReBreakManager.reBreak
 import com.lambda.module.modules.client.TaskFlowModule
+import com.lambda.util.BlockUtils.brokenState
 import com.lambda.util.BlockUtils.fluidState
+import com.lambda.util.BlockUtils.isBroken
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
@@ -184,8 +186,4 @@ object BrokenBlockHandler {
 
         return setState
     }
-
-    val BlockState.isEmpty get() = matches(fluidState.blockState)
-    val BlockState.brokenState: BlockState get() = fluidState.blockState
-    fun isBroken(oldState: BlockState, newState: BlockState) = !oldState.isEmpty && oldState.brokenState.matches(newState)
 }
