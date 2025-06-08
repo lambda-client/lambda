@@ -22,6 +22,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.util.BlockUtils.allSigns
+import java.awt.Color
 
 class BreakSettings(
     c: Configurable,
@@ -52,4 +53,20 @@ class BreakSettings(
     override val forceSilkTouch by c.setting("Force Silk Touch", false, "Force silk touch when breaking blocks", visibility = vis)
     override val forceFortunePickaxe by c.setting("Force Fortune Pickaxe", false, "Force fortune pickaxe when breaking blocks", visibility = vis)
     override val minFortuneLevel by c.setting("Min Fortune Level", 1, 1..3, 1, "The minimum fortune level to use") { vis() && forceFortunePickaxe }
+
+    override val renders by c.setting("Renders", true, "Enables the render settings for breaking progress", visibility = vis)
+    override val fill by c.setting("Fill", true, "Renders the sides of the box to display break progress") { vis() && renders }
+    override val outline by c.setting("Outline", true, "Renders the lines of the box to display break progress") { vis() && renders }
+    override val outlineWidth by c.setting("Outline Width", 2, 0..5, 1, "The width of the outline") { vis() && renders && outline }
+    override val animation by c.setting("Animation", AnimationMode.Out, "The style of animation used for the box") { vis() && renders }
+
+    override val dynamicFillColor by c.setting("Dynamic Colour", true, "Enables fill color interpolation from start to finish for fill when breaking a block") { vis() && renders && fill }
+    override val staticFillColor by c.setting("Fill Color", Color(255, 0, 0, 60), "The color of the fill") { vis() && renders && !dynamicFillColor && fill }
+    override val startFillColor by c.setting("Start Fill Color", Color(255, 0, 0, 60), "The color of the fill at the start of breaking") { vis() && renders && dynamicFillColor && fill }
+    override val endFillColor by c.setting("End Fill Color", Color(0, 255, 0, 60), "The color of the fill at the end of breaking") { vis() && renders && dynamicFillColor && fill }
+
+    override val dynamicOutlineColor by c.setting("Dynamic Outline Color", true, "Enables color interpolation from start to finish for the outline when breaking a block") { vis() && renders && outline }
+    override val staticOutlineColor by c.setting("Outline Color", Color(255, 0, 0, 255), "The Color of the outline at the start of breaking") { vis() && renders && !dynamicOutlineColor && outline }
+    override val startOutlineColor by c.setting("Start Outline Color", Color(255, 0, 0, 255), "The color of the outline at the start of breaking") { vis() && renders && dynamicOutlineColor && outline }
+    override val endOutlineColor by c.setting("End Outline Color", Color(0, 255, 0, 255), "The color of the outline at the end of breaking") { vis() && renders && dynamicOutlineColor && outline }
 }

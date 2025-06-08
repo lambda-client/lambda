@@ -24,8 +24,12 @@ import com.lambda.config.groups.InventorySettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.context.SafeContext
 import com.lambda.event.events.PlayerEvent
+import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.graphics.renderer.esp.builders.buildFilled
+import com.lambda.graphics.renderer.esp.builders.buildOutline
+import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
 import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
@@ -37,8 +41,12 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.math.distSq
+import com.lambda.util.math.lerp
+import com.lambda.util.math.setAlpha
 import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
+import java.awt.Color
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -62,6 +70,14 @@ object PacketMine : Module(
     private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once")
         .onValueChange { _, to -> if (!to) queuePositions.clear() }
     private val queueOrder by setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }
+    private val renderQueue by setting("Render Queue", true, "Adds renders to signify what block positions are queued") { queue }
+    private val renderSize by setting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { queue && renderQueue }
+    private val renderMode by setting("Render Mode", RenderMode.State, "The style of the queue renders") { queue && renderQueue }
+    private val dynamicColor by setting("Dynamic Color", true, "Interpolates the color between start and end") { queue && renderQueue }
+    private val staticColor by setting("Color", Color(255, 0, 0, 60)) { queue && renderQueue && !dynamicColor }
+    private val startColor by setting("Start Color", Color(255, 255, 0, 60), "The color of the start (closest to breaking) of the queue") { queue && renderQueue && dynamicColor }
+    private val endColor by setting("End Color", Color(255, 0, 0, 60), "The color of the end (farthest from breaking) of the queue") { queue && renderQueue && dynamicColor }
+
 
     private val pendingInteractionsList = ConcurrentLinkedQueue<BuildContext>()
 
@@ -122,6 +138,25 @@ object PacketMine : Module(
                 if (!breakConfig.reBreak || (reBreakMode != ReBreakMode.Auto && reBreakMode != ReBreakMode.AutoConstant)) return@listen
                 val reBreak = reBreakPos ?: return@listen
                 requestBreakManager(listOf(reBreak), true)
+            }
+        }
+
+        listen<RenderEvent.StaticESP> { event ->
+            if (!renderQueue) return@listen
+            queuePositions.forEachIndexed { index, positions ->
+                positions.forEach { pos ->
+                    val color = if (dynamicColor) lerp(index / queuePositions.size.toDouble(), startColor, endColor)
+                    else staticColor
+                    val boxes = when (renderMode) {
+                        RenderMode.State -> blockState(pos).getOutlineShape(world, pos).boundingBoxes
+                        RenderMode.Box -> listOf(Box(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))
+                    }.map { lerp(renderSize.toDouble(), Box(it.center, it.center), it).offset(pos) }
+
+                    boxes.forEach { box ->
+                        event.renderer.buildFilled(box, color)
+                        event.renderer.buildOutline(box, Color(color.rgb).setAlpha(1.0))
+                    }
+                }
             }
         }
 
@@ -221,5 +256,10 @@ object PacketMine : Module(
     enum class QueueOrder {
         Standard,
         Reversed
+    }
+
+    private enum class RenderMode {
+        State,
+        Box
     }
 }

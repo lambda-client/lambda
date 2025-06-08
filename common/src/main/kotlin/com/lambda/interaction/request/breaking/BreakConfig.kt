@@ -22,6 +22,7 @@ import com.lambda.event.Event
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
 import net.minecraft.block.Block
+import java.awt.Color
 
 abstract class BreakConfig(
     priority: Priority = 0
@@ -51,6 +52,22 @@ abstract class BreakConfig(
     abstract val minFortuneLevel: Int
     abstract val ignoredBlocks: Set<Block>
 
+    abstract val renders: Boolean
+    abstract val fill: Boolean
+    abstract val outline: Boolean
+    abstract val outlineWidth: Int
+    abstract val animation: AnimationMode
+
+    abstract val dynamicFillColor: Boolean
+    abstract val staticFillColor: Color
+    abstract val startFillColor: Color
+    abstract val endFillColor: Color
+
+    abstract val dynamicOutlineColor: Boolean
+    abstract val staticOutlineColor: Color
+    abstract val startOutlineColor: Color
+    abstract val endOutlineColor: Color
+
     override fun requestInternal(request: BreakRequest, queueIfClosed: Boolean) {
         BreakManager.request(request, queueIfClosed)
     }
@@ -74,5 +91,13 @@ abstract class BreakConfig(
         None,
         BreakThenAwait,
         AwaitThenBreak
+    }
+
+    enum class AnimationMode {
+        None,
+        Out,
+        In,
+        OutIn,
+        InOut,
     }
 }

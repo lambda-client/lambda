@@ -22,11 +22,14 @@ import com.lambda.event.Event
 import com.lambda.event.EventFlow.post
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.EntityEvent
+import com.lambda.event.events.RenderEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.graphics.renderer.esp.builders.buildFilled
+import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.Priority
@@ -51,6 +54,7 @@ import com.lambda.util.BlockUtils.isBroken
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemUtils.block
+import com.lambda.util.math.lerp
 import com.lambda.util.player.gamemode
 import com.lambda.util.player.swingHand
 import net.minecraft.client.sound.PositionedSoundInstance
@@ -59,6 +63,7 @@ import net.minecraft.entity.ItemEntity
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 
 object BreakManager : RequestHandler<BreakRequest>(
     0,
@@ -167,6 +172,40 @@ object BreakManager : RequestHandler<BreakRequest>(
                 .filterNotNull()
                 .firstOrNull { info -> matchesBlockItem(info, it.entity) }
                 ?.internalOnItemDrop(it.entity)
+        }
+
+        listen<RenderEvent.StaticESP> { event ->
+            breakInfos
+                .filterNotNull()
+                .forEach { info ->
+                    val config = info.breakConfig
+                    if (!config.renders) return@listen
+                    val breakDelta = info.context.checkedState.calcItemBlockBreakingDelta(
+                        player,
+                        world,
+                        info.context.expectedPos,
+                        player.inventory.getStack(info.context.hotbarIndex)
+                    )
+                    val progress = (info.breakingTicks * breakDelta).let {
+                        if (info.isPrimary) it * (2 - info.breakConfig.breakThreshold)
+                        else it
+                    }.toDouble()
+                    val state = info.context.checkedState
+                    val boxes = state.getOutlineShape(world, info.context.expectedPos).boundingBoxes.map {
+                        it.offset(info.context.expectedPos)
+                    }
+
+                    val fillColor = if (config.dynamicFillColor) lerp(progress, config.startFillColor, config.endFillColor)
+                    else config.staticFillColor
+                    val outlineColor = if (config.dynamicOutlineColor) lerp(progress, config.startOutlineColor, config.endOutlineColor)
+                    else config.staticOutlineColor
+
+                    boxes.forEach boxes@ { box ->
+                        val interpolated = interpolateBox(box, progress, info.breakConfig)
+                        if (config.fill) event.renderer.buildFilled(interpolated, fillColor)
+                        if (config.outline) event.renderer.buildOutline(interpolated, outlineColor)
+                    }
+                }
         }
 
         listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE) {
@@ -687,6 +726,21 @@ object BreakManager : RequestHandler<BreakRequest>(
         val inRange = info.context.expectedPos.toCenterPos().isInRange(entity.pos, 0.5)
         val correctMaterial = info.context.checkedState.block == entity.stack.item.block
         return inRange && correctMaterial
+    }
+
+    private fun interpolateBox(box: Box, progress: Double, config: BreakConfig): Box {
+        val boxCenter = Box(box.center, box.center)
+        return when (config.animation) {
+            BreakConfig.AnimationMode.Out -> lerp(progress, boxCenter, box)
+            BreakConfig.AnimationMode.In -> lerp(progress, box, boxCenter)
+            BreakConfig.AnimationMode.InOut ->
+                if (progress >= 0.5f) lerp((progress - 0.5) * 2, boxCenter, box)
+                else lerp(progress * 2, box, boxCenter)
+            BreakConfig.AnimationMode.OutIn ->
+                if (progress >= 0.5f) lerp((progress - 0.5) * 2, box, boxCenter)
+                else lerp(progress * 2, boxCenter, box)
+            else -> box
+        }
     }
 
     override fun preEvent(): Event = UpdateManagerEvent.Break.post()
