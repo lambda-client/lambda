@@ -310,7 +310,10 @@ object BreakManager : RequestHandler<BreakRequest>(
                 }
         }
 
-        return !blockState(ctx.expectedPos).isEmpty
+        val blockState = blockState(ctx.expectedPos)
+        val hardness = ctx.checkedState.getHardness(world, ctx.expectedPos)
+
+        return !blockState.isEmpty && hardness != 600f && hardness != -1f
     }
 
     /**
