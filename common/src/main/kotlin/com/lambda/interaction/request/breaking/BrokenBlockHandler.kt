@@ -57,7 +57,8 @@ object BrokenBlockHandler {
             val loaded = world.isChunkLoaded(ChunkSectionPos.getSectionCoord(pos.x), ChunkSectionPos.getSectionCoord(pos.z))
             if (!loaded) return@let
 
-            info("${info::class.simpleName} at ${info.context.expectedPos.toShortString()} timed out")
+            if (!info.broken) info("${info::class.simpleName} at ${info.context.expectedPos.toShortString()} timed out")
+            else info("${info::class.simpleName}'s item drop at ${info.context.expectedPos.toShortString()} timed out")
 
             val awaitThenBreak = info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak
             if (!info.broken && awaitThenBreak) {
