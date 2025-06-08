@@ -66,7 +66,6 @@ object BreakManager : RequestHandler<BreakRequest>(
     TickEvent.Input.Pre,
     TickEvent.Input.Post,
     TickEvent.Player.Post,
-    // ToDo: Post interact
     onOpen = { processRequest(activeRequest) }
 ), PositionBlocking {
     private var primaryBreak: BreakInfo?

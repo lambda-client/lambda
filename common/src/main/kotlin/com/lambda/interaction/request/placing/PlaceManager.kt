@@ -63,7 +63,6 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     TickEvent.Input.Pre,
     TickEvent.Input.Post,
     TickEvent.Player.Post,
-    // ToDo: Post interact
     onOpen = { activeRequest?.let { processRequest(it) } }
 ), PositionBlocking {
     private var activeRequest: PlaceRequest? = null

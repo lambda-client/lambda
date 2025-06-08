@@ -53,7 +53,6 @@ object RotationManager : RequestHandler<RotationRequest>(
     TickEvent.Input.Pre,
     TickEvent.Input.Post,
     TickEvent.Player.Post,
-    // ToDo: Post interact
 ) {
     var activeRotation = Rotation.ZERO
     var serverRotation = Rotation.ZERO
