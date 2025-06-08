@@ -43,7 +43,7 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.simulation.Simulation.Companion.simulation
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
-import com.lambda.interaction.request.breaking.BreakRequest
+import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.placing.PlaceRequest
 import com.lambda.interaction.request.rotation.RotationConfig
@@ -154,12 +154,12 @@ class BuildTask @Ta5kBuilder constructor(
                                 requestContexts.addAll(breakResults.map { it.context })
                             }
 
-                            val request = BreakRequest(
-                                requestContexts, build, rotation, hotbar,
-                                pendingInteractions = pendingInteractions,
-                                onStop = { breaks++ },
-                                onItemDrop = onItemDrop
-                            )
+                            val request = breakRequest(requestContexts, build, rotation, hotbar, pendingInteractions) {
+                                onStop { breaks++ }
+                                onItemDrop?.let { onItemDrop ->
+                                    onItemDrop { onItemDrop(it) }
+                                }
+                            }
                             build.breaking.request(request)
                             return@listen
                         }

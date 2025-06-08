@@ -35,7 +35,7 @@ import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.request.breaking.BreakRequest
+import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
@@ -78,7 +78,7 @@ object PacketMine : Module(
     private val endColor by setting("End Color", Color(255, 0, 0, 60), "The color of the end (farthest from breaking) of the queue") { queue && renderQueue && dynamicColor }
 
 
-    private val pendingInteractionsList = ConcurrentLinkedQueue<BuildContext>()
+    private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
 
     private var breaks = 0
     private var itemDrops = 0
@@ -174,15 +174,14 @@ object PacketMine : Module(
         if (!reBreaking) {
             queuePositions.retainAllPositions(breakContexts)
         }
-        val request = BreakRequest(
-            breakContexts, build, rotation, hotbar, pendingInteractions = pendingInteractionsList,
-            onStart = { queuePositions.removePos(it); addBreak(it) },
-            onStop = { removeBreak(it); breaks++ },
-            onCancel = { removeBreak(it, true) },
-            onReBreakStart = { reBreakPos = it },
-            onReBreak = { reBreakPos = it },
-            onItemDrop = { _ -> itemDrops++ }
-        )
+        val request = breakRequest(breakContexts, build, rotation, hotbar, pendingInteractions) {
+            onStart { queuePositions.removePos(it); addBreak(it) }
+            onStop { removeBreak(it); breaks++ }
+            onCancel { removeBreak(it, true) }
+            onReBreakStart { reBreakPos = it }
+            onReBreak { reBreakPos = it }
+            onItemDrop { _ -> itemDrops++ }
+        }
         breakConfig.request(request, true)
     }
 

@@ -29,20 +29,81 @@ import com.lambda.util.BlockUtils.blockState
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 
+@DslMarker
+annotation class BreakRequestBuilder
+
 data class BreakRequest(
     val contexts: Collection<BreakContext>,
     val build: BuildConfig,
     val rotation: RotationConfig,
     val hotbar: HotbarConfig,
     val pendingInteractions: MutableCollection<BuildContext>,
-    val onStart: ((BlockPos) -> Unit)? = null,
-    val onStop: ((BlockPos) -> Unit)? = null,
-    val onCancel: ((BlockPos) -> Unit)? = null,
-    val onItemDrop: ((ItemEntity) -> Unit)? = null,
-    val onReBreakStart: ((BlockPos) -> Unit)? = null,
-    val onReBreak: ((BlockPos) -> Unit)? = null,
     private val prio: Priority = 0
 ) : Request(prio, build.breaking) {
+    var onStart: ((BlockPos) -> Unit)? = null
+    var onStop: ((BlockPos) -> Unit)? = null
+    var onCancel: ((BlockPos) -> Unit)? = null
+    var onItemDrop: ((ItemEntity) -> Unit)? = null
+    var onReBreakStart: ((BlockPos) -> Unit)? = null
+    var onReBreak: ((BlockPos) -> Unit)? = null
+
     override val done: Boolean
         get() = runSafe { contexts.all { it.targetState.matches(blockState(it.expectedPos), it.expectedPos, world) } } == true
+
+    @BreakRequestBuilder
+    class RequestBuilder(
+        contexts: Collection<BreakContext>,
+        build: BuildConfig,
+        rotation: RotationConfig,
+        hotbar: HotbarConfig,
+        pendingInteractions: MutableCollection<BuildContext>,
+        prio: Priority = 0
+    ) {
+        val request = BreakRequest(contexts, build, rotation, hotbar, pendingInteractions, prio)
+
+        @BreakRequestBuilder
+        fun onStart(callback: (BlockPos) -> Unit) {
+            request.onStart = callback
+        }
+
+        @BreakRequestBuilder
+        fun onStop(callback: (BlockPos) -> Unit) {
+            request.onStop = callback
+        }
+
+        @BreakRequestBuilder
+        fun onCancel(callback: (BlockPos) -> Unit) {
+            request.onCancel = callback
+        }
+
+        @BreakRequestBuilder
+        fun onItemDrop(callback: (ItemEntity) -> Unit) {
+            request.onItemDrop = callback
+        }
+
+        @BreakRequestBuilder
+        fun onReBreakStart(callback: (BlockPos) -> Unit) {
+            request.onReBreakStart = callback
+        }
+
+        @BreakRequestBuilder
+        fun onReBreak(callback: (BlockPos) -> Unit) {
+            request.onReBreak = callback
+        }
+
+        @BreakRequestBuilder
+        fun build(): BreakRequest = request
+    }
+
+    companion object {
+        fun breakRequest(
+            contexts: Collection<BreakContext>,
+            build: BuildConfig,
+            rotation: RotationConfig,
+            hotbar: HotbarConfig,
+            pendingInteractions: MutableCollection<BuildContext>,
+            prio: Priority = 0,
+            builder: RequestBuilder.() -> Unit
+        ) = RequestBuilder(contexts, build, rotation, hotbar, pendingInteractions, prio).apply(builder).build()
+    }
 }
