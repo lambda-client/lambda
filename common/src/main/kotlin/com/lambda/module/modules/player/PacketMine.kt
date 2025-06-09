@@ -48,6 +48,7 @@ import net.minecraft.util.math.Box
 import java.awt.Color
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.collections.ArrayList
 
 object PacketMine : Module(
     "PacketMine",
@@ -84,11 +85,11 @@ object PacketMine : Module(
     private var itemDrops = 0
 
     private val breakPositions = arrayOfNulls<BlockPos>(2)
-    private val queuePositions = LinkedList<MutableCollection<BlockPos>>()
+    private val queuePositions = ArrayList<MutableCollection<BlockPos>>()
     private val queueSorted
         get() = when (queueOrder) {
             QueueOrder.Standard -> queuePositions
-            QueueOrder.Reversed -> queuePositions.reversed()
+            QueueOrder.Reversed -> queuePositions.asReversed()
         }.flatten()
 
     private var reBreakPos: BlockPos? = null
@@ -118,17 +119,18 @@ object PacketMine : Module(
             }
             if (positions.isEmpty()) return@listen
             val activeBreaking = if (queue) {
-                queuePositions.addLast(positions)
+                queuePositions.add(positions)
                 breakPositions.toList() + queueSorted
             } else {
                 queuePositions.clear()
-                queuePositions.addLast(positions)
+                queuePositions.add(positions)
                 queuePositions.flatten() + if (breakConfig.doubleBreak) {
                     breakPositions[1] ?: breakPositions[0]
                 } else null
             }
             requestBreakManager(activeBreaking)
             attackedThisTick = true
+            queuePositions.trimToSize()
         }
 
         listen<TickEvent.Input.Post> {
@@ -213,7 +215,7 @@ object PacketMine : Module(
         }
     }
 
-    private fun LinkedList<MutableCollection<BlockPos>>.removePos(element: BlockPos): Boolean {
+    private fun ArrayList<MutableCollection<BlockPos>>.removePos(element: BlockPos): Boolean {
         var anyRemoved = false
         removeIf {
             val removed = it.remove(element)
@@ -223,7 +225,7 @@ object PacketMine : Module(
         return anyRemoved
     }
 
-    private fun LinkedList<MutableCollection<BlockPos>>.retainAllPositions(positions: Collection<BreakContext>): Boolean {
+    private fun ArrayList<MutableCollection<BlockPos>>.retainAllPositions(positions: Collection<BreakContext>): Boolean {
         var modified = false
         forEach {
             modified = modified or it.retainAll { pos ->
@@ -235,7 +237,7 @@ object PacketMine : Module(
         return modified
     }
 
-    private fun LinkedList<MutableCollection<BlockPos>>.any(predicate: (BlockPos) -> Boolean): Boolean {
+    private fun ArrayList<MutableCollection<BlockPos>>.any(predicate: (BlockPos) -> Boolean): Boolean {
         if (isEmpty()) return false
         forEach { if (it.any(predicate)) return true }
         return false
