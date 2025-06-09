@@ -315,7 +315,10 @@ object BreakManager : RequestHandler<BreakRequest>(
             .filterNotNull()
             .forEach { info ->
                 newBreaks.find { ctx -> ctx.expectedPos == info.context.expectedPos }?.let { ctx ->
-                    if (!info.updatedThisTick) info.updateInfo(ctx, request)
+                    if (!info.updatedThisTick) {
+                        info.updateInfo(ctx, request)
+                        info.request.onUpdate?.invoke(info.context.expectedPos)
+                    }
                     newBreaks.remove(ctx)
                     return@forEach
                 }

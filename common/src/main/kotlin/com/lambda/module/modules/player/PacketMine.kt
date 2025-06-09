@@ -46,7 +46,6 @@ import com.lambda.util.world.raycast.InteractionMask
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import java.awt.Color
-import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.collections.ArrayList
 
@@ -105,17 +104,19 @@ object PacketMine : Module(
         listen<PlayerEvent.Breaking.Update> { event ->
             event.cancel()
             val pos = event.pos
-            val positions = mutableListOf(pos).apply {
-                if (breakRadius <= 0) return@apply
+            val positions = mutableListOf<BlockPos>().apply {
+                if (breakRadius <= 0) {
+                    add(pos)
+                    return@apply
+                }
                 BlockPos.iterateOutwards(pos, breakRadius, breakRadius, breakRadius).forEach { blockPos ->
-                    if (blockPos distSq pos <= (breakRadius * breakRadius) && (!flatten || blockPos.y >= player.blockPos.y)) {
+                    if (blockPos distSq pos <= (breakRadius * breakRadius) && (!flatten || (blockPos.y >= player.blockPos.y || blockPos == pos))) {
                         add(blockPos.toImmutable())
                     }
                 }
             }
             positions.removeIf { breakPos ->
-                breakPositions.any { it == breakPos }
-                        || (queue && queuePositions.any { it == pos })
+                queue && queuePositions.any { it == breakPos }
             }
             if (positions.isEmpty()) return@listen
             val activeBreaking = if (queue) {
@@ -178,6 +179,7 @@ object PacketMine : Module(
         }
         val request = breakRequest(breakContexts, build, rotation, hotbar, pendingInteractions) {
             onStart { queuePositions.removePos(it); addBreak(it) }
+            onUpdate { queuePositions.removePos(it) }
             onStop { removeBreak(it); breaks++ }
             onCancel { removeBreak(it, true) }
             onReBreakStart { reBreakPos = it }

@@ -41,6 +41,7 @@ data class BreakRequest(
     private val prio: Priority = 0
 ) : Request(prio, build.breaking) {
     var onStart: ((BlockPos) -> Unit)? = null
+    var onUpdate: ((BlockPos) -> Unit)? = null
     var onStop: ((BlockPos) -> Unit)? = null
     var onCancel: ((BlockPos) -> Unit)? = null
     var onItemDrop: ((ItemEntity) -> Unit)? = null
@@ -64,6 +65,11 @@ data class BreakRequest(
         @BreakRequestBuilder
         fun onStart(callback: (BlockPos) -> Unit) {
             request.onStart = callback
+        }
+
+        @BreakRequestBuilder
+        fun onUpdate(callback: (BlockPos) -> Unit) {
+            request.onUpdate = callback
         }
 
         @BreakRequestBuilder
@@ -96,6 +102,7 @@ data class BreakRequest(
     }
 
     companion object {
+        @BreakRequestBuilder
         fun breakRequest(
             contexts: Collection<BreakContext>,
             build: BuildConfig,
