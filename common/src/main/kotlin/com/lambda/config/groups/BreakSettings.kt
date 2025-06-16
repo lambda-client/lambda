@@ -35,6 +35,7 @@ class BreakSettings(
     override val breakThreshold by c.setting("Break Threshold", 0.70f, 0.1f..1.0f, 0.01f, "The break amount at which the block is considered broken", visibility = vis)
     override val doubleBreak by c.setting("Double Break", true, "Allows breaking two blocks at once", visibility = vis)
     override val fudgeFactor by c.setting("Fudge Factor", 2, 0..5, 1, "The amount of ticks to give double, aka secondary breaks extra for the server to recognise the break", visibility = vis)
+    override val desyncFix by c.setting("Desync Fix", false, "Predicts if the players breaking will be slowed next tick as block break packets are processed using the players next position", visibility = vis)
     override val breakDelay by c.setting("Break Delay", 0, 0..6, 1, "The delay between breaking blocks", " ticks", visibility = vis)
     override val breakStageMask by c.setting("Break Stage Mask", setOf(TickEvent.Pre, TickEvent.Input.Pre, TickEvent.Input.Post, TickEvent.Player.Post), "The sub-tick timing at which break actions can be performed", visibility = vis)
     override val swing by c.setting("Swing Mode", SwingMode.Constant, "The times at which to swing the players hand", visibility = vis)

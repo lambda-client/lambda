@@ -56,14 +56,21 @@ import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.lerp
 import com.lambda.util.player.gamemode
+import com.lambda.util.player.prediction.buildPlayerPrediction
 import com.lambda.util.player.swingHand
+import net.minecraft.block.BlockState
+import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.client.sound.SoundInstance
+import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.ItemEntity
+import net.minecraft.item.ItemStack
+import net.minecraft.registry.tag.FluidTags
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
+import net.minecraft.world.BlockView
 
 object BreakManager : RequestHandler<BreakRequest>(
     0,
@@ -180,10 +187,11 @@ object BreakManager : RequestHandler<BreakRequest>(
                 .forEach { info ->
                     val config = info.breakConfig
                     if (!config.renders) return@listen
-                    val breakDelta = info.context.checkedState.calcItemBlockBreakingDelta(
+                    val breakDelta = info.context.checkedState.calcBreakDelta(
                         player,
                         world,
                         info.context.expectedPos,
+                        info.breakConfig,
                         player.inventory.getStack(info.context.hotbarIndex)
                     )
                     val progress = (info.breakingTicks * breakDelta).let {
@@ -268,10 +276,11 @@ object BreakManager : RequestHandler<BreakRequest>(
                     .forEach { info ->
                         if (info.updatedProgressThisTick) return@forEach
                         val minKeepTicks = if (info.isSecondary) {
-                            val breakDelta = info.context.checkedState.calcItemBlockBreakingDelta(
+                            val breakDelta = info.context.checkedState.calcBreakDelta(
                                 player,
                                 world,
                                 info.context.expectedPos,
+                                info.breakConfig,
                                 player.inventory.getStack(info.context.hotbarIndex)
                             )
                             val breakAmount = breakDelta * (info.breakingTicks + 1)
@@ -605,10 +614,11 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         info.breakingTicks++
-        val progress = blockState.calcBlockBreakingDelta(
+        val progress = blockState.calcBreakDelta(
             player,
             world,
-            ctx.expectedPos
+            ctx.expectedPos,
+            config
         ) * (info.breakingTicks - config.fudgeFactor)
 
         val overBreakThreshold = progress >= info.getBreakThreshold()
@@ -694,7 +704,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             blockState.onBlockBreakStart(world, ctx.expectedPos, player)
         }
 
-        val breakDelta = blockState.calcBlockBreakingDelta(player, world, ctx.expectedPos)
+        val breakDelta = blockState.calcBreakDelta(player, world, ctx.expectedPos, info.breakConfig)
         if (notEmpty && breakDelta >= info.getBreakThreshold()) {
             onBlockBreak(info)
         } else {
@@ -721,6 +731,31 @@ object BreakManager : RequestHandler<BreakRequest>(
 
         return true
     }
+
+    private fun BlockState.calcBreakDelta(
+        player: ClientPlayerEntity,
+        world: BlockView,
+        pos: BlockPos,
+        config: BreakConfig,
+        item: ItemStack? = null
+    ) = runSafe {
+        var delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.inventory.mainHandStack)
+        // This setting requires some fixes / improvements in the player movement prediction to work properly. Currently, its broken
+        if (config.desyncFix) {
+            val nextTickPrediction = buildPlayerPrediction().next()
+            if (player.isOnGround && !nextTickPrediction.onGround) {
+                delta /= 5.0f
+            }
+
+            val affectedThisTick = player.isSubmergedIn(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(player)
+            val simulatedPlayer = nextTickPrediction.predictionEntity.player
+            val affectedNextTick = simulatedPlayer.isSubmergedIn(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(simulatedPlayer)
+            if (!affectedThisTick && affectedNextTick) {
+                delta /= 5.0f
+            }
+        }
+        delta
+    } ?: 0f
 
     /**
      * @return if the [ItemEntity] matches the [BreakInfo]'s expected item drop.

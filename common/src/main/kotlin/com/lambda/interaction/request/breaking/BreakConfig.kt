@@ -33,6 +33,7 @@ abstract class BreakConfig(
     abstract val breakThreshold: Float
     abstract val doubleBreak: Boolean
     abstract val fudgeFactor: Int
+    abstract val desyncFix: Boolean
     abstract val breakDelay: Int
     abstract val breakStageMask: Set<Event>
     abstract val swing: SwingMode
