@@ -24,6 +24,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
+import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.util.math.BlockPos
@@ -38,6 +39,7 @@ object Nuker : Module(
     private val flatten by setting("Flatten", true)
     private val onlyBreakInstant by setting("Only Break Instant", true)
     private val fillFloor by setting("Fill Floor", false)
+    private val baritoneSelection by setting("Baritone Selection", false, "Restricts nuker to your baritone selection")
 
     private var task: Task<*>? = null
 
@@ -51,6 +53,16 @@ object Nuker : Module(
                     .filter { !flatten || it.y >= player.blockPos.y }
                     .filter { !onlyBreakInstant || blockState(it).getHardness(world, it) <= 1 }
                     .filter { blockState(it).getHardness(world, it) >= 0 }
+                    .filter { pos ->
+                        if (!baritoneSelection) true
+                        else BaritoneUtils.primary.selectionManager.selections.any {
+                            val min = it.min()
+                            val max = it.max()
+                            pos.x >= min.x && pos.x <= max.x
+                                    && pos.y >= min.y && pos.y <= max.y
+                                    && pos.z >= min.z && pos.z <= max.z
+                        }
+                    }
                     .associateWith { TargetState.Air }
 
                 if (fillFloor) {
