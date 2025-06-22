@@ -49,6 +49,7 @@
     "render.SplashOverlayMixin",
     "render.SplashOverlayMixin$LogoTextureMixin",
     "render.TooltipComponentMixin",
+    "render.VertexFormatMixin",
     "render.WorldRendererMixin",
     "world.BlockCollisionSpliteratorMixin",
     "world.ClientChunkManagerMixin",

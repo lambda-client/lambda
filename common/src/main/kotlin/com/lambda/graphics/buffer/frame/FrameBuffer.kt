@@ -17,10 +17,12 @@
 
 package com.lambda.graphics.buffer.frame
 
+import com.lambda.Lambda.mc
 import com.lambda.graphics.buffer.vertex.attributes.VertexAttrib
 import com.lambda.graphics.buffer.vertex.attributes.VertexMode
 import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.texture.TextureUtils
+import net.minecraft.client.texture.GlTexture
 import org.lwjgl.opengl.GL12C.GL_CLAMP_TO_EDGE
 import org.lwjgl.opengl.GL30C.GL_COLOR_ATTACHMENT0
 import org.lwjgl.opengl.GL30C.GL_COLOR_BUFFER_BIT
@@ -67,19 +69,18 @@ open class FrameBuffer(
     private var lastWidth = -1
     private var lastHeight = -1
 
-    @Deprecated(message = "Fix this code")
     open fun write(block: () -> Unit): FrameBuffer {
-        //val prev = lastFrameBuffer ?: mc.framebuffer.fbo
+        val prev = lastFrameBuffer ?: (mc.framebuffer.colorAttachment as GlTexture).glId
 
         glBindFramebuffer(GL_FRAMEBUFFER, fbo)
-        //lastFrameBuffer = fbo
+        lastFrameBuffer = fbo
 
         update()
 
         block()
 
-        //lastFrameBuffer = prev
-        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+        lastFrameBuffer = prev
+        glBindFramebuffer(GL_FRAMEBUFFER, prev)
         return this
     }
 
