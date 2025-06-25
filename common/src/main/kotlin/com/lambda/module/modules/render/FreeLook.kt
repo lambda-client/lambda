@@ -31,7 +31,7 @@ object FreeLook : Module(
     description = "Allows you to look around freely while moving",
     defaultTags = setOf(com.lambda.module.tag.ModuleTag.RENDER, com.lambda.module.tag.ModuleTag.MOVEMENT)
 ) {
-    val enableYaw by setting("Enable Yaw", true, "Don't effect pitch if enabled")
+    val enableYaw by setting("Enable Yaw", false, "Don't effect pitch if enabled")
     val enablePitch by setting("Enable Pitch", false, "Don't effect yaw if enabled")
     val togglePerspective by setting("Toggle Perspective", true, "Toggle perspective when enabling FreeLook")
 
