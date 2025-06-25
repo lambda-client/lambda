@@ -20,6 +20,7 @@ package com.lambda.mixin.render;
 import com.lambda.interaction.request.rotation.RotationManager;
 import com.lambda.module.modules.player.Freecam;
 import com.lambda.module.modules.render.CameraTweaks;
+import com.lambda.module.modules.render.FreeLook;
 import net.minecraft.client.render.Camera;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.BlockView;
@@ -28,8 +29,10 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.ModifyArgs;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 @Mixin(Camera.class)
 public abstract class CameraMixin {
@@ -74,6 +77,8 @@ public abstract class CameraMixin {
     private void onClipToSpace(float desiredCameraDistance, CallbackInfoReturnable<Float> info) {
         if (CameraTweaks.INSTANCE.isEnabled() && CameraTweaks.getNoClipCam()) {
             info.setReturnValue(desiredCameraDistance);
+        } else if (FreeLook.INSTANCE.isEnabled()) {
+            info.setReturnValue(desiredCameraDistance);
         }
     }
 
@@ -93,8 +98,18 @@ public abstract class CameraMixin {
     private float onDistanceUpdate(float desiredCameraDistance) {
         if (CameraTweaks.INSTANCE.isEnabled()) {
             return CameraTweaks.getCamDistance();
+        } else if (FreeLook.INSTANCE.isEnabled()) {
+            return 4.0F;
         }
 
         return desiredCameraDistance;
+    }
+
+    @ModifyArgs(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setRotation(FF)V"))
+    private void onUpdateSetRotationArgs(Args args) {
+        if (FreeLook.INSTANCE.isEnabled()) {
+            args.set(0, FreeLook.INSTANCE.getCamera().getYawF());
+            args.set(1, FreeLook.INSTANCE.getCamera().getPitchF());
+        }
     }
 }
