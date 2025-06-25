@@ -22,14 +22,15 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.request.rotation.Rotation
 import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
 import com.lambda.util.extension.rotation
-import net.minecraft.client.MinecraftClient
 import net.minecraft.client.option.Perspective
+
 
 object FreeLook : Module(
     name = "FreeLook",
     description = "Allows you to look around freely while moving",
-    defaultTags = setOf(com.lambda.module.tag.ModuleTag.RENDER, com.lambda.module.tag.ModuleTag.MOVEMENT)
+    defaultTags = setOf(ModuleTag.PLAYER)
 ) {
     val enableYaw by setting("Enable Yaw", false, "Don't effect pitch if enabled")
     val enablePitch by setting("Enable Pitch", false, "Don't effect yaw if enabled")
@@ -51,7 +52,7 @@ object FreeLook : Module(
     }
 
     init {
-        previousPerspective = MinecraftClient.getInstance().options.perspective
+        previousPerspective = Lambda.mc.options.perspective
 
         onEnable {
             camera = player.rotation
