@@ -17,6 +17,8 @@
 
 package com.lambda.interaction.construction.verify
 
-enum class ScanMode {
-    GREATER_HALF, LESSER_HALF, FULL
+enum class ScanMode(val priority: Int) {
+    GREATER_HALF(1),
+    LESSER_HALF(1),
+    FULL(0)
 }

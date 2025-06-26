@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,18 +18,22 @@
 package com.lambda.interaction.construction.processing.processors
 
 import com.lambda.interaction.construction.processing.PlacementProcessor
-import com.lambda.interaction.construction.processing.PreprocessingStep
+import com.lambda.interaction.construction.processing.PreprocessingInfoAccumulator
 import net.minecraft.block.BlockState
 import net.minecraft.state.property.Properties
+import net.minecraft.util.math.Direction
 
-object FacingProcessor : PlacementProcessor() {
-    override fun acceptState(state: BlockState) =
-        state.getOrEmpty(Properties.FACING).isPresent
+// Collected using reflections and then accessed from a collection in ProcessorRegistry
+@Suppress("unused")
+object HopperFacingPreprocessor : PlacementProcessor() {
+    override fun acceptsState(state: BlockState) =
+        state.properties.contains(Properties.HOPPER_FACING)
 
-    override fun preProcess(state: BlockState): PreprocessingStep {
-        // Needs two sets of blocks: native and opposite!
-        return PreprocessingStep(
-            sides = setOf(state.getOrEmpty(Properties.FACING).get())
-        )
+    override fun preProcess(state: BlockState, accumulator: PreprocessingInfoAccumulator) {
+        val facing = state.get(Properties.HOPPER_FACING) ?: return
+        when {
+            facing.axis == Direction.Axis.Y -> accumulator.retainSides { it.axis == Direction.Axis.Y }
+            else -> accumulator.retainSides(facing)
+        }
     }
 }

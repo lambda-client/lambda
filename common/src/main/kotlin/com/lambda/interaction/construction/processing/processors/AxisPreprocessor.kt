@@ -18,19 +18,20 @@
 package com.lambda.interaction.construction.processing.processors
 
 import com.lambda.interaction.construction.processing.PlacementProcessor
-import com.lambda.interaction.construction.processing.PreprocessingStep
+import com.lambda.interaction.construction.processing.PreprocessingInfoAccumulator
 import net.minecraft.block.BlockState
 import net.minecraft.state.property.Properties
-import net.minecraft.util.math.Direction
 
+// Collected using reflections and then accessed from a collection in ProcessorRegistry
+@Suppress("unused")
 object AxisPreprocessor : PlacementProcessor() {
-    override fun acceptState(state: BlockState) =
+    override fun acceptsState(state: BlockState) =
         state.getOrEmpty(Properties.AXIS).isPresent
 
-    override fun preProcess(state: BlockState): PreprocessingStep {
-        val axis = state.getOrEmpty(Properties.AXIS).get()
-        return PreprocessingStep(
-            sides = Direction.entries.filter { it.axis == axis }.toSet()
-        )
+    override fun preProcess(state: BlockState, accumulator: PreprocessingInfoAccumulator) {
+        val axis = state.get(Properties.AXIS)
+        accumulator.retainSides { side ->
+            side.axis == axis
+        }
     }
 }

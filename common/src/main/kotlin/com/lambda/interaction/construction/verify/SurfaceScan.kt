@@ -26,5 +26,4 @@ data class SurfaceScan(
     companion object {
         val DEFAULT = SurfaceScan(ScanMode.FULL, Direction.Axis.Y)
     }
-
 }

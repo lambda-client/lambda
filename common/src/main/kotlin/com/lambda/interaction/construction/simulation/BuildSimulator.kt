@@ -24,7 +24,7 @@ import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.PlaceContext
-import com.lambda.interaction.construction.processing.ProcessorRegistry.findProcessorForState
+import com.lambda.interaction.construction.processing.ProcessorRegistry.getProcessingInfo
 import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.PlaceResult
@@ -164,10 +164,10 @@ object BuildSimulator {
 
         if (target.isAir() || !targetPosState.isReplaceable) return acc
 
-        val preprocessing = target.findProcessorForState()
+        val preprocessing = target.getProcessingInfo()
 
         preprocessing.sides.forEach { neighbor ->
-            val hitPos = if (!place.airPlace.isEnabled() && targetPosState.isAir || targetPosState.isLiquid)
+            val hitPos = if (!place.airPlace.isEnabled() && (targetPosState.isAir || targetPosState.isLiquid))
                 pos.offset(neighbor)
             else pos
             val hitSide = neighbor.opposite
@@ -415,7 +415,7 @@ object BuildSimulator {
         val state = blockState(pos)
 
         /* is a block that will be destroyed by breaking adjacent blocks */
-        if (build.breaking.breakWeakBlocks && state.block.hardness == 0f && !state.isAir) {
+        if (breaking.breakWeakBlocks && state.block.hardness == 0f && !state.isAir) {
             acc.add(BuildResult.Ignored(pos))
             return acc
         }
@@ -444,13 +444,13 @@ object BuildSimulator {
         }.map { pos.offset(it) }
 
         /* block has liquids next to it that will leak when broken */
-        if (adjacentLiquids.isNotEmpty() && build.breaking.avoidLiquids) {
+        if (adjacentLiquids.isNotEmpty() && breaking.avoidLiquids) {
             acc.add(BreakResult.BlockedByLiquid(pos, state))
             adjacentLiquids.forEach { liquidPos ->
                 val submerge = if (blockState(liquidPos).isReplaceable) {
                     checkPlaceResults(liquidPos, TargetState.Solid, eye, build.placing, interact, rotation, inventory)
                 } else {
-                    checkBreakResults(liquidPos, eye, build.breaking, interact, rotation, inventory, build)
+                    checkBreakResults(liquidPos, eye, breaking, interact, rotation, inventory, build)
                 }
                 acc.addAll(submerge)
             }
@@ -488,7 +488,7 @@ object BuildSimulator {
                     state,
                     targetState,
                     player.inventory.selectedSlot,
-                    instantBreakable(state, pos, build.breaking.breakThreshold)
+                    instantBreakable(state, pos, breaking.breakThreshold)
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
                 return acc
@@ -533,7 +533,7 @@ object BuildSimulator {
         val blockHit = bestHit.hit.blockResult ?: return acc
         val target = lookAt(bestHit.targetRotation, 0.001)
         val request = RotationRequest(target, rotation)
-        val instant = instantBreakable(state, pos, build.breaking.breakThreshold)
+        val instant = instantBreakable(state, pos, breaking.breakThreshold)
 
         val breakContext = BreakContext(
             eye, blockHit, request, state, targetState, player.inventory.selectedSlot, instant
@@ -544,46 +544,15 @@ object BuildSimulator {
             return acc
         }
 
-//        val bestTools = findBestToolForBreaking(state, inventory.allowedTools)
-//
-//        /* there is no good tool for the job */
-//        if (bestTools.isEmpty()) {
-//            /* The current selected item cant mine the block */
-//            Hand.entries.forEach {
-//                val stack = player.getStackInHand(it)
-//                if (stack.isEmpty) return@forEach
-//                if (stack.item.canMine(state, world, pos, player)) return@forEach
-//                acc.add(BreakResult.ItemCantMine(pos, state, stack.item, inventory))
-//                return acc
-//            }
-//            // ToDo: Switch to non destroyable item
-//            acc.add(BreakResult.Break(pos, breakContext))
-//            return acc
-//        }
-//
-//        val toolSelection = if (build.breaking.forceSilkTouch) {
-//            selectStack { isOneOfItems(bestTools) and hasEnchantment(Enchantments.SILK_TOUCH) }
-//        } else if (build.breaking.forceFortunePickaxe) {
-//            selectStack { isOneOfItems(bestTools) and hasEnchantment(Enchantments.FORTUNE, build.breaking.minFortuneLevel) }
-//        } else {
-//            bestTools.select()
-//        }
-//        val silentSwapSelection = selectContainer {
-//            matches(toolSelection) and ofAnyType(MaterialContainer.Rank.HOTBAR)
-//        }
-//	    val fullSelection = selectContainer {
-//			matches(toolSelection) and matches(inventory.containerSelection)
-//	    }
-
         val stackSelection = selectStack(
             block = {
                 run {
-                    if (build.breaking.suitableToolsOnly) isSuitableForBreaking(state)
+                    if (breaking.suitableToolsOnly) isSuitableForBreaking(state)
                     else StackSelection.EVERYTHING
-                } and if (build.breaking.forceSilkTouch) {
+                } and if (breaking.forceSilkTouch) {
                     hasEnchantment(Enchantments.SILK_TOUCH)
-                } else if (build.breaking.forceFortunePickaxe) {
-                    hasEnchantment(Enchantments.FORTUNE, build.breaking.minFortuneLevel)
+                } else if (breaking.forceFortunePickaxe) {
+                    hasEnchantment(Enchantments.FORTUNE, breaking.minFortuneLevel)
                 } else StackSelection.EVERYTHING
             },
             sorter = compareByDescending<ItemStack> {
@@ -613,7 +582,7 @@ object BuildSimulator {
         if (toolPair == null) return acc
 
         breakContext.hotbarIndex = player.hotbar.indexOf(toolPair.first)
-        breakContext.instantBreak = instantBreakable(state, pos, toolPair.first, build.breaking.breakThreshold)
+        breakContext.instantBreak = instantBreakable(state, pos, toolPair.first, breaking.breakThreshold)
 	    acc.add(BreakResult.Break(pos, breakContext))
         return acc
     }

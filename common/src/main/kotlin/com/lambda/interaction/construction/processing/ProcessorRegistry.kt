@@ -21,23 +21,24 @@ import com.lambda.core.Loadable
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.util.reflections.getInstances
 import net.minecraft.block.BlockState
-import net.minecraft.block.Blocks
 
 object ProcessorRegistry : Loadable {
     private val processors = getInstances<PlacementProcessor>()
-    private val processorCache = mutableMapOf<BlockState, PreprocessingStep>()
+    private val processorCache = mutableMapOf<BlockState, PreprocessingInfo>()
 
     override fun load() = "Loaded ${processors.size} pre processors"
 
-    fun TargetState.findProcessorForState(): PreprocessingStep =
+    fun TargetState.getProcessingInfo(): PreprocessingInfo =
         (this as? TargetState.State)?.let { state ->
             processorCache.getOrPut(state.blockState) {
-                (processors.find { it.acceptState(state.blockState) } ?: DefaultProcessor).preProcess(state.blockState)
-            }
-        } ?: DefaultProcessor.preProcess(Blocks.AIR.defaultState)
+                val infoAccumulator = PreprocessingInfoAccumulator()
 
-    object DefaultProcessor : PlacementProcessor() {
-        override fun acceptState(state: BlockState) = true
-        override fun preProcess(state: BlockState) = PreprocessingStep()
-    }
+                processors.forEach {
+                    if (!it.acceptsState(state.blockState)) return@forEach
+                    it.preProcess(state.blockState, infoAccumulator)
+                }
+
+                return infoAccumulator.complete()
+            }
+        } ?: PreprocessingInfo.DEFAULT
 }

@@ -18,7 +18,7 @@
 package com.lambda.interaction.construction.processing.processors
 
 import com.lambda.interaction.construction.processing.PlacementProcessor
-import com.lambda.interaction.construction.processing.PreprocessingStep
+import com.lambda.interaction.construction.processing.PreprocessingInfoAccumulator
 import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
 import net.minecraft.block.BlockState
@@ -27,24 +27,20 @@ import net.minecraft.block.enums.SlabType
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.Direction
 
+// Collected using reflections and then accessed from a collection in ProcessorRegistry
+@Suppress("unused")
 object SlabProcessor : PlacementProcessor() {
-    override fun acceptState(state: BlockState) = state.block is SlabBlock
+    override fun acceptsState(state: BlockState) = state.block is SlabBlock
 
-    override fun preProcess(state: BlockState): PreprocessingStep {
-        val slab = state.getOrEmpty(Properties.SLAB_TYPE).get()
+    override fun preProcess(state: BlockState, accumulator: PreprocessingInfoAccumulator) {
+        val slab = state.get(Properties.SLAB_TYPE) ?: return
 
         val surfaceScan = when (slab) {
-             SlabType.BOTTOM -> SurfaceScan(
-                 ScanMode.LESSER_HALF, Direction.Axis.Y
-             )
-             SlabType.TOP -> SurfaceScan(
-                 ScanMode.GREATER_HALF, Direction.Axis.Y
-             )
-             SlabType.DOUBLE -> SurfaceScan(
-                 ScanMode.FULL, Direction.Axis.Y
-             )
+             SlabType.BOTTOM -> SurfaceScan(ScanMode.LESSER_HALF, Direction.Axis.Y)
+             SlabType.TOP -> SurfaceScan(ScanMode.GREATER_HALF, Direction.Axis.Y)
+             SlabType.DOUBLE -> SurfaceScan(ScanMode.FULL, Direction.Axis.Y)
         }
 
-        return PreprocessingStep(surfaceScan)
+        accumulator.offerSurfaceScan(surfaceScan)
     }
 }
