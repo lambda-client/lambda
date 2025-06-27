@@ -24,6 +24,9 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
+import net.minecraft.block.BlockState
+import net.minecraft.state.property.Properties
+import net.minecraft.state.property.Property
 import net.minecraft.util.hit.BlockHitResult
 
 object StateInfo : Module(
@@ -33,16 +36,42 @@ object StateInfo : Module(
 ) {
     private val printBind by setting("Print", KeyCode.UNBOUND, "The bind used to print the info to chat")
 
+    val propertyFields = Properties::class.java.declaredFields
+        .filter { Property::class.java.isAssignableFrom(it.type) }
+        .associateBy { it.get(null) as Property<*> }
+
     init {
         listen<KeyboardEvent.Press> { event ->
             if (!event.isPressed) return@listen
             if (event.keyCode != printBind.keyCode) return@listen
             val crosshair = mc.crosshairTarget ?: return@listen
             if (crosshair !is BlockHitResult) return@listen
-
-            val targetBlock = blockState(crosshair.blockPos)
-            val text = "$targetBlock"
-            info(text)
+            info(blockState(crosshair.blockPos).betterToString())
         }
+    }
+
+    private fun BlockState.betterToString(): String {
+        val stringBuilder = StringBuilder()
+        stringBuilder.append(this.owner.toString() + "\n")
+
+        if (entries.isNotEmpty()) {
+            stringBuilder.append("      [\n")
+
+            stringBuilder.append(
+                entries.entries.joinToString("\n") { (property, value) ->
+                    val fieldName = propertyFields[property]?.name ?: property.toString()
+                    "          $fieldName = ${nameValue(property, value)}"
+                }
+            )
+
+            stringBuilder.append("\n      ]")
+        }
+
+        return stringBuilder.toString()
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <T : Comparable<T>?> nameValue(property: Property<T>, value: Comparable<*>): String {
+        return property.name(value as T)
     }
 }
