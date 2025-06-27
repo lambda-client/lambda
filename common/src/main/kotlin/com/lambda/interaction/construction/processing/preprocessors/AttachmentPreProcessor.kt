@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,28 +15,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.processing.processors
+package com.lambda.interaction.construction.processing.preprocessors
 
 import com.lambda.interaction.construction.processing.PlacementProcessor
-import com.lambda.interaction.construction.processing.PreprocessingInfoAccumulator
+import com.lambda.interaction.construction.processing.PreProcessingInfoAccumulator
 import net.minecraft.block.BlockState
-import net.minecraft.block.enums.BlockFace
+import net.minecraft.block.enums.Attachment
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.Direction
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
-object BlockFaceProcessor : PlacementProcessor() {
+object AttachmentPreProcessor : PlacementProcessor() {
     override fun acceptsState(state: BlockState) =
-        state.getOrEmpty(Properties.BLOCK_FACE).isPresent
+        state.properties.contains(Properties.ATTACHMENT)
 
-    override fun preProcess(state: BlockState, accumulator: PreprocessingInfoAccumulator) {
-        val property = state.get(Properties.BLOCK_FACE) ?: return
+    override fun preProcess(state: BlockState, accumulator: PreProcessingInfoAccumulator) {
+        val attachment = state.get(Properties.ATTACHMENT) ?: return
         with (accumulator) {
-            when (property) {
-                BlockFace.FLOOR -> retainSides(Direction.DOWN)
-                BlockFace.CEILING -> retainSides(Direction.UP)
-                BlockFace.WALL -> retainSides { Direction.Type.HORIZONTAL.contains(it) }
+            when (attachment) {
+                Attachment.FLOOR -> retainSides(Direction.DOWN)
+                Attachment.CEILING -> retainSides(Direction.UP)
+                else -> retainSides { Direction.Type.HORIZONTAL.contains(it) }
             }
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,32 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.processing.processors
+package com.lambda.interaction.construction.processing.preprocessors
 
 import com.lambda.interaction.construction.processing.PlacementProcessor
-import com.lambda.interaction.construction.processing.PreprocessingInfoAccumulator
-import com.lambda.interaction.construction.verify.ScanMode
-import com.lambda.interaction.construction.verify.SurfaceScan
+import com.lambda.interaction.construction.processing.PreProcessingInfoAccumulator
 import net.minecraft.block.BlockState
-import net.minecraft.block.SlabBlock
-import net.minecraft.block.enums.SlabType
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.Direction
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
-object SlabProcessor : PlacementProcessor() {
-    override fun acceptsState(state: BlockState) = state.block is SlabBlock
+object HopperFacingPreProcessor : PlacementProcessor() {
+    override fun acceptsState(state: BlockState) =
+        state.properties.contains(Properties.HOPPER_FACING)
 
-    override fun preProcess(state: BlockState, accumulator: PreprocessingInfoAccumulator) {
-        val slab = state.get(Properties.SLAB_TYPE) ?: return
-
-        val surfaceScan = when (slab) {
-             SlabType.BOTTOM -> SurfaceScan(ScanMode.LESSER_HALF, Direction.Axis.Y)
-             SlabType.TOP -> SurfaceScan(ScanMode.GREATER_HALF, Direction.Axis.Y)
-             SlabType.DOUBLE -> SurfaceScan(ScanMode.FULL, Direction.Axis.Y)
+    override fun preProcess(state: BlockState, accumulator: PreProcessingInfoAccumulator) {
+        val facing = state.get(Properties.HOPPER_FACING) ?: return
+        when {
+            facing.axis == Direction.Axis.Y -> accumulator.retainSides { it.axis == Direction.Axis.Y }
+            else -> accumulator.retainSides(facing)
         }
-
-        accumulator.offerSurfaceScan(surfaceScan)
     }
 }

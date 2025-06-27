@@ -21,6 +21,5 @@ import net.minecraft.block.BlockState
 
 abstract class PlacementProcessor {
     abstract fun acceptsState(state: BlockState): Boolean
-    abstract fun preProcess(state: BlockState, accumulator: PreprocessingInfoAccumulator)
+    abstract fun preProcess(state: BlockState, accumulator: PreProcessingInfoAccumulator)
 }
-

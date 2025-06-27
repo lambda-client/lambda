@@ -15,31 +15,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.processing.processors
+package com.lambda.interaction.construction.processing.preprocessors
 
 import com.lambda.interaction.construction.processing.PlacementProcessor
-import com.lambda.interaction.construction.processing.PreprocessingInfoAccumulator
-import com.lambda.interaction.construction.verify.ScanMode
-import com.lambda.interaction.construction.verify.SurfaceScan
+import com.lambda.interaction.construction.processing.PreProcessingInfoAccumulator
 import net.minecraft.block.BlockState
-import net.minecraft.block.enums.BlockHalf
+import net.minecraft.block.enums.BlockFace
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.Direction
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
-object BlockHalfProcessor : PlacementProcessor() {
+object BlockFacePreProcessor : PlacementProcessor() {
     override fun acceptsState(state: BlockState) =
-        state.getOrEmpty(Properties.BLOCK_HALF).isPresent
+        state.getOrEmpty(Properties.BLOCK_FACE).isPresent
 
-    override fun preProcess(state: BlockState, accumulator: PreprocessingInfoAccumulator) {
-        val slab = state.get(Properties.BLOCK_HALF) ?: return
-
-        val surfaceScan = when (slab) {
-            BlockHalf.BOTTOM -> SurfaceScan(ScanMode.LESSER_HALF, Direction.Axis.Y)
-            BlockHalf.TOP -> SurfaceScan(ScanMode.GREATER_HALF, Direction.Axis.Y)
+    override fun preProcess(state: BlockState, accumulator: PreProcessingInfoAccumulator) {
+        val property = state.get(Properties.BLOCK_FACE) ?: return
+        with (accumulator) {
+            when (property) {
+                BlockFace.FLOOR -> retainSides(Direction.DOWN)
+                BlockFace.CEILING -> retainSides(Direction.UP)
+                BlockFace.WALL -> retainSides { Direction.Type.HORIZONTAL.contains(it) }
+            }
         }
-
-        accumulator.offerSurfaceScan(surfaceScan)
     }
 }

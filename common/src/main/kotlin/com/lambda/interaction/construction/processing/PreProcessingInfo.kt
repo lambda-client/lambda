@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.construction.processing
 
+import com.lambda.interaction.construction.processing.ProcessorRegistry.postProcessedProperties
 import com.lambda.interaction.construction.verify.SurfaceScan
 import net.minecraft.state.property.Property
 import net.minecraft.util.math.Direction
@@ -25,10 +26,11 @@ import net.minecraft.util.math.Direction
 private annotation class InfoAccumulator
 
 @InfoAccumulator
-data class PreprocessingInfoAccumulator(
+data class PreProcessingInfoAccumulator(
     private var surfaceScan: SurfaceScan = SurfaceScan.DEFAULT,
-    private val ignore: MutableSet<Property<*>> = mutableSetOf(),
+    private val ignore: MutableSet<Property<*>> = postProcessedProperties.toMutableSet(),
     private val sides: MutableSet<Direction> = Direction.entries.toMutableSet(),
+    var shouldBeOmitted: Boolean = false
 ) {
     @InfoAccumulator
     fun offerSurfaceScan(scan: SurfaceScan) {
@@ -38,8 +40,8 @@ data class PreprocessingInfoAccumulator(
     }
 
     @InfoAccumulator
-    fun addIgnores(ignores: Set<Property<*>>) {
-        ignore.addAll(ignores)
+    fun addIgnores(vararg properties: Property<*>) {
+        ignore.addAll(properties)
     }
 
     @InfoAccumulator
@@ -53,15 +55,16 @@ data class PreprocessingInfoAccumulator(
     }
 
     @InfoAccumulator
-    fun complete() = PreprocessingInfo(surfaceScan, ignore, sides)
+    fun complete() = PreProcessingInfo(surfaceScan, ignore, sides, shouldBeOmitted)
 }
 
-data class PreprocessingInfo(
+data class PreProcessingInfo(
     val surfaceScan: SurfaceScan,
     val ignore: Set<Property<*>>,
-    val sides: Set<Direction>
+    val sides: Set<Direction>,
+    val shouldBeOmitted: Boolean
 ) {
     companion object {
-        val DEFAULT = PreprocessingInfo(SurfaceScan.DEFAULT, emptySet(), emptySet())
+        val DEFAULT = PreProcessingInfo(SurfaceScan.DEFAULT, emptySet(), emptySet(), false)
     }
 }

@@ -15,25 +15,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.construction.processing.processors
+package com.lambda.interaction.construction.processing.preprocessors
 
 import com.lambda.interaction.construction.processing.PlacementProcessor
-import com.lambda.interaction.construction.processing.PreprocessingInfoAccumulator
+import com.lambda.interaction.construction.processing.PreProcessingInfoAccumulator
+import com.lambda.interaction.construction.verify.ScanMode
+import com.lambda.interaction.construction.verify.SurfaceScan
 import net.minecraft.block.BlockState
+import net.minecraft.block.enums.BlockHalf
 import net.minecraft.state.property.Properties
 import net.minecraft.util.math.Direction
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
-object HopperFacingPreprocessor : PlacementProcessor() {
+object BlockHalfPreProcessor : PlacementProcessor() {
     override fun acceptsState(state: BlockState) =
-        state.properties.contains(Properties.HOPPER_FACING)
+        state.getOrEmpty(Properties.BLOCK_HALF).isPresent
 
-    override fun preProcess(state: BlockState, accumulator: PreprocessingInfoAccumulator) {
-        val facing = state.get(Properties.HOPPER_FACING) ?: return
-        when {
-            facing.axis == Direction.Axis.Y -> accumulator.retainSides { it.axis == Direction.Axis.Y }
-            else -> accumulator.retainSides(facing)
+    override fun preProcess(state: BlockState, accumulator: PreProcessingInfoAccumulator) {
+        val slab = state.get(Properties.BLOCK_HALF) ?: return
+
+        val surfaceScan = when (slab) {
+            BlockHalf.BOTTOM -> SurfaceScan(ScanMode.LESSER_HALF, Direction.Axis.Y)
+            BlockHalf.TOP -> SurfaceScan(ScanMode.GREATER_HALF, Direction.Axis.Y)
         }
+
+        accumulator.offerSurfaceScan(surfaceScan)
     }
 }
