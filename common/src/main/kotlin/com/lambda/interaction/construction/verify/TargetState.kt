@@ -26,6 +26,7 @@ import net.minecraft.block.BlockState
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
+import net.minecraft.state.property.Property
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
@@ -38,7 +39,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
     data object Air : TargetState(Type.AIR) {
         override fun toString() = "Air"
 
-        override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
+        override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld, ignoredProperties: Collection<Property<*>>) =
             state.isAir
 
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
@@ -50,7 +51,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
     data object Solid : TargetState(Type.SOLID) {
         override fun toString() = "Solid"
 
-        override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
+        override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld, ignoredProperties: Collection<Property<*>>) =
             state.isSolidBlock(world, pos)
 
         override fun getStack(world: ClientWorld, pos: BlockPos) =
@@ -64,7 +65,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
     data class Support(val direction: Direction) : TargetState(Type.SUPPORT) {
         override fun toString() = "Support for ${direction.name}"
 
-        override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
+        override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld, ignoredProperties: Collection<Property<*>>) =
             world.getBlockState(pos.offset(direction)).isSolidBlock(world, pos.offset(direction))
                     || state.isSolidBlock(world, pos)
 
@@ -79,8 +80,8 @@ sealed class TargetState(val type: Type) : StateMatcher {
     data class State(val blockState: BlockState) : TargetState(Type.STATE) {
         override fun toString() = "State of $blockState"
 
-        override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
-            state.matches(blockState)
+        override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld, ignoredProperties: Collection<Property<*>>) =
+            state.matches(blockState, ignoredProperties)
 
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             blockState.block.getPickStack(world, pos, blockState)
@@ -91,7 +92,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
     data class Block(val block: net.minecraft.block.Block) : TargetState(Type.BLOCK) {
         override fun toString() = "Block of ${block.name.string.capitalize()}"
 
-        override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
+        override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld, ignoredProperties: Collection<Property<*>>) =
             state.block == block
 
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
@@ -106,7 +107,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
 
         private val block = itemStack.item.block
 
-        override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld) =
+        override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld, ignoredProperties: Collection<Property<*>>) =
             state.block == block
 
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =

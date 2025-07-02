@@ -18,7 +18,7 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
-import com.lambda.interaction.request.rotation.visibilty.PointSelection
+import com.lambda.interaction.request.rotating.visibilty.PointSelection
 import com.lambda.util.world.raycast.InteractionMask
 import kotlin.math.max
 
@@ -26,11 +26,13 @@ class InteractionSettings(
     c: Configurable,
     private val usage: InteractionMask,
     vis: () -> Boolean = { true },
-) : InteractionConfig {
+) : InteractionConfig(0) {
     // Reach
     private val useDefaultReach by c.setting("Default Reach", true, "Whether to use vanilla interaction ranges", visibility = vis)
     private val attackReachSetting = if (usage.entity) c.setting("Attack Reach", DEFAULT_ATTACK_REACH, 1.0..10.0, 0.01, "Maximum entity interaction distance") { vis() && !useDefaultReach } else null
     private val interactReachSetting = if (usage.block) c.setting("Interact Reach", DEFAULT_INTERACT_REACH, 1.0..10.0, 0.01, "Maximum block interaction distance") { vis() && !useDefaultReach } else null
+
+    override val rotate by c.setting("Rotate For Interactions", true, "Rotates the player for block interactions. For example, right-clicking a chest to open it", visibility = vis)
 
     override val attackReach: Double get() {
         check(usage.entity) {
@@ -59,6 +61,8 @@ class InteractionSettings(
     override val checkSideVisibility by c.setting("Visibility Check", true, "Whether to check if an AABB side is visible", visibility = vis)
     override val resolution by c.setting("Resolution", 5, 1..20, 1, "The amount of grid divisions per surface of the hit box", "", visibility = vis)
     override val pointSelection by c.setting("Point Selection", PointSelection.Optimum, "The strategy to select the best hit point", visibility = vis)
+
+    override val interactConfirmationMode by c.setting("Interact Confirmation Mode", InteractConfirmationMode.InteractThenAwait, "The style of confirmation used when interacting", visibility = vis)
 
     // Swing
     override val swingHand by c.setting("Swing Hand", true, "Whether to swing hand on interactions", visibility = vis)

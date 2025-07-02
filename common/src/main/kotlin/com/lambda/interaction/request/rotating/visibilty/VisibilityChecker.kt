@@ -15,15 +15,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.rotation.visibilty
+package com.lambda.interaction.request.rotating.visibilty
 
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.verify.ScanMode
 import com.lambda.interaction.construction.verify.SurfaceScan
-import com.lambda.interaction.request.rotation.Rotation
-import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.request.rotation.RotationManager
+import com.lambda.interaction.request.rotating.Rotation
+import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.request.rotating.RotationManager
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.extension.component6
 import com.lambda.util.math.distSq
@@ -171,7 +171,6 @@ object VisibilityChecker {
         check: (Direction, Vec3d) -> Unit,
     ) {
         excludedSides.forEach { side ->
-            if (excludedSides.isNotEmpty() && side !in excludedSides) return@forEach
             val (minX, minY, minZ, maxX, maxY, maxZ) = box.contract(TaskFlowModule.shrinkFactor).bounds(side)
             val stepX = (maxX - minX) / resolution
             val stepY = (maxY - minY) / resolution

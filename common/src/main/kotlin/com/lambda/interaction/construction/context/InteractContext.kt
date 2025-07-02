@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,14 +17,14 @@
 
 package com.lambda.interaction.construction.context
 
-import com.lambda.Lambda.mc
+import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
-import com.lambda.interaction.request.placing.PlaceRequest
+import com.lambda.interaction.request.interacting.InteractionRequest
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
@@ -34,39 +34,33 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
-data class PlaceContext(
+class InteractContext(
     override val pov: Vec3d,
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
     override val distance: Double,
     override val expectedState: BlockState,
-    override val checkedState: BlockState,
-    override val hotbarIndex: Int,
-    override val expectedPos: BlockPos,
     override val targetState: TargetState,
-    val sneak: Boolean,
-    val insideBlock: Boolean,
-    val currentDirIsInvalid: Boolean = false,
+    override val expectedPos: BlockPos,
+    override val checkedState: BlockState,
+    override var hotbarIndex: Int,
+    val interaction: InteractionConfig,
 ) : BuildContext {
-    private val baseColor = Color(35, 188, 254, 25)
-    private val sideColor = Color(35, 188, 254, 100)
+    private val baseColor = Color(35, 254, 79, 25)
+    private val sideColor = Color(35, 254, 79, 100)
 
     override fun compareTo(other: BuildContext) =
-        when (other) {
-            is PlaceContext -> compareBy<PlaceContext> {
+        when {
+            other is InteractContext -> compareBy<BuildContext> {
                 BlockUtils.fluids.indexOf(it.checkedState.fluidState.fluid)
             }.thenByDescending {
                 it.checkedState.fluidState.level
-            }.thenBy {
-                it.sneak == mc.player?.isSneaking
             }.thenBy {
                 it.rotation.target.angleDistance
             }.thenBy {
                 it.hotbarIndex == HotbarManager.serverSlot
             }.thenBy {
                 it.distance
-            }.thenBy {
-                it.insideBlock
             }.compare(this, other)
 
             else -> 1
@@ -77,10 +71,10 @@ data class PlaceContext(
         withState(blockState(result.blockPos), result.blockPos, sideColor, result.side)
     }
 
-    fun requestDependencies(request: PlaceRequest): Boolean {
+    fun requestDependencies(request: InteractionRequest): Boolean {
         val hotbarRequest = request.hotbar.request(HotbarRequest(hotbarIndex, request.hotbar), false)
-        val validRotation = if (request.build.placing.rotateForPlace) {
-            request.rotation.request(rotation, false).done && !currentDirIsInvalid
+        val validRotation = if (request.interact.rotate) {
+            request.rotation.request(rotation, false).done
         } else true
         return hotbarRequest.done && validRotation
     }

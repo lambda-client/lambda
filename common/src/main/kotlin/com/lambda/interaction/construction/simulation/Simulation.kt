@@ -25,7 +25,7 @@ import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
-import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState

@@ -20,11 +20,11 @@ package com.lambda.module.modules.player
 import com.lambda.event.events.MovementEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.gui.LambdaScreen
-import com.lambda.interaction.request.rotation.Rotation
-import com.lambda.interaction.request.rotation.RotationConfig
-import com.lambda.interaction.request.rotation.RotationManager.onRotate
-import com.lambda.interaction.request.rotation.RotationMode
-import com.lambda.interaction.request.rotation.visibilty.lookAt
+import com.lambda.interaction.request.rotating.Rotation
+import com.lambda.interaction.request.rotating.RotationConfig
+import com.lambda.interaction.request.rotating.RotationManager.onRotate
+import com.lambda.interaction.request.rotating.RotationMode
+import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyboardUtils.isKeyPressed
@@ -36,10 +36,22 @@ import net.minecraft.client.gui.screen.ChatScreen
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.screen.ingame.AnvilScreen
 import net.minecraft.client.gui.screen.ingame.CommandBlockScreen
-import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen
 import net.minecraft.client.gui.screen.ingame.SignEditScreen
-import net.minecraft.client.network.ClientPlayerEntity
-import org.lwjgl.glfw.GLFW.*
+import org.lwjgl.glfw.GLFW.GLFW_KEY_A
+import org.lwjgl.glfw.GLFW.GLFW_KEY_D
+import org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_2
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_4
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_6
+import org.lwjgl.glfw.GLFW.GLFW_KEY_KP_8
+import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT
+import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_CONTROL
+import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_SHIFT
+import org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT
+import org.lwjgl.glfw.GLFW.GLFW_KEY_S
+import org.lwjgl.glfw.GLFW.GLFW_KEY_SPACE
+import org.lwjgl.glfw.GLFW.GLFW_KEY_UP
+import org.lwjgl.glfw.GLFW.GLFW_KEY_W
 
 object InventoryMove : Module(
     name = "InventoryMove",

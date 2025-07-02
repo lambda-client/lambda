@@ -36,7 +36,7 @@ object BlockFacePreProcessor : PlacementProcessor() {
             when (property) {
                 BlockFace.FLOOR -> retainSides(Direction.DOWN)
                 BlockFace.CEILING -> retainSides(Direction.UP)
-                BlockFace.WALL -> retainSides { Direction.Type.HORIZONTAL.contains(it) }
+                BlockFace.WALL -> retainSides { it in Direction.Type.HORIZONTAL }
             }
         }
     }

@@ -15,9 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.rotation.visibilty
+package com.lambda.interaction.request.rotating.visibilty
 
-import com.lambda.interaction.request.rotation.Rotation
+import com.lambda.interaction.request.rotating.Rotation
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.MathHelper

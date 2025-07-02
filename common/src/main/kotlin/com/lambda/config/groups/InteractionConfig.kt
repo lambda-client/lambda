@@ -17,50 +17,75 @@
 
 package com.lambda.config.groups
 
-import com.lambda.interaction.request.rotation.visibilty.PointSelection
+import com.lambda.interaction.request.RequestConfig
+import com.lambda.interaction.request.interacting.InteractionManager
+import com.lambda.interaction.request.interacting.InteractionRequest
+import com.lambda.interaction.request.rotating.visibilty.PointSelection
 
-interface InteractionConfig {
+abstract class InteractionConfig(
+    priority: Int
+) : RequestConfig<InteractionRequest>(priority) {
     /**
      * Maximum entity interaction distance
      */
-    val attackReach: Double
+    abstract val attackReach: Double
 
     /**
      * Maximum block interaction distance
      */
-    val interactReach: Double
+    abstract val interactReach: Double
+
+    /**
+     * Rotates the player for block interactions. For example, right-clicking a chest to open it.
+     */
+    abstract val rotate: Boolean
 
     /**
      * Maximum possible interaction distance
      *
      * Equals to `max(attackReach, placeReach)` if both are present. Equals to one of them otherwise
      */
-    val scanReach: Double
+    abstract val scanReach: Double
 
     /**
      * Whether to include the environment to the ray cast context.
      *
      * if false: skips walls for entities, skips entities for blocks.
      */
-    val strictRayCast: Boolean
+    abstract val strictRayCast: Boolean
 
     /**
      * Whether to check if an AABB side is visible.
      */
-    val checkSideVisibility: Boolean
+    abstract val checkSideVisibility: Boolean
 
     /**
      * Grid divisions count per surface of the hit box.
      */
-    val resolution: Int
+    abstract val resolution: Int
 
     /**
      * The way to select the best point.
      */
-    val pointSelection: PointSelection
+    abstract val pointSelection: PointSelection
+
+    /**
+     * The method of confirming the interaction had taken place server side
+     */
+    abstract val interactConfirmationMode: InteractConfirmationMode
 
     /**
      * Whether to swing the hand when interacting.
      */
-    val swingHand: Boolean
+    abstract val swingHand: Boolean
+
+    override fun requestInternal(request: InteractionRequest, queueIfClosed: Boolean) {
+        InteractionManager.request(request, queueIfClosed)
+    }
+
+    enum class InteractConfirmationMode {
+        None,
+        InteractThenAwait,
+        AwaitThenInteract
+    }
 }

@@ -26,12 +26,12 @@ import net.minecraft.util.math.Direction
 private annotation class InfoAccumulator
 
 @InfoAccumulator
-data class PreProcessingInfoAccumulator(
-    private var surfaceScan: SurfaceScan = SurfaceScan.DEFAULT,
-    private val ignore: MutableSet<Property<*>> = postProcessedProperties.toMutableSet(),
-    private val sides: MutableSet<Direction> = Direction.entries.toMutableSet(),
-    var shouldBeOmitted: Boolean = false
-) {
+class PreProcessingInfoAccumulator(
+    override var surfaceScan: SurfaceScan = SurfaceScan.DEFAULT,
+    override val ignore: MutableSet<Property<*>> = postProcessedProperties.toMutableSet(),
+    override val sides: MutableSet<Direction> = Direction.entries.toMutableSet(),
+    override var shouldBeOmitted: Boolean = false
+) : PreProcessingInfo {
     @InfoAccumulator
     fun offerSurfaceScan(scan: SurfaceScan) {
         if (scan.mode.priority > surfaceScan.mode.priority) {
@@ -55,16 +55,26 @@ data class PreProcessingInfoAccumulator(
     }
 
     @InfoAccumulator
-    fun complete() = PreProcessingInfo(surfaceScan, ignore, sides, shouldBeOmitted)
+    fun omitPlacement() {
+        shouldBeOmitted = true
+    }
+
+    @InfoAccumulator
+    fun complete() = this as PreProcessingInfo
 }
 
-data class PreProcessingInfo(
-    val surfaceScan: SurfaceScan,
-    val ignore: Set<Property<*>>,
-    val sides: Set<Direction>,
+interface PreProcessingInfo {
+    val surfaceScan: SurfaceScan
+    val ignore: Set<Property<*>>
+    val sides: Set<Direction>
     val shouldBeOmitted: Boolean
-) {
+
     companion object {
-        val DEFAULT = PreProcessingInfo(SurfaceScan.DEFAULT, emptySet(), emptySet(), false)
+        val DEFAULT = object : PreProcessingInfo {
+            override val surfaceScan = SurfaceScan.DEFAULT
+            override val ignore = setOf<Property<*>>()
+            override val sides = setOf<Direction>()
+            override val shouldBeOmitted = false
+        }
     }
 }

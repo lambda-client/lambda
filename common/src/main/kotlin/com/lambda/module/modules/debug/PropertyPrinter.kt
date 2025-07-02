@@ -40,7 +40,7 @@ object PropertyPrinter : Module(
                     field.isAccessible = true
                     val block = field.get(null)
                     if (!Block::class.java.isAssignableFrom(block::class.java)) return@blocks
-                    if ((block as Block).defaultState.properties.contains(property.key)) {
+                    if (property.key in (block as Block).defaultState.properties) {
                         file.appendText("    $block\n")
                     }
                 }

@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.construction.context
 
-import com.lambda.config.groups.BuildConfig
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
@@ -25,7 +24,7 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
-import com.lambda.interaction.request.rotation.RotationRequest
+import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.util.world.raycast.RayCastUtils.distanceTo
 import net.minecraft.block.BlockState
 import net.minecraft.block.FallingBlock
@@ -76,8 +75,6 @@ data class BreakContext(
             else -> 1
         }
     }
-
-    override fun shouldRotate(config: BuildConfig) = config.breaking.rotateForBreak
 
     override fun SafeContext.buildRenderer() {
         withState(checkedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side))

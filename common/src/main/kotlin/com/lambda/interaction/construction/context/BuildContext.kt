@@ -17,13 +17,10 @@
 
 package com.lambda.interaction.construction.context
 
-import com.lambda.config.groups.BuildConfig
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.interaction.construction.verify.TargetState
-import com.lambda.interaction.material.container.MaterialContainer
-import com.lambda.interaction.request.rotation.RotationRequest
+import com.lambda.interaction.request.rotating.RotationRequest
 import net.minecraft.block.BlockState
-import net.minecraft.item.ItemStack
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
@@ -38,8 +35,4 @@ interface BuildContext : Comparable<BuildContext>, Drawable {
     val expectedPos: BlockPos
     val checkedState: BlockState
     val hotbarIndex: Int
-
-    fun shouldRotate(config: BuildConfig): Boolean
-
-    data class LocalizedStack(val container: MaterialContainer, val stack: ItemStack)
 }

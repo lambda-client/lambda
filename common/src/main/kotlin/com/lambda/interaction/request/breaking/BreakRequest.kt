@@ -23,7 +23,7 @@ import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
-import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import net.minecraft.entity.ItemEntity

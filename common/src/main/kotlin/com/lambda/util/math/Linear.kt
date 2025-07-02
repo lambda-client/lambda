@@ -17,7 +17,7 @@
 
 package com.lambda.util.math
 
-import com.lambda.interaction.request.rotation.Rotation
+import com.lambda.interaction.request.rotating.Rotation
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Vec3d
 import java.awt.Color

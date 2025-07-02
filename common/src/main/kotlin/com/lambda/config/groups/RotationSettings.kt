@@ -20,8 +20,8 @@ package com.lambda.config.groups
 import com.lambda.config.Configurable
 import com.lambda.event.events.TickEvent
 import com.lambda.interaction.request.Priority
-import com.lambda.interaction.request.rotation.RotationConfig
-import com.lambda.interaction.request.rotation.RotationMode
+import com.lambda.interaction.request.rotating.RotationConfig
+import com.lambda.interaction.request.rotating.RotationMode
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos

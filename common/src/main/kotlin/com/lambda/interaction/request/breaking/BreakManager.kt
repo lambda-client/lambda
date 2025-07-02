@@ -44,8 +44,9 @@ import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.pendingBreaks
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.setPendingConfigs
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.startPending
+import com.lambda.interaction.request.interacting.InteractionManager
 import com.lambda.interaction.request.placing.PlaceManager
-import com.lambda.interaction.request.rotation.RotationRequest
+import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.brokenState
@@ -231,7 +232,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see processRequest
      */
     override fun SafeContext.handleRequest(request: BreakRequest) {
-        if (activeRequest != null || PlaceManager.activeThisTick || request.contexts.isEmpty()) return
+        if (activeRequest != null || PlaceManager.activeThisTick || InteractionManager.activeThisTick || request.contexts.isEmpty()) return
 
         activeRequest = request
         processRequest(request)

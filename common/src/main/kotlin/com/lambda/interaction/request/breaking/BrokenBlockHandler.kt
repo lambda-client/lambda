@@ -59,8 +59,7 @@ object BrokenBlockHandler {
             if (!info.broken) warn("${info::class.simpleName} at ${info.context.expectedPos.toShortString()} timed out")
             else warn("${info::class.simpleName}'s item drop at ${info.context.expectedPos.toShortString()} timed out")
 
-            val awaitThenBreak = info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak
-            if (!info.broken && awaitThenBreak) {
+            if (!info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
                 world.setBlockState(info.context.expectedPos, info.context.checkedState)
             }
         }

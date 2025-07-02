@@ -112,7 +112,7 @@ object ProcessorRegistry : Loadable {
                     it.preProcess(state.blockState, infoAccumulator)
                 }
 
-                return infoAccumulator.complete()
+                infoAccumulator.complete()
             }
         } ?: PreProcessingInfo.DEFAULT
 }

@@ -15,29 +15,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.placing
+package com.lambda.interaction.request.interacting
 
 import com.lambda.Lambda.mc
+import com.lambda.config.groups.InteractionConfig
 import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.interaction.request.placing.PlaceManager.placeSound
-import com.lambda.interaction.request.placing.PlacedBlockHandler.pendingPlacements
 import com.lambda.module.modules.client.TaskFlowModule
-import com.lambda.util.BlockUtils.item
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
-import net.minecraft.item.BlockItem
+import net.minecraft.block.BlockState
+import net.minecraft.util.Hand
+import net.minecraft.util.math.BlockPos
 
-object PlacedBlockHandler {
-    val pendingPlacements = LimitedDecayQueue<PlaceInfo>(
+object InteractedBlockHandler {
+    val pendingInteractions = LimitedDecayQueue<InteractionInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) {
         info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out")
-        if (it.placeConfig.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.AwaitThenPlace) {
+        if (it.interact.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {
             mc.world?.setBlockState(it.context.expectedPos, it.context.checkedState)
         }
         it.pendingInteractionsList.remove(it.context)
@@ -45,52 +45,45 @@ object PlacedBlockHandler {
 
     init {
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
-            pendingPlacements
+            pendingInteractions
                 .firstOrNull { it.context.expectedPos == event.pos }
                 ?.let { info ->
-                    removePendingPlace(info)
+                    removePendingInteract(info)
 
-                    // return if the block wasn't placed properly
-                    if (!event.newState.matches(info.context.expectedState)) {
-                        this@PlacedBlockHandler.warn(
-                            "Place at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.expectedState}"
-                        )
-                    }
+                    if (!matchesTargetState(event.pos, info.context.expectedState, event.newState))
+                        return@listen
 
-                    if (info.placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
+                    if (info.interact.interactConfirmationMode == InteractionConfig.InteractConfirmationMode.AwaitThenInteract)
                         with (info.context) {
-                            placeSound(expectedState.block.item as BlockItem, expectedState, expectedPos)
+                            checkedState.onUse(world, player, Hand.MAIN_HAND, result)
                         }
-                    info.onPlace()
                 }
         }
 
         listenUnsafe<ConnectionEvent.Connect.Pre> {
-            pendingPlacements.clear()
+            pendingInteractions.clear()
         }
     }
 
-    /**
-     * Adds the info to the [PlacedBlockHandler], and requesters, pending interaction collections.
-     */
-    fun addPendingPlace(info: PlaceInfo) {
-        pendingPlacements.add(info)
+    fun addPendingInteract(info: InteractionInfo) {
+        pendingInteractions.add(info)
         info.pendingInteractionsList.add(info.context)
     }
 
-    /**
-     * Removes the info from the [PlacedBlockHandler], and requesters, pending interaction collections.
-     */
-    private fun removePendingPlace(info: PlaceInfo) {
-        pendingPlacements.remove(info)
+    fun removePendingInteract(info: InteractionInfo) {
+        pendingInteractions.remove(info)
         info.pendingInteractionsList.remove(info.context)
     }
 
-    /**
-     * Sets the size limit and decay time for the [pendingPlacements] using the [request]'s configs
-     */
-    fun setPendingConfigs(request: PlaceRequest) {
-        pendingPlacements.setSizeLimit(request.build.placing.maxPendingPlacements)
-        pendingPlacements.setDecayTime(request.build.interactionTimeout * 50L)
+    fun setPendingConfigs(request: InteractionRequest) {
+        pendingInteractions.setSizeLimit(request.build.maxPendingInteractions)
+        pendingInteractions.setDecayTime(request.build.interactionTimeout * 50L)
     }
+
+    private fun matchesTargetState(pos: BlockPos, targetState: BlockState, newState: BlockState) =
+        if (targetState.matches(newState)) true
+        else {
+            this@InteractedBlockHandler.warn("Interaction at ${pos.toShortString()} was rejected with $newState instead of $targetState")
+            false
+        }
 }

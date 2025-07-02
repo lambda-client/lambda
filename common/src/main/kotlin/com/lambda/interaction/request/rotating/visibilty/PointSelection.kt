@@ -15,10 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.rotation.visibilty
+package com.lambda.interaction.request.rotating.visibilty
 
-import com.lambda.interaction.request.rotation.Rotation.Companion.dist
-import com.lambda.interaction.request.rotation.RotationManager
+import com.lambda.interaction.request.rotating.Rotation.Companion.dist
+import com.lambda.interaction.request.rotating.RotationManager
 import com.lambda.util.math.distSq
 import com.lambda.util.math.times
 

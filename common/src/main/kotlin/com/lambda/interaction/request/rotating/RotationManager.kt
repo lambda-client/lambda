@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.rotation
+package com.lambda.interaction.request.rotating
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
@@ -30,8 +30,8 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
-import com.lambda.interaction.request.rotation.Rotation.Companion.slerp
-import com.lambda.interaction.request.rotation.visibilty.lookAt
+import com.lambda.interaction.request.rotating.Rotation.Companion.slerp
+import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe

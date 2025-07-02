@@ -15,11 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.rotation
+package com.lambda.interaction.request.rotating
 
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.Request
-import com.lambda.interaction.request.rotation.visibilty.RotationTarget
+import com.lambda.interaction.request.rotating.visibilty.RotationTarget
 import com.lambda.threading.runSafe
 
 data class RotationRequest(

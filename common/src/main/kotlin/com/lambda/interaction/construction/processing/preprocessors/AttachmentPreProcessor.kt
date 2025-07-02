@@ -36,7 +36,7 @@ object AttachmentPreProcessor : PlacementProcessor() {
             when (attachment) {
                 Attachment.FLOOR -> retainSides(Direction.DOWN)
                 Attachment.CEILING -> retainSides(Direction.UP)
-                else -> retainSides { Direction.Type.HORIZONTAL.contains(it) }
+                else -> retainSides { it in Direction.Type.HORIZONTAL }
             }
         }
     }

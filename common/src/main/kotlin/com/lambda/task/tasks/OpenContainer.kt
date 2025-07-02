@@ -18,11 +18,11 @@
 package com.lambda.task.tasks
 
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.request.rotation.visibilty.lookAtBlock
+import com.lambda.interaction.request.rotating.visibilty.lookAtBlock
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.world.raycast.RayCastUtils.blockResult

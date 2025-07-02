@@ -30,10 +30,10 @@ import com.lambda.graphics.gl.Matrices.buildWorldProjection
 import com.lambda.graphics.gl.Matrices.withVertexTransform
 import com.lambda.graphics.renderer.gui.FontRenderer
 import com.lambda.graphics.renderer.gui.FontRenderer.drawString
-import com.lambda.interaction.request.rotation.Rotation.Companion.rotationTo
-import com.lambda.interaction.request.rotation.RotationManager
-import com.lambda.interaction.request.rotation.visibilty.VisibilityChecker.getVisibleSurfaces
-import com.lambda.interaction.request.rotation.visibilty.lookAt
+import com.lambda.interaction.request.rotating.Rotation.Companion.rotationTo
+import com.lambda.interaction.request.rotating.RotationManager
+import com.lambda.interaction.request.rotating.visibilty.VisibilityChecker.getVisibleSurfaces
+import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe

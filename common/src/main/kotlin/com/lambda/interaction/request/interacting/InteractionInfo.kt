@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Lambda
+ * Copyright 2025 Lambda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,26 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.config.groups
+package com.lambda.interaction.request.interacting
 
-interface BuildConfig {
-    // General
-    val pathing: Boolean
-    val stayInRange: Boolean
-    val collectDrops: Boolean
-    val interactionsPerTick: Int
-    val maxPendingInteractions: Int
-    val interactionTimeout: Int
+import com.lambda.config.groups.InteractionConfig
+import com.lambda.interaction.construction.context.BuildContext
+import com.lambda.interaction.construction.context.InteractContext
 
-    // Breaking
-    val breaking: BreakSettings
-
-    // Placing
-    val placing: PlaceSettings
-
-    enum class SwingType {
-        Vanilla,
-        Server,
-        Client
-    }
-}
+data class InteractionInfo(
+    val context: InteractContext,
+    val pendingInteractionsList: MutableCollection<BuildContext>,
+    val interact: InteractionConfig
+)

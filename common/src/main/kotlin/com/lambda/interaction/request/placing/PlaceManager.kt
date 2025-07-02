@@ -29,6 +29,7 @@ import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
+import com.lambda.interaction.request.interacting.InteractionManager
 import com.lambda.interaction.request.placing.PlaceManager.activeRequest
 import com.lambda.interaction.request.placing.PlaceManager.processRequest
 import com.lambda.interaction.request.placing.PlacedBlockHandler.addPendingPlace
@@ -92,6 +93,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             activeRequest = null
             placementsThisTick = 0
+            potentialPlacements.clear()
         }
 
         listen<MovementEvent.InputUpdate>(priority = Int.MIN_VALUE) {
@@ -111,7 +113,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * @see processRequest
      */
     override fun SafeContext.handleRequest(request: PlaceRequest) {
-        if (activeRequest != null || BreakManager.activeThisTick) return
+        if (activeRequest != null || BreakManager.activeThisTick || InteractionManager.activeThisTick) return
 
         activeRequest = request
         processRequest(request)

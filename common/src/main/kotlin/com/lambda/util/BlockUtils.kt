@@ -94,6 +94,7 @@ import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
 import net.minecraft.item.SwordItem
 import net.minecraft.registry.tag.FluidTags
+import net.minecraft.state.property.Property
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.EightWayDirection
@@ -240,9 +241,9 @@ object BlockUtils {
     fun SafeContext.fluidState(pos: BlockPos): FluidState = world.getFluidState(pos)
     fun SafeContext.blockEntity(pos: BlockPos) = world.getBlockEntity(pos)
 
-    fun BlockState.matches(state: BlockState) =
+    fun BlockState.matches(state: BlockState, ignoredProperties: Collection<Property<*>> = emptySet()) =
          this.block == state.block && this.properties.all {
-            /*it in TaskFlowModule.defaultIgnoreTags ||*/ this[it] == state[it]
+             this[it] == state[it] || it in ignoredProperties
         }
 
     fun SafeContext.instantBreakable(blockState: BlockState, blockPos: BlockPos, breakThreshold: Float): Boolean {

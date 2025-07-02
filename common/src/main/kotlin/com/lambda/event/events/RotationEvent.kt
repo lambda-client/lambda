@@ -18,9 +18,7 @@
 package com.lambda.event.events
 
 import com.lambda.event.Event
-import com.lambda.event.callback.Cancellable
-import com.lambda.event.callback.ICancellable
-import com.lambda.interaction.request.rotation.RotationRequest
+import com.lambda.interaction.request.rotating.RotationRequest
 import net.minecraft.client.input.Input
 
 sealed class RotationEvent {

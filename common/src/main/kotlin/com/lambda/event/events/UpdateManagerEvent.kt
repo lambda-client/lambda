@@ -24,4 +24,5 @@ sealed class UpdateManagerEvent {
     data object Hotbar : Event
     data object Break : Event
     data object Place : Event
+    data object Interact: Event
 }

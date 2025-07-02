@@ -35,6 +35,7 @@ import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.result.BreakResult
 import com.lambda.interaction.construction.result.BuildResult
 import com.lambda.interaction.construction.result.Drawable
+import com.lambda.interaction.construction.result.InteractResult
 import com.lambda.interaction.construction.result.Navigable
 import com.lambda.interaction.construction.result.PlaceResult
 import com.lambda.interaction.construction.result.Resolvable
@@ -45,8 +46,9 @@ import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.material.transfer.TransactionExecutor.Companion.transfer
 import com.lambda.interaction.request.breaking.BreakRequest.Companion.breakRequest
 import com.lambda.interaction.request.hotbar.HotbarConfig
+import com.lambda.interaction.request.interacting.InteractionRequest
 import com.lambda.interaction.request.placing.PlaceRequest
-import com.lambda.interaction.request.rotation.RotationConfig
+import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
 import com.lambda.util.BaritoneUtils
@@ -144,6 +146,7 @@ class BuildTask @Ta5kBuilder constructor(
                             if (build.breaking.breaksPerTick > 1) {
                                 breakResults
                                     .filter { it.context.instantBreak }
+                                    .distinctBy { it.blockPos }
                                     .take(emptyPendingInteractionSlots)
                                     .let { instantBreakResults ->
                                         requestContexts.addAll(instantBreakResults.map { it.context })
@@ -173,6 +176,25 @@ class BuildTask @Ta5kBuilder constructor(
                                 PlaceRequest(
                                     placeResults.map { it.context }, build, rotation, hotbar, pendingInteractions
                                 ) { placements++ }
+                            )
+                        }
+                        is InteractResult.Interact -> {
+                            val interactResults = resultsNotBlocked
+                                .filterIsInstance<InteractResult.Interact>()
+                                .distinctBy { it.blockPos }
+                                .take(emptyPendingInteractionSlots)
+                                .map { it.context }
+
+                            interact.request(
+                                InteractionRequest(
+                                    interactResults,
+                                    null,
+                                    pendingInteractions,
+                                    interact,
+                                    build,
+                                    hotbar,
+                                    rotation
+                                )
                             )
                         }
                     }
