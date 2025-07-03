@@ -18,6 +18,7 @@
 package com.lambda.module.modules.client
 
 import com.lambda.Lambda
+import com.lambda.Lambda.LOG
 import com.lambda.context.SafeContext
 import com.lambda.event.EventFlow
 import com.lambda.event.events.WorldEvent
@@ -30,6 +31,7 @@ import com.lambda.threading.runConcurrent
 import com.lambda.util.Communication.warn
 import com.lambda.util.Nameable
 import com.lambda.util.extension.dimensionName
+import com.lambda.util.extension.fullHealth
 import com.lambda.util.extension.worldName
 import dev.cbyrne.kdiscordipc.KDiscordIPC
 import dev.cbyrne.kdiscordipc.core.packet.inbound.impl.AuthenticatePacket
@@ -80,8 +82,8 @@ object Discord : Module(
         val auth = rpc.applicationManager.authenticate()
 
         linkDiscord(discordToken = auth.accessToken)
-            .fold(onSuccess = { updateToken(it); discordAuth = auth },
-                onFailure = { warn("Failed to link the discord account to the minecraft auth") })
+            .onSuccess { updateToken(it); discordAuth = auth }
+            .onFailure { LOG.error(it); warn("Failed to link your discord account") }
     }
 
     private fun stop() {
@@ -112,7 +114,7 @@ object Discord : Module(
         VERSION({ Lambda.VERSION }),
         WORLD({ worldName }),
         USERNAME({ mc.session.username }),
-        HEALTH({ "${player.health} HP" }),
+        HEALTH({ "${player.fullHealth} HP" }),
         HUNGER({ "${player.hungerManager.foodLevel} Hunger" }),
         DIMENSION({ dimensionName }),
         FPS({ "${mc.currentFps} FPS" });

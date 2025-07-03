@@ -89,7 +89,7 @@ object StorageESP : Module(
 
     private val barrelColor by setting("Barrel Color", Color(143, 119, 72)) { page == Page.Color && !useBlockColor }
     private val blastFurnaceColor by setting("Blast Furnace Color", Color(153, 153, 153)) { page == Page.Color && !useBlockColor }
-    private val brewingStandColor by setting("Brewing Stand Color", Color(167, 167, 167))
+    private val brewingStandColor by setting("Brewing Stand Color", Color(167, 167, 167)) { page == Page.Color && !useBlockColor }
     private val trappedChestColor by setting("Trapped Chest Color", Color(216, 127, 51)) { page == Page.Color && !useBlockColor }
     private val chestColor by setting("Chest Color", Color(216, 127, 51)) { page == Page.Color && !useBlockColor }
     private val dispenserColor by setting("Dispenser Color", Color(153, 153, 153)) { page == Page.Color && !useBlockColor }

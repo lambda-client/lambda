@@ -30,7 +30,9 @@ import com.lambda.util.Mouse
 import com.lambda.util.world.raycast.RayCastUtils.entityResult
 import net.minecraft.client.network.OtherClientPlayerEntity
 import org.lwjgl.glfw.GLFW.GLFW_MOD_ALT
+import org.lwjgl.glfw.GLFW.GLFW_MOD_CAPS_LOCK
 import org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL
+import org.lwjgl.glfw.GLFW.GLFW_MOD_NUM_LOCK
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
 
@@ -46,24 +48,17 @@ object ClickFriend : Module(
 
     init {
         listen<MouseEvent.Click> {
-            if (it.button != friendButton ||
-                it.action != friendAction ||
-                mc.currentScreen != null
-            ) return@listen
+            if (mc.currentScreen != null) return@listen
+            if (it.button != friendButton.ordinal || it.action != friendAction.ordinal) return@listen
 
             val target = mc.crosshairTarget?.entityResult?.entity as? OtherClientPlayerEntity
                 ?: return@listen
 
-            if (modUnfriend.flagsPresent(it.modifiers) || !comboUnfriend) {
-                when {
-                    target.isFriend && target.unfriend() -> {
-                        this@ClickFriend.info(FriendManager.unfriendedText(target.name))
-                    }
+            if (!it.hasModifier(modUnfriend.modifiers) && comboUnfriend && target.isFriend) return@listen
 
-                    !target.isFriend && target.befriend() -> {
-                        this@ClickFriend.info(FriendManager.befriendedText(target.name))
-                    }
-                }
+            when {
+                target.isFriend && target.unfriend() -> info(FriendManager.unfriendedText(target.name))
+                !target.isFriend && target.befriend() -> info(FriendManager.befriendedText(target.name))
             }
         }
     }
@@ -72,8 +67,8 @@ object ClickFriend : Module(
         Shift(GLFW_MOD_SHIFT),
         Control(GLFW_MOD_CONTROL),
         Alt(GLFW_MOD_ALT),
-        Super(GLFW_MOD_SUPER);
-
-        fun flagsPresent(flags: Int) = flags and modifiers == modifiers
+        Super(GLFW_MOD_SUPER),
+        Caps(GLFW_MOD_CAPS_LOCK),
+        NumLock(GLFW_MOD_NUM_LOCK);
     }
 }

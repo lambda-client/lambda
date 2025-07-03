@@ -17,7 +17,11 @@
 
 package com.lambda.util
 
+import com.google.gson.Gson
+import com.lambda.Lambda.gson
 import java.security.MessageDigest
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 object StringUtils {
     /**
@@ -91,6 +95,19 @@ object StringUtils {
 
         return cost[len0 - 1]
     }
+
+    /**
+     * Takes the receiver string and decodes it to the input type
+     *
+     * @return Instance of [T]
+     */
+    inline fun <reified T : Any> String.json() = gson.fromJson(this, T::class.java)
+
+    /**
+     * @see kotlin.io.encoding.Base64.decode
+     */
+    @OptIn(ExperimentalEncodingApi::class)
+    fun String.base64UrlDecode() = Base64.UrlSafe.decode(this).decodeToString()
 
     /**
      * See [MessageDigest section](https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html#messagedigest-algorithms) of the Java Security Standard Algorithm Names Specification

@@ -41,7 +41,6 @@ import com.lambda.util.extension.resolveFile
 import kotlinx.coroutines.runBlocking
 import net.minecraft.client.texture.NativeImage.read
 import net.minecraft.client.texture.NativeImageBackedTexture
-import java.util.LinkedList
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.fixedRateTimer
@@ -60,7 +59,7 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
         .associate { it.nameWithoutExtension to NativeImageBackedTexture(read(it.inputStream())) }
         .onEach { (key, value) -> mc.textureManager.registerTexture(key.toIdentifier(), value) }
 
-    private val fetchQueue = LinkedList<UUID>()
+    private val fetchQueue = mutableListOf<UUID>()
 
     // We want to cache the cape list to reduce class B requests
     val capeList = runBlocking {
@@ -124,6 +123,8 @@ object CapeManager : ConcurrentHashMap<UUID, String>(), Loadable {
             }
         }
 
-        listen<WorldEvent.Player.Join>(alwaysListen = true) { fetchQueue.push(it.uuid) }
+        listen<WorldEvent.Player.Join>(alwaysListen = true) { fetchQueue.add(it.uuid) }
+        listen<WorldEvent.Player.Leave>(alwaysListen = true) { fetchQueue.remove(it.uuid) }
     }
 }
+

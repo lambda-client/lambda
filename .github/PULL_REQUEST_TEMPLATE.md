@@ -2,14 +2,15 @@
 
 ### This is a template, modify before submitting your PR
 
-Please ensure that your PR title follows this format:
-- `[Minecraft Version] <Mod loader> Feat, Fix, Ref, Docs, ..., : Description`
+Ensure that your title is concise and has all the necessary information
 
 **Examples:**
-- `[1.20.4] Feat: Add new block types`
-- `[1.21.4] [All] Fix: Crash on startup`
-- `[1.21.3] [Forge] Fix: GUI does not render`
-- `[1.20.1] Ref: Optimize rendering engine`
+- `Feat: Add new block types`
+- `Fix: Crash on startup`
+- `Fix: GUI does not render`
+- `Ref: Optimize rendering engine`
+- `New pre-processor for pathfinding`
+- `Fix inconsistency with the structure`
 
 ### Issue Link
 If your PR addresses one or more issues, be sure to link them. Use appropriate keywords like `closes`, `fixes`, or `resolves` to automatically close the linked issues when the PR is merged.
