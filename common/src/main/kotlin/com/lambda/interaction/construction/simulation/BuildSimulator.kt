@@ -23,7 +23,7 @@ import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
 import com.lambda.interaction.construction.blueprint.Blueprint
 import com.lambda.interaction.construction.context.BreakContext
-import com.lambda.interaction.construction.context.InteractContext
+import com.lambda.interaction.construction.context.InteractionContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.construction.processing.PreProcessingInfo
 import com.lambda.interaction.construction.processing.ProcessorRegistry.getProcessingInfo
@@ -96,11 +96,11 @@ object BuildSimulator {
     ) = runSafe {
         structure.entries.flatMap { (pos, target) ->
             val preProcessing = target.getProcessingInfo()
-            checkRequirements(pos, target, eye, preProcessing, build, interact, rotation, inventory).let {
+            checkRequirements(pos, eye, preProcessing, target, build, interact, rotation, inventory).let {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
-            checkPlaceResults(pos, target, eye, preProcessing, build.placing, interact, rotation, inventory).let {
+            checkPlaceResults(pos, eye, preProcessing, target, build.placing, interact, rotation, inventory).let {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
@@ -115,9 +115,9 @@ object BuildSimulator {
 
     private fun SafeContext.checkRequirements(
         pos: BlockPos,
-        target: TargetState,
         eye: Vec3d,
         preProcessing: PreProcessingInfo,
+        target: TargetState,
         build: BuildConfig,
         interact: InteractionConfig,
         rotation: RotationConfig,
@@ -165,8 +165,12 @@ object BuildSimulator {
 
         /* the state requires post-processing */
         if (target.matches(state, pos, world, ignoredProperties = preProcessing.ignore)) {
-            acc.addAll(checkPostProcessResults(target, state, pos, eye, preProcessing, interact, build.placing, rotation, inventory))
-            if (acc.isNotEmpty()) return acc
+            checkPostProcessResults(pos, eye, preProcessing, state, target, interact, build.placing, rotation, inventory).let { postProcessResults ->
+                if (postProcessResults.isNotEmpty()) {
+                    acc.addAll(postProcessResults)
+                    return acc
+                }
+            }
         }
 
         /* block is unbreakable, so it cant be broken or replaced */
@@ -180,9 +184,9 @@ object BuildSimulator {
 
     private fun SafeContext.checkPlaceResults(
         pos: BlockPos,
-        target: TargetState,
         eye: Vec3d,
         preProcessing: PreProcessingInfo,
+        target: TargetState,
         place: PlaceConfig,
         interact: InteractionConfig,
         rotation: RotationConfig,
@@ -265,7 +269,7 @@ object BuildSimulator {
                 return@forEach
             }
 
-            checkPlaceOn(pos, validHits, target, eye, preProcessing, place, rotation, interact, inventory)?.let { placeResult ->
+            checkPlaceOn(pos, validHits, eye, preProcessing, target, place, rotation, interact, inventory)?.let { placeResult ->
                 acc.add(placeResult)
             }
         }
@@ -274,11 +278,11 @@ object BuildSimulator {
     }
 
     private fun SafeContext.checkPostProcessResults(
-        targetState: TargetState,
-        state: BlockState,
         pos: BlockPos,
         eye: Vec3d,
         preProcessing: PreProcessingInfo,
+        state: BlockState,
+        targetState: TargetState,
         interact: InteractionConfig,
         place: PlaceConfig,
         rotation: RotationConfig,
@@ -293,12 +297,12 @@ object BuildSimulator {
                 interactWithBlock(
                     pos,
                     state,
-                    expectedState,
-                    targetState,
                     eye,
                     side,
-                    preProcessing,
                     item ?: player.inventory.mainHandStack.item,
+                    expectedState,
+                    targetState,
+                    preProcessing,
                     placing,
                     interact,
                     place,
@@ -334,12 +338,12 @@ object BuildSimulator {
     private fun SafeContext.interactWithBlock(
         pos: BlockPos,
         state: BlockState,
-        expectedState: BlockState,
-        targetState: TargetState,
         eye: Vec3d,
         sides: Set<Direction>?,
-        preProcessing: PreProcessingInfo,
         item: Item,
+        expectedState: BlockState,
+        targetState: TargetState,
+        preProcessing: PreProcessingInfo,
         placing: Boolean,
         interact: InteractionConfig,
         place: PlaceConfig,
@@ -407,18 +411,18 @@ object BuildSimulator {
             }
         }
 
-        return if (placing) checkPlaceOn(pos, validHits, targetState, eye, preProcessing, place, rotation, interact, inventory)
-        else checkInteractOn(pos, validHits, state, expectedState, targetState, item, eye, rotation, interact, inventory)
+        return if (placing) checkPlaceOn(pos, validHits, eye, preProcessing, targetState, place, rotation, interact, inventory)
+        else checkInteractOn(pos, eye, item, validHits, expectedState, targetState, state, rotation, interact, inventory)
     }
 
     private fun SafeContext.checkInteractOn(
         pos: BlockPos,
+        eye: Vec3d,
+        item: Item,
         validHits: MutableList<CheckedHit>,
-        currentState: BlockState,
         expectedState: BlockState,
         targetState: TargetState,
-        item: Item,
-        eye: Vec3d,
+        currentState: BlockState,
         rotation: RotationConfig,
         interact: InteractionConfig,
         inventory: InventoryConfig
@@ -426,7 +430,7 @@ object BuildSimulator {
         interact.pointSelection.select(validHits)?.let { checkedHit ->
             val checkedResult = checkedHit.hit
             val rotationTarget = lookAt(checkedHit.targetRotation, 0.001)
-            val context = InteractContext(
+            val context = InteractionContext(
                 eye,
                 checkedResult.blockResult ?: return null,
                 RotationRequest(rotationTarget, rotation),
@@ -461,16 +465,16 @@ object BuildSimulator {
     private fun SafeContext.checkPlaceOn(
         pos: BlockPos,
         validHits: MutableList<CheckedHit>,
-        target: TargetState,
         eye: Vec3d,
         preProcessing: PreProcessingInfo,
+        targetState: TargetState,
         place: PlaceConfig,
         rotation: RotationConfig,
         interact: InteractionConfig,
         inventory: InventoryConfig
     ): BuildResult? {
         interact.pointSelection.select(validHits)?.let { checkedHit ->
-            val optimalStack = target.getStack(world, pos)
+            val optimalStack = targetState.getStack(world, pos)
 
             // ToDo: For each hand and sneak or not?
             val fakePlayer = copyPlayer(player).apply {
@@ -528,9 +532,9 @@ object BuildSimulator {
                 resultState = blockItem.getPlacementState(context)
                     ?: return@placeState PlaceResult.BlockedByEntity(pos)
 
-                if (!target.matches(resultState, pos, world, preProcessing.ignore)) {
+                if (!targetState.matches(resultState, pos, world, preProcessing.ignore)) {
                     return@placeState PlaceResult.NoIntegrity(
-                        pos, resultState, context, (target as? TargetState.State)?.blockState
+                        pos, resultState, context, (targetState as? TargetState.State)?.blockState
                     )
                 } else {
                     return@placeState null
@@ -599,15 +603,15 @@ object BuildSimulator {
                 blockState(blockHit.blockPos.offset(blockHit.side)),
                 player.inventory.selectedSlot,
                 context.blockPos,
-                target,
+                targetState,
                 shouldSneak,
                 false,
                 currentDirIsInvalid,
             )
 
             val currentHandStack = player.getStackInHand(Hand.MAIN_HAND)
-            if (target is TargetState.Stack && !target.itemStack.equal(currentHandStack)) {
-                return BuildResult.WrongStack(pos, placeContext, target.itemStack, inventory)
+            if (targetState is TargetState.Stack && !targetState.itemStack.equal(currentHandStack)) {
+                return BuildResult.WrongStack(pos, placeContext, targetState.itemStack, inventory)
             }
 
             if (optimalStack.item != currentHandStack.item) {
@@ -652,7 +656,7 @@ object BuildSimulator {
 
         /* liquid needs to be submerged first to be broken */
         if (!state.fluidState.isEmpty && state.isReplaceable) {
-            val submerge = checkPlaceResults(pos, TargetState.Solid, eye, preProcessing, build.placing, interact, rotation, inventory)
+            val submerge = checkPlaceResults(pos, eye, preProcessing, TargetState.Solid, build.placing, interact, rotation, inventory)
             acc.add(BreakResult.Submerge(pos, state, submerge))
             acc.addAll(submerge)
             return acc
@@ -667,7 +671,7 @@ object BuildSimulator {
             acc.add(BreakResult.BlockedByLiquid(pos, state))
             adjacentLiquids.forEach { liquidPos ->
                 val submerge = if (blockState(liquidPos).isReplaceable) {
-                    checkPlaceResults(liquidPos, TargetState.Solid, eye, preProcessing, build.placing, interact, rotation, inventory)
+                    checkPlaceResults(liquidPos, eye, preProcessing, TargetState.Solid, build.placing, interact, rotation, inventory)
                 } else {
                     checkBreakResults(liquidPos, eye, preProcessing, breaking, interact, rotation, inventory, build)
                 }

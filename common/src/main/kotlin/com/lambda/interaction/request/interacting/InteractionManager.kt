@@ -24,7 +24,7 @@ import com.lambda.event.events.MovementEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.interaction.construction.context.InteractContext
+import com.lambda.interaction.construction.context.InteractionContext
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.interacting.InteractedBlockHandler.addPendingInteract
@@ -46,7 +46,7 @@ object InteractionManager : RequestHandler<InteractionRequest>(
     onOpen = { activeRequest?.let { processRequest(it) } }
 ) {
     private var activeRequest: InteractionRequest? = null
-    private var potentialInteractions = mutableListOf<InteractContext>()
+    private var potentialInteractions = mutableListOf<InteractionContext>()
 
     private var interactionsThisTick = 0
     private var maxInteractionsThisTick = 0

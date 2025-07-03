@@ -19,10 +19,10 @@ package com.lambda.interaction.request.interacting
 
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.context.InteractContext
+import com.lambda.interaction.construction.context.InteractionContext
 
 data class InteractionInfo(
-    val context: InteractContext,
+    val context: InteractionContext,
     val pendingInteractionsList: MutableCollection<BuildContext>,
     val interact: InteractionConfig
 )

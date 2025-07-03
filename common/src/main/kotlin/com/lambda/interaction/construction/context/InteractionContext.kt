@@ -34,7 +34,7 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
-class InteractContext(
+class InteractionContext(
     override val pov: Vec3d,
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
@@ -51,7 +51,7 @@ class InteractContext(
 
     override fun compareTo(other: BuildContext) =
         when {
-            other is InteractContext -> compareBy<BuildContext> {
+            other is InteractionContext -> compareBy<BuildContext> {
                 BlockUtils.fluids.indexOf(it.checkedState.fluidState.fluid)
             }.thenByDescending {
                 it.checkedState.fluidState.level

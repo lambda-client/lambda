@@ -18,13 +18,13 @@
 package com.lambda.interaction.construction.result
 
 import com.lambda.context.SafeContext
-import com.lambda.interaction.construction.context.InteractContext
+import com.lambda.interaction.construction.context.InteractionContext
 import net.minecraft.util.math.BlockPos
 
 sealed class InteractResult : BuildResult() {
     data class Interact(
         override val blockPos: BlockPos,
-        override val context: InteractContext
+        override val context: InteractionContext
     ) : Contextual, Drawable, InteractResult() {
         override val rank = Rank.INTERACT_SUCCESS
 

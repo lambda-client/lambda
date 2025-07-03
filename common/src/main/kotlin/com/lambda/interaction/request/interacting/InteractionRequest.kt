@@ -21,7 +21,7 @@ import com.lambda.Lambda.mc
 import com.lambda.config.groups.BuildConfig
 import com.lambda.config.groups.InteractionConfig
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.context.InteractContext
+import com.lambda.interaction.construction.context.InteractionContext
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.rotating.RotationConfig
@@ -29,7 +29,7 @@ import com.lambda.util.BlockUtils.matches
 import net.minecraft.util.math.BlockPos
 
 data class InteractionRequest(
-    val contexts: Collection<InteractContext>,
+    val contexts: Collection<InteractionContext>,
     val onInteract: ((BlockPos) -> Unit)?,
     val pendingInteractionsList: MutableCollection<BuildContext>,
     val interact: InteractionConfig,
