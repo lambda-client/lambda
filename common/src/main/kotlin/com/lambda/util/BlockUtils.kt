@@ -311,7 +311,9 @@ object BlockUtils {
         return speedMultiplier
     }
 
-    val BlockState.isEmpty get() = matches(fluidState.blockState)
-    val BlockState.brokenState: BlockState get() = fluidState.blockState
-    fun isBroken(oldState: BlockState, newState: BlockState) = !oldState.isEmpty && oldState.brokenState.matches(newState)
+    val BlockState.isEmpty get() = matches(emptyState)
+    val BlockState.isNotEmpty get() = !isEmpty
+    val BlockState.emptyState: BlockState get() = fluidState.blockState
+    fun isBroken(oldState: BlockState, newState: BlockState) = oldState.isNotEmpty && oldState.emptyState.matches(newState)
+    fun isNotBroken(oldState: BlockState, newState: BlockState) = !isBroken(oldState, newState)
 }

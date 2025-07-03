@@ -58,6 +58,8 @@ import com.lambda.util.BlockUtils
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
+import com.lambda.util.BlockUtils.isEmpty
+import com.lambda.util.BlockUtils.isNotEmpty
 import com.lambda.util.BlockUtils.vecOf
 import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemStackUtils.equal
@@ -195,10 +197,10 @@ object BuildSimulator {
         val acc = mutableSetOf<BuildResult>()
         val targetPosState = blockState(pos)
 
-        if (target.isAir() || !targetPosState.isReplaceable) return acc
+        if (target.isEmpty() || !targetPosState.isReplaceable) return acc
 
         preProcessing.sides.forEach { neighbor ->
-            val hitPos = if (!place.airPlace.isEnabled() && (targetPosState.isAir || targetPosState.isLiquid))
+            val hitPos = if (!place.airPlace.isEnabled() && targetPosState.isEmpty)
                 pos.offset(neighbor)
             else pos
             val hitSide = neighbor.opposite
@@ -638,7 +640,7 @@ object BuildSimulator {
         val state = blockState(pos)
 
         /* is a block that will be destroyed by breaking adjacent blocks */
-        if (breaking.breakWeakBlocks && state.block.hardness == 0f && !state.isAir) {
+        if (breaking.breakWeakBlocks && state.block.hardness == 0f && state.isNotEmpty) {
             acc.add(BuildResult.Ignored(pos))
             return acc
         }

@@ -19,6 +19,7 @@ package com.lambda.interaction.construction.verify
 
 import com.lambda.interaction.material.container.ContainerManager.findDisposable
 import com.lambda.module.modules.client.TaskFlowModule
+import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.item.ItemUtils.block
@@ -45,7 +46,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             ItemStack.EMPTY
 
-        override fun isAir() = true
+        override fun isEmpty() = true
     }
 
     data object Solid : TargetState(Type.SOLID) {
@@ -59,7 +60,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
                 it.item.block in TaskFlowModule.inventory.disposables
             } ?: ItemStack(Items.NETHERRACK)
 
-        override fun isAir() = false
+        override fun isEmpty() = false
     }
 
     data class Support(val direction: Direction) : TargetState(Type.SUPPORT) {
@@ -74,7 +75,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
                 it.item.block in TaskFlowModule.inventory.disposables
             } ?: ItemStack(Items.NETHERRACK)
 
-        override fun isAir() = false
+        override fun isEmpty() = false
     }
 
     data class State(val blockState: BlockState) : TargetState(Type.STATE) {
@@ -86,7 +87,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             blockState.block.getPickStack(world, pos, blockState)
 
-        override fun isAir() = blockState.isAir
+        override fun isEmpty() = blockState.isEmpty
     }
 
     data class Block(val block: net.minecraft.block.Block) : TargetState(Type.BLOCK) {
@@ -98,7 +99,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             block.getPickStack(world, pos, block.defaultState)
 
-        override fun isAir() = block.defaultState.isAir
+        override fun isEmpty() = block.defaultState.isEmpty
     }
 
     data class Stack(val itemStack: ItemStack) : TargetState(Type.STACK) {
@@ -113,6 +114,6 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
             itemStack
 
-        override fun isAir() = false
+        override fun isEmpty() = false
     }
 }

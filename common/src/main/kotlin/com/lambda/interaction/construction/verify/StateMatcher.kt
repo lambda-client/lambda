@@ -26,5 +26,5 @@ import net.minecraft.util.math.BlockPos
 interface StateMatcher {
     fun matches(state: BlockState, pos: BlockPos, world: ClientWorld, ignoredProperties: Collection<Property<*>> = emptySet()): Boolean
     fun getStack(world: ClientWorld, pos: BlockPos): ItemStack
-    fun isAir(): Boolean
+    fun isEmpty(): Boolean
 }

@@ -49,10 +49,11 @@ import com.lambda.interaction.request.placing.PlaceManager
 import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.BlockUtils.brokenState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
-import com.lambda.util.BlockUtils.isBroken
+import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.BlockUtils.isEmpty
+import com.lambda.util.BlockUtils.isNotBroken
+import com.lambda.util.BlockUtils.isNotEmpty
 import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.lerp
@@ -150,8 +151,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                 .firstOrNull { it.context.expectedPos == event.pos }
                 ?.let { info ->
                     // if not broken
-                    if (!isBroken(info.context.checkedState, event.newState)) {
-                        this@BreakManager.warn("Break at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.checkedState.brokenState}")
+                    if (isNotBroken(info.context.checkedState, event.newState)) {
+                        this@BreakManager.warn("Break at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.checkedState.emptyState}")
                         // update the checked state
                         info.context.checkedState = event.newState
                         return@listen
@@ -364,7 +365,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         val blockState = blockState(ctx.expectedPos)
         val hardness = ctx.checkedState.getHardness(world, ctx.expectedPos)
 
-        return !blockState.isEmpty && hardness != 600f && hardness != -1f
+        return blockState.isNotEmpty && hardness != 600f && hardness != -1f
     }
 
     /**
@@ -700,7 +701,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         lastPosStarted = ctx.expectedPos
 
         val blockState = blockState(ctx.expectedPos)
-        val notEmpty = !blockState.isEmpty
+        val notEmpty = blockState.isNotEmpty
         if (notEmpty && info.breakingTicks == 0) {
             blockState.onBlockBreakStart(world, ctx.expectedPos, player)
         }

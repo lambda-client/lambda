@@ -29,9 +29,10 @@ import com.lambda.interaction.request.breaking.BreakManager.lastPosStarted
 import com.lambda.interaction.request.breaking.BreakManager.matchesBlockItem
 import com.lambda.interaction.request.breaking.ReBreakManager.reBreak
 import com.lambda.module.modules.client.TaskFlowModule
-import com.lambda.util.BlockUtils.brokenState
+import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.BlockUtils.fluidState
-import com.lambda.util.BlockUtils.isBroken
+import com.lambda.util.BlockUtils.isEmpty
+import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
@@ -79,9 +80,9 @@ object BrokenBlockHandler {
                     return@listen
 
                 // return if the block's not broken
-                if (!isBroken(pending.context.checkedState, event.newState)) {
+                if (isNotBroken(pending.context.checkedState, event.newState)) {
                     if (!pending.isReBreaking) {
-                        this@BrokenBlockHandler.warn("Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.checkedState.brokenState}")
+                        this@BrokenBlockHandler.warn("Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.checkedState.emptyState}")
                         pending.stopPending()
                     } else {
                         pending.context.checkedState = event.newState
@@ -174,7 +175,7 @@ object BrokenBlockHandler {
             return false
         val block = ctx.checkedState.block
         if (block is OperatorBlock && !player.isCreativeLevelTwoOp) return false
-        if (ctx.checkedState.isAir) return false
+        if (ctx.checkedState.isEmpty) return false
 
         block.onBreak(world, ctx.expectedPos, ctx.checkedState, player)
         val fluidState = fluidState(ctx.expectedPos)
