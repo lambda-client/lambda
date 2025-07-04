@@ -480,7 +480,6 @@ object BuildSimulator {
 
             // ToDo: For each hand and sneak or not?
             val fakePlayer = copyPlayer(player).apply {
-                setPos(eye.x, eye.y - standingEyeHeight, eye.z)
                 this.rotation = RotationManager.serverRotation
             }
 
