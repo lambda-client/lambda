@@ -34,6 +34,7 @@ import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import java.util.*
+import kotlin.math.floor
 import kotlin.math.pow
 
 /**
@@ -165,53 +166,66 @@ object VisibilityChecker {
      */
     fun scanSurfaces(
         box: Box,
-        excludedSides: Set<Direction> = emptySet(),
+        sides: Set<Direction> = emptySet(),
         resolution: Int = 5,
         scan: SurfaceScan = SurfaceScan.DEFAULT,
         check: (Direction, Vec3d) -> Unit,
     ) {
-        excludedSides.forEach { side ->
+        sides.forEach { side ->
             val (minX, minY, minZ, maxX, maxY, maxZ) = box.contract(TaskFlowModule.shrinkFactor).bounds(side)
-            val stepX = (maxX - minX) / resolution
-            val stepY = (maxY - minY) / resolution
-            val stepZ = (maxZ - minZ) / resolution
 
-            // Determine the bounds to scan based on the axis and mode
-            val (startX, endX) = if (scan.axis == Direction.Axis.X && stepX != 0.0) {
-                val centerX = (minX + maxX) / 2
+            // Determine the bounds to scan based on the axis and mode. Skip if no part of the face is in the desired bounds
+            val (startX, endX) = if (scan.axis == Direction.Axis.X && maxX != minX) {
                 when (scan.mode) {
-                    ScanMode.GREATER_HALF -> centerX + 0.01 to maxX
-                    ScanMode.LESSER_HALF -> minX to centerX - 0.01
+                    ScanMode.GREATER_BLOCK_HALF -> (floor(minX) + 0.501).let { center ->
+                        if (maxX < center) return@forEach
+                        minX.coerceAtLeast(center) to maxX
+                    }
+                    ScanMode.LESSER_BLOCK_HALF -> (floor(maxX) + 0.499).let { center ->
+                        if (minX > center) return@forEach
+                        minX to maxX.coerceAtMost(center)
+                    }
                     ScanMode.FULL -> minX to maxX
                 }
             } else minX to maxX
 
-            val (startY, endY) = if (scan.axis == Direction.Axis.Y && stepY != 0.0) {
-                val centerY = (minY + maxY) / 2
+            val (startY, endY) = if (scan.axis == Direction.Axis.Y && maxY != minY) {
                 when (scan.mode) {
-                    ScanMode.GREATER_HALF -> centerY + 0.01 to maxY
-                    ScanMode.LESSER_HALF -> minY to centerY - 0.01
+                    ScanMode.GREATER_BLOCK_HALF -> (floor(minY) + 0.501).let { center ->
+                        if (maxY < center) return@forEach
+                        minY.coerceAtLeast(center) to maxY
+                    }
+                    ScanMode.LESSER_BLOCK_HALF -> (floor(maxY) + 0.499).let { center ->
+                        if (minY > center) return@forEach
+                        minY to maxY.coerceAtMost(center)
+                    }
                     ScanMode.FULL -> minY to maxY
                 }
             } else minY to maxY
 
-            val (startZ, endZ) = if (scan.axis == Direction.Axis.Z && stepZ != 0.0) {
-                val centerZ = (minZ + maxZ) / 2
+            val (startZ, endZ) = if (scan.axis == Direction.Axis.Z && maxZ != minZ) {
                 when (scan.mode) {
-                    ScanMode.GREATER_HALF -> centerZ + 0.01 to maxZ
-                    ScanMode.LESSER_HALF -> minZ to centerZ - 0.01
+                    ScanMode.GREATER_BLOCK_HALF -> (floor(minZ) + 0.501).let { center ->
+                        if (maxZ < center) return@forEach
+                        minZ.coerceAtLeast(center) to maxZ
+                    }
+                    ScanMode.LESSER_BLOCK_HALF -> (floor(maxZ) + 0.499).let { center ->
+                        if (minZ > center) return@forEach
+                        minZ to maxZ.coerceAtMost(center)
+                    }
                     ScanMode.FULL -> minZ to maxZ
                 }
             } else minZ to maxZ
 
-            (0..resolution).forEach outer@{ i ->
-                val x = if (stepX != 0.0) startX + stepX * i else startX
-                if (x > endX) return@outer
-                (0..resolution).forEach inner@{ j ->
-                    val y = if (stepY != 0.0) startY + stepY * j else startY
-                    if (y > endY) return@inner
+            val stepX = (endX - startX) / resolution
+            val stepY = (endY - startY) / resolution
+            val stepZ = (endZ - startZ) / resolution
+
+            (0..resolution).forEach outer@ { i ->
+                val x = if (stepX != 0.0) startX + (stepX * i) else startX
+                (0..resolution).forEach inner@ { j ->
+                    val y = if (stepY != 0.0) startY + (stepY * j) else startY
                     val z = if (stepZ != 0.0) startZ + stepZ * ((if (stepX != 0.0) j else i)) else startZ
-                    if (z > endZ) return@inner
                     check(side, Vec3d(x, y, z))
                 }
             }

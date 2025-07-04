@@ -31,7 +31,7 @@ enum class PointSelection(val select: (MutableList<VisibilityChecker.CheckedHit>
     Optimum({ hits ->
         val optimum = hits
             .map { it.hit.pos }
-            .reduceOrNull { acc, pos -> acc?.add(pos) }
+            .reduceOrNull { acc, pos -> pos?.let { acc?.add(it) } }
             ?.times(1 / hits.size)
 
         optimum?.let {

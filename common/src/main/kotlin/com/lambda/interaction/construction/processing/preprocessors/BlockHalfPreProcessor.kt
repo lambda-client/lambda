@@ -36,8 +36,8 @@ object BlockHalfPreProcessor : PlacementProcessor() {
         val slab = state.get(Properties.BLOCK_HALF) ?: return
 
         val surfaceScan = when (slab) {
-            BlockHalf.BOTTOM -> SurfaceScan(ScanMode.LESSER_HALF, Direction.Axis.Y)
-            BlockHalf.TOP -> SurfaceScan(ScanMode.GREATER_HALF, Direction.Axis.Y)
+            BlockHalf.BOTTOM -> SurfaceScan(ScanMode.LESSER_BLOCK_HALF, Direction.Axis.Y)
+            BlockHalf.TOP -> SurfaceScan(ScanMode.GREATER_BLOCK_HALF, Direction.Axis.Y)
         }
 
         accumulator.offerSurfaceScan(surfaceScan)

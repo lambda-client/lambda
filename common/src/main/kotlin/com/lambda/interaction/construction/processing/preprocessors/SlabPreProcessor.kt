@@ -36,8 +36,8 @@ object SlabPreProcessor : PlacementProcessor() {
         val slab = state.get(Properties.SLAB_TYPE) ?: return
 
         val surfaceScan = when (slab) {
-             SlabType.BOTTOM -> SurfaceScan(ScanMode.LESSER_HALF, Direction.Axis.Y)
-             SlabType.TOP -> SurfaceScan(ScanMode.GREATER_HALF, Direction.Axis.Y)
+             SlabType.BOTTOM -> SurfaceScan(ScanMode.LESSER_BLOCK_HALF, Direction.Axis.Y)
+             SlabType.TOP -> SurfaceScan(ScanMode.GREATER_BLOCK_HALF, Direction.Axis.Y)
              SlabType.DOUBLE -> {
                  accumulator.addIgnores(Properties.SLAB_TYPE)
                  SurfaceScan(ScanMode.FULL, Direction.Axis.Y)
