@@ -151,10 +151,10 @@ object BreakManager : RequestHandler<BreakRequest>(
                 .firstOrNull { it.context.expectedPos == event.pos }
                 ?.let { info ->
                     // if not broken
-                    if (isNotBroken(info.context.checkedState, event.newState)) {
-                        this@BreakManager.warn("Break at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.checkedState.emptyState}")
+                    if (isNotBroken(info.context.cachedState, event.newState)) {
+                        this@BreakManager.warn("Break at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.cachedState.emptyState}")
                         // update the checked state
-                        info.context.checkedState = event.newState
+                        info.context.cachedState = event.newState
                         return@listen
                     }
                     destroyBlock(info)
@@ -189,7 +189,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 .forEach { info ->
                     val config = info.breakConfig
                     if (!config.renders) return@listen
-                    val breakDelta = info.context.checkedState.calcBreakDelta(
+                    val breakDelta = info.context.cachedState.calcBreakDelta(
                         player,
                         world,
                         info.context.expectedPos,
@@ -200,7 +200,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                         if (info.isPrimary) it * (2 - info.breakConfig.breakThreshold)
                         else it
                     }.toDouble()
-                    val state = info.context.checkedState
+                    val state = info.context.cachedState
                     val boxes = state.getOutlineShape(world, info.context.expectedPos).boundingBoxes.map {
                         it.offset(info.context.expectedPos)
                     }
@@ -278,7 +278,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                     .forEach { info ->
                         if (info.updatedProgressThisTick) return@forEach
                         val minKeepTicks = if (info.isSecondary) {
-                            val breakDelta = info.context.checkedState.calcBreakDelta(
+                            val breakDelta = info.context.cachedState.calcBreakDelta(
                                 player,
                                 world,
                                 info.context.expectedPos,
@@ -363,7 +363,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         val blockState = blockState(ctx.expectedPos)
-        val hardness = ctx.checkedState.getHardness(world, ctx.expectedPos)
+        val hardness = ctx.cachedState.getHardness(world, ctx.expectedPos)
 
         return blockState.isNotEmpty && hardness != 600f && hardness != -1f
     }
@@ -764,7 +764,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      */
     fun matchesBlockItem(info: BreakInfo, entity: ItemEntity): Boolean {
         val inRange = info.context.expectedPos.toCenterPos().isInRange(entity.pos, 0.5)
-        val correctMaterial = info.context.checkedState.block == entity.stack.item.block
+        val correctMaterial = info.context.cachedState.block == entity.stack.item.block
         return inRange && correctMaterial
     }
 

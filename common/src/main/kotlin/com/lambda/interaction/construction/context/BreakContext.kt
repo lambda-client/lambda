@@ -25,45 +25,32 @@ import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.rotating.RotationRequest
-import com.lambda.util.world.raycast.RayCastUtils.distanceTo
 import net.minecraft.block.BlockState
 import net.minecraft.block.FallingBlock
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Direction
-import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
 data class BreakContext(
-    override val pov: Vec3d,
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
-    override var checkedState: BlockState,
-    override val targetState: TargetState,
     override var hotbarIndex: Int,
-    var instantBreak: Boolean,
-) : BuildContext {
+    override var cachedState: BlockState,
+    override val targetState: TargetState,
+    var instantBreak: Boolean
+) : BuildContext() {
     private val baseColor = Color(222, 0, 0, 25)
     private val sideColor = Color(222, 0, 0, 100)
 
     override val expectedPos: BlockPos
         get() = result.blockPos
 
-    override val distance: Double by lazy {
-        result.distanceTo(pov)
-    }
-
-    fun exposedSides(ctx: SafeContext) =
-        Direction.entries.filter {
-            ctx.world.isAir(expectedPos.offset(it))
-        }
-
-    override val expectedState: BlockState = checkedState.fluidState.blockState
+    override val expectedState: BlockState = cachedState.fluidState.blockState
 
     override fun compareTo(other: BuildContext): Int {
         return when (other) {
             is BreakContext -> compareByDescending<BreakContext> {
-                if (it.checkedState.block is FallingBlock) it.expectedPos.y else 0
+                if (it.cachedState.block is FallingBlock) it.expectedPos.y else 0
             }.thenBy {
                 it.instantBreak
             }.thenBy {
@@ -77,8 +64,8 @@ data class BreakContext(
     }
 
     override fun SafeContext.buildRenderer() {
-        withState(checkedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side))
-        withState(checkedState, expectedPos, sideColor, result.side)
+        withState(cachedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side))
+        withState(cachedState, expectedPos, sideColor, result.side)
     }
 
     fun requestDependencies(breakRequest: BreakRequest, minKeepTicks: Int = 0): Boolean {

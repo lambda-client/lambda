@@ -61,7 +61,7 @@ object BrokenBlockHandler {
             else warn("${info::class.simpleName}'s item drop at ${info.context.expectedPos.toShortString()} timed out")
 
             if (!info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
-                world.setBlockState(info.context.expectedPos, info.context.checkedState)
+                world.setBlockState(info.context.expectedPos, info.context.cachedState)
             }
         }
         info.internalOnCancel()
@@ -76,16 +76,16 @@ object BrokenBlockHandler {
                     else null
             }?.let { pending ->
                 // return if the state hasn't changed
-                if (event.newState.matches(pending.context.checkedState))
+                if (event.newState.matches(pending.context.cachedState))
                     return@listen
 
                 // return if the block's not broken
-                if (isNotBroken(pending.context.checkedState, event.newState)) {
+                if (isNotBroken(pending.context.cachedState, event.newState)) {
                     if (!pending.isReBreaking) {
-                        this@BrokenBlockHandler.warn("Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.checkedState.emptyState}")
+                        this@BrokenBlockHandler.warn("Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.cachedState.emptyState}")
                         pending.stopPending()
                     } else {
-                        pending.context.checkedState = event.newState
+                        pending.context.cachedState = event.newState
                     }
                     return@listen
                 }
@@ -171,16 +171,16 @@ object BrokenBlockHandler {
 
         if (player.isBlockBreakingRestricted(world, ctx.expectedPos, gamemode)) return false
 
-        if (!player.mainHandStack.item.canMine(ctx.checkedState, world, ctx.expectedPos, player))
+        if (!player.mainHandStack.item.canMine(ctx.cachedState, world, ctx.expectedPos, player))
             return false
-        val block = ctx.checkedState.block
+        val block = ctx.cachedState.block
         if (block is OperatorBlock && !player.isCreativeLevelTwoOp) return false
-        if (ctx.checkedState.isEmpty) return false
+        if (ctx.cachedState.isEmpty) return false
 
-        block.onBreak(world, ctx.expectedPos, ctx.checkedState, player)
+        block.onBreak(world, ctx.expectedPos, ctx.cachedState, player)
         val fluidState = fluidState(ctx.expectedPos)
         val setState = world.setBlockState(ctx.expectedPos, fluidState.blockState, 11)
-        if (setState) block.onBroken(world, ctx.expectedPos, ctx.checkedState)
+        if (setState) block.onBroken(world, ctx.expectedPos, ctx.cachedState)
 
         if (info.breakConfig.breakingTexture) info.setBreakingTextureStage(player, world, -1)
 

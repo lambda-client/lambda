@@ -31,32 +31,29 @@ import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
 data class PlaceContext(
-    override val pov: Vec3d,
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
-    override val distance: Double,
-    override val expectedState: BlockState,
-    override val checkedState: BlockState,
     override val hotbarIndex: Int,
     override val expectedPos: BlockPos,
+    override val cachedState: BlockState,
+    override val expectedState: BlockState,
     override val targetState: TargetState,
     val sneak: Boolean,
     val insideBlock: Boolean,
-    val currentDirIsInvalid: Boolean = false,
-) : BuildContext {
+    val currentDirIsInvalid: Boolean = false
+) : BuildContext() {
     private val baseColor = Color(35, 188, 254, 25)
     private val sideColor = Color(35, 188, 254, 100)
 
     override fun compareTo(other: BuildContext) =
         when (other) {
             is PlaceContext -> compareBy<PlaceContext> {
-                BlockUtils.fluids.indexOf(it.checkedState.fluidState.fluid)
+                BlockUtils.fluids.indexOf(it.cachedState.fluidState.fluid)
             }.thenByDescending {
-                it.checkedState.fluidState.level
+                it.cachedState.fluidState.level
             }.thenBy {
                 it.sneak == mc.player?.isSneaking
             }.thenBy {

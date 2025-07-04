@@ -17,22 +17,24 @@
 
 package com.lambda.interaction.construction.context
 
+import com.lambda.Lambda.mc
 import com.lambda.interaction.construction.result.Drawable
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.rotating.RotationRequest
 import net.minecraft.block.BlockState
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
 
-interface BuildContext : Comparable<BuildContext>, Drawable {
-    val pov: Vec3d
-    val result: BlockHitResult
-    val rotation: RotationRequest
-    val distance: Double
-    val expectedState: BlockState
-    val targetState: TargetState
-    val expectedPos: BlockPos
-    val checkedState: BlockState
-    val hotbarIndex: Int
+abstract class BuildContext : Comparable<BuildContext>, Drawable {
+    abstract val result: BlockHitResult
+    abstract val rotation: RotationRequest
+    abstract val hotbarIndex: Int
+    abstract val expectedPos: BlockPos
+    abstract val cachedState: BlockState
+    abstract val expectedState: BlockState
+    abstract val targetState: TargetState
+
+    val distance by lazy {
+        mc.player?.eyePos?.distanceTo(result.pos) ?: Double.MAX_VALUE
+    }
 }

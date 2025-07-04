@@ -414,12 +414,11 @@ object BuildSimulator {
         }
 
         return if (placing) checkPlaceOn(pos, validHits, eye, preProcessing, targetState, place, rotation, interact, inventory)
-        else checkInteractOn(pos, eye, item, validHits, expectedState, targetState, state, rotation, interact, inventory)
+        else checkInteractOn(pos, item, validHits, expectedState, targetState, state, rotation, interact, inventory)
     }
 
     private fun SafeContext.checkInteractOn(
         pos: BlockPos,
-        eye: Vec3d,
         item: Item,
         validHits: MutableList<CheckedHit>,
         expectedState: BlockState,
@@ -433,16 +432,13 @@ object BuildSimulator {
             val checkedResult = checkedHit.hit
             val rotationTarget = lookAt(checkedHit.targetRotation, 0.001)
             val context = InteractionContext(
-                eye,
                 checkedResult.blockResult ?: return null,
                 RotationRequest(rotationTarget, rotation),
-                eye.distanceTo(checkedResult.pos),
-                expectedState,
-                targetState,
+                player.inventory.selectedSlot,
                 pos,
                 currentState,
-                player.inventory.selectedSlot,
-                interact
+                expectedState,
+                targetState
             )
 
             val stackSelection = item.select()
@@ -596,18 +592,16 @@ object BuildSimulator {
             } else lookAt(rot, 0.001)
 
             val placeContext = PlaceContext(
-                eye,
                 blockHit,
                 RotationRequest(rotationRequest, rotation),
-                eye.distanceTo(blockHit.pos),
-                resultState,
-                blockState(blockHit.blockPos.offset(blockHit.side)),
                 player.inventory.selectedSlot,
                 context.blockPos,
+                resultState,
+                blockState(blockHit.blockPos.offset(blockHit.side)),
                 targetState,
                 shouldSneak,
                 false,
-                currentDirIsInvalid,
+                currentDirIsInvalid
             )
 
             val currentHandStack = player.getStackInHand(Hand.MAIN_HAND)
@@ -693,11 +687,6 @@ object BuildSimulator {
         val verify: CheckedHit.() -> Boolean = {
             hit.blockResult?.blockPos == pos
         }
-        val targetState = if (!state.fluidState.isEmpty) {
-            TargetState.State(state.fluidState.blockState)
-        } else {
-            TargetState.Air
-        }
 
         /* the player is buried inside the block */
         if (boxes.any { it.contains(eye) }) {
@@ -706,12 +695,11 @@ object BuildSimulator {
                     lookAtBlock(pos, config = interact), rotation
                 )
                 val breakContext = BreakContext(
-                    eye,
                     blockHit,
                     rotationRequest,
-                    state,
-                    targetState,
                     player.inventory.selectedSlot,
+                    state,
+                    TargetState.Empty,
                     instantBreakable(state, pos, breaking.breakThreshold)
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
@@ -759,9 +747,7 @@ object BuildSimulator {
         val request = RotationRequest(target, rotation)
         val instant = instantBreakable(state, pos, breaking.breakThreshold)
 
-        val breakContext = BreakContext(
-            eye, blockHit, request, state, targetState, player.inventory.selectedSlot, instant
-        )
+        val breakContext = BreakContext(blockHit, request, player.inventory.selectedSlot, state, TargetState.Empty, instant)
 
         if (gamemode.isCreative) {
             acc.add(BreakResult.Break(pos, breakContext))

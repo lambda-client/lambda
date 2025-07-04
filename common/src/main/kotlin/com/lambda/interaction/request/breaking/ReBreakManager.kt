@@ -72,9 +72,9 @@ object ReBreakManager {
             val context = info.context
             val awaitThenBreak = info.breakConfig.breakConfirmation == BreakConfig.BreakConfirmationMode.AwaitThenBreak
 
-            val breakProgress = context.checkedState.calcBlockBreakingDelta(player, world, context.expectedPos)
+            val breakProgress = context.cachedState.calcBlockBreakingDelta(player, world, context.expectedPos)
             return@runSafe if (info.breakingTicks * breakProgress >= info.breakConfig.breakThreshold) {
-                if (context.checkedState.isEmpty) {
+                if (context.cachedState.isEmpty) {
                     return@runSafe ReBreakResult.Ignored
                 }
                 if (!awaitThenBreak) {

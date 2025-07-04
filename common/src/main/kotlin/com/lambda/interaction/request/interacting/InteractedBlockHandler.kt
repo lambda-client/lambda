@@ -38,7 +38,7 @@ object InteractedBlockHandler {
     ) {
         info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out")
         if (it.interact.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {
-            mc.world?.setBlockState(it.context.expectedPos, it.context.checkedState)
+            mc.world?.setBlockState(it.context.expectedPos, it.context.cachedState)
         }
         it.pendingInteractionsList.remove(it.context)
     }
@@ -55,7 +55,7 @@ object InteractedBlockHandler {
 
                     if (info.interact.interactConfirmationMode == InteractionConfig.InteractConfirmationMode.AwaitThenInteract)
                         with (info.context) {
-                            checkedState.onUse(world, player, Hand.MAIN_HAND, result)
+                            cachedState.onUse(world, player, Hand.MAIN_HAND, result)
                         }
                 }
         }

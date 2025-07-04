@@ -38,7 +38,7 @@ object PlacedBlockHandler {
     ) {
         info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out")
         if (it.placeConfig.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.AwaitThenPlace) {
-            mc.world?.setBlockState(it.context.expectedPos, it.context.checkedState)
+            mc.world?.setBlockState(it.context.expectedPos, it.context.cachedState)
         }
         it.pendingInteractionsList.remove(it.context)
     }

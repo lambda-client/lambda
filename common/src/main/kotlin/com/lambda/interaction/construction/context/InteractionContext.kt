@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.construction.context
 
-import com.lambda.config.groups.InteractionConfig
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
@@ -31,30 +30,26 @@ import com.lambda.util.BlockUtils.blockState
 import net.minecraft.block.BlockState
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
 import java.awt.Color
 
 class InteractionContext(
-    override val pov: Vec3d,
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
-    override val distance: Double,
+    override var hotbarIndex: Int,
+    override val expectedPos: BlockPos,
+    override val cachedState: BlockState,
     override val expectedState: BlockState,
     override val targetState: TargetState,
-    override val expectedPos: BlockPos,
-    override val checkedState: BlockState,
-    override var hotbarIndex: Int,
-    val interaction: InteractionConfig,
-) : BuildContext {
+) : BuildContext() {
     private val baseColor = Color(35, 254, 79, 25)
     private val sideColor = Color(35, 254, 79, 100)
 
     override fun compareTo(other: BuildContext) =
         when {
             other is InteractionContext -> compareBy<BuildContext> {
-                BlockUtils.fluids.indexOf(it.checkedState.fluidState.fluid)
+                BlockUtils.fluids.indexOf(it.cachedState.fluidState.fluid)
             }.thenByDescending {
-                it.checkedState.fluidState.level
+                it.cachedState.fluidState.level
             }.thenBy {
                 it.rotation.target.angleDistance
             }.thenBy {

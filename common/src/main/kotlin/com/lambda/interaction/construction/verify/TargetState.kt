@@ -34,7 +34,19 @@ import net.minecraft.util.math.Direction
 sealed class TargetState(val type: Type) : StateMatcher {
 
     enum class Type {
-        AIR, SOLID, SUPPORT, STATE, BLOCK, STACK
+        EMPTY, AIR, SOLID, SUPPORT, STATE, BLOCK, STACK
+    }
+
+    data object Empty : TargetState(Type.EMPTY) {
+        override fun toString() = "Empty"
+
+        override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld, ignoredProperties: Collection<Property<*>>) =
+            state.isEmpty
+
+        override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
+            ItemStack.EMPTY
+
+        override fun isEmpty() = true
     }
 
     data object Air : TargetState(Type.AIR) {
