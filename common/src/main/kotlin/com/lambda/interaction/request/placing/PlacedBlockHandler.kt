@@ -36,9 +36,9 @@ object PlacedBlockHandler {
     val pendingPlacements = LimitedDecayQueue<PlaceInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) {
-        info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out")
+        info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
         if (it.placeConfig.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.AwaitThenPlace) {
-            mc.world?.setBlockState(it.context.expectedPos, it.context.cachedState)
+            mc.world?.setBlockState(it.context.blockPos, it.context.cachedState)
         }
         it.pendingInteractionsList.remove(it.context)
     }
@@ -46,7 +46,7 @@ object PlacedBlockHandler {
     init {
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
             pendingPlacements
-                .firstOrNull { it.context.expectedPos == event.pos }
+                .firstOrNull { it.context.blockPos == event.pos }
                 ?.let { info ->
                     removePendingPlace(info)
 
@@ -59,7 +59,7 @@ object PlacedBlockHandler {
 
                     if (info.placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
                         with (info.context) {
-                            placeSound(expectedState.block.item as BlockItem, expectedState, expectedPos)
+                            placeSound(expectedState.block.item as BlockItem, expectedState, blockPos)
                         }
                     info.onPlace()
                 }

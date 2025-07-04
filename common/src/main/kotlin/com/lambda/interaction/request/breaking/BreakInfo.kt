@@ -75,7 +75,7 @@ data class BreakInfo(
     }
 
     fun internalOnCancel() {
-        request.onCancel?.invoke(context.expectedPos)
+        request.onCancel?.invoke(context.blockPos)
     }
 
     fun updateInfo(context: BreakContext, request: BreakRequest) {
@@ -103,11 +103,11 @@ data class BreakInfo(
         world: ClientWorld,
         stage: Int = getBreakTextureProgress(player, world)
     ) {
-        world.setBlockBreakingInfo(player.id, context.expectedPos, stage)
+        world.setBlockBreakingInfo(player.id, context.blockPos, stage)
     }
 
     private fun getBreakTextureProgress(player: PlayerEntity, world: ClientWorld): Int {
-        val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.expectedPos, player.mainHandStack)
+        val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, player.mainHandStack)
         val progress = (breakDelta * breakingTicks) / getBreakThreshold()
         return if (progress > 0.0f) (progress * 10.0f).toInt() else -1
     }
@@ -127,7 +127,7 @@ data class BreakInfo(
         interaction.sendSequencedPacket(world) { sequence: Int ->
             PlayerActionC2SPacket(
                 action,
-                context.expectedPos,
+                context.blockPos,
                 context.result.side,
                 sequence
             )

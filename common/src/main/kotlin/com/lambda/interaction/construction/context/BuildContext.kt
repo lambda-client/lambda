@@ -19,7 +19,6 @@ package com.lambda.interaction.construction.context
 
 import com.lambda.Lambda.mc
 import com.lambda.interaction.construction.result.Drawable
-import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.rotating.RotationRequest
 import net.minecraft.block.BlockState
 import net.minecraft.util.hit.BlockHitResult
@@ -29,10 +28,9 @@ abstract class BuildContext : Comparable<BuildContext>, Drawable {
     abstract val result: BlockHitResult
     abstract val rotation: RotationRequest
     abstract val hotbarIndex: Int
-    abstract val expectedPos: BlockPos
     abstract val cachedState: BlockState
     abstract val expectedState: BlockState
-    abstract val targetState: TargetState
+    abstract val blockPos: BlockPos
 
     val distance by lazy {
         mc.player?.eyePos?.distanceTo(result.pos) ?: Double.MAX_VALUE

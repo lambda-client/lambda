@@ -36,9 +36,9 @@ object InteractedBlockHandler {
     val pendingInteractions = LimitedDecayQueue<InteractionInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) {
-        info("${it::class.simpleName} at ${it.context.expectedPos.toShortString()} timed out")
+        info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
         if (it.interact.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {
-            mc.world?.setBlockState(it.context.expectedPos, it.context.cachedState)
+            mc.world?.setBlockState(it.context.blockPos, it.context.cachedState)
         }
         it.pendingInteractionsList.remove(it.context)
     }
@@ -46,7 +46,7 @@ object InteractedBlockHandler {
     init {
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
             pendingInteractions
-                .firstOrNull { it.context.expectedPos == event.pos }
+                .firstOrNull { it.context.blockPos == event.pos }
                 ?.let { info ->
                     removePendingInteract(info)
 

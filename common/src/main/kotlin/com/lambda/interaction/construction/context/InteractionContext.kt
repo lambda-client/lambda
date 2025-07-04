@@ -20,7 +20,6 @@ package com.lambda.interaction.construction.context
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
-import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.interacting.InteractionRequest
@@ -36,13 +35,13 @@ class InteractionContext(
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
     override var hotbarIndex: Int,
-    override val expectedPos: BlockPos,
     override val cachedState: BlockState,
     override val expectedState: BlockState,
-    override val targetState: TargetState,
 ) : BuildContext() {
     private val baseColor = Color(35, 254, 79, 25)
     private val sideColor = Color(35, 254, 79, 100)
+
+    override val blockPos: BlockPos = result.blockPos
 
     override fun compareTo(other: BuildContext) =
         when {
@@ -62,7 +61,7 @@ class InteractionContext(
         }
 
     override fun SafeContext.buildRenderer() {
-        withState(expectedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side.opposite))
+        withState(expectedState, blockPos, baseColor, DirectionMask.ALL.exclude(result.side.opposite))
         withState(blockState(result.blockPos), result.blockPos, sideColor, result.side)
     }
 

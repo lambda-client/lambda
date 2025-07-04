@@ -77,7 +77,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         { player -> shouldSneak == player.isSneaking }
 
     override val blockedPositions
-        get() = pendingPlacements.map { it.context.expectedPos }
+        get() = pendingPlacements.map { it.context.blockPos }
 
     fun Any.onPlace(
         alwaysListen: Boolean = false,
@@ -175,7 +175,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      */
     private fun canPlace(placeContext: PlaceContext) =
         pendingPlacements.none { pending ->
-            pending.context.expectedPos == placeContext.expectedPos
+            pending.context.blockPos == placeContext.blockPos
         }
 
     /**

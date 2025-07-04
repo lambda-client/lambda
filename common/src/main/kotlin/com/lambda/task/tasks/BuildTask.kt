@@ -104,7 +104,7 @@ class BuildTask @Ta5kBuilder constructor(
                 .plus(pendingInteractions.toList())
 
             val resultsNotBlocked = results
-                .filter { result -> pendingInteractions.none { it.expectedPos == result.blockPos } }
+                .filter { result -> pendingInteractions.none { it.blockPos == result.blockPos } }
                 .sorted()
 
             val bestResult = resultsNotBlocked.firstOrNull() ?: return@listen

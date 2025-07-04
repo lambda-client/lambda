@@ -98,7 +98,7 @@ object InteractionManager : RequestHandler<InteractionRequest>(
                     PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, ctx.result, sequence)
                 }
             }
-            request.onInteract?.invoke(ctx.expectedPos)
+            request.onInteract?.invoke(ctx.blockPos)
             interactionsThisTick++
             iterator.remove()
         }

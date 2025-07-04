@@ -26,6 +26,7 @@ import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.isEmpty
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 
@@ -49,7 +50,7 @@ data class BreakRequest(
     var onReBreak: ((BlockPos) -> Unit)? = null
 
     override val done: Boolean
-        get() = runSafe { contexts.all { it.targetState.matches(blockState(it.expectedPos), it.expectedPos, world) } } == true
+        get() = runSafe { contexts.all { blockState(it.blockPos).isEmpty } } == true
 
     @BreakRequestBuilder
     class RequestBuilder(

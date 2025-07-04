@@ -47,7 +47,6 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import java.awt.Color
 import java.util.concurrent.ConcurrentLinkedQueue
-import kotlin.collections.ArrayList
 
 object PacketMine : Module(
     "PacketMine",
@@ -232,7 +231,7 @@ object PacketMine : Module(
         forEach {
             modified = modified or it.retainAll { pos ->
                 positions.any { retain ->
-                    retain.expectedPos == pos
+                    retain.blockPos == pos
                 }
             }
         }

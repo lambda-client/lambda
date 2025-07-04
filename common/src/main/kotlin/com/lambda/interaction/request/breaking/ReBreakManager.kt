@@ -52,7 +52,7 @@ object ReBreakManager {
             breaking = true
             resetCallbacks()
         }
-        info.request.onReBreakStart?.invoke(info.context.expectedPos)
+        info.request.onReBreakStart?.invoke(info.context.blockPos)
     }
 
     fun clearReBreak() {
@@ -63,21 +63,20 @@ object ReBreakManager {
         runSafe {
             val info = reBreak ?: return@runSafe ReBreakResult.Ignored
 
-            if (info.context.expectedPos != ctx.expectedPos || !info.breakConfig.reBreak) {
+            if (info.context.blockPos != ctx.blockPos || !info.breakConfig.reBreak) {
                 return@runSafe ReBreakResult.Ignored
             }
             if (info.updatedThisTick) return@runSafe ReBreakResult.ReBroke
             info.updateInfo(ctx, breakRequest)
 
             val context = info.context
-            val awaitThenBreak = info.breakConfig.breakConfirmation == BreakConfig.BreakConfirmationMode.AwaitThenBreak
 
-            val breakProgress = context.cachedState.calcBlockBreakingDelta(player, world, context.expectedPos)
+            val breakProgress = context.cachedState.calcBlockBreakingDelta(player, world, context.blockPos)
             return@runSafe if (info.breakingTicks * breakProgress >= info.breakConfig.breakThreshold) {
                 if (context.cachedState.isEmpty) {
                     return@runSafe ReBreakResult.Ignored
                 }
-                if (!awaitThenBreak) {
+                if (info.breakConfig.breakConfirmation != BreakConfig.BreakConfirmationMode.AwaitThenBreak) {
                     destroyBlock(info)
                 }
                 info.stopBreakPacket(world, interaction)

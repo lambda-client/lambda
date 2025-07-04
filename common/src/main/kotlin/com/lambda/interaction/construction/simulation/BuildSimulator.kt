@@ -271,7 +271,7 @@ object BuildSimulator {
                 return@forEach
             }
 
-            checkPlaceOn(pos, validHits, eye, preProcessing, target, place, rotation, interact, inventory)?.let { placeResult ->
+            checkPlaceOn(pos, validHits, preProcessing, target, place, rotation, interact, inventory)?.let { placeResult ->
                 acc.add(placeResult)
             }
         }
@@ -413,8 +413,8 @@ object BuildSimulator {
             }
         }
 
-        return if (placing) checkPlaceOn(pos, validHits, eye, preProcessing, targetState, place, rotation, interact, inventory)
-        else checkInteractOn(pos, item, validHits, expectedState, targetState, state, rotation, interact, inventory)
+        return if (placing) checkPlaceOn(pos, validHits, preProcessing, targetState, place, rotation, interact, inventory)
+        else checkInteractOn(pos, item, validHits, expectedState, state, rotation, interact, inventory)
     }
 
     private fun SafeContext.checkInteractOn(
@@ -422,7 +422,6 @@ object BuildSimulator {
         item: Item,
         validHits: MutableList<CheckedHit>,
         expectedState: BlockState,
-        targetState: TargetState,
         currentState: BlockState,
         rotation: RotationConfig,
         interact: InteractionConfig,
@@ -435,10 +434,8 @@ object BuildSimulator {
                 checkedResult.blockResult ?: return null,
                 RotationRequest(rotationTarget, rotation),
                 player.inventory.selectedSlot,
-                pos,
                 currentState,
-                expectedState,
-                targetState
+                expectedState
             )
 
             val stackSelection = item.select()
@@ -463,7 +460,6 @@ object BuildSimulator {
     private fun SafeContext.checkPlaceOn(
         pos: BlockPos,
         validHits: MutableList<CheckedHit>,
-        eye: Vec3d,
         preProcessing: PreProcessingInfo,
         targetState: TargetState,
         place: PlaceConfig,
@@ -596,9 +592,8 @@ object BuildSimulator {
                 RotationRequest(rotationRequest, rotation),
                 player.inventory.selectedSlot,
                 context.blockPos,
+                blockState(context.blockPos),
                 resultState,
-                blockState(blockHit.blockPos.offset(blockHit.side)),
-                targetState,
                 shouldSneak,
                 false,
                 currentDirIsInvalid
@@ -699,7 +694,6 @@ object BuildSimulator {
                     rotationRequest,
                     player.inventory.selectedSlot,
                     state,
-                    TargetState.Empty,
                     instantBreakable(state, pos, breaking.breakThreshold)
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
@@ -744,10 +738,10 @@ object BuildSimulator {
         val bestHit = interact.pointSelection.select(validHits) ?: return acc
         val blockHit = bestHit.hit.blockResult ?: return acc
         val target = lookAt(bestHit.targetRotation, 0.001)
-        val request = RotationRequest(target, rotation)
+        val rotationRequest = RotationRequest(target, rotation)
         val instant = instantBreakable(state, pos, breaking.breakThreshold)
 
-        val breakContext = BreakContext(blockHit, request, player.inventory.selectedSlot, state, TargetState.Empty, instant)
+        val breakContext = BreakContext(blockHit, rotationRequest, player.inventory.selectedSlot, state, instant)
 
         if (gamemode.isCreative) {
             acc.add(BreakResult.Break(pos, breakContext))

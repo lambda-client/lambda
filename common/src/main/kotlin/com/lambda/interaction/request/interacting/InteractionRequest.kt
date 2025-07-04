@@ -39,5 +39,5 @@ data class InteractionRequest(
     private val prio: Int = 0
 ) : Request(prio, interact) {
     override val done: Boolean
-        get() = contexts.all { mc.world?.getBlockState(it.expectedPos)?.matches(it.expectedState) == true }
+        get() = contexts.all { mc.world?.getBlockState(it.blockPos)?.matches(it.expectedState) == true }
 }

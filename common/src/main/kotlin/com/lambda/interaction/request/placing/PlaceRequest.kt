@@ -26,6 +26,7 @@ import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.matches
 
 data class PlaceRequest(
     val contexts: Collection<PlaceContext>,
@@ -38,6 +39,6 @@ data class PlaceRequest(
 ) : Request(prio, build.placing) {
     override val done: Boolean
         get() = runSafe {
-            contexts.all { it.targetState.matches(blockState(it.expectedPos), it.expectedPos, world) }
+            contexts.all { it.expectedState.matches(blockState(it.blockPos)) }
         } == true
 }

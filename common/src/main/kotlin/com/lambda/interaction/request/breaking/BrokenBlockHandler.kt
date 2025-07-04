@@ -53,15 +53,15 @@ object BrokenBlockHandler {
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) { info ->
         mc.world?.let { world ->
-            val pos = info.context.expectedPos
+            val pos = info.context.blockPos
             val loaded = world.isChunkLoaded(ChunkSectionPos.getSectionCoord(pos.x), ChunkSectionPos.getSectionCoord(pos.z))
             if (!loaded) return@let
 
-            if (!info.broken) warn("${info::class.simpleName} at ${info.context.expectedPos.toShortString()} timed out")
-            else warn("${info::class.simpleName}'s item drop at ${info.context.expectedPos.toShortString()} timed out")
+            if (!info.broken) warn("${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out")
+            else warn("${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out")
 
             if (!info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
-                world.setBlockState(info.context.expectedPos, info.context.cachedState)
+                world.setBlockState(info.context.blockPos, info.context.cachedState)
             }
         }
         info.internalOnCancel()
@@ -71,8 +71,8 @@ object BrokenBlockHandler {
     init {
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE + 1) { event ->
             run {
-                pendingBreaks.firstOrNull { it.context.expectedPos == event.pos }
-                    ?: if (reBreak?.context?.expectedPos == event.pos) reBreak
+                pendingBreaks.firstOrNull { it.context.blockPos == event.pos }
+                    ?: if (reBreak?.context?.blockPos == event.pos) reBreak
                     else null
             }?.let { pending ->
                 // return if the state hasn't changed
@@ -96,7 +96,7 @@ object BrokenBlockHandler {
                 pending.internalOnBreak()
                 if (pending.callbacksCompleted) {
                     pending.stopPending()
-                    if (lastPosStarted == pending.context.expectedPos) {
+                    if (lastPosStarted == pending.context.blockPos) {
                         ReBreakManager.offerReBreak(pending)
                     }
                 }
@@ -116,7 +116,7 @@ object BrokenBlockHandler {
                 pending.internalOnItemDrop(it.entity)
                 if (pending.callbacksCompleted) {
                     pending.stopPending()
-                    if (lastPosStarted == pending.context.expectedPos) {
+                    if (lastPosStarted == pending.context.blockPos) {
                         ReBreakManager.offerReBreak(pending)
                     }
                 }
@@ -169,18 +169,18 @@ object BrokenBlockHandler {
     fun SafeContext.destroyBlock(info: BreakInfo): Boolean {
         val ctx = info.context
 
-        if (player.isBlockBreakingRestricted(world, ctx.expectedPos, gamemode)) return false
+        if (player.isBlockBreakingRestricted(world, ctx.blockPos, gamemode)) return false
 
-        if (!player.mainHandStack.item.canMine(ctx.cachedState, world, ctx.expectedPos, player))
+        if (!player.mainHandStack.item.canMine(ctx.cachedState, world, ctx.blockPos, player))
             return false
         val block = ctx.cachedState.block
         if (block is OperatorBlock && !player.isCreativeLevelTwoOp) return false
         if (ctx.cachedState.isEmpty) return false
 
-        block.onBreak(world, ctx.expectedPos, ctx.cachedState, player)
-        val fluidState = fluidState(ctx.expectedPos)
-        val setState = world.setBlockState(ctx.expectedPos, fluidState.blockState, 11)
-        if (setState) block.onBroken(world, ctx.expectedPos, ctx.cachedState)
+        block.onBreak(world, ctx.blockPos, ctx.cachedState, player)
+        val fluidState = fluidState(ctx.blockPos)
+        val setState = world.setBlockState(ctx.blockPos, fluidState.blockState, 11)
+        if (setState) block.onBroken(world, ctx.blockPos, ctx.cachedState)
 
         if (info.breakConfig.breakingTexture) info.setBreakingTextureStage(player, world, -1)
 

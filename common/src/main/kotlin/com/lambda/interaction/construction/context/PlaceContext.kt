@@ -21,7 +21,6 @@ import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
-import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.placing.PlaceRequest
@@ -37,10 +36,9 @@ data class PlaceContext(
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
     override val hotbarIndex: Int,
-    override val expectedPos: BlockPos,
+    override val blockPos: BlockPos,
     override val cachedState: BlockState,
     override val expectedState: BlockState,
-    override val targetState: TargetState,
     val sneak: Boolean,
     val insideBlock: Boolean,
     val currentDirIsInvalid: Boolean = false
@@ -70,7 +68,7 @@ data class PlaceContext(
         }
 
     override fun SafeContext.buildRenderer() {
-        withState(expectedState, expectedPos, baseColor, DirectionMask.ALL.exclude(result.side.opposite))
+        withState(expectedState, blockPos, baseColor, DirectionMask.ALL.exclude(result.side.opposite))
         withState(blockState(result.blockPos), result.blockPos, sideColor, result.side)
     }
 
