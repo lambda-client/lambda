@@ -98,7 +98,11 @@ object BuildSimulator {
     ) = runSafe {
         structure.entries.flatMap { (pos, target) ->
             val preProcessing = target.getProcessingInfo()
-            checkRequirements(pos, eye, preProcessing, target, build, interact, rotation, inventory).let {
+            checkRequirements(pos, preProcessing, target, build).let {
+                if (it.isEmpty()) return@let
+                return@flatMap it
+            }
+            checkPostProcessResults(pos, eye, preProcessing, target, interact, build.placing, rotation, inventory).let {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
@@ -117,13 +121,9 @@ object BuildSimulator {
 
     private fun SafeContext.checkRequirements(
         pos: BlockPos,
-        eye: Vec3d,
         preProcessing: PreProcessingInfo,
         target: TargetState,
-        build: BuildConfig,
-        interact: InteractionConfig,
-        rotation: RotationConfig,
-        inventory: InventoryConfig
+        build: BuildConfig
     ): Set<BuildResult> {
         val acc = mutableSetOf<BuildResult>()
 
@@ -163,16 +163,6 @@ object BuildSimulator {
         if (!world.worldBorder.contains(pos) || world.isOutOfHeightLimit(pos)) {
             acc.add(BuildResult.OutOfWorld(pos))
             return acc
-        }
-
-        /* the state requires post-processing */
-        if (target.matches(state, pos, world, ignoredProperties = preProcessing.ignore)) {
-            checkPostProcessResults(pos, eye, preProcessing, state, target, interact, build.placing, rotation, inventory).let { postProcessResults ->
-                if (postProcessResults.isNotEmpty()) {
-                    acc.addAll(postProcessResults)
-                    return acc
-                }
-            }
         }
 
         /* block is unbreakable, so it cant be broken or replaced */
@@ -283,7 +273,6 @@ object BuildSimulator {
         pos: BlockPos,
         eye: Vec3d,
         preProcessing: PreProcessingInfo,
-        state: BlockState,
         targetState: TargetState,
         interact: InteractionConfig,
         place: PlaceConfig,
@@ -293,6 +282,10 @@ object BuildSimulator {
         if (targetState !is TargetState.State) return emptySet()
 
         val acc = mutableSetOf<BuildResult>()
+
+        val state = blockState(pos)
+        if (!targetState.matches(state, pos, world, preProcessing.ignore))
+            return acc
 
         val interactBlock: (BlockState, Set<Direction>?, Item?, Boolean) -> Unit =
             { expectedState, side, item, placing ->
