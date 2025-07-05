@@ -106,7 +106,9 @@ object InteractionManager : RequestHandler<InteractionRequest>(
 
     private fun populateFrom(request: InteractionRequest) {
         setPendingConfigs(request)
-        potentialInteractions = request.contexts.toMutableList()
+        potentialInteractions = request.contexts
+            .filter { pendingInteractions.none { pending -> pending.context.blockPos == it.blockPos } }
+            .toMutableList()
 
         val pendingLimit =  (request.build.maxPendingInteractions - pendingPlacements.size).coerceAtLeast(0)
         maxInteractionsThisTick = (request.build.interactionsPerTick.coerceAtMost(pendingLimit))
