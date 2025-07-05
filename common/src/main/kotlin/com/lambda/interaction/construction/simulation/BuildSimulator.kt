@@ -525,13 +525,9 @@ object BuildSimulator {
                 resultState = blockItem.getPlacementState(context)
                     ?: return@placeState PlaceResult.BlockedByEntity(pos)
 
-                if (!targetState.matches(resultState, pos, world, preProcessing.ignore)) {
-                    return@placeState PlaceResult.NoIntegrity(
-                        pos, resultState, context, (targetState as? TargetState.State)?.blockState
-                    )
-                } else {
-                    return@placeState null
-                }
+                return@placeState if (!targetState.matches(resultState, pos, world, preProcessing.ignore))
+                    PlaceResult.NoIntegrity(pos, resultState, context, (targetState as? TargetState.State)?.blockState)
+                else null
             }
 
             val currentDirIsValid = simulatePlaceState()?.let { basePlaceResult ->
@@ -552,7 +548,7 @@ object BuildSimulator {
                 }
 
                 fakePlayer.rotation = player.rotation
-                simulatePlaceState() ?: run {
+                if (simulatePlaceState() == null) {
                     rot = fakePlayer.rotation
                     return@rotate
                 }
