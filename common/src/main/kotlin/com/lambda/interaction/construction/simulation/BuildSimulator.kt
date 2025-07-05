@@ -60,6 +60,7 @@ import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import com.lambda.util.BlockUtils.instantBreakable
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotEmpty
+import com.lambda.util.BlockUtils.item
 import com.lambda.util.BlockUtils.vecOf
 import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemStackUtils.equal
@@ -70,6 +71,7 @@ import com.lambda.util.player.gamemode
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.BlockState
 import net.minecraft.block.OperatorBlock
+import net.minecraft.block.enums.SlabType
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.enchantment.Enchantments
 import net.minecraft.item.BlockItem
@@ -98,7 +100,7 @@ object BuildSimulator {
     ) = runSafe {
         structure.entries.flatMap { (pos, target) ->
             val preProcessing = target.getProcessingInfo()
-            checkRequirements(pos, preProcessing, target, build).let {
+            checkRequirements(pos, target, build).let {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
@@ -121,7 +123,6 @@ object BuildSimulator {
 
     private fun SafeContext.checkRequirements(
         pos: BlockPos,
-        preProcessing: PreProcessingInfo,
         target: TargetState,
         build: BuildConfig
     ): Set<BuildResult> {
@@ -289,6 +290,7 @@ object BuildSimulator {
 
         val interactBlock: (BlockState, Set<Direction>?, Item?, Boolean) -> Unit =
             { expectedState, side, item, placing ->
+                //ToDo: Refactor this function chain into a better solution
                 interactWithBlock(
                     pos,
                     state,
@@ -311,14 +313,36 @@ object BuildSimulator {
         val mismatchedProperties = state.properties.filter { state.get(it) != targetState.blockState.get(it) }
         mismatchedProperties.forEach { property ->
             when (property) {
-                Properties.EYE -> run eye@ {
-                    if (state.get(Properties.EYE)) return@eye
+                Properties.EYE -> {
+                    if (state.get(Properties.EYE)) return@forEach
                     val expectedState = state.with(Properties.EYE, true)
                     interactBlock(expectedState, null, null, false)
                 }
-                Properties.OPEN -> run open@ {
+                Properties.INVERTED -> {
+                    val expectedState = state.with(Properties.INVERTED, !state.get(Properties.INVERTED))
+                    interactBlock(expectedState, null, null, false)
+                }
+                Properties.DELAY -> {
+                    val expectedState = state.with(Properties.DELAY, state.cycle(Properties.DELAY).get(Properties.DELAY))
+                    interactBlock(expectedState, null, null, false)
+                }
+                Properties.COMPARATOR_MODE -> {
+                    val expectedState = state.with(Properties.COMPARATOR_MODE, state.cycle(Properties.COMPARATOR_MODE).get(Properties.COMPARATOR_MODE))
+                    interactBlock(expectedState, null, null, false)
+                }
+                Properties.OPEN -> {
                     val expectedState = state.with(Properties.OPEN, !state.get(Properties.OPEN))
                     interactBlock(expectedState, null, null, false)
+                }
+                Properties.SLAB_TYPE -> {
+                    if (targetState.blockState.get(Properties.SLAB_TYPE) != SlabType.DOUBLE) return@forEach
+                    val slabType = state.get(Properties.SLAB_TYPE)
+                    val side = when (slabType) {
+                        SlabType.TOP -> Direction.DOWN
+                        else -> Direction.UP
+                    }
+                    val expectedState = state.with(Properties.SLAB_TYPE, SlabType.DOUBLE)
+                    interactBlock(expectedState, setOf(side), state.block.item, true)
                 }
             }
         }
@@ -406,20 +430,6 @@ object BuildSimulator {
             }
         }
 
-        return if (placing) checkPlaceOn(pos, validHits, preProcessing, targetState, place, rotation, interact, inventory)
-        else checkInteractOn(pos, item, validHits, expectedState, state, rotation, interact, inventory)
-    }
-
-    private fun SafeContext.checkInteractOn(
-        pos: BlockPos,
-        item: Item,
-        validHits: MutableList<CheckedHit>,
-        expectedState: BlockState,
-        currentState: BlockState,
-        rotation: RotationConfig,
-        interact: InteractionConfig,
-        inventory: InventoryConfig
-    ): BuildResult? {
         interact.pointSelection.select(validHits)?.let { checkedHit ->
             val checkedResult = checkedHit.hit
             val rotationTarget = lookAt(checkedHit.targetRotation, 0.001)
@@ -427,7 +437,7 @@ object BuildSimulator {
                 checkedResult.blockResult ?: return null,
                 RotationRequest(rotationTarget, rotation),
                 player.inventory.selectedSlot,
-                currentState,
+                state,
                 expectedState
             )
 
@@ -504,12 +514,8 @@ object BuildSimulator {
                 return PlaceResult.NotItemBlock(pos, optimalStack)
             }
 
-            val checked = blockItem.getPlacementContext(context)
-            if (checked == null) {
-                return PlaceResult.ScaffoldExceeded(pos, context)
-            } else {
-                context = checked
-            }
+            context = blockItem.getPlacementContext(context)
+                ?: return PlaceResult.ScaffoldExceeded(pos, context)
 
             lateinit var resultState: BlockState
             var rot = fakePlayer.rotation

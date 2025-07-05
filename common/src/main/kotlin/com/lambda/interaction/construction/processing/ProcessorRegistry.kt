@@ -98,6 +98,8 @@ object ProcessorRegistry : Loadable {
         Properties.EAST,
         Properties.SOUTH,
         Properties.WEST,
+        Properties.PERSISTENT,
+        Properties.DISTANCE_1_7
     )
 
     override fun load() = "Loaded ${processors.size} pre processors"
