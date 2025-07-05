@@ -41,7 +41,7 @@ data class PlaceContext(
     override val expectedState: BlockState,
     val sneak: Boolean,
     val insideBlock: Boolean,
-    val currentDirIsInvalid: Boolean = false
+    val currentDirIsValid: Boolean = false
 ) : BuildContext() {
     private val baseColor = Color(35, 188, 254, 25)
     private val sideColor = Color(35, 188, 254, 100)
@@ -75,7 +75,7 @@ data class PlaceContext(
     fun requestDependencies(request: PlaceRequest): Boolean {
         val hotbarRequest = request.hotbar.request(HotbarRequest(hotbarIndex, request.hotbar), false)
         val validRotation = if (request.build.placing.rotateForPlace) {
-            request.rotation.request(rotation, false).done && !currentDirIsInvalid
+            request.rotation.request(rotation, false).done && currentDirIsValid
         } else true
         return hotbarRequest.done && validRotation
     }

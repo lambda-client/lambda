@@ -534,12 +534,12 @@ object BuildSimulator {
                 }
             }
 
-            val currentDirIsInvalid = simulatePlaceState()?.let { basePlaceResult ->
+            val currentDirIsValid = simulatePlaceState()?.let { basePlaceResult ->
                 if (!place.rotateForPlace) {
                     return basePlaceResult
                 }
-                true
-            } ?: false
+                false
+            } ?: true
 
             run rotate@ {
                 if (!place.axisRotate) {
@@ -556,8 +556,6 @@ object BuildSimulator {
                     rot = fakePlayer.rotation
                     return@rotate
                 }
-
-                if (!currentDirIsInvalid) return@rotate
 
                 PlaceDirection.entries.asReversed().forEachIndexed direction@ { index, direction ->
                     fakePlayer.rotation = direction.rotation
@@ -596,7 +594,7 @@ object BuildSimulator {
                 resultState,
                 shouldSneak,
                 false,
-                currentDirIsInvalid
+                currentDirIsValid
             )
 
             val currentHandStack = player.getStackInHand(Hand.MAIN_HAND)
