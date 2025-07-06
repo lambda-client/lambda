@@ -17,11 +17,16 @@
 
 package com.lambda.interaction.material.container
 
+import com.lambda.config.groups.InventoryConfig
 import com.lambda.context.SafeContext
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.material.StackSelection
+import com.lambda.interaction.material.container.ContainerManager.findContainerWithMaterial
 import com.lambda.interaction.material.container.containers.ShulkerBoxContainer
 import com.lambda.interaction.material.transfer.TransferResult
 import com.lambda.task.Task
+import com.lambda.util.Communication.logError
 import com.lambda.util.Nameable
 import com.lambda.util.item.ItemStackUtils.count
 import com.lambda.util.item.ItemStackUtils.empty
@@ -29,7 +34,12 @@ import com.lambda.util.item.ItemStackUtils.shulkerBoxContents
 import com.lambda.util.item.ItemStackUtils.spaceLeft
 import com.lambda.util.item.ItemUtils
 import com.lambda.util.item.ItemUtils.toItemCount
-import com.lambda.util.text.*
+import com.lambda.util.text.TextBuilder
+import com.lambda.util.text.TextDsl
+import com.lambda.util.text.buildText
+import com.lambda.util.text.highlighted
+import com.lambda.util.text.literal
+import com.lambda.util.text.text
 import net.minecraft.item.ItemStack
 import net.minecraft.text.Text
 
@@ -84,6 +94,20 @@ abstract class MaterialContainer(
     class FailureTask(override val name: String) : Task<Unit>() {
         override fun SafeContext.onStart() {
             failure(name)
+        }
+    }
+
+    class AwaitItemTask(override val name: String, val selection: StackSelection, inventory: InventoryConfig) : Task<Unit>() {
+        init {
+            listen<TickEvent.Post> {
+                if (selection.findContainerWithMaterial(inventory) != null) {
+                    success()
+                }
+            }
+        }
+
+        override fun SafeContext.onStart() {
+            logError(name)
         }
     }
 

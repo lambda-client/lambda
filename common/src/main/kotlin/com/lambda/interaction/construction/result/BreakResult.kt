@@ -99,8 +99,14 @@ sealed class BreakResult : BuildResult() {
         override fun resolve() =
             selectStack {
                 isItem(badItem).not()
-            }.transfer(MainHandContainer, inventory)
-                ?: MaterialContainer.FailureTask("Couldn't find a tool for ${blockState.block.name.string} with $badItem in main hand.")
+            }.let { selection ->
+                selection.transfer(MainHandContainer, inventory)
+                    ?: MaterialContainer.AwaitItemTask(
+                        "Couldn't find a tool for ${blockState.block.name.string} with $badItem in main hand.",
+                        selection,
+                        inventory
+                    )
+            }
 
         override fun SafeContext.buildRenderer() {
             withPos(blockPos, color)
