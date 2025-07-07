@@ -25,6 +25,8 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.InteractionContext
+import com.lambda.interaction.request.ManagerUtils.isPosBlocked
+import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.interacting.InteractedBlockHandler.addPendingInteract
@@ -44,12 +46,15 @@ object InteractionManager : RequestHandler<InteractionRequest>(
     TickEvent.Input.Post,
     TickEvent.Player.Post,
     onOpen = { activeRequest?.let { processRequest(it) } }
-) {
+), PositionBlocking {
     private var activeRequest: InteractionRequest? = null
     private var potentialInteractions = mutableListOf<InteractionContext>()
 
     private var interactionsThisTick = 0
     private var maxInteractionsThisTick = 0
+
+    override val blockedPositions
+        get() = pendingInteractions.map { it.context.blockPos }
 
     init {
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
@@ -107,7 +112,7 @@ object InteractionManager : RequestHandler<InteractionRequest>(
     private fun populateFrom(request: InteractionRequest) {
         setPendingConfigs(request)
         potentialInteractions = request.contexts
-            .filter { pendingInteractions.none { pending -> pending.context.blockPos == it.blockPos } }
+            .filter { !isPosBlocked(it.blockPos) }
             .toMutableList()
 
         val pendingLimit =  (request.build.maxPendingInteractions - pendingPlacements.size).coerceAtLeast(0)

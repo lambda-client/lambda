@@ -31,6 +31,7 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.interaction.construction.context.BreakContext
+import com.lambda.interaction.request.ManagerUtils.isPosBlocked
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
@@ -352,7 +353,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @return if the break context can be accepted.
      */
     private fun SafeContext.canAccept(ctx: BreakContext, breakConfig: BreakConfig): Boolean {
-        if (pendingBreaks.any { it.context.blockPos == ctx.blockPos }) return false
+        if (isPosBlocked(ctx.blockPos)) return false
 
         if (breakConfig.doubleBreak) {
             breakInfos

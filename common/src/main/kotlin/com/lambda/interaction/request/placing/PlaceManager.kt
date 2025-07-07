@@ -25,6 +25,7 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
+import com.lambda.interaction.request.ManagerUtils.isPosBlocked
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
@@ -156,27 +157,19 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * Filters the [request]'s [PlaceContext]s, placing them into the [potentialPlacements] collection, and
      * setting the maxPlacementsThisTick value.
      *
-     * @see canPlace
+     * @see isPosBlocked
      */
     private fun populateFrom(request: PlaceRequest) {
         val place = request.build.placing
 
         setPendingConfigs(request)
         potentialPlacements = request.contexts
-            .filter { canPlace(it) }
+            .filter { !isPosBlocked(it.blockPos) }
             .toMutableList()
 
         val pendingLimit =  (place.maxPendingPlacements - pendingPlacements.size).coerceAtLeast(0)
         maxPlacementsThisTick = (place.placementsPerTick.coerceAtMost(pendingLimit))
     }
-
-    /**
-     * @return if none of the [pendingPlacements] match positions with the [placeContext]
-     */
-    private fun canPlace(placeContext: PlaceContext) =
-        pendingPlacements.none { pending ->
-            pending.context.blockPos == placeContext.blockPos
-        }
 
     /**
      * A modified version of the minecraft interactBlock method, renamed to better suit its usage.
