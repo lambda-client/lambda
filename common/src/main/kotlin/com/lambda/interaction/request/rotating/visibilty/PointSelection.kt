@@ -35,7 +35,7 @@ enum class PointSelection(val select: (Collection<VisibilityChecker.CheckedHit>)
             ?.times(1 / hits.size.toDouble())
 
         optimum?.let {
-            hits.minByOrNull { it.hit.pos distSq optimum }
+            hits.minByOrNull { it.hit.pos?.distSq(optimum) ?: 0.0 }
         }
     })
 }
