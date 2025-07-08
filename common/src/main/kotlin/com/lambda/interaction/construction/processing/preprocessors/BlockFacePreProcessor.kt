@@ -22,6 +22,7 @@ import com.lambda.interaction.construction.processing.PreProcessingInfoAccumulat
 import net.minecraft.block.BlockState
 import net.minecraft.block.enums.BlockFace
 import net.minecraft.state.property.Properties
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
@@ -30,7 +31,7 @@ object BlockFacePreProcessor : PlacementProcessor() {
     override fun acceptsState(state: BlockState) =
         state.getOrEmpty(Properties.BLOCK_FACE).isPresent
 
-    override fun preProcess(state: BlockState, accumulator: PreProcessingInfoAccumulator) {
+    override fun preProcess(state: BlockState, pos: BlockPos, accumulator: PreProcessingInfoAccumulator) {
         val property = state.get(Properties.BLOCK_FACE) ?: return
         with (accumulator) {
             when (property) {

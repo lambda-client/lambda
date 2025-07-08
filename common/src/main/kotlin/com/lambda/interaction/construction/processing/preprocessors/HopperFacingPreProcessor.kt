@@ -21,6 +21,7 @@ import com.lambda.interaction.construction.processing.PlacementProcessor
 import com.lambda.interaction.construction.processing.PreProcessingInfoAccumulator
 import net.minecraft.block.BlockState
 import net.minecraft.state.property.Properties
+import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
@@ -29,7 +30,7 @@ object HopperFacingPreProcessor : PlacementProcessor() {
     override fun acceptsState(state: BlockState) =
         state.properties.contains(Properties.HOPPER_FACING)
 
-    override fun preProcess(state: BlockState, accumulator: PreProcessingInfoAccumulator) {
+    override fun preProcess(state: BlockState, pos: BlockPos, accumulator: PreProcessingInfoAccumulator) {
         val facing = state.get(Properties.HOPPER_FACING) ?: return
         when {
             facing.axis == Direction.Axis.Y -> accumulator.retainSides { it.axis == Direction.Axis.Y }

@@ -21,6 +21,7 @@ import com.lambda.interaction.construction.processing.PlacementProcessor
 import com.lambda.interaction.construction.processing.PreProcessingInfoAccumulator
 import net.minecraft.block.BlockState
 import net.minecraft.state.property.Properties
+import net.minecraft.util.math.BlockPos
 
 // Collected using reflections and then accessed from a collection in ProcessorRegistry
 @Suppress("unused")
@@ -28,7 +29,7 @@ object AxisPreProcessor : PlacementProcessor() {
     override fun acceptsState(state: BlockState) =
         state.getOrEmpty(Properties.AXIS).isPresent
 
-    override fun preProcess(state: BlockState, accumulator: PreProcessingInfoAccumulator) {
+    override fun preProcess(state: BlockState, pos: BlockPos, accumulator: PreProcessingInfoAccumulator) {
         val axis = state.get(Properties.AXIS)
         accumulator.retainSides { side ->
             side.axis == axis
