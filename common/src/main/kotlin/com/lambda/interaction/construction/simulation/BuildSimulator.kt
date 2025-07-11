@@ -585,7 +585,7 @@ object BuildSimulator {
 
         /* player is standing on top of the block */
         val pBox = player.boundingBox
-        val aabb = Box(pBox.minX, pBox.minY - 1.0E-6, pBox.minZ, pBox.maxX, pBox.minY, pBox.maxZ)
+        val aabb = pBox.withMinY(pBox.minY - 1.0E-6)
         world.findSupportingBlockPos(player, aabb).orElse(null)?.let { support ->
             if (support != pos) return@let
             val belowSupport = blockState(support.down())
