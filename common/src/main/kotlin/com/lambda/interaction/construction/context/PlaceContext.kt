@@ -35,7 +35,7 @@ import java.awt.Color
 data class PlaceContext(
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
-    override val hotbarIndex: Int,
+    override var hotbarIndex: Int,
     override val blockPos: BlockPos,
     override val cachedState: BlockState,
     override val expectedState: BlockState,

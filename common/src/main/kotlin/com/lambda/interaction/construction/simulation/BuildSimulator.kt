@@ -62,7 +62,6 @@ import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotEmpty
 import com.lambda.util.BlockUtils.vecOf
 import com.lambda.util.Communication.warn
-import com.lambda.util.item.ItemStackUtils.equal
 import com.lambda.util.math.distSq
 import com.lambda.util.player.SlotUtils.hotbar
 import com.lambda.util.player.copyPlayer
@@ -545,16 +544,18 @@ object BuildSimulator {
                     currentDirIsValid
                 )
 
-                val currentHandStack = player.getStackInHand(Hand.MAIN_HAND)
-                if (targetState is TargetState.Stack && !targetState.itemStack.equal(currentHandStack)) {
-                    acc.add(BuildResult.WrongStack(pos, placeContext, targetState.itemStack, inventory))
-                    return@forEach
+                val selection = optimalStack.item.select()
+                val hotbarSelection = selectContainer { ofAnyType(MaterialContainer.Rank.HOTBAR) }
+                val containerStacks = selection.containerWithMaterial(inventory, hotbarSelection).firstOrNull()?.stacks ?: run {
+                    acc.add(BuildResult.WrongItemSelection(pos, placeContext, optimalStack.item.select(), player.mainHandStack, inventory))
+                    return acc
+                }
+                val stack = selection.filterStacks(containerStacks).run {
+                    firstOrNull { player.inventory.getSlotWithStack(it) == player.inventory.selectedSlot }
+                        ?: first()
                 }
 
-                if (optimalStack.item != currentHandStack.item) {
-                    acc.add(BuildResult.WrongItemSelection(pos, placeContext, optimalStack.item.select(), currentHandStack, inventory))
-                    return@forEach
-                }
+                placeContext.hotbarIndex = player.inventory.getSlotWithStack(stack)
 
                 acc.add(PlaceResult.Place(pos, placeContext))
             }
@@ -716,7 +717,7 @@ object BuildSimulator {
         )
 
         val silentSwapSelection = selectContainer {
-            matches(stackSelection) and ofAnyType(MaterialContainer.Rank.HOTBAR)
+            ofAnyType(MaterialContainer.Rank.HOTBAR)
         }
 
         val swapCandidates = stackSelection.containerWithMaterial(inventory, silentSwapSelection)
