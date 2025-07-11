@@ -545,12 +545,12 @@ object BuildSimulator {
                 )
 
                 val selection = optimalStack.item.select()
-                val hotbarSelection = selectContainer { ofAnyType(MaterialContainer.Rank.HOTBAR) }
-                val containerStacks = selection.containerWithMaterial(inventory, hotbarSelection).firstOrNull()?.stacks ?: run {
+                val containerSelection = selectContainer { ofAnyType(MaterialContainer.Rank.HOTBAR) }
+                val container = selection.containerWithMaterial(inventory, containerSelection).firstOrNull() ?: run {
                     acc.add(BuildResult.WrongItemSelection(pos, placeContext, optimalStack.item.select(), player.mainHandStack, inventory))
                     return acc
                 }
-                val stack = selection.filterStacks(containerStacks).run {
+                val stack = selection.filterStacks(container.stacks).run {
                     firstOrNull { player.inventory.getSlotWithStack(it) == player.inventory.selectedSlot }
                         ?: first()
                 }
