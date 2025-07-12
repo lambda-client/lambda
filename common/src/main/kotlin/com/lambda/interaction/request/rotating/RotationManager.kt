@@ -203,7 +203,7 @@ object RotationManager : RequestHandler<RotationRequest>(
     fun getRotationForVector(deltaTime: Double): Vec2d? {
         if (activeRequest?.mode == RotationMode.Silent) return null
 
-        val rot = lerp(deltaTime, prevServerRotation, serverRotation)
+        val rot = lerp(deltaTime, serverRotation, activeRotation)
         return Vec2d(rot.yaw, rot.pitch)
     }
 
