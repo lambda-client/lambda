@@ -36,7 +36,6 @@ import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
-import com.lambda.util.extension.partialTicks
 import com.lambda.util.extension.rotation
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
@@ -135,8 +134,8 @@ object RotationManager : RequestHandler<RotationRequest>(
 
         // Handle LOCK mode
         if (activeRequest?.mode == RotationMode.Lock) {
-            mc.player?.yaw = serverRotation.yawF
-            mc.player?.pitch = serverRotation.pitchF
+            mc.player?.yaw = activeRotation.yawF
+            mc.player?.pitch = activeRotation.pitchF
         }
     }
 
@@ -161,34 +160,30 @@ object RotationManager : RequestHandler<RotationRequest>(
         activeRequest = null
     }
 
-    private val smoothRotation
-        get() =
-            lerp(mc.partialTicks, prevServerRotation, serverRotation)
-
     @JvmStatic
     val lockRotation
         get() =
-            if (activeRequest?.mode == RotationMode.Lock) smoothRotation else null
+            if (activeRequest?.mode == RotationMode.Lock) activeRotation else null
 
     @JvmStatic
     val renderYaw
         get() =
-            if (activeRequest == null) null else smoothRotation.yaw.toFloat()
+            if (activeRequest == null) null else activeRotation.yaw.toFloat()
 
     @JvmStatic
     val renderPitch
         get() =
-            if (activeRequest == null) null else smoothRotation.pitch.toFloat()
+            if (activeRequest == null) null else activeRotation.pitch.toFloat()
 
     @JvmStatic
     val handYaw
         get() =
-            if (activeRequest?.mode == RotationMode.Lock) serverRotation.yaw.toFloat() else null
+            if (activeRequest?.mode == RotationMode.Lock) activeRotation.yaw.toFloat() else null
 
     @JvmStatic
     val handPitch
         get() =
-            if (activeRequest?.mode == RotationMode.Lock) serverRotation.pitch.toFloat() else null
+            if (activeRequest?.mode == RotationMode.Lock) activeRotation.pitch.toFloat() else null
 
     @JvmStatic
     val movementYaw: Float?
