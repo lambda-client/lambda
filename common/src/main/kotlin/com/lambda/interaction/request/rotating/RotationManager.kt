@@ -31,6 +31,7 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.rotating.Rotation.Companion.slerp
+import com.lambda.interaction.request.rotating.Rotation.Companion.wrap
 import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
@@ -149,7 +150,7 @@ object RotationManager : RequestHandler<RotationRequest>(
             val speedMultiplier = if (request.keepTicks < 0) 1.0 else request.speedMultiplier
             val turnSpeed = request.turnSpeed() * speedMultiplier
 
-            serverRotation.slerp(rotationTo, turnSpeed)
+            serverRotation.slerp(rotationTo, turnSpeed).wrap()
         } ?: player.rotation
     }
 
