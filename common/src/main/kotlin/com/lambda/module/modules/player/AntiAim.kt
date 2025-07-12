@@ -33,8 +33,7 @@ import com.lambda.util.math.distSq
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.math.MathHelper.wrapDegrees
-import java.util.*
-import java.util.random.RandomGenerator
+import kotlin.random.Random
 
 object AntiAim : Module(
     "AntiAim",
@@ -73,7 +72,7 @@ object AntiAim : Module(
     private var currentYaw = 0.0f
     private var currentPitch = 0.0f
 
-    private val random = Random.from(RandomGenerator.getDefault())
+    private val random = Random(0)
     private var jitterRight = true
     private var jitterUp = true
     private var pitchingUp = true
