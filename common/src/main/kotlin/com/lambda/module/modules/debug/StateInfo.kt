@@ -30,7 +30,7 @@ import net.minecraft.state.property.Property
 import net.minecraft.util.hit.BlockHitResult
 
 object StateInfo : Module(
-    "State Info",
+    "StateInfo",
     "Prints the target block's state into chat",
     setOf(ModuleTag.DEBUG)
 ) {
