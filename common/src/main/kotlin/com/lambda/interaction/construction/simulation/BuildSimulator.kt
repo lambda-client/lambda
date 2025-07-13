@@ -83,7 +83,6 @@ import net.minecraft.state.property.Properties
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.shape.VoxelShapes
@@ -578,7 +577,7 @@ object BuildSimulator {
         val state = blockState(pos)
 
         /* is a block that will be destroyed by breaking adjacent blocks */
-        if (breaking.breakWeakBlocks && state.block.hardness == 0f && state.isNotEmpty) {
+        if (!breaking.breakWeakBlocks && state.block.hardness == 0f && state.isNotEmpty) {
             acc.add(BuildResult.Ignored(pos))
             return acc
         }
