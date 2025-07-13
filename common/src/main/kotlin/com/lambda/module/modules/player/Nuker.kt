@@ -37,7 +37,7 @@ object Nuker : Module(
     private val height by setting("Height", 4, 1..8, 1)
     private val width by setting("Width", 4, 1..8, 1)
     private val flatten by setting("Flatten", true)
-    private val onlyBreakInstant by setting("Only Break Instant", true)
+    private val onlyBreakInstant by setting("Only Break Instant", false)
     private val fillFloor by setting("Fill Floor", false)
     private val baritoneSelection by setting("Baritone Selection", false, "Restricts nuker to your baritone selection")
 

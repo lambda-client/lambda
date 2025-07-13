@@ -20,7 +20,6 @@ package com.lambda.interaction.request.breaking
 import com.lambda.config.groups.BuildConfig
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.rotating.RotationConfig
@@ -38,9 +37,8 @@ data class BreakRequest(
     val build: BuildConfig,
     val rotation: RotationConfig,
     val hotbar: HotbarConfig,
-    val pendingInteractions: MutableCollection<BuildContext>,
-    private val prio: Priority = 0
-) : Request(prio, build.breaking) {
+    val pendingInteractions: MutableCollection<BuildContext>
+) : Request(build.breaking) {
     var onStart: ((BlockPos) -> Unit)? = null
     var onUpdate: ((BlockPos) -> Unit)? = null
     var onStop: ((BlockPos) -> Unit)? = null
@@ -58,10 +56,9 @@ data class BreakRequest(
         build: BuildConfig,
         rotation: RotationConfig,
         hotbar: HotbarConfig,
-        pendingInteractions: MutableCollection<BuildContext>,
-        prio: Priority = 0
+        pendingInteractions: MutableCollection<BuildContext>
     ) {
-        val request = BreakRequest(contexts, build, rotation, hotbar, pendingInteractions, prio)
+        val request = BreakRequest(contexts, build, rotation, hotbar, pendingInteractions)
 
         @BreakRequestBuilder
         fun onStart(callback: (BlockPos) -> Unit) {
@@ -110,8 +107,7 @@ data class BreakRequest(
             rotation: RotationConfig,
             hotbar: HotbarConfig,
             pendingInteractions: MutableCollection<BuildContext>,
-            prio: Priority = 0,
             builder: RequestBuilder.() -> Unit
-        ) = RequestBuilder(contexts, build, rotation, hotbar, pendingInteractions, prio).apply(builder).build()
+        ) = RequestBuilder(contexts, build, rotation, hotbar, pendingInteractions).apply(builder).build()
     }
 }

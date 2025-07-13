@@ -17,28 +17,26 @@
 
 package com.lambda.interaction.request.rotating
 
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.rotating.visibilty.RotationTarget
 import com.lambda.threading.runSafe
 
 data class RotationRequest(
     val target: RotationTarget,
-    val prio: Priority,
     val mode: RotationMode,
     val rot: RotationConfig,
     var keepTicks: Int = 3,
     var decayTicks: Int = 0,
     val turnSpeed: () -> Double = { 180.0 },
     val speedMultiplier: Double = 1.0
-) : Request(prio, rot) {
+) : Request(rot) {
     var age = 0
 
     constructor(
         target: RotationTarget,
         config: RotationConfig,
         speedMultiplier: Double = 1.0
-    ) : this(target, config.priority, config.rotationMode, config, config.keepTicks, config.decayTicks, config::turnSpeed, speedMultiplier)
+    ) : this(target, config.rotationMode, config, config.keepTicks, config.decayTicks, config::turnSpeed, speedMultiplier)
 
     override val done: Boolean get() =
         mode == RotationMode.None || runSafe { target.verify() } == true

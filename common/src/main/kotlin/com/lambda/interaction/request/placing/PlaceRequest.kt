@@ -20,7 +20,6 @@ package com.lambda.interaction.request.placing
 import com.lambda.config.groups.BuildConfig
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.Request
 import com.lambda.interaction.request.hotbar.HotbarConfig
 import com.lambda.interaction.request.rotating.RotationConfig
@@ -34,9 +33,8 @@ data class PlaceRequest(
     val rotation: RotationConfig,
     val hotbar: HotbarConfig,
     val pendingInteractions: MutableCollection<BuildContext>,
-    private val prio: Priority = 0,
     val onPlace: () -> Unit
-) : Request(prio, build.placing) {
+) : Request(build.placing) {
     override val done: Boolean
         get() = runSafe {
             contexts.all { it.expectedState.matches(blockState(it.blockPos)) }

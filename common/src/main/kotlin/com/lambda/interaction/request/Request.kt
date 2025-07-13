@@ -17,8 +17,7 @@
 
 package com.lambda.interaction.request
 
-abstract class Request (
-    val priority: Priority,
+abstract class Request(
     val config: RequestConfig<*>
 ) {
     var fresh = true
