@@ -353,7 +353,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @return if the break context can be accepted.
      */
     private fun SafeContext.canAccept(ctx: BreakContext, breakConfig: BreakConfig): Boolean {
-        if (isPosBlocked(ctx.blockPos)) return false
+        if (breakInfos.none { it?.context?.blockPos == ctx.blockPos } && isPosBlocked(ctx.blockPos)) return false
 
         if (breakConfig.doubleBreak) {
             breakInfos
