@@ -20,6 +20,7 @@ package com.lambda.module.modules.player
 import com.lambda.interaction.construction.blueprint.TickingBlueprint.Companion.tickingBlueprint
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask.run
 import com.lambda.task.Task
@@ -27,6 +28,7 @@ import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
+import com.lambda.util.BlockUtils.isNotEmpty
 import net.minecraft.util.math.BlockPos
 
 object Nuker : Module(
@@ -37,7 +39,7 @@ object Nuker : Module(
     private val height by setting("Height", 4, 1..8, 1)
     private val width by setting("Width", 4, 1..8, 1)
     private val flatten by setting("Flatten", true)
-    private val onlyBreakInstant by setting("Only Break Instant", false)
+    private val instantOnly by setting("Instant Only", false)
     private val fillFloor by setting("Fill Floor", false)
     private val baritoneSelection by setting("Baritone Selection", false, "Restricts nuker to your baritone selection")
 
@@ -49,10 +51,9 @@ object Nuker : Module(
                 val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
                     .asSequence()
                     .map { it.blockPos }
-                    .filter { !world.isAir(it) }
+                    .filter { blockState(it).isNotEmpty }
                     .filter { !flatten || it.y >= player.blockPos.y }
-                    .filter { !onlyBreakInstant || blockState(it).getHardness(world, it) <= 1 }
-                    .filter { blockState(it).getHardness(world, it) >= 0 }
+                    .filter { !instantOnly || blockState(it).getHardness(world, it) <= TaskFlowModule.build.breaking.breakThreshold }
                     .filter { pos ->
                         if (!baritoneSelection) true
                         else BaritoneUtils.primary.selectionManager.selections.any {
