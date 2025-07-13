@@ -62,16 +62,16 @@ class BreakSettings(
 
     override val fill by c.setting("Fill", true, "Renders the sides of the box to display break progress") { vis() && page == Page.Cosmetic && renders }
     override val dynamicFillColor by c.setting("Dynamic Colour", true, "Enables fill color interpolation from start to finish for fill when breaking a block") { vis() && page == Page.Cosmetic && renders && fill }
-    override val staticFillColor by c.setting("Fill Color", Color(255, 0, 0, 60), "The color of the fill") { vis() && page == Page.Cosmetic && renders && !dynamicFillColor && fill }
-    override val startFillColor by c.setting("Start Fill Color", Color(255, 0, 0, 60), "The color of the fill at the start of breaking") { vis() && page == Page.Cosmetic && renders && dynamicFillColor && fill }
-    override val endFillColor by c.setting("End Fill Color", Color(0, 255, 0, 60), "The color of the fill at the end of breaking") { vis() && page == Page.Cosmetic && renders && dynamicFillColor && fill }
+    override val staticFillColor by c.setting("Fill Color", Color(255, 0, 0, 60).brighter(), "The color of the fill") { vis() && page == Page.Cosmetic && renders && !dynamicFillColor && fill }
+    override val startFillColor by c.setting("Start Fill Color", Color(255, 0, 0, 60).brighter(), "The color of the fill at the start of breaking") { vis() && page == Page.Cosmetic && renders && dynamicFillColor && fill }
+    override val endFillColor by c.setting("End Fill Color", Color(0, 255, 0, 60).brighter(), "The color of the fill at the end of breaking") { vis() && page == Page.Cosmetic && renders && dynamicFillColor && fill }
 
     override val outline by c.setting("Outline", true, "Renders the lines of the box to display break progress") { vis() && page == Page.Cosmetic && renders }
     override val outlineWidth by c.setting("Outline Width", 2, 0..5, 1, "The width of the outline") { vis() && page == Page.Cosmetic && renders && outline }
     override val dynamicOutlineColor by c.setting("Dynamic Outline Color", true, "Enables color interpolation from start to finish for the outline when breaking a block") { vis() && page == Page.Cosmetic && renders && outline }
-    override val staticOutlineColor by c.setting("Outline Color", Color(255, 0, 0, 255), "The Color of the outline at the start of breaking") { vis() && page == Page.Cosmetic && renders && !dynamicOutlineColor && outline }
-    override val startOutlineColor by c.setting("Start Outline Color", Color(255, 0, 0, 255), "The color of the outline at the start of breaking") { vis() && page == Page.Cosmetic && renders && dynamicOutlineColor && outline }
-    override val endOutlineColor by c.setting("End Outline Color", Color(0, 255, 0, 255), "The color of the outline at the end of breaking") { vis() && page == Page.Cosmetic && renders && dynamicOutlineColor && outline }
+    override val staticOutlineColor by c.setting("Outline Color", Color.RED.brighter(), "The Color of the outline at the start of breaking") { vis() && page == Page.Cosmetic && renders && !dynamicOutlineColor && outline }
+    override val startOutlineColor by c.setting("Start Outline Color", Color.RED.brighter(), "The color of the outline at the start of breaking") { vis() && page == Page.Cosmetic && renders && dynamicOutlineColor && outline }
+    override val endOutlineColor by c.setting("End Outline Color", Color.GREEN.brighter(), "The color of the outline at the end of breaking") { vis() && page == Page.Cosmetic && renders && dynamicOutlineColor && outline }
 
     enum class Page {
         General,

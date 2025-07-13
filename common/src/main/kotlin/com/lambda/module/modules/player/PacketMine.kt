@@ -72,9 +72,9 @@ object PacketMine : Module(
     private val renderSize by setting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { queue && renderQueue }
     private val renderMode by setting("Render Mode", RenderMode.State, "The style of the queue renders") { queue && renderQueue }
     private val dynamicColor by setting("Dynamic Color", true, "Interpolates the color between start and end") { queue && renderQueue }
-    private val staticColor by setting("Color", Color(255, 0, 0, 60)) { queue && renderQueue && !dynamicColor }
-    private val startColor by setting("Start Color", Color(255, 255, 0, 60), "The color of the start (closest to breaking) of the queue") { queue && renderQueue && dynamicColor }
-    private val endColor by setting("End Color", Color(255, 0, 0, 60), "The color of the end (farthest from breaking) of the queue") { queue && renderQueue && dynamicColor }
+    private val staticColor by setting("Color", Color(255, 0, 0, 60).brighter()) { queue && renderQueue && !dynamicColor }
+    private val startColor by setting("Start Color", Color(255, 255, 0, 60).brighter(), "The color of the start (closest to breaking) of the queue") { queue && renderQueue && dynamicColor }
+    private val endColor by setting("End Color", Color(255, 0, 0, 60).brighter(), "The color of the end (farthest from breaking) of the queue") { queue && renderQueue && dynamicColor }
 
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
