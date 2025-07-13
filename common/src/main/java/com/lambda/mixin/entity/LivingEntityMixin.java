@@ -127,7 +127,7 @@ public abstract class LivingEntityMixin extends EntityMixin {
             return entity.getYaw();
         }
 
-        Float yaw = RotationManager.getRenderYaw();
+        Float yaw = RotationManager.getHeadYaw();
         return (yaw == null) ? entity.getYaw() : yaw;
     }
 
@@ -158,7 +158,7 @@ public abstract class LivingEntityMixin extends EntityMixin {
             return entity.getYaw();
         }
 
-        Float yaw = RotationManager.getRenderYaw();
+        Float yaw = RotationManager.getHeadYaw();
         return (yaw == null) ? entity.getYaw() : yaw;
     }
 }

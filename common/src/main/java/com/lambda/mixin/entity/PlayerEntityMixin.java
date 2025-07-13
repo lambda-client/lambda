@@ -42,7 +42,7 @@ public class PlayerEntityMixin {
             return instance.getYaw();
         }
 
-        Float yaw = RotationManager.getRenderYaw();
+        Float yaw = RotationManager.getHeadYaw();
         return (yaw != null) ? yaw : instance.getYaw();
     }
 

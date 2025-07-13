@@ -36,6 +36,7 @@ import com.lambda.interaction.request.rotating.visibilty.lookAt
 import com.lambda.module.modules.client.Baritone
 import com.lambda.threading.runGameScheduled
 import com.lambda.threading.runSafe
+import com.lambda.util.extension.partialTicks
 import com.lambda.util.extension.rotation
 import com.lambda.util.math.MathUtils.toRadian
 import com.lambda.util.math.Vec2d
@@ -160,48 +161,46 @@ object RotationManager : RequestHandler<RotationRequest>(
         activeRequest = null
     }
 
+    private val smoothRotation
+        get() = lerp(mc.partialTicks, serverRotation, activeRotation)
+
     @JvmStatic
     val lockRotation
-        get() =
-            if (activeRequest?.mode == RotationMode.Lock) activeRotation else null
+        get() = if (activeRequest?.mode == RotationMode.Lock) smoothRotation else null
 
     @JvmStatic
-    val renderYaw
-        get() =
-            if (activeRequest == null) null else activeRotation.yaw.toFloat()
+    val headYaw
+        get() = if (activeRequest == null) null else activeRotation.yawF
 
     @JvmStatic
-    val renderPitch
-        get() =
-            if (activeRequest == null) null else activeRotation.pitch.toFloat()
+    val headPitch
+        get() = if (activeRequest == null) null else activeRotation.pitchF
 
     @JvmStatic
     val handYaw
-        get() =
-            if (activeRequest?.mode == RotationMode.Lock) activeRotation.yaw.toFloat() else null
+        get() = if (activeRequest?.mode == RotationMode.Lock) activeRotation.yawF else null
 
     @JvmStatic
     val handPitch
-        get() =
-            if (activeRequest?.mode == RotationMode.Lock) activeRotation.pitch.toFloat() else null
+        get() = if (activeRequest?.mode == RotationMode.Lock) activeRotation.pitchF else null
 
     @JvmStatic
     val movementYaw: Float?
         get() {
-            if (activeRequest?.mode == RotationMode.Silent) return null
+            if (activeRequest == null || activeRequest?.mode == RotationMode.Silent) return null
             return activeRotation.yaw.toFloat()
         }
 
     @JvmStatic
     val movementPitch: Float?
         get() {
-            if (activeRequest?.mode == RotationMode.Silent) return null
+            if (activeRequest == null || activeRequest?.mode == RotationMode.Silent) return null
             return activeRotation.pitch.toFloat()
         }
 
     @JvmStatic
     fun getRotationForVector(deltaTime: Double): Vec2d? {
-        if (activeRequest?.mode == RotationMode.Silent) return null
+        if (activeRequest == null || activeRequest?.mode == RotationMode.Silent) return null
 
         val rot = lerp(deltaTime, serverRotation, activeRotation)
         return Vec2d(rot.yaw, rot.pitch)
