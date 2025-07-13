@@ -31,6 +31,7 @@ import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
 import com.lambda.interaction.construction.context.BreakContext
+import com.lambda.interaction.construction.processing.ProcessorRegistry
 import com.lambda.interaction.request.ManagerUtils.isPosBlocked
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.Priority
@@ -55,6 +56,7 @@ import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.isNotEmpty
+import com.lambda.util.BlockUtils.matches
 import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.lerp
@@ -151,9 +153,12 @@ object BreakManager : RequestHandler<BreakRequest>(
                 .filterNotNull()
                 .firstOrNull { it.context.blockPos == event.pos }
                 ?.let { info ->
+                    val currentState = info.context.cachedState
                     // if not broken
-                    if (isNotBroken(info.context.cachedState, event.newState)) {
-                        this@BreakManager.warn("Break at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.cachedState.emptyState}")
+                    if (isNotBroken(currentState, event.newState)) {
+                        // check to see if its just some small property changes, e.g. redstone ore changing the LIT property
+                        if (!currentState.matches(event.newState, ProcessorRegistry.postProcessedProperties))
+                            this@BreakManager.warn("Break at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.cachedState.emptyState}")
                         // update the checked state
                         info.context.cachedState = event.newState
                         return@listen

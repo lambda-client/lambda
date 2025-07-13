@@ -24,6 +24,7 @@ import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.interaction.construction.processing.ProcessorRegistry
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakManager.lastPosStarted
 import com.lambda.interaction.request.breaking.BreakManager.matchesBlockItem
@@ -58,7 +59,7 @@ object BrokenBlockHandler {
             if (!loaded) return@let
 
             if (!info.broken) warn("${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out")
-            else warn("${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out")
+            else if (!TaskFlowModule.ignoreItemDropWarnings) warn("${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out")
 
             if (!info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
                 world.setBlockState(info.context.blockPos, info.context.cachedState)
@@ -75,12 +76,13 @@ object BrokenBlockHandler {
                     ?: if (reBreak?.context?.blockPos == event.pos) reBreak
                     else null
             }?.let { pending ->
-                // return if the state hasn't changed
-                if (event.newState.matches(pending.context.cachedState))
-                    return@listen
-
+                val currentState = pending.context.cachedState
                 // return if the block's not broken
-                if (isNotBroken(pending.context.cachedState, event.newState)) {
+                if (isNotBroken(currentState, event.newState)) {
+                    // return if the state hasn't changed
+                    if (event.newState.matches(currentState, ProcessorRegistry.postProcessedProperties))
+                        return@listen
+
                     if (!pending.isReBreaking) {
                         this@BrokenBlockHandler.warn("Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.cachedState.emptyState}")
                         pending.stopPending()

@@ -17,7 +17,11 @@
 
 package com.lambda.module.modules.client
 
-import com.lambda.config.groups.*
+import com.lambda.config.groups.BuildSettings
+import com.lambda.config.groups.HotbarSettings
+import com.lambda.config.groups.InteractionSettings
+import com.lambda.config.groups.InventorySettings
+import com.lambda.config.groups.RotationSettings
 import com.lambda.event.events.RenderEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.result.Drawable
@@ -43,6 +47,7 @@ object TaskFlowModule : Module(
 
     val showAllEntries by setting("Show All Entries", false, "Show all entries in the task tree") { page == Page.Debug }
     val shrinkFactor by setting("Shrink Factor", 0.001, 0.0..1.0, 0.001) { page == Page.Debug }
+    val ignoreItemDropWarnings by setting("Ignore Drop Warnings", false, "Hides the item drop warnings from the break manager") { page == Page.Debug }
 
     @Volatile
     var drawables = listOf<Drawable>()
