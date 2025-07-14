@@ -571,7 +571,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                 else abandoned = true
             }
 
-            internalOnCancel()
+            request.onCancel?.invoke(context.blockPos)
         }
 
     /**
@@ -647,7 +647,7 @@ object BreakManager : RequestHandler<BreakRequest>(
             }
             if (!startBreaking(info)) {
                 info.nullify()
-                info.internalOnCancel()
+                info.request.onCancel?.invoke(info.context.blockPos)
                 return false
             }
             val swing = config.swing
@@ -660,7 +660,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         val blockState = blockState(ctx.blockPos)
         if (blockState.isEmpty || blockState.isAir) {
             info.nullify()
-            if (!info.isRedundant) info.internalOnCancel()
+            if (!info.isRedundant) info.request.onCancel?.invoke(info.context.blockPos)
             return false
         }
 

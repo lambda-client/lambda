@@ -75,10 +75,6 @@ data class BreakInfo(
         }
     }
 
-    fun internalOnCancel() {
-        request.onCancel?.invoke(context.blockPos)
-    }
-
     fun updateInfo(context: BreakContext, request: BreakRequest? = null) {
         updatedThisTick = true
         this.context = context
