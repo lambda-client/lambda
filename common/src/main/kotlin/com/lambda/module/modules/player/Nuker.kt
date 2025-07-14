@@ -83,13 +83,5 @@ object Nuker : Module(
         onDisable {
             task?.cancel()
         }
-
-//        listener<TickEvent.Pre> {
-//            task?.let {
-//                if (!it.isRunning) return@listener
-//
-//                info(it.info)
-//            }
-//        }
     }
 }

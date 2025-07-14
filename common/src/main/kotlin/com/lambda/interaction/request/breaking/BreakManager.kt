@@ -429,6 +429,8 @@ object BreakManager : RequestHandler<BreakRequest>(
         requestCtx: BreakContext,
         request: BreakRequest
     ): BreakInfo? {
+        if (breakCooldown > 0) return null
+
         val breakInfo = BreakInfo(requestCtx, Primary, request)
         primaryBreak?.let { primaryInfo ->
             if (!breakInfo.breakConfig.doubleBreak || secondaryBreak != null) {
@@ -526,7 +528,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         runSafe {
             setBreakingTextureStage(player, world, -1)
             if (isPrimary) {
-                abortBreakPacket(world, interaction)
+                if (breaking) abortBreakPacket(world, interaction)
                 nullify()
             } else if (isSecondary && breakConfig.unsafeCancels) {
                 makeRedundant()
@@ -606,7 +608,6 @@ object BreakManager : RequestHandler<BreakRequest>(
                 }
                 else -> {}
             }
-            if (breakCooldown > 0) return false
             if (!startBreaking(info)) {
                 info.nullify()
                 info.internalOnCancel()
@@ -718,8 +719,10 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         val breakDelta = blockState.calcBreakDelta(player, world, ctx.blockPos, info.breakConfig)
+        info.vanillaInstantBreakable = breakDelta >= 1
         if (notEmpty && breakDelta >= info.getBreakThreshold()) {
             onBlockBreak(info)
+            if (!info.vanillaInstantBreakable) breakCooldown = info.breakConfig.breakDelay
         } else {
             info.apply {
                 breaking = true
@@ -736,7 +739,6 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         info.startBreakPacket(world, interaction)
-        info.vanillaInstantBreakable = breakDelta >= 1
 
         if (info.isSecondary || (!info.vanillaInstantBreakable && breakDelta >= info.breakConfig.breakThreshold)) {
             info.stopBreakPacket(world, interaction)

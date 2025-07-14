@@ -68,13 +68,13 @@ object PacketMine : Module(
     private val queue by setting("Queue", false, "Queues blocks to break so you can select multiple at once")
         .onValueChange { _, to -> if (!to) queuePositions.clear() }
     private val queueOrder by setting("Queue Order", QueueOrder.Standard, "Which end of the queue to break blocks from") { queue }
-    private val renderQueue by setting("Render Queue", true, "Adds renders to signify what block positions are queued") { queue }
-    private val renderSize by setting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { queue && renderQueue }
-    private val renderMode by setting("Render Mode", RenderMode.State, "The style of the queue renders") { queue && renderQueue }
-    private val dynamicColor by setting("Dynamic Color", true, "Interpolates the color between start and end") { queue && renderQueue }
-    private val staticColor by setting("Color", Color(255, 0, 0, 60).brighter()) { queue && renderQueue && !dynamicColor }
-    private val startColor by setting("Start Color", Color(255, 255, 0, 60).brighter(), "The color of the start (closest to breaking) of the queue") { queue && renderQueue && dynamicColor }
-    private val endColor by setting("End Color", Color(255, 0, 0, 60).brighter(), "The color of the end (farthest from breaking) of the queue") { queue && renderQueue && dynamicColor }
+    private val renderQueue by setting("Render Queue", true, "Adds renders to signify what block positions are queued")
+    private val renderSize by setting("Render Size", 0.3f, 0.01f..1f, 0.01f, "The scale of the queue renders") { renderQueue }
+    private val renderMode by setting("Render Mode", RenderMode.State, "The style of the queue renders") { renderQueue }
+    private val dynamicColor by setting("Dynamic Color", true, "Interpolates the color between start and end") { renderQueue }
+    private val staticColor by setting("Color", Color(255, 0, 0, 60).brighter()) { renderQueue && !dynamicColor }
+    private val startColor by setting("Start Color", Color(255, 255, 0, 60).brighter(), "The color of the start (closest to breaking) of the queue") { renderQueue && dynamicColor }
+    private val endColor by setting("End Color", Color(255, 0, 0, 60).brighter(), "The color of the end (farthest from breaking) of the queue") { renderQueue && dynamicColor }
 
 
     private val pendingInteractions = ConcurrentLinkedQueue<BuildContext>()
