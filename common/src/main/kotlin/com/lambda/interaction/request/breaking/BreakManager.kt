@@ -131,7 +131,7 @@ object BreakManager : RequestHandler<BreakRequest>(
     override fun load(): String {
         super.load()
 
-        listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
+        listen<TickEvent.Pre>(priority = Int.MAX_VALUE) {
             // Cancelled but double breaking so requires break manager to continue the simulation
             breakInfos
                 .asSequence()
