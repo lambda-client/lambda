@@ -561,6 +561,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      */
     private fun BreakInfo.cancelBreak() =
         runSafe {
+            if (isRedundant || abandoned) return@runSafe
             setBreakingTextureStage(player, world, -1)
             if (isPrimary) {
                 if (breaking) abortBreakPacket(world, interaction)
@@ -657,9 +658,9 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         val blockState = blockState(ctx.blockPos)
-        if (blockState.isEmpty) {
+        if (blockState.isEmpty || blockState.isAir) {
             info.nullify()
-            info.internalOnCancel()
+            if (!info.isRedundant) info.internalOnCancel()
             return false
         }
 
