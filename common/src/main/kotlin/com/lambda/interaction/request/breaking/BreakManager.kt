@@ -325,6 +325,11 @@ object BreakManager : RequestHandler<BreakRequest>(
         val newBreaks = request.contexts
             .distinctBy { it.blockPos }
             .filter { ctx -> canAccept(ctx, request.build.breaking) }
+            .let { acceptable ->
+                acceptable.firstOrNull()?.let { first ->
+                    acceptable.filter { it.hotbarIndex == first.hotbarIndex }
+                } ?: acceptable
+            }
             .toMutableList()
 
         // Update the current break infos or cancel if abandoned

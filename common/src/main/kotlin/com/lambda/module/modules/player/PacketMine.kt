@@ -171,7 +171,7 @@ object PacketMine : Module(
     }
 
     private fun SafeContext.requestBreakManager(requestPositions: Collection<BlockPos?>, reBreaking: Boolean = false) {
-        if (requestPositions.isEmpty()) return
+        if (requestPositions.count { it != null } <= 0) return
         val breakContexts = breakContexts(requestPositions)
         if (!reBreaking) {
             queuePositions.retainAllPositions(breakContexts)
