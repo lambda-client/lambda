@@ -30,8 +30,13 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.graphics.renderer.esp.builders.buildFilled
 import com.lambda.graphics.renderer.esp.builders.buildOutline
+import com.lambda.interaction.construction.blueprint.Blueprint.Companion.toStructure
+import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.toBlueprint
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.processing.ProcessorRegistry
+import com.lambda.interaction.construction.result.BreakResult
+import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
+import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.ManagerUtils.isPosBlocked
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.Priority
@@ -126,6 +131,28 @@ object BreakManager : RequestHandler<BreakRequest>(
     override fun load(): String {
         super.load()
 
+        listen<TickEvent.Pre>(priority = Int.MIN_VALUE) {
+            // Cancelled but double breaking so requires break manager to continue the simulation
+            breakInfos
+                .asSequence()
+                .filterNotNull()
+                .filter { it.abandoned && !it.isRedundant }
+                .forEach { info ->
+                    with (info.request) {
+                        info.context.blockPos
+                            .toStructure(TargetState.Empty)
+                            .toBlueprint()
+                            .simulate(player.eyePos, interact, rotation, inventory, build)
+                            .asSequence()
+                            .filterIsInstance<BreakResult.Break>()
+                            .sorted()
+                            .let { sim ->
+                                info.updateInfo(sim.firstOrNull()?.context ?: return@forEach)
+                            }
+                    }
+                }
+        }
+
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
             if (breakCooldown > 0) {
                 breakCooldown--
@@ -200,7 +227,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                         world,
                         info.context.blockPos,
                         info.breakConfig,
-                        player.inventory.getStack(info.context.hotbarIndex)
+                        if (!info.isRedundant) player.inventory.getStack(info.context.hotbarIndex) else null
                     )
                     val progress = (info.breakingTicks * breakDelta).let {
                         if (info.isPrimary) it * (2 - info.breakConfig.breakThreshold)
@@ -337,9 +364,17 @@ object BreakManager : RequestHandler<BreakRequest>(
             .filterNotNull()
             .forEach { info ->
                 newBreaks.find { ctx -> ctx.blockPos == info.context.blockPos }?.let { ctx ->
-                    if (!info.updatedThisTick) {
+                    if (!info.updatedThisTick || info.abandoned) {
                         info.updateInfo(ctx, request)
-                        info.request.onUpdate?.invoke(info.context.blockPos)
+                        if (info.isRedundant) {
+                            info.type = BreakType.Secondary
+                            info.request.onStart?.invoke(info.context.blockPos)
+                        } else if (info.abandoned) {
+                            info.abandoned = false
+                            info.request.onStart?.invoke(info.context.blockPos)
+                        } else {
+                            info.request.onUpdate?.invoke(info.context.blockPos)
+                        }
                     }
                     newBreaks.remove(ctx)
                     return@forEach
@@ -530,8 +565,9 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (isPrimary) {
                 if (breaking) abortBreakPacket(world, interaction)
                 nullify()
-            } else if (isSecondary && breakConfig.unsafeCancels) {
-                makeRedundant()
+            } else if (isSecondary) {
+                if (breakConfig.unsafeCancels) makeRedundant()
+                else abandoned = true
             }
 
             internalOnCancel()
@@ -755,7 +791,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         item: ItemStack? = null
     ) = runSafe {
         var delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.inventory.mainHandStack)
-        // This setting requires some fixes / improvements in the player movement prediction to work properly. Currently, its broken
+        //ToDo: This setting requires some fixes / improvements in the player movement prediction to work properly. Currently, it's broken
         if (config.desyncFix) {
             val nextTickPrediction = buildPlayerPrediction().next()
             if (player.isOnGround && !nextTickPrediction.onGround) {

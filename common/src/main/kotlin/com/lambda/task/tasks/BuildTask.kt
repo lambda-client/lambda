@@ -156,7 +156,9 @@ class BuildTask @Ta5kBuilder constructor(
                                 requestContexts.addAll(breakResults.map { it.context })
                             }
 
-                            val request = breakRequest(requestContexts, build, rotation, hotbar, pendingInteractions) {
+                            val request = breakRequest(
+                                requestContexts, pendingInteractions, rotation, hotbar, interact, inventory, build,
+                            ) {
                                 onStop { breaks++ }
                                 onItemDrop?.let { onItemDrop ->
                                     onItemDrop { onItemDrop(it) }

@@ -18,6 +18,8 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.config.groups.BuildConfig
+import com.lambda.config.groups.InteractionConfig
+import com.lambda.config.groups.InventoryConfig
 import com.lambda.interaction.construction.context.BreakContext
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.request.Request
@@ -34,10 +36,12 @@ annotation class BreakRequestBuilder
 
 data class BreakRequest(
     val contexts: Collection<BreakContext>,
-    val build: BuildConfig,
-    val rotation: RotationConfig,
+    val pendingInteractions: MutableCollection<BuildContext>,
     val hotbar: HotbarConfig,
-    val pendingInteractions: MutableCollection<BuildContext>
+    val rotation: RotationConfig,
+    val inventory: InventoryConfig,
+    val interact: InteractionConfig,
+    val build: BuildConfig
 ) : Request(build.breaking) {
     var onStart: ((BlockPos) -> Unit)? = null
     var onUpdate: ((BlockPos) -> Unit)? = null
@@ -53,12 +57,14 @@ data class BreakRequest(
     @BreakRequestBuilder
     class RequestBuilder(
         contexts: Collection<BreakContext>,
-        build: BuildConfig,
+        pendingInteractions: MutableCollection<BuildContext>,
         rotation: RotationConfig,
         hotbar: HotbarConfig,
-        pendingInteractions: MutableCollection<BuildContext>
+        interact: InteractionConfig,
+        inventory: InventoryConfig,
+        build: BuildConfig
     ) {
-        val request = BreakRequest(contexts, build, rotation, hotbar, pendingInteractions)
+        val request = BreakRequest(contexts, pendingInteractions, hotbar, rotation, inventory, interact, build)
 
         @BreakRequestBuilder
         fun onStart(callback: (BlockPos) -> Unit) {
@@ -103,11 +109,13 @@ data class BreakRequest(
         @BreakRequestBuilder
         fun breakRequest(
             contexts: Collection<BreakContext>,
-            build: BuildConfig,
+            pendingInteractions: MutableCollection<BuildContext>,
             rotation: RotationConfig,
             hotbar: HotbarConfig,
-            pendingInteractions: MutableCollection<BuildContext>,
+            interact: InteractionConfig,
+            inventory: InventoryConfig,
+            build: BuildConfig,
             builder: RequestBuilder.() -> Unit
-        ) = RequestBuilder(contexts, build, rotation, hotbar, pendingInteractions).apply(builder).build()
+        ) = RequestBuilder(contexts, pendingInteractions, rotation, hotbar, interact, inventory, build).apply(builder).build()
     }
 }

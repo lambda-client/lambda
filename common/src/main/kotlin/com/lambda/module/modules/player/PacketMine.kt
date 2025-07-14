@@ -176,7 +176,9 @@ object PacketMine : Module(
         if (!reBreaking) {
             queuePositions.retainAllPositions(breakContexts)
         }
-        val request = breakRequest(breakContexts, build, rotation, hotbar, pendingInteractions) {
+        val request = breakRequest(
+            breakContexts, pendingInteractions, rotation, hotbar, interact, inventory, build,
+        ) {
             onStart { queuePositions.removePos(it); addBreak(it) }
             onUpdate { queuePositions.removePos(it) }
             onStop { removeBreak(it); breaks++ }

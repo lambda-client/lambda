@@ -40,6 +40,7 @@ data class BreakInfo(
     var updatedProgressThisTick = false
 
     var breaking = false
+    var abandoned = false
     var breakingTicks = 0
     var soundsCooldown = 0.0f
 
@@ -78,13 +79,10 @@ data class BreakInfo(
         request.onCancel?.invoke(context.blockPos)
     }
 
-    fun updateInfo(context: BreakContext, request: BreakRequest) {
+    fun updateInfo(context: BreakContext, request: BreakRequest? = null) {
         updatedThisTick = true
         this.context = context
-        this.request = request
-        if (isRedundant) {
-            type = BreakType.Secondary
-        }
+        request?.let { this.request = it }
     }
 
     fun tickStats() {
