@@ -82,7 +82,6 @@ class BuildTask @Ta5kBuilder constructor(
     private var placements = 0
     private var breaks = 0
     private val dropsToCollect = mutableSetOf<ItemEntity>()
-//    private var goodPositions = setOf<BlockPos>()
 
     private val onItemDrop: ((item: ItemEntity) -> Unit)?
         get() = if (collectDrops) {
