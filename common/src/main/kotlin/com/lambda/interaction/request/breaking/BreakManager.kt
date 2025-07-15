@@ -566,12 +566,14 @@ object BreakManager : RequestHandler<BreakRequest>(
             if (isPrimary) {
                 if (breaking) abortBreakPacket(world, interaction)
                 nullify()
+                request.onCancel?.invoke(context.blockPos)
             } else if (isSecondary) {
-                if (breakConfig.unsafeCancels) makeRedundant()
+                if (breakConfig.unsafeCancels) {
+                    makeRedundant()
+                    request.onCancel?.invoke(context.blockPos)
+                }
                 else abandoned = true
             }
-
-            request.onCancel?.invoke(context.blockPos)
         }
 
     /**
