@@ -232,7 +232,7 @@ object BreakManager : RequestHandler<BreakRequest>(
                     val progress = (info.breakingTicks * breakDelta).let {
                         if (info.isPrimary) it * (2 - info.breakConfig.breakThreshold)
                         else it
-                    }.toDouble()
+                    }.toDouble() * (1 - (breakDelta * config.fudgeFactor))
                     val state = info.context.cachedState
                     val boxes = state.getOutlineShape(world, info.context.blockPos).boundingBoxes.map {
                         it.offset(info.context.blockPos)
