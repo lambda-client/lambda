@@ -65,7 +65,7 @@ object BrokenBlockHandler {
                 world.setBlockState(info.context.blockPos, info.context.cachedState)
             }
         }
-        info.internalOnCancel()
+        info.request.onCancel?.invoke(info.context.blockPos)
         info.pendingInteractions.remove(info.context)
     }
 
