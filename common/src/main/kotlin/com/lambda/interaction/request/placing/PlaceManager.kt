@@ -33,9 +33,9 @@ import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.interacting.InteractionManager
 import com.lambda.interaction.request.placing.PlaceManager.activeRequest
 import com.lambda.interaction.request.placing.PlaceManager.processRequest
-import com.lambda.interaction.request.placing.PlacedBlockHandler.addPendingPlace
-import com.lambda.interaction.request.placing.PlacedBlockHandler.pendingPlacements
+import com.lambda.interaction.request.placing.PlacedBlockHandler.pendingActions
 import com.lambda.interaction.request.placing.PlacedBlockHandler.setPendingConfigs
+import com.lambda.interaction.request.placing.PlacedBlockHandler.startPending
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.Communication.warn
 import com.lambda.util.player.gamemode
@@ -78,7 +78,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         { player -> shouldSneak == player.isSneaking }
 
     override val blockedPositions
-        get() = pendingPlacements.map { it.context.blockPos }
+        get() = pendingActions.map { it.context.blockPos }
 
     fun Any.onPlace(
         alwaysListen: Boolean = false,
@@ -132,7 +132,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
      * @see placeBlock
      */
     fun SafeContext.processRequest(request: PlaceRequest) {
-        pendingPlacements.cleanUp()
+        pendingActions.cleanUp()
 
         if (request.fresh) populateFrom(request)
 
@@ -162,12 +162,12 @@ object PlaceManager : RequestHandler<PlaceRequest>(
     private fun populateFrom(request: PlaceRequest) {
         val place = request.build.placing
 
-        setPendingConfigs(request)
+        setPendingConfigs(request.build)
         potentialPlacements = request.contexts
             .filter { !isPosBlocked(it.blockPos) }
             .toMutableList()
 
-        val pendingLimit =  (place.maxPendingPlacements - pendingPlacements.size).coerceAtLeast(0)
+        val pendingLimit =  (place.maxPendingPlacements - pendingActions.size).coerceAtLeast(0)
         maxPlacementsThisTick = (place.placementsPerTick.coerceAtMost(pendingLimit))
     }
 
@@ -274,9 +274,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         val stackInHand = player.getStackInHand(hand)
         val stackCountPre = stackInHand.count
         if (placeConfig.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None) {
-            addPendingPlace(
-                PlaceInfo(placeContext, request.onPlace, request.pendingInteractions, placeConfig)
-            )
+            PlaceInfo(placeContext, request.pendingInteractions, request.onPlace, placeConfig).startPending()
         }
 
         if (placeConfig.airPlace == PlaceConfig.AirPlaceMode.Grim) {

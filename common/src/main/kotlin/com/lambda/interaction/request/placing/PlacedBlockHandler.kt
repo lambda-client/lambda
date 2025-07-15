@@ -18,12 +18,10 @@
 package com.lambda.interaction.request.placing
 
 import com.lambda.Lambda.mc
-import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.interaction.request.PostActionHandler
 import com.lambda.interaction.request.placing.PlaceManager.placeSound
-import com.lambda.interaction.request.placing.PlacedBlockHandler.pendingPlacements
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.item
 import com.lambda.util.BlockUtils.matches
@@ -32,8 +30,8 @@ import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
 import net.minecraft.item.BlockItem
 
-object PlacedBlockHandler {
-    val pendingPlacements = LimitedDecayQueue<PlaceInfo>(
+object PlacedBlockHandler : PostActionHandler<PlaceInfo>() {
+    override val pendingActions = LimitedDecayQueue<PlaceInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) {
         info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
@@ -45,10 +43,10 @@ object PlacedBlockHandler {
 
     init {
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
-            pendingPlacements
+            pendingActions
                 .firstOrNull { it.context.blockPos == event.pos }
                 ?.let { info ->
-                    removePendingPlace(info)
+                    info.stopPending()
 
                     // return if the block wasn't placed properly
                     if (!event.newState.matches(info.context.expectedState)) {
@@ -64,33 +62,5 @@ object PlacedBlockHandler {
                     info.onPlace()
                 }
         }
-
-        listenUnsafe<ConnectionEvent.Connect.Pre> {
-            pendingPlacements.clear()
-        }
-    }
-
-    /**
-     * Adds the info to the [PlacedBlockHandler], and requesters, pending interaction collections.
-     */
-    fun addPendingPlace(info: PlaceInfo) {
-        pendingPlacements.add(info)
-        info.pendingInteractionsList.add(info.context)
-    }
-
-    /**
-     * Removes the info from the [PlacedBlockHandler], and requesters, pending interaction collections.
-     */
-    private fun removePendingPlace(info: PlaceInfo) {
-        pendingPlacements.remove(info)
-        info.pendingInteractionsList.remove(info.context)
-    }
-
-    /**
-     * Sets the size limit and decay time for the [pendingPlacements] using the [request]'s configs
-     */
-    fun setPendingConfigs(request: PlaceRequest) {
-        pendingPlacements.setSizeLimit(request.build.placing.maxPendingPlacements)
-        pendingPlacements.setDecayTime(request.build.interactionTimeout * 50L)
     }
 }

@@ -29,13 +29,12 @@ import com.lambda.interaction.request.ManagerUtils.isPosBlocked
 import com.lambda.interaction.request.PositionBlocking
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
-import com.lambda.interaction.request.interacting.InteractedBlockHandler.addPendingInteract
-import com.lambda.interaction.request.interacting.InteractedBlockHandler.pendingInteractions
+import com.lambda.interaction.request.interacting.InteractedBlockHandler.pendingActions
 import com.lambda.interaction.request.interacting.InteractedBlockHandler.setPendingConfigs
+import com.lambda.interaction.request.interacting.InteractedBlockHandler.startPending
 import com.lambda.interaction.request.interacting.InteractionManager.activeRequest
 import com.lambda.interaction.request.interacting.InteractionManager.processRequest
 import com.lambda.interaction.request.placing.PlaceManager
-import com.lambda.interaction.request.placing.PlacedBlockHandler.pendingPlacements
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.util.Hand
 
@@ -54,7 +53,7 @@ object InteractionManager : RequestHandler<InteractionRequest>(
     private var maxInteractionsThisTick = 0
 
     override val blockedPositions
-        get() = pendingInteractions.map { it.context.blockPos }
+        get() = pendingActions.map { it.context.blockPos }
 
     init {
         listen<TickEvent.Post>(priority = Int.MIN_VALUE) {
@@ -79,7 +78,7 @@ object InteractionManager : RequestHandler<InteractionRequest>(
     }
 
     fun SafeContext.processRequest(request: InteractionRequest) {
-        pendingInteractions.cleanUp()
+        pendingActions.cleanUp()
         
         if (request.fresh) populateFrom(request)
 
@@ -94,7 +93,7 @@ object InteractionManager : RequestHandler<InteractionRequest>(
             if (!ctx.requestDependencies(request)) return
 
             if (interact.interactConfirmationMode == InteractionConfig.InteractConfirmationMode.None) {
-                addPendingInteract(InteractionInfo(ctx, request.pendingInteractionsList, interact))
+                InteractionInfo(ctx, request.pendingInteractionsList, interact).startPending()
             }
             if (interact.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {
                 interaction.interactBlock(player, Hand.MAIN_HAND, ctx.result)
@@ -110,12 +109,12 @@ object InteractionManager : RequestHandler<InteractionRequest>(
     }
 
     private fun populateFrom(request: InteractionRequest) {
-        setPendingConfigs(request)
+        setPendingConfigs(request.build)
         potentialInteractions = request.contexts
             .filter { !isPosBlocked(it.blockPos) }
             .toMutableList()
 
-        val pendingLimit =  (request.build.maxPendingInteractions - pendingPlacements.size).coerceAtLeast(0)
+        val pendingLimit =  (request.build.maxPendingInteractions - pendingActions.size).coerceAtLeast(0)
         maxInteractionsThisTick = (request.build.interactionsPerTick.coerceAtMost(pendingLimit))
     }
 

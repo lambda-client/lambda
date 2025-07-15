@@ -15,15 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.interaction.request.placing
+package com.lambda.interaction.request
 
 import com.lambda.interaction.construction.context.BuildContext
-import com.lambda.interaction.construction.context.PlaceContext
-import com.lambda.interaction.request.ActionInfo
 
-data class PlaceInfo(
-    override val context: PlaceContext,
-    override val pendingInteractionsList: MutableCollection<BuildContext>,
-    val onPlace: () -> Unit,
-    val placeConfig: PlaceConfig
-) : ActionInfo
+interface ActionInfo {
+    val context: BuildContext
+    val pendingInteractionsList: MutableCollection<BuildContext>
+}

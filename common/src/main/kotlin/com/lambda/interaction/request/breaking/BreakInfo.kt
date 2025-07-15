@@ -18,6 +18,7 @@
 package com.lambda.interaction.request.breaking
 
 import com.lambda.interaction.construction.context.BreakContext
+import com.lambda.interaction.request.ActionInfo
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.network.ClientPlayerInteractionManager
@@ -28,14 +29,13 @@ import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket.Action
 
 data class BreakInfo(
-    var context: BreakContext,
+    override var context: BreakContext,
     var type: BreakType,
     var request: BreakRequest
-) {
+) : ActionInfo {
     val breakConfig get() = request.build.breaking
-    val pendingInteractions get() = request.pendingInteractions
+    override val pendingInteractionsList get() = request.pendingInteractions
 
-    var activeAge = 0
     var updatedThisTick = true
     var updatedProgressThisTick = false
 
@@ -82,7 +82,6 @@ data class BreakInfo(
     }
 
     fun tickStats() {
-        activeAge++
         updatedThisTick = false
         updatedProgressThisTick = false
     }

@@ -19,10 +19,9 @@ package com.lambda.interaction.request.interacting
 
 import com.lambda.Lambda.mc
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
+import com.lambda.interaction.request.PostActionHandler
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.matches
 import com.lambda.util.Communication.info
@@ -32,8 +31,8 @@ import net.minecraft.block.BlockState
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 
-object InteractedBlockHandler {
-    val pendingInteractions = LimitedDecayQueue<InteractionInfo>(
+object InteractedBlockHandler : PostActionHandler<InteractionInfo>() {
+    override val pendingActions = LimitedDecayQueue<InteractionInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) {
         info("${it::class.simpleName} at ${it.context.blockPos.toShortString()} timed out")
@@ -45,10 +44,10 @@ object InteractedBlockHandler {
 
     init {
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
-            pendingInteractions
+            pendingActions
                 .firstOrNull { it.context.blockPos == event.pos }
                 ?.let { info ->
-                    removePendingInteract(info)
+                    info.stopPending()
 
                     if (!matchesTargetState(event.pos, info.context.expectedState, event.newState))
                         return@listen
@@ -59,25 +58,6 @@ object InteractedBlockHandler {
                         }
                 }
         }
-
-        listenUnsafe<ConnectionEvent.Connect.Pre> {
-            pendingInteractions.clear()
-        }
-    }
-
-    fun addPendingInteract(info: InteractionInfo) {
-        pendingInteractions.add(info)
-        info.pendingInteractionsList.add(info.context)
-    }
-
-    fun removePendingInteract(info: InteractionInfo) {
-        pendingInteractions.remove(info)
-        info.pendingInteractionsList.remove(info.context)
-    }
-
-    fun setPendingConfigs(request: InteractionRequest) {
-        pendingInteractions.setSizeLimit(request.build.maxPendingInteractions)
-        pendingInteractions.setDecayTime(request.build.interactionTimeout * 50L)
     }
 
     private fun matchesTargetState(pos: BlockPos, targetState: BlockState, newState: BlockState) =

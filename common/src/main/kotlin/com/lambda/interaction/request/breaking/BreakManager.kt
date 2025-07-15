@@ -48,7 +48,7 @@ import com.lambda.interaction.request.breaking.BreakManager.processRequest
 import com.lambda.interaction.request.breaking.BreakType.Primary
 import com.lambda.interaction.request.breaking.BreakType.ReBreak
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.destroyBlock
-import com.lambda.interaction.request.breaking.BrokenBlockHandler.pendingBreaks
+import com.lambda.interaction.request.breaking.BrokenBlockHandler.pendingActions
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.setPendingConfigs
 import com.lambda.interaction.request.breaking.BrokenBlockHandler.startPending
 import com.lambda.interaction.request.interacting.InteractionManager
@@ -98,9 +98,9 @@ object BreakManager : RequestHandler<BreakRequest>(
         set(value) { breakInfos[1] = value }
     private val breakInfos = arrayOfNulls<BreakInfo>(2)
 
-    private val pendingBreakCount get() = breakInfos.count { it != null } + pendingBreaks.size
+    private val pendingBreakCount get() = breakInfos.count { it != null } + pendingActions.size
     override val blockedPositions
-        get() = breakInfos.mapNotNull { it?.context?.blockPos } + pendingBreaks.map { it.context.blockPos }
+        get() = breakInfos.mapNotNull { it?.context?.blockPos } + pendingActions.map { it.context.blockPos }
 
     private var activeRequest: BreakRequest? = null
 
@@ -283,7 +283,7 @@ object BreakManager : RequestHandler<BreakRequest>(
      * @see updateBreakProgress
      */
     private fun SafeContext.processRequest(breakRequest: BreakRequest?) {
-        pendingBreaks.cleanUp()
+        pendingActions.cleanUp()
 
         repeat(2) {
             breakRequest?.let { request ->
@@ -486,7 +486,7 @@ object BreakManager : RequestHandler<BreakRequest>(
         }
 
         primaryBreak = breakInfo
-        setPendingConfigs(request)
+        setPendingConfigs(request.build)
         return primaryBreak
     }
 

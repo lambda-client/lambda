@@ -19,12 +19,11 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.Lambda.mc
 import com.lambda.context.SafeContext
-import com.lambda.event.events.ConnectionEvent
 import com.lambda.event.events.EntityEvent
 import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.interaction.construction.processing.ProcessorRegistry
+import com.lambda.interaction.request.PostActionHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakManager.lastPosStarted
 import com.lambda.interaction.request.breaking.BreakManager.matchesBlockItem
@@ -35,7 +34,6 @@ import com.lambda.util.BlockUtils.fluidState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.matches
-import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
 import com.lambda.util.player.gamemode
@@ -49,8 +47,8 @@ import net.minecraft.util.math.ChunkSectionPos
  *
  * @see BreakManager
  */
-object BrokenBlockHandler {
-    val pendingBreaks = LimitedDecayQueue<BreakInfo>(
+object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
+    override val pendingActions = LimitedDecayQueue<BreakInfo>(
         TaskFlowModule.build.maxPendingInteractions, TaskFlowModule.build.interactionTimeout * 50L
     ) { info ->
         mc.world?.let { world ->
@@ -66,13 +64,13 @@ object BrokenBlockHandler {
             }
         }
         info.request.onCancel?.invoke(info.context.blockPos)
-        info.pendingInteractions.remove(info.context)
+        info.pendingInteractionsList.remove(info.context)
     }
 
     init {
-        listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE + 1) { event ->
+        listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
             run {
-                pendingBreaks.firstOrNull { it.context.blockPos == event.pos }
+                pendingActions.firstOrNull { it.context.blockPos == event.pos }
                     ?: if (reBreak?.context?.blockPos == event.pos) reBreak
                     else null
             }?.let { pending ->
@@ -109,10 +107,10 @@ object BrokenBlockHandler {
             }
         }
 
-        listen<EntityEvent.Update>(priority = Int.MIN_VALUE + 1) {
+        listen<EntityEvent.Update>(priority = Int.MIN_VALUE) {
             if (it.entity !is ItemEntity) return@listen
             run {
-                pendingBreaks.firstOrNull { info -> matchesBlockItem(info, it.entity) }
+                pendingActions.firstOrNull { info -> matchesBlockItem(info, it.entity) }
                     ?: reBreak?.let { info ->
                         return@run if (matchesBlockItem(info, it.entity)) info
                         else null
@@ -128,37 +126,6 @@ object BrokenBlockHandler {
                 return@listen
             }
         }
-
-        listenUnsafe<ConnectionEvent.Connect.Pre>(priority = Int.MIN_VALUE + 1) {
-            pendingBreaks.clear()
-        }
-    }
-
-    /**
-     * Adds the [info] to the [BrokenBlockHandler], and requesters, pending interaction collections.
-     */
-    fun BreakInfo.startPending() {
-        pendingBreaks.add(this)
-        pendingInteractions.add(context)
-    }
-
-    /**
-     * Removes the [info] from the [BrokenBlockHandler], and requesters, pending interaction collections.
-     */
-    fun BreakInfo.stopPending() {
-        if (!isReBreaking) {
-            pendingBreaks.remove(this)
-            pendingInteractions.remove(context)
-        }
-    }
-
-    /**
-     * Sets the size limit and decay time for the [pendingBreaks] [LimitedDecayQueue]
-     * using the [request]'s configs
-     */
-    fun setPendingConfigs(request: BreakRequest) {
-        pendingBreaks.setSizeLimit(request.build.breaking.maxPendingBreaks)
-        pendingBreaks.setDecayTime(request.build.interactionTimeout * 50L)
     }
 
     /**
