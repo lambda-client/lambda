@@ -229,10 +229,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                         info.breakConfig,
                         if (!info.isRedundant) player.inventory.getStack(info.context.hotbarIndex) else null
                     )
-                    val progress = (info.breakingTicks * breakDelta).let {
-                        if (info.isPrimary) it * (2 - info.breakConfig.breakThreshold)
-                        else it
-                    }.toDouble() * (1 - (breakDelta * config.fudgeFactor))
+                    val threshold = if (info.isPrimary) info.breakConfig.breakThreshold else 1f
+                    val progress = (info.breakingTicks * breakDelta).toDouble() / (threshold + (breakDelta * config.fudgeFactor))
                     val state = info.context.cachedState
                     val boxes = state.getOutlineShape(world, info.context.blockPos).boundingBoxes.map {
                         it.offset(info.context.blockPos)
@@ -562,17 +560,19 @@ object BreakManager : RequestHandler<BreakRequest>(
     private fun BreakInfo.cancelBreak() =
         runSafe {
             if (isRedundant || abandoned) return@runSafe
-            setBreakingTextureStage(player, world, -1)
             if (isPrimary) {
                 if (breaking) abortBreakPacket(world, interaction)
                 nullify()
+                setBreakingTextureStage(player, world, -1)
                 request.onCancel?.invoke(context.blockPos)
             } else if (isSecondary) {
                 if (breakConfig.unsafeCancels) {
                     makeRedundant()
+                    setBreakingTextureStage(player, world, -1)
                     request.onCancel?.invoke(context.blockPos)
+                } else {
+                    abandoned = true
                 }
-                else abandoned = true
             }
         }
 

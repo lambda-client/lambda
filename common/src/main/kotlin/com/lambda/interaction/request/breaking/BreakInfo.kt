@@ -101,8 +101,8 @@ data class BreakInfo(
 
     private fun getBreakTextureProgress(player: PlayerEntity, world: ClientWorld): Int {
         val breakDelta = context.cachedState.calcItemBlockBreakingDelta(player, world, context.blockPos, player.mainHandStack)
-        val progress = (breakDelta * breakingTicks) / getBreakThreshold()
-        return if (progress > 0.0f) (progress * 10.0f).toInt() else -1
+        val progress = (breakDelta * breakingTicks) / (getBreakThreshold() + (breakDelta * breakConfig.fudgeFactor))
+        return if (progress > 0.0f) (progress * 10.0f).toInt().coerceAtMost(10) else -1
     }
 
     fun getBreakThreshold() = type.getBreakThreshold(breakConfig)
