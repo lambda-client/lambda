@@ -67,7 +67,7 @@ class InteractionContext(
 
     fun requestDependencies(request: InteractionRequest): Boolean {
         val hotbarRequest = request.hotbar.request(HotbarRequest(hotbarIndex, request.hotbar), false)
-        val validRotation = if (request.interact.rotate) {
+        val validRotation = if (request.config.rotate) {
             request.rotation.request(rotation, false).done
         } else true
         return hotbarRequest.done && validRotation

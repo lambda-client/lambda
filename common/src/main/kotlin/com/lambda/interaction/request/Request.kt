@@ -17,9 +17,8 @@
 
 package com.lambda.interaction.request
 
-abstract class Request(
-    val config: RequestConfig<*>
-) {
+abstract class Request {
+    abstract val config: RequestConfig<*>
     var fresh = true
 
     abstract val done: Boolean

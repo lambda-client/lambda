@@ -24,12 +24,12 @@ import com.lambda.threading.runSafe
 data class RotationRequest(
     val target: RotationTarget,
     val mode: RotationMode,
-    val rot: RotationConfig,
+    override val config: RotationConfig,
     var keepTicks: Int = 3,
     var decayTicks: Int = 0,
     val turnSpeed: () -> Double = { 180.0 },
     val speedMultiplier: Double = 1.0
-) : Request(rot) {
+) : Request() {
     var age = 0
 
     constructor(

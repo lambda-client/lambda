@@ -21,10 +21,10 @@ import com.lambda.interaction.request.Request
 
 class HotbarRequest(
     val slot: Int,
-    val hotbar: HotbarConfig,
-    var keepTicks: Int = hotbar.keepTicks,
-    var swapPause: Int = hotbar.swapPause
-) : Request(hotbar) {
+    override val config: HotbarConfig,
+    var keepTicks: Int = config.keepTicks,
+    var swapPause: Int = config.swapPause
+) : Request() {
     var activeRequestAge = 0
     var swapPauseAge = 0
 

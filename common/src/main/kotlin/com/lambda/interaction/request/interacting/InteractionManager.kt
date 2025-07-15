@@ -87,15 +87,15 @@ object InteractionManager : RequestHandler<InteractionRequest>(
         val iterator = potentialInteractions.iterator()
         while (iterator.hasNext()) {
             if (interactionsThisTick + 1 > maxInteractionsThisTick) break
-            val interact = request.interact
+            val config = request.config
             val ctx = iterator.next()
 
             if (!ctx.requestDependencies(request)) return
 
-            if (interact.interactConfirmationMode == InteractionConfig.InteractConfirmationMode.None) {
-                InteractionInfo(ctx, request.pendingInteractionsList, interact).startPending()
+            if (config.interactConfirmationMode == InteractionConfig.InteractConfirmationMode.None) {
+                InteractionInfo(ctx, request.pendingInteractionsList, config).startPending()
             }
-            if (interact.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {
+            if (config.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.AwaitThenInteract) {
                 interaction.interactBlock(player, Hand.MAIN_HAND, ctx.result)
             } else {
                 interaction.sendSequencedPacket(world) { sequence ->

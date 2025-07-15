@@ -32,11 +32,11 @@ data class InteractionRequest(
     val contexts: Collection<InteractionContext>,
     val onInteract: ((BlockPos) -> Unit)?,
     val pendingInteractionsList: MutableCollection<BuildContext>,
-    val interact: InteractionConfig,
+    override val config: InteractionConfig,
     val build: BuildConfig,
     val hotbar: HotbarConfig,
     val rotation: RotationConfig
-) : Request(interact) {
+) : Request() {
     override val done: Boolean
         get() = contexts.all { mc.world?.getBlockState(it.blockPos)?.matches(it.expectedState) == true }
 }

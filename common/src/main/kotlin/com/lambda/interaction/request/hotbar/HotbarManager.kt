@@ -75,7 +75,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     }
 
     override fun SafeContext.handleRequest(request: HotbarRequest) {
-        val config = request.hotbar
+        val config = request.config
         maxSwapsThisTick = config.swapsPerTick
         swapDelay = swapDelay.coerceAtMost(config.swapDelay)
 
@@ -114,7 +114,7 @@ object HotbarManager : RequestHandler<HotbarRequest>(
     private fun SafeContext.checkResetSwap() {
         activeRequest?.let { activeInfo ->
             val canStopSwap = swapsThisTick < maxSwapsThisTick
-            if (activeInfo.keepTicks <= 0 && tickStage in activeInfo.hotbar.sequenceStageMask && canStopSwap) {
+            if (activeInfo.keepTicks <= 0 && tickStage in activeInfo.config.sequenceStageMask && canStopSwap) {
                 activeRequest = null
                 interaction.syncSelectedSlot()
             }

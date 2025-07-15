@@ -34,7 +34,8 @@ data class PlaceRequest(
     val hotbar: HotbarConfig,
     val pendingInteractions: MutableCollection<BuildContext>,
     val onPlace: () -> Unit
-) : Request(build.placing) {
+) : Request() {
+    override val config = build.placing
     override val done: Boolean
         get() = runSafe {
             contexts.all { it.expectedState.matches(blockState(it.blockPos)) }

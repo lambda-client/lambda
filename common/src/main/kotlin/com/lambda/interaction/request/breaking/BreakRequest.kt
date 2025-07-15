@@ -42,7 +42,8 @@ data class BreakRequest(
     val inventory: InventoryConfig,
     val interact: InteractionConfig,
     val build: BuildConfig
-) : Request(build.breaking) {
+) : Request() {
+    override val config = build.breaking
     var onStart: ((BlockPos) -> Unit)? = null
     var onUpdate: ((BlockPos) -> Unit)? = null
     var onStop: ((BlockPos) -> Unit)? = null
