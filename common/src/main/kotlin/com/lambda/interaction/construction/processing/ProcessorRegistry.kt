@@ -28,7 +28,7 @@ import net.minecraft.util.math.BlockPos
 
 object ProcessorRegistry : Loadable {
     private val processors = getInstances<PlacementProcessor>()
-    private val processorCache = mutableMapOf<BlockState, PreProcessingInfo>()
+    private val processorCache = mutableMapOf<BlockState, PreProcessingInfo?>()
 
     val postProcessedProperties = setOf(
         Properties.EXTENDED,
@@ -107,22 +107,26 @@ object ProcessorRegistry : Loadable {
 
     override fun load() = "Loaded ${processors.size} pre processors"
 
-    fun TargetState.getProcessingInfo(pos: BlockPos): PreProcessingInfo =
-        (this as? TargetState.State)?.let { state ->
-            val get: () -> PreProcessingInfo = {
-
+    fun TargetState.getProcessingInfo(pos: BlockPos): PreProcessingInfo? {
+        return if (this is TargetState.State) {
+            val targetState = this as? TargetState.State ?: return null
+            val get: () -> PreProcessingInfo? = get@ {
                 val infoAccumulator = PreProcessingInfoAccumulator()
 
                 processors.forEach {
-                    if (!it.acceptsState(state.blockState)) return@forEach
-                    it.preProcess(state.blockState, pos, infoAccumulator)
+                    if (!it.acceptsState(targetState.blockState)) return@forEach
+                    it.preProcess(targetState.blockState, pos, infoAccumulator)
+                    if (infoAccumulator.shouldBeOmitted) {
+                        return@get null
+                    }
                 }
 
                 infoAccumulator.complete()
             }
-            if (isExemptFromCache(state)) get()
-            else processorCache.getOrPut(state.blockState, get)
-        } ?: PreProcessingInfo.DEFAULT
+            if (isExemptFromCache(targetState)) get()
+            else processorCache.getOrPut(targetState.blockState, get)
+        } else PreProcessingInfo.DEFAULT
+    }
 
     private fun isExemptFromCache(state: TargetState.State) =
         state.blockState.block is SlabBlock && state.blockState.get(Properties.SLAB_TYPE) == SlabType.DOUBLE

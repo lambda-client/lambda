@@ -97,7 +97,7 @@ object BuildSimulator {
         build: BuildConfig = TaskFlowModule.build,
     ) = runSafe {
         structure.entries.flatMap { (pos, target) ->
-            val preProcessing = target.getProcessingInfo(pos)
+            val preProcessing = target.getProcessingInfo(pos) ?: return@flatMap emptySet()
             checkRequirements(pos, target, build).let {
                 if (it.isEmpty()) return@let
                 return@flatMap it
