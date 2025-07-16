@@ -66,6 +66,7 @@ class InteractionSettings(
 
     // Swing
     override val swingHand by c.setting("Swing Hand", true, "Whether to swing hand on interactions", visibility = vis)
+    override val interactSwingType by c.setting("Interact Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { vis() && swingHand }
 
     companion object {
         const val DEFAULT_ATTACK_REACH = 3.0

@@ -79,6 +79,11 @@ abstract class InteractionConfig(
      */
     abstract val swingHand: Boolean
 
+    /**
+     * The style of hand swing to use
+     */
+    abstract val interactSwingType: BuildConfig.SwingType
+
     override fun requestInternal(request: InteractionRequest, queueIfClosed: Boolean) {
         InteractionManager.request(request, queueIfClosed)
     }

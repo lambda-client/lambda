@@ -35,6 +35,7 @@ import com.lambda.interaction.request.interacting.InteractedBlockHandler.startPe
 import com.lambda.interaction.request.interacting.InteractionManager.activeRequest
 import com.lambda.interaction.request.interacting.InteractionManager.processRequest
 import com.lambda.interaction.request.placing.PlaceManager
+import com.lambda.util.player.swingHand
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.util.Hand
 
@@ -101,6 +102,9 @@ object InteractionManager : RequestHandler<InteractionRequest>(
                 interaction.sendSequencedPacket(world) { sequence ->
                     PlayerInteractBlockC2SPacket(Hand.MAIN_HAND, ctx.result, sequence)
                 }
+            }
+            if (request.config.swingHand) {
+                swingHand(request.config.interactSwingType, Hand.MAIN_HAND)
             }
             request.onInteract?.invoke(ctx.blockPos)
             interactionsThisTick++
