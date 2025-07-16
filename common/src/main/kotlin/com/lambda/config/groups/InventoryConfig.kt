@@ -21,18 +21,21 @@ import com.lambda.interaction.material.ContainerSelection
 import com.lambda.interaction.material.ContainerSelection.Companion.selectContainer
 import com.lambda.interaction.material.StackSelection
 import com.lambda.interaction.material.container.MaterialContainer
+import com.lambda.interaction.request.RequestConfig
+import com.lambda.interaction.request.inventory.InventoryManager
+import com.lambda.interaction.request.inventory.InventoryRequest
 import net.minecraft.block.Block
 
-interface InventoryConfig {
-    val disposables: Set<Block>
-    val swapWithDisposables: Boolean
-    val providerPriority: Priority
-    val storePriority: Priority
+abstract class InventoryConfig : RequestConfig<InventoryRequest>() {
+    abstract val disposables: Set<Block>
+    abstract val swapWithDisposables: Boolean
+    abstract val providerPriority: Priority
+    abstract val storePriority: Priority
 
-    val accessShulkerBoxes: Boolean
-    val accessEnderChest: Boolean
-    val accessChests: Boolean
-    val accessStashes: Boolean
+    abstract val accessShulkerBoxes: Boolean
+    abstract val accessEnderChest: Boolean
+    abstract val accessChests: Boolean
+    abstract val accessStashes: Boolean
 
     val containerSelection: ContainerSelection get() = selectContainer {
         val allowedContainers = mutableSetOf<MaterialContainer.Rank>().apply {
@@ -43,6 +46,10 @@ interface InventoryConfig {
             if (!accessStashes) remove(MaterialContainer.Rank.STASH)
         }
         ofAnyType(*allowedContainers.toTypedArray())
+    }
+
+    override fun requestInternal(request: InventoryRequest, queueIfClosed: Boolean) {
+        InventoryManager.request(request, queueIfClosed)
     }
 
     enum class Priority {

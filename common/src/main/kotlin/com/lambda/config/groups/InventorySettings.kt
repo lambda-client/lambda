@@ -23,7 +23,7 @@ import com.lambda.util.item.ItemUtils
 class InventorySettings(
     c: Configurable,
     vis: () -> Boolean = { true },
-) : InventoryConfig {
+) : InventoryConfig() {
     val page by c.setting("Inventory Page", Page.Container, "The page to open when the module is enabled", vis)
 
     override val disposables by c.setting("Disposables", ItemUtils.defaultDisposables, "Items that will be included when checking for a free slot / are allowed to be droped when inventory is full") { vis() && page == Page.Container}

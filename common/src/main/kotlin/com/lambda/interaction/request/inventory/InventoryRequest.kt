@@ -15,15 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.event.events
+package com.lambda.interaction.request.inventory
 
-import com.lambda.event.Event
+import com.lambda.config.groups.InventoryConfig
+import com.lambda.interaction.request.Request
 
-sealed class UpdateManagerEvent {
-    data object Rotation : Event
-    data object Inventory: Event
-    data object Hotbar : Event
-    data object Break : Event
-    data object Place : Event
-    data object Interact: Event
+class InventoryRequest(
+    override val config: InventoryConfig
+) : Request() {
+    override val done: Boolean
+        get() = TODO("Not yet implemented")
 }
