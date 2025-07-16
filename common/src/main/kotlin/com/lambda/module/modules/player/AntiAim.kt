@@ -67,7 +67,7 @@ object AntiAim : Module(
     private val yawSpeed by setting("Yaw Speed", 30, 1..90, 1, "Yaw rotation degrees per tick", "°") { page == Page.General && yaw != YawMode.None }
     private val pitchSpeed by setting("Pitch Speed", 30, 1..90, 1, "Pitch rotation degrees per tick", "°") { page == Page.General && pitch != PitchMode.None }
 
-    private val rotation = RotationSettings(this, -1) { page == Page.Rotation }
+    private val rotation = RotationSettings(this) { page == Page.Rotation }
 
     private var currentYaw = 0.0f
     private var currentPitch = 0.0f

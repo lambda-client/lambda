@@ -19,16 +19,14 @@ package com.lambda.config.groups
 
 import com.lambda.config.Configurable
 import com.lambda.event.events.TickEvent
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.util.BlockUtils.allSigns
 import java.awt.Color
 
 class BreakSettings(
     c: Configurable,
-    priority: Priority = 0,
     vis: () -> Boolean = { true }
-) : BreakConfig(priority) {
+) : BreakConfig() {
     val page by c.setting("Break Page", Page.General, visibility = vis)
     override val breakMode by c.setting("Break Mode", BreakMode.Packet) { vis() && page == Page.General }
     override val reBreak by c.setting("ReBreak", true, "Re-breaks blocks after they've been broken once") { vis() && page == Page.General }

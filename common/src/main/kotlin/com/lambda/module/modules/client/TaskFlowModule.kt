@@ -41,7 +41,7 @@ object TaskFlowModule : Module(
     private val page by setting("Page", Page.Build)
     val build = BuildSettings(this) { page == Page.Build }
     val rotation = RotationSettings(this) { page == Page.Rotation }
-    val interact = InteractionSettings(this, InteractionMask.Both) { page == Page.Interaction }
+    val interaction = InteractionSettings(this, InteractionMask.Both) { page == Page.Interaction }
     val inventory = InventorySettings(this) { page == Page.Inventory }
     val hotbar = HotbarSettings(this) { page == Page.Hotbar }
 

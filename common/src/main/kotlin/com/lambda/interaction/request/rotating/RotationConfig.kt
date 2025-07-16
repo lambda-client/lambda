@@ -17,7 +17,6 @@
 
 package com.lambda.interaction.request.rotating
 
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
 
 /**
@@ -25,7 +24,7 @@ import com.lambda.interaction.request.RequestConfig
  *
  * @param priority The priority of this configuration.
  */
-abstract class RotationConfig(priority: Priority) : RequestConfig<RotationRequest>(priority) {
+abstract class RotationConfig : RequestConfig<RotationRequest>() {
     /**
      * - [RotationMode.Silent] Spoofing server-side rotation.
      * - [RotationMode.Sync] Spoofing server-side rotation and adjusting client-side movement based on reported rotation (for Grim).
@@ -55,7 +54,7 @@ abstract class RotationConfig(priority: Priority) : RequestConfig<RotationReques
         RotationManager.request(request, queueIfClosed)
     }
 
-    open class Instant(mode: RotationMode, priority: Priority = 0) : RotationConfig(priority) {
+    open class Instant(mode: RotationMode) : RotationConfig() {
         override val turnSpeed get() = 360.0
         override val keepTicks get() = 1
         override val decayTicks get() = 1

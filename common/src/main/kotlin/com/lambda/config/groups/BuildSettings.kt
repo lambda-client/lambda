@@ -26,7 +26,7 @@ class BuildSettings(
     vis: () -> Boolean = { true }
 ) : BuildConfig {
     enum class Page {
-        General, Break, Place
+        General, Break, Place, Interact
     }
 
     private val page by c.setting("Build Page", Page.General, "Current page", vis)
@@ -44,5 +44,12 @@ class BuildSettings(
     // Placing
     override val placing = PlaceSettings(c) { page == Page.Place && vis() }
 
-    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") { vis() && ((page == Page.Place && placing.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None) || (page == Page.Break && breaking.breakConfirmation != BreakConfirmationMode.None)) }
+    //Interacting
+    override val interacting = InteractSettings(c) { page == Page.Interact && vis() }
+
+    override val interactionTimeout by c.setting("Interaction Timeout", 10, 1..30, 1, "Timeout for block breaks in ticks", unit = " ticks") {
+        vis() && ((page == Page.Place && placing.placeConfirmationMode != PlaceConfig.PlaceConfirmationMode.None)
+                || (page == Page.Break && breaking.breakConfirmation != BreakConfirmationMode.None)
+                || (page == Page.Interact && interacting.interactConfirmationMode != InteractionConfig.InteractConfirmationMode.None))
+    }
 }

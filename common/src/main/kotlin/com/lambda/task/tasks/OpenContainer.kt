@@ -18,10 +18,10 @@
 package com.lambda.task.tasks
 
 import com.lambda.config.groups.InteractionConfig
-import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.event.events.InventoryEvent
 import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.interaction.request.rotating.visibilty.lookAtBlock
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.task.Task
@@ -36,7 +36,7 @@ class OpenContainer @Ta5kBuilder constructor(
     private val waitForSlotLoad: Boolean = true,
     private val rotate: Boolean = true,
     private val rotation: RotationConfig = TaskFlowModule.rotation,
-    private val interact: InteractionConfig = TaskFlowModule.interact,
+    private val interact: InteractionConfig = TaskFlowModule.interaction,
     private val sides: Set<Direction> = Direction.entries.toSet(),
 ) : Task<ScreenHandler>() {
     override val name get() = "${containerState.description(inScope)} at ${blockPos.toShortString()}"

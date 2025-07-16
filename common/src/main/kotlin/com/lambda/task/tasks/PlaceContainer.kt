@@ -44,7 +44,7 @@ class PlaceContainer @Ta5kBuilder constructor(
     val stack: ItemStack,
     val build: BuildConfig = TaskFlowModule.build,
     val rotation: RotationConfig = TaskFlowModule.rotation,
-    val interact: InteractionConfig = TaskFlowModule.interact,
+    val interact: InteractionConfig = TaskFlowModule.interaction,
     val inventory: InventoryConfig = TaskFlowModule.inventory,
 ) : Task<BlockPos>() {
     private val startStack: ItemStack = stack.copy()

@@ -18,7 +18,6 @@
 package com.lambda.config.groups
 
 import com.lambda.config.Configurable
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.interaction.request.rotating.RotationMode
 import kotlin.math.PI
@@ -30,9 +29,8 @@ import kotlin.random.Random
 
 class RotationSettings(
     c: Configurable,
-    priority: Priority = 0,
     vis: () -> Boolean = { true }
-) : RotationConfig(priority) {
+) : RotationConfig() {
     override var rotationMode by c.setting("Mode", RotationMode.Sync, "SILENT - server-side rotation, SYNC - server-side rotation; client-side movement, LOCK - Lock camera, NONE - No rotation", visibility = vis)
 
     /** How many ticks to keep the rotation before resetting */

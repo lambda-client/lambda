@@ -86,7 +86,7 @@ fun lookAtHit(hit: RequestedHit, rotation: SafeContext.() -> Rotation?) =
 @RotationDsl
 fun lookAtHit(
     hit: HitResult,
-    config: InteractionConfig = TaskFlowModule.interact,
+    config: InteractionConfig = TaskFlowModule.interaction,
 ): RotationTarget? {
     return when (hit) {
         is BlockHitResult -> lookAtBlock(hit.blockPos, setOf(hit.side), SurfaceScan.DEFAULT, config)
@@ -105,7 +105,7 @@ fun lookAtHit(
 @RotationDsl
 fun lookAtEntity(
     entity: LivingEntity,
-    config: InteractionConfig = TaskFlowModule.interact
+    config: InteractionConfig = TaskFlowModule.interaction
 ): RotationTarget {
     val requestedHit = entityHit(entity, config.attackReach)
 
@@ -135,7 +135,7 @@ fun lookAtBlock(
     pos: BlockPos,
     sides: Set<Direction> = ALL_SIDES,
     surfaceScan: SurfaceScan = SurfaceScan.DEFAULT,
-    config: InteractionConfig = TaskFlowModule.interact,
+    config: InteractionConfig = TaskFlowModule.interaction,
 ): RotationTarget {
     val requestedHit = blockHit(pos, sides, config.interactReach)
 

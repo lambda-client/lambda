@@ -19,14 +19,11 @@ package com.lambda.interaction.request.breaking
 
 import com.lambda.config.groups.BuildConfig
 import com.lambda.event.Event
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
 import net.minecraft.block.Block
 import java.awt.Color
 
-abstract class BreakConfig(
-    priority: Priority = 0
-) : RequestConfig<BreakRequest>(priority) {
+abstract class BreakConfig : RequestConfig<BreakRequest>() {
     abstract val breakMode: BreakMode
     abstract val reBreak: Boolean
     abstract val unsafeCancels: Boolean

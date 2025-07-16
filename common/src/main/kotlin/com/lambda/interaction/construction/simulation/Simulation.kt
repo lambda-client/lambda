@@ -41,7 +41,7 @@ import java.awt.Color
 
 data class Simulation(
     val blueprint: Blueprint,
-    val interact: InteractionConfig = TaskFlowModule.interact,
+    val interactionConfig: InteractionConfig = TaskFlowModule.interaction,
     val rotation: RotationConfig = TaskFlowModule.rotation,
     val inventory: InventoryConfig = TaskFlowModule.inventory,
     val build: BuildConfig = TaskFlowModule.build,
@@ -63,7 +63,7 @@ data class Simulation(
             if (!playerFitsIn(blockPos)) return@getOrPut emptySet()
         }
 
-        blueprint.simulate(view, interact, rotation, inventory, build)
+        blueprint.simulate(view, interactionConfig, rotation, inventory, build)
     }
 
     fun goodPositions() = cache
@@ -84,7 +84,7 @@ data class Simulation(
         fun Vec3d.playerBox(): Box = Box(x - 0.3, y, z - 0.3, x + 0.3, y + 1.8, z + 0.3).contract(1.0E-6)
 
         fun Blueprint.simulation(
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             rotation: RotationConfig = TaskFlowModule.rotation,
             inventory: InventoryConfig = TaskFlowModule.inventory,
             build: BuildConfig = TaskFlowModule.build,

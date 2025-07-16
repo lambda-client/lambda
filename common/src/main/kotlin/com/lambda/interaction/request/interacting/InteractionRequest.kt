@@ -19,7 +19,7 @@ package com.lambda.interaction.request.interacting
 
 import com.lambda.Lambda.mc
 import com.lambda.config.groups.BuildConfig
-import com.lambda.config.groups.InteractionConfig
+import com.lambda.config.groups.InteractConfig
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.InteractionContext
 import com.lambda.interaction.request.Request
@@ -32,7 +32,7 @@ data class InteractionRequest(
     val contexts: Collection<InteractionContext>,
     val onInteract: ((BlockPos) -> Unit)?,
     val pendingInteractionsList: MutableCollection<BuildContext>,
-    override val config: InteractionConfig,
+    override val config: InteractConfig,
     val build: BuildConfig,
     val hotbar: HotbarConfig,
     val rotation: RotationConfig

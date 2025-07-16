@@ -19,14 +19,12 @@ package com.lambda.config.groups
 
 import com.lambda.config.Configurable
 import com.lambda.event.events.TickEvent
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.placing.PlaceConfig
 
 class PlaceSettings(
     c: Configurable,
-    priority: Priority = 0,
     vis: () -> Boolean = { true }
-) : PlaceConfig(priority) {
+) : PlaceConfig() {
     override val rotateForPlace by c.setting("Rotate For Place", true, "Rotate towards block while placing", visibility = vis)
     override val airPlace by c.setting("Air Place", AirPlaceMode.None, "Allows for placing blocks without adjacent faces", visibility = vis)
     override val axisRotateSetting by c.setting("Axis Rotate", true, "Overrides the Rotate For Place setting and rotates the player on each axis to air place rotational blocks") { vis() && airPlace.isEnabled() }
@@ -34,7 +32,7 @@ class PlaceSettings(
     override val placeConfirmationMode by c.setting("Place Confirmation", PlaceConfirmationMode.PlaceThenAwait, "Wait for block placement confirmation", visibility = vis)
     override val maxPendingPlacements by c.setting("Max Pending Placements", 5, 0..30, 1, "The maximum amount of pending placements", visibility = vis)
     override val placementsPerTick by c.setting("Places Per Tick", 1, 1..30, 1, "Maximum instant block places per tick", visibility = vis)
-    override val swing by c.setting("Swing", true, "Swings the players hand when placing", visibility = vis)
+    override val swing by c.setting("Swing On Place", true, "Swings the players hand when placing", visibility = vis)
     override val swingType by c.setting("Place Swing Type", BuildConfig.SwingType.Vanilla, "The style of swing") { vis() && swing }
     override val sounds by c.setting("Place Sounds", true, "Plays the placing sounds", visibility = vis)
 }

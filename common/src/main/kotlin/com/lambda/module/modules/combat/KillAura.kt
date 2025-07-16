@@ -17,6 +17,7 @@
 
 package com.lambda.module.modules.combat
 
+import com.lambda.config.groups.InteractSettings
 import com.lambda.config.groups.InteractionSettings
 import com.lambda.config.groups.RotationSettings
 import com.lambda.config.groups.Targeting
@@ -51,10 +52,11 @@ object KillAura : Module(
     description = "Attacks entities",
     defaultTags = setOf(ModuleTag.COMBAT, ModuleTag.RENDER)
 ) {
-    private val page by setting("Page", Page.Interact)
+    private val page by setting("Page", Page.Interaction)
 
     // Interact
-    private val interactionSettings = InteractionSettings(this, InteractionMask.Entity) { page == Page.Interact }
+    private val interactionSettings = InteractionSettings(this, InteractionMask.Entity) { page == Page.Interaction }
+    private val interactSettings = InteractSettings(this) { page == Page.Interact }
     private val swap by setting("Swap", true, "Swap to the item with the highest damage")
     private val attackMode by setting("Attack Mode", AttackMode.Cooldown) { page == Page.Interact }
     private val cooldownOffset by setting("Cooldown Offset", 0, -5..5, 1) { page == Page.Interact && attackMode == AttackMode.Cooldown }
@@ -83,6 +85,7 @@ object KillAura : Module(
     private var onGroundTicks = 0
 
     enum class Page {
+        Interaction,
         Interact,
         Targeting,
         Aiming
@@ -163,7 +166,7 @@ object KillAura : Module(
 
         // Attack
         interaction.attackEntity(player, target)
-        if (interactionSettings.swingHand) player.swingHand(Hand.MAIN_HAND)
+        if (interactSettings.swingHand) player.swingHand(Hand.MAIN_HAND)
 
         lastAttackTime = System.currentTimeMillis()
         hitDelay = (hitDelay1..hitDelay2).random() * 50

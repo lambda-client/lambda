@@ -21,9 +21,7 @@ import com.lambda.config.groups.BuildConfig
 import com.lambda.event.Event
 import com.lambda.interaction.request.RequestConfig
 
-abstract class PlaceConfig(
-    priority: Int
-) : RequestConfig<PlaceRequest>(priority) {
+abstract class PlaceConfig : RequestConfig<PlaceRequest>() {
     abstract val rotateForPlace: Boolean
     abstract val airPlace: AirPlaceMode
     protected abstract val axisRotateSetting: Boolean

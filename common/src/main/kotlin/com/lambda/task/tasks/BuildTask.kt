@@ -67,7 +67,7 @@ class BuildTask @Ta5kBuilder constructor(
     private val collectDrops: Boolean = TaskFlowModule.build.collectDrops,
     private val build: BuildConfig = TaskFlowModule.build,
     private val rotation: RotationConfig = TaskFlowModule.rotation,
-    private val interact: InteractionConfig = TaskFlowModule.interact,
+    private val interactionConfig: InteractionConfig = TaskFlowModule.interaction,
     private val inventory: InventoryConfig = TaskFlowModule.inventory,
     private val hotbar: HotbarConfig = TaskFlowModule.hotbar,
 ) : Task<Unit>() {
@@ -96,7 +96,7 @@ class BuildTask @Ta5kBuilder constructor(
         listen<TickEvent.Pre> {
             if (collectDrops()) return@listen
 
-            val results = blueprint.simulate(player.eyePos, interact, rotation, inventory, build)
+            val results = blueprint.simulate(player.eyePos, interactionConfig, rotation, inventory, build)
 
             TaskFlowModule.drawables = results
                 .filterIsInstance<Drawable>()
@@ -126,7 +126,7 @@ class BuildTask @Ta5kBuilder constructor(
                 is BuildResult.NotVisible,
                 is PlaceResult.NoIntegrity -> {
                     if (!build.pathing) return@listen
-                    val sim = blueprint.simulation(interact, rotation, inventory, build)
+                    val sim = blueprint.simulation(interactionConfig, rotation, inventory, build)
                     val goal = BuildGoal(sim, player.blockPos)
                     BaritoneUtils.setGoalAndPath(goal)
                 }
@@ -157,7 +157,7 @@ class BuildTask @Ta5kBuilder constructor(
                             }
 
                             val request = breakRequest(
-                                requestContexts, pendingInteractions, rotation, hotbar, interact, inventory, build,
+                                requestContexts, pendingInteractions, rotation, hotbar, interactionConfig, inventory, build,
                             ) {
                                 onStop { breaks++ }
                                 onItemDrop?.let { onItemDrop ->
@@ -186,12 +186,12 @@ class BuildTask @Ta5kBuilder constructor(
                                 .take(emptyPendingInteractionSlots)
                                 .map { it.context }
 
-                            interact.request(
+                            build.interacting.request(
                                 InteractionRequest(
                                     interactResults,
                                     null,
                                     pendingInteractions,
-                                    interact,
+                                    build.interacting,
                                     build,
                                     hotbar,
                                     rotation
@@ -256,7 +256,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
             blueprint: () -> Blueprint,
         ) = BuildTask(blueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory)
@@ -267,7 +267,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(toBlueprint(), finishOnDone, collectDrops, build, rotation, interact, inventory)
 
@@ -277,7 +277,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(this, finishOnDone, collectDrops, build, rotation, interact, inventory)
 
@@ -288,7 +288,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = true,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),
@@ -302,7 +302,7 @@ class BuildTask @Ta5kBuilder constructor(
             collectDrops: Boolean = TaskFlowModule.build.collectDrops,
             build: BuildConfig = TaskFlowModule.build,
             rotation: RotationConfig = TaskFlowModule.rotation,
-            interact: InteractionConfig = TaskFlowModule.interact,
+            interact: InteractionConfig = TaskFlowModule.interaction,
             inventory: InventoryConfig = TaskFlowModule.inventory,
         ) = BuildTask(
             blockPos.toStructure(TargetState.Air).toBlueprint(),

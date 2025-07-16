@@ -18,7 +18,6 @@
 package com.lambda.interaction.request.hotbar
 
 import com.lambda.event.Event
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestConfig
 
 /**
@@ -26,9 +25,7 @@ import com.lambda.interaction.request.RequestConfig
  *
  * @param priority The priority of this configuration.
  */
-abstract class HotbarConfig(
-    priority: Priority
-) : RequestConfig<HotbarRequest>(priority) {
+abstract class HotbarConfig : RequestConfig<HotbarRequest>() {
 
     /**
      * The number of ticks to keep the current hotbar selection active.

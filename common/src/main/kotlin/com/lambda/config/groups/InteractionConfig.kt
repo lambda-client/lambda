@@ -22,9 +22,7 @@ import com.lambda.interaction.request.interacting.InteractionManager
 import com.lambda.interaction.request.interacting.InteractionRequest
 import com.lambda.interaction.request.rotating.visibilty.PointSelection
 
-abstract class InteractionConfig(
-    priority: Int
-) : RequestConfig<InteractionRequest>(priority) {
+abstract class InteractionConfig : RequestConfig<InteractionRequest>() {
     /**
      * Maximum entity interaction distance
      */
@@ -34,11 +32,6 @@ abstract class InteractionConfig(
      * Maximum block interaction distance
      */
     abstract val interactReach: Double
-
-    /**
-     * Rotates the player for block interactions. For example, right-clicking a chest to open it.
-     */
-    abstract val rotate: Boolean
 
     /**
      * Maximum possible interaction distance
@@ -68,21 +61,6 @@ abstract class InteractionConfig(
      * The way to select the best point.
      */
     abstract val pointSelection: PointSelection
-
-    /**
-     * The method of confirming the interaction had taken place server side
-     */
-    abstract val interactConfirmationMode: InteractConfirmationMode
-
-    /**
-     * Whether to swing the hand when interacting.
-     */
-    abstract val swingHand: Boolean
-
-    /**
-     * The style of hand swing to use
-     */
-    abstract val interactSwingType: BuildConfig.SwingType
 
     override fun requestInternal(request: InteractionRequest, queueIfClosed: Boolean) {
         InteractionManager.request(request, queueIfClosed)

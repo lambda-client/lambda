@@ -91,7 +91,7 @@ import kotlin.math.pow
 object BuildSimulator {
     fun Blueprint.simulate(
         eye: Vec3d,
-        interact: InteractionConfig = TaskFlowModule.interact,
+        interactionConfig: InteractionConfig = TaskFlowModule.interaction,
         rotation: RotationConfig = TaskFlowModule.rotation,
         inventory: InventoryConfig = TaskFlowModule.inventory,
         build: BuildConfig = TaskFlowModule.build,
@@ -102,15 +102,15 @@ object BuildSimulator {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
-            checkPostProcessResults(pos, eye, preProcessing, target, interact, build.placing, rotation, inventory).let {
+            checkPostProcessResults(pos, eye, preProcessing, target, interactionConfig, build.placing, rotation, inventory).let {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
-            checkPlaceResults(pos, eye, preProcessing, target, build.placing, interact, rotation, inventory).let {
+            checkPlaceResults(pos, eye, preProcessing, target, build.placing, interactionConfig, rotation, inventory).let {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
-            checkBreakResults(pos, eye, preProcessing, build.breaking, interact, rotation, inventory, build).let {
+            checkBreakResults(pos, eye, preProcessing, build.breaking, interactionConfig, rotation, inventory, build).let {
                 if (it.isEmpty()) return@let
                 return@flatMap it
             }
@@ -178,7 +178,7 @@ object BuildSimulator {
         eye: Vec3d,
         preProcessing: PreProcessingInfo,
         targetState: TargetState,
-        interact: InteractionConfig,
+        interactionConfig: InteractionConfig,
         place: PlaceConfig,
         rotation: RotationConfig,
         inventory: InventoryConfig
@@ -199,7 +199,7 @@ object BuildSimulator {
             val airPlace = placing && place.airPlace.isEnabled()
 
             boxes.forEach { box ->
-                val refinedSides = if (interact.checkSideVisibility) {
+                val refinedSides = if (interactionConfig.checkSideVisibility) {
                     box.getVisibleSurfaces(eye).let { visibleSides ->
                         sides?.let { specific ->
                             visibleSides.intersect(specific)
@@ -207,34 +207,34 @@ object BuildSimulator {
                     }
                 } else sides ?: Direction.entries.toSet()
 
-                scanSurfaces(box, refinedSides, interact.resolution, preProcessing.surfaceScan) { hitSide, vec ->
+                scanSurfaces(box, refinedSides, interactionConfig.resolution, preProcessing.surfaceScan) { hitSide, vec ->
                     val distSquared = eye distSq vec
-                    if (distSquared > interact.interactReach.pow(2)) {
+                    if (distSquared > interactionConfig.interactReach.pow(2)) {
                         misses.add(vec)
                         return@scanSurfaces
                     }
 
                     val newRotation = eye.rotationTo(vec)
 
-                    val hit = if (interact.strictRayCast) {
-                        val rayCast = newRotation.rayCast(interact.interactReach, eye)
+                    val hit = if (interactionConfig.strictRayCast) {
+                        val rayCast = newRotation.rayCast(interactionConfig.interactReach, eye)
                         when {
                             rayCast != null && (!airPlace || eye distSq rayCast.pos <= distSquared) ->
                                 rayCast.blockResult
 
                             airPlace -> {
-                                val hitVec = newRotation.castBox(box, interact.interactReach, eye)
+                                val hitVec = newRotation.castBox(box, interactionConfig.interactReach, eye)
                                 BlockHitResult(hitVec, hitSide, pos, false)
                             }
 
                             else -> null
                         }
                     } else {
-                        val hitVec = newRotation.castBox(box, interact.interactReach, eye)
+                        val hitVec = newRotation.castBox(box, interactionConfig.interactReach, eye)
                         BlockHitResult(hitVec, hitSide, pos, false)
                     } ?: return@scanSurfaces
 
-                    val checked = CheckedHit(hit, newRotation, interact.interactReach)
+                    val checked = CheckedHit(hit, newRotation, interactionConfig.interactReach)
                     if (hit.blockResult?.blockPos != pos) {
                         blockedHits.add(vec)
                         return@scanSurfaces
@@ -254,7 +254,7 @@ object BuildSimulator {
                 return@interactBlock
             }
 
-            interact.pointSelection.select(validHits)?.let { checkedHit ->
+            interactionConfig.pointSelection.select(validHits)?.let { checkedHit ->
                 val checkedResult = checkedHit.hit
                 val rotationTarget = lookAt(checkedHit.targetRotation, 0.001)
                 val context = InteractionContext(
@@ -309,7 +309,7 @@ object BuildSimulator {
                 }
                 Properties.SLAB_TYPE -> {
                     if (targetState.blockState.get(Properties.SLAB_TYPE) != SlabType.DOUBLE) return@forEach
-                    checkPlaceResults(pos, eye, preProcessing, targetState, place, interact, rotation, inventory).let { placeResults ->
+                    checkPlaceResults(pos, eye, preProcessing, targetState, place, interactionConfig, rotation, inventory).let { placeResults ->
                         acc.addAll(placeResults)
                     }
                 }
@@ -329,7 +329,7 @@ object BuildSimulator {
         preProcessing: PreProcessingInfo,
         targetState: TargetState,
         place: PlaceConfig,
-        interact: InteractionConfig,
+        interactionConfig: InteractionConfig,
         rotation: RotationConfig,
         inventory: InventoryConfig
     ): Set<BuildResult> {
@@ -358,14 +358,14 @@ object BuildSimulator {
 
             val validHits = mutableListOf<CheckedHit>()
             val misses = mutableSetOf<Vec3d>()
-            val reachSq = interact.interactReach.pow(2)
+            val reachSq = interactionConfig.interactReach.pow(2)
 
             boxes.forEach { box ->
-                val sides = if (interact.checkSideVisibility) {
+                val sides = if (interactionConfig.checkSideVisibility) {
                     box.getVisibleSurfaces(eye).intersect(setOf(hitSide))
                 } else setOf(hitSide)
 
-                scanSurfaces(box, sides, interact.resolution, preProcessing.surfaceScan) { _, vec ->
+                scanSurfaces(box, sides, interactionConfig.resolution, preProcessing.surfaceScan) { _, vec ->
                     val distSquared = eye distSq vec
                     if (distSquared > reachSq) {
                         misses.add(vec)
@@ -374,25 +374,25 @@ object BuildSimulator {
 
                     val newRotation = eye.rotationTo(vec)
 
-                    val hit = if (interact.strictRayCast) {
-                        val rayCast = newRotation.rayCast(interact.interactReach, eye)
+                    val hit = if (interactionConfig.strictRayCast) {
+                        val rayCast = newRotation.rayCast(interactionConfig.interactReach, eye)
                         when {
                             rayCast != null && (!place.airPlace.isEnabled() || eye distSq rayCast.pos <= distSquared) ->
                                 rayCast.blockResult
 
                             place.airPlace.isEnabled() -> {
-                                val hitVec = newRotation.castBox(box, interact.interactReach, eye)
+                                val hitVec = newRotation.castBox(box, interactionConfig.interactReach, eye)
                                 BlockHitResult(hitVec, hitSide, hitPos, false)
                             }
 
                             else -> null
                         }
                     } else {
-                        val hitVec = newRotation.castBox(box, interact.interactReach, eye)
+                        val hitVec = newRotation.castBox(box, interactionConfig.interactReach, eye)
                         BlockHitResult(hitVec, hitSide, hitPos, false)
                     } ?: return@scanSurfaces
 
-                    val checked = CheckedHit(hit, newRotation, interact.interactReach)
+                    val checked = CheckedHit(hit, newRotation, interactionConfig.interactReach)
                     if (!checked.verify()) return@scanSurfaces
 
                     validHits.add(checked)
@@ -409,7 +409,7 @@ object BuildSimulator {
                 return@forEach
             }
 
-            interact.pointSelection.select(validHits)?.let { checkedHit ->
+            interactionConfig.pointSelection.select(validHits)?.let { checkedHit ->
                 val optimalStack = targetState.getStack(world, pos)
 
                 // ToDo: For each hand and sneak or not?
@@ -568,7 +568,7 @@ object BuildSimulator {
         eye: Vec3d,
         preProcessing: PreProcessingInfo,
         breaking: BreakConfig,
-        interact: InteractionConfig,
+        interactionConfig: InteractionConfig,
         rotation: RotationConfig,
         inventory: InventoryConfig,
         build: BuildConfig
@@ -595,7 +595,7 @@ object BuildSimulator {
 
         /* liquid needs to be submerged first to be broken */
         if (!state.fluidState.isEmpty && state.isReplaceable) {
-            val submerge = checkPlaceResults(pos, eye, preProcessing, TargetState.Solid, build.placing, interact, rotation, inventory)
+            val submerge = checkPlaceResults(pos, eye, preProcessing, TargetState.Solid, build.placing, interactionConfig, rotation, inventory)
             acc.add(BreakResult.Submerge(pos, state, submerge))
             acc.addAll(submerge)
             return acc
@@ -610,9 +610,9 @@ object BuildSimulator {
             acc.add(BreakResult.BlockedByLiquid(pos, state))
             adjacentLiquids.forEach { liquidPos ->
                 val submerge = if (blockState(liquidPos).isReplaceable) {
-                    checkPlaceResults(liquidPos, eye, preProcessing, TargetState.Solid, build.placing, interact, rotation, inventory)
+                    checkPlaceResults(liquidPos, eye, preProcessing, TargetState.Solid, build.placing, interactionConfig, rotation, inventory)
                 } else {
-                    checkBreakResults(liquidPos, eye, preProcessing, breaking, interact, rotation, inventory, build)
+                    checkBreakResults(liquidPos, eye, preProcessing, breaking, interactionConfig, rotation, inventory, build)
                 }
                 acc.addAll(submerge)
             }
@@ -620,7 +620,7 @@ object BuildSimulator {
         }
 
         val currentRotation = RotationManager.activeRotation
-        val currentCast = currentRotation.rayCast(interact.interactReach, eye)
+        val currentCast = currentRotation.rayCast(interactionConfig.interactReach, eye)
 
         val voxelShape = state.getOutlineShape(world, pos)
         voxelShape.getClosestPointTo(eye).ifPresent {
@@ -636,7 +636,7 @@ object BuildSimulator {
         if (boxes.any { it.contains(eye) }) {
             currentCast?.blockResult?.let { blockHit ->
                 val rotationRequest = RotationRequest(
-                    lookAtBlock(pos, config = interact), rotation
+                    lookAtBlock(pos, config = interactionConfig), rotation
                 )
                 val breakContext = BreakContext(
                     blockHit,
@@ -652,11 +652,11 @@ object BuildSimulator {
 
         val validHits = mutableListOf<CheckedHit>()
         val misses = mutableSetOf<Vec3d>()
-        val reachSq = interact.interactReach.pow(2)
+        val reachSq = interactionConfig.interactReach.pow(2)
 
         boxes.forEach { box ->
             // ToDo: Rewrite Rotation request system to allow support for all sim features and use the rotation finder
-            scanSurfaces(box, Direction.entries.toSet(), interact.resolution) { side, vec ->
+            scanSurfaces(box, Direction.entries.toSet(), interactionConfig.resolution) { side, vec ->
                 if (eye distSq vec > reachSq) {
                     misses.add(vec)
                     return@scanSurfaces
@@ -664,14 +664,14 @@ object BuildSimulator {
 
                 val newRotation = eye.rotationTo(vec)
 
-                val hit = if (interact.strictRayCast) {
-                    newRotation.rayCast(interact.interactReach, eye)?.blockResult
+                val hit = if (interactionConfig.strictRayCast) {
+                    newRotation.rayCast(interactionConfig.interactReach, eye)?.blockResult
                 } else {
-                    val hitVec = newRotation.castBox(box, interact.interactReach, eye)
+                    val hitVec = newRotation.castBox(box, interactionConfig.interactReach, eye)
                     BlockHitResult(hitVec, side, pos, false)
                 } ?: return@scanSurfaces
 
-                val checked = CheckedHit(hit, newRotation, interact.interactReach)
+                val checked = CheckedHit(hit, newRotation, interactionConfig.interactReach)
                 if (!checked.verify()) return@scanSurfaces
 
                 validHits.add(checked)
@@ -684,7 +684,7 @@ object BuildSimulator {
             return acc
         }
 
-        val bestHit = interact.pointSelection.select(validHits) ?: return acc
+        val bestHit = interactionConfig.pointSelection.select(validHits) ?: return acc
         val blockHit = bestHit.hit.blockResult ?: return acc
         val target = lookAt(bestHit.targetRotation, 0.001)
         val rotationRequest = RotationRequest(target, rotation)

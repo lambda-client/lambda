@@ -32,6 +32,9 @@ interface BuildConfig {
     // Placing
     val placing: PlaceSettings
 
+    // Interacting
+    val interacting: InteractSettings
+
     enum class SwingType {
         Vanilla,
         Server,

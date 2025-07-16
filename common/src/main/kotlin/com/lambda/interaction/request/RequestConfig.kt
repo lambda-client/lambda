@@ -17,9 +17,7 @@
 
 package com.lambda.interaction.request
 
-abstract class RequestConfig <R : Request>(
-    val priority: Priority
-) {
+abstract class RequestConfig <R : Request> {
     protected abstract fun requestInternal(request: R, queueIfClosed: Boolean = true)
 
     fun request(request: R, queueIfClosed: Boolean = true): R =
