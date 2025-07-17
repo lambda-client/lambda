@@ -7,7 +7,6 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.util.Mouse
 import net.minecraft.client.network.AbstractClientPlayerEntity
 import net.minecraft.client.util.math.MatrixStack
 import net.minecraft.item.ItemStack
@@ -94,12 +93,8 @@ object ViewModel : Module(
 
     init {
         listen<MouseEvent.Click> { event ->
-            if (event.button.key == mc.options.attackKey.boundKey.code) {
-                // For some reason click and release seem to be swapped???
-                attackKeyTicksPressed = when (event.action) {
-                    Mouse.Action.Click -> -1
-                    Mouse.Action.Release -> 0
-                }
+            if (event.button == mc.options.attackKey.boundKey.code) {
+                attackKeyTicksPressed = if (event.action == 0) -1 else 0
             }
         }
         listen<KeyboardEvent.Press> { event ->
