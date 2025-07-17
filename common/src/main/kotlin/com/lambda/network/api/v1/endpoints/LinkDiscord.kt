@@ -32,10 +32,10 @@ import io.ktor.http.*
  * Example:
  *  - token: OTk1MTU1NzcyMzYxMTQ2NDM4
  *
- * response: [Authentication] or error
+ * @return result of [Authentication]
  */
 suspend fun linkDiscord(discordToken: String) = runCatching {
-	LambdaHttp.post("${apiUrl}/api/${apiVersion.value}/link/discord") {
+	LambdaHttp.post("${apiUrl}/api/$apiVersion/link/discord") {
 		setBody("""{ "token": "$discordToken" }""")
 		bearerAuth(NetworkManager.accessToken)
 		contentType(ContentType.Application.Json)

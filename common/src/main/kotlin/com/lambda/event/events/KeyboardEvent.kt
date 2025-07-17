@@ -56,7 +56,7 @@ sealed class KeyboardEvent {
 
         val hasShift = modifiers and GLFW_MOD_SHIFT != 0
         val hasControl = modifiers and GLFW_MOD_CONTROL != 0
-        val hasClt = modifiers and GLFW_MOD_ALT != 0
+        val hasAlt = modifiers and GLFW_MOD_ALT != 0
         val hasSuper = modifiers and GLFW_MOD_SUPER != 0
         val hasCapsLock = modifiers and GLFW_MOD_CAPS_LOCK != 0
         val hasNumLock = modifiers and GLFW_MOD_NUM_LOCK != 0

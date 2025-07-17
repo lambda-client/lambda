@@ -28,14 +28,14 @@ import com.lambda.sound.SoundManager.playSound
 import com.lambda.util.Communication
 import com.lambda.util.Communication.prefix
 import com.lambda.util.Formatting.string
-import com.lambda.util.combat.CombatUtils.explosionDamage
 import com.lambda.util.combat.CombatUtils.hasDeadlyCrystal
+import com.lambda.util.combat.DamageUtils.isFallDeadly
+import com.lambda.util.extension.fullHealth
 import com.lambda.util.player.SlotUtils.combined
 import com.lambda.util.text.*
 import com.lambda.util.world.fastEntitySearch
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.damage.DamageTypes
-import net.minecraft.entity.decoration.EndCrystalEntity
 import net.minecraft.entity.mob.CreeperEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Items
@@ -49,7 +49,9 @@ object AutoDisconnect : Module(
     defaultTags = setOf(ModuleTag.COMBAT)
 ) {
     private val health by setting("Health", true, "Disconnect from the server when health is below the set limit.")
-    private val minimumHealth by setting("Min Health", 10, 6..36, 1, description = "Set the minimum health threshold for disconnection.", unit = " hearts") { health }
+    private val minimumHealth by setting("Min Health", 10, 6..36, 1, "Set the minimum health threshold for disconnection.", unit = " half-hearts") { health }
+    private val falls by setting("Falls", false, "Disconnect if the player will die of fall damage")
+    private val fallDistance by setting("Falls Time", 10, 0..30, 1, "Number of blocks fallen before disconnecting for fall damage.", unit = " blocks") { falls }
     private val crystals by setting("Crystals", false, "Disconnect if an End Crystal explosion would be lethal.")
     private val creeper by setting("Creepers", true, "Disconnect when an ignited Creeper is nearby.")
     private val totem by setting("Totem", false, "Disconnect if the number of Totems of Undying is below the required amount.")
@@ -153,7 +155,7 @@ object AutoDisconnect : Module(
         literal(" on ")
         highlighted(Communication.currentTime())
         literal(" with ")
-        highlighted(player.health.string)
+        highlighted(player.fullHealth.string)
         literal(" health.")
         if (player.isSubmergedInWater) {
             literal("\n")
@@ -183,10 +185,10 @@ object AutoDisconnect : Module(
 
     enum class Reason(val check: () -> Boolean, val generateReason: SafeContext.() -> Text?) {
         HEALTH({ health }, {
-            if (player.health < minimumHealth) {
+            if (player.fullHealth < minimumHealth) {
                 buildText {
                     literal("Health ")
-                    highlighted(player.health.string)
+                    highlighted(player.fullHealth.string)
                     literal(" below minimum of ")
                     highlighted("$minimumHealth")
                     literal("!")
@@ -233,11 +235,18 @@ object AutoDisconnect : Module(
             }
         }),
         END_CRYSTAL({ crystals }, {
-            if (hasDeadlyCrystal(1.0))
+            if (hasDeadlyCrystal())
                 buildText {
                     literal("There was an end crystal close to you that would've killed you")
                 }
             else null
-        });
+        }),
+        FALL_DAMAGE({ falls }, {
+            if (isFallDeadly() && player.fallDistance > fallDistance)
+                buildText {
+                    literal("You were about to fall and die")
+                }
+            else null
+        })
     }
 }

@@ -113,7 +113,7 @@ class UnsafeListener<T : Event>(
                 function(event)
             }
 
-            EventFlow.syncListeners.subscribe<T>(listener)
+            EventFlow.syncListeners.subscribe(listener)
 
             return listener
         }
@@ -159,7 +159,7 @@ class UnsafeListener<T : Event>(
                 }
             }
 
-            EventFlow.syncListeners.subscribe<T>(destroyable)
+            EventFlow.syncListeners.subscribe(destroyable)
 
             return pointer
         }
@@ -202,9 +202,12 @@ class UnsafeListener<T : Event>(
                 }
             }
 
-            EventFlow.concurrentListeners.subscribe<T>(listener)
+            EventFlow.concurrentListeners.subscribe(listener)
 
             return listener
         }
     }
+
+    override fun toString() =
+        "SafeListener(priority=$priority, owner=${owner::class.simpleName}, alwaysListen=$alwaysListen)"
 }

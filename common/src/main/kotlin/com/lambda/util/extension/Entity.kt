@@ -19,6 +19,7 @@ package com.lambda.util.extension
 
 import com.lambda.interaction.request.rotation.Rotation
 import net.minecraft.entity.Entity
+import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.Vec3d
 
 val Entity.prevPos
@@ -26,3 +27,6 @@ val Entity.prevPos
 
 val Entity.rotation
     get() = Rotation(yaw, pitch)
+
+val LivingEntity.fullHealth: Double
+    get() = health + absorptionAmount.toDouble()

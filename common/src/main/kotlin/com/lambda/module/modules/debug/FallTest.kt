@@ -15,24 +15,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.lambda.network.api.v1.endpoints
+package com.lambda.module.modules.debug
 
-import com.lambda.module.modules.client.Network.apiUrl
-import com.lambda.module.modules.client.Network.apiVersion
-import com.lambda.network.LambdaHttp
-import com.lambda.network.api.v1.models.Cape
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import java.util.UUID
+import com.lambda.event.events.TickEvent
+import com.lambda.event.listener.SafeListener.Companion.listen
+import com.lambda.module.Module
+import com.lambda.module.tag.ModuleTag
+import com.lambda.util.Communication.info
+import com.lambda.util.combat.DamageUtils.fallDamage
+import com.lambda.util.combat.DamageUtils.isFallDeadly
 
-/**
- * Gets the cape of the given player UUID
- *
- * Example:
- *  - id: ab24f5d6-dcf1-45e4-897e-b50a7c5e7422
- *
- * @return results of cape
- */
-suspend fun getCape(uuid: UUID) = runCatching {
-	LambdaHttp.get("$apiUrl/api/$apiVersion/cape?id=$uuid").body<Cape>()
+object FallTest : Module(
+    name = "FallTest",
+    defaultTags = setOf(ModuleTag.DEBUG),
+) {
+    init {
+        listen<TickEvent.Pre> {
+            val damage = fallDamage()
+
+            info("Fall damage = $damage, Deadly = ${isFallDeadly()}")
+        }
+    }
 }

@@ -47,6 +47,7 @@ object MapPreview : Module(
 
         override fun drawItems(textRenderer: TextRenderer, x: Int, y: Int, context: DrawContext) {
             mapId?.let { id ->
+                val state = state ?: return
                 val matrices = context.matrices
 
                 matrices.push()
