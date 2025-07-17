@@ -33,7 +33,8 @@ object ViewModel : Module(
     val offhandSwingProgress by setting("Offhand Swing Progress", 0.0f, 0.0f..1.0f, 0.025f, "Renders as if the players offhand was this progress through the swing animation") { page == Page.General }
     val oldAnimations by setting("Old Animations", false, "Adjusts the animations to look like they did in 1.8") { page == Page.General }
     val swapAnimation by setting("Swap Animation", true, "If disabled, removes the drop down animation when swapping item") { page == Page.General && oldAnimations }
-    val shadow by setting("Shadows", true, "If disabled, removes shadows on the model") { page == Page.General }
+    //ToDo: Implement
+//    val shadow by setting("Shadows", true, "If disabled, removes shadows on the model") { page == Page.General }
 
     private val splitScale by setting("Split Scale", false, "Splits left and right hand scale settings") { page == Page.Scale }
     private val xScale by setting("X Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Scale && !splitScale }.apply { onValueChange { _, to -> leftXScale = to; rightXScale = to } }
@@ -77,17 +78,17 @@ object ViewModel : Module(
     private var rightFovAnchorDistance by setting("Right Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the right FOV transformation from") { page == Page.Fov && splitFov }
 
     private val enableHand by setting("Hand", false, "Enables settings for the players hand") { page == Page.Hand }
-    private val handXScale by setting("Hand X Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
-    private val handYScale by setting("Hand Y Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
-    private val handZScale by setting("Hand Z Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
-    private val handXPosition by setting("Hand X Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
-    private val handYPosition by setting("Hand Y Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
-    private val handZPosition by setting("Hand Z Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand }
-    private val handXRotation by setting("Hand X Rotation", 0, -180..180, 1) { page == Page.Hand }
-    private val handYRotation by setting("Hand Y Rotation", 0, -180..180, 1) { page == Page.Hand }
-    private val handZRotation by setting("Hand Z Rotation", 0, -180..180, 1) { page == Page.Hand }
-    private val handFov by setting("Hand FOV", 70, 10..180, 1) { page == Page.Hand }
-    private val handFovAnchorDistance by setting("Hand FOV Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the hands FOV transformation from") { page == Page.Hand }
+    private val handXScale by setting("Hand X Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand && enableHand }
+    private val handYScale by setting("Hand Y Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand && enableHand }
+    private val handZScale by setting("Hand Z Scale", 1.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand && enableHand }
+    private val handXPosition by setting("Hand X Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand && enableHand }
+    private val handYPosition by setting("Hand Y Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand && enableHand }
+    private val handZPosition by setting("Hand Z Position", 0.0f, -1.0f..1.0f, 0.025f) { page == Page.Hand && enableHand }
+    private val handXRotation by setting("Hand X Rotation", 0, -180..180, 1) { page == Page.Hand && enableHand }
+    private val handYRotation by setting("Hand Y Rotation", 0, -180..180, 1) { page == Page.Hand && enableHand }
+    private val handZRotation by setting("Hand Z Rotation", 0, -180..180, 1) { page == Page.Hand && enableHand }
+    private val handFov by setting("Hand FOV", 70, 10..180, 1) { page == Page.Hand && enableHand }
+    private val handFovAnchorDistance by setting("Hand FOV Anchor Distance", 0.5f, 0.0f..1.0f, 0.01f, "The distance to anchor the hands FOV transformation from") { page == Page.Hand && enableHand }
 
     private var attackKeyTicksPressed = -1
 
