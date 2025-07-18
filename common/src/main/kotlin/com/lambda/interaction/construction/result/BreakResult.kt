@@ -140,11 +140,11 @@ sealed class BreakResult : BuildResult() {
     /**
      * The block is blocked by another liquid block that first has to be submerged.
      */
-    data class BlockedByLiquid(
+    data class BlockedByFluid(
         override val blockPos: BlockPos,
         val blockState: BlockState,
     ) : Drawable, BreakResult() {
-        override val rank = Rank.BREAK_IS_BLOCKED_BY_LIQUID
+        override val rank = Rank.BREAK_IS_BLOCKED_BY_FLUID
         private val color = Color(50, 12, 112, 100)
 
         override fun SafeContext.buildRenderer() {

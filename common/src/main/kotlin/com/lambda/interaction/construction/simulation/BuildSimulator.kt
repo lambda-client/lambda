@@ -68,11 +68,16 @@ import com.lambda.util.player.copyPlayer
 import com.lambda.util.player.gamemode
 import com.lambda.util.world.raycast.RayCastUtils.blockResult
 import net.minecraft.block.BlockState
+import net.minecraft.block.FallingBlock
 import net.minecraft.block.OperatorBlock
 import net.minecraft.block.SlabBlock
+import net.minecraft.block.Waterloggable
 import net.minecraft.block.enums.SlabType
 import net.minecraft.block.pattern.CachedBlockPosition
 import net.minecraft.enchantment.Enchantments
+import net.minecraft.fluid.FlowableFluid
+import net.minecraft.fluid.LavaFluid
+import net.minecraft.fluid.WaterFluid
 import net.minecraft.item.BlockItem
 import net.minecraft.item.Item
 import net.minecraft.item.ItemPlacementContext
@@ -601,22 +606,76 @@ object BuildSimulator {
             return acc
         }
 
-        val adjacentLiquids = Direction.entries.filter {
-            it != Direction.DOWN && !blockState(pos.offset(it)).fluidState.isEmpty
-        }.map { pos.offset(it) }
+        if (breaking.avoidLiquids) {
+            val affectedBlocks = hashSetOf(pos)
+            val checkQueue = hashSetOf(pos)
 
-        /* block has liquids next to it that will leak when broken */
-        if (adjacentLiquids.isNotEmpty() && breaking.avoidLiquids) {
-            acc.add(BreakResult.BlockedByLiquid(pos, state))
-            adjacentLiquids.forEach { liquidPos ->
-                val submerge = if (blockState(liquidPos).isReplaceable) {
-                    checkPlaceResults(liquidPos, eye, preProcessing, TargetState.Solid, build.placing, interactionConfig, rotation, inventory)
-                } else {
-                    checkBreakResults(liquidPos, eye, preProcessing, breaking, interactionConfig, rotation, inventory, build)
+            while (checkQueue.isNotEmpty()) {
+                val checkPos = checkQueue.first()
+                checkQueue.remove(checkPos)
+                for (offset in Direction.entries) {
+                    val adjacentPos = checkPos.offset(offset)
+
+                    if (blockState(adjacentPos).block !is FallingBlock) continue
+                    if (adjacentPos in affectedBlocks) continue
+
+                    if (offset == Direction.UP || FallingBlock.canFallThrough(blockState(adjacentPos.down()))) {
+                        checkQueue.add(adjacentPos)
+                        affectedBlocks.add(adjacentPos)
+                    }
                 }
-                acc.addAll(submerge)
             }
-            return acc
+
+            val affectedFluids = affectedBlocks.fold(hashMapOf<BlockPos, BlockState>()) { accumulator, affectedPos ->
+                Direction.entries.forEach { offset ->
+                    if (offset == Direction.DOWN) return@forEach
+
+                    val offsetPos = affectedPos.offset(offset)
+                    val offsetState = blockState(offsetPos)
+                    val fluidState = offsetState.fluidState
+                    val fluid = fluidState.fluid
+
+                    if (fluidState.isEmpty || fluid !is FlowableFluid) return@forEach
+
+                    if (offset == Direction.UP) {
+                        accumulator.put(offsetPos, offsetState)
+                        return@fold accumulator
+                    }
+
+                    if (offsetState.block is Waterloggable && !fluidState.isEmpty) {
+                        accumulator.put(offsetPos, offsetState)
+                        return@fold accumulator
+                    }
+
+                    val levelDecreasePerBlock =
+                        when (fluid) {
+                            is WaterFluid -> fluid.getLevelDecreasePerBlock(world)
+                            is LavaFluid -> fluid.getLevelDecreasePerBlock(world)
+                            else -> 0
+                        }
+
+                    if (fluidState.level - levelDecreasePerBlock > 0) {
+                        accumulator.put(offsetPos, offsetState)
+                        return@fold accumulator
+                    }
+                }
+
+                return@fold accumulator
+            }
+
+            /* block has liquids next to it that will leak when broken */
+            if (affectedFluids.isNotEmpty()) {
+                acc.add(BreakResult.BlockedByFluid(pos, state))
+                affectedFluids.entries.forEach { fluid  ->
+                    val submerge = if (fluid.value.isReplaceable) {
+                        checkPlaceResults(fluid.key, eye, preProcessing, TargetState.Solid, build.placing, interactionConfig, rotation, inventory)
+                    } else {
+                        checkBreakResults(fluid.key, eye, preProcessing, breaking, interactionConfig, rotation, inventory, build)
+                    }
+                    acc.addAll(submerge)
+                }
+                return acc
+            }
         }
 
         val currentRotation = RotationManager.activeRotation
