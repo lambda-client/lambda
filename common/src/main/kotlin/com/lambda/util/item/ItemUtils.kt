@@ -105,6 +105,7 @@ object ItemUtils {
 
     val defaultDisposables = setOf(
         Blocks.DIRT,
+        Blocks.GRASS_BLOCK,
         Blocks.COBBLESTONE,
         Blocks.GRANITE,
         Blocks.DIORITE,

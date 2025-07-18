@@ -17,6 +17,7 @@
 
 package com.lambda.interaction.construction.verify
 
+import com.lambda.config.groups.InventoryConfig
 import com.lambda.interaction.material.container.ContainerManager.findDisposable
 import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.isEmpty
@@ -43,7 +44,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld, ignoredProperties: Collection<Property<*>>) =
             state.isEmpty
 
-        override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
+        override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig): ItemStack =
             ItemStack.EMPTY
 
         override fun isEmpty() = true
@@ -55,7 +56,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld, ignoredProperties: Collection<Property<*>>) =
             state.isAir
 
-        override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
+        override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig): ItemStack =
             ItemStack.EMPTY
 
         override fun isEmpty() = true
@@ -67,8 +68,8 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld, ignoredProperties: Collection<Property<*>>) =
             state.isSolidBlock(world, pos)
 
-        override fun getStack(world: ClientWorld, pos: BlockPos) =
-            findDisposable()?.stacks?.firstOrNull {
+        override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig) =
+            findDisposable(inventory)?.stacks?.firstOrNull {
                 it.item.block in TaskFlowModule.inventory.disposables
             } ?: ItemStack(Items.NETHERRACK)
 
@@ -82,7 +83,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
             world.getBlockState(pos.offset(direction)).isSolidBlock(world, pos.offset(direction))
                     || state.isSolidBlock(world, pos)
 
-        override fun getStack(world: ClientWorld, pos: BlockPos) =
+        override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig) =
             findDisposable()?.stacks?.firstOrNull {
                 it.item.block in TaskFlowModule.inventory.disposables
             } ?: ItemStack(Items.NETHERRACK)
@@ -96,7 +97,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld, ignoredProperties: Collection<Property<*>>) =
             state.matches(blockState, ignoredProperties)
 
-        override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
+        override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig): ItemStack =
             blockState.block.getPickStack(world, pos, blockState)
 
         override fun isEmpty() = blockState.isEmpty
@@ -108,7 +109,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld, ignoredProperties: Collection<Property<*>>) =
             state.block == block
 
-        override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
+        override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig): ItemStack =
             block.getPickStack(world, pos, block.defaultState)
 
         override fun isEmpty() = block.defaultState.isEmpty
@@ -123,7 +124,7 @@ sealed class TargetState(val type: Type) : StateMatcher {
         override fun matches(state: BlockState, pos: BlockPos, world: ClientWorld, ignoredProperties: Collection<Property<*>>) =
             state.block == block
 
-        override fun getStack(world: ClientWorld, pos: BlockPos): ItemStack =
+        override fun getStack(world: ClientWorld, pos: BlockPos, inventory: InventoryConfig): ItemStack =
             itemStack
 
         override fun isEmpty() = false

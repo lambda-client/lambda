@@ -125,7 +125,7 @@ object ContainerManager : Loadable {
             .filter { inventory.containerSelection.matches(it) }
 
     fun findDisposable(inventory: InventoryConfig = TaskFlowModule.inventory) = container().find { container ->
-        inventory.disposables.any { container.materialAvailable(it.item.select()) >= 0 }
+        inventory.disposables.any { container.materialAvailable(it.item.select()) > 0 }
     }
 
     class NoContainerFound(selection: StackSelection) : Exception("No container found matching $selection")

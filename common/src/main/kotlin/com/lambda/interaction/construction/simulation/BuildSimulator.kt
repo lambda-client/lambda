@@ -415,7 +415,7 @@ object BuildSimulator {
             }
 
             interactionConfig.pointSelection.select(validHits)?.let { checkedHit ->
-                val optimalStack = targetState.getStack(world, pos)
+                val optimalStack = targetState.getStack(world, pos, inventory)
 
                 // ToDo: For each hand and sneak or not?
                 val fakePlayer = copyPlayer(player).apply {
@@ -655,7 +655,7 @@ object BuildSimulator {
                         }
 
                     if (fluidState.level - levelDecreasePerBlock > 0) {
-                        accumulator.put(offsetPos, offsetState)
+                        accumulator[offsetPos] = offsetState
                         return@fold accumulator
                     }
                 }
