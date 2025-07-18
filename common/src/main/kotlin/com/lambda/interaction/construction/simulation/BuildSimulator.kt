@@ -342,7 +342,15 @@ object BuildSimulator {
         val currentState = blockState(pos)
 
         val statePromoting = currentState.block is SlabBlock && targetState.matches(currentState, pos, world, preProcessing.ignore)
-        if (targetState.isEmpty() || (!currentState.isReplaceable && !statePromoting)) return acc
+        // If the target state is air then the only possible blocks it could place are to remove liquids so we use the Solid TargetState
+        val nextTargetState = if (targetState is TargetState.Air) {
+            TargetState.Solid
+        } else if (targetState.isEmpty()) {
+            // Otherwise if the target state is empty, there's no situation where placement would be required so we can return
+            return acc
+        } else targetState
+        // For example, slabs count as state promoting because you are placing another block to promote the current state to the target state
+        if (!currentState.isReplaceable && !statePromoting) return acc
 
         preProcessing.sides.forEach { neighbor ->
             val hitPos = if (!place.airPlace.isEnabled() && (currentState.isEmpty || statePromoting))
@@ -415,7 +423,7 @@ object BuildSimulator {
             }
 
             interactionConfig.pointSelection.select(validHits)?.let { checkedHit ->
-                val optimalStack = targetState.getStack(world, pos, inventory)
+                val optimalStack = nextTargetState.getStack(world, pos, inventory)
 
                 // ToDo: For each hand and sneak or not?
                 val fakePlayer = copyPlayer(player).apply {
@@ -424,6 +432,7 @@ object BuildSimulator {
 
                 val checkedResult = checkedHit.hit
 
+                // ToDo: Override the stack used for this to account for blocks where replaceability is dependent on the held item
                 val usageContext = ItemUsageContext(
                     fakePlayer,
                     Hand.MAIN_HAND,
@@ -476,8 +485,8 @@ object BuildSimulator {
                     resultState = blockItem.getPlacementState(context)
                         ?: return@placeState PlaceResult.BlockedByEntity(pos)
 
-                    return@placeState if (!targetState.matches(resultState, pos, world, preProcessing.ignore))
-                        PlaceResult.NoIntegrity(pos, resultState, context, (targetState as? TargetState.State)?.blockState)
+                    return@placeState if (!nextTargetState.matches(resultState, pos, world, preProcessing.ignore))
+                        PlaceResult.NoIntegrity(pos, resultState, context, (nextTargetState as? TargetState.State)?.blockState)
                     else null
                 }
 
@@ -638,12 +647,12 @@ object BuildSimulator {
                     if (fluidState.isEmpty || fluid !is FlowableFluid) return@forEach
 
                     if (offset == Direction.UP) {
-                        accumulator.put(offsetPos, offsetState)
+                        accumulator[offsetPos] = offsetState
                         return@fold accumulator
                     }
 
                     if (offsetState.block is Waterloggable && !fluidState.isEmpty) {
-                        accumulator.put(offsetPos, offsetState)
+                        accumulator[offsetPos] = offsetState
                         return@fold accumulator
                     }
 
@@ -663,17 +672,8 @@ object BuildSimulator {
                 return@fold accumulator
             }
 
-            /* block has liquids next to it that will leak when broken */
             if (affectedFluids.isNotEmpty()) {
                 acc.add(BreakResult.BlockedByFluid(pos, state))
-                affectedFluids.entries.forEach { fluid  ->
-                    val submerge = if (fluid.value.isReplaceable) {
-                        checkPlaceResults(fluid.key, eye, preProcessing, TargetState.Solid, build.placing, interactionConfig, rotation, inventory)
-                    } else {
-                        checkBreakResults(fluid.key, eye, preProcessing, breaking, interactionConfig, rotation, inventory, build)
-                    }
-                    acc.addAll(submerge)
-                }
                 return acc
             }
         }

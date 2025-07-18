@@ -28,7 +28,6 @@ import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BaritoneUtils
 import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.BlockUtils.blockState
-import com.lambda.util.BlockUtils.isNotEmpty
 import net.minecraft.util.math.BlockPos
 
 object Nuker : Module(
@@ -39,6 +38,7 @@ object Nuker : Module(
     private val height by setting("Height", 4, 1..8, 1)
     private val width by setting("Width", 4, 1..8, 1)
     private val flatten by setting("Flatten", true)
+    private val fillFluids by setting("Fill Fluids", false, "Removes liquids by filling them in before breaking")
     private val instantOnly by setting("Instant Only", false)
     private val fillFloor by setting("Fill Floor", false)
     private val baritoneSelection by setting("Baritone Selection", false, "Restricts nuker to your baritone selection")
@@ -51,7 +51,7 @@ object Nuker : Module(
                 val selection = BlockPos.iterateOutwards(player.blockPos, width, height, width)
                     .asSequence()
                     .map { it.blockPos }
-                    .filter { blockState(it).isNotEmpty }
+                    .filter { !blockState(it).isAir }
                     .filter { !flatten || it.y >= player.blockPos.y }
                     .filter { !instantOnly || blockState(it).getHardness(world, it) <= TaskFlowModule.build.breaking.breakThreshold }
                     .filter { pos ->
@@ -64,7 +64,7 @@ object Nuker : Module(
                                     && pos.z >= min.z && pos.z <= max.z
                         }
                     }
-                    .associateWith { TargetState.Air }
+                    .associateWith { if (fillFluids) TargetState.Air else TargetState.Empty }
 
                 if (fillFloor) {
                     val floor = BlockPos.iterateOutwards(player.blockPos.down(), width, 0, width)

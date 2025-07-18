@@ -230,10 +230,10 @@ object BlockUtils {
     )
 
     val fluids = listOf(
-        Fluids.LAVA,
         Fluids.FLOWING_LAVA,
-        Fluids.WATER,
+        Fluids.LAVA,
         Fluids.FLOWING_WATER,
+        Fluids.WATER,
         Fluids.EMPTY,
     )
 
