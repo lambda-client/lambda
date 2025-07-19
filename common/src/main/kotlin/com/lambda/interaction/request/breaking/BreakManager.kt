@@ -66,16 +66,13 @@ import com.lambda.util.Communication.warn
 import com.lambda.util.item.ItemUtils.block
 import com.lambda.util.math.lerp
 import com.lambda.util.player.gamemode
-import com.lambda.util.player.prediction.buildPlayerPrediction
 import com.lambda.util.player.swingHand
 import net.minecraft.block.BlockState
 import net.minecraft.client.network.ClientPlayerEntity
 import net.minecraft.client.sound.PositionedSoundInstance
 import net.minecraft.client.sound.SoundInstance
-import net.minecraft.enchantment.EnchantmentHelper
 import net.minecraft.entity.ItemEntity
 import net.minecraft.item.ItemStack
-import net.minecraft.registry.tag.FluidTags
 import net.minecraft.sound.SoundCategory
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
@@ -793,21 +790,21 @@ object BreakManager : RequestHandler<BreakRequest>(
         config: BreakConfig,
         item: ItemStack? = null
     ) = runSafe {
-        var delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.inventory.mainHandStack)
+        val delta = calcItemBlockBreakingDelta(player, world, pos, item ?: player.inventory.mainHandStack)
         //ToDo: This setting requires some fixes / improvements in the player movement prediction to work properly. Currently, it's broken
-        if (config.desyncFix) {
-            val nextTickPrediction = buildPlayerPrediction().next()
-            if (player.isOnGround && !nextTickPrediction.onGround) {
-                delta /= 5.0f
-            }
-
-            val affectedThisTick = player.isSubmergedIn(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(player)
-            val simulatedPlayer = nextTickPrediction.predictionEntity.player
-            val affectedNextTick = simulatedPlayer.isSubmergedIn(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(simulatedPlayer)
-            if (!affectedThisTick && affectedNextTick) {
-                delta /= 5.0f
-            }
-        }
+//        if (config.desyncFix) {
+//            val nextTickPrediction = buildPlayerPrediction().next()
+//            if (player.isOnGround && !nextTickPrediction.onGround) {
+//                delta /= 5.0f
+//            }
+//
+//            val affectedThisTick = player.isSubmergedIn(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(player)
+//            val simulatedPlayer = nextTickPrediction.predictionEntity.player
+//            val affectedNextTick = simulatedPlayer.isSubmergedIn(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(simulatedPlayer)
+//            if (!affectedThisTick && affectedNextTick) {
+//                delta /= 5.0f
+//            }
+//        }
         delta
     } ?: 0f
 

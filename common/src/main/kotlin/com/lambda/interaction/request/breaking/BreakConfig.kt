@@ -30,7 +30,8 @@ abstract class BreakConfig : RequestConfig<BreakRequest>() {
     abstract val breakThreshold: Float
     abstract val doubleBreak: Boolean
     abstract val fudgeFactor: Int
-    abstract val desyncFix: Boolean
+    //ToDo: Needs a more advanced player simulation implementation to predict the next ticks onGround / submerged status
+//    abstract val desyncFix: Boolean
     abstract val breakDelay: Int
     abstract val breakStageMask: Set<Event>
     abstract val swing: SwingMode
