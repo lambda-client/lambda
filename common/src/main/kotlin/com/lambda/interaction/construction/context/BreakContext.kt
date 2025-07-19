@@ -20,29 +20,35 @@ package com.lambda.interaction.construction.context
 import com.lambda.context.SafeContext
 import com.lambda.graphics.renderer.esp.DirectionMask
 import com.lambda.graphics.renderer.esp.DirectionMask.exclude
+import com.lambda.interaction.request.breaking.BreakConfig
 import com.lambda.interaction.request.breaking.BreakRequest
 import com.lambda.interaction.request.hotbar.HotbarManager
 import com.lambda.interaction.request.hotbar.HotbarRequest
 import com.lambda.interaction.request.rotating.RotationRequest
+import com.lambda.module.modules.client.TaskFlowModule
 import com.lambda.util.BlockUtils.emptyState
 import net.minecraft.block.BlockState
 import net.minecraft.block.FallingBlock
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import java.awt.Color
+import kotlin.random.Random
 
 data class BreakContext(
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
     override var hotbarIndex: Int,
     override var cachedState: BlockState,
-    var instantBreak: Boolean
+    var instantBreak: Boolean,
+    val sortMode: BreakConfig.SortMode = TaskFlowModule.build.breaking.sorter
 ) : BuildContext() {
     private val baseColor = Color(222, 0, 0, 25)
     private val sideColor = Color(222, 0, 0, 100)
 
     override val blockPos: BlockPos = result.blockPos
     override val expectedState: BlockState = cachedState.emptyState
+
+    val random = Random.nextDouble()
 
     override fun compareTo(other: BuildContext): Int {
         return when (other) {
@@ -51,7 +57,12 @@ data class BreakContext(
             }.thenBy {
                 it.instantBreak
             }.thenBy {
-                it.rotation.target.angleDistance
+                when (sortMode) {
+                    BreakConfig.SortMode.Closest -> it.distance
+                    BreakConfig.SortMode.Farthest -> -it.distance
+                    BreakConfig.SortMode.Rotation -> it.rotation.target.angleDistance
+                    BreakConfig.SortMode.Random -> it.random
+                }
             }.thenBy {
                 it.hotbarIndex == HotbarManager.serverSlot
             }.compare(this, other)

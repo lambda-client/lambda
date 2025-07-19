@@ -25,6 +25,7 @@ import java.awt.Color
 
 abstract class BreakConfig : RequestConfig<BreakRequest>() {
     abstract val breakMode: BreakMode
+    abstract val sorter: SortMode
     abstract val reBreak: Boolean
     abstract val unsafeCancels: Boolean
     abstract val breakThreshold: Float
@@ -75,6 +76,13 @@ abstract class BreakConfig : RequestConfig<BreakRequest>() {
     enum class BreakMode {
         Vanilla,
         Packet
+    }
+
+    enum class SortMode {
+        Closest,
+        Farthest,
+        Rotation,
+        Random
     }
 
     enum class SwingMode {

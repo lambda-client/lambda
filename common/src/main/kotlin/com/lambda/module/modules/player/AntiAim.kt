@@ -72,7 +72,6 @@ object AntiAim : Module(
     private var currentYaw = 0.0f
     private var currentPitch = 0.0f
 
-    private val random = Random(0)
     private var jitterRight = true
     private var jitterUp = true
     private var pitchingUp = true
@@ -90,7 +89,7 @@ object AntiAim : Module(
                     LeftRight.Right -> currentYaw + yawSpeed
                 }
                 YawMode.Jitter -> {
-                    val delta = random.nextFloat() * (yawSpeed)
+                    val delta = Random.nextFloat() * (yawSpeed)
                     if (jitterRight) {
                         jitterRight = false
                         currentYaw + delta
@@ -131,7 +130,7 @@ object AntiAim : Module(
                     }
                 }
                 PitchMode.Jitter -> {
-                    val delta = random.nextFloat() * (pitchSpeed)
+                    val delta = Random.nextFloat() * (pitchSpeed)
                     if (jitterUp) {
                         jitterUp = false
                         currentPitch - delta

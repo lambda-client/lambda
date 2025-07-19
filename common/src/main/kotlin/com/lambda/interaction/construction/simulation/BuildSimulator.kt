@@ -698,7 +698,8 @@ object BuildSimulator {
                     rotationRequest,
                     player.inventory.selectedSlot,
                     state,
-                    instantBreakable(state, pos, breaking.breakThreshold)
+                    instantBreakable(state, pos, breaking.breakThreshold),
+                    breaking.sorter
                 )
                 acc.add(BreakResult.Break(pos, breakContext))
                 return acc

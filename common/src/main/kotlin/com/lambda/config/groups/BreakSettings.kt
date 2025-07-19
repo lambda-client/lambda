@@ -29,6 +29,7 @@ class BreakSettings(
 ) : BreakConfig() {
     val page by c.setting("Break Page", Page.General, visibility = vis)
     override val breakMode by c.setting("Break Mode", BreakMode.Packet) { vis() && page == Page.General }
+    override val sorter by c.setting("Sorter", SortMode.Closest, "The order in which breaks are performed") { vis() && page == Page.General }
     override val reBreak by c.setting("ReBreak", true, "Re-breaks blocks after they've been broken once") { vis() && page == Page.General }
     override val unsafeCancels by c.setting("Unsafe Cancels", true, "Allows cancelling block breaking even if the server might continue breaking sever side, potentially causing unexpected state changes") { vis() && page == Page.General }
     override val breakThreshold by c.setting("Break Threshold", 0.70f, 0.1f..1.0f, 0.01f, "The break amount at which the block is considered broken") { vis() && page == Page.General }
