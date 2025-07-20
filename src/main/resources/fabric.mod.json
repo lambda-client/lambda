@@ -18,7 +18,7 @@
     "client": [
       {
         "adapter": "kotlin",
-        "value": "com.lambda.fabric.LambdaFabric"
+        "value": "com.lambda.Lambda"
       }
     ]
   },

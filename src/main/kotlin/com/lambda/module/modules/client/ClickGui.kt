@@ -167,7 +167,6 @@ object ClickGui : Module(
     init {
         onEnable {
             SCREEN.show()
-            toggle()
         }
     }
 

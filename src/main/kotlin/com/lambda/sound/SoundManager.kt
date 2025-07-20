@@ -18,11 +18,15 @@
 package com.lambda.sound
 
 import com.lambda.Lambda.mc
+import com.lambda.core.Loadable
 import com.lambda.util.math.random
 import net.minecraft.client.sound.PositionedSoundInstance
+import net.minecraft.registry.Registries
+import net.minecraft.registry.Registry
+import net.minecraft.registry.SimpleRegistry
 import net.minecraft.sound.SoundEvent
 
-object SoundManager {
+object SoundManager : Loadable {
     fun playSound(event: SoundEvent, pitch: Double = 1.0) {
         mc.soundManager.play(
             PositionedSoundInstance.master(event, pitch.toFloat())
@@ -35,5 +39,20 @@ object SoundManager {
         mc.soundManager.play(
             PositionedSoundInstance.master(event, actualPitch.toFloat())
         )
+    }
+
+    override fun load(): String {
+        (Registries.SOUND_EVENT as SimpleRegistry)
+            .frozen = false // fuck you
+
+        LambdaSound.entries.forEach {
+            Registry.register(Registries.SOUND_EVENT, it.id, it.event)
+        }
+
+        (Registries.SOUND_EVENT as SimpleRegistry)
+            .frozen = true // fuck you
+
+
+        return "Loaded ${LambdaSound.entries.size} sounds"
     }
 }

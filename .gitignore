@@ -49,8 +49,5 @@ bin/
 run/
 logs/
 
-### Architectury ###
-.architectury-transformer/
-
 ### Kotlin ###
 *.kotlin_module

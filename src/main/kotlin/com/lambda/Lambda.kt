@@ -28,8 +28,12 @@ import com.lambda.config.serializer.KeyCodeSerializer
 import com.lambda.config.serializer.OptionalSerializer
 import com.lambda.core.Loader
 import com.lambda.threading.recordRenderCall
+import com.lambda.threading.runGameScheduled
 import com.lambda.util.KeyCode
 import com.mojang.authlib.GameProfile
+import net.fabricmc.api.ClientModInitializer
+import net.fabricmc.api.ModInitializer
+import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
 import net.minecraft.item.ItemStack
@@ -42,12 +46,15 @@ import java.awt.Color
 import java.util.*
 
 
-object Lambda {
+object Lambda : ClientModInitializer {
     const val MOD_NAME = "Lambda"
     const val MOD_ID = "lambda"
     const val SYMBOL = "λ"
     const val APP_ID = "1221289599427416127"
-    val VERSION: String = LoaderInfo.getVersion()
+    val VERSION: String = FabricLoader.getInstance()
+        .getModContainer("lambda").orElseThrow()
+        .metadata.version.friendlyString
+
     val LOG: Logger = LogManager.getLogger(SYMBOL)
 
     @JvmStatic
@@ -67,5 +74,7 @@ object Lambda {
         .registerTypeAdapter(Text::class.java, Text.Serializer(DynamicRegistryManager.EMPTY))
         .create()
 
-    fun initialize(block: (Long) -> Unit) = recordRenderCall { Loader.initialize().apply(block) }
+    override fun onInitializeClient() { recordRenderCall {
+        LOG.info("$MOD_NAME $VERSION initialized in ${Loader.initialize()} ms\n")
+    } }
 }
