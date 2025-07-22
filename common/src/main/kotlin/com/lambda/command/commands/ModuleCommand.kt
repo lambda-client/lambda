@@ -63,9 +63,9 @@ object ModuleCommand : LambdaCommand(
                     literal("Enabled Modules: ")
                 }
                 joinToText(enabled) {
-                    clickEvent(suggestCommand("$prefix${input} ${it.name}")) {
+                    clickEvent(suggestCommand("$prefix${input} ${it.commandName}")) {
                         styled(if (it.isEnabled) Color.GREEN else Color.RED) {
-                            literal(it.name)
+                            literal(it.commandName)
                         }
                     }
                 }

@@ -28,9 +28,6 @@ import com.lambda.command.LambdaCommand
 import com.lambda.config.Configuration
 import com.lambda.util.Communication.info
 import com.lambda.util.extension.CommandBuilder
-import com.lambda.util.text.buildText
-import com.lambda.util.text.highlighted
-import com.lambda.util.text.literal
 
 object ConfigCommand : LambdaCommand(
     name = "config",
@@ -69,7 +66,7 @@ object ConfigCommand : LambdaCommand(
                 required(string("setting")) { setting ->
                     suggests { ctx, builder ->
                         val conf = config(ctx).value()
-                        Configuration.configurableByName(conf)?.let { configurable ->
+                        Configuration.configurableByCommandName(conf)?.let { configurable ->
                             configurable.settings.forEach {
                                 builder.suggest(it.commandName)
                             }
