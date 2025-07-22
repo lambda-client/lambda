@@ -30,8 +30,15 @@ import com.lambda.config.settings.collections.MapSetting
 import com.lambda.config.settings.collections.SetSetting
 import com.lambda.config.settings.comparable.BooleanSetting
 import com.lambda.config.settings.comparable.EnumSetting
-import com.lambda.config.settings.complex.*
-import com.lambda.config.settings.numeric.*
+import com.lambda.config.settings.complex.BlockPosSetting
+import com.lambda.config.settings.complex.BlockSetting
+import com.lambda.config.settings.complex.ColorSetting
+import com.lambda.config.settings.complex.KeyBindSetting
+import com.lambda.config.settings.complex.Vec3dSetting
+import com.lambda.config.settings.numeric.DoubleSetting
+import com.lambda.config.settings.numeric.FloatSetting
+import com.lambda.config.settings.numeric.IntegerSetting
+import com.lambda.config.settings.numeric.LongSetting
 import com.lambda.util.Communication.logError
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
@@ -277,7 +284,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = DoubleSetting(name, defaultValue, range, step, description, visibility, unit).register()
+    ) = DoubleSetting(name, defaultValue, range, step, description, unit, visibility).register()
 
     /**
      * Creates a [FloatSetting] with the provided parameters and adds it to the [settings].
@@ -302,7 +309,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = FloatSetting(name, defaultValue, range, step, description, visibility, unit).register()
+    ) = FloatSetting(name, defaultValue, range, step, description, unit, visibility).register()
 
     /**
      * Creates an [IntegerSetting] with the provided parameters and adds it to the [settings].
@@ -327,7 +334,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = IntegerSetting(name, defaultValue, range, step, description, visibility, unit).register()
+    ) = IntegerSetting(name, defaultValue, range, step, description, unit, visibility).register()
 
     /**
      * Creates a [LongSetting] with the provided parameters and adds it to the [settings].
@@ -352,7 +359,7 @@ abstract class Configurable(
         description: String = "",
         unit: String = "",
         visibility: () -> Boolean = { true },
-    ) = LongSetting(name, defaultValue, range, step, description, visibility, unit).register()
+    ) = LongSetting(name, defaultValue, range, step, description, unit, visibility).register()
 
     /**
      * Creates a [KeyBindSetting] with the provided parameters and adds it to the [settings].
