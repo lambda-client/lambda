@@ -44,7 +44,7 @@ import net.minecraft.text.Text
 import java.awt.Color
 
 object AutoDisconnect : Module(
-    name = "AutoDisconnect",
+    name = "Auto Disconnect",
     description = "Automatically disconnects when in danger or on low health",
     defaultTags = setOf(ModuleTag.COMBAT)
 ) {

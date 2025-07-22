@@ -25,7 +25,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
 object BaritoneTest : Module(
-    name = "BaritoneTest",
+    name = "Baritone Test",
     description = "Test Baritone",
     defaultTags = setOf(ModuleTag.DEBUG)
 ) {

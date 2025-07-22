@@ -37,7 +37,7 @@ import net.minecraft.util.math.Box
 import java.awt.Color
 
 object FastBreak : Module(
-    name = "FastBreak",
+    name = "Fast Break",
     description = "Break blocks faster.",
     defaultTags = setOf(
         ModuleTag.PLAYER, ModuleTag.WORLD

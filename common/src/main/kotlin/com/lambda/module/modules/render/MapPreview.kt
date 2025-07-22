@@ -32,7 +32,7 @@ import net.minecraft.util.Identifier
 
 
 object MapPreview : Module(
-    name = "MapPreview",
+    name = "Map Preview",
     description = "Preview maps in your inventory",
     defaultTags = setOf(ModuleTag.RENDER)
 ) {

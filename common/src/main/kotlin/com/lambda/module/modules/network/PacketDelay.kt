@@ -30,14 +30,12 @@ import com.lambda.util.PacketUtils.handlePacketSilently
 import com.lambda.util.PacketUtils.sendPacketSilently
 import com.lambda.util.ServerPacket
 import kotlinx.coroutines.delay
-import net.minecraft.network.listener.ClientPacketListener
-import net.minecraft.network.listener.ServerPacketListener
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.common.KeepAliveC2SPacket
 import java.util.concurrent.ConcurrentLinkedDeque
 
 object PacketDelay : Module(
-    name = "PacketDelay",
+    name = "Packet Delay",
     description = "Delays packets client-bound & server-bound",
     defaultTags = setOf(ModuleTag.NETWORK),
 ) {

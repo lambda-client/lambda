@@ -28,8 +28,8 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.threading.runSafe
 import com.lambda.util.extension.blockColor
-import com.lambda.util.extension.outlineShape
 import com.lambda.util.extension.getBlockState
+import com.lambda.util.extension.outlineShape
 import com.lambda.util.world.fastVectorOf
 import com.lambda.util.world.toBlockPos
 import net.minecraft.block.BlockState
@@ -39,7 +39,7 @@ import net.minecraft.util.math.BlockPos
 import java.awt.Color
 
 object BlockESP : Module(
-    name = "BlockESP",
+    name = "Block ESP",
     description = "Render block ESP",
     defaultTags = setOf(ModuleTag.RENDER)
 ) {

@@ -76,7 +76,7 @@ object ModuleCommand : LambdaCommand(
         required(string("module name")) { moduleName ->
             suggests { _, builder ->
                 ModuleRegistry.modules.map {
-                    it.name
+                    it.commandName
                 }.forEach {
                     builder.suggest(it)
                 }
@@ -86,7 +86,7 @@ object ModuleCommand : LambdaCommand(
                 executeWithResult {
                     val name = moduleName().value()
                     val module = ModuleRegistry.modules.find {
-                        it.name.equals(name, true)
+                        it.commandName.equals(name, true)
                     } ?: return@executeWithResult failure(buildText {
                         styled(Color.RED) {
                             literal("Module ")
@@ -97,7 +97,7 @@ object ModuleCommand : LambdaCommand(
                         }
                         val similarModules = StringUtils.findSimilarStrings(
                             name,
-                            ModuleRegistry.moduleNames,
+                            ModuleRegistry.moduleCommandNames,
                             3
                         )
                         if (similarModules.isEmpty()) return@buildText

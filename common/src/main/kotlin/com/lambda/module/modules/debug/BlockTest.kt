@@ -28,7 +28,7 @@ import net.minecraft.util.math.Vec3i
 import java.awt.Color
 
 object BlockTest : Module(
-    name = "BlockTest",
+    name = "Block Test",
     description = "BlockTest",
     defaultTags = setOf(ModuleTag.DEBUG),
 ) {

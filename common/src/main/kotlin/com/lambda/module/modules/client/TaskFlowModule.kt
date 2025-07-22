@@ -26,7 +26,7 @@ import com.lambda.module.tag.ModuleTag
 import com.lambda.util.world.raycast.InteractionMask
 
 object TaskFlowModule : Module(
-    name = "TaskFlow",
+    name = "Task Flow",
     description = "Settings for task automation",
     defaultTags = setOf(ModuleTag.CLIENT, ModuleTag.AUTOMATION)
 ) {

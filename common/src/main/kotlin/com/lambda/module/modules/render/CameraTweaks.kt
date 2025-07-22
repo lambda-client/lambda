@@ -21,7 +21,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
 object CameraTweaks : Module(
-    name = "CameraTweaks",
+    name = "Camera Tweaks",
     description = "Adjusts camera settings",
     defaultTags = setOf(ModuleTag.RENDER)
 ) {

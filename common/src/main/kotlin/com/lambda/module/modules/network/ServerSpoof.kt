@@ -35,7 +35,7 @@ import net.minecraft.text.ClickEvent
 import java.awt.Color
 
 object ServerSpoof : Module(
-    name = "ServerSpoof",
+    name = "Server Spoof",
     description = "Decide yourself if you want to accept the server resource pack.",
     defaultTags = setOf(ModuleTag.NETWORK)
 ) {

@@ -38,7 +38,7 @@ import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.Items
 
 object AutoTotem : Module(
-    name = "AutoTotem",
+    name = "Auto Totem",
     description = "Swaps the your off-hand item to a totem",
     defaultTags = setOf(ModuleTag.COMBAT, ModuleTag.PLAYER),
 ) {

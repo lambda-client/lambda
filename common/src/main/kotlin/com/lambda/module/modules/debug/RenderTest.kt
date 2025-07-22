@@ -30,7 +30,7 @@ import net.minecraft.util.math.Box
 import java.awt.Color
 
 object RenderTest : Module(
-    name = "Render:shrimp:Test:canned_food:",
+    name = "Render:shrimp: Test:canned_food:",
     description = "RenderTest",
     defaultTags = setOf(ModuleTag.DEBUG)
 ) {

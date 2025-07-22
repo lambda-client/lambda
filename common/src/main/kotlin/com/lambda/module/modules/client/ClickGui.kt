@@ -40,7 +40,7 @@ import java.awt.Color
 import kotlin.math.hypot
 
 object ClickGui : Module(
-    name = "ClickGui",
+    name = "Click Gui",
     description = "sexy again",
     defaultTags = setOf(ModuleTag.CLIENT),
     defaultKeybind = KeyCode.Y

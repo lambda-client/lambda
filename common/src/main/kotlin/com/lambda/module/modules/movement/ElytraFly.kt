@@ -27,7 +27,7 @@ import com.lambda.util.player.MovementUtils.addSpeed
 import net.minecraft.sound.SoundEvents
 
 object ElytraFly : Module(
-    name = "ElytraFly",
+    name = "Elytra Fly",
     description = "Allows you to fly with an elytra",
     defaultTags = setOf(ModuleTag.MOVEMENT, ModuleTag.GRIM)
 ) {

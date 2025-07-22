@@ -42,7 +42,7 @@ import java.time.format.DateTimeFormatter
 import kotlin.io.path.pathString
 
 object PacketLogger : Module(
-    name = "PacketLogger",
+    name = "Packet Logger",
     description = "Serializes network traffic and persists it for later analysis",
     defaultTags = setOf(ModuleTag.NETWORK, ModuleTag.DEBUG)
 ) {

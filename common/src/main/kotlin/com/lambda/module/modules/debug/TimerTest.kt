@@ -23,13 +23,9 @@ import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
-import com.lambda.util.KeyCode
-import net.minecraft.block.Blocks
-import net.minecraft.util.math.BlockPos
-import java.awt.Color
 
 object TimerTest : Module(
-    name = "TimerTest",
+    name = "Timer Test",
     defaultTags = setOf(ModuleTag.DEBUG)
 ) {
     private var last = 0L

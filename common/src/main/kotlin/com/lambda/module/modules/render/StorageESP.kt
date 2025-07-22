@@ -55,7 +55,7 @@ import net.minecraft.util.math.BlockPos
 import java.awt.Color
 
 object StorageESP : Module(
-    name = "StorageESP",
+    name = "Storage ESP",
     description = "Render storage blocks/entities",
     defaultTags = setOf(ModuleTag.RENDER),
 ) {

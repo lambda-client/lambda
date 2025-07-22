@@ -25,12 +25,18 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.Communication.info
 import com.lambda.util.DynamicReflectionSerializer.dynamicString
-import net.minecraft.network.packet.c2s.play.*
+import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket
+import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket
+import net.minecraft.network.packet.c2s.play.CraftRequestC2SPacket
+import net.minecraft.network.packet.c2s.play.CreativeInventoryActionC2SPacket
+import net.minecraft.network.packet.c2s.play.PickFromInventoryC2SPacket
+import net.minecraft.network.packet.c2s.play.SlotChangedStateC2SPacket
+import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket
 import net.minecraft.network.packet.s2c.play.InventoryS2CPacket
 import net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket
 
 object InventoryDebug : Module(
-    name = "InventoryDebug",
+    name = "Inventory Debug",
     description = "Debugs the inventory",
     defaultTags = setOf(ModuleTag.DEBUG)
 ) {

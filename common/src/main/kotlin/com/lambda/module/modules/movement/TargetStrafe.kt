@@ -30,7 +30,7 @@ import com.lambda.util.player.MovementUtils.mergeFrom
 import kotlin.math.pow
 
 object TargetStrafe : Module(
-    name = "TargetStrafe",
+    name = "Target Strafe",
     description = "Automatically strafes around entities",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {

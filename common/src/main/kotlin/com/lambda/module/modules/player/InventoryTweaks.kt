@@ -23,8 +23,8 @@ import com.lambda.event.events.PlayerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.Task
 import com.lambda.task.RootTask.run
+import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.breakAndCollectBlock
 import com.lambda.task.tasks.OpenContainer
 import com.lambda.task.tasks.PlaceContainer
@@ -35,7 +35,7 @@ import net.minecraft.screen.slot.SlotActionType
 import net.minecraft.util.math.BlockPos
 
 object InventoryTweaks : Module(
-    name = "InventoryTweaks",
+    name = "Inventory Tweaks",
     defaultTags = setOf(ModuleTag.PLAYER)
 ) {
     private val instantShulker by setting("Instant Shulker", true, description = "Right-click shulker boxes in your inventory to instantly place them and open them.")

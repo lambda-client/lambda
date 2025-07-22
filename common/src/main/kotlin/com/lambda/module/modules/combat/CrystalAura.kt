@@ -62,7 +62,7 @@ import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
 
 object CrystalAura : Module(
-    name = "CrystalAura",
+    name = "Crystal Aura",
     description = "Automatically attacks entities with crystals",
     defaultTags = setOf(ModuleTag.COMBAT),
 ) {

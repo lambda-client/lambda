@@ -42,7 +42,7 @@ import net.minecraft.client.network.ClientPlayerEntity
 import org.lwjgl.glfw.GLFW.*
 
 object InventoryMove : Module(
-    name = "InventoryMove",
+    name = "Inventory Move",
     description = "Allows you to move with GUIs opened",
     defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.MOVEMENT)
 ) {

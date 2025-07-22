@@ -30,6 +30,9 @@ object ModuleRegistry : Loadable {
     val moduleNames: Set<String>
         get() = modules.map { it.name }.toSet()
 
+    val moduleCommandNames: Set<String>
+        get() = modules.map { it.commandName }.toSet()
+
     override fun load(): String {
         return "Loaded ${modules.size} modules with ${modules.sumOf { it.settings.size }} settings"
     }

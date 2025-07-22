@@ -21,7 +21,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
 object ExtraTab : Module(
-    name = "ExtraTab",
+    name = "Extra Tab",
     description = "Adds more tabs to the main menu",
     defaultTags = setOf(ModuleTag.RENDER)
 ) {

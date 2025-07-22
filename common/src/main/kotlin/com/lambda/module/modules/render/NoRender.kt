@@ -21,7 +21,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
 object NoRender : Module(
-    name = "NoRender",
+    name = "No Render",
     description = "Disables rendering of certain things",
     defaultTags = setOf(ModuleTag.RENDER)
 ) {

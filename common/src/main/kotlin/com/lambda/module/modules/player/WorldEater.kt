@@ -25,8 +25,8 @@ import com.lambda.interaction.construction.blueprint.StaticBlueprint.Companion.t
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
-import com.lambda.task.Task
 import com.lambda.task.RootTask.run
+import com.lambda.task.Task
 import com.lambda.task.tasks.BuildTask.Companion.build
 import com.lambda.util.BaritoneUtils
 import net.minecraft.util.math.BlockBox
@@ -35,7 +35,7 @@ import net.minecraft.util.math.Box
 import java.awt.Color
 
 object WorldEater : Module(
-    name = "WorldEater",
+    name = "World Eater",
     description = "Eats the world",
     defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
 ) {

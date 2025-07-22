@@ -42,7 +42,7 @@ import net.minecraft.util.math.EightWayDirection
 import net.minecraft.util.math.Vec3i
 
 object HighwayTools : Module(
-    name = "HighwayTools",
+    name = "Highway Tools",
     description = "Auto highway builder",
     defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
 ) {

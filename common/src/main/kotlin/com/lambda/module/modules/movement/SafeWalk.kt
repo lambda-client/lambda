@@ -26,7 +26,7 @@ import com.lambda.util.player.MovementUtils.motionZ
 import net.minecraft.entity.LivingEntity
 
 object SafeWalk : Module(
-    name = "SafeWalk",
+    name = "Safe Walk",
     description = "Keeps you at the edge",
     defaultTags = setOf(ModuleTag.MOVEMENT, ModuleTag.GRIM)
 ) {

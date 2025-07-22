@@ -27,7 +27,7 @@ import net.minecraft.entity.passive.AbstractHorseEntity
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 
 object EntityControl : Module(
-    name = "EntityControl",
+    name = "Entity Control",
     description = "Control mountable entities",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {

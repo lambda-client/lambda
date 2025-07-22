@@ -35,7 +35,7 @@ import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 
 object NoFall : Module(
-    name = "NoFall",
+    name = "No Fall",
     description = "Reduces fall damage",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {

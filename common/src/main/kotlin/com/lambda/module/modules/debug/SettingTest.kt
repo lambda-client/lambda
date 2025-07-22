@@ -26,7 +26,7 @@ import net.minecraft.util.math.BlockPos
 import java.awt.Color
 
 object SettingTest : Module(
-    name = "SettingTest",
+    name = "Setting Test",
     defaultTags = setOf(ModuleTag.DEBUG)
 ) {
     // CharSetting

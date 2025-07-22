@@ -34,7 +34,7 @@ import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 
 object MapDownloader : Module(
-    name = "MapDownloader",
+    name = "Map Downloader",
     description = "Save map data to your computer",
     defaultTags = setOf(ModuleTag.PLAYER),
 ) {

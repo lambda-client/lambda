@@ -29,7 +29,7 @@ import com.lambda.module.tag.ModuleTag
 import java.awt.Color
 
 object GuiSettings : Module(
-    name = "GuiSettings",
+    name = "Gui Settings",
     description = "Visual behaviour configuration",
     defaultTags = setOf(ModuleTag.CLIENT)
 ) {

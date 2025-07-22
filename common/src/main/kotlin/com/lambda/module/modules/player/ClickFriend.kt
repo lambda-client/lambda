@@ -37,7 +37,7 @@ import org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT
 import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
 
 object ClickFriend : Module(
-    name = "ClickFriend",
+    name = "Click Friend",
     description = "Add or remove friends with a single click",
     defaultTags = setOf(ModuleTag.PLAYER)
 ) {

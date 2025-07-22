@@ -47,7 +47,7 @@ import net.minecraft.util.Hand
 import net.minecraft.util.math.Vec3d
 
 object KillAura : Module(
-    name = "KillAura",
+    name = "Kill Aura",
     description = "Attacks entities",
     defaultTags = setOf(ModuleTag.COMBAT, ModuleTag.RENDER)
 ) {

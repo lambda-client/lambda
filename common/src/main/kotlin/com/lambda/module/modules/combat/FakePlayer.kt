@@ -35,7 +35,7 @@ import java.util.*
 import kotlin.time.Duration.Companion.seconds
 
 object FakePlayer : Module(
-    name = "FakePlayer",
+    name = "Fake Player",
     description = "Spawns a fake player",
     defaultTags = setOf(ModuleTag.COMBAT),
 ) {

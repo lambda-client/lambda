@@ -27,7 +27,7 @@ import com.lambda.task.tasks.AcquireMaterial.Companion.acquire
 import net.minecraft.item.Items
 
 object ContainerTest : Module(
-    name = "ContainerTest",
+    name = "Container Test",
     description = "Test container",
     defaultTags = setOf(ModuleTag.DEBUG)
 ) {

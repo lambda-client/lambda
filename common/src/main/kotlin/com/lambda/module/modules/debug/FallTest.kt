@@ -26,7 +26,7 @@ import com.lambda.util.combat.DamageUtils.fallDamage
 import com.lambda.util.combat.DamageUtils.isFallDeadly
 
 object FallTest : Module(
-    name = "FallTest",
+    name = "Fall Test",
     defaultTags = setOf(ModuleTag.DEBUG),
 ) {
     init {

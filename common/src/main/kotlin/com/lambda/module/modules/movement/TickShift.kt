@@ -35,7 +35,7 @@ import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 
 object TickShift : Module(
-    name = "TickShift",
+    name = "Tick Shift",
     description = "Smort tickshift for smort anticheats",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {

@@ -21,7 +21,7 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 
 object PortalGui : Module(
-    name = "PortalGui",
+    name = "Portal Gui",
     description = "Allows you to open guis in portals",
     defaultTags = setOf(ModuleTag.PLAYER),
 )

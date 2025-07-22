@@ -45,7 +45,7 @@ import java.awt.Color
 import java.util.concurrent.ConcurrentLinkedDeque
 
 object BackTrack : Module(
-    name = "BackTrack",
+    name = "Back Track",
     description = "Gives reach advantage by delaying your packets",
     defaultTags = setOf(ModuleTag.MOVEMENT)
 ) {

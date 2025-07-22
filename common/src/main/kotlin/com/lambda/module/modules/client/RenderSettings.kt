@@ -24,7 +24,7 @@ import com.lambda.module.tag.ModuleTag
 import java.awt.Color
 
 object RenderSettings : Module(
-    name = "RenderSettings",
+    name = "Render Settings",
     description = "Renderer configuration",
     defaultTags = setOf(ModuleTag.CLIENT)
 ) {

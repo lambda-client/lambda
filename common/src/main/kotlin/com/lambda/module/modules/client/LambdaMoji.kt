@@ -32,7 +32,7 @@ import java.awt.Color
 
 // This is the worst code I have ever wrote in my life
 object LambdaMoji : Module(
-    name = "LambdaMoji",
+    name = "Lambda-Moji",
     description = "",
     defaultTags = setOf(ModuleTag.CLIENT, ModuleTag.RENDER),
     enabledByDefault = true,
