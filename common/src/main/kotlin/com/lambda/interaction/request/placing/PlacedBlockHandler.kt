@@ -45,21 +45,20 @@ object PlacedBlockHandler : PostActionHandler<PlaceInfo>() {
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
             pendingActions
                 .firstOrNull { it.context.blockPos == event.pos }
-                ?.let { info ->
-                    info.stopPending()
+                ?.let { pending ->
+                    pending.stopPending()
 
                     // return if the block wasn't placed properly
-                    if (!event.newState.matches(info.context.expectedState)) {
-                        this@PlacedBlockHandler.warn(
-                            "Place at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.expectedState}"
-                        )
+                    if (!pending.context.expectedState.matches(event.newState)) {
+                        this@PlacedBlockHandler.warn("Place at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.expectedState}")
+                        return@listen
                     }
 
-                    if (info.placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
-                        with (info.context) {
+                    if (pending.placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.AwaitThenPlace)
+                        with (pending.context) {
                             placeSound(expectedState.block.item as BlockItem, expectedState, blockPos)
                         }
-                    info.onPlace()
+                    pending.onPlace?.invoke(pending.context.blockPos)
                 }
         }
     }

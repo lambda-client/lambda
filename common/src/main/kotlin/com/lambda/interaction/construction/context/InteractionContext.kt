@@ -36,7 +36,7 @@ class InteractionContext(
     override val result: BlockHitResult,
     override val rotation: RotationRequest,
     override var hotbarIndex: Int,
-    override val cachedState: BlockState,
+    override var cachedState: BlockState,
     override val expectedState: BlockState,
 ) : BuildContext() {
     private val baseColor = Color(35, 254, 79, 25)

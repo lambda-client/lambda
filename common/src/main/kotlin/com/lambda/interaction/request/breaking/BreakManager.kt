@@ -67,7 +67,6 @@ import com.lambda.interaction.request.rotating.RotationRequest
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.calcItemBlockBreakingDelta
-import com.lambda.util.BlockUtils.emptyState
 import com.lambda.util.BlockUtils.isEmpty
 import com.lambda.util.BlockUtils.isNotBroken
 import com.lambda.util.BlockUtils.isNotEmpty
@@ -192,8 +191,8 @@ object BreakManager : RequestHandler<BreakRequest>(
                     if (isNotBroken(currentState, event.newState)) {
                         // check to see if its just some small property changes, e.g. redstone ore changing the LIT property
                         if (!currentState.matches(event.newState, ProcessorRegistry.postProcessedProperties))
-                            this@BreakManager.warn("Break at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${info.context.cachedState.emptyState}")
-                        // update the checked state
+                            this@BreakManager.warn("Server updated breaking block at ${event.pos.toShortString()} with a new state: ${event.newState}")
+                        // update the cached state
                         info.context.cachedState = event.newState
                         return@listen
                     }

@@ -20,10 +20,11 @@ package com.lambda.interaction.request.placing
 import com.lambda.interaction.construction.context.BuildContext
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.request.ActionInfo
+import net.minecraft.util.math.BlockPos
 
 data class PlaceInfo(
     override val context: PlaceContext,
     override val pendingInteractionsList: MutableCollection<BuildContext>,
-    val onPlace: () -> Unit,
+    val onPlace: ((BlockPos) -> Unit)?,
     val placeConfig: PlaceConfig
 ) : ActionInfo

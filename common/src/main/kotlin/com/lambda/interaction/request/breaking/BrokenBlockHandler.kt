@@ -59,7 +59,7 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
             if (!info.broken) warn("${info::class.simpleName} at ${info.context.blockPos.toShortString()} timed out")
             else if (!TaskFlowModule.ignoreItemDropWarnings) warn("${info::class.simpleName}'s item drop at ${info.context.blockPos.toShortString()} timed out")
 
-            if (!info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
+            if (info.broken && info.breakConfig.breakConfirmation != BreakConfirmationMode.AwaitThenBreak) {
                 world.setBlockState(info.context.blockPos, info.context.cachedState)
             }
         }
@@ -78,8 +78,10 @@ object BrokenBlockHandler : PostActionHandler<BreakInfo>() {
                 // return if the block's not broken
                 if (isNotBroken(currentState, event.newState)) {
                     // return if the state hasn't changed
-                    if (event.newState.matches(currentState, ProcessorRegistry.postProcessedProperties))
+                    if (event.newState.matches(currentState, ProcessorRegistry.postProcessedProperties)) {
+                        pending.context.cachedState = event.newState
                         return@listen
+                    }
 
                     if (!pending.isReBreaking) {
                         this@BrokenBlockHandler.warn("Broken block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.cachedState.emptyState}")

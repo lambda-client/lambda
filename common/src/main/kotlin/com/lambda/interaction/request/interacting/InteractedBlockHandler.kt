@@ -27,9 +27,6 @@ import com.lambda.util.BlockUtils.matches
 import com.lambda.util.Communication.info
 import com.lambda.util.Communication.warn
 import com.lambda.util.collections.LimitedDecayQueue
-import net.minecraft.block.BlockState
-import net.minecraft.util.Hand
-import net.minecraft.util.math.BlockPos
 
 object InteractedBlockHandler : PostActionHandler<InteractionInfo>() {
     override val pendingActions = LimitedDecayQueue<InteractionInfo>(
@@ -46,24 +43,20 @@ object InteractedBlockHandler : PostActionHandler<InteractionInfo>() {
         listen<WorldEvent.BlockUpdate.Server>(priority = Int.MIN_VALUE) { event ->
             pendingActions
                 .firstOrNull { it.context.blockPos == event.pos }
-                ?.let { info ->
-                    info.stopPending()
+                ?.let { pending ->
+                    pending.stopPending()
 
-                    if (!matchesTargetState(event.pos, info.context.expectedState, event.newState))
+                    if (!pending.context.expectedState.matches(event.newState)) {
+                        this@InteractedBlockHandler.warn("Interacted block at ${event.pos.toShortString()} was rejected with ${event.newState} instead of ${pending.context.expectedState}")
                         return@listen
+                    }
 
-                    if (info.interactConfirmationMode == InteractionConfig.InteractConfirmationMode.AwaitThenInteract)
-                        with (info.context) {
-                            cachedState.onUse(world, player, Hand.MAIN_HAND, result)
-                        }
+                    //ToDo: reliable way to recreate the sounds played when interacting with any given block
+//                    if (pending.interactConfirmationMode == InteractionConfig.InteractConfirmationMode.AwaitThenInteract)
+//                        with (pending.context) {
+//                            cachedState.onUse(world, player, Hand.MAIN_HAND, result)
+//                        }
                 }
         }
     }
-
-    private fun matchesTargetState(pos: BlockPos, targetState: BlockState, newState: BlockState) =
-        if (targetState.matches(newState)) true
-        else {
-            this@InteractedBlockHandler.warn("Interaction at ${pos.toShortString()} was rejected with $newState instead of $targetState")
-            false
-        }
 }

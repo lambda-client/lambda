@@ -316,7 +316,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
         if (!player.abilities.creativeMode) itemStack.decrement(1)
 
         if (placeConfig.placeConfirmationMode == PlaceConfig.PlaceConfirmationMode.None) {
-            request.onPlace()
+            request.onPlace?.invoke(placeContext.blockPos)
         }
 
         return ActionResult.success(world.isClient)

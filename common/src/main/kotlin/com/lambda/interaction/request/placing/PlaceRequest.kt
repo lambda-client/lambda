@@ -26,6 +26,7 @@ import com.lambda.interaction.request.rotating.RotationConfig
 import com.lambda.threading.runSafe
 import com.lambda.util.BlockUtils.blockState
 import com.lambda.util.BlockUtils.matches
+import net.minecraft.util.math.BlockPos
 
 data class PlaceRequest(
     val contexts: Collection<PlaceContext>,
@@ -33,7 +34,7 @@ data class PlaceRequest(
     val rotation: RotationConfig,
     val hotbar: HotbarConfig,
     val pendingInteractions: MutableCollection<BuildContext>,
-    val onPlace: () -> Unit
+    val onPlace: ((BlockPos) -> Unit)? = null
 ) : Request(), PlaceConfig by build.placing {
     override val config = build.placing
     override val done: Boolean
