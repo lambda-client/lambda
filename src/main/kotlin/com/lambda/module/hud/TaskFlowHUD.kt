@@ -21,9 +21,9 @@ import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 import com.lambda.task.RootTask
 
-object TaskFlowHUD : HudModule.Text(
-    name = "TaskFlowHud",
-    defaultTags = setOf(ModuleTag.CLIENT),
+object TaskFlowHUD : HudModule(
+    name    = "TaskFlowHud",
+    tag     = ModuleTag.CLIENT,
 ) {
-    override fun getText() = RootTask.toString()
+    //override fun getText() = RootTask.toString()
 }

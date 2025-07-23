@@ -22,6 +22,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.settings.NumericSetting
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
@@ -44,6 +45,14 @@ class IntegerSetting(
     visibility,
     unit
 ) {
+    override val layout: ImGuiBuilder.() -> Unit
+        get() =
+        {
+            inputInt(name, ::value)
+            sameLine()
+            helpMarker(description)
+        }
+
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(integer(name, range.start, range.endInclusive)) { parameter ->
             execute {

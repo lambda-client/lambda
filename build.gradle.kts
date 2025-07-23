@@ -15,22 +15,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.internal.jvm.*
+import org.gradle.kotlin.dsl.dependencies
+import org.gradle.kotlin.dsl.provideDelegate
+import org.gradle.kotlin.dsl.register
 import java.util.*
 
-val modId: String by project
-val mavenGroup: String by project
-val modVersion: String by project
-val minecraftVersion: String by project
-val yarnMappings: String by project
-val fabricLoaderVersion: String by project
-val fabricApiVersion: String by project
-val kotlinFabricVersion: String by project
-val pngEncoderVersion: String by project
-val discordIPCVersion: String by project
-val classGraphVersion: String by project
-val kotlinVersion: String by project
-val ktorVersion: String by project
+val modId               : String by project
+val mavenGroup          : String by project
+val modVersion          : String by project
+val minecraftVersion    : String by project
+val yarnMappings        : String by project
+val fabricLoaderVersion : String by project
+val fabricApiVersion    : String by project
+val kotlinFabricVersion : String by project
+val pngEncoderVersion   : String by project
+val discordIPCVersion   : String by project
+val classGraphVersion   : String by project
+val kotlinVersion       : String by project
+val ktorVersion         : String by project
+val mockitoKotlin       : String by project
+val mockitoInline       : String by project
+val mockkVersion        : String by project
+val spairVersion        : String by project
 
 
 val libs = file("libs")
@@ -58,6 +66,7 @@ repositories {
     maven("https://maven.terraformersmc.com/releases/")
     maven("https://maven.2b2t.vc/releases") // Baritone
     maven("https://jitpack.io") // KDiscordIPC
+    maven("https://raw.githubusercontent.com/kotlin-graphics/mary/master")
     mavenCentral()
 
     // Allow the use of local libraries
@@ -75,7 +84,13 @@ loom {
     runs {
         all {
             property("lambda.dev", "youtu.be/RYnFIRc0k6E")
+
             property("org.lwjgl.util.Debug", "true")
+            property("org.lwjgl.util.DebugLoader", "true")
+            //property("org.lwjgl.util.DebugAllocator", "true")
+            //property("org.lwjgl.util.DebugAllocator.fast", "true")
+            property("org.lwjgl.util.DebugStack", "true")
+            property("org.lwjgl.util.DebugFunctions", "true")
 
             vmArgs("-XX:+HeapDumpOnOutOfMemoryError", "-XX:+CreateCoredumpOnCrash", "-XX:+UseOSErrorReporting")
             programArgs("--username", "Steve", "--uuid", "8667ba71b85a4004af54457a9734eed7", "--accessToken", "****", "--userType", "msa")
@@ -109,6 +124,9 @@ fun DependencyHandlerScope.setupConfigurations() {
 }
 
 dependencies {
+    // Read this if you'd like to understand the gradle dependency hell
+    // https://medium.com/@nagendra.raja/understanding-configurations-and-dependencies-in-gradle-ad0827619501
+
     minecraft("com.mojang:minecraft:$minecraftVersion")
     mappings("net.fabricmc:yarn:$minecraftVersion+$yarnMappings:v2")
 
@@ -121,10 +139,12 @@ dependencies {
     includeLib("io.github.classgraph:classgraph:${classGraphVersion}")
     includeLib("com.github.Edouard127:KDiscordIPC:$discordIPCVersion")
     includeLib("com.pngencoder:pngencoder:$pngEncoderVersion")
-    includeLib("io.github.spair:imgui-java-binding:1.87.7")
-    includeLib("io.github.spair:imgui-java-lwjgl3:1.87.7")
-    includeLib("io.github.spair:imgui-java-natives-windows:1.87.7")
-    includeLib("io.github.spair:imgui-java-natives-linux:1.87.7")
+
+    includeLib("io.github.spair:imgui-java-binding:$spairVersion")
+    includeLib("io.github.spair:imgui-java-lwjgl3:$spairVersion")
+    runtimeOnly("io.github.spair:imgui-java-natives-windows:$spairVersion")
+    runtimeOnly("io.github.spair:imgui-java-natives-linux:$spairVersion")
+    runtimeOnly("io.github.spair:imgui-java-natives-macos:$spairVersion")
 
     // Ktor
     includeLib("io.ktor:ktor-client-core:$ktorVersion")
@@ -134,6 +154,12 @@ dependencies {
 
     // Add mods to the mod jar
     includeMod("com.github.rfresh2:baritone-fabric:$minecraftVersion")
+
+    // Test implementations
+    testImplementation(kotlin("test"))
+    testImplementation("org.mockito.kotlin:mockito-kotlin:$mockitoKotlin")
+    testImplementation("org.mockito:mockito-inline:$mockitoInline")
+    testImplementation("io.mockk:mockk:${mockkVersion}")
 
     // Finish the configuration
     setupConfigurations()
@@ -146,16 +172,16 @@ tasks {
     }
 
     shadowJar {
+        archiveClassifier = "dev-shadow"
         archiveVersion = "$modVersion+$minecraftVersion"
         configurations = listOf(shadowLib, shadowMod)
-        archiveClassifier = "dev-shadow"
     }
 
     remapJar {
         dependsOn(shadowJar)
 
-        archiveVersion = "$modVersion+$minecraftVersion"
         inputFile = shadowJar.get().archiveFile
+        archiveVersion = "$modVersion+$minecraftVersion"
     }
 
     processResources {
@@ -166,17 +192,38 @@ tasks {
     }
 
     register<Exec>("renderDoc") {
+        // You need renderdoc installed on your system and available in your environment variables in order
+        // to use this task.
+        // You can download it from their official website at https://renderdoc.org/
+
         val javaHome = Jvm.current().javaHome
-        val gradleWrapper = rootProject.tasks.wrapper.get().jarFile.absolutePath
+        val gradle = rootProject.tasks.wrapper.get().jarFile.absolutePath
+
+        val seperator =
+            if (Os.isFamily(Os.FAMILY_WINDOWS)) ";" else ":"
 
         commandLine = listOf(
-            "renderdoccmd", "capture", "--opt-api-validation", "--opt-api-validation-unmute", "--opt-hook-children",
-            "--wait-for-exit", "--working-dir", ".", "$javaHome/bin/java", "-Xmx64m", "-Xms64m",
-            /*"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005",*/
-            "-Dorg.gradle.appname=gradlew", "-Dorg.gradle.java.home=$javaHome", "-classpath", gradleWrapper, "org.gradle.wrapper.GradleWrapperMain",
-            "$path:runClient",
+            "renderdoccmd", "capture", "--opt-api-validation", "--opt-api-validation-unmute", "--opt-hook-children", "--wait-for-exit", "--working-dir", ".",
+            "$javaHome/bin/java",
+            //"-javaagent:${projectDir.resolve("lwjglx-debug-1.0.0.jar")}=t",
+            //"-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005",
+            "-Dorg.gradle.appname=gradlew",
+            "-Dorg.gradle.java.home=$javaHome",
+            "-Dorg.lwjgl.util.Debug=true",
+            "-Dorg.lwjgl.util.DebugLoader=true",
+            "-Dorg.lwjgl.util.DebugAllocator=true",
+            "-Dorg.lwjgl.util.DebugStack=true",
+            "-Dorg.lwjgl.util.DebugFunctions=true",
+            "-cp", listOf(projectDir.resolve("lwjgl.jar"), gradle, projectDir.resolve("lwjglx-debug-1.0.0.jar"))
+                .joinToString(seperator),
+            "org.gradle.wrapper.GradleWrapperMain",
+            "runClient",
         )
     }
+}
+
+kotlin {
+    jvmToolchain(21)
 }
 
 java {

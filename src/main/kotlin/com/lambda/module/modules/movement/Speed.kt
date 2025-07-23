@@ -50,7 +50,7 @@ import net.minecraft.entity.vehicle.BoatEntity
 object Speed : Module(
     name = "Speed",
     description = "Accelerates your walking speed",
-    defaultTags = setOf(ModuleTag.MOVEMENT)
+    tag = ModuleTag.MOVEMENT,
 ) {
     @JvmStatic
     val mode by setting("Mode", Mode.GRIM_STRAFE).onValueChange { _, _ -> reset() }

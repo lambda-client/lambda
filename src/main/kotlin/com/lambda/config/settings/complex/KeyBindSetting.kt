@@ -23,6 +23,7 @@ import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.KeyCode
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
@@ -42,6 +43,12 @@ class KeyBindSetting(
     description,
     visibility
 ) {
+    override val layout: ImGuiBuilder.() -> Unit
+        get() =
+        {
+            // ToDo
+        }
+
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(word(name)) { parameter ->
             suggests { _, builder ->

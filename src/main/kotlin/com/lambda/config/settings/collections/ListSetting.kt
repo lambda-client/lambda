@@ -18,6 +18,11 @@
 package com.lambda.config.settings.collections
 
 import com.lambda.config.AbstractSetting
+import com.lambda.gui.dsl.ImGuiBuilder
+import imgui.ImGuiTextFilter
+import net.minecraft.block.Blocks
+import net.minecraft.registry.Registries
+import net.minecraft.registry.Registry
 import java.lang.reflect.Type
 
 /**
@@ -25,7 +30,7 @@ import java.lang.reflect.Type
  */
 class ListSetting<T : Any>(
     override val name: String,
-    defaultValue: MutableList<T>,
+    private val defaultValue: MutableList<T>,
     type: Type,
     description: String,
     visibility: () -> Boolean,
@@ -34,4 +39,16 @@ class ListSetting<T : Any>(
     type,
     description,
     visibility
-)
+) {
+    override val layout: ImGuiBuilder.() -> Unit
+        get() =
+        {
+            filter("##Filter") { f ->
+                defaultValue
+                    .filter { f.passFilter(it.toString()) }
+                    .forEach {
+                        selectable(it.toString(), value.contains(it)) { value.add(it) }
+                    }
+            }
+        }
+}

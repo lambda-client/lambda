@@ -37,7 +37,7 @@ import net.minecraft.util.math.Vec3d
 object NoFall : Module(
     name = "NoFall",
     description = "Reduces fall damage",
-    defaultTags = setOf(ModuleTag.MOVEMENT)
+    tag = ModuleTag.MOVEMENT,
 ) {
     private val mode by setting("Mode", Mode.Grim)
 

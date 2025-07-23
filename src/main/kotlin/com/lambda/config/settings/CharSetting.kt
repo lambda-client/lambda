@@ -25,6 +25,7 @@ import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 
@@ -42,6 +43,12 @@ class CharSetting(
     description,
     visibility
 ) {
+    override val layout: ImGuiBuilder.() -> Unit
+        get() =
+        {
+            // ToDo
+        }
+
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(word(name)) { parameter ->
             executeWithResult {

@@ -3,6 +3,7 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+*.jar
 
 ### IntelliJ IDEA ###
 .idea/modules.xml
@@ -48,6 +49,7 @@ bin/
 ### Minecraft ###
 run/
 logs/
+.fabric
 
 ### Kotlin ###
 *.kotlin_module

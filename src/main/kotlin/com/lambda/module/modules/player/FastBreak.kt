@@ -40,9 +40,7 @@ import java.awt.Color
 object FastBreak : Module(
     name = "FastBreak",
     description = "Break blocks faster.",
-    defaultTags = setOf(
-        ModuleTag.PLAYER, ModuleTag.WORLD
-    )
+    tag = ModuleTag.PLAYER,
 ) {
     private val page by setting("Page", Page.Mining)
 

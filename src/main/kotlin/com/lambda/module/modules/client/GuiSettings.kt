@@ -17,13 +17,6 @@
 
 package com.lambda.module.modules.client
 
-import com.lambda.Lambda.mc
-import com.lambda.event.events.ConnectionEvent
-import com.lambda.event.events.TickEvent
-import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.graphics.animation.Animation.Companion.exp
-import com.lambda.graphics.animation.AnimationTicker
-import com.lambda.gui.LambdaScreen
 import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import java.awt.Color
@@ -31,13 +24,12 @@ import java.awt.Color
 object GuiSettings : Module(
     name = "GuiSettings",
     description = "Visual behaviour configuration",
-    defaultTags = setOf(ModuleTag.CLIENT)
+    tag = ModuleTag.CLIENT,
 ) {
     private val page by setting("Page", Page.General)
 
     // General
     private val scaleSetting by setting("Scale", 100, 50..300, 1, unit = "%", visibility = { page == Page.General })
-		.onValueSet { _, _ -> lastChange = System.currentTimeMillis() }
 
     // Colors
     val primaryColor by setting("Primary Color", Color(130, 200, 255), visibility = { page == Page.Colors })
@@ -51,26 +43,4 @@ object GuiSettings : Module(
         General,
         Colors
     }
-
-    private var targetScale = 2.0
-        get() {
-            val update = System.currentTimeMillis() - lastChange > 500 || mc.currentScreen !is LambdaScreen
-            if (update) field = scaleSetting / 100.0 * 2.0
-            return field
-        }
-
-    private val animation = with(AnimationTicker()) {
-        listenUnsafe<TickEvent.Pre>(alwaysListen = true) {
-            tick()
-        }
-
-        exp(0.5) { targetScale }.apply {
-            listenUnsafe<ConnectionEvent.Connect.Pre>(alwaysListen = true) {
-                setValue(targetScale)
-            }
-        }
-    }
-
-    private var lastChange = 0L
-    val scale by animation
 }

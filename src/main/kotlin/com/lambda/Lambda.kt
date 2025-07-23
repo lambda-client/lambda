@@ -28,11 +28,9 @@ import com.lambda.config.serializer.KeyCodeSerializer
 import com.lambda.config.serializer.OptionalSerializer
 import com.lambda.core.Loader
 import com.lambda.threading.recordRenderCall
-import com.lambda.threading.runGameScheduled
 import com.lambda.util.KeyCode
 import com.mojang.authlib.GameProfile
 import net.fabricmc.api.ClientModInitializer
-import net.fabricmc.api.ModInitializer
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.block.Block
 import net.minecraft.client.MinecraftClient
@@ -42,6 +40,7 @@ import net.minecraft.text.Text
 import net.minecraft.util.math.BlockPos
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
+import org.lwjgl.opengl.GLUtil
 import java.awt.Color
 import java.util.*
 

@@ -72,7 +72,7 @@ import kotlin.time.Duration.Companion.milliseconds
 object CrystalAura : Module(
     name = "CrystalAura",
     description = "Automatically attacks entities with crystals",
-    defaultTags = setOf(ModuleTag.COMBAT),
+    tag = ModuleTag.COMBAT,
 ) {
     private val page by setting("Page", Page.General)
 

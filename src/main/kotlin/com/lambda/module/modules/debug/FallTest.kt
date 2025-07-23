@@ -27,7 +27,7 @@ import com.lambda.util.combat.DamageUtils.isFallDeadly
 
 object FallTest : Module(
     name = "FallTest",
-    defaultTags = setOf(ModuleTag.DEBUG),
+    tag = ModuleTag.DEBUG,
 ) {
     init {
         listen<TickEvent.Pre> {

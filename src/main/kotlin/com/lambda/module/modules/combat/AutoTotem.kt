@@ -41,7 +41,7 @@ import net.minecraft.item.Items
 object AutoTotem : Module(
     name = "AutoTotem",
     description = "Swaps the your off-hand item to a totem",
-    defaultTags = setOf(ModuleTag.COMBAT, ModuleTag.PLAYER),
+    tag = ModuleTag.COMBAT,
 ) {
     private val page by setting("Page", Page.General)
 

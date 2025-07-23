@@ -17,15 +17,13 @@
 
 package com.lambda.module.hud
 
-import com.lambda.graphics.renderer.gui.TextureRenderer.drawTexture
-import com.lambda.graphics.renderer.gui.TextureRenderer.drawTextureShaded
 import com.lambda.graphics.texture.TextureOwner.upload
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 
 object Watermark : HudModule(
-    name = "Watermark",
-    defaultTags = setOf(ModuleTag.CLIENT),
+    name    = "Watermark",
+    tag     = ModuleTag.CLIENT,
 ) {
     private val shade by setting("Shade", true)
 
@@ -33,14 +31,5 @@ object Watermark : HudModule(
     private val monoTexture = upload("textures/lambda_mono.png")
 
     init {
-        build {
-            width = 50.0
-            height = 50.0
-
-            customDrawable {
-                if (shade) drawTextureShaded(monoTexture, rect)
-                else drawTexture(normalTexture, rect)
-            }
-        }
     }
 }

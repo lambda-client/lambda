@@ -24,6 +24,7 @@ import com.lambda.brigadier.execute
 import com.lambda.brigadier.optional
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import java.awt.Color
@@ -42,6 +43,14 @@ class ColorSetting(
     description,
     visibility
 ) {
+    override val layout: ImGuiBuilder.() -> Unit
+        get() =
+        {
+            colorPicker(name, ::value)
+            sameLine()
+            helpMarker(description)
+        }
+
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(integer("Red", 0, 255)) { red ->
             required(integer("Green", 0, 255)) { green ->

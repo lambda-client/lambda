@@ -31,9 +31,12 @@ import com.lambda.event.listener.Listener
 import com.lambda.event.listener.SafeListener
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener
+import com.lambda.gui.Layout
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.module.hud.ModuleList
 import com.lambda.module.tag.ModuleTag
 import com.lambda.sound.LambdaSound
+import com.lambda.sound.SoundManager.play
 import com.lambda.sound.SoundManager.playSoundRandomly
 import com.lambda.util.Communication.info
 import com.lambda.util.KeyCode
@@ -99,7 +102,7 @@ import com.lambda.util.Nameable
  *
  * @property name The name of the module, displayed in-game.
  * @property description The description of the module shown on hover over the module button in the GUI and in commands.
- * @property defaultTags The default [ModuleTag]s associated with the module.
+ * @property tag The default [ModuleTag]s associated with the module.
  * @property alwaysListening If true, the module's listeners will be triggered even if the module is not enabled.
  * @property isEnabledSetting The setting that determines if the module is enabled.
  * @property keybindSetting The setting that determines the keybind for the module.
@@ -110,22 +113,44 @@ import com.lambda.util.Nameable
 abstract class Module(
     override val name: String,
     val description: String = "",
-    val defaultTags: Set<ModuleTag> = setOf(),
+    val tag: ModuleTag,
     private val alwaysListening: Boolean = false,
     enabledByDefault: Boolean = false,
     defaultKeybind: KeyCode = KeyCode.UNBOUND,
-) : Nameable, Muteable, Configurable(ModuleConfig) {
+) : Nameable,
+    Muteable,
+    Configurable(ModuleConfig),
+    Layout
+{
+    override val layout: ImGuiBuilder.() -> Unit
+        get() =
+            {
+                checkbox("##-$this", ::isEnabled)
+                sameLine()
+
+                treeNode(name) {
+                    settings
+                        .filter { it.visibility() }
+                        .forEach { it.layout(this) }
+                }
+
+                sameLine()
+                helpMarker(description)
+            }
+
     private val isEnabledSetting = setting("Enabled", enabledByDefault) { false }
     private val keybindSetting = setting("Keybind", defaultKeybind)
-    val isVisible = setting("Visible", true) { ModuleList.isEnabled }
     val reset by setting("Reset", { settings.forEach { it.reset() }; this@Module.info("Settings set to default") })
-    val customTags = setting("Tags", setOf<ModuleTag>()) { false }
+
+    open val isVisible: Boolean = true
 
     var isEnabled by isEnabledSetting
     val isDisabled get() = !isEnabled
+
+    val keybind by keybindSetting
+
     override val isMuted: Boolean
         get() = !isEnabled && !alwaysListening
-    val keybind by keybindSetting
 
     init {
         listen<KeyboardEvent.Press>(alwaysListen = true) { event ->
@@ -138,29 +163,8 @@ abstract class Module(
             toggle()
         }
 
-        onEnable {
-            playSoundRandomly(LambdaSound.MODULE_ON.event)
-        }
-
-        onDisable {
-            playSoundRandomly(LambdaSound.MODULE_OFF.event)
-        }
-
-        onEnable {
-            playSoundRandomly(LambdaSound.MODULE_ON.event)
-        }
-
-        onDisable {
-            playSoundRandomly(LambdaSound.MODULE_OFF.event)
-        }
-
-        onEnable {
-            playSoundRandomly(LambdaSound.MODULE_ON.event)
-        }
-
-        onDisable {
-            playSoundRandomly(LambdaSound.MODULE_OFF.event)
-        }
+        onEnable { LambdaSound.MODULE_ON.play() }
+        onDisable { LambdaSound.MODULE_OFF.play() }
     }
 
     fun enable() {

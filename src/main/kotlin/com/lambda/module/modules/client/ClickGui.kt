@@ -17,32 +17,24 @@
 
 package com.lambda.module.modules.client
 
-import com.lambda.Lambda.mc
+import com.lambda.Lambda
+import com.lambda.event.events.KeyboardEvent
+import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
 import com.lambda.gui.LambdaScreen
-import com.lambda.gui.RootLayout.Companion.gui
-import com.lambda.gui.component.HAlign
-import com.lambda.gui.component.VAlign
-import com.lambda.gui.component.core.FilledRect.Companion.rect
-import com.lambda.gui.component.core.GlowRect.Companion.glow
-import com.lambda.gui.component.layout.Layout
-import com.lambda.gui.impl.clickgui.ModuleWindow.Companion.moduleWindow
-import com.lambda.gui.impl.clickgui.core.AnimatedChild.Companion.animatedBackground
-import com.lambda.gui.impl.clickgui.module.setting.settings.UnitButton.Companion.unitButton
-import com.lambda.module.HudModule
 import com.lambda.module.Module
-import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.KeyCode
-import com.lambda.util.Mouse
-import com.lambda.util.math.Vec2d
 import com.lambda.util.math.setAlpha
+import net.minecraft.client.gui.DrawContext
+import net.minecraft.client.gui.screen.Screen
+import net.minecraft.text.Text
 import java.awt.Color
-import kotlin.math.hypot
 
 object ClickGui : Module(
     name = "ClickGui",
-    description = "sexy again",
-    defaultTags = setOf(ModuleTag.CLIENT)
+    description = "ImGui",
+    tag = ModuleTag.CLIENT,
+    defaultKeybind = KeyCode.Y,
 ) {
     val titleBarHeight by setting("Title Bar Height", 18.0, 10.0..25.0, 0.1)
     val moduleHeight by setting("Module Height", 16.0, 10.0..25.0, 0.1)
@@ -82,112 +74,25 @@ object ClickGui : Module(
     val moduleOpenAccent by setting("Module Open Accent", 0.3, 0.0..0.5, 0.01)
 
     val multipleSettingWindows by setting("Multiple Setting Windows", false)
-    val animationCurve by setting("List Animation Curve", AnimationCurve.Reverse)
-    val smoothness by setting("Smoothness", 0.4, 0.3..0.7, 0.01) { animationCurve != AnimationCurve.Static }
 
     val hudPadding by setting("Hud Padding", 3.0, 0.0..10.0, 0.1)
 
-    val SCREEN: LambdaScreen by lazy {
-        gui("Click Gui") {
-            onKeyPress {
-                if (it.keyCode != keybind.keyCode || keybind == KeyCode.UNBOUND) return@onKeyPress
-                mc.currentScreen?.close()
-            }
-
-            rect {
-                onUpdate {
-                    rect = owner!!.rect
-                    setColor(backgroundTint)
-                }
-            }
-
-            glow {
-                onUpdate {
-                    rect = owner!!.rect
-                    innerSpread = cornerTintWidth
-                    shade = cornerTintShade
-
-                    setColor(backgroundCornerTint)
-                    setInnerRadius(cornerTintWidth)
-                }
-            }
-
-            var x = 10.0
-            val y = x
-
-            ModuleTag.defaults.forEach { tag ->
-                x += moduleWindow(tag, Vec2d(x, y)).width + 5
-            }
-
-            switchButton("HUD", ::HUD)
-        }
-    }
-
-    val HUD: LambdaScreen by lazy {
-        gui("Hud GUI") {
-            switchButton("Back", ::SCREEN)
-
-            var dragInfo: Pair<HudModule, Vec2d>? = null
-
-            onShow {
-                dragInfo = null
-            }
-
-            onMouse(action = Mouse.Action.Click, button = Mouse.Button.Left) {
-                dragInfo = null
-            }
-
-            onMouseMove { mouse ->
-                if (pressedButton != Mouse.Button.Left) return@onMouseMove
-
-                ModuleRegistry.modules
-                    .filterIsInstance<HudModule>()
-                    .filter { mouse in it.getRootLayout().rect }
-                    .minByOrNull {
-                        val (x, y) = it.getRootLayout().rect.center
-                        hypot(x - mouse.x, y - mouse.y)
-                    }?.let { module ->
-                        dragInfo = dragInfo ?: (module to (mouse - module.getRootLayout().position))
-
-                    }
-
-                dragInfo?.let { drag ->
-                    drag.first.getRootLayout().position = mouse - drag.second
-                }
-            }
-        }
-    }
-
-    enum class AnimationCurve {
-        Normal,
-        Static,
-        Reverse
-    }
-
     init {
-        onEnable {
-            SCREEN.show()
+        listenUnsafe<KeyboardEvent.Press>(alwaysListen = true) {
+            if (it.translated == keybind && it.isPressed)
+                toggle()
         }
-    }
 
-    private fun Layout.switchButton(text: String, gui: () -> LambdaScreen) {
-        unitButton(text) {
-            gui().show()
-        }.apply {
-            animatedBackground {
-                hoverAnimation * 0.5 + 0.5
-            }
+        onEnable {
+            // When there is a screen active, we don't want to replace the screen because it will interfere with the
+            // game.
+            if (mc.currentScreen == null)
+                mc.setScreen(LambdaScreen)
+        }
 
-            horizontalAlignment = HAlign.RIGHT
-            verticalAlignment = VAlign.BOTTOM
-            titleBar.textField.textHAlignment = HAlign.CENTER
-
-            positionX = owner!!.positionX - width - 10.0
-            positionY = owner.positionY - height - 10.0
-
-            onUpdate {
-                width = height * 1.5
-            }
+        onDisable {
+            if (mc.currentScreen is LambdaScreen)
+                mc.currentScreen?.close()
         }
     }
 }

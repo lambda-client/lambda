@@ -28,7 +28,7 @@ import net.minecraft.entity.effect.StatusEffects
 object Fullbright : Module(
     name = "Fullbright",
     description = "Makes everything brighter",
-    defaultTags = setOf(ModuleTag.RENDER)
+    tag = ModuleTag.RENDER,
 ) {
     private val nightVision by setting("Night Vision", false, description = "Adds the night vision effect client-side")
         .onValueChange { _, to -> setNightVision(to) }

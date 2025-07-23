@@ -18,9 +18,6 @@
 package com.lambda.module.modules.client
 
 import com.lambda.Lambda.mc
-import com.lambda.event.events.RenderEvent
-import com.lambda.event.listener.SafeListener.Companion.listen
-import com.lambda.graphics.renderer.gui.FontRenderer.drawGlyph
 import com.lambda.graphics.renderer.gui.font.core.GlyphInfo
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas.get
 import com.lambda.module.Module
@@ -34,7 +31,7 @@ import java.awt.Color
 object LambdaMoji : Module(
     name = "LambdaMoji",
     description = "",
-    defaultTags = setOf(ModuleTag.CLIENT, ModuleTag.RENDER),
+    tag = ModuleTag.CLIENT,
     enabledByDefault = true,
 ) {
     val suggestions by setting("Chat Suggestions", true)
@@ -42,13 +39,13 @@ object LambdaMoji : Module(
     private val renderQueue = mutableListOf<Triple<GlyphInfo, Vec2d, Color>>()
 
     init {
-        listen<RenderEvent.GUI.Scaled> {
+        /*listen<RenderEvent.GUI.Scaled> {
             renderQueue.forEach { (glyph, position, color) ->
                 drawGlyph(glyph, position, color)
             }
 
             renderQueue.clear()
-        }
+        }*/
     }
 
     // FixMe: Doesn't render properly when the chat scale is modified
@@ -64,7 +61,7 @@ object LambdaMoji : Module(
         }
 
         var raw = builder.toString()
-        RenderSettings.emojiFont.parse(raw)
+        StyleEditor.emojiFont.parse(raw)
             .forEach { emoji ->
                 val index = raw.indexOf(emoji)
                 if (index == -1) return@forEach
@@ -77,7 +74,7 @@ object LambdaMoji : Module(
                     else -> Color(255, 255, 255, (color shr 24 and 0xFF))
                 }
 
-                val glyph = RenderSettings.emojiFont[emoji] ?: return@forEach
+                val glyph = StyleEditor.emojiFont[emoji] ?: return@forEach
                 renderQueue.add(Triple(glyph, Vec2d(x + width, y), trueColor))
 
                 // Replace the emoji with whitespaces depending on the player's settings

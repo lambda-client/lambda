@@ -55,7 +55,7 @@ import org.lwjgl.glfw.GLFW.GLFW_KEY_W
 object InventoryMove : Module(
     name = "InventoryMove",
     description = "Allows you to move with GUIs opened",
-    defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.MOVEMENT)
+    tag = ModuleTag.PLAYER,
 ) {
     private val speed by setting("Rotation Speed", 5, 1..20, 1, unit = "°/tick")
     private val rotationConfig = RotationConfig.Instant(RotationMode.Lock)

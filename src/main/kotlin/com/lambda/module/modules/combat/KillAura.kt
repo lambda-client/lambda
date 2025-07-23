@@ -45,7 +45,7 @@ import net.minecraft.util.math.Vec3d
 object KillAura : Module(
     name = "KillAura",
     description = "Attacks entities",
-    defaultTags = setOf(ModuleTag.COMBAT, ModuleTag.RENDER)
+    tag = ModuleTag.COMBAT,
 ) {
     private val page by setting("Page", Page.Interact)
 

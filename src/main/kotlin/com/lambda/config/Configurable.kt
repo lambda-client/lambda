@@ -42,6 +42,7 @@ import com.lambda.config.settings.numeric.LongSetting
 import com.lambda.util.Communication.logError
 import com.lambda.util.KeyCode
 import com.lambda.util.Nameable
+import imgui.flag.ImGuiInputTextFlags
 import net.minecraft.block.Block
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
@@ -104,10 +105,10 @@ abstract class Configurable(
      * @return The created [BooleanSetting].
      */
     fun setting(
-        name: String,
+        name        : String,
         defaultValue: Boolean,
-        description: String = "",
-        visibility: () -> Boolean = { true },
+        description : String        = "",
+        visibility  : () -> Boolean = { true },
     ) = BooleanSetting(name, defaultValue, description, visibility).register()
 
     /**
@@ -127,10 +128,11 @@ abstract class Configurable(
      * @return The created [EnumSetting].
      */
     inline fun <reified T : Enum<T>> setting(
-        name: String,
+        name        : String,
         defaultValue: T,
-        description: String = "",
-        noinline visibility: () -> Boolean = { true },
+        description : String        = "",
+        noinline
+        visibility  : () -> Boolean = { true },
     ) = EnumSetting(name, defaultValue, description, visibility).register()
 
     /**
@@ -144,10 +146,10 @@ abstract class Configurable(
      * @return The created [CharSetting].
      */
     fun setting(
-        name: String,
+        name        : String,
         defaultValue: Char,
-        description: String = "",
-        visibility: () -> Boolean = { true },
+        description : String        = "",
+        visibility  : () -> Boolean = { true },
     ) = CharSetting(name, defaultValue, description, visibility).register()
 
     /**
@@ -165,11 +167,13 @@ abstract class Configurable(
      * @return The created [StringSetting].
      */
     fun setting(
-        name: String,
+        name        : String,
         defaultValue: String,
-        description: String = "",
-        visibility: () -> Boolean = { true },
-    ) = StringSetting(name, defaultValue, description, visibility).register()
+        multiline   : Boolean       = false,
+        flags       : Int           = ImGuiInputTextFlags.None,
+        description : String        = "",
+        visibility  : () -> Boolean = { true },
+    ) = StringSetting(name, defaultValue, multiline, flags, description, visibility).register()
 
     /**
      * Constructs a [ListSetting] instance with the specified parameters and appends it to the [settings] collection.

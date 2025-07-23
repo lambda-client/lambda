@@ -23,7 +23,7 @@ import com.lambda.event.events.WorldEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.SafeListener.Companion.listenConcurrently
 import com.lambda.graphics.renderer.esp.impl.StaticESPRenderer
-import com.lambda.module.modules.client.RenderSettings
+import com.lambda.module.modules.client.StyleEditor
 import com.lambda.threading.awaitMainThread
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.world.World
@@ -65,8 +65,8 @@ class ChunkedESP private constructor(
         }
 
         owner.listenConcurrently<TickEvent.Pre> {
-            if (++ticks % RenderSettings.updateFrequency == 0) {
-                val polls = minOf(RenderSettings.rebuildsPerTick, rebuildQueue.size)
+            if (++ticks % StyleEditor.updateFrequency == 0) {
+                val polls = minOf(StyleEditor.rebuildsPerTick, rebuildQueue.size)
 
                 repeat(polls) {
                     rebuildQueue.poll()?.rebuild()
@@ -78,7 +78,7 @@ class ChunkedESP private constructor(
         owner.listen<TickEvent.Pre> {
             if (uploadQueue.isEmpty()) return@listen
 
-            val polls = minOf(RenderSettings.uploadsPerTick, uploadQueue.size)
+            val polls = minOf(StyleEditor.uploadsPerTick, uploadQueue.size)
 
             repeat(polls) {
                 uploadQueue.poll()?.invoke()

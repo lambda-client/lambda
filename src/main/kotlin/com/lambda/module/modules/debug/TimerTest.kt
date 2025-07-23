@@ -26,7 +26,7 @@ import com.lambda.util.Communication.info
 
 object TimerTest : Module(
     name = "TimerTest",
-    defaultTags = setOf(ModuleTag.DEBUG)
+    tag = ModuleTag.DEBUG,
 ) {
     private var last = 0L
 

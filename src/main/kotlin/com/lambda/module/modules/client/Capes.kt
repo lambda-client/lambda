@@ -23,5 +23,5 @@ import com.lambda.module.tag.ModuleTag
 object Capes : Module(
     name = "Capes",
     description = "Display custom capes",
-    defaultTags = setOf(ModuleTag.CLIENT),
+    tag = ModuleTag.CLIENT,
 )

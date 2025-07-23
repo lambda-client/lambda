@@ -26,7 +26,7 @@ import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 object Velocity : Module(
     name = "Velocity",
     description = "Modifies your velocity",
-    defaultTags = setOf(ModuleTag.MOVEMENT),
+    tag = ModuleTag.MOVEMENT,
 ) {
     private val knockback by setting("Knockback", true)
 

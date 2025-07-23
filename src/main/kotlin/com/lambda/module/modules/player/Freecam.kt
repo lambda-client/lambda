@@ -51,7 +51,7 @@ import net.minecraft.util.math.Vec3d
 object Freecam : Module(
     name = "Freecam",
     description = "Move your camera freely",
-    defaultTags = setOf(ModuleTag.PLAYER)
+    tag = ModuleTag.PLAYER,
 ) {
     private val speed by setting("Speed", 0.5, 0.1..1.0, 0.1)
     private val sprint by setting("Sprint Multiplier", 3.0, 0.1..10.0, 0.1, description = "Set below 1.0 to fly slower on sprint.")

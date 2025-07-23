@@ -39,7 +39,7 @@ import org.lwjgl.glfw.GLFW.GLFW_MOD_SUPER
 object ClickFriend : Module(
     name = "ClickFriend",
     description = "Add or remove friends with a single click",
-    defaultTags = setOf(ModuleTag.PLAYER)
+    tag = ModuleTag.PLAYER,
 ) {
     private val friendButton by setting("Friend Button", Mouse.Button.Middle, description = "Button to press to befriend a player")
     private val friendAction by setting("Action", Mouse.Action.Release, description = "What mouse action should add or remove the player")

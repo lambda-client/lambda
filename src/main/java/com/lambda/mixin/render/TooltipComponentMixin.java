@@ -32,7 +32,7 @@ import java.util.Objects;
 
 @Mixin(TooltipComponent.class)
 public interface TooltipComponentMixin {
-    @Inject(method = "of(Lnet/minecraft/item/tooltip/TooltipData;)Lnet/minecraft/client/gui/tooltip/TooltipComponent;", at = @At("HEAD"), cancellable = true)
+    /*@Inject(method = "of(Lnet/minecraft/item/tooltip/TooltipData;)Lnet/minecraft/client/gui/tooltip/TooltipComponent;", at = @At("HEAD"), cancellable = true)
     private static void of(TooltipData tooltipData, CallbackInfoReturnable<TooltipComponent> cir) {
         Objects.requireNonNull(tooltipData);
 
@@ -43,5 +43,5 @@ public interface TooltipComponentMixin {
             case ProfilesTooltipComponent.ProfilesData profilesData -> new ProfilesTooltipComponent(profilesData);
             default -> throw new IllegalArgumentException("Unknown TooltipComponent");
         }));
-    }
+    }*/
 }

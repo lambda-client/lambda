@@ -23,15 +23,15 @@ import com.lambda.util.Formatting.string
 import com.lambda.util.NamedEnum
 import com.lambda.util.ServerTPS.averageMSPerTick
 
-object TPS : HudModule.Text(
-    name = "TPS",
+object TPS : HudModule(
+    name        = "TPS",
     description = "Display the server's tick rate",
-    defaultTags = setOf(ModuleTag.CLIENT, ModuleTag.NETWORK),
+    tag         = ModuleTag.CLIENT,
 ) {
     private val format by setting("Tick format", TickFormat.TPS)
 
-    override fun getText() =
-        "${format.displayName}: ${format.output().string}${format.unit}"
+    /*override fun getText() =
+        "${format.displayName}: ${format.output().string}${format.unit}"*/
 
     @Suppress("unused")
     private enum class TickFormat(

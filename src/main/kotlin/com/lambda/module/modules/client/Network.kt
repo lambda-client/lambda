@@ -46,7 +46,7 @@ import kotlin.jvm.optionals.getOrElse
 object Network : Module(
     name = "Network",
     description = "Lambda Authentication",
-    defaultTags = setOf(ModuleTag.CLIENT),
+    tag = ModuleTag.CLIENT,
     enabledByDefault = true,
 ) {
     val authServer by setting("Auth Server", "auth.lambda-client.org")

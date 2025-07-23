@@ -37,7 +37,7 @@ import net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket
 object InventoryDebug : Module(
     name = "InventoryDebug",
     description = "Debugs the inventory",
-    defaultTags = setOf(ModuleTag.DEBUG)
+    tag = ModuleTag.DEBUG,
 ) {
     init {
         listen<InventoryEvent.Open> { event ->

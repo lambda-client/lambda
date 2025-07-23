@@ -23,7 +23,9 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
+import imgui.flag.ImGuiInputTextFlags
 import net.minecraft.command.CommandRegistryAccess
 
 /**
@@ -32,6 +34,8 @@ import net.minecraft.command.CommandRegistryAccess
 class StringSetting(
     override val name: String,
     val defaultValue: String,
+    val multiline: Boolean = false,
+    val flags: Int = ImGuiInputTextFlags.None,
     description: String,
     visibility: () -> Boolean,
 ) : AbstractSetting<String>(
@@ -40,6 +44,16 @@ class StringSetting(
     description,
     visibility
 ) {
+    override val layout: ImGuiBuilder.() -> Unit
+        get() =
+        {
+            if (multiline) inputTextMultiline(name, ::value, flags = flags)
+            else inputText(name, ::value, flags)
+
+            sameLine()
+            helpMarker(description)
+        }
+
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(greedyString(name)) { parameter ->
             execute {

@@ -31,7 +31,7 @@ import net.minecraft.util.math.BlockPos
 object Nuker : Module(
     name = "Nuker",
     description = "Breaks blocks around you",
-    defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
+    tag = ModuleTag.PLAYER,
 ) {
     private val height by setting("Height", 4, 1..8, 1)
     private val width by setting("Width", 4, 1..8, 1)

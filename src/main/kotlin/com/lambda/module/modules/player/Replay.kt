@@ -84,7 +84,7 @@ import kotlin.time.toDuration
 object Replay : Module(
     name = "Replay",
     description = "Record gameplay actions and replay them like a TAS.",
-    defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
+    tag = ModuleTag.PLAYER,
 ) {
     private val record by setting("Record", KeyCode.R)
     private val play by setting("Play / Stop", KeyCode.C)

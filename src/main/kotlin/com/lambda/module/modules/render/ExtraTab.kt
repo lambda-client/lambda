@@ -23,7 +23,7 @@ import com.lambda.module.tag.ModuleTag
 object ExtraTab : Module(
     name = "ExtraTab",
     description = "Adds more tabs to the main menu",
-    defaultTags = setOf(ModuleTag.RENDER)
+    tag = ModuleTag.RENDER,
 ) {
     @JvmStatic
     val tabEntries by setting("Tab Entries", 80L, 1L..500L, 1L)

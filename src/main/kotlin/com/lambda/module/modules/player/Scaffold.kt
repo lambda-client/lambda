@@ -73,7 +73,7 @@ import kotlin.math.pow
 object Scaffold : Module(
     name = "Scaffold",
     description = "Places blocks under the player",
-    defaultTags = setOf(ModuleTag.PLAYER)
+    tag = ModuleTag.PLAYER,
 ) {
     private val page by setting("Page", Page.GENERAL)
 

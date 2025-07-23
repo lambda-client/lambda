@@ -31,7 +31,7 @@ import com.lambda.util.world.raycast.InteractionMask
 object TaskFlowModule : Module(
     name = "TaskFlow",
     description = "Settings for task automation",
-    defaultTags = setOf(ModuleTag.CLIENT, ModuleTag.AUTOMATION)
+    tag = ModuleTag.CLIENT,
 ) {
     enum class Page {
         Build, Rotation, Interaction, Inventory, Debug

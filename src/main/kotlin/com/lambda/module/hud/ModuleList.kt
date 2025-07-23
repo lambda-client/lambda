@@ -21,16 +21,18 @@ import com.lambda.module.HudModule
 import com.lambda.module.ModuleRegistry
 import com.lambda.module.tag.ModuleTag
 
-object ModuleList : HudModule.Text(
-    name = "ModuleList",
-    defaultTags = setOf(ModuleTag.CLIENT),
+object ModuleList : HudModule(
+    name    = "ModuleList",
+    tag     = ModuleTag.CLIENT,
 ) {
+    override val isVisible: Boolean
+        get() = false
 
-    override fun getText(): String {
+    /*override fun getText(): String {
         val enabled = ModuleRegistry.modules
             .filter { it.isEnabled }
             .filter { it.isVisible.value }
 
         return enabled.joinToString("\n") { "${it.name} [${it.keybind.name}]" }
-    }
+    }*/
 }

@@ -37,7 +37,7 @@ import java.awt.Color
 object WorldEater : Module(
     name = "WorldEater",
     description = "Eats the world",
-    defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
+    tag = ModuleTag.PLAYER,
 ) {
     //    private val height by setting("Height", 4, 1..10, 1)
 //    private val width by setting("Width", 6, 1..30, 1)

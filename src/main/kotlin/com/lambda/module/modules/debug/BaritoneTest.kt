@@ -27,7 +27,7 @@ import com.lambda.module.tag.ModuleTag
 object BaritoneTest : Module(
     name = "BaritoneTest",
     description = "Test Baritone",
-    defaultTags = setOf(ModuleTag.DEBUG)
+    tag = ModuleTag.DEBUG,
 ) {
     init {
         listen<TickEvent.Pre> {

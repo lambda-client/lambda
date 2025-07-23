@@ -17,23 +17,16 @@
 
 package com.lambda.gui
 
-import com.lambda.graphics.RenderMain
-import com.lambda.gui.component.core.UIBuilder
-import com.lambda.gui.component.layout.Layout
+import com.lambda.gui.dsl.ImGuiBuilder
 
-class RootLayout : Layout(owner = null) {
-    init {
-        onUpdate {
-            size = RenderMain.screenSize
-        }
-    }
-
-    companion object {
-        /**
-         * Creates gui layout
-         */
-        @UIBuilder
-        fun gui(name: String, block: RootLayout.() -> Unit) =
-            LambdaScreen(name, RootLayout().apply(block))
-    }
+/**
+ * [Layout] is the core interface for rendering custom elements in ImGui.
+ *
+ * It contains the [layout] property which is a getter that returns a lambda
+ * that will be invoked when inside an ImGui frame.
+ *
+ * You are able to call other layouts by passing the [ImGuiBuilder] context.
+ */
+interface Layout {
+    val layout: ImGuiBuilder.() -> Unit
 }

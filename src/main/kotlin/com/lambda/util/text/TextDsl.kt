@@ -17,7 +17,7 @@
 
 package com.lambda.util.text
 
-import com.lambda.module.modules.client.RenderSettings
+import com.lambda.module.modules.client.StyleEditor
 import net.minecraft.text.ClickEvent
 import net.minecraft.text.HoverEvent
 import net.minecraft.text.MutableText
@@ -218,7 +218,7 @@ inline fun TextBuilder.color(color: Color?, action: TextBuilder.() -> Unit) {
 
 @TextDsl
 fun TextBuilder.highlighted(value: String) {
-    color(RenderSettings.highlightColor) {
+    color(StyleEditor.highlightColor) {
         literal(value)
     }
 }

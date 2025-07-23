@@ -56,7 +56,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 object BackTrack : Module(
     name = "BackTrack",
     description = "Gives reach advantage by delaying your packets",
-    defaultTags = setOf(ModuleTag.MOVEMENT)
+    tag = ModuleTag.MOVEMENT,
 ) {
     private val outbound by setting("Outbound", true)
     private val mode by setting("Mode", Mode.FIXED)

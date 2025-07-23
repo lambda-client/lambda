@@ -36,7 +36,7 @@ import javax.imageio.ImageIO
 object MapDownloader : Module(
     name = "MapDownloader",
     description = "Save map data to your computer",
-    defaultTags = setOf(ModuleTag.PLAYER),
+    tag = ModuleTag.PLAYER,
 ) {
     init {
         listen<TickEvent.Pre> {

@@ -40,7 +40,7 @@ import net.minecraft.util.shape.VoxelShapes
 object Jesus : Module(
     name = "Jesus",
     description = "Allows to walk on water",
-    defaultTags = setOf(ModuleTag.MOVEMENT)
+    tag = ModuleTag.MOVEMENT,
 ) {
     private val mode by setting("Mode", Mode.NCP)
 

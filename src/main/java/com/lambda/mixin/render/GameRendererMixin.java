@@ -19,7 +19,10 @@ package com.lambda.mixin.render;
 
 import com.lambda.event.EventFlow;
 import com.lambda.event.events.RenderEvent;
+import com.lambda.gui.LambdaScreen;
+import com.lambda.module.modules.client.ClickGui;
 import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.render.RenderTickCounter;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -32,5 +35,11 @@ public class GameRendererMixin {
         if (EventFlow.post(new RenderEvent.UpdateTarget()).isCanceled()) {
             info.cancel();
         }
+    }
+
+    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/Screen;renderWithTooltip(Lnet/minecraft/client/gui/DrawContext;IIF)V", shift = At.Shift.AFTER))
+    void renderGui(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
+        if (ClickGui.INSTANCE.isEnabled())
+            LambdaScreen.INSTANCE.render();
     }
 }

@@ -21,6 +21,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonNull
 import com.google.gson.reflect.TypeToken
 import com.lambda.config.AbstractSetting
+import com.lambda.gui.dsl.ImGuiBuilder
 
 open class FunctionSetting<T>(
     override val name: String,
@@ -33,6 +34,14 @@ open class FunctionSetting<T>(
     description,
     visibility
 ) {
+    override val layout: ImGuiBuilder.() -> Unit
+        get() =
+        {
+            button(name) { value() }
+            sameLine()
+            helpMarker(description)
+        }
+
     override fun toJson(): JsonElement = JsonNull.INSTANCE
     override fun loadFromJson(serialized: JsonElement) { value = defaultValue }
 }

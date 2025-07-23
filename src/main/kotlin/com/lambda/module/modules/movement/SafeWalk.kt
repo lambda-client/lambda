@@ -23,12 +23,13 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import com.lambda.util.player.MovementUtils.motionX
 import com.lambda.util.player.MovementUtils.motionZ
+import com.lambda.util.player.MovementUtils.sneaking
 import net.minecraft.entity.LivingEntity
 
 object SafeWalk : Module(
     name = "SafeWalk",
     description = "Keeps you at the edge",
-    defaultTags = setOf(ModuleTag.MOVEMENT, ModuleTag.GRIM)
+    tag = ModuleTag.MOVEMENT,
 ) {
     private val sneakOnLedge by setting("Sneak On Ledge", true)
     private val ledgeDistance by setting("Ledge Distance", 0.2, 0.0..0.5, 0.01, unit = " blocks")
@@ -36,10 +37,8 @@ object SafeWalk : Module(
 
     init {
         listen<MovementEvent.InputUpdate> {
-            if (sneakOnLedge && player.isOnGround && player.isNearLedge(ledgeDistance, stepHeight)) {
-                // TODO: lmao you can't sneak without reallocating the fucking class every time
-                //it.input.sneaking = true
-            }
+            if (sneakOnLedge && player.isOnGround && player.isNearLedge(ledgeDistance, stepHeight))
+                it.input.sneaking = true
         }
 
         listen<MovementEvent.ClipAtLedge> {

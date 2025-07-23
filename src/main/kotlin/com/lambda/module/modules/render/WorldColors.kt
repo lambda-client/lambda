@@ -26,7 +26,7 @@ import java.awt.Color
 object WorldColors : Module(
     name = "World Colors",
     description = "Changes the color of the sky",
-    defaultTags = setOf(ModuleTag.RENDER)
+    tag = ModuleTag.RENDER,
 ) {
     @JvmStatic
     val customSky by setting("Custom Sky", true)

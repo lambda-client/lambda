@@ -41,7 +41,7 @@ import java.awt.Color
 object BlockESP : Module(
     name = "BlockESP",
     description = "Render block ESP",
-    defaultTags = setOf(ModuleTag.RENDER)
+    tag = ModuleTag.RENDER,
 ) {
     private var drawFaces: Boolean by setting("Draw Faces", true, "Draw faces of blocks").onValueSet(::rebuildMesh).onValueSet { _, to -> if (!to) drawOutlines = true }
     private var drawOutlines: Boolean by setting("Draw Outlines", true, "Draw outlines of blocks").onValueSet(::rebuildMesh).onValueSet { _, to -> if (!to) drawFaces = true }

@@ -29,7 +29,7 @@ import net.minecraft.item.Items
 object ContainerTest : Module(
     name = "ContainerTest",
     description = "Test container",
-    defaultTags = setOf(ModuleTag.DEBUG)
+    tag = ModuleTag.DEBUG,
 ) {
     init {
         listen<TickEvent.Pre> {

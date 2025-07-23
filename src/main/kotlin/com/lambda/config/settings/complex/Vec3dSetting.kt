@@ -23,6 +23,7 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.Vec3d
@@ -38,6 +39,15 @@ class Vec3dSetting(
     description,
     visibility
 ) {
+    override val layout: ImGuiBuilder.() -> Unit
+        get() =
+        {
+            // ToDo: tf
+//            inputVec3d(name, ::value)
+//            sameLine()
+//            helpMarker(description)
+        }
+
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(double("X", -30000000.0, 30000000.0)) { x ->
             required(double("Y", -64.0, 255.0)) { y ->

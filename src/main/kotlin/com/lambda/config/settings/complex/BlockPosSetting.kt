@@ -23,6 +23,8 @@ import com.lambda.brigadier.argument.value
 import com.lambda.brigadier.execute
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
+import com.lambda.gui.dsl.ImGuiBuilder
+import com.lambda.util.BlockUtils.blockPos
 import com.lambda.util.extension.CommandBuilder
 import net.minecraft.command.CommandRegistryAccess
 import net.minecraft.util.math.BlockPos
@@ -41,6 +43,18 @@ class BlockPosSetting(
     description,
     visibility
 ) {
+    private var x = "${value.x}"
+    private var y = value.y
+    private var z = value.z
+
+    override val layout: ImGuiBuilder.() -> Unit
+        get() =
+        {
+            inputVec3i(name, value) { value = it.blockPos }
+            sameLine()
+            helpMarker(description)
+        }
+
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(integer("X", -30000000, 30000000)) { x ->
             required(integer("Y", -64, 255)) { y ->

@@ -23,11 +23,17 @@ import com.lambda.module.Module
 import com.lambda.module.tag.ModuleTag
 import java.awt.Color
 
-object RenderSettings : Module(
-    name = "RenderSettings",
-    description = "Renderer configuration",
-    defaultTags = setOf(ModuleTag.CLIENT)
+object StyleEditor : Module(
+    name = "StyleEditor",
+    description = "Modify the style of the GUI",
+    tag = ModuleTag.CLIENT,
 ) {
+    val alpha           by setting("Alpha", 1.0, 0.2..1.0, 0.005, "Global alpha applies to everything in Dear ImGui")
+    val disabledAlpha   by setting("Disabled Alpha", 0.6, 0.0..1.0, 0.005, "Additional alpha multiplier applied by BeginDisabled().  Multiply over current value of Alpha")
+    //val windowPaddingH   by setting("Horizontal Window Padding", 8, 0)
+    val itemSpacing             by setting("Item Spacing", 21.0, 0.0..30.0, 1.0, "Horizontal spacing when e.g. entering a tree node") // Generally == (FontSize + FramePadding.x*2)
+    val scrollbarSize           by setting("Scrollbar Size", 14.0, 1.0..20.0, 1.0)
+
     private val page by setting("Page", Page.Font)
 
     // General

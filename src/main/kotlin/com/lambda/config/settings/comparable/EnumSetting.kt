@@ -25,9 +25,12 @@ import com.lambda.brigadier.argument.word
 import com.lambda.brigadier.executeWithResult
 import com.lambda.brigadier.required
 import com.lambda.config.AbstractSetting
+import com.lambda.gui.dsl.ImGuiBuilder
 import com.lambda.util.StringUtils.capitalize
 import com.lambda.util.extension.CommandBuilder
+import imgui.flag.ImGuiSliderFlags
 import net.minecraft.command.CommandRegistryAccess
+import kotlin.properties.Delegates
 
 /**
  * @see [com.lambda.config.Configurable]
@@ -43,9 +46,15 @@ class EnumSetting<T : Enum<T>>(
     description,
     visibility,
 ) {
-    fun next() {
-        value = value.enumValues[((value.ordinal + 1) % value.enumValues.size)]
+    var index by Delegates.observable(value.ordinal) { _, _, to ->
+        value = value.enumValues[to % value.enumValues.size]
     }
+
+    override val layout: ImGuiBuilder.() -> Unit
+        get() =
+        {
+            slider(value.name, ::index, 0, value.enumValues.size, flags = ImGuiSliderFlags.AlwaysClamp)
+        }
 
     override fun CommandBuilder.buildCommand(registry: CommandRegistryAccess) {
         required(word(name)) { parameter ->

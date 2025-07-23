@@ -27,7 +27,6 @@ import com.lambda.graphics.gl.Matrices
 import com.lambda.graphics.gl.Matrices.resetMatrices
 import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.graphics.renderer.esp.global.StaticESP
-import com.lambda.module.modules.client.GuiSettings
 import com.lambda.util.math.Vec2d
 import org.joml.Matrix4f
 
@@ -38,20 +37,6 @@ object RenderMain {
 
     var screenSize = Vec2d.ZERO
     var scaleFactor = 1.0
-
-    @JvmStatic
-    fun render2D() {
-        resetMatrices(Matrix4f().translate(0f, 0f, -3000f))
-
-        setupGL {
-            rescale(1.0)
-            RenderEvent.GUI.Fixed().post()
-
-            rescale(GuiSettings.scale)
-            RenderEvent.GUI.HUD(GuiSettings.scale).post()
-            RenderEvent.GUI.Scaled(GuiSettings.scale).post()
-        }
-    }
 
     @JvmStatic
     fun render3D(positionMatrix: Matrix4f, projectionMatrix: Matrix4f) {

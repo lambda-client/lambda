@@ -43,7 +43,7 @@ import kotlinx.coroutines.delay
 object Discord : Module(
     name = "Discord",
     description = "Discord Rich Presence configuration",
-    defaultTags = setOf(ModuleTag.CLIENT),
+    tag = ModuleTag.CLIENT,
 	//enabledByDefault = true, // ToDo: Bring this back on beta release
 ) {
     private val delay       by setting("Update Delay", 5000L, 5000L..30000L, 100L, unit = "ms")

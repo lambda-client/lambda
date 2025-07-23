@@ -30,7 +30,7 @@ import net.minecraft.sound.SoundEvents
 object ElytraFly : Module(
     name = "ElytraFly",
     description = "Allows you to fly with an elytra",
-    defaultTags = setOf(ModuleTag.MOVEMENT, ModuleTag.GRIM)
+    tag = ModuleTag.MOVEMENT,
 ) {
     // private val page by setting("Page", Page.GENERAL) // Uncomment when needed
 

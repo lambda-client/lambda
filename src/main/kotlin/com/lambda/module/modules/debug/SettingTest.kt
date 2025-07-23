@@ -27,7 +27,7 @@ import java.awt.Color
 
 object SettingTest : Module(
     name = "SettingTest",
-    defaultTags = setOf(ModuleTag.DEBUG)
+    tag = ModuleTag.DEBUG,
 ) {
     // CharSetting
     private val charSetting by setting("Character Setting", 'A')

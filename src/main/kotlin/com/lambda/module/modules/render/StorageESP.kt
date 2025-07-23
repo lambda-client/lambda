@@ -57,7 +57,7 @@ import java.awt.Color
 object StorageESP : Module(
     name = "StorageESP",
     description = "Render storage blocks/entities",
-    defaultTags = setOf(ModuleTag.RENDER),
+    tag = ModuleTag.RENDER,
 ) {
     private val page by setting("Page", Page.Render)
 

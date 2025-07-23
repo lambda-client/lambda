@@ -23,8 +23,8 @@ import com.lambda.module.modules.movement.TickShift
 import com.lambda.module.tag.ModuleTag
 
 object TickShiftCharge : HudModule(
-    name = "TickShiftCharge",
-    defaultTags = setOf(ModuleTag.CLIENT),
+    name    = "TickShiftCharge",
+    tag     = ModuleTag.CLIENT,
 ) {
     private val isActive get() = TickShift.isEnabled && TickShift.isActive && TickShift.boost
     private val activeAnimation by animation.exp(0.0, 1.0, 0.6, ::isActive)
@@ -36,10 +36,6 @@ object TickShiftCharge : HudModule(
     }
 
     init {
-        build {
-
-        }
-
         /*onRender {
             filledRect(
                 rect = rect,

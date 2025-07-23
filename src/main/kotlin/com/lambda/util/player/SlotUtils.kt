@@ -23,12 +23,11 @@ import net.minecraft.item.ItemStack
 import net.minecraft.screen.slot.SlotActionType
 
 object SlotUtils {
-    val ClientPlayerEntity.hotbar: List<ItemStack> get() = inventory.mainStacks.subList(0, 9)
-    val ClientPlayerEntity.storage: List<ItemStack> get() = inventory.mainStacks.subList(9, 36)
+    val ClientPlayerEntity.hotbar: List<ItemStack> get() = inventory.mainStacks.slice(0..8)
+    val ClientPlayerEntity.storage: List<ItemStack> get() = inventory.mainStacks.slice(9..35)
     val ClientPlayerEntity.equipment: List<ItemStack> get() = inventory.equipment.map.map { it.value }
-    val ClientPlayerEntity.hotbarAndStorage: List<ItemStack> get() = inventory.mainStacks.subList(0, 36)
-    val ClientPlayerEntity.combined: List<ItemStack> get() = inventory.mainStacks + equipment + offhand
-    val ClientPlayerEntity.offhand: ItemStack get() = offHandStack
+    val ClientPlayerEntity.hotbarAndStorage: List<ItemStack> get() = inventory.mainStacks
+    val ClientPlayerEntity.combined: List<ItemStack> get() = hotbarAndStorage// + equipment
 
 
     fun SafeContext.clickSlot(

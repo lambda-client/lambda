@@ -26,7 +26,7 @@ import com.lambda.graphics.shader.Shader.Companion.shader
 import com.lambda.graphics.texture.TextureOwner.bind
 import com.lambda.module.modules.client.ClickGui
 import com.lambda.module.modules.client.LambdaMoji
-import com.lambda.module.modules.client.RenderSettings
+import com.lambda.module.modules.client.StyleEditor
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Vec2d
 import com.lambda.util.math.a
@@ -38,12 +38,12 @@ import java.awt.Color
  * This class handles text and emoji rendering, shadow effects, and text scaling.
  */
 object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("renderer/font")) {
-    private val chars get() = RenderSettings.textFont
-    private val emojis get() = RenderSettings.emojiFont
+    private val chars get() = StyleEditor.textFont
+    private val emojis get() = StyleEditor.emojiFont
 
-    private val shadowShift get() = RenderSettings.shadowShift * 10.0
-    private val baselineOffset get() = RenderSettings.baselineOffset * 2.0f - 16f
-    private val gap get() = RenderSettings.gap * 0.5f - 0.8f
+    private val shadowShift get() = StyleEditor.shadowShift * 10.0
+    private val baselineOffset get() = StyleEditor.baselineOffset * 2.0f - 16f
+    private val gap get() = StyleEditor.gap * 0.5f - 0.8f
 
     /**
      * Renders a text string at a specified position with configurable color, scale, shadow, and emoji parsing
@@ -65,8 +65,8 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
     ) = render {
         shader["u_FontTexture"] = 0
         shader["u_EmojiTexture"] = 1
-        shader["u_SDFMin"] = RenderSettings.sdfMin
-        shader["u_SDFMax"] = RenderSettings.sdfMax
+        shader["u_SDFMin"] = StyleEditor.sdfMin
+        shader["u_SDFMax"] = StyleEditor.sdfMax
 
         bind(chars, emojis)
 
@@ -93,8 +93,8 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
     ) = render {
         shader["u_FontTexture"] = 0
         shader["u_EmojiTexture"] = 1
-        shader["u_SDFMin"] = RenderSettings.sdfMin
-        shader["u_SDFMax"] = RenderSettings.sdfMax
+        shader["u_SDFMin"] = StyleEditor.sdfMin
+        shader["u_SDFMax"] = StyleEditor.sdfMax
 
         bind(chars, emojis)
 
@@ -196,7 +196,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
         text: String,
         color: Color = Color.WHITE,
         scale: Double = 1.0,
-        shadow: Boolean = RenderSettings.shadow,
+        shadow: Boolean = StyleEditor.shadow,
         parseEmoji: Boolean = LambdaMoji.isEnabled,
         block: (GlyphInfo, Vec2d, Vec2d, Color, Boolean) -> Unit
     ) {
@@ -234,7 +234,7 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
 
                     val glyph = chars[char] ?: return@forEach
 
-                    if (shadow && RenderSettings.shadow) drawGlyph(glyph, shadowColor, true)
+                    if (shadow && StyleEditor.shadow) drawGlyph(glyph, shadowColor, true)
                     drawGlyph(glyph, color)
                 }
             } else {
@@ -281,9 +281,9 @@ object FontRenderer : AbstractGUIRenderer(VertexAttrib.Group.FONT, shader("rende
      * @return The modified shadow color.
      */
     fun getShadowColor(color: Color): Color = Color(
-        (color.red * RenderSettings.shadowBrightness).toInt(),
-        (color.green * RenderSettings.shadowBrightness).toInt(),
-        (color.blue * RenderSettings.shadowBrightness).toInt(),
+        (color.red * StyleEditor.shadowBrightness).toInt(),
+        (color.green * StyleEditor.shadowBrightness).toInt(),
+        (color.blue * StyleEditor.shadowBrightness).toInt(),
         color.alpha
     )
 }

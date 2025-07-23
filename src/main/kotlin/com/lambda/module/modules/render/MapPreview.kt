@@ -36,7 +36,7 @@ import net.minecraft.util.Identifier
 object MapPreview : Module(
     name = "MapPreview",
     description = "Preview maps in your inventory",
-    defaultTags = setOf(ModuleTag.RENDER)
+    tag = ModuleTag.RENDER,
 ) {
     private val background = Identifier.ofVanilla("textures/map/map_background.png")
 

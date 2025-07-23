@@ -25,7 +25,7 @@ import com.lambda.graphics.pipeline.VertexBuilder
 import com.lambda.graphics.pipeline.VertexPipeline
 import com.lambda.graphics.shader.Shader
 import com.lambda.graphics.shader.Shader.Companion.shader
-import com.lambda.module.modules.client.RenderSettings
+import com.lambda.module.modules.client.StyleEditor
 import com.lambda.util.extension.partialTicks
 
 open class ESPRenderer(tickedMode: Boolean) {
@@ -59,7 +59,7 @@ open class ESPRenderer(tickedMode: Boolean) {
         shader["u_CameraPosition"] = Lambda.mc.gameRenderer.camera.pos
 
         GlStateUtils.withFaceCulling(faces::render)
-        GlStateUtils.withLineWidth(RenderSettings.outlineWidth, outlines::render)
+        GlStateUtils.withLineWidth(StyleEditor.outlineWidth, outlines::render)
     }
 
     fun clear() {

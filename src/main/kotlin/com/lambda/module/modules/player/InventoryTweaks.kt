@@ -36,7 +36,7 @@ import net.minecraft.util.math.BlockPos
 
 object InventoryTweaks : Module(
     name = "InventoryTweaks",
-    defaultTags = setOf(ModuleTag.PLAYER)
+    tag = ModuleTag.PLAYER,
 ) {
     private val instantShulker by setting("Instant Shulker", true, description = "Right-click shulker boxes in your inventory to instantly place them and open them.")
     private val instantEChest by setting("Instant Ender-Chest", true, description = "Right-click ender chests in your inventory to instantly place them and open them.")

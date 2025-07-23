@@ -42,7 +42,7 @@ import java.util.concurrent.ConcurrentLinkedDeque
 object Blink : Module(
     name = "Blink",
     description = "Holds packets",
-    defaultTags = setOf(ModuleTag.MOVEMENT)
+    tag = ModuleTag.MOVEMENT,
 ) {
     private var delay by setting("Delay", 500, 50..10000, 10)
     private val shiftVelocity by setting("Shift velocity", true)

@@ -48,7 +48,7 @@ import kotlin.io.path.pathString
 object PacketLogger : Module(
     name = "PacketLogger",
     description = "Serializes network traffic and persists it for later analysis",
-    defaultTags = setOf(ModuleTag.NETWORK, ModuleTag.DEBUG)
+    tag = ModuleTag.NETWORK,
 ) {
     private val logToChat by setting("Log To Chat", false, "Log packets to chat")
 

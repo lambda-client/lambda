@@ -38,7 +38,7 @@ import net.minecraft.util.math.Direction
 object Criticals : Module(
     name = "Criticals",
     description = "Forces your hits to be critical",
-    defaultTags = setOf(ModuleTag.COMBAT)
+    tag = ModuleTag.COMBAT,
 ) {
     private val mode by setting("Mode", Mode.Grim)
 

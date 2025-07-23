@@ -22,13 +22,17 @@ import com.lambda.event.EventFlow;
 import com.lambda.event.events.ClientEvent;
 import com.lambda.event.events.InventoryEvent;
 import com.lambda.event.events.TickEvent;
+import com.lambda.gui.DearImGui;
 import com.lambda.module.modules.player.Interact;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.RunArgs;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.ScreenHandlerProvider;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
+import net.minecraft.client.util.Window;
 import net.minecraft.util.thread.ThreadExecutor;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -41,6 +45,11 @@ public class MinecraftClientMixin {
     @Shadow
     @Nullable
     public Screen currentScreen;
+
+    @Inject(method = "close", at = @At("HEAD"))
+    void closeImGui(CallbackInfo ci) {
+        DearImGui.INSTANCE.destroy();
+    }
 
     @Inject(method = "tick", at = @At("HEAD"))
     void onTickPre(CallbackInfo ci) {

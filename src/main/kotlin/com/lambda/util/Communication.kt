@@ -186,24 +186,6 @@ object Communication {
                 }
 
             }
-            if (module.defaultTags.isNotEmpty()) {
-                literal("\n")
-                literal("Default tags: ")
-                joinToText(module.defaultTags) {
-                    color(GuiSettings.primaryColor) {
-                        literal(it.name)
-                    }
-                }
-            }
-            if (module.customTags.value.isNotEmpty()) {
-                literal("\n")
-                literal("Custom tags: ")
-                joinToText(module.customTags.value) {
-                    color(GuiSettings.primaryColor) {
-                        literal(it.name)
-                    }
-                }
-            }
         })) {
             styled(color, italic = true) {
                 literal("${module.name.capitalize()} ")

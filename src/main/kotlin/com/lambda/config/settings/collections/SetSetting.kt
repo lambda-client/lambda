@@ -18,6 +18,7 @@
 package com.lambda.config.settings.collections
 
 import com.lambda.config.AbstractSetting
+import com.lambda.gui.dsl.ImGuiBuilder
 import java.lang.reflect.Type
 
 /**
@@ -34,4 +35,10 @@ class SetSetting<T : Any>(
     type,
     description,
     visibility
-)
+) {
+    override val layout: ImGuiBuilder.() -> Unit
+        get() =
+        {
+            // ToDo
+        }
+}

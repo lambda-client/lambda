@@ -27,7 +27,7 @@ import com.lambda.graphics.shader.Shader
 import com.lambda.module.modules.client.GuiSettings
 import com.lambda.module.modules.client.GuiSettings.primaryColor
 import com.lambda.module.modules.client.GuiSettings.secondaryColor
-import com.lambda.module.modules.client.RenderSettings
+import com.lambda.module.modules.client.StyleEditor
 import com.lambda.util.math.MathUtils.toInt
 import com.lambda.util.math.Vec2d
 import org.lwjgl.glfw.GLFW
@@ -41,7 +41,7 @@ open class AbstractGUIRenderer(
 
     init {
         listen<TickEvent.Render.Pre>(alwaysListen = true) {
-            memoryMapping = RenderSettings.useMemoryMapping
+            memoryMapping = StyleEditor.useMemoryMapping
         }
 
         listen<TickEvent.Render.Post>(alwaysListen = true) {

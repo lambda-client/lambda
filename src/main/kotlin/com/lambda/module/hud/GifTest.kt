@@ -17,25 +17,16 @@
 
 package com.lambda.module.hud
 
-import com.lambda.graphics.renderer.gui.TextureRenderer.drawTexture
 import com.lambda.graphics.texture.TextureOwner.uploadGif
 import com.lambda.module.HudModule
 import com.lambda.module.tag.ModuleTag
 
 object GifTest : HudModule(
-    name = "GifTest",
-    defaultTags = setOf(ModuleTag.CLIENT),
+    name    = "GifTest",
+    tag     = ModuleTag.CLIENT,
 ) {
     private val test = uploadGif("chika.gif")
 
     init {
-        build {
-            width = 100.0
-            height = 100.0
-
-            customDrawable {
-                drawTexture(test, rect)
-            }
-        }
     }
 }

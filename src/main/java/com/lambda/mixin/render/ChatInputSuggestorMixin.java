@@ -21,7 +21,7 @@ import com.google.common.base.Strings;
 import com.lambda.command.CommandManager;
 import com.lambda.graphics.renderer.gui.font.core.LambdaAtlas;
 import com.lambda.module.modules.client.LambdaMoji;
-import com.lambda.module.modules.client.RenderSettings;
+import com.lambda.module.modules.client.StyleEditor;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
@@ -89,7 +89,7 @@ public abstract class ChatInputSuggestorMixin {
         if (start == -1) return;
 
         Matcher emojiMatcher = EMOJI_PATTERN.matcher(textToCursor);
-        Map<String, ?> emojiKeys = LambdaAtlas.INSTANCE.getKeys(RenderSettings.INSTANCE.getEmojiFont());
+        Map<String, ?> emojiKeys = LambdaAtlas.INSTANCE.getKeys(StyleEditor.INSTANCE.getEmojiFont());
         while (emojiMatcher.find()) {
             int openingColon = emojiMatcher.start(1);
             String key = emojiMatcher.group(2);

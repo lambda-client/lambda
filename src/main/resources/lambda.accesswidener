@@ -45,7 +45,6 @@ accessible class net/minecraft/client/gui/screen/SplashOverlay$LogoTexture
 accessible field com/mojang/blaze3d/systems/RenderSystem$ShapeIndexBuffer indexBuffer Lcom/mojang/blaze3d/buffers/GpuBuffer;
 accessible field net/minecraft/client/gl/GlGpuBuffer id I
 
-
 # Text
 accessible field net/minecraft/text/Style color Lnet/minecraft/text/TextColor;
 accessible field net/minecraft/text/Style bold Ljava/lang/Boolean;

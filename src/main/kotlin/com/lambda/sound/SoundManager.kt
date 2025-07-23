@@ -41,6 +41,8 @@ object SoundManager : Loadable {
         )
     }
 
+    fun LambdaSound.play() = playSoundRandomly(event)
+
     override fun load(): String {
         (Registries.SOUND_EVENT as SimpleRegistry)
             .frozen = false // fuck you

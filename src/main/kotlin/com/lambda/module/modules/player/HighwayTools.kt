@@ -47,7 +47,7 @@ import net.minecraft.util.math.Vec3i
 object HighwayTools : Module(
     name = "HighwayTools",
     description = "Auto highway builder",
-    defaultTags = setOf(ModuleTag.PLAYER, ModuleTag.AUTOMATION)
+    tag = ModuleTag.PLAYER,
 ) {
     private val page by setting("Page", Page.Structure)
 

@@ -37,7 +37,7 @@ import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 object TickShift : Module(
     name = "TickShift",
     description = "Smort tickshift for smort anticheats",
-    defaultTags = setOf(ModuleTag.MOVEMENT)
+    tag = ModuleTag.MOVEMENT,
 ) {
     val maxBalance by setting("Max Balance", 20, 3..400, 1)
     private val boostAmount by setting("Boost", 3.0, 1.1..20.0, 0.01)

@@ -17,13 +17,11 @@
 
 package com.lambda.event.events
 
-import com.lambda.Lambda.mc
 import com.lambda.event.Event
 import com.lambda.event.callback.Cancellable
 import com.lambda.event.callback.ICancellable
 import com.lambda.graphics.renderer.esp.global.DynamicESP
 import com.lambda.graphics.renderer.esp.global.StaticESP
-import com.lambda.util.math.Vec2d
 
 sealed class RenderEvent {
     class World : Event
@@ -34,14 +32,6 @@ sealed class RenderEvent {
 
     class DynamicESP : Event {
         val renderer = DynamicESP
-    }
-
-    sealed class GUI(val scale: Double) : Event {
-        class Scaled(scaleFactor: Double) : GUI(scaleFactor)
-        class HUD(scaleFactor: Double) : GUI(scaleFactor)
-        class Fixed : GUI(1.0)
-
-        val screenSize = Vec2d(mc.window.framebufferWidth, mc.window.framebufferHeight) / scale
     }
 
     class UpdateTarget : ICancellable by Cancellable()

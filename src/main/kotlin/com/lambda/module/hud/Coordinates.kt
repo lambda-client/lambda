@@ -28,15 +28,15 @@ import com.lambda.util.extension.isNether
 import com.lambda.util.math.netherCoord
 import com.lambda.util.math.overworldCoord
 
-object Coordinates : HudModule.Text(
-    name = "Coordinates",
+object Coordinates : HudModule(
+    name        = "Coordinates",
     description = "Show your coordinates",
-    defaultTags = setOf(ModuleTag.CLIENT),
+    tag         = ModuleTag.CLIENT,
 ) {
     private val showDimension by setting("Show Dimension", true)
     private val decimals by setting("Decimals", 2, 0..4, 1)
 
-    override fun getText() = runSafe { "XYZ ${if (showDimension) world.dimensionName else ""} ${positionForDimension()}" } ?: ""
+    //override fun getText() = runSafe { "XYZ ${if (showDimension) world.dimensionName else ""} ${positionForDimension()}" } ?: ""
 
     private fun SafeContext.positionForDimension() =
         when {

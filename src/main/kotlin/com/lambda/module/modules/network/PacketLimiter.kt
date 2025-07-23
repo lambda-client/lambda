@@ -34,7 +34,7 @@ import net.minecraft.network.packet.c2s.play.TeleportConfirmC2SPacket
 object PacketLimiter : Module(
     name = "PacketLimiter",
     description = "Limits the amount of packets sent to the server",
-    defaultTags = setOf(ModuleTag.NETWORK)
+    tag = ModuleTag.NETWORK,
 ) {
     private var packetQueue = LimitedDecayQueue<PacketEvent.Send.Pre>(99, 1000)
     private val limit by setting("Limit", 99, 1..100, 1, "The maximum amount of packets to send per given time interval", unit = " packets")
