@@ -31,9 +31,6 @@ import com.lambda.util.BlockUtils.isEmpty
 import net.minecraft.entity.ItemEntity
 import net.minecraft.util.math.BlockPos
 
-@DslMarker
-annotation class BreakRequestBuilder
-
 data class BreakRequest(
     val contexts: Collection<BreakContext>,
     val pendingInteractions: MutableCollection<BuildContext>,
@@ -57,6 +54,9 @@ data class BreakRequest(
 
     override fun submit(queueIfClosed: Boolean) =
         BreakManager.request(this, queueIfClosed)
+
+    @DslMarker
+    annotation class BreakRequestBuilder
 
     @BreakRequestBuilder
     class RequestBuilder(
