@@ -27,7 +27,6 @@ import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.interaction.construction.context.PlaceContext
 import com.lambda.interaction.request.ManagerUtils.isPosBlocked
 import com.lambda.interaction.request.PositionBlocking
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakManager
 import com.lambda.interaction.request.interacting.InteractionManager
@@ -86,7 +85,7 @@ object PlaceManager : RequestHandler<PlaceRequest>(
 
     fun Any.onPlace(
         alwaysListen: Boolean = false,
-        priority: Priority = 0,
+        priority: Int = 0,
         block: SafeContext.() -> Unit
     ) = this.listen<UpdateManagerEvent.Place>(priority, alwaysListen) {
         block()

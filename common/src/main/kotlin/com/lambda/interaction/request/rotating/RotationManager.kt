@@ -28,7 +28,6 @@ import com.lambda.event.events.TickEvent
 import com.lambda.event.events.UpdateManagerEvent
 import com.lambda.event.listener.SafeListener.Companion.listen
 import com.lambda.event.listener.UnsafeListener.Companion.listenUnsafe
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.rotating.Rotation.Companion.slerp
 import com.lambda.interaction.request.rotating.Rotation.Companion.wrap
@@ -64,7 +63,7 @@ object RotationManager : RequestHandler<RotationRequest>(
 
     fun Any.onRotate(
         alwaysListen: Boolean = false,
-        priority: Priority = 0,
+        priority: Int = 0,
         block: SafeContext.() -> Unit
     ) = this.listen<UpdateManagerEvent.Rotation>(priority, alwaysListen) {
         block()

@@ -39,7 +39,6 @@ import com.lambda.interaction.construction.simulation.BuildSimulator.simulate
 import com.lambda.interaction.construction.verify.TargetState
 import com.lambda.interaction.request.ManagerUtils.isPosBlocked
 import com.lambda.interaction.request.PositionBlocking
-import com.lambda.interaction.request.Priority
 import com.lambda.interaction.request.RequestHandler
 import com.lambda.interaction.request.breaking.BreakConfig.BreakConfirmationMode
 import com.lambda.interaction.request.breaking.BreakConfig.BreakMode
@@ -130,7 +129,7 @@ object BreakManager : RequestHandler<BreakRequest>(
 
     fun Any.onBreak(
         alwaysListen: Boolean = false,
-        priority: Priority = 0,
+        priority: Int = 0,
         block: SafeContext.() -> Unit
     ) = this.listen<UpdateManagerEvent.Break>(priority, alwaysListen) {
         block()
